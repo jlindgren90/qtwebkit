@@ -43,7 +43,7 @@ using namespace Inspector;
 #define FAIL_WITH_PREDEFINED_ERROR_MESSAGE(messageName) \
 do { \
     auto enumValue = Inspector::Protocol::Automation::ErrorMessage::messageName; \
-    errorString = Inspector::Protocol::getEnumConstantValue(enumValue); \
+    errorString = Inspector::Protocol::AutomationHelpers::getEnumConstantValue(enumValue); \
     return; \
 } while (false)
 
@@ -678,11 +678,11 @@ void WebAutomationSession::performMouseInteraction(Inspector::ErrorString& error
 
     WebCore::IntPoint viewPosition = WebCore::IntPoint(static_cast<int>(x), static_cast<int>(y));
 
-    auto parsedInteraction = Inspector::Protocol::parseEnumValueFromString<Inspector::Protocol::Automation::MouseInteraction>(mouseInteractionString);
+    auto parsedInteraction = Inspector::Protocol::AutomationHelpers::parseEnumValueFromString<Inspector::Protocol::Automation::MouseInteraction>(mouseInteractionString);
     if (!parsedInteraction)
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
 
-    auto parsedButton = Inspector::Protocol::parseEnumValueFromString<Inspector::Protocol::Automation::MouseButton>(mouseButtonString);
+    auto parsedButton = Inspector::Protocol::AutomationHelpers::parseEnumValueFromString<Inspector::Protocol::Automation::MouseButton>(mouseButtonString);
     if (!parsedButton)
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
 
@@ -692,7 +692,7 @@ void WebAutomationSession::performMouseInteraction(Inspector::ErrorString& error
         if (!it->get()->asString(modifierString))
             FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
 
-        auto parsedModifier = Inspector::Protocol::parseEnumValueFromString<Inspector::Protocol::Automation::KeyModifier>(modifierString);
+        auto parsedModifier = Inspector::Protocol::AutomationHelpers::parseEnumValueFromString<Inspector::Protocol::Automation::KeyModifier>(modifierString);
         if (!parsedModifier)
             FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
         WebEvent::Modifiers enumValue = protocolModifierToWebEventModifier(parsedModifier.value());
