@@ -251,7 +251,9 @@ void Frame::setView(RefPtr<FrameView>&& view)
     if (m_view)
         m_view->unscheduleRelayout();
     
-    eventHandler().clear();
+    // This may be called during destruction, so need to do a null check.
+    if (m_eventHandler)
+        m_eventHandler->clear();
 
     m_view = WTFMove(view);
 
