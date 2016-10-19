@@ -138,13 +138,12 @@ void RenderTableRow::addChild(RenderObject* child, RenderObject* beforeChild)
             // If beforeChild is inside an anonymous row, insert into the row.
             auto& parent = *last->parent();
             if (is<RenderTableRow>(parent)) {
-                RenderTableCell* cell = RenderTableCell::createAnonymousWithParentRenderer(this);
+                auto* cell = RenderTableCell::createAnonymousWithParentRenderer(*this).release();
                 parent.addChild(cell, beforeChild);
                 cell->addChild(child);
                 return;
             }
         }
-
         auto* cell = RenderTableCell::createAnonymousWithParentRenderer(*this).release();
         addChild(cell, beforeChild);
         cell->addChild(child);
