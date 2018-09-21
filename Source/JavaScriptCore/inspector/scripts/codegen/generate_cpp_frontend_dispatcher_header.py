@@ -52,7 +52,7 @@ class CppFrontendDispatcherHeaderGenerator(CppGenerator):
         return "%sFrontendDispatchers.h" % self.protocol_name()
 
     def domains_to_generate(self):
-        return filter(lambda domain: len(self.events_for_domain(domain)) > 0, Generator.domains_to_generate(self))
+        return [domain for domain in Generator.domains_to_generate(self) if len(self.events_for_domain(domain)) > 0]
 
     def generate_output(self):
         headers = [

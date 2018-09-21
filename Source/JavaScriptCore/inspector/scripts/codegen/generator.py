@@ -29,8 +29,12 @@ import os.path
 import re
 from string import Template
 
-from generator_templates import GeneratorTemplates as Templates
-from models import PrimitiveType, ObjectType, ArrayType, EnumType, AliasedType, Frameworks, Platforms
+try:
+    from .generator_templates import GeneratorTemplates as Templates
+    from .models import PrimitiveType, ObjectType, ArrayType, EnumType, AliasedType, Frameworks, Platforms
+except ValueError:
+    from generator_templates import GeneratorTemplates as Templates
+    from models import PrimitiveType, ObjectType, ArrayType, EnumType, AliasedType, Frameworks, Platforms
 
 log = logging.getLogger('global')
 

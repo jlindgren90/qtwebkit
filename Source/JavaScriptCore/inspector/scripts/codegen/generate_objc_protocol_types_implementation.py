@@ -57,7 +57,7 @@ class ObjCProtocolTypesImplementationGenerator(ObjCGenerator):
         return '%sTypes.mm' % self.protocol_name()
 
     def domains_to_generate(self):
-        return filter(self.should_generate_types_for_domain, Generator.domains_to_generate(self))
+        return list(filter(self.should_generate_types_for_domain, Generator.domains_to_generate(self)))
 
     def generate_output(self):
         secondary_headers = [

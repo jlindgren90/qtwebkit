@@ -60,7 +60,7 @@ class ObjCInternalHeaderGenerator(ObjCGenerator):
             'includes': '\n'.join(['#import ' + header for header in sorted(headers)]),
         }
 
-        event_domains = filter(self.should_generate_events_for_domain, self.domains_to_generate())
+        event_domains = list(filter(self.should_generate_events_for_domain, self.domains_to_generate()))
 
         sections = []
         sections.append(self.generate_license())

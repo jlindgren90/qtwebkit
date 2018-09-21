@@ -57,7 +57,7 @@ class ObjCProtocolTypeConversionsHeaderGenerator(ObjCGenerator):
         return '%sTypeConversions.h' % self.protocol_name()
 
     def domains_to_generate(self):
-        return filter(self.should_generate_types_for_domain, Generator.domains_to_generate(self))
+        return list(filter(self.should_generate_types_for_domain, Generator.domains_to_generate(self)))
 
     def generate_output(self):
         headers = [
@@ -75,7 +75,7 @@ class ObjCProtocolTypeConversionsHeaderGenerator(ObjCGenerator):
         sections.append(self.generate_license())
         sections.append(Template(ObjCTemplates.TypeConversionsHeaderPrelude).substitute(None, **header_args))
         sections.append(Template(ObjCTemplates.TypeConversionsHeaderStandard).substitute(None))
-        sections.extend(map(self._generate_enum_conversion_functions, domains))
+        sections.extend(list(map(self._generate_enum_conversion_functions, domains)))
         sections.append(Template(ObjCTemplates.TypeConversionsHeaderPostlude).substitute(None, **header_args))
         return '\n\n'.join(sections)
 
