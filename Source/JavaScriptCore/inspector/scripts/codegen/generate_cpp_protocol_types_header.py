@@ -377,8 +377,8 @@ class CppProtocolTypesHeaderGenerator(CppGenerator):
 
         for domain in self.domains_to_generate():
             declaration_types = [decl.type for decl in domain.type_declarations]
-            object_types = filter(lambda _type: isinstance(_type, ObjectType), declaration_types)
-            enum_types = filter(lambda _type: isinstance(_type, EnumType), declaration_types)
+            object_types = [_type for _type in declaration_types if isinstance(_type, ObjectType)]
+            enum_types = [_type for _type in declaration_types if isinstance(_type, EnumType)]
             if len(object_types) + len(enum_types) == 0:
                 continue
 
