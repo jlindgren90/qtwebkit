@@ -161,7 +161,7 @@ class Generator:
         fields = set(_TYPES_WITH_OPEN_FIELDS.get(type_declaration.type.qualified_name(), []))
         if not fields:
             return type_declaration.type_members
-        return filter(lambda member: member.member_name in fields, type_declaration.type_members)
+        return [member for member in type_declaration.type_members if member.member_name in fields]
 
     def type_needs_shape_assertions(self, _type):
         if not hasattr(self, "_types_needing_shape_assertions"):
