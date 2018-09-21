@@ -50,11 +50,11 @@ class JSBackendCommandsGenerator(Generator):
 
     def should_generate_domain(self, domain):
         type_declarations = self.type_declarations_for_domain(domain)
-        domain_enum_types = filter(lambda declaration: isinstance(declaration.type, EnumType), type_declarations)
+        domain_enum_types = [declaration for declaration in type_declarations if isinstance(declaration.type, EnumType)]
         return len(self.commands_for_domain(domain)) > 0 or len(self.events_for_domain(domain)) > 0 or len(domain_enum_types) > 0
 
     def domains_to_generate(self):
-        return filter(self.should_generate_domain, Generator.domains_to_generate(self))
+        return list(filter(self.should_generate_domain, Generator.domains_to_generate(self)))
 
     def generate_output(self):
         sections = []
@@ -74,7 +74,7 @@ class JSBackendCommandsGenerator(Generator):
         commands = self.commands_for_domain(domain)
         events = self.events_for_domain(domain)
 
-        has_async_commands = any(map(lambda command: command.is_async, commands))
+        has_async_commands = any([command.is_async for command in commands])
         if len(events) > 0 or has_async_commands:
             lines.append('InspectorBackend.register%(domain)sDispatcher = InspectorBackend.registerDomainDispatcher.bind(InspectorBackend, "%(domain)s");' % args)
 

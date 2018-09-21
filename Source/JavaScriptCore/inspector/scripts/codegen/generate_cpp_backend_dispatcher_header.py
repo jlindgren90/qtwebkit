@@ -52,7 +52,7 @@ class CppBackendDispatcherHeaderGenerator(CppGenerator):
         return "%sBackendDispatchers.h" % self.protocol_name()
 
     def domains_to_generate(self):
-        return filter(lambda domain: len(self.commands_for_domain(domain)) > 0, Generator.domains_to_generate(self))
+        return [domain for domain in Generator.domains_to_generate(self) if len(self.commands_for_domain(domain)) > 0]
 
     def generate_output(self):
         headers = [
@@ -201,7 +201,7 @@ class CppBackendDispatcherHeaderGenerator(CppGenerator):
         commands = self.commands_for_domain(domain)
         if len(commands) > 0:
             declarations.append('private:')
-        declarations.extend(map(self._generate_dispatcher_declaration_for_command, commands))
+        declarations.extend(list(map(self._generate_dispatcher_declaration_for_command, commands)))
 
         declaration_args = {
             'domainName': domain.domain_name,

@@ -128,8 +128,8 @@ class CppProtocolTypesHeaderGenerator(CppGenerator):
 
     def _generate_typedefs_for_domain(self, domain):
         type_declarations = self.type_declarations_for_domain(domain)
-        primitive_declarations = filter(lambda decl: isinstance(decl.type, AliasedType), type_declarations)
-        array_declarations = filter(lambda decl: isinstance(decl.type, ArrayType), type_declarations)
+        primitive_declarations = [decl for decl in type_declarations if isinstance(decl.type, AliasedType)]
+        array_declarations = [decl for decl in type_declarations if isinstance(decl.type, ArrayType)]
         if len(primitive_declarations) == 0 and len(array_declarations) == 0:
             return ''
 
@@ -345,7 +345,7 @@ class CppProtocolTypesHeaderGenerator(CppGenerator):
 
         for domain in self.domains_to_generate():
             type_declarations = self.type_declarations_for_domain(domain)
-            declarations_to_generate = filter(lambda decl: self.type_needs_shape_assertions(decl.type), type_declarations)
+            declarations_to_generate = [decl for decl in type_declarations if self.type_needs_shape_assertions(decl.type)]
 
             for type_declaration in declarations_to_generate:
                 for type_member in type_declaration.type_members:

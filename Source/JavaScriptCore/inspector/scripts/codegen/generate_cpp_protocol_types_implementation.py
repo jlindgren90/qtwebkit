@@ -166,7 +166,7 @@ class CppProtocolTypesImplementationGenerator(CppGenerator):
         lines = []
         for domain in self.domains_to_generate():
             type_declarations = self.type_declarations_for_domain(domain)
-            for type_declaration in filter(lambda decl: Generator.type_has_open_fields(decl.type), type_declarations):
+            for type_declaration in [decl for decl in type_declarations if Generator.type_has_open_fields(decl.type)]:
                 for type_member in sorted(type_declaration.type_members, key=lambda member: member.member_name):
                     field_name = '::'.join(['Inspector', 'Protocol', domain.domain_name, ucfirst(type_declaration.type_name), ucfirst(type_member.member_name)])
                     lines.append('const char* %s = "%s";' % (field_name, type_member.member_name))
@@ -176,7 +176,7 @@ class CppProtocolTypesImplementationGenerator(CppGenerator):
     def _generate_builders_for_domain(self, domain):
         sections = []
         type_declarations = self.type_declarations_for_domain(domain)
-        declarations_to_generate = filter(lambda decl: self.type_needs_shape_assertions(decl.type), type_declarations)
+        declarations_to_generate = [decl for decl in type_declarations if self.type_needs_shape_assertions(decl.type)]
 
         for type_declaration in declarations_to_generate:
             for type_member in type_declaration.type_members:

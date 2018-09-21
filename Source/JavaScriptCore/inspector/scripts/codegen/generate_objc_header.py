@@ -66,9 +66,9 @@ class ObjCHeaderGenerator(ObjCGenerator):
         }
 
         domains = self.domains_to_generate()
-        type_domains = filter(self.should_generate_types_for_domain, domains)
-        command_domains = filter(self.should_generate_commands_for_domain, domains)
-        event_domains = filter(self.should_generate_events_for_domain, domains)
+        type_domains = list(filter(self.should_generate_types_for_domain, domains))
+        command_domains = list(filter(self.should_generate_commands_for_domain, domains))
+        event_domains = list(filter(self.should_generate_events_for_domain, domains))
 
         # FIXME: <https://webkit.org/b/138222> Web Inspector: Reduce unnecessary enums/types generated in ObjC Protocol Interfaces
         # Currently we generate enums/types for all types in the type_domains. For the built-in
