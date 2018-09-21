@@ -153,8 +153,8 @@ class CppProtocolTypesImplementationGenerator(CppGenerator):
         sections = []
         sections.append('namespace %s {' % self.helpers_namespace())
         sections.extend(self._generate_enum_mapping())
-        enum_parser_sections = map(self._generate_enum_conversion_methods_for_domain, domains)
-        sections.extend(filter(lambda section: len(section) > 0, enum_parser_sections))
+        enum_parser_sections = list(map(self._generate_enum_conversion_methods_for_domain, domains))
+        sections.extend([section for section in enum_parser_sections if len(section) > 0])
         if len(sections) == 1:
             return []  # No declarations to emit, just the namespace.
 
