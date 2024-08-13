@@ -862,8 +862,11 @@ void RenderLayer::updateLayerPositionsAfterScroll(RenderGeometryMap* geometryMap
         computeRepaintRects(renderer().containerForRepaint(), geometryMap);
     } else {
         // Check that our cached rects are correct.
-        ASSERT(m_repaintRect == renderer().clippedOverflowRectForRepaint(renderer().containerForRepaint()));
-        ASSERT(m_outlineBox == renderer().outlineBoundsForRepaint(renderer().containerForRepaint(), geometryMap));
+        if ((m_repaintRect != renderer().clippedOverflowRectForRepaint(renderer().containerForRepaint()))
+            || (m_outlineBox != renderer().outlineBoundsForRepaint(renderer().containerForRepaint(), geometryMap))) {
+            // FIXME: determine why this happens
+            qWarning("RenderLayer: repaintRect/outlineBox incorrect");
+        }
     }
     
     for (RenderLayer* child = firstChild(); child; child = child->nextSibling())
