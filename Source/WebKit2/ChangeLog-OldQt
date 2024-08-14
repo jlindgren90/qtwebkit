@@ -1,3 +1,1375 @@
+2017-05-06  David Kilzer  <ddkilzer@apple.com>
+
+        messages_unittest.py should support a [-r|--reset-results] switch
+        <https://webkit.org/b/171627>
+
+        Reviewed by Daniel Bates.
+
+        This change adds support for a [-r|--reset-results] switch when
+        running messages_unittest.py to make it easy to update the
+        expected file results.
+
+        This also cleans up a lot of duplicate code in
+        messages_unittest.py by extracting common code into new methods
+        and by pushing code down into methods where it's actually used.
+
+        * Scripts/webkit/LegacyMessageReceiver-expected.cpp:
+        * Scripts/webkit/LegacyMessages-expected.h:
+        * Scripts/webkit/MessageReceiver-expected.cpp:
+        * Scripts/webkit/MessageReceiverSuperclass-expected.cpp:
+        * Scripts/webkit/Messages-expected.h:
+        * Scripts/webkit/MessagesSuperclass-expected.h:
+        - Update expected files using the new --reset-results switch.
+
+        * Scripts/webkit/messages_unittest.py:
+        - Remove what appears to be a debugging print statement.
+        - Replace the code that reads in expected files with variables
+          that contain the expected file names.  The code to read in the
+          contents moved into
+          GeneratedFileContentsTest.assertGeneratedFileContentsEqual().
+        (ParsingTest.check_message):
+        - Drive-by fix to change "!= None" to "is not None".
+        (GeneratedFileContentsTest.assertGeneratedFileContentsEqual):
+        - Add support for [-r|--reset-results] switch here.  This will
+          write out updated expected file contents when the switch is
+          used.
+        - Push down most of the global code that reads in file contents
+          into this method.
+        - Change use of split('\n') into splitlines(False).
+        (GeneratedFileContentsTest.assertHeaderEqual): Add.
+        - Extracts common code from test_receiver_headers().
+        (GeneratedFileContentsTest.assertImplementationEqual): Add.
+        - Extracts common code from test_receiver_implementations().
+        (HeaderTest):
+        (HeaderTest.test_receiver_headers):
+        - Rename from HeaderTest.test_header().
+        - Simplify by calling assertHeaderEqual().
+        (ReceiverImplementationTest):
+        (ReceiverImplementationTest.test_receiver_implementations):
+        - Rename from
+          ReceiverImplementationTest.test_receiver_implementation().
+        - Simplify by calling assertImplementationEqual().
+        (add_reset_results_to_unittest_help): Add.
+        - Inserts help text for [-r|--reset-results] switch.
+        (parse_sys_argv): Add.
+        - Parses [-r|--reset-results] switch, and then removes it from
+          sys.argv.  We do this instead of using argparse so that the
+          original help for the unittest module is still shown when
+          using --help.
+
+2017-05-04  David Kilzer  <ddkilzer@apple.com>
+
+        check-webkit-style exits with an error while parsing Source/WebKit2/Scripts/webkit/ directory: KeyError: 'st'
+        <https://bugs.webkit.org/show_bug.cgi?id=171510>
+
+        Reviewed by Daniel Bates.
+
+        The problem was that 'import parser' was ambiguous since there
+        is a built-in parser module that comes with Python.  Changing
+        'import parser' to 'from webkit import parser' fixed the error
+        in check-webkit-style (and pylint) by forcing it to load the
+        local 'parser' module, but then running messages_unittest.py
+        directly would fail because .../Source/WebKit2/Scripts was not
+        in the module search path by default.  This is fixed by using
+        sys.path.append() to add .../Source/WebKit2/Scripts to the
+        module search path based on the path to messages_unittest.py.
+
+        As an added bonus, this patch also fixes all webkit-style issues
+        in Source/WebKit2/Scripts/webkit/*.py files.
+
+        * Scripts/webkit/messages.py:
+        - Separate local module imports from built-in modules for
+          consistency.
+        - Fix whitespace issues for check-webkit-style, and remove stray
+          semi-colon.
+        * Scripts/webkit/messages_unittest.py:
+        - Update sys.path to find the 'webkit' module based on the path
+          to messages_unittest.py.  This makes 'from webkit import ...'
+          statements work when running messages_unittest.py directly.
+        - Change 'messages' and 'parser' modules to use
+          'from webkit import ...' format for consistency.
+        - Fix whitespace issues for check-webkit-style.
+        * Scripts/webkit/model.py:
+        - Fix whitespace issue for check-webkit-style.
+        * Scripts/webkit/parser.py:
+        - Fix whitespace issue for check-webkit-style.
+
+2017-03-17  Tomas Popela  <tpopela@redhat.com>
+
+        Fix uninitialized public members in WebProcess
+        https://bugs.webkit.org/show_bug.cgi?id=169604
+
+        Reviewed by Michael Catanzaro.
+
+        Found by Coverity scan.
+
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.h:
+        * WebProcess/InjectedBundle/InjectedBundleNavigationAction.h:
+        * WebProcess/Plugins/Netscape/NetscapePlugin.h:
+        * WebProcess/Plugins/Netscape/x11/NetscapePluginX11.cpp:
+        (WebKit::NetscapePluginX11::NetscapePluginX11):
+
+2017-06-28  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] Improve configuration tests for librt and libatomic
+        https://bugs.webkit.org/show_bug.cgi?id=173921
+
+        Reviewed by Michael Catanzaro.
+
+        1. Both tests are converted to use specialized CMake modules
+        2. Both libraries are now linked only if they are really needed and usable
+           by compiler
+        3. librt is no more required to be detected by find_library(), which may fail
+           in case of cross-compilation
+        4. libatomic test moved to port-independent CMakeLists.txt
+
+        * CMakeLists.txt:
+        * PlatformGTK.cmake:
+
+2017-05-22  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Add even more input validation in Connection::processMessage()
+        https://bugs.webkit.org/show_bug.cgi?id=171682
+
+        Reviewed by Carlos Garcia Campos.
+
+        Verify that the size of the out-of-line message body matches the size of the AttachmentInfo
+        that is containing it.
+
+        * Platform/IPC/unix/ConnectionUnix.cpp:
+        (IPC::Connection::processMessage):
+
+2017-05-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Add more input validation in Connection::readBytesFromSocket()
+        https://bugs.webkit.org/show_bug.cgi?id=171871
+
+        Reviewed by Michael Catanzaro.
+
+        Check the control message length is in the limits. Credit to Nathan Crandall for reporting this issue and
+        submitting an equivalent fix.
+
+        * Platform/IPC/unix/ConnectionUnix.cpp:
+        (IPC::readBytesFromSocket):
+
+2017-05-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Add more input validation in Connection::processMessage()
+        https://bugs.webkit.org/show_bug.cgi?id=171682
+
+        Reviewed by Michael Catanzaro.
+
+        Check limits of attachments and message size. Credit to Nathan Crandall for reporting this issue and submitting
+        an equivalent fix.
+
+        * Platform/IPC/unix/ConnectionUnix.cpp:
+        (IPC::Connection::processMessage):
+
+2016-10-28  Brent Fulgham  <bfulgham@apple.com>
+
+        Do a better job of protecting Frame objects in the context of JavaScript calls
+        https://bugs.webkit.org/show_bug.cgi?id=164163
+        <rdar://problem/28955249>
+
+        Reviewed by Darin Adler.
+
+        * WebProcess/InjectedBundle/DOM/InjectedBundleRangeHandle.cpp:
+        (WebKit::InjectedBundleRangeHandle::renderedImage): Protected the Frame.
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::insertTextAsync): Ditto.
+        (WebKit::WebPage::setComposition): Ditto.
+        * WebProcess/WebPage/mac/WebPageMac.mm:
+        (WebKit::WebPage::insertDictatedTextAsync): Ditto.
+
+2016-09-19  Anders Carlsson  <andersca@apple.com>
+
+        Suppress JavaScript prompts early on in certain cases
+        https://bugs.webkit.org/show_bug.cgi?id=162243
+        rdar://problem/27661602
+
+        Reviewed by Geoffrey Garen.
+
+        * WebProcess/WebCoreSupport/WebChromeClient.cpp:
+        (WebKit::shouldSuppressJavaScriptDialogs):
+        Add helper function.
+
+        (WebKit::WebChromeClient::runJavaScriptAlert):
+        (WebKit::WebChromeClient::runJavaScriptConfirm):
+        (WebKit::WebChromeClient::runJavaScriptPrompt):
+        Call helper function and return early if we should supress dialogs.
+
+2016-08-24  Anders Carlsson  <andersca@apple.com>
+
+        In some cases, an IPC::Connection won't know when the other end has gone away
+        https://bugs.webkit.org/show_bug.cgi?id=161153
+        rdar://problem/27896368
+
+        Reviewed by Dan Bernstein.
+
+        When being asked to invalidate a connection that isn't yet connected, make sure to release
+        our send and receive rights so that the other end will get a failure when trying to connect.
+
+        * Platform/IPC/mac/ConnectionMac.mm:
+        (IPC::Connection::platformInvalidate):
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        Crash under NavigationState::NavigationClient::processDidCrash()
+        https://bugs.webkit.org/show_bug.cgi?id=160563
+        <rdar://problem/19814215>
+
+        Reviewed by Sam Weinig.
+
+        When WebPageProxy::close() gets called, make sure we destroy the page's
+        navigationClient. If we don't then the navigationClient can outlive the
+        navigationState, causing crashes when navigationClient tries to use its
+        stale navigationState member reference later on. This happens when the
+        WebPageProxy outlives its WKWebView because:
+        1. WebPageProxy owns the navigationClient
+        2. WKWebView owns the navigationState
+        3. navigationClient has a reference to the navigationState as member.
+
+        WebPageProxy can outlive the WKWebView because it is refCounted. It
+        can happen for example when the client application uses the
+        RelatedPage API as this extend the lifetime of the related WebPage's
+        proxy but the application may not keep the related WKWebView alive.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::close):
+        Note that it is safe to null out m_navigationClient here instead of
+        creating a fresh one because there is a null check before every use
+        of m_navigationClient in WebPageProxy.
+
+2016-07-18  Anders Carlsson  <andersca@apple.com>
+
+        Don't null out the IPC::Connection's XPC connection
+        https://bugs.webkit.org/show_bug.cgi?id=159911
+        rdar://problem/27018065
+
+        Reviewed by Alex Christensen.
+
+        The function that nulls out the XPC connection, platformInvalidate(), is called from the connection queue,
+        whereas the XPC connection is normally accessed from the main thread leading to inconsistencies when the
+        connection is being invalidated while the main thread is trying to access it.
+        
+        Fix this by simply never nulling out the XPC connection. It will be released when the IPC::Connection is destroyed anyway.
+
+        * Platform/IPC/mac/ConnectionMac.mm:
+        (IPC::Connection::platformInvalidate):
+
+2016-07-21  Yongjun Zhang  <yongjun_zhang@apple.com>
+
+        WebBackForwardList's currentIndex could get out of bounds when filtering items.
+        https://bugs.webkit.org/show_bug.cgi?id=159986
+
+        When generating a new BackForwardListState object, if we filter out multiple items in the list, the currentIndex could get
+        out of bounds.
+
+        Reviewed by Dan Bernstein.
+
+        * UIProcess/WebBackForwardList.cpp:
+        (WebKit::WebBackForwardList::backForwardListState): Make currentIndex point to the last item if it is out of bounds.
+
+2017-03-13  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] [WK2] Guard flags intended for GCC-like compilers with COMPILER_IS_GCC_OR_CLANG
+        https://bugs.webkit.org/show_bug.cgi?id=169551
+
+        Reviewed by Yusuke Suzuki.
+
+        This change allows building WK2 code with MSVC.
+
+        * CMakeLists.txt:
+
+2017-03-09  Brady Eidson  <beidson@apple.com>
+
+        Add WKURLSchemeHandler API for handling custom protocols.
+        https://bugs.webkit.org/show_bug.cgi?id=169422
+
+        Reviewed by Tim Horton.
+
+        This introduces two new protocols to the WK2 API surface:
+        - WKURLSchemeHandler
+        - WKURLSchemeHandlerTask
+        
+        By registering an object that conforms to the WKURLSchemeHandler protocol with a WKWebViewConfiguration an application will
+        be handed an object conforming to WKURLSchemeHandlerTask for each resource load in that WKWebView with a custom URL scheme.
+        
+        Using that id <WKURLSchemeHandlerTask>, the application can communicate the data for the resource back to WebKit.
+        
+        * Shared/API/APIObject.h:
+        * Shared/Cocoa/APIObject.mm:
+        (API::Object::newObject):
+
+        * Shared/WebPageCreationParameters.cpp:
+        (WebKit::WebPageCreationParameters::encode):
+        (WebKit::WebPageCreationParameters::decode):
+        * Shared/WebPageCreationParameters.h:
+
+        * UIProcess/API/APIURLSchemeHandlerTask.cpp: 
+        (API::URLSchemeHandlerTask::create):
+        (API::URLSchemeHandlerTask::URLSchemeHandlerTask):
+        * UIProcess/API/APIURLSchemeHandlerTask.h: 
+
+        Add the WKURLSchemeHandler @protocol:
+        * UIProcess/API/Cocoa/WKURLSchemeHandler.h: Added.
+
+        Add the WKURLSchemeHandlerTask @protocol, as well as WebKit's concrete implementation of it:
+        * UIProcess/API/Cocoa/WKURLSchemeHandlerTask.h: Added.
+        * UIProcess/API/Cocoa/WKURLSchemeHandlerTask.mm: Added.
+        (raiseExceptionIfNecessary):
+        (-[WKURLSchemeHandlerTaskImpl request]):
+        (-[WKURLSchemeHandlerTaskImpl didReceiveResponse:]):
+        (-[WKURLSchemeHandlerTaskImpl didReceiveData:]):
+        (-[WKURLSchemeHandlerTaskImpl didFinish]):
+        (-[WKURLSchemeHandlerTaskImpl didFailWithError:]):
+        (-[WKURLSchemeHandlerTaskImpl _apiObject]):
+        * UIProcess/API/Cocoa/WKURLSchemeHandlerTaskInternal.h: 
+        (WebKit::wrapper):
+
+        * UIProcess/API/Cocoa/WKWebView.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        (-[WKWebView urlSchemeHandlerForURLScheme:]):
+        (+[WKWebView handlesURLScheme:]):
+
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.h:
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration copyWithZone:]):
+        (-[WKWebViewConfiguration setURLSchemeHandler:forURLScheme:]):
+        (-[WKWebViewConfiguration urlSchemeHandlerForURLScheme:]):
+        (-[WKWebViewConfiguration _urlSchemeHandlers]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationInternal.h:
+
+        * UIProcess/Cocoa/WebURLSchemeHandlerCocoa.h: 
+        (WebKit::WebURLSchemeHandlerCocoa::apiHandler):
+        * UIProcess/Cocoa/WebURLSchemeHandlerCocoa.mm: Added.
+        (WebKit::WebURLSchemeHandlerCocoa::create):
+        (WebKit::WebURLSchemeHandlerCocoa::WebURLSchemeHandlerCocoa):
+        (WebKit::WebURLSchemeHandlerCocoa::platformStartTask):
+        (WebKit::WebURLSchemeHandlerCocoa::platformStopTask):
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::creationParameters):
+        (WebKit::WebPageProxy::setURLSchemeHandlerForScheme):
+        (WebKit::WebPageProxy::urlSchemeHandlerForScheme):
+        (WebKit::WebPageProxy::startURLSchemeHandlerTask):
+        (WebKit::WebPageProxy::stopURLSchemeHandlerTask):
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/WebPageProxy.messages.in:
+
+        * UIProcess/WebURLSchemeHandler.cpp: 
+        (WebKit::generateWebURLSchemeHandlerIdentifier):
+        (WebKit::WebURLSchemeHandler::WebURLSchemeHandler):
+        (WebKit::WebURLSchemeHandler::~WebURLSchemeHandler):
+        (WebKit::WebURLSchemeHandler::startTask):
+        (WebKit::WebURLSchemeHandler::stopTask):
+        * UIProcess/WebURLSchemeHandler.h: 
+        (WebKit::WebURLSchemeHandler::identifier):
+
+        * UIProcess/WebURLSchemeHandlerTask.cpp: Added.
+        (WebKit::WebURLSchemeHandlerTask::create):
+        (WebKit::WebURLSchemeHandlerTask::WebURLSchemeHandlerTask):
+        (WebKit::WebURLSchemeHandlerTask::didReceiveResponse):
+        (WebKit::WebURLSchemeHandlerTask::didReceiveData):
+        (WebKit::WebURLSchemeHandlerTask::didComplete):
+        (WebKit::WebURLSchemeHandlerTask::pageDestroyed):
+        (WebKit::WebURLSchemeHandlerTask::stop):
+        * UIProcess/WebURLSchemeHandlerTask.h: Added.
+        (WebKit::WebURLSchemeHandlerTask::identifier):
+        (WebKit::WebURLSchemeHandlerTask::request):
+
+        * WebProcess/Network/WebLoaderStrategy.cpp:
+        (WebKit::WebLoaderStrategy::scheduleLoad):
+        (WebKit::WebLoaderStrategy::remove):
+        * WebProcess/Network/WebLoaderStrategy.h:
+
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::urlSchemeHandlerForScheme):
+        (WebKit::WebPage::registerURLSchemeHandler):
+        (WebKit::WebPage::urlSchemeHandlerTaskDidReceiveResponse):
+        (WebKit::WebPage::urlSchemeHandlerTaskDidReceiveData):
+        (WebKit::WebPage::urlSchemeHandlerTaskDidComplete):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/WebPage.messages.in:
+
+        * WebProcess/WebPage/WebURLSchemeHandlerProxy.cpp: Added.
+        (WebKit::WebURLSchemeHandlerProxy::WebURLSchemeHandlerProxy):
+        (WebKit::WebURLSchemeHandlerProxy::~WebURLSchemeHandlerProxy):
+        (WebKit::WebURLSchemeHandlerProxy::startNewTask):
+        (WebKit::WebURLSchemeHandlerProxy::taskDidReceiveResponse):
+        (WebKit::WebURLSchemeHandlerProxy::taskDidReceiveData):
+        (WebKit::WebURLSchemeHandlerProxy::taskDidComplete):
+        * WebProcess/WebPage/WebURLSchemeHandlerProxy.h:
+        (WebKit::WebURLSchemeHandlerProxy::identifier):
+        (WebKit::WebURLSchemeHandlerProxy::page):
+
+        * WebProcess/WebPage/WebURLSchemeHandlerTaskProxy.cpp: Added.
+        (WebKit::WebURLSchemeHandlerTaskProxy::WebURLSchemeHandlerTaskProxy):
+        (WebKit::WebURLSchemeHandlerTaskProxy::startLoading):
+        (WebKit::WebURLSchemeHandlerTaskProxy::stopLoading):
+        (WebKit::WebURLSchemeHandlerTaskProxy::didReceiveResponse):
+        (WebKit::WebURLSchemeHandlerTaskProxy::didReceiveData):
+        (WebKit::WebURLSchemeHandlerTaskProxy::didComplete):
+        * WebProcess/WebPage/WebURLSchemeHandlerTaskProxy.h:
+        (WebKit::WebURLSchemeHandlerTaskProxy::request):
+
+        * WebKit2.xcodeproj/project.pbxproj:
+        * CMakeLists.txt:
+
+2016-02-20  Olivier Blin  <olivier.blin@softathome.com>
+
+        [cmake] Use ICU include dirs in WebKit2 and WebKitTestRunner
+        https://bugs.webkit.org/show_bug.cgi?id=154479
+
+        Reviewed by Michael Catanzaro.
+
+        * CMakeLists.txt:
+
+2016-09-05  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.12.5 release.
+
+        * gtk/NEWS: Add release notes for 2.12.5.
+
+2016-08-30  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r194846): [GTK] UI process crash visiting sites protected with HTTP auth when using GTK+ < 3.14
+        https://bugs.webkit.org/show_bug.cgi?id=161385
+
+        Reviewed by Antonio Gomes.
+
+        Since r194846, we are chaining up webkitWebViewBaseMotionNotifyEvent, but before GTK+ 3.14
+        GtkWidget::motion_notify_event was nullptr, so it can't be used unconditionally.
+
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseMotionNotifyEvent):
+
+2016-07-07  Alex Christensen  <achristensen@webkit.org>
+
+        Followup to r202939.
+        https://bugs.webkit.org/show_bug.cgi?id=159526
+
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::didFailLoading):
+        We need the correct destination id when sending a message.
+
+2016-08-24  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.12.4 release.
+
+        * gtk/NEWS: Add release notes for 2.12.4.
+
+2016-08-07  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Bad performance in accelerated compositing mode with the modesetting intel driver and DRI3 enabled
+        https://bugs.webkit.org/show_bug.cgi?id=160491
+
+        Reviewed by Michael Catanzaro.
+
+        This is becoming the default in several linux distributions and it makes WebKitGTK+ unusable in accelerated
+        compositing mode, which is now always enabled because since we switched to use the threaded compositor. The
+        problem seems to be an optimization of the intel driver for windows that are offscreen, and our redirected
+        window is always positioned at ScreenWidth + 1, 0. Using negative coordinates to position the redirected window
+        offscreen fixes the problem.
+        See also https://bugs.freedesktop.org/show_bug.cgi?id=85064.
+
+        * WebProcess/WebPage/gtk/RedirectedXCompositeWindow.cpp:
+        (WebKit::RedirectedXCompositeWindow::RedirectedXCompositeWindow): Position the parent window at -1, -1.
+
+2016-08-03  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Document how to initialize WebKitFaviconDatabase
+        https://bugs.webkit.org/show_bug.cgi?id=160391
+
+        Reviewed by Carlos Garcia Campos.
+
+        * UIProcess/API/gtk/WebKitFaviconDatabase.cpp:
+
+2016-07-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] WebKitGtk+ uses too many file descriptors
+        https://bugs.webkit.org/show_bug.cgi?id=152316
+
+        Reviewed by Michael Catanzaro.
+
+        The problem is that we are keeping file descriptors open in SharedMemory objects. Those objects can be kept
+        alive for a long time, for example in case of cached resources sent from the network process as shareable
+        resources. The thing is that we keep the file descriptor in the SharedMemory object only to be able to create a
+        Handle, duplicating the file descriptor. However, we are also assuming that we create handles for SharedMemory
+        objects created by another handle which is wrong. SharedMemory objects are created to map a file or data and
+        then a handle is created to send it to another process, or to map an existing file or data for a given handle
+        received from another process. They can also be created to wrap another map, but in that case we don't own the
+        file descritor nor the mapped data. So, after mapping from a handle, we no longer need the file descriptor, and
+        it can be closed to release it, while the mapped memory data will still be alive until munmap() is called. This
+        drastically reduces the amount of file descriptors used by WebKitGTK+.
+
+        * Platform/IPC/unix/ConnectionUnix.cpp:
+        (IPC::readBytesFromSocket): Use setCloseOnExec().
+        (IPC::Connection::createPlatformConnection): Ditto.
+        * Platform/SharedMemory.h:
+        * Platform/unix/SharedMemoryUnix.cpp:
+        (WebKit::SharedMemory::map): Close the file descriptor right after mmap.
+        (WebKit::SharedMemory::~SharedMemory): Close the file descriptor only if it hasn't been closed yet.
+        (WebKit::SharedMemory::createHandle): Add an ASSERT to ensure we only try to create a handle for SharedMemory
+        objects having a valid file descriptor. Use dupCloseOnExec() to duplicate the handle and set the close on exec flag.
+        * UIProcess/Launcher/gtk/ProcessLauncherGtk.cpp:
+        (WebKit::ProcessLauncher::launchProcess): Use setCloseOnExec().
+
+2016-07-04  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [GTK] Null WebCore::Range dereference in WebEditorClient::updateGlobalSelection
+        https://bugs.webkit.org/show_bug.cgi?id=159341
+
+        Reviewed by Carlos Garcia Campos.
+
+        FrameSelection::toNormalizedRange() can return null. Null check is
+        needed.
+
+        Tests:
+            editing/input/set-value-on-input-and-delete.html
+            editing/selection/selection-in-iframe-removed-crash.html
+            imported/w3c/web-platform-tests/html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute.html
+            imported/w3c/web-platform-tests/html/semantics/forms/textfieldselection/selection-after-content-change.html
+            imported/w3c/web-platform-tests/html/semantics/forms/textfieldselection/selection-not-application-textarea.html
+            imported/w3c/web-platform-tests/html/semantics/forms/textfieldselection/selection-not-application.html
+
+        * WebProcess/WebCoreSupport/gtk/WebEditorClientGtk.cpp:
+        (WebKit::WebEditorClient::updateGlobalSelection): Do not update
+        global selection if FrameSelection::toNormalizedRange() returns
+        null.
+
+2016-07-04  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [GTK] ASSERTION_FAILED: m_key != PTHREAD_KEYS_MAX when defining WEBKIT2_PAUSE_WEB_PROCESS_ON_LAUNCH
+        https://bugs.webkit.org/show_bug.cgi?id=158149
+
+        Reviewed by Carlos Garcia Campos.
+
+        WTF::sleep can not be used at the beginning of web process because
+        WTF is not initialized at the moment yet.
+
+        * WebProcess/gtk/WebProcessMainGtk.cpp: Use g_usleep instead of WTF::sleep.
+
+2016-06-10  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Browser plugins crash under Wayland
+        https://bugs.webkit.org/show_bug.cgi?id=157605
+
+        Reviewed by Michael Catanzaro.
+
+        Fail the initialization of windowed plugins if we don't have a platform implementation.
+
+        * WebProcess/Plugins/Netscape/unix/NetscapePluginUnix.cpp:
+        (WebKit::NetscapePlugin::platformPostInitialize):
+
+2016-06-07  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Hide GTK+ 2 plugins if GTK+ 2 plugin process was built but is not installed
+        https://bugs.webkit.org/show_bug.cgi?id=158419
+
+        Reviewed by Carlos Garcia Campos.
+
+        Patch by Alberto Garcia <berto@igalia.com>
+
+        * UIProcess/Plugins/unix/PluginInfoStoreUnix.cpp:
+        (WebKit::PluginInfoStore::getPluginInfo):
+        * UIProcess/Plugins/unix/PluginProcessProxyUnix.cpp:
+        (WebKit::PluginProcessProxy::scanPlugin):
+
+2016-05-25  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [Unix] Potential buffer overrun of m_fileDescriptors in readBytesFromSocket of ConnectionUnix.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=158058
+
+        Reviewed by Carlos Garcia Campos.
+
+        Memcpy does not check the boundary of m_fileDescriptors in
+        readBytesFromSocket of ConnectionUnix.cpp.  This is not a problem
+        in normal cases, but in the case when Web process is hijacked and
+        malicious IPC packets were sent.  WTF::Vector already has two
+        members m_capacity and m_size.  There is no need to have a
+        separate member m_fileDescriptorsSize to remember the number of
+        remaining data.
+
+        * Platform/IPC/Connection.h: Remove members m_readBufferSize and
+        m_fileDescriptorsSize.
+        * Platform/IPC/unix/ConnectionUnix.cpp:
+        (IPC::Connection::platformInitialize): Removed initialization of
+        m_readBufferSize and m_fileDescriptorsSize.  Reserve initial
+        capacity for m_readBuffer and m_fileDescriptors.
+        (IPC::Connection::processMessage): Replace m_readBufferSize and
+        m_fileDescriptorsSize with m_readBuffer.size() and
+        m_fileDescriptors.size().  Use Vector::shrink() to reset the
+        number of remaining data in the buffers.
+        (IPC::readBytesFromSocket) : Change argument types to WTF::Vector
+        instead of pointers and sizes.
+        (IPC::Connection::readyReadHandler): Call new readBytesFromSocket
+
+2016-07-07  Alex Christensen  <achristensen@webkit.org>
+
+        Fix crash when sending failure message to closed WebProcess
+        https://bugs.webkit.org/show_bug.cgi?id=159526
+        <rdar://problem/26767037>
+
+        Reviewed by Brady Eidson.
+
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::didFailLoading):
+        Check to see if there is a connection before using it to send a message.
+        Sometimes it was null.
+        I think this could be tested if we had real network loading from TestWebKitAPI
+        by cancelling slow loads and closing WebProcesses around the same time, but no such infrastructure exists yet.
+
+2016-07-12  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] Protect against bad database data in LocalStorageDatabase::importItems()
+        https://bugs.webkit.org/show_bug.cgi?id=159663
+        <rdar://problem/18995873>
+
+        Reviewed by Benjamin Poulain.
+
+        Protect against bad database data in LocalStorageDatabase::importItems(). We
+        crash if the database contains a null key or a null value so protect against
+        it given that we have evidence it can happen.
+
+        With this change, I can no longer reproduce the UIProcess crash on evernote.com
+        that is documented at <rdar://problem/18995873>.
+
+        * UIProcess/Storage/LocalStorageDatabase.cpp:
+        (WebKit::LocalStorageDatabase::importItems):
+
+2016-05-24  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.12.3 release.
+
+        * gtk/NEWS: Add release notes for 2.12.3.
+
+2016-02-22  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] Moved library setup code to WEBKIT_FRAMEWORK macro.
+        https://bugs.webkit.org/show_bug.cgi?id=154450
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt: Used WebKit2_SOURCES variable instead of separate
+        WebKit2_DERIVED_SOURCES for compatibility with WEBKIT_FRAMEWORK macro.
+        There is no real need to separate derived sources from others.
+        * PlatformGTK.cmake: Ditto.
+
+2016-04-27  Alex Christensen  <achristensen@webkit.org>
+
+        Remove download message receiver when NetworkProcess crashes
+        https://bugs.webkit.org/show_bug.cgi?id=157102
+        <rdar://problem/25550106>
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/Downloads/DownloadProxyMap.cpp:
+        (WebKit::DownloadProxyMap::processDidClose):
+        When the NetworkProcess crashes during a download, we want to remove the message receiver from the map
+        so we don't get an assertion in ~MessageReceiver in the UIProcess so we do not have a freed
+        message receiver in the map.
+
+2016-04-22  Zan Dobersek  <zdobersek@igalia.com>
+
+        NetworkCacheIOChannelSoup: detach the newly-created IOChannel::readSync thread
+        https://bugs.webkit.org/show_bug.cgi?id=156907
+
+        Reviewed by Carlos Garcia Campos.
+
+        * NetworkProcess/cache/NetworkCacheIOChannelSoup.cpp:
+        (WebKit::NetworkCache::IOChannel::readSyncInThread): Detach the new thread,
+        ensuring the resources are released after the thread exits. Next step is
+        to set up a thread pool and use that, avoiding thread re-creation.
+
+2016-04-28  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.12.2 release.
+
+        * gtk/NEWS: Add release notes for 2.12.2.
+
+2016-04-18  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Pending API Request URL is wrong after reloading
+        https://bugs.webkit.org/show_bug.cgi?id=139342
+
+        Reviewed by Darin Adler.
+
+        It happens when reloading a web view loaded with anything but a
+        URL, because the bf list is not updated for those cases and
+        WebPageProxy::reload() is setting the current bf list item URL as
+        pending API request URL. This also causes that progress is
+        reported wrongly, because
+        WebPageProxy::decidePolicyForNavigationAction() resets the pending
+        API request URL when it's different than the requested URL. The
+        page load transaction causes the progress to be changed, reporting
+        1.0 (the previous one), but later something < 1.0 is reported
+        again by the progress tracker.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::reload): Use the current active URL as
+        pending API request URL, falling back to the current bf list item
+        URL when empty.
+
+2016-04-18  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Pending API request URL no set when loading Data, Alternate HTML or plain text
+        https://bugs.webkit.org/show_bug.cgi?id=136916
+
+        Reviewed by Darin Adler.
+
+        Set pending API request URL for all load methods in
+        WebPageProxy. This ensures that right after calling those methods,
+        the active URL is the requested one and that
+        PageLoadState::isLoading() returns true.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::loadAlternateHTMLString):
+        (WebKit::WebPageProxy::loadPlainTextString):
+        (WebKit::WebPageProxy::loadWebArchiveData):
+
+2016-04-15  Chris Dumez  <cdumez@apple.com>
+
+        Mark NetworkLoad as FastAllocated
+        https://bugs.webkit.org/show_bug.cgi?id=156628
+
+        Reviewed by Alex Christensen.
+
+        Mark NetworkLoad as FastAllocated for performance.
+
+        * NetworkProcess/NetworkLoad.h:
+
+2016-04-07  Jeremy Jones  <jeremyj@apple.com>
+
+        Clearing the application cache doesn't work.
+        https://bugs.webkit.org/show_bug.cgi?id=156354
+        rdar://problem/22369239
+
+        Reviewed by Brady Eidson.
+
+        Use the correct "ApplicationCache" directory.
+        Delete the caches, not just the entries.
+
+        * UIProcess/WebsiteData/WebsiteDataStore.cpp:
+        (WebKit::WebsiteDataStore::fetchData):
+        (WebKit::WebsiteDataStore::removeData):
+
+2016-04-14  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.12.1 release.
+
+        * gtk/NEWS: Add release notes for 2.12.1.
+
+2016-04-05  Chris Dumez  <cdumez@apple.com>
+
+        We sometimes fail to remove outdated entry from the disk cache after revalidation and when the resource is no longer cacheable
+        https://bugs.webkit.org/show_bug.cgi?id=156048
+        <rdar://problem/25514480>
+
+        Reviewed by Antti Koivisto.
+
+        We would sometimes fail to remove outdated entry from the disk cache
+        after revalidation and when the resource is no longer cacheable. This
+        was due to Storage::removeFromPendingWriteOperations() only removing
+        the first pending write operation with a given key instead of actually
+        removing all of the operations with this key.
+
+        * NetworkProcess/cache/NetworkCacheStorage.cpp:
+        (WebKit::NetworkCache::Storage::removeFromPendingWriteOperations):
+        * NetworkProcess/cache/NetworkCacheStorage.h:
+
+2016-04-04  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Tapping on tabs in webpages caused WK crash at WebKit: WebKit::WebFrame::didReceivePolicyDecision
+        https://bugs.webkit.org/show_bug.cgi?id=156119
+        <rdar://problem/20732167>
+
+        Reviewed by Andy Estes.
+
+        Protect the m_frame so that it is present for completion handlers.
+
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::dispatchDecidePolicyForResponse):
+        (WebKit::WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction):
+
+2016-04-04  Emanuele Aina  <emanuele.aina@collabora.com>
+
+        Fix WEB_PROCESS_CMD_PREFIX and NETWORK_PROCESS_CMD_PREFIX after r196500
+        https://bugs.webkit.org/show_bug.cgi?id=156060
+
+        Reviewed by Darin Adler.
+
+        Commit r196500 was a bit too eager in removing the
+        platformGetLaunchOptions() callsites as non-mac platform still use
+        that in debug builds to attach debugging tools to spawned
+        subprocesses (eg. gdbserver).
+
+        Instead of reinstating them and relying on each subprocess type to
+        implement its own platformGetLaunchOptions() version (all alike),
+        avoid duplication and check the *_PROCESS_CMD_PREFIX environment
+        variables in a single place, ChildProcessProxy::getLaunchOptions().
+
+        Doing so also improves consistency in *_PROCESS_CMD_PREFIX support:
+        only WEB_PROCESS_CMD_PREFIX and NETWORK_PROCESS_CMD_PREFIX worked with
+        both the GTK and EFL ports while PLUGIN_PROCESS_CMD_PREFIX only
+        worked for EFL and there was no corresponding
+        DATABASE_PROCESS_CMD_PREFIX implementation.
+
+        * UIProcess/ChildProcessProxy.cpp:
+        (WebKit::ChildProcessProxy::getLaunchOptions): Check the
+        appropriate *_PROCESS_CMD_PREFIX environment variable.
+        * UIProcess/Plugins/unix/PluginProcessProxyUnix.cpp:
+        (WebKit::PluginProcessProxy::platformGetLaunchOptions): Drop
+        check for PLUGIN_PROCESS_COMMAND_PREFIX, now handled by
+        ChildProcessProxy::getLaunchOptions().
+        * UIProcess/Databases/DatabaseProcessProxy.h:
+        * UIProcess/Network/NetworkProcessProxy.h:
+        * UIProcess/WebProcessProxy.h: Drop platformGetLaunchOptions()
+        prototypes.
+        * UIProcess/Network/soup/NetworkProcessProxySoup.cpp:
+        * UIProcess/Databases/efl/DatabaseProcessProxyEfl.cpp:
+        * UIProcess/Databases/gtk/DatabaseProcessProxyGtk.cpp:
+        * UIProcess/efl/WebProcessProxyEfl.cpp:
+        * UIProcess/gtk/WebProcessProxyGtk.cpp: Removed, they only contained
+        platformGetLaunchOptions() implementations.
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake: Drop removed files.
+
+2016-04-01  Jiewen Tan  <jiewen_tan@apple.com>
+
+        WebKit should dispatchDidFailProvisionalLoad while loading invalid URLs
+        https://bugs.webkit.org/show_bug.cgi?id=155995
+        <rdar://problem/14967004>
+
+        Reviewed by Andy Estes.
+
+        Ensure that alternative HTML string will not be loaded back to back for
+        failing provisional loads.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::loadAlternateHTMLString):
+        (WebKit::WebPageProxy::didFinishLoadForFrame):
+        * UIProcess/WebPageProxy.h:
+
+2016-03-30  Brady Eidson  <beidson@apple.com>
+
+        Make BlobData use ThreadSafeSharedBuffer instead of RawData.
+        https://bugs.webkit.org/show_bug.cgi?id=156041
+
+        Reviewed by Alex Christensen.
+
+        * NetworkProcess/FileAPI/NetworkBlobRegistry.cpp:
+        (WebKit::NetworkBlobRegistry::filesInBlob):
+        * Shared/WebCoreArgumentCoders.cpp:
+        (IPC::ArgumentCoder<BlobPart>::decode):
+
+2016-03-24  Alex Christensen  <achristensen@webkit.org>
+
+        Fix null dereferencing in NetworkLoad::continueCanAuthenticateAgainstProtectionSpace
+        https://bugs.webkit.org/show_bug.cgi?id=155799
+        rdar://25289012
+
+        Reviewed by Tim Horton.
+
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::continueCanAuthenticateAgainstProtectionSpace):
+        Null-check all the things!
+
+2016-03-22  Alberto Garcia  <berto@igalia.com>
+
+        Unreviewed typo fixes.
+
+        * Shared/linux/WebMemorySamplerLinux.cpp:
+        (WebKit::WebMemorySampler::sampleWebKit): "Commited" => "Committed"
+        * UIProcess/API/gtk/WebKitFileChooserRequest.cpp:
+        (webkit_file_chooser_request_select_files): "choosen" => "chosen"
+        * UIProcess/API/gtk/WebKitUserMediaPermissionRequest.cpp:
+        (webkit_user_media_permission_request_class_init): "Wether" => "Whether"
+
+2016-03-18  Antti Koivisto  <antti@apple.com>
+
+        Protect against excessive cache traversal
+        https://bugs.webkit.org/show_bug.cgi?id=155635
+        rdar://problem/24241008
+
+        Reviewed by Darin Adler.
+
+        We can't handle unlimited number of parallel cache traversal requests from the client.
+        We'll run out of dispatch queues and other system resources. CPU will spin.
+
+        * NetworkProcess/cache/NetworkCache.cpp:
+        (WebKit::NetworkCache::Cache::traverse):
+
+            Add limit of maximum 3 traversals. When exceeded return nothing and log an error.
+
+        * NetworkProcess/cache/NetworkCache.h:
+
+2016-03-22  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] WebInspector broken after r197620
+        https://bugs.webkit.org/show_bug.cgi?id=155497
+        <rdar://problem/25171910>
+
+        Reviewed by Philippe Normand.
+
+        Stop registering resource:// URLs as local, because they are not
+        like a local file at all. Compare also the URL protocols when
+        checking whether requested URL is main or test inspector page
+        instead of checking that the protocol is registered as local.
+
+        * UIProcess/WebInspectorProxy.cpp:
+        (WebKit::isMainOrTestInspectorPage): Compare also the URL protocols.
+        * UIProcess/WebInspectorProxy.h:
+        * UIProcess/gtk/WebInspectorProxyGtk.cpp:
+        (WebKit::WebInspectorProxy::platformCreateInspectorPage): Do not
+        set setAllowFileAccessFromFileURLs setting to true.
+        * UIProcess/gtk/WebProcessPoolGtk.cpp:
+        (WebKit::WebProcessPool::platformInitializeWebProcess): Do not
+        register resource:// URLS as local.
+
+2016-03-22  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.12.0 release.
+
+        * gtk/NEWS: Add release notes for 2.12.0.
+
+2016-03-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.11.92 release.
+
+        * gtk/NEWS: Add release notes for 2.11.92.
+
+2016-03-16  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r196803.
+        https://bugs.webkit.org/show_bug.cgi?id=155534
+
+        Introduced several rendering issues in popular websites
+        (Requested by KaL on #webkit).
+
+        Reverted changeset:
+
+        "[GTK] Limit the number of tiles according to the visible
+        area"
+        https://bugs.webkit.org/show_bug.cgi?id=126122
+        http://trac.webkit.org/changeset/196803
+
+2016-03-14  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Reimplement webkit_web_context_clear_cache functionality.
+        https://bugs.webkit.org/show_bug.cgi?id=146041
+
+        Reviewed by Michael Catanzaro.
+
+        * UIProcess/API/gtk/WebKitWebContext.cpp:
+        (webkit_web_context_clear_cache):
+
+2016-03-14  Jeremy Huddleston Sequoia  <jeremyhu@apple.com>
+
+        Install WebKit2 WebProcess NetworkProcess on OSX when not building the Mac PORT
+        https://bugs.webkit.org/show_bug.cgi?id=152651
+
+        Reviewed by Philippe Normand.
+
+        * CMakeLists.txt:
+
+2016-03-12  Jeremy Huddleston Sequoia  <jeremyhu@apple.com>
+
+        [GTK][Mac] Use DYLD_LIBRARY_PATH on OSX rather then LD_LIBRARY_PATH
+        https://bugs.webkit.org/show_bug.cgi?id=152650
+
+        Reviewed by Carlos Garcia Campos.
+
+        * PlatformGTK.cmake:
+
+2016-03-09  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Artifacts when using web view background color
+        https://bugs.webkit.org/show_bug.cgi?id=155229
+
+        Reviewed by Mario Sanchez Prada.
+
+        This is because when using a web view color, we fill with the
+        color every rectangle updated by the web process, but we should
+        always fill the entire backing store before rendering the actual
+        contents on top.
+
+        * WebProcess/WebPage/DrawingAreaImpl.cpp:
+        (WebKit::DrawingAreaImpl::display): Ensure the web process always
+        renders the whole visible rectangle when background is rendered by
+        the UI process.
+
+2016-03-07  Daniel Bates  <dabates@apple.com>
+
+        Cleanup: Add convenience function URL::procotolIsBlob()
+        https://bugs.webkit.org/show_bug.cgi?id=155127
+        <rdar://problem/25016829>
+
+        Reviewed by Brent Fulgham.
+
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::NetworkLoad): Modified to use URL::protocolIsBlob().
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::NetworkResourceLoader): Ditto.
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::canHandleRequest): Ditto.
+
+2016-03-07  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r197062): [GTK] Transparent backgrounds no longer work after r197062
+        https://bugs.webkit.org/show_bug.cgi?id=155119
+
+        Reviewed by Martin Robinson.
+
+        This is because after r197062 we are now realizing the view too
+        early, even before the toplevel window has been realized, forcing
+        the toplevel window to be realized. If the RGBA visual is set on
+        the window after it has been realzied it doesn't have any
+        effect. We should wait until the toplevel window is realized to
+        realize the web view, giving time to the application to set RGBA
+        visual and background color. If the toplevel window is already
+        realized we realize the web view immediately, so that this doesn't
+        affect the tearing problems fixed in r197062.
+
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (toplevelWindowRealized):
+        (webkitWebViewBaseSetToplevelOnScreenWindow):
+
+2016-03-02  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r197409): [GTK] Web process always crashes on WebPage construction after r197409
+        https://bugs.webkit.org/show_bug.cgi?id=154918
+
+        Reviewed by Žan Doberšek.
+
+        We have an incorrect check in DrawingAreaImpl constructor that has
+        never actually worked because it uses the page settings before
+        they were initialized. But that has been fixed in r197409 and now
+        we are always forcing accelerated compositing mode incorrectly,
+        because m_alwaysUseCompositing is set in the constructor and never
+        changed again.
+
+        * WebProcess/WebPage/DrawingAreaImpl.cpp:
+        (WebKit::DrawingAreaImpl::DrawingAreaImpl): Remove code to set
+        settings and m_alwaysUseCompositing, since that should be done in
+        updatePreferences().
+        (WebKit::DrawingAreaImpl::updatePreferences): Update the settings
+        accordingly and always update m_alwaysUseCompositing when AC is
+        enabled and forced in the settings.
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::WebPage): WebPage::updatePreferences() calls
+        DrawingArea::updatePreferences(), but since r197409 it happens
+        before the drawing area has been created. So, call
+        DrawingArea::updatePreferences() in the constructor right after
+        the main frame has been created, since
+        DrawingArea::updatePreferences() uses the main frame.
+
+2016-03-01  Andreas Kling  <akling@apple.com>
+
+        REGRESSION (r154616): Accelerated drawing is off during the initial load
+        <https://webkit.org/b/123812>
+
+        Reviewed by Tim Horton.
+
+        Load preferences before instantiating the first DrawingArea. This ensures that we do the
+        initial paint using accelerated drawing, and avoids allocating persistent data structures
+        only needed by the software rendering path.
+
+        * WebProcess/WebPage/WebPage.cpp:
+
+2016-03-01  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        NetworkCache: Web process leaks resource buffer when using shareable reasources
+        https://bugs.webkit.org/show_bug.cgi?id=154852
+
+        Reviewed by Darin Adler.
+
+        ResourceLoader::didReceiveBuffer() expects a PassRefPtr, but we
+        are passing a raw pointer making PassRefPtr to take another
+        reference instead of transfering the ownership as expected.
+
+        * WebProcess/Network/WebResourceLoader.cpp:
+        (WebKit::WebResourceLoader::didReceiveResource):
+
+2016-02-29  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: WebKit 2 IPC layer easily confused about multiple web processes being connected.
+        https://bugs.webkit.org/show_bug.cgi?id=154837
+
+        Reviewed by Alex Christensen.
+
+        The crux of the bug is that WebProcesses cannot assign themselves server-unique identifiers...
+        The server must do that for them.
+        
+        A once-per-session-per-WebProcess sync message and a few updates to connection management fix this.
+        
+        * DatabaseProcess/DatabaseToWebProcessConnection.cpp:
+        (WebKit::DatabaseToWebProcessConnection::didReceiveSyncMessage):
+        (WebKit::generateConnectionToServerIdentifier):
+        (WebKit::DatabaseToWebProcessConnection::establishIDBConnectionToServer):
+        * DatabaseProcess/DatabaseToWebProcessConnection.h:
+        * DatabaseProcess/DatabaseToWebProcessConnection.messages.in:
+
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.cpp:
+        (WebKit::WebIDBConnectionToServer::WebIDBConnectionToServer):
+        (WebKit::generateConnectionToServerIdentifier): Deleted.
+
+        * WebProcess/Databases/WebToDatabaseProcessConnection.cpp:
+        (WebKit::WebToDatabaseProcessConnection::didReceiveMessage):
+        (WebKit::WebToDatabaseProcessConnection::idbConnectionToServerForSession):
+        * WebProcess/Databases/WebToDatabaseProcessConnection.h:
+
+2016-02-29  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Fixed compilation with !ENABLE(DATABASE_PROCESS).
+        https://bugs.webkit.org/show_bug.cgi?id=154813
+
+        Reviewed by Michael Catanzaro.
+
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::terminateDatabaseProcess): Added missing #if
+        guard.
+
+2016-02-29  Adrien Plazas  <aplazas@igalia.com>
+
+        [GTK] Touch slider test fails due to assertion in webkitWebViewBaseTouchEvent()
+        https://bugs.webkit.org/show_bug.cgi?id=153829
+
+        Reviewed by Carlos Garcia Campos.
+
+        Once a touch event sequence is identified as a gesture, remove it
+        from the list of handled touch events.
+
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseTouchEvent):
+
+2016-03-01  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.11.91 release.
+
+        * gtk/NEWS: Add release notes for 2.11.91.
+
+2016-02-26  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Network cache: old pages returned by disk cache on history navigation after session is restored
+        https://bugs.webkit.org/show_bug.cgi?id=153230
+
+        Reviewed by Chris Dumez.
+
+        Since r181734, the network cache never revalidates resources for
+        history navigation. This is good for the memory cache, but in the
+        case of disk cache, we might end up with outdated pages when
+        restoring the session. When restoring the session happens because
+        of an API request (we also restore the session when recovering
+        from a web process crash), we should revalidate back forward list
+        requests in the disk cache if needed. This will only happen the
+        first time they are loaded after a session restore. After a web process
+        crash, resources will be used uncondionally from the disk cache.
+
+        * WebProcess/WebPage/WebBackForwardListProxy.cpp:
+        (WebKit::WebBackForwardListProxy::addItemFromUIProcess): Use Ref&&
+        instead of PassRefPtr.
+        * WebProcess/WebPage/WebBackForwardListProxy.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WePage::WebPage): Call restoreSessionInternal passing
+        No as restoredByAPIRequest parameter.
+        (WebKit::WebPage::restoreSessionInternal): Set restoredFromSession
+        flag to the created HistoryItem if the item was restored from
+        session by an API request.
+        (WebKit::WebPage::restoreSession): Call restoreSessionInternal
+        passing Yes as restoredByAPIRequest parameter.
+        * WebProcess/WebPage/WebPage.h:
+
+2016-02-26  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Fix order of parameters in gtkdoc for webkit_web_view_get_snapshot
+
+        Unreviewed.
+
+        * UIProcess/API/gtk/WebKitWebView.cpp:
+
+2016-02-25  Anders Carlsson  <andersca@apple.com>
+
+        Cache::traverse should pass the record info to its traversal handler
+        https://bugs.webkit.org/show_bug.cgi?id=154695
+
+        Reviewed by Antti Koivisto.
+
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::fetchDiskCacheEntries):
+        (WebKit::clearDiskCacheEntries):
+        * NetworkProcess/cache/NetworkCache.cpp:
+        (WebKit::NetworkCache::Cache::traverse):
+        * NetworkProcess/cache/NetworkCache.h:
+
+2016-02-26  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GTK+ clean build.
+
+        Add missing header include.
+
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.cpp:
+
+2016-02-26  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: New database versions are never committed to SQLite.
+        <rdar://problem/24860952> and https://bugs.webkit.org/show_bug.cgi?id=154741
+        
+        Modern IDB: If a database handle is not open, files are not actually deleted from disk
+        https://bugs.webkit.org/show_bug.cgi?id=154756
+
+        Reviewed by Alex Christensen.
+
+        Add WK2 SPI to force termination of the database process.
+
+        * UIProcess/API/Cocoa/WKProcessPool.mm:
+        (-[WKProcessPool _terminateDatabaseProcess]):
+        * UIProcess/API/Cocoa/WKProcessPoolPrivate.h:
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::terminateDatabaseProcess):
+        * UIProcess/WebProcessPool.h:
+
+2016-02-25  Brady Eidson  <beidson@apple.com>
+
+        Remove LegacyIDB.
+        https://bugs.webkit.org/show_bug.cgi?id=150854
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt:
+        * DatabaseProcess/DatabaseProcess.cpp:
+        (WebKit::DatabaseProcess::getOrCreateLegacyUniqueIDBDatabase): Deleted.
+        (WebKit::DatabaseProcess::removeLegacyUniqueIDBDatabase): Deleted.
+        * DatabaseProcess/DatabaseProcess.h:
+        * DatabaseProcess/DatabaseToWebProcessConnection.cpp:
+        (WebKit::DatabaseToWebProcessConnection::didClose):
+        (WebKit::DatabaseToWebProcessConnection::didReceiveMessage): Deleted.
+        (WebKit::DatabaseToWebProcessConnection::didReceiveSyncMessage): Deleted.
+        (WebKit::DatabaseToWebProcessConnection::establishIDBConnection): Deleted.
+        (WebKit::DatabaseToWebProcessConnection::removeDatabaseProcessIDBConnection): Deleted.
+        * DatabaseProcess/DatabaseToWebProcessConnection.h:
+        * DatabaseProcess/DatabaseToWebProcessConnection.messages.in:
+        * DatabaseProcess/IndexedDB/DatabaseProcessIDBConnection.cpp: Removed.
+        * DatabaseProcess/IndexedDB/DatabaseProcessIDBConnection.h: Removed.
+        * DatabaseProcess/IndexedDB/DatabaseProcessIDBConnection.messages.in: Removed.
+        * DatabaseProcess/IndexedDB/IDBIdentifier.h: Removed.
+        * DatabaseProcess/IndexedDB/IDBSerialization.cpp: Removed.
+        * DatabaseProcess/IndexedDB/IDBSerialization.h: Removed.
+        * DatabaseProcess/IndexedDB/LegacyUniqueIDBDatabase.cpp: Removed.
+        * DatabaseProcess/IndexedDB/LegacyUniqueIDBDatabase.h: Removed.
+        * DatabaseProcess/IndexedDB/LegacyUniqueIDBDatabaseIdentifier.cpp: Removed.
+        * DatabaseProcess/IndexedDB/LegacyUniqueIDBDatabaseIdentifier.h: Removed.
+        * DatabaseProcess/IndexedDB/UniqueIDBDatabaseBackingStore.h: Removed.
+        * DatabaseProcess/IndexedDB/WebIDBConnectionToClient.h:
+        * DatabaseProcess/IndexedDB/sqlite/SQLiteIDBCursor.cpp: Removed.
+        * DatabaseProcess/IndexedDB/sqlite/SQLiteIDBCursor.h: Removed.
+        * DatabaseProcess/IndexedDB/sqlite/SQLiteIDBTransaction.cpp: Removed.
+        * DatabaseProcess/IndexedDB/sqlite/SQLiteIDBTransaction.h: Removed.
+        * DatabaseProcess/IndexedDB/sqlite/UniqueIDBDatabaseBackingStoreSQLite.cpp: Removed.
+        * DatabaseProcess/IndexedDB/sqlite/UniqueIDBDatabaseBackingStoreSQLite.h: Removed.
+        * DerivedSources.make:
+        * Shared/WebCrossThreadCopier.cpp:
+        (WebCore::LegacyUniqueIDBDatabaseIdentifier>::copy): Deleted.
+        (WebCore::IDBIdentifier>::copy): Deleted.
+        * Shared/WebCrossThreadCopier.h:
+        * WebKit2.xcodeproj/project.pbxproj:
+        * WebProcess/Databases/IndexedDB/WebIDBFactoryBackend.cpp: Removed.
+        * WebProcess/Databases/IndexedDB/WebIDBFactoryBackend.h: Removed.
+        * WebProcess/Databases/IndexedDB/WebIDBServerConnection.cpp: Removed.
+        * WebProcess/Databases/IndexedDB/WebIDBServerConnection.h: Removed.
+        * WebProcess/Databases/IndexedDB/WebIDBServerConnection.messages.in: Removed.
+        * WebProcess/Databases/WebDatabaseProvider.cpp:
+        (WebKit::WebDatabaseProvider::createIDBFactoryBackend): Deleted.
+        * WebProcess/Databases/WebDatabaseProvider.h:
+        * WebProcess/Databases/WebToDatabaseProcessConnection.cpp:
+        (WebKit::WebToDatabaseProcessConnection::didReceiveMessage): Deleted.
+        (WebKit::WebToDatabaseProcessConnection::registerWebIDBServerConnection): Deleted.
+        (WebKit::WebToDatabaseProcessConnection::removeWebIDBServerConnection): Deleted.
+        * WebProcess/Databases/WebToDatabaseProcessConnection.h:
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp:
+
+2016-02-25  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: WebKit 2 IPC layer.
+        https://bugs.webkit.org/show_bug.cgi?id=153808
+
+        Reviewed by Alex Christensen.
+
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::NetworkLoad): This ASSERT fires on most WK2 tests. Alex said remove it.
+        
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.cpp:
+        (WebKit::WebIDBConnectionToServer::putOrAdd): Properly encode the overwrite flag.
+        
+        * WebProcess/Databases/WebDatabaseProvider.h: Enable Modern IDB.
+
+2016-02-24  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Tearing when entering AC mode
+        https://bugs.webkit.org/show_bug.cgi?id=150955
+
+        Reviewed by Michael Catanzaro.
+
+        When entering accelerated compositing mode, we keep rendering the
+        non accelerated contents until we have the first frame of
+        accelerated compositing contents. When the view is created hidden,
+        for example when the browser opens a link in a new tab, the view
+        is not realized until it is mapped. The native surface handle for
+        compositing, needed by the web process to render accelerated
+        compositing contents, is not available until the view is realized,
+        because it depends on the properties of the parent. When a web
+        view is mapped for the first time, and then realized, we send the
+        native surface handle for compositing to the web process, and keep
+        rendering the non composited contents until we get the first
+        frame, but in this case we never had non composited contents and
+        we end up rendering an untinitalized surface. This sometimes just
+        produces flickering and sometimes rendering artifacts.
+        We can prevent this from happening by realizing the web view as
+        soon as possible. A GtkWidget can't be realized until it has been
+        added to a toplevel, so we can realize our view right after it is
+        added to a toplevel window, and wait until the view is actually
+        mapped to notify the web process that it has been added to a
+        window. This way can we enter accelerated compositing mode before
+        the web view is mapped, so that when mapped we don't try to paint
+        the previous contents and don't need to wait for the first frame.
+
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (toplevelWindowFocusInEvent): Handle the case of the window being
+        hidden when receiving focus in. According to
+        gtk_window_focus_in_event, this can happen.
+        (webkitWebViewBaseSetToplevelOnScreenWindow): When the web view is
+        removed from its toplevel parent, update the IsInWindow and
+        WindowIsActive flags accordingly. When the view is added to a
+        toplevel, realize it and don't update the window flags, they will be
+        updated when the view is mapped the first time.
+        (webkitWebViewBaseMap): Also update IsInWindow and WindowIsActive
+        flags if needed. This way, if for example you open a youtube video
+        in a new tab, the video won't start playing until you visit the
+        tab, like we did when the view was realized on map.
+        (webkitWebViewBaseHierarchyChanged): Use hierarchy-changed signal
+        instead of parent-set to be notified when the view is added to or
+        removed from a toplevel.
+        (webkit_web_view_base_class_init): Implement hierarchy-changed
+        instead of parent-set.
+        (webkitWebViewBaseRealize): Do not call
+        webkitWebViewBaseSetToplevelOnScreenWindow on realize, it's now
+        webkitWebViewBaseSetToplevelOnScreenWindow the one realizing the view.
+        * UIProcess/cairo/BackingStoreCairo.cpp:
+        (WebKit::BackingStore::createBackend): Do not realize the view
+        here, it should be realized already at this point. If it's not
+        realized at this point is because it hasn't been added to a
+        toplevel and gtk_widget_realize will not work anyway.
+        (WebKit::BackingStore::paint): This is changing the cairo source
+        operator, so save/restore the cairo context to ensure it doesn't
+        affect other drawing done after this.
+
+2016-02-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.11.90 release.
+
+        * gtk/NEWS: Add release notes for 2.11.90.
+
 2016-02-18  Gwang Yoon Hwang  <yoon@igalia.com>
 
         [GTK] Limit the number of tiles according to the visible area

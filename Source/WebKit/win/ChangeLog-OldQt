@@ -1,3 +1,96 @@
+2016-03-22  Per Arne Vollan  <peavo@outlook.com>
+
+        [Win] [64-bit] Remove MSVC 2013 FMA3 Bug Workaround
+        https://bugs.webkit.org/show_bug.cgi?id=141499
+
+        Reviewed by Brent Fulgham.
+
+        As we have moved on to VS2015, this workaround is no longer needed.
+
+        * WebKitDLL.cpp:
+        (DllMain):
+
+2017-06-04  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Fix build of Windows-specific code with ICU 59.1
+        https://bugs.webkit.org/show_bug.cgi?id=172729
+
+        Reviewed by Darin Adler.
+
+        Fix conversions from WTF::String to wchar_t* and vice versa.
+
+        * Plugins/PluginDatabaseWin.cpp:
+        (WebCore::addPluginPathsFromRegistry):
+        (WebCore::PluginDatabase::getPluginPathsInDirectories):
+        (WebCore::addMozillaPluginDirectories):
+        (WebCore::addWindowsMediaPlayerPluginDirectory):
+        (WebCore::addAdobeAcrobatPluginDirectory):
+        (WebCore::addJavaPluginDirectory):
+        (WebCore::safariPluginsDirectory):
+        (WebCore::addMacromediaPluginDirectories):
+        * Plugins/PluginPackageWin.cpp:
+        (WebCore::getVersionInfo):
+        (WebCore::PluginPackage::fetchInfo):
+        (WebCore::PluginPackage::load):
+        * Plugins/PluginViewWin.cpp:
+        (WebCore::PluginView::handlePostReadFile):
+
+2016-09-29  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Fixed compilation of PluginView when NETSCAPE_PLUGIN_API is disabled
+        https://bugs.webkit.org/show_bug.cgi?id=162725
+
+        Reviewed by Alex Christensen.
+
+        Fix for r206460, streamDidFinishLoading() does not override anything
+        when NETSCAPE_PLUGIN_API is disabled because PlugivView does not
+        inherit PluginStreamClient in this case.
+
+        * Plugins/PluginView.h:
+
+2016-09-27  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Use override specifiers in PluginView
+        https://bugs.webkit.org/show_bug.cgi?id=162628
+
+        Reviewed by Alex Christensen.
+
+        * Plugins/PluginView.h:
+
+2016-05-11  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [GTK] accessibility/aria-readonly.html is failing
+        https://bugs.webkit.org/show_bug.cgi?id=98357
+
+        Reviewed by Chris Fleizach.
+
+        Call AccessibilityNode::canSetValueAttribute() to determine if STATE_SYSTEM_READONLY
+        should be added and if editable text should be supported.
+
+        * AccessibleBase.cpp:
+        (AccessibleBase::state):
+        * AccessibleTextImpl.cpp:
+        (AccessibleText::deleteText):
+        (AccessibleText::insertText):
+        (AccessibleText::cutText):
+        (AccessibleText::pasteText):
+        (AccessibleText::replaceText):
+
+2016-04-25  Per Arne Vollan  <peavo@outlook.com>
+
+        [Win][IndexedDB] Fix build errors.
+        https://bugs.webkit.org/show_bug.cgi?id=156713
+
+        Reviewed by Alex Christensen.
+
+        Fix compile and link errors when building with IndexedDB enabled.
+
+        * WebView.cpp:
+        (WebView::notifyPreferencesChanged):
+        * storage: Added.
+        * storage/WebDatabaseProvider.cpp: Added.
+        (WebDatabaseProvider::indexedDatabaseDirectoryPath):
+
 2016-02-16  Andreas Kling  <akling@apple.com>
 
         Drop StyleResolver and SelectorQueryCache when entering PageCache.
