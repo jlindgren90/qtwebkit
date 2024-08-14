@@ -87,4 +87,10 @@ WebKit::WebsiteDataStore::Configuration WebsiteDataStore::defaultDataStoreConfig
     return configuration;
 }
 
+String WebsiteDataStore::defaultResourceLoadStatisticsDirectory()
+{
+    // FIXME: Implement.
+    return String();
+}
+
 } // namespace API
