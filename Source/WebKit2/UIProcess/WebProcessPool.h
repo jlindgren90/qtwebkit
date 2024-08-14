@@ -187,7 +187,7 @@ public:
 #endif
 
     PlatformProcessIdentifier networkProcessIdentifier();
-    pid_t databaseProcessIdentifier();
+    PlatformProcessIdentifier databaseProcessIdentifier();
 
     void setAlwaysUsesComplexTextCodePath(bool);
     void setShouldUseFontSmoothing(bool);

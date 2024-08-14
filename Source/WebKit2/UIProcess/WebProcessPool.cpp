@@ -865,7 +865,7 @@ PlatformProcessIdentifier WebProcessPool::networkProcessIdentifier()
     return m_networkProcess->processIdentifier();
 }
 
-pid_t WebProcessPool::databaseProcessIdentifier()
+PlatformProcessIdentifier WebProcessPool::databaseProcessIdentifier()
 {
 #if ENABLE(DATABASE_PROCESS)
     if (!m_databaseProcess)
