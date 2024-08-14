@@ -1124,10 +1124,12 @@ void ResourceHandleStreamingClient::setDefersLoading(bool defers)
     });
 }
 
+#if USE(SOUP)
 char* ResourceHandleStreamingClient::getOrCreateReadBuffer(size_t requestedSize, size_t& actualSize)
 {
     return createReadBuffer(requestedSize, actualSize);
 }
+#endif
 
 void ResourceHandleStreamingClient::willSendRequest(ResourceHandle*, ResourceRequest&, const ResourceResponse&)
 {

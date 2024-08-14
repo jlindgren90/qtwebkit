@@ -390,6 +390,7 @@ set(WebKit2_SOURCES
     UIProcess/WebProcessLifetimeTracker.cpp
     UIProcess/WebProcessPool.cpp
     UIProcess/WebProcessProxy.cpp
+    UIProcess/WebResourceLoadStatisticsStore.cpp
     UIProcess/WebTextChecker.cpp
     UIProcess/WebTextCheckerClient.cpp
     UIProcess/WebURLSchemeHandler.cpp
