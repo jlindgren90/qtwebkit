@@ -1,3 +1,103 @@
+2016-02-23  Chris Dumez  <cdumez@apple.com>
+
+        [Reflected] IDL attributes of integer types should use HTML rules for parsing integers
+        https://bugs.webkit.org/show_bug.cgi?id=154573
+
+        Reviewed by Darin Adler.
+
+        [Reflected] IDL attributes of integer types should use HTML rules for
+        parsing integers:
+        - https://html.spec.whatwg.org/#reflecting-content-attributes-in-idl-attributes
+
+        Those rules are defined here:
+        - https://html.spec.whatwg.org/#rules-for-parsing-integers
+        - https://html.spec.whatwg.org/#rules-for-parsing-non-negative-integers
+
+        We already had an implementation for parsing HTML integers but our reflected
+        attributes currently use WTFString::toInt() / toUint() instead.
+
+        No new tests, already covered by existing tests.
+
+        * dom/Element.cpp:
+        (WebCore::Element::getIntegralAttribute):
+        This method used by the bindings only, for reflected IDL attributed of
+        type 'long'. Now call parseHTMLInteger() instead of String::toInt() to
+        parse the content attribute as per the HTML specification.
+
+        (WebCore::Element::getUnsignedIntegralAttribute):
+        This method used by the bindings only, for reflected IDL attributed of
+        type 'unsigned long'. Now call parseHTMLNonNegativeInteger() instead of
+        String::toUInt() to parse the content attribute as per the HTML
+        specification.
+
+        * html/parser/HTMLParserIdioms.cpp:
+        (WebCore::parseHTMLIntegerInternal):
+        Fix a bug in our implementation of parseHTMLIntegerInternal() that
+        would cause the string "−2147483648" to be parsed as 0. It should
+        be parsed as −2147483648, which is in the valid range as per:
+        http://heycam.github.io/webidl/#idl-long
+
+2016-02-23  Chris Dumez  <cdumez@apple.com>
+
+        Align our implementation of Range.createContextualFragment with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=154627
+
+        Reviewed by Ryosuke Niwa.
+
+        Align our implementation of Range.createContextualFragment with the
+        specification:
+        - https://w3c.github.io/DOM-Parsing/#widl-Range-createContextualFragment-DocumentFragment-DOMString-fragment
+
+        In particular, if the Range's start node is a Document / DocumentFragment,
+        we now create a new HTMLBodyElement and use it as context element, instead
+        of throwing an exception.
+
+        This also aligns our behavior with Firefox and Chrome.
+
+        Tests: imported/blink/fast/dom/Range/create-contextual-fragment-from-bodyless-document-range.html
+               imported/blink/fast/dom/Range/create-contextual-fragment-from-detached-text-node-range.html
+               imported/blink/fast/dom/Range/create-contextual-fragment-from-document-fragment-range.html
+               imported/blink/fast/dom/Range/create-contextual-fragment-from-document-range.html
+               imported/blink/fast/dom/Range/create-contextual-fragment-from-xhtml-document-range.xhtml
+               imported/blink/fast/dom/Range/create-contextual-fragment-script-not-ran.html
+               imported/blink/fast/dom/Range/create-contextual-fragment-script-unmark-already-started.html
+
+        * dom/Range.cpp:
+        (WebCore::Range::createContextualFragment):
+
+2016-02-23  Dan Bernstein  <mitz@apple.com>
+
+        [Xcode] Linker errors display mangled names, but no longer should
+        https://bugs.webkit.org/show_bug.cgi?id=154632
+
+        Reviewed by Sam Weinig.
+
+        * Configurations/Base.xcconfig: Stop setting LINKER_DISPLAYS_MANGLED_NAMES to YES.
+
+2016-02-23  Dean Jackson  <dino@apple.com>
+
+        [WebGL] iOS doesn't respect the alpha:false context creation attribute
+        https://bugs.webkit.org/show_bug.cgi?id=154617
+        <rdar://problem/13417023>
+
+        Reviewed by Sam Weinig.
+
+        On iOS we were not respecting the alpha:false context creation
+        attribute, which meant you always got output that could
+        have an alpha channel.
+
+        The good news is that now we're setting the opaque flag on
+        the CALayer, there should be a performance improvement when
+        compositing WebGL into the page.
+
+        Test: fast/canvas/webgl/context-attributes-alpha.html
+
+        * platform/graphics/mac/GraphicsContext3DMac.mm:
+        (WebCore::GraphicsContext3D::GraphicsContext3D): Don't tell the layer
+        to be transparent.
+        (WebCore::GraphicsContext3D::setRenderbufferStorageFromDrawable): Do it
+        here instead, but based on the value of the alpha attribute.
+
 2016-02-23  Daniel Bates  <dabates@apple.com>
 
         CSP: Enable base-uri directive by default
@@ -15,6 +115,28 @@
         (WebCore::isCSPDirectiveName): ...the list of standard directives.
         (WebCore::ContentSecurityPolicyDirectiveList::addDirective): Move logic to parse the base-uri
         directive outside the ENABLE(CSP_NEXT) macro guarded section/experimental feature runtime flag.
+
+2016-02-23  Gavin Barraclough  <barraclough@apple.com>
+
+        Remove HIDDEN_PAGE_DOM_TIMER_THROTTLING feature define
+        https://bugs.webkit.org/show_bug.cgi?id=112323
+
+        Reviewed by Chris Dumez.
+
+        This feature is controlled by a runtime switch, and defaults off.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * page/Page.cpp:
+        (WebCore::Page::setTimerThrottlingEnabled):
+        * page/Settings.cpp:
+        (WebCore::Settings::Settings):
+        (WebCore::Settings::shouldRespectPriorityInCSSAttributeSetters):
+        (WebCore::Settings::setHiddenPageDOMTimerThrottlingEnabled):
+        (WebCore::Settings::setHiddenPageDOMTimerThrottlingAutoIncreases):
+        * page/Settings.h:
+        (WebCore::Settings::layoutInterval):
+        (WebCore::Settings::hiddenPageDOMTimerThrottlingEnabled):
+        (WebCore::Settings::hiddenPageDOMTimerThrottlingAutoIncreases):
 
 2016-02-23  Gavin Barraclough  <barraclough@apple.com>
 

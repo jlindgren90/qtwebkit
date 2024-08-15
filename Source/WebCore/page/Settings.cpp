@@ -211,9 +211,7 @@ Settings::Settings(Page* page)
     , m_scrollingPerformanceLoggingEnabled(false)
     , m_timeWithoutMouseMovementBeforeHidingControls(3)
     , m_setImageLoadingSettingsTimer(*this, &Settings::imageLoadingSettingsTimerFired)
-#if ENABLE(HIDDEN_PAGE_DOM_TIMER_THROTTLING)
     , m_hiddenPageDOMTimerThrottlingEnabled(false)
-#endif
     , m_hiddenPageCSSAnimationSuspensionEnabled(false)
     , m_fontFallbackPrefersPictographs(false)
     , m_forcePendingWebGLPolicy(false)
@@ -672,7 +670,6 @@ bool Settings::shouldRespectPriorityInCSSAttributeSetters()
     return gShouldRespectPriorityInCSSAttributeSetters;
 }
 
-#if ENABLE(HIDDEN_PAGE_DOM_TIMER_THROTTLING)
 void Settings::setHiddenPageDOMTimerThrottlingEnabled(bool flag)
 {
     if (m_hiddenPageDOMTimerThrottlingEnabled == flag)
@@ -681,7 +678,6 @@ void Settings::setHiddenPageDOMTimerThrottlingEnabled(bool flag)
     if (m_page)
         m_page->hiddenPageDOMTimerThrottlingStateChanged();
 }
-#endif
 
 void Settings::setHiddenPageDOMTimerThrottlingAutoIncreases(bool flag)
 {
