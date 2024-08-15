@@ -86,9 +86,7 @@ public:
 #endif
     ~Download();
 
-#if USE(NETWORK_SESSION) && PLATFORM(COCOA)
-    void dataTaskDidBecomeDownloadTask(const NetworkSession&, RetainPtr<NSURLSessionDownloadTask>&&);
-#else
+#if !USE(NETWORK_SESSION)
     void start();
     void startWithHandle(WebCore::ResourceHandle*, const WebCore::ResourceResponse&);
 #endif
@@ -98,7 +96,7 @@ public:
     DownloadID downloadID() const { return m_downloadID; }
 
 #if USE(NETWORK_SESSION)
-    void didStart(const WebCore::ResourceRequest&);
+    void setSandboxExtension(RefPtr<SandboxExtension>&& sandboxExtension) { m_sandboxExtension = WTFMove(sandboxExtension); }
 #else
     void didStart();
     void didReceiveAuthenticationChallenge(const WebCore::AuthenticationChallenge&);
@@ -106,7 +104,9 @@ public:
     void didReceiveResponse(const WebCore::ResourceResponse&);
     void didReceiveData(uint64_t length);
     bool shouldDecodeSourceDataOfMIMEType(const String& mimeType);
+#if !USE(NETWORK_SESSION)
     String decideDestinationWithSuggestedFilename(const String& filename, bool& allowOverwrite);
+#endif
     void didCreateDestination(const String& path);
     void didFinish();
     void platformDidFinish();

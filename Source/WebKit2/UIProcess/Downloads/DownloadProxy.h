@@ -47,6 +47,7 @@ class ResourceResponse;
 
 namespace WebKit {
 
+class DownloadID;
 class DownloadProxyMap;
 class WebPageProxy;
 class WebProcessPool;
@@ -85,7 +86,9 @@ private:
     void didReceiveResponse(const WebCore::ResourceResponse&);
     void didReceiveData(uint64_t length);
     void shouldDecodeSourceDataOfMIMEType(const String& mimeType, bool& result);
+#if !USE(NETWORK_SESSION)
     void decideDestinationWithSuggestedFilename(const String& filename, String& destination, bool& allowOverwrite, SandboxExtension::Handle& sandboxExtensionHandle);
+#endif
     void didCreateDestination(const String& path);
     void didFinish();
     void didFail(const WebCore::ResourceError&, const IPC::DataReference& resumeData);
@@ -93,6 +96,7 @@ private:
 #if USE(NETWORK_SESSION)
     void canAuthenticateAgainstProtectionSpace(const WebCore::ProtectionSpace&);
     void willSendRequest(const WebCore::ResourceRequest& redirectRequest, const WebCore::ResourceResponse& redirectResponse);
+    void decideDestinationWithSuggestedFilenameAsync(DownloadID, const String& suggestedFilename);
 #endif
 
     DownloadProxyMap& m_downloadProxyMap;
