@@ -1,3 +1,63 @@
+2016-02-19  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix pessimizing-move warnings
+        https://bugs.webkit.org/show_bug.cgi?id=154395
+
+        Reviewed by Michael Catanzaro.
+
+        * platform/graphics/efl/CairoUtilitiesEfl.cpp:
+        (WebCore::evasObjectFromCairoImageSurface):
+        * platform/graphics/surfaces/GLTransportSurface.cpp:
+        (WebCore::GLTransportSurface::createTransportSurface):
+        (WebCore::GLTransportSurfaceClient::createTransportSurfaceClient):
+
+2016-02-19  Philippe Normand  <pnormand@igalia.com>
+
+        [GStreamer] clean-up various leaks
+        https://bugs.webkit.org/show_bug.cgi?id=154285
+
+        Reviewed by Carlos Garcia Campos.
+
+        * platform/audio/gstreamer/WebKitWebAudioSourceGStreamer.cpp:
+        (webkit_web_audio_src_init): Take full ownership of the GstTask.
+        * platform/graphics/gstreamer/GRefPtrGStreamer.cpp:
+        (WTF::adoptGRef): Null pointer support in ASSERTs.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp:
+        (WebCore::initializeGStreamerAndRegisterWebKitElements): Take full ownership of the GstElementFactory pointers.
+        (WebCore::MediaPlayerPrivateGStreamer::isAvailable): Ditto.
+
+2016-02-18  Andy Estes  <aestes@apple.com>
+
+        Revert to dispatching the popstate event synchronously
+        https://bugs.webkit.org/show_bug.cgi?id=153297
+        rdar://problem/24092294
+
+        Reviewed by Brent Fulgham.
+
+        r192369 made the popstate event dispatch asynchronously, which matches what the HTML5 spec says to do. However,
+        due to compatibility regressions we need to revert back to dispatching synchronously. This change reverts
+        r192369's changes to Document.cpp, but retains the new tests.
+
+        Firing popstate synchronously makes both fast/loader/remove-iframe-during-history-navigation-different.html and
+        fast/loader/remove-iframe-during-history-navigation-same.html crash, because their onpopstate handlers remove
+        frames from the document that will later be accessed by HistoryController::recursiveGoToItem().
+
+        To prevent the crashes, this change does two things:
+        1. Keep a reference to the current frame inside FrameLoader::loadSameDocumentItem(), since calling
+           loadInSameDocument() might otherwise delete it.
+        2. Handle a null frame when iterating a HistoryItem's child frames in HistoryController::recursiveGoToItem(),
+           since calling goToItem() on one frame might cause another frame to be deleted.
+
+        Covered by existing tests. fast/loader/stateobjects/popstate-is-asynchronous.html was renamed to
+        fast/loader/stateobjects/popstate-is-synchronous.html and modified to expect synchronous dispatch.
+
+        * dom/Document.cpp:
+        (WebCore::Document::enqueuePopstateEvent):
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::loadSameDocumentItem):
+        * loader/HistoryController.cpp:
+        (WebCore::HistoryController::recursiveGoToItem):
+
 2016-02-19  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         Unreviewed. Fix GObject DOM bindings API break after r196769.
