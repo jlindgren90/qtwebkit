@@ -1,3 +1,53 @@
+2016-02-20  Andreas Kling  <akling@apple.com>
+
+        REGRESSION(r196780): Fake memory handler takes too long to run now.
+
+        Unreviewed bot fix.
+
+        Put the footprint comparison code behind a compile-time flag for now.
+        It's taking too long to run on bots, and memory is getting measured
+        before all the pressure relief code has a chance to run.
+
+        * platform/cocoa/MemoryPressureHandlerCocoa.mm:
+        (WebCore::MemoryPressureHandler::install):
+
+2016-02-20  Olivier Blin  <olivier.blin@softathome.com>
+
+        Do not require UDate in LocaleICU with !ENABLE_DATE_AND_TIME_INPUT_TYPES
+        https://bugs.webkit.org/show_bug.cgi?id=154483
+
+        Reviewed by Michael Catanzaro.
+
+        Put initializeShortDateFormat(), dateFormat(), m_shortDateFormat and
+        m_didCreateShortDateFormat under flag, since they are only used by
+        code under the ENABLE_DATE_AND_TIME_INPUT_TYPES flag.
+
+        This helps to build with a light ICU that does not provide UDate
+        features (with UCONFIG_NO_FORMATTING).
+
+        * platform/text/LocaleICU.cpp:
+        (WebCore::LocaleICU::LocaleICU):
+        (WebCore::LocaleICU::~LocaleICU):
+        (WebCore::createFallbackMonthLabels): Deleted.
+        (WebCore::createFallbackAMPMLabels): Deleted.
+        * platform/text/LocaleICU.h:
+
+2016-02-20  Olivier Blin  <olivier.blin@softathome.com>
+
+        Remove declaration of unimplemented methods in LocaleICU
+        https://bugs.webkit.org/show_bug.cgi?id=154482
+
+        Reviewed by Michael Catanzaro.
+
+        detectSignAndGetDigitRange() and matchedDecimalSymbolIndex() are
+        implemented in PlatformLocale, not LocaleICU.
+
+        They were moved out from LocaleICU to NumberLocalizer in r124459
+        (2012), which has then been renamed as Localizer, then Locale, and
+        finally PlatformLocale.
+
+        * platform/text/LocaleICU.h:
+
 2016-02-20  Commit Queue  <commit-queue@webkit.org>
 
         Unreviewed, rolling out r196837.
