@@ -23,57 +23,29 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-#include "WebAutomationSession.h"
+[
+    NoInterfaceObject
+] interface HTMLHyperlinkElementUtils {
+    [Reflect, URL] attribute DOMString href;
+    readonly attribute DOMString origin;
 
-#include "APIAutomationSessionClient.h"
-
-namespace WebKit {
-
-WebAutomationSession::WebAutomationSession()
-    : m_client(std::make_unique<API::AutomationSessionClient>())
-{
-}
-
-WebAutomationSession::~WebAutomationSession()
-{
-    ASSERT(!m_client);
-}
-
-void WebAutomationSession::setClient(std::unique_ptr<API::AutomationSessionClient> client)
-{
-    m_client = WTFMove(client);
-}
-
-// NOTE: this class could be split at some point to support local and remote automation sessions.
-// For now, it only works with a remote automation driver over a RemoteInspector connection.
-
-#if ENABLE(REMOTE_INSPECTOR)
-
-// Inspector::RemoteAutomationTarget API
-
-void WebAutomationSession::dispatchMessageFromRemote(const String&)
-{
-    // FIXME: to be implemented.
-}
-
-void WebAutomationSession::connect(Inspector::FrontendChannel* channel, bool isAutomaticConnection)
-{
-    UNUSED_PARAM(isAutomaticConnection);
-
-    m_remoteChannel = channel;
-    setIsPaired(true);
-}
-
-void WebAutomationSession::disconnect(Inspector::FrontendChannel* channel)
-{
-    m_remoteChannel = nullptr;
-    setIsPaired(false);
-    
-    if (m_client)
-        m_client->didDisconnectFromRemote(this);
-}
-
-#endif // ENABLE(REMOTE_INSPECTOR)
-
-} // namespace WebKit
+#if defined(LANGUAGE_OBJECTIVE_C) && LANGUAGE_OBJECTIVE_C
+    readonly attribute DOMString protocol;
+    readonly attribute DOMString host;
+    readonly attribute DOMString hostname;
+    readonly attribute DOMString port;
+    readonly attribute DOMString pathname;
+    readonly attribute DOMString search;
+    readonly attribute DOMString hash;
+#else
+    attribute DOMString protocol;
+    attribute DOMString username;
+    attribute DOMString password;
+    attribute DOMString host;
+    attribute DOMString hostname;
+    attribute DOMString port;
+    attribute DOMString pathname;
+    attribute DOMString search;
+    attribute DOMString hash;
+#endif
+};
