@@ -1,3 +1,42 @@
+2016-02-20  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Placeholder text in Visual Styles sidebar table row should be white
+        https://bugs.webkit.org/show_bug.cgi?id=154488
+        <rdar://problem/24754715>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/VisualStyleCommaSeparatedKeywordEditor.css:
+        (.visual-style-property-container.comma-separated-keyword-editor > .visual-style-property-value-container > .visual-style-comma-separated-keyword-list > .visual-style-comma-separated-keyword-item > .titles > .subtitle):
+
+2016-02-19  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Inherited selector rows have text too low
+        https://bugs.webkit.org/show_bug.cgi?id=154489
+        <rdar://problem/24754774>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/VisualStyleSelectorSection.css:
+        (.details-section.visual-style-selector-section > .content > .selectors > .selector-list > .section-divider):
+
+2016-02-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Color picker in Visual Styles sidebar should not default to zero alpha
+        https://bugs.webkit.org/show_bug.cgi?id=154474
+        <rdar://problem/24750217>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/InlineSwatch.js:
+        (WebInspector.InlineSwatch.prototype._fallbackValue):
+        Changed the fallback value for color from transparent to white so that
+        the color picker starts out with an alpha value of 1.
+
+        (WebInspector.InlineSwatch.prototype._handleContextMenuEvent):
+        Prevents context menu events from having an effect if there is no value
+        for them to modify.
+
 2016-02-19  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: CSS var() function should be syntax highlighted
