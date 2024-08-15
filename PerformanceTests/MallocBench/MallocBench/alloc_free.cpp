@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,50 +23,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#include "CPUCount.h"
-#include "big.h"
-#include <algorithm>
-#include <cstddef>
-#include <cstdlib>
-#include <strings.h>
+#include "alloc_free.h"
 
 #include "mbmalloc.h"
+#include <string.h>
 
-using namespace std;
-
-struct Object {
-    double* p;
-    size_t size;
-};
-
-void benchmark_big(CommandLine& commandLine)
+void benchmark_alloc_free(CommandLine&)
 {
-    size_t times = 1;
+    size_t loops = 1000000;
 
-    size_t vmSize = 1ul * 1024 * 1024 * 1024;
-    size_t objectSizeMin = 4 * 1024;
-    size_t objectSizeMax = 64 * 1024;
-    if (commandLine.isParallel())
-        vmSize /= cpuCount();
+    size_t allocSize = 1030;
+    
+    char* dummy1 = (char*)mbmalloc(allocSize);
+    char* dummy2 = (char*)mbmalloc(allocSize);
+    dummy2[0] = 'a';
+    mbfree(dummy1, allocSize);
 
-    size_t objectCount = vmSize / objectSizeMin;
+    while (--loops) {
+        char* object = (char*)mbmalloc(allocSize);
 
-    srandom(0); // For consistency between runs.
+        memset(object, 'a', allocSize);
 
-    for (size_t i = 0; i < times; ++i) {
-        Object* objects = (Object*)mbmalloc(objectCount * sizeof(Object));
-        bzero(objects, objectCount * sizeof(Object));
-
-        for (size_t i = 0, remaining = vmSize; remaining > objectSizeMin; ++i) {
-            size_t size = min(remaining, max(objectSizeMin, random() % objectSizeMax));
-            objects[i] = { (double*)mbmalloc(size), size };
-            bzero(objects[i].p, size);
-            remaining -= size;
-        }
-
-        for (size_t i = 0; i < objectCount && objects[i].p; ++i)
-            mbfree(objects[i].p, objects[i].size);
-
-        mbfree(objects, objectCount * sizeof(Object));
+        mbfree(object, allocSize);
     }
 }

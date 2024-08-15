@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,11 +23,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef stress_h
-#define stress_h
+#ifndef nimlang_h
+#define nimlang_h
 
 #include "CommandLine.h"
 
-void benchmark_stress(CommandLine&);
+void benchmark_nimlang(CommandLine&);
 
-#endif // stress_h
+#endif // nimlang_h
+

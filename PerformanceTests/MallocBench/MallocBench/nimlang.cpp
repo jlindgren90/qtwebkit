@@ -24,49 +24,33 @@
  */
 
 #include "CPUCount.h"
-#include "big.h"
-#include <algorithm>
+#include "Interpreter.h"
+#include "nimlang.h"
+#include <assert.h>
+#include <cstddef>
 #include <cstddef>
 #include <cstdlib>
-#include <strings.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <string>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
+#include <vector>
 
 #include "mbmalloc.h"
 
-using namespace std;
-
-struct Object {
-    double* p;
-    size_t size;
-};
-
-void benchmark_big(CommandLine& commandLine)
+void benchmark_nimlang(CommandLine& commandLine)
 {
     size_t times = 1;
 
-    size_t vmSize = 1ul * 1024 * 1024 * 1024;
-    size_t objectSizeMin = 4 * 1024;
-    size_t objectSizeMax = 64 * 1024;
-    if (commandLine.isParallel())
-        vmSize /= cpuCount();
+    bool shouldFreeAllObjects = false;
+    Interpreter interpreter("nimlang.ops", shouldFreeAllObjects, commandLine.useThreadID());
+    for (size_t i = 0; i < times; ++i)
+        interpreter.run();
 
-    size_t objectCount = vmSize / objectSizeMin;
-
-    srandom(0); // For consistency between runs.
-
-    for (size_t i = 0; i < times; ++i) {
-        Object* objects = (Object*)mbmalloc(objectCount * sizeof(Object));
-        bzero(objects, objectCount * sizeof(Object));
-
-        for (size_t i = 0, remaining = vmSize; remaining > objectSizeMin; ++i) {
-            size_t size = min(remaining, max(objectSizeMin, random() % objectSizeMax));
-            objects[i] = { (double*)mbmalloc(size), size };
-            bzero(objects[i].p, size);
-            remaining -= size;
-        }
-
-        for (size_t i = 0; i < objectCount && objects[i].p; ++i)
-            mbfree(objects[i].p, objects[i].size);
-
-        mbfree(objects, objectCount * sizeof(Object));
-    }
+        if (commandLine.detailedReport())
+            interpreter.detailedReport();
 }
