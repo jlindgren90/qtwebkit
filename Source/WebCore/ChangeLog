@@ -1,3 +1,90 @@
+2016-02-21  Chris Dumez  <cdumez@apple.com>
+
+        HTMLScriptElement.crossOrigin / HTMLImageElement.crossOrigin should only return known values
+        https://bugs.webkit.org/show_bug.cgi?id=154502
+
+        Reviewed by Darin Adler.
+
+        HTMLScriptElement.crossOrigin / HTMLImageElement.crossOrigin should only
+        return known values and should be nullable as per the specification:
+        - https://html.spec.whatwg.org/multipage/scripting.html#attr-script-crossorigin
+        - https://html.spec.whatwg.org/multipage/embedded-content.html#attr-img-crossorigin
+        - https://html.spec.whatwg.org/multipage/infrastructure.html#cors-settings-attribute
+
+        This aligns our behavior with the HTML specification and Firefox.
+
+        No new tests, already covered by existing tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        Add support for nullable DOMString attributes. If such attribute is
+        marked as nullable:
+        - A null string is passed to the implementation if the setter is called
+          with null/undefined.
+        - null is returned to the Javascript if the getter implementation
+          returns a null string.
+
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.cpp:
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.h:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/ObjC/DOMTestObj.h:
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+        * bindings/scripts/test/TestObj.idl:
+        Add test coverage for nullable DOMString attributes
+        and rebaseline bindings tests.
+
+        * html/HTMLImageElement.cpp:
+        * html/HTMLImageElement.h:
+        * html/HTMLImageElement.idl:
+        * html/HTMLScriptElement.cpp:
+        * html/HTMLScriptElement.h:
+        * html/HTMLScriptElement.idl:
+        * html/parser/HTMLParserIdioms.cpp:
+        * html/parser/HTMLParserIdioms.h:
+
+2016-02-21  Chris Dumez  <cdumez@apple.com>
+
+        Make HTMLSelectElement.size behave as per the specification
+        https://bugs.webkit.org/show_bug.cgi?id=154504
+
+        Reviewed by Darin Adler.
+
+        Make HTMLSelectElement.size behave as per the specification:
+        - https://html.spec.whatwg.org/#htmlselectelement
+        - https://html.spec.whatwg.org/#dom-select-size
+        - https://html.spec.whatwg.org/#reflecting-content-attributes-in-idl-attributes:idl-unsigned-long
+
+        In particular, it should be unsigned and be in the range [0; 2147483647].
+
+        Also update several unsigned long attributes in our HTML implementation to use
+        parseHTMLNonNegativeInteger() to parse unsigned integers as per the HTML
+        specification, instead of calling String::toUint().
+
+        No new tests, already covered by existing tests.
+
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::parseAttribute):
+        (WebCore::HTMLInputElement::size):
+        (WebCore::HTMLInputElement::setSize):
+        * html/HTMLInputElement.h:
+        * html/HTMLSelectElement.cpp:
+        (WebCore::HTMLSelectElement::parseAttribute):
+        (WebCore::HTMLSelectElement::setSize):
+        (WebCore::HTMLSelectElement::namedItem): Deleted.
+        (WebCore::HTMLSelectElement::item): Deleted.
+        * html/HTMLSelectElement.h:
+        (WebCore::HTMLSelectElement::size):
+        * html/HTMLSelectElement.idl:
+        * html/HTMLTableColElement.cpp:
+        (WebCore::HTMLTableColElement::parseAttribute):
+        (WebCore::HTMLTableColElement::setSpan):
+        * html/HTMLTextAreaElement.cpp:
+        (WebCore::HTMLTextAreaElement::parseAttribute):
+        (WebCore::HTMLTextAreaElement::setCols):
+        (WebCore::HTMLTextAreaElement::setRows):
+        * html/parser/HTMLParserIdioms.h:
+        (WebCore::limitToOnlyHTMLNonNegativeNumbersGreaterThanZero):
+        (WebCore::limitToOnlyHTMLNonNegative):
+
 2016-02-21  Daniel Bates  <dabates@apple.com>
 
         CSP: Enable form-action directive by default
