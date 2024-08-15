@@ -1,3 +1,77 @@
+2016-02-22  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r196563): Images not loading on https://klim.co.nz/blog/paypal-sans-design-information/
+        https://bugs.webkit.org/show_bug.cgi?id=154547
+        <rdar://problem/24772167>
+
+        Reviewed by Gavin Barraclough.
+
+        The Website was doing the following:
+        $ var e = window.addEventListener;
+        $ e("eventname", handler)
+
+        In such case, the jsEventTargetPrototypeFunctionDispatchEvent() bindings
+        implementation was caused with a thisValue which is a JSLexicalEnvironment
+        and the implementation did not know how to convert it into a global object.
+        The previous implementation on JSDOMWindow used to handle tis correctly
+        because it was always calling JSValue::toThis() on the thisValue before
+        trying to cast it to a JSDOMWindow, and JSLexicalEnvironment::toThis()
+        gets the globalThisValue. This patch updates the EventTarget bindings
+        code to call always call toThis() on the thisValue before trying to
+        cast it. This should correctly deal with JSLexicalEnvironment and be a
+        no-op in usual cases.
+
+        No new tests, extended existing test.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateFunctionCastedThis):
+
+2016-02-22  Simon Fraser  <simon.fraser@apple.com>
+
+        Repeated background images have the wrong position when using bottom/right-relative background-position
+        https://bugs.webkit.org/show_bug.cgi?id=154478
+
+        Reviewed by Dave Hyatt.
+
+        Fix RenderBoxModelObject::calculateBackgroundImageGeometry() to use the right position when
+        painting repeated background images when right/bottom edges are used.
+
+        Also rename BackgroundEdgeOrigin to Edge
+
+        Test: fast/images/background-position.html
+
+        * css/CSSPrimitiveValueMappings.h:
+        (WebCore::CSSPrimitiveValue::CSSPrimitiveValue):
+        (WebCore::CSSPrimitiveValue::operator Edge):
+        (WebCore::CSSPrimitiveValue::operator BackgroundEdgeOrigin): Deleted.
+        * rendering/RenderBoxModelObject.cpp:
+        (WebCore::resolveEdgeRelativeLength):
+        (WebCore::RenderBoxModelObject::calculateBackgroundImageGeometry):
+        * rendering/style/FillLayer.cpp:
+        (WebCore::FillLayer::FillLayer):
+        * rendering/style/FillLayer.h:
+        (WebCore::FillLayer::backgroundXOrigin):
+        (WebCore::FillLayer::backgroundYOrigin):
+        (WebCore::FillLayer::setBackgroundXOrigin):
+        (WebCore::FillLayer::setBackgroundYOrigin):
+        * rendering/style/RenderStyleConstants.cpp:
+        (WebCore::operator<<):
+        * rendering/style/RenderStyleConstants.h:
+
+2016-02-22  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r196935.
+        https://bugs.webkit.org/show_bug.cgi?id=154557
+
+        This change causes timeouts and crashes in LayoutTests
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "Enable AVFoundationNSURLSessionEnabled by default"
+        https://bugs.webkit.org/show_bug.cgi?id=154469
+        http://trac.webkit.org/changeset/196935
+
 2016-02-22  Myles C. Maxfield  <mmaxfield@apple.com>
 
         [Font Loading] Split CSSFontSelector into a FontFaceSet implementation and the rest of the class
