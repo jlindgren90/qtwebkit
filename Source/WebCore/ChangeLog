@@ -1,3 +1,104 @@
+2016-02-22  Jer Noble  <jer.noble@apple.com>
+
+        Enable AVFoundationNSURLSessionEnabled by default
+        https://bugs.webkit.org/show_bug.cgi?id=154469
+
+        Reviewed by Sam Weinig.
+
+        * page/Settings.cpp:
+
+2016-02-22  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Swap columns and rows in grid-template shorthand
+        https://bugs.webkit.org/show_bug.cgi?id=154472
+
+        Reviewed by Darin Adler.
+
+        The spec was modified past December to change the order of
+        columns and rows in the grid-template shorthand:
+        https://github.com/w3c/csswg-drafts/commit/f6c7691679a519017a80ebae44fd86c3eae5c5f9
+
+        Updated the parsing and modified the tests to follow the new syntax.
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseGridTemplateColumns):
+        (WebCore::CSSParser::parseGridTemplateRowsAndAreasAndColumns):
+        (WebCore::CSSParser::parseGridTemplateShorthand):
+        (WebCore::CSSParser::parseGridTemplateRowsAndAreas): Renamed to
+        parseGridTemplateRowsAndAreasAndColumns().
+        * css/CSSParser.h:
+
+2016-02-22  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Swap columns and rows in grid shorthand
+        https://bugs.webkit.org/show_bug.cgi?id=154449
+
+        Reviewed by Darin Adler.
+
+        The spec was modified past December to change the order of
+        columns and rows in the grid shorthand:
+        https://github.com/w3c/csswg-drafts/commit/7454c7c8c5857b61bbbe2ee5f07803c264bf37e4
+
+        Updated the parsing and modified the tests to follow the new syntax.
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseGridShorthand):
+
+2016-02-22  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Binding generator should support key value iterable
+        https://bugs.webkit.org/show_bug.cgi?id=154413
+
+        Reviewed by Darin Adler.
+
+        Covered by added layout and binding tests.
+
+        iterable<key, value> in a IDL file will trigger the generation of entries, keys, values, [Symbol.iterator] and forEach methods to the prototype.
+        Updated FetchHeaders and FontFaceSet to use it.
+
+        IDLParser.pm parses the iterable<> and adds an iterable field in the interface containing the iterable information and objects for the five operations.
+        IDLParser.pm is cleaned up a bit to remove previous Iterator support, which does not seem to be supported.
+
+        CodeGeneratorJS.pm is updated to generate the code for the five operations, using JSKeyValueIterator. Set iterators are not yet supported.
+        Moved definition of Iterator Key and Value Type to binding generated JSXX class based on iterable<> declaration in the IDL.
+
+        Added binding test and Fetch Headers tests.
+
+        * CMakeLists.txt:
+        * Modules/fetch/FetchHeaders.idl:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        * bindings/js/JSFetchHeadersCustom.cpp: Removed.
+        * bindings/js/JSFontFaceSetCustom.cpp:
+        (WebCore::JSFontFaceSet::ready): Removed iterable custom methods.
+        * bindings/js/JSKeyValueIterator.h:
+        (WebCore::createKeyValueIterator):
+        (WebCore::keyValueIteratorForEach):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetFunctionName):
+        (PrototypeFunctionCount):
+        (PrototypePropertyCount):
+        (GeneratePropertiesHashTable):
+        (GenerateImplementation):
+        (GenerateImplementationFunctionCall):
+        (GenerateImplementationIterableFunctions):
+        * bindings/scripts/IDLParser.pm:
+        (parseOperationOrIterator):
+        (parseOperationOrIteratorRest):
+        (parseIterableRest):
+        (parseOptionalIterableInterface):
+        (applyMemberList):
+        (parseSpecial): Deleted.
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjPrototype::finishCreation):
+        (WebCore::jsTestObjPrototypeFunctionSymbolIterator):
+        (WebCore::jsTestObjPrototypeFunctionEntries):
+        (WebCore::jsTestObjPrototypeFunctionKeys):
+        (WebCore::jsTestObjPrototypeFunctionValues):
+        (WebCore::jsTestObjPrototypeFunctionForEach):
+        * bindings/scripts/test/TestObj.idl:
+        * css/FontFaceSet.idl:
+
 2016-02-21  Chris Dumez  <cdumez@apple.com>
 
         HTMLScriptElement.crossOrigin / HTMLImageElement.crossOrigin should only return known values
