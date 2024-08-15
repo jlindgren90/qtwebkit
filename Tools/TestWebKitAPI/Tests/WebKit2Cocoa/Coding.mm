@@ -27,7 +27,7 @@
 
 #if WK_API_ENABLED
 
-#import <WebKit/WKPreferences.h>
+#import <WebKit/WKProcessPoolPrivate.h>
 #import <wtf/RetainPtr.h>
 
 template<typename T>
@@ -63,6 +63,18 @@ TEST(Coding, WKPreferences)
     EXPECT_EQ([a javaEnabled], [b javaEnabled]);
     EXPECT_EQ([a plugInsEnabled], [b plugInsEnabled]);
 #endif
+}
+
+TEST(Coding, WKProcessPool_Shared)
+{
+    auto a = encodeAndDecode([WKProcessPool _sharedProcessPool]);
+    EXPECT_EQ([WKProcessPool _sharedProcessPool], a.get());
+}
+
+TEST(Coding, WKProcessPool)
+{
+    auto a = encodeAndDecode(adoptNS([[WKProcessPool alloc] init]).get());
+    EXPECT_NE([WKProcessPool _sharedProcessPool], a.get());
 }
 
 TEST(Coding, WKWebsiteDataStore_Default)
@@ -108,4 +120,61 @@ TEST(Coding, WKWebViewConfiguration)
     EXPECT_EQ([a allowsPictureInPictureMediaPlayback], [b allowsPictureInPictureMediaPlayback]);
 #endif
 }
+
+TEST(Coding, WKWebView)
+{
+    auto a = adoptNS([[WKWebView alloc] init]);
+
+    // Change all defaults to something else.
+    [a setAllowsBackForwardNavigationGestures:YES];
+    [a setCustomUserAgent:@"CustomUserAgent"];
+
+#if PLATFORM(IOS)
+    [a setAllowsLinkPreview:YES];
+#else
+    [a setAllowsLinkPreview:NO];
+    [a setAllowsMagnification:YES];
+    [a setMagnification:2];
+#endif
+
+    auto b = encodeAndDecode(a.get());
+
+    EXPECT_EQ([a allowsBackForwardNavigationGestures], [b allowsBackForwardNavigationGestures]);
+    EXPECT_TRUE([[a customUserAgent] isEqualToString:[b customUserAgent]]);
+    EXPECT_EQ([a allowsLinkPreview], [b allowsLinkPreview]);
+
+#if PLATFORM(MAC)
+    EXPECT_EQ([a allowsMagnification], [b allowsMagnification]);
+    EXPECT_EQ([a magnification], [b magnification]);
+#endif
+}
+
+TEST(Coding, WKWebView_SameConfiguration)
+{
+    // First, encode two WKWebViews sharing the same configuration.
+    RetainPtr<NSData> data;
+    {
+        auto configuration = adoptNS([[WKWebViewConfiguration alloc] init]);
+
+        auto a = adoptNS([[WKWebView alloc] initWithFrame:CGRectZero configuration:configuration.get()]);
+        auto b = adoptNS([[WKWebView alloc] initWithFrame:CGRectZero configuration:configuration.get()]);
+
+        data = [NSKeyedArchiver archivedDataWithRootObject:@[a.get(), b.get()]];
+    }
+
+    // Then, decode and verify that the important configuration properties are the same.
+    NSArray *array = [NSKeyedUnarchiver unarchiveObjectWithData:data.get()];
+
+    WKWebView *aView = array[0];
+    WKWebView *bView = array[1];
+
+    WKWebViewConfiguration *a = aView.configuration;
+    WKWebViewConfiguration *b = bView.configuration;
+
+    EXPECT_EQ(a.processPool, b.processPool);
+    EXPECT_EQ(a.preferences, b.preferences);
+    EXPECT_EQ(a.userContentController, b.userContentController);
+    EXPECT_EQ(a.websiteDataStore, b.websiteDataStore);
+}
+
 #endif

@@ -1,3 +1,59 @@
+2016-02-23  Keith Miller  <keith_miller@apple.com>
+
+        JSC stress tests' standalone-pre.js should exit on the first failure by default
+        https://bugs.webkit.org/show_bug.cgi?id=154565
+
+        Reviewed by Mark Lam.
+
+        Currently, if a test writer does not call finishJSTest() at the end of
+        any test using stress/resources/standalone-pre.js then the test can fail
+        without actually reporting an error to the harness. By default, we
+        should throw on the first error so, in the event someone does not call
+        finishJSTest() the harness will still notice the error.
+
+        * tests/stress/regress-151324.js:
+        * tests/stress/resources/standalone-pre.js:
+        (testFailed):
+
+2016-02-23  Saam barati  <sbarati@apple.com>
+
+        Make JSObject::getMethod have fewer branches
+        https://bugs.webkit.org/show_bug.cgi?id=154603
+
+        Reviewed by Mark Lam.
+
+        Writing code with fewer branches is almost always better.
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::getMethod):
+
+2016-02-23  Filip Pizlo  <fpizlo@apple.com>
+
+        B3::Value doesn't self-destruct virtually enough (Causes many leaks in LowerDFGToB3::appendOSRExit)
+        https://bugs.webkit.org/show_bug.cgi?id=154592
+
+        Reviewed by Saam Barati.
+
+        If Foo has a virtual destructor, then:
+
+        foo->Foo::~Foo() does a non-virtual call to Foo's destructor. Even if foo points to a
+        subclass of Foo that overrides the destructor, this syntax will not call that override.
+
+        foo->~Foo() does a virtual call to the destructor, and so if foo points to a subclass, you
+        get the subclass's override.
+
+        In B3, we used this->Value::~Value() thinking that it would call the subclass's override.
+        This caused leaks because this didn't actually call the subclass's override. This fixes the
+        problem by using this->~Value() instead.
+
+        * b3/B3ControlValue.cpp:
+        (JSC::B3::ControlValue::convertToJump):
+        (JSC::B3::ControlValue::convertToOops):
+        * b3/B3Value.cpp:
+        (JSC::B3::Value::replaceWithIdentity):
+        (JSC::B3::Value::replaceWithNop):
+        (JSC::B3::Value::replaceWithPhi):
+
 2016-02-23  Brian Burg  <bburg@apple.com>
 
         Web Inspector: the protocol generator's Objective-C name prefix should be configurable

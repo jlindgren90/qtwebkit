@@ -42,6 +42,7 @@
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
 #include <wtf/Noncopyable.h>
+#include <wtf/Optional.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
 #include <wtf/text/WTFString.h>
@@ -527,7 +528,7 @@ private:
     void hiddenPageDOMTimerThrottlingStateChanged();
     void setTimerThrottlingEnabled(bool);
     void setDOMTimerAlignmentInterval(double);
-    void timerAlignmentIntervalTimerFired();
+    void timerAlignmentIntervalIncreaseTimerFired();
 
     const std::unique_ptr<Chrome> m_chrome;
     const std::unique_ptr<DragCaretController> m_dragCaretController;
@@ -613,8 +614,9 @@ private:
     ViewMode m_viewMode;
 #endif // ENABLE(VIEW_MODE_CSS_MEDIA)
 
-    bool m_timerThrottlingEnabled;
+    Optional<double> m_timerThrottlingEnabledTime;
     double m_timerAlignmentInterval;
+    Timer m_timerAlignmentIntervalIncreaseTimer;
 
     bool m_isEditable;
     bool m_isPrerender;
