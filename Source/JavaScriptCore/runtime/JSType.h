@@ -78,6 +78,7 @@ enum JSType : uint8_t {
     GlobalObjectType,
     ClosureObjectType,
 
+    ProxyObjectType,
     RegExpObjectType,
 
     LastJSCObjectType = RegExpObjectType,
