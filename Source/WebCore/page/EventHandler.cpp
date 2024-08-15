@@ -461,7 +461,9 @@ void EventHandler::clear()
     m_mousePressed = false;
     m_capturesDragging = false;
     m_capturingMouseEventsElement = nullptr;
-    clearLatchedState();
+#if PLATFORM(MAC)
+    m_frame.mainFrame().resetLatchingState();
+#endif
 #if ENABLE(TOUCH_EVENTS) && !ENABLE(IOS_TOUCH_EVENTS)
     m_originatingTouchPointTargets.clear();
     m_originatingTouchPointDocument = nullptr;
@@ -2678,8 +2680,7 @@ void EventHandler::clearLatchedState()
 #if PLATFORM(MAC)
     m_frame.mainFrame().resetLatchingState();
 #endif
-    if (WheelEventDeltaFilter* filter = m_frame.mainFrame().wheelEventDeltaFilter())
-        filter->endFilteringDeltas();
+    m_frame.mainFrame().wheelEventDeltaFilter()->endFilteringDeltas();
 }
 
 void EventHandler::defaultWheelEventHandler(Node* startNode, WheelEvent* wheelEvent)
