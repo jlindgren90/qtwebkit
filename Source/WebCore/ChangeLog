@@ -1,3 +1,254 @@
+2016-02-24  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Remove IteratorKey and IteratorValue declarations from JSXX class declarations.
+        https://bugs.webkit.org/show_bug.cgi?id=154577
+
+        Reviewed by Myles C. Maxfield.
+
+        No change of behavior.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader): Deleted declaration of IteratorKey and IteratorValue.
+        * bindings/scripts/test/JS/JSTestObj.h:
+        (WebCore::JSTestObj::createStructure): Rebasing of binding test expectation.
+
+2016-02-24  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Refactor FetchHeaders initialization with iterators
+        https://bugs.webkit.org/show_bug.cgi?id=154537
+
+        Reviewed by Darin Adler.
+
+        Covered by existing tests.
+
+        * Modules/fetch/FetchHeaders.cpp:
+        (WebCore::initializeWith): Deleted.
+        * Modules/fetch/FetchHeaders.h: Removed FetchHeaders::initializeWith.
+        * Modules/fetch/FetchHeaders.idl: Ditto.
+        * Modules/fetch/FetchHeaders.js:
+        (initializeFetchHeaders): Making use of iterators to fill headers.
+
+2016-02-24  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GObject DOM bindings API break after r196998.
+
+        webkit_dom_node_clone_node can now raise exceptions, so rename it
+        as webkit_dom_node_clone_node_with_error and deprecate the old one
+        that calls the new one ignoring the error.
+
+        * bindings/gobject/WebKitDOMDeprecated.cpp:
+        (webkit_dom_node_clone_node):
+        * bindings/gobject/WebKitDOMDeprecated.h:
+        * bindings/gobject/WebKitDOMDeprecated.symbols:
+        * bindings/gobject/webkitdom.symbols:
+        * bindings/scripts/CodeGeneratorGObject.pm:
+        (FunctionUsedToNotRaiseException):
+        (GenerateFunction):
+
+2016-02-24  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r195949): [GTK] Test /webkit2/WebKitWebView/insert/link is failing since r195949
+        https://bugs.webkit.org/show_bug.cgi?id=153747
+
+        Reviewed by Michael Catanzaro.
+
+        Do not return early when reaching a boundary if there's a range
+        selection. In that case, the selection will be cleared and
+        accessibility will be notified.
+
+        Test: editing/selection/move-to-line-boundary-clear-selection.html
+
+        * editing/FrameSelection.cpp:
+        (WebCore::FrameSelection::modify):
+
+2016-02-24  Alejandro G. Castro  <alex@igalia.com>
+
+        [Gstreamer] Mediaplayer should observe the tracks and not the source
+        https://bugs.webkit.org/show_bug.cgi?id=154582
+
+        Reviewed by Philippe Normand.
+
+        We have to observe the track objects that define the
+        mediastream. Replace the source attributes with the new tracks and
+        use them properly in the class.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerOwr.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerOwr::~MediaPlayerPrivateGStreamerOwr):
+        Make sure we are not observing anymore the tracks after
+        destruction.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::hasVideo): Used the track
+        instead of the source.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::hasAudio): Ditto.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::currentTime): Ditto.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::internalLoad): Ditto.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::stop): Ditto.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::trackEnded): Added, new
+        track observer API, make sure we disable the ended tracks.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::trackMutedChanged):
+        Added, new track observer API.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::trackSettingsChanged):
+        Added, new track observer API.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::trackEnabledChanged):
+        Added, new track observer API.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::sourceStopped): Deleted,
+        source observer API.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::sourceMutedChanged):
+        Deleted, source observer API.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::sourceSettingsChanged):
+        Deleted, source observer API.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::preventSourceFromStopping):
+        Deleted, source observer API.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerOwr.h:
+        Replaced the attributes representing the source with the tracks
+        and added the new track observer functions.
+
+2016-02-23  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Swap the order of columns/rows in grid-gap shorthand
+        https://bugs.webkit.org/show_bug.cgi?id=154584
+
+        The latest editor's draft have just changed the order. Now it
+        should be <grid-row-gap> <grid-column-gap>?.
+
+        Reviewed by Darin Adler.
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseGridGapShorthand):
+        * css/CSSPropertyNames.in:
+
+2016-02-24  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Move FocusNavigationScope into FocusController.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=154630
+
+        Reviewed by Darin Adler.
+
+        Moved FocusNavigationScope from FocusController.h to FocusController.cpp.
+
+        * bindings/objc/DOM.mm:
+        (-[DOMNode nextFocusNode]):
+        (-[DOMNode previousFocusNode]):
+        * page/FocusController.cpp:
+        (WebCore::parentInScope):
+        (WebCore::FocusNavigationScope::firstChildInScope): Moved into FocusNavigationScope.
+        (WebCore::FocusNavigationScope::lastChildInScope): Ditto.
+        (WebCore::FocusNavigationScope::nextInScope): Ditto.
+        (WebCore::FocusNavigationScope::previousInScope): Ditto.
+        (WebCore::FocusController::findFocusableElementAcrossFocusScope):
+        (WebCore::FocusController::findFocusableElementRecursively):
+        (WebCore::FocusController::findFocusableElement):
+        (WebCore::nextElementWithGreaterTabIndex):
+        (WebCore::previousElementWithLowerTabIndex):
+        (WebCore::FocusController::nextFocusableElement): Added a variant for DOM.mm and WebPageIOS.mm.
+        (WebCore::FocusController::previousFocusableElement): Ditto.
+        (WebCore::FocusController::nextFocusableElement):
+        (WebCore::FocusController::previousFocusableElement): Use if instead of for loop for clarity.
+        * page/FocusController.h:
+
+2016-02-24  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: RTCPeerConnection: Sort out responsibilities of close() and stop()
+        https://bugs.webkit.org/show_bug.cgi?id=154581
+
+        Reviewed by Eric Carlson.
+
+        Let RTCPeerConnection::close() contain all teardown logic be called by stop().
+        close() is also responisble for stopping the PeerConnectionBackend and stopping
+        all RTCRtpSender objects.
+
+        Test coverage:
+        fast/mediastream/RTCRtpSender-replaceTrack.html (updated)
+        fast/mediastream/RTCPeerConnection-closed-state.html
+
+        * Modules/mediastream/RTCPeerConnection.cpp:
+        (WebCore::RTCPeerConnection::close):
+        (WebCore::RTCPeerConnection::stop):
+        (WebCore::RTCPeerConnection::RTCPeerConnection): Deleted.
+        * Modules/mediastream/RTCPeerConnection.h:
+
+2016-02-24  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Add addReceiver() function to PeerConnectionBackendClient interface
+        https://bugs.webkit.org/show_bug.cgi?id=154583
+
+        Reviewed by Eric Carlson.
+
+        The addRecevier() notifies the PeerConnectionBackendClient that a new RTCRtpReceiver,
+        representing an MediaStreamTrack received from a remote peer, is added.
+
+        * Modules/mediastream/PeerConnectionBackend.h:
+        * Modules/mediastream/RTCPeerConnection.cpp:
+        (WebCore::RTCPeerConnection::addReceiver):
+        * Modules/mediastream/RTCPeerConnection.h:
+
+2016-02-23  Olivier Blin  <olivier.blin@softathome.com>
+
+        Support building LocaleICU with light ICU (UCONFIG_NO_FORMATTING)
+        https://bugs.webkit.org/show_bug.cgi?id=154484
+
+        Reviewed by Darin Adler.
+
+        In this mode, this makes LocaleICU with UCONFIG_NO_FORMATTING
+        essentially the same as LocaleNone, but allows to keep using ICU for
+        other features.
+
+        * platform/text/LocaleICU.cpp:
+        (WebCore::LocaleICU::LocaleICU):
+        (WebCore::LocaleICU::~LocaleICU):
+        (WebCore::LocaleICU::initializeLocaleData):
+        * platform/text/LocaleICU.h:
+
+2016-02-23  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Remove dead FontLoader code
+        https://bugs.webkit.org/show_bug.cgi?id=154625
+
+        Reviewed by Darin Adler.
+
+        This code has been replaced by FontFaceSet.
+
+        No new tests because there is no behavior change.
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * WebCore.vcxproj/WebCore.vcxproj:
+        * WebCore.vcxproj/WebCore.vcxproj.filters:
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/CSSAllInOne.cpp:
+        * css/FontLoader.cpp: Removed.
+        (WebCore::LoadFontCallback::create): Deleted.
+        (WebCore::LoadFontCallback::createFromParams): Deleted.
+        (WebCore::LoadFontCallback::~LoadFontCallback): Deleted.
+        (WebCore::LoadFontCallback::familyCount): Deleted.
+        (WebCore::LoadFontCallback::LoadFontCallback): Deleted.
+        (WebCore::LoadFontCallback::notifyLoaded): Deleted.
+        (WebCore::LoadFontCallback::notifyError): Deleted.
+        (WebCore::FontLoader::loadFontDone): Deleted.
+        (WebCore::FontLoader::FontLoader): Deleted.
+        (WebCore::FontLoader::~FontLoader): Deleted.
+        (WebCore::FontLoader::eventTargetData): Deleted.
+        (WebCore::FontLoader::ensureEventTargetData): Deleted.
+        (WebCore::FontLoader::eventTargetInterface): Deleted.
+        (WebCore::FontLoader::scriptExecutionContext): Deleted.
+        (WebCore::FontLoader::didLayout): Deleted.
+        (WebCore::FontLoader::activeDOMObjectName): Deleted.
+        (WebCore::FontLoader::canSuspendForDocumentSuspension): Deleted.
+        (WebCore::FontLoader::scheduleEvent): Deleted.
+        (WebCore::FontLoader::firePendingEvents): Deleted.
+        (WebCore::FontLoader::beginFontLoading): Deleted.
+        (WebCore::FontLoader::fontLoaded): Deleted.
+        (WebCore::FontLoader::loadError): Deleted.
+        (WebCore::FontLoader::notifyWhenFontsReady): Deleted.
+        (WebCore::FontLoader::loadingDone): Deleted.
+        (WebCore::FontLoader::loadFont): Deleted.
+        (WebCore::FontLoader::checkFont): Deleted.
+        (WebCore::applyPropertyToCurrentStyle): Deleted.
+        (WebCore::FontLoader::resolveFontStyle): Deleted.
+        * css/FontLoader.h: Removed.
+        * css/FontLoader.idl: Removed.
+        * page/FrameView.cpp:
+
 2016-02-23  Per Arne Vollan  <peavo@outlook.com>
 
         [WinCairo][MediaFoundation] Implement methods to set volume.
