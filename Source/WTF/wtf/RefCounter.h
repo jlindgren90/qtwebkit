@@ -39,8 +39,8 @@ class RefCounter {
     class Count {
         WTF_MAKE_NONCOPYABLE(Count);
     public:
-        WTF_EXPORT_PRIVATE void ref();
-        WTF_EXPORT_PRIVATE void deref();
+        void ref();
+        void deref();
 
     private:
         friend class RefCounter;
@@ -58,8 +58,8 @@ class RefCounter {
 public:
     using Token = RefPtr<Count>;
 
-    WTF_EXPORT_PRIVATE RefCounter(std::function<void(bool)> = [](bool) { });
-    WTF_EXPORT_PRIVATE ~RefCounter();
+    RefCounter(std::function<void(bool)> = [](bool) { });
+    ~RefCounter();
 
     Token count() const
     {

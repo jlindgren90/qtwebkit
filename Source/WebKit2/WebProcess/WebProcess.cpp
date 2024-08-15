@@ -197,6 +197,10 @@ WebProcess::WebProcess()
 #if ENABLE(INDEXED_DATABASE)
     RuntimeEnabledFeatures::sharedFeatures().setWebkitIndexedDBEnabled(true);
 #endif
+
+#if PLATFORM(IOS)
+    PageCache::singleton().setShouldClearBackingStores(true);
+#endif
 }
 
 WebProcess::~WebProcess()

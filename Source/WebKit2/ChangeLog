@@ -1,3 +1,46 @@
+2016-02-25  Andreas Kling  <akling@apple.com>
+
+        [iOS] Enable PageCache backing store clearing optimization for WebKit2.
+        <https://webkit.org/b/154712>
+
+        Reviewed by Anders Carlsson.
+
+        We had an optimization for iOS where we'd tear down the compositing tree for
+        pages in the page cache, to save memory, but we were only enabling it when
+        instantiating a WebKit1 web view.
+
+        This patch enables the optimization for WebKit2 as well.
+
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::WebProcess):
+
+2016-02-25  Ada Chan  <adachan@apple.com>
+
+        Update the definition of ENABLE_VIDEO_PRESENTATION_MODE for Mac platform
+        https://bugs.webkit.org/show_bug.cgi?id=154702
+
+        Reviewed by Dan Bernstein.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-02-25  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Restrict information passed with navigation action which is triggered by untrusted event
+        https://bugs.webkit.org/show_bug.cgi?id=154571
+        <rdar://problem/15967937>
+
+        Reviewed by Andy Estes.
+
+        When navigation action is triggered by an untrusted event, we should be more restricted of
+        what information should be passed to the clients to lower the risk that clients could
+        be fooled by the untrusted event.
+
+        In this patch, we drop the modifiers for key state events and set the mouse button to NoButton
+        for mouse events.
+
+        * WebProcess/InjectedBundle/InjectedBundleNavigationAction.cpp:
+        (WebKit::InjectedBundleNavigationAction::modifiersForNavigationAction):
+
 2016-02-25  Ada Chan  <adachan@apple.com>
 
         Hook up fullscreenMayReturnToInline() in WKPageUIClient
