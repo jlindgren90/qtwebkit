@@ -343,7 +343,7 @@ sub determineArchitecture
             } elsif ($xcodeSDK =~ /^iphonesimulator/) {
                 $architecture = 'x86_64';
             } elsif ($xcodeSDK =~ /^iphoneos/) {
-                $architecture = 'armv7';
+                $architecture = 'arm64';
             }
         }
     } elsif (isCMakeBuild()) {

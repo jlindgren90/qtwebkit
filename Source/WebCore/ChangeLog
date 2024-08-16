@@ -1,3 +1,165 @@
+2016-03-09  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] Fixed All-in-One build.
+        https://bugs.webkit.org/show_bug.cgi?id=155241
+
+        Reviewed by Csaba Osztrogonác.
+
+        No new tests needed.
+
+        * bindings/js/JSBindingsAllInOne.cpp: Should not include generated
+        file.
+
+2016-03-09  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rebaseline bindings tests after r197874.
+
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        (WebCore::JSattribute::getOwnPropertySlot):
+        * bindings/scripts/test/JS/JSattribute.h:
+
+2016-03-09  Chris Dumez  <cdumez@apple.com>
+
+        focus() / blur() should be on HTMLElement / SVGElement, not Element
+        https://bugs.webkit.org/show_bug.cgi?id=155216
+
+        Reviewed by Darin Adler.
+
+        focus() / blur() should be on HTMLElement / SVGElement, not Element:
+        - https://html.spec.whatwg.org/multipage/dom.html#htmlelement
+        - https://www.w3.org/TR/SVG2/types.html#InterfaceSVGElement
+
+        Chrome and Firefox match the specification.
+
+        Note that after this change, focus() / blur() is no longer exposed
+        on MathMLElement. This matches the MathML specification and is
+        consistent with Firefox and Chrome.
+
+        * dom/Element.idl:
+        * html/HTMLElement.idl:
+        * svg/SVGElement.idl:
+
+2016-03-09  Chris Dumez  <cdumez@apple.com>
+
+        Move attributes to the instance for most interfaces that have "Error" in their name
+        https://bugs.webkit.org/show_bug.cgi?id=155231
+
+        Reviewed by Darin Adler.
+
+        Our bindings generator was keeping attributes on the instances for
+        interfaces having "Error" or "Exception" in their name. The reason is
+        that interfaces that have "Error" in their prototype would not behave
+        correctly otherwise because "Error" incorrectly has its attributes on
+        the instance at the moment. However, in our bindings generator, the
+        condition to decide if an interface's prototype should be "Error" is
+        if $interface->isException. Therefore, we should use the same condition
+        to decide if we should keep attributes on the instance until "Error"
+        is updated to have its attributes on the prototype. Doing this for any
+        interface having "Error" or "Exception" in their name is overkill.
+
+        No new tests, already covered by existing test.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (InterfaceRequiresAttributesOnInstance):
+
+2016-03-09  Daniel Bates  <dabates@apple.com>
+
+        Rename WebCore/platform/crypto/mac/CryptoDigestMac.cpp to WebCore/platform/crypto/commoncrypto/CryptoDigestCommonCrypto.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=155244
+
+        Reviewed by Alexey Proskuryakov.
+
+        The file WebCore/platform/crypto/mac/CryptoDigestMac.cpp is applicable to both iOS and OS X.
+        We should move and rename this file to reflect that is applicable to both of these platforms.
+
+        * PlatformMac.cmake:
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/crypto/commoncrypto/CryptoDigestCommonCrypto.cpp: Renamed from Source/WebCore/platform/crypto/mac/CryptoDigestMac.cpp.
+
+2016-03-09  Tim Horton  <timothy_horton@apple.com>
+
+        Removing and re-adding a script message handler with the same name results in an unusable message handler
+        https://bugs.webkit.org/show_bug.cgi?id=155223
+
+        Reviewed by Sam Weinig.
+        Patch by Geoff Garen and myself.
+
+        New API test: WKUserContentController.ScriptMessageHandlerReplaceWithSameName.
+
+        * page/UserMessageHandler.h:
+        (WebCore::UserMessageHandler::descriptor):
+        * page/UserMessageHandlersNamespace.cpp:
+        (WebCore::UserMessageHandlersNamespace::handler):
+        This lazy removal mechanism combined with the fact that we only compare
+        handler name and world makes it such that m_messageHandlers could have
+        a stale UserMessageHandler with a UserMessageHandlerDescriptor that differed
+        only in client.
+
+        It is safe to compare the descriptors by pointer instead because m_messageHandler
+        holds a strong reference to its UserMessageHandlerDescriptors, and this will ensure
+        that the add-remove-add path (with identical name and world) causes a new
+        UserContentController to be created.
+
+        We also now clean up any stale UserMessageHandlers whenever we're about to
+        add a new one, by removing any which the UserContentController no longer knows about.
+
+2016-03-09  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLKeygenElement.keytype with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=155214
+
+        Reviewed by Darin Adler.
+
+        Align HTMLKeygenElement.keytype with the specification:
+        - https://html.spec.whatwg.org/#dom-keygen-keytype
+        - https://html.spec.whatwg.org/#attr-keygen-keytype
+
+        In particular, the following changes were made:
+        1. Return "rsa" by default (i.e. when the corresponding content attribute is missing)
+        2. Only return known values
+
+        Test: fast/dom/HTMLKeygenElement/keygen-keytype.html
+
+        * html/HTMLKeygenElement.cpp:
+        (WebCore::HTMLKeygenElement::setKeytype):
+        (WebCore::HTMLKeygenElement::keytype):
+        (WebCore::HTMLKeygenElement::appendFormData):
+        * html/HTMLKeygenElement.h:
+        * html/HTMLKeygenElement.idl:
+
+2016-03-09  Philippe Normand  <pnormand@igalia.com>
+
+        [GStreamer] Fix MediaPlayerPrivate conflicts
+        https://bugs.webkit.org/show_bug.cgi?id=155236
+
+        Reviewed by Martin Robinson.
+
+        In some cases the mediastream player would be used to play
+        non-mediastream videos or MSE streams. The OWR player should be
+        used only for mediastreams and the MediaPlayerPrivateGStreamer
+        player should be used only for normal <video> elements and
+        MediaSource support.
+
+        This patch intends to fix the massive tests timeouts currently
+        happening on the GTK bots after r197752.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp:
+        (WebCore::MediaPlayerPrivateGStreamer::supportsType): Bail out if
+        the type checked represents a mediastream.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        Prevent signal disconnection on possible NULL GObjects.
+        (WebCore::MediaPlayerPrivateGStreamerBase::~MediaPlayerPrivateGStreamerBase):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerOwr.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerOwr::MediaPlayerPrivateGStreamerOwr):
+        Simplify constructor to the bare minimum.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::load): Create sinks only
+        if needed from the load method.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::getSupportedTypes):
+        Initialize the type cache to an empty static hashset.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::supportsType): This
+        player does support mediastreams and nothing else.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerOwr.h:
+
 2016-03-08  Brent Fulgham  <bfulgham@apple.com>
 
         Local HTML should be blocked from localStorage access unless "Disable Local File Restrictions" is checked..

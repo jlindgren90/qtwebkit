@@ -1,3 +1,47 @@
+2016-03-09  Michael Saboff  <msaboff@apple.com>
+
+        [ES6] Implement RegExp sticky flag and related functionality
+        https://bugs.webkit.org/show_bug.cgi?id=155177
+
+        Reviewed by Saam Barati.
+
+        New and updated tests.
+
+        * js/Object-getOwnPropertyNames-expected.txt:
+        * js/regexp-flags-expected.txt:
+        * js/regexp-sticky-expected.txt: Added.
+        * js/regexp-sticky.html: Added.
+        * js/script-tests/Object-getOwnPropertyNames.js:
+        * js/script-tests/regexp-flags.js:
+        (RegExp.prototype.hasOwnProperty): Deleted check for sticky property.
+        * js/script-tests/regexp-sticky.js: New test.
+        (asString):
+        (testStickyExec):
+        (testStickyMatch):
+
+2016-03-09  Mark Lam  <mark.lam@apple.com>
+
+        FunctionExecutable::ecmaName() should not be based on inferredName().
+        https://bugs.webkit.org/show_bug.cgi?id=155203
+
+        Reviewed by Michael Saboff.
+
+        * js/script-tests/function-toString-vs-name.js:
+        - Fixed up object property test section and added new test cases.
+        * platform/mac/http/tests/media/media-source/mediasource-sourcebuffer-mode-expected.txt:
+
+2016-03-09  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLKeygenElement.keytype with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=155214
+
+        Reviewed by Darin Adler.
+
+        Add test coverage for HTMLKeygenElement.keytype.
+
+        * fast/dom/HTMLKeygenElement/keygen-keytype-expected.txt: Added.
+        * fast/dom/HTMLKeygenElement/keygen-keytype.html: Added.
+
 2016-03-09  Ryan Haddad  <ryanhaddad@apple.com>
 
         Cleaning up TestExpectations files to remove deleted tests and duplicate entries for ios-simulator.

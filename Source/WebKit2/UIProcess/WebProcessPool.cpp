@@ -144,9 +144,9 @@ static WebsiteDataStore::Configuration legacyWebsiteDataStoreConfiguration(API::
 
     configuration.localStorageDirectory = processPoolConfiguration.localStorageDirectory();
     configuration.webSQLDatabaseDirectory = processPoolConfiguration.webSQLDatabaseDirectory();
-    configuration.applicationCacheDirectory = WebProcessPool::legacyPlatformDefaultApplicationCacheDirectory();
-    configuration.mediaKeysStorageDirectory = WebProcessPool::legacyPlatformDefaultMediaKeysStorageDirectory();
-    configuration.networkCacheDirectory = WebProcessPool::legacyPlatformDefaultNetworkCacheDirectory();
+    configuration.applicationCacheDirectory = processPoolConfiguration.applicationCacheDirectory();
+    configuration.mediaKeysStorageDirectory = processPoolConfiguration.mediaKeysStorageDirectory();
+    configuration.networkCacheDirectory = processPoolConfiguration.diskCacheDirectory();
 
     // This is needed to support legacy WK2 clients, which did not have resource load statistics.
     configuration.resourceLoadStatisticsDirectory = API::WebsiteDataStore::defaultResourceLoadStatisticsDirectory();
@@ -180,8 +180,7 @@ WebProcessPool::WebProcessPool(API::ProcessPoolConfiguration& configuration)
     , m_memoryCacheDisabled(false)
     , m_userObservablePageCounter([this](RefCounterEvent) { updateProcessSuppressionState(); })
     , m_processSuppressionDisabledForPageCounter([this](RefCounterEvent) { updateProcessSuppressionState(); })
-    , m_hiddenPageThrottlingAutoIncreasesCounter([this](RefCounterEvent) { m_hiddenPageThrottlingTimer.startOneShot(0); })
-    , m_hiddenPageThrottlingTimer(*this, &WebProcessPool::updateHiddenPageThrottlingAutoIncreaseLimit)
+    , m_hiddenPageThrottlingAutoIncreasesCounter([this](RefCounterEvent) { updateHiddenPageThrottlingAutoIncreaseLimit(); })
 {
     for (auto& scheme : m_configuration->alwaysRevalidatedURLSchemes())
         m_schemesToRegisterAsAlwaysRevalidated.add(scheme);
