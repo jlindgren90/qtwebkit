@@ -1,3 +1,57 @@
+2016-03-13  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove ENABLE(ES6_TEMPLATE_LITERAL_SYNTAX) guards
+        https://bugs.webkit.org/show_bug.cgi?id=155417
+
+        Reviewed by Yusuke Suzuki.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-03-13  Dan Bernstein  <mitz@apple.com>
+
+        [Mac] Injected bundle in relocatable WebContent service can’t use XPC services from other relocatable frameworks
+        https://bugs.webkit.org/show_bug.cgi?id=155414
+        <rdar://problem/24428418>
+
+        Reviewed by Sam Weinig.
+
+        * Configurations/DebugRelease.xcconfig:
+          Set WK_WEBCONTENT_SERVICE_NEEDS_XPC_DOMAIN_EXTENSION_ENTITLEMENT to NO, because
+          engineering builds are ad-hoc signed and therefore can’t have a private entitlement.
+
+        * Configurations/WebContent-OSX.entitlements: Added. Includes the XPC domain extension
+          entitlement.
+
+        * Configurations/WebContentService.xcconfig:
+          Set WK_WEBCONTENT_SERVICE_NEEDS_XPC_DOMAIN_EXTENSION_ENTITLEMENT to YES if not already set
+          and the framework is relocatable. Set CODE_SIGN_ENTITLEMENTS to the new entitlements file
+          if the domain extension entitlement is needed.
+
+        * WebKit2.xcodeproj/project.pbxproj: Added reference to new file.
+
+2016-03-13  Dean Jackson  <dino@apple.com>
+
+        <attachment> should be a runtime-enabled feature
+        https://bugs.webkit.org/show_bug.cgi?id=155413
+        <rdar://problem/25120753>
+
+        Reviewed by Sam Weinig and Anders Carlsson.
+
+        Add an internal setting on WKWebViewConfiguration
+        to enable the <attachment> element support.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration init]):
+        (-[WKWebViewConfiguration copyWithZone:]):
+        (-[WKWebViewConfiguration _attachmentElementEnabled]):
+        (-[WKWebViewConfiguration _setAttachmentElementEnabled:]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
 2016-03-12  Sam Weinig  <sam@webkit.org>
 
         WebKit can easily crash below NetworkSession::dataTaskForIdentifier() with NSURLSession enabled

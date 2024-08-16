@@ -1,3 +1,86 @@
+2016-03-13  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove ENABLE(ES6_TEMPLATE_LITERAL_SYNTAX) guards
+        https://bugs.webkit.org/show_bug.cgi?id=155417
+
+        Reviewed by Yusuke Suzuki.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-03-13  Sam Weinig  <sam@webkit.org>
+
+        Implement unprivileged execCommand("copy") and execCommand("cut")
+        <rdar://problem/24354406>
+        https://bugs.webkit.org/show_bug.cgi?id=146336
+
+        Reviewed by Dean Jackson.
+
+        Test: editing/execCommand/clipboard-access-with-user-gesture.html
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Add new files.
+
+        * editing/ClipboardAccessPolicy.h:
+        Added.
+
+        * editing/EditorCommand.cpp:
+        (WebCore::defaultValueForSupportedCopyCut):
+        (WebCore::supportedCopyCut):
+        Match other browsers and allow the copy and cut commands
+        to be executed when there is a user gesture.
+
+        * page/Settings.h:
+        Add include of ClipboardAccessPolicy.h.
+
+        * page/Settings.in:
+        Add new setting for ClipboardAccessPolicy
+
+2016-03-13  Ryosuke Niwa  <rniwa@webkit.org>
+
+        REGRESSION (r190840): crash inside details element's slotNameFunction
+        https://bugs.webkit.org/show_bug.cgi?id=155388
+
+        Reviewed by Antti Koivisto.
+
+        The bug was caused by HTMLDetailsElement::isActiveSummary calling findAssignedSlot with a summary element
+        inside the shadow tree of the detials element. Fixed it by existing early when the summary element passed
+        to isActiveSummary is not a direct child of the details element.
+
+        Test: fast/html/details-summary-tabindex-crash.html
+
+        * dom/ShadowRoot.cpp:
+        (WebCore::ShadowRoot::findAssignedSlot): Added an assertion for regression testing.
+        * dom/SlotAssignment.cpp:
+        (WebCore::SlotAssignment::findAssignedSlot): Removed the superfluous call to assignSlots added in r190840.
+        There is no need to update the slot assignments here (entires in m_slots are added or removed by
+        addSlotElementByName or removeSlotElementByName and assignSlots only updates assignedNodes in each SlotInfo
+        which is never used in this function or findFirstSlotElement.
+        * html/HTMLDetailsElement.cpp:
+        (WebCore::HTMLDetailsElement::isActiveSummary): Fixed the bug.
+
+2016-03-13  Antti Koivisto  <antti@apple.com>
+
+        ComposedTreeIterator fails to traverse slots if root is shadow host
+        https://bugs.webkit.org/show_bug.cgi?id=155407
+
+        Reviewed by Darin Adler.
+
+        Test: fast/shadow-dom/composed-tree-shadow-subtree.html
+
+        * dom/ComposedTreeIterator.cpp:
+        (WebCore::ComposedTreeIterator::ComposedTreeIterator):
+
+            Traversal functions assume m_contextStack is deeper than 1 before they need to enter slot traversal code paths.
+            Call initializeContextStack in case of shadow host which does the right thing.
+
+        (WebCore::ComposedTreeIterator::traverseSiblingInSlot):
+        (WebCore::composedTreeAsText):
+
+            Add option to include pointers as debugging aid.
+
+        * dom/ComposedTreeIterator.h:
+        (WebCore::composedTreeChildren):
+
 2016-03-12  Sam Weinig  <sam@webkit.org>
 
         WebKit can easily crash below NetworkSession::dataTaskForIdentifier() with NSURLSession enabled
