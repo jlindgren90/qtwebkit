@@ -1,3 +1,68 @@
+2016-03-01  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        NetworkCache: Web process leaks resource buffer when using shareable reasources
+        https://bugs.webkit.org/show_bug.cgi?id=154852
+
+        Reviewed by Darin Adler.
+
+        ResourceLoader::didReceiveBuffer() expects a PassRefPtr, but we
+        are passing a raw pointer making PassRefPtr to take another
+        reference instead of transfering the ownership as expected.
+
+        * WebProcess/Network/WebResourceLoader.cpp:
+        (WebKit::WebResourceLoader::didReceiveResource):
+
+2016-02-29  Zan Dobersek  <zdobersek@igalia.com>
+
+        ThreadedCompositor: clean up composition-specific resources before shutting down the thread
+        https://bugs.webkit.org/show_bug.cgi?id=154793
+
+        Reviewed by Carlos Garcia Campos.
+
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::runCompositingThread): Before concluding the
+        compositing thread run, clean up all the resources that were allocated at
+        the start, and in the reverse order. Specifically, we now also deallocate
+        the CoordinatedGraphicsScene and the SimpleViewportController objects. This
+        way these are not deallocated on the main thread when the ThreadedCompositor
+        destructor would otherwise clean them up.
+
+2016-02-29  Zan Dobersek  <zdobersek@igalia.com>
+
+        ThreadSafeCoordinatedSurface: remove the unused private create() static method
+        https://bugs.webkit.org/show_bug.cgi?id=154792
+
+        Reviewed by Carlos Garcia Campos.
+
+        Remove the static ThreadSafeCoordinatedSurface::create() method that accepted
+        a std::unique_ptr<ImageBuffer> object as its third parameter. This was not used
+        anywhere.
+
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadSafeCoordinatedSurface.cpp:
+        (WebKit::ThreadSafeCoordinatedSurface::create): Deleted.
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadSafeCoordinatedSurface.h:
+
+2016-02-29  Simon Fraser  <simon.fraser@apple.com>
+
+        Remove the experimental feature of antialiased font dilation
+        https://bugs.webkit.org/show_bug.cgi?id=154843
+
+        Reviewed by Zalan Bujtas.
+
+        Remove the "antialiased font dilation" code path, and related prefs.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetAntialiasedFontDilationEnabled):
+        (WKPreferencesGetAntialiasedFontDilationEnabled):
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * UIProcess/API/Cocoa/WKPreferences.mm:
+        (-[WKPreferences _antialiasedFontDilationEnabled]): Deleted.
+        (-[WKPreferences _setAntialiasedFontDilationEnabled:]): Deleted.
+        * UIProcess/API/Cocoa/WKPreferencesPrivate.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences): Deleted.
+
 2016-02-29  Brady Eidson  <beidson@apple.com>
 
         Modern IDB: WebKit 2 IPC layer easily confused about multiple web processes being connected.

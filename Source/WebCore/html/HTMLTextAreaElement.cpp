@@ -423,10 +423,10 @@ void HTMLTextAreaElement::setDefaultValue(const String& defaultValue)
 
 int HTMLTextAreaElement::maxLength() const
 {
-    unsigned result;
-    if (parseHTMLNonNegativeInteger(fastGetAttribute(maxlengthAttr), result))
-        return result;
-    return -1;
+    auto optionalMaxLength = parseHTMLNonNegativeInteger(fastGetAttribute(maxlengthAttr));
+    if (!optionalMaxLength)
+        return -1;
+    return optionalMaxLength.value();
 }
 
 void HTMLTextAreaElement::setMaxLength(int newValue, ExceptionCode& ec)
@@ -538,6 +538,22 @@ void HTMLTextAreaElement::updatePlaceholderText()
 bool HTMLTextAreaElement::willRespondToMouseClickEvents()
 {
     return !isDisabledFormControl();
+}
+
+Ref<RenderStyle> HTMLTextAreaElement::createInnerTextStyle(const RenderStyle& style) const
+{
+    auto textBlockStyle = RenderStyle::create();
+    textBlockStyle.get().inheritFrom(&style);
+    adjustInnerTextStyle(style, textBlockStyle.get());
+    textBlockStyle.get().setDisplay(BLOCK);
+
+#if PLATFORM(IOS)
+    // We're adding three extra pixels of padding to line textareas up with text fields.  
+    textBlockStyle.get().setPaddingLeft(Length(3, Fixed));
+    textBlockStyle.get().setPaddingRight(Length(3, Fixed));
+#endif
+
+    return textBlockStyle;
 }
 
 } // namespace WebCore

@@ -140,7 +140,10 @@ public:
 #endif
 
     HTMLElement* containerElement() const;
+    
     virtual TextControlInnerTextElement* innerTextElement() const override final;
+    virtual Ref<RenderStyle> createInnerTextStyle(const RenderStyle&) const override;
+
     HTMLElement* innerBlockElement() const;
     HTMLElement* innerSpinButtonElement() const;
     HTMLElement* capsLockIndicatorElement() const;
@@ -289,7 +292,7 @@ public:
     bool shouldUseMediaCapture() const;
 #endif
 
-    static const int maximumLength;
+    static const unsigned maximumLength;
 
     unsigned height() const;
     unsigned width() const;
