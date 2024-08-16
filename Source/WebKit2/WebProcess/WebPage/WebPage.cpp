@@ -3225,7 +3225,8 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 #if PLATFORM(IOS)
     m_ignoreViewportScalingConstraints = store.getBoolValueForKey(WebPreferencesKey::ignoreViewportScalingConstraintsKey());
     m_viewportConfiguration.setCanIgnoreScalingConstraints(m_ignoreViewportScalingConstraints);
-    m_viewportConfiguration.setForceAlwaysUserScalable(store.getBoolValueForKey(WebPreferencesKey::forceAlwaysUserScalableKey()));
+    m_forceAlwaysUserScalable = store.getBoolValueForKey(WebPreferencesKey::forceAlwaysUserScalableKey());
+    updateForceAlwaysUserScalable();
 #endif
 }
 
