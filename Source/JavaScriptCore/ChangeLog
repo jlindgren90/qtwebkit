@@ -1,3 +1,91 @@
+2016-03-14  Julien Brianceau  <jbriance@cisco.com>
+
+        [mips] Fix unaligned access in LLINT.
+        https://bugs.webkit.org/show_bug.cgi?id=153228
+
+        Address loads used with btbxx opcodes were wrongly converted to lw
+        instruction instead of lbu, leading to unaligned access on mips
+        platforms. This is not a bug as it's silently fixed up by kernel,
+        but it's more efficient to avoid unaligned accesses for mips.
+
+        Reviewed by Geoffrey Garen.
+
+        * offlineasm/mips.rb:
+
+2016-03-14  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION(r194394): >2x slow-down on CDjs
+        https://bugs.webkit.org/show_bug.cgi?id=155471
+
+        Unreviewed (rollout).
+
+        This revision changes localeCompare() so that it's *much* slower than before. It's
+        understandable that sometimes things will get a tiny bit slower when implementing new
+        language features, but more than 2x regression on a major benchmark is not OK.
+
+        This rolls out that change. We can reland it once we think about how to do it in a
+        performant way.
+
+        * builtins/StringPrototype.js:
+        (search):
+        (localeCompare): Deleted.
+        * runtime/StringPrototype.cpp:
+        (JSC::StringPrototype::finishCreation):
+
+2016-03-14  Mark Lam  <mark.lam@apple.com>
+
+        Need to distinguish between Symbol() and Symbol("").
+        https://bugs.webkit.org/show_bug.cgi?id=155438
+
+        Reviewed by Saam Barati.
+
+        * runtime/PrivateName.h:
+        (JSC::PrivateName::PrivateName):
+
+2016-03-14  Oliver Hunt  <oliver@apple.com>
+
+        Temporarily disable the separated heap.
+        https://bugs.webkit.org/show_bug.cgi?id=155472
+
+        Reviewed by Geoffrey Garen.
+
+        Temporarily disable this.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-03-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Reduce generated JSON HeapSnapshot size
+        https://bugs.webkit.org/show_bug.cgi?id=155460
+
+        Reviewed by Geoffrey Garen.
+
+        Adjust the HeapSnapshot JSON to better reduce its size.
+        Changes include:
+
+          - avoid inner array groups and instead just have a large array for
+            nodes/edges. This removes lots of small array allocations.
+          - eliminate duplicate edges
+          - avoid duplicating edge names by including them in their own table;
+          - now both the nodes and edges lists hold only integers
+
+        * heap/HeapSnapshotBuilder.cpp:
+        (JSC::HeapSnapshotBuilder::json):
+        Add some more documentation for the slightly modified format.
+        While generating, clear data structures as early as possible.
+
+        * heap/HeapSnapshotBuilder.h:
+        (JSC::HeapSnapshotEdge::HeapSnapshotEdge):
+        During JSON building, the edge's cell pointers are converted to the
+        identifier they point to. This avoids having to re-lookup the identifier.
+
+        * tests/heapProfiler/driver/driver.js:
+        (CheapHeapSnapshotEdge):
+        (CheapHeapSnapshot):
+        (CheapHeapSnapshot.prototype.edgeNameFromTableIndex):
+        (HeapSnapshot):
+        Update test driver for slightly different snapshot format.
+
 2016-03-14  Keith Miller  <keith_miller@apple.com>
 
         We should be able to eliminate cloned arguments objects that use the length property

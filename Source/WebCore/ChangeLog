@@ -1,3 +1,93 @@
+2016-03-14  Oliver Hunt  <oliver@apple.com>
+
+        Temporarily disable the separated heap.
+        https://bugs.webkit.org/show_bug.cgi?id=155472
+
+        Reviewed by Geoffrey Garen.
+
+        Temporarily disable this.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-03-10  Antonio Gomes  <tonikitoo@webkit.org>
+
+        Selecting with shift+drag results in unexpected drag-n-drop
+        https://bugs.webkit.org/show_bug.cgi?id=155314
+
+        Reviewed by Darin Adler.
+
+        Test: editing/selection/shift-drag-selection-no-drag-n-drop.html
+
+        Whenever user tries to extend an existing text selection by dragging the mouse
+        (left button hold) with shift key pressed, WebKit enters drag-n-drop mode.
+        This behavior does not match common editing behavior out there, including other
+        browsers' (Firefox, Opera/Presto and IE).
+
+        Patch changes WebKit so that whenever one extends a selection with mouse
+        and shift key pressed off of a #text node, it does not enter drag-n-drop mode.
+
+        Additionally, patch also adds some further tests to ensure that when
+        selection is extended off of either a link or an image, drag-n-drop does
+        get triggered, no matter if shift key is pressed.
+
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::handleMousePressEvent):
+
+2016-03-14  Brent Fulgham  <bfulgham@apple.com>
+
+        REGRESSION (r197114): Crash in WebCore::MediaDevicesRequest::didCompletePermissionCheck
+        https://bugs.webkit.org/show_bug.cgi?id=155453
+        <rdar://problem/24879447>
+
+        Reviewed by Daniel Bates.
+
+        Tested by fast/mediastream/enumerating-crash.html.
+
+        * Modules/mediastream/MediaDevicesRequest.cpp:
+        (WebCore::MediaDevicesRequest::didCompletePermissionCheck): Prevent UserMediaPermissionCheck object from being
+        destroyed before the method completes.
+
+2016-03-14  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix crash when reloading a page using requestAnimationFrame on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=155465
+        rdar://problem/25100202
+
+        Reviewed by Tim Horton.
+
+        On iOS, it's possible for all clients for a DisplayRefreshMonitor
+        to be unregistered, but still get a subsequent displayDidRefresh() for that monitor.
+        In this case, we would remove(notFound) which release-asserts.
+        
+        Fix by just checking for notFound.
+        
+        Unable to test because requestAnimationFrame doesn't work in the simulator.
+
+        * platform/graphics/DisplayRefreshMonitorManager.cpp:
+        (WebCore::DisplayRefreshMonitorManager::displayDidRefresh):
+
+2016-03-14  Per Arne Vollan  <peavo@outlook.com>
+
+        [WinCairo][MediaFoundation] Implement float versions of MediaPlayer methods.
+        https://bugs.webkit.org/show_bug.cgi?id=155357
+
+        Reviewed by Brent Fulgham.
+
+        It is better to implement the float versions of some of the MediaPlayer methods,
+        since the default implementation of the double versions is to call the float version.
+        Also added override keyword to overridden methods.
+
+        * platform/graphics/win/MediaPlayerPrivateMediaFoundation.cpp:
+        (WebCore::MediaPlayerPrivateMediaFoundation::seeking):
+        (WebCore::MediaPlayerPrivateMediaFoundation::seek):
+        (WebCore::MediaPlayerPrivateMediaFoundation::setRate):
+        (WebCore::MediaPlayerPrivateMediaFoundation::duration):
+        (WebCore::MediaPlayerPrivateMediaFoundation::currentTime):
+        (WebCore::MediaPlayerPrivateMediaFoundation::seekDouble): Deleted.
+        (WebCore::MediaPlayerPrivateMediaFoundation::setRateDouble): Deleted.
+        (WebCore::MediaPlayerPrivateMediaFoundation::durationDouble): Deleted.
+        * platform/graphics/win/MediaPlayerPrivateMediaFoundation.h:
+
 2016-03-14  Tim Horton  <timothy_horton@apple.com>
 
         Revert r194125 and r194186: We're going to fix this a different way.

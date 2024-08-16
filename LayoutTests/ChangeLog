@@ -1,3 +1,84 @@
+2016-03-14  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION(r194394): >2x slow-down on CDjs
+        https://bugs.webkit.org/show_bug.cgi?id=155471
+
+        Unreviewed (rollout).
+
+        * js/dom/script-tests/string-prototype-properties.js:
+        * js/dom/string-prototype-properties-expected.txt:
+        * js/script-tests/string-localeCompare.js:
+        * js/string-localeCompare-expected.txt:
+        * js/string-localeCompare.html:
+
+2016-03-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking js/funcion-apply.html as flaky on mac debug
+        https://bugs.webkit.org/show_bug.cgi?id=155411
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-03-10  Antonio Gomes  <tonikitoo@webkit.org>
+
+        Selecting with shift+drag results in unexpected drag-n-drop
+        https://bugs.webkit.org/show_bug.cgi?id=155314
+
+        Reviewed by Darin Adler.
+
+        Tests that ensure that WebKit:
+
+        1) does not enter drag-n-drop mode and extending selection by dragging with mouse with shift key is pressed,
+           off of a #text node.
+        2) does enter drag-n-drop mode and extending selection by dragging with mouse with shift key is pressed,
+           off of a link.
+        3) does enter drag-n-drop mode and extending selection by dragging with mouse with shift key is pressed,
+           off of an image.
+
+        Note that (1) is a behavior changed by this patch, whereas (2) and (3) represent existing
+        behavior that is kept.
+        Tests are also skip for iOS similarly to other drag-n-drop related tests.
+
+        * fast/events/shift-drag-selection-no-drag-n-drop-expected.txt: Added.
+        * fast/events/shift-drag-selection-no-drag-n-drop.html: Added.
+        * fast/events/shift-drag-selection-on-link-triggers-drag-n-drop-expected.txt: Added.
+        * fast/events/shift-drag-selection-on-link-triggers-drag-n-drop.html: Added.
+        * fast/events/shift-drag-selection-on-image-triggers-drag-n-drop-expected.txt: Added.
+        * fast/events/shift-drag-selection-on-image-triggers-drag-n-drop.html: Added.
+
+2016-03-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking storage/indexeddb/transaction-abort-private.html as flaky on mac-wk1
+        https://bugs.webkit.org/show_bug.cgi?id=155067
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-03-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip test storage/indexeddb/odd-strings.html
+        https://bugs.webkit.org/show_bug.cgi?id=154975
+
+        Unreviewed test gardening.
+
+        Removing duplicate expectation for test and skipping since it fails or times out on every run.
+
+        * TestExpectations:
+        * platform/mac-wk1/TestExpectations:
+
+2016-03-14  Brent Fulgham  <bfulgham@apple.com>
+
+        REGRESSION (r197114): Crash in WebCore::MediaDevicesRequest::didCompletePermissionCheck
+        https://bugs.webkit.org/show_bug.cgi?id=155453
+        <rdar://problem/24879447>
+
+        Reviewed by Daniel Bates.
+
+        * fast/mediastream/enumerating-crash-expected.txt: Added.
+        * fast/mediastream/enumerating-crash.html: Added.
+
 2016-03-14  Saam barati  <sbarati@apple.com>
 
         [ES6] Disallow var assignments in for-in loops

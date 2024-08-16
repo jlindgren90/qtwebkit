@@ -1,3 +1,39 @@
+2016-03-14  Oliver Hunt  <oliver@apple.com>
+
+        Temporarily disable the separated heap.
+        https://bugs.webkit.org/show_bug.cgi?id=155472
+
+        Reviewed by Geoffrey Garen.
+
+        Temporarily disable this.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-03-14  Beth Dakin  <bdakin@apple.com>
+
+        [iOS] WKPreviewAction conforms to NSCopying but doesn’t override -
+        copyWithZone:
+        https://bugs.webkit.org/show_bug.cgi?id=155395
+
+        Reviewed by Sam Weinig.
+
+        * UIProcess/API/Cocoa/WKPreviewActionItem.mm:
+        (-[WKPreviewAction copyWithZone:]):
+
+2016-03-14  Anders Carlsson  <andersca@apple.com>
+
+        Remove usage of -[UIGestureRecognizer requireOtherGestureToFail:]
+        https://bugs.webkit.org/show_bug.cgi?id=155461
+        rdar://problem/25143282
+
+        Reviewed by Beth Dakin.
+
+        Use -[UIGestureRecognizer requireGestureRecognizerToFail:] instead, which has been API ever since UIGestureRecognizer was added.
+
+        * Platform/spi/ios/UIKitSPI.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _createAndConfigureDoubleTapGestureRecognizer]):
+
 2016-03-14  Anders Carlsson  <andersca@apple.com>
 
         REGRESSION (r191691): Can't Share Selected Text
