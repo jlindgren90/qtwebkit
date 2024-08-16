@@ -282,6 +282,9 @@ void NetworkProcess::createNetworkConnectionToWebProcess()
 void NetworkProcess::clearCachedCredentials()
 {
     NetworkStorageSession::defaultStorageSession().credentialStorage().clearCredentials();
+#if USE(NETWORK_SESSION)
+    NetworkSession::defaultSession().clearCredentials();
+#endif
 }
 
 void NetworkProcess::ensurePrivateBrowsingSession(SessionID sessionID)
