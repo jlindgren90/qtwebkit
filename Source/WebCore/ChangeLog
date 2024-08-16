@@ -1,3 +1,96 @@
+2016-03-08  Ada Chan  <adachan@apple.com>
+
+        Enable API related to the video fullscreen layer in MediaPlayerPrivateMediaStreamAVFObjC for Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=153239
+
+        Reviewed by Eric Carlson.
+
+        Reuse VideoFullscreenLayerManager to manage moving the video layer between the fullscreen
+        layer and the inline layer depending on the current presentation mode.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::MediaPlayerPrivateMediaStreamAVFObjC):
+        Create m_videoFullscreenLayerManager.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::platformLayer):
+        Return the video inline layer from the VideoFullscreenLayerManager.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::createPreviewLayers):
+        Call VideoFullscreenLayerManager::setVideoLayer() with the m_videoBackgroundLayer. To make sure
+        the preview layer (a sublayer of m_videoBackgroundLayer) resize according to aspect ratio, set
+        its contents gravity to kCAGravityResizeAspect. Also, set its autoresizing mask so it'll resize
+        with its superlayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::setVideoFullscreenLayer):
+        Call VideoFullscreenLayerManager::setVideoFullscreenLayer().
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::setVideoFullscreenFrame):
+        Call VideoFullscreenLayerManager::setVideoFullscreenFrame().
+
+2016-03-08  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Font Loading] Crash when a single load request causes multiple fonts to fail loading
+        https://bugs.webkit.org/show_bug.cgi?id=155009
+
+        Reviewed by Simon Fraser.
+
+        In JavaScript, the first promise fulfillment/failure wins. However, in C++, any
+        subsequent fulfillments/failures cause a crash.
+
+        Test: fast/text/font-face-set-document-multiple-failure.html
+
+        * css/CSSFontFace.cpp:
+        (WebCore::iterateClients): Notifying a client may cause some other client
+        to be destroyed, thereby modifying the clients set. This function allows
+        for notifying clients in a resilient manner.
+        (WebCore::CSSFontFace::setStyle): Update to use iterateClients().
+        (WebCore::CSSFontFace::setWeight): Ditto.
+        (WebCore::CSSFontFace::setUnicodeRange): Ditto.
+        (WebCore::CSSFontFace::setVariantLigatures): Ditto.
+        (WebCore::CSSFontFace::setVariantPosition): Ditto.
+        (WebCore::CSSFontFace::setVariantCaps): Ditto.
+        (WebCore::CSSFontFace::setVariantNumeric): Ditto.
+        (WebCore::CSSFontFace::setVariantAlternates): Ditto.
+        (WebCore::CSSFontFace::setVariantEastAsian): Ditto.
+        (WebCore::CSSFontFace::setFeatureSettings): Ditto.
+        (WebCore::CSSFontFace::setStatus): Ditto.
+        (WebCore::CSSFontFace::notifyClientsOfFontPropertyChange): Deleted.
+        * css/CSSFontFace.h: Adding a way for clients to make sure they don't register
+        or deregister another client.
+        * css/CSSFontFaceSet.cpp:
+        (WebCore::CSSFontFaceSet::guardAgainstClientRegistrationChanges): Simple
+        ref()/deref() pair.
+        (WebCore::CSSFontFaceSet::stopGuardingAgainstClientRegistrationChanges):
+        * css/CSSFontFaceSet.h:
+        * css/FontFace.cpp: Ditto.
+        (WebCore::FontFace::guardAgainstClientRegistrationChanges):
+        (WebCore::FontFace::stopGuardingAgainstClientRegistrationChanges):
+        * css/FontFace.h:
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::faceFinished): Make sure that we only fulfil or reject
+        a promise once.
+        * css/FontFaceSet.h:
+        * dom/Document.cpp:
+        (WebCore::Document::fonts): The CSSFontFaces inside the CSSFontSelector get
+        created during style recalc. We may be in a state where there is a style
+        recalc pending. In order to make sure the Javascript API sees the current
+        state of the world, force a style recalc here (but only if one is pending).
+
+2016-03-08  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197793 and r197799.
+        https://bugs.webkit.org/show_bug.cgi?id=155195
+
+        something weird happened while landing this and everything
+        broke (Requested by olliej on #webkit).
+
+        Reverted changesets:
+
+        "Start moving to separated writable and executable mappings in
+        the JIT"
+        https://bugs.webkit.org/show_bug.cgi?id=155178
+        http://trac.webkit.org/changeset/197793
+
+        "arm64 build fix after r197793."
+        http://trac.webkit.org/changeset/197799
+
 2016-03-08  Mark Lam  <mark.lam@apple.com>
 
         synthesizePrototype() and friends need to be followed by exception checks (or equivalent).
