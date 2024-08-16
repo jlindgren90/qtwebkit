@@ -1,3 +1,118 @@
+2016-03-04  Brady Eidson  <beidson@apple.com>
+
+        Remove use of deprecated sqlite3_expired
+        https://bugs.webkit.org/show_bug.cgi?id=155025
+
+        Reviewed by Tim Horton.
+
+        Since we exclusively use sqlite3_prepare_v2 and don't use sqlite3_prepare,
+        manually checking for expired statements is not necessary.
+
+        * platform/sql/SQLiteStatement.cpp:
+        (WebCore::SQLiteStatement::isExpired): Null check the statement, but don't bother
+          with sqlite3_expired.
+
+2016-03-04  Daniel Bates  <dabates@apple.com>
+
+        Move CryptoDigest to WebCore/platform
+        https://bugs.webkit.org/show_bug.cgi?id=155008
+        <rdar://problem/24969787>
+
+        Reviewed by Brent Fulgham.
+
+        CryptoDigest provides a platform-independent interface for interacting with platform-
+        specific cryptographic hashing services. We currently make use of this code as part
+        of the implementation of Web Crypto. This code will also be beneficial as part of
+        implementing support for Content Security Policy inline script and inline stylesheet
+        hashes. We should move CryptoDigest to WebCore/platform to convey that it a general
+        purpose platform abstraction.
+
+        * CMakeLists.txt: Add include directory WebCore/platform/crypto.
+        * PlatformEfl.cmake: Add file platform/crypto/gnutls/CryptoDigestGnuTLS.cpp and
+        remove file crypto/gnutls/CryptoDigestGnuTLS.cpp.
+        * PlatformGTK.cmake: Ditto.
+        * PlatformMac.cmake: Add file platform/crypto/mac/CryptoDigestMac.cpp and
+        remove file crypto/mac/CryptoDigestMac.cpp.
+        * WebCore.xcodeproj/project.pbxproj:
+        * crypto/algorithms/CryptoAlgorithmSHA1.cpp:
+        (WebCore::CryptoAlgorithmSHA1::digest): Substitute "CryptoDigest::Algorithm" for "CryptoAlgorithmIdentifier".
+        * crypto/algorithms/CryptoAlgorithmSHA224.cpp:
+        (WebCore::CryptoAlgorithmSHA224::digest): Ditto.
+        * crypto/algorithms/CryptoAlgorithmSHA256.cpp:
+        (WebCore::CryptoAlgorithmSHA256::digest): Ditto.
+        * crypto/algorithms/CryptoAlgorithmSHA384.cpp:
+        (WebCore::CryptoAlgorithmSHA384::digest): Ditto.
+        * crypto/algorithms/CryptoAlgorithmSHA512.cpp:
+        (WebCore::CryptoAlgorithmSHA512::digest): Ditto.
+        * crypto/mac/CryptoAlgorithmRSASSA_PKCS1_v1_5Mac.cpp:
+        (WebCore::getCryptoDigestAlgorithm): Converts a CryptoAlgorithmIdentifier enumerator to a
+        CryptoDigest::Algorithm enumerator, if applicable.
+        (WebCore::CryptoAlgorithmRSASSA_PKCS1_v1_5::platformSign): Write in terms of WebCore::getCryptoDigestAlgorithm().
+        (WebCore::CryptoAlgorithmRSASSA_PKCS1_v1_5::platformVerify): Ditto.
+        * platform/crypto/CryptoDigest.h: Renamed from Source/WebCore/crypto/CryptoDigest.h. Also added enum CryptoDigest::Algorithm
+        and changed constructor to take this enum.
+        * platform/crypto/gnutls/CryptoDigestGnuTLS.cpp: Renamed from Source/WebCore/crypto/gnutls/CryptoDigestGnuTLS.cpp.
+        (WebCore::CryptoDigest::CryptoDigest): Substitute "CryptoDigest::Algorithm" for "CryptoAlgorithmIdentifier".
+        (WebCore::CryptoDigest::~CryptoDigest): Ditto.
+        (WebCore::CryptoDigest::create): Ditto.
+        (WebCore::CryptoDigest::addBytes): Ditto.
+        (WebCore::CryptoDigest::computeHash): Ditto.
+        * platform/crypto/mac/CryptoDigestMac.cpp: Renamed from Source/WebCore/crypto/mac/CryptoDigestMac.cpp.
+        (WebCore::toSHA1Context): Ditto.
+        (WebCore::toSHA224Context): Ditto.
+        (WebCore::toSHA256Context): Ditto.
+        (WebCore::toSHA384Context): Ditto.
+        (WebCore::toSHA512Context): Ditto.
+        (WebCore::CryptoDigest::CryptoDigest): Ditto.
+        (WebCore::CryptoDigest::~CryptoDigest): Ditto.
+        (WebCore::CryptoDigest::create): Ditto.
+        (WebCore::CryptoDigest::addBytes): Ditto.
+        (WebCore::CryptoDigest::computeHash): Ditto.
+
+2016-03-04  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Whitespace causes font-variant: all-small-caps to synthesize
+        https://bugs.webkit.org/show_bug.cgi?id=155004
+        <rdar://problem/24630796>
+
+        Reviewed by Darin Adler.
+
+        Many fonts (such as Avenir Next) don't report to support whitespace characters under
+        smcp or c2sc. Previously, we were using this as a signal to synthesize small caps
+        instead of true small caps. However, a better solution is for whitespace to never
+        cause synthesis with all-small-caps.
+
+        Test: fast/text/all-small-caps-whitespace.html
+
+        * platform/graphics/mac/ComplexTextController.cpp:
+        (WebCore::shouldSynthesize):
+        (WebCore::ComplexTextController::collectComplexTextRuns):
+
+2016-03-04  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iOS] Crash during font loading when injected bundle cancels load
+        https://bugs.webkit.org/show_bug.cgi?id=155001
+
+        Reviewed by Tim Horton.
+
+        If a injected bundle cancels the load, the fontLoaded() callback will be
+        called twice. We can simply detect this condition.
+
+        Test: CancelLoading.CancelFontSubresource API test
+
+        * css/CSSFontFaceSource.cpp:
+        (WebCore::CSSFontFaceSource::fontLoaded):
+
+2016-03-03  Ada Chan  <adachan@apple.com>
+
+        The visibility of the airplay menu also depends on whether there's a custom menu item.
+        https://bugs.webkit.org/show_bug.cgi?id=154987
+
+        Reviewed by Darin Adler.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::enqueuePlaybackTargetAvailabilityChangedEvent):
+
 2016-03-04  Timothy Hatcher  <timothy@apple.com>
 
         Inform WebKit and WebCore if a page is controlled by automation.

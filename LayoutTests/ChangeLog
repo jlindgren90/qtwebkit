@@ -1,3 +1,70 @@
+2016-03-04  Chris Dumez  <cdumez@apple.com>
+
+        Location.reload should not be writable
+        https://bugs.webkit.org/show_bug.cgi?id=154989
+
+        Reviewed by Gavin Barraclough.
+
+        Add a layout test to verify that operations marked as [Unforgeable] in
+        IDL are indeed not writable.
+
+        * fast/html/unforgeable-operations-readonly-expected.txt: Added.
+        * fast/html/unforgeable-operations-readonly.html: Added.
+
+2016-03-04  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline inspector/model/remote-object.html for mac after r197539
+
+        Unreviewed test gardening.
+
+        * platform/mac/inspector/model/remote-object-expected.txt:
+
+2016-03-04  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Whitespace causes font-variant: all-small-caps to synthesize
+        https://bugs.webkit.org/show_bug.cgi?id=155004
+        <rdar://problem/24630796>
+
+        Reviewed by Darin Adler.
+
+        * fast/text/all-small-caps-whitespace-expected.html: Added.
+        * fast/text/all-small-caps-whitespace.html: Added.
+        * platform/mac/TestExpectations: Skip on platforms which don't support proper coverage
+        queries.
+
+2016-03-04  Simon Fraser  <simon.fraser@apple.com>
+
+        REGRESSION (r197541): many tiled drawing tests failing after new "large tile size" logic was added
+        https://bugs.webkit.org/show_bug.cgi?id=155020
+        
+        Rebaseline these tests.
+
+        * platform/mac-wk2/TestExpectations:
+        * tiled-drawing/background-transparency-toggle-expected.txt:
+        * tiled-drawing/scrolling/fast-scroll-iframe-latched-iframe-expected.txt:
+        * tiled-drawing/scrolling/fast-scroll-iframe-latched-iframe-with-handler-expected.txt:
+        * tiled-drawing/scrolling/fast-scroll-iframe-latched-mainframe-expected.txt:
+        * tiled-drawing/scrolling/fast-scroll-iframe-latched-mainframe-with-handler-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-background-no-image-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-body-layer-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-opacity-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-positioned-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-html-background-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-non-propagated-body-background-expected.txt:
+        * tiled-drawing/scrolling/fixed/four-bars-zoomed-expected.txt:
+        * tiled-drawing/scrolling/scroll-snap/scroll-snap-mandatory-2d-overflow-expected.txt:
+        * tiled-drawing/scrolling/scroll-snap/scroll-snap-mandatory-borders-expected.txt:
+        * tiled-drawing/scrolling/scroll-snap/scroll-snap-mandatory-overflow-expected.txt:
+        * tiled-drawing/tile-coverage-after-scroll-expected.txt:
+        * tiled-drawing/tile-coverage-after-scroll-speculative-expected.txt:
+        * tiled-drawing/tile-coverage-scroll-to-bottom-expected.txt:
+        * tiled-drawing/tile-coverage-slow-scrolling-expected.txt:
+        * tiled-drawing/tile-coverage-speculative-expected.txt:
+        * tiled-drawing/tile-size-unscrollable-expected.txt:
+        * tiled-drawing/tile-size-vertically-scrollable-expected.txt:
+        * tiled-drawing/visible-rect-content-inset-expected.txt:
+
 2016-03-04  Darin Adler  <darin@apple.com>
 
         REGRESSION (r197541): many tiled drawing tests failing after new "large tile size" logic was added
