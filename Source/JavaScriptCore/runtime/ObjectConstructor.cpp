@@ -224,23 +224,10 @@ JSValue objectConstructorGetOwnPropertyDescriptor(ExecState* exec, JSObject* obj
     if (exec->hadException())
         return jsUndefined();
 
-    JSObject* description = constructEmptyObject(exec);
-    if (exec->hadException())
+    JSObject* result = constructObjectFromPropertyDescriptor(exec, descriptor);
+    if (!result)
         return jsUndefined();
-    if (!descriptor.isAccessorDescriptor()) {
-        description->putDirect(exec->vm(), exec->propertyNames().value, descriptor.value() ? descriptor.value() : jsUndefined(), 0);
-        description->putDirect(exec->vm(), exec->propertyNames().writable, jsBoolean(descriptor.writable()), 0);
-    } else {
-        ASSERT(descriptor.getter());
-        ASSERT(descriptor.setter());
-        description->putDirect(exec->vm(), exec->propertyNames().get, descriptor.getter(), 0);
-        description->putDirect(exec->vm(), exec->propertyNames().set, descriptor.setter(), 0);
-    }
-    
-    description->putDirect(exec->vm(), exec->propertyNames().enumerable, jsBoolean(descriptor.enumerable()), 0);
-    description->putDirect(exec->vm(), exec->propertyNames().configurable, jsBoolean(descriptor.configurable()), 0);
-
-    return description;
+    return result;
 }
 
 JSValue objectConstructorGetOwnPropertyDescriptors(ExecState* exec, JSObject* object)
@@ -421,6 +408,8 @@ static JSValue defineProperties(ExecState* exec, JSObject* object, JSObject* pro
 {
     PropertyNameArray propertyNames(exec, PropertyNameMode::StringsAndSymbols);
     asObject(properties)->methodTable(exec->vm())->getOwnPropertyNames(asObject(properties), exec, propertyNames, EnumerationMode(DontEnumPropertiesMode::Exclude));
+    if (UNLIKELY(exec->hadException()))
+        return jsNull();
     size_t numProperties = propertyNames.size();
     Vector<PropertyDescriptor> descriptors;
     MarkedArgumentBuffer markBuffer;
@@ -491,6 +480,8 @@ EncodedJSValue JSC_HOST_CALL objectConstructorSeal(ExecState* exec)
     // 2. For each named own property name P of O,
     PropertyNameArray properties(exec, PropertyNameMode::StringsAndSymbols);
     object->methodTable(exec->vm())->getOwnPropertyNames(object, exec, properties, EnumerationMode(DontEnumPropertiesMode::Include));
+    if (UNLIKELY(exec->hadException()))
+        return JSValue::encode(obj);
     PropertyNameArray::const_iterator end = properties.end();
     for (PropertyNameArray::const_iterator iter = properties.begin(); iter != end; ++iter) {
         Identifier propertyName = *iter;
@@ -527,6 +518,8 @@ JSObject* objectConstructorFreeze(ExecState* exec, JSObject* object)
     // 2. For each named own property name P of O,
     PropertyNameArray properties(exec, PropertyNameMode::StringsAndSymbols);
     object->methodTable(exec->vm())->getOwnPropertyNames(object, exec, properties, EnumerationMode(DontEnumPropertiesMode::Include));
+    if (UNLIKELY(exec->hadException()))
+        return object;
     PropertyNameArray::const_iterator end = properties.end();
     for (PropertyNameArray::const_iterator iter = properties.begin(); iter != end; ++iter) {
         Identifier propertyName = *iter;
@@ -593,6 +586,8 @@ EncodedJSValue JSC_HOST_CALL objectConstructorIsSealed(ExecState* exec)
     // 2. For each named own property name P of O,
     PropertyNameArray properties(exec, PropertyNameMode::StringsAndSymbols);
     object->methodTable(exec->vm())->getOwnPropertyNames(object, exec, properties, EnumerationMode(DontEnumPropertiesMode::Include));
+    if (UNLIKELY(exec->hadException()))
+        return JSValue::encode(JSValue());
     PropertyNameArray::const_iterator end = properties.end();
     for (PropertyNameArray::const_iterator iter = properties.begin(); iter != end; ++iter) {
         Identifier propertyName = *iter;
@@ -629,6 +624,8 @@ EncodedJSValue JSC_HOST_CALL objectConstructorIsFrozen(ExecState* exec)
     // 2. For each named own property name P of O,
     PropertyNameArray properties(exec, PropertyNameMode::StringsAndSymbols);
     object->methodTable(exec->vm())->getOwnPropertyNames(object, exec, properties, EnumerationMode(DontEnumPropertiesMode::Include));
+    if (UNLIKELY(exec->hadException()))
+        return JSValue::encode(JSValue());
     PropertyNameArray::const_iterator end = properties.end();
     for (PropertyNameArray::const_iterator iter = properties.begin(); iter != end; ++iter) {
         Identifier propertyName = *iter;
@@ -674,6 +671,8 @@ JSArray* ownPropertyKeys(ExecState* exec, JSObject* object, PropertyNameMode pro
 {
     PropertyNameArray properties(exec, propertyNameMode);
     object->methodTable(exec->vm())->getOwnPropertyNames(object, exec, properties, EnumerationMode(dontEnumPropertiesMode));
+    if (exec->hadException())
+        return nullptr;
 
     JSArray* keys = constructEmptyArray(exec, 0);
 

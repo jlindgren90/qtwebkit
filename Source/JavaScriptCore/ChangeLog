@@ -1,3 +1,266 @@
+2016-03-03  Saam Barati  <sbarati@apple.com>
+
+        Add Proxy tests for exceptions that depend on an object being non-extensible and having configurable properties
+        https://bugs.webkit.org/show_bug.cgi?id=154745
+
+        Reviewed by Geoffrey Garen.
+
+        This patch is mostly an implementation of Proxy.[[OwnPropertyKeys]] 
+        with respect to section 9.5.11 of the ECMAScript spec.
+        https://tc39.github.io/ecma262/#sec-proxy-object-internal-methods-and-internal-slots-ownpropertykeys
+
+        This patch also changes call sites of getOwnPropertyNames and
+        getPropertyNames to expect that an exception can be thrown.
+
+        * dfg/DFGOperations.cpp:
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::iteratorEntries):
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::execute):
+        * runtime/IntlObject.cpp:
+        (JSC::supportedLocales):
+        * runtime/JSCJSValue.h:
+        * runtime/JSCJSValueInlines.h:
+        (JSC::JSValue::get):
+        (JSC::JSValue::put):
+        * runtime/JSONObject.cpp:
+        (JSC::Stringifier::Holder::appendNextProperty):
+        (JSC::Walker::walk):
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::getPropertyNames):
+        (JSC::JSObject::getGenericPropertyNames):
+        * runtime/JSObject.h:
+        (JSC::makeIdentifier):
+        (JSC::createListFromArrayLike):
+        * runtime/JSPropertyNameEnumerator.h:
+        (JSC::propertyNameEnumerator):
+        * runtime/JSPropertyNameIterator.cpp:
+        (JSC::JSPropertyNameIterator::create):
+        * runtime/MapConstructor.cpp:
+        (JSC::constructMap):
+        * runtime/ObjectConstructor.cpp:
+        (JSC::defineProperties):
+        (JSC::objectConstructorSeal):
+        (JSC::objectConstructorFreeze):
+        (JSC::objectConstructorIsSealed):
+        (JSC::objectConstructorIsFrozen):
+        (JSC::ownPropertyKeys):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::getOwnPropertySlotByIndex):
+        (JSC::ProxyObject::deleteProperty):
+        (JSC::ProxyObject::deletePropertyByIndex):
+        (JSC::ProxyObject::defineOwnProperty):
+        (JSC::ProxyObject::performGetOwnPropertyNames):
+        (JSC::ProxyObject::getOwnPropertyNames):
+        (JSC::ProxyObject::getOwnNonIndexPropertyNames):
+        (JSC::ProxyObject::getStructurePropertyNames):
+        (JSC::ProxyObject::getGenericPropertyNames):
+        (JSC::ProxyObject::visitChildren):
+        * runtime/ProxyObject.h:
+        (JSC::ProxyObject::create):
+        (JSC::ProxyObject::createStructure):
+        * runtime/Structure.cpp:
+        (JSC::Structure::Structure):
+        (JSC::Structure::add):
+        (JSC::Structure::getPropertyNamesFromStructure):
+        (JSC::Structure::checkConsistency):
+        (JSC::Structure::canCachePropertyNameEnumerator):
+        (JSC::Structure::canAccessPropertiesQuicklyForEnumeration):
+        (JSC::Structure::canAccessPropertiesQuickly): Deleted.
+        * runtime/Structure.h:
+        * runtime/WeakMapConstructor.cpp:
+        (JSC::constructWeakMap):
+        * tests/es6.yaml:
+        * tests/stress/proxy-own-keys.js: Added.
+        (assert):
+        (throw.new.Error.let.handler.ownKeys):
+        (throw.new.Error):
+        (assert.let.handler.get ownKeys):
+        (assert.let.handler.ownKeys):
+        (let.handler.ownKeys):
+        (i.catch):
+        (shallowEq):
+        (let.handler.getOwnPropertyDescriptor):
+        (i.set assert):
+        (set add):
+        (set assert):
+        (set if):
+
+2016-03-03  Keith Miller  <keith_miller@apple.com>
+
+        Array prototype JS builtins should support Symbol.species
+        https://bugs.webkit.org/show_bug.cgi?id=154710
+
+        Reviewed by Geoffrey Garen.
+
+        Add support for Symbol.species in the Array.prototype JS
+        builtin functions.
+
+        * builtins/ArrayPrototype.js:
+        (filter):
+        (map):
+        * runtime/ArrayConstructor.cpp:
+        (JSC::ArrayConstructor::finishCreation):
+        (JSC::arrayConstructorPrivateFuncIsArrayConstructor):
+        * runtime/ArrayConstructor.h:
+        (JSC::ArrayConstructor::create):
+        * runtime/CommonIdentifiers.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * tests/stress/array-species-functions.js:
+        (id):
+
+2016-03-03  Michael Saboff  <msaboff@apple.com>
+
+        [ES6] Make Unicode RegExp pattern parsing conform to the spec
+        https://bugs.webkit.org/show_bug.cgi?id=154988
+
+        Reviewed by Benjamin Poulain.
+
+        Updated RegExp pattern processing with 'u' (Unicode) flag to conform to the
+        spec (https://tc39.github.io/ecma262/2016/#sec-patterns).  In the spec, the
+        grammar is annotated with [U] annotations.  Productions that are prefixed with
+        [+U] are only available with the Unicode flags while productions prefixed with
+        [~U] are only available without the Unicode flag.
+        
+        Added flags argument to Yarr::checkSyntax() so we can catch Unicode flag related
+        parsing errors at syntax checking time.  Restricted what escapes are available for
+        non Unicode patterns.  Most of this is defined in the IdentityEscape rule in the
+        pattern grammar.
+
+        Added \- as a CharacterClass only escape in Unicode patterns.
+
+        Updated the tests for these changes.
+
+        Made changes suggested in https://bugs.webkit.org/show_bug.cgi?id=154842#c22 after
+        change set r197426 was landed.
+
+        * parser/ASTBuilder.h:
+        (JSC::ASTBuilder::createRegExp):
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parsePrimaryExpression):
+        * parser/SyntaxChecker.h:
+        (JSC::SyntaxChecker::createRegExp):
+        * yarr/YarrInterpreter.cpp:
+        (JSC::Yarr::Interpreter::InputStream::readChecked):
+        (JSC::Yarr::Interpreter::InputStream::readSurrogatePairChecked):
+        (JSC::Yarr::Interpreter::InputStream::reread):
+        (JSC::Yarr::Interpreter::InputStream::uncheckInput):
+        (JSC::Yarr::Interpreter::InputStream::atStart):
+        (JSC::Yarr::Interpreter::InputStream::atEnd):
+        (JSC::Yarr::Interpreter::testCharacterClass):
+        (JSC::Yarr::Interpreter::backtrackPatternCharacter):
+        (JSC::Yarr::Interpreter::matchDisjunction):
+        (JSC::Yarr::ByteCompiler::atomPatternCharacter):
+        * yarr/YarrParser.h:
+        (JSC::Yarr::Parser::Parser):
+        (JSC::Yarr::Parser::isIdentityEscapeAnError):
+        (JSC::Yarr::Parser::parseEscape):
+        (JSC::Yarr::Parser::parse):
+        * yarr/YarrPattern.cpp:
+        (JSC::Yarr::CharacterClassConstructor::putChar):
+        (JSC::Yarr::CharacterClassConstructor::putRange):
+        (JSC::Yarr::CharacterClassConstructor::addSorted):
+        (JSC::Yarr::YarrPatternConstructor::setupAlternativeOffsets):
+        * yarr/YarrSyntaxChecker.cpp:
+        (JSC::Yarr::SyntaxChecker::disjunction):
+        (JSC::Yarr::checkSyntax):
+        * yarr/YarrSyntaxChecker.h:
+
+2016-03-03  Saam barati  <sbarati@apple.com>
+
+        [ES6] Implement Proxy.[[DefineOwnProperty]]
+        https://bugs.webkit.org/show_bug.cgi?id=154759
+
+        Reviewed by Geoffrey Garen and Mark Lam.
+
+        This patch is a straight forward implementation of Proxy.[[DefineOwnProperty]]
+        with respect to section 9.5.6 of the ECMAScript spec.
+        https://tc39.github.io/ecma262/#sec-proxy-object-internal-methods-and-internal-slots-defineownproperty-p-desc
+
+        * runtime/ObjectConstructor.cpp:
+        (JSC::objectConstructorGetOwnPropertyDescriptor):
+        (JSC::objectConstructorGetOwnPropertyDescriptors):
+        * runtime/ObjectConstructor.h:
+        (JSC::constructEmptyObject):
+        (JSC::constructObjectFromPropertyDescriptor):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::isExtensible):
+        (JSC::ProxyObject::performDefineOwnProperty):
+        (JSC::ProxyObject::defineOwnProperty):
+        (JSC::ProxyObject::visitChildren):
+        * runtime/ProxyObject.h:
+        * tests/es6.yaml:
+        * tests/stress/proxy-define-own-property.js: Added.
+        (assert):
+        (throw.new.Error):
+        (assert.let.handler.get defineProperty):
+        (assert.let.handler.defineProperty):
+        (let.handler.defineProperty):
+        (i.catch):
+        (assert.try.):
+        (assert.set get catch):
+        (assert.let.setter):
+        (assert.let.getter):
+        (assert.set get let.handler.defineProperty):
+        (assert.set get let):
+        (assert.):
+
+2016-03-03  Keith Miller  <keith_miller@apple.com>
+
+        [ES6] Add support for Symbol.toPrimitive
+        https://bugs.webkit.org/show_bug.cgi?id=154877
+
+        Reviewed by Saam Barati.
+
+        This patch adds suport for Symbol.toPrimitive. Since we don't currently
+        generate snippits for one side of a binary operation we only need to change
+        the JSObject::ToPrimitive function and update some optimizations in the DFG
+        that need to know how conversions to primitive values should work. As of
+        ES6, the date prototype is also no longer special cased in the ToPrimitive
+        operation. Instead, Date.prototype has a Symbol.species function that
+        replicates the old behavior.
+
+        * bytecode/ObjectPropertyConditionSet.cpp:
+        (JSC::generateConditionsForPropertyMissConcurrently):
+        * bytecode/ObjectPropertyConditionSet.h:
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::watchConditions):
+        (JSC::DFG::Graph::canOptimizeStringObjectAccess):
+        * dfg/DFGGraph.h:
+        * runtime/CommonIdentifiers.h:
+        * runtime/DatePrototype.cpp:
+        (JSC::DatePrototype::finishCreation):
+        (JSC::dateProtoFuncToPrimitiveSymbol):
+        * runtime/Error.cpp:
+        (JSC::throwTypeError):
+        * runtime/Error.h:
+        * runtime/JSCJSValueInlines.h:
+        (JSC::toPreferredPrimitiveType):
+        * runtime/JSObject.cpp:
+        (JSC::callToPrimitiveFunction):
+        (JSC::JSObject::ordinaryToPrimitive):
+        (JSC::JSObject::defaultValue):
+        (JSC::JSObject::toPrimitive):
+        (JSC::JSObject::getPrimitiveNumber):
+        (JSC::callDefaultValueFunction): Deleted.
+        (JSC::throwTypeError): Deleted.
+        * runtime/JSObject.h:
+        (JSC::JSObject::toPrimitive): Deleted.
+        * runtime/SmallStrings.h:
+        * runtime/SymbolPrototype.cpp:
+        (JSC::SymbolPrototype::finishCreation):
+        * runtime/SymbolPrototype.h:
+        (JSC::SymbolPrototype::create):
+        * tests/es6.yaml:
+        * tests/stress/date-symbol-toprimitive.js: Added.
+        * tests/stress/ropes-symbol-toprimitive.js: Added.
+        (ropify):
+        (String.prototype.Symbol.toPrimitive):
+        * tests/stress/symbol-toprimitive.js: Added.
+        (foo.Symbol.toPrimitive):
+        (catch):
+
 2016-03-03  Filip Pizlo  <fpizlo@apple.com>
 
         DFG should be able to compile StringReplace

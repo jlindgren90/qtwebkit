@@ -1,3 +1,48 @@
+2016-03-03  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Temporarily hide the TimelineSidebarPanel
+
+        https://bugs.webkit.org/show_bug.cgi?id=154974
+        rdar://problem/24956380
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/TimelineTabContentView.js:
+        (WebInspector.TimelineTabContentView): Remove _showNavigationSidebarItem and hide the sidebar.
+
+2016-03-03  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Selected range path component should be zero time corrected
+        https://bugs.webkit.org/show_bug.cgi?id=154950
+        <rdar://problem/24947022>
+
+        Reviewed by Timothy Hatcher.
+
+        Subtracts zero time from TimelineRange start and end values, and corrects
+        a cosmetic issue in TimelineRuler which showed selection handle tooltips
+        that weren't adjusted for the ruler's zero time.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView.prototype._timeRangeSelectionChanged):
+
+        * UserInterface/Views/TimelineRuler.js:
+        (WebInspector.TimelineRuler.prototype._updateSelection):
+
+2016-03-03  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Events and Frames mode switch does not fully switch until first zoom
+        https://bugs.webkit.org/show_bug.cgi?id=154971
+        <rdar://problem/24955871>
+
+        Reviewed by Timothy Hatcher.
+
+        Switching modes toggles the visibility of the tree outline, which changes
+        the width of the overview's ruler, graphs, and scroll container. When the
+        view mode changes, the overview needs a forced "resize" layout.
+
+        * UserInterface/Views/TimelineOverview.js:
+        (WebInspector.TimelineOverview.prototype._viewModeDidChange):
+
 2016-03-03  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: Assertion Failed: Cannot show timeline because it does not belong to the shown recording. – "overview"
