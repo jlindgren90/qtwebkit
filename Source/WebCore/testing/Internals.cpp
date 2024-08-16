@@ -185,6 +185,7 @@
 #endif
 
 #if ENABLE(MEDIA_STREAM)
+#include "MockMediaEndpoint.h"
 #include "MockRealtimeMediaSourceCenter.h"
 #include "RTCPeerConnection.h"
 #include "RTCPeerConnectionHandlerMock.h"
@@ -432,6 +433,7 @@ Internals::Internals(Document* document)
 
 #if ENABLE(MEDIA_STREAM)
     setMockMediaCaptureDevicesEnabled(true);
+    enableMockMediaEndpoint();
     enableMockRTCPeerConnectionHandler();
 #endif
 
@@ -1032,6 +1034,11 @@ void Internals::enableMockSpeechSynthesizer()
 #endif
 
 #if ENABLE(MEDIA_STREAM)
+void Internals::enableMockMediaEndpoint()
+{
+    MediaEndpoint::create = MockMediaEndpoint::create;
+}
+
 void Internals::enableMockRTCPeerConnectionHandler()
 {
     RTCPeerConnectionHandler::create = RTCPeerConnectionHandlerMock::create;
