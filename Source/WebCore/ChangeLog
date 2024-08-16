@@ -1,3 +1,564 @@
+2016-03-11  Chris Dumez  <cdumez@apple.com>
+
+        iOS-sim debug: WebCoreNSURLSessionTest.BasicOperation and WebCoreNSURLSessionTest.InvalidateEmpty asserting
+        https://bugs.webkit.org/show_bug.cgi?id=155256
+
+        Reviewed by Alexey Proskuryakov.
+
+        r197628 consolidated the runtime application checking code for iOS and
+        Mac. However, while the new code works fine for WebKit2, it is unsafe
+        on WebKit1 / iOS and hits assertion in debug. The reason is that
+        applicationBundleIdentifier() for getting called from several threads
+        (WebThread, UIThread).
+
+        To address the problem, this patch renames applicationBundleIdentifier()
+        to applicationBundleIdentifierOverride() and only initializes the
+        override upon WebProcess and Network process initialization. We therefore
+        do not initialize the override in WebKit1 or in the WebKit2 UIProcess.
+        When the override is not set, we fall back to using the main bundle
+        identifier (which does the right thing for WebKit1 / WebKit2 UIProcess)
+        but without caching it to avoid thread safety issues.
+
+        No new tests, already covered by API tests currently crashing.
+
+        * platform/RuntimeApplicationChecks.mm:
+        (WebCore::applicationBundleIdentifierOverride):
+        - Renamed applicationBundleIdentifier() to applicationBundleIdentifierOverride()
+          and only initialize upon initialization of the WebProcess or the Network
+          process.
+        - In debug, set a flag to indicate that the override was already queried.
+
+        (WebCore::applicationBundleIdentifier):
+        New utility function that is returns the application bundle override if it is
+        set and fallback to calling [[NSBundle mainBundle] bundleIdentifier] otherwise.
+
+        (WebCore::setApplicationBundleIdentifier):
+        Add assertions to make sure that:
+        1. This is always called from the main thread.
+        2. The application bundle identifier has not been queried *before* getting
+           overriden as this would indicate a bug in our code and we would have wrongly
+           returned the main bundle identifier in such case.
+
+        (WebCore::MacApplication::isAppleMail):
+        (WebCore::MacApplication::isIBooks):
+        (WebCore::MacApplication::isITunes):
+        (WebCore::MacApplication::isMicrosoftMessenger):
+        (WebCore::MacApplication::isAdobeInstaller):
+        (WebCore::MacApplication::isMicrosoftOutlook):
+        (WebCore::MacApplication::isQuickenEssentials):
+        (WebCore::MacApplication::isAperture):
+        (WebCore::MacApplication::isVersions):
+        (WebCore::MacApplication::isHRBlock):
+        (WebCore::MacApplication::isHipChat):
+        (WebCore::IOSApplication::isMobileSafari):
+        (WebCore::IOSApplication::isDumpRenderTree):
+        (WebCore::IOSApplication::isMobileStore):
+        (WebCore::IOSApplication::isFacebook):
+        (WebCore::IOSApplication::isDaijisenDictionary):
+        (WebCore::IOSApplication::isNASAHD):
+        (WebCore::IOSApplication::isTheEconomistOnIphone):
+        (WebCore::IOSApplication::isWebProcess):
+        (WebCore::IOSApplication::isIBooks):
+        Drop assertions making sure the cached flag is correct. We now have
+        an assertion to detect this earlier in setApplicationBundleIdentifier().
+
+2016-03-10  Jer Noble  <jer.noble@apple.com>
+
+        Web Audio becomes distorted after sample rate changes
+        https://bugs.webkit.org/show_bug.cgi?id=154538
+        <rdar://problem/24771292>
+
+        Reviewed by Darin Adler.
+
+        When the underlying audio hardware sample rate changes, the AudioUnit render callback will begin asking
+        for fewer or more frames. For example, when the sample rate goes from 44.1kHz to 48kHz, it will ask for
+        118 samples instead of 128. (And vice-versa, 140 samples instead of 128.) But the Web Audio engine can only
+        really handle requests in multiples of 128 samples. In the case where there are requests for < 128 samples,
+        actually render 128, but save off the unrequested samples in a separate bus. Then fill that bus during the
+        next request.
+
+        * platform/audio/AudioBus.cpp:
+        (WebCore::AudioBus::copyFromRange): Added utility method.
+        * platform/audio/AudioBus.h:
+        * platform/audio/ios/AudioDestinationIOS.cpp:
+        (WebCore::AudioDestinationIOS::AudioDestinationIOS): Create a "spare" bus.
+        (WebCore::assignAudioBuffersToBus): Moved from inside render.
+        (WebCore::AudioDestinationIOS::render): Save off extra samples to the "spare" bus.
+        * platform/audio/ios/AudioDestinationIOS.h:
+
+2016-03-11  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed build fix after r198023.
+        https://bugs.webkit.org/show_bug.cgi?id=155024
+
+        Reviewed by Geoffrey Garen.
+
+        Update binding test results.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::setJSTestObjWithScriptExecutionContextAttribute):
+        (WebCore::setJSTestObjWithScriptExecutionContextAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateAttribute):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute):
+
+2016-03-11  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r197984.
+
+        This change caused an existing LayoutTest to fail
+
+        Reverted changeset:
+
+        "WebKit should not be redirected to an invalid URL"
+        https://bugs.webkit.org/show_bug.cgi?id=155263
+        http://trac.webkit.org/changeset/197984
+
+2016-03-11  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Implement Reflect.set without receiver support
+        https://bugs.webkit.org/show_bug.cgi?id=155024
+
+        Reviewed by Geoffrey Garen.
+
+        CustomSetter returns boolean value that indicates the result of [[Set]].
+        According to this change, this patch modifies the CodeGeneratorJS and test results.
+
+        Currently, DOM elements' [[Set]] return true when the setter is found.
+        This is good for the first step.
+
+        * bindings/js/JSCSSStyleDeclarationCustom.cpp:
+        (WebCore::JSCSSStyleDeclaration::putDelegate):
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::throwSetterTypeError):
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSDOMStringMapCustom.cpp:
+        (WebCore::JSDOMStringMap::putDelegate):
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::JSDOMWindowBase::updateDocument):
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::put):
+        (WebCore::JSDOMWindow::putByIndex):
+        * bindings/js/JSHTMLAppletElementCustom.cpp:
+        (WebCore::JSHTMLAppletElement::putDelegate):
+        * bindings/js/JSHTMLEmbedElementCustom.cpp:
+        (WebCore::JSHTMLEmbedElement::putDelegate):
+        * bindings/js/JSHTMLObjectElementCustom.cpp:
+        (WebCore::JSHTMLObjectElement::putDelegate):
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::putDelegate):
+        (WebCore::JSLocationPrototype::putDelegate):
+        * bindings/js/JSPluginElementFunctions.cpp:
+        (WebCore::pluginElementCustomPut):
+        * bindings/js/JSPluginElementFunctions.h:
+        * bindings/js/JSStorageCustom.cpp:
+        (WebCore::JSStorage::putDelegate):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        (GenerateImplementation):
+        (GeneratePrototypeDeclaration):
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        (WebCore::setJSTestActiveDOMObjectConstructor):
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.cpp:
+        (WebCore::setJSTestClassWithJSBuiltinConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.cpp:
+        (WebCore::setJSTestCustomConstructorWithNoInterfaceObjectConstructor):
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        (WebCore::setJSTestCustomNamedGetterConstructor):
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        (WebCore::setJSTestEventConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestEventTarget.cpp:
+        (WebCore::setJSTestEventTargetConstructor):
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        (WebCore::setJSTestExceptionConstructor):
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.cpp:
+        (WebCore::setJSTestGenerateIsReachableConstructor):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::setJSTestInterfaceConstructor):
+        (WebCore::JSTestInterface::put):
+        (WebCore::JSTestInterface::putByIndex):
+        (WebCore::setJSTestInterfaceConstructorImplementsStaticAttr):
+        (WebCore::setJSTestInterfaceImplementsStr2):
+        (WebCore::setJSTestInterfaceImplementsStr3):
+        (WebCore::setJSTestInterfaceImplementsNode):
+        (WebCore::setJSTestInterfaceConstructorSupplementalStaticAttr):
+        (WebCore::setJSTestInterfaceSupplementalStr2):
+        (WebCore::setJSTestInterfaceSupplementalStr3):
+        (WebCore::setJSTestInterfaceSupplementalNode):
+        * bindings/scripts/test/JS/JSTestInterface.h:
+        * bindings/scripts/test/JS/JSTestJSBuiltinConstructor.cpp:
+        (WebCore::setJSTestJSBuiltinConstructorConstructor):
+        (WebCore::setJSTestJSBuiltinConstructorTestAttributeRWCustom):
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp:
+        (WebCore::setJSTestMediaQueryListListenerConstructor):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::setJSTestNamedConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::setJSTestNodeConstructor):
+        (WebCore::setJSTestNodeName):
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        (WebCore::setJSTestNondeterministicConstructor):
+        (WebCore::setJSTestNondeterministicNondeterministicWriteableAttr):
+        (WebCore::setJSTestNondeterministicNondeterministicExceptionAttr):
+        (WebCore::setJSTestNondeterministicNondeterministicGetterExceptionAttr):
+        (WebCore::setJSTestNondeterministicNondeterministicSetterExceptionAttr):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::setJSTestObjConstructor):
+        (WebCore::setJSTestObjConstructorStaticStringAttr):
+        (WebCore::setJSTestObjTestSubObjEnabledBySettingConstructor):
+        (WebCore::setJSTestObjEnumAttr):
+        (WebCore::setJSTestObjByteAttr):
+        (WebCore::setJSTestObjOctetAttr):
+        (WebCore::setJSTestObjShortAttr):
+        (WebCore::setJSTestObjUnsignedShortAttr):
+        (WebCore::setJSTestObjLongAttr):
+        (WebCore::setJSTestObjLongLongAttr):
+        (WebCore::setJSTestObjUnsignedLongLongAttr):
+        (WebCore::setJSTestObjStringAttr):
+        (WebCore::setJSTestObjTestObjAttr):
+        (WebCore::setJSTestObjLenientTestObjAttr):
+        (WebCore::setJSTestObjStringAttrTreatingNullAsEmptyString):
+        (WebCore::setJSTestObjXMLObjAttr):
+        (WebCore::setJSTestObjCreate):
+        (WebCore::setJSTestObjReflectedStringAttr):
+        (WebCore::setJSTestObjReflectedIntegralAttr):
+        (WebCore::setJSTestObjReflectedUnsignedIntegralAttr):
+        (WebCore::setJSTestObjReflectedBooleanAttr):
+        (WebCore::setJSTestObjReflectedURLAttr):
+        (WebCore::setJSTestObjReflectedCustomIntegralAttr):
+        (WebCore::setJSTestObjReflectedCustomBooleanAttr):
+        (WebCore::setJSTestObjReflectedCustomURLAttr):
+        (WebCore::setJSTestObjTypedArrayAttr):
+        (WebCore::setJSTestObjAttrWithGetterException):
+        (WebCore::setJSTestObjAttrWithGetterExceptionWithMessage):
+        (WebCore::setJSTestObjAttrWithSetterException):
+        (WebCore::setJSTestObjAttrWithSetterExceptionWithMessage):
+        (WebCore::setJSTestObjStringAttrWithGetterException):
+        (WebCore::setJSTestObjStringAttrWithSetterException):
+        (WebCore::setJSTestObjStrictTypeCheckingAttribute):
+        (WebCore::setJSTestObjCustomAttr):
+        (WebCore::setJSTestObjOnfoo):
+        (WebCore::setJSTestObjWithScriptStateAttribute):
+        (WebCore::setJSTestObjWithCallWithAndSetterCallWithAttribute):
+        (WebCore::setJSTestObjWithScriptExecutionContextAttribute):
+        (WebCore::setJSTestObjWithScriptStateAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateAttribute):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute):
+        (WebCore::setJSTestObjWithScriptArgumentsAndCallStackAttribute):
+        (WebCore::setJSTestObjConditionalAttr1):
+        (WebCore::setJSTestObjConditionalAttr2):
+        (WebCore::setJSTestObjConditionalAttr3):
+        (WebCore::setJSTestObjConditionalAttr4Constructor):
+        (WebCore::setJSTestObjConditionalAttr5Constructor):
+        (WebCore::setJSTestObjConditionalAttr6Constructor):
+        (WebCore::setJSTestObjAnyAttribute):
+        (WebCore::setJSTestObjMutablePoint):
+        (WebCore::setJSTestObjImmutablePoint):
+        (WebCore::setJSTestObjStrawberry):
+        (WebCore::setJSTestObjStrictFloat):
+        (WebCore::setJSTestObjId):
+        (WebCore::setJSTestObjReplaceableAttribute):
+        (WebCore::setJSTestObjNullableLongSettableAttribute):
+        (WebCore::setJSTestObjNullableStringSettableAttribute):
+        (WebCore::setJSTestObjNullableStringValue):
+        (WebCore::setJSTestObjAttributeWithReservedEnumType):
+        (WebCore::setJSTestObjPutForwardsAttribute):
+        (WebCore::setJSTestObjPutForwardsNullableAttribute):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::setJSTestOverloadedConstructorsConstructor):
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        (WebCore::setJSTestOverrideBuiltinsConstructor):
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        (WebCore::setJSTestSerializedScriptValueInterfaceConstructor):
+        (WebCore::setJSTestSerializedScriptValueInterfaceValue):
+        (WebCore::setJSTestSerializedScriptValueInterfaceCachedValue):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::setJSTestTypedefsConstructor):
+        (WebCore::setJSTestTypedefsUnsignedLongLongAttr):
+        (WebCore::setJSTestTypedefsImmutableSerializedScriptValue):
+        (WebCore::setJSTestTypedefsAttrWithGetterException):
+        (WebCore::setJSTestTypedefsAttrWithSetterException):
+        (WebCore::setJSTestTypedefsStringAttrWithGetterException):
+        (WebCore::setJSTestTypedefsStringAttrWithSetterException):
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        (WebCore::setJSattributeConstructor):
+        * bindings/scripts/test/JS/JSreadonly.cpp:
+        (WebCore::setJSreadonlyConstructor):
+        * bridge/c/c_runtime.cpp:
+        (JSC::Bindings::CField::setValueToInstance):
+        * bridge/c/c_runtime.h:
+        * bridge/jsc/BridgeJSC.h:
+        (JSC::Bindings::Instance::put):
+        * bridge/objc/objc_runtime.h:
+        * bridge/objc/objc_runtime.mm:
+        (JSC::Bindings::ObjcField::setValueToInstance):
+        (JSC::Bindings::ObjcArray::setValueAt):
+        (JSC::Bindings::ObjcFallbackObjectImp::put):
+        * bridge/runtime_array.cpp:
+        (JSC::RuntimeArray::put):
+        (JSC::RuntimeArray::putByIndex):
+        * bridge/runtime_array.h:
+        * bridge/runtime_object.cpp:
+        (JSC::Bindings::RuntimeObject::put):
+        * bridge/runtime_object.h:
+
+2016-03-11  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r197956): WebContent process crashes on launch due to unrecognized selector
+        <http://webkit.org/b/155356>
+
+        Reviewed by Alexey Proskuryakov.
+
+        * platform/mac/ScrollableAreaMac.mm:
+        (WebCore::ScrollableArea::systemLanguageIsRTL): Add
+        -respondsToSelector: check.
+
+2016-03-11  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        WTF should have a similar function as equalLettersIgnoringASCIICase to match beginning of strings
+        https://bugs.webkit.org/show_bug.cgi?id=153419
+
+        Reviewed by Darin Adler.
+
+        Covered by added unint tests.
+
+        * Modules/fetch/FetchHeaders.cpp:
+        (WebCore::isForbiddenHeaderName): Using startsWithLettersIgnoringASCIICase.
+
+2016-03-11  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Use DeferredWrapper directly in FetchBody promise handling
+        https://bugs.webkit.org/show_bug.cgi?id=155291
+
+        Reviewed by Darin Adler.
+
+        Moved from typed DOMPromise to DeferredWrapper as there can only be one promise resolved.
+        Started preparing the handling of blobs translation to other resolved types.
+
+        Fixed the case of empty body, in which case promises should resolve with empty objects (strings, buffers...) and not null.
+
+        Added Consumer structure to handle asynchronous resolution/rejection of promises.
+        Added preliminary API to resolve promises based on data stored as a Blob.
+        FetchBodyOwner will be responsible to do/stop blob loading.
+
+        Tests: imported/w3c/web-platform-tests/fetch/api/request/request-consume-empty.html
+               imported/w3c/web-platform-tests/fetch/api/response/response-consume-empty.html
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::processIfEmptyOrDisturbed): Fixed empty body case.
+        (WebCore::FetchBody::arrayBuffer):
+        (WebCore::FetchBody::blob):
+        (WebCore::FetchBody::json):
+        (WebCore::FetchBody::text):
+        (WebCore::FetchBody::consume):
+        (WebCore::FetchBody::consumeText):
+        (WebCore::FetchBody::loadingType):
+        (WebCore::FetchBody::consumeBlob):
+        (WebCore::FetchBody::resolveAsJSON):
+        (WebCore::FetchBody::loadingFailed):
+        (WebCore::FetchBody::loadedAsBlob):
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::formData):
+        (WebCore::FetchBody::Consumer::Consumer):
+        * Modules/fetch/FetchBody.idl:
+        * Modules/fetch/FetchBodyOwner.h:
+        (WebCore::FetchBodyOwner::arrayBuffer):
+        (WebCore::FetchBodyOwner::blob):
+        (WebCore::FetchBodyOwner::formData):
+        (WebCore::FetchBodyOwner::json):
+        (WebCore::FetchBodyOwner::text):
+        (WebCore::FetchBodyOwner::loadBlob):
+
+2016-03-11  Yoav Weiss  <yoav@yoav.ws>
+
+        Avoid applying link tags with an invalid media attribute
+        https://bugs.webkit.org/show_bug.cgi?id=143262
+
+        Reviewed by Brent Fulgham.
+
+        In current HTML spec, unlike HTML4, the UA must not apply <link> based resources
+        when the media attribute does not match:
+        https://html.spec.whatwg.org/multipage/semantics.html#attr-link-media
+
+        An invalid media attribute parsing creates a non-empty MediaQuerySet
+        containing a single query with no expressions and no media type.
+        (and with its m_ignored flag off)
+
+        In order to ignore such MediaQueries, I added an extra check that makes sure
+        that the queries handled by MediaQueryEvaluator::eval have either expressions
+        or a media type, and if not, they are ignored.
+
+        Test: fast/dom/HTMLLinkElement/link-stylesheet-invalid-media.html
+
+        * css/MediaQueryEvaluator.cpp:
+        (WebCore::MediaQueryEvaluator::eval):
+
+2016-03-11  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [CallWith=ScriptExecutionContext] should pass ScriptExecutionContext to the implementation by reference
+        https://bugs.webkit.org/show_bug.cgi?id=155297
+
+        Reviewed by Darin Adler.
+
+        Changing the binding generator to pass ScriptExecutionContext by reference.
+        Updating DOM classes accordingly.
+
+        Covered by existing tests.
+
+        * Modules/encryptedmedia/MediaKeySession.cpp:
+        (WebCore::MediaKeySession::create):
+        (WebCore::MediaKeySession::MediaKeySession):
+        * Modules/encryptedmedia/MediaKeySession.h:
+        * Modules/encryptedmedia/MediaKeys.cpp:
+        (WebCore::MediaKeys::createSession):
+        * Modules/encryptedmedia/MediaKeys.h:
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::clone):
+        * Modules/fetch/FetchRequest.h:
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::error):
+        (WebCore::FetchResponse::redirect):
+        (WebCore::FetchResponse::clone):
+        * Modules/fetch/FetchResponse.h:
+        * Modules/indexeddb/IDBCursor.h:
+        (WebCore::IDBCursor::continueFunction):
+        * Modules/indexeddb/IDBFactory.h:
+        * Modules/indexeddb/IDBIndex.h:
+        * Modules/indexeddb/IDBKeyRange.cpp:
+        (WebCore::IDBKeyRange::lowerValue):
+        (WebCore::IDBKeyRange::upperValue):
+        (WebCore::IDBKeyRange::only):
+        (WebCore::IDBKeyRange::lowerBound):
+        (WebCore::IDBKeyRange::upperBound):
+        (WebCore::IDBKeyRange::bound):
+        * Modules/indexeddb/IDBKeyRange.h:
+        (WebCore::IDBKeyRange::lowerBound):
+        (WebCore::IDBKeyRange::upperBound):
+        (WebCore::IDBKeyRange::bound):
+        * Modules/indexeddb/IDBObjectStore.h:
+        * Modules/indexeddb/IDBOpenDBRequest.cpp:
+        (WebCore::IDBOpenDBRequest::IDBOpenDBRequest):
+        * Modules/indexeddb/IDBOpenDBRequest.h:
+        * Modules/indexeddb/IDBRequest.cpp:
+        (WebCore::IDBRequest::IDBRequest):
+        * Modules/indexeddb/IDBRequest.h:
+        * Modules/indexeddb/client/IDBCursorImpl.cpp:
+        (WebCore::IDBClient::IDBCursor::continueFunction):
+        (WebCore::IDBClient::IDBCursor::deleteFunction):
+        * Modules/indexeddb/client/IDBCursorImpl.h:
+        * Modules/indexeddb/client/IDBFactoryImpl.cpp:
+        (WebCore::IDBClient::shouldThrowSecurityException):
+        (WebCore::IDBClient::IDBFactory::getDatabaseNames):
+        (WebCore::IDBClient::IDBFactory::open):
+        (WebCore::IDBClient::IDBFactory::openInternal):
+        (WebCore::IDBClient::IDBFactory::deleteDatabase):
+        (WebCore::IDBClient::IDBFactory::cmp):
+        * Modules/indexeddb/client/IDBFactoryImpl.h:
+        * Modules/indexeddb/client/IDBIndexImpl.cpp:
+        (WebCore::IDBClient::IDBIndex::IDBIndex):
+        (WebCore::IDBClient::IDBIndex::openCursor):
+        (WebCore::IDBClient::IDBIndex::count):
+        (WebCore::IDBClient::IDBIndex::openKeyCursor):
+        (WebCore::IDBClient::IDBIndex::get):
+        (WebCore::IDBClient::IDBIndex::getKey):
+        * Modules/indexeddb/client/IDBIndexImpl.h:
+        * Modules/indexeddb/client/IDBObjectStoreImpl.cpp:
+        (WebCore::IDBClient::IDBObjectStore::create):
+        (WebCore::IDBClient::IDBObjectStore::IDBObjectStore):
+        (WebCore::IDBClient::IDBObjectStore::openCursor):
+        (WebCore::IDBClient::IDBObjectStore::get):
+        (WebCore::IDBClient::IDBObjectStore::deleteFunction):
+        (WebCore::IDBClient::IDBObjectStore::doDelete):
+        (WebCore::IDBClient::IDBObjectStore::modernDelete):
+        (WebCore::IDBClient::IDBObjectStore::clear):
+        (WebCore::IDBClient::IDBObjectStore::createIndex):
+        (WebCore::IDBClient::IDBObjectStore::index):
+        (WebCore::IDBClient::IDBObjectStore::count):
+        * Modules/indexeddb/client/IDBObjectStoreImpl.h:
+        * Modules/indexeddb/client/IDBOpenDBRequestImpl.cpp:
+        (WebCore::IDBClient::IDBOpenDBRequest::createDeleteRequest):
+        (WebCore::IDBClient::IDBOpenDBRequest::createOpenRequest):
+        (WebCore::IDBClient::IDBOpenDBRequest::IDBOpenDBRequest):
+        * Modules/indexeddb/client/IDBOpenDBRequestImpl.h:
+        * Modules/indexeddb/client/IDBRequestImpl.cpp:
+        (WebCore::IDBClient::IDBRequest::IDBRequest):
+        * Modules/indexeddb/client/IDBRequestImpl.h:
+        * Modules/indexeddb/client/IDBTransactionImpl.cpp:
+        (WebCore::IDBClient::IDBTransaction::objectStore):
+        (WebCore::IDBClient::IDBTransaction::createObjectStore):
+        (WebCore::IDBClient::IDBTransaction::createIndex):
+        * Modules/mediasource/DOMURLMediaSource.cpp:
+        (WebCore::DOMURLMediaSource::createObjectURL):
+        * Modules/mediasource/DOMURLMediaSource.h:
+        * Modules/mediastream/DOMURLMediaStream.cpp:
+        (WebCore::DOMURLMediaStream::createObjectURL):
+        * Modules/mediastream/DOMURLMediaStream.h:
+        * Modules/mediastream/HTMLMediaElementMediaStream.cpp:
+        (WebCore::HTMLMediaElementMediaStream::setSrcObject):
+        * Modules/mediastream/HTMLMediaElementMediaStream.h:
+        * Modules/mediastream/HTMLMediaElementMediaStream.idl:
+        * Modules/notifications/Notification.cpp:
+        (WebCore::Notification::Notification):
+        (WebCore::Notification::create):
+        (WebCore::Notification::permission):
+        (WebCore::Notification::requestPermission):
+        * Modules/notifications/Notification.h:
+        * Modules/notifications/NotificationCenter.cpp:
+        (WebCore::NotificationCenter::createNotification):
+        * Modules/notifications/NotificationClient.h:
+        * Modules/quota/StorageInfo.cpp:
+        (WebCore::StorageInfo::queryUsageAndQuota):
+        (WebCore::StorageInfo::requestQuota):
+        * Modules/quota/StorageInfo.h:
+        * Modules/quota/StorageQuota.h:
+        * bindings/js/JSIDBObjectStoreCustom.cpp:
+        (WebCore::JSIDBObjectStore::createIndex):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateCallWith):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::jsTestInterfacePrototypeFunctionImplementsMethod2):
+        (WebCore::jsTestInterfacePrototypeFunctionSupplementalMethod2):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjWithScriptExecutionContextAttribute):
+        (WebCore::jsTestObjWithScriptExecutionContextAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateAttribute):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute):
+        (WebCore::setJSTestObjWithScriptExecutionContextAttribute):
+        (WebCore::setJSTestObjWithScriptExecutionContextAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateAttribute):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContext):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContextAndScriptState):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContextAndScriptStateObjException):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContextAndScriptStateWithSpaces):
+        * fileapi/FileReaderSync.cpp:
+        (WebCore::FileReaderSync::readAsArrayBuffer):
+        (WebCore::FileReaderSync::readAsBinaryString):
+        (WebCore::FileReaderSync::readAsText):
+        (WebCore::FileReaderSync::readAsDataURL):
+        (WebCore::FileReaderSync::startLoading):
+        * fileapi/FileReaderSync.h:
+        (WebCore::FileReaderSync::readAsText):
+        * html/DOMURL.cpp:
+        (WebCore::DOMURL::createObjectURL):
+        (WebCore::DOMURL::createPublicURL):
+        (WebCore::DOMURL::revokeObjectURL):
+        * html/DOMURL.h:
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::setSrcObject):
+        * html/HTMLMediaElement.h:
+        * inspector/InspectorIndexedDBAgent.cpp:
+        (WebCore::InspectorIndexedDBAgent::requestDatabaseNames):
+        * page/DOMWindow.h:
+        * page/History.h:
+        (WebCore::History::back):
+        (WebCore::History::forward):
+        (WebCore::History::go):
+
 2016-03-10  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GTK] Fix rendering of slider input elements

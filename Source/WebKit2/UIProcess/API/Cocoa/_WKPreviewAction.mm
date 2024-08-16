@@ -24,7 +24,7 @@
  */
 
 #import "config.h"
-#import "_WKPreviewAction.h"
+#import "_WKPreviewActionInternal.h"
 
 #if WK_API_ENABLED && TARGET_OS_IPHONE
 

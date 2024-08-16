@@ -1,3 +1,60 @@
+2016-03-11  Anders Carlsson  <andersca@apple.com>
+
+        Creating and releasing a WKBackForwardListItem crashes
+        https://bugs.webkit.org/show_bug.cgi?id=155376
+        rdar://problem/17377712
+
+        Reviewed by Dan Bernstein.
+
+        Make init unavailable.
+
+        * UIProcess/API/Cocoa/WKBackForwardListItem.h:
+
+2016-03-11  Beth Dakin  <bdakin@apple.com>
+
+        Follow-up to:
+
+        _WKPreviewAction should be in an internal header
+        https://bugs.webkit.org/show_bug.cgi?id=155370
+
+        Rubber-stamped by Dan Bernstein.
+
+        * UIProcess/API/Cocoa/_WKPreviewActionInternal.h:
+
+2016-03-11  Beth Dakin  <bdakin@apple.com>
+
+        _WKPreviewAction should be in an internal header
+        https://bugs.webkit.org/show_bug.cgi?id=155370
+
+        Reviewed by Tim Horton.
+
+        Move _WKPreviewAction to an Internal header since only the protocol needs to 
+        be SPI.
+        * UIProcess/API/Cocoa/_WKPreviewAction.h:
+        * UIProcess/API/Cocoa/_WKPreviewAction.mm:
+        * UIProcess/API/Cocoa/_WKPreviewActionInternal.h: Added.
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-03-11  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Implement Reflect.set without receiver support
+        https://bugs.webkit.org/show_bug.cgi?id=155024
+
+        Reviewed by Geoffrey Garen.
+
+        NPJSObject::setProperty may call `methodTable()->put` operation, but we intentionally do not propagate it to the caller's ::put.
+        In the current implementation, we just use the result of ::setProperty call.
+        This is `true` when ::setProperty attempts to call `methodTable()->put`.
+        In ::setProperty, after calling `methodTable()->put`, ::setProperty function clears the exception state.
+        So this is not the same semantics to the simple data property store. Rather, this is like the accessor.
+        In ECMA262 [[Set]], it returns true if there is a setter. So we just use the returned value of ::setProperty.
+        This indicates that there is a setter for the given [[Set]] operation.
+
+        * WebProcess/Plugins/Netscape/JSNPObject.cpp:
+        (WebKit::JSNPObject::put):
+        * WebProcess/Plugins/Netscape/JSNPObject.h:
+
 2016-03-10  David Kilzer  <ddkilzer@apple.com>
 
         REGRESSION (r197986): Don't try to link to undefined $(WEBKIT_SYSTEM_INTERFACE_LIBRARY)

@@ -1,3 +1,113 @@
+2016-03-11  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/track/track-in-band-style.html as flaky on Yosemite
+        https://bugs.webkit.org/show_bug.cgi?id=153143
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-03-11  Mark Lam  <mark.lam@apple.com>
+
+        Implement Function.name and Function#toString for ES6 class.
+        https://bugs.webkit.org/show_bug.cgi?id=155336
+
+        Reviewed by Geoffrey Garen.
+
+        * js/class-syntax-name-expected.txt:
+        * js/script-tests/class-syntax-name.js:
+        (shouldBe):
+        (shouldBeTrue):
+        - Rebased expected result.
+
+        * js/function-toString-vs-name.html:
+        * js/script-tests/function-toString-vs-name.js:
+        - Added new tests for class.
+
+        * platform/mac/inspector/model/remote-object-expected.txt:
+        - Rebased expected result.
+
+2016-03-11  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/blink/fast/multicol/dynamic/multicol-with-abspos-svg-with-foreignobject-with-multicol-crash.html as flaky
+        https://bugs.webkit.org/show_bug.cgi?id=155339
+
+        Unreviewed test gardening.
+
+        This test is a flaky crash on ios-simulator debug.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-11  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/heap/getPreview.html as flaky on mac-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=155312
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-03-11  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking css3/masking/mask-luminance-svg.html and css3/masking/mask-svg-script-none-to-png.html as flaky
+        https://bugs.webkit.org/show_bug.cgi?id=155372.
+
+        Unreviewed test gardening.
+
+        These two tests are flaky crashes on ios-simulator debug.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-11  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r197984.
+
+        This change caused an existing LayoutTest to fail
+
+        Reverted changeset:
+
+        "WebKit should not be redirected to an invalid URL"
+        https://bugs.webkit.org/show_bug.cgi?id=155263
+        http://trac.webkit.org/changeset/197984
+
+2016-03-11  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Implement Reflect.set without receiver support
+        https://bugs.webkit.org/show_bug.cgi?id=155024
+
+        Reviewed by Geoffrey Garen.
+
+        * js/dom/reflect-set-onto-dom-expected.txt: Added.
+        * js/dom/reflect-set-onto-dom.html: Added.
+        * js/dom/script-tests/reflect-set-onto-dom.js: Added.
+
+2016-03-11  Yoav Weiss  <yoav@yoav.ws>
+
+        Avoid applying link tags with an invalid media attribute
+        https://bugs.webkit.org/show_bug.cgi?id=143262
+
+        Reviewed by Brent Fulgham.
+
+        These tests make sure that when <link rel=stylesheet> is present with an invalid
+        media attribute, the styles are not being applied.
+
+        * fast/dom/HTMLLinkElement/link-stylesheet-invalid-media-expected.txt: Added.
+        * fast/dom/HTMLLinkElement/link-stylesheet-invalid-media.html: Added.
+        * fast/dom/HTMLLinkElement/link-stylesheet-media-type-expected.txt: Added.
+        * fast/dom/HTMLLinkElement/link-stylesheet-media-type.html: Added.
+
+        These tests test the old HTML4 behavior and are no longer relevant.
+        * fast/media/media-descriptor-syntax-05.html: Removed.
+        * fast/media/media-descriptor-syntax-05-expected.html: Removed.
+
+2016-03-11  Frederic Wang  <fwang@igalia.com>
+
+        Skip content-editable-as-textarea.html on GTK as it uses AX API.
+
+        Unreviewed test gardening.
+
+        * platform/gtk/TestExpectations:
+
 2016-03-10  Jer Noble  <jer.noble@apple.com>
 
         CRASH at WebCore::RenderView::updateVisibleViewportRect
