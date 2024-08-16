@@ -1,3 +1,336 @@
+2016-03-08  Brent Fulgham  <bfulgham@apple.com>
+
+        Local HTML should be blocked from localStorage access unless "Disable Local File Restrictions" is checked..
+        https://bugs.webkit.org/show_bug.cgi?id=155185
+        <rdar://problem/11101440>
+
+        Reviewed by Zalan Bujtas.
+
+        Tested by storage/domstorage/localstorage/blocked-file-access.html.
+
+        * page/SecurityOrigin.cpp:
+        (WebCore::SecurityOrigin::canAccessStorage): If the origin is a local file, and we have not been granted
+        universal file access, prevent access to DOM localStorage.
+
+2016-03-09  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Allow to place positioned grid items on the padding
+        https://bugs.webkit.org/show_bug.cgi?id=155199
+
+        Reviewed by Sergio Villar Senin.
+
+        According to the following discussion on the CSS WG mailing list,
+        we should be able to place positioned grid items on the padding directly:
+        https://lists.w3.org/Archives/Public/www-style/2015Nov/0070.html
+
+        This means that a positioned grid item can be placed on the padding itself.
+        The "auto" value resolves to the padding edges (0th and -0th lines).
+        So if a positioned item is placed with: grid-column: auto / 1;
+        it'd be placed on the padding, from line 0th to 1st line.
+
+        On top of that, we've to detect properly the first and last explicit
+        grid lines during the layout of positioned grid items.
+        We have to consider that the grid can have implicit tracks created
+        previously by regular grid items.
+
+        Tests: fast/css-grid-layout/grid-positioned-items-padding.html
+               fast/css-grid-layout/grid-positioned-items-within-grid-implicit-track.html
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+
+2016-03-09  Andreas Kling  <akling@apple.com>
+
+        ImageDocuments leak their world.
+        <https://webkit.org/b/155167>
+        <rdar://problem/24987363>
+
+        Reviewed by Antti Koivisto.
+
+        ImageDocument uses a special code path in ImageLoader in order to manually
+        control how the image is loaded. It has to do this because the ImageDocument
+        is really just a synthetic wrapper around a main resource that's an image.
+
+        This custom loading code had a bug where it would create a new CachedImage
+        and neglect to set its CachedResource::m_state flag to Pending (which is
+        normally set by CachedResource::load(), but we don't call that for these.)
+
+        This meant that when ImageDocument called CachedImage::finishLoading() to
+        trigger the notifyFinished() callback path, the image would look at its
+        loading state and see that it was Unknown (not Pending), and conclude that
+        it hadn't loaded yet. So we never got the notifyFinished() signal.
+
+        The world leaks here because ImageLoader slaps a ref on its <img> element
+        while it waits for the loading operation to complete. Once finished, whether
+        successfully or with an error, it derefs the <img>.
+
+        Since we never fired notifyFinished(), we ended up with an extra ref on
+        these <img> forever, and then the element kept its document alive too.
+
+        Test: fast/dom/ImageDocument-world-leak.html
+
+        * loader/ImageLoader.cpp:
+        (WebCore::ImageLoader::updateFromElement):
+
+2016-03-08  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Fix auto-track sizing with min-size:auto and specific sizes
+        https://bugs.webkit.org/show_bug.cgi?id=155165
+
+        Reviewed by Darin Adler.
+
+        Specs recently changed the way auto tracks are sized. In the
+        previous versions, when sizing auto minimums, only the
+        min-width|height of the items spanning through the auto tracks
+        were used to size them. The new text specifies that for items
+        with a specified minimum size of auto, the behavior is
+        equivalent to a min-content minimum.
+
+        This means that from now on, auto tracks with min-size:auto
+        will no longer be smaller than min-content tracks (which was
+        pretty weird from the user POV).
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::minSizeForChild): use grid items
+        min-content contributions whenever the specified size is not
+        auto or when min-size is auto.
+
+2016-03-09  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Initial support for implicit grid before explicit grid
+        https://bugs.webkit.org/show_bug.cgi?id=155014
+
+        Reviewed by Darin Adler.
+
+        Change GridSpan to store int instead of unsigned. This allows us to
+        resolve positions before the explicit grid with negative values.
+
+        This patch adds a new type of GridSpan called "Untranslated".
+        This type is only used in populateExplicitGridAndOrderIterator().
+        Where we store the smallest negative position in both axis.
+
+        Then the GridSpans are translated into positive values, using the offset
+        calculated before. This is done in placeItemsOnGrid() and from that
+        moment the rest of the code uses "Definite" GridSpans, which returns
+        only positive positions (unsigned instead of int).
+        This allows us to don't have to modify the rest of the code, as it keeps
+        using GridSpans as before.
+
+        Let's use an example to explain how it works. Imagine that we've a 2
+        columns grid and 2 items placed like:
+        * Item A: grid-column: -5;
+        * Item B: grid-column: 1;
+
+        Initially we'll use "Unstranslated" GridSpans with the following values:
+        * Item A: GridSpan(-2, -1)
+        * Item B: GridSpan(0, 1)
+
+        Then we'll translate them using the smallest position as offset (-2)
+        so we've "Definite" GridSpans:
+        * Item A: GridSpan(0, 1)
+        * Item B: GridSpan(2, 3)
+
+        Test: fast/css-grid-layout/implicit-tracks-before-explicit.html
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseGridTemplateAreasRow):
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::GridIterator::nextEmptyGridArea):
+        (WebCore::RenderGrid::computeUsedBreadthOfGridTracks):
+        (WebCore::RenderGrid::gridTrackSize):
+        (WebCore::RenderGrid::insertItemIntoGrid):
+        (WebCore::RenderGrid::placeItemsOnGrid):
+        (WebCore::RenderGrid::populateExplicitGridAndOrderIterator):
+        (WebCore::RenderGrid::createEmptyGridAreaAtSpecifiedPositionsOutsideGrid):
+        (WebCore::RenderGrid::placeSpecifiedMajorAxisItemsOnGrid):
+        (WebCore::RenderGrid::placeAutoMajorAxisItemOnGrid):
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+        (WebCore::RenderGrid::placeAutoMajorAxisItemsOnGrid): Deleted.
+        (WebCore::RenderGrid::layoutPositionedObject): Deleted.
+        * rendering/RenderGrid.h:
+        * rendering/style/GridCoordinate.h:
+        (WebCore::GridSpan::untranslatedDefiniteGridSpan):
+        (WebCore::GridSpan::translatedDefiniteGridSpan):
+        (WebCore::GridSpan::integerSpan):
+        (WebCore::GridSpan::untranslatedResolvedInitialPosition):
+        (WebCore::GridSpan::untranslatedResolvedFinalPosition):
+        (WebCore::GridSpan::resolvedInitialPosition):
+        (WebCore::GridSpan::resolvedFinalPosition):
+        (WebCore::GridSpan::begin):
+        (WebCore::GridSpan::end):
+        (WebCore::GridSpan::isTranslatedDefinite):
+        (WebCore::GridSpan::isIndefinite):
+        (WebCore::GridSpan::translate):
+        (WebCore::GridSpan::GridSpan):
+        (WebCore::GridSpan::operator==): Deleted.
+        (WebCore::GridSpan::GridSpanIterator::GridSpanIterator): Deleted.
+        (WebCore::GridSpan::GridSpanIterator::operator unsigned&): Deleted.
+        * rendering/style/GridResolvedPosition.cpp:
+        (WebCore::resolveRowStartColumnStartNamedGridLinePositionAgainstOppositePosition):
+        (WebCore::resolveRowEndColumnEndNamedGridLinePositionAgainstOppositePosition):
+        (WebCore::resolveNamedGridLinePositionAgainstOppositePosition):
+        (WebCore::resolveGridPositionAgainstOppositePosition):
+        (WebCore::resolveGridPositionFromStyle):
+        (WebCore::GridResolvedPosition::resolveGridPositionsFromStyle):
+        (WebCore::GridResolvedPosition::spanSizeForAutoPlacedItem): Deleted.
+
+2016-03-09  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iOS] Arabic text on Wikipedia is shown as boxes
+        https://bugs.webkit.org/show_bug.cgi?id=155129
+        <rdar://problem/24919902>
+
+        Reviewed by Darin Adler.
+
+        GeezaPro is the PostScript name, not the family name.
+
+        Test: fast/text/arabic-blacklisted.html
+
+        * platform/graphics/ios/FontCacheIOS.mm:
+        (WebCore::platformLookupFallbackFont):
+
+2016-03-08  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197825.
+        https://bugs.webkit.org/show_bug.cgi?id=155222
+
+        It broke the EFL build. It is not dead code. (Requested by
+        gyuyoung on #webkit).
+
+        Reverted changeset:
+
+        "Delete dead scrolling code"
+        https://bugs.webkit.org/show_bug.cgi?id=155210
+        http://trac.webkit.org/changeset/197825
+
+2016-03-08  Chris Dumez  <cdumez@apple.com>
+
+        Element with maximum tabIndex cannot be returned by nextElementWithGreaterTabIndex()
+        https://bugs.webkit.org/show_bug.cgi?id=155215
+
+        Reviewed by Ryosuke Niwa.
+
+        Element with maximum tabIndex cannot be returned by nextElementWithGreaterTabIndex()
+        due to a bug in r197726. This patch fixes the issue by only comparing
+        candidate.tabIndex to winningTabIndex if winner is non-null.
+
+        Test: fast/events/max-tabindex-focus.html
+
+        * page/FocusController.cpp:
+        (WebCore::nextElementWithGreaterTabIndex):
+
+2016-03-08  Sam Weinig  <sam@webkit.org>
+
+        Stop using the UserContentController for injecting the override style sheet from CaptionUserPreferences
+        https://bugs.webkit.org/show_bug.cgi?id=155211
+
+        Reviewed by Dan Bernstein.
+
+        The UserContentController is going to become read only from WebCore's perspective. The CaptionUserPreferences
+        was relying on being able to set a UserStyleSheet on it, but this was really unnecessary complexity. Simplify
+        things by storing the style sheet's source directly on the Page and teaching ExtensionStyleSheets about it
+        explicitly.
+
+        * dom/ExtensionStyleSheets.cpp:
+        (WebCore::ExtensionStyleSheets::updateInjectedStyleSheetCache):
+        If there is a captionUserPreferencesStyleSheet on the page, inject it.
+
+        * page/CaptionUserPreferences.cpp:
+        (WebCore::CaptionUserPreferences::updateCaptionStyleSheetOveride):
+        Greatly simplify the code. Now, all this does is set the style sheet on each page.
+
+        * page/Page.cpp:
+        (WebCore::Page::invalidateInjectedStyleSheetCacheInAllFrames):
+        Extract this out from UserContentController.
+
+        (WebCore::Page::setUserContentController):
+        Call the newly extracted invalidateInjectedStyleSheetCacheInAllFrames().
+
+        (WebCore::Page::captionUserPreferencesStyleSheet):
+        (WebCore::Page::setCaptionUserPreferencesStyleSheet):
+        Add getter/setter. When setting, invalidate the style sheet cache.
+
+        * page/Page.h:
+        Add new members and functions.
+
+        * page/UserContentController.cpp:
+        (WebCore::UserContentController::addUserStyleSheet):
+        (WebCore::UserContentController::removeUserStyleSheet):
+        (WebCore::UserContentController::removeUserStyleSheets):
+        (WebCore::UserContentController::removeAllUserContent):
+        Switch to calling invalidateInjectedStyleSheetCacheInAllFramesInAllPages().
+
+        (WebCore::UserContentController::invalidateInjectedStyleSheetCacheInAllFramesInAllPages):
+        Rename and implement in terms of Page::invalidateInjectedStyleSheetCacheInAllFrames().
+
+        * page/UserContentController.h:
+        Rename function.
+
+2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Memory Timeline should show MemoryPressure events
+        https://bugs.webkit.org/show_bug.cgi?id=155158
+        <rdar://problem/25026610>
+
+        Reviewed by Brian Burg.
+
+        * platform/MemoryPressureHandler.cpp:
+        (WebCore::MemoryPressureHandler::releaseMemory):
+        When responding to memory pressure, notify page inspectors.
+
+        * platform/cocoa/MemoryPressureHandlerCocoa.mm:
+        Remove unused includes.
+
+        * inspector/InspectorInstrumentation.cpp:
+        (WebCore::InspectorInstrumentation::didHandleMemoryPressureImpl):
+        * inspector/InspectorInstrumentation.h:
+        (WebCore::InspectorInstrumentation::playbackStarted):
+        (WebCore::InspectorInstrumentation::playbackPaused):
+        (WebCore::InspectorInstrumentation::playbackFinished):
+        (WebCore::InspectorInstrumentation::playbackHitPosition):
+        (WebCore::InspectorInstrumentation::didHandleMemoryPressure):
+        * inspector/InspectorMemoryAgent.cpp:
+        (WebCore::InspectorMemoryAgent::didCreateFrontendAndBackend):
+        (WebCore::InspectorMemoryAgent::willDestroyFrontendAndBackend):
+        (WebCore::InspectorMemoryAgent::enable):
+        (WebCore::InspectorMemoryAgent::disable):
+        (WebCore::InspectorMemoryAgent::didHandleMemoryPressure):
+        * inspector/InspectorMemoryAgent.h:
+        * inspector/InstrumentingAgents.cpp:
+        (WebCore::InstrumentingAgents::reset):
+        * inspector/InstrumentingAgents.h:
+        (WebCore::InstrumentingAgents::inspectorMemoryAgent):
+        (WebCore::InstrumentingAgents::setInspectorMemoryAgent):
+        Plumbing to notify the right active inspector.
+
+2016-03-08  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Delete dead scrolling code
+        https://bugs.webkit.org/show_bug.cgi?id=155210
+
+        Reviewed by Simon Fraser.
+
+        No new tests because there is no behavior change.
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::layerForScrolling): Deleted.
+        * page/FrameView.h:
+        * page/scrolling/ScrollingCoordinator.cpp:
+        (WebCore::ScrollingCoordinator::scrollLayerForScrollableArea): Deleted.
+        * page/scrolling/ScrollingCoordinator.h:
+        * platform/ScrollableArea.h:
+        (WebCore::ScrollableArea::horizontalScrollbar):
+        (WebCore::ScrollableArea::verticalScrollbar):
+        (WebCore::ScrollableArea::tiledBacking):
+        (WebCore::ScrollableArea::layerForHorizontalScrollbar):
+        (WebCore::ScrollableArea::layerForVerticalScrollbar):
+        (WebCore::ScrollableArea::layerForScrollCorner):
+        (WebCore::ScrollableArea::layerForOverhangAreas):
+        (WebCore::ScrollableArea::layerForScrolling): Deleted.
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::calculateClipRects): Deleted.
+        * rendering/RenderLayer.h:
+
 2016-03-08  Oliver Hunt  <oliver@apple.com>
 
         Start moving to separated writable and executable mappings in the JIT

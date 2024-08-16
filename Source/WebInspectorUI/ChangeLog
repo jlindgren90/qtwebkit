@@ -1,5 +1,133 @@
 2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
 
+        Web Inspector: Timelines keeps switching to overview instead of keeping the selected timeline
+        https://bugs.webkit.org/show_bug.cgi?id=155212
+        <rdar://problem/25052504>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TimelineSidebarPanel.js:
+        (WebInspector.TimelineSidebarPanel.prototype.saveStateToCookie):
+        The sidebar was using out of date information in its tree outline causing it to
+        switch to the wrong sidebar. Use the up to date information from the recording view.
+
+        * UserInterface/Views/TimelineTabContentView.js:
+        (WebInspector.TimelineTabContentView.prototype._recordingSelected):
+        Fix typo not getting the right timeline type.
+
+2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Memory Timeline should show MemoryPressure events
+        https://bugs.webkit.org/show_bug.cgi?id=155158
+        <rdar://problem/25026610>
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Main.html:
+        New resources.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector.loaded):
+        * UserInterface/Controllers/MemoryManager.js:
+        (WebInspector.MemoryManager):
+        (WebInspector.MemoryManager.prototype.memoryPressure):
+        * UserInterface/Protocol/MemoryObserver.js:
+        (WebInspector.MemoryObserver.prototype.memoryPressure):
+        New manager for Memory domain events.
+
+        * UserInterface/Controllers/TimelineManager.js:
+        (WebInspector.TimelineManager):
+        (WebInspector.TimelineManager.defaultInstruments):
+        (WebInspector.TimelineManager.prototype._memoryPressure):
+        * UserInterface/Models/TimelineRecording.js:
+        (WebInspector.TimelineRecording.prototype.addMemoryPressureEvent):
+        Add events to the Memory Timeline of the active recording.
+
+        * UserInterface/Models/MemoryTimeline.js:
+        (WebInspector.MemoryTimeline.prototype.get memoryPressureEvents):
+        (WebInspector.MemoryTimeline.prototype.addMemoryPressureEvent):
+        (WebInspector.MemoryTimeline.prototype.reset):
+        (WebInspector.MemoryTimeline):
+        * UserInterface/Models/Timeline.js:
+        (WebInspector.Timeline.create):
+        Create a specific MemoryTimeline to hold records and memory pressure events.
+
+        * UserInterface/Models/MemoryPressureEvent.js:
+        (WebInspector.MemoryPressureEvent):
+        (WebInspector.MemoryPressureEvent.fromPayload):
+        (WebInspector.MemoryPressureEvent.prototype.get timestamp):
+        (WebInspector.MemoryPressureEvent.prototype.get severity):
+        Model object for a memory pressure event.
+
+        * UserInterface/Views/MemoryTimelineOverviewGraph.css:
+        (.timeline-overview-graph.memory .memory-pressure-event):
+        * UserInterface/Views/MemoryTimelineOverviewGraph.js:
+        (WebInspector.MemoryTimelineOverviewGraph):
+        (WebInspector.MemoryTimelineOverviewGraph.prototype.reset):
+        (WebInspector.MemoryTimelineOverviewGraph.prototype._visibleMemoryPressureEvents):
+        (WebInspector.MemoryTimelineOverviewGraph.prototype._memoryTimelineMemoryPressureEventAdded):
+        Include markers for memory pressure events.
+
+2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Add Heap domain start/stop tracking commands
+        https://bugs.webkit.org/show_bug.cgi?id=155190
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Protocol/HeapObserver.js:
+        (WebInspector.HeapObserver.prototype.trackingStart):
+        (WebInspector.HeapObserver.prototype.trackingComplete):
+        To be used when we have a HeapAllocationsInstrument and timeline.
+
+2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Make debugging Test.html easier
+        https://bugs.webkit.org/show_bug.cgi?id=155207
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Base/InspectorFrontendHostStub.js: Renamed from Source/WebInspectorUI/UserInterface/Protocol/InspectorFrontendHostStub.js.
+        (window.InspectorFrontendHost.WebInspector.InspectorFrontendHostStub.prototype.unbufferedLog):
+        Add new stub for test function.
+
+        * UserInterface/Main.html:
+        * UserInterface/Test.html:
+        Move the stub to the Base directory.
+
+2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Add a way to create a Heap Snapshot
+        https://bugs.webkit.org/show_bug.cgi?id=155188
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Main.html:
+        * UserInterface/Test.html:
+        Add new Model resources.
+
+        * UserInterface/Models/HeapSnapshot.js: Added.
+        (WebInspector.HeapSnapshotClassCategory):
+        (WebInspector.HeapSnapshot):
+        (WebInspector.HeapSnapshot.fromPayload):
+        (WebInspector.HeapSnapshot.prototype.get rootNode):
+        (WebInspector.HeapSnapshot.prototype.get nodes):
+        (WebInspector.HeapSnapshot.prototype.get identifier):
+        (WebInspector.HeapSnapshot.prototype.get instances):
+        (WebInspector.HeapSnapshot.prototype.get categories):
+        (WebInspector.HeapSnapshot.prototype.get totalSize):
+        (WebInspector.HeapSnapshot.prototype.get totalObjectCount):
+        (WebInspector.HeapSnapshot.prototype.instancesWithClassName):
+        (WebInspector.HeapSnapshot.prototype.nodeWithObjectIdentifier):
+        * UserInterface/Models/HeapSnapshotEdge.js: Added.
+        (WebInspector.HeapSnapshotEdge):
+        (WebInspector.HeapSnapshotEdge.prototype.stringify):
+        * UserInterface/Models/HeapSnapshotNode.js: Added.
+        (WebInspector.HeapSnapshotNode):
+        Data structures for a HeapSnapshot.
+
+2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
+
         Web Inspector: Miscellaneous inspector fixes for typos / stale code
         https://bugs.webkit.org/show_bug.cgi?id=155193
 

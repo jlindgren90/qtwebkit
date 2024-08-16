@@ -1,3 +1,174 @@
+2016-03-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Cleaning up TestExpectations files to remove deleted tests and duplicate entries for ios-simulator.
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping fast/events/max-tabindex-focus.html on ios-simulator
+        https://bugs.webkit.org/show_bug.cgi?id=155233
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-08  Brent Fulgham  <bfulgham@apple.com>
+
+        Local HTML should be blocked from localStorage access unless "Disable Local File Restrictions" is checked..
+        https://bugs.webkit.org/show_bug.cgi?id=155185
+        <rdar://problem/11101440>
+
+        Reviewed by Zalan Bujtas.
+
+        * storage/domstorage/localstorage/blocked-file-access-expected.txt: Added.
+        * storage/domstorage/localstorage/blocked-file-access.html: Added.
+        * storage/domstorage/localstorage/resources/blocked-example.html: Added.
+
+2016-03-09  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Allow to place positioned grid items on the padding
+        https://bugs.webkit.org/show_bug.cgi?id=155199
+
+        Reviewed by Sergio Villar Senin.
+
+        Add new tests and updated results in a current one.
+
+        * fast/css-grid-layout/grid-positioned-items-implicit-grid.html:
+        * fast/css-grid-layout/grid-positioned-items-padding-expected.txt: Added.
+        * fast/css-grid-layout/grid-positioned-items-padding.html: Added.
+        * fast/css-grid-layout/grid-positioned-items-within-grid-implicit-track-expected.txt: Added.
+        * fast/css-grid-layout/grid-positioned-items-within-grid-implicit-track.html: Added.
+
+2016-03-09  Andreas Kling  <akling@apple.com>
+
+        ImageDocuments leak their world.
+        <https://webkit.org/b/155167>
+        <rdar://problem/24987363>
+
+        Reviewed by Antti Koivisto.
+
+        Made a little test that loads an image into an <iframe> 10 times and then
+        triggers a garbage collection and checks that all the documents got destroyed.
+
+        Prior to this change, all 10 ImageDocuments would remain alive at the end.
+
+        This got rolled out the first time because it failed on bots. It failed due
+        to expecting a specific number of documents to be live at the start of the
+        test, which was not reliable on bots since we appear to have more leaks(!)
+
+        Tweaked the test to check the delta in live document count instead.
+
+        * fast/dom/ImageDocument-world-leak-expected.txt: Added.
+        * fast/dom/ImageDocument-world-leak.html: Added.
+
+2016-03-08  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Fix auto-track sizing with min-size:auto and specific sizes
+        https://bugs.webkit.org/show_bug.cgi?id=155165
+
+        Reviewed by Darin Adler.
+
+        * fast/css-grid-layout/grid-automatic-minimum-for-auto-columns-expected.txt:
+        * fast/css-grid-layout/grid-automatic-minimum-for-auto-columns.html:
+        * fast/css-grid-layout/grid-automatic-minimum-for-auto-rows-expected.txt:
+        * fast/css-grid-layout/grid-automatic-minimum-for-auto-rows.html:
+
+2016-03-09  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Initial support for implicit grid before explicit grid
+        https://bugs.webkit.org/show_bug.cgi?id=155014
+
+        Reviewed by Darin Adler.
+
+        Updated results in current tests and added specific test for this.
+
+        * fast/css-grid-layout/grid-auto-flow-resolution.html:
+        * fast/css-grid-layout/grid-item-negative-position-resolution.html:
+        * fast/css-grid-layout/grid-item-spanning-resolution.html:
+        * fast/css-grid-layout/implicit-tracks-before-explicit-expected.txt: Added.
+        * fast/css-grid-layout/implicit-tracks-before-explicit.html: Added.
+
+2016-03-09  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iOS] Arabic text on Wikipedia is shown as boxes
+        https://bugs.webkit.org/show_bug.cgi?id=155129
+        <rdar://problem/24919902>
+
+        Reviewed by Darin Adler.
+
+        This test is iOS-specific.
+
+        * platform/efl/TestExpectations:
+        * platform/gtk/TestExpectations:
+        * platform/mac/TestExpectations:
+        * platform/win/TestExpectations:
+        * fast/text/arabic-blacklisted-expected.html: Added.
+        * fast/text/arabic-blacklisted.html: Added.
+
+2016-03-08  Chris Dumez  <cdumez@apple.com>
+
+        Element with maximum tabIndex cannot be returned by nextElementWithGreaterTabIndex()
+        https://bugs.webkit.org/show_bug.cgi?id=155215
+
+        Reviewed by Ryosuke Niwa.
+
+        Add test to make sure that an Element with a tabIndex equal to
+        2147483647 (maximum tabIndex) can be focused.
+
+        * fast/events/max-tabindex-focus-expected.txt: Added.
+        * fast/events/max-tabindex-focus.html: Added.
+
+2016-03-08  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG should be able to constant-fold strings
+        https://bugs.webkit.org/show_bug.cgi?id=155200
+
+        Reviewed by Geoffrey Garen.
+
+        * js/regress/script-tests/strcat-const.js: Added.
+        (foo):
+        (bar):
+        * js/regress/script-tests/strcat-length-const.js: Added.
+        (foo):
+        (bar):
+        * js/regress/strcat-const-expected.txt: Added.
+        * js/regress/strcat-const.html: Added.
+        * js/regress/strcat-length-const-expected.txt: Added.
+        * js/regress/strcat-length-const.html: Added.
+
+2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Add Heap domain start/stop tracking commands
+        https://bugs.webkit.org/show_bug.cgi?id=155190
+
+        Reviewed by Brian Burg.
+
+        * inspector/heap/tracking-expected.txt: Added.
+        * inspector/heap/tracking.html: Added.
+
+2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Add a way to create a Heap Snapshot
+        https://bugs.webkit.org/show_bug.cgi?id=155188
+
+        Reviewed by Brian Burg.
+
+        * inspector/heap/snapshot-expected.txt: Added.
+        * inspector/heap/snapshot.html: Added.
+
+2016-03-08  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Move two indexeddb test skips out of wk2/TestExpectations and in to TestExpectations.
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+        * platform/wk2/TestExpectations:
+
 2016-03-08  Mark Lam  <mark.lam@apple.com>
 
         Implement Function.name support for getters/setters and inferring name of function properties.
