@@ -1119,6 +1119,8 @@ public:
 
     void didRestoreScrollPosition();
 
+    void setFocus(bool focused);
+
     void setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&&, const String& scheme);
     WebURLSchemeHandler* urlSchemeHandlerForScheme(const String& scheme);
 
@@ -1365,7 +1367,6 @@ private:
     void ignoreWord(const String& word);
     void requestCheckingOfString(uint64_t requestID, const WebCore::TextCheckingRequestData&);
 
-    void setFocus(bool focused);
     void takeFocus(uint32_t direction);
     void setToolTip(const String&);
     void setCursor(const WebCore::Cursor&);
