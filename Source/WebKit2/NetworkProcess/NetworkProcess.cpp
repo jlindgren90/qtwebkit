@@ -46,6 +46,7 @@
 #include "WebCoreArgumentCoders.h"
 #include "WebProcessPoolMessages.h"
 #include "WebsiteData.h"
+#include "WebsiteDataFetchOption.h"
 #include "WebsiteDataType.h"
 #include <WebCore/DNS.h>
 #include <WebCore/DiagnosticLoggingClient.h>
@@ -293,20 +294,23 @@ void NetworkProcess::destroyPrivateBrowsingSession(SessionID sessionID)
     SessionTracker::destroySession(sessionID);
 }
 
-static void fetchDiskCacheEntries(SessionID sessionID, std::function<void (Vector<WebsiteData::Entry>)> completionHandler)
+static void fetchDiskCacheEntries(SessionID sessionID, OptionSet<WebsiteDataFetchOption> fetchOptions, std::function<void (Vector<WebsiteData::Entry>)> completionHandler)
 {
 #if ENABLE(NETWORK_CACHE)
     if (NetworkCache::singleton().isEnabled()) {
-        auto* origins = new HashSet<RefPtr<SecurityOrigin>>();
+        auto* originsAndSizes = new HashMap<RefPtr<SecurityOrigin>, uint64_t>();
 
-        NetworkCache::singleton().traverse([completionHandler, origins](const NetworkCache::Cache::TraversalEntry *traversalEntry) {
+        NetworkCache::singleton().traverse([fetchOptions, completionHandler, originsAndSizes](const NetworkCache::Cache::TraversalEntry *traversalEntry) {
             if (!traversalEntry) {
                 Vector<WebsiteData::Entry> entries;
 
-                for (auto& origin : *origins)
-                    entries.append(WebsiteData::Entry { origin, WebsiteDataType::DiskCache });
+                for (auto& originAndSize : *originsAndSizes) {
+                    WebsiteData::Entry entry { originAndSize.key, WebsiteDataType::DiskCache, originAndSize.value };
 
-                delete origins;
+                    entries.append(WTFMove(entry));
+                }
+
+                delete originsAndSizes;
 
                 RunLoop::main().dispatch([completionHandler, entries] {
                     completionHandler(entries);
@@ -315,7 +319,10 @@ static void fetchDiskCacheEntries(SessionID sessionID, std::function<void (Vecto
                 return;
             }
 
-            origins->add(SecurityOrigin::create(traversalEntry->entry.response().url()));
+            auto result = originsAndSizes->add(SecurityOrigin::create(traversalEntry->entry.response().url()), 0);
+
+            if (fetchOptions.contains(WebsiteDataFetchOption::ComputeSizes))
+                result.iterator->value += traversalEntry->entry.sourceStorageRecord().header.size() + traversalEntry->recordInfo.bodySize;
         });
 
         return;
@@ -326,7 +333,7 @@ static void fetchDiskCacheEntries(SessionID sessionID, std::function<void (Vecto
 
 #if USE(CFURLCACHE)
     for (auto& origin : NetworkProcess::cfURLCacheOrigins())
-        entries.append(WebsiteData::Entry { WTFMove(origin), WebsiteDataType::DiskCache });
+        entries.append(WebsiteData::Entry { WTFMove(origin), WebsiteDataType::DiskCache, 0 });
 #endif
 
     RunLoop::main().dispatch([completionHandler, entries] {
@@ -334,7 +341,7 @@ static void fetchDiskCacheEntries(SessionID sessionID, std::function<void (Vecto
     });
 }
 
-void NetworkProcess::fetchWebsiteData(SessionID sessionID, OptionSet<WebsiteDataType> websiteDataTypes, uint64_t callbackID)
+void NetworkProcess::fetchWebsiteData(SessionID sessionID, OptionSet<WebsiteDataType> websiteDataTypes, OptionSet<WebsiteDataFetchOption> fetchOptions, uint64_t callbackID)
 {
     struct CallbackAggregator final : public RefCounted<CallbackAggregator> {
         explicit CallbackAggregator(std::function<void (WebsiteData)> completionHandler)
@@ -368,7 +375,7 @@ void NetworkProcess::fetchWebsiteData(SessionID sessionID, OptionSet<WebsiteData
     }
 
     if (websiteDataTypes.contains(WebsiteDataType::DiskCache)) {
-        fetchDiskCacheEntries(sessionID, [callbackAggregator](Vector<WebsiteData::Entry> entries) {
+        fetchDiskCacheEntries(sessionID, fetchOptions, [callbackAggregator](Vector<WebsiteData::Entry> entries) {
             callbackAggregator->m_websiteData.entries.appendVector(entries);
         });
     }

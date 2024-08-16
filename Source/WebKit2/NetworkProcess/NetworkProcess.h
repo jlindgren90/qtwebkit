@@ -58,6 +58,7 @@ namespace WebKit {
 class AuthenticationManager;
 class NetworkConnectionToWebProcess;
 class NetworkProcessSupplement;
+enum class WebsiteDataFetchOption;
 enum class WebsiteDataType;
 struct NetworkProcessCreationParameters;
 
@@ -160,7 +161,7 @@ private:
     void ensurePrivateBrowsingSession(WebCore::SessionID);
     void destroyPrivateBrowsingSession(WebCore::SessionID);
 
-    void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, uint64_t callbackID);
+    void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, OptionSet<WebsiteDataFetchOption>, uint64_t callbackID);
     void deleteWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, std::chrono::system_clock::time_point modifiedSince, uint64_t callbackID);
     void deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<WebsiteDataType>, const Vector<WebCore::SecurityOriginData>& origins, const Vector<String>& cookieHostNames, uint64_t callbackID);
 
