@@ -82,7 +82,7 @@ private:
     };
     void consume(FetchBodyOwner&, Consumer::Type, DeferredWrapper&&);
 
-    Vector<char> extractFromText() const;
+    Vector<uint8_t> extractFromText() const;
     bool processIfEmptyOrDisturbed(Consumer::Type, DeferredWrapper&);
     void consumeText(Consumer::Type, DeferredWrapper&&);
     void consumeBlob(FetchBodyOwner&, Consumer::Type, DeferredWrapper&&);
