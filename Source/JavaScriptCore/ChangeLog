@@ -1,3 +1,74 @@
+2016-03-02  Saam barati  <sbarati@apple.com>
+
+        SIGSEGV in Proxy [[Get]] and [[Set]] recursion
+        https://bugs.webkit.org/show_bug.cgi?id=154854
+
+        Reviewed by Yusuke Suzuki.
+
+        We need to be aware of the possibility that the VM
+        may recurse and that we can stack overflow.
+
+        * runtime/ProxyObject.cpp:
+        (JSC::performProxyGet):
+        (JSC::ProxyObject::performPut):
+        * tests/stress/proxy-get-and-set-recursion-stack-overflow.js: Added.
+        (assert):
+        (testStackOverflowGet):
+        (testStackOverflowIndexedGet):
+        (testStackOverflowSet):
+        (testStackOverflowIndexedSet):
+
+2016-03-02  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Use a Move without REX byte when possible
+        https://bugs.webkit.org/show_bug.cgi?id=154801
+
+        Reviewed by Alex Christensen.
+
+        Filip wrote an optimization in the register allocator
+        to use 32bit "Move" when we don't care about the top bytes.
+
+        When I moved the commutative ops to the fake 3 operands instruction
+        I largely destroyed this since all the "Moves" became full register.
+
+        In this patch, I switch back to 32bit "Moves" for 32bit operations.
+
+        * assembler/MacroAssemblerX86Common.h:
+        (JSC::MacroAssemblerX86Common::and32):
+        (JSC::MacroAssemblerX86Common::lshift32):
+        (JSC::MacroAssemblerX86Common::mul32):
+        (JSC::MacroAssemblerX86Common::or32):
+        (JSC::MacroAssemblerX86Common::rshift32):
+        (JSC::MacroAssemblerX86Common::urshift32):
+        (JSC::MacroAssemblerX86Common::xor32):
+        (JSC::MacroAssemblerX86Common::branchAdd32):
+        (JSC::MacroAssemblerX86Common::branchMul32):
+        (JSC::MacroAssemblerX86Common::branchSub32):
+        (JSC::MacroAssemblerX86Common::move32IfNeeded):
+
+2016-03-01  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Simplify ArithMod(ArithMod(x, const1), const2) if const2 >= const1
+        https://bugs.webkit.org/show_bug.cgi?id=154904
+
+        Reviewed by Saam Barati.
+
+        The ASM test "ubench" has a "x % 10 % 255".
+        The second modulo should be eliminated.
+
+        This is a 15% improvement on ASMJS' ubench.
+
+        * dfg/DFGStrengthReductionPhase.cpp:
+        (JSC::DFG::StrengthReductionPhase::handleNode):
+        * tests/stress/arith-modulo-twice.js: Added.
+        (opaqueModuloSmaller):
+        (opaqueModuloEqual):
+        (opaqueModuloLarger):
+        (opaqueModuloSmallerNeg):
+        (opaqueModuloEqualNeg):
+        (opaqueModuloLargerNeg):
+        (opaqueExpectedOther):
+
 2016-03-01  Ryosuke Niwa  <rniwa@webkit.org>
 
         Unreviewed. Update the status of Proxy objects to "In Development".
