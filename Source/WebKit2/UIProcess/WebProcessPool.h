@@ -334,6 +334,8 @@ public:
     void updateProcessSuppressionState() const { }
 #endif
 
+    void updateHiddenPageThrottlingAutoIncreaseLimit();
+
     void setMemoryCacheDisabled(bool);
     void setFontWhitelist(API::Array*);
 
@@ -345,6 +347,11 @@ public:
     ProcessSuppressionDisabledToken processSuppressionDisabledForPageCount()
     {
         return m_processSuppressionDisabledForPageCounter.count();
+    }
+
+    HiddenPageThrottlingAutoIncreasesCounter::Token hiddenPageThrottlingAutoIncreasesCount()
+    {
+        return m_hiddenPageThrottlingAutoIncreasesCounter.count();
     }
 
     // FIXME: Move these to API::WebsiteDataStore.
@@ -510,6 +517,7 @@ private:
 
     UserObservablePageCounter m_userObservablePageCounter;
     ProcessSuppressionDisabledCounter m_processSuppressionDisabledForPageCounter;
+    HiddenPageThrottlingAutoIncreasesCounter m_hiddenPageThrottlingAutoIncreasesCounter;
 
 #if PLATFORM(COCOA)
     RetainPtr<NSMutableDictionary> m_bundleParameters;
