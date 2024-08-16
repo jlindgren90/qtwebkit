@@ -949,6 +949,8 @@ public:
     bool isControlledByAutomation() const;
     void setControlledByAutomation(bool);
 
+    void insertNewlineInQuotedContent();
+
     WebURLSchemeHandlerProxy* urlSchemeHandlerForScheme(const String&);
 
 private:

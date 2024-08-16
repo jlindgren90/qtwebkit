@@ -1,3 +1,463 @@
+2016-03-04  Brent Fulgham  <bfulgham@apple.com>
+
+        Resource load statistics are not honoring private browsing
+        https://bugs.webkit.org/show_bug.cgi?id=155054
+        <rdar://problem/24987873>
+
+        Reviewed by Andy Estes.
+
+        Modify the points where we capture resource load statistics to ignore
+        loads made during private browsing. Do this by moving more of the logic
+        about whether to gather statistics into the logging functions, passing
+        the raw input types (frame, ResourceRequest, ResourceResponse) internally
+        so that we don't pay any cost until we decide we want to gather data.s
+
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::willSendRequest): Revise for the new API on
+        ResourceLoadObserver.
+        * loader/ResourceLoadObserver.cpp:
+        (WebCore::ResourceLoadObserver::logFrameNavigation): Revise signature and
+        check for private browsing.
+        (WebCore::ResourceLoadObserver::logSubresourceLoading): Ditto.
+        (WebCore::ResourceLoadObserver::logUserInteraction): Ditto.
+        * loader/ResourceLoadObserver.h:
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::willSendRequestInternal): Ditto.
+
+2016-03-04  Alex Christensen  <achristensen@webkit.org>
+
+        Fix file mime-types when using NetworkSession
+        https://bugs.webkit.org/show_bug.cgi?id=155058
+
+        Reviewed by Andy Estes.
+
+        This fixes platform/mac/fast/loader/file-url-mimetypes-3.html
+        and platform/mac/fast/loader/file-url-mimetypes.html.
+
+        * platform/network/mac/WebCoreURLResponse.h:
+
+2016-03-04  Sam Weinig  <sam@webkit.org>
+
+        [WebKit2] Add WebKit2 equivalent of -[WebView _insertNewlineInQuotedContent]
+        <rdar://problem/24943591>
+        https://bugs.webkit.org/show_bug.cgi?id=155057
+
+        Reviewed by Tim Horton.
+
+        Move Editor::insertParagraphSeparatorInQuotedContent() into Editor.cpp
+        and remove the duplicated code in EditorIOS.mm and EditorMac.mm.
+
+        * editing/Editor.cpp:
+        (WebCore::Editor::insertParagraphSeparatorInQuotedContent):
+        * editing/Editor.h:
+        * editing/ios/EditorIOS.mm:
+        (WebCore::Editor::insertParagraphSeparatorInQuotedContent): Deleted.
+        * editing/mac/EditorMac.mm:
+        (WebCore::Editor::insertParagraphSeparatorInQuotedContent): Deleted.
+
+2016-03-04  Gavin Barraclough  <barraclough@apple.com>
+
+        Convert DOMTimer interval from int to std::chromo::milliseconds
+        https://bugs.webkit.org/show_bug.cgi?id=155051
+
+        Speculative build fix.
+
+        * inspector/TimelineRecordFactory.cpp:
+        (WebCore::TimelineRecordFactory::createTimerInstallData):
+
+2016-03-04  Gavin Barraclough  <barraclough@apple.com>
+
+        Convert DOMTimer interval from int to std::chromo::milliseconds
+        https://bugs.webkit.org/show_bug.cgi?id=155051
+
+        iOS build fix
+
+        * page/DOMTimer.cpp:
+        (WebCore::DOMTimer::install):
+
+2016-03-04  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Update defineCustomElement according to the spec rewrite
+        https://bugs.webkit.org/show_bug.cgi?id=155010
+        <rdar://problem/24970878>
+
+        Reviewed by Chris Dumez.
+
+        Updated the implementation of defineCustomElement and HTMLConstructor per recent rewrite of the spec:
+        https://w3c.github.io/webcomponents/spec/custom/#dom-document-defineelement
+        https://w3c.github.io/webcomponents/spec/custom/#htmlelement-constructor
+
+        defineCustomElement is now called defineElement and we disallow defining multiple custom elements with
+        a single class and throw an exception in defineElement.
+
+        Test: fast/custom-elements/Document-defineElement.html
+
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::defineElement): Renamed from defineCustomElement. Throw an exception when the interface
+        already defines another custom element. Also added FIXME's for missing steps.
+
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement): Removed the support for specifying a tag name in the first argument when
+        a single class defines multiple custom elements since that now results in an exception (in defineElement).
+
+        * dom/CustomElementDefinitions.cpp:
+        (WebCore::CustomElementDefinitions::containsConstructor): Added.
+        * dom/CustomElementDefinitions.h:
+        * dom/Document.idl: Renamed defineCustomElement to defineElement.
+        * html/HTMLElement.idl: Removed the optional tag name from the constructor.
+
+2016-03-04  Tim Horton  <timothy_horton@apple.com>
+
+        Begin implementing <attachment> painting on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=155046
+        <rdar://problem/24805991>
+
+        Reviewed by Enrica Casucci.
+
+        No new tests; there are existing tests that I will unskip and rebaseline
+        in the near future.
+
+        * rendering/RenderThemeIOS.h:
+        * rendering/RenderThemeIOS.mm:
+        (WebCore::AttachmentInfo::addLine):
+        (WebCore::AttachmentInfo::buildTitleLines):
+        (WebCore::AttachmentInfo::buildSingleLine):
+        (WebCore::getAttachmentProgress):
+        (WebCore::iconForAttachment):
+        (WebCore::AttachmentInfo::AttachmentInfo):
+        (WebCore::RenderThemeIOS::attachmentIntrinsicSize):
+        (WebCore::RenderThemeIOS::attachmentBaseline):
+        (WebCore::paintAttachmentIcon):
+        (WebCore::paintAttachmentText):
+        (WebCore::paintAttachmentProgress):
+        (WebCore::paintAttachmentBorder):
+        (WebCore::RenderThemeIOS::paintAttachment):
+        There are still a few missing pieces, but get <attachment> painting a bit on iOS.
+        We will paint an icon, action, title, and subtitle - in that order - depending on what we have.
+        The content is vertically and horizontally centered.
+
+2016-03-04  Gavin Barraclough  <barraclough@apple.com>
+
+        Convert DOMTimer interval from int to std::chromo::milliseconds
+        https://bugs.webkit.org/show_bug.cgi?id=155051
+
+        Reviewed by Ryosuke Niwa.
+
+        This change is pretty much mechanical, replacing int with std::chrono::milliseconds.
+
+        * inspector/InspectorInstrumentation.cpp:
+        (WebCore::InspectorInstrumentation::willSendXMLHttpRequestImpl):
+        (WebCore::InspectorInstrumentation::didInstallTimerImpl):
+        * inspector/InspectorInstrumentation.h:
+        (WebCore::InspectorInstrumentation::willSendXMLHttpRequest):
+        (WebCore::InspectorInstrumentation::didInstallTimer):
+        * inspector/InspectorTimelineAgent.cpp:
+        (WebCore::InspectorTimelineAgent::didPaint):
+        (WebCore::InspectorTimelineAgent::didInstallTimer):
+        * inspector/InspectorTimelineAgent.h:
+        * inspector/TimelineRecordFactory.cpp:
+        (WebCore::TimelineRecordFactory::createGenericTimerData):
+        (WebCore::TimelineRecordFactory::createTimerInstallData):
+        * inspector/TimelineRecordFactory.h:
+        * page/DOMTimer.cpp:
+        (WebCore::shouldForwardUserGesture):
+        (WebCore::DOMTimer::DOMTimer):
+        (WebCore::DOMTimer::~DOMTimer):
+        (WebCore::DOMTimer::install):
+        (WebCore::DOMTimer::intervalClampedToMinimum):
+        * page/DOMTimer.h:
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::setTimeout):
+        (WebCore::DOMWindow::clearTimeout):
+        (WebCore::DOMWindow::setInterval):
+        (WebCore::DOMWindow::clearInterval):
+        * workers/WorkerGlobalScope.cpp:
+        (WebCore::WorkerGlobalScope::setTimeout):
+        (WebCore::WorkerGlobalScope::clearTimeout):
+        (WebCore::WorkerGlobalScope::setInterval):
+        (WebCore::WorkerGlobalScope::clearInterval):
+
+2016-03-03  Enrica Casucci  <enrica@apple.com>
+
+        Add a mechanism to customize the long press action.
+        https://bugs.webkit.org/show_bug.cgi?id=154995
+        rdar://problem/24823732
+
+        Reviewed by Tim Horton.
+
+        We want to allow long press on attachment elements as well.
+
+        * WebCore.xcodeproj/project.pbxproj: Making HTMLAttachmentElement.h private.
+        * html/HTMLAttachmentElement.h: Adding exported functions.
+
+2016-03-04  Andreas Kling  <akling@apple.com>
+
+        [iOS] Throw away compiled RegExp code when navigating to a new page.
+        <https://webkit.org/b/155015>
+
+        Reviewed by Anders Carlsson.
+
+        Discard RegExp code when doing a top-level navigation.
+        This frees up a couple hundred kilobytes on many pages.
+
+        * bindings/js/GCController.cpp:
+        (WebCore::GCController::deleteAllRegExpCode):
+        * bindings/js/GCController.h:
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::commitProvisionalLoad):
+
+2016-03-04  Simon Fraser  <simon.fraser@apple.com>
+
+        Use larger tiles when possible to reduce per-tile painting overhead
+        https://bugs.webkit.org/show_bug.cgi?id=154985
+
+        Reviewed by Zalan Bujtas.
+
+        r197541 inadvertently missed FrameView changes that push scrollability data
+        onto the TiledBacking, so didn't actually change behavior (hence the 512x512 tiles
+        in the failing tests).
+
+        Also remove m_tileSizeAtLastRevalidate from TileGrid; it's replaced by a simpler test.
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::addedOrRemovedScrollbar):
+        * platform/graphics/ca/TileGrid.cpp:
+        (WebCore::TileGrid::revalidateTiles):
+        (WebCore::TileGrid::TileGrid): Deleted.
+        * platform/graphics/ca/TileGrid.h:
+
+2016-03-04  Simon Fraser  <simon.fraser@apple.com>
+
+        Use BoxExtent instead of EdgeSet in TileController
+        https://bugs.webkit.org/show_bug.cgi?id=155040
+
+        Reviewed by Zalan Bujtas.
+
+        Remove EdgeSet, which was very similar to the existing BoxExtent, and use BoxExtent
+        in TileController.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/graphics/EdgeSet.h: Removed.
+        (WebCore::EdgeSet::EdgeSet): Deleted.
+        (WebCore::EdgeSet::top): Deleted.
+        (WebCore::EdgeSet::setTop): Deleted.
+        (WebCore::EdgeSet::right): Deleted.
+        (WebCore::EdgeSet::setRight): Deleted.
+        (WebCore::EdgeSet::bottom): Deleted.
+        (WebCore::EdgeSet::setBottom): Deleted.
+        (WebCore::EdgeSet::left): Deleted.
+        (WebCore::EdgeSet::setLeft): Deleted.
+        (WebCore::EdgeSet::operator==): Deleted.
+        (WebCore::EdgeSet::operator!=): Deleted.
+        * platform/graphics/ca/TileController.cpp:
+        (WebCore::TileController::setHasMargins):
+        * platform/graphics/ca/TileController.h:
+
+2016-03-04  Brent Fulgham  <bfulgham@apple.com>
+
+        [WK2] Gather resource load statistics
+        https://bugs.webkit.org/show_bug.cgi?id=154278
+        <rdar://problem/24702892>
+
+        Reviewed by Andy Estes.
+
+        Tested (now under WK2) by http/tests/navigation/statistics.html
+
+        Split part of the ResourceLoadObserver into a new class (ResourceLoadStatisticsStore)
+        that manages the collection of ResourceLoadStatistic objects, and that can be used
+        in the UIProcess without touching various WebProcess-specific WebCore classes.
+
+        Have the WebProcess only fire a message to the UIProcess if data has been modified. Otherwise,
+        no messages should be sent. When new data is encountered, start a 5 second timer. If more
+        data is found during this delay, just accumulate it. When the timer fires, all data is sent
+        and the timer stops until a new batch of data arrives.
+
+        * CMakeLists.txt: Add the new ResourceLoadStatisticsStore class.
+        * WebCore.xcodeproj/project.pbxproj: Adjust visibility of ResourceLoadStatistics header,
+        and add new ResourceLoadStatisticsStore class.
+        * loader/ResourceLoadObserver.cpp:
+        (WebCore::ResourceLoadObserver::setResourceLoadStatisticsEnabled): Deleted.
+        (WebCore::ResourceLoadObserver::resourceLoadStatisticsEnabled): Deleted.
+        (WebCore::ResourceLoadObserver::setStatisticsStore): Added.
+        (WebCore::ResourceLoadObserver::logFrameNavigation): Tell the ResourceLoadStatisticsStore to fire its 'data changed'
+        handler if necessary.
+        (WebCore::ResourceLoadObserver::logSubresourceLoading): Ditto.
+        (WebCore::ResourceLoadObserver::logUserInteraction): Ditto.
+        (WebCore::ResourceLoadObserver::statisticsForOrigin): Use new ResourceLoadStatisticsStore.
+        (WebCore::ResourceLoadObserver::isPrevalentResource): Deleted.
+        (WebCore::ResourceLoadObserver::resourceStatisticsForPrimaryDomain): Deleted.
+        (WebCore::ResourceLoadObserver::writeDataToDisk): Deleted.
+        (WebCore::ResourceLoadObserver::setStatisticsStorageDirectory): Deleted.
+        (WebCore::ResourceLoadObserver::persistentStoragePath): Deleted.
+        (WebCore::ResourceLoadObserver::readDataFromDiskIfNeeded): Deleted.
+        (WebCore::ResourceLoadObserver::createDecoderFromDisk): Deleted.
+        (WebCore::ResourceLoadObserver::writeEncoderToDisk): Deleted.
+        * loader/ResourceLoadObserver.h:
+        * loader/ResourceLoadStatistics.cpp:
+        (WebCore::ResourceLoadStatistics::encode): Get rid of unneeded argument.
+        (WebCore::ResourceLoadStatistics::decode): Ditto.
+        (WebCore::mergeHashCountedSet): Added helper function.
+        (WebCore::ResourceLoadStatistics::merge): Added.
+        * loader/ResourceLoadStatistics.h:
+        (WebCore::ResourceLoadStatistics::ResourceLoadStatistics):
+        * loader/ResourceLoadStatisticsStore.cpp: Added.
+        (WebCore::ResourceLoadStatisticsStore::create):
+        (WebCore::ResourceLoadStatisticsStore::ResourceLoadStatisticsStore):
+        (WebCore::ResourceLoadStatisticsStore::isPrevalentResource):
+        (WebCore::ResourceLoadStatisticsStore::resourceStatisticsForPrimaryDomain):
+        (WebCore::ResourceLoadStatisticsStore::writeDataToDisk):
+        (WebCore::ResourceLoadStatisticsStore::setStatisticsStorageDirectory):
+        (WebCore::ResourceLoadStatisticsStore::persistentStoragePath):
+        (WebCore::ResourceLoadStatisticsStore::readDataFromDiskIfNeeded):
+        (WebCore::ResourceLoadStatisticsStore::createDecoderFromDisk):
+        (WebCore::ResourceLoadStatisticsStore::writeEncoderToDisk):
+        (WebCore::ResourceLoadStatisticsStore::statisticsForOrigin):
+        (WebCore::ResourceLoadStatisticsStore::takeStatistics):
+        (WebCore::ResourceLoadStatisticsStore::mergeStatistics):
+        (WebCore::ResourceLoadStatisticsStore::setNotificationCallback):
+        (WebCore::ResourceLoadStatisticsStore::fireDataModificationHandler):
+        * loader/ResourceLoadStatisticsStore.h: Added.
+
+2016-03-04  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Added missing override specifiers under Source/WebCore.
+        https://bugs.webkit.org/show_bug.cgi?id=155021
+
+        Reviewed by Michael Catanzaro.
+
+        No new tests needed.
+
+        * bridge/NP_jsobject.cpp:
+        * css/CSSStyleSheet.cpp:
+        * dom/MutationObserver.cpp:
+        * editing/DictationCommand.cpp:
+        * editing/EditingStyle.cpp:
+        * loader/EmptyClients.cpp:
+        * loader/SinkDocument.cpp:
+        * page/DOMWindow.cpp:
+        * page/animation/CSSPropertyAnimation.cpp:
+        * platform/graphics/gstreamer/WebKitWebSourceGStreamer.cpp:
+        Also added #if(SOUP) guard to
+        ResourceHandleStreamingClient::getOrCreateReadBuffer
+        because it is not an overridden method otherwise.
+        * platform/text/LineEnding.cpp:
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+
+2016-03-04  Gavin Barraclough  <barraclough@apple.com>
+
+        Max out timer throttling immediately for pre-render pages
+        https://bugs.webkit.org/show_bug.cgi?id=155038
+
+        Reviewed by Chris Dumez.
+
+        If a hidden page has never been visible, no need to gently ramp into throttling - treat it
+        the same as a page that has been viewed, but has been in the background for a long time.
+
+        Why? The throttling mechanism scales with the amount of background work by shifting the
+        limit - once all background pages have maxed out the limit, they should no longer be burden
+        of the system. However the mechanism doesn't currently do anything to accelerate towards
+        the limit based on the number of pages in the ramp up phase, and ramp up duration is
+        proportional to limit (so ramping up to a high limit takes a long time). So if you quickly
+        create a large number of hidden pages the system may be under excessive load for a while,
+        as we slowly ramp up to a limit that will adequately constrain resource consumption.
+        In cases where a large number of hidden pages are rapidly generated, many likely remain in
+        the pre-render state, so this mitigation should typically help.
+
+        * page/Page.cpp:
+        (WebCore::Page::updateDOMTimerAlignmentInterval):
+            - if m_isPrerender then m_timerAlignmentInterval is set to the limit.
+        (WebCore::Page::setIsPrerender):
+            - When this changes updateDOMTimerAlignmentInterval().
+
+2016-03-04  Gavin Barraclough  <barraclough@apple.com>
+
+        Unify determination of page timer alignment
+        https://bugs.webkit.org/show_bug.cgi?id=155031
+
+        Reviewed by Chris Dumez.
+
+        Currently this is scattered throughout Page - sites that call setDOMTimerAlignmentInterval have
+        to determine the correct alignment interval. Instead, replace setDOMTimerAlignmentInterval with
+        updateDOMTimerAlignmentInterval, and unify the policy decision here.
+
+        * page/Page.cpp:
+        (WebCore::Page::setTimerThrottlingState):
+            - setDOMTimerAlignmentInterval -> updateDOMTimerAlignmentInterval
+              Also, to simplify always record the timestamp when the state changes.
+        (WebCore::Page::setTimerAlignmentIntervalIncreaseLimit):
+            - setDOMTimerAlignmentInterval -> updateDOMTimerAlignmentInterval
+        (WebCore::Page::updateDOMTimerAlignmentInterval):
+            - Was setDOMTimerAlignmentInterval, now determines the new alignment value.
+        (WebCore::Page::timerAlignmentIntervalIncreaseTimerFired):
+            - setDOMTimerAlignmentInterval -> updateDOMTimerAlignmentInterval
+        (WebCore::Page::setDOMTimerAlignmentInterval): Deleted.
+            - Removed, became updateDOMTimerAlignmentInterval.
+        * page/Page.h:
+            - setDOMTimerAlignmentInterval -> updateDOMTimerAlignmentInterval
+              m_timerThrottlingEnabledTime -> m_timerThrottlingStateLastChangedTime
+
+2016-03-04  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix crash seen in iOS simulator tests
+        https://bugs.webkit.org/show_bug.cgi?id=155030
+
+        Reviewed by Tim Horton.
+
+        owningGraphicsLayer() can be null when the tileSizeChangeTimer fires, so null check
+        it and return, as we do for the tileRevalidationTimer.
+
+        * platform/graphics/ca/TileController.cpp:
+        (WebCore::TileController::tileSizeChangeTimerFired):
+
+2016-03-04  Alex Christensen  <achristensen@webkit.org>
+
+        Remove vcxproj build system
+        https://bugs.webkit.org/show_bug.cgi?id=154388
+
+        Rubber-stamped by Brent Fulgham.
+
+        * WebCore.vcxproj/WebCore.submit.sln: Removed.
+        * WebCore.vcxproj/WebCore.vcxproj: Removed.
+        * WebCore.vcxproj/WebCore.vcxproj.filters: Removed.
+        * WebCore.vcxproj/WebCoreCFNetwork.props: Removed.
+        * WebCore.vcxproj/WebCoreCG.props: Removed.
+        * WebCore.vcxproj/WebCoreCURL.props: Removed.
+        * WebCore.vcxproj/WebCoreCairo.props: Removed.
+        * WebCore.vcxproj/WebCoreCommon.props: Removed.
+        * WebCore.vcxproj/WebCoreDebug.props: Removed.
+        * WebCore.vcxproj/WebCoreDebugWinCairo.props: Removed.
+        * WebCore.vcxproj/WebCoreGenerated.make: Removed.
+        * WebCore.vcxproj/WebCoreGenerated.vcxproj: Removed.
+        * WebCore.vcxproj/WebCoreGenerated.vcxproj.filters: Removed.
+        * WebCore.vcxproj/WebCoreGeneratedCommon.props: Removed.
+        * WebCore.vcxproj/WebCoreGeneratedDebug.props: Removed.
+        * WebCore.vcxproj/WebCoreGeneratedDebugWinCairo.props: Removed.
+        * WebCore.vcxproj/WebCoreGeneratedProduction.props: Removed.
+        * WebCore.vcxproj/WebCoreGeneratedRelease.props: Removed.
+        * WebCore.vcxproj/WebCoreGeneratedReleaseWinCairo.props: Removed.
+        * WebCore.vcxproj/WebCoreGeneratedWinCairo.make: Removed.
+        * WebCore.vcxproj/WebCoreGeneratedWinCairoCommon.props: Removed.
+        * WebCore.vcxproj/WebCoreIncludeCommon.props: Removed.
+        * WebCore.vcxproj/WebCoreMediaQT.props: Removed.
+        * WebCore.vcxproj/WebCorePostBuild.cmd: Removed.
+        * WebCore.vcxproj/WebCorePreBuild.cmd: Removed.
+        * WebCore.vcxproj/WebCoreProduction.props: Removed.
+        * WebCore.vcxproj/WebCoreQuartzCore.props: Removed.
+        * WebCore.vcxproj/WebCoreRelease.props: Removed.
+        * WebCore.vcxproj/WebCoreReleaseWinCairo.props: Removed.
+        * WebCore.vcxproj/WebCoreTestSupport.vcxproj: Removed.
+        * WebCore.vcxproj/WebCoreTestSupport.vcxproj.filters: Removed.
+        * WebCore.vcxproj/WebCoreTestSupportCommon.props: Removed.
+        * WebCore.vcxproj/WebCoreTestSupportDebug.props: Removed.
+        * WebCore.vcxproj/WebCoreTestSupportDebugWinCairo.props: Removed.
+        * WebCore.vcxproj/WebCoreTestSupportProduction.props: Removed.
+        * WebCore.vcxproj/WebCoreTestSupportRelease.props: Removed.
+        * WebCore.vcxproj/WebCoreTestSupportReleaseWinCairo.props: Removed.
+        * WebCore.vcxproj/build-generated-files.pl: Removed.
+        * WebCore.vcxproj/copyForwardingHeaders.cmd: Removed.
+        * WebCore.vcxproj/copyWebCoreResourceFiles.cmd: Removed.
+        * WebCore.vcxproj/migrate-scripts.pl: Removed.
+
 2016-03-04  Brady Eidson  <beidson@apple.com>
 
         Remove use of deprecated sqlite3_expired

@@ -1,5 +1,196 @@
 2016-03-04  Alex Christensen  <achristensen@webkit.org>
 
+        Fix file mime-types when using NetworkSession
+        https://bugs.webkit.org/show_bug.cgi?id=155058
+
+        Reviewed by Andy Estes.
+
+        * NetworkProcess/cocoa/NetworkDataTaskCocoa.mm:
+        (WebKit::NetworkDataTask::NetworkDataTask):
+        Call adjustMIMETypeIfNecessary like we do in connection didReceiveResponse in 
+        WebCoreResourceHandleAsOperationQueueDelegate.mm.
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:dataTask:didReceiveResponse:completionHandler:]):
+        Don't content sniff file urls.  This check is analogous to ResourceHandle::shouldContentSniffURL.
+
+2016-03-04  Sam Weinig  <sam@webkit.org>
+
+        [WebKit2] Add WebKit2 equivalent of -[WebView _insertNewlineInQuotedContent]
+        <rdar://problem/24943591>
+        https://bugs.webkit.org/show_bug.cgi?id=155057
+
+        Reviewed by Tim Horton.
+
+        * WebProcess/InjectedBundle/API/c/WKBundlePage.cpp:
+        (WKBundlePageInsertNewlineInQuotedContent):
+        * WebProcess/InjectedBundle/API/c/WKBundlePagePrivate.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::insertNewlineInQuotedContent):
+        * WebProcess/WebPage/WebPage.h:
+        Expose WKBundlePageInsertNewlineInQuotedContent as SPI.
+
+2016-03-04  Brent Fulgham  <bfulgham@apple.com>
+
+        Stub API to support a debug menu option for measuring resource load statistics
+        https://bugs.webkit.org/show_bug.cgi?id=154998
+        <rdar://problem/24944604>
+
+        Reviewed by Andy Estes.
+
+        * UIProcess/API/APIWebsiteDataStore.cpp:
+        (API::WebsiteDataStore::resourceLoadStatisticsEnabled): Added stub.
+        (API::WebsiteDataStore::setResourceLoadStatisticsEnabled): Ditto.
+        * UIProcess/API/APIWebsiteDataStore.h:
+        * UIProcess/API/C/WKWebsiteDataStoreRef.cpp:
+        (WKWebsiteDataStoreSetResourceLoadStatisticsEnabled): Added method that calls through
+        to the underlying APIWebsiteDataStore class.
+        (WKWebsiteDataStoreGetResourceLoadStatisticsEnabled): Ditto.
+        * UIProcess/API/C/WKWebsiteDataStoreRef.h:
+
+2016-03-03  Enrica Casucci  <enrica@apple.com>
+
+        Add a mechanism to customize the long press action.
+        https://bugs.webkit.org/show_bug.cgi?id=154995
+        rdar://problem/24823732
+
+        Reviewed by Tim Horton.
+
+        Adding a new private delegate method to allow clients to
+        replace the action sheet displayed for images and links.
+        The change also adds support for attachment elements.
+
+        * Shared/ios/InteractionInformationAtPosition.h:
+        * Shared/ios/InteractionInformationAtPosition.mm:
+        (WebKit::InteractionInformationAtPosition::encode):
+        (WebKit::InteractionInformationAtPosition::decode):
+        * UIProcess/API/Cocoa/WKUIDelegatePrivate.h:
+        * UIProcess/API/Cocoa/_WKActivatedElementInfo.h:
+        * UIProcess/ios/WKActionSheetAssistant.h:
+        * UIProcess/ios/WKActionSheetAssistant.mm:
+        (-[WKActionSheetAssistant showImageSheet]):
+        (-[WKActionSheetAssistant showLinkSheet]):
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _showImageSheet]):
+        (-[WKContentView _showAttachmentSheet]):
+        (-[WKContentView _showLinkSheet]):
+        (-[WKContentView _actionForLongPress]):
+        (-[WKContentView actionSheetAssistant:shouldIncludeAppLinkActionsForElement:]):
+        (-[WKContentView actionSheetAssistant:showCustomSheetForElement:]):
+        (-[WKContentView actionSheetAssistant:decideActionsForElement:defaultActions:]):
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::getPositionInformation):
+
+2016-03-04  Brent Fulgham  <bfulgham@apple.com>
+
+        [WK2] Gather resource load statistics
+        https://bugs.webkit.org/show_bug.cgi?id=154278
+        <rdar://problem/24702892>
+
+        Reviewed by Andy Estes.
+
+        Revise the WebProcess to notify the UIProcess about resource load statistics. These
+        updates are not time-critical, and do not need to be done in concert with the actual
+        load. As resource loads are made, each WebProcess notifies the UIProcess of the new
+        load counts, then clears its local state. These statistics are then aggregated in
+        the UIProcess.
+
+        * CMakeLists.txt: Add new ResourceLoadStatisticsState files to build.
+        * DerivedSources.make: Ditto.
+        * Platform/IPC/ArgumentCoders.h: Update to support HashCountedSets.
+        * PlatformEfl.cmake: Add new ResourceLoadStatisticsState files to build.
+        * PlatformGTK.cmake: Ditto.
+        * PlatformMac.cmake: Ditto.
+        * Shared/API/APIObject.h: Add new ResourceLoadStatistics type.
+        * Shared/WebCoreArgumentCoders.cpp:
+        (IPC::ArgumentCoder<ExceptionDetails>::decode): Support new ResourceLoadStatistics type.
+        (IPC::ArgumentCoder<ResourceLoadStatistics>::encode): Added.
+        (IPC::ArgumentCoder<ResourceLoadStatistics>::decode): Added.
+        * Shared/WebCoreArgumentCoders.h:
+        * Shared/WebProcessCreationParameters.cpp:
+        (WebKit::WebProcessCreationParameters::encode): Handle 'resourceLoadStatisticsEnabled' flag.
+        (WebKit::WebProcessCreationParameters::decode): Ditto.
+        * Shared/WebProcessCreationParameters.h:
+        * UIProcess/API/APIProcessPoolConfiguration.cpp:
+        (API::ProcessPoolConfiguration::ProcessPoolConfiguration): Add storage location for the
+        resource load statistics.
+        (API::ProcessPoolConfiguration::copy): Handle the new storage location and the feature flag.
+        * UIProcess/API/APIProcessPoolConfiguration.h:
+        * UIProcess/API/APIWebsiteDataStore.cpp:
+        (API::WebsiteDataStore::defaultResourceLoadStatisticsDirectory): Added stub.
+        * UIProcess/API/APIWebsiteDataStore.h:
+        * UIProcess/API/Cocoa/APIWebsiteDataStoreCocoa.mm:
+        (API::WebsiteDataStore::defaultResourceLoadStatisticsDirectory): Added.
+        (API::WebsiteDataStore::defaultDataStoreConfiguration): Added support for the new resource
+        load statistics storage location.
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]): Sync Process Pool configuration parameters
+        with the state of our websiteData object's "ResourceLoadStatisticsEnabled" flag, so that
+        new processes are created in the right state.
+        * UIProcess/API/Cocoa/WKWebsiteDataStore.mm:
+        (-[WKWebsiteDataStore _resourceLoadStatisticsEnabled]): Added.
+        (-[WKWebsiteDataStore _setResourceLoadStatisticsEnabled:]): Added.
+        * UIProcess/API/Cocoa/WKWebsiteDataStorePrivate.h:
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::createNewWebProcess): Handle new flag for enabling resource
+        load statistics.
+        * UIProcess/WebResourceLoadStatisticsStore.cpp: Added.
+        (WebKit::WebResourceLoadStatisticsStore::create):
+        (WebKit::WebResourceLoadStatisticsStore::WebResourceLoadStatisticsStore):
+        (WebKit::WebResourceLoadStatisticsStore::~WebResourceLoadStatisticsStore):
+        (WebKit::WebResourceLoadStatisticsStore::resourceLoadStatisticsUpdated):
+        (WebKit::WebResourceLoadStatisticsStore::setResourceLoadStatisticsEnabled):
+        (WebKit::WebResourceLoadStatisticsStore::resourceLoadStatisticsEnabled):
+        (WebKit::WebResourceLoadStatisticsStore::readDataFromDiskIfNeeded):
+        (WebKit::WebResourceLoadStatisticsStore::writeToDisk):
+        (WebKit::WebResourceLoadStatisticsStore::applicationWillTerminate):
+        * UIProcess/WebResourceLoadStatisticsStore.h: Added.
+        (WebKit::WebResourceLoadStatisticsStore::coreStore):
+        * UIProcess/WebResourceLoadStatisticsStore.messages.in: Added.
+        * UIProcess/WebsiteData/Cocoa/WebsiteDataStoreCocoa.mm:
+        (WebKit::WebsiteDataStore::platformInitialize): Register a termination handler
+        to close down the resource load statistics store.
+        * UIProcess/WebsiteData/WebsiteDataStore.cpp:
+        (WebKit::WebsiteDataStore::WebsiteDataStore): Initialize the new WebResourceLoadStatisticsStore
+        member.
+        (WebKit::WebsiteDataStore::webProcessWillOpenConnection): Register the WebResourceLoadStatisticsStore
+        object as a work queue message receiver
+        (WebKit::WebsiteDataStore::webProcessDidCloseConnection): Unregister WebResourceLoadStatisticsStore.
+        (WebKit::WebsiteDataStore::resourceLoadStatisticsEnabled): Added.
+        (WebKit::WebsiteDataStore::setResourceLoadStatisticsEnabled): Ditto.
+        * UIProcess/WebsiteData/WebsiteDataStore.h:
+        (WebKit::WebsiteDataStore::resourceLoadStatisticsStore): Added.
+        * WebKit2.xcodeproj/project.pbxproj: Add new ResourceLoadStatisticsState files to build.
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess): Take into account the new parameter
+        specifying whether resource load statistics are being captured.
+        (WebKit::WebProcess::WebProcess): Initialized statistics changed notification timer.
+        (WebKit::WebProcess::statisticsChangedTimerFired): Added. Send bundles of site load
+        statistics to the UIProcess on a set interval. Clear out local cache after each send.
+        (WebKit::WebProcess::setResourceLoadStatisticsEnabled): Added.
+        * WebProcess/WebProcess.h:
+        * WebProcess/WebProcess.messages.in: Add new SetResourceLoadStatisticsEnabled message.
+
+2016-03-04  Daniel Bates  <dabates@apple.com>
+
+        Temporarily use bundle identifier as part of user directory suffix
+        https://bugs.webkit.org/show_bug.cgi?id=155042
+        <rdar://problem/24983174>
+
+        Reviewed by Brent Fulgham and Brady Eidson.
+
+        * Shared/mac/ChildProcessMac.mm:
+        (WebKit::ChildProcess::initializeSandbox):
+
+2016-03-04  Alex Christensen  <achristensen@webkit.org>
+
+        Release build fix after r197572.
+        https://bugs.webkit.org/show_bug.cgi?id=154993
+
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:downloadTask:didWriteData:totalBytesWritten:totalBytesExpectedToWrite:]):
+
+2016-03-04  Alex Christensen  <achristensen@webkit.org>
+
         Use NSURLSession for loading in WebKit2
         https://bugs.webkit.org/show_bug.cgi?id=154993
 

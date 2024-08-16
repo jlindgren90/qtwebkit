@@ -1,3 +1,65 @@
+2016-03-04  Andreas Kling  <akling@apple.com>
+
+        [iOS] Throw away compiled RegExp code when navigating to a new page.
+        <https://webkit.org/b/155015>
+
+        Reviewed by Anders Carlsson.
+
+        Add a mechanism to have the VM discard all RegExp bytecode and JIT code.
+
+        * runtime/VM.cpp:
+        (JSC::VM::deleteAllRegExpCode):
+        * runtime/VM.h:
+
+2016-03-04  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r197531): JavaScriptCore ASan build fails due to weak external symbol
+        <http://webkit.org/b/155033>
+        <rdar://problem/24979661>
+
+        Reviewed by Alexey Proskuryakov.
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::ordinaryToPrimitive): Don't mark this method
+        inline since it's also used in DatePrototype.cpp, and is
+        declared as a public class method.
+        * runtime/JSObject.h:
+        (JSC::JSObject::ordinaryToPrimitive): Don't export this method
+        since it is not used outside of JavaScriptCore.
+
+2016-03-04  Alex Christensen  <achristensen@webkit.org>
+
+        Remove vcxproj build system
+        https://bugs.webkit.org/show_bug.cgi?id=154388
+
+        Rubber-stamped by Brent Fulgham.
+
+        * JavaScriptCore.vcxproj/JavaScriptCore.sln: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCore.submit.sln: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCore.vcxproj: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCore.vcxproj.filters: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreCF.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreCFLite.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreCommon.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreDLL.cpp: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreDebug.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreDebugCFLite.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreGenerated.make: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreGenerated.vcxproj: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreGenerated.vcxproj.filters: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreGeneratedCommon.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreGeneratedDebug.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreGeneratedProduction.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreGeneratedRelease.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCorePostBuild.cmd: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCorePreBuild.cmd: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCorePreLink.cmd: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreProduction.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreRelease.props: Removed.
+        * JavaScriptCore.vcxproj/JavaScriptCoreReleaseCFLite.props: Removed.
+        * JavaScriptCore.vcxproj/build-generated-files.pl: Removed.
+        * JavaScriptCore.vcxproj/copy-files.cmd: Removed.
+
 2016-03-04  Chris Dumez  <cdumez@apple.com>
 
         Location.reload should not be writable

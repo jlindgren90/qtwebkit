@@ -477,6 +477,9 @@ void TileController::notePendingTileSizeChange()
 
 void TileController::tileSizeChangeTimerFired()
 {
+    if (!owningGraphicsLayer())
+        return;
+
     m_tileSizeLocked = false;
     setNeedsRevalidateTiles();
 }
@@ -610,7 +613,7 @@ void TileController::setScrollingModeIndication(ScrollingModeIndication scrollin
 
 void TileController::setHasMargins(bool marginTop, bool marginBottom, bool marginLeft, bool marginRight)
 {
-    EdgeSet<bool> marginEdges(marginTop, marginRight, marginBottom, marginLeft);
+    BoxExtent<bool> marginEdges(marginTop, marginRight, marginBottom, marginLeft);
     if (marginEdges == m_marginEdges)
         return;
     
