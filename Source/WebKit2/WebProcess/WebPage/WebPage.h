@@ -951,6 +951,10 @@ public:
 
     void insertNewlineInQuotedContent();
 
+#if USE(OS_STATE)
+    std::chrono::system_clock::time_point loadCommitTime() const { return m_loadCommitTime; }
+#endif
+
     WebURLSchemeHandlerProxy* urlSchemeHandlerForScheme(const String&);
 
 private:
@@ -1477,6 +1481,10 @@ private:
 
 #if ENABLE(VIDEO) && USE(GSTREAMER)
     RefPtr<WebCore::MediaPlayerRequestInstallMissingPluginsCallback> m_installMediaPluginsCallback;
+#endif
+
+#if USE(OS_STATE)
+    std::chrono::system_clock::time_point m_loadCommitTime;
 #endif
 
     HashMap<String, std::unique_ptr<WebURLSchemeHandlerProxy>> m_schemeToURLSchemeHandlerProxyMap;

@@ -102,6 +102,28 @@ WebInspector.LayoutTimelineView = class LayoutTimelineView extends WebInspector.
         return WebInspector.UIString("Records");
     }
 
+    get selectionPathComponents()
+    {
+        let dataGridNode = this._dataGrid.selectedNode;
+        if (!dataGridNode || dataGridNode.hidden)
+            return null;
+
+        let pathComponents = [];
+
+        while (dataGridNode && !dataGridNode.root) {
+            console.assert(dataGridNode instanceof WebInspector.TimelineDataGridNode);
+            if (dataGridNode.hidden)
+                return null;
+
+            let pathComponent = new WebInspector.TimelineDataGridNodePathComponent(dataGridNode);
+            pathComponent.addEventListener(WebInspector.HierarchicalPathComponent.Event.SiblingWasSelected, this.dataGridNodePathComponentSelected, this);
+            pathComponents.unshift(pathComponent);
+            dataGridNode = dataGridNode.parent;
+        }
+
+        return pathComponents;
+    }
+
     shown()
     {
         super.shown();
@@ -153,11 +175,11 @@ WebInspector.LayoutTimelineView = class LayoutTimelineView extends WebInspector.
 
     // Protected
 
-    treeElementPathComponentSelected(event)
+    dataGridNodePathComponentSelected(event)
     {
-        var dataGridNode = this._dataGrid.dataGridNodeForTreeElement(event.data.pathComponent.generalTreeElement);
-        if (!dataGridNode)
-            return;
+        let dataGridNode = event.data.pathComponent.timelineDataGridNode;
+        console.assert(dataGridNode.dataGrid === this._dataGrid);
+
         dataGridNode.revealAndSelect();
     }
 

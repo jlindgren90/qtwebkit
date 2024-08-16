@@ -1,3 +1,327 @@
+2016-03-09  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Get a RemoteObject or ObjectPreview from HeapSnapshot Object Identifier
+        https://bugs.webkit.org/show_bug.cgi?id=155264
+        <rdar://problem/25070716>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/InjectedScript.h:
+        * inspector/InjectedScript.cpp:
+        (Inspector::InjectedScript::functionDetails):
+        (Inspector::InjectedScript::previewValue):
+        New InjectedScript methods for building Debugger.FunctionDetails
+        or Runtime.ObjectPreview protocol objects from a JSValue.
+
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.prototype.previewValue):
+        (InjectedScript.prototype.functionDetails):
+        (InjectedScript.prototype.getFunctionDetails):
+        (InjectedScript.RemoteObject.prototype._isPreviewableObjectInternal):
+        (InjectedScript.RemoteObject.prototype._createObjectPreviewForValue): Deleted.
+        (InjectedScript.RemoteObject.prototype._appendEntryPreviews): Deleted.
+        Share code around creating function details or object preview objects.
+
+        * inspector/agents/InspectorHeapAgent.cpp:
+        (Inspector::InspectorHeapAgent::InspectorHeapAgent):
+        (Inspector::InspectorHeapAgent::nodeForHeapObjectIdentifier):
+        (Inspector::InspectorHeapAgent::getPreview):
+        (Inspector::InspectorHeapAgent::getRemoteObject):
+        * inspector/agents/InspectorHeapAgent.h:
+        * inspector/protocol/Heap.json:
+        New protocol methods that go from heap object identifier to a
+        remote object or some kind of preview.
+
+        * inspector/scripts/codegen/generator.py:
+        Allow runtime casts for ObjectPreview.
+
+2016-03-09  Andy VanWagoner  <thetalecrafter@gmail.com>
+
+        [INTL] Intl Constructors not web compatible with Object.create usage
+        https://bugs.webkit.org/show_bug.cgi?id=153679
+
+        Reviewed by Darin Adler.
+
+        Add workaround for initializing NumberFormat and DateTimeFormat objects
+        using Object.create followed by constructor.call. This is necessary for
+        backwards compatibility with libraries relying on v1 behavior of Intl
+        constructors.
+
+        Collator does not get the workaround, since polyfills do not include it,
+        and there are not any known instances of v2 incompatible libraries.
+
+        The workaround involves checking for an object that inherits from the
+        *Format constructor, but was not actually initialized with that type. A
+        substitute instance is created and attached to the object using a private
+        name. The prototype functions then check for the private property to use
+        in place of the original object.
+
+        Since this behavior is not part of the v2 spec, it should be removed as
+        soon as the incompatible behavior is no longer in common use.
+
+        * runtime/CommonIdentifiers.h:
+        * runtime/IntlDateTimeFormatConstructor.cpp:
+        (JSC::callIntlDateTimeFormat):
+        * runtime/IntlDateTimeFormatPrototype.cpp:
+        (JSC::IntlDateTimeFormatPrototypeGetterFormat):
+        (JSC::IntlDateTimeFormatPrototypeFuncResolvedOptions):
+        * runtime/IntlNumberFormatConstructor.cpp:
+        (JSC::callIntlNumberFormat):
+        * runtime/IntlNumberFormatPrototype.cpp:
+        (JSC::IntlNumberFormatPrototypeGetterFormat):
+        (JSC::IntlNumberFormatPrototypeFuncResolvedOptions):
+
+2016-03-09  Saam barati  <sbarati@apple.com>
+
+        Add proper JSON.stringify support for Proxy when the target is an array
+        https://bugs.webkit.org/show_bug.cgi?id=155180
+
+        Reviewed by Darin Adler.
+
+        This patch makes the following type of program true:
+        `JSON.stringify(new Proxy([25], {})) === "[25]"`
+
+        We need to change the JSON stringifier to use the IsArray test
+        in section 7.2.2 of ES6 spec instead of the JSC inherits(JSArray::info())
+        test.
+
+        This patch also adds tests for general JSON.stringify support
+        of Proxy.
+
+        * runtime/ArrayConstructor.cpp:
+        (JSC::arrayConstructorIsArray):
+        (JSC::arrayConstructorPrivateFuncIsArrayConstructor):
+        * runtime/ArrayConstructor.h:
+        (JSC::isArray):
+        * runtime/JSONObject.cpp:
+        (JSC::Stringifier::Holder::object):
+        (JSC::Stringifier::appendStringifiedValue):
+        (JSC::Stringifier::startNewLine):
+        (JSC::Stringifier::Holder::Holder):
+        * tests/es6.yaml:
+        * tests/stress/proxy-json.js: Added.
+        (assert):
+        (test):
+
+2016-03-09  Saam Barati  <sbarati@apple.com>
+
+        ES6: Implement lexical scoping for function definitions in strict mode
+        https://bugs.webkit.org/show_bug.cgi?id=152844
+
+        Reviewed by Geoffrey Garen.
+
+        This patch implements block scoping for function definitions
+        in strict mode. The implementation works as follows:
+        
+        - If we're in sloppy mode, function declarations work exactly
+          as they did before this patch. I.e, function declarations are hoisted
+          and declared like "var" variables.
+        
+        - If you're in strict mode and at the top of a function scope or program
+          scope, function declarations still work like they used to. They are defined
+          like "var" variables. This is necessary for backwards compatibility
+          because ES5 strict mode allowed duplicate function declarations at the
+          top-most scope of a program/function.
+        
+        - If you're in strict mode and inside a block statement or a switch statement,
+          function declarations are now block scoped. All function declarations within
+          a block are hoisted to the beginning of the block. They are not hoisted out of the 
+          block like they are in sloppy mode. This allows for the following types of
+          programs:
+          ```
+          function foo() {
+              function bar() { return 20; }
+              {
+                  function bar() { return 30; }
+                  bar(); // 30
+              }
+              bar(); // 20
+          }
+          ```
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::instantiateLexicalVariables):
+        (JSC::BytecodeGenerator::emitPrefillStackTDZVariables):
+        (JSC::BytecodeGenerator::pushLexicalScope):
+        (JSC::BytecodeGenerator::pushLexicalScopeInternal):
+        (JSC::BytecodeGenerator::initializeBlockScopedFunctions):
+        (JSC::BytecodeGenerator::popLexicalScope):
+        (JSC::BytecodeGenerator::liftTDZCheckIfPossible):
+        (JSC::BytecodeGenerator::pushTDZVariables):
+        (JSC::BytecodeGenerator::getVariablesUnderTDZ):
+        (JSC::BytecodeGenerator::emitNewRegExp):
+        (JSC::BytecodeGenerator::emitNewFunctionExpressionCommon):
+        (JSC::BytecodeGenerator::emitNewFunctionExpression):
+        (JSC::BytecodeGenerator::emitNewArrowFunctionExpression):
+        * bytecompiler/BytecodeGenerator.h:
+        * parser/ASTBuilder.h:
+        (JSC::ASTBuilder::createSourceElements):
+        (JSC::ASTBuilder::features):
+        (JSC::ASTBuilder::numConstants):
+        (JSC::ASTBuilder::createFuncDeclStatement):
+        (JSC::ASTBuilder::createClassDeclStatement):
+        (JSC::ASTBuilder::createBlockStatement):
+        (JSC::ASTBuilder::createTryStatement):
+        (JSC::ASTBuilder::createSwitchStatement):
+        (JSC::ASTBuilder::Scope::Scope):
+        (JSC::ASTBuilder::funcDeclarations): Deleted.
+        * parser/NodeConstructors.h:
+        (JSC::CaseBlockNode::CaseBlockNode):
+        (JSC::SwitchNode::SwitchNode):
+        (JSC::BlockNode::BlockNode):
+        * parser/Nodes.cpp:
+        (JSC::ScopeNode::ScopeNode):
+        (JSC::ScopeNode::singleStatement):
+        (JSC::ProgramNode::ProgramNode):
+        (JSC::ModuleProgramNode::ModuleProgramNode):
+        (JSC::EvalNode::EvalNode):
+        (JSC::FunctionNode::FunctionNode):
+        (JSC::VariableEnvironmentNode::VariableEnvironmentNode):
+        * parser/Nodes.h:
+        (JSC::VariableEnvironmentNode::VariableEnvironmentNode):
+        (JSC::VariableEnvironmentNode::lexicalVariables):
+        (JSC::VariableEnvironmentNode::functionStack):
+        (JSC::ScopeNode::captures):
+        (JSC::ScopeNode::varDeclarations):
+        (JSC::ScopeNode::neededConstants):
+        (JSC::ProgramNode::startColumn):
+        (JSC::ProgramNode::endColumn):
+        (JSC::EvalNode::startColumn):
+        (JSC::EvalNode::endColumn):
+        (JSC::ModuleProgramNode::startColumn):
+        (JSC::ModuleProgramNode::endColumn):
+        (JSC::ScopeNode::functionStack): Deleted.
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseInner):
+        (JSC::Parser<LexerType>::didFinishParsing):
+        (JSC::Parser<LexerType>::parseStatementListItem):
+        (JSC::Parser<LexerType>::parseSwitchStatement):
+        (JSC::Parser<LexerType>::parseBlockStatement):
+        (JSC::Parser<LexerType>::parseStatement):
+        (JSC::Parser<LexerType>::parseFunctionInfo):
+        (JSC::getMetadata):
+        (JSC::Parser<LexerType>::parseFunctionDeclaration):
+        (JSC::Parser<LexerType>::parseExportDeclaration):
+        * parser/Parser.h:
+        (JSC::Scope::declareVariable):
+        (JSC::Scope::declareFunction):
+        (JSC::Scope::appendFunction):
+        (JSC::Scope::takeFunctionDeclarations):
+        (JSC::Scope::declareLexicalVariable):
+        (JSC::Parser::currentVariableScope):
+        (JSC::Parser::currentLexicalDeclarationScope):
+        (JSC::Parser::currentFunctionScope):
+        (JSC::Parser::pushScope):
+        (JSC::Parser::popScopeInternal):
+        (JSC::Parser::declareVariable):
+        (JSC::Parser::declareFunction):
+        (JSC::Parser::hasDeclaredVariable):
+        (JSC::Parser::isFunctionMetadataNode):
+        (JSC::Parser<LexerType>::parse):
+        * parser/SyntaxChecker.h:
+        (JSC::SyntaxChecker::createFuncDeclStatement):
+        (JSC::SyntaxChecker::createClassDeclStatement):
+        (JSC::SyntaxChecker::createBlockStatement):
+        (JSC::SyntaxChecker::createExprStatement):
+        (JSC::SyntaxChecker::createIfStatement):
+        (JSC::SyntaxChecker::createContinueStatement):
+        (JSC::SyntaxChecker::createTryStatement):
+        (JSC::SyntaxChecker::createSwitchStatement):
+        (JSC::SyntaxChecker::createWhileStatement):
+        (JSC::SyntaxChecker::createWithStatement):
+        (JSC::SyntaxChecker::createDoWhileStatement):
+        * parser/VariableEnvironment.h:
+        (JSC::VariableEnvironmentEntry::isExported):
+        (JSC::VariableEnvironmentEntry::isImported):
+        (JSC::VariableEnvironmentEntry::isImportedNamespace):
+        (JSC::VariableEnvironmentEntry::isFunction):
+        (JSC::VariableEnvironmentEntry::setIsCaptured):
+        (JSC::VariableEnvironmentEntry::setIsConst):
+        (JSC::VariableEnvironmentEntry::setIsExported):
+        (JSC::VariableEnvironmentEntry::setIsImported):
+        (JSC::VariableEnvironmentEntry::setIsImportedNamespace):
+        (JSC::VariableEnvironmentEntry::setIsFunction):
+        (JSC::VariableEnvironmentEntry::clearIsVar):
+        (JSC::VariableEnvironment::VariableEnvironment):
+        (JSC::VariableEnvironment::begin):
+        (JSC::VariableEnvironment::end):
+        * tests/es6.yaml:
+        * tests/stress/block-scoped-function-declarations.js: Added.
+        (assert):
+        (test):
+        (f.foo.bar):
+        (f.foo.):
+        (f.foo):
+        (f):
+        (assert.foo.):
+        (assert.foo):
+        (assert.foo.foo):
+        (assert.foo.bar):
+        (assert.foo.switch.case.1):
+        (assert.foo.switch.case.2):
+        (assert.foo.switch.foo):
+        (assert.foo.switch.bar):
+
+2016-03-09  Saam barati  <sbarati@apple.com>
+
+        Array.isArray support for Proxy
+        https://bugs.webkit.org/show_bug.cgi?id=155179
+
+        Reviewed by Mark Lam.
+
+        This patch implements Array.isArray to be compliant
+        with the ES6 spec. Specifically, it needs to interface
+        properly with Proxy arguments.
+        https://tc39.github.io/ecma262/#sec-isarray
+
+        * runtime/ArrayConstructor.cpp:
+        (JSC::ArrayConstructor::getCallData):
+        (JSC::arrayConstructorIsArray):
+        (JSC::arrayConstructorPrivateFuncIsArrayConstructor):
+        * runtime/ArrayPrototype.cpp:
+        (JSC::speciesConstructArray):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::revoke):
+        (JSC::ProxyObject::isRevoked):
+        (JSC::ProxyObject::visitChildren):
+        * runtime/ProxyObject.h:
+        (JSC::ProxyObject::target):
+        (JSC::ProxyObject::handler):
+        * tests/es6.yaml:
+        * tests/stress/proxy-is-array.js: Added.
+        (assert):
+        (test):
+
+2016-03-09  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Fix the ARM64 MacroAssembler after r197816
+        https://bugs.webkit.org/show_bug.cgi?id=155268
+
+        Reviewed by Mark Lam.
+
+        The patch tries to generate instructions that do not exist,
+        causing quite fun stuff at runtime.
+
+        * assembler/MacroAssemblerARM64.h:
+        (JSC::MacroAssemblerARM64::load8):
+        (JSC::MacroAssemblerARM64::store16):
+        (JSC::MacroAssemblerARM64::store8):
+
+2016-03-09  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197873.
+        https://bugs.webkit.org/show_bug.cgi?id=155262
+
+        "Crashes some JSC tests" (Requested by mlam on #webkit).
+
+        Reverted changeset:
+
+        "Add dumping of function expression names in CodeBlock
+        bytecode dump."
+        https://bugs.webkit.org/show_bug.cgi?id=155248
+        http://trac.webkit.org/changeset/197873
+
 2016-03-09  Oliver Hunt  <oliver@apple.com>
 
         Fix old iOS

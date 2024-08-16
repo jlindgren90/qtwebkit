@@ -3205,6 +3205,8 @@ void Internals::setMediaElementRestrictions(HTMLMediaElement* element, const Str
             restrictions |= MediaElementSession::AutoPreloadingNotPermitted;
         if (equalLettersIgnoringASCIICase(restrictionString, "invisibleautoplaynotpermitted"))
             restrictions |= MediaElementSession::InvisibleAutoplayNotPermitted;
+        if (equalLettersIgnoringASCIICase(restrictionString, "overrideusergesturerequirementformaincontent"))
+            restrictions |= MediaElementSession::OverrideUserGestureRequirementForMainContent;
     }
     element->mediaSession().addBehaviorRestriction(restrictions);
 }

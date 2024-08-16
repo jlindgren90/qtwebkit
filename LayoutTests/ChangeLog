@@ -1,3 +1,123 @@
+2016-03-09  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Get a RemoteObject or ObjectPreview from HeapSnapshot Object Identifier
+        https://bugs.webkit.org/show_bug.cgi?id=155264
+        <rdar://problem/25070716>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/heap/getPreview-expected.txt: Added.
+        * inspector/heap/getPreview.html: Added.
+        * inspector/heap/getRemoteObject-expected.txt: Added.
+        * inspector/heap/getRemoteObject.html: Added.
+        Test the new protocol methods in different scenarios.
+
+        * inspector/heap/snapshot-expected.txt:
+        * inspector/heap/snapshot.html:
+        Fix typo.
+
+2016-03-09  Andy VanWagoner  <thetalecrafter@gmail.com>
+
+        [INTL] Intl Constructors not web compatible with Object.create usage
+        https://bugs.webkit.org/show_bug.cgi?id=153679
+
+        Reviewed by Darin Adler.
+
+        Add tests for Object.create + contructor.call initialization of NumberFormat
+        and DateTimeFormat objects.
+
+        * js/intl-datetimeformat-expected.txt:
+        * js/intl-numberformat-expected.txt:
+        * js/script-tests/intl-datetimeformat.js:
+        * js/script-tests/intl-numberformat.js:
+
+2016-03-09  Ryosuke Niwa  <rniwa@webkit.org>
+
+        defineElement should upgrade existing unresolved custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=155107
+
+        Reviewed by Darin Adler.
+
+        Added W3C style testharness.js tests for asynchronously defining custom elements.
+
+        * fast/custom-elements/upgrading/Node-cloneNode.html:
+        * fast/custom-elements/upgrading/upgrading-parser-created-element-expected.txt: Added.
+        * fast/custom-elements/upgrading/upgrading-parser-created-element.html: Added.
+
+2016-03-09  Saam Barati  <sbarati@apple.com>
+
+        ES6: Implement lexical scoping for function definitions in strict mode
+        https://bugs.webkit.org/show_bug.cgi?id=152844
+
+        Reviewed by Geoffrey Garen.
+
+        * js/let-syntax-expected.txt:
+        * js/parser-syntax-check-expected.txt:
+        * js/script-tests/parser-syntax-check.js:
+        (testFailed):
+        (runTest):
+
+2016-03-09  Jer Noble  <jer.noble@apple.com>
+
+        Add heuristic for "main content" videos which override user gesture requirements
+        https://bugs.webkit.org/show_bug.cgi?id=155224
+
+        Reviewed by Eric Carlson.
+
+        * media/video-main-content-allow-expected.txt: Added.
+        * media/video-main-content-allow-then-deny-expected.txt: Added.
+        * media/video-main-content-allow-then-deny.html: Added.
+        * media/video-main-content-allow.html: Added.
+        * media/video-main-content-deny-display-none-expected.txt: Added.
+        * media/video-main-content-deny-display-none.html: Added.
+        * media/video-main-content-deny-not-in-dom-expected.txt: Added.
+        * media/video-main-content-deny-not-in-dom.html: Added.
+        * media/video-main-content-deny-not-visible-expected.txt: Added.
+        * media/video-main-content-deny-not-visible.html: Added.
+        * media/video-main-content-deny-obscured-expected.txt: Added.
+        * media/video-main-content-deny-obscured.html: Added.
+        * media/video-main-content-deny-too-small-expected.txt: Added.
+        * media/video-main-content-deny-too-small.html: Added.
+
+2016-03-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping js/regress/getter-richards-try-catch.html on ios-simulator debug
+        https://bugs.webkit.org/show_bug.cgi?id=155271
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip two flaky tests on mac-wk1
+        https://bugs.webkit.org/show_bug.cgi?id=155196
+
+        Unreviewed test gardening.
+
+        media/video-with-blob-url-allowed-by-csp-media-src-star.html and media/video-with-data-url-allowed-by-csp-media-src-star.html
+        are flaky on mac-wk1. Skipping to get bots to green during investigation.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-03-09  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Rename Node.treeRoot to rootNode and turn it on by default
+        https://bugs.webkit.org/show_bug.cgi?id=155226
+
+        Reviewed by Antonio Gomes.
+        
+        Split Node-interface-treeRoot.html into two pieces, the one that doesn't invoke shadow DOM and the other that tests
+        shadow DOM related cases. I intend to upstream these tests to W3C at some point so keep them in testharness.js form.
+
+        * fast/dom/Node/rootNode-expected.txt: Added.
+        * fast/dom/Node/rootNode.html: Copied from LayoutTests/fast/shadow-dom/Node-interface-treeRoot.html.
+        * fast/shadow-dom/Node-interface-rootNode-expected.txt: Renamed from Node-interface-treeRoot-expected.txt.
+        * fast/shadow-dom/Node-interface-rootNode.html: Renamed from LayoutTests/fast/shadow-dom/Node-interface-treeRoot.html.
+        * js/dom/dom-static-property-for-in-iteration-expected.txt:
+        * platform/efl/js/dom/dom-static-property-for-in-iteration-expected.txt:
+        * platform/gtk/js/dom/dom-static-property-for-in-iteration-expected.txt:
+
 2016-03-09  Michael Saboff  <msaboff@apple.com>
 
         [ES6] Implement RegExp sticky flag and related functionality

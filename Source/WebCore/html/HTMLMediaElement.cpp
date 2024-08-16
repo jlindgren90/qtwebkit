@@ -820,7 +820,8 @@ void HTMLMediaElement::didAttachRenderers()
 {
     if (RenderElement* renderer = this->renderer()) {
         renderer->updateFromElement();
-        if (m_mediaSession->hasBehaviorRestriction(MediaElementSession::InvisibleAutoplayNotPermitted))
+        if (m_mediaSession->hasBehaviorRestriction(MediaElementSession::InvisibleAutoplayNotPermitted)
+            || m_mediaSession->hasBehaviorRestriction(MediaElementSession::OverrideUserGestureRequirementForMainContent))
             renderer->registerForVisibleInViewportCallback();
     }
     updateShouldAutoplay();
@@ -6873,6 +6874,14 @@ void HTMLMediaElement::updateShouldAutoplay()
     else if (!canAutoplay
         && m_mediaSession->state() != PlatformMediaSession::Interrupted)
         m_mediaSession->beginInterruption(PlatformMediaSession::InvisibleAutoplay);
+}
+
+void HTMLMediaElement::updateShouldPlay()
+{
+    if (isPlaying() && !m_mediaSession->playbackPermitted(*this))
+        pauseInternal();
+    else if (elementCanTransitionFromAutoplayToPlay(*this))
+        play();
 }
 
 }

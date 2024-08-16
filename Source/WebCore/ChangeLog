@@ -1,3 +1,376 @@
+2016-03-09  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Extract EventPath.h/cpp out of EventDispatcher.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=155285
+
+        Reviewed by Chris Dumez.
+
+        Extracted EventPath.h/cpp out of EventDispatcher.cpp to add the support for Event.deepPath()
+        in webkit.org/b/153538. The new file defines member functions of EventPath and RelatedNodeRetargeter.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/DOMAllInOne.cpp:
+        * dom/EventDispatcher.cpp:
+        (WebCore::EventDispatcher::dispatchScopedEvent):
+        (WebCore::EventDispatcher::dispatchEvent):
+        (WebCore::EventPath): Moved to EventPath.cpp.
+        (WebCore::eventTargetRespectingTargetRules): Moved to EventPath.h.
+        (WebCore::shouldEventCrossShadowBoundary): Moved to EventPath.cpp.
+        (WebCore::nodeOrHostIfPseudoElement): Ditto.
+        (WebCore::RelatedNodeRetargeter): Moved to EventPath.cpp.
+        * dom/EventPath.cpp: Added.
+        (WebCore::shouldEventCrossShadowBoundary): Moved from EventDispatcher.cpp.
+        (WebCore::nodeOrHostIfPseudoElement): Ditto.
+        (WebCore::EventPath::EventPath): Ditto.
+        (WebCore::RelatedNodeRetargeter): Ditto.
+        * dom/EventPath.h: Added.
+        (WebCore::EventPath::isEmpty):
+        (WebCore::EventPath::size):
+        (WebCore::EventPath::contextAt):
+        (WebCore::EventPath::lastContextIfExists):
+        (WebCore::EventPath::eventTargetRespectingTargetRules): Moved from EventDispatcher.cpp.
+
+2016-03-09  Simon Fraser  <simon.fraser@apple.com>
+
+        Font antialiasing (smoothing) changes when elements are rendered into compositing layers
+        https://bugs.webkit.org/show_bug.cgi?id=23364
+        rdar://problem/7288429
+
+        Reviewed by Tim Horton.
+
+        Improve the appearance of subpixel-antialiased ("smoothed") text in non-opaque layers
+        by opting in to a new CALayer backing store format.
+        
+        GraphicsLayer now has setSupportsSmoothedFonts(), which is called by RenderLayerBacking
+        when the platform has support for the new feature. Ideally this would only be set when
+        we know a layer has smoothed text drawn into it, but, for now, enable this for all
+        layers. The right thing happens with opaque layers under the hood.
+        
+        setSupportsSmoothedFonts() is turned into a PlatformCALayer contentsFormat flag, which
+        is ultimately passed to setBackingStoreFormat().
+        
+        We also need to propagate this flag to TileController tiles.
+
+        * platform/graphics/GraphicsLayer.cpp:
+        (WebCore::GraphicsLayer::supportsSmoothedFontsInNonOpaqueLayers):
+        (WebCore::GraphicsLayer::GraphicsLayer):
+        * platform/graphics/GraphicsLayer.h:
+        (WebCore::GraphicsLayer::supportsSmoothedFonts):
+        (WebCore::GraphicsLayer::setSupportsSmoothedFonts):
+        * platform/graphics/TiledBacking.h:
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayer::supportsSmoothedFontsInNonOpaqueLayers):
+        (WebCore::GraphicsLayerCA::setSupportsSmoothedFonts):
+        (WebCore::GraphicsLayerCA::commitLayerChangesBeforeSublayers):
+        (WebCore::GraphicsLayerCA::updateContentsFormat):
+        * platform/graphics/ca/GraphicsLayerCA.h:
+        * platform/graphics/ca/PlatformCALayer.cpp:
+        (WebCore::PlatformCALayer::drawRepaintIndicator): Give the number a "shadow" when
+        the contents format says we support smoothed fonts.
+        * platform/graphics/ca/PlatformCALayer.h:
+        * platform/graphics/ca/TileController.cpp:
+        (WebCore::TileController::setTileContentsFormatFlags):
+        (WebCore::TileController::createTileLayer):
+        * platform/graphics/ca/TileController.h:
+        * platform/graphics/ca/TileGrid.cpp:
+        (WebCore::TileGrid::updateTileLayerProperties):
+        * platform/graphics/ca/cocoa/PlatformCALayerCocoa.h:
+        * platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm:
+        (WebCore::setBackingStoreFormat):
+        (PlatformCALayerCocoa::commonInit):
+        (PlatformCALayerCocoa::setContentsFormat):
+        (PlatformCALayer::drawLayerContents): Previously, we turned off font smoothing in
+        non-opaque layers to improve text appearance. We no longer need to do that when
+        the contents format has "SmoothedFonts".
+        * platform/ios/LegacyTileGridTile.mm:
+        (WebCore::setBackingStoreFormat):
+        (WebCore::LegacyTileGridTile::LegacyTileGridTile):
+        * rendering/RenderLayerBacking.cpp:
+        (WebCore::RenderLayerBacking::createGraphicsLayer):
+
+2016-03-09  Gavin Barraclough  <barraclough@apple.com>
+
+        WebKit should adopt journal_mode=wal for all SQLite databases.
+        https://bugs.webkit.org/show_bug.cgi?id=133496
+
+        Reviewed by Brady Eidson & Darin Adler.
+
+        The statement intended to enable WAL mode is always failing because it is missing a
+        prepare(). Fix this. We were also previously permitting SQLITE_OK results - this
+        was in error (we were only getting these because stepping the unprepared statement
+        returned SQLITE_OK). Also set the SQLITE_OPEN_AUTOPROXY flag when opening the
+        database - this will improve perfomance when the database is accessed via an AFP
+        mount.
+
+        * platform/sql/SQLiteDatabase.cpp:
+        (WebCore::SQLiteDatabase::open):
+            - call prepareAndStep(), only check for SQLITE_ROW result.
+        * platform/sql/SQLiteFileSystem.cpp:
+        (WebCore::SQLiteFileSystem::openDatabase):
+            - should set SQLITE_OPEN_AUTOPROXY flag when opening database.
+
+2016-03-09  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add runtime flags for shadow DOM and custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=155213
+
+        Reviewed by Dean Jackson.
+
+        Added new runtime flags for shadow DOM and custom elements.
+
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::setShadowDOMEnabled): Added.
+        (WebCore::RuntimeEnabledFeatures::shadowDOMEnabled): Added.
+        (WebCore::RuntimeEnabledFeatures::setCustomElementsEnabled): Added.
+        (WebCore::RuntimeEnabledFeatures::customElementsEnabled): Added.
+        * dom/Document.idl:
+        * dom/Element.idl:
+        * dom/Node.idl:
+        * dom/NonDocumentTypeChildNode.idl:
+        * dom/ShadowRoot.idl:
+        * html/HTMLSlotElement.idl:
+
+2016-03-09  Ryosuke Niwa  <rniwa@webkit.org>
+
+        defineElement should upgrade existing unresolved custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=155107
+
+        Reviewed by Darin Adler.
+
+        Added the support for upgrading existing unresolved custom elements when defineElement is called.
+
+        The current implementation upgrades elements in the order they were created and has the issue that
+        it keeps accumulating all elements with a hyphen in its name until defineElement is called as
+        documented in https://github.com/w3c/webcomponents/issues/419
+
+        This patch re-purposes IsEditingTextFlag to indicate that the node is an unresolved custom element.
+        Since isEditingText() is only called in textRendererIsNeeded only on Text nodes, it's mutually
+        exclusive with isUnresolvedCustomElement().
+
+        The list of unresolved custom elements is kept in m_upgradeCandidatesMap, a hash map of element names
+        to the list of unresolved elements with that name.
+
+        In addition, added the logic to use HTMLElement as the interface for unresolved custom element instead
+        of HTMLUnknownElement.
+
+        Test: fast/custom-elements/upgrading/upgrading-parser-created-element.html
+
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::upgradeElement): Clear the flag.
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::defineElement): Set the unique private name to keep the interface alive before
+        calling addElementDefinition as the call can now invoke author scripts.
+        * dom/CustomElementDefinitions.cpp:
+        (WebCore::CustomElementDefinitions::addElementDefinition): Upgrade existing unresolved elements kept
+        in m_upgradeCandidatesMap.
+        (WebCore::CustomElementDefinitions::addUpgradeCandidate): Added.
+        * dom/CustomElementDefinitions.h:
+        * dom/Document.cpp:
+        (WebCore::createHTMLElementWithNameValidation): Added the code to add the unresolved custom elements
+        to the upgrade candidates map. Also instantiate it as HTMLElement instead of HTMLUnknownElement.
+        (WebCore::createFallbackHTMLElement): Ditto.
+        * dom/Node.h:
+        (WebCore::Node::setIsCustomElement):
+        (WebCore::Node::isUnresolvedCustomElement): Added.
+        (WebCore::Node::setIsUnresolvedCustomElement): Added.
+        (WebCore::Node::setCustomElementIsResolved): Added. Clears IsEditingTextOrUnresolvedCustomElementFlag
+        and sets IsCustomElement.
+        (WebCore::Node::isEditingText): Check both IsEditingTextOrUnresolvedCustomElementFlag and IsTextFlag
+        for safety even though it's currently only used in textRendererIsNeeded which takes Text&.
+        * dom/make_names.pl:
+        (defaultParametersHash): Added customElementInterfaceName as a parameter.
+        (printWrapperFactoryCppFile): Generate the code to use customElementInterfaceName when the element
+        for which the wrapper is created has isUnresolvedCustomElement flag set.
+        * html/HTMLTagNames.in: Use HTMLElement for unresolved custom elements.
+        * html/parser/HTMLConstructionSite.cpp:
+        (WebCore::HTMLConstructionSite::createHTMLElementOrFindCustomElementInterface): Added the code to add
+        the unresolved custom elements to the upgrade candidates map. Also instantiate it as HTMLElement instead
+        of HTMLUnknownElement. 
+
+2016-03-09  Enrica Casucci  <enrica@apple.com>
+
+        Retrieve additional context for some data detector link for preview and action menu.
+        https://bugs.webkit.org/show_bug.cgi?id=155278
+        rdar://problem/24884951
+
+        Reviewed by Tim Horton.
+
+        Adding helper function to compute a range by moving by a number of characters
+        from a given position and direction.
+        Adding function to check if the given data detector link element requires
+        an extended context.
+
+        * editing/VisibleUnits.cpp:
+        (WebCore::rangeExpandedByCharactersInDirectionAtWordBoundary):
+        * editing/VisibleUnits.h:
+        * editing/cocoa/DataDetection.h:
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::DataDetection::requiresExtendedContext):
+
+2016-03-09  Daniel Bates  <dabates@apple.com>
+
+        Fix the Windows build after <https://trac.webkit.org/changeset/197905>
+        (https://bugs.webkit.org/show_bug.cgi?id=155247)
+
+        We need to call the std::unique_ptr<CryptoDigest>() constructor directly
+        instead of using the convenience function std::make_unique<CryptoDigest>()
+        because std::make_unique<CryptoDigest>() cannot access the private constructor
+        CryptoDigest().
+
+        * platform/crypto/win/CryptoDigestWin.cpp:
+        (WebCore::CryptoDigest::create):
+
+2016-03-09  Daniel Bates  <dabates@apple.com>
+
+        [Win] Implement CryptoDigest
+        https://bugs.webkit.org/show_bug.cgi?id=155247
+        <rdar://problem/25065843>
+
+        Reviewed by Brent Fulgham.
+
+        Implement the CryptoDigest abstraction for Windows so that we can compute cryptographically
+        secure hashes. This will allow us to support Content Security Policy inline script and inline
+        stylesheet hashes on Windows.
+
+        * PlatformWin.cmake: Add file CryptoDigestWin.cpp.
+        * PlatformWinCairo.cmake: Ditto.
+        * platform/crypto/win/CryptoDigestWin.cpp: Added.
+        (WebCore::CryptoDigest::CryptoDigest): Instantiate a CryptoDigestContext object.
+        (WebCore::CryptoDigest::~CryptoDigest): Destroy the cryptographic service provider and hash
+        object if non-null.
+        (WebCore::CryptoDigest::create): Acquire a handle to a cryptographic service provider (HCRYPTPROV)
+        and a handle to a hash object (HCRYPTHASH).
+        (WebCore::CryptoDigest::addBytes): Add the contents of the specified buffer to the hash object.
+        (WebCore::CryptoDigest::computeHash): Compute and return a Vector of bytes that represent the digest.
+
+2016-03-09  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r197149): Missing availability checks when soft-linking DataDetectors.framework
+        <http://webkit.org/b/155258>
+
+        Reviewed by Andy Estes.
+
+        * page/mac/ServicesOverlayController.mm:
+        (WebCore::ServicesOverlayController::Highlight::setDDHighlight):
+        (WebCore::ServicesOverlayController::Highlight::paintContents):
+        (WebCore::ServicesOverlayController::mouseIsOverHighlight):
+        - Add check that returns early if DataDetectors.framework is not
+          available.
+
+        * platform/spi/mac/DataDetectorsSPI.h:
+        - Mark Objective-C classses as optional.
+
+2016-03-09  Jer Noble  <jer.noble@apple.com>
+
+        Add heuristic for "main content" videos which override user gesture requirements
+        https://bugs.webkit.org/show_bug.cgi?id=155224
+
+        Reviewed by Eric Carlson.
+
+        Tests: media/video-main-content-allow-then-deny.html
+               media/video-main-content-allow.html
+               media/video-main-content-deny-display-none.html
+               media/video-main-content-deny-not-in-dom.html
+               media/video-main-content-deny-not-visible.html
+               media/video-main-content-deny-obscured.html
+               media/video-main-content-deny-too-small.html
+
+        Add a new behavior "restriction" to MediaElementSession that allows media elements
+        to optionally overriding their own user gesture requirements if the session determines
+        that the media element is the page's "main content".
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::didAttachRenderers):
+        (WebCore::HTMLMediaElement::updateShouldPlay):
+        * html/HTMLMediaElement.h:
+        * html/MediaElementSession.cpp:
+        (WebCore::restrictionName):
+        (WebCore::MediaElementSession::MediaElementSession):
+        (WebCore::MediaElementSession::addBehaviorRestriction):
+        (WebCore::MediaElementSession::playbackPermitted):
+        (WebCore::MediaElementSession::dataLoadingPermitted):
+        (WebCore::isMainContent):
+        (WebCore::MediaElementSession::mainContentCheckTimerFired):
+        (WebCore::MediaElementSession::updateIsMainContent):
+        * html/MediaElementSession.h:
+        * testing/Internals.cpp:
+        (WebCore::Internals::setMediaElementRestrictions):
+
+2016-03-09  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Added missing #if(SOUP) after r197591.
+        https://bugs.webkit.org/show_bug.cgi?id=155259
+
+        Reviewed by Alex Christensen.
+
+        No new tests needed.
+
+        * platform/graphics/gstreamer/WebKitWebSourceGStreamer.cpp:
+
+2016-03-09  Ada Chan  <adachan@apple.com>
+
+        Add a getter for WebVideoFullscreenInterfaceObjC and update its rate property
+        https://bugs.webkit.org/show_bug.cgi?id=155239
+
+        Reviewed by Eric Carlson.
+
+        * platform/mac/WebVideoFullscreenInterfaceMac.h:
+        Move the stub implementation of setVideoDimensions() to the mm file.
+        Declare a getter to WebVideoFullscreenInterfaceMacObjC.
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (WebCore::WebVideoFullscreenInterfaceMac::setRate):
+        Also update the rate property of WebVideoFullscreenInterfaceMacObjC.
+        (WebCore::WebVideoFullscreenInterfaceMac::setVideoDimensions):
+        Stub implementation of setVideoDimensions() has been moved to here.
+
+2016-03-09  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Mac build without video enabled after r197633.
+
+        * bindings/objc/DOM.mm:
+
+2016-03-09  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Rename Node.treeRoot to rootNode and turn it on by default
+        https://bugs.webkit.org/show_bug.cgi?id=155226
+
+        Reviewed by Antonio Gomes.
+
+        Node.prototype.treeRoot has been merged into DOM spec from Shadow DOM spec and renamed to rootNode:
+        https://dom.spec.whatwg.org/#dom-node-rootnode
+
+        Rename the method and expose it unconditionally on Node.prototype.
+
+        Tests: fast/dom/Node/rootNode.html
+               fast/shadow-dom/Node-interface-rootNode.html
+
+        * dom/ContainerNode.h:
+        (WebCore::Node::highestAncestor): Deleted. There is no need for this function to be inlined.
+        * dom/Document.h: Now that both TreeScope and Node defines rootNode, we need to pick either.
+        Here, we pick TreeScope's definition since Document is by definition always in a document so there is
+        no need to even check inTreeScope().
+        * dom/Node.cpp:
+        (WebCore::Node::rootNode): Moved here. Also added a fast path for when "this" node is in a document
+        or a shadow root since TreeScope stores its root node as a member variable (m_rootNode).
+        * dom/Node.h:
+        * dom/Node.idl: Renamed the method and removed Conditional=SHADOW_DOM.
+        * dom/ShadowRoot.h: Similar to the change in Document.h. See above.
+        * editing/Editor.cpp:
+        (WebCore::correctSpellcheckingPreservingTextCheckingParagraph): Use rootNode instead of free function
+        defined in htmlediting.cpp, which was removed in this patch.
+        * editing/htmlediting.cpp:
+        (WebCore::highestAncestor): Deleted.
+        * editing/htmlediting.h:
+        * html/FormAssociatedElement.cpp:
+        (WebCore::computeRootNode): Added.
+        (WebCore::FormAssociatedElement::removedFrom): We can't use Node::rootNode here because this function
+        is called in the middle of removing a subtree, and some associated form element's inDocument flag may
+        not have been updated yet. So use computeRootNode to manually find the highest ancestor.
+        (WebCore::FormAssociatedElement::formRemovedFromTree): Ditto.
+        * xml/XPathPath.cpp:
+        (WebCore::XPath::LocationPath::evaluate):
+
 2016-03-09  Konstantin Tokarev  <annulen@yandex.ru>
 
         [cmake] Fixed All-in-One build.

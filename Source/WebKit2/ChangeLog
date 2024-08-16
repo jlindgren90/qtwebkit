@@ -1,3 +1,176 @@
+2016-03-09  Simon Fraser  <simon.fraser@apple.com>
+
+        Font antialiasing (smoothing) changes when elements are rendered into compositing layers
+        https://bugs.webkit.org/show_bug.cgi?id=23364
+        rdar://problem/7288429
+
+        Reviewed by Tim Horton.
+        
+        Send the ContentsFormat to the UI process (but nothing happens to it there yet).
+
+        * Shared/mac/RemoteLayerTreeTransaction.h:
+        * Shared/mac/RemoteLayerTreeTransaction.mm:
+        (WebKit::RemoteLayerTreeTransaction::LayerProperties::encode):
+        (WebKit::RemoteLayerTreeTransaction::LayerProperties::decode):
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.cpp:
+        (WebKit::PlatformCALayerRemote::setContentsFormat):
+        (WebKit::PlatformCALayerRemote::contentsFormat):
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.h:
+
+2016-03-09  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add runtime flags for shadow DOM and custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=155213
+
+        Reviewed by Dean Jackson.
+
+        Set the runtime flag based on preferences. Enable shadow DOM and disable custom elements by default.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetShadowDOMEnabled):
+        (WKPreferencesGetShadowDOMEnabled):
+        (WKPreferencesSetCustomElementsEnabled):
+        (WKPreferencesGetCustomElementsEnabled):
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+        (WebKit::InjectedBundle::overrideBoolPreferenceForTestRunner):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-03-09  Brent Fulgham  <bfulgham@apple.com>
+
+        Handling 'allowUniversalAccessFromFileURLs' on WKWebViewConfiguration causes test breakage
+        https://bugs.webkit.org/show_bug.cgi?id=155265
+        <rdar://problem/11101440>
+
+        Reviewed by Andy Estes.
+
+        We require "AllowUniversalAccessFromFileURLs" to permit file URLs from accessing
+        localStorage. However, this setting is not available on the Cocoa WKPreference (by design).
+        Instead, you need to set this value on the WKWebViewConfiguration.
+        
+        Back out the work-around landed in r197889, 
+
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration init]): Remove test workaround.
+        * UIProcess/mac/WebInspectorProxyMac.mm:
+        (WebKit::WebInspectorProxy::platformCreateInspectorPage): Set the correct flag on
+        the WKWebViewConfiguration.
+
+2016-03-09  Enrica Casucci  <enrica@apple.com>
+
+        Retrieve additional context for some data detector link for preview and action menu.
+        https://bugs.webkit.org/show_bug.cgi?id=155278
+        rdar://problem/24884951
+
+        Reviewed by Tim Horton.
+
+        Data detector results for items like calendar events, can be augmented
+        retrieving the text surrounding the link.
+
+        * Platform/spi/ios/DataDetectorsUISPI.h:
+        * Shared/ios/InteractionInformationAtPosition.h:
+        * Shared/ios/InteractionInformationAtPosition.mm:
+        (WebKit::InteractionInformationAtPosition::encode):
+        (WebKit::InteractionInformationAtPosition::decode):
+        * UIProcess/ios/WKActionSheetAssistant.mm:
+        (-[WKActionSheetAssistant showDataDetectorsSheet]):
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _dataForPreviewItemController:atPosition:type:]):
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::getPositionInformation):
+
+2016-03-09  Gavin Barraclough  <barraclough@apple.com>
+
+        Last opened tab does not receive SetHiddenPageTimerThrottlingIncreaseLimit message
+        https://bugs.webkit.org/show_bug.cgi?id=155126
+
+        Reviewed by Anders Carlson.
+
+        WebPageProxy will increment the hidden page throttling counter from within its constructor,
+        which currently causes the WebProcessPool to try to synchronously message all processes.
+        The web page triggering the increment then fails to receive the message, since it was
+        still being constructed. Make the update of the limit async, such that the page is fully
+        constructed before the WebProcessPool processes the update.
+
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::m_hiddenPageThrottlingAutoIncreasesCounter):
+            - This now schedules a zero-delay timer to handle the update.
+        (WebKit::m_hiddenPageThrottlingTimer):
+            - This is now responsible for calling updateHiddenPageThrottlingAutoIncreaseLimit.
+        * UIProcess/WebProcessPool.h:
+            - Added m_hiddenPageThrottlingTimer.
+
+2016-03-09  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r197149): Missing availability checks when soft-linking DataDetectors.framework
+        <http://webkit.org/b/155258>
+
+        Reviewed by Andy Estes.
+
+        * Platform/mac/MenuUtilities.mm:
+        (WebKit::menuItemForTelephoneNumber):
+        (WebKit::menuForTelephoneNumber):
+        - Add check that returns early if DataDetectors.framework is not
+          available.
+
+        * Shared/mac/WebHitTestResultData.mm:
+        (WebKit::WebHitTestResultData::platformDecode):
+        - Add Debug assertion.  The soft-linked code should never be
+          called if there was no actionContext passed in.
+
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::dismissContentRelativeChildWindowsFromViewOnly):
+        - Protect calls to DDActionsManager with availability check.
+
+        * UIProcess/mac/WKImmediateActionController.mm:
+        (-[WKImmediateActionController _clearImmediateActionState]):
+        (-[WKImmediateActionController immediateActionRecognizerWillBeginAnimation:]):
+        - Protect calls to DDActionsManager with availability check.
+        (-[WKImmediateActionController _animationControllerForDataDetectedText]):
+        (-[WKImmediateActionController _animationControllerForDataDetectedLink]):
+        - Add check that returns early if DataDetectors.framework is not
+          available.
+
+2016-03-09  Keith Rollin  <krollin@apple.com>
+
+        Add state dumping facility
+        https://bugs.webkit.org/show_bug.cgi?id=154930
+        <rdar://problem/24939135>
+
+        Reviewed by Anders Carlsson.
+
+        Collect the times at which pages are loaded. Dump them when an OS
+        state dump is triggered.
+
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::didCommitLoad):
+        * WebProcess/WebPage/WebPage.h:
+        (WebKit::WebPage::lastPageLoadTime):
+        * WebProcess/WebProcess.h:
+        * WebProcess/cocoa/WebProcessCocoa.mm:
+        (WebKit::WebProcess::registerWithStateDumper):
+        (WebKit::WebProcess::platformInitializeProcess):
+
+2016-03-09  Anders Carlsson  <andersca@apple.com>
+
+        _WKWebsiteDataSize.h should be an SPI header.
+
+        Rubber-stamped by Tim Horton.
+
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-03-09  Brent Fulgham  <bfulgham@apple.com>
+
+        Handling 'allowUniversalAccessFromFileURLs' on WKWebViewConfiguration causes test breakage
+        https://bugs.webkit.org/show_bug.cgi?id=155265
+
+        Unreviewed work-around to allow testing to continue.
+
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration init]): Workaround build break.
+
 2016-03-09  Alex Christensen  <achristensen@webkit.org>
 
         Fix use-after-free when cancelling synchronous XHR when using NetworkSession
