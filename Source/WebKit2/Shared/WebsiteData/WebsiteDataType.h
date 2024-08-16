@@ -23,31 +23,31 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WebsiteDataTypes_h
-#define WebsiteDataTypes_h
+#ifndef WebsiteDataType_h
+#define WebsiteDataType_h
 
 namespace WebKit {
 
-enum WebsiteDataTypes {
-    WebsiteDataTypeCookies = 1 << 0,
-    WebsiteDataTypeDiskCache = 1 << 1,
-    WebsiteDataTypeMemoryCache = 1 << 2,
-    WebsiteDataTypeOfflineWebApplicationCache = 1 << 3,
-    WebsiteDataTypeSessionStorage = 1 << 4,
-    WebsiteDataTypeLocalStorage = 1 << 5,
-    WebsiteDataTypeWebSQLDatabases = 1 << 6,
-    WebsiteDataTypeIndexedDBDatabases = 1 << 7,
-    WebsiteDataTypeMediaKeys = 1 << 8,
-    WebsiteDataTypeHSTSCache = 1 << 9,
-    WebsiteDataTypeSearchFieldRecentSearches = 1 << 10,
+enum class WebsiteDataType {
+    Cookies = 1 << 0,
+    DiskCache = 1 << 1,
+    MemoryCache = 1 << 2,
+    OfflineWebApplicationCache = 1 << 3,
+    SessionStorage = 1 << 4,
+    LocalStorage = 1 << 5,
+    WebSQLDatabases = 1 << 6,
+    IndexedDBDatabases = 1 << 7,
+    MediaKeys = 1 << 8,
+    HSTSCache = 1 << 9,
+    SearchFieldRecentSearches = 1 << 10,
 #if ENABLE(NETSCAPE_PLUGIN_API)
-    WebsiteDataTypePlugInData = 1 << 11,
+    PlugInData = 1 << 11,
 #endif
 #if ENABLE(MEDIA_STREAM)
-    WebsiteDataTypeMediaDeviceIdentifier = 1 << 12,
+    MediaDeviceIdentifier = 1 << 12,
 #endif
 };
 
 };
 
-#endif // WebsiteDataTypes_h
+#endif // WebsiteDataType_h

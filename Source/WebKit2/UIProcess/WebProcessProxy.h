@@ -38,7 +38,6 @@
 #include "WebConnectionToWebProcess.h"
 #include "WebPageProxy.h"
 #include "WebProcessProxyMessages.h"
-#include "WebsiteDataTypes.h"
 #include <WebCore/LinkHash.h>
 #include <memory>
 #include <wtf/Forward.h>
@@ -62,6 +61,7 @@ class NetworkProcessProxy;
 class WebBackForwardListItem;
 class WebPageGroup;
 class WebProcessPool;
+enum class WebsiteDataType;
 struct WebNavigationDataStore;
     
 class WebProcessProxy : public ChildProcessProxy, ResponsivenessTimer::Client, private ProcessThrottlerClient {
@@ -122,9 +122,9 @@ public:
     void didSaveToPageCache();
     void releasePageCache();
 
-    void fetchWebsiteData(WebCore::SessionID, WebsiteDataTypes, std::function<void (WebsiteData)> completionHandler);
-    void deleteWebsiteData(WebCore::SessionID, WebsiteDataTypes, std::chrono::system_clock::time_point modifiedSince, std::function<void ()> completionHandler);
-    void deleteWebsiteDataForOrigins(WebCore::SessionID, WebsiteDataTypes, const Vector<RefPtr<WebCore::SecurityOrigin>>& origins, std::function<void ()> completionHandler);
+    void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, std::function<void (WebsiteData)> completionHandler);
+    void deleteWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, std::chrono::system_clock::time_point modifiedSince, std::function<void ()> completionHandler);
+    void deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<WebsiteDataType>, const Vector<RefPtr<WebCore::SecurityOrigin>>& origins, std::function<void ()> completionHandler);
 
     void enableSuddenTermination();
     void disableSuddenTermination();

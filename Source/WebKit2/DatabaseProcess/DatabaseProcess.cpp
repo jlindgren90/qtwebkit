@@ -199,7 +199,7 @@ void DatabaseProcess::createDatabaseToWebProcessConnection()
 #endif
 }
 
-void DatabaseProcess::fetchWebsiteData(SessionID, uint64_t websiteDataTypes, uint64_t callbackID)
+void DatabaseProcess::fetchWebsiteData(SessionID, OptionSet<WebsiteDataType> websiteDataTypes, uint64_t callbackID)
 {
     struct CallbackAggregator final : public ThreadSafeRefCounted<CallbackAggregator> {
         explicit CallbackAggregator(std::function<void (WebsiteData)> completionHandler)
@@ -228,7 +228,7 @@ void DatabaseProcess::fetchWebsiteData(SessionID, uint64_t websiteDataTypes, uin
     }));
 
 #if ENABLE(INDEXED_DATABASE)
-    if (websiteDataTypes & WebsiteDataTypeIndexedDBDatabases) {
+    if (websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases)) {
         // FIXME: Pick the right database store based on the session ID.
         postDatabaseTask(std::make_unique<CrossThreadTask>([callbackAggregator, websiteDataTypes, this] {
 
@@ -236,14 +236,14 @@ void DatabaseProcess::fetchWebsiteData(SessionID, uint64_t websiteDataTypes, uin
 
             RunLoop::main().dispatch([callbackAggregator, securityOrigins] {
                 for (const auto& securityOrigin : securityOrigins)
-                    callbackAggregator->m_websiteData.entries.append(WebsiteData::Entry { securityOrigin, WebsiteDataTypeIndexedDBDatabases });
+                    callbackAggregator->m_websiteData.entries.append(WebsiteData::Entry { securityOrigin, WebsiteDataType::IndexedDBDatabases });
             });
         }));
     }
 #endif
 }
 
-void DatabaseProcess::deleteWebsiteData(WebCore::SessionID, uint64_t websiteDataTypes, std::chrono::system_clock::time_point modifiedSince, uint64_t callbackID)
+void DatabaseProcess::deleteWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType> websiteDataTypes, std::chrono::system_clock::time_point modifiedSince, uint64_t callbackID)
 {
     struct CallbackAggregator final : public ThreadSafeRefCounted<CallbackAggregator> {
         explicit CallbackAggregator(std::function<void ()> completionHandler)
@@ -266,7 +266,7 @@ void DatabaseProcess::deleteWebsiteData(WebCore::SessionID, uint64_t websiteData
     }));
 
 #if ENABLE(INDEXED_DATABASE)
-    if (websiteDataTypes & WebsiteDataTypeIndexedDBDatabases) {
+    if (websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases)) {
         postDatabaseTask(std::make_unique<CrossThreadTask>([this, callbackAggregator, modifiedSince] {
 
             deleteIndexedDatabaseEntriesModifiedSince(modifiedSince);
@@ -276,7 +276,7 @@ void DatabaseProcess::deleteWebsiteData(WebCore::SessionID, uint64_t websiteData
 #endif
 }
 
-void DatabaseProcess::deleteWebsiteDataForOrigins(WebCore::SessionID, uint64_t websiteDataTypes, const Vector<SecurityOriginData>& securityOriginDatas, uint64_t callbackID)
+void DatabaseProcess::deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<WebsiteDataType> websiteDataTypes, const Vector<SecurityOriginData>& securityOriginDatas, uint64_t callbackID)
 {
     struct CallbackAggregator final : public ThreadSafeRefCounted<CallbackAggregator> {
         explicit CallbackAggregator(std::function<void ()> completionHandler)
@@ -299,7 +299,7 @@ void DatabaseProcess::deleteWebsiteDataForOrigins(WebCore::SessionID, uint64_t w
     }));
 
 #if ENABLE(INDEXED_DATABASE)
-    if (websiteDataTypes & WebsiteDataTypeIndexedDBDatabases) {
+    if (websiteDataTypes.contains(WebsiteDataType::IndexedDBDatabases)) {
         Vector<RefPtr<WebCore::SecurityOrigin>> securityOrigins;
         for (const auto& securityOriginData : securityOriginDatas)
             securityOrigins.append(securityOriginData.securityOrigin());
