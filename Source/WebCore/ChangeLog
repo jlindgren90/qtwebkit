@@ -1,3 +1,59 @@
+2016-02-29  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Refactor FetchBody constructors
+        https://bugs.webkit.org/show_bug.cgi?id=154721
+
+        Reviewed by Sam Weinig and Darin Adler.
+
+        Covered by existing tests.
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::extract): Renamed from "fromJSValue"
+        (WebCore::FetchBody::extractFromBody): Renamed from "fromRequestBody" and making use of move constructor.
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::FetchBody): Making default constructor public and removing empty static method.
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::buildBody):
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::error):
+        (WebCore::FetchResponse::redirect):
+        (WebCore::FetchResponse::initializeWith):
+        * Modules/fetch/FetchResponse.h:
+        (WebCore::FetchResponse::create):
+
+2016-02-28  Antti Koivisto  <antti@apple.com>
+
+        ::slotted doesn't work in nested shadow trees
+        https://bugs.webkit.org/show_bug.cgi?id=154765
+        <rdar://problem/24870995>
+
+        Reviewed by Ryosuke Niwa.
+
+        See https://github.com/w3c/webcomponents/issues/331#issuecomment-189191593
+
+        Test: fast/shadow-dom/css-scoping-shadow-slotted-nested.html
+
+        * css/ElementRuleCollector.cpp:
+        (WebCore::ElementRuleCollector::matchSlottedPseudoElementRules):
+
+        Collect ::slotted rules from all the nested shadow trees instead of just the host's.
+
+2016-02-28  Chris Dumez  <cdumez@apple.com>
+
+        Parse HTMLOLElement.start as per the HTML spec
+        https://bugs.webkit.org/show_bug.cgi?id=154802
+
+        Reviewed by Andreas Kling.
+
+        Parse HTMLOLElement.start as per the HTML spec:
+        - https://html.spec.whatwg.org/multipage/semantics.html#dom-ol-start
+        - https://html.spec.whatwg.org/multipage/infrastructure.html#rules-for-parsing-integers
+
+        No new tests, already covered by existing test.
+
+        * html/HTMLOListElement.cpp:
+        (WebCore::HTMLOListElement::parseAttribute):
+
 2016-02-28  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
 
         Reduce uses of PassRefPtr in indexeddb
