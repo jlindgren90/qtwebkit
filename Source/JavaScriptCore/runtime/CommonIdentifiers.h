@@ -232,6 +232,7 @@
     macro(toPrecision) \
     macro(toString) \
     macro(top) \
+    macro(unicode) \
     macro(usage) \
     macro(value) \
     macro(valueOf) \
