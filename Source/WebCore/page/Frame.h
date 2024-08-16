@@ -284,8 +284,6 @@ namespace WebCore {
         void setMainFrameWasDestroyed();
 
     private:
-        void injectUserScriptsForWorld(DOMWrapperWorld&, const UserScriptVector&, UserScriptInjectionTime);
-
         HashSet<FrameDestructionObserver*> m_destructionObservers;
 
         MainFrame& m_mainFrame;
