@@ -1612,6 +1612,7 @@ set(WebCore_SOURCES
     history/PageCache.cpp
 
     html/AttributeDOMTokenList.cpp
+    html/Autofill.cpp
     html/BaseButtonInputType.cpp
     html/BaseCheckableInputType.cpp
     html/BaseChooserOnlyDateAndTimeInputType.cpp
@@ -2119,7 +2120,6 @@ set(WebCore_SOURCES
     platform/PlatformSpeechSynthesizer.cpp
     platform/PlatformStrategies.cpp
     platform/RemoteCommandListener.cpp
-    platform/RuntimeApplicationChecks.cpp
     platform/SchemeRegistry.cpp
     platform/ScrollAnimator.cpp
     platform/ScrollView.cpp

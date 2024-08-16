@@ -28,24 +28,25 @@
 
 #if ENABLE(CUSTOM_ELEMENTS)
 
+#include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
-#include <wtf/RefCounted.h>
 #include <wtf/Vector.h>
-#include <wtf/text/AtomicString.h>
 
 namespace WebCore {
 
 class JSCustomElementInterface;
 class Document;
 class Element;
-class QualifiedName;
 class LifecycleQueueItem;
+class QualifiedName;
 
 class LifecycleCallbackQueue {
     WTF_MAKE_NONCOPYABLE(LifecycleCallbackQueue);
 public:
     LifecycleCallbackQueue();
     ~LifecycleCallbackQueue();
+
+    static void enqueueElementUpgrade(Element&, JSCustomElementInterface&);
 
     static void enqueueAttributeChangedCallback(Element&, JSCustomElementInterface&,
         const QualifiedName&, const AtomicString& oldValue, const AtomicString& newValue);

@@ -260,6 +260,7 @@ list(APPEND WebCore_LIBRARIES
     ${GLIB_GMODULE_LIBRARIES}
     ${GLIB_GOBJECT_LIBRARIES}
     ${GLIB_LIBRARIES}
+    ${GNUTLS_LIBRARIES}
     ${GUDEV_LIBRARIES}
     ${HARFBUZZ_LIBRARIES}
     ${LIBSECRET_LIBRARIES}
@@ -284,6 +285,7 @@ list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
     ${GEOCLUE_INCLUDE_DIRS}
     ${GIO_UNIX_INCLUDE_DIRS}
     ${GLIB_INCLUDE_DIRS}
+    ${GNUTLS_INCLUDE_DIRS}
     ${GUDEV_INCLUDE_DIRS}
     ${HARFBUZZ_INCLUDE_DIRS}
     ${LIBSECRET_INCLUDE_DIRS}
@@ -818,12 +820,5 @@ if (ENABLE_SUBTLE_CRYPTO)
         crypto/keys/CryptoKeyDataRSAComponents.cpp
         crypto/keys/CryptoKeyHMAC.cpp
         crypto/keys/CryptoKeySerializationRaw.cpp
-    )
-
-    list(APPEND WebCore_SYSTEM_INCLUDE_DIRECTORIES
-        ${GNUTLS_INCLUDE_DIRS}
-    )
-    list(APPEND WebCore_LIBRARIES
-        ${GNUTLS_LIBRARIES}
     )
 endif ()

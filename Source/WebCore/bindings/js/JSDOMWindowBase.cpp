@@ -263,7 +263,7 @@ VM& JSDOMWindowBase::commonVM()
 #endif
 
 #if PLATFORM(MAC)
-        if (applicationIsITunes() || applicationIsIBooks() || Settings::shouldRewriteConstAsVar())
+        if (MacApplication::isITunes() || MacApplication::isIBooks() || Settings::shouldRewriteConstAsVar())
             vm->setShouldRewriteConstAsVar(true);
 #endif
 

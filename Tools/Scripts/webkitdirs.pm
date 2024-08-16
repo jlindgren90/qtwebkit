@@ -1800,8 +1800,6 @@ sub buildXCodeProject($$@)
         push(@extraOptions, "clean");
     }
 
-    push(@extraOptions, ("-sdk", xcodeSDK())) if isIOSWebKit();
-
     chomp($ENV{DSYMUTIL_NUM_THREADS} = `sysctl -n hw.activecpu`);
     return system "xcodebuild", "-project", "$project.xcodeproj", @extraOptions;
 }

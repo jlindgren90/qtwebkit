@@ -1,3 +1,330 @@
+2016-03-06  Antti Koivisto  <antti@apple.com>
+
+        RenderTextControlSingleLine shouldn't mutate placeholder element inline style
+        https://bugs.webkit.org/show_bug.cgi?id=155086
+
+        Reviewed by Andreas Kling.
+
+        Text field placeholder element is currently managed by changing its inline style
+        from the host renderer based on the host style and state. Rendering poking
+        into DOM is wrong.
+
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::setRangeText):
+        (WebCore::HTMLInputElement::shouldTruncateText):
+
+            Add a helper.
+
+        (WebCore::HTMLInputElement::createInnerTextStyle):
+        * html/HTMLInputElement.h:
+        * html/HTMLTextAreaElement.cpp:
+        (WebCore::HTMLTextAreaElement::HTMLTextAreaElement):
+        (WebCore::HTMLTextAreaElement::placeholderElement):
+        (WebCore::HTMLTextAreaElement::matchesReadWritePseudoClass):
+        (WebCore::HTMLTextAreaElement::updatePlaceholderText):
+
+            Use the new shadow element.
+
+        * html/HTMLTextAreaElement.h:
+        * html/HTMLTextFormControlElement.cpp:
+        (WebCore::HTMLTextFormControlElement::updatePlaceholderVisibility):
+
+            No more poking to inline style.
+
+        (WebCore::HTMLTextFormControlElement::setSelectionStart):
+        * html/TextFieldInputType.cpp:
+        (WebCore::TextFieldInputType::updatePlaceholderText):
+
+            Use the new shadow element.
+
+        * html/shadow/TextControlInnerElements.cpp:
+        (WebCore::TextControlPlaceholderElement::TextControlPlaceholderElement):
+
+            Add a subclass for the placeholder element instead of just using div.
+
+        (WebCore::TextControlPlaceholderElement::customStyleForRenderer):
+
+            Compute style base on the host state and style.
+
+        (WebCore::SearchFieldResultsButtonElement::SearchFieldResultsButtonElement):
+        * html/shadow/TextControlInnerElements.h:
+        * rendering/RenderTextControlSingleLine.cpp:
+        (WebCore::RenderTextControlSingleLine::styleDidChange):
+
+            No more setInlineStyleProperty.
+            This now needs to trigger layout like it does with other inner elements.
+
+        (WebCore::RenderTextControlSingleLine::computeControlLogicalHeight):
+        (WebCore::RenderTextControlSingleLine::autoscroll):
+        (WebCore::RenderTextControlSingleLine::textShouldBeTruncated): Deleted.
+        * rendering/RenderTextControlSingleLine.h:
+
+2016-03-05  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add the support for upgrading custom elements in cloneNode
+        https://bugs.webkit.org/show_bug.cgi?id=155062
+
+        Reviewed by Antti Koivisto.
+
+        Implement https://w3c.github.io/webcomponents/spec/custom/#upgrading and steps 6 through 11 in
+        https://w3c.github.io/webcomponents/spec/custom/#htmlelement-constructor to support upgrading elements
+        created by Node.prototype.cloneNode.
+
+        Tests: fast/custom-elements/lifecycle-callback-timing.html
+               fast/custom-elements/upgrading/Node-cloneNode.html
+
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::upgradeElement): Added. Implements
+         https://w3c.github.io/webcomponents/spec/custom/#dfn-upgrade-a-custom-element
+        (WebCore::JSCustomElementInterface::didUpgradeLastElementInConstructionStack): Added. Implements step 10
+         "Replace the last entry in definition's construction stacka with an already constructed marker."
+         in https://w3c.github.io/webcomponents/spec/custom/#dom-htmlelement-constructor
+        * bindings/js/JSCustomElementInterface.h:
+        (WebCore::JSCustomElementInterface::isUpgradingElement):
+        (WebCore::JSCustomElementInterface::lastElementInConstructionStack):
+        (WebCore::JSCustomElementInterface): Added m_constructionStack. This is the construction stack:
+         https://w3c.github.io/webcomponents/spec/custom/#dfn-element-definition-construction-stack
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::throwInvalidStateError): Added.
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement): Implement the upgrading case in:
+         https://w3c.github.io/webcomponents/spec/custom/#htmlelement-constructor
+        * dom/Document.cpp:
+        (WebCore::createFallbackHTMLElement): Added. Enqueues upgrades of custom elements (enqueueElementUpgrade
+         currently does nothing if there is no InvokesCustomElementLifecycleCallbacks; e.g. in other DOM APIs).
+         This function implements https://w3c.github.io/webcomponents/spec/custom/#dfn-element-upgrade-algorithm
+        (WebCore::Document::createElement):
+        * dom/LifecycleCallbackQueue.cpp:
+        (WebCore::LifecycleQueueItem::LifecycleQueueItem): Added a generic constructor.
+        (WebCore::LifecycleQueueItem::invoke): Call upgradeElement when m_type is Type::ElementUpgrade.
+        (WebCore::LifecycleCallbackQueue::enqueueElementUpgrade): Added.
+        * dom/LifecycleCallbackQueue.h:
+        * dom/Node.idl: Added InvokesCustomElementLifecycleCallbacks on cloneNode.
+        * dom/make_names.pl:
+        (printFactoryCppFile): Added a variant of createKnownElement which takes QualifiedName. Also directly call
+         find(HTML|SVG|MathML)ElementConstructorFunction in createElement that takes AtomicString to avoid an extra
+         function call.
+        (printFactoryHeaderFile): Added a function declaration for createKnownElement that takes QualifiedName and
+         outdented class and function declarations to match the modern code style guideline.
+
+2016-03-05  Tim Horton  <timothy_horton@apple.com>
+
+        Create a DOMHTMLVideoElement when wrapping <video> elements
+        https://bugs.webkit.org/show_bug.cgi?id=155084
+        <rdar://problem/24997193>
+
+        Reviewed by Dan Bernstein.
+
+        * bindings/objc/DOM.mm:
+        (WebCore::createElementClassMap):
+        Add <video> to the mapping.
+
+2016-03-05  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Minor cleans up in custom elements' code per Darin's comments
+        https://bugs.webkit.org/show_bug.cgi?id=155081
+
+        Reviewed by Darin Adler.
+
+        Cleanup per Darin's comments.
+
+        * dom/CustomElementDefinitions.cpp:
+        (WebCore::CustomElementDefinitions::findInterface): Use get instead of explicitly checking against end().
+        * dom/LifecycleCallbackQueue.h: Remove unecessary header includes.
+
+2016-03-05  Sam Weinig  <sam@webkit.org>
+
+        Fix two minor typos from http://trac.webkit.org/changeset/197626 that were causing some test failures.
+
+        * html/Autofill.cpp:
+        (WebCore::fieldNameMap):
+        (WebCore::AutofillData::createFromHTMLFormControlElement):
+
+2016-03-05  Chris Dumez  <cdumez@apple.com>
+
+        Consolidate RuntimeApplicationChecks and RuntimeApplicationChecksIOS
+        https://bugs.webkit.org/show_bug.cgi?id=155035
+
+        Reviewed by Darin Adler.
+
+        Consolidate RuntimeApplicationChecks and RuntimeApplicationChecksIOS into
+        one file. The following changes were made:
+        - The checks now all rely on applicationBundleIdentifier(), which has the
+          benefit of working in WK1 and WK2 UI/WebContent/Networking processes.
+        - Use namespaces to distinguish Mac and iOS applications instead of relying
+          on the method name. So, applicationIsIBooksForIOS() becomes
+          IOSApplication::isIBooks().
+        - Use NSBundle API on both iOS and Mac instead of using the CF API on Mac
+          and the NS API on iOS.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper _accessibilityWebDocumentView]):
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::JSDOMWindowBase::commonVM):
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::putDelegate):
+        * html/HTMLMediaElement.cpp:
+        * html/HTMLObjectElement.cpp:
+        (WebCore::shouldNotPerformURLAdjustment):
+        * html/MediaElementSession.cpp:
+        * inspector/InspectorTimelineAgent.cpp:
+        (WebCore::currentRunLoop):
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::willLoadMediaElementURL):
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::create):
+        (WebCore::SubresourceLoader::startLoading):
+        * loader/cache/CachedScript.cpp:
+        (WebCore::CachedScript::shouldIgnoreHTTPStatusCodeErrors):
+        * platform/RuntimeApplicationChecks.cpp: Removed.
+        * platform/RuntimeApplicationChecks.h:
+        * platform/RuntimeApplicationChecks.mm: Added.
+        (WebCore::applicationBundleIdentifier):
+        (WebCore::applicationBundleIsEqualTo):
+        (WebCore::MacApplication::isSafari):
+        (WebCore::MacApplication::isAppleMail):
+        (WebCore::MacApplication::isIBooks):
+        (WebCore::MacApplication::isITunes):
+        (WebCore::MacApplication::isMicrosoftMessenger):
+        (WebCore::MacApplication::isAdobeInstaller):
+        (WebCore::MacApplication::isAOLInstantMessenger):
+        (WebCore::MacApplication::isMicrosoftMyDay):
+        (WebCore::MacApplication::isMicrosoftOutlook):
+        (WebCore::MacApplication::isQuickenEssentials):
+        (WebCore::MacApplication::isAperture):
+        (WebCore::MacApplication::isVersions):
+        (WebCore::MacApplication::isHRBlock):
+        (WebCore::MacApplication::isSolidStateNetworksDownloader):
+        (WebCore::MacApplication::isHipChat):
+        (WebCore::IOSApplication::isMobileMail):
+        (WebCore::IOSApplication::isMobileSafari):
+        (WebCore::IOSApplication::isDumpRenderTree):
+        (WebCore::IOSApplication::isMobileStore):
+        (WebCore::IOSApplication::isWebApp):
+        (WebCore::IOSApplication::isOkCupid):
+        (WebCore::IOSApplication::isFacebook):
+        (WebCore::IOSApplication::isDaijisenDictionary):
+        (WebCore::IOSApplication::isNASAHD):
+        (WebCore::IOSApplication::isTheEconomistOnIphone):
+        (WebCore::IOSApplication::isWebProcess):
+        (WebCore::IOSApplication::isIBooks):
+        (WebCore::setApplicationBundleIdentifier):
+        * platform/RuntimeApplicationChecksIOS.h: Removed.
+        * platform/RuntimeApplicationChecksIOS.mm: Removed.
+        * platform/audio/ios/AudioDestinationIOS.cpp:
+        * platform/cf/URLCF.cpp:
+        * platform/graphics/ca/cocoa/LayerFlushSchedulerMac.cpp:
+        (WebCore::currentRunLoop):
+        * platform/ios/PasteboardIOS.mm:
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        * platform/ios/wak/WebCoreThread.mm:
+        (WebThreadEnable):
+        * platform/mac/WidgetMac.mm:
+        (WebCore::Widget::paint):
+        * platform/network/ios/QuickLook.mm:
+        * platform/network/mac/ResourceHandleMac.mm:
+        * rendering/RenderLayerBacking.cpp:
+        (WebCore::RenderLayerBacking::needsIOSDumpRenderTreeMainFrameRenderViewLayerIsAlwaysOpaqueHack):
+
+2016-03-05  Zalan Bujtas  <zalan@apple.com>
+
+        Make table collapsed borders subpixel aware.
+        https://bugs.webkit.org/show_bug.cgi?id=150383
+
+        Reviewed by Simon Fraser.
+
+        This patch enables authors to 
+        - set subpixel width on collapsed borders
+        - and push those borders to subpixel positions.
+
+        Test: fast/table/collapsed-border-with-odd-pixel-width.html
+
+        * rendering/RenderTable.cpp:
+        (WebCore::RenderTable::calcBorderStart):
+        (WebCore::RenderTable::calcBorderEnd):
+        (WebCore::RenderTable::outerBorderBefore):
+        (WebCore::RenderTable::outerBorderAfter):
+        (WebCore::RenderTable::outerBorderStart):
+        (WebCore::RenderTable::outerBorderEnd):
+        * rendering/RenderTableCell.cpp:
+        (WebCore::RenderTableCell::borderHalfStart):
+        (WebCore::RenderTableCell::borderHalfEnd):
+        (WebCore::RenderTableCell::borderHalfBefore):
+        (WebCore::RenderTableCell::borderHalfAfter):
+        (WebCore::RenderTableCell::paintCollapsedBorders):
+        * rendering/RenderTableSection.cpp:
+        (WebCore::RenderTableSection::calcOuterBorderBefore):
+        (WebCore::RenderTableSection::calcOuterBorderAfter):
+        (WebCore::RenderTableSection::calcOuterBorderStart):
+        (WebCore::RenderTableSection::calcOuterBorderEnd):
+        * rendering/style/CollapsedBorderValue.h:
+        (WebCore::CollapsedBorderValue::adjustedCollapsedBorderWidth):
+
+2016-03-05  Sam Weinig  <sam@webkit.org>
+
+        Add support for processing the autofill field name out of form control elements ultimately to aid input methods
+        <rdar://problem/23041180>
+        https://bugs.webkit.org/show_bug.cgi?id=155079
+
+        Reviewed by Enrica Casucci.
+
+        Added additional cases to fast/forms/autocomplete-tokens.html.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Add Autofill.h/cpp
+
+        * html/Autofill.cpp: Added.
+        (WebCore::fieldNameMap):
+        (WebCore::toAutofillFieldName):
+        (WebCore::isContactToken):
+        (WebCore::maxTokensForAutofillFieldCategory):
+        (WebCore::AutofillData::createFromHTMLFormControlElement):
+        * html/Autofill.h: Added.
+        (WebCore::AutofillData::AutofillData):
+        Refactored the autofill data processing algorithm into it's own file and added support
+        returning not just the IDL-exposed autofill value but also the autofill field name. The
+        code is structured simply enough that if we find a need for the hint set or scope information
+        we could return it as well.
+
+        * html/HTMLFormControlElement.cpp:
+        (WebCore::HTMLFormControlElement::autocomplete):
+        (WebCore::HTMLFormControlElement::setAutocomplete):
+        (WebCore::HTMLFormControlElement::autofillMantle):
+        (WebCore::HTMLFormControlElement::autofillData):
+        Use AutofillData to implement these.
+
+        * html/HTMLFormControlElement.h:
+        Expose accessor for mantle and AutofillData.
+
+        * html/HTMLFormElement.cpp:
+        (WebCore::HTMLFormElement::autocomplete):
+        * html/HTMLFormElement.h:
+        Switch to return an AtomicString as it will always
+        return one of two known values.
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::autofillFieldName):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+        Add accessor of the field name for testing purposes.
+
+2016-03-05  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Build fix after r197612 (under ASAN/GuardMalloc).
+
+        * dom/CustomElementDefinitions.cpp:
+        (WebCore::CustomElementDefinitions::findInterface):
+
+2016-03-05  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed, fix GTK/EFL build after r197575 and add mandatory GnuTLS dependency
+
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+
 2016-03-05  Simon Fraser  <simon.fraser@apple.com>
 
         Add support for the object-position CSS property
