@@ -75,6 +75,8 @@ RefPtr<RenderStyle> SharingResolver::resolve(const Element& searchElement)
     if (!element.parentElement())
         return nullptr;
     auto& parentElement = *element.parentElement();
+    if (parentElement.shadowRoot())
+        return nullptr;
     if (!parentElement.renderStyle())
         return nullptr;
     // If the element has inline style it is probably unique.
