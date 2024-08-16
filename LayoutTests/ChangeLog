@@ -1,3 +1,192 @@
+2016-03-10  Nan Wang  <n_wang@apple.com>
+
+        AX: Implement bounds/position and index related text marker functions using TextIterator
+        https://bugs.webkit.org/show_bug.cgi?id=154976
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/text-marker-for-index-expected.txt: Added.
+        * accessibility/mac/text-marker-for-index.html: Added.
+        * accessibility/mac/text-marker-word-nav-expected.txt:
+        * accessibility/mac/text-marker-word-nav.html:
+
+2016-03-10  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Test gardening after r197933
+        <rdar://problem/25091368>
+
+        Unreviewed.
+
+        * fast/text/woff2-expected.html:
+        * fast/text/woff2.html:
+
+2016-03-10  Daniel Bates  <dabates@apple.com>
+
+        CSP: Implement frame-ancestors directive
+        https://bugs.webkit.org/show_bug.cgi?id=154345
+        <rdar://problem/24702161>
+
+        Reviewed by Brent Fulgham.
+
+        Adds new tests to ensure we ignore directive frame-ancestors when defined a policy delivered
+        in an HTML meta element or in a report-only policy (i.e. delivered via HTTP header Content-
+        Security-Policy-Report-Only). Also adds new test to ensure that we send a violation report
+        when the directive frame-ancestors is violated.
+
+        Updated many existing tests and test results that unnecessarily depended on a DOM SecurityError
+        exception being thrown when accessing the content of a cross-origin frame. It is sufficient
+        and more direct to test directive frame-ancestors by dumping the contents of all children frames
+        on the page. We design the tests such that a child frame that was blocked by the frame-ancestors
+        directive is expected to have no content. A child frame that was allowed by the frame-ancestors
+        directive is expected to have content.
+
+        * TestExpectations: Mark frame-ancestors tests as PASS so that we run them.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-in-meta-element-ignored-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-in-meta-element-ignored.html: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-in-report-only-ignored-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-in-report-only-ignored.html: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-none-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-none-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-self-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-self-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-star-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-star-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-url-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-url-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-url-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-cross-url-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-none-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-none-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-self-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-self-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-star-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-star-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-url-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-url-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-url-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-cross-in-same-url-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-none-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-none-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-self-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-self-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-star-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-star-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-url-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-url-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-url-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-cross-url-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-none-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-none-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-self-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-self-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-star-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-star-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-url-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-url-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-url-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-nested-same-in-same-url-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-none-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-none-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-protocolless-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-protocolless-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-self-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-self-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-self-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-self-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-star-allow-crossorigin-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-star-allow-crossorigin.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-star-allow-sameorigin-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-star-allow-sameorigin.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-url-allow-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-url-allow.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-url-block-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-url-block.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin-https-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin-https.html: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin.html: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin-https-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin-https.html: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin.html: Added.
+        * http/tests/security/contentSecurityPolicy/resources/echo-intertag.pl: Added.
+        * http/tests/security/contentSecurityPolicy/resources/frame-ancestors-test.js:
+        (done): Added.
+        (injectIFrame): Modified to make use of handleFrameEvent().
+        (handleFrameEvent): Added.
+        (iframeLoaded): Deleted.
+        * http/tests/security/contentSecurityPolicy/resources/frame-in-frame.pl:
+
+2016-03-10  Andy VanWagoner  <andy@instructure.com>
+
+        Add shouldNotBe to standalone test harness
+        https://bugs.webkit.org/show_bug.cgi?id=155300
+
+        Reviewed by Saam Barati.
+
+        Copy over the shouldNotBe function from js-test-pre. This fixes errors
+        introduced be new Intl tests.
+
+        * resources/standalone-pre.js:
+        (shouldNotBe):
+
+2016-03-10  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline two inspector tests after r197954 changed the results.
+
+        Unreviewed test gardening.
+
+        * inspector/debugger/command-line-api-exception-expected.txt:
+        * platform/mac/inspector/model/remote-object-expected.txt:
+
+2016-03-10  Michael Saboff  <msaboff@apple.com>
+
+        [ES6] Allow RegExp constructor to take pattern from an existing RegExp with new flags
+        https://bugs.webkit.org/show_bug.cgi?id=155315
+
+        Reviewed by Saam Barati.
+
+        New and updated test for change.
+
+        * fast/regex/constructor-expected.txt:
+        * fast/regex/script-tests/constructor.js:
+        Changed test for new behavior.`
+
+        * js/regexp-old-regexp-new-flags-expected.txt: Added.
+        * js/regexp-old-regexp-new-flags.html: Added.
+        * js/script-tests/regexp-old-regexp-new-flags.js: Added.
+        New test.
+
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.3/S15.10.3.1_A2_T1-expected.txt: Removed.
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.3/S15.10.3.1_A2_T1.html: Removed.
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.3/S15.10.3.1_A2_T2-expected.txt: Removed.
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.3/S15.10.3.1_A2_T2.html: Removed.
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.4/S15.10.4.1_A2_T1-expected.txt: Removed.
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.4/S15.10.4.1_A2_T1.html: Removed.
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.4/S15.10.4.1_A2_T2-expected.txt: Removed.
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.4/S15.10.4.1_A2_T2.html: Removed.
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.4/S15.10.4.1_A8_T8-expected.txt: Removed.
+        * sputnik/Conformance/15_Native_Objects/15.10_RegExp/15.10.4/S15.10.4.1_A8_T8.html: Removed.
+        Removed obsolete tests.
+
+2016-03-10  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] Main frame scrollbars should appear on the left on RTL systems
+        https://bugs.webkit.org/show_bug.cgi?id=155149
+
+        Reviewed by Simon Fraser.
+
+        * fast/scrolling/rtl-scrollbars-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-simple-expected-mismatch.html: Added.
+        * fast/scrolling/rtl-scrollbars-simple.html: Added.
+        * fast/scrolling/rtl-scrollbars.html: Added.
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+        * platform/efl/TestExpectations:
+        * platform/gtk/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+        * platform/win/TestExpectations:
+
 2016-03-07  Jer Noble  <jer.noble@apple.com>
 
         Add separate WK and WK2 preferences for requiring user gestures for video media, distinct from user gestures for media generally

@@ -1,3 +1,141 @@
+2016-03-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Font antialiasing (smoothing) changes when elements are rendered into compositing layers
+        https://bugs.webkit.org/show_bug.cgi?id=23364
+
+        Reviewed by Tim Horton.
+
+        Send the ContentsFormat to the UI process (but nothing happens to it there yet).
+
+        Allow internal clients to turn off smoothed layer text, so that WebKitTestRunner
+        can disable it.
+
+        * Shared/WebProcessCreationParameters.cpp:
+        (WebKit::WebProcessCreationParameters::WebProcessCreationParameters):
+        (WebKit::WebProcessCreationParameters::encode):
+        (WebKit::WebProcessCreationParameters::decode):
+        * Shared/WebProcessCreationParameters.h:
+        * Shared/mac/RemoteLayerTreeTransaction.h:
+        * Shared/mac/RemoteLayerTreeTransaction.mm:
+        (WebKit::RemoteLayerTreeTransaction::LayerProperties::encode):
+        (WebKit::RemoteLayerTreeTransaction::LayerProperties::decode):
+        * UIProcess/API/C/WKContext.cpp:
+        (WKContextEnableSmoothedLayerText):
+        * UIProcess/API/C/WKContextPrivate.h:
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::createNewWebProcess):
+        (WebKit::WebProcessPool::enableSmoothedLayerText):
+        (WebKit::WebProcessPool::WebProcessPool): Deleted.
+        * UIProcess/WebProcessPool.h:
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.cpp:
+        (WebKit::PlatformCALayerRemote::setContentsFormat):
+        (WebKit::PlatformCALayerRemote::contentsFormat):
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.h:
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess):
+        (WebKit::WebProcess::enableSmoothedLayerText):
+        * WebProcess/WebProcess.h:
+        * WebProcess/WebProcess.messages.in:
+
+2016-03-10  Enrica Casucci  <enrica@apple.com>
+
+        Expose additional WKDataDetectorTypes.
+        https://bugs.webkit.org/show_bug.cgi?id=155331
+        rdar://problem/24175813
+
+        Reviewed by Tim Horton.
+
+        Adding API to enable data detection of tracking numbers,
+        flight number and spotlight suggestions.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (fromWKDataDetectorTypes):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.h:
+
+2016-03-10  Beth Dakin  <bdakin@apple.com>
+
+        defaultActions in UIDelegate method 
+        _webView:previewingViewControllerForElement:defaultActions: need to be 
+        use-able by a client
+        https://bugs.webkit.org/show_bug.cgi?id=155304
+        -and corresponding-
+        rdar://problem/24269296
+
+        Reviewed by Anders Carlsson.
+
+        This patch adds a new protocol, WKPreviewActionItem, which is a sub-protocol 
+        of UIPreviewActionItem. The new protocol adds an identifier so that clients 
+        can identify which of our default actions they want to use. In order for a 
+        client to use our default action items, they need to return those actions in 
+        their UIViewController's implementation of previewActionItems.
+
+        Change the defaultActions to NSArray <id <WKPreviewActionItem>> *
+        * UIProcess/API/Cocoa/WKUIDelegatePrivate.h:
+
+        This new file defines our sub-protocol and sub-class for WKPreviewActions.
+        * UIProcess/API/Cocoa/_WKPreviewAction.h: Added.
+        * UIProcess/API/Cocoa/_WKPreviewAction.mm: Added.
+        (+[_WKPreviewAction actionWithIdentifier:title:style:handler:]):
+
+        New BOOL _uiDelegateProvidedPreviewingViewController keeps track of whether 
+        the client returned a view controller from 
+        _webView:previewingViewControllerForElement:defaultActions:. If they did 
+        return a view controller, then we should invoke 
+        _webView:commitPreviewingViewController: at commit time. If they returned 
+        nil, then they indicated that WebKit should continue with default previewing 
+        behavior, so we will not invoke the UIDelegate’s commit method.
+        * UIProcess/ios/WKContentViewInteraction.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _registerPreview]):
+        (-[WKContentView _unregisterPreview]):
+        (-[WKContentView _interactionShouldBeginFromPreviewItemController:forPosition:]):
+
+        In order for our default actions to be useful, we have to create 
+        _WKPreviewActions.
+        (-[WKContentView _presentedViewControllerForPreviewItemController:]):
+
+        Only invoke _webView:commitPreviewedViewController: if 
+        _uiDelegateProvidedPreviewingViewController is YES.
+        (-[WKContentView _previewItemController:commitPreview:]):
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-03-10  Jer Noble  <jer.noble@apple.com>
+
+        Add WebCore, WebKit, & WebKit2 preference/setting to enable Main Content heuristic.
+        https://bugs.webkit.org/show_bug.cgi?id=155326
+        <rdar://problem/25095408>
+
+        Reviewed by Beth Dakin.
+
+        Add SPI to get and set the new preference.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetMainContentUserGestureOverrideEnabled):
+        (WKPreferencesGetMainContentUserGestureOverrideEnabled):
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration init]):
+        (-[WKWebViewConfiguration copyWithZone:]):
+        (-[WKWebViewConfiguration _mainContentUserGestureOverrideEnabled]):
+        (-[WKWebViewConfiguration _setMainContentUserGestureOverrideEnabled:]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-03-10  Alex Christensen  <achristensen@webkit.org>
+
+        Remove firing assertion after r197865.
+        https://bugs.webkit.org/show_bug.cgi?id=155137
+        rdar://problem/25096835
+
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:dataTask:didReceiveResponse:completionHandler:]):
+        (-[WKNetworkSessionDelegate URLSession:dataTask:didReceiveData:]):
+        This assertion was firing.  I'm looking into why.
+
 2016-03-07  Jer Noble  <jer.noble@apple.com>
 
         Add separate WK and WK2 preferences for requiring user gestures for video media, distinct from user gestures for media generally

@@ -1,3 +1,392 @@
+2016-03-10  Nan Wang  <n_wang@apple.com>
+
+        AX: Implement bounds/position and index related text marker functions using TextIterator
+        https://bugs.webkit.org/show_bug.cgi?id=154976
+
+        Reviewed by Chris Fleizach.
+
+        Implemented position and index related text marker calls with TextIterator. Also fixed some
+        VoiceOver navigation issues.
+
+        Test: accessibility/mac/text-marker-for-index.html
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::AXObjectCache::traverseToOffsetInRange):
+        (WebCore::AXObjectCache::startOrEndCharacterOffsetForRange):
+        (WebCore::AXObjectCache::textMarkerDataForCharacterOffset):
+        (WebCore::AXObjectCache::shouldSkipBoundary):
+        (WebCore::AXObjectCache::textMarkerDataForNextCharacterOffset):
+        (WebCore::AXObjectCache::startCharacterOffsetOfWord):
+        (WebCore::AXObjectCache::nextBoundary):
+        (WebCore::AXObjectCache::previousBoundary):
+        (WebCore::AXObjectCache::previousSentenceStartCharacterOffset):
+        (WebCore::AXObjectCache::localCaretRectForCharacterOffset):
+        (WebCore::AXObjectCache::absoluteCaretBoundsForCharacterOffset):
+        (WebCore::AXObjectCache::characterOffsetForPoint):
+        (WebCore::AXObjectCache::characterOffsetForBounds):
+        (WebCore::AXObjectCache::endCharacterOffsetOfLine):
+        (WebCore::AXObjectCache::startCharacterOffsetOfLine):
+        (WebCore::AXObjectCache::characterOffsetForIndex):
+        (WebCore::AXObjectCache::indexForCharacterOffset):
+        (WebCore::AXObjectCache::rootAXEditableElement):
+        * accessibility/AXObjectCache.h:
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::visiblePositionRangeForRange):
+        (WebCore::AccessibilityObject::rangeForPlainTextRange):
+        (WebCore::AccessibilityObject::lineRangeForPosition):
+        * accessibility/AccessibilityObject.h:
+        (WebCore::AccessibilityObject::boundsForVisiblePositionRange):
+        (WebCore::AccessibilityObject::boundsForRange):
+        (WebCore::AccessibilityObject::setSelectedVisiblePositionRange):
+        (WebCore::AccessibilityObject::doAXStringForRange):
+        (WebCore::AccessibilityObject::doAXBoundsForRange):
+        (WebCore::AccessibilityObject::doAXBoundsForRangeUsingCharacterOffset):
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::nodeIsTextControl):
+        (WebCore::AccessibilityRenderObject::boundsForRects):
+        (WebCore::AccessibilityRenderObject::boundsForVisiblePositionRange):
+        (WebCore::AccessibilityRenderObject::boundsForRange):
+        (WebCore::AccessibilityRenderObject::setSelectedVisiblePositionRange):
+        (WebCore::AccessibilityRenderObject::doAXBoundsForRange):
+        (WebCore::AccessibilityRenderObject::doAXBoundsForRangeUsingCharacterOffset):
+        (WebCore::AccessibilityRenderObject::accessibilityImageMapHitTest):
+        * accessibility/AccessibilityRenderObject.h:
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper positionForTextMarker:]):
+        (-[WebAccessibilityObjectWrapper textMarkerRange]):
+        (-[WebAccessibilityObjectWrapper textMarkerRangeForSelection]):
+        (-[WebAccessibilityObjectWrapper textMarkerForPosition:]):
+        (-[WebAccessibilityObjectWrapper _stringForRange:attributed:]):
+        (-[WebAccessibilityObjectWrapper frameForTextMarkers:]):
+        (-[WebAccessibilityObjectWrapper textMarkerForPoint:]):
+        (-[WebAccessibilityObjectWrapper nextMarkerForCharacterOffset:]):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (-[WebAccessibilityObjectWrapper doAXAttributedStringForRange:]):
+        (-[WebAccessibilityObjectWrapper _convertToNSRange:]):
+        (-[WebAccessibilityObjectWrapper _indexForTextMarker:]):
+        (-[WebAccessibilityObjectWrapper _textMarkerForIndex:]):
+        (-[WebAccessibilityObjectWrapper accessibilityAttributeValue:forParameter:]):
+        * editing/htmlediting.cpp:
+        (WebCore::localCaretRectInRendererForCaretPainting):
+        (WebCore::localCaretRectInRendererForRect):
+        * editing/htmlediting.h:
+
+2016-03-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Font antialiasing (smoothing) changes when elements are rendered into compositing layers
+        https://bugs.webkit.org/show_bug.cgi?id=23364
+
+        Reviewed by Tim Horton.
+
+        Improve the appearance of subpixel-antialiased ("smoothed") text in non-opaque layers
+        by opting in to a new CALayer backing store format.
+
+        GraphicsLayer now has setSupportsSmoothedFonts(), which is called by RenderLayerBacking
+        when the platform has support for the new feature. Ideally this would only be set when
+        we know a layer has smoothed text drawn into it, but, for now, enable this for all
+        layers. The right thing happens with opaque layers under the hood.
+
+        setSupportsSmoothedFonts() is turned into a PlatformCALayer contentsFormat flag, which
+        is ultimately passed to setBackingStoreFormat().
+
+        We also need to propagate this flag to TileController tiles.
+
+        * platform/graphics/GraphicsLayer.cpp:
+        (WebCore::GraphicsLayer::supportsSmoothedLayerText):
+        (WebCore::GraphicsLayer::setSmoothedLayerTextEnabled):
+        (WebCore::GraphicsLayer::smoothedLayerTextEnabled):
+        (WebCore::GraphicsLayer::GraphicsLayer):
+        * platform/graphics/GraphicsLayer.h:
+        (WebCore::GraphicsLayer::supportsSmoothedFonts):
+        (WebCore::GraphicsLayer::setSupportsSmoothedFonts):
+        * platform/graphics/TiledBacking.h:
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayer::supportsSmoothedLayerText):
+        (WebCore::GraphicsLayer::setSmoothedLayerTextEnabled):
+        (WebCore::GraphicsLayer::smoothedLayerTextEnabled):
+        (WebCore::GraphicsLayerCA::setSupportsSmoothedFonts):
+        (WebCore::GraphicsLayerCA::commitLayerChangesBeforeSublayers):
+        (WebCore::GraphicsLayerCA::updateContentsFormat):
+        * platform/graphics/ca/GraphicsLayerCA.h:
+        * platform/graphics/ca/PlatformCALayer.cpp:
+        (WebCore::PlatformCALayer::drawRepaintIndicator): Give the number a "shadow" when
+        the contents format says we support smoothed fonts.
+        * platform/graphics/ca/PlatformCALayer.h:
+        * platform/graphics/ca/TileController.cpp:
+        (WebCore::TileController::setTileContentsFormatFlags):
+        (WebCore::TileController::createTileLayer):
+        * platform/graphics/ca/TileController.h:
+        * platform/graphics/ca/TileGrid.cpp:
+        (WebCore::TileGrid::updateTileLayerProperties):
+        * platform/graphics/ca/cocoa/PlatformCALayerCocoa.h:
+        * platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm:
+        (WebCore::setBackingStoreFormat):
+        (PlatformCALayerCocoa::commonInit):
+        (PlatformCALayerCocoa::setContentsFormat):
+        (PlatformCALayer::drawLayerContents): Previously, we turned off font smoothing in
+        non-opaque layers to improve text appearance. We no longer need to do that when
+        the contents format has "SmoothedFonts".
+        * platform/graphics/ca/win/PlatformCALayerWin.cpp:
+        (PlatformCALayerWin::setContentsFormat):
+        (PlatformCALayerWin::contentsFormat):
+        * platform/graphics/ca/win/PlatformCALayerWin.h:
+        * platform/ios/LegacyTileGridTile.mm:
+        (WebCore::setBackingStoreFormat):
+        (WebCore::LegacyTileGridTile::LegacyTileGridTile):
+        * rendering/RenderLayerBacking.cpp:
+        (WebCore::RenderLayerBacking::createGraphicsLayer):
+
+2016-03-10  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197922.
+        https://bugs.webkit.org/show_bug.cgi?id=155340
+
+        This change broke storage/websql tests on ios-simulator.
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "WebKit should adopt journal_mode=wal for all SQLite
+        databases."
+        https://bugs.webkit.org/show_bug.cgi?id=133496
+        http://trac.webkit.org/changeset/197922
+
+2016-03-10  Tim Horton  <timothy_horton@apple.com>
+
+        Fix the build again.
+
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::constructURLStringForResult):
+
+2016-03-10  Tim Horton  <timothy_horton@apple.com>
+
+        Fix the build.
+
+        * editing/cocoa/DataDetection.mm:
+
+2016-03-10  Enrica Casucci  <enrica@apple.com>
+
+        Expose additional WKDataDetectorTypes.
+        https://bugs.webkit.org/show_bug.cgi?id=155331
+        rdar://problem/24175813
+
+        Reviewed by Tim Horton.
+
+        Adding support for additional data detector types (tracking
+        numbers, flight information and spotlight suggestions).
+
+        * editing/cocoa/DataDetection.h:
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::constructURLStringForResult):
+        (WebCore::DataDetection::detectContentInRange):
+        * platform/cocoa/DataDetectorsCoreSoftLink.h:
+        * platform/cocoa/DataDetectorsCoreSoftLink.mm:
+        * platform/spi/cocoa/DataDetectorsCoreSPI.h:
+
+2016-03-10  Daniel Bates  <dabates@apple.com>
+
+        CSP: Implement frame-ancestors directive
+        https://bugs.webkit.org/show_bug.cgi?id=154345
+        <rdar://problem/24702161>
+
+        Reviewed by Brent Fulgham.
+
+        Add support for the Content Security Policy directive frame-ancestors per the Content Security
+        Policy 2.0 spec., <https://www.w3.org/TR/2015/CR-CSP2-20150721/>.
+
+        Tests: http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-in-meta-element-ignored.html
+               http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-in-report-only-ignored.html
+               http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin-https.html
+               http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin.html
+               http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin-https.html
+               http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin.html
+
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::stopLoadingAfterXFrameOptionsOrContentSecurityPolicyDenied): Extracted from DocumentLoader::responseReceived().
+        (WebCore::DocumentLoader::responseReceived): Extracted logic to cancel a load and dispatch a DOM Load
+        event at the frame owner into DocumentLoader::stopLoadingAfterXFrameOptionsOrContentSecurityPolicyDenied().
+        Make use of this function when loading of the frame is blocked by either the Content Security Policy or
+        the X-Frame-Option policy. We explicitly instantiate a ContentSecurityPolicy object with a SecurityOrigin
+        and Frame instead of using ScriptExecutionContext m_frame->document() because m_frame->document() is not
+        in a stable state (for instance, Document::m_url has not been initialized) as we are in the process of
+        loading the underlying document data for it.
+        * loader/DocumentLoader.h:
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::didBeginDocument): Pass ContentSecurityPolicy::ReportParsingErrors::No to silence
+        errors raised when parsing the Content Security Policy headers to avoid duplicate error messages. Any
+        parsing errors would have been raised when we parsed the Content Security Policy in DocumentLoader.
+        * page/csp/ContentSecurityPolicy.cpp:
+        (WebCore::ContentSecurityPolicy::ContentSecurityPolicy): Modified to take an optional pointer to a Frame (defaults
+        to nullptr). The specified Frame is used to support emitting console messages for violations/syntax errors and
+        send violation reports. We make use of this constructor variant in DocumentLoader to support emitting console
+        message and sending violation reports in the context of DocumentLoader where its associated Document is not in a
+        stable state and making use of a Frame seems less error prone.
+        (WebCore::ContentSecurityPolicy::didReceiveHeaders): Modified to take argument reportParsingErrors as
+        to whether to silence parsing errors when parsing the specified headers.
+        (WebCore::isAllowedByAllWithFrame): Helper function to query a ContentSecurityPolicyDirectiveList function
+        passing a Frame and URL for each Content Security Policy.
+        (WebCore::ContentSecurityPolicy::allowFrameAncestors): Calls WebCore::isAllowedByAllWithFrame().
+        (WebCore::ContentSecurityPolicy::reportViolation): Modified to support sending a violation report when
+        we have a Frame and no ScriptExecutionContext (such as when we are instantiated in DocumentLoader).
+        Additionally, we only will send a report if reporting is enabled (i.e. ContentSecurityPolicy::m_isReportingEnabled == true).
+        (WebCore::ContentSecurityPolicy::logToConsole): Modified to support logging a message to the console
+        we have a Frame and no ScriptExecutionContext. We also only allow logging if reporting is enabled.
+        * page/csp/ContentSecurityPolicy.h:
+        * page/csp/ContentSecurityPolicyDirectiveList.cpp:
+        (WebCore::checkFrameAncestors): Added.
+        (WebCore::ContentSecurityPolicyDirectiveList::checkFrameAncestorsAndReportViolation): Added.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFrameAncestors): Added.
+        (WebCore::ContentSecurityPolicyDirectiveList::parse): Ignore the directive frame-ancestors when defined
+        in a policy given in an HTML meta element and report such use as invalid.
+        (WebCore::ContentSecurityPolicyDirectiveList::addDirective): Parse the directive frame-ancestors.
+        * page/csp/ContentSecurityPolicyDirectiveList.h:
+        * page/csp/ContentSecurityPolicyResponseHeaders.h: Mark constructor "explicit".
+
+2016-03-10  Jer Noble  <jer.noble@apple.com>
+
+        Add WebCore, WebKit, & WebKit2 preference/setting to enable Main Content heuristic.
+        https://bugs.webkit.org/show_bug.cgi?id=155326
+        <rdar://problem/25095408>
+
+        Reviewed by Beth Dakin.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::HTMLMediaElement): Set the OverrideUserGestureRequirementForMainContent if the new setting is enabled.
+        * page/Settings.in:
+
+2016-03-10  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        REGRESSION: GuardMallloc crash in SVGListPropertyTearOff<SVGPointList>::processIncomingListItemWrapper
+        https://bugs.webkit.org/show_bug.cgi?id=154969
+
+        Reviewed by Darin Adler.
+
+        The life cycle of the SVGAnimatedPropertyTearOff::m_baseVal and m_animVal
+        was not correct. Like what was done in SVGAnimatedListPropertyTearOff,
+        m_baseVal and m_animVal have to be raw RefCounted pointers. When requested
+        through, SVGAnimatedPropertyTearOff::baseVal() and animVal() they are
+        encapsulated in a RefPtr to ensure they existence as long as they are
+        referenced. When the animated property object (which is stored in either
+        m_baseVal or m_animVal) is not referenced by anyone, it is going to be
+        deleted. In the destructor of their class, SVGAnimatedPropertyTearOff
+        will be notified of this deletion through propertyWillBeDeleted() to clean
+        its member m_baseVal or m_animVal.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (NativeToJSValue): Now all the SVG animated property return RefPtrs. In
+        addition to that, SVGViewSpec.transform also returns
+        RefPtr<SVGTransformListPropertyTearOff>.
+        
+        * svg/properties/SVGAnimatedListPropertyTearOff.h:
+        (WebCore::SVGAnimatedListPropertyTearOff::animVal):
+        (WebCore::SVGAnimatedListPropertyTearOff::currentAnimatedValue):
+        (WebCore::SVGAnimatedListPropertyTearOff::animationStarted):
+        (WebCore::SVGAnimatedListPropertyTearOff::animationEnded):
+        (WebCore::SVGAnimatedListPropertyTearOff::synchronizeWrappersIfNeeded):
+        (WebCore::SVGAnimatedListPropertyTearOff::isAnimating):
+        (WebCore::SVGAnimatedListPropertyTearOff::propertyWillBeDeleted):
+        Change propertyWillBeDeleted() to be virtual and make it takes an SVGProperty*.
+        Rename m_animatingAnimVal to be m_animatedProperty. Add isAnimating() which
+        returns true if m_animatedProperty is not null. Use isAnimating() instead of
+        m_isAnimating because it's deleted from the base class.
+        
+        * svg/properties/SVGAnimatedProperty.cpp:
+        (WebCore::SVGAnimatedProperty::SVGAnimatedProperty):
+        (WebCore::SVGAnimatedProperty::~SVGAnimatedProperty):
+        * svg/properties/SVGAnimatedProperty.h:
+        (WebCore::SVGAnimatedProperty::isAnimating):
+        (WebCore::SVGAnimatedProperty::propertyWillBeDeleted):
+        Delete m_isAnimating since its value can be deduced from the value of
+        m_animatedProperty in the derived class. Add propertyWillBeDeleted() and
+        isAnimating() as virtual functions with the default behavior.
+        
+        * svg/properties/SVGAnimatedPropertyTearOff.h:
+        (WebCore::SVGAnimatedPropertyTearOff::baseVal):
+        (WebCore::SVGAnimatedPropertyTearOff::animVal):
+        Like SVGAnimatedListPropertyTearOff::baseVal() and animVal() create the
+        value if it does not exist. Keep a raw RefCounted pointer but return a
+        RefPtr.
+
+        (WebCore::SVGAnimatedPropertyTearOff::isAnimating):
+        (WebCore::SVGAnimatedPropertyTearOff::propertyWillBeDeleted):
+        Override virtual functions.
+        
+        (WebCore::SVGAnimatedPropertyTearOff::currentAnimatedValue):
+        (WebCore::SVGAnimatedPropertyTearOff::animationStarted):
+        (WebCore::SVGAnimatedPropertyTearOff::animationEnded):
+        (WebCore::SVGAnimatedPropertyTearOff::animValWillChange):
+        (WebCore::SVGAnimatedPropertyTearOff::animValDidChange):
+        Replace m_isAnimating with isAnimating(). Ensure that we get a new animated
+        property through animVal() and store it in a RefPtr to ensure it will not
+        go away while animating.
+        
+        * svg/properties/SVGAnimatedStaticPropertyTearOff.h:
+        (WebCore::SVGAnimatedStaticPropertyTearOff::isAnimating):
+        (WebCore::SVGAnimatedStaticPropertyTearOff::currentAnimatedValue):
+        (WebCore::SVGAnimatedStaticPropertyTearOff::animationStarted):
+        (WebCore::SVGAnimatedStaticPropertyTearOff::animationEnded):
+        (WebCore::SVGAnimatedStaticPropertyTearOff::animValWillChange):
+        (WebCore::SVGAnimatedStaticPropertyTearOff::animValDidChange):
+        Add isAnimating() and replace all the instances of m_isAnimating with calls
+        to isAnimating().
+        
+        * svg/properties/SVGPropertyTearOff.h:
+        (WebCore::SVGPropertyTearOff::animatedProperty):
+        (WebCore::SVGPropertyTearOff::setAnimatedProperty):
+        (WebCore::SVGPropertyTearOff::contextElement):
+        (WebCore::SVGPropertyTearOff::SVGPropertyTearOff):
+        (WebCore::SVGPropertyTearOff::~SVGPropertyTearOff):
+        SVGPropertyTearOff is what SVGAnimatedPropertyTearOff creates for its 
+        baseVal() and animVal() values. These values can be null anytime once
+        they are not referenced. The SVGAnimatedPropertyTearOff holds only raw
+        RefCounted pointer for them. So (1) SVGPropertyTearOff needs to hold a
+        RefPtr for its SVGAnimatedProperty and (2) it needs to notify its
+        SVGAnimatedProperty when it's deleted by calling propertyWillBeDeleted()
+        from the destructor. Also there is no need to get the contextElement()
+        and save it in class member, m_contextElement since it can be always be
+        retrieved from SVGAnimatedProperty::contextElement().
+
+2016-03-10  Jonathan Davis  <jond@apple.com>
+
+        Fixed broken link for "WebGL 2" on the Feature Status page
+        https://bugs.webkit.org/show_bug.cgi?id=155235
+
+        Reviewed by Alex Christensen.
+
+        * features.json:
+
+2016-03-10  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] Main frame scrollbars should appear on the left on RTL systems
+        https://bugs.webkit.org/show_bug.cgi?id=155149
+
+        Reviewed by Simon Fraser.
+
+        A helper function, ScrollableArea::systemLanguageIsRTL() is used to determine
+        if we should be in this new mode. Once we have determined we should be in
+        this new mode, there are some scattered places where the geometry math
+        needed to be updated.
+
+        Tests: fast/scrolling/rtl-scrollbars-simple.html
+               fast/scrolling/rtl-scrollbars.html
+
+        * page/scrolling/AsyncScrollingCoordinator.cpp:
+        (WebCore::AsyncScrollingCoordinator::requestScrollPositionUpdate):
+        (WebCore::AsyncScrollingCoordinator::updateScrollPositionAfterAsyncScroll):
+        * page/scrolling/mac/ScrollingTreeFrameScrollingNodeMac.mm:
+        (WebCore::ScrollingTreeFrameScrollingNodeMac::setScrollLayerPosition):
+        * platform/mac/ScrollableAreaMac.mm:
+        (WebCore::ScrollableArea::systemLanguageIsRTL):
+        * platform/ScrollableArea.h:
+        * platform/ScrollView.cpp:
+        (WebCore::ScrollView::updateScrollbars):
+        (WebCore::ScrollView::scrollCornerRect):
+        * platform/mac/ScrollAnimatorMac.mm:
+        (WebCore::ScrollAnimator::scrollbarsAreRTL):
+        * platform/spi/mac/NSScrollerImpSPI.h:
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::positionForClipLayer):
+
 2016-03-07  Jer Noble  <jer.noble@apple.com>
 
         Add separate WK and WK2 preferences for requiring user gestures for video media, distinct from user gestures for media generally

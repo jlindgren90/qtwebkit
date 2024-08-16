@@ -140,6 +140,7 @@
 #import <WebCore/GCController.h>
 #import <WebCore/GeolocationController.h>
 #import <WebCore/GeolocationError.h>
+#import <WebCore/GraphicsLayer.h>
 #import <WebCore/HTMLNames.h>
 #import <WebCore/HTMLVideoElement.h>
 #import <WebCore/HistoryController.h>
@@ -2334,6 +2335,7 @@ static bool needsSelfRetainWhileLoadingQuirk()
     BOOL mediaPlaybackRequiresUserGesture = [preferences mediaPlaybackRequiresUserGesture];
     settings.setVideoPlaybackRequiresUserGesture(mediaPlaybackRequiresUserGesture || [preferences videoPlaybackRequiresUserGesture]);
     settings.setAudioPlaybackRequiresUserGesture(mediaPlaybackRequiresUserGesture || [preferences audioPlaybackRequiresUserGesture]);
+    settings.setMainContentUserGestureOverrideEnabled([preferences overrideUserGestureRequirementForMainContent]);
     settings.setAllowsInlineMediaPlayback([preferences mediaPlaybackAllowsInline]);
     settings.setInlineMediaPlaybackRequiresPlaysInlineAttribute([preferences inlineMediaPlaybackRequiresPlaysInlineAttribute]);
     settings.setInvisibleAutoplayNotPermitted([preferences invisibleAutoplayNotPermitted]);
@@ -3233,6 +3235,16 @@ static inline IMP getMethod(id o, SEL s)
 + (BOOL)_shouldUseFontSmoothing
 {
     return FontCascade::shouldUseSmoothing();
+}
+
++ (void)_setSmoothedLayerTextEnabled:(BOOL)f
+{
+    GraphicsLayer::setSmoothedLayerTextEnabled(f);
+}
+
++ (BOOL)_smoothedLayerTextEnabled
+{
+    return GraphicsLayer::smoothedLayerTextEnabled();
 }
 
 #if !PLATFORM(IOS)

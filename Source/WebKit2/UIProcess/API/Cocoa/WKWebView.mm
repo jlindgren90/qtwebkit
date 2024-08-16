@@ -333,7 +333,13 @@ static WebCore::DataDetectorTypes fromWKDataDetectorTypes(uint64_t types)
         value |= WebCore::DataDetectorTypeAddress;
     if (types & WKDataDetectorTypeCalendarEvent)
         value |= WebCore::DataDetectorTypeCalendarEvent;
-    
+    if (types & WKDataDetectorTypeTrackingNumber)
+        value |= WebCore::DataDetectorTypeTrackingNumber;
+    if (types & WKDataDetectorTypeFlightNumber)
+        value |= WebCore::DataDetectorTypeFlightNumber;
+    if (types & WKDataDetectorTypeSpotlightSuggestion)
+        value |= WebCore::DataDetectorTypeSpotlightSuggestion;
+
     return static_cast<WebCore::DataDetectorTypes>(value);
 }
 #endif
@@ -405,6 +411,7 @@ static WebCore::DataDetectorTypes fromWKDataDetectorTypes(uint64_t types)
 
     pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::requiresUserGestureForVideoPlaybackKey(), WebKit::WebPreferencesStore::Value(!![_configuration _requiresUserActionForVideoPlayback]));
     pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::requiresUserGestureForAudioPlaybackKey(), WebKit::WebPreferencesStore::Value(!![_configuration _requiresUserActionForAudioPlayback]));
+    pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::mainContentUserGestureOverrideEnabledKey(), WebKit::WebPreferencesStore::Value(!![_configuration _mainContentUserGestureOverrideEnabled]));
     pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::invisibleAutoplayNotPermittedKey(), WebKit::WebPreferencesStore::Value(!![_configuration _invisibleAutoplayNotPermitted]));
     pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::mediaDataLoadsAutomaticallyKey(), WebKit::WebPreferencesStore::Value(!![_configuration _mediaDataLoadsAutomatically]));
 
