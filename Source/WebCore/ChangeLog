@@ -1,3 +1,441 @@
+2016-03-14  Alex Christensen  <achristensen@webkit.org>
+
+        Fix WinCairo build after r198195.
+
+        * platform/network/NetworkingContext.h:
+        curl networking now uses NetworkingContext::storageSession.  That's everybody!
+
+2016-03-14  Per Arne Vollan  <peavo@outlook.com>
+
+        [WinCairo] Compile fix.
+        https://bugs.webkit.org/show_bug.cgi?id=155463
+
+        Reviewed by Alex Christensen.
+
+        Get the NetworkStorageSession object from the document in the same way as other platforms do.
+
+        * loader/CookieJar.cpp:
+        (WebCore::storageSession):
+
+2016-03-14  Tim Horton  <timothy_horton@apple.com>
+
+        <attachment> on iOS should paint its progress indicator instead of a green square
+        https://bugs.webkit.org/show_bug.cgi?id=155482
+        <rdar://problem/24805991>
+
+        Reviewed by Simon Fraser.
+
+        No new tests; there are existing tests that will be enabled shortly.
+
+        * rendering/RenderThemeIOS.mm:
+        (WebCore::getAttachmentProgress):
+        Clamp progress to 0-1.
+
+        (WebCore::paintAttachmentProgress):
+        Paint a pie.
+
+2016-03-14  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r197981.
+
+        Caused a massive PLT regression on Mac.
+
+        Reverted changeset:
+
+        "Font antialiasing (smoothing) changes when elements are
+        rendered into compositing layers"
+        https://bugs.webkit.org/show_bug.cgi?id=23364
+        http://trac.webkit.org/changeset/197981
+
+2016-03-14  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r198145.
+
+        This attempt to disable the feature did not fix the PLT
+        regression
+
+        Reverted changeset:
+
+        "Regression(r197981): Huge regression on Mac PLT"
+        https://bugs.webkit.org/show_bug.cgi?id=155443
+        http://trac.webkit.org/changeset/198145
+
+2016-03-14  Sam Weinig  <sam@webkit.org>
+
+        Remove errant space.
+
+        * page/UserContentController.cpp:
+
+2016-03-14  Sam Weinig  <sam@webkit.org>
+
+        Fix the windows build.
+
+        * page/UserContentController.cpp:
+
+2016-03-14  Sam Weinig  <sam@webkit.org>
+
+        Add a baseURL parameter to _WKUserStyleSheet
+        https://bugs.webkit.org/show_bug.cgi?id=155219
+
+        Reviewed by Tim Horton.
+
+        - Moves to a model for user content where instead of each page having a WebCore::UserContentController
+          object, we have an abstract WebCore::UserContentProvider interface that can be implemented at the WebKit
+          level. For now, legacy WebKit continues to use the old UserContentController, which implements 
+          WebCore::UserContentProvider, and WebKit2 implements its own implementation so it can store additional
+          state.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Add new files.
+
+        * dom/ExtensionStyleSheets.cpp:
+        (WebCore::ExtensionStyleSheets::updateInjectedStyleSheetCache):
+        Switch to using forEachUserStyleSheet on the UserContentProvider.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::loadResource):
+        Remove null check now that we always have a UserContentProvider.
+
+        * loader/EmptyClients.cpp:
+        (WebCore::fillWithEmptyClients):
+        * loader/EmptyClients.h:
+        Add new EmptyClients.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::loadResourceSynchronously):
+        Remove null check now that we always have a UserContentProvider.
+
+        * loader/PingLoader.cpp:
+        (WebCore::processContentExtensionRulesForLoad):
+        Remove null check now that we always have a UserContentProvider.
+
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::willSendRequestInternal):
+        Remove null check now that we always have a UserContentProvider.
+
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::requestResource):
+        Remove null check now that we always have a UserContentProvider.
+
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::shouldHaveWebKitNamespaceForWorld):
+        Remove null checks now that we always have a UserContentProvider, and userMessageHandlerDescriptors
+        returns a reference.
+
+        (WebCore::DOMWindow::open):
+        Remove null check now that we always have a UserContentProvider.
+
+        * page/Frame.cpp:
+        (WebCore::Frame::injectUserScripts):
+        Simplify by lifting document check out of the main loop and using forEachUserScript.
+
+        * page/Page.cpp:
+        (WebCore::Page::Page):
+        (WebCore::Page::~Page):
+        (WebCore::Page::userContentProvider):
+        (WebCore::Page::setUserContentProvider):
+        (WebCore::Page::setUserContentController): Deleted.
+        * page/Page.h:
+        (WebCore::Page::userContentController): Deleted.
+        * page/PageConfiguration.h:
+        Store the UserContentProvider in a Ref, and require PageConfigurations to provide one. This
+        removes a bunch of null checks and simplifies the code.
+
+        * page/UserContentController.cpp:
+        (WebCore::UserContentController::~UserContentController):
+        (WebCore::UserContentController::forEachUserScript):
+        (WebCore::UserContentController::forEachUserStyleSheet):
+        (WebCore::UserContentController::addUserScript):
+        (WebCore::UserContentController::removeUserScript):
+        (WebCore::UserContentController::removeUserScripts):
+        (WebCore::UserContentController::addUserStyleSheet):
+        (WebCore::UserContentController::removeUserStyleSheet):
+        (WebCore::UserContentController::removeUserStyleSheets):
+        (WebCore::UserContentController::addUserMessageHandlerDescriptor):
+        (WebCore::UserContentController::removeUserMessageHandlerDescriptor):
+        (WebCore::UserContentController::addUserContentExtension):
+        (WebCore::UserContentController::removeUserContentExtension):
+        (WebCore::UserContentController::removeAllUserContentExtensions):
+        (WebCore::UserContentController::removeAllUserContent):
+        (WebCore::UserContentController::addPage): Deleted.
+        (WebCore::UserContentController::removePage): Deleted.
+        (WebCore::contentExtensionsEnabled): Deleted.
+        (WebCore::UserContentController::processContentExtensionRulesForLoad): Deleted.
+        (WebCore::UserContentController::actionsForResourceLoad): Deleted.
+        * page/UserContentController.h:
+        (WebCore::UserContentController::userScripts): Deleted.
+        (WebCore::UserContentController::userStyleSheets): Deleted.
+        (WebCore::UserContentController::userMessageHandlerDescriptors): Deleted.
+        Add inheritance from UserContentProvider and simplify things by removing unique_ptrs
+        that were holding the member variables. There is usually only one UserContentController
+        so having these in unique_ptrs doesn't make much sense.
+        
+        * page/UserContentProvider.cpp: Added.
+        (WebCore::UserContentProvider::UserContentProvider):
+        (WebCore::UserContentProvider::~UserContentProvider):
+        (WebCore::UserContentProvider::addPage):
+        (WebCore::UserContentProvider::removePage):
+        (WebCore::UserContentProvider::invalidateInjectedStyleSheetCacheInAllFramesInAllPages):
+        (WebCore::contentExtensionsEnabled):
+        (WebCore::UserContentProvider::processContentExtensionRulesForLoad):
+        (WebCore::UserContentProvider::actionsForResourceLoad):
+        * page/UserContentProvider.h: Added.
+        Add abstract class for providing user content and add some helpers on it.
+
+        * page/UserMessageHandlerDescriptor.h:
+        (WebCore::UserMessageHandlerDescriptor::create):
+        (WebCore::UserMessageHandlerDescriptor::client):
+        (WebCore::UserMessageHandlerDescriptor::invalidateClient):
+        * page/UserMessageHandlersNamespace.cpp:
+        (WebCore::UserMessageHandlersNamespace::handler):
+        Simplify now that userContentProvider() and userMessageHandlerDescriptors() are references.
+
+2016-03-14  Enrica Casucci  <enrica@apple.com>
+
+        iOS: RTFD format is not available in the pasteboard after copy/cut.
+        https://bugs.webkit.org/show_bug.cgi?id=155477
+        rdar://problem/23500600
+
+        Reviewed by Tim Horton.
+
+        WebKit is using UTTypeRTFD instead of UTTypeFlatRTFD that is the
+        proper RTFD format for pastedboard. I also discovered that, when
+        we create the NSTextAttachment in the NSAttributedString we produce
+        from the DOM range, we are not generating a file name with the
+        appropriate extension for the MIME type. The iOS specific implementation
+        of the MIMETypeRegistry functions were empty.
+        There is no need to have a differentiation between OS X and iOS, so
+        we now have only one file called MIMETypeRegistryCocoa.mm.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/cocoa/MIMETypeRegistryCocoa.mm: Added.
+        (WebCore::MIMETypeRegistry::getMIMETypeForExtension):
+        (WebCore::MIMETypeRegistry::getExtensionsForMIMEType):
+        (WebCore::MIMETypeRegistry::getPreferredExtensionForMIMEType):
+        (WebCore::MIMETypeRegistry::isApplicationPluginMIMEType):
+        * platform/ios/MIMETypeRegistryIOS.mm: Removed.
+        * platform/ios/PasteboardIOS.mm:
+        (WebCore::Pasteboard::read):
+        (WebCore::Pasteboard::supportedPasteboardTypes):
+        (WebCore::Pasteboard::hasData):
+        * platform/ios/PlatformPasteboardIOS.mm:
+        (WebCore::PlatformPasteboard::write):
+        * platform/mac/MIMETypeRegistryMac.mm: Removed.
+
+2016-03-14  Daniel Bates  <dabates@apple.com>
+
+        Web Inspector: Display Content Security Policy hash in details sidebar for script and style elements
+        https://bugs.webkit.org/show_bug.cgi?id=155466
+        <rdar://problem/25152480>
+
+        Reviewed by Joseph Pecoraro and Timothy Hatcher.
+
+        For convenience, display the SHA-256 Content Security Policy (CSP) hash in the node details
+        sidebar for the selected HTML script element or HTML style element. A CSP script hash is
+        only applicable to inline JavaScript scripts. Therefore, we will display a hash for HTML
+        script elements only if they do not have a src attribute.
+
+        Tests: inspector/dom/csp-big5-hash.html
+               inspector/dom/csp-hash.html
+
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::computeContentSecurityPolicySHA256Hash): Added.
+        (WebCore::InspectorDOMAgent::buildObjectForNode): For an applicable HTML script- or style-
+        element, pass the computed SHA-256 CSP hash to the Inspector front end.
+
+2016-03-14  Joonghun Park  <jh718.park@samsung.com>
+
+        Purge PassRefPtr from ArrayBuffer, ArchiveResource, Pasteboard, LegacyWebArchive and DataObjectGtk
+        https://bugs.webkit.org/show_bug.cgi?id=150497
+
+        Reviewed by Darin Adler.
+
+        No new tests, no new behaviours.
+
+        * Modules/indexeddb/IDBGetResult.h:
+        (WebCore::IDBGetResult::IDBGetResult):
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::SQLiteIDBBackingStore::getIndexRecord):
+        * Modules/mediastream/RTCDataChannel.cpp:
+        (WebCore::RTCDataChannel::didReceiveRawData):
+        * dom/MessageEvent.cpp:
+        (WebCore::MessageEvent::MessageEvent):
+        * dom/MessageEvent.h:
+        * editing/Editor.cpp:
+        (WebCore::Editor::selectedRange):
+        * editing/Editor.h:
+        * editing/FrameSelection.h:
+        (WebCore::FrameSelection::toNormalizedRange):
+        * editing/VisiblePosition.cpp:
+        (WebCore::makeRange):
+        * editing/VisiblePosition.h:
+        * editing/VisibleSelection.cpp:
+        (WebCore::VisibleSelection::toNormalizedRange):
+        * editing/VisibleSelection.h:
+        * editing/VisibleUnits.cpp:
+        (WebCore::enclosingTextUnitOfGranularity):
+        (WebCore::wordRangeFromPosition):
+        (WebCore::rangeExpandedByCharactersInDirectionAtWordBoundary):
+        (WebCore::rangeExpandedAroundPositionByCharacters):
+        * editing/VisibleUnits.h:
+        * editing/cocoa/HTMLConverter.mm:
+        (HTMLConverter::_addAttachmentForElement):
+        (fileWrapperForURL):
+        * editing/efl/EditorEfl.cpp:
+        (WebCore::Editor::webContentFromPasteboard):
+        * editing/gtk/EditorGtk.cpp:
+        (WebCore::createFragmentFromPasteboardData):
+        (WebCore::Editor::webContentFromPasteboard):
+        * editing/ios/EditorIOS.mm:
+        (WebCore::dataInRTFDFormat):
+        (WebCore::dataInRTFFormat):
+        (WebCore::Editor::selectionInWebArchiveFormat):
+        (WebCore::Editor::WebContentReader::addFragment):
+        (WebCore::Editor::WebContentReader::readWebArchive):
+        (WebCore::Editor::WebContentReader::readRTFD):
+        (WebCore::Editor::WebContentReader::readRTF):
+        (WebCore::Editor::WebContentReader::readImage):
+        (WebCore::Editor::WebContentReader::readURL):
+        (WebCore::Editor::webContentFromPasteboard):
+        (WebCore::Editor::pasteWithPasteboard):
+        (WebCore::Editor::createFragmentAndAddResources):
+        (WebCore::Editor::createFragmentForImageResourceAndAddResource):
+        * editing/mac/EditorMac.mm:
+        (WebCore::Editor::selectionInWebArchiveFormat):
+        (WebCore::Editor::adjustedSelectionRange):
+        (WebCore::dataInRTFDFormat):
+        (WebCore::dataInRTFFormat):
+        (WebCore::Editor::dataSelectionForPasteboard):
+        (WebCore::Editor::WebContentReader::readWebArchive):
+        (WebCore::Editor::WebContentReader::readRTFD):
+        (WebCore::Editor::WebContentReader::readRTF):
+        (WebCore::Editor::WebContentReader::readImage):
+        (WebCore::Editor::WebContentReader::readURL):
+        (WebCore::Editor::webContentFromPasteboard):
+        (WebCore::Editor::createFragmentForImageResourceAndAddResource):
+        (WebCore::Editor::createFragmentAndAddResources):
+        * editing/win/EditorWin.cpp:
+        (WebCore::createFragmentFromPlatformData):
+        (WebCore::Editor::webContentFromPasteboard):
+        * inspector/InspectorPageAgent.cpp:
+        (WebCore::InspectorPageAgent::archive):
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::mainResourceData):
+        (WebCore::DocumentLoader::maybeCreateArchive):
+        (WebCore::DocumentLoader::addArchiveResource):
+        (WebCore::DocumentLoader::mainResource):
+        * loader/DocumentLoader.h:
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::loadArchive):
+        * loader/SubstituteData.h:
+        (WebCore::SubstituteData::SubstituteData):
+        (WebCore::SubstituteData::isValid):
+        * loader/SubstituteResource.h:
+        (WebCore::SubstituteResource::data):
+        (WebCore::SubstituteResource::SubstituteResource):
+        * loader/appcache/ApplicationCacheGroup.cpp:
+        (WebCore::ApplicationCacheGroup::didReceiveResponse):
+        (WebCore::ApplicationCacheGroup::didReceiveData):
+        (WebCore::ApplicationCacheGroup::didFail):
+        (WebCore::ApplicationCacheGroup::didReceiveManifestData):
+        (WebCore::ApplicationCacheGroup::didFinishLoadingManifest):
+        * loader/appcache/ApplicationCacheHost.cpp:
+        (WebCore::ApplicationCacheHost::maybeLoadMainResource):
+        (WebCore::ApplicationCacheHost::maybeLoadSynchronously):
+        (WebCore::ApplicationCacheHost::maybeLoadFallbackSynchronously):
+        * loader/appcache/ApplicationCacheResource.cpp:
+        (WebCore::ApplicationCacheResource::ApplicationCacheResource):
+        (WebCore::ApplicationCacheResource::deliver):
+        (WebCore::ApplicationCacheResource::estimatedSizeInStorage):
+        * loader/appcache/ApplicationCacheResource.h:
+        (WebCore::ApplicationCacheResource::create):
+        * loader/appcache/ApplicationCacheStorage.cpp:
+        (WebCore::ApplicationCacheStorage::store):
+        (WebCore::ApplicationCacheStorage::writeDataToUniqueFileInDirectory):
+        * loader/appcache/ApplicationCacheStorage.h:
+        * loader/archive/ArchiveFactory.cpp:
+        (WebCore::archiveFactoryCreate):
+        (WebCore::ArchiveFactory::create):
+        * loader/archive/ArchiveFactory.h:
+        * loader/archive/ArchiveResource.cpp:
+        (WebCore::ArchiveResource::ArchiveResource):
+        (WebCore::ArchiveResource::create):
+        * loader/archive/ArchiveResource.h:
+        * loader/archive/ArchiveResourceCollection.cpp:
+        (WebCore::ArchiveResourceCollection::addResource):
+        * loader/archive/ArchiveResourceCollection.h:
+        * loader/archive/cf/LegacyWebArchive.cpp:
+        (WebCore::LegacyWebArchive::createPropertyListRepresentation):
+        (WebCore::LegacyWebArchive::createResource):
+        (WebCore::LegacyWebArchive::create):
+        (WebCore::LegacyWebArchive::createFromSelection):
+        * loader/archive/cf/LegacyWebArchive.h:
+        * loader/archive/mhtml/MHTMLArchive.cpp:
+        (WebCore::MHTMLArchive::create):
+        * loader/archive/mhtml/MHTMLArchive.h:
+        * loader/archive/mhtml/MHTMLParser.cpp:
+        (WebCore::MHTMLParser::parseArchive):
+        (WebCore::MHTMLParser::parseArchiveWithHeader):
+        (WebCore::MHTMLParser::parseNextPart):
+        * loader/archive/mhtml/MHTMLParser.h:
+        * loader/cache/CachedImage.cpp:
+        (WebCore::CachedImage::didAddClient):
+        * loader/icon/IconDatabase.cpp:
+        (WebCore::loadDefaultIconRecord):
+        * loader/icon/IconRecord.cpp:
+        (WebCore::IconRecord::setImageData):
+        * loader/icon/IconRecord.h:
+        * platform/Pasteboard.h:
+        * platform/PasteboardStrategy.h:
+        * platform/PlatformPasteboard.h:
+        * platform/SharedBuffer.cpp:
+        (WebCore::SharedBuffer::createArrayBuffer):
+        (WebCore::utf8Buffer):
+        * platform/SharedBuffer.h:
+        (WebCore::SharedBuffer::create):
+        * platform/cf/SharedBufferCF.cpp:
+        (WebCore::SharedBuffer::wrapCFData):
+        * platform/cocoa/NetworkExtensionContentFilter.mm:
+        (WebCore::NetworkExtensionContentFilter::replacementData):
+        * platform/cocoa/ParentalControlsContentFilter.mm:
+        (WebCore::ParentalControlsContentFilter::replacementData):
+        * platform/graphics/Image.cpp:
+        (WebCore::Image::setData):
+        * platform/graphics/Image.h:
+        * platform/gtk/DataObjectGtk.cpp:
+        (WebCore::DataObjectGtk::forClipboard):
+        * platform/gtk/DataObjectGtk.h:
+        (WebCore::DataObjectGtk::create):
+        * platform/gtk/PasteboardGtk.cpp:
+        (WebCore::Pasteboard::Pasteboard):
+        (WebCore::Pasteboard::dataObject):
+        * platform/ios/PasteboardIOS.mm:
+        (WebCore::Pasteboard::read):
+        * platform/ios/PlatformPasteboardIOS.mm:
+        (WebCore::PlatformPasteboard::bufferForType):
+        (WebCore::PlatformPasteboard::readBuffer):
+        * platform/mac/PasteboardMac.mm:
+        (WebCore::writeFileWrapperAsRTFDAttachment):
+        (WebCore::Pasteboard::read):
+        * platform/mac/PlatformPasteboardMac.mm:
+        (WebCore::PlatformPasteboard::bufferForType):
+        * platform/mac/SharedBufferMac.mm:
+        (WebCore::SharedBuffer::wrapNSData):
+        (WebCore::SharedBuffer::createFromReadingFile):
+        * platform/network/MIMEHeader.cpp:
+        (WebCore::retrieveKeyValuePairs):
+        (WebCore::MIMEHeader::parseHeader):
+        * platform/network/MIMEHeader.h:
+        * platform/soup/SharedBufferSoup.cpp:
+        (WebCore::SharedBuffer::wrapSoupBuffer):
+        * platform/win/ClipboardUtilitiesWin.cpp:
+        (WebCore::fragmentFromFilenames):
+        (WebCore::fragmentFromCFHTML):
+        (WebCore::fragmentFromHTML):
+        * platform/win/ClipboardUtilitiesWin.h:
+        * platform/win/PasteboardWin.cpp:
+        (WebCore::Pasteboard::documentFragment):
+
 2016-03-14  Oliver Hunt  <oliver@apple.com>
 
         Temporarily disable the separated heap.

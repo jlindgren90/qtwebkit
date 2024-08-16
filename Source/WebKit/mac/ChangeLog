@@ -1,3 +1,54 @@
+2016-03-14  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r197981.
+
+        Caused a massive PLT regression on Mac.
+
+        Reverted changeset:
+
+        "Font antialiasing (smoothing) changes when elements are
+        rendered into compositing layers"
+        https://bugs.webkit.org/show_bug.cgi?id=23364
+        http://trac.webkit.org/changeset/197981
+
+2016-03-14  Sam Weinig  <sam@webkit.org>
+
+        Add a baseURL parameter to _WKUserStyleSheet
+        https://bugs.webkit.org/show_bug.cgi?id=155219
+
+        Reviewed by Tim Horton.
+
+        * WebView/WebView.mm:
+        (-[WebView _commonInitializationWithFrameName:groupName:]):
+        (-[WebView initSimpleHTMLDocumentWithStyle:frame:preferences:groupName:]):
+        (-[WebView setGroupName:]):
+        Update to account for the name change from UserContentController -> UserContentProvider.
+
+2016-03-14  Joonghun Park  <jh718.park@samsung.com>
+
+        Purge PassRefPtr from ArrayBuffer, ArchiveResource, Pasteboard, LegacyWebArchive and DataObjectGtk
+        https://bugs.webkit.org/show_bug.cgi?id=150497
+
+        Reviewed by Darin Adler.
+
+        * DOM/WebDOMOperations.mm:
+        (-[DOMNode webArchive]):
+        (-[DOMNode webArchiveByFilteringSubframes:]):
+        * WebCoreSupport/WebPlatformStrategies.h:
+        * WebCoreSupport/WebPlatformStrategies.mm:
+        (WebPlatformStrategies::bufferForType):
+        (WebPlatformStrategies::readBufferFromPasteboard):
+        * WebView/WebArchive.mm:
+        (-[WebArchive initWithData:]):
+        * WebView/WebDataSource.mm:
+        (-[WebDataSource webArchive]):
+        (-[WebDataSource addSubresource:]):
+        * WebView/WebResource.mm:
+        (-[WebResource encodeWithCoder:]):
+        (-[WebResource data]):
+        (-[WebResource _stringValue]):
+        (-[WebResource _initWithCoreResource:]): Deleted.
+
 2016-03-14  Oliver Hunt  <oliver@apple.com>
 
         Temporarily disable the separated heap.
