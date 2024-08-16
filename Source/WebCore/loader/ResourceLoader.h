@@ -146,6 +146,8 @@ public:
     void unschedule(WTF::SchedulePair&);
 #endif
 
+    WEBCORE_EXPORT bool isAlwaysOnLoggingAllowed() const;
+
 protected:
     ResourceLoader(Frame*, ResourceLoaderOptions);
 

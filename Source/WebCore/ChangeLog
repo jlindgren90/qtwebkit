@@ -1,3 +1,120 @@
+2016-03-07  Keith Rollin  <krollin@apple.com>
+
+        Enhance logging: Use "always on" macros
+        https://bugs.webkit.org/show_bug.cgi?id=154499
+        <rdar://problem/24757730>
+
+        Reviewed by Chris Dumez.
+
+        Make use of new logging macros by reporting on frame and resource
+        load activity.
+
+        Add new logging to memory pressure handler to show when it's called
+        and its effectiveness. As part of this change, the various
+        platform-specific implementations have been unified.
+
+        No new tests. No new basic functionality has been added. Only new
+        logging has been added in release mode or has been enabled to execute
+        in release mode as well as debug mode.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::prepareForLoadStart):
+        (WebCore::FrameLoader::checkLoadCompleteForThisFrame):
+        (WebCore::FrameLoader::isAlwaysOnLoggingAllowed):
+        * loader/FrameLoader.h:
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::isAlwaysOnLoggingAllowed):
+        * loader/ResourceLoader.h:
+        * page/Frame.cpp:
+        (WebCore::Frame::isAlwaysOnLoggingAllowed):
+        * page/Frame.h:
+        * page/Page.cpp:
+        (WebCore::Page::isAlwaysOnLoggingAllowed):
+        * page/Page.h:
+        * page/SessionID.h:
+        (WebCore::SessionID::isAlwaysOnLoggingAllowed):
+        * platform/MemoryPressureHandler.cpp:
+        (WebCore::MemoryPressureHandler::ReliefLogger::logMemoryUsageChange):
+        (WebCore::MemoryPressureHandler::ReliefLogger::platformLog): Deleted.
+        * platform/MemoryPressureHandler.h:
+        (WebCore::MemoryPressureHandler::ReliefLogger::ReliefLogger):
+        (WebCore::MemoryPressureHandler::ReliefLogger::~ReliefLogger):
+        * platform/cocoa/MemoryPressureHandlerCocoa.mm:
+        (WebCore::MemoryPressureHandler::ReliefLogger::platformLog): Deleted.
+        * platform/linux/MemoryPressureHandlerLinux.cpp:
+        (WebCore::MemoryPressureHandler::ReliefLogger::platformLog): Deleted.
+        * platform/win/MemoryPressureHandlerWin.cpp:
+        (WebCore::MemoryPressureHandler::ReliefLogger::platformLog): Deleted.
+
+2016-03-07  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLCanvasElement.width / height with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=155156
+
+        Reviewed by Ryosuke Niwa.
+
+        Align HTMLCanvasElement.width / height with the specification:
+        - https://html.spec.whatwg.org/multipage/scripting.html#dom-canvas-width
+        - https://html.spec.whatwg.org/multipage/scripting.html#attr-canvas-width
+
+        In particular, the following changes were made:
+        1. The attributes are now 'unsigned long' instead of 'long'
+        2. The corresponding content attributes are parsed as per the HTML rules
+           for passing non-negative integers.
+        3. Upon setting, if the value is out-of-range, the content attributes is
+           set to its default value.
+
+        No new tests, already covered by existing test.
+
+        * html/HTMLCanvasElement.cpp:
+        (WebCore::HTMLCanvasElement::setHeight):
+        (WebCore::HTMLCanvasElement::setWidth):
+        (WebCore::HTMLCanvasElement::reset):
+        * html/HTMLCanvasElement.h:
+        * html/HTMLCanvasElement.idl:
+
+2016-03-07  Chris Dumez  <cdumez@apple.com>
+
+        Stop clamping HTMLElement.tabIndex to the range of a short
+        https://bugs.webkit.org/show_bug.cgi?id=155159
+
+        Reviewed by Ryosuke Niwa.
+
+        Stop clamping HTMLElement.tabIndex to the range of a short. We
+        apparently did this to match Firefox. However, this no longer matches
+        Firefox's behavior nor the HTML specification:
+        - https://html.spec.whatwg.org/multipage/interaction.html#dom-tabindex
+
+        No new tests, already covered by existing test.
+
+        * dom/Element.cpp:
+        (WebCore::Element::setTabIndexExplicitly):
+        (WebCore::Element::tabIndex):
+        * dom/Element.h:
+        * dom/ElementRareData.h:
+        (WebCore::ElementRareData::tabIndex):
+        (WebCore::ElementRareData::setTabIndexExplicitly):
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::tabIndex):
+        * html/HTMLAnchorElement.h:
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::parseAttribute):
+        (WebCore::HTMLElement::tabIndex):
+        * html/HTMLElement.h:
+        * html/HTMLFormControlElement.cpp:
+        (WebCore::HTMLFormControlElement::tabIndex):
+        * html/HTMLFormControlElement.h:
+        * page/FocusController.cpp:
+        (WebCore::nextElementWithGreaterTabIndex):
+        (WebCore::FocusController::previousFocusableElement):
+        * svg/SVGAElement.cpp:
+        (WebCore::SVGAElement::tabIndex):
+        * svg/SVGAElement.h:
+        * svg/SVGElement.cpp:
+        (WebCore::SVGElement::tabIndex):
+        (WebCore::SVGElement::parseAttribute):
+        * svg/SVGElement.h:
+
 2016-03-07  Daniel Bates  <dabates@apple.com>
 
         CSP: Source '*' should not match URLs with schemes blob, data, or filesystem

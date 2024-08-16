@@ -2015,4 +2015,9 @@ void Page::setResourceUsageOverlayVisible(bool visible)
 }
 #endif
 
+bool Page::isAlwaysOnLoggingAllowed() const
+{
+    return m_sessionID.isAlwaysOnLoggingAllowed();
+}
+
 } // namespace WebCore
