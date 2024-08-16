@@ -45,6 +45,7 @@
 #include "HTMLTableElement.h"
 #include "HostWindow.h"
 #include "RenderObject.h"
+#include "SVGElement.h"
 #include "Settings.h"
 #include "TextIterator.h"
 #include "VisibleUnits.h"
@@ -547,6 +548,7 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
         return ATK_ROLE_APPLICATION;
     case DocumentRegionRole:
     case RadioGroupRole:
+    case SVGRootRole:
     case TabPanelRole:
         return ATK_ROLE_PANEL;
     case GroupRole:
@@ -597,6 +599,7 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
 #endif
     case DivRole:
     case PreRole:
+    case SVGTextRole:
         return ATK_ROLE_SECTION;
     case FooterRole:
         return ATK_ROLE_FOOTER;
@@ -673,6 +676,8 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
 #endif
 #if ATK_CHECK_VERSION(2, 15, 2)
     case InlineRole:
+    case SVGTextPathRole:
+    case SVGTSpanRole:
         return ATK_ROLE_STATIC;
 #endif
     default:
