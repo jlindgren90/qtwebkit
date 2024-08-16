@@ -340,6 +340,7 @@
     macro(RegExp) \
     macro(Map) \
     macro(Promise) \
+    macro(Reflect) \
     macro(InternalPromise) \
     macro(abs) \
     macro(floor) \

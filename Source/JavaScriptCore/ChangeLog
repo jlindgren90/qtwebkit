@@ -1,3 +1,48 @@
+2016-03-12  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Delete dead SVG Font code
+        https://bugs.webkit.org/show_bug.cgi?id=154718
+
+        Reviewed by Antti Koivisto.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-03-11  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Remove a few jumps from DFG
+        https://bugs.webkit.org/show_bug.cgi?id=155347
+
+        Reviewed by Mark Lam.
+
+        Usually, setting ValueTrue or ValueFalse is set
+        by Compare+Or. There are 3 places in DFG with branches instead.
+
+        This patch changes them to the usual pattern.
+
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compileObjectEquality):
+        (JSC::DFG::SpeculativeJIT::compileObjectToObjectOrOtherEquality):
+
+2016-03-11  Saam barati  <sbarati@apple.com>
+
+        [ES6] Make Object.assign spec compliant
+        https://bugs.webkit.org/show_bug.cgi?id=155375
+
+        Reviewed by Michael Saboff.
+
+        This is a straight forward implementation of Object.assign
+        in the spec.
+        https://tc39.github.io/ecma262/#sec-object.assign
+        Before, weren't performing all of the specified operations.
+        Now, we are.
+
+        * builtins/ObjectConstructor.js:
+        (assign):
+        * runtime/CommonIdentifiers.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * tests/es6.yaml:
+
 2016-03-11  Mark Lam  <mark.lam@apple.com>
 
         Implement Function.name and Function#toString for ES6 class.
