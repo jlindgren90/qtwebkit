@@ -79,6 +79,8 @@
 #include <wtf/Box.h>
 #include <wtf/ProcessID.h>
 
+#undef emit // FIXME: "emit" is a Qt macro
+
 namespace JSC { namespace FTL {
 
 using namespace B3;
