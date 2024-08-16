@@ -39,7 +39,7 @@
 #include <sys/mman.h>
 #endif
 
-#if ENABLE(SEPARATE_WX_HEAPPROOF_JIT)
+#if ENABLE(SEPARATED_WX_HEAP)
 #include "LinkBuffer.h"
 #include "MacroAssembler.h"
 
@@ -57,7 +57,7 @@ namespace JSC {
 JS_EXPORT_PRIVATE uintptr_t startOfFixedExecutableMemoryPool;
 JS_EXPORT_PRIVATE uintptr_t endOfFixedExecutableMemoryPool;
 
-#if ENABLE(SEPARATE_WX_HEAPPROOF_JIT)
+#if ENABLE(SEPARATED_WX_HEAP)
 JS_EXPORT_PRIVATE uintptr_t jitWriteFunctionAddress;
 #endif
 
@@ -78,7 +78,7 @@ public:
             ASSERT(m_reservation.size() == reservationSize);
             void* reservationBase = m_reservation.base();
 
-#if ENABLE(SEPARATE_WX_HEAPPROOF_JIT)
+#if ENABLE(SEPARATED_WX_HEAP)
             if (Options::useBulletproofJIT()) {
                 // First page of our JIT allocation is reserved.
                 ASSERT(reservationSize >= pageSize() * 2);
@@ -132,7 +132,7 @@ protected:
     }
 
 private:
-#if ENABLE(SEPARATE_WX_HEAPPROOF_JIT)
+#if ENABLE(SEPARATED_WX_HEAP)
     void initializeBulletproofJIT(void* stubBase, size_t stubSize, void* jitBase, size_t jitSize)
     {
         mach_vm_address_t writableAddr = 0;
@@ -236,7 +236,7 @@ private:
         return FINALIZE_CODE(linkBuffer, ("Bulletproof JIT write thunk"));
     }
 #endif // CPU(ARM64)
-#endif // ENABLE(SEPARATE_WX_HEAPPROOF_JIT)
+#endif // ENABLE(SEPARATED_WX_HEAP)
 
 private:
     PageReservation m_reservation;
