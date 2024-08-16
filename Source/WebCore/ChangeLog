@@ -1,3 +1,64 @@
+2016-03-10  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r197983): Build fails due to missing inline method
+
+        Attempt to fix the following build failure:
+
+            Undefined symbols for architecture arm64:
+              "JSC::GenericTypedArrayView<JSC::Uint8ClampedAdaptor>::createUninitialized(unsigned int)", referenced from:
+                  WebCore::ImageBufferData::getData(WebCore::IntRect const&, WebCore::IntSize const&, bool, bool, float) const in ImageBufferDataCG.o
+
+        * platform/graphics/cg/ImageBufferDataCG.cpp: Include some
+        headers to match FEGaussianBlur.cpp and FilterEffect.cpp.
+
+2016-03-10  Tim Horton  <timothy_horton@apple.com>
+
+        Try to fix the iOS 9 build.
+
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::DataDetection::detectContentInRange):
+        * platform/cocoa/DataDetectorsCoreSoftLink.h:
+        * platform/cocoa/DataDetectorsCoreSoftLink.mm:
+        * platform/spi/cocoa/DataDetectorsCoreSPI.h:
+
+2016-03-10  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r197976): Build failure due to missing DDOptionalSource.h header
+
+        Follow-up fix for:
+            Expose additional WKDataDetectorTypes.
+            <https://bugs.webkit.org/show_bug.cgi?id=155331>
+
+        * platform/spi/cocoa/DataDetectorsCoreSPI.h: Protect
+        DDOptionalSource.h with version check.
+
+2016-03-10  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build after r197986.
+
+        * accessibility/AccessibilityObject.h:
+
+2016-03-10  Jeremy Jones  <jeremyj@apple.com>
+
+        Set AVURLAssetUsesNoPersistentCacheKey on AVAsset to match caching policy.
+        https://bugs.webkit.org/show_bug.cgi?id=155117
+        rdar://problem/6802240
+
+        Reviewed by Simon Fraser.
+
+        No new tests because no new functionality was added.
+
+        This will prevent persistent media caches when webkit is using in memory caching.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::mediaPlayerShouldUsePersistentCache): Added.
+        * html/HTMLMediaElement.h: Declare mediaPlayerShouldUsePersistentCache().
+        * page/ChromeClient.h: Declare mediaPlayerShouldUsePersistentCache().
+        * platform/graphics/MediaPlayer.h:
+        (WebCore::MediaPlayerClient::mediaPlayerShouldUsePersistentCache): Added.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createAVAssetForURL): Set property on AVAssetOptions.
+
 2016-03-10  Jer Noble  <jer.noble@apple.com>
 
         CRASH at WebCore::RenderView::updateVisibleViewportRect
