@@ -346,7 +346,7 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, uin
     , m_process(process)
     , m_pageGroup(*m_configuration->pageGroup())
     , m_preferences(*m_configuration->preferences())
-    , m_userContentController(m_configuration->userContentController())
+    , m_userContentController(*m_configuration->userContentController())
     , m_visitedLinkStore(*m_configuration->visitedLinkStore())
     , m_websiteDataStore(m_configuration->websiteDataStore()->websiteDataStore())
     , m_mainFrame(nullptr)
@@ -848,8 +848,7 @@ void WebPageProxy::finishInitializingWebPageAfterProcessLaunch()
 
     m_needsToFinishInitializingWebPageAfterProcessLaunch = false;
 
-    if (m_userContentController)
-        m_process->addWebUserContentControllerProxy(*m_userContentController);
+    m_process->addWebUserContentControllerProxy(m_userContentController);
     m_process->addVisitedLinkStore(m_visitedLinkStore);
 }
 
@@ -5242,7 +5241,7 @@ WebPageCreationParameters WebPageProxy::creationParameters()
     parameters.itemStates = m_backForwardList->itemStates();
     parameters.sessionID = m_sessionID;
     parameters.highestUsedBackForwardItemID = WebBackForwardListItem::highedUsedItemID();
-    parameters.userContentControllerID = m_userContentController ? m_userContentController->identifier() : 0;
+    parameters.userContentControllerID = m_userContentController->identifier();
     parameters.visitedLinkTableID = m_visitedLinkStore->identifier();
     parameters.websiteDataStoreID = m_websiteDataStore->identifier();
     parameters.canRunBeforeUnloadConfirmPanel = m_uiClient->canRunBeforeUnloadConfirmPanel();
