@@ -946,6 +946,9 @@ public:
 
     void didRestoreScrollPosition();
 
+    bool isControlledByAutomation() const;
+    void setControlledByAutomation(bool);
+
     WebURLSchemeHandlerProxy* urlSchemeHandlerForScheme(const String&);
 
 private:
