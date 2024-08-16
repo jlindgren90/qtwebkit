@@ -409,6 +409,7 @@ set(WebKit2_SOURCES
     UIProcess/API/APIURLSchemeHandlerTask.cpp
     UIProcess/API/APIUserContentExtension.cpp
     UIProcess/API/APIUserContentExtensionStore.cpp
+    UIProcess/API/APIUserContentWorld.cpp
     UIProcess/API/APIWebsiteDataStore.cpp
     UIProcess/API/APIWindowFeatures.cpp
 

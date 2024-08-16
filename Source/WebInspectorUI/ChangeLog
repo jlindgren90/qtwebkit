@@ -1,3 +1,63 @@
+2016-02-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Remove unused member variables from overview graphs
+        https://bugs.webkit.org/show_bug.cgi?id=154774
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/LayoutTimelineOverviewGraph.js:
+        (WebInspector.LayoutTimelineOverviewGraph.prototype.reset):
+        * UserInterface/Views/ScriptTimelineOverviewGraph.js:
+        (WebInspector.ScriptTimelineOverviewGraph.prototype.reset):
+
+2016-02-26  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        REGRESSION (r196741): Web Inspector: Bottom section of Layers sidebar is 1px shorter than the console prompt
+        https://bugs.webkit.org/show_bug.cgi?id=154773
+        <rdar://problem/24873345>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/LayerTreeDetailsSidebarPanel.css:
+        (.sidebar > .panel.details.layer-tree > .content):
+        (.panel.details.layer-tree .bottom-bar):
+
+2016-02-26  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Custom transition bezier curve editor preview should loop when not editing curve
+        https://bugs.webkit.org/show_bug.cgi?id=154738
+        <rdar://problem/24861563>
+
+        Reviewed by Timothy Hatcher.
+
+        Added extra frames to bezier preview animation to allow it to infinitely
+        repeat without being jarring to watch.
+
+        * UserInterface/Views/BezierEditor.css:
+        (.bezier-editor > .bezier-preview-timing.animate):
+        (@keyframes bezierPreview):
+        * UserInterface/Views/BezierEditor.js:
+
+2016-02-26  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Keyboard controls to nudge control points in custom transition bezier curve editor would be nice
+        https://bugs.webkit.org/show_bug.cgi?id=154739
+        <rdar://problem/24861498>
+
+        Reviewed by Timothy Hatcher.
+
+        Adds ability for user to nudge the most recently selected bezier control
+        handle by using the arrow keys. Also makes the currently selected bezier
+        control line snap to an axis, which is defined when the user mouses down,
+        whenever the mouse is dragged while the shift key is pressed.
+
+
+        * UserInterface/Views/BezierEditor.js:
+        (WebInspector.BezierEditor):
+        (WebInspector.BezierEditor.prototype.handleKeydownEvent):
+        (WebInspector.BezierEditor.prototype._handleMouseup):
+        (WebInspector.BezierEditor.prototype._updateControlPointsForMouseEvent):
+
 2016-02-26  Devin Rousso  <dcrousso+webkit@gmail.com>
 
         Web Inspector: Option-clicking on the a CSS property sometimes doesn't work
