@@ -23,47 +23,14 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-#include "WebUserContentControllerDataTypes.h"
-
-#include "WebCoreArgumentCoders.h"
-
-namespace WebKit {
-
-void WebUserScriptData::encode(IPC::ArgumentEncoder& encoder) const
-{
-    encoder << identifier;
-    encoder << worldIdentifier;
-    encoder << userScript;
+.timeline-overview-graph.heap-allocations {
+    position: relative;
 }
 
-bool WebUserScriptData::decode(IPC::ArgumentDecoder& decoder, WebUserScriptData& data)
-{
-    if (!decoder.decode(data.identifier))
-        return false;
-    if (!decoder.decode(data.worldIdentifier))
-        return false;
-    if (!decoder.decode(data.userScript))
-        return false;
-    return true;
+.timeline-overview-graph.heap-allocations > img.snapshot {
+    content: url(../Images/HeapSnapshot.svg);
+    position: absolute;
+    top: 9px;
+    width: 16px;
+    height: 16px;
 }
-
-void WebUserStyleSheetData::encode(IPC::ArgumentEncoder& encoder) const
-{
-    encoder << identifier;
-    encoder << worldIdentifier;
-    encoder << userStyleSheet;
-}
-
-bool WebUserStyleSheetData::decode(IPC::ArgumentDecoder& decoder, WebUserStyleSheetData& data)
-{
-    if (!decoder.decode(data.identifier))
-        return false;
-    if (!decoder.decode(data.worldIdentifier))
-        return false;
-    if (!decoder.decode(data.userStyleSheet))
-        return false;
-    return true;
-}
-
-} // namespace WebKit

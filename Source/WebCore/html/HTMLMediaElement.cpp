@@ -442,31 +442,30 @@ HTMLMediaElement::HTMLMediaElement(const QualifiedName& tagName, Document& docum
     m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureToAutoplayToExternalDevice);
 #endif
 
-    // FIXME: We should clean up and look to better merge the iOS and non-iOS code below.
     Settings* settings = document.settings();
-#if !PLATFORM(IOS)
-    if (settings && settings->requiresUserGestureForMediaPlayback()) {
-        m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForRateChange);
-        m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForLoad);
-    }
-#else
+#if PLATFORM(IOS)
     m_sendProgressEvents = false;
-    if (!settings || settings->requiresUserGestureForMediaPlayback()) {
+#endif
+    if (!settings || settings->videoPlaybackRequiresUserGesture()) {
         // Allow autoplay in a MediaDocument that is not in an iframe.
-        if (document.ownerElement() || !document.isMediaDocument())
-            m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForRateChange);
+        if (document.ownerElement() || !document.isMediaDocument()) {
+            m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForVideoRateChange);
+            m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForLoad);
+        }
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
         m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureToShowPlaybackTargetPicker);
 #endif
-    } else {
-        // Relax RequireUserGestureForFullscreen when requiresUserGestureForMediaPlayback is not set:
+    }
+#if PLATFORM(IOS)
+    else {
+        // Relax RequireUserGestureForFullscreen when videoPlaybackRequiresUserGesture is not set:
         m_mediaSession->removeBehaviorRestriction(MediaElementSession::RequireUserGestureForFullscreen);
     }
+#endif
     if (settings && settings->invisibleAutoplayNotPermitted())
         m_mediaSession->addBehaviorRestriction(MediaElementSession::InvisibleAutoplayNotPermitted);
-#endif // !PLATFORM(IOS)
 
-    if (settings && settings->audioPlaybackRequiresUserGesture() && settings->requiresUserGestureForMediaPlayback())
+    if (settings && settings->audioPlaybackRequiresUserGesture())
         m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForAudioRateChange);
 
     if (!settings || !settings->mediaDataLoadsAutomatically())
@@ -1290,7 +1289,7 @@ void HTMLMediaElement::loadResource(const URL& initialURL, ContentType& contentT
     ResourceRequest request(url);
     DocumentLoader* documentLoader = frame->loader().documentLoader();
 
-    if (documentLoader && page->userContentProvider().processContentExtensionRulesForLoad(request, ResourceType::Media, *documentLoader) == ContentExtensions::BlockedStatus::Blocked) {
+    if (page->userContentController() && documentLoader && page->userContentController()->processContentExtensionRulesForLoad(request, ResourceType::Media, *documentLoader) == ContentExtensions::BlockedStatus::Blocked) {
         request = { };
         mediaLoadingFailed(MediaPlayer::FormatError);
         return;
@@ -6291,7 +6290,7 @@ void HTMLMediaElement::removeBehaviorsRestrictionsAfterFirstUserGesture()
         | MediaElementSession::RequireUserGestureToAutoplayToExternalDevice
 #endif
         | MediaElementSession::RequireUserGestureForLoad
-        | MediaElementSession::RequireUserGestureForRateChange
+        | MediaElementSession::RequireUserGestureForVideoRateChange
         | MediaElementSession::RequireUserGestureForAudioRateChange
         | MediaElementSession::RequireUserGestureForFullscreen
         | MediaElementSession::InvisibleAutoplayNotPermitted;

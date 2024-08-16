@@ -3155,7 +3155,6 @@ void WebPageProxy::didCommitLoadForFrame(uint64_t frameID, uint64_t navigationID
     }
 
     m_pageLoadState.commitChanges();
-    m_mediaState = MediaProducer::IsNotPlaying;
     if (m_navigationClient) {
         if (frame->isMainFrame())
             m_navigationClient->didCommitNavigation(*this, navigation.get(), m_process->transformHandlesToObjects(userData.object()).get());

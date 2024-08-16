@@ -23,37 +23,27 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WebUserContentControllerDataTypes_h
-#define WebUserContentControllerDataTypes_h
+WebInspector.TextNavigationItem = class TextNavigationItem extends WebInspector.NavigationItem
+{
+    constructor(identifier, label)
+    {
+        super(identifier);
 
-#include <WebCore/UserScript.h>
-#include <WebCore/UserStyleSheet.h>
+        console.assert(identifier);
 
-namespace IPC {
-class ArgumentDecoder;
-class ArgumentEncoder;
-}
+        this._element.classList.add("text");
+        this._element.textContent = label || "";
+    }
 
-namespace WebKit {
+    // Public
 
-struct WebUserScriptData {
-    void encode(IPC::ArgumentEncoder&) const;
-    static bool decode(IPC::ArgumentDecoder&, WebUserScriptData&);
+    get text()
+    {
+        return this._element.textContent;
+    }
 
-    uint64_t identifier;
-    uint64_t worldIdentifier;
-    WebCore::UserScript userScript;
+    set text(x)
+    {
+        this._element.textContent = x || "";
+    }
 };
-
-struct WebUserStyleSheetData {
-    void encode(IPC::ArgumentEncoder&) const;
-    static bool decode(IPC::ArgumentDecoder&, WebUserStyleSheetData&);
-
-    uint64_t identifier;
-    uint64_t worldIdentifier;
-    WebCore::UserStyleSheet userStyleSheet;
-};
-
-} // namespace WebKit
-
-#endif // WebUserContentControllerDataTypes_h
