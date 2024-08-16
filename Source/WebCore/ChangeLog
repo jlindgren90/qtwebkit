@@ -1,3 +1,62 @@
+2016-03-08  Brent Fulgham  <bfulgham@apple.com>
+
+        Unreviewed test fix after r197721.
+        https://bugs.webkit.org/show_bug.cgi?id=155120
+        <rdar://problem/25010167>
+
+        If a WK1 client turns on the "Resource Load Statistics" debug flag, but
+        does not supply a data modification handler, we dereference a null function.
+
+        * loader/ResourceLoadStatisticsStore.cpp:
+        (WebCore::ResourceLoadStatisticsStore::fireDataModificationHandler): Check
+        for nullptr function before invoking it.
+
+2016-03-08  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, temporarily comment out static_assert while I investigate.
+
+        It still did not build on some platforms.
+
+        * dom/ElementRareData.cpp:
+
+2016-03-08  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, another build fix after r197726.
+
+        * dom/ElementRareData.cpp:
+
+2016-03-08  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed Windows build fix after r197728.
+
+        * platform/MemoryPressureHandler.cpp:
+
+2016-03-08  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed build fix after r197726.
+
+        * dom/ElementRareData.cpp:
+
+2016-03-08  Nan Wang  <n_wang@apple.com>
+
+        AX: Force allow user zoom
+        https://bugs.webkit.org/show_bug.cgi?id=155056
+
+        Reviewed by Chris Fleizach.
+
+        Override the maximum scale factor when forceAlwaysUserScalable is true.
+
+        Test: accessibility/ios-simulator/force-user-scalable.html
+
+        * page/ViewportConfiguration.h:
+        (WebCore::ViewportConfiguration::maximumScale):
+        * testing/Internals.cpp:
+        (WebCore::Internals::composedTreeAsText):
+        (WebCore::Internals::setViewportForceAlwaysUserScalable):
+        (WebCore::Internals::viewportConfigurationMaximumScale):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
 2016-03-08  Andreas Kling  <akling@apple.com>
 
         ImageDocuments leak their world.
