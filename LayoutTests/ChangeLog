@@ -1,3 +1,116 @@
+2016-03-14  Saam barati  <sbarati@apple.com>
+
+        [ES6] Disallow var assignments in for-in loops
+        https://bugs.webkit.org/show_bug.cgi?id=155451
+
+        Reviewed by Mark Lam.
+
+        * js/parser-syntax-check-expected.txt:
+        * js/script-tests/parser-syntax-check.js:
+
+2016-03-14  Saam barati  <sbarati@apple.com>
+
+        assignments in for-in/for-of header not allowed
+        https://bugs.webkit.org/show_bug.cgi?id=155384
+
+        Reviewed by Darin Adler.
+
+        * js/parser-syntax-check-expected.txt:
+        * js/script-tests/parser-syntax-check.js:
+
+2016-03-14  Zalan Bujtas  <zalan@apple.com>
+
+        Negative outline offset could break curved outline-style: auto
+        https://bugs.webkit.org/show_bug.cgi?id=155416
+
+        Reviewed by Tim Horton.
+
+        When radius becomes negative the rounded rect could end up being un-renderable -> no rounded corners at all.
+
+        * fast/inline/hidpi-outline-auto-negative-offset-with-border-radius-expected.html: Added.
+        * fast/inline/hidpi-outline-auto-negative-offset-with-border-radius.html: Added.
+
+2016-03-14  Zalan Bujtas  <zalan@apple.com>
+
+        [Outline: auto] Fractional radius value could result in non-renderable rounded border.
+        https://bugs.webkit.org/show_bug.cgi?id=155420
+
+        Reviewed by Tim Horton.
+
+        RoundedRect::pixelSnappedRoundedRectForPainting ensures that the rounded rect is always renderable.
+
+        * fast/inline/hidpi-outline-auto-with-fractional-radius-expected.html: Added.
+        * fast/inline/hidpi-outline-auto-with-fractional-radius.html: Added.
+
+2016-03-14  Zalan Bujtas  <zalan@apple.com>
+
+        Outline: auto has sharp corners with single line contenteditable.
+        https://bugs.webkit.org/show_bug.cgi?id=155418
+
+        Reviewed by Tim Horton.
+
+        Multiple rectangles assumed multiline content and it broke bottomLeft and bottomRight corner check.
+        This patch adds fast path for polygons with 4 corners.
+
+        * fast/inline/hidpi-outline-auto-with-one-focusring-rect-expected.html: Added.
+        * fast/inline/hidpi-outline-auto-with-one-focusring-rect.html: Added.
+
+2016-03-14  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [AX] SVG element with child desc not exposed
+        https://bugs.webkit.org/show_bug.cgi?id=155374
+
+        Reviewed by Darin Adler.
+
+        * platform/gtk/accessibility/w3c-svg-roles-expected.txt: Updated.
+        * platform/mac/accessibility/w3c-svg-roles-expected.txt: Updated.
+
+2016-03-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip asserting test http/tests/security/aboutBlank/security-context-write.html
+        https://bugs.webkit.org/show_bug.cgi?id=94458
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-03-14  Darin Adler  <darin@apple.com>
+
+        Add copy/paste plug-in check for XHTML document
+        https://bugs.webkit.org/show_bug.cgi?id=106350
+
+        * TestExpectations: Re-enable test now that it works in WebKit 1.
+        * editing/pasteboard/paste-noplugin-xhtml.xhtml: Fixed problem where test would try to
+        call setBlockAllPlugins even when it did not exist. Turns out that's needed for the
+        test to run under WebKit 2, but not needed at all under WebKit 1.
+
+2016-03-14  Frederic Wang  <fred.wang@free.fr>
+
+        Skip accessibility/internal-link-anchors2.html as the linked ui element API is not supported for links.
+
+        Unreviewed test gardening.
+
+        * platform/gtk/TestExpectations:
+
+2016-03-14  Frederic Wang  <fwang@igalia.com>
+
+        Make MathML colspan/rowspan consistent with HTML table cells.
+        https://bugs.webkit.org/show_bug.cgi?id=150253
+
+        Reviewed by Martin Robinson.
+
+        We import crashing test from bug 150253.
+
+        * mathml/rowspan-crash-expected.txt: Added.
+        * mathml/rowspan-crash.xhtml: Added.
+
+2016-03-14  Darin Adler  <darin@apple.com>
+
+        Continue work on https://bugs.webkit.org/show_bug.cgi?id=106350
+
+        * TestExpectations: Disable test fow now since it seems to be failing in WebKit 1 and
+        depends on hooks not present in WebKit 1 test runner.
+
 2016-03-14  Ryosuke Niwa  <rniwa@webkit.org>
 
         Add slotchange event

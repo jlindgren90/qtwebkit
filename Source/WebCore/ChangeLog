@@ -1,3 +1,196 @@
+2016-03-14  Tim Horton  <timothy_horton@apple.com>
+
+        Revert r194125 and r194186: We're going to fix this a different way.
+
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::clear):
+        * page/EventHandler.h:
+
+2016-03-14  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] FetchLoader should check for empty bodies
+        https://bugs.webkit.org/show_bug.cgi?id=155440
+
+        Reviewed by Darin Adler.
+
+        Covered by added tests.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::didFinishLoading): returning empty array buffer/empty string if no data received during loading.
+
+2016-03-14  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r197981): Huge regression on Mac PLT
+        https://bugs.webkit.org/show_bug.cgi?id=155443
+        <rdar://problem/25113391>
+
+        Reviewed by Gavin Barraclough.
+
+        We have experience a huge regression on Mac PLT after r197981, so
+        disable the feature until the performance issue is resolved.
+
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayer::supportsSmoothedLayerText):
+
+2016-03-14  Chris Vienneau  <chris.vno@outlook.com>
+
+        PingHandle delete's itself but pointer is still used by handleDataURL
+        https://bugs.webkit.org/show_bug.cgi?id=154752
+        <rdar://problem/24872347>
+
+        Reviewed by Alex Christensen.
+
+        When a PingHandle is destroyed, we should tell its client so that the client can clear the pointer it
+        holds to the element to avoid accidentally attempting to use deallocated memory.
+
+        The ResourceHandle's client member may be null after "didReceiveResponse" is called. We should confirm
+        the client is still valid after these calls.
+
+        * platform/network/DataURL.cpp:
+        (WebCore::handleDataURL): Check the client pointer before using it.
+        * platform/network/PingHandle.h:
+        (WebCore::PingHandle::~PingHandle): Notify the client we are being destroyed.
+        * platform/platform/network/ResourceHandle.h:
+
+2016-03-14  Zalan Bujtas  <zalan@apple.com>
+
+        Negative outline offset could break curved outline-style: auto
+        https://bugs.webkit.org/show_bug.cgi?id=155416
+
+        Reviewed by Tim Horton.
+
+        When radius becomes negative the rounded rect could end up being un-renderable -> no rounded corners at all.
+
+        Test: fast/inline/hidpi-outline-auto-negative-offset-with-border-radius.html
+
+        * platform/graphics/PathUtilities.cpp:
+        (WebCore::adjustedtRadiiForHuggingCurve):
+
+2016-03-14  Zalan Bujtas  <zalan@apple.com>
+
+        [Outline: auto] Fractional radius value could result in non-renderable rounded border.
+        https://bugs.webkit.org/show_bug.cgi?id=155420
+
+        Reviewed by Tim Horton.
+
+        RoundedRect::pixelSnappedRoundedRectForPainting ensures that the rounded rect is always renderable.
+
+        Test: fast/inline/hidpi-outline-auto-with-fractional-radius.html
+
+        * platform/graphics/PathUtilities.cpp:
+        (WebCore::PathUtilities::pathWithShrinkWrappedRectsForOutline):
+        * platform/graphics/PathUtilities.h:
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::paintFocusRing):
+
+2016-03-14  Zalan Bujtas  <zalan@apple.com>
+
+        Outline: auto has sharp corners with single line contenteditable.
+        https://bugs.webkit.org/show_bug.cgi?id=155418
+
+        Reviewed by Tim Horton.
+
+        Multiple rectangles assumed multiline content and it broke bottomLeft and bottomRight corner check.
+        This patch adds fast path for polygons with 4 corners.
+
+        Test: fast/inline/hidpi-outline-auto-with-one-focusring-rect.html
+
+        * platform/graphics/PathUtilities.cpp:
+        (WebCore::cornerType):
+        (WebCore::cornerTypeForMultiline):
+        (WebCore::rectFromPolygon):
+        (WebCore::PathUtilities::pathWithShrinkWrappedRectsForOutline):
+
+2016-03-14  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [AX] SVG element with child desc not exposed
+        https://bugs.webkit.org/show_bug.cgi?id=155374
+
+        Reviewed by Darin Adler.
+
+        Covered by the accessibility/w3c-svg-roles.html test, which was updated.
+
+        AccessibilitySVGRoot is now a subclass of AccessibilitySVGElement, which
+        exposes SVG elements with a child desc element as per the specification.
+        Also made existing protected methods private.
+
+        * accessibility/AccessibilitySVGElement.h:
+        * accessibility/AccessibilitySVGRoot.cpp:
+        (WebCore::AccessibilitySVGRoot::AccessibilitySVGRoot):
+        (WebCore::AccessibilitySVGRoot::parentObject):
+        * accessibility/AccessibilitySVGRoot.h:
+
+2016-03-14  Alexey Proskuryakov  <ap@apple.com>
+
+        Build fix.
+
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::loadedBlobAsText):
+
+2016-03-14  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Implement data resolution for blob stored in Body
+        https://bugs.webkit.org/show_bug.cgi?id=155359
+
+        Reviewed by Darin Adler.
+
+        Introducing FetchLoader as a wrapper around ThreadableLoader to load resources.
+        FetchLoader can retrieve data as text or array buffer. It only supports blob currently.
+
+        Introducing FetchLoaderClient interface and FetchBodyOwner::BlobLoader as specifc blob loader client.
+
+        Covered by existing rebased tests.
+
+        * CMakeLists.txt:
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::loadingType):
+        (WebCore::FetchBody::loadedAsArrayBuffer):
+        (WebCore::FetchBody::loadedAsText):
+        * Modules/fetch/FetchBody.h:
+        * Modules/fetch/FetchBodyOwner.cpp: Added.
+        (WebCore::FetchBodyOwner::FetchBodyOwner):
+        (WebCore::FetchBodyOwner::loadBlob):
+        (WebCore::FetchBodyOwner::finishBlobLoading):
+        (WebCore::FetchBodyOwner::blobLoadingFailed):
+        (WebCore::FetchBodyOwner::BlobLoader::didReceiveResponse):
+        * Modules/fetch/FetchBodyOwner.h:
+        (WebCore::FetchBodyOwner::loadedBlobAsText):
+        (WebCore::FetchBodyOwner::loadedBlobAsArrayBuffer):
+        (WebCore::FetchBodyOwner::blobLoadingSucceeded):
+        * Modules/fetch/FetchLoader.cpp: Added.
+        (WebCore::FetchLoader::start):
+        (WebCore::FetchLoader::FetchLoader):
+        (WebCore::FetchLoader::stop):
+        (WebCore::FetchLoader::didReceiveResponse):
+        (WebCore::FetchLoader::didReceiveData):
+        (WebCore::FetchLoader::didFinishLoading):
+        (WebCore::FetchLoader::didFail):
+        * Modules/fetch/FetchLoader.h: Added.
+        * Modules/fetch/FetchLoaderClient.h: Added.
+        (WebCore::FetchLoaderClient::~FetchLoaderClient):
+        (WebCore::FetchLoaderClient::didReceiveResponse):
+        (WebCore::FetchLoaderClient::didFinishLoadingAsText):
+        (WebCore::FetchLoaderClient::didFinishLoadingAsArrayBuffer):
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-03-14  Frederic Wang  <fwang@igalia.com>
+
+        Make MathML colspan/rowspan consistent with HTML table cells.
+        https://bugs.webkit.org/show_bug.cgi?id=150253
+
+        Reviewed by Martin Robinson.
+
+        Test: mathml/rowspan-crash.xhtml
+
+        We make MathMLElement::colSpan and MathMLElement::rowSpan consistent with the corresponding functions in HTMLTableCellElement.cpp.
+        These functions now return unsigned integers, use the same parsing functions and set a maximum for rowspan.
+        This latter change fixes crash/timeout with large values of rowspan.
+
+        * mathml/MathMLElement.cpp: Include HTMLParserIdioms to use limitToOnlyHTMLNonNegative.
+        (WebCore::MathMLElement::colSpan): Use unsigned integer and limitToOnlyHTMLNonNegative.
+        (WebCore::MathMLElement::rowSpan): ditto. We also use the same maximum limit as HTMLTableCellElement.
+        * mathml/MathMLElement.h: Make colSpan and rowSpan return unsigned integers.
+
 2016-03-14  Tomas Popela  <tpopela@redhat.com>
 
         Enable GSS-Negotiate support in libsoup

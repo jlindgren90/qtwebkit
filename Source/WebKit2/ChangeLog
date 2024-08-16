@@ -1,3 +1,100 @@
+2016-03-14  Anders Carlsson  <andersca@apple.com>
+
+        REGRESSION (r191691): Can't Share Selected Text
+        https://bugs.webkit.org/show_bug.cgi?id=155459
+        rdar://problem/24893625
+
+        Reviewed by Tim Horton.
+
+        Add the selected text as well. Somehow this got lost in the refactoring.
+
+        * UIProcess/mac/WebContextMenuProxyMac.mm:
+        (WebKit::WebContextMenuProxyMac::createShareMenuItem):
+
+2016-03-14  Tim Horton  <timothy_horton@apple.com>
+
+        Revert r194125 and r194186: We're going to fix this a different way.
+
+        * Shared/NativeWebGestureEvent.h:
+        * Shared/mac/NativeWebGestureEventMac.mm:
+        (WebKit::pointForEvent):
+        (WebKit::NativeWebGestureEvent::NativeWebGestureEvent):
+        (WebKit::distanceForTouches): Deleted.
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView selectFindMatch:completionHandler:]):
+        (-[WKWebView _web_superInputContext]):
+        (-[WKWebView touchesBeganWithEvent:]): Deleted.
+        (-[WKWebView touchesMovedWithEvent:]): Deleted.
+        (-[WKWebView touchesEndedWithEvent:]): Deleted.
+        (-[WKWebView touchesCancelledWithEvent:]): Deleted.
+        * UIProcess/API/mac/WKView.mm:
+        (-[WKView namesOfPromisedFilesDroppedAtDestination:]):
+        (-[WKView initWithFrame:processPool:configuration:webView:]):
+        (-[WKView touchesBeganWithEvent:]): Deleted.
+        (-[WKView touchesMovedWithEvent:]): Deleted.
+        (-[WKView touchesEndedWithEvent:]): Deleted.
+        (-[WKView touchesCancelledWithEvent:]): Deleted.
+        * UIProcess/Cocoa/WebViewImpl.h:
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::WebViewImpl):
+        (WebKit::WebViewImpl::magnifyWithEvent):
+        (WebKit::WebViewImpl::smartMagnifyWithEvent):
+        (WebKit::WebViewImpl::rotateWithEvent):
+        (WebKit::WebViewImpl::touchesOrderedByAge): Deleted.
+        (WebKit::WebViewImpl::touchesBeganWithEvent): Deleted.
+        (WebKit::WebViewImpl::touchesMovedWithEvent): Deleted.
+        (WebKit::WebViewImpl::touchesEndedWithEvent): Deleted.
+        (WebKit::WebViewImpl::touchesCancelledWithEvent): Deleted.
+
+2016-03-14  Anders Carlsson  <andersca@apple.com>
+
+        Fix build.
+
+        Create an empty PDF selection.
+
+        * Shared/mac/PDFKitImports.h:
+        * Shared/mac/PDFKitImports.mm:
+        (WebKit::pdfSelectionClass):
+        * WebProcess/Plugins/PDF/DeprecatedPDFPlugin.mm:
+        (WebKit::PDFPlugin::nextMatchForString):
+
+2016-03-14  Beth Dakin  <bdakin@apple.com>
+
+        Unable to commit previews in Mobile Safari
+        https://bugs.webkit.org/show_bug.cgi?id=155450
+        -and corresponding-
+        rdar://problem/25135529
+
+        Reviewed by Tim Horton.
+
+        _uiDelegateProvidedPreviewingViewController was being consulted before 
+        invoking the old SPI, which was always wrong. It should have been consulted 
+        before calling the new API! But also, it doesn’t seem to be necessary at all 
+        since [WKContentView _previewItemController:commitPreview:] is only invoked 
+        when a custom view controller has been provided.
+
+        * UIProcess/ios/WKContentViewInteraction.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _registerPreview]):
+        (-[WKContentView _unregisterPreview]):
+        (-[WKContentView _interactionShouldBeginFromPreviewItemController:forPosition:]):
+        (-[WKContentView _presentedViewControllerForPreviewItemController:]):
+        (-[WKContentView _previewItemController:commitPreview:]):
+
+2016-03-14  Brent Fulgham  <bfulgham@apple.com>
+
+        PingHandle delete's itself but pointer is still used by handleDataURL
+        https://bugs.webkit.org/show_bug.cgi?id=154752
+        <rdar://problem/24872347>
+
+        Reviewed by Alex Christensen.
+
+        When a PingLoad is destroyed, we should tell its client so that the client can clear the pointer it
+        holds to the element to avoid accidentally attempting to use deallocated memory.
+
+        * NetworkProcess/PingLoad.h:
+        (WebKit::PingLoad::~PingLoad): Notify the client we are being destroyed.
+
 2016-03-14  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         Unreviewed. Fix the GTK+ build after r198124.

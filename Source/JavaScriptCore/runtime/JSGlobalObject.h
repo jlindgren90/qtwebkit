@@ -248,7 +248,7 @@ protected:
     WriteBarrier<Structure> m_moduleEnvironmentStructure;
     WriteBarrier<Structure> m_directArgumentsStructure;
     WriteBarrier<Structure> m_scopedArgumentsStructure;
-    WriteBarrier<Structure> m_outOfBandArgumentsStructure;
+    WriteBarrier<Structure> m_clonedArgumentsStructure;
         
     // Lists the actual structures used for having these particular indexing shapes.
     WriteBarrier<Structure> m_originalArrayStructureForIndexingShape[NumberOfIndexingShapes];
@@ -481,7 +481,7 @@ public:
     Structure* moduleEnvironmentStructure() const { return m_moduleEnvironmentStructure.get(); }
     Structure* directArgumentsStructure() const { return m_directArgumentsStructure.get(); }
     Structure* scopedArgumentsStructure() const { return m_scopedArgumentsStructure.get(); }
-    Structure* outOfBandArgumentsStructure() const { return m_outOfBandArgumentsStructure.get(); }
+    Structure* clonedArgumentsStructure() const { return m_clonedArgumentsStructure.get(); }
     Structure* originalArrayStructureForIndexingType(IndexingType indexingType) const
     {
         ASSERT(indexingType & IsArray);
