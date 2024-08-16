@@ -42,12 +42,12 @@ public:
     virtual void stop() override;
     
     // Number of pixels to move on each scroll movement. Defaults to 6.
-    int scrollAmount() const;
-    void setScrollAmount(int, ExceptionCode&);
+    unsigned scrollAmount() const;
+    void setScrollAmount(unsigned);
     
     // Interval between each scroll movement, in milliseconds. Defaults to 60.
-    int scrollDelay() const;
-    void setScrollDelay(int, ExceptionCode&);
+    unsigned scrollDelay() const;
+    void setScrollDelay(unsigned);
     
     // Loop count. -1 means loop indefinitely.
     int loop() const;

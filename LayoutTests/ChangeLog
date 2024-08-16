@@ -1,3 +1,46 @@
+2016-02-27  Andy VanWagoner  <thetalecrafter@gmail.com>
+
+        Intl.Collator uses POSIX locale (detected by js/intl-collator.html on iOS Simulator)
+        https://bugs.webkit.org/show_bug.cgi?id=152448
+
+        Reviewed by Darin Adler.
+
+        Add tests for default locale in test runner to be en-US.
+
+        * js/intl-collator-expected.txt:
+        * js/intl-datetimeformat-expected.txt:
+        * js/intl-numberformat-expected.txt:
+        * js/script-tests/intl-collator.js:
+        * js/script-tests/intl-datetimeformat.js:
+        * js/script-tests/intl-numberformat.js:
+
+2016-02-27  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLMarqueeElement.scrollAmount / scrollDelay with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=154781
+
+        Reviewed by Darin Adler.
+
+        Update existing test to reflect the behavior changes.
+
+        * fast/html/marquee-element-expected.txt:
+        * fast/html/marquee-element.html:
+
+2016-02-27  Alexey Proskuryakov  <ap@apple.com>
+
+        Mark failing reftests as such, now that we detect reftest failures.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-02-27  Alexey Proskuryakov  <ap@apple.com>
+
+        REGRESSION(r195795): [WK2] fast/text/crash-complex-text-surrogate.html is flakey
+        https://bugs.webkit.org/show_bug.cgi?id=154709
+
+        The test has been made made non-flaky, but it also needs new results.
+
+        * platform/mac/fast/text/crash-complex-text-surrogate-expected.txt:
+
 2016-02-26  Chris Dumez  <cdumez@apple.com>
 
         Fix the behavior of reflecting IDL attributes of type unsigned long
