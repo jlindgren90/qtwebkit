@@ -1,3 +1,56 @@
+2016-03-01  Gavin Barraclough  <barraclough@apple.com>
+
+        Timer alignment in separate web processes should not all sync up to the same point.
+        https://bugs.webkit.org/show_bug.cgi?id=154878
+
+        Reviewed by Chris Dumez.
+
+        For any given WebContent process it is desirable that timers are synchronized to a single
+        alignment point, but if all WebContent processes align to the same point then there may
+        be a thundering herd of processes waking up.
+
+        * page/DOMTimer.cpp:
+        (WebCore::DOMTimer::alignedFireTime):
+            - align to a randomized point.
+
+2016-03-01  Alex Christensen  <achristensen@webkit.org>
+
+        Reduce size of internal windows build output
+        https://bugs.webkit.org/show_bug.cgi?id=154763
+
+        Reviewed by Brent Fulgham.
+
+        * WebCore.vcxproj/WebCore.proj:
+
+2016-03-01  Andreas Kling  <akling@apple.com>
+
+        REGRESSION (r154616): Accelerated drawing is off during the initial load
+        <https://webkit.org/b/123812>
+
+        Reviewed by Tim Horton.
+
+        Robustify the hey-the-Settings-changed callbacks in Page to handle document-less frames.
+        This is needed because now Settings are changed even before the main Frame has a Document.
+
+        * page/Page.cpp:
+        (WebCore::networkStateChanged):
+        (WebCore::Page::updateStyleForAllPagesAfterGlobalChangeInEnvironment):
+        (WebCore::Page::takeAnyMediaCanStartListener):
+        (WebCore::Page::setMediaVolume):
+        (WebCore::Page::setPageScaleFactor):
+        (WebCore::Page::invalidateStylesForAllLinks):
+        (WebCore::Page::invalidateStylesForLink):
+        (WebCore::Page::dnsPrefetchingStateChanged):
+        (WebCore::Page::storageBlockingStateChanged):
+        (WebCore::Page::setMuted):
+        (WebCore::Page::captionPreferencesChanged):
+        (WebCore::Page::setSessionID):
+        (WebCore::Page::setPlaybackTarget):
+        (WebCore::Page::playbackTargetAvailabilityDidChange):
+        (WebCore::Page::setShouldPlayToPlaybackTarget):
+        * page/Settings.cpp:
+        (WebCore::setImageLoadingSettings):
+
 2016-03-01  Commit Queue  <commit-queue@webkit.org>
 
         Unreviewed, rolling out r197056.

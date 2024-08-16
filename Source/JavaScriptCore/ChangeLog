@@ -1,3 +1,125 @@
+2016-03-01  Filip Pizlo  <fpizlo@apple.com>
+
+        FTL should simplify StringReplace with an empty replacement string
+        https://bugs.webkit.org/show_bug.cgi?id=154871
+
+        Reviewed by Michael Saboff.
+
+        This is a simple and hugely profitable change. If we do a string.replace(/things/, ""), then
+        this calls directly into StringPrototype's replace-with-empty-string logic instead of going
+        through stuff that does checks before reaching that same conclusion.
+
+        This speeds up Octane/regexp by about 6-10%. It also speeds up the attached microbenchmark by
+        about 7%.
+
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileStringReplace):
+        * runtime/StringPrototype.cpp:
+        (JSC::jsSpliceSubstringsWithSeparators):
+        (JSC::removeUsingRegExpSearch):
+        (JSC::replaceUsingRegExpSearch):
+        (JSC::operationStringProtoFuncReplaceRegExpEmptyStr):
+        (JSC::operationStringProtoFuncReplaceRegExpString):
+        * runtime/StringPrototype.h:
+
+2016-03-01  Alex Christensen  <achristensen@webkit.org>
+
+        Reduce size of internal windows build output
+        https://bugs.webkit.org/show_bug.cgi?id=154763
+
+        Reviewed by Brent Fulgham.
+
+        * JavaScriptCore.vcxproj/JavaScriptCore.proj:
+
+2016-03-01  Saam barati  <sbarati@apple.com>
+
+        [[IsExtensible]] should be a virtual method in the method table
+        https://bugs.webkit.org/show_bug.cgi?id=154799
+
+        Reviewed by Mark Lam.
+
+        This patch makes us more consistent with how the ES6 specification models the
+        [[IsExtensible]] trap. Moving this method into ClassInfo::methodTable 
+        is a prerequisite for implementing Proxy.[[IsExtensible]].
+
+        * runtime/ClassInfo.h:
+        * runtime/JSCell.cpp:
+        (JSC::JSCell::preventExtensions):
+        (JSC::JSCell::isExtensible):
+        * runtime/JSCell.h:
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncProtoSetter):
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::preventExtensions):
+        (JSC::JSObject::isExtensible):
+        (JSC::JSObject::reifyAllStaticProperties):
+        (JSC::JSObject::defineOwnIndexedProperty):
+        (JSC::JSObject::putByIndexBeyondVectorLengthWithArrayStorage):
+        (JSC::JSObject::putDirectIndexBeyondVectorLengthWithArrayStorage):
+        (JSC::JSObject::defineOwnNonIndexProperty):
+        (JSC::JSObject::defineOwnProperty):
+        * runtime/JSObject.h:
+        (JSC::JSObject::isSealed):
+        (JSC::JSObject::isFrozen):
+        (JSC::JSObject::isExtensibleImpl):
+        (JSC::JSObject::isStructureExtensible):
+        (JSC::JSObject::isExtensibleInline):
+        (JSC::JSObject::indexingShouldBeSparse):
+        (JSC::JSObject::putDirectInternal):
+        (JSC::JSObject::isExtensible): Deleted.
+        * runtime/ObjectConstructor.cpp:
+        (JSC::objectConstructorSetPrototypeOf):
+        (JSC::objectConstructorIsSealed):
+        (JSC::objectConstructorIsFrozen):
+        (JSC::objectConstructorIsExtensible):
+        (JSC::objectConstructorIs):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::performInternalMethodGetOwnProperty):
+        (JSC::ProxyObject::performHasProperty):
+        * runtime/ReflectObject.cpp:
+        (JSC::reflectObjectIsExtensible):
+        (JSC::reflectObjectSetPrototypeOf):
+        * runtime/SparseArrayValueMap.cpp:
+        (JSC::SparseArrayValueMap::putEntry):
+        (JSC::SparseArrayValueMap::putDirect):
+        * runtime/StringObject.cpp:
+        (JSC::StringObject::defineOwnProperty):
+        * runtime/Structure.cpp:
+        (JSC::Structure::isSealed):
+        (JSC::Structure::isFrozen):
+        * runtime/Structure.h:
+
+2016-03-01  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, fix CLOOP build.
+
+        * jit/JITOperations.h:
+
+2016-03-01  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES6] Arrow function. Some not used byte code is emited
+        https://bugs.webkit.org/show_bug.cgi?id=154639
+
+        Reviewed by Saam Barati.
+
+        Currently bytecode that is generated for arrow function is not optimal. 
+        Current fix removed following unnecessary bytecode:
+        1.create_lexical_environment not emited always for arrow function, only if some of 
+        features(this/super/arguments/eval) is used inside of the arrow function. 
+        2.load 'this' from arrow function scope in constructor is done only if super 
+        contains in arrow function 
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::isSuperCallUsedInInnerArrowFunction):
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::ThisNode::emitBytecode):
+        (JSC::FunctionNode::emitBytecode):
+        * parser/Nodes.h:
+        (JSC::ScopeNode::doAnyInnerArrowFunctionsUseAnyFeature):
+        * tests/stress/arrowfunction-lexical-bind-supercall-4.js:
+
 2016-02-29  Filip Pizlo  <fpizlo@apple.com>
 
         Turn String.prototype.replace into an intrinsic
