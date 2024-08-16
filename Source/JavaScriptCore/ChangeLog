@@ -1,3 +1,138 @@
+2016-03-06  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: the protocol generator should have separate prefix options for Objective-C classes and filenames
+        https://bugs.webkit.org/show_bug.cgi?id=155101
+        <rdar://problem/25000053>
+
+        Reviewed by Timothy Hatcher.
+
+        It should be possible to generate Objective-C protocol types without prefixing all class names.
+        The prefixes are only necessary when the generated files are part of a framework, but this isn't
+        how the generated Objective-C frontend files are used.
+
+        Add a separate framework setting and switch over code to use the 'protocol_group' in filenames,
+        and the 'objc_prefix' for Objective-C enum and class prefixes.
+
+        No tests need to be rebaselined because tests always set the protocol_group and objc_prefix
+        to the same value.
+
+        * inspector/scripts/codegen/generate_objc_backend_dispatcher_header.py:
+        (ObjCBackendDispatcherHeaderGenerator.output_filename):
+        * inspector/scripts/codegen/generate_objc_backend_dispatcher_implementation.py:
+        (ObjCConfigurationImplementationGenerator.output_filename):
+        (ObjCConfigurationImplementationGenerator.generate_output):
+        * inspector/scripts/codegen/generate_objc_configuration_header.py:
+        (ObjCConfigurationHeaderGenerator.output_filename):
+        (ObjCConfigurationHeaderGenerator.generate_output):
+        (ObjCConfigurationHeaderGenerator._generate_configuration_interface_for_domains):
+        * inspector/scripts/codegen/generate_objc_configuration_implementation.py:
+        (ObjCBackendDispatcherImplementationGenerator.output_filename):
+        (ObjCBackendDispatcherImplementationGenerator.generate_output):
+        (ObjCBackendDispatcherImplementationGenerator._generate_configuration_implementation_for_domains):
+        * inspector/scripts/codegen/generate_objc_conversion_helpers.py:
+        (ObjCConversionHelpersGenerator.output_filename):
+        * inspector/scripts/codegen/generate_objc_frontend_dispatcher_implementation.py:
+        (ObjCFrontendDispatcherImplementationGenerator.output_filename):
+        (ObjCFrontendDispatcherImplementationGenerator.generate_output):
+        * inspector/scripts/codegen/generate_objc_header.py:
+        (ObjCHeaderGenerator.output_filename):
+        * inspector/scripts/codegen/generate_objc_internal_header.py:
+        (ObjCInternalHeaderGenerator.output_filename):
+        (ObjCInternalHeaderGenerator.generate_output):
+        * inspector/scripts/codegen/generate_objc_protocol_types_implementation.py:
+        (ObjCProtocolTypesImplementationGenerator.output_filename):
+        (ObjCProtocolTypesImplementationGenerator.generate_output):
+        * inspector/scripts/codegen/models.py:
+        * inspector/scripts/codegen/objc_generator.py:
+        (ObjCGenerator):
+        (ObjCGenerator.protocol_name):
+        (ObjCGenerator.objc_prefix):
+
+2016-03-06  Brian Burg  <bburg@apple.com>
+
+        Unreviewed, rebaseline inspector protocol generator tests after r197563.
+
+        * inspector/scripts/tests/expected/commands-with-async-attribute.json-result:
+        * inspector/scripts/tests/expected/commands-with-optional-call-return-parameters.json-result:
+        * inspector/scripts/tests/expected/domains-with-varying-command-sizes.json-result:
+        * inspector/scripts/tests/expected/enum-values.json-result:
+        * inspector/scripts/tests/expected/generate-domains-with-feature-guards.json-result:
+
+2016-03-06  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Improve DFG's Int32 ArithMul if one operand is a constant
+        https://bugs.webkit.org/show_bug.cgi?id=155066
+
+        Reviewed by Filip Pizlo.
+
+        When multiplying an integer by a constant, DFG was doing quite
+        a bit worse than baseline JIT.
+        We were loading the constant into a register, doing the multiply,
+        the checking the result and both operands for negative zero.
+
+        This patch changes:
+        -Use the multiply-by-immediate form on x86.
+        -Do as few checks as possible to detect negative-zero.
+
+        In most cases, this reduce the negative-zero checks
+        to zero or one TEST+JUMP.
+
+        * assembler/MacroAssembler.h:
+        (JSC::MacroAssembler::mul32):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithMul):
+
+2016-03-06  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Remove a superfluous Move in front of every double unboxing
+        https://bugs.webkit.org/show_bug.cgi?id=155064
+
+        Reviewed by Saam Barati.
+
+        Double unboxing was always doing:
+            Move source, scratch
+            Add64 tag, scratch
+            IntToDouble scratch, fp
+
+        We do not need to "Move" to copy the source.
+        Both x86 and ARM64 have an efficient 3 operands Add instruction.
+
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileValueToInt32):
+        (JSC::DFG::SpeculativeJIT::compileDoubleRep):
+        (JSC::DFG::SpeculativeJIT::speculateRealNumber):
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::unboxDouble):
+        * jit/AssemblyHelpers.h:
+        (JSC::AssemblyHelpers::unboxDoubleWithoutAssertions):
+        (JSC::AssemblyHelpers::unboxDouble):
+        (JSC::AssemblyHelpers::unboxDoubleNonDestructive):
+
+2016-03-06  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Use 3 operands Add in more places
+        https://bugs.webkit.org/show_bug.cgi?id=155082
+
+        Reviewed by Filip Pizlo.
+
+        * assembler/MacroAssembler.h:
+        (JSC::MacroAssembler::addPtr):
+        (JSC::MacroAssembler::add32):
+        * assembler/MacroAssemblerARMv7.h:
+        (JSC::MacroAssemblerARMv7::add32):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithAdd):
+        The case with child1 constant is useless.
+        The canonical form will have the constant as child2.
+
+        Also add register reuse for the fast-add.
+        Registers are a scarce resource on x86.
+
+        * jit/CCallHelpers.h:
+        (JSC::CCallHelpers::prepareForTailCallSlow):
+        * yarr/YarrJIT.cpp:
+        (JSC::Yarr::YarrGenerator::generate):
+
 2016-03-06  Benjamin Poulain  <bpoulain@apple.com>
 
         [JSC] Improve codegen of Compare and Test
