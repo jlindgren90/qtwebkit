@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,14 +23,19 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-.timeline-view.layout > .data-grid {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-}
+WebInspector.FilterBarNavigationItem = class FilterBarNavigationItem extends WebInspector.NavigationItem
+{
+    constructor()
+    {
+        super();
 
-.sidebar > .panel.navigation.timeline.timeline-recording-content-view-showing .tree-outline.layout .item .subtitle {
-    display: none;
-}
+        this._filterBar = new WebInspector.FilterBar(this.element);
+    }
+
+    // Public
+
+    get filterBar()
+    {
+        return this._filterBar;
+    }
+};
