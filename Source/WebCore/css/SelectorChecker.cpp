@@ -917,7 +917,7 @@ bool SelectorChecker::checkOne(CheckingContext& checkingContext, const LocalCont
                 if (checkingContext.resolvingMode == SelectorChecker::Mode::CollectingRulesIgnoringVirtualPseudoElements && !context.isMatchElement)
                     return true;
 
-                if (element.hovered() || InspectorInstrumentation::forcePseudoState(const_cast<Element&>(element), CSSSelector::PseudoClassHover))
+                if (element.hovered() || InspectorInstrumentation::forcePseudoState(element, CSSSelector::PseudoClassHover))
                     return true;
             }
             break;
@@ -925,7 +925,7 @@ bool SelectorChecker::checkOne(CheckingContext& checkingContext, const LocalCont
             if (m_strictParsing || element.isLink() || canMatchHoverOrActiveInQuirksMode(context)) {
                 addStyleRelation(checkingContext, element, Style::Relation::AffectedByActive);
 
-                if (element.active() || InspectorInstrumentation::forcePseudoState(const_cast<Element&>(element), CSSSelector::PseudoClassActive))
+                if (element.active() || InspectorInstrumentation::forcePseudoState(element, CSSSelector::PseudoClassActive))
                     return true;
             }
             break;
@@ -1154,7 +1154,7 @@ static bool isFrameFocused(const Element& element)
 
 bool SelectorChecker::matchesFocusPseudoClass(const Element& element)
 {
-    if (InspectorInstrumentation::forcePseudoState(const_cast<Element&>(element), CSSSelector::PseudoClassFocus))
+    if (InspectorInstrumentation::forcePseudoState(element, CSSSelector::PseudoClassFocus))
         return true;
     return element.focused() && isFrameFocused(element);
 }
