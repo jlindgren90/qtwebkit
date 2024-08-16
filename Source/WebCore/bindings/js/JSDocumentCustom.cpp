@@ -143,7 +143,7 @@ JSValue JSDocument::defineElement(ExecState& state)
 
     JSObject* object = state.argument(1).getObject();
     ConstructData callData;
-    if (!object || object->methodTable()->getConstructData(object, callData) == ConstructTypeNone)
+    if (!object || object->methodTable()->getConstructData(object, callData) == ConstructType::None)
         return throwTypeError(&state, "The second argument must be a constructor");
 
     Document& document = wrapped();
@@ -181,7 +181,7 @@ JSValue JSDocument::defineElement(ExecState& state)
     // FIXME: 14. Let attributeChangedCallback be Get(prototype, "attributeChangedCallback"). Rethrow any exceptions.
 
     QualifiedName name(nullAtom, tagName, HTMLNames::xhtmlNamespaceURI);
-    definitions.defineElement(name, JSCustomElementInterface::create(object, globalObject()));
+    definitions.addElementDefinition(JSCustomElementInterface::create(name, object, globalObject()));
     PrivateName uniquePrivateName;
     globalObject()->putDirect(globalObject()->vm(), uniquePrivateName, object);
 

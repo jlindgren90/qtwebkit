@@ -1,3 +1,187 @@
+2016-03-05  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Support Reflect.construct
+        https://bugs.webkit.org/show_bug.cgi?id=147330
+
+        Reviewed by Saam Barati.
+
+        * Modules/plugins/QuickTimePluginReplacement.mm:
+        (WebCore::QuickTimePluginReplacement::installReplacement):
+        * bindings/js/CallbackFunction.cpp:
+        (WebCore::checkFunctionOnlyCallback):
+        * bindings/js/JSCallbackData.cpp:
+        (WebCore::JSCallbackData::invokeCallback):
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::constructElement):
+        (WebCore::JSCustomElementInterface::attributeChanged):
+        * bindings/js/JSCustomXPathNSResolver.cpp:
+        (WebCore::JSCustomXPathNSResolver::lookupNamespaceURI):
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::callFunctionWithCurrentArguments):
+        (WebCore::DOMConstructorObject::getCallData):
+        * bindings/js/JSDOMConstructor.h:
+        (WebCore::JSDOMConstructorNotConstructable::getCallData):
+        (WebCore::JSDOMConstructor<JSClass>::getConstructData):
+        (WebCore::JSDOMNamedConstructor<JSClass>::getConstructData):
+        (WebCore::JSBuiltinConstructor<JSClass>::getConstructData):
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::DeferredWrapper::callFunction):
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::defineElement):
+        * bindings/js/JSErrorHandler.cpp:
+        (WebCore::JSErrorHandler::handleEvent):
+        * bindings/js/JSEventListener.cpp:
+        (WebCore::JSEventListener::handleEvent):
+        * bindings/js/JSHTMLAllCollectionCustom.cpp:
+        (WebCore::JSHTMLAllCollection::getCallData):
+        * bindings/js/JSHTMLDocumentCustom.cpp:
+        (WebCore::JSHTMLDocument::open):
+        * bindings/js/JSKeyValueIterator.h:
+        (WebCore::keyValueIteratorForEach):
+        * bindings/js/JSMainThreadExecStateInstrumentation.h:
+        (WebCore::JSMainThreadExecState::instrumentFunctionCall):
+        (WebCore::JSMainThreadExecState::instrumentFunctionConstruct):
+        * bindings/js/JSMutationCallback.cpp:
+        (WebCore::JSMutationCallback::call):
+        * bindings/js/JSMutationObserverCustom.cpp:
+        (WebCore::constructJSMutationObserver):
+        * bindings/js/JSPluginElementFunctions.cpp:
+        (WebCore::callPlugin):
+        (WebCore::pluginElementGetCallData):
+        * bindings/js/ScheduledAction.cpp:
+        (WebCore::ScheduledAction::create):
+        (WebCore::ScheduledAction::executeFunctionInContext):
+        * bindings/objc/WebScriptObject.mm:
+        (-[WebScriptObject callWebScriptMethod:withArguments:]):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateConstructorHelperMethods):
+        * bindings/scripts/test/JS/JSFloat64Array.cpp:
+        (WebCore::JSFloat64ArrayConstructor::getConstructData):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::JSTestInterfaceConstructor::getConstructData):
+        * bridge/NP_jsobject.cpp:
+        (_NPN_InvokeDefault):
+        (_NPN_Invoke):
+        (_NPN_Construct):
+        * bridge/objc/objc_runtime.mm:
+        (JSC::Bindings::ObjcFallbackObjectImp::getCallData):
+        * bridge/runtime_method.cpp:
+        (JSC::RuntimeMethod::getCallData):
+        * bridge/runtime_object.cpp:
+        (JSC::Bindings::RuntimeObject::getCallData):
+        (JSC::Bindings::RuntimeObject::getConstructData):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::updateCaptionContainer):
+        (WebCore::HTMLMediaElement::didAddUserAgentShadowRoot):
+        (WebCore::HTMLMediaElement::getCurrentMediaControlsStatus):
+        * html/HTMLPlugInImageElement.cpp:
+        (WebCore::HTMLPlugInImageElement::didAddUserAgentShadowRoot):
+        * testing/Internals.cpp:
+        (WebCore::Internals::isReadableStreamDisturbed):
+
+2016-03-05  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Fix the bindings test after r197611.
+
+        * bindings/scripts/test/TestObj.idl:
+
+2016-03-05  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Move QualifiedName from CustomElementInfo to JSCustomElementInterface
+        https://bugs.webkit.org/show_bug.cgi?id=155061
+
+        Reviewed by Antti Koivisto.
+
+        Store QualifiedName of custom elements in JSCustomElementInterface instead of CustomElementInfo
+        now that each interface is associated with exactly one custom element as of r197602.
+
+        No new tests since this is a refactoring.
+
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::JSCustomElementInterface): Now takes QualifiedName as the
+        first argument.
+        * bindings/js/JSCustomElementInterface.h:
+        (WebCore::JSCustomElementInterface::create):
+        (WebCore::JSCustomElementInterface::name): Added.
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::defineElement):
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement): Use findInterface instead of the deleted findName.
+        * dom/CustomElementDefinitions.cpp:
+        (WebCore::CustomElementDefinitions::checkName):
+        (WebCore::CustomElementDefinitions::addElementDefinition): Renamed from defineElement.
+        (WebCore::CustomElementDefinitions::findInterface): Add a variant that finds the interface object
+        by a JS constructor.
+        (WebCore::CustomElementDefinitions::containsConstructor):
+        (WebCore::CustomElementDefinitions::findName): Deleted.
+        * dom/CustomElementDefinitions.h:
+        (WebCore::CustomElementDefinitions::CustomElementInfo::CustomElementInfo): Deleted.
+
+2016-03-04  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add basic support for attributeChanged lifecycle callback
+        https://bugs.webkit.org/show_bug.cgi?id=155011
+
+        Reviewed by Antti Koivisto.
+
+        Add basic support for attributeChangedCallback in setAttribute, removeAttribute, setAttributeNS,
+        remoteAttributeNS, setAttributeNode, and removeAttributeNS. There are many other DOM APIs that
+        could modify attributes but we would annotate those APIs in a separate patch to limit the scope
+        of this change.
+
+        In order to invoke the lifecycle callback right before returning to the author script, allocate
+        an instance of CustomElementLifecycleProcessingStack in each of these functions' binding code.
+        The stack object's destructor invokes all callbacks enqueued by the DOM API if there are any.
+
+        Spec: https://w3c.github.io/webcomponents/spec/custom/#dfn-attribute-changed-callback
+
+        Tests: fast/custom-elements/attribute-changed-callback.html
+               fast/custom-elements/lifecycle-callback-timing.html
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::attributeChanged): Added. Invokes attributeChangedCallback.
+        * bindings/js/JSCustomElementInterface.h:
+        * bindings/js/JSMainThreadExecState.h:
+        (JSMainThreadNullState): Allocate an instance of CustomElementLifecycleProcessingStack in GObject
+        and Objective-C binding code for consistency with JavaScript. We can't do this in JavaScript
+        because there is no RAII object all functions, getters, and setters allocate (for a good reason).
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Generate an instance of CustomElementLifecycleProcessingStack when
+        NeedsLifecycleProcessingStack is specified as an extended IDL attribute.
+        * bindings/scripts/IDLAttributes.txt: Added NeedsLifecycleProcessingStack.
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNeedsLifecycleProcessingStack):
+        * bindings/scripts/test/TestObj.idl: Added a test for NeedsLifecycleProcessingStack.
+
+        * dom/DOMAllInOne.cpp:
+        * dom/Element.cpp:
+        (WebCore::Element::attributeChanged): Enqueue attributeChanged callback if the context object
+        is a custom element and there is a CustomElementLifecycleProcessingStack allocated in the stack.
+        * dom/Element.idl:
+
+        * dom/LifecycleCallbackQueue.cpp: Added.
+        (WebCore::LifecycleQueueItem): Added.
+        (WebCore::LifecycleQueueItem::LifecycleQueueItem): Added.
+        (WebCore::LifecycleQueueItem::invoke): Added.
+        (WebCore::LifecycleCallbackQueue::LifecycleCallbackQueue): Added.
+        (WebCore::LifecycleCallbackQueue::~LifecycleCallbackQueue): Added.
+        (WebCore::LifecycleCallbackQueue::enqueueAttributeChangedCallback): Added.
+        (WebCore::LifecycleCallbackQueue::invokeAll): Added.
+        (WebCore::CustomElementLifecycleProcessingStack::ensureCurrentQueue): Added. As noted in FIXME,
+        the early exit in the code is necessary only because we haven't added NeedsLifecycleProcessingStack
+        in all places. It should go away in a follow up patch.
+        (WebCore::CustomElementLifecycleProcessingStack::processQueue): Added.
+        * dom/LifecycleCallbackQueue.h: Added.
+        (WebCore::CustomElementLifecycleProcessingStack): This is a light weight RAII object the binding
+        code will allocate in order to queue up lifecycle callbacks. We don't use Ref or std::unique_ptr
+        in m_queue to avoid generating the code to destruct LifecycleCallbackQueue everywhere.
+        (WebCore::CustomElementLifecycleProcessingStack::CustomElementLifecycleProcessingStack): Added.
+        (WebCore::CustomElementLifecycleProcessingStack::~CustomElementLifecycleProcessingStack): Added.
+        (WebCore::CustomElementLifecycleProcessingStack::hasCurrentProcessingStack): Added.
+
 2016-03-04  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GTK] Scrollbars are broken again with GTK+ >= 3.19.11
