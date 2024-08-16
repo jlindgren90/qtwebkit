@@ -1,3 +1,53 @@
+2016-02-28  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES6] Arrow function syntax. Emit loading&putting this/super only if they are used in arrow function
+        https://bugs.webkit.org/show_bug.cgi?id=153981
+
+        Reviewed by Saam Barati.
+
+        Added new benchmark tests for invoking arrow function within function, class's constructor and method
+
+        * js/regress/arrowfunction-call-in-class-constructor-expected.txt: Added.
+        * js/regress/arrowfunction-call-in-class-constructor.html: Added.
+        * js/regress/arrowfunction-call-in-class-method-expected.txt: Added.
+        * js/regress/arrowfunction-call-in-class-method.html: Added.
+        * js/regress/arrowfunction-call-in-function-expected.txt: Added.
+        * js/regress/arrowfunction-call-in-function.html: Added.
+        * js/regress/script-tests/arrowfunction-call-in-class-constructor.js: Added.
+        * js/regress/script-tests/arrowfunction-call-in-class-method.js: Added.
+        * js/regress/script-tests/arrowfunction-call-in-function.js: Added.
+        * js/regress/script-tests/arrowfunction-call.js:
+
+2016-02-27  Sukolsak Sakshuwong  <sukolsak@gmail.com>
+
+        Removing ios-simulator baseline for js/number-toLocaleString.html
+        https://bugs.webkit.org/show_bug.cgi?id=154524
+
+        Reviewed by Darin Adler.
+
+        The default locale issue has been fixed in r197261.
+        Infinity.toLocaleString() should return "∞" as expected.
+
+        * platform/ios-simulator/js/number-toLocaleString-expected.txt: Removed.
+
+2016-02-27  Chris Dumez  <cdumez@apple.com>
+
+        Prevent cross-origin access to Location.assign() / Location.reload()
+        https://bugs.webkit.org/show_bug.cgi?id=154779
+
+        Reviewed by Darin Adler.
+
+        Update existing layout tests now that we prevent cross-origin access to
+        Location.assign() / Location.reload().
+
+        * http/tests/security/cross-frame-access-getOwnPropertyDescriptor-expected.txt:
+        * http/tests/security/cross-frame-access-getOwnPropertyDescriptor.html:
+        * http/tests/security/cross-frame-access-location-get-expected.txt:
+        * http/tests/security/cross-frame-access-location-get-override-expected.txt:
+        * http/tests/security/cross-frame-access-location-get-override.html:
+        * http/tests/security/cross-frame-access-location-get.html:
+        * http/tests/security/xss-DENIED-defineProperty-expected.txt:
+
 2016-02-27  Andy VanWagoner  <thetalecrafter@gmail.com>
 
         Intl.Collator uses POSIX locale (detected by js/intl-collator.html on iOS Simulator)
