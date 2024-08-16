@@ -153,8 +153,8 @@ protected:
     virtual bool paintMediaCurrentTime(const RenderObject&, const PaintInfo&, const IntRect&);
     virtual bool paintMediaVolumeSliderTrack(const RenderObject&, const PaintInfo&, const IntRect&);
     virtual bool paintMediaVolumeSliderThumb(const RenderObject&, const PaintInfo&, const IntRect&);
-    virtual String formatMediaControlsCurrentTime(float currentTime, float duration) const override;
-    virtual String formatMediaControlsRemainingTime(float currentTime, float duration) const override;
+    String formatMediaControlsCurrentTime(float currentTime, float duration) const override;
+    String formatMediaControlsRemainingTime(float currentTime, float duration) const override;
     virtual bool hasOwnDisabledStateHandlingFor(ControlPart) const { return true; }
 
     void paintMediaBackground(QPainter*, const IntRect&) const;
