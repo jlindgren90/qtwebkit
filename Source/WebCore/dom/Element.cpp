@@ -1380,7 +1380,7 @@ StyleResolver& Element::styleResolver()
     return document().ensureStyleResolver();
 }
 
-Ref<RenderStyle> Element::resolveStyle(RenderStyle* parentStyle)
+ElementStyle Element::resolveStyle(RenderStyle* parentStyle)
 {
     return styleResolver().styleForElement(*this, parentStyle);
 }
@@ -3300,10 +3300,10 @@ void Element::didDetachRenderers()
     ASSERT(hasCustomStyleResolveCallbacks());
 }
 
-RefPtr<RenderStyle> Element::customStyleForRenderer(RenderStyle&, RenderStyle*)
+Optional<ElementStyle> Element::resolveCustomStyle(RenderStyle&, RenderStyle*)
 {
     ASSERT(hasCustomStyleResolveCallbacks());
-    return nullptr;
+    return Nullopt;
 }
 
 void Element::cloneAttributesFromElement(const Element& other)

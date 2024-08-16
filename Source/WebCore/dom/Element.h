@@ -52,6 +52,7 @@ class PlatformWheelEvent;
 class PseudoElement;
 class RenderNamedFlowFragment;
 class RenderTreePosition;
+struct ElementStyle;
 
 enum SpellcheckAttributeState {
     SpellcheckAttributeTrue,
@@ -482,7 +483,7 @@ public:
     virtual void didAttachRenderers();
     virtual void willDetachRenderers();
     virtual void didDetachRenderers();
-    virtual RefPtr<RenderStyle> customStyleForRenderer(RenderStyle& parentStyle, RenderStyle* shadowHostStyle);
+    virtual Optional<ElementStyle> resolveCustomStyle(RenderStyle& parentStyle, RenderStyle* shadowHostStyle);
 
     LayoutRect absoluteEventHandlerBounds(bool& includesFixedPositionElements) override;
 
@@ -501,7 +502,7 @@ public:
 #endif
 
     StyleResolver& styleResolver();
-    Ref<RenderStyle> resolveStyle(RenderStyle* parentStyle);
+    ElementStyle resolveStyle(RenderStyle* parentStyle);
 
     virtual void isVisibleInViewportChanged() { }
 

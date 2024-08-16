@@ -1,3 +1,330 @@
+2016-03-07  Antti Koivisto  <antti@apple.com>
+
+        ElementRuleCollector should not mutate document and style
+        https://bugs.webkit.org/show_bug.cgi?id=155113
+
+        Reviewed by Andreas Kling.
+
+        Move applying of style relations out of ElementRuleCollector and StyleResolver.
+        This gets us closer to making StyleResolver const for Element.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/ElementRuleCollector.cpp:
+        (WebCore::ElementRuleCollector::ElementRuleCollector):
+
+            No need for style parameter anymore.
+
+        (WebCore::ElementRuleCollector::collectMatchingRules):
+        (WebCore::ElementRuleCollector::sortAndTransferMatchedRules):
+        (WebCore::ElementRuleCollector::ruleMatches):
+
+            Client will now do the style and element mutations. Just collect the data here.
+
+        (WebCore::ElementRuleCollector::collectMatchingRulesForList):
+        (WebCore::ElementRuleCollector::commitStyleRelations): Deleted.
+
+            Moves to StyleRelations.cpp
+
+        * css/ElementRuleCollector.h:
+        (WebCore::ElementRuleCollector::hasMatchedRules):
+        (WebCore::ElementRuleCollector::matchedPseudoElementIds):
+        (WebCore::ElementRuleCollector::styleRelations):
+        (WebCore::ElementRuleCollector::didMatchUncommonAttributeSelector):
+        * css/MediaQueryMatcher.cpp:
+        (WebCore::MediaQueryMatcher::prepareEvaluator):
+        (WebCore::MediaQueryMatcher::evaluate):
+        * css/SelectorChecker.cpp:
+        (WebCore::addStyleRelation):
+        (WebCore::isFirstChildElement):
+        (WebCore::isFirstOfType):
+        (WebCore::countElementsBefore):
+        (WebCore::countElementsOfTypeBefore):
+        (WebCore::SelectorChecker::matchRecursively):
+        (WebCore::SelectorChecker::checkOne):
+        * css/SelectorChecker.h:
+        (WebCore::SelectorChecker::CheckingContext::CheckingContext):
+        * css/StyleMedia.cpp:
+        (WebCore::StyleMedia::matchMedium):
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::StyleResolver):
+        (WebCore::isAtShadowBoundary):
+        (WebCore::StyleResolver::styleForElement):
+
+            Apply the style relations affecting current style immediately.
+            Pass the rest to the client.
+
+        (WebCore::StyleResolver::styleForKeyframe):
+        (WebCore::StyleResolver::pseudoStyleForElement):
+        (WebCore::StyleResolver::pseudoStyleRulesForElement):
+        * css/StyleResolver.h:
+        (WebCore::ElementStyle::ElementStyle):
+        * cssjit/SelectorCompiler.cpp:
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateAddStyleRelationIfResolvingStyle):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateAddStyleRelation):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateSelectorCheckerExcludingPseudoElements):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateDirectAdjacentTreeWalker):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateIndirectAdjacentTreeWalker):
+        (WebCore::SelectorCompiler::addStyleRelationFunction):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsActive):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsEmpty):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsFirstChild):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsHovered):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsLastChild):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsOnlyChild):
+        (WebCore::SelectorCompiler::makeContextStyleUniqueIfNecessaryAndTestIsPlaceholderShown):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsNthChild):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsNthChildOf):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsNthLastChild):
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsNthLastChildOf):
+        * dom/Document.cpp:
+        (WebCore::Document::styleForElementIgnoringPendingStylesheets):
+
+            Apply style relations.
+
+        (WebCore::Document::updateLayoutIfDimensionsOutOfDate):
+        * dom/Element.cpp:
+        (WebCore::Element::styleResolver):
+        (WebCore::Element::resolveStyle):
+        (WebCore::Element::didDetachRenderers):
+        (WebCore::Element::resolveCustomStyle):
+
+            Return ElementStyle (which contains style relations along with the render style).
+            Rename for consistency.
+
+        (WebCore::Element::cloneAttributesFromElement):
+        (WebCore::Element::customStyleForRenderer): Deleted.
+        * dom/Element.h:
+        (WebCore::Element::isVisibleInViewportChanged):
+        * dom/PseudoElement.cpp:
+        (WebCore::PseudoElement::clearHostElement):
+        (WebCore::PseudoElement::resolveCustomStyle):
+        (WebCore::PseudoElement::didAttachRenderers):
+        (WebCore::PseudoElement::customStyleForRenderer): Deleted.
+        * dom/PseudoElement.h:
+        * html/HTMLTitleElement.cpp:
+        (WebCore::HTMLTitleElement::computedTextWithDirection):
+        * html/shadow/SliderThumbElement.cpp:
+        (WebCore::SliderThumbElement::hostInput):
+        (WebCore::SliderThumbElement::resolveCustomStyle):
+        (WebCore::SliderThumbElement::shadowPseudoId):
+        (WebCore::SliderContainerElement::createElementRenderer):
+        (WebCore::SliderContainerElement::resolveCustomStyle):
+        (WebCore::SliderContainerElement::shadowPseudoId):
+        (WebCore::SliderThumbElement::customStyleForRenderer): Deleted.
+        (WebCore::SliderContainerElement::customStyleForRenderer): Deleted.
+        * html/shadow/SliderThumbElement.h:
+        * html/shadow/TextControlInnerElements.cpp:
+        (WebCore::TextControlInnerElement::create):
+        (WebCore::TextControlInnerElement::resolveCustomStyle):
+        (WebCore::TextControlInnerTextElement::renderer):
+        (WebCore::TextControlInnerTextElement::resolveCustomStyle):
+        (WebCore::TextControlPlaceholderElement::TextControlPlaceholderElement):
+        (WebCore::TextControlPlaceholderElement::resolveCustomStyle):
+        (WebCore::TextControlInnerElement::customStyleForRenderer): Deleted.
+        (WebCore::TextControlInnerTextElement::customStyleForRenderer): Deleted.
+        (WebCore::TextControlPlaceholderElement::customStyleForRenderer): Deleted.
+        * html/shadow/TextControlInnerElements.h:
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::getUncachedPseudoStyle):
+        * rendering/RenderNamedFlowFragment.cpp:
+        (WebCore::RenderNamedFlowFragment::computeStyleInRegion):
+        (WebCore::RenderNamedFlowFragment::computeChildrenStyleInRegion):
+        * style/StyleRelations.cpp: Added.
+        (WebCore::Style::commitRelationsToRenderStyle):
+
+            Commit relations affecting style that is being computed.
+
+        (WebCore::Style::commitRelationsToDocument):
+
+            Commit relations that mutate document.
+
+        * style/StyleRelations.h: Added.
+
+            Factor style relation data structures and functions to a file of their own.
+
+        (WebCore::Style::Relation::Relation):
+        * style/StyleSharingResolver.cpp:
+        (WebCore::Style::SharingResolver::styleSharingCandidateMatchesRuleSet):
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::TreeResolver::styleForElement):
+
+            Apply style relations.
+
+        * style/StyleTreeResolver.h:
+        * svg/SVGElement.cpp:
+        (WebCore::SVGElement::synchronizeSystemLanguage):
+        (WebCore::SVGElement::resolveCustomStyle):
+        (WebCore::SVGElement::customStyleForRenderer): Deleted.
+        * svg/SVGElement.h:
+        * svg/SVGElementRareData.h:
+        (WebCore::SVGElementRareData::overrideComputedStyle):
+
+2016-03-08  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Implement fetch skeleton
+        https://bugs.webkit.org/show_bug.cgi?id=155111
+
+        Reviewed by Darin Adler.
+
+        Adding skeleton code to call fetch API from normal and worker scopes.
+        Fetch API implementation is limited to reject the promise.
+
+        Updating the binding generator to fix the case of overloaded promise-returning functions.
+        Made overloaded utility functions "static inline".
+
+        Tests: imported/w3c/web-platform-tests/fetch/api/basic/accept-header-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/accept-header.html
+               imported/w3c/web-platform-tests/fetch/api/basic/integrity-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/integrity.html
+               imported/w3c/web-platform-tests/fetch/api/basic/mode-no-cors-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/mode-no-cors.html
+               imported/w3c/web-platform-tests/fetch/api/basic/mode-same-origin-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/mode-same-origin.html
+               imported/w3c/web-platform-tests/fetch/api/basic/request-forbidden-headers-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/request-forbidden-headers.html
+               imported/w3c/web-platform-tests/fetch/api/basic/request-headers-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/request-headers.html
+               imported/w3c/web-platform-tests/fetch/api/basic/scheme-about-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/scheme-about.html
+               imported/w3c/web-platform-tests/fetch/api/basic/scheme-blob-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/scheme-blob.html
+               imported/w3c/web-platform-tests/fetch/api/basic/scheme-data-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/scheme-data.html
+               imported/w3c/web-platform-tests/fetch/api/basic/scheme-others-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/scheme-others.html
+               imported/w3c/web-platform-tests/fetch/api/basic/stream-response-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/stream-response.html
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * Modules/fetch/DOMWindowFetch.cpp: Added.
+        (WebCore::DOMWindowFetch::fetch):
+        * Modules/fetch/DOMWindowFetch.h: Added.
+        * Modules/fetch/DOMWindowFetch.idl: Added.
+        * Modules/fetch/WorkerGlobalScopeFetch.cpp: Added.
+        (WebCore::WorkerGlobalScopeFetch::fetch):
+        * Modules/fetch/WorkerGlobalScopeFetch.h: Added.
+        * Modules/fetch/WorkerGlobalScopeFetch.idl: Added.
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Fixing the case of overloaded promise-returning functions.
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod2):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod3):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod4):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod5):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod6):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod7):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod8):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod9):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod10):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod11):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod12):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter2):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod11):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod12):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod): Deleted.
+        (WebCore::jsTestObjConstructorFunctionClassMethod2): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionAny): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionPromise): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise): Deleted.
+        * bindings/scripts/test/TestObj.idl:
+
+2016-03-08  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Make FetchRequest and FetchResponse ActiveDOMObject
+        https://bugs.webkit.org/show_bug.cgi?id=154729
+
+        Reviewed by Darin Adler.
+
+        Covered by existing tests.
+
+        Making FetchRequest and FetchResponse ActiveDOMObject.
+        Both objects can always be suspended now.
+        This might be updated when blob conversion is added or when fetching data to fill in FetchResponse.
+
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::create):
+        (WebCore::FetchRequest::clone):
+        (WebCore::FetchRequest::activeDOMObjectName):
+        (WebCore::FetchRequest::canSuspendForDocumentSuspension):
+        * Modules/fetch/FetchRequest.h:
+        (WebCore::FetchRequest::FetchRequest):
+        * Modules/fetch/FetchRequest.idl:
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::error):
+        (WebCore::FetchResponse::redirect):
+        (WebCore::FetchResponse::FetchResponse):
+        (WebCore::FetchResponse::clone):
+        (WebCore::FetchResponse::activeDOMObjectName):
+        (WebCore::FetchResponse::canSuspendForDocumentSuspension):
+        * Modules/fetch/FetchResponse.h:
+        (WebCore::FetchResponse::create):
+        * Modules/fetch/FetchResponse.idl:
+
+2016-03-08  Nikos Andronikos  <nikos.andronikos-webkit@cisra.canon.com.au>
+
+        [SVG2] Implement marker orient='auto-start-reverse'
+        https://bugs.webkit.org/show_bug.cgi?id=138456
+
+        Reviewed by Darin Adler.
+
+        https://www.w3.org/TR/SVG2/painting.html#OrientAttribute
+        marker-start markers must be oriented at 180 degrees to the direction of the path when
+        the orient attribute of the marker is set to 'auto-start-reverse'.
+
+        To acheive this the SVGMarkerData class which calculates the angles for each marker on
+        a path must know whether the orient type is set to reverse the start marker. 
+
+        Tests: svg/animations/animate-marker-orient-from-angle-to-autostartreverse.html
+               svg/animations/animate-marker-orienttype-4.html
+               svg/custom/marker-auto-start-reverse.html
+
+        * rendering/svg/RenderSVGShape.cpp:
+        (WebCore::RenderSVGShape::processMarkerPositions):
+          Create marker data, using animated value of orient to determine
+          if first marker should be reversed.
+        * rendering/svg/SVGMarkerData.h:
+        (WebCore::SVGMarkerData::SVGMarkerData):
+          Constructor now requires boolean indicating if start marker is 
+          reversed.
+        (WebCore::SVGMarkerData::currentAngle):
+          Take into account whether start marker should be reversed.
+        * rendering/svg/SVGResources.cpp:
+        (WebCore::SVGResources::markerReverseStart):
+          New function to query whether start marker should be reversed.
+        * rendering/svg/SVGResources.h:
+          Add declaration for new function.
+        * svg/SVGAnimatedAngle.cpp:
+        (WebCore::SVGAnimatedAngleAnimator::calculateAnimatedValue):
+          Support animation including the value auto-start-reverse.
+        * svg/SVGMarkerElement.cpp:
+        (WebCore::SVGMarkerElement::setOrient):
+          Combine duplicated functionality into one private method
+        (WebCore::SVGMarkerElement::setOrientToAuto):
+          Set orient type and angle correctly for orient=auto. Uses setOrient.
+        (WebCore::SVGMarkerElement::setOrientToAngle):
+          Set orient type and angle correctly for orient=<angle>. Uses setOrient.
+        (WebCore::SVGMarkerElement::synchronizeOrientType):
+          Support auto-start-reverse as a possible case.
+        * svg/SVGMarkerElement.h:
+        (WebCore::SVGIDLEnumLimits<SVGMarkerOrientType>::highestExposedEnumValue):
+          Limit the orient DOM property so that the new enum value
+          required for auto-start-reverse is not exposed.
+        (WebCore::SVGPropertyTraits<SVGMarkerOrientType>::highestEnumValue):
+          Support auto-start-reverse.
+        (WebCore::SVGPropertyTraits<SVGMarkerOrientType>::fromString):
+          Support auto-start-reverse.
+
 2016-03-07  Keith Rollin  <krollin@apple.com>
 
         Enhance logging: Use "always on" macros
