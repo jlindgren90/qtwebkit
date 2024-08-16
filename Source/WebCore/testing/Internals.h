@@ -39,10 +39,6 @@
 #include <wtf/RefCounted.h>
 #include <wtf/text/WTFString.h>
 
-#if PLATFORM(IOS) || PLATFORM(MAC)
-#include "ViewportConfiguration.h"
-#endif
-
 namespace WebCore {
 
 class AudioContext;
@@ -488,9 +484,6 @@ public:
 
     String composedTreeAsText(Node*);
 
-    void setViewportForceAlwaysUserScalable(bool);
-    double viewportConfigurationMaximumScale();
-
 private:
     explicit Internals(Document*);
     Document* contextDocument() const;
@@ -499,9 +492,6 @@ private:
     RenderedDocumentMarker* markerAt(Node*, const String& markerType, unsigned index, ExceptionCode&);
 
     std::unique_ptr<InspectorStubFrontend> m_inspectorFrontend;
-#if PLATFORM(IOS) || PLATFORM(MAC)
-    ViewportConfiguration m_viewportConfiguration;
-#endif
 };
 
 } // namespace WebCore
