@@ -964,7 +964,12 @@ Element* DOMWindow::frameElement() const
     return m_frame->ownerElement();
 }
 
-void DOMWindow::focus(ScriptExecutionContext* context)
+void DOMWindow::focus(Document& document)
+{
+    focus(opener() && opener() != this && document.domWindow() == opener());
+}
+
+void DOMWindow::focus(bool allowFocus)
 {
     if (!m_frame)
         return;
@@ -973,13 +978,7 @@ void DOMWindow::focus(ScriptExecutionContext* context)
     if (!page)
         return;
 
-    bool allowFocus = WindowFocusAllowedIndicator::windowFocusAllowed() || !m_frame->settings().windowFocusRestricted();
-    if (context) {
-        ASSERT(isMainThread());
-        Document& activeDocument = downcast<Document>(*context);
-        if (opener() && opener() != this && activeDocument.domWindow() == opener())
-            allowFocus = true;
-    }
+    allowFocus = allowFocus || WindowFocusAllowedIndicator::windowFocusAllowed() || !m_frame->settings().windowFocusRestricted();
 
     // If we're a top level window, bring the window to the front.
     if (m_frame->isMainFrame() && allowFocus)
@@ -1014,7 +1013,14 @@ void DOMWindow::blur()
     page->chrome().unfocus();
 }
 
-void DOMWindow::close(ScriptExecutionContext* context)
+void DOMWindow::close(Document& document)
+{
+    if (!document.canNavigate(m_frame))
+        return;
+    close();
+}
+
+void DOMWindow::close()
 {
     if (!m_frame)
         return;
@@ -1025,12 +1031,6 @@ void DOMWindow::close(ScriptExecutionContext* context)
 
     if (!m_frame->isMainFrame())
         return;
-
-    if (context) {
-        ASSERT(isMainThread());
-        if (!downcast<Document>(*context).canNavigate(m_frame))
-            return;
-    }
 
     bool allowScriptsToCloseWindows = m_frame->settings().allowScriptsToCloseWindows();
 
