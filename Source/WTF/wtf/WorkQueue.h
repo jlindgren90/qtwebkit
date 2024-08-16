@@ -38,12 +38,12 @@
 #include <dispatch/dispatch.h>
 #endif
 
-#if PLATFORM(GTK)
+#if PLATFORM(EFL)
+#include <DispatchQueueEfl.h>
+#elif USE(GLIB)
 #include <wtf/Condition.h>
 #include <wtf/RunLoop.h>
 #include <wtf/glib/GRefPtr.h>
-#elif PLATFORM(EFL)
-#include <DispatchQueueEfl.h>
 #elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
 #include <QSocketNotifier>
 #elif OS(WINDOWS)
@@ -82,11 +82,11 @@ public:
 
     WTF_EXPORT_PRIVATE static void concurrentApply(size_t iterations, const std::function<void (size_t index)>&);
 
-#if PLATFORM(GTK)
-    RunLoop& runLoop() const { return *m_runLoop; }
-#elif PLATFORM(EFL)
+#if PLATFORM(EFL)
     void registerSocketEventHandler(int, std::function<void ()>);
     void unregisterSocketEventHandler(int);
+#elif USE(GLIB)
+    RunLoop& runLoop() const { return *m_runLoop; }
 #elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
     QSocketNotifier* registerSocketEventHandler(int, QSocketNotifier::Type, std::function<void()>);
     void dispatchOnTermination(QProcess*, std::function<void()>);
@@ -116,15 +116,15 @@ private:
     static DWORD WINAPI unregisterWaitAndDestroyItemCallback(void* context);
 #endif
 
-#if PLATFORM(GTK)
+#if PLATFORM(EFL)
+    RefPtr<DispatchQueue> m_dispatchQueue;
+#elif USE(GLIB)
     ThreadIdentifier m_workQueueThread;
     Lock m_initializeRunLoopConditionMutex;
     Condition m_initializeRunLoopCondition;
     RunLoop* m_runLoop;
     Lock m_terminateRunLoopConditionMutex;
     Condition m_terminateRunLoopCondition;
-#elif PLATFORM(EFL)
-    RefPtr<DispatchQueue> m_dispatchQueue;
 #elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
     class WorkItemQt;
     QThread* m_workThread;

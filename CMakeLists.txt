@@ -23,6 +23,7 @@ set(ALL_PORTS
     AppleWin
     Efl
     GTK
+    JSCOnly
     Mac
     WinCairo
     Qt

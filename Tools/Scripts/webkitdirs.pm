@@ -101,6 +101,7 @@ use constant {
     Efl      => "Efl",
     iOS      => "iOS",
     Mac      => "Mac",
+    JSCOnly  => "JSCOnly",
     Qt       => "Qt",
     WinCairo => "WinCairo",
     Unknown  => "Unknown"
@@ -449,6 +450,7 @@ sub argumentsForConfiguration()
     push(@args, '--64-bit') if (isWin64());
     push(@args, '--gtk') if isGtk();
     push(@args, '--efl') if isEfl();
+    push(@args, '--jsc-only') if isJSCOnly();
     push(@args, '--qt') if isQt();
     push(@args, '--wincairo') if isWinCairo();
     push(@args, '--inspector-frontend') if isInspectorFrontend();
@@ -646,7 +648,7 @@ sub executableProductDir
     my $productDirectory = productDir();
 
     my $binaryDirectory;
-    if (isEfl() || isGtk() || isQt()) {
+    if (isEfl() || isGtk() || isJSCOnly() || isQt()) {
         $binaryDirectory = "bin";
     } elsif (isAnyWindows()) {
         $binaryDirectory = isWin64() ? "bin64" : "bin32";
@@ -1090,6 +1092,7 @@ sub determinePortName()
     my %argToPortName = (
         efl => Efl,
         gtk => GTK,
+        'jsc-only' => JSCOnly,
         qt  => Qt,
         wincairo => WinCairo
     );
@@ -1121,6 +1124,7 @@ sub determinePortName()
             my $portsChoice = join "\n\t", qw(
                 --efl
                 --gtk
+                --jsc-only
                 --qt
             );
             die "Please specify which WebKit port to build using one of the following options:"
@@ -1147,6 +1151,11 @@ sub isEfl()
 sub isGtk()
 {
     return portName() eq GTK;
+}
+
+sub isJSCOnly()
+{
+    return portName() eq JSCOnly;
 }
 
 sub isQt()
@@ -1885,7 +1894,7 @@ sub isCachedArgumentfileOutOfDate($@)
 
 sub wrapperPrefixIfNeeded()
 {
-    if (isAnyWindows()) {
+    if (isAnyWindows() || isJSCOnly()) {
         return ();
     }
     if (isAppleMacWebKit()) {
@@ -2055,7 +2064,7 @@ sub generateBuildSystemFromCMakeProject
     }
 
     # Some ports have production mode, but build-webkit should always use developer mode.
-    push @args, "-DDEVELOPER_MODE=ON" if isEfl() || isGtk() || isQt();
+    push @args, "-DDEVELOPER_MODE=ON" if isEfl() || isGtk() || isJSCOnly() || isQt();
 
     # Don't warn variables which aren't used by cmake ports.
     push @args, "--no-warn-unused-cli";
@@ -2093,8 +2102,8 @@ sub buildCMakeGeneratedProject($)
     my @args = ("--build", $buildPath, "--config", $config);
     push @args, ("--", $makeArgs) if $makeArgs;
 
-    # GTK can use a build script to preserve colors and pretty-printing.
-    if ((isGtk() || isQt()) && -e "$buildPath/build.sh") {
+    # GTK and JSCOnly can use a build script to preserve colors and pretty-printing.
+    if ((isGtk() || isJSCOnly() || isQt()) && -e "$buildPath/build.sh") {
         chdir "$buildPath" or die;
         $command = "$buildPath/build.sh";
         @args = ($makeArgs);
