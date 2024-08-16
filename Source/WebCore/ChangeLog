@@ -1,3 +1,161 @@
+2016-03-02  Ryosuke Niwa  <rniwa@webkit.org>
+
+        HTML parser instantiates a custom element inside a template element with a wrong owner document
+        https://bugs.webkit.org/show_bug.cgi?id=154936
+
+        Reviewed by Chris Dumez.
+
+        The bug was caused by our implementation following the old spec which didn't create a appropriate template
+        contents owner document [1] for a document without a browsing context. The new spec no longer has this clause,
+        and we should be always creating the appropriate template contents owner document unless the document itself
+        is an appropriate template contents owner document for another document (comes up in nested template elements).
+
+        No new tests since the behavior change is covered by existing tests.
+
+        [1] https://html.spec.whatwg.org/#appropriate-template-contents-owner-document
+
+        * dom/Document.h:
+        (WebCore::Document::templateDocument):
+
+2016-03-02  Gavin Barraclough  <barraclough@apple.com>
+
+        PageThrottler should apply hysteresis to media activity
+        https://bugs.webkit.org/show_bug.cgi?id=154940
+
+        Reviewed by Ryosuke Niwa.
+
+        Currently PageThrottler keeps a track of audible plugin activity and HTML media element
+        activity separately. Audible plugin activity also gets an extra 5s hysteresis applied,
+        so that after audio playback has completed there is a chance to queue up more audio
+        before timer throttling kicks in. HTML audio does not get this grace. Funnel both
+        together into a single activity flag, such that the hysteresis is applied to both.
+
+        * page/PageThrottler.cpp:
+        (WebCore::PageThrottler::PageThrottler):
+        (WebCore::m_mediaActivityHysteresis):
+            - PageActivityState::AudiblePlugin -> PageActivityState::MediaActivity.
+        (WebCore::m_mediaActivityCounter):
+            - when m_mediaActivityCounter value changes call mediaActivityCounterChanged().
+        (WebCore::PageThrottler::mediaActivityCounterChanged):
+            - Drive PageActivityState::MediaActivity indirectly via m_mediaActivityHysteresis,
+              such that a 5s hysteresis is applied.
+        * page/PageThrottler.h:
+            - Removed AudiblePlugin (merged in with MediaActivity).
+        (WebCore::PageThrottler::pluginDidEvaluateWhileAudioIsPlaying):
+            - m_audiblePluginHysteresis.impulse -> m_mediaActivityHysteresis.impulse.
+
+2016-03-01  Ada Chan  <adachan@apple.com>
+
+        Update the media element's presentation mode properly after going in and out of full screen via the Full Screen API
+        https://bugs.webkit.org/show_bug.cgi?id=154834
+
+        Reviewed by Simon Fraser.
+
+        * dom/Document.cpp:
+        (WebCore::Document::webkitWillEnterFullScreenForElement):
+        * dom/Element.cpp:
+        (WebCore::Element::willBecomeFullscreenElement):
+        * dom/Element.h:
+        (WebCore::Element::ancestorWillEnterFullscreen):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::enterFullscreen):
+        If the Full Screen API is enabled and this media element is entering a mode other than standard
+        full screen, see if it's currently contained in a full screen element. If so, exit full screen.
+        (WebCore::HTMLMediaElement::willBecomeFullscreenElement):
+        If this media element is going to standard full screen, update its presentation mode. If
+        this media element also supports presentation mode and it currently has a presentation mode
+        that's not standard full screen, exit that presentation mode directly without animation.
+        (WebCore::HTMLMediaElement::willStopBeingFullscreenElement):
+        Set the presentation mode back to inline unless it's already changed to a different
+        presentation mode.
+        * html/HTMLMediaElement.h:
+        * html/HTMLVideoElement.cpp:
+        (WebCore::HTMLVideoElement::ancestorWillEnterFullscreen):
+        Reset this video element's presentation state to inline if its ancestor is going to full screen.
+        (WebCore::HTMLVideoElement::exitToFullscreenModeWithoutAnimationIfPossible):
+        If the fullscreen mode the video element is exiting from is supported, exit that mode to the new mode.
+        * html/HTMLVideoElement.h:
+        * page/ChromeClient.h:
+        * platform/mac/WebVideoFullscreenInterfaceMac.h:
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (WebCore::WebVideoFullscreenInterfaceMac::exitFullscreenWithoutAnimationToMode):
+
+2016-03-02  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Close UniqueIDBDatabases once they become unused.
+        https://bugs.webkit.org/show_bug.cgi?id=154922
+
+        Reviewed by Alex Christensen.
+
+        Tests: storage/indexeddb/modern/256-open-databases.html
+               storage/indexeddb/modern/exceed-open-file-limit.html
+
+        Without this change, attempts to open a 256th database in the DatabaseProcess will fail on Mac.
+        
+        Due to SQLite journal files, this limit could come up as early as 128 databases if they are all
+        in active use.
+        
+        This is because launchd - by default - limits xpc services to having 256 open file handles by default.
+        
+        While we should explore raising the limit, we should also close databases we no longer need.
+        
+        * Modules/indexeddb/server/IDBBackingStore.h:
+
+        * Modules/indexeddb/server/IDBServer.cpp:
+        (WebCore::IDBServer::IDBServer::closeUniqueIDBDatabase):
+        (WebCore::IDBServer::IDBServer::deleteUniqueIDBDatabase): Deleted.
+        * Modules/indexeddb/server/IDBServer.h:
+
+        * Modules/indexeddb/server/MemoryBackingStoreTransaction.cpp:
+        (WebCore::IDBServer::MemoryBackingStoreTransaction::MemoryBackingStoreTransaction):
+
+        * Modules/indexeddb/server/MemoryIDBBackingStore.cpp:
+        (WebCore::IDBServer::MemoryIDBBackingStore::getOrEstablishDatabaseInfo):
+        * Modules/indexeddb/server/MemoryIDBBackingStore.h:
+
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::SQLiteIDBBackingStore::getOrEstablishDatabaseInfo):
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.h:
+
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::UniqueIDBDatabase):
+        (WebCore::IDBServer::UniqueIDBDatabase::~UniqueIDBDatabase):
+        (WebCore::IDBServer::UniqueIDBDatabase::performCurrentOpenOperation): Handle the case where opening
+          the backing store failed by firing an error event instead of pretending everything is okay.
+        (WebCore::IDBServer::UniqueIDBDatabase::deleteBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::didDeleteBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::openBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::didOpenBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::isCurrentlyInUse):
+        (WebCore::IDBServer::UniqueIDBDatabase::operationAndTransactionTimerFired): If the database is not
+          currently in use, close it.
+        (WebCore::IDBServer::UniqueIDBDatabase::inProgressTransactionCompleted):
+        * Modules/indexeddb/server/UniqueIDBDatabase.h:
+        (WebCore::IDBServer::UniqueIDBDatabase::deletePending): Deleted.
+
+        * Modules/indexeddb/shared/IDBObjectStoreInfo.cpp:
+        (WebCore::IDBObjectStoreInfo::isolatedCopy): Actually get this right.
+
+2016-03-02  Gavin Barraclough  <barraclough@apple.com>
+
+        Disable timer throttling increases for visually idle / active pages.
+        https://bugs.webkit.org/show_bug.cgi?id=154935
+
+        Reviewed by Chris Dumez.
+
+        Currently any page that is visually idle can timer throttle, and all are eligible for throttling
+        allow throttling to increase.
+
+        Instead, still allow any visually idle page to timer throttle, but only allow increasing in those
+        that are fully hidden & inactive (no page loading or media activity).
+
+        * page/Page.cpp:
+        (WebCore::Page::setTimerThrottlingState):
+            - Updated policy per commet above.
+        (WebCore::Page::setPageActivityState):
+        (WebCore::Page::setIsVisible):
+            - We now may need to updated timer throttling when these change.
+
 2016-03-02  Konstantin Tokarev  <annulen@yandex.ru>
 
         [cmake] Moved PRE/POST_BUILD_COMMAND to WEBKIT_FRAMEWORK.

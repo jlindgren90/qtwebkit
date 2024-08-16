@@ -361,6 +361,8 @@ public:
     // Use Document::registerForPrivateBrowsingStateChangedCallbacks() to subscribe to this.
     virtual void privateBrowsingStateDidChange() { }
 
+    virtual void willBecomeFullscreenElement();
+    virtual void ancestorWillEnterFullscreen() { }
     virtual void didBecomeFullscreenElement() { }
     virtual void willStopBeingFullscreenElement() { }
 

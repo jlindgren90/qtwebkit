@@ -491,6 +491,13 @@ void WebVideoFullscreenManagerProxy::exitFullscreen(uint64_t contextId, WebCore:
 #endif
 }
 
+#if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
+void WebVideoFullscreenManagerProxy::exitFullscreenWithoutAnimationToMode(uint64_t contextId, WebCore::HTMLMediaElementEnums::VideoFullscreenMode targetMode)
+{
+    ensureInterface(contextId).exitFullscreenWithoutAnimationToMode(targetMode);
+}
+#endif
+
 void WebVideoFullscreenManagerProxy::cleanupFullscreen(uint64_t contextId)
 {
     ensureInterface(contextId).cleanupFullscreen();
@@ -633,9 +640,13 @@ bool WebVideoFullscreenManagerProxy::isVisible() const
     return m_page->isViewVisible() && m_page->isInWindow();
 }
 
-PlatformWebVideoFullscreenInterface& WebVideoFullscreenManagerProxy::controlsManagerInterface()
+PlatformWebVideoFullscreenInterface* WebVideoFullscreenManagerProxy::controlsManagerInterface()
 {
-    return ensureInterface(m_controlsManagerContextId);
+    if (!m_controlsManagerContextId)
+        return nullptr;
+
+    auto& interface = ensureInterface(m_controlsManagerContextId);
+    return &interface;
 }
 
 void WebVideoFullscreenManagerProxy::fullscreenMayReturnToInline(uint64_t contextId)
