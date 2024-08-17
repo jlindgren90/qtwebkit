@@ -1,3 +1,101 @@
+2016-03-17  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] Unreviewed speculative buildfix after r198179. Just for fun.
+
+        * PlatformMac.cmake:
+
+2016-03-17  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] response-consume.html is crashing on Mac WK1 Debug builds
+        https://bugs.webkit.org/show_bug.cgi?id=155490
+
+        Reviewed by Darin Adler.
+
+        Covered by existing tests.
+
+        Ensured to lock state before calling JSC:JSONParse.
+        Adding fulfillPromiseWithJSON routine to handle it.
+        Applied it to FetchBody.
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::json):
+        (WebCore::FetchBody::loadedAsText):
+        (WebCore::FetchBody::resolveAsJSON): Deleted.
+        * Modules/fetch/FetchBody.h:
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::loadedBlobAsText):
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::parseAsJSON):
+        (WebCore::fulfillPromiseWithJSON):
+        * bindings/js/JSDOMPromise.h:
+
+2016-03-17  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Update RTCIceCandidate
+        https://bugs.webkit.org/show_bug.cgi?id=155535
+
+        Reviewed by Eric Carlson.
+
+        Update the RTCIceCandidate constructor procedure to match the WebRTC 1.0 specification [1].
+        In short: The "candidate" init dictionary member is required. At least one of the dictionary
+        members "sdpMid" and "sdpMLine" needs to be present; the corresponding attribute of the
+        other, is initialized to null.
+
+        [1] https://w3c.github.io/webrtc-pc/archives/20160215/webrtc.html
+
+        Tests: Updated fast/mediastream/RTCIceCandidate.htm
+
+        * Modules/mediastream/RTCIceCandidate.cpp:
+        (WebCore::RTCIceCandidate::create):
+        (WebCore::RTCIceCandidate::RTCIceCandidate):
+        * Modules/mediastream/RTCIceCandidate.h:
+        (WebCore::RTCIceCandidate::sdpMLineIndex):
+        (WebCore::RTCIceCandidate::setSdpMLineIndex):
+        * Modules/mediastream/RTCIceCandidate.idl:
+        * bindings/js/JSRTCIceCandidateCustom.cpp:
+        (WebCore::JSRTCIceCandidate::sdpMid):
+        (WebCore::JSRTCIceCandidate::sdpMLineIndex):
+
+2016-03-16  Nikos Andronikos  <nikos.andronikos-webkit@cisra.canon.com.au>
+
+        SVG tear offs should return a const reference if possible
+        https://bugs.webkit.org/show_bug.cgi?id=153214
+
+        Reviewed by Alex Christensen.
+
+        A smaller change than expected because the returned reference is being copied into a value in additional locations that baseVal and animVal are used.
+
+        No new tests as there is no change in behaviour.
+
+        * svg/properties/SVGAnimatedEnumerationPropertyTearOff.h:
+        * svg/properties/SVGAnimatedStaticPropertyTearOff.h:
+        (WebCore::SVGAnimatedStaticPropertyTearOff::baseVal):
+        (WebCore::SVGAnimatedStaticPropertyTearOff::animVal):
+
+2016-03-16  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, partial roll out of r197254.
+        <rdar://problem/25078552>
+
+        It caused a ~1.1% PLT regression on iOS.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::commitProvisionalLoad): Deleted.
+
+2016-03-16  Enrica Casucci  <enrica@apple.com>
+
+        Recognize mailto and tel url as data detector links.
+        https://bugs.webkit.org/show_bug.cgi?id=155569
+        rdar://problem/24836185
+
+        Reviewed by Sam Weinig.
+
+        When we check if the element is a data detector link,
+        we should return true also for URLs with mailto: and tel: scheme.
+
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::DataDetection::isDataDetectorLink):
+
 2016-03-16  Zalan Bujtas  <zalan@apple.com>
 
         Subpixel rendering: Directly composited image layers need pixelsnapping.
