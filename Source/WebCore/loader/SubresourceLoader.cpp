@@ -364,6 +364,7 @@ static void logResourceLoaded(Frame* frame, CachedResource::Type type)
 #endif
         resourceType = DiagnosticLoggingKeys::fontKey();
         break;
+    case CachedResource::MediaResource:
     case CachedResource::RawResource:
         resourceType = DiagnosticLoggingKeys::rawKey();
         break;
