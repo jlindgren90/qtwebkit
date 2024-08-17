@@ -1216,15 +1216,16 @@ void ScrollView::paint(GraphicsContext& context, const IntRect& rect)
 
     IntRect documentDirtyRect = rect;
     if (!paintsEntireContents()) {
-        IntRect visibleAreaWithoutScrollbars(location(), visibleContentRect(LegacyIOSDocumentVisibleRect).size());
+        IntRect visibleAreaWithoutScrollbars(locationOfContents(), visibleContentRect(LegacyIOSDocumentVisibleRect).size());
         documentDirtyRect.intersect(visibleAreaWithoutScrollbars);
     }
 
     if (!documentDirtyRect.isEmpty()) {
         GraphicsContextStateSaver stateSaver(context);
 
-        context.translate(x(), y());
-        documentDirtyRect.moveBy(-location());
+        IntPoint locationOfContents = this->locationOfContents();
+        context.translate(locationOfContents.x(), locationOfContents.y());
+        documentDirtyRect.moveBy(-locationOfContents);
 
         if (!paintsEntireContents()) {
             context.translate(-scrollX(), -scrollY());
@@ -1490,6 +1491,14 @@ void ScrollView::styleDidChange()
 
     if (m_verticalScrollbar)
         m_verticalScrollbar->styleChanged();
+}
+
+IntPoint ScrollView::locationOfContents() const
+{
+    IntPoint result = location();
+    if (verticalScrollbarIsOnLeft() && m_verticalScrollbar)
+        result.move(m_verticalScrollbar->occupiedWidth(), 0);
+    return result;
 }
 
 #if !PLATFORM(QT) && !PLATFORM(COCOA)
