@@ -1,3 +1,114 @@
+2016-03-22  Alberto Garcia  <berto@igalia.com>
+
+        Unreviewed typo fixes.
+
+        * Shared/linux/WebMemorySamplerLinux.cpp:
+        (WebKit::WebMemorySampler::sampleWebKit): "Commited" => "Committed"
+        * UIProcess/API/gtk/WebKitFileChooserRequest.cpp:
+        (webkit_file_chooser_request_select_files): "choosen" => "chosen"
+        * UIProcess/API/gtk/WebKitUserMediaPermissionRequest.cpp:
+        (webkit_user_media_permission_request_class_init): "Wether" => "Whether"
+
+2016-03-22  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Remove unused display and scroll view methods from PageClient and WebPageProxy
+        https://bugs.webkit.org/show_bug.cgi?id=155744
+
+        Reviewed by Andreas Kling.
+
+        We have displayView(), canScrollView() and scrollView() that are
+        used by DrawingAreaProxyImpl which is only used by GTK+ port that
+        doesn't implement those methods.
+
+        * UIProcess/API/gtk/PageClientImpl.cpp:
+        (WebKit::PageClientImpl::displayView): Deleted.
+        (WebKit::PageClientImpl::scrollView): Deleted.
+        * UIProcess/API/gtk/PageClientImpl.h:
+        * UIProcess/DrawingAreaProxyImpl.cpp:
+        (WebKit::DrawingAreaProxyImpl::incorporateUpdate): Update the
+        whole view when scrolling, or the damage area otherwise.
+        * UIProcess/PageClient.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::displayView): Deleted.
+        (WebKit::WebPageProxy::canScrollView): Deleted.
+        (WebKit::WebPageProxy::scrollView): Deleted.
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/efl/WebView.cpp:
+        (WebKit::WebView::displayView): Deleted.
+        (WebKit::WebView::scrollView): Deleted.
+        * UIProcess/efl/WebView.h:
+        * UIProcess/ios/PageClientImplIOS.h:
+        * UIProcess/ios/PageClientImplIOS.mm:
+        (WebKit::PageClientImpl::displayView): Deleted.
+        (WebKit::PageClientImpl::canScrollView): Deleted.
+        (WebKit::PageClientImpl::scrollView): Deleted.
+        * UIProcess/mac/PageClientImpl.h:
+        * UIProcess/mac/PageClientImpl.mm:
+        (WebKit::PageClientImpl::displayView): Deleted.
+        (WebKit::PageClientImpl::canScrollView): Deleted.
+        (WebKit::PageClientImpl::scrollView): Deleted.
+
+2016-03-22  Zan Dobersek  <zdobersek@igalia.com>
+
+        [CoordinatedGraphics] Polish std::function<> usage in ThreadedCompositor, CoordinatedGraphicsScene
+        https://bugs.webkit.org/show_bug.cgi?id=155726
+
+        Reviewed by Darin Adler.
+
+        Adjust the methods in ThreadedCompositor and CoordinatedGraphicsScene
+        classes to accept std::function<> arguments via rvalue references. This
+        should prevent both unnecessary copies and moves.
+
+        Fix lambda expressions that are most commonly used to construct the
+        std::function<> objects so that they don't capture-by-value by default,
+        but instead list the captured values verbosely. This part alone exposed
+        an issue in ThreadedCompositor::didChangeVisibleRect() where we were
+        capturing the `this' value by default, instead of a protector RefPtr.
+
+        * Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp:
+        (WebKit::CoordinatedGraphicsScene::dispatchOnMainThread):
+        (WebKit::CoordinatedGraphicsScene::dispatchOnClientRunLoop):
+        (WebKit::CoordinatedGraphicsScene::paintToCurrentGLContext):
+        (WebKit::CoordinatedGraphicsScene::onNewBufferAvailable):
+        (WebKit::CoordinatedGraphicsScene::commitSceneState):
+        (WebKit::CoordinatedGraphicsScene::purgeGLResources):
+        (WebKit::CoordinatedGraphicsScene::commitScrollOffset):
+        (WebKit::CoordinatedGraphicsScene::appendUpdate):
+        (WebKit::CoordinatedGraphicsScene::setActive):
+        * Shared/CoordinatedGraphics/CoordinatedGraphicsScene.h:
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::CompositingRunLoop::CompositingRunLoop):
+        (WebKit::CompositingRunLoop::callOnCompositingRunLoop):
+        (WebKit::ThreadedCompositor::setNeedsDisplay):
+        (WebKit::ThreadedCompositor::setNativeSurfaceHandleForCompositing):
+        (WebKit::ThreadedCompositor::setDeviceScaleFactor):
+        (WebKit::ThreadedCompositor::didChangeViewportSize):
+        (WebKit::ThreadedCompositor::didChangeViewportAttribute):
+        (WebKit::ThreadedCompositor::didChangeContentsSize):
+        (WebKit::ThreadedCompositor::scrollTo):
+        (WebKit::ThreadedCompositor::scrollBy):
+        (WebKit::ThreadedCompositor::didChangeVisibleRect):
+        (WebKit::ThreadedCompositor::callOnCompositingThread):
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.h:
+
+2016-03-22  Zan Dobersek  <zdobersek@igalia.com>
+
+        [CoordinatedGraphics] Prefer RunLoop::main().dispatch() over callOnMainThread()
+        https://bugs.webkit.org/show_bug.cgi?id=155725
+
+        Reviewed by Darin Adler.
+
+        Unify the CoordinatedGraphics code in the WebKit2 layer to use RunLoop
+        for dispatching tasks on either the main thread or the composition thread
+        in case of using the threaded compositor. The latter is already the default,
+        so this patch just replaces calls to callOnMainThread() with calls to
+        RunLoop::main().dispatch().
+
+        * Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp:
+        (WebKit::CoordinatedGraphicsScene::dispatchOnMainThread):
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::didChangeVisibleRect):
+
 2016-03-18  Enrica Casucci  <enrica@apple.com>
 
         Enable preview of images as attachments.
