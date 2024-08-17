@@ -1,3 +1,39 @@
+2016-03-21  Brady Eidson  <beidson@apple.com>
+
+        storage/indexeddb/deletedatabase-delayed-by-open-and-versionchange.html flaky on mac-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=154748
+
+        Reviewed by Alex Christensen.
+
+        * platform/mac/TestExpectations:
+        * storage/indexeddb/deletedatabase-delayed-by-open-and-versionchange-expected.txt:
+        * storage/indexeddb/deletedatabase-delayed-by-open-and-versionchange-private-expected.txt:
+        * storage/indexeddb/resources/deletedatabase-delayed-by-open-and-versionchange.js:
+
+2016-03-21  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Use larger tiles when possible to reduce per-tile painting overhead
+        https://bugs.webkit.org/show_bug.cgi?id=155734
+        rdar://problem/24968144
+
+        Reviewed by Tim Horton.
+
+        New results with larger page tiles in WK2.
+
+        * platform/ios-simulator-wk2/compositing/tiling/rotated-tiled-clamped-expected.txt: Added.
+        * platform/ios-simulator-wk2/compositing/tiling/rotated-tiled-preserve3d-clamped-expected.txt: Added.
+        * platform/ios-simulator-wk2/compositing/tiling/transform-origin-tiled-expected.txt: Added.
+
+2016-03-21  Hyungwook Lee  <hyungwook.lee@navercorp.com>
+
+        [Win] Connect layoutTestController.findString() to support testing
+        https://bugs.webkit.org/show_bug.cgi?id=50234
+
+        Reviewed by Alex Christensen.
+
+        * platform/win/TestExpectations: Unskip test.
+        * platform/win/editing/text-iterator/findString-expected.txt: Added.
+
 2016-03-21  Zalan Bujtas  <zalan@apple.com>
 
         Web Inspector search icon does not fit when zoomed in.

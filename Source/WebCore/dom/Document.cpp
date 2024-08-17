@@ -516,7 +516,7 @@ Document::Document(Frame* frame, const URL& url, unsigned documentClasses, unsig
     , m_scheduledTasksAreSuspended(false)
     , m_visualUpdatesAllowed(true)
     , m_visualUpdatesSuppressionTimer(*this, &Document::visualUpdatesSuppressionTimerFired)
-    , m_sharedObjectPoolClearTimer(*this, &Document::clearSharedObjectPool)
+    , m_sharedObjectPoolClearTimer(*this, &Document::sharedObjectPoolClearTimerFired)
 #ifndef NDEBUG
     , m_didDispatchViewportPropertiesChanged(false)
 #endif
@@ -4626,7 +4626,6 @@ void Document::setPageCacheState(PageCacheState state)
 
         clearStyleResolver();
         clearSelectorQueryCache();
-        clearSharedObjectPool();
         break;
     case NotInPageCache:
         if (childNeedsStyleRecalc())
@@ -5077,10 +5076,9 @@ void Document::finishedParsing()
     m_cachedResourceLoader->clearPreloads();
 }
 
-void Document::clearSharedObjectPool()
+void Document::sharedObjectPoolClearTimerFired()
 {
     m_sharedObjectPool = nullptr;
-    m_sharedObjectPoolClearTimer.stop();
 }
 
 #if ENABLE(TELEPHONE_NUMBER_DETECTION)
