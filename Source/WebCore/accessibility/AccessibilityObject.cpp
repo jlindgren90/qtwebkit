@@ -1205,6 +1205,7 @@ VisiblePositionRange AccessibilityObject::visiblePositionRangeForRange(const Pla
 
 RefPtr<Range> AccessibilityObject::rangeForPlainTextRange(const PlainTextRange& range) const
 {
+#if HAVE(ACCESSIBILITY)
     unsigned textLength = getLengthForTextRange();
     if (range.start + range.length > textLength)
         return nullptr;
@@ -1214,6 +1215,7 @@ RefPtr<Range> AccessibilityObject::rangeForPlainTextRange(const PlainTextRange& 
         CharacterOffset end = cache->characterOffsetForIndex(range.start + range.length, this);
         return cache->rangeForUnorderedCharacterOffsets(start, end);
     }
+#endif
     return nullptr;
 }
 

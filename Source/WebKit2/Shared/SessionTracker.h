@@ -30,6 +30,7 @@ namespace WebCore {
 class NetworkStorageSession;
 }
 
+#include <functional>
 #include <WebCore/SessionID.h>
 #include <wtf/HashMap.h>
 #include <wtf/Noncopyable.h>

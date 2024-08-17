@@ -2023,6 +2023,7 @@ IntRect AccessibilityRenderObject::boundsForVisiblePositionRange(const VisiblePo
 
 IntRect AccessibilityRenderObject::boundsForRange(const RefPtr<Range> range) const
 {
+#if HAVE(ACCESSIBILITY)
     if (!range)
         return IntRect();
     
@@ -2050,6 +2051,9 @@ IntRect AccessibilityRenderObject::boundsForRange(const RefPtr<Range> range) con
     }
     
     return boundsForRects(rect1, rect2, range);
+#else
+    return IntRect();
+#endif
 }
     
 void AccessibilityRenderObject::setSelectedVisiblePositionRange(const VisiblePositionRange& range) const
