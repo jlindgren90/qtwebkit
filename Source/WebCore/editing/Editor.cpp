@@ -2132,7 +2132,7 @@ Vector<String> Editor::guessesForMisspelledWord(const String& word) const
 
     Vector<String> guesses;
     if (client())
-        textChecker()->getGuessesForWord(word, String(), guesses);
+        textChecker()->getGuessesForWord(word, String(), m_frame.selection().selection(), guesses);
     return guesses;
 }
 
@@ -2408,7 +2408,7 @@ void Editor::markAllMisspellingsAndBadGrammarInRanges(TextCheckingTypeMask textC
     }
 
     Vector<TextCheckingResult> results;
-    checkTextOfParagraph(*textChecker(), paragraphToCheck.text(), resolveTextCheckingTypeMask(textCheckingOptions), results);
+    checkTextOfParagraph(*textChecker(), paragraphToCheck.text(), resolveTextCheckingTypeMask(textCheckingOptions), results, m_frame.selection().selection());
     markAndReplaceFor(request.release(), results);
 }
 

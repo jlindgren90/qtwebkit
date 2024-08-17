@@ -239,7 +239,7 @@ PassRefPtr<FrameNetworkingContext> EmptyFrameLoaderClient::createNetworkingConte
     return PassRefPtr<FrameNetworkingContext>();
 }
 
-void EmptyTextCheckerClient::requestCheckingOfString(PassRefPtr<TextCheckingRequest>)
+void EmptyTextCheckerClient::requestCheckingOfString(PassRefPtr<TextCheckingRequest>, const VisibleSelection&)
 {
 }
 
