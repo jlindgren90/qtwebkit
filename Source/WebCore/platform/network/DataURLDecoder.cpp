@@ -56,11 +56,12 @@ struct DecodeTask {
 
 #if HAVE(RUNLOOP_TIMER)
 
-class DecodingResultDispatcher : public ThreadSafeRefCounted<DecodingResultDispatcher> {
+class DecodingResultDispatcher {
+    WTF_MAKE_FAST_ALLOCATED;
 public:
     static void dispatch(std::unique_ptr<DecodeTask> decodeTask)
     {
-        Ref<DecodingResultDispatcher> dispatcher = adoptRef(*new DecodingResultDispatcher(WTFMove(decodeTask)));
+        auto* dispatcher = new DecodingResultDispatcher(WTFMove(decodeTask));
         dispatcher->startTimer();
     }
 
@@ -73,12 +74,8 @@ private:
 
     void startTimer()
     {
-        // Keep alive until the timer has fired.
-        ref();
-
-        auto scheduledPairs = m_decodeTask->scheduleContext.scheduledPairs;
         m_timer.startOneShot(0);
-        m_timer.schedule(scheduledPairs);
+        m_timer.schedule(m_decodeTask->scheduleContext.scheduledPairs);
     }
 
     void timerFired()
@@ -88,10 +85,7 @@ private:
         else
             m_decodeTask->completionHandler({ });
 
-        // Ensure DecodeTask gets deleted in the main thread.
-        m_decodeTask = nullptr;
-
-        deref();
+        delete this;
     }
 
     RunLoopTimer<DecodingResultDispatcher> m_timer;
