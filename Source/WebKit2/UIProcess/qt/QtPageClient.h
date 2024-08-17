@@ -46,7 +46,7 @@ public:
     void initialize(QQuickWebView*, QtWebPageEventHandler*, WebKit::DefaultUndoController*);
 
     // QQuickWebView.
-    void setViewNeedsDisplay(const WebCore::IntRect&) override;
+    void setViewNeedsDisplay(const WebCore::Region&) override;
     void didRenderFrame(const WebCore::IntSize& contentsSize, const WebCore::IntRect& coveredRect) override;
     WebCore::IntSize viewSize() override;
     bool isViewFocused() override;
@@ -63,9 +63,6 @@ public:
     void handleCertificateVerificationRequest(const String& hostname, bool& ignoreErrors) override;
     void handleProxyAuthenticationRequiredRequest(const String& hostname, uint16_t port, const String& prefilledUsername, String& username, String& password) override;
 
-    void displayView() override;
-    bool canScrollView() override { return false; }
-    void scrollView(const WebCore::IntRect& scrollRect, const WebCore::IntSize& scrollOffset) override;
     bool isViewWindowActive() override;
     bool isViewInWindow() override;
     void enterAcceleratedCompositingMode(const LayerTreeContext&) override;
