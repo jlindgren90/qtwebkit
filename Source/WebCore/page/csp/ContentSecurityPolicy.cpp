@@ -249,6 +249,16 @@ static CryptoDigest::Algorithm toCryptoDigestAlgorithm(ContentSecurityPolicyHash
 }
 
 template<bool (ContentSecurityPolicyDirectiveList::*allowed)(const ContentSecurityPolicyHash&) const>
+static bool isAllowedByAllWithHash(const CSPDirectiveListVector& policies, const ContentSecurityPolicyHash& hash)
+{
+    for (auto& policy : policies) {
+        if (!(policy.get()->*allowed)(hash))
+            return false;
+    }
+    return true;
+}
+
+template<bool (ContentSecurityPolicyDirectiveList::*allowed)(const ContentSecurityPolicyHash&) const>
 static bool isAllowedByAllWithHashFromContent(const CSPDirectiveListVector& policies, const String& content, const TextEncoding& encoding, OptionSet<ContentSecurityPolicyHashAlgorithm> algorithms)
 {
     // FIXME: Compute the digest with respect to the raw bytes received from the page.
@@ -258,11 +268,8 @@ static bool isAllowedByAllWithHashFromContent(const CSPDirectiveListVector& poli
         auto cryptoDigest = CryptoDigest::create(toCryptoDigestAlgorithm(algorithm));
         cryptoDigest->addBytes(contentCString.data(), contentCString.length());
         Vector<uint8_t> digest = cryptoDigest->computeHash();
-        ContentSecurityPolicyHash hash = std::make_pair(algorithm, digest);
-        for (auto& policy : policies) {
-            if ((policy.get()->*allowed)(hash))
-                return true;
-        }
+        if (isAllowedByAllWithHash<allowed>(policies, { algorithm, digest }))
+            return true;
     }
     return false;
 }

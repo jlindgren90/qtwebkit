@@ -31,7 +31,7 @@ WebInspector.TimelineTabContentView = class TimelineTabContentView extends WebIn
         let tabBarItem = new WebInspector.TabBarItem(image, title);
         let detailsSidebarPanels = [WebInspector.resourceDetailsSidebarPanel, WebInspector.probeDetailsSidebarPanel];
 
-        super(identifier || "timeline", "timeline", tabBarItem, WebInspector.TimelineSidebarPanel, detailsSidebarPanels);
+        super(identifier || "timeline", "timeline", tabBarItem, null, detailsSidebarPanels);
 
         // Maintain an invisible tree outline containing tree elements for all recordings.
         // The visible recording's tree element is selected when the content view changes.
@@ -393,8 +393,9 @@ WebInspector.TimelineTabContentView = class TimelineTabContentView extends WebIn
 
     _recordButtonClicked(event)
     {
+        let shouldCreateNewRecording = window.event ? window.event.shiftKey : false;
         this._recordButton.toggled = !WebInspector.timelineManager.isCapturing();
-        this._toggleRecording(event.shiftKey);
+        this._toggleRecording(shouldCreateNewRecording);
     }
 
     _recordingsTreeSelectionDidChange(event)

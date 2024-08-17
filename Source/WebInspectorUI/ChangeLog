@@ -1,3 +1,94 @@
+2016-03-22  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Consider Automation script names as internal and hide them
+
+        https://bugs.webkit.org/show_bug.cgi?id=155753
+        rdar://problem/25293310
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Base/Utilities.js:
+        (isWebKitInternalScript): Renamed from isWebInspectorDebugScript.
+        Check for "__Web" prefix and "__" suffix.
+
+        * UserInterface/Controllers/DebuggerManager.js:
+        (WebInspector.DebuggerManager):
+        (WebInspector.DebuggerManager.prototype.get knownNonResourceScripts):
+        (WebInspector.DebuggerManager.prototype.reset):
+        (WebInspector.DebuggerManager.prototype.debuggerDidPause):
+        (WebInspector.DebuggerManager.prototype.scriptDidParse):
+        (WebInspector.DebuggerManager.prototype._debugUIEnabledDidChange):
+        Renamed _inspectorDebugScripts to _internalWebKitScripts. And renamed
+        isWebInspectorDebugScript to isWebKitInternalScript.
+
+        * UserInterface/Protocol/RemoteObject.js:
+        (WebInspector.RemoteObject.prototype.findFunctionSourceCodeLocation):
+        Renamed isWebInspectorDebugScript to isWebKitInternalScript.
+
+2016-03-22  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: REGRESSION: Shift + Click on record button should create a new recording
+        https://bugs.webkit.org/show_bug.cgi?id=155763
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TimelineTabContentView.js:
+        (WebInspector.TimelineTabContentView.prototype._recordButtonClicked):
+        Use the shiftKey from the DOM Event.
+
+2016-03-22  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Switching Away and Back to Timelines Tab may select a different Timeline
+        https://bugs.webkit.org/show_bug.cgi?id=155742
+        <rdar://problem/25284330>
+
+        Reviewed by Timothy Hatcher.
+
+        When switching to the Timeline tab, or switching recordings within the
+        the Timeline tab, the TimelineTabContentView does work to correctly
+        save/restore its view state.
+
+        When switching to the Timeline tab, the TimelineTabContentView correctly
+        restores the state of the tab, but when showing the RecordingContentView
+        the RecordingContentView restores its state from a stale cookie.
+
+        Since TimelineTabContentView already seems to handle correctly restoring
+        RecordingContentViews on its own. Removing the RecordingContentView's
+        implementation of save/restore made everything work as expected.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView.prototype.saveToCookie): Deleted.
+        (WebInspector.TimelineRecordingContentView.prototype.restoreFromCookie): Deleted.
+
+2016-03-22  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: remove the remaining TimelineSidebarPanel references
+        https://bugs.webkit.org/show_bug.cgi?id=155765
+        <rdar://problem/25296980>
+
+        Reviewed by Timothy Hatcher.
+
+        Remove dead code from TimelineView and TimelineTabContentView.
+
+        * UserInterface/Views/OverviewTimelineView.js:
+        (WebInspector.OverviewTimelineView.prototype.canShowContentViewForTreeElement): Deleted.
+        (WebInspector.OverviewTimelineView.prototype.showContentViewForTreeElement): Deleted.
+
+        * UserInterface/Views/RenderingFrameTimelineView.js:
+        (WebInspector.RenderingFrameTimelineView.prototype.canShowContentViewForTreeElement): Deleted.
+        (WebInspector.RenderingFrameTimelineView.prototype.showContentViewForTreeElement): Deleted.
+
+        * UserInterface/Views/ScriptDetailsTimelineView.js:
+        (WebInspector.ScriptDetailsTimelineView.prototype.canShowContentViewForTreeElement): Deleted.
+        (WebInspector.ScriptDetailsTimelineView.prototype.showContentViewForTreeElement): Deleted.
+
+        * UserInterface/Views/TimelineTabContentView.js:
+        (WebInspector.TimelineTabContentView):
+
+        * UserInterface/Views/TimelineView.js:
+        (WebInspector.TimelineView.prototype.canShowContentViewForTreeElement): Deleted.
+        (WebInspector.TimelineView.prototype.showContentViewForTreeElement): Deleted.
+
 2016-03-22  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: Timelines UI redesign: Provide a way to configure which instruments to use
