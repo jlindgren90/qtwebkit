@@ -1,3 +1,227 @@
+2016-03-18  Nan Wang  <n_wang@apple.com>
+
+        AX: AXARIACurrent exposed but not displayed in Accessibility Inspector
+        https://bugs.webkit.org/show_bug.cgi?id=155600
+
+        Reviewed by Chris Fleizach.
+
+        AXARIACurrent attribute was added to a temporary array that was never returned.
+
+        Test: accessibility/mac/aria-current-attribute-exposed.html
+
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (-[WebAccessibilityObjectWrapper accessibilityAttributeNames]):
+
+2016-03-18  Nan Wang  <n_wang@apple.com>
+
+        AX: Typing broken on form input field while using VoiceOver
+        https://bugs.webkit.org/show_bug.cgi?id=155613
+
+        Reviewed by Chris Fleizach.
+
+        The div element inside the INPUT element gives a collapsed TextMarkerRange which then creates
+        a collapsed Range. Fixed it by using the parent node to create the Range when the div node has
+        no children.
+
+        Test: accessibility/mac/text-marker-range-for-node-without-children.html
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::setRangeStartOrEndWithCharacterOffset):
+
+2016-03-18  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: Implement AutoFill Available attribute for a text field
+        https://bugs.webkit.org/show_bug.cgi?id=155567
+
+        Reviewed by Darin Adler.
+
+        This file was left out of original commit accidentally.
+
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::addTextFieldChildren):
+
+2016-03-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] Unreviewed speculative buildfix after r197956. Just for fun.
+
+        * PlatformMac.cmake:
+
+2016-03-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] Unreviewed speculative buildfix after r197628. Just for fun.
+
+        * PlatformMac.cmake:
+
+2016-03-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] One more attempt to try to fix the build after r197633.
+
+        * PlatformMac.cmake:
+
+2016-03-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] One more attempt to try to fix the build after r197633.
+
+        * PlatformMac.cmake:
+
+2016-03-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] One more attempt to try to fix the build after r197633.
+
+        * PlatformMac.cmake: Revert r198398, which was incorrect.
+
+2016-03-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] Last attempt to try to fix the build after r197633.
+
+        * PlatformMac.cmake:
+
+2016-03-18  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Rename GridSpan properties
+        https://bugs.webkit.org/show_bug.cgi?id=155636
+
+        Reviewed by Sergio Villar Senin.
+
+        GridSpan was using old names initialResolvedPosition and
+        finalResolvedPosition.
+        This patch rename them to startLine and endLine.
+
+        Some reasons for this refactoring:
+        - "position" is a vague term not defined in the spec.
+        - GridSpan is currently storing grid lines. A grid "line" is defined
+          in the spec: https://drafts.csswg.org/css-grid/#grid-line-concept
+        - The spec uses the concepts "start" and "end" lines too.
+
+        No new tests, no change of behavior.
+
+        * css/CSSGridTemplateAreasValue.cpp:
+        (WebCore::stringForPosition):
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseGridTemplateAreasRow):
+        * css/StyleBuilderConverter.h:
+        (WebCore::StyleBuilderConverter::createImplicitNamedGridLinesFromGridArea):
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::computeUsedBreadthOfGridTracks):
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctionsForNonSpanningItems):
+        (WebCore::RenderGrid::insertItemIntoGrid):
+        (WebCore::RenderGrid::populateExplicitGridAndOrderIterator):
+        (WebCore::RenderGrid::placeSpecifiedMajorAxisItemsOnGrid):
+        (WebCore::RenderGrid::placeAutoMajorAxisItemOnGrid):
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+        (WebCore::RenderGrid::gridAreaBreadthForChildIncludingAlignmentOffsets):
+        (WebCore::RenderGrid::columnAxisOffsetForChild):
+        (WebCore::RenderGrid::rowAxisOffsetForChild):
+        * rendering/style/GridArea.h:
+        (WebCore::GridSpan::untranslatedDefiniteGridSpan):
+        (WebCore::GridSpan::translatedDefiniteGridSpan):
+        (WebCore::GridSpan::operator==):
+        (WebCore::GridSpan::integerSpan):
+        (WebCore::GridSpan::untranslatedStartLine):
+        (WebCore::GridSpan::untranslatedEndLine):
+        (WebCore::GridSpan::startLine):
+        (WebCore::GridSpan::endLine):
+        (WebCore::GridSpan::begin):
+        (WebCore::GridSpan::end):
+        (WebCore::GridSpan::translate):
+        (WebCore::GridSpan::GridSpan):
+        (WebCore::GridSpan::untranslatedResolvedInitialPosition): Deleted.
+        (WebCore::GridSpan::untranslatedResolvedFinalPosition): Deleted.
+        (WebCore::GridSpan::resolvedInitialPosition): Deleted.
+        (WebCore::GridSpan::resolvedFinalPosition): Deleted.
+        * rendering/style/GridPositionsResolver.cpp:
+        (WebCore::definiteGridSpanWithNamedLineSpanAgainstOpposite):
+        (WebCore::resolveNamedGridLinePositionAgainstOppositePosition):
+        (WebCore::resolveGridPositionAgainstOppositePosition):
+        (WebCore::GridPositionsResolver::resolveGridPositionsFromStyle):
+
+2016-03-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] One more unreviewed speculative buildfix after r197633. Just for fun.
+
+        * PlatformMac.cmake:
+
+2016-03-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] Unreviewed speculative buildfix after r197633. Just for fun.
+
+        * PlatformMac.cmake:
+
+2016-03-18  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        crossorigin element resource loading should check HTTP redirection
+        https://bugs.webkit.org/show_bug.cgi?id=130578
+
+        Reviewed by Daniel Bates and Brent Fulgham.
+
+        Moved part of DocumentThreadableLoader redirection cross origin control code
+        into functions in CrossOriginAccessControl.cpp. Added cross origin control for
+        redirections in SubResourceLoader when policy is set to PotentiallyCrossOriginEnabled 
+        using CrossOriginAccessControl.cpp new functions. Added a new test that checks that 
+        cross-origin redirections are checked against CORS.
+
+        Test: http/tests/security/shape-image-cors-redirect.html
+
+        * loader/CrossOriginAccessControl.cpp:
+        (WebCore::isValidCrossOriginRedirectionURL): Returns true if the redirected URL is a valid URL for cross-origin requests.
+        (WebCore::cleanRedirectedRequestForAccessControl): Removes all headers added by the network backend that may cause the response CORS validation to fail.
+        * loader/CrossOriginAccessControl.h: Added above function prototypes.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::redirectReceived): Used new CORS redirection methods of CrossOriginAccessControl.cpp.
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::init): Initialize the SecurityOrigin to be used for loading the resource.
+        (WebCore::SubresourceLoader::willSendRequest): Added cross-origin redirection response check.
+        (WebCore::SubresourceLoader::checkCrossOriginAccessControl): Checks CORS and update request if needed. Returns true if control checks passed.
+        * loader/SubresourceLoader.h: Added checkCrossOriginAccessControl declaration and m_origin declaration.
+
+2016-03-18  Darin Adler  <darin@apple.com>
+
+        Disable Caches in Safari's Develop menu does not disable caches.
+        https://bugs.webkit.org/show_bug.cgi?id=64483
+
+        Reviewed by Antti Koivisto.
+
+        Add a new setting, ResourceCachingDisabled, for use in future versions of Safari.
+
+        * history/PageCache.cpp:
+        (WebCore::canCachePage): Check resourceCachingDisabled and return false.
+        (WebCore::PageCache::take): Check resourceCachingDisabled, and return null.
+        (WebCore::PageCache::get): Ditto.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::subresourceCachePolicy): Check resourceCachingDisabled, and
+        request a reload.
+        (WebCore::FrameLoader::addExtraFieldsToRequest): Check resourceCachingDisabled, and
+        set the cache policy to trigger a reload.
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::cachePolicy): Check resourceCachingDisabled, and
+        request a reload.
+
+        * page/Settings.in: Added resourceCachingDisabled.
+
+2016-03-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] Unreviewed speculative buildfix. Just for fun.
+
+        * loader/EmptyClients.cpp:
+
+2016-03-17  Antti Koivisto  <antti@apple.com>
+
+        Data URL DecodeTask may get deleted outside main thread
+        https://bugs.webkit.org/show_bug.cgi?id=155584
+        rdar://problem/24492104
+
+        Reviewed by Darin Adler.
+
+        This is unsafe as it owns strings and other types that are only safe to delete in the main thread.
+
+        There is a race between deref in dispatch() and deref in timerFired(). If the timer fires before dispatch()
+        exits the implicit deref will trigger deletion of DecodingResultDispatcher in the dispatching thread.
+
+        (WebCore::DataURLDecoder::DecodingResultDispatcher::timerFired):
+
+            Fix by clearing m_decodeTask when the timer fires.
+
 2016-03-17  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         REGRESSION(r195661): [GTK] very slow scrolling

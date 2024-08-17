@@ -2165,6 +2165,9 @@ FrameLoadType FrameLoader::loadType() const
     
 CachePolicy FrameLoader::subresourceCachePolicy() const
 {
+    if (m_frame.settings().resourceCachingDisabled())
+        return CachePolicyReload;
+
     if (m_isComplete)
         return CachePolicyVerify;
 
@@ -2578,6 +2581,11 @@ void FrameLoader::addExtraFieldsToMainResourceRequest(ResourceRequest& request)
 
 void FrameLoader::addExtraFieldsToRequest(ResourceRequest& request, FrameLoadType loadType, bool mainResource)
 {
+    bool cachingDisabled = frame().settings().resourceCachingDisabled();
+
+    if (cachingDisabled)
+        request.setCachePolicy(ReloadIgnoringCacheData);
+
     // Don't set the cookie policy URL if it's already been set.
     // But make sure to set it on all requests regardless of protocol, as it has significance beyond the cookie policy (<rdar://problem/6616664>).
     if (request.firstPartyForCookies().isEmpty()) {
@@ -2593,7 +2601,10 @@ void FrameLoader::addExtraFieldsToRequest(ResourceRequest& request, FrameLoadTyp
 
     applyUserAgent(request);
 
-    if (!mainResource) {
+    if (cachingDisabled) {
+        // Cache policy was already set above in the non-HTTP-specific code.
+        loadType = FrameLoadType::ReloadFromOrigin;
+    } else if (!mainResource) {
         if (request.isConditional())
             request.setCachePolicy(ReloadIgnoringCacheData);
         else if (documentLoader()->isLoadingInAPISense()) {
@@ -2630,7 +2641,7 @@ void FrameLoader::addExtraFieldsToRequest(ResourceRequest& request, FrameLoadTyp
             request.setHTTPHeaderField(HTTPHeaderName::Pragma, "no-cache");
         }
     }
-    
+
     if (mainResource)
         request.setHTTPAccept(defaultAcceptHeader);
 
