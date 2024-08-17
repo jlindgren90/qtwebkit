@@ -261,7 +261,7 @@ void QWebFrameAdapter::setContent(const QByteArray &data, const QString &mimeTyp
     }
     WebCore::ResourceResponse response(URL(), WTF::String(actualMimeType), buffer->size(), encoding);
     // FIXME: visibility?
-    WebCore::SubstituteData substituteData(buffer, URL(), response, SubstituteData::SessionHistoryVisibility::Hidden);
+    WebCore::SubstituteData substituteData(std::move(buffer), URL(), response, SubstituteData::SessionHistoryVisibility::Hidden);
     frame->loader().load(WebCore::FrameLoadRequest(frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
 }
 
@@ -273,7 +273,7 @@ void QWebFrameAdapter::setHtml(const QString &html, const QUrl &baseUrl)
     WTF::RefPtr<WebCore::SharedBuffer> data = WebCore::SharedBuffer::create(utf8.constData(), utf8.length());
     WebCore::ResourceResponse response(URL(), ASCIILiteral("text/html"), data->size(), ASCIILiteral("utf-8"));
     // FIXME: visibility?
-    WebCore::SubstituteData substituteData(data, URL(), response, SubstituteData::SessionHistoryVisibility::Hidden);
+    WebCore::SubstituteData substituteData(std::move(data), URL(), response, SubstituteData::SessionHistoryVisibility::Hidden);
     frame->loader().load(WebCore::FrameLoadRequest(frame, request, ShouldOpenExternalURLsPolicy::ShouldNotAllow /*FIXME*/, substituteData));
 }
 

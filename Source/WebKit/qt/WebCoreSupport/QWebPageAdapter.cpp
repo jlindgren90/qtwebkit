@@ -233,7 +233,7 @@ void QWebPageAdapter::initializeWebCorePage()
     pageConfiguration.databaseProvider = &WebDatabaseProvider::singleton();
     pageConfiguration.storageNamespaceProvider = WebStorageNamespaceProvider::create(
         QWebSettings::globalSettings()->localStoragePath());
-    pageConfiguration.userContentController = &userContentProvider();
+    pageConfiguration.userContentProvider = &userContentProvider();
     pageConfiguration.visitedLinkStore = &VisitedLinkStoreQt::singleton();
     page = new Page(pageConfiguration);
 
