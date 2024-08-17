@@ -1918,7 +1918,7 @@ namespace JSC {
         
         const Identifier& ident() { return m_ident; }
 
-        FunctionMode functionMode() { return m_functionMode; }
+        FunctionMode functionMode() const { return m_functionMode; }
 
         unsigned startColumn() const { return m_startColumn; }
         unsigned endColumn() const { return m_endColumn; }
@@ -1935,11 +1935,11 @@ namespace JSC {
 
     class BaseFuncExprNode : public ExpressionNode {
     public:
-        BaseFuncExprNode(const JSTokenLocation&, const Identifier&, FunctionMetadataNode*, const SourceCode&);
-
         FunctionMetadataNode* metadata() { return m_metadata; }
 
     protected:
+        BaseFuncExprNode(const JSTokenLocation&, const Identifier&, FunctionMetadataNode*, const SourceCode&, FunctionMode);
+
         FunctionMetadataNode* m_metadata;
     };
 
@@ -1947,6 +1947,9 @@ namespace JSC {
     class FuncExprNode : public BaseFuncExprNode {
     public:
         FuncExprNode(const JSTokenLocation&, const Identifier&, FunctionMetadataNode*, const SourceCode&);
+
+    protected:
+        FuncExprNode(const JSTokenLocation&, const Identifier&, FunctionMetadataNode*, const SourceCode&, FunctionMode);
 
     private:
         RegisterID* emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
@@ -1962,6 +1965,14 @@ namespace JSC {
         RegisterID* emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
 
         bool isArrowFuncExprNode() const override { return true; }
+    };
+
+    class MethodDefinitionNode : public FuncExprNode {
+    public:
+        MethodDefinitionNode(const JSTokenLocation&, const Identifier&, FunctionMetadataNode*, const SourceCode&);
+        
+    private:
+        RegisterID* emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
     };
 
     class YieldExprNode final : public ExpressionNode, public ThrowableExpressionData {
