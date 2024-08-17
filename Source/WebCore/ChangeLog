@@ -1,3 +1,243 @@
+2016-03-17  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: WEB: VoiceOver does not announce some WAI-ARIA document structures
+        https://bugs.webkit.org/show_bug.cgi?id=155603
+        <rdar://problem/25227385>
+
+        Reviewed by Darin Adler.
+
+        Expose more ARIA landmark type roles on iOS for accessibility.
+
+        Updated test: accessibility/ios-simulator/landmark-type.html
+
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper _accessibilityIsLandmarkRole:]):
+        (-[WebAccessibilityObjectWrapper accessibilityLabel]):
+        * platform/LocalizedStrings.cpp:
+        (WebCore::searchMenuClearRecentSearchesText):
+        (WebCore::AXWebAreaText):
+        (WebCore::AXListItemActionVerb):
+        (WebCore::AXAutoFillCredentialsLabel):
+        * platform/LocalizedStrings.h:
+
+2016-03-17  Daniel Bates  <dabates@apple.com>
+
+        Cleanup: Remove the need to pass reporting status to ContentSecurityPolicy functions
+        https://bugs.webkit.org/show_bug.cgi?id=155623
+
+        Reviewed by Andy Estes and Alex Christensen.
+
+        ScriptController::initScript() is the only function that passes ContentSecurityPolicy::ReportingStatus::SuppressReport
+        following the removal of the SecurityPolicy script interface in <http://trac.webkit.org/changeset/197142>. It
+        passes this reporting status to prevent sending a violation report when determining whether the CSP policy allows
+        use of the JavaScript eval()/operator eval so that it enable or disable this capability as appropriate. We
+        should teach ScriptController::initScript() to delegate the responsibility of enabling/disabling this capability
+        to the ContentSecurityPolicy. Then we can remove the need to expose ContentSecurityPolicy::ReportingStatus as
+        part of the ContentSecurityPolicy interface.
+
+        No functionality changed. So, no new tests.
+
+        * bindings/js/ScriptController.cpp:
+        (WebCore::ScriptController::createWindowShell): Return a reference to a JSDOMWindowShell object
+        instead of a pointer as the pointer is always non-null.
+        (WebCore::ScriptController::initScript): Updated as needed now that ScriptController::createWindowShell()
+        returns a reference. Moved logic to enable/disable JavaScript eval() and operator eval from here into
+        ContentSecurityPolicy::didCreateWindowShell() and make use of this member function.
+        * bindings/js/ScriptController.h:
+        * page/csp/ContentSecurityPolicy.cpp:
+        (WebCore::ContentSecurityPolicy::didCreateWindowShell): Added. Moved logic from to enable/disable JavaScript
+        eval() and operator eval from ScriptController::initScript() to here.
+        (WebCore::ContentSecurityPolicy::didReceiveHeader): Substitute ContentSecurityPolicyDirectiveList::ReportingStatus::SuppressReport
+        for ContentSecurityPolicy::ReportingStatus::SuppressReport as the enum has moved from class ContentSecurityPolicy
+        to ContentSecurityPolicyDirectiveList. Fix minor code style nit; substitute nullptr for 0 in the first argument
+        to ContentSecurityPolicyDirectiveList::allowEval().
+        (WebCore::isAllowedByAllWithFrame): Substitute ContentSecurityPolicyDirectiveList::ReportingStatus::SuppressReport
+        for ContentSecurityPolicy::ReportingStatus::SuppressReport as the enum has moved from class ContentSecurityPolicy
+        to ContentSecurityPolicyDirectiveList.
+        (WebCore::isAllowedByAll): Substitute ContentSecurityPolicyDirectiveList::ReportingStatus::SuppressReport
+        for ContentSecurityPolicy::ReportingStatus::SuppressReport as the enum has moved from class ContentSecurityPolicy
+        to ContentSecurityPolicyDirectiveList. Also make this function static so that it has internal linkage.
+        (WebCore::isAllowedByAllWithState): Ditto.
+        (WebCore::isAllowedByAllWithContext): Ditto.
+        (WebCore::isAllowedByAllWithHashFromContent): Ditto.
+        (WebCore::isAllowedByAllWithURL): Ditto.
+        (WebCore::ContentSecurityPolicy::allowJavaScriptURLs): Remove argument reportingStatus and always pass
+        ContentSecurityPolicyDirectiveList::ReportingStatus::SendReport to the directive list member function. In a
+        subsequent patch we will remove the need to pass the reporting status to the directive list member function.
+        (WebCore::ContentSecurityPolicy::allowInlineEventHandlers): Ditto.
+        (WebCore::ContentSecurityPolicy::allowInlineScript): Ditto.
+        (WebCore::ContentSecurityPolicy::allowInlineStyle): Ditto.
+        (WebCore::ContentSecurityPolicy::allowEval): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFrameAncestors): Ditto.
+        (WebCore::ContentSecurityPolicy::allowPluginType): Ditto.
+        (WebCore::ContentSecurityPolicy::allowScriptFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowObjectFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowChildFrameFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowChildContextFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowImageFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowStyleFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFontFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowMediaFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowConnectToSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFormAction): Ditto.
+        (WebCore::ContentSecurityPolicy::allowBaseURI): Ditto.
+        (WebCore::ContentSecurityPolicy::evalDisabledErrorMessage): Deleted.
+        * page/csp/ContentSecurityPolicy.h:
+        * page/csp/ContentSecurityPolicyDirectiveList.cpp:
+        (WebCore::ContentSecurityPolicyDirectiveList::allowJavaScriptURLs): Substitute ReportingStatus for
+        ContentSecurityPolicy::ReportingStatus as the enum has moved from class ContentSecurityPolicy to this class.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineEventHandlers): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineScript): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineStyle): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowEval): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowPluginType): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowScriptFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowObjectFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowChildContextFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowChildFrameFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowImageFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowStyleFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFontFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowMediaFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowConnectToSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFormAction): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowBaseURI): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFrameAncestors): Ditto.
+        * page/csp/ContentSecurityPolicyDirectiveList.h:
+
+2016-03-17  Brent Fulgham  <bfulgham@apple.com>
+
+        [XSS Auditor] Off by one in XSSAuditor::canonicalizedSnippetForJavaScript()
+        https://bugs.webkit.org/show_bug.cgi?id=155624
+        <rdar://problem/25219962>
+
+        Unreviewed merge from Blink (patch by Tom Sepez <tsepez@chromium.org>):
+        <https://src.chromium.org/viewvc/blink?revision=201803&view=revision>
+
+        Test: http/tests/security/xssAuditor/script-tag-with-trailing-script-and-urlencode.html
+
+        * html/parser/XSSAuditor.cpp:
+        (WebCore::XSSAuditor::canonicalizedSnippetForJavaScript): Correct off-by-one error.
+
+2016-03-17  Zalan Bujtas  <zalan@apple.com>
+
+        Images in feed on ebay.com jiggle when one is hovered
+        https://bugs.webkit.org/show_bug.cgi?id=155608
+        <rdar://problem/25160681>
+
+        The content offset in compositing layer = subpixel gap between the graphics layer and the layer bounds + layer bounds top left.
+
+        Reviewed by Simon Fraser.
+
+        Test: compositing/hidpi-viewport-clipping-on-composited-content.html
+
+        * rendering/RenderLayerBacking.cpp:
+        (WebCore::RenderLayerBacking::updateGeometry):
+        (WebCore::RenderLayerBacking::contentOffsetInCompostingLayer):
+        * rendering/RenderLayerBacking.h:
+
+2016-03-17  Zalan Bujtas  <zalan@apple.com>
+
+        Don't initiate a style recall while drawing text 
+        https://bugs.webkit.org/show_bug.cgi?id=155618
+
+        Reviewed by Simon Fraser.
+
+        This patch ensures that we don't initiate a style recalc while in the middle of text drawing.
+
+        Test: fast/canvas/crash-while-resizing-canvas.html
+
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::drawTextInternal):
+
+2016-03-17  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198335.
+        https://bugs.webkit.org/show_bug.cgi?id=155617
+
+        This change caused existing LayoutTests to crash
+        intermittently (Requested by ryan|afk on #webkit).
+
+        Reverted changeset:
+
+        "DataURLDecoder::DecodingResultDispatcher may get deleted
+        outside main thread"
+        https://bugs.webkit.org/show_bug.cgi?id=155584
+        http://trac.webkit.org/changeset/198335
+
+2016-03-17  Eric Carlson  <eric.carlson@apple.com>
+
+        Improve some metadata tests
+        https://bugs.webkit.org/show_bug.cgi?id=155616
+
+        Reviewed by Saam Barati.
+
+        * html/track/DataCue.cpp:
+        (WebCore::DataCue::DataCue):
+        (WebCore::DataCue::setData):
+
+2016-03-17  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [RTL Scrollbars] Position: absolute divs are covered by vertical scrollbar
+        https://bugs.webkit.org/show_bug.cgi?id=155531
+
+        Reviewed by Darin Adler.
+
+        This patch updates ScrollView::documentScrollPositionRelativeToViewOrigin(), which is
+        a helper function primarily used by WebCore::ScrollView::viewToContents() and
+        WebCore::ScrollView::contentsToView().
+
+        Tests: fast/scrolling/rtl-scrollbars-elementFromPoint-static.html
+               fast/scrolling/rtl-scrollbars-elementFromPoint.html
+               fast/scrolling/rtl-scrollbars-iframe-offset.html
+               fast/scrolling/rtl-scrollbars-iframe-position-absolute.html
+               fast/scrolling/rtl-scrollbars-iframe-scrolled.html
+               fast/scrolling/rtl-scrollbars-iframe.html
+               fast/scrolling/rtl-scrollbars-overflow-elementFromPoint.html
+               fast/scrolling/rtl-scrollbars-overflow-position-absolute.html
+               fast/scrolling/rtl-scrollbars-overflow-text-selection-scrolled.html
+               fast/scrolling/rtl-scrollbars-position-absolute.html
+               fast/scrolling/rtl-scrollbars-position-fixed.html
+               fast/scrolling/rtl-scrollbars-text-selection-scrolled.html
+               fast/scrolling/rtl-scrollbars-text-selection.html
+
+        * platform/ScrollView.cpp:
+        (WebCore::ScrollView::documentScrollPositionRelativeToViewOrigin):
+
+2016-03-17  Filip Pizlo  <fpizlo@apple.com>
+
+        Replace all of the various non-working and non-compiling sampling profiler hacks with a single super hack
+        https://bugs.webkit.org/show_bug.cgi?id=155561
+
+        Reviewed by Saam Barati.
+
+        No new tests because no new behavior.
+
+        * platform/audio/ios/MediaSessionManagerIOS.mm:
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+
+2016-03-17  Brent Fulgham  <bfulgham@apple.com>
+
+        Some media tests are flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=155614
+
+        Reviewed by Eric Carlson.
+
+        * html/track/TextTrack.cpp:
+        (WebCore::TextTrack::~TextTrack):
+
+2016-03-17  Brady Eidson  <beidson@apple.com>
+
+        Don't try to restore deleted MemoryIndexes if their owning object store is not restored.
+        https://bugs.webkit.org/show_bug.cgi?id=155068
+
+        Reviewed by Alex Christensen.
+
+        Test: storage/indexeddb/modern/deleteindex-4-private.html
+
+        * Modules/indexeddb/server/MemoryBackingStoreTransaction.cpp:
+        (WebCore::IDBServer::MemoryBackingStoreTransaction::indexDeleted):
+
 2016-03-17  Doug Russell  <d_russell@apple.com>
 
         AX: attributes to retrieve focusable and editable ancestors
