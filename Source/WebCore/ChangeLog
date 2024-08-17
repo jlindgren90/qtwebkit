@@ -1,3 +1,134 @@
+2016-03-23  Daniel Bates  <dabates@apple.com>
+
+        CSP: Make violation console messages concise and consistent
+        https://bugs.webkit.org/show_bug.cgi?id=155777
+        <rdar://problem/25304031>
+
+        Reviewed by Darin Adler.
+
+        As a first step towards making the log messages that are emitted by the ContentSecurityPolicy object
+        concise and consistent with the language and formatting used in other WebKit console messages, including
+        other Content Security Policy messages, make the violation error messages concise and consistent.
+        Being concise and consistent will help make it straightforward for a person to understand the reason
+        for the violation by taking advantage of their familiarity with the language and formatting seen in
+        other WebKit console messages.
+
+        * page/csp/ContentSecurityPolicyDirectiveList.cpp:
+        (WebCore::consoleMessageForViolation): Added. Builds up a console message for violation.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowJavaScriptURLs): Extract logic for logging a console message/reporting
+        a violation from ContentSecurityPolicyDirectiveList::checkInlineAndReportViolation() to here and make use of WebCore::consoleMessageForViolation()
+        to build the actual console message.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineEventHandlers): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineScript): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineStyle): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowEval): Extract logic for logging a console message/reporting
+        a violation from ContentSecurityPolicyDirectiveList::checkEvalAndReportViolation() to here and make use of WebCore::consoleMessageForViolation()
+        to build the actual console message.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowPluginType): Extract logic for logging a console message/reporting
+        a violation from ContentSecurityPolicyDirectiveList::checkMediaTypeAndReportViolation() to here and make use of WebCore::consoleMessageForViolation()
+        to build the actual console message.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowScriptFromSource): Extract logic for logging a console message/reporting
+        a violation from ContentSecurityPolicyDirectiveList::checkSourceAndReportViolation() to here and make use of WebCore::consoleMessageForViolation()
+        to build the actual console message.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowObjectFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowChildContextFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowChildFrameFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowImageFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowStyleFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFontFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowMediaFromSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowConnectToSource): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFormAction): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowBaseURI): Ditto.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFrameAncestors): Extract logic for logging a console message/reporting
+        a violation from ContentSecurityPolicyDirectiveList::checkFrameAncestorsAndReportViolation() to here and make use of WebCore::consoleMessageForViolation()
+        to build the actual console message.
+        (WebCore::ContentSecurityPolicyDirectiveList::addDirective): Add FIXME comment to log that the frame-src directive is
+        deprecated. See <https://bugs.webkit.org/show_bug.cgi?id=155773> for more details.
+        (WebCore::ContentSecurityPolicyDirectiveList::checkEvalAndReportViolation): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::checkMediaTypeAndReportViolation): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::checkInlineAndReportViolation): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::checkSourceAndReportViolation): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::checkFrameAncestorsAndReportViolation): Deleted.
+        * page/csp/ContentSecurityPolicyDirectiveList.h:
+
+2016-03-23  Brent Fulgham  <bfulgham@apple.com>
+
+        [WebGL] Non-power-of-two texture optimization
+        https://bugs.webkit.org/show_bug.cgi?id=118409
+
+        Reviewed by Dean Jackson.
+
+        Based on a patch by Przemyslaw Szymanski  <p.szymanski3@samsung.com>
+ 
+        This patch optimizes usage of handleNPOTTextures. We do not need to
+        iterate over each texture unit if no black textures were set. This
+        optimization provides a few more frames per seconds for certain
+        draw calls.
+    
+        Tested by:
+        (1) Existing tests: webgl/resources/webgl_test_files/conformance/textures/texture-npot.html
+        (2) New test case: fast/canvas/webgl/texture-alternating-npot.html
+
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::compressedTexImage2D): Use new helper method.
+        (WebCore::WebGLRenderingContextBase::validateNPOTTextureLevel): Added.
+        (WebCore::WebGLRenderingContextBase::drawArrays): Only check texture completeness
+        if a black texture was used.
+        (WebCore::WebGLRenderingContextBase::drawElements): Ditto.
+        (WebCore::WebGLRenderingContextBase::texImage2DBase): Use new helper method.
+        (WebCore::WebGLRenderingContextBase::validateTexFunc): Ditto.
+        (WebCore::WebGLRenderingContextBase::checkTextureCompleteness): Return flag to indicate
+        if a black fallbacktexture was used.
+        * html/canvas/WebGLRenderingContextBase.h:
+
+2016-03-23  Alexey Proskuryakov  <ap@apple.com>
+
+        Build fix for a new warning.
+
+        * editing/VisibleSelection.cpp: (WebCore::makeSearchRange): Don't move when returning,
+        as that prevents copy elision.
+
+2016-03-23  Antti Koivisto  <antti@apple.com>
+
+        Share style by sharing RenderStyle substructures not the object itself
+        https://bugs.webkit.org/show_bug.cgi?id=155787
+
+        Reviewed by Anreas Kling.
+
+        The current approach where we share RenderStyle objects between elements leads to lot of awkward and bug-prone code.
+        Most of the RenderStyle consists of shareable substructures. It is better to just share those.
+
+        With this patch we create shared styles with RenderStyle::clone(). Sharing is traced as state in Style::SharingResolver
+        instead of relying on RenderStyle equality to locate potential sharing cousins.
+
+        * rendering/style/StyleRareNonInheritedData.cpp:
+        (WebCore::StyleRareNonInheritedData::operator==):
+
+            m_altText was missing from operator==
+            This was exposed by TreeResolver::resolveElement change, tested by fast/css/alt-inherit-initial.html
+
+        * style/StyleSharingResolver.cpp:
+        (WebCore::Style::elementHasDirectionAuto):
+        (WebCore::Style::SharingResolver::resolve):
+
+            Save share results to a map.
+
+        (WebCore::Style::SharingResolver::findSibling):
+        (WebCore::Style::SharingResolver::locateCousinList):
+
+            Instead of traversing we can now just do a hash lookup to locate a candidate cousin list.
+            There is no need for recursion anymore, the map covers sharing beyond immediate siblings too.
+            Remove most tests here as they have been already covered when sharing occured.
+
+        (WebCore::Style::canShareStyleWithControl):
+        * style/StyleSharingResolver.h:
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::TreeResolver::styleForElement):
+        (WebCore::Style::TreeResolver::resolveElement):
+
+            No need to do forced setting anymore just to support style sharing.
+
 2016-03-23  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
 
         Reduce PassRefPtr uses in editing
