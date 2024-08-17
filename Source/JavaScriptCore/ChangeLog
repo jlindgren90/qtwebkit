@@ -1,3 +1,105 @@
+2016-03-15  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Remove hint from SlowCaseEntry
+        https://bugs.webkit.org/show_bug.cgi?id=155530
+
+        Reviewed by Alex Christensen.
+
+        * jit/JIT.h:
+        (JSC::SlowCaseEntry::SlowCaseEntry):
+
+2016-03-15  Brian Burg  <bburg@apple.com>
+
+        REGRESSION(r198077): generated Objective-C protocol object getters leak their wrappers
+        https://bugs.webkit.org/show_bug.cgi?id=155523
+        <rdar://problem/25181764>
+
+        Reviewed by Joseph Pecoraro.
+
+        Since the code may not be compiled with ARC, autorelease the returned wrapper.
+
+        * inspector/scripts/codegen/objc_generator.py:
+        (ObjCGenerator.protocol_to_objc_expression_for_member):
+        * inspector/scripts/tests/expected/type-declaration-object-type.json-result:
+        * inspector/scripts/tests/expected/type-requiring-runtime-casts.json-result:
+
+2016-03-15  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Help clang generate better code on arrayProtoFuncToString()
+        https://bugs.webkit.org/show_bug.cgi?id=155512
+
+        Reviewed by Mark Lam.
+
+        3d-raytrace hits Array.toString() hard with small arrays.
+        Half of the time is going into overhead around the StringJoiner.
+        This patch makes the function shorter and the layout better.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::arrayProtoFuncToString):
+        Add "UNLIKELY" on rare cases. Clang pushes that code to the tail.
+
+        Factor the code of jsMakeNontrivialString() so that the operation
+        is not duplicated in the function.
+
+        * runtime/JSStringBuilder.h:
+        (JSC::jsMakeNontrivialString):
+        jsNontrivialString() supports r-value reference.
+        Move the result string into jsNontrivialString(), this removes
+        the deref+destructor from the function.
+
+        * runtime/JSStringJoiner.cpp:
+        (JSC::JSStringJoiner::~JSStringJoiner):
+        The destructor is pretty large. No point in inlining it.
+
+        (JSC::joinStrings):
+        * runtime/JSStringJoiner.h:
+        (JSC::JSStringJoiner::JSStringJoiner):
+        (JSC::JSStringJoiner::append):
+        The calls were duplicated. That's unnecessary.
+
+        * runtime/NumericStrings.h:
+        (JSC::NumericStrings::add):
+        Return a reference in all cases.
+        This removes a deref+destructor.
+
+2016-03-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove stale ArrayPrototype declarations
+        https://bugs.webkit.org/show_bug.cgi?id=155520
+
+        Reviewed by Mark Lam.
+
+        * runtime/ArrayPrototype.cpp:
+        The implementations went away when the methods were moved to builtins
+        but the declarations were left behind.
+
+2016-03-15  Oliver Hunt  <oliver@apple.com>
+
+        Rename performJITMemcpy to something more inline with our normal webkit function names
+        https://bugs.webkit.org/show_bug.cgi?id=155525
+
+        Reviewed by Saam Barati.
+
+        Simple bulk search/replace with a better name.
+
+        * assembler/ARM64Assembler.h:
+        (JSC::ARM64Assembler::fillNops):
+        (JSC::ARM64Assembler::replaceWithJump):
+        (JSC::ARM64Assembler::replaceWithLoad):
+        (JSC::ARM64Assembler::replaceWithAddressComputation):
+        (JSC::ARM64Assembler::setPointer):
+        (JSC::ARM64Assembler::repatchInt32):
+        (JSC::ARM64Assembler::repatchCompact):
+        (JSC::ARM64Assembler::linkJumpOrCall):
+        (JSC::ARM64Assembler::linkCompareAndBranch):
+        (JSC::ARM64Assembler::linkConditionalBranch):
+        (JSC::ARM64Assembler::linkTestAndBranch):
+        * assembler/LinkBuffer.cpp:
+        (JSC::LinkBuffer::copyCompactAndLinkCode):
+        * jit/ExecutableAllocator.h:
+        (JSC::writeToExecutableRegion):
+        (JSC::performJITMemcpy): Deleted.
+
 2016-03-15  Oliver Hunt  <oliver@apple.com>
 
         Build fix.

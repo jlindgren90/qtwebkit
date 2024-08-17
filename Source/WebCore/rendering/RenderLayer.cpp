@@ -2352,7 +2352,7 @@ void RenderLayer::scrollTo(const ScrollPosition& position)
     LOG_WITH_STREAM(Scrolling, stream << "RenderLayer::scrollTo " << position);
 
     ScrollPosition newPosition = position;
-    if (box->style().overflowX() != OMARQUEE) {
+    if (!box->isHTMLMarquee()) {
         // Ensure that the dimensions will be computed if they need to be (for overflow:hidden blocks).
         if (m_scrollDimensionsDirty)
             computeScrollDimensions();
@@ -3500,7 +3500,7 @@ void RenderLayer::updateScrollInfoAfterLayout()
     updateSnapOffsets();
 #endif
 
-    if (box->style().overflowX() != OMARQUEE && !isRubberBandInProgress()) {
+    if (!box->isHTMLMarquee() && !isRubberBandInProgress()) {
         // Layout may cause us to be at an invalid scroll position. In this case we need
         // to pull our scroll offsets back to the max (or push them up to the min).
         ScrollOffset clampedScrollOffset = clampScrollOffset(scrollOffset());
@@ -6691,7 +6691,7 @@ void RenderLayer::styleChanged(StyleDifference diff, const RenderStyle* oldStyle
         dirtyStackingContainerZOrderLists();
     }
 
-    if (renderer().style().overflowX() == OMARQUEE && renderer().style().marqueeBehavior() != MNONE && renderer().isBox()) {
+    if (renderer().isHTMLMarquee() && renderer().style().marqueeBehavior() != MNONE && renderer().isBox()) {
         if (!m_marquee)
             m_marquee = std::make_unique<RenderMarquee>(this);
         m_marquee->updateMarqueeStyle();
