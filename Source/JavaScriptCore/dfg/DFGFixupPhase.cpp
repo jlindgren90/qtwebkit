@@ -1496,7 +1496,6 @@ private:
         case NewObject:
         case NewArrayBuffer:
         case NewRegexp:
-        case Breakpoint:
         case ProfileWillCall:
         case ProfileDidCall:
         case IsUndefined:

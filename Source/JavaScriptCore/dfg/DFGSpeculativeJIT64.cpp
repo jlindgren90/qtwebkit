@@ -4656,7 +4656,6 @@ void SpeculativeJIT::compile(Node* node)
         noResult(node);
         break;
         
-    case Breakpoint:
     case ProfileWillCall:
     case ProfileDidCall:
     case PhantomLocal:

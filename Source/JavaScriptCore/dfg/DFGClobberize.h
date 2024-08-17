@@ -348,7 +348,6 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case CheckTierUpAtReturn:
     case CheckTierUpAndOSREnter:
     case LoopHint:
-    case Breakpoint:
     case ProfileWillCall:
     case ProfileDidCall:
     case ProfileType:
