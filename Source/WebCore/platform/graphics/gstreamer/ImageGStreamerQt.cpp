@@ -64,7 +64,7 @@ ImageGStreamer::ImageGStreamer(GstSample* sample)
     // FIXME: ask about stride
     QImage image(bufferData, width, height, stride, imageFormat);
 
-    QPixmap *surface = new QPixmap(QPixmap::fromImage(qMove(image), Qt::NoFormatConversion));
+    QPixmap surface = QPixmap::fromImage(qMove(image), Qt::NoFormatConversion);
     m_image = BitmapImage::create(surface);
 
     if (GstVideoCropMeta* cropMeta = gst_buffer_get_video_crop_meta(buffer))

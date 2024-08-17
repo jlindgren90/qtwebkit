@@ -289,7 +289,7 @@ void ImageDecoderQt::clearPointers()
     m_buffer = nullptr;
 }
 
-PassNativeImagePtr ImageFrame::asNewNativeImage() const
+NativeImagePtr ImageFrame::asNewNativeImage() const
 {
     QImage::Format format;
     if (m_hasAlpha)
@@ -299,7 +299,7 @@ PassNativeImagePtr ImageFrame::asNewNativeImage() const
 
     QImage img(reinterpret_cast<uchar*>(m_bytes), m_size.width(), m_size.height(), sizeof(PixelData) * m_size.width(), format);
 
-    return new QPixmap(QPixmap::fromImage(img).copy());
+    return QPixmap::fromImage(img).copy();
 }
 
 }

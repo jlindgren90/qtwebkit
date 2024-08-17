@@ -169,12 +169,12 @@ PassRefPtr<Uint8ClampedArray> getImageData(const IntRect& unscaledRect, float sc
     return result.release();
 }
 
-PassRefPtr<Uint8ClampedArray> ImageBuffer::getUnmultipliedImageData(const IntRect& rect, CoordinateSystem coordinateSystem) const
+RefPtr<Uint8ClampedArray> ImageBuffer::getUnmultipliedImageData(const IntRect& rect, CoordinateSystem coordinateSystem) const
 {
     return getImageData<Unmultiplied>(rect, m_resolutionScale, m_data, m_size, coordinateSystem);
 }
 
-PassRefPtr<Uint8ClampedArray> ImageBuffer::getPremultipliedImageData(const IntRect& rect, CoordinateSystem coordinateSystem) const
+RefPtr<Uint8ClampedArray> ImageBuffer::getPremultipliedImageData(const IntRect& rect, CoordinateSystem coordinateSystem) const
 {
     return getImageData<Premultiplied>(rect, m_resolutionScale, m_data, m_size, coordinateSystem);
 }

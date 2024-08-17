@@ -828,7 +828,7 @@ QWebHitTestResultPrivate::QWebHitTestResultPrivate(const WebCore::HitTestResult 
     boundingRect = (innerNonSharedNode && innerNonSharedNode->renderer())? innerNonSharedNode->renderer()->absoluteBoundingBoxRect() : IntRect();
     WebCore::Image *img = hitTest.image();
     if (img) {
-        QPixmap* pix = img->nativeImageForCurrentFrame();
+        WebCore::NativeImagePtr pix = img->nativeImageForCurrentFrame();
         if (pix)
             pixmap = *pix;
     }

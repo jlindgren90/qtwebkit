@@ -68,9 +68,9 @@ FloatSize StillImage::size() const
     return FloatSize(m_pixmap->width(), m_pixmap->height());
 }
 
-PassNativeImagePtr StillImage::nativeImageForCurrentFrame()
+NativeImagePtr StillImage::nativeImageForCurrentFrame()
 {
-    return const_cast<PassNativeImagePtr>(m_pixmap);
+    return *m_pixmap;
 }
 
 void StillImage::draw(GraphicsContext& ctxt, const FloatRect& dst,

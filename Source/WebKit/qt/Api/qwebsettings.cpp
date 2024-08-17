@@ -791,7 +791,7 @@ void QWebSettings::clearIconDatabase()
 QIcon QWebSettings::iconForUrl(const QUrl& url)
 {
     WebCore::initializeWebCoreQt();
-    QPixmap* icon = WebCore::iconDatabase().synchronousNativeIconForPageURL(WebCore::URL(url).string(),
+    WebCore::NativeImagePtr icon = WebCore::iconDatabase().synchronousNativeIconForPageURL(WebCore::URL(url).string(),
                                 WebCore::IntSize(16, 16));
     if (!icon)
         return QIcon();
@@ -891,7 +891,7 @@ QPixmap QWebSettings::webGraphic(WebGraphic type)
     RefPtr<WebCore::Image> img = WebCore::Image::loadPlatformResource(resourceNameForWebGraphic(type));
     if (!img)
         return QPixmap();
-    QPixmap* pixmap = img->nativeImageForCurrentFrame();
+    WebCore::NativeImagePtr pixmap = img->nativeImageForCurrentFrame();
     if (!pixmap)
         return QPixmap();
     return *pixmap;

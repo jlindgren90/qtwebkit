@@ -133,9 +133,8 @@ bool FrameData::clear(bool clearMetadata)
     m_orientation = DefaultImageOrientation;
     m_subsamplingLevel = 0;
 
-    if (m_frame) {
-        delete m_frame;
-        m_frame = 0;
+    if (m_image) {
+        *m_image = QPixmap();
         return true;
     }
     return false;
@@ -168,7 +167,7 @@ void Image::drawPattern(GraphicsContext& ctxt, const FloatRect& tileRect, const 
         imageObserver()->didDraw(this);
 }
 
-BitmapImage::BitmapImage(QPixmap* pixmap, ImageObserver* observer)
+BitmapImage::BitmapImage(NativeImagePtr &&pixmap, ImageObserver* observer)
     : Image(observer)
     , m_minimumSubsamplingLevel(0)
     , m_currentFrame(0)
@@ -192,7 +191,7 @@ BitmapImage::BitmapImage(QPixmap* pixmap, ImageObserver* observer)
     m_size = IntSize(width, height);
 
     m_frames.grow(1);
-    m_frames[0].m_frame = pixmap;
+    m_frames[0].m_image = pixmap;
     m_frames[0].m_hasAlpha = pixmap->hasAlpha();
     m_frames[0].m_haveMetadata = true;
     checkForSolidColor();
@@ -202,7 +201,7 @@ void BitmapImage::invalidatePlatformData()
 {
 }
 
-QPixmap* prescaleImageIfRequired(QPainter* painter, QPixmap* image, QPixmap* buffer, const QRectF& destRect, QRectF* srcRect)
+QPixmap prescaleImageIfRequired(QPainter* painter, const QPixmap &image, const QRectF& destRect, QRectF* srcRect)
 {
     // The quality of down scaling at 0.5x and below in QPainter is not very good
     // due to using bilinear sampling, so for high quality scaling we need to
@@ -231,20 +230,21 @@ QPixmap* prescaleImageIfRequired(QPainter* painter, QPixmap* image, QPixmap* buf
     QSize scaledSize = transformedDst.size().toSize();
 
     QString key = QStringLiteral("qtwebkit_prescaled_")
-        % HexString<qint64>(image->cacheKey())
+        % HexString<qint64>(image.cacheKey())
         % HexString<int>(pixelSrc.x()) % HexString<int>(pixelSrc.y())
         % HexString<int>(pixelSrc.width()) % HexString<int>(pixelSrc.height())
         % HexString<int>(scaledSize.width()) % HexString<int>(scaledSize.height());
 
-    if (!QPixmapCache::find(key, buffer)) {
-        if (pixelSrc != image->rect())
-            *buffer = image->copy(pixelSrc).scaled(scaledSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    QPixmap buffer;
+    if (!QPixmapCache::find(key, &buffer)) {
+        if (pixelSrc != image.rect())
+            buffer = image.copy(pixelSrc).scaled(scaledSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
         else
-            *buffer = image->scaled(scaledSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        QPixmapCache::insert(key, *buffer);
+            buffer = image.scaled(scaledSize, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+        QPixmapCache::insert(key, buffer);
     }
 
-    *srcRect = QRectF(QPointF(), buffer->size());
+    *srcRect = QRectF(QPointF(), buffer.size());
     return buffer;
 }
 
@@ -260,7 +260,7 @@ void BitmapImage::draw(GraphicsContext& ctxt, const FloatRect& dst,
     if (normalizedSrc.isEmpty() || normalizedDst.isEmpty())
         return;
 
-    QPixmap* image = nativeImageForCurrentFrame();
+    NativeImagePtr image = nativeImageForCurrentFrame();
     if (!image)
         return;
 
@@ -273,8 +273,7 @@ void BitmapImage::draw(GraphicsContext& ctxt, const FloatRect& dst,
     normalizedSrc = adjustSourceRectForDownSampling(normalizedSrc, image->size());
 #endif
 
-    QPixmap prescaledBuffer;
-    image = prescaleImageIfRequired(ctxt.platformContext(), image, &prescaledBuffer, normalizedDst, &normalizedSrc);
+    *image = prescaleImageIfRequired(ctxt.platformContext(), *image, normalizedDst, &normalizedSrc);
 
     CompositeOperator previousOperator = ctxt.compositeOperation();
     BlendMode previousBlendMode = ctxt.blendModeOperation();
@@ -311,7 +310,7 @@ void BitmapImage::checkForSolidColor()
     if (frameCount() > 1)
         return;
 
-    QPixmap* framePixmap = frameAtIndex(0);
+    NativeImagePtr framePixmap = frameImageAtIndex(0);
     if (!framePixmap || framePixmap->width() != 1 || framePixmap->height() != 1)
         return;
 
