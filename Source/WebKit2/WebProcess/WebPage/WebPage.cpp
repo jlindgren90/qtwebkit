@@ -3189,8 +3189,6 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 
     settings.setShouldDispatchJavaScriptWindowOnErrorEvents(true);
 
-    settings.setResourceCachingDisabled(store.getBoolValueForKey(WebPreferencesKey::resourceCachingDisabledKey()));
-
 #if USE(APPLE_INTERNAL_SDK)
 #include <WebKitAdditions/WebPagePreferences.cpp>
 #endif
@@ -5419,6 +5417,11 @@ void WebPage::dispatchDidLayout(WebCore::LayoutMilestones milestones)
 void WebPage::didRestoreScrollPosition()
 {
     send(Messages::WebPageProxy::DidRestoreScrollPosition());
+}
+
+void WebPage::setResourceCachingDisabled(bool disabled)
+{
+    m_page->setResourceCachingDisabled(disabled);
 }
 
 WebURLSchemeHandlerProxy* WebPage::urlSchemeHandlerForScheme(const String& scheme)

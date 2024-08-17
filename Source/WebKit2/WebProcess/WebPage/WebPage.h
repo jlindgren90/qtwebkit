@@ -1221,6 +1221,8 @@ private:
     void didEndRequestInstallMissingMediaPlugins(uint32_t result);
 #endif
 
+    void setResourceCachingDisabled(bool);
+
     void registerURLSchemeHandler(uint64_t identifier, const String& scheme);
 
     void urlSchemeHandlerTaskDidReceiveResponse(uint64_t handlerIdentifier, uint64_t taskIdentifier, const WebCore::ResourceResponse&);

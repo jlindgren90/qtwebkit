@@ -6313,6 +6313,19 @@ void WebPageProxy::didRestoreScrollPosition()
     m_pageClient.didRestoreScrollPosition();
 }
 
+void WebPageProxy::setResourceCachingDisabled(bool disabled)
+{
+    if (m_isResourceCachingDisabled == disabled)
+        return;
+
+    m_isResourceCachingDisabled = disabled;
+
+    if (!isValid())
+        return;
+
+    m_process->send(Messages::WebPage::SetResourceCachingDisabled(disabled), m_pageID);
+}
+
 void WebPageProxy::setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&& handler, const String& scheme)
 {
     auto canonicalizedScheme = URLParser::maybeCanonicalizeScheme(scheme);

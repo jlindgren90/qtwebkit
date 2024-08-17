@@ -1127,6 +1127,9 @@ public:
 
     void setFocus(bool focused);
 
+    bool isResourceCachingDisabled() const { return m_isResourceCachingDisabled; }
+    void setResourceCachingDisabled(bool);
+
     void setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&&, const String& scheme);
     WebURLSchemeHandler* urlSchemeHandlerForScheme(const String& scheme);
 
@@ -1844,6 +1847,8 @@ private:
     Vector<uint64_t> m_nextViewStateChangeCallbacks;
 
     WebCore::MediaProducer::MediaStateFlags m_mediaState { WebCore::MediaProducer::IsNotPlaying };
+
+    bool m_isResourceCachingDisabled { false };
 
 #if ENABLE(MEDIA_SESSION)
     bool m_hasMediaSessionWithActiveMediaElements { false };

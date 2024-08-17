@@ -435,6 +435,8 @@ messages -> WebPage LegacyReceiver {
     DidEndRequestInstallMissingMediaPlugins(uint32_t result)
 #endif
 
+    SetResourceCachingDisabled(bool disabled)
+
     RegisterURLSchemeHandler(uint64_t identifier, String scheme)
 
     URLSchemeHandlerTaskDidReceiveResponse(uint64_t providerIdentifier, uint64_t taskIdentifier, WebCore::ResourceResponse response)
