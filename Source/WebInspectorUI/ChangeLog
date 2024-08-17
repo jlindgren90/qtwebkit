@@ -1,3 +1,69 @@
+2016-03-23  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Allow clicking the Timeline in Editing Mode to toggle the checkbox
+        https://bugs.webkit.org/show_bug.cgi?id=155815
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TimelineOverview.js:
+        (WebInspector.TimelineOverview.prototype._startEditingInstruments):
+        Remove unused variable.
+        
+        * UserInterface/Views/TimelineTreeElement.js:
+        (WebInspector.TimelineTreeElement.prototype.onattach):
+        (WebInspector.TimelineTreeElement.prototype._clickHandler):
+        Make clicking on the tree element toggle the checkbox.
+
+2016-03-23  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Timeline Tab sometimes restores as blank
+        https://bugs.webkit.org/show_bug.cgi?id=155811
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TimelineTabContentView.js:
+        (WebInspector.TimelineTabContentView.prototype.restoreFromCookie):
+        When early bailing in restore, if there is no content view to restore,
+        then at least fallback to showing the Overview.
+
+2016-03-23  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: REGRESSION: Timeline Reset does not clear datagrids
+        https://bugs.webkit.org/show_bug.cgi?id=155804
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/HeapAllocationsTimelineView.js:
+        (WebInspector.HeapAllocationsTimelineView.prototype.shown):
+        (WebInspector.HeapAllocationsTimelineView.prototype.hidden):
+        (WebInspector.HeapAllocationsTimelineView.prototype.closed):
+        (WebInspector.HeapAllocationsTimelineView.prototype.reset):
+        Although we don't use the popover features of TimelineDataGrid,
+        be a good citizen and call methods on the datagrid.
+
+        * UserInterface/Views/OverviewTimelineView.js:
+        (WebInspector.OverviewTimelineView.prototype.reset):
+        Clear the datagrid on reset.
+
+        * UserInterface/Views/TimelineDataGrid.js:
+        (WebInspector.TimelineDataGrid.prototype.reset):
+        Clear the datagrid on reset.
+
+2016-03-23  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Uncaught exceptions closing Timeline tab
+        https://bugs.webkit.org/show_bug.cgi?id=155805
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/ScriptClusterTimelineView.js:
+        (WebInspector.ScriptClusterTimelineView.prototype._scriptClusterViewCurrentContentViewDidChange):
+        Gracefully handle if there is no content view.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView.prototype.closed): Deleted.
+        Fix typo.
+
 2016-03-23  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: Quick Open dialog has fuzzy icons at 1x

@@ -1,3 +1,57 @@
+2016-03-23  Simon Fraser  <simon.fraser@apple.com>
+
+        Change the paint count indicator to indicate whether a layer is opaque
+        https://bugs.webkit.org/show_bug.cgi?id=155810
+
+        Reviewed by Tim Horton.
+
+        In non-opaque layers, give the paint count indicator a diagonal top left corner. Being
+        able to see layer opaqueness helps diagnose bugs.
+        
+        Also use CGContextStateSaver, and move the indicator in by a pixel to overlap less
+        with the layer border.
+
+        * platform/graphics/ca/PlatformCALayer.cpp:
+        (WebCore::PlatformCALayer::drawRepaintIndicator):
+
+2016-03-23  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: y2 >= y1 in WebCore::RenderElement::drawLineForBoxSide
+        https://bugs.webkit.org/show_bug.cgi?id=155791
+
+        Reviewed by Simon Fraser.
+
+        With certain combination of border rect and adjacent width, we could end up with an empty final rect.
+        This patch ensures that we don't try to paint this empty rect. 
+
+        Test: fast/borders/empty-outline-border-assert.html
+
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::drawLineForBoxSide):
+
+2016-03-23  Dean Jackson  <dino@apple.com>
+
+        Screen queries should query the exact screen, not a default
+        https://bugs.webkit.org/show_bug.cgi?id=155806
+        <rdar://problem/25322916>
+
+        Reviewed by Simon Fraser.
+
+        Some of our media queries were using helper functions that
+        would query the capabilities of the deepest screen, rather
+        than the currently used screen. I changed them to use
+        the existing helper function (that works with WebKit 2)
+        and comment in some other helpers why a generic check is
+        ok.
+
+        Covered by the existing tests.
+
+        * platform/mac/PlatformScreenMac.mm:
+        (WebCore::screenDepth): Use the helper function.
+        (WebCore::screenDepthPerComponent):
+        (WebCore::screenIsMonochrome): Move these and make a comment.
+        (WebCore::screenHasInvertedColors):
+
 2016-03-23  Daniel Bates  <dabates@apple.com>
 
         CSP: Make violation console messages concise and consistent
