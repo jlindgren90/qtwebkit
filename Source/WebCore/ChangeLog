@@ -1,3 +1,122 @@
+2016-03-18  Darin Adler  <darin@apple.com>
+
+        ASSERTION FAILED: m_isValid == valid() in WebCore::HTMLFormControlElement::isValidFormControlElement
+        https://bugs.webkit.org/show_bug.cgi?id=139481
+
+        Reviewed by Daniel Bates.
+
+        Test: fast/forms/validity-assertion-inserting-into-datalist.html
+
+        * html/HTMLFormControlElement.cpp:
+        (WebCore::HTMLFormControlElement::insertedInto): Set the flags that will cause
+        "will validate" to be recomputed *before* calling willValidate().
+
+2016-03-18  Chris Dumez  <cdumez@apple.com>
+
+        Speculative revalidation requests do not have their HTTP user-agent set
+        https://bugs.webkit.org/show_bug.cgi?id=155620
+        <rdar://problem/24657567>
+
+        Reviewed by Brady Eidson.
+
+        Export a couple of symbols so they can be used from WebKit2.
+
+        Test: http/tests/cache/disk-cache/speculative-validation/validation-request.html
+
+        * platform/network/ResourceRequestBase.h:
+
+2016-03-18  Zhuo Li  <zachli@apple.com>
+
+        Need to forward declare NSScrollerImpSPI::scrollerLayoutDirection.
+        https://bugs.webkit.org/show_bug.cgi?id=155662.
+
+        Reviewed by Myles C. Maxfield.
+
+        * platform/spi/mac/NSScrollerImpSPI.h:
+        Forward declare NSScrollerImpSPI::scrollerLayoutDirection.
+
+2016-03-18  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] Scrollbars are sometimes erroneously reported as overlay
+        https://bugs.webkit.org/show_bug.cgi?id=155630
+
+        Reviewed by Darin Adler.
+
+        When AppKit boots up, if the system preference is set to determine at runtime whether
+        scrollbars should be overlay or always-on, AppKit must do some processing to determine
+        this scrollbar state. We listen for the results by using NSScrollerImpPairDelegate's
+        scrollerImpPair:updateScrollerStyleForNewRecommendedScrollerStyle: method.
+
+        However, our NSScrollerImpPairDelegates are owned by the FrameView, and when loading
+        a page, there is a short amount of time when no FrameViews are alive. This means that
+        there is a point in time when we don't have any NSScrollerImpPairs alive. Unfortunately,
+        the processesing that AppKit does to determine the scrollbar state is done
+        asynchronously, and the results may be reported within this short window. In this case,
+        we don't receive the notification that the scrollbar should be non-overlay, and our
+        internal state (gUsesOverlayScrollbars in ScrollbarThemeMac) becomes stale.
+
+        The solution is to simply always check what the scrollbar state is upon creation of a
+        NSScrollerImpPair. That way, as soon as the second FrameView is created, the scrollbar
+        state will be correctly updated immediately.
+
+        An alternative, similar, approach would be for ScrollbarThemeMac to listen to the
+        NSPreferredScrollerStyleDidChangeNotification. This patch doesn't use this approach
+        in order to align with the current division of responsibilities between ScrollAnimator
+        and ScrollbarTheme.
+
+        Covered by existing (RTL Scrollbar) tests.
+
+        * platform/mac/ScrollAnimatorMac.mm:
+        (WebCore::ScrollAnimatorMac::ScrollAnimatorMac):
+
+2016-03-18  Jer Noble  <jer.noble@apple.com>
+
+        CRASH in WebCore::MediaResourceLoader::requestResource + 698
+        https://bugs.webkit.org/show_bug.cgi?id=155651
+        <rdar://problem/25130582>
+
+        Reviewed by Eric Carlson.
+
+        No new tests, fixes existing tests running under GuardMalloc.
+
+        Protect against the Document passed into MediaResourceLoader being destroyed during the MediaResourceLoader's lifetime.
+
+        * loader/MediaResourceLoader.cpp:
+        (WebCore::MediaResourceLoader::MediaResourceLoader):
+        (WebCore::MediaResourceLoader::contextDestroyed):
+        (WebCore::MediaResourceLoader::requestResource):
+        (WebCore::MediaResource::responseReceived):
+        * loader/MediaResourceLoader.h:
+
+2016-03-18  Mark Lam  <mark.lam@apple.com>
+
+        JSDOMGlobalObject.h needs to #include StructureInlines.h.
+        https://bugs.webkit.org/show_bug.cgi?id=155657
+
+        Reviewed by Filip Pizlo.
+
+        No new tests needed.  This is a build fix for the Win EWS.
+
+        * bindings/js/JSDOMGlobalObject.h:
+
+2016-03-18  Brent Fulgham  <bfulgham@apple.com>
+
+        Local file restrictions should not block sessionStorage access
+        https://bugs.webkit.org/show_bug.cgi?id=155609
+        <rdar://problem/25229461>
+
+        Reviewed by Andy Estes.
+
+        Use of 'sesssionStorage' is governed by SecurityOrigin with third party access
+        set to 'ShouldAllowFromThirdParty::AlwaysAllowFromThirdParty'. We should not
+        reject local files for this combination of arguments.
+
+        Test: storage/domstorage/sessionstorage/blocked-file-access.html
+
+        * page/SecurityOrigin.cpp:
+        (WebCore::SecurityOrigin::canAccessStorage): For the case of sessionStorage,
+        allow local file access.
+
 2016-03-18  Jer Noble  <jer.noble@apple.com>
 
         CachedResource::MediaResource types shouldn't be blocked due to mixed-content.
