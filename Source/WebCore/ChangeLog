@@ -1,3 +1,197 @@
+2016-03-24  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Add basic loading of resources
+        https://bugs.webkit.org/show_bug.cgi?id=155637
+
+        Reviewed by Darin Adler.
+
+        Adding support for basic fetch for Window (no support for Worker yet).
+        A FetchResponse object is created for every fetch task.
+        But it will only be exposed to JS at promise fulfillment time, i.e. once initial response headers are retrieved.
+
+        Updating Blob resource handle to add Content-Type and Content-Length header and notifying of error in case of erroneous HTTP method.
+
+        Fetch is limited to same origin requests currently due to some WPT tests that would timeout otherwise.
+
+        Tests: http/tests/fetch/closing-while-fetching.html
+               http/tests/fetch/get-response-body-while-loading.html
+        Also covered by rebased tests.
+
+        * Modules/fetch/DOMWindowFetch.cpp: Creating a FetchResponse to start fetching.
+        (WebCore::DOMWindowFetch::fetch):
+        * Modules/fetch/DOMWindowFetch.h:
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::consume):
+        (WebCore::FetchBody::consumeArrayBuffer): Handling of body promises in case of data stored as a buffer.
+        (WebCore::FetchBody::consumeText): Passing the promise as a reference.
+        (WebCore::blobFromArrayBuffer): Helper routine.
+        (WebCore::FetchBody::fulfillTextPromise): Helper routine.
+        (WebCore::FetchBody::loadedAsArrayBuffer): Updated to handle storing of data as a buffer.
+        (WebCore::FetchBody::loadedAsText):
+        (WebCore::FetchBody::bodyForInternalRequest): Helper routine to generate the request body data to be sent as part of the fetch request.
+        (WebCore::FetchBody::extractFromText):
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::loadingBody):
+        (WebCore::FetchBody::FetchBody):
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::loadBlob): Updated to cope with the change that FetchLoader::start does not return a boolean anymore
+        but will directly call failure callbacks.
+        (WebCore::FetchBodyOwner::loadedBlobAsText): Moving it closer to other blob loading routines.
+        (WebCore::FetchBodyOwner::finishBlobLoading):
+        * Modules/fetch/FetchBodyOwner.h:
+        (WebCore::FetchBodyOwner::body):
+        (WebCore::FetchBodyOwner::loadedBlobAsArrayBuffer):
+        * Modules/fetch/FetchHeaders.cpp:
+        (WebCore::FetchHeaders::fill):
+        (WebCore::FetchHeaders::filterAndFill): Helper routine to fill headers from a HTTPHeaderMap after being filtered.
+        * Modules/fetch/FetchHeaders.h:
+        (WebCore::FetchHeaders::internalHeaders):
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start):
+        (WebCore::FetchLoader::didFailRedirectCheck):
+        * Modules/fetch/FetchLoader.h:
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::internalRequest): Routine used to create the ResourceRequest transmitted to ThreadableLoader.
+       * Modules/fetch/FetchRequest.h:
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::fetch): Start fetching by creating a FetchLoader based on passed request.
+        (WebCore::FetchResponse::BodyLoader::didSucceed): FetchLoader callback.
+        (WebCore::FetchResponse::BodyLoader::didFail): Ditto.
+        (WebCore::FetchResponse::BodyLoader::BodyLoader): Ditto.
+        (WebCore::FetchResponse::BodyLoader::didReceiveResponse): Ditto.
+        (WebCore::FetchResponse::BodyLoader::didFinishLoadingAsArrayBuffer): Ditto.
+        (WebCore::FetchResponse::BodyLoader::start): Starting fetch loader.
+        (WebCore::FetchResponse::BodyLoader::stop): Stopping fetch loader.
+        (WebCore::FetchResponse::stop): Stop loader if any.
+        * Modules/fetch/FetchResponse.h:
+        * platform/network/BlobResourceHandle.cpp:
+        (WebCore::BlobResourceHandle::doStart: Notifying the loader with an error if verb is not GET.
+        (WebCore::BlobResourceHandle::notifyResponseOnSuccess): Adding support for Content-Type and Content-Lenth headers.
+        (WebCore::BlobResourceHandle::createAsync): Removing GET verb check.
+
+2016-03-24  Andreas Kling  <akling@apple.com>
+
+        Remove virtual inheritance from SVGTransformable.
+        <https://webkit.org/b/155837>
+
+        Reviewed by Anders Carlsson.
+
+        Nothing else inherits SVGLocatable, so make the inheritance non-virtual.
+
+        * svg/SVGTransformable.h:
+
+2016-03-24  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Remove DeferredWrapper::resolve<Vector<unsigned char>>
+        https://bugs.webkit.org/show_bug.cgi?id=154849
+
+        Reviewed by Darin Adler.
+
+        Adding fulfillPromiseWithArrayBuffer to resolve a promise with an ArrayBuffer.
+        If the ArrayBuffer is null, the promise is rejected with an OutOfMemory exception.
+
+        Not covered by tests since we would need to make tryCreate return null on failing allocation.
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::processIfEmptyOrDisturbed):
+        (WebCore::FetchBody::loadedAsArrayBuffer):
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::fulfillPromiseWithArrayBuffer):
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::DeferredWrapper::resolve<JSC::JSValue>): Deleted.
+        (WebCore::DeferredWrapper::resolve): Deleted.
+        * bindings/js/JSSubtleCryptoCustom.cpp:
+        (WebCore::JSSubtleCrypto::encrypt):
+        (WebCore::JSSubtleCrypto::decrypt):
+        (WebCore::JSSubtleCrypto::sign):
+        (WebCore::JSSubtleCrypto::digest):
+        (WebCore::JSSubtleCrypto::exportKey):
+        (WebCore::JSSubtleCrypto::wrapKey):
+
+2016-03-23  Daniel Bates  <dabates@apple.com>
+
+        CSP: Simplify logic for checking policies
+        https://bugs.webkit.org/show_bug.cgi?id=155817
+        <rdar://problem/25326546>
+
+        Reviewed by Zalan Bujtas.
+
+        Consolidate the various static template functions into a single function called ContentSecurityPolicy::allPoliciesAllow()
+        that tests whether a resource request when evaluated with respect to a directive (given as a ContentSecurityPolicyDirectiveList
+        pointer-to-member function) violates any of the CSPs that were delivered with the document.
+
+        No functionality changed. So, no new tests.
+
+        * page/csp/ContentSecurityPolicy.cpp:
+        (WebCore::ContentSecurityPolicy::allPoliciesAllowHashFromContent): Formerly name isAllowedByAllWithHash. Made it
+        a member function so that we query for the document encoding instead of taking it as an argument. Modified
+        it to take a predicate function to pass it to allPoliciesAllow().
+        (WebCore::ContentSecurityPolicy::allowJavaScriptURLs): Modified to use ContentSecurityPolicy::allPoliciesAllow().
+        (WebCore::ContentSecurityPolicy::allowInlineEventHandlers): Ditto.
+        (WebCore::ContentSecurityPolicy::allowScriptWithNonce): Ditto.
+        (WebCore::ContentSecurityPolicy::allowStyleWithNonce): Ditto.
+        (WebCore::ContentSecurityPolicy::allowInlineScript): Modified to use ContentSecurityPolicy::allPoliciesAllow() and
+        ContentSecurityPolicy::allPoliciesAllowHashFromContent().
+        (WebCore::ContentSecurityPolicy::allowInlineStyle): Ditto.
+        (WebCore::ContentSecurityPolicy::allowEval): Modified to use ContentSecurityPolicy::allPoliciesAllow().
+        (WebCore::ContentSecurityPolicy::allowFrameAncestors): Ditto.
+        (WebCore::ContentSecurityPolicy::allowPluginType): Ditto.
+        (WebCore::ContentSecurityPolicy::allowScriptFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowObjectFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowChildFrameFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowChildContextFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowImageFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowStyleFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFontFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowMediaFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowConnectToSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFormAction): Ditto.
+        (WebCore::ContentSecurityPolicy::allowBaseURI): Ditto.
+        (WebCore::isAllowedByAllWithFrame): Deleted.
+        (WebCore::isAllowedByAll): Deleted.
+        (WebCore::isAllowedByAllWithState): Deleted.
+        (WebCore::isAllowedByAllWithContext): Deleted.
+        (WebCore::isAllowedByAllWithNonce): Deleted.
+        (WebCore::isAllowedByAllWithHash): Deleted.
+        (WebCore::isAllowedByAllWithHashFromContent): Deleted.
+        (WebCore::isAllowedByAllWithURL): Deleted.
+        (WebCore::ContentSecurityPolicy::documentEncoding): Deleted. Incorporated its functionality into ContentSecurityPolicy::allPoliciesAllowHashFromContent().
+        (WebCore::ContentSecurityPolicy::isActive): Deleted. This function has been unused since the removal of the CSP script
+        interface in <http://trac.webkit.org/changeset/197142>.
+        * page/csp/ContentSecurityPolicy.h:
+        (WebCore::ContentSecurityPolicy::allPoliciesAllow): Added. Returns whether the predicate function evaluates to true
+        for all CSP policies.
+
+2016-03-23  Jer Noble  <jer.noble@apple.com>
+
+        Media elements allowed to play without a user gesture, but requiring fullscreen playback, should not be allowed to autoplay.
+        https://bugs.webkit.org/show_bug.cgi?id=155599
+
+        Reviewed by Darin Adler.
+
+        Test: media/video-autoplay-allowed-but-fullscreen-required.html
+
+        Entering fullscreen should always require a user gesture.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::playbackPermitted):
+
+2016-03-23  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198538.
+        https://bugs.webkit.org/show_bug.cgi?id=155819
+
+        Broke two API tests on iOS simulator (Requested by ap on
+        #webkit).
+
+        Reverted changeset:
+
+        "Media elements allowed to play without a user gesture, but
+        requiring fullscreen playback, should not be allowed to
+        autoplay."
+        https://bugs.webkit.org/show_bug.cgi?id=155599
+        http://trac.webkit.org/changeset/198538
+
 2016-03-23  Simon Fraser  <simon.fraser@apple.com>
 
         Change the paint count indicator to indicate whether a layer is opaque
