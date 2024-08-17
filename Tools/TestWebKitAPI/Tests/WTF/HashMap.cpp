@@ -28,8 +28,10 @@
 #include "Counters.h"
 #include "MoveOnly.h"
 #include "RefLogger.h"
+#include "Test.h"
 #include <string>
 #include <wtf/HashMap.h>
+#include <wtf/Ref.h>
 #include <wtf/text/StringHash.h>
 
 namespace TestWebKitAPI {
