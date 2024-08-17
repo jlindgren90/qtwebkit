@@ -1,3 +1,52 @@
+2016-03-21  Simon Fraser  <simon.fraser@apple.com>
+
+        Very flashy scrolling on http://quellish.tumblr.com page
+        https://bugs.webkit.org/show_bug.cgi?id=155728
+        rdar://problem/22299375
+
+        Reviewed by Zalan Bujtas.
+
+        http://quellish.tumblr.com/post/126712999812/how-on-earth-the-facebook-ios-application-is-so
+        has many elements that are nested inside elements with non-equal corner radius clipping.
+        This requires building bezier paths for the rounded-rect clip which is expensive.
+
+        For many rows of the table, we can avoid the rounded-rect clipping because the intersection
+        of the paintDirtyRect and the clip is actually rectangular.
+
+        * platform/graphics/FloatRoundedRect.cpp:
+        (WebCore::FloatRoundedRect::intersectionIsRectangular):
+        * platform/graphics/FloatRoundedRect.h:
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::clipToRect):
+
+2016-03-21  Zalan Bujtas  <zalan@apple.com>
+
+        Web Inspector search icon does not fit when zoomed in.
+        https://bugs.webkit.org/show_bug.cgi?id=155708
+
+        Reviewed by Simon Fraser.
+
+        Adjusts the paint rect for the magnifier icon so that it fits even when zoomed in.
+
+        Covered by existing tests.
+
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::resultsButtonSizes):
+        (WebCore::RenderThemeMac::paintSearchFieldResultsButton):
+
+2016-03-21  Per Arne Vollan  <peavo@outlook.com>
+
+        [WinCairo][MediaFoundation] Crash when media player is destroyed.
+        https://bugs.webkit.org/show_bug.cgi?id=155716
+
+        Reviewed by Alex Christensen.
+
+        Increase the reference count on the video presenter object in the ActivateObject method
+        to avoid referencing a deleted object when the media player is destroyed.
+
+        * platform/graphics/win/MediaPlayerPrivateMediaFoundation.cpp:
+        (WebCore::MediaPlayerPrivateMediaFoundation::CustomVideoPresenter::ActivateObject):
+
 2016-03-21  Eric Carlson  <eric.carlson@apple.com>
 
         Add a WebRTC specific compile flag
