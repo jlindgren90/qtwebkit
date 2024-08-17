@@ -76,12 +76,13 @@ enum JSType : uint8_t {
     DataViewType,
 
     GlobalObjectType,
-    ClosureObjectType,
-
-    ProxyObjectType,
+    LexicalEnvironmentType,
+    GlobalLexicalEnvironmentType,
+    ModuleEnvironmentType,
     RegExpObjectType,
+    ProxyObjectType,
 
-    LastJSCObjectType = RegExpObjectType,
+    LastJSCObjectType = ProxyObjectType,
 };
 
 COMPILE_ASSERT(sizeof(JSType) == sizeof(uint8_t), sizeof_jstype_is_one_byte);

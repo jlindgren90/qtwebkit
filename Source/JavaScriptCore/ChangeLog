@@ -1,3 +1,393 @@
+2016-03-15  Oliver Hunt  <oliver@apple.com>
+
+        Remove compile time define for SEPARATED_HEAP
+        https://bugs.webkit.org/show_bug.cgi?id=155508
+
+        Reviewed by Mark Lam.
+
+        This removes the compile time define for the SEPARATED_HEAP
+        feature, and moves to a default-off runtime preference.
+
+        This happily also removes the need for world rebuilds while
+        bringing it up on different platforms.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * assembler/LinkBuffer.cpp:
+        (JSC::LinkBuffer::copyCompactAndLinkCode):
+        * jit/ExecutableAllocator.h:
+        (JSC::performJITMemcpy):
+        * jit/ExecutableAllocatorFixedVMPool.cpp:
+        (JSC::FixedVMPoolExecutableAllocator::initializeSeparatedWXHeaps):
+        (JSC::FixedVMPoolExecutableAllocator::jitWriteThunkGenerator):
+        (JSC::FixedVMPoolExecutableAllocator::genericWriteToJITRegion):
+        (JSC::FixedVMPoolExecutableAllocator::FixedVMPoolExecutableAllocator): Deleted.
+        * runtime/Options.cpp:
+        (JSC::recomputeDependentOptions):
+        * runtime/Options.h:
+
+2016-03-15  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198148.
+        https://bugs.webkit.org/show_bug.cgi?id=155518
+
+        "Lets do this patch at a later time" (Requested by saamyjoon
+        on #webkit).
+
+        Reverted changeset:
+
+        "[ES6] Disallow var assignments in for-in loops"
+        https://bugs.webkit.org/show_bug.cgi?id=155451
+        http://trac.webkit.org/changeset/198148
+
+2016-03-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION: ASSERTION FAILED: !m_lastActiveBlock on js/function-apply.html
+        https://bugs.webkit.org/show_bug.cgi?id=155411
+        <rdar://problem/25134537>
+
+        Reviewed by Mark Lam.
+
+        * heap/Heap.cpp:
+        (JSC::Heap::collectImpl):
+        (JSC::Heap::didFinishCollection):
+        During collection allocators are stop/reset. The HeapProfiler tasks
+        were using HeapIterationScope (to satisfy MarkedSpace forEachCell API
+        contracts) which was doing its own stop/resume of allocators. Doing a
+        stop/resume in between the normal stop/reset of collection is unexpected.
+
+        Move this to didFinishCollection, alongside other heap iterations
+        like zombies and immortal objects. Putting this after those tasks
+        also means the heap snapshots will respect the zombies/immortal options
+        when deciding if the cell is alive or not.
+
+2016-03-15  Saam Barati  <sbarati@apple.com>
+
+        We should have different JSTypes for JSGlobalLexicalEnvironment and JSLexicalEnvironment and JSModuleEnvironment
+        https://bugs.webkit.org/show_bug.cgi?id=152406
+
+        Reviewed by Mark Lam.
+
+        This makes testing for a JSGlobalLexicalEnvironment faster
+        because we can just check the Cell's type instead of using
+        jsDynamicCast. I also changed code that does jsDynamicCast<JSGlobalObject*>
+        instead of isGlobalObject().
+
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::execute):
+        * jit/JITOperations.cpp:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::SLOW_PATH_DECL):
+        * runtime/CommonSlowPaths.h:
+        (JSC::CommonSlowPaths::tryCachePutToScopeGlobal):
+        (JSC::CommonSlowPaths::tryCacheGetFromScopeGlobal):
+        * runtime/JSGlobalLexicalEnvironment.h:
+        (JSC::JSGlobalLexicalEnvironment::createStructure):
+        * runtime/JSLexicalEnvironment.h:
+        (JSC::JSLexicalEnvironment::createStructure):
+        (JSC::JSLexicalEnvironment::JSLexicalEnvironment):
+        * runtime/JSModuleEnvironment.h:
+        (JSC::JSModuleEnvironment::createStructure):
+        (JSC::JSModuleEnvironment::offsetOfModuleRecord):
+        * runtime/JSObject.h:
+        (JSC::JSObject::isGlobalObject):
+        (JSC::JSObject::isJSLexicalEnvironment):
+        (JSC::JSObject::isGlobalLexicalEnvironment):
+        (JSC::JSObject::isErrorInstance):
+        * runtime/JSScope.cpp:
+        (JSC::abstractAccess):
+        (JSC::isUnscopable):
+        (JSC::JSScope::resolve):
+        (JSC::JSScope::collectVariablesUnderTDZ):
+        (JSC::JSScope::isVarScope):
+        (JSC::JSScope::isLexicalScope):
+        (JSC::JSScope::isModuleScope):
+        (JSC::JSScope::isCatchScope):
+        (JSC::JSScope::isFunctionNameScopeObject):
+        (JSC::JSScope::isNestedLexicalScope):
+        (JSC::JSScope::constantScopeForCodeBlock):
+        (JSC::isScopeType): Deleted.
+        (JSC::JSScope::isGlobalLexicalEnvironment): Deleted.
+        * runtime/JSScope.h:
+        * runtime/JSType.h:
+
+2016-03-15  Filip Pizlo  <fpizlo@apple.com>
+
+        Remove the Baker barrier from JSC
+        https://bugs.webkit.org/show_bug.cgi?id=155479
+
+        Reviewed by Saam Barati.
+
+        It's been a while since I added a Baker barrier, but I never followed it up with an actual
+        concurrent GC. While thinking about the GC, I became convinced that the right path forward
+        is to do a non-copying concurrent GC. That is, remove the copied space and just use the
+        marked space. The downside of using marked space cannot be more than the overhead of the
+        Baker barrier, so concurrent non-copying GC is definitely better than copying
+        non-concurrent GC. I also suspect that just plain non-copying non-concurrent GC is going to
+        be fine also, so the path forward will probably be to first just remove CopiedSpace.
+
+        Anyway, for now this patch just removes the Baker barrier. It was a cute implementation but
+        it just cost performance and I don't think we'll ever use it.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::generate):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGArgumentsEliminationPhase.cpp:
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGCopyBarrierOptimizationPhase.cpp: Removed.
+        * dfg/DFGCopyBarrierOptimizationPhase.h: Removed.
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGHeapLocation.cpp:
+        (WTF::printInternal):
+        * dfg/DFGHeapLocation.h:
+        * dfg/DFGNodeType.h:
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGPlan.cpp:
+        (JSC::DFG::Plan::compileInThreadImpl):
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        (JSC::DFG::PredictionPropagationPhase::propagate):
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileGetIndexedPropertyStorage):
+        (JSC::DFG::SpeculativeJIT::compileGetTypedArrayByteOffset):
+        (JSC::DFG::SpeculativeJIT::compileGetButterfly):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGTypeCheckHoistingPhase.cpp:
+        (JSC::DFG::TypeCheckHoistingPhase::identifyRedundantStructureChecks):
+        (JSC::DFG::TypeCheckHoistingPhase::identifyRedundantArrayChecks):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileGetButterfly):
+        (JSC::FTL::DFG::LowerDFGToB3::compileConstantStoragePointer):
+        (JSC::FTL::DFG::LowerDFGToB3::compileGetIndexedPropertyStorage):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCheckArray):
+        (JSC::FTL::DFG::LowerDFGToB3::compileGetTypedArrayByteOffset):
+        (JSC::FTL::DFG::LowerDFGToB3::compileMultiGetByOffset):
+        (JSC::FTL::DFG::LowerDFGToB3::compileMultiPutByOffset):
+        (JSC::FTL::DFG::LowerDFGToB3::compileGetDirectPname):
+        (JSC::FTL::DFG::LowerDFGToB3::storageForTransition):
+        (JSC::FTL::DFG::LowerDFGToB3::getById):
+        (JSC::FTL::DFG::LowerDFGToB3::isFastTypedArray):
+        (JSC::FTL::DFG::LowerDFGToB3::compileGetButterflyReadOnly): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::loadButterflyWithBarrier): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::loadVectorWithBarrier): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::copyBarrier): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::isInToSpace): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::loadButterflyReadOnly): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::loadVectorReadOnly): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::removeSpaceBits): Deleted.
+        * heap/CopyBarrier.h:
+        (JSC::CopyBarrierBase::CopyBarrierBase):
+        (JSC::CopyBarrierBase::operator bool):
+        (JSC::CopyBarrierBase::get):
+        (JSC::CopyBarrierBase::clear):
+        (JSC::CopyBarrierBase::setWithoutBarrier):
+        (JSC::CopyBarrier::CopyBarrier):
+        (JSC::CopyBarrier::get):
+        (JSC::CopyBarrier::set):
+        (JSC::CopyBarrier::setWithoutBarrier):
+        (JSC::CopyBarrierBase::operator!): Deleted.
+        (JSC::CopyBarrierBase::getWithoutBarrier): Deleted.
+        (JSC::CopyBarrierBase::getPredicated): Deleted.
+        (JSC::CopyBarrierBase::copyState): Deleted.
+        (JSC::CopyBarrierBase::setCopyState): Deleted.
+        (JSC::CopyBarrierBase::weakCASWithoutBarrier): Deleted.
+        (JSC::CopyBarrier::getWithoutBarrier): Deleted.
+        (JSC::CopyBarrier::getPredicated): Deleted.
+        (JSC::CopyBarrier::weakCASWithoutBarrier): Deleted.
+        * heap/Heap.cpp:
+        (JSC::Heap::addToRememberedSet):
+        (JSC::Heap::collectAndSweep):
+        (JSC::Heap::copyBarrier): Deleted.
+        * heap/Heap.h:
+        (JSC::Heap::writeBarrierBuffer):
+        * jit/AssemblyHelpers.cpp:
+        (JSC::AssemblyHelpers::branchIfNotFastTypedArray):
+        (JSC::AssemblyHelpers::purifyNaN):
+        (JSC::AssemblyHelpers::loadTypedArrayVector): Deleted.
+        * jit/AssemblyHelpers.h:
+        (JSC::AssemblyHelpers::branchStructure):
+        (JSC::AssemblyHelpers::addressForByteOffset):
+        (JSC::AssemblyHelpers::branchIfToSpace): Deleted.
+        (JSC::AssemblyHelpers::branchIfNotToSpace): Deleted.
+        (JSC::AssemblyHelpers::removeSpaceBits): Deleted.
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        (JSC::JIT::privateCompile):
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emitSlow_op_has_indexed_property):
+        (JSC::JIT::emit_op_get_direct_pname):
+        (JSC::JIT::emitSlow_op_get_direct_pname):
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_get_direct_pname):
+        (JSC::JIT::emitSlow_op_get_direct_pname):
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::emitDoubleLoad):
+        (JSC::JIT::emitContiguousLoad):
+        (JSC::JIT::emitArrayStorageLoad):
+        (JSC::JIT::emitSlow_op_get_by_val):
+        (JSC::JIT::emitGenericContiguousPutByVal):
+        (JSC::JIT::emitArrayStoragePutByVal):
+        (JSC::JIT::emitSlow_op_put_by_val):
+        (JSC::JIT::emit_op_get_from_scope):
+        (JSC::JIT::emitSlow_op_get_from_scope):
+        (JSC::JIT::emit_op_put_to_scope):
+        (JSC::JIT::emitSlow_op_put_to_scope):
+        (JSC::JIT::emitIntTypedArrayGetByVal):
+        (JSC::JIT::emitFloatTypedArrayGetByVal):
+        (JSC::JIT::emitIntTypedArrayPutByVal):
+        (JSC::JIT::emitFloatTypedArrayPutByVal):
+        * llint/LowLevelInterpreter.asm:
+        * llint/LowLevelInterpreter64.asm:
+        * runtime/DirectArguments.cpp:
+        (JSC::DirectArguments::visitChildren):
+        (JSC::DirectArguments::copyBackingStore):
+        (JSC::DirectArguments::overrideArgument):
+        (JSC::DirectArguments::copyToArguments):
+        * runtime/DirectArguments.h:
+        (JSC::DirectArguments::canAccessIndexQuickly):
+        (JSC::DirectArguments::canAccessArgumentIndexQuicklyInDFG):
+        * runtime/JSArray.cpp:
+        (JSC::JSArray::setLength):
+        (JSC::JSArray::pop):
+        (JSC::JSArray::push):
+        (JSC::JSArray::fastSlice):
+        (JSC::JSArray::fastConcatWith):
+        (JSC::JSArray::shiftCountWithArrayStorage):
+        (JSC::JSArray::shiftCountWithAnyIndexingType):
+        (JSC::JSArray::unshiftCountWithAnyIndexingType):
+        (JSC::JSArray::fillArgList):
+        (JSC::JSArray::copyToArguments):
+        * runtime/JSArrayBufferView.cpp:
+        (JSC::JSArrayBufferView::finalize):
+        * runtime/JSArrayBufferView.h:
+        (JSC::JSArrayBufferView::isNeutered):
+        (JSC::JSArrayBufferView::vector):
+        (JSC::JSArrayBufferView::length):
+        * runtime/JSGenericTypedArrayViewInlines.h:
+        (JSC::JSGenericTypedArrayView<Adaptor>::visitChildren):
+        (JSC::JSGenericTypedArrayView<Adaptor>::copyBackingStore):
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::visitChildren):
+        (JSC::JSObject::copyBackingStore):
+        (JSC::JSObject::heapSnapshot):
+        (JSC::JSObject::getOwnPropertySlotByIndex):
+        (JSC::JSObject::putByIndex):
+        (JSC::JSObject::enterDictionaryIndexingMode):
+        (JSC::JSObject::createInitialIndexedStorage):
+        (JSC::JSObject::createArrayStorage):
+        (JSC::JSObject::convertUndecidedToInt32):
+        (JSC::JSObject::convertUndecidedToDouble):
+        (JSC::JSObject::convertUndecidedToContiguous):
+        (JSC::JSObject::constructConvertedArrayStorageWithoutCopyingElements):
+        (JSC::JSObject::convertUndecidedToArrayStorage):
+        (JSC::JSObject::convertInt32ToDouble):
+        (JSC::JSObject::convertInt32ToContiguous):
+        (JSC::JSObject::convertInt32ToArrayStorage):
+        (JSC::JSObject::convertDoubleToContiguous):
+        (JSC::JSObject::convertDoubleToArrayStorage):
+        (JSC::JSObject::convertContiguousToArrayStorage):
+        (JSC::JSObject::setIndexQuicklyToUndecided):
+        (JSC::JSObject::ensureArrayStorageExistsAndEnterDictionaryIndexingMode):
+        (JSC::JSObject::deletePropertyByIndex):
+        (JSC::JSObject::getOwnPropertyNames):
+        (JSC::JSObject::putIndexedDescriptor):
+        (JSC::JSObject::defineOwnIndexedProperty):
+        (JSC::JSObject::putByIndexBeyondVectorLengthWithoutAttributes):
+        (JSC::JSObject::putDirectIndexBeyondVectorLength):
+        (JSC::JSObject::getNewVectorLength):
+        (JSC::JSObject::ensureLengthSlow):
+        (JSC::JSObject::reallocateAndShrinkButterfly):
+        (JSC::JSObject::growOutOfLineStorage):
+        (JSC::getBoundSlotBaseFunctionForGetterSetter):
+        (JSC::JSObject::getEnumerableLength):
+        * runtime/JSObject.h:
+        (JSC::JSObject::getArrayLength):
+        (JSC::JSObject::getVectorLength):
+        (JSC::JSObject::canGetIndexQuickly):
+        (JSC::JSObject::getIndexQuickly):
+        (JSC::JSObject::tryGetIndexQuickly):
+        (JSC::JSObject::canSetIndexQuickly):
+        (JSC::JSObject::canSetIndexQuicklyForPutDirect):
+        (JSC::JSObject::setIndexQuickly):
+        (JSC::JSObject::initializeIndex):
+        (JSC::JSObject::hasSparseMap):
+        (JSC::JSObject::inSparseIndexingMode):
+        (JSC::JSObject::inlineStorage):
+        (JSC::JSObject::butterfly):
+        (JSC::JSObject::outOfLineStorage):
+        (JSC::JSObject::locationForOffset):
+        (JSC::JSObject::ensureInt32):
+        (JSC::JSObject::ensureDouble):
+        (JSC::JSObject::ensureContiguous):
+        (JSC::JSObject::ensureArrayStorage):
+        (JSC::JSObject::arrayStorage):
+        (JSC::JSObject::arrayStorageOrNull):
+        (JSC::JSObject::ensureLength):
+        (JSC::JSObject::putDirectWithoutTransition):
+        * runtime/MapData.h:
+        (JSC::JSIterator>::IteratorData::next):
+        (JSC::JSIterator>::IteratorData::refreshCursor):
+        * runtime/MapDataInlines.h:
+        (JSC::JSIterator>::find):
+        (JSC::JSIterator>::add):
+        (JSC::JSIterator>::remove):
+        (JSC::JSIterator>::replaceAndPackBackingStore):
+        (JSC::JSIterator>::replaceBackingStore):
+        (JSC::JSIterator>::ensureSpaceForAppend):
+        (JSC::JSIterator>::visitChildren):
+        (JSC::JSIterator>::copyBackingStore):
+        * runtime/Options.h:
+
+2016-03-15  Saam barati  <sbarati@apple.com>
+
+        Destructuring parameters are evaluated in the wrong scope
+        https://bugs.webkit.org/show_bug.cgi?id=155454
+
+        Reviewed by Geoffrey Garen.
+
+        This patch makes our engine compatible with how parameter
+        lists are evaluated in ES6. A parameter list that contains
+        a rest parameter, any destructuring patterns, or default parameter values, 
+        is classified as being non-simple. Non-simple parameter lists
+        must get their own scope to live in, and the variables in the
+        scope are under TDZ. This means that functions evaluated in the
+        parameter list don't have access to variables inside the function
+        body. Also, non-simple parameter lists get the strict-mode arguments object.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::~BytecodeGenerator):
+        (JSC::BytecodeGenerator::initializeDefaultParameterValuesAndSetupFunctionScopeStack):
+        (JSC::BytecodeGenerator::initializeArrowFunctionContextScopeIfNeeded):
+        * bytecompiler/BytecodeGenerator.h:
+        * parser/Nodes.h:
+        (JSC::FunctionParameters::size):
+        (JSC::FunctionParameters::at):
+        (JSC::FunctionParameters::append):
+        (JSC::FunctionParameters::hasDefaultParameterValues): Deleted.
+        * tests/es6.yaml:
+        * tests/stress/parameter-scoping.js: Added.
+        (assert):
+        (test):
+        (test.foo):
+        (test.):
+
 2016-03-14  Yusuke Suzuki  <utatane.tea@gmail.com>
 
         [JSC] Don't reference the properties of @Reflect directly

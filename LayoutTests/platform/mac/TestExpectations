@@ -751,8 +751,6 @@ webkit.org/b/123029 [ Debug ] editing/mac/attributed-string [ Pass Crash ]
 
 webkit.org/b/124933 svg/animations/getCurrentTime-pause-unpause.html [ Pass Failure ]
 
-webkit.org/b/126586 webgl/1.0.2/conformance/rendering/gl-scissor-test.html [ Pass Failure ]
-
 webkit.org/b/52016 http/tests/xmlhttprequest/xmlhttprequest-50ms-download-dispatch.html [ Pass Failure Timeout ]
 
 # Subpixel failures START
@@ -1344,5 +1342,3 @@ webkit.org/b/155140 js/promises-tests/promises-tests-2-3-3.html [ Pass Failure ]
 [ Yosemite ElCapitan ] fast/scrolling/rtl-scrollbars-overflow-padding.html [ ImageOnlyFailure ]
 [ Yosemite ElCapitan ] fast/scrolling/rtl-scrollbars-overflow-simple.html [ ImageOnlyFailure ]
 [ Yosemite ElCapitan ] fast/scrolling/rtl-scrollbars-overflow.html [ ImageOnlyFailure ]
-
-webkit.org/b/155411 [ Debug ] js/function-apply.html [ Pass Crash ]

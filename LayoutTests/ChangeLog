@@ -1,3 +1,141 @@
+2016-03-15  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198148.
+        https://bugs.webkit.org/show_bug.cgi?id=155518
+
+        "Lets do this patch at a later time" (Requested by saamyjoon
+        on #webkit).
+
+        Reverted changeset:
+
+        "[ES6] Disallow var assignments in for-in loops"
+        https://bugs.webkit.org/show_bug.cgi?id=155451
+        http://trac.webkit.org/changeset/198148
+
+2016-03-15  Alexey Proskuryakov  <ap@apple.com>
+
+        Test result gardening for
+        ASSERT_NOT_REACHED on imported/w3c/web-platform-tests/html/semantics/embedded-content/the-area-element/area-coords.html
+        https://bugs.webkit.org/show_bug.cgi?id=155516
+
+        * TestExpectations: Skip the test in debug, as it's not useful to crash every time.
+
+2016-03-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION: ASSERTION FAILED: !m_lastActiveBlock on js/function-apply.html
+        https://bugs.webkit.org/show_bug.cgi?id=155411
+        <rdar://problem/25134537>
+
+        Reviewed by Mark Lam.
+
+        * platform/mac/TestExpectations:
+        Unmark test as flakey.
+
+2016-03-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Fixing expectation for css3/masking/mask-svg-script-none-to-png.html on ios-simulator
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-15  Tim Horton  <timothy_horton@apple.com>
+
+        Unskip and rebaseline <attachment> tests on iOS
+        <rdar://problem/24805991>
+
+        * fast/attachment/attachment-default-icon.html:
+        * fast/attachment/attachment-folder-icon.html:
+        * fast/attachment/attachment-type-attribute.html:
+        Make these tests have identical titles between ref and actual, because
+        on iOS the layout differs if you have a title or not (unlike on Mac).
+
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/fast/attachment/attachment-label-highlight-expected.txt:
+        * platform/ios-simulator/fast/attachment/attachment-progress-expected.txt:
+        * platform/ios-simulator/fast/attachment/attachment-rendering-expected.txt:
+        * platform/ios-simulator/fast/attachment/attachment-select-on-click-expected.txt:
+        * platform/ios-simulator/fast/attachment/attachment-select-on-click-inside-user-select-all-expected.txt:
+        * platform/ios-simulator/fast/attachment/attachment-subtitle-expected.txt:
+        * platform/ios-simulator/fast/attachment/attachment-title-expected.txt:
+        Unskip and rebaseline all but one of the attachment tests on iOS.
+
+2016-03-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Remove flaky expectation for webgl/1.0.2/conformance/rendering/gl-scissor-test.html for mac
+        https://bugs.webkit.org/show_bug.cgi?id=126586
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-03-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Fixing a typo in the ios-simulator TestExpectations file
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking animations/3d/transform-origin-vs-functions.html as flaky on ios-simulator-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=155501
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-03-15  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: certain elements not included in accessibility tree
+        https://bugs.webkit.org/show_bug.cgi?id=155480
+
+        Reviewed by Beth Dakin.
+
+        * accessibility/double-nested-inline-element-missing-from-tree-expected.txt: Added.
+        * accessibility/double-nested-inline-element-missing-from-tree.html: Added.
+
+2016-03-15  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r198203.
+
+        Favorites view is no longer loading on iOS
+
+        Reverted changeset:
+
+        "URL Parsing should signal failure for illegal IDN"
+        https://bugs.webkit.org/show_bug.cgi?id=154945
+        http://trac.webkit.org/changeset/198203
+
+2016-03-15  Antti Koivisto  <antti@apple.com>
+
+        Class change invalidation does not handle :not correctly
+        https://bugs.webkit.org/show_bug.cgi?id=155493
+        <rdar://problem/24846762>
+
+        Reviewed by Andreas Kling.
+
+        * fast/css/style-invalidation-attribute-change-descendants-expected.txt:
+        * fast/css/style-invalidation-attribute-change-descendants.html:
+
+            Also add :not case for attribute changes (which handles this correctly already).
+
+        * fast/css/style-invalidation-class-change-descendants-expected.txt:
+        * fast/css/style-invalidation-class-change-descendants.html:
+
+            Add :not case.
+
+2016-03-14  Jer Noble  <jer.noble@apple.com>
+
+        Video elements with autoplay do not begin playing when scrolling into view if InvisibleAutoplayNotPermitted is set.
+        https://bugs.webkit.org/show_bug.cgi?id=155468
+
+        Reviewed by Eric Carlson.
+
+        * media/video-restricted-invisible-autoplay-allowed-when-visible-expected.txt: Added.
+        * media/video-restricted-invisible-autoplay-allowed-when-visible.html: Added.
+
 2016-03-15  Jiewen Tan  <jiewen_tan@apple.com>
 
         URL Parsing should signal failure for illegal IDN

@@ -692,6 +692,7 @@ private:
     bool stoppedDueToErrors() const;
     bool pausedForUserInteraction() const;
     bool couldPlayIfEnoughData() const;
+    bool canTransitionFromAutoplayToPlay() const;
 
     MediaTime minTimeSeekable() const;
     MediaTime maxTimeSeekable() const;
