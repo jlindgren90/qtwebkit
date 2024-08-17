@@ -245,10 +245,10 @@ Vector<uint8_t> FetchBody::extractFromText() const
 static inline RefPtr<Blob> blobFromArrayBuffer(ArrayBuffer* buffer, const String& contentType)
 {
     if (!buffer)
-        return Blob::create(Vector<char>(), contentType);
+        return Blob::create(Vector<uint8_t>(), contentType);
 
     // FIXME: We should try to move buffer to Blob without doing this copy.
-    Vector<char> value(buffer->byteLength());
+    Vector<uint8_t> value(buffer->byteLength());
     memcpy(value.data(), buffer->data(), buffer->byteLength());
     return Blob::create(WTFMove(value), contentType);
 }
