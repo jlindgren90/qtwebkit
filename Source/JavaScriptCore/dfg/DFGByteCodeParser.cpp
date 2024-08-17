@@ -150,7 +150,6 @@ public:
         , m_numPassedVarArgs(0)
         , m_inlineStackTop(0)
         , m_currentInstruction(0)
-        , m_hasDebuggerEnabled(graph.hasDebuggerEnabled())
     {
         ASSERT(m_profiledBlock);
     }
@@ -447,8 +446,6 @@ private:
             ArgumentPosition* argumentPosition = findArgumentPositionForLocal(operand);
             if (argumentPosition)
                 flushDirect(operand, argumentPosition);
-            else if (m_hasDebuggerEnabled && operand == m_codeBlock->scopeRegister())
-                flush(operand);
         }
 
         VariableAccessData* variableAccessData = newVariableAccessData(operand);
@@ -597,7 +594,6 @@ private:
     {
         int numArguments;
         if (InlineCallFrame* inlineCallFrame = inlineStackEntry->m_inlineCallFrame) {
-            ASSERT(!m_hasDebuggerEnabled);
             numArguments = inlineCallFrame->arguments.size();
             if (inlineCallFrame->isClosureCall)
                 flushDirect(inlineStackEntry->remapOperand(VirtualRegister(JSStack::Callee)));
@@ -607,8 +603,6 @@ private:
             numArguments = inlineStackEntry->m_codeBlock->numParameters();
         for (unsigned argument = numArguments; argument-- > 1;)
             flushDirect(inlineStackEntry->remapOperand(virtualRegisterForArgument(argument)));
-        if (m_hasDebuggerEnabled)
-            flush(m_codeBlock->scopeRegister());
     }
 
     void flushForTerminal()
@@ -1156,7 +1150,6 @@ private:
     StubInfoMap m_dfgStubInfos;
     
     Instruction* m_currentInstruction;
-    bool m_hasDebuggerEnabled;
 };
 
 #define NEXT_OPCODE(name) \
@@ -1329,12 +1322,6 @@ unsigned ByteCodeParser::inliningCost(CallVariant callee, int argumentCountInclu
     if (verbose)
         dataLog("Considering inlining ", callee, " into ", currentCodeOrigin(), "\n");
     
-    if (m_hasDebuggerEnabled) {
-        if (verbose)
-            dataLog("    Failing because the debugger is in use.\n");
-        return UINT_MAX;
-    }
-
     FunctionExecutable* executable = callee.functionExecutable();
     if (!executable) {
         if (verbose)
