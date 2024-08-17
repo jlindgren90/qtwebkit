@@ -1,3 +1,56 @@
+2016-03-19  Mark Lam  <mark.lam@apple.com>
+
+        ES6 spec requires that ErrorPrototype not be an Error object.
+        https://bugs.webkit.org/show_bug.cgi?id=155680
+
+        Reviewed by Michael Saboff.
+
+        Updated the appropriate tests to expect the toString() value of Error.prototype
+        to now be "[object Object]" instead of "[object Error]".  Also rebased the test
+        results accordingly.
+
+        * fast/dom/DOMException/prototype-object-expected.txt:
+        * fast/dom/DOMException/prototype-object.html:
+        * js/dom/native-error-prototype-expected.txt:
+        * js/dom/script-tests/native-error-prototype.js:
+        * sputnik/Conformance/15_Native_Objects/15.11_Error/15.11.4/S15.11.4_A2.html:
+
+2016-03-18  Daniel Bates  <dabates@apple.com>
+
+        Update AutoFill button in input fields
+        https://bugs.webkit.org/show_bug.cgi?id=155619
+
+        Update expected results for Windows and GTK ports. Add expected result for the EFL port.
+
+        * platform/efl/fast/forms/auto-fill-button/input-contacts-auto-fill-button-expected.txt: Added.
+        * platform/gtk/fast/forms/auto-fill-button/input-contacts-auto-fill-button-expected.txt:
+        * platform/win/fast/forms/auto-fill-button/input-contacts-auto-fill-button-expected.txt:
+
+2016-03-18  Zhuo Li  <zachli@apple.com>
+
+        Update AutoFill button in input fields.
+        https://bugs.webkit.org/show_bug.cgi?id=155619.
+        rdar://problem/24486939.
+
+        Reviewed by Daniel Bates.
+
+        * fast/forms/auto-fill-button/input-contacts-auto-fill-button-expected.txt:
+        Update the test results.
+        * platform/ios-simulator/fast/forms/auto-fill-button/input-contacts-auto-fill-button-expected.txt:
+        Ditto.
+
+2016-03-18  Simon Fraser  <simon.fraser@apple.com>
+
+        Sideways-scrollable RTL document has wrong initial and reload offset in WKWebView
+        https://bugs.webkit.org/show_bug.cgi?id=155660
+
+        Reviewed by Tim Horton.
+        
+        Test for initial scroll position in an RTL page.
+
+        * fast/scrolling/rtl-initial-scroll-position-expected.html: Added.
+        * fast/scrolling/rtl-initial-scroll-position.html: Added.
+
 2016-03-18  Darin Adler  <darin@apple.com>
 
         ASSERTION FAILED: m_isValid == valid() in WebCore::HTMLFormControlElement::isValidFormControlElement

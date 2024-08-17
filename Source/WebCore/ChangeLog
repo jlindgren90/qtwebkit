@@ -1,3 +1,58 @@
+2016-03-18  Zhuo Li  <zachli@apple.com>
+
+        Update AutoFill button in input fields.
+        https://bugs.webkit.org/show_bug.cgi?id=155619.
+        rdar://problem/24486939.
+
+        Reviewed by Daniel Bates.
+
+        * css/html.css:
+        (input::-webkit-contacts-auto-fill-button):
+        Use the new AutoFill button.
+
+2016-03-18  Alex Christensen  <achristensen@webkit.org>
+
+        Give NSURLSessionConfiguration information about parent process
+        https://bugs.webkit.org/show_bug.cgi?id=155661
+
+        Reviewed by Anders Carlsson.
+
+        * platform/spi/cf/CFNetworkSPI.h:
+        Add newly-used SPI declarations.
+
+2016-03-18  Simon Fraser  <simon.fraser@apple.com>
+
+        Sideways-scrollable RTL document has wrong initial and reload offset in WKWebView
+        https://bugs.webkit.org/show_bug.cgi?id=155660
+        rdar://problem/22212662
+
+        Reviewed by Tim Horton.
+        
+        There were two problems with the scroll position of RTL documents on initial and reload
+        in WKWebView.
+
+        First, in the delegatesScrolling() code path, ScrollView::updateScrollbars() needs to
+        tell someone that the scroll origin changed, to trigger a scroll to the page origin.
+
+        Secondly, WKWebView had scrollPosition/scrollOffset confusion in various places.
+
+        Test: fast/scrolling/rtl-initial-scroll-position.html
+
+        * platform/ScrollView.cpp:
+        (WebCore::ScrollView::updateScrollbars):
+
+2016-03-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r198443.
+
+        This change caused API test failures on El Capitan
+
+        Reverted changeset:
+
+        "CRASH in WebCore::MediaResourceLoader::requestResource + 698"
+        https://bugs.webkit.org/show_bug.cgi?id=155651
+        http://trac.webkit.org/changeset/198443
+
 2016-03-18  Darin Adler  <darin@apple.com>
 
         ASSERTION FAILED: m_isValid == valid() in WebCore::HTMLFormControlElement::isValidFormControlElement
