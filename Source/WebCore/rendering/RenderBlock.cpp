@@ -454,7 +454,7 @@ void RenderBlock::styleDidChange(StyleDifference diff, const RenderStyle* oldSty
 
     // It's possible for our border/padding to change, but for the overall logical width of the block to
     // end up being the same. We keep track of this change so in layoutBlock, we can know to set relayoutChildren=true.
-    setHasBorderOrPaddingLogicalWidthChanged(oldStyle && diff == StyleDifferenceLayout && needsLayout() && borderOrPaddingLogicalWidthChanged(oldStyle, &newStyle));
+    setShouldForceRelayoutChildren(oldStyle && diff == StyleDifferenceLayout && needsLayout() && borderOrPaddingLogicalWidthChanged(oldStyle, &newStyle));
 }
 
 RenderBlock* RenderBlock::continuationBefore(RenderObject* beforeChild)
@@ -1114,7 +1114,7 @@ bool RenderBlock::recomputeLogicalWidth()
     updateLogicalWidth();
     
     bool hasBorderOrPaddingLogicalWidthChanged = this->hasBorderOrPaddingLogicalWidthChanged();
-    setHasBorderOrPaddingLogicalWidthChanged(false);
+    setShouldForceRelayoutChildren(false);
 
     return oldWidth != logicalWidth() || hasBorderOrPaddingLogicalWidthChanged;
 }

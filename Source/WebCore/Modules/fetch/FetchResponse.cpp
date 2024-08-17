@@ -161,7 +161,8 @@ void FetchResponse::fetch(ScriptExecutionContext& context, const FetchRequest& r
     response->setPendingActivity(response.ptr());
 
     response->m_bodyLoader = BodyLoader(response.get(), WTFMove(promise));
-    response->m_bodyLoader->start(context, request);
+    if (!response->m_bodyLoader->start(context, request))
+        response->m_bodyLoader = Nullopt;
 }
 
 void FetchResponse::BodyLoader::didSucceed()
@@ -175,10 +176,13 @@ void FetchResponse::BodyLoader::didFail()
     if (m_promise)
         std::exchange(m_promise, Nullopt)->reject(TypeError);
 
-    m_response.m_bodyLoader = Nullopt;
-    m_response.unsetPendingActivity(&m_response);
+    // Check whether didFail is called as part of FetchLoader::start.
+    if (m_loader->isStarted())
+        m_response.m_bodyLoader = Nullopt;
 
     // FIXME: Handle the case of failing after didReceiveResponse is called.
+
+    m_response.unsetPendingActivity(&m_response);
 }
 
 FetchResponse::BodyLoader::BodyLoader(FetchResponse& response, FetchPromise&& promise)
@@ -202,10 +206,11 @@ void FetchResponse::BodyLoader::didFinishLoadingAsArrayBuffer(RefPtr<ArrayBuffer
     m_response.body().loadedAsArrayBuffer(WTFMove(buffer));
 }
 
-void FetchResponse::BodyLoader::start(ScriptExecutionContext& context, const FetchRequest& request)
+bool FetchResponse::BodyLoader::start(ScriptExecutionContext& context, const FetchRequest& request)
 {
     m_loader = std::make_unique<FetchLoader>(FetchLoader::Type::ArrayBuffer, *this);
     m_loader->start(context, request);
+    return m_loader->isStarted();
 }
 
 void FetchResponse::BodyLoader::stop()

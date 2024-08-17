@@ -1,3 +1,99 @@
+2016-03-25  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Add basic loading of resources
+        https://bugs.webkit.org/show_bug.cgi?id=155637
+
+        Reviewed by Darin Adler.
+
+        * TestExpectations: Removed flaky test expectations.
+        * http/tests/fetch/closing-while-fetching-expected.txt: Added.
+        * http/tests/fetch/closing-while-fetching.html: Added.
+        * http/tests/fetch/get-response-body-while-loading-expected.txt: Added.
+        * http/tests/fetch/get-response-body-while-loading.html: Added.
+        * http/tests/resources/download-json-with-delay.php: Added.
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/basic/request-headers-expected.txt: Added.
+
+2016-03-25  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Unreviewed EFL gardening.
+
+        Mark new failing tests with existing or new bug.
+
+        * platform/efl/TestExpectations:
+
+2016-03-25  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Unreviewed EFL gardening.
+
+        Mark some blink imported tests to timeout, imageonlyfailure.
+        Besides some AX tests need to have new baseline, which have been tested since r197616.
+
+        * platform/efl/TestExpectations:
+
+2016-03-24  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Unreviewed EFL gardening. Mark crash tests in proper category.
+
+        * platform/efl/TestExpectations:
+
+2016-03-24  Daniel Bates  <dabates@apple.com>
+
+        CSP: Move logic for reporting a violation from ContentSecurityPolicyDirectiveList to ContentSecurityPolicy
+        https://bugs.webkit.org/show_bug.cgi?id=155842
+        <rdar://problem/25340377>
+        And
+        https://bugs.webkit.org/show_bug.cgi?id=155133
+
+        Reviewed by Brent Fulgham.
+
+        Update expected results to reflect new error message text for an inline event handler violation.
+
+        * http/tests/security/contentSecurityPolicy/inline-event-handler-blocked-after-injecting-meta-expected.txt:
+        * http/tests/security/contentSecurityPolicy/inline-script-blocked-goofy-expected.txt:
+        * http/tests/security/contentSecurityPolicy/script-src-none-inline-event-expected.txt:
+
+2016-03-24  Saam barati  <sbarati@apple.com>
+
+        ES6: Implement IsRegExp function and use where needed in String.prototype.* methods
+        https://bugs.webkit.org/show_bug.cgi?id=155854
+
+        Reviewed by Mark Lam.
+
+        * js/string-includes-expected.txt:
+
+2016-03-24  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198627.
+        https://bugs.webkit.org/show_bug.cgi?id=155856
+
+        Caused use-after-free (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "[Fetch API] Add basic loading of resources"
+        https://bugs.webkit.org/show_bug.cgi?id=155637
+        http://trac.webkit.org/changeset/198627
+
+2016-03-24  Saam barati  <sbarati@apple.com>
+
+        Web Inspector: Separate Debugger enable state from the debugger breakpoints enabled state
+        https://bugs.webkit.org/show_bug.cgi?id=152193
+        <rdar://problem/23867520>
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/script-profiler/event-type-API.html:
+        * inspector/script-profiler/event-type-Microtask.html:
+        * inspector/script-profiler/event-type-Other.html:
+
+2016-03-24  Daniel Bates  <dabates@apple.com>
+
+        Update expected results following <http://trac.webkit.org/changeset/198591>
+        (https://bugs.webkit.org/show_bug.cgi?id=155777)
+
+        * http/tests/security/contentSecurityPolicy/audio-redirect-blocked-expected.txt:
+        * http/tests/security/contentSecurityPolicy/video-redirect-blocked-expected.txt:
+
 2016-03-24  Youenn Fablet  <youenn.fablet@crf.canon.fr>
 
         [Fetch API] Add basic loading of resources

@@ -59,14 +59,21 @@ void FetchBodyOwner::loadBlob(Blob& blob, FetchLoader::Type type)
     ASSERT(m_body.isDisturbed());
     ASSERT(!m_blobLoader);
 
-    if (!scriptExecutionContext())
-        blobLoadingFailed();
+    if (!scriptExecutionContext()) {
+        m_body.loadingFailed();
+        return;
+    }
 
     m_blobLoader = { *this };
     m_blobLoader->loader = std::make_unique<FetchLoader>(type, *m_blobLoader);
 
-    setPendingActivity(this);
     m_blobLoader->loader->start(*scriptExecutionContext(), blob);
+    if (!m_blobLoader->loader->isStarted()) {
+        m_body.loadingFailed();
+        m_blobLoader = Nullopt;
+        return;
+    }
+    setPendingActivity(this);
 }
 
 void FetchBodyOwner::finishBlobLoading()
@@ -97,6 +104,13 @@ void FetchBodyOwner::BlobLoader::didReceiveResponse(const ResourceResponse& resp
 {
     if (response.httpStatusCode() != 200)
         didFail();
+}
+
+void FetchBodyOwner::BlobLoader::didFail()
+{
+    // didFail might be called within FetchLoader::start call.
+    if (loader->isStarted())
+        owner.blobLoadingFailed();
 }
 
 } // namespace WebCore

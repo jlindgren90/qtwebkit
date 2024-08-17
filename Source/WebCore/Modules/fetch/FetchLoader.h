@@ -52,6 +52,7 @@ public:
     void start(ScriptExecutionContext&, Blob&);
     void stop();
 
+    bool isStarted() const { return !!m_loader; }
 private:
     // ThreadableLoaderClient API.
     void didReceiveResponse(unsigned long, const ResourceResponse&) final;

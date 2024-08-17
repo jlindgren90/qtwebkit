@@ -1,3 +1,697 @@
+2016-03-25  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Add basic loading of resources
+        https://bugs.webkit.org/show_bug.cgi?id=155637
+
+        Reviewed by Darin Adler.
+
+        Adding support for basic fetch for Window (no support for Worker yet).
+        A FetchResponse object is created for every fetch task.
+        But it will only be exposed to JS at promise fulfillment time, i.e. once initial response headers are retrieved.
+
+        Updating Blob resource handle to add Content-Type and Content-Length header and notifying of error in case of erroneous HTTP method.
+
+        Fetch is limited to same origin requests currently due to some WPT tests that would timeout otherwise.
+
+        Tests: http/tests/fetch/closing-while-fetching.html
+               http/tests/fetch/get-response-body-while-loading.html
+        Also covered by rebased tests.
+
+        * Modules/fetch/DOMWindowFetch.cpp: Creating a FetchResponse to start fetching.
+        (WebCore::DOMWindowFetch::fetch):
+        * Modules/fetch/DOMWindowFetch.h:
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::consume):
+        (WebCore::FetchBody::consumeArrayBuffer): Handling of body promises in case of data stored as a buffer.
+        (WebCore::FetchBody::consumeText): Passing the promise as a reference.
+        (WebCore::blobFromArrayBuffer): Helper routine.
+        (WebCore::FetchBody::fulfillTextPromise): Helper routine.
+        (WebCore::FetchBody::loadedAsArrayBuffer): Updated to handle storing of data as a buffer.
+        (WebCore::FetchBody::loadedAsText):
+        (WebCore::FetchBody::bodyForInternalRequest): Helper routine to generate the request body data to be sent as part of the fetch request.
+        (WebCore::FetchBody::extractFromText):
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::loadingBody):
+        (WebCore::FetchBody::FetchBody):
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::loadBlob): Updated to cope with the change that FetchLoader::start does not return a boolean anymore
+        but will directly call failure callbacks.
+        (WebCore::FetchBodyOwner::loadedBlobAsText): Moving it closer to other blob loading routines.
+        (WebCore::FetchBodyOwner::finishBlobLoading):
+        * Modules/fetch/FetchBodyOwner.h:
+        (WebCore::FetchBodyOwner::body):
+        (WebCore::FetchBodyOwner::loadedBlobAsArrayBuffer):
+        * Modules/fetch/FetchHeaders.cpp:
+        (WebCore::FetchHeaders::fill):
+        (WebCore::FetchHeaders::filterAndFill): Helper routine to fill headers from a HTTPHeaderMap after being filtered.
+        * Modules/fetch/FetchHeaders.h:
+        (WebCore::FetchHeaders::internalHeaders):
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start):
+        (WebCore::FetchLoader::didFailRedirectCheck):
+        * Modules/fetch/FetchLoader.h:
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::internalRequest): Routine used to create the ResourceRequest transmitted to ThreadableLoader.
+       * Modules/fetch/FetchRequest.h:
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::fetch): Start fetching by creating a FetchLoader based on passed request.
+        (WebCore::FetchResponse::BodyLoader::didSucceed): FetchLoader callback.
+        (WebCore::FetchResponse::BodyLoader::didFail): Ditto.
+        (WebCore::FetchResponse::BodyLoader::BodyLoader): Ditto.
+        (WebCore::FetchResponse::BodyLoader::didReceiveResponse): Ditto.
+        (WebCore::FetchResponse::BodyLoader::didFinishLoadingAsArrayBuffer): Ditto.
+        (WebCore::FetchResponse::BodyLoader::start): Starting fetch loader.
+        (WebCore::FetchResponse::BodyLoader::stop): Stopping fetch loader.
+        (WebCore::FetchResponse::stop): Stop loader if any.
+        * Modules/fetch/FetchResponse.h:
+        * platform/network/BlobResourceHandle.cpp:
+        (WebCore::BlobResourceHandle::doStart: Notifying the loader with an error if verb is not GET.
+        (WebCore::BlobResourceHandle::notifyResponseOnSuccess): Adding support for Content-Type and Content-Lenth headers.
+        (WebCore::BlobResourceHandle::createAsync): Removing GET verb check.
+
+2016-03-25  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Removed leftovers of WCHAR_UNICODE code path after r162782.
+        https://bugs.webkit.org/show_bug.cgi?id=155881
+
+        Reviewed by Csaba Osztrogonác.
+
+        No new tests needed.
+
+        * platform/text/TextEncodingDetectorNone.cpp: Removed.
+        * platform/text/wchar/TextBreakIteratorWchar.cpp: Removed.
+
+2016-03-24  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Mac CMake build.
+
+        * PlatformMac.cmake:
+        Add new file and directory.
+
+2016-03-24  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r198500.
+
+        Roll back in r197552 as it did not seem to cause a PLT
+        regression after all
+
+        Reverted changeset:
+
+        "Unreviewed, rolling out r197552."
+        https://bugs.webkit.org/show_bug.cgi?id=154986
+        http://trac.webkit.org/changeset/198500
+
+2016-03-24  Daniel Bates  <dabates@apple.com>
+
+        CSP: Move logic for reporting a violation from ContentSecurityPolicyDirectiveList to ContentSecurityPolicy
+        https://bugs.webkit.org/show_bug.cgi?id=155842
+        <rdar://problem/25340377>
+        And
+        https://bugs.webkit.org/show_bug.cgi?id=155133
+
+        Reviewed by Brent Fulgham.
+
+        Towards associating source file, line-, and column- numbers (https://bugs.webkit.org/show_bug.cgi?id=114317)
+        with a CSP console message we should move the logic for logging the console message/reporting the violation
+        from class ContentSecurityPolicyDirectiveList to class ContentSecurityPolicy so that it is closer to the
+        script execution context that can access such information.
+
+        The responsibilities of the class ContentSecurityPolicyDirectiveList have been reduced. It is responsible
+        for parsing a string representation of the Content Security Policy and providing functions to determine
+        the violated directive (if any) for a given source (e.g. URL). ContentSecurityPolicyDirectiveList no longer
+        takes responsibility logging a console message or sending a violation report (if applicable). Falling out
+        from this decrease in responsibility is the removal of enum ContentSecurityPolicyDirectiveList::ReportingStatus
+        and the need to pass a enumerator of this enum to each ContentSecurityPolicyDirectiveList to suppress
+        the sending of a violation report. The caller of ContentSecurityPolicyDirectiveList is responsible for
+        making this determination.
+
+        With the exception of a change to the error message for an inline event handler violation, there are no
+        other functional changes. When an inline event handler violation occurs we will emit either:
+
+            Refused to execute a script for an inline event handler because 'unsafe-inline' does not appear in the
+            script-src directive of the Content Security Policy.
+
+        Or:
+
+            Refused to execute a script for an inline event handler because 'unsafe-inline' appears in neither the
+            script-src directive nor the default-src directive of the Content Security Policy.
+
+        depending on whether the Content Security Policy contains a script-src directive or not.
+
+        * CMakeLists.txt: Add files ContentSecurityPolicyDirective.cpp and ContentSecurityPolicyDirectiveNames.cpp.
+        * WebCore.xcodeproj/project.pbxproj: Add files ContentSecurityPolicyDirective.cpp and ContentSecurityPolicyDirectiveNames.{cpp, h}.
+        * page/csp/ContentSecurityPolicy.cpp:
+        (WebCore::consoleMessageForViolation): Moved from file ContentSecurityPolicyDirectiveList.cpp and
+        incorporates the functionality of ContentSecurityPolicyDirectiveList::reportViolation(). Modified
+        to take a reference to the violated directive (ContentSecurityPolicyDirective object) and removed
+        the boolean parameter violatesDefaultSrc as we can deduce this from the violated directive.
+        (WebCore::ContentSecurityPolicy::didReceiveHeader): Modified to call ContentSecurityPolicyDirectiveList::violatedDirectiveForUnsafeEval().
+        (WebCore::ContentSecurityPolicy::foundHashOfContentInAllPolicies): Renamed; Formerly named allPoliciesAllowHashFromContent.
+        Modified to early return if either no algorithms are given or the specified content to hash is
+        the empty string.
+        (WebCore::ContentSecurityPolicy::allowJavaScriptURLs): Moved logic for reporting a violation from
+        ContentSecurityPolicyDirectiveList member function of the same name to here.
+        (WebCore::ContentSecurityPolicy::allowInlineEventHandlers): Moved logic for reporting a violation from
+        ContentSecurityPolicyDirectiveList member function of the same name to here. Additionally, changed the
+        error message text to better describe the reason for the violation.
+        (WebCore::ContentSecurityPolicy::allowScriptWithNonce): Ditto.
+        (WebCore::ContentSecurityPolicy::allowStyleWithNonce): Ditto.
+        (WebCore::ContentSecurityPolicy::allowInlineScript): Ditto.
+        (WebCore::ContentSecurityPolicy::allowInlineStyle): Ditto.
+        (WebCore::ContentSecurityPolicy::allowEval): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFrameAncestors): Ditto.
+        (WebCore::ContentSecurityPolicy::allowPluginType): Ditto.
+        (WebCore::ContentSecurityPolicy::allowScriptFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowObjectFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowChildFrameFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowChildContextFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowImageFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowStyleFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFontFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowMediaFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowConnectToSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFormAction): Ditto.
+        (WebCore::ContentSecurityPolicy::allowBaseURI): Ditto.
+        (WebCore::ContentSecurityPolicy::reportViolation): Simplified signature by having it take a reference to
+        a ContentSecurityPolicyDirective object. Also split functionality into two variants: one variant takes a
+        pointer to a JSC::ExecState, one variant takes a source file, and line and column positions.
+        (WebCore::ContentSecurityPolicy::allPoliciesAllowHashFromContent): Deleted.
+        (WebCore::ContentSecurityPolicy::gatherReportURIs): Deleted.
+        * page/csp/ContentSecurityPolicy.h:
+        (WebCore::ContentSecurityPolicy::violatedDirectiveInAnyPolicy): Formerly named allPoliciesAllow. Modified
+        to return the violated directive.
+        (WebCore::ContentSecurityPolicy::allPoliciesAllow): Deleted.
+        * page/csp/ContentSecurityPolicyDirective.cpp: Added.
+        * page/csp/ContentSecurityPolicyDirective.h: Added.
+        (WebCore::ContentSecurityPolicyDirective::ContentSecurityPolicyDirective): Modified to take a reference to the
+        directive list that contains this directive instead of pointer to a ContentSecurityPolicy object.
+        (WebCore::ContentSecurityPolicyDirective::name): Added.
+        (WebCore::ContentSecurityPolicyDirective::directiveList): Added.
+        (WebCore::ContentSecurityPolicyDirective::isDefaultSrc): Added.
+        (WebCore::ContentSecurityPolicyDirective::policy): Deleted.
+        * page/csp/ContentSecurityPolicyDirectiveList.cpp: Remove unused header <wtf/Optional.h>. Also remove header wtf/text/StringBuilder.h
+        as the function that made use of it, consoleMessageForViolation, was moved to file ContentSecurityPolicy.cpp.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForUnsafeEval): Formerly named allowEval.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForUnsafeInlineScript): Formerly named allowInlineScript.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForUnsafeInlineStyle): Formerly named allowInlineStyle.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForScriptHash): Formerly named allowInlineScriptWithHash.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForStyleHash): Formerly named allowInlineStyleWithHash.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForScriptNonce): Formerly named allowScriptWithNonce.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForStyleNonce): Formerly named allowStyleWithNonce.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForBaseURI): Formerly named allowBaseURI.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForChildContext): Formerly named allowChildContextFromSource.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForConnectSource): Formerly named allowConnectToSource.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForFont): Formerly named allowFontFromSource.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForFormAction): Formerly named allowFormAction.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForFrame): Formerly named allowChildFrameFromSource.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForFrameAncestor): Formerly named allowFrameAncestors.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForImage): Formerly named allowImageFromSource.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForMedia): Formerly named allowMediaFromSource.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForObjectSource): Formerly named allowObjectFromSource.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForPluginType): Formerly named allowPluginType.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForScript): Formerly named allowScriptFromSource.
+        (WebCore::ContentSecurityPolicyDirectiveList::violatedDirectiveForStyle): Formerly named allowStyleFromSource.
+        (WebCore::ContentSecurityPolicyDirectiveList::parse): Update code to make use of ContentSecurityPolicyDirectiveNames constants.
+        (WebCore::ContentSecurityPolicyDirectiveList::setCSPDirective): Pass |this| instead of the ContentSecurityPolicy object.
+        (WebCore::ContentSecurityPolicyDirectiveList::addDirective): Update code to make use of ContentSecurityPolicyDirectiveNames constants.
+        (WebCore::isExperimentalDirectiveName): Deleted.
+        (WebCore::isCSPDirectiveName): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::reportViolation): Deleted.
+        (WebCore::consoleMessageForViolation): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowJavaScriptURLs): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineEventHandlers): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineScript): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineScriptWithHash): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowScriptWithNonce): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineStyle): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowInlineStyleWithHash): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowStyleWithNonce): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowEval): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowPluginType): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowScriptFromSource): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowObjectFromSource): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowChildContextFromSource): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowChildFrameFromSource): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowImageFromSource): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowStyleFromSource): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFontFromSource): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowMediaFromSource): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowConnectToSource): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFormAction): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowBaseURI): Deleted.
+        (WebCore::ContentSecurityPolicyDirectiveList::allowFrameAncestors): Deleted.
+        * page/csp/ContentSecurityPolicyDirectiveList.h:
+        (WebCore::ContentSecurityPolicyDirectiveList::defaultSrc): Added.
+        (WebCore::ContentSecurityPolicyDirectiveList::policy): Added. Also added FIXME comment to remove this function. This
+        function is only used by ContentSecurityPolicyMediaListDirective so that it can log a console message on a parsing error.
+        (WebCore::ContentSecurityPolicyDirectiveList::denyIfEnforcingPolicy): Deleted.
+        * page/csp/ContentSecurityPolicyDirectiveNames.cpp: Added.
+        * page/csp/ContentSecurityPolicyDirectiveNames.h: Added.
+        * page/csp/ContentSecurityPolicyMediaListDirective.cpp:
+        (WebCore::ContentSecurityPolicyMediaListDirective::ContentSecurityPolicyMediaListDirective): Modified to take a reference to the
+        directive list that contains this directive instead of pointer to a ContentSecurityPolicy object.
+        (WebCore::ContentSecurityPolicyMediaListDirective::parse): Updated code to use ContentSecurityPolicyDirectiveList::policy() instead
+        of ContentSecurityPolicyDirective::policy() as the latter was removed. Ideally this class should not need to use the ContentSecurityPolicy
+        object to log a console message.
+        * page/csp/ContentSecurityPolicyMediaListDirective.h:
+        * page/csp/ContentSecurityPolicySourceList.cpp:
+        (WebCore::isExperimentalDirectiveName): Moved from file ContentSecurityPolicyDirectiveList.cpp because this function is only used
+        in this file.
+        (WebCore::isCSPDirectiveName): Ditto.
+        (WebCore::ContentSecurityPolicySourceList::isProtocolAllowedByStar): Update code to make use of ContentSecurityPolicyDirectiveNames constants.
+        * page/csp/ContentSecurityPolicySourceListDirective.cpp:
+        (WebCore::ContentSecurityPolicySourceListDirective::ContentSecurityPolicySourceListDirective): Modified to take a reference to
+        the directive list that contains this directive instead of pointer to a ContentSecurityPolicy object. 
+        * page/csp/ContentSecurityPolicySourceListDirective.h:
+
+2016-03-24  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] Overflow:scroll scrollbars do not obey overlay/always-on system preference changes
+        https://bugs.webkit.org/show_bug.cgi?id=155830
+
+        Reviewed by Simon Fraser.
+
+        When the scrollbar style changes, the available width of all ScrollableAreas change,
+        and therefore a relayout must occur.
+
+        Each ScrollableArea owns its own ScrollAnimator (if necessary). Upon creation, the
+        ScrollAnimator will start listening for changes to the system preference for
+        overlay / always-on scrollbars. When notified, the ScrollAnimator tells its owning
+        ScrollableArea that scrollbarStyleChanged().
+
+        For main-frame scrolling, FrameView overrides scrollbarStyleChanged and causes a
+        relayout. However, for overflow:scroll elements, no relayout is triggered. This
+        patch overrides availableContentSizeChanged() for RenderLayer (which is used for
+        overflow:scroll elements). This override triggers a relayout.
+
+        It also updates the mechanism in RenderBlock::recomputeLogicalWidth() to ensure that
+        a change in scrollbar size causes RenderBlockFlow::layoutBlock() to relayout its
+        children. This is appropriate because block child positioning is affected by
+        scrollbar size.
+
+        No new tests (for now). Presumably we could mock the message we receive when the
+        system preference is changed. However, I haven't implemented that yet.
+
+        * rendering/RenderBlock.cpp: Rename setHasBorderOrPaddingLogicalWidthChanged().
+        (WebCore::RenderBlock::styleDidChange):
+        (WebCore::RenderBlock::recomputeLogicalWidth):
+        * rendering/RenderBlock.h: Ditto.
+        (WebCore::RenderBlock::setShouldForceRelayoutChildren):
+        (WebCore::RenderBlock::shouldForceRelayoutChildren):
+        * rendering/RenderElement.cpp: Ditto.
+        (WebCore::RenderElement::RenderElement):
+        * rendering/RenderElement.h: Ditto.
+        (WebCore::RenderElement::setRenderBlockShouldForceRelayoutChildren):
+        (WebCore::RenderElement::renderBlockShouldForceRelayoutChildren):
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::availableContentSizeChanged): Cause a relayout to occur.
+        * rendering/RenderLayer.h:
+
+2016-03-24  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        Change NativeImagePtr for CG to be RetainPtr<CGImageRef>
+        https://bugs.webkit.org/show_bug.cgi?id=155412
+
+        Reviewed by Darin Adler.
+
+        Having NativeImagePtr as a raw pointer makes managing the life cycle of
+        the returned CGImageRef hard. A lot of work was done to ensure the CG
+        pointer is refcounted correctly. It was also not possible to move a
+        FrameData since calling the destructor was releasing the CGImageRef.
+
+        With this change, PassNativeImagePtr is not needed anymore. So all the
+        instance of PassNativeImagePtr can be replaced by NativeImagePtr.
+
+        * html/HTMLVideoElement.cpp:
+        (WebCore::HTMLVideoElement::nativeImageForCurrentTime):
+        * html/HTMLVideoElement.h: Replace PassNativeImagePtr with NativeImagePtr.
+
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::drawImage): Replace PassNativeImagePtr
+        with NativeImagePtr.
+ 
+        * loader/cache/MemoryCache.cpp:
+        (WebCore::MemoryCache::addImageToCache):
+        * loader/cache/MemoryCache.h: Remove USE(CG) and CFRetain(image) since
+        this code can compile on all platforms. The image refcount will be
+        incremented when the image is assigned to FrameData.m_image in the
+        BitmapImage constructor.
+
+        * loader/icon/IconDatabase.cpp:
+        (WebCore::IconDatabase::synchronousNativeIconForPageURL):
+        * loader/icon/IconDatabase.h:
+        * loader/icon/IconDatabaseBase.h: Replace PassNativeImagePtr with NativeImagePtr.
+
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::haveFrameImageAtIndex):
+        (WebCore::BitmapImage::cacheFrame):
+        (WebCore::BitmapImage::ensureFrameIsCached):
+        (WebCore::BitmapImage::frameImageAtIndex):
+        (WebCore::BitmapImage::nativeImageForCurrentFrame):
+        (WebCore::BitmapImage::haveFrameAtIndex): Deleted.
+        (WebCore::BitmapImage::frameAtIndex): Deleted.
+        Replace PassNativeImagePtr with NativeImagePtr, m_frame with m_image and
+        *Frame* with *FrameImage*.
+
+        * platform/graphics/BitmapImage.h:
+        (WebCore::FrameData::FrameData):
+        A BitmapImage can have one or more FrameData. A FrameData member can be
+        named for shortness as "frame", "m_frames", etc. A FrameData can have
+        zero or one NativeImagePtr. A NativeImagePtr can be named as "image",
+        "m_image", etc.
+
+        * platform/graphics/GraphicsContext.h: Replace PassNativeImagePtr with
+        NativeImagePtr.
+
+        * platform/graphics/GraphicsContext3D.h:
+        * platform/graphics/Icon.h:
+        Change the members of type CGImageRef to be RetainPtr<CGImageRef>.
+                
+        * platform/graphics/Image.h:
+        (WebCore::Image::nativeImageForCurrentFrame):
+        (WebCore::Image::getNSImage):
+        (WebCore::Image::getTIFFRepresentation):
+        (WebCore::Image::getCGImageRef):
+        (WebCore::Image::getFirstCGImageRefOfSize):
+        (WebCore::Image::getCGImageArray):
+        (WebCore::Image::getGdkPixbuf):
+        (WebCore::Image::getEvasObject):
+        * platform/graphics/ImageBuffer.h:
+        * platform/graphics/ImageSource.cpp:
+        (WebCore::ImageSource::createFrameImageAtIndex):
+        (WebCore::ImageSource::createFrameAtIndex): Deleted.
+        * platform/graphics/ImageSource.h:
+        Change 0 to nullptr, PassRefPtr to RefPtr and PassNativeImagePtr to
+        NativeImagePtr.
+
+        * platform/graphics/MediaPlayer.cpp:
+        (WebCore::MediaPlayer::nativeImageForCurrentTime):
+        * platform/graphics/MediaPlayer.h:
+        * platform/graphics/MediaPlayerPrivate.h:
+        (WebCore::MediaPlayerPrivateInterface::nativeImageForCurrentTime):
+        Replace PassNativeImagePtr with NativeImagePtr.
+
+        * platform/graphics/NativeImagePtr.h:
+        Make NativeImagePtr a smart pointer for CG. Get rid of PassNativeImagePtr
+        since NativeImagePtr is now a smart pointer on all platforms.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::nativeImageForCurrentTime):
+        Replace PassNativeImagePtr with NativeImagePtr.
+
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayerCA::setContentsToImage):
+        Since Image::nativeImageForCurrentFrame() returns a RetainPtr, move it
+        to m_pendingContentsImage to remove the refcount churn.
+
+        * platform/graphics/cairo/BitmapImageCairo.cpp:
+        (WebCore::BitmapImage::BitmapImage):
+        (WebCore::BitmapImage::draw):
+        (WebCore::BitmapImage::checkForSolidColor):
+        (WebCore::FrameData::clear):
+        Replace m_frame with m_image and frame* with frameImage*.
+
+        * platform/graphics/cairo/CairoUtilities.cpp:
+        (WebCore::copyCairoImageSurface):
+        * platform/graphics/cairo/CairoUtilities.h:
+        Replace PassRefPtr with RefPtr.
+
+        * platform/graphics/cairo/GraphicsContext3DCairo.cpp:
+        (WebCore::GraphicsContext3D::ImageExtractor::extractImage):
+        Replace *Frame* with *FrameImage*.
+
+        * platform/graphics/cairo/GraphicsContextCairo.cpp:
+        (WebCore::GraphicsContext::drawNativeImage):
+        Replace PassNativeImagePtr with NativeImagePtr.
+
+        * platform/graphics/cairo/ImageBufferCairo.cpp:
+        (WebCore::ImageBuffer::copyImage): Create a new NativeImagePtr so it can
+        be moved to the BitmapImage::create().
+        (WebCore::copySurfaceToImageAndAdjustRect):
+        (WebCore::getImageData):
+        (WebCore::ImageBuffer::getUnmultipliedImageData):
+        (WebCore::ImageBuffer::getPremultipliedImageData):
+        Replace PassRefPtr with RefPtr.
+
+        * platform/graphics/cg/BitmapImageCG.cpp:
+        (WebCore::FrameData::clear): No need to call CGImageRelease(). Just assign
+        m_image to nullptr and CGImageRelease() will be called from the RetainPtr
+        destructor.
+
+        (WebCore::BitmapImage::BitmapImage):
+        (WebCore::BitmapImage::checkForSolidColor):
+        (WebCore::BitmapImage::getCGImageRef):
+        (WebCore::BitmapImage::getFirstCGImageRefOfSize):
+        (WebCore::BitmapImage::getCGImageArray):
+        (WebCore::BitmapImage::draw):
+        (WebCore::BitmapImage::copyUnscaledFrameImageAtIndex):
+        (WebCore::BitmapImage::copyUnscaledFrameAtIndex): Deleted.
+        Replace CGImageRef with RetainPtr<CGImageRef>. Replace *Frame* with
+        *FrameImage*.
+
+        * platform/graphics/cg/GraphicsContext3DCG.cpp:
+        (WebCore::GraphicsContext3D::ImageExtractor::extractImage):
+        (WebCore::GraphicsContext3D::paintToCanvas):
+        Use m_cgImage.get() instead of m_cgImage when calling CG functions.
+
+        * platform/graphics/cg/GraphicsContextCG.cpp:
+        (WebCore::GraphicsContext::drawNativeImage):
+        (WebCore::GraphicsContext::drawPattern):
+        Replace PassNativeImagePtr with NativeImagePtr. Get the raw CGImageRef
+        from the NativeImagePtr when calling the CG functions.
+        
+        * platform/graphics/cg/ImageBufferCG.cpp:
+        (WebCore::createBitmapImageAfterScalingIfNeeded): Move the image argument
+        when calling BitmapImage::create().
+        
+        (WebCore::ImageBuffer::getUnmultipliedImageData):
+        (WebCore::ImageBuffer::getPremultipliedImageData):
+        Replace PassRefPtr with RefPtr.
+        
+        * platform/graphics/cg/ImageSourceCG.cpp:
+        (WebCore::ImageSource::createFrameImageAtIndex):
+        (WebCore::ImageSource::createFrameAtIndex): Deleted.
+        Rename the function and simplify the code since the local variable
+        and the return value are both smart pointers.
+        
+        * platform/graphics/displaylists/DisplayListItems.cpp:
+        (WebCore::DisplayList::DrawNativeImage::DrawNativeImage):
+        (WebCore::DisplayList::DrawNativeImage::apply):
+        * platform/graphics/displaylists/DisplayListItems.h:
+        (WebCore::DisplayList::DrawNativeImage::create):
+        * platform/graphics/displaylists/DisplayListRecorder.cpp:
+        (WebCore::DisplayList::Recorder::drawNativeImage):
+        * platform/graphics/displaylists/DisplayListRecorder.h:
+        Replace PassNativeImagePtr with NativeImagePtr and use constant reference. 
+        
+        * platform/graphics/efl/GraphicsContext3DEfl.cpp:
+        (WebCore::GraphicsContext3D::ImageExtractor::extractImage):
+        Call a function with its new name.
+        
+        * platform/graphics/efl/IconEfl.cpp:
+        (WebCore::Icon::createIconForFiles):
+        * platform/graphics/gstreamer/ImageGStreamerCairo.cpp:
+        (ImageGStreamer::ImageGStreamer):
+        * platform/graphics/gtk/IconGtk.cpp:
+        (WebCore::Icon::createIconForFiles):
+        * platform/graphics/ios/IconIOS.mm:
+        (WebCore::Icon::Icon):
+        (WebCore::Icon::createIconForFiles):
+        (WebCore::Icon::createIconForImage):
+        * platform/graphics/mac/IconMac.mm:
+        (WebCore::Icon::createIconForFiles):
+        Use smart pointers RetainPtr<CGImageRef> instead of raw pointers CGImageRef.
+        And change PassRefPtr to RefPtr and 0 to nullptr.
+        
+        * platform/graphics/mac/ImageMac.mm:
+        (WebCore::BitmapImage::getTIFFRepresentation): Get the raw pointer from the
+        returned smart pointer.
+        
+        * platform/graphics/texmap/coordinated/CoordinatedSurface.cpp:
+        (WebCore::CoordinatedSurface::create):
+        * platform/graphics/texmap/coordinated/CoordinatedSurface.h:
+        Replace PassRefPtr with RefPtr.
+
+        * platform/graphics/win/IconWin.cpp:
+        (WebCore::Icon::createIconForFiles): Change PassRefPtr to RefPtr.
+        
+        * platform/graphics/win/ImageCGWin.cpp:
+        (WebCore::BitmapImage::create): Replace PassRefPtr with RefPtr.
+        (WebCore::BitmapImage::drawFrameMatchingSourceSize): Call the function
+        with its new name and get the raw pointer from the returned smart pointer.
+        
+        * platform/graphics/win/ImageCairoWin.cpp:
+        (WebCore::BitmapImage::create): Replace PassRefPtr with ReftPtr and use
+        the move semantics for passing the argument to BitmapImage::create().
+        (WebCore::BitmapImage::drawFrameMatchingSourceSize): Call the function
+        with its new name.
+        
+        * platform/image-decoders/ImageDecoder.h:
+        * platform/image-decoders/cairo/ImageDecoderCairo.cpp:
+        (WebCore::ImageFrame::asNewNativeImage):
+        * platform/win/DragImageCGWin.cpp:
+        (WebCore::createDragImageFromImage):
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::nativeImageForCurrentFrame):
+        * svg/graphics/SVGImage.h:
+        * svg/graphics/SVGImageForContainer.cpp:
+        (WebCore::SVGImageForContainer::nativeImageForCurrentFrame):
+        * svg/graphics/SVGImageForContainer.h:
+        Replace PassNativeImagePtr with NativeImagePtr.
+        
+2016-03-24  Jer Noble  <jer.noble@apple.com>
+
+        Safari Crashes if audio.src is changed while connected to AudioAnalyserNode
+        https://bugs.webkit.org/show_bug.cgi?id=153593
+        <rdar://problem/23648082>
+
+        Reviewed by Eric Carlson.
+
+        m_ringBuffer is accessed on the high-priority WebAudio thread after it has been cleared (a
+        null-deref). Protect against unsafe access on multiple threads of a non-refcounted object by
+        a simple try_lock.
+
+        Additionally, limit the use of variables in use by both the separate WebAudio thread method
+        (provideInput()) and AVAudioMix thread method (process()) where possible, and convert to
+        std::atomic<> where ivars must be acessed by both threads. m_writeCount is entirely superfluous,
+        as it is a synonym for the endTime returned by m_ringBuffer->getCurrentFrameBounds().
+
+        * platform/graphics/avfoundation/AudioSourceProviderAVFObjC.h:
+        * platform/graphics/avfoundation/AudioSourceProviderAVFObjC.mm:
+        (WebCore::AudioSourceProviderAVFObjC::provideInput):
+        (WebCore::AudioSourceProviderAVFObjC::prepare):
+        (WebCore::AudioSourceProviderAVFObjC::unprepare):
+        (WebCore::AudioSourceProviderAVFObjC::process):
+
+2016-03-24  Enrica Casucci  <enrica@apple.com>
+
+        Adopt new SPI from DataDetectorsCore to decide link behavior.
+        https://bugs.webkit.org/show_bug.cgi?id=155780
+        rdar://problem/25303631
+
+        Reviewed by Sam Weinig.
+
+        isDataDetectorLink and shouldCancelDefaultAction now
+        use the SPI provided by DataDetectorsCore to decide
+        what is the link behavior when the user taps on it.
+
+        * editing/cocoa/DataDetection.h:
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::detectItemAtPositionWithRange):
+        (WebCore::DataDetection::isDataDetectorLink):
+        (WebCore::DataDetection::requiresExtendedContext):
+        (WebCore::DataDetection::dataDetectorIdentifier):
+        (WebCore::DataDetection::shouldCancelDefaultAction):
+        * platform/cocoa/DataDetectorsCoreSoftLink.h:
+        * platform/cocoa/DataDetectorsCoreSoftLink.mm:
+        * platform/spi/cocoa/DataDetectorsCoreSPI.h:
+
+2016-03-24  Enrica Casucci  <enrica@apple.com>
+
+        DataDetection creates links that are longer than the actual result.
+        https://bugs.webkit.org/show_bug.cgi?id=155850
+        rdar://problem/25280740
+
+        Reviewed by Anders Carlsson.
+
+        When a data detection result is composed of multiple fragments,
+        the range for the last fragment should take into account the end
+        offset of the query range structure, since there could be additional
+        content in that range that is not part of the result.
+
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::DataDetection::detectContentInRange):
+
+2016-03-24  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198627.
+        https://bugs.webkit.org/show_bug.cgi?id=155856
+
+        Caused use-after-free (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "[Fetch API] Add basic loading of resources"
+        https://bugs.webkit.org/show_bug.cgi?id=155637
+        http://trac.webkit.org/changeset/198627
+
+2016-03-24  Saam barati  <sbarati@apple.com>
+
+        Web Inspector: Separate Debugger enable state from the debugger breakpoints enabled state
+        https://bugs.webkit.org/show_bug.cgi?id=152193
+        <rdar://problem/23867520>
+
+        Reviewed by Joseph Pecoraro.
+
+        No new tests because this is already tested by inspector tests.
+
+        * inspector/PageScriptDebugServer.cpp:
+        (WebCore::PageScriptDebugServer::attachDebugger):
+        (WebCore::PageScriptDebugServer::detachDebugger):
+
+2016-03-24  Jer Noble  <jer.noble@apple.com>
+
+        [MSE] Make calling HTMLMediaElement.buffered less expensive
+        https://bugs.webkit.org/show_bug.cgi?id=155846
+
+        Reviewed by Eric Carlson.
+
+        The MSE specification requires a new TimeRanges object be returned when calling
+        HTMLMediaElement.buffered. Additionally, the requirements for generating the buffered time
+        ranges for MediaSource and its constituent SourceBuffers are specific and expensive. Rather
+        than perform all these steps each time HTMLMediaElement.buffered is queried, cache the final
+        result and only regenerate the cached value if the buffered ranges of the consituent
+        SourceBuffers has changed.
+
+        Also, make copying a PlatformTimeRanges more efficient by doing a straight vector-to-vector
+        copy of the PlatformTimeRange's data.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::buffered):
+        (WebCore::MediaSource::regenerateActiveSourceBuffers):
+        * Modules/mediasource/MediaSource.h:
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::removeCodedFrames):
+        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
+        * Modules/mediasource/SourceBuffer.h:
+        * platform/graphics/PlatformTimeRanges.cpp:
+        (WebCore::PlatformTimeRanges::PlatformTimeRanges): Deleted.
+        (WebCore::PlatformTimeRanges::operator=): Deleted.
+        (WebCore::PlatformTimeRanges::copy): Deleted.
+        * platform/graphics/PlatformTimeRanges.h:
+
+2016-03-24  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION(r189129): <audio> elements do not have playback controls on iOS.
+        https://bugs.webkit.org/show_bug.cgi?id=155808
+        <rdar://problem/23822457>
+
+        Reviewed by Eric Carlson.
+
+        Audio elements should never require fullscreen for playback.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::requiresFullscreenForVideoPlayback):
+
+2016-03-24  Alex Christensen  <achristensen@webkit.org>
+
+        Clean up cookie jar after r198195
+        https://bugs.webkit.org/show_bug.cgi?id=155484
+
+        Reviewed by Tim Horton.
+
+        Get rid of a now unneeded macro.
+
+        * loader/CookieJar.cpp:
+        (WebCore::storageSession):
+        (WebCore::cookies):
+        (WebCore::setCookies):
+        (WebCore::cookiesEnabled):
+        (WebCore::cookieRequestHeaderFieldValue):
+        (WebCore::getRawCookies):
+        (WebCore::deleteCookie):
+
 2016-03-24  Youenn Fablet  <youenn.fablet@crf.canon.fr>
 
         [Fetch API] Add basic loading of resources

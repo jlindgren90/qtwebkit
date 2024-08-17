@@ -1,3 +1,103 @@
+2016-03-24  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Mac CMake build.
+
+        * PlatformMac.cmake:
+        Link to Security framework.
+
+2016-03-24  Saam barati  <sbarati@apple.com>
+
+        ES6: Implement IsRegExp function and use where needed in String.prototype.* methods
+        https://bugs.webkit.org/show_bug.cgi?id=155854
+
+        Reviewed by Mark Lam.
+
+        This patch is a straight forward implementation of IsRegExp
+        in the ES6 spec:
+        https://tc39.github.io/ecma262/#sec-isregexp
+        We now use this IsRegExp function inside String.prototype.(startsWith | endsWith | includes)
+        as is dictated by the spec.
+
+        * runtime/RegExpConstructor.h:
+        (JSC::RegExpConstructor::recordMatch):
+        (JSC::isRegExp):
+        * runtime/StringPrototype.cpp:
+        (JSC::stringProtoFuncStartsWith):
+        (JSC::stringProtoFuncEndsWith):
+        (JSC::stringProtoFuncIncludes):
+        * tests/es6.yaml:
+        * tests/es6/well-known_symbols_Symbol.match_String.prototype.endsWith.js: Added.
+        (test):
+        * tests/es6/well-known_symbols_Symbol.match_String.prototype.includes.js: Added.
+        (test):
+        * tests/es6/well-known_symbols_Symbol.match_String.prototype.startsWith.js: Added.
+        (test):
+        * tests/stress/string-prototype-methods-endsWith-startsWith-includes-correctness.js: Added.
+        (assert):
+        (test):
+        (test.get let):
+        (get let):
+
+2016-03-24  Saam barati  <sbarati@apple.com>
+
+        Web Inspector: Separate Debugger enable state from the debugger breakpoints enabled state
+        https://bugs.webkit.org/show_bug.cgi?id=152193
+        <rdar://problem/23867520>
+
+        Reviewed by Joseph Pecoraro.
+
+        When all breakpoints are disabled, we can recompile all JS
+        code and remove the necessary debugging code that is emitted.
+        This allows for the code that is executing to be almost as fast
+        as it is with the debugger completely disabled. This is in preparation for:
+        https://bugs.webkit.org/show_bug.cgi?id=155809
+        which will introduce a high fidelity profiler. That profiler
+        could be built off the principle that breakpoints are disabled
+        when we're performing a high fidelity profile. Doing so, for example,
+        allows the sampling profiler to better measure the real performance
+        of the JS of a particular application.
+
+        * debugger/Debugger.cpp:
+        (JSC::Debugger::setBreakpointsActivated):
+        (JSC::Debugger::setPauseOnExceptionsState):
+        * debugger/Debugger.h:
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::Graph):
+        * inspector/JSGlobalObjectScriptDebugServer.cpp:
+        (Inspector::JSGlobalObjectScriptDebugServer::attachDebugger):
+        (Inspector::JSGlobalObjectScriptDebugServer::detachDebugger):
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::InspectorDebuggerAgent::enable):
+        * runtime/Executable.cpp:
+        (JSC::ScriptExecutable::newCodeBlockFor):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::createProgramCodeBlock):
+        (JSC::JSGlobalObject::createEvalCodeBlock):
+        (JSC::JSGlobalObject::createModuleProgramCodeBlock):
+        (JSC::JSGlobalObject::queueMicrotask):
+        (JSC::JSGlobalObject::hasDebugger):
+        (JSC::JSGlobalObject::hasInteractiveDebugger):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::runtimeFlags):
+        (JSC::JSGlobalObject::hasDebugger): Deleted.
+
+2016-03-24  Michael Saboff  <msaboff@apple.com>
+
+        Create private builtin helper advanceStringIndexUnicode() for use by RegExp builtins
+        https://bugs.webkit.org/show_bug.cgi?id=155855
+
+        Reviewed by Mark Lam.
+
+        Moved advanceStringIndexUnicode() as a separate helper.  Added it as a private builtin
+        to the GlobalObject like other private builtins.
+
+        * builtins/RegExpPrototype.js:
+        (advanceStringIndexUnicode):
+        (match):
+        (match.advanceStringIndexUnicode): Deleted.
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+
 2016-03-24  Michael Saboff  <msaboff@apple.com>
 
         [ES6] Add Proxy based tests for RegExp.prototype[@@match]

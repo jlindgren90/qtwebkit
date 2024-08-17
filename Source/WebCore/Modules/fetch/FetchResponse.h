@@ -83,7 +83,7 @@ private:
     public:
         BodyLoader(FetchResponse&, FetchPromise&&);
 
-        void start(ScriptExecutionContext&, const FetchRequest&);
+        bool start(ScriptExecutionContext&, const FetchRequest&);
         void stop();
 
     private:

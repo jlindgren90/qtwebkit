@@ -76,7 +76,7 @@ private:
         void didFinishLoadingAsText(String&& text) final { owner.loadedBlobAsText(WTFMove(text)); }
         void didFinishLoadingAsArrayBuffer(RefPtr<ArrayBuffer>&& buffer) final { owner.loadedBlobAsArrayBuffer(WTFMove(buffer)); }
         void didReceiveResponse(const ResourceResponse&) final;
-        void didFail() final { owner.blobLoadingFailed(); };
+        void didFail() final;
         void didSucceed() final { owner.blobLoadingSucceeded(); }
 
         FetchBodyOwner& owner;
