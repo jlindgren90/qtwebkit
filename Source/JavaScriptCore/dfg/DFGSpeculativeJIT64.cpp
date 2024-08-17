@@ -4592,6 +4592,10 @@ void SpeculativeJIT::compile(Node* node)
         compileNewFunction(node);
         break;
 
+    case SetFunctionName:
+        compileSetFunctionName(node);
+        break;
+
     case In:
         compileIn(node);
         break;

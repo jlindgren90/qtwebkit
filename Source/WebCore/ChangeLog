@@ -1,3 +1,66 @@
+2016-03-16  Jiewen Tan  <jiewen_tan@apple.com>
+
+        URL Parsing should signal failure for illegal IDN
+        https://bugs.webkit.org/show_bug.cgi?id=154945
+        <rdar://problem/8014795>
+
+        Reviewed by Brent Fulgham.
+
+        WebCore::URL will now invalidate URLs with illegal IDN. And functions inside WebCoreNSURLExtras.h
+        that deal with IDN mapping will now return nil to signal error.
+
+        Test: fast/url/invalid-idn.html
+
+        * platform/URL.cpp:
+        (WebCore::isSchemeFirstChar):
+        (WebCore::URL::init):
+        (WebCore::appendEncodedHostname):
+        (WebCore::encodeHostnames):
+        (WebCore::encodeRelativeString):
+        * platform/mac/WebCoreNSURLExtras.h:
+        * platform/mac/WebCoreNSURLExtras.mm:
+        (WebCore::mapHostNameWithRange):
+        (WebCore::hostNameNeedsDecodingWithRange):
+        (WebCore::hostNameNeedsEncodingWithRange):
+        (WebCore::decodeHostNameWithRange):
+        (WebCore::encodeHostNameWithRange):
+        (WebCore::decodeHostName):
+        (WebCore::encodeHostName):
+        (WebCore::collectRangesThatNeedMapping):
+        (WebCore::mapHostNames):
+        (WebCore::URLWithData):
+        (WebCore::dataWithUserTypedString):
+        (WebCore::URLWithUserTypedString):
+        (WebCore::URLWithUserTypedStringDeprecated):
+        (WebCore::userVisibleString):
+
+2016-03-16  Antti Koivisto  <antti@apple.com>
+
+        Don't invalidate style unnecessarily when setting inline style cssText
+        https://bugs.webkit.org/show_bug.cgi?id=155541
+        rdar://problem/23318893
+
+        Reviewed by Simon Fraser.
+
+        We currently invalidate style when cssText is set whether the style declaration changed or not.
+
+        Based on a patch by Simon.
+
+        Test: fast/css/style-invalidation-inline-csstext.html
+
+        * css/PropertySetCSSStyleDeclaration.cpp:
+        (WebCore::PropertySetCSSStyleDeclaration::cssText):
+        (WebCore::PropertySetCSSStyleDeclaration::setCssText):
+
+            Invalidate only if the parsed style changed.
+
+        * css/StyleProperties.cpp:
+        (WebCore::MutableStyleProperties::parseDeclaration):
+
+            Compare the original and new style after parsing, return result.
+
+        * css/StyleProperties.h:
+
 2016-03-16  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         REGRESSION(r195661): [GTK] very slow scrolling

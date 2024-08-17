@@ -807,7 +807,7 @@
 - path: es6/function_name_property_shorthand_methods_no_lexical_binding.js
   cmd: runES6 :fail
 - path: es6/function_name_property_symbol-keyed_methods.js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/function_name_property_variables_class.js
   cmd: runES6 :normal
 - path: es6/function_name_property_variables_function.js
@@ -933,7 +933,7 @@
 - path: es6/Proxy_has_handler_instances_of_proxies.js
   cmd: runES6 :normal
 - path: es6/Proxy_internal_defineProperty_calls_[[Set]].js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/Proxy_internal_defineProperty_calls_SetIntegrityLevel.js
   cmd: runES6 :normal
 - path: es6/Proxy_internal_deleteProperty_calls_Array.prototype.copyWithin.js
@@ -1021,7 +1021,7 @@
 - path: es6/Proxy_internal_get_calls_ToPropertyDescriptor.js
   cmd: runES6 :normal
 - path: es6/Proxy_internal_getOwnPropertyDescriptor_calls_[[Set]].js
-  cmd: runES6 :fail
+  cmd: runES6 :normal
 - path: es6/Proxy_internal_getOwnPropertyDescriptor_calls_Function.prototype.bind.js
   cmd: runES6 :normal
 - path: es6/Proxy_internal_getOwnPropertyDescriptor_calls_Object.assign.js

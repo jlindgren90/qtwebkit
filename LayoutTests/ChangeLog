@@ -1,3 +1,85 @@
+2016-03-16  Jiewen Tan  <jiewen_tan@apple.com>
+
+        URL Parsing should signal failure for illegal IDN
+        https://bugs.webkit.org/show_bug.cgi?id=154945
+        <rdar://problem/8014795>
+
+        Reviewed by Brent Fulgham.
+
+        * fast/url/host-expected.txt:
+        * fast/url/idna2003-expected.txt:
+        * fast/url/invalid-idn-expected.txt: Added.
+        * fast/url/invalid-idn.html: Added.
+
+2016-03-16  Mark Lam  <mark.lam@apple.com>
+
+        Add support for setting Function.name from computed properties.
+        https://bugs.webkit.org/show_bug.cgi?id=155437
+
+        Reviewed by Filip Pizlo.
+
+        * js/object-literal-computed-methods-expected.txt:
+        - Exercise op_set_function_name at all tiers.
+
+        * js/script-tests/function-toString-vs-name.js:
+        - Added tests for computed properties.
+
+        * js/script-tests/object-literal-computed-methods.js:
+        - rebased results.
+
+2016-03-16  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/blink/fast/multicol/dynamic/relayout-abspos-in-relpos-spanner.html as flaky on ios-sim
+        https://bugs.webkit.org/show_bug.cgi?id=155339
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-16  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping failing printing tests
+        https://bugs.webkit.org/show_bug.cgi?id=155543
+
+        Unreviewed test gardening.
+
+        Three printing tests that rely on software snapshotting are failing after r198242 exposed
+        an underlying issue. Skipping these tests to get the bots back to green during investigation.
+
+        * TestExpectations:
+
+2016-03-16  Antti Koivisto  <antti@apple.com>
+
+        Don't invalidate style unnecessarily when setting inline style cssText
+        https://bugs.webkit.org/show_bug.cgi?id=155541
+        rdar://problem/23318893
+
+        Reviewed by Simon Fraser.
+
+        * fast/css/style-invalidation-inline-csstext-expected.txt: Added.
+        * fast/css/style-invalidation-inline-csstext.html: Added.
+
+2016-03-16  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline fast/css/getPropertyValue-webkit-marquee.html after r198255
+        https://bugs.webkit.org/show_bug.cgi?id=155544
+
+        Unreviewed test gardening.
+
+        * fast/css/getPropertyValue-webkit-marquee-expected.txt:
+
+2016-03-16  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Reflect.set with receiver
+        https://bugs.webkit.org/show_bug.cgi?id=155294
+
+        Reviewed by Saam Barati.
+
+        Currently, putDelegate (JSLocation is special case) and CustomIndexedSetter work as special setters.
+
+        * js/dom/reflect-set-onto-dom-expected.txt:
+        * js/dom/script-tests/reflect-set-onto-dom.js:
+
 2016-03-15  Zalan Bujtas  <zalan@apple.com>
 
         Remove overflow: -webkit-marquee

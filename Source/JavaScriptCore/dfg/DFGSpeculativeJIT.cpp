@@ -5655,6 +5655,20 @@ void SpeculativeJIT::compileNewFunction(Node* node)
     cellResult(resultGPR, node);
 }
 
+void SpeculativeJIT::compileSetFunctionName(Node* node)
+{
+    SpeculateCellOperand func(this, node->child1());
+    GPRReg funcGPR = func.gpr();
+    JSValueOperand nameValue(this, node->child2());
+    JSValueRegs nameValueRegs = nameValue.jsValueRegs();
+
+    flushRegisters();
+    callOperation(operationSetFunctionName, funcGPR, nameValueRegs);
+    m_jit.exceptionCheck();
+
+    noResult(node);
+}
+
 void SpeculativeJIT::compileForwardVarargs(Node* node)
 {
     LoadVarargsData* data = node->loadVarargsData();
