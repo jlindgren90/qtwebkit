@@ -1,3 +1,64 @@
+2016-03-25  Simon Fraser  <simon.fraser@apple.com>
+
+        Inspector Memory Timeline sometimes encounters unstoppable rAF drawing
+        https://bugs.webkit.org/show_bug.cgi?id=155906
+
+        Reviewed by Anders Carlsson.
+
+        It was possible to get Web Inspector into a state where repeated, expensive
+        requestAnimationFrame calls prevented user events from being handled, making it
+        unresponsive.
+        
+        requestAnimationFrame uses callOnMainThread() to get a notification from the 
+        CVDispayLink thread to the main thread, which is a -performSelectorOnMainThread...
+        Under the hood, this ends up as a CFRunLoopPerformBlock().
+        
+        User events come in via Connection::enqueueIncomingMessage(), which uses RunLoop::main()::dispatch(),
+        which uses a CFRunLoopSource. Evidently, repeated calls to CFRunLoopPerformBlock() can prevent the
+        CFRunLoopSource from being handled.
+        
+        Fix by moving requestAnimationFrame from callOnMainThread() to RunLoop::main()::dispatch().
+
+        * platform/graphics/mac/DisplayRefreshMonitorMac.cpp:
+        (WebCore::DisplayRefreshMonitorMac::displayLinkFired):
+
+2016-03-28  Chris Dumez  <cdumez@apple.com>
+
+        Disk cache speculative validation requests do not have the 'Referer' HTTP header set
+        https://bugs.webkit.org/show_bug.cgi?id=155890
+        <rdar://problem/25279962>
+
+        Reviewed by Antti Koivisto.
+
+        Export a couple more symbols so we can use them from WebKit2.
+
+        * platform/network/HTTPHeaderMap.h:
+        * platform/network/ResourceRequestBase.h:
+
+2016-03-24  Timothy Hatcher  <timothy@apple.com>
+
+        Web Automation: Add commands to compute layout of an element
+
+        https://bugs.webkit.org/show_bug.cgi?id=155841
+        rdar://problem/25340075
+
+        Reviewed by Brian Burg.
+
+        * dom/Element.h: Mark scrollIntoViewIfNeeded() method as exported so WK2 can use it.
+        * platform/ScrollView.h: Mark rootViewToContents(IntRect) method as exported so WK2 can use it.
+
+2016-03-18  Timothy Hatcher  <timothy@apple.com>
+
+        Web Automation: Add Automation protocol commands to resolve frames as handles
+
+        https://bugs.webkit.org/show_bug.cgi?id=155650
+        rdar://problem/25242422
+
+        Reviewed by Brian Burg.
+
+        * page/DOMWindow.h: Marked focus() method as exported so WK2 can use them.
+        * page/FrameTree.h: Marked scopedChild() methods as exported so WK2 can use them.
+
 2016-03-28  Konstantin Tokarev  <annulen@yandex.ru>
 
         Remove USE(TEXTURE_MAPPER) guards inside TextureMapper sources.
