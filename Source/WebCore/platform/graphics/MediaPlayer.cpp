@@ -69,9 +69,7 @@
 #endif
 
 #if PLATFORM(COCOA)
-#if USE(QTKIT)
 #include "MediaPlayerPrivateQTKit.h"
-#endif
 
 #if USE(AVFOUNDATION)
 #include "MediaPlayerPrivateAVFoundationObjC.h"
@@ -218,7 +216,7 @@ static void buildMediaEnginesVector()
     }
 #endif // USE(AVFOUNDATION)
 
-#if PLATFORM(MAC) && USE(QTKIT)
+#if PLATFORM(MAC)
     if (Settings::isQTKitEnabled())
         MediaPlayerPrivateQTKit::registerMediaEngine(addMediaEngine);
 #endif

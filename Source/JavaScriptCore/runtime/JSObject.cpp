@@ -2240,7 +2240,10 @@ bool JSObject::putByIndexBeyondVectorLengthWithoutAttributes(ExecState* exec, un
         return result;
     }
 
-    ensureLength(vm, i + 1);
+    if (!ensureLength(vm, i + 1)) {
+        throwOutOfMemoryError(exec);
+        return false;
+    }
     butterfly = m_butterfly.get();
 
     RELEASE_ASSERT(i < butterfly->vectorLength());
@@ -2758,7 +2761,7 @@ bool JSObject::increaseVectorLength(VM& vm, unsigned newLength)
     return true;
 }
 
-void JSObject::ensureLengthSlow(VM& vm, unsigned length)
+bool JSObject::ensureLengthSlow(VM& vm, unsigned length)
 {
     Butterfly* butterfly = m_butterfly.get();
     
@@ -2775,6 +2778,8 @@ void JSObject::ensureLengthSlow(VM& vm, unsigned length)
         vm, this, structure(), structure()->outOfLineCapacity(), true,
         oldVectorLength * sizeof(EncodedJSValue),
         newVectorLength * sizeof(EncodedJSValue));
+    if (!butterfly)
+        return false;
     m_butterfly.set(vm, this, butterfly);
 
     butterfly->setVectorLength(newVectorLength);
@@ -2783,6 +2788,7 @@ void JSObject::ensureLengthSlow(VM& vm, unsigned length)
         for (unsigned i = oldVectorLength; i < newVectorLength; ++i)
             butterfly->contiguousDouble().data()[i] = PNaN;
     }
+    return true;
 }
 
 void JSObject::reallocateAndShrinkButterfly(VM& vm, unsigned length)
