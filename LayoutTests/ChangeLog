@@ -1,3 +1,148 @@
+2016-04-05  Chris Dumez  <cdumez@apple.com>
+
+        We sometimes fail to remove outdated entry from the disk cache after revalidation and when the resource is no longer cacheable
+        https://bugs.webkit.org/show_bug.cgi?id=156048
+        <rdar://problem/25514480>
+
+        Reviewed by Antti Koivisto.
+
+        Add test coverage for the bug.
+
+        * http/tests/cache/disk-cache/disk-cache-remove-several-pending-writes-expected.txt: Added.
+        * http/tests/cache/disk-cache/disk-cache-remove-several-pending-writes.html: Added.
+        * http/tests/cache/disk-cache/resources/json.php: Added.
+
+2016-04-05  Antti Koivisto  <antti@apple.com>
+
+        Shadow DOM: :host() From The First Shadow Context Should Not Style All Shadow Context
+        https://bugs.webkit.org/show_bug.cgi?id=156235
+        <rdar://problem/24668206>
+
+        Reviewed by Andreas Kling.
+
+        * fast/shadow-dom/host-style-sharing-expected.html: Added.
+        * fast/shadow-dom/host-style-sharing.html: Added.
+
+2016-04-05  Antti Koivisto  <antti@apple.com>
+
+        Use RenderTreeUpdater for text node mutations
+        https://bugs.webkit.org/show_bug.cgi?id=156107
+
+        Reviewed by Andreas Kling.
+
+        Mostly just revert non-rendered whitespace related changes from the earlier patches.
+
+        * editing/style/remove-underline-from-stylesheet-expected.txt:
+        * editing/style/typing-style-003-expected.txt:
+        * platform/ios-simulator/editing/style/typing-style-003-expected.txt: Removed.
+        * platform/mac-wk2/editing/mac/spelling/autocorrection-contraction-expected.txt:
+        * platform/mac/editing/inserting/editable-html-element-expected.txt:
+        * platform/mac/editing/inserting/editing-empty-divs-expected.txt:
+        * platform/mac/editing/inserting/insert-at-end-02-expected.txt:
+        * platform/mac/editing/pasteboard/4989774-expected.txt:
+        * platform/mac/editing/selection/4983858-expected.txt:
+
+2016-04-04  Zalan Bujtas  <zalan@apple.com>
+
+        CSS Triangles Rendering Regression affecting CSS Ribbons.
+        https://bugs.webkit.org/show_bug.cgi?id=156121
+
+        Reviewed by Simon Fraser.
+
+        Rebeaseline to match current behaviour.
+
+        * fast/inline/hidpi-inline-text-decoration-with-subpixel-value-expected.html:
+        * platform/mac/css1/units/length_units-expected.txt:
+        * platform/mac/fast/css/bidi-override-in-anonymous-block-expected.txt:
+        * platform/mac/fast/multicol/span/anonymous-style-inheritance-expected.txt:
+        * platform/mac/fast/repaint/repaint-during-scroll-with-zoom-expected.txt:
+        * platform/mac/ietestcenter/css3/bordersbackgrounds/border-radius-initial-value-001-expected.txt:
+        * platform/mac/ietestcenter/css3/bordersbackgrounds/border-radius-style-001-expected.txt:
+        * platform/mac/ietestcenter/css3/bordersbackgrounds/border-radius-style-002-expected.txt:
+        * platform/mac/ietestcenter/css3/bordersbackgrounds/border-radius-style-004-expected.txt:
+        * platform/mac/ietestcenter/css3/bordersbackgrounds/border-radius-with-three-values-001-expected.txt:
+        * platform/mac/ietestcenter/css3/bordersbackgrounds/border-radius-with-two-values-001-expected.txt:
+        * platform/mac/ietestcenter/css3/bordersbackgrounds/border-top-left-radius-values-003-expected.txt:
+        * platform/mac/media/video-zoom-expected.txt:
+        * platform/mac/svg/custom/svg-fonts-in-html-expected.txt:
+        * platform/mac/svg/zoom/page/zoom-background-image-tiled-expected.txt:
+        * platform/mac/svg/zoom/page/zoom-background-images-expected.txt:
+        * platform/mac/svg/zoom/page/zoom-img-preserveAspectRatio-support-1-expected.txt:
+        * platform/mac/svg/zoom/page/zoom-replaced-intrinsic-ratio-001-expected.txt:
+        * platform/mac/svg/zoom/page/zoom-svg-float-border-padding-expected.txt:
+        * platform/mac/svg/zoom/page/zoom-svg-through-object-with-auto-size-expected.txt:
+        * platform/mac/tables/mozilla_expected_failures/bugs/bug1055-2-expected.txt:
+
+2016-04-04  Doug Russell  <d_russell@apple.com>
+
+        AX: new lines in content editable elements don't notify accessibility
+        https://bugs.webkit.org/show_bug.cgi?id=153361
+
+        Reviewed by Ryosuke Niwa.
+
+        Relocate accessibility edit notification logic into higher level logic.
+        Typing notifications relocated into TypingCommand.
+        Cut & Paste notifications relocated into Editor.
+        Undo relocated into EditCommandComposition.
+
+        * accessibility/mac/selection-value-changes-for-aria-textbox-expected.txt:
+        * accessibility/mac/value-change-userinfo-expected.txt: Removed.
+        * accessibility/mac/value-change-userinfo.html: Removed.
+        * accessibility/mac/value-change/value-change-helpers.js: Added.
+        (stringForEditType):
+        (bump):
+        (shouldBeInsert):
+        (shouldBeTyping):
+        (shouldBeDelete):
+        (shouldBeCut):
+        (shouldBePaste):
+        (shouldBeReplace):
+        (shouldBePasteReplace):
+        (shouldBeTypingReplace):
+        (shouldBeInsertReplace):
+        * accessibility/mac/value-change/value-change-user-info-contenteditable-expected.txt: Added.
+        * accessibility/mac/value-change/value-change-user-info-contenteditable.html: Added.
+        * accessibility/mac/value-change/value-change-user-info-textarea-expected.txt: Added.
+        * accessibility/mac/value-change/value-change-user-info-textarea.html: Added.
+        * accessibility/mac/value-change/value-change-user-info-textfield-expected.txt: Added.
+        * accessibility/mac/value-change/value-change-user-info-textfield.html: Added.
+
+2016-04-04  Dean Jackson  <dino@apple.com>
+
+        Add color-gamut media query support
+        https://bugs.webkit.org/show_bug.cgi?id=155994
+        <rdar://problem/23282326>
+
+        Reviewed by Darin Adler.
+
+        New test for color-gamut.
+
+        * fast/media/mq-color-gamut-expected.html: Added.
+        * fast/media/mq-color-gamut.html: Added.
+
+2016-04-04  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping crashing test fast/loader/opaque-base-url.html on Debug
+        https://bugs.webkit.org/show_bug.cgi?id=156179
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-04-04  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r196145): Crash in getOwnPropertyDescriptor on http://www.history.com/shows/vikings
+        https://bugs.webkit.org/show_bug.cgi?id=156136
+        <rdar://problem/25410767>
+
+        Reviewed by Ryosuke Niwa.
+
+        Add a layout test to confirm that calling Object.getOwnPropertyDescriptor(window, "indexedDB")
+        does not crash and works as expected.
+
+        * storage/indexeddb/indexeddb-getownpropertyDescriptor-expected.txt: Added.
+        * storage/indexeddb/indexeddb-getownpropertyDescriptor.html: Added.
+
 2016-04-04  Ryan Haddad  <ryanhaddad@apple.com>
 
         Marking plugins/focus.html as flaky on mac

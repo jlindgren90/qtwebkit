@@ -1,3 +1,294 @@
+2016-04-05  Chris Dumez  <cdumez@apple.com>
+
+        We sometimes fail to remove outdated entry from the disk cache after revalidation and when the resource is no longer cacheable
+        https://bugs.webkit.org/show_bug.cgi?id=156048
+        <rdar://problem/25514480>
+
+        Reviewed by Antti Koivisto.
+
+        We would sometimes fail to remove outdated entry from the disk cache
+        after revalidation and when the resource is no longer cacheable. This
+        was due to Storage::removeFromPendingWriteOperations() only removing
+        the first pending write operation with a given key instead of actually
+        removing all of the operations with this key.
+
+        * NetworkProcess/cache/NetworkCacheStorage.cpp:
+        (WebKit::NetworkCache::Storage::removeFromPendingWriteOperations):
+        * NetworkProcess/cache/NetworkCacheStorage.h:
+
+2016-04-05  Antoine Quint  <graouts@apple.com>
+
+        [WebGL2] Allow enabling WebGL2 with a runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=156166
+        <rdar://problem/25526929>
+
+        Set the WebGL2 runtime flag based on preferences, disabled by default.
+
+        Reviewed by Dean Jackson.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetWebGL2Enabled):
+        (WKPreferencesGetWebGL2Enabled):
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+        (WebKit::InjectedBundle::overrideBoolPreferenceForTestRunner):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-04-04  Zan Dobersek  <zdobersek@igalia.com>
+
+        [ThreadedCompositor] Move CompositingRunLoop class into a separate file
+        https://bugs.webkit.org/show_bug.cgi?id=156170
+
+        Reviewed by Michael Catanzaro.
+
+        Move the CompositingRunLoop class from the ThreadedCompositor.cpp file
+        into its own implementation file, with the class declaration placed
+        into the accompanying header file. This follows the general rule of
+        keeping different class implementations in separate files.
+
+        No change in behavior, just refactoring.
+
+        * PlatformGTK.cmake:
+        * Shared/CoordinatedGraphics/threadedcompositor/CompositingRunLoop.cpp: Added.
+        (WebKit::CompositingRunLoop::CompositingRunLoop):
+        (WebKit::CompositingRunLoop::callOnCompositingRunLoop):
+        (WebKit::CompositingRunLoop::setUpdateTimer):
+        (WebKit::CompositingRunLoop::stopUpdateTimer):
+        (WebKit::CompositingRunLoop::updateTimerFired):
+        * Shared/CoordinatedGraphics/threadedcompositor/CompositingRunLoop.h: Added.
+        (WebKit::CompositingRunLoop::runLoop):
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::CompositingRunLoop::CompositingRunLoop): Deleted.
+        (WebKit::CompositingRunLoop::callOnCompositingRunLoop): Deleted.
+        (WebKit::CompositingRunLoop::setUpdateTimer): Deleted.
+        (WebKit::CompositingRunLoop::stopUpdateTimer): Deleted.
+        (WebKit::CompositingRunLoop::runLoop): Deleted.
+        (WebKit::CompositingRunLoop::updateTimerFired): Deleted.
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.h:
+
+2016-04-04  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Dump blobs to disk before storing them in an object store.
+        https://bugs.webkit.org/show_bug.cgi?id=156068
+
+        Reviewed by Alex Christensen.
+
+        * NetworkProcess/FileAPI/NetworkBlobRegistry.cpp:
+        (WebKit::NetworkBlobRegistry::writeBlobsToTemporaryFiles):
+        * NetworkProcess/FileAPI/NetworkBlobRegistry.h:
+
+        * NetworkProcess/NetworkConnectionToWebProcess.cpp:
+        (WebKit::NetworkConnectionToWebProcess::writeBlobsToTemporaryFiles):
+        * NetworkProcess/NetworkConnectionToWebProcess.h:
+        * NetworkProcess/NetworkConnectionToWebProcess.messages.in:
+
+        * WebProcess/FileAPI/BlobRegistryProxy.cpp:
+        (WebKit::BlobRegistryProxy::writeBlobsToTemporaryFiles):
+        * WebProcess/FileAPI/BlobRegistryProxy.h:
+
+        * WebProcess/Network/NetworkProcessConnection.cpp:
+        (WebKit::NetworkProcessConnection::didClose):
+        (WebKit::NetworkProcessConnection::writeBlobsToTemporaryFiles):
+        (WebKit::NetworkProcessConnection::didWriteBlobsToTemporaryFiles):
+        * WebProcess/Network/NetworkProcessConnection.h:
+        * WebProcess/Network/NetworkProcessConnection.messages.in:
+
+2016-04-04  Chelsea Pugh  <cpugh@apple.com>
+
+        [iOS] Allow clients in the bundle to know whether a field was focused by user interaction        
+        https://bugs.webkit.org/show_bug.cgi?id=156118
+
+        Reviewed by Dan Bernstein.
+
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInFormDelegatePrivate.h: Add delegate method that takes userIsInteracting bool so that bundle clients get this information.
+        * WebProcess/InjectedBundle/API/mac/WKWebProcessPlugInBrowserContextController.mm: Call API with userIsInteracting property if delegate implements it, otherwise call existing API if
+        userIsInteracting is true, as we previously did in WebKit::WebPage::elementDidFocus. Move FIXME from WebKit::WebPage::elementDidFocus to here, since we are checking userIsInteracting.
+        * WebProcess/InjectedBundle/APIInjectedBundleFormClient.h:
+        (API::InjectedBundle::FormClient::willBeginInputSession): Add userIsInteracting bool to arguments so we can use it for call to the new API as well as preserving behavior of the old API.
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::elementDidFocus): Remove check if user is interacting and call willBeginInputSession unconditionally. Move FIXME to where we check
+        userIsInteracting. Pass m_userIsInteracting to willBeginInputSession so we can use it there.
+
+2016-04-04  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed GTK build fix after r199020
+
+        * UIProcess/API/gtk/WebKitUserContentManager.cpp:
+        (webkit_user_content_manager_register_script_message_handler):
+        (webkit_user_content_manager_unregister_script_message_handler):
+
+2016-04-04  Alex Christensen  <achristensen@webkit.org>
+
+        CMake build fix.
+
+        * PlatformMac.cmake:
+
+2016-04-04  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Tapping on tabs in webpages caused WK crash at WebKit: WebKit::WebFrame::didReceivePolicyDecision
+        https://bugs.webkit.org/show_bug.cgi?id=156119
+        <rdar://problem/20732167>
+
+        Reviewed by Andy Estes.
+
+        Protect the m_frame so that it is present for completion handlers.
+
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::dispatchDecidePolicyForResponse):
+        (WebKit::WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction):
+
+2016-04-04  Beth Dakin  <bdakin@apple.com>
+
+        Add some logic to decide when a video can control the videoControlsManager
+        https://bugs.webkit.org/show_bug.cgi?id=156089
+        -and corresponding-
+        rdar://problem/23833752
+
+        Reviewed by Eric Carlson and Tim Horton.
+
+        The biggest change in WebKit2 is to push all of the logic for the 
+        videoControlsManager into WebCore. With this change, WebCore will invoke 
+        setUpVideoControlsManager() when there is a video to control the manager, and 
+        it will call clearVideoControlsManager() when there is not.
+
+        Add clearVideoControlsManager().
+        * UIProcess/Cocoa/WebVideoFullscreenManagerProxy.h:
+        * UIProcess/Cocoa/WebVideoFullscreenManagerProxy.messages.in:
+        * UIProcess/Cocoa/WebVideoFullscreenManagerProxy.mm:
+        (WebKit::WebVideoFullscreenManagerProxy::clearVideoControlsManager):
+
+        Re-name isPlayingMediaDidChange() to videoControlsManagerDidChange(). This 
+        ties the logic to the lifetime of the videoControlsManager instead of 
+        figuring it out in the UIProcess based on the media state.
+        * UIProcess/Cocoa/WebViewImpl.h:
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::videoControlsManagerDidChange):
+        (WebKit::WebViewImpl::isPlayingMediaDidChange): Deleted.
+        * UIProcess/PageClient.h:
+
+        Also change isPlayingVideoWithAudio() into hasActiveVideoForControlsManager() 
+        Again, this ties the logic to the lifetime of the videoControlsManager 
+        instead of figuring it out in the UIProcess based on the media state.
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::isPlayingMediaDidChange):
+        (WebKit::WebPageProxy::videoControlsManagerDidChange):
+        (WebKit::WebPageProxy::hasActiveVideoForControlsManager):
+        (WebKit::WebPageProxy::isPlayingVideoWithAudio): Deleted.
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/mac/PageClientImpl.h:
+        * UIProcess/mac/PageClientImpl.mm:
+        (WebKit::PageClientImpl::videoControlsManagerDidChange):
+        (WebKit::PageClientImpl::isPlayingMediaDidChange): Deleted.
+
+        New WebChromeClient function clearVideoControlsManager().
+        * WebProcess/WebCoreSupport/WebChromeClient.cpp:
+        (WebKit::WebChromeClient::clearVideoControlsManager):
+        * WebProcess/WebCoreSupport/WebChromeClient.h:
+
+        Do the work to clear the videoControlsManager.
+        * WebProcess/cocoa/WebVideoFullscreenManager.h:
+        * WebProcess/cocoa/WebVideoFullscreenManager.mm:
+        (WebKit::WebVideoFullscreenManager::clearVideoControlsManager):
+        (WebKit::WebVideoFullscreenManager::exitVideoFullscreenToModeWithoutAnimation):
+
+2016-04-04  Brent Fulgham  <bfulgham@apple.com>
+
+        REGRESSION(r198955): com.apple.WebKit.Networking.Development crashed in WebKit::NetworkLoad::setPendingDownloadID + 11
+        https://bugs.webkit.org/show_bug.cgi?id=156177
+        <rdar://problem/25508037>
+
+        Reviewed by Alex Christensen.
+
+        We do not currently create a NetworkDataTask when we encounter a BLOB URL when building with
+        NETWORK_SESSION enabled. This causes us to crash when the download system attempts to work
+        with a BLOB URL.
+
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::setPendingDownloadID): Add null check for m_task.
+        (WebKit::NetworkLoad::setPendingDownload): Ditto.
+
+2016-04-03  Sam Weinig  <sam@webkit.org>
+
+        Add SPI to allow install script message handlers in isolated worlds
+        https://bugs.webkit.org/show_bug.cgi?id=156153
+
+        Reviewed by Anders Carlsson.
+
+        * Scripts/webkit/messages.py:
+        (headers_for_type):
+        * Shared/WebUserContentControllerDataTypes.cpp:
+        (WebKit::WebScriptMessageHandlerData::encode):
+        (WebKit::WebScriptMessageHandlerData::decode):
+        * Shared/WebUserContentControllerDataTypes.h:
+        Add WebKit::WebScriptMessageHandlerData, matching WebKit::WebUserScriptData and
+        WebKit::WebUserStyleSheetData.
+
+        * UIProcess/API/Cocoa/WKUserContentController.mm:
+        (-[WKUserContentController addScriptMessageHandler:name:]):
+        (-[WKUserContentController removeScriptMessageHandlerForName:]):
+        (-[WKUserContentController _removeAllUserStyleSheetsAssociatedWithUserContentWorld:]):
+        (-[WKUserContentController _addScriptMessageHandler:name:userContentWorld:]):
+        (-[WKUserContentController _removeScriptMessageHandlerForName:userContentWorld:]):
+        (-[WKUserContentController _removeAllScriptMessageHandlersAssociatedWithUserContentWorld:]):
+        * UIProcess/API/Cocoa/WKUserContentControllerPrivate.h:
+        Add SPI for adding and removing ScriptMessageHandlers associated with a world.
+
+        * UIProcess/UserContent/WebScriptMessageHandler.cpp:
+        (WebKit::WebScriptMessageHandler::create):
+        (WebKit::WebScriptMessageHandler::WebScriptMessageHandler):
+        (WebKit::WebScriptMessageHandlerHandle::encode): Deleted.
+        (WebKit::WebScriptMessageHandlerHandle::decode): Deleted.
+        * UIProcess/UserContent/WebScriptMessageHandler.h:
+        (WebKit::WebScriptMessageHandler::identifier):
+        (WebKit::WebScriptMessageHandler::name):
+        (WebKit::WebScriptMessageHandler::userContentWorld):
+        (WebKit::WebScriptMessageHandler::client):
+        (WebKit::WebScriptMessageHandler::handle): Deleted.
+        Add the world and move the data object to WebUserContentControllerDataTypes.h
+
+        * UIProcess/UserContent/WebUserContentControllerProxy.cpp:
+        (WebKit::WebUserContentControllerProxy::addProcess):
+        (WebKit::WebUserContentControllerProxy::addUserScriptMessageHandler):
+        (WebKit::WebUserContentControllerProxy::removeUserMessageHandlerForName):
+        (WebKit::WebUserContentControllerProxy::removeAllUserMessageHandlers):
+        * UIProcess/UserContent/WebUserContentControllerProxy.h:
+        Update for worlds, matching UserScript/UserStyleSheet model.
+
+        * WebProcess/UserContent/WebUserContentController.h:
+        * WebProcess/UserContent/WebUserContentController.cpp:
+        (WebKit::WebUserMessageHandlerDescriptorProxy::WebUserMessageHandlerDescriptorProxy):
+        Change to inherit directly from WebCore::UserMessageHandlerDescriptor.
+
+        (WebKit::WebUserContentController::addUserScriptMessageHandlers):
+        (WebKit::WebUserContentController::removeUserScriptMessageHandler):
+        (WebKit::WebUserContentController::removeAllUserScriptMessageHandlers):
+        (WebKit::WebUserContentController::addUserScriptMessageHandlerInternal):
+        (WebKit::WebUserContentController::removeUserScriptMessageHandlerInternal):
+        Add support for worlds, matching UserScript/UserStyleSheet model.
+
+        (WebKit::WebUserContentController::addUserStyleSheets):
+        Add missing call to invalidateInjectedStyleSheetCacheInAllFramesInAllPages()
+
+        (WebKit::WebUserContentController::removeAllUserStyleSheets):
+        Switch to only calling invalidateInjectedStyleSheetCacheInAllFramesInAllPages() once
+        after the loop and only if any stylesheets were removed.
+        
+        (WebKit::WebUserContentController::addUserStyleSheetInternal):
+        Remove call to invalidateInjectedStyleSheetCacheInAllFramesInAllPages(), make
+        callers call it. This allows us to avoid calling it repeatedly in removeAllUserStyleSheets().
+
+        (WebKit::WebUserContentController::addUserStyleSheet):
+        Call invalidateInjectedStyleSheetCacheInAllFramesInAllPages() explicitly since it
+        is no longer called in addUserStyleSheetInternal().
+
+        (WebKit::WebUserContentController::forEachUserMessageHandler):
+        Implement by iterating the m_userMessageHandlers map.
+
+        * WebProcess/UserContent/WebUserContentController.messages.in:
+        Update for worlds, matching UserScript/UserStyleSheet model.
+
 2016-04-04  Joonghun Park  <jh718.park@samsung.com>
 
         [EFL] Fix build break since r198800

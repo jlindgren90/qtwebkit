@@ -850,6 +850,7 @@ set(WebCore_SOURCES
     Modules/indexeddb/IDBRequest.cpp
     Modules/indexeddb/IDBRequestCompletionEvent.cpp
     Modules/indexeddb/IDBTransaction.cpp
+    Modules/indexeddb/IDBValue.cpp
     Modules/indexeddb/IDBVersionChangeEvent.cpp
     Modules/indexeddb/WorkerGlobalScopeIndexedDatabase.cpp
 
@@ -1565,8 +1566,6 @@ set(WebCore_SOURCES
     editing/RemoveNodeCommand.cpp
     editing/RemoveNodePreservingChildrenCommand.cpp
     editing/RenderedPosition.cpp
-    editing/ReplaceDeleteFromTextNodeCommand.cpp
-    editing/ReplaceInsertIntoTextNodeCommand.cpp
     editing/ReplaceNodeWithSpanCommand.cpp
     editing/ReplaceSelectionCommand.cpp
     editing/SetNodeAttributeCommand.cpp

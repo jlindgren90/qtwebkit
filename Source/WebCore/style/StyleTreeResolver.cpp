@@ -51,40 +51,6 @@ namespace WebCore {
 
 namespace Style {
 
-static void attachTextRenderer(Text&, RenderTreePosition&);
-static void resolveTextNode(Text&, RenderTreePosition&);
-
-class SelectorFilterPusher {
-public:
-    enum PushMode { Push, NoPush };
-    SelectorFilterPusher(SelectorFilter& selectorFilter, Element& parent, PushMode pushMode = Push)
-        : m_selectorFilter(selectorFilter)
-        , m_parent(parent)
-    {
-        if (pushMode == Push)
-            push();
-    }
-    void push()
-    {
-        if (m_didPush)
-            return;
-        m_didPush = true;
-        m_selectorFilter.pushParent(&m_parent);
-    }
-    ~SelectorFilterPusher()
-    {
-        if (!m_didPush)
-            return;
-        m_selectorFilter.popParent();
-    }
-    
-private:
-    SelectorFilter& m_selectorFilter;
-    Element& m_parent;
-    bool m_didPush { false };
-};
-
-
 static RenderStyle* placeholderStyle;
 
 static void ensurePlaceholderStyle(Document& document)
@@ -189,125 +155,6 @@ Ref<RenderStyle> TreeResolver::styleForElement(Element& element, RenderStyle& in
     return WTFMove(elementStyle.renderStyle);
 }
 
-static void invalidateWhitespaceOnlyTextSiblingsAfterAttachIfNeeded(Node& current)
-{
-    // FIXME: This needs to traverse in composed tree order.
-
-    // This function finds sibling text renderers where the results of textRendererIsNeeded may have changed as a result of
-    // the current node gaining or losing the renderer. This can only affect white space text nodes.
-    for (Node* sibling = current.nextSibling(); sibling; sibling = sibling->nextSibling()) {
-        if (sibling->needsStyleRecalc())
-            return;
-        if (is<Element>(*sibling)) {
-            // Text renderers beyond rendered elements can't be affected.
-            if (!sibling->renderer() || RenderTreePosition::isRendererReparented(*sibling->renderer()))
-                continue;
-            return;
-        }
-        if (!is<Text>(*sibling))
-            continue;
-        Text& textSibling = downcast<Text>(*sibling);
-        if (!textSibling.containsOnlyWhitespace())
-            continue;
-        textSibling.setNeedsStyleRecalc();
-    }
-}
-
-static bool textRendererIsNeeded(const Text& textNode, const RenderTreePosition& renderTreePosition)
-{
-    const RenderElement& parentRenderer = renderTreePosition.parent();
-    if (!parentRenderer.canHaveChildren())
-        return false;
-    if (parentRenderer.element() && !parentRenderer.element()->childShouldCreateRenderer(textNode))
-        return false;
-    if (textNode.isEditingText())
-        return true;
-    if (!textNode.length())
-        return false;
-    if (!textNode.containsOnlyWhitespace())
-        return true;
-    // This text node has nothing but white space. We may still need a renderer in some cases.
-    if (parentRenderer.isTable() || parentRenderer.isTableRow() || parentRenderer.isTableSection() || parentRenderer.isRenderTableCol() || parentRenderer.isFrameSet())
-        return false;
-    if (parentRenderer.style().preserveNewline()) // pre/pre-wrap/pre-line always make renderers.
-        return true;
-
-    RenderObject* previousRenderer = renderTreePosition.previousSiblingRenderer(textNode);
-    if (previousRenderer && previousRenderer->isBR()) // <span><br/> <br/></span>
-        return false;
-
-    if (parentRenderer.isRenderInline()) {
-        // <span><div/> <div/></span>
-        if (previousRenderer && !previousRenderer->isInline())
-            return false;
-    } else {
-        if (parentRenderer.isRenderBlock() && !parentRenderer.childrenInline() && (!previousRenderer || !previousRenderer->isInline()))
-            return false;
-        
-        RenderObject* first = parentRenderer.firstChild();
-        while (first && first->isFloatingOrOutOfFlowPositioned())
-            first = first->nextSibling();
-        RenderObject* nextRenderer = renderTreePosition.nextSiblingRenderer(textNode);
-        if (!first || nextRenderer == first) {
-            // Whitespace at the start of a block just goes away. Don't even make a render object for this text.
-            return false;
-        }
-    }
-    return true;
-}
-
-static void createTextRendererIfNeeded(Text& textNode, RenderTreePosition& renderTreePosition)
-{
-    ASSERT(!textNode.renderer());
-
-    if (!textRendererIsNeeded(textNode, renderTreePosition))
-        return;
-
-    auto newRenderer = textNode.createTextRenderer(renderTreePosition.parent().style());
-    ASSERT(newRenderer);
-
-    renderTreePosition.computeNextSibling(textNode);
-
-    if (!renderTreePosition.canInsert(*newRenderer))
-        return;
-
-    // Make sure the RenderObject already knows it is going to be added to a RenderFlowThread before we set the style
-    // for the first time. Otherwise code using inRenderFlowThread() in the styleWillChange and styleDidChange will fail.
-    newRenderer->setFlowThreadState(renderTreePosition.parent().flowThreadState());
-
-    textNode.setRenderer(newRenderer.get());
-    renderTreePosition.insert(*newRenderer.leakPtr());
-}
-
-void attachTextRenderer(Text& textNode, RenderTreePosition& renderTreePosition)
-{
-    createTextRendererIfNeeded(textNode, renderTreePosition);
-
-    textNode.clearNeedsStyleRecalc();
-}
-
-void detachTextRenderer(Text& textNode)
-{
-    if (textNode.renderer())
-        textNode.renderer()->destroyAndCleanupAnonymousWrappers();
-    textNode.setRenderer(0);
-}
-
-void updateTextRendererAfterContentChange(Text& textNode, unsigned offsetOfReplacedData, unsigned lengthOfReplacedData)
-{
-    auto* renderingParentNode = composedTreeAncestors(textNode).first();
-    if (!renderingParentNode || !renderingParentNode->renderer())
-        return;
-
-    bool hadRenderer = textNode.renderer();
-
-    RenderTreePosition renderTreePosition(*renderingParentNode->renderer());
-    resolveTextNode(textNode, renderTreePosition);
-
-    if (hadRenderer && textNode.renderer())
-        textNode.renderer()->setTextWithOffset(textNode.data(), offsetOfReplacedData, lengthOfReplacedData);
-}
-
 static void resetStyleForNonRenderedDescendants(Element& current)
 {
     // FIXME: This is not correct with shadow trees. This should be done with ComposedTreeIterator.
@@ -327,72 +174,6 @@ static void resetStyleForNonRenderedDescendants(Element& current)
             child.clearChildNeedsStyleRecalc();
         }
     }
-}
-
-static void detachChildren(ContainerNode& current, DetachType detachType)
-{
-    for (Node* child = current.firstChild(); child; child = child->nextSibling()) {
-        if (is<Text>(*child))
-            detachTextRenderer(downcast<Text>(*child));
-        else if (is<Element>(*child))
-            detachRenderTree(downcast<Element>(*child), detachType);
-    }
-    current.clearChildNeedsStyleRecalc();
-}
-
-static void detachShadowRoot(ShadowRoot& shadowRoot, DetachType detachType)
-{
-    detachChildren(shadowRoot, detachType);
-}
-
-#if ENABLE(SHADOW_DOM) || ENABLE(DETAILS_ELEMENT)
-static void detachSlotAssignees(HTMLSlotElement& slot, DetachType detachType)
-{
-    ASSERT(!slot.renderer());
-    if (auto* assignedNodes = slot.assignedNodes()) {
-        for (auto* child : *assignedNodes) {
-            if (is<Text>(*child))
-                detachTextRenderer(downcast<Text>(*child));
-            else if (is<Element>(*child))
-                detachRenderTree(downcast<Element>(*child), detachType);
-        }
-    } else
-        detachChildren(slot, detachType);
-
-    slot.clearNeedsStyleRecalc();
-    slot.clearChildNeedsStyleRecalc();
-}
-#endif
-
-void detachRenderTree(Element& current, DetachType detachType)
-{
-    WidgetHierarchyUpdatesSuspensionScope suspendWidgetHierarchyUpdates;
-
-    if (current.hasCustomStyleResolveCallbacks())
-        current.willDetachRenderers();
-
-    current.clearStyleDerivedDataBeforeDetachingRenderer();
-
-    // Do not remove the element's hovered and active status
-    // if performing a reattach.
-    if (detachType != ReattachDetach)
-        current.clearHoverAndActiveStatusBeforeDetachingRenderer();
-
-#if ENABLE(SHADOW_DOM) || ENABLE(DETAILS_ELEMENT)
-    if (is<HTMLSlotElement>(current))
-        detachSlotAssignees(downcast<HTMLSlotElement>(current), detachType);
-#endif
-    else if (ShadowRoot* shadowRoot = current.shadowRoot())
-        detachShadowRoot(*shadowRoot, detachType);
-
-    detachChildren(current, detachType);
-
-    if (current.renderer())
-        current.renderer()->destroyAndCleanupAnonymousWrappers();
-    current.setRenderer(nullptr);
-
-    if (current.hasCustomStyleResolveCallbacks())
-        current.didDetachRenderers();
 }
 
 static bool affectsRenderedSubtree(Element& element, const RenderStyle& newStyle)
@@ -453,25 +234,6 @@ ElementUpdate TreeResolver::resolveElement(Element& element)
         update.change = Force;
 
     return update;
-}
-
-void resolveTextNode(Text& text, RenderTreePosition& renderTreePosition)
-{
-    text.clearNeedsStyleRecalc();
-
-    bool hasRenderer = text.renderer();
-    bool needsRenderer = textRendererIsNeeded(text, renderTreePosition);
-    if (hasRenderer) {
-        if (needsRenderer)
-            return;
-        detachTextRenderer(text);
-        invalidateWhitespaceOnlyTextSiblingsAfterAttachIfNeeded(text);
-        return;
-    }
-    if (!needsRenderer)
-        return;
-    attachTextRenderer(text, renderTreePosition);
-    invalidateWhitespaceOnlyTextSiblingsAfterAttachIfNeeded(text);
 }
 
 #if PLATFORM(IOS)

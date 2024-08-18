@@ -3004,14 +3004,6 @@ void HTMLMediaElement::playInternal()
         return;
     }
 
-    // FIXME: rdar://problem/23833752 We need to be more strategic about when we set up the video controls manager.
-    // It's really something that should be handled by the PlatformMediaSessionManager since we only want a controls
-    // manager for the currentSession.
-    if (document().page() && is<HTMLVideoElement>(*this)) {
-        HTMLVideoElement& asVideo = downcast<HTMLVideoElement>(*this);
-        document().page()->chrome().client().setUpVideoControlsManager(asVideo);
-    }
-
     // 4.8.10.9. Playing the media resource
     if (!m_player || m_networkState == NETWORK_EMPTY)
         scheduleDelayedAction(LoadMediaResource);
@@ -4830,6 +4822,11 @@ void HTMLMediaElement::updatePlayState()
     LOG(Media, "HTMLMediaElement::updatePlayState(%p) - shouldBePlaying = %s, playerPaused = %s", this, boolString(shouldBePlaying), boolString(playerPaused));
 
     if (shouldBePlaying) {
+        if (document().page() && m_mediaSession->canControlControlsManager(*this)) {
+            HTMLVideoElement& asVideo = downcast<HTMLVideoElement>(*this);
+            document().page()->chrome().client().setUpVideoControlsManager(asVideo);
+        }
+
         setDisplayMode(Video);
         invalidateCachedTime();
 
@@ -4862,6 +4859,9 @@ void HTMLMediaElement::updatePlayState()
         startPlaybackProgressTimer();
         setPlaying(true);
     } else {
+        if (endedPlayback() && document().page() && is<HTMLVideoElement>(*this))
+            document().page()->chrome().client().clearVideoControlsManager();
+
         if (!playerPaused)
             m_player->pause();
         refreshCachedTime();

@@ -1,3 +1,708 @@
+2016-04-05  Antti Koivisto  <antti@apple.com>
+
+        Shadow DOM: :host() From The First Shadow Context Should Not Style All Shadow Context
+        https://bugs.webkit.org/show_bug.cgi?id=156235
+        <rdar://problem/24668206>
+
+        Reviewed by Andreas Kling.
+
+        Test: fast/shadow-dom/host-style-sharing.html
+
+        * style/StyleSharingResolver.cpp:
+        (WebCore::Style::SharingResolver::resolve):
+        (WebCore::Style::SharingResolver::canShareStyleWithElement):
+
+            Disallow style sharing for shadow hosts affected by :host pseudo class rules.
+
+2016-04-05  Alex Christensen  <achristensen@webkit.org>
+
+        Speculative build fix after r199043
+
+        * bindings/js/SerializedScriptValue.cpp:
+        (WebCore::SerializedScriptValue::wireFormatVersion):
+        (WebCore::SerializedScriptValue::writeBlobsToDiskForIndexedDB):
+        * bindings/js/SerializedScriptValue.h:
+        (WebCore::SerializedScriptValue::data):
+        (WebCore::SerializedScriptValue::hasBlobURLs):
+        (WebCore::SerializedScriptValue::createFromWireBytes):
+        Initializer lists weren't the problem.  Missing precompiler macros was.
+
+2016-04-05  Alex Christensen  <achristensen@webkit.org>
+
+        Speculative build fix after r199043
+
+        * bindings/js/SerializedScriptValue.cpp:
+        (WebCore::SerializedScriptValue::writeBlobsToDiskForIndexedDB):
+        Explicitly call constructor instead of using an initializer list.
+
+2016-04-05  Xabier Rodriguez Calvar  <calvaris@igalia.com>
+
+        Unreviewed build fix with GSTREAMER_GL active.
+
+        Caused by r198655.
+
+        (WebCore::MediaPlayerPrivateGStreamerBase::nativeImageForCurrentTime):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h:
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp: Changed return type.
+
+2016-04-05  Antti Koivisto  <antti@apple.com>
+
+        Render tree teardown should be iterative
+        https://bugs.webkit.org/show_bug.cgi?id=156233
+
+        Reviewed by Andreas Kling.
+
+        * dom/ContainerNode.cpp:
+        (WebCore::destroyRenderTreeIfNeeded):
+        (WebCore::ContainerNode::takeAllChildrenFrom):
+        * dom/Document.cpp:
+        (WebCore::Document::destroyRenderTree):
+        * dom/Element.cpp:
+        (WebCore::disconnectPseudoElement):
+        * html/HTMLPlugInImageElement.cpp:
+        (WebCore::HTMLPlugInImageElement::prepareForDocumentSuspension):
+        * mathml/MathMLSelectElement.cpp:
+        (WebCore::MathMLSelectElement::updateSelectedChild):
+        * style/RenderTreeUpdater.cpp:
+        (WebCore::RenderTreeUpdater::updateElementRenderer):
+        (WebCore::RenderTreeUpdater::updateTextRenderer):
+        (WebCore::RenderTreeUpdater::updateBeforeOrAfterPseudoElement):
+        (WebCore::RenderTreeUpdater::tearDownRenderers):
+
+            Tear down render tree using ComposedTreeIterator for traversal.
+
+        (WebCore::RenderTreeUpdater::tearDownRenderer):
+
+        * style/RenderTreeUpdater.h:
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::ensurePlaceholderStyle):
+        (WebCore::Style::TreeResolver::styleForElement):
+        (WebCore::Style::resetStyleForNonRenderedDescendants):
+        (WebCore::Style::affectsRenderedSubtree):
+        (WebCore::Style::SelectorFilterPusher::SelectorFilterPusher): Deleted.
+        (WebCore::Style::SelectorFilterPusher::push): Deleted.
+        (WebCore::Style::SelectorFilterPusher::~SelectorFilterPusher): Deleted.
+
+            Unused class.
+
+        (WebCore::Style::detachTextRenderer): Deleted.
+        (WebCore::Style::detachChildren): Deleted.
+        (WebCore::Style::detachShadowRoot): Deleted.
+        (WebCore::Style::detachSlotAssignees): Deleted.
+        (WebCore::Style::detachRenderTree): Deleted.
+
+            Remove the old recursive code.
+
+        * style/StyleTreeResolver.h:
+
+2016-04-05  Antoine Quint  <graouts@apple.com>
+
+        [WebGL2] Allow enabling WebGL2 with a runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=156166
+        <rdar://problem/25526929>
+
+        Added new runtime flags for WebGL2.
+
+        Reviewed by Dean Jackson.
+
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::setWebGL2Enabled):
+        (WebCore::RuntimeEnabledFeatures::webGL2Enabled):
+
+2016-04-05  Antti Koivisto  <antti@apple.com>
+
+        Use RenderTreeUpdater for text node mutations
+        https://bugs.webkit.org/show_bug.cgi?id=156107
+
+        Reviewed by Andreas Kling.
+
+        Use the new mechanism for updating render tree after text node content changes.
+
+        * dom/CharacterData.cpp:
+        (WebCore::CharacterData::parserAppendData):
+        (WebCore::CharacterData::setDataAndUpdate):
+        * dom/Text.cpp:
+        (WebCore::Text::createWithLengthLimit):
+        (WebCore::Text::updateRendererAfterContentChange):
+
+            Update using RenderTreeUpdater.
+
+        (WebCore::Text::formatForDebugger):
+        * dom/Text.h:
+        (WebCore::Text::Text):
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::TreeResolver::styleForElement):
+        (WebCore::Style::resetStyleForNonRenderedDescendants):
+        (WebCore::Style::TreeResolver::resolveElement):
+        (WebCore::Style::elementImplicitVisibility):
+        (WebCore::Style::invalidateWhitespaceOnlyTextSiblingsAfterAttachIfNeeded): Deleted.
+        (WebCore::Style::textRendererIsNeeded): Deleted.
+        (WebCore::Style::createTextRendererIfNeeded): Deleted.
+        (WebCore::Style::attachTextRenderer): Deleted.
+        (WebCore::Style::detachTextRenderer): Deleted.
+        (WebCore::Style::updateTextRendererAfterContentChange): Deleted.
+        (WebCore::Style::resolveTextNode): Deleted.
+
+            Kill the old code paths.
+
+        * style/StyleTreeResolver.h:
+
+2016-04-05  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        [Curl][Soup] Fix the build after r199039
+        https://bugs.webkit.org/show_bug.cgi?id=156229 
+
+        Reviewed by Žan Doberšek.
+
+        * platform/network/curl/SocketStreamHandle.h:
+        (WebCore::SocketStreamHandle::create):
+        * platform/network/soup/SocketStreamHandle.h:
+        (WebCore::SocketStreamHandle::create):
+
+2016-04-04  Zan Dobersek  <zdobersek@igalia.com>
+
+        Guard showGraphicsLayerTree() with ENABLE(TREE_DEBUGGING)
+        https://bugs.webkit.org/show_bug.cgi?id=156157
+
+        Reviewed by Simon Fraser.
+
+        Mimic r181166 and guard the showGraphicsLayerTree() function with
+        ENABLE(TREE_DEBUGGING) guards, instead of !defined(NDEBUG). This
+        would enable invoking the function in release builds when the
+        ENABLE_TREE_DEBUGGING option is enabled, not limiting the function
+        to only debug builds.
+
+        * platform/graphics/GraphicsLayer.cpp:
+        * platform/graphics/GraphicsLayer.h:
+
+2016-04-04  Zan Dobersek  <zdobersek@igalia.com>
+
+        [TexMap] Improve viewport array access in TextureMapperGL::bindDefaultSurface()
+        https://bugs.webkit.org/show_bug.cgi?id=156159
+
+        Reviewed by Antonio Gomes.
+
+        * platform/graphics/texmap/TextureMapperGL.cpp:
+        (WebCore::TextureMapperGL::bindDefaultSurface): Create a reference to the
+        viewport array in the TextureMapperGLData object. Inline the IntSize constructor
+        for the object that's passed to createProjectionMatrix(), and use the reference
+        to access all four elements of the array as necessary.
+
+2016-04-04  Zan Dobersek  <zdobersek@igalia.com>
+
+        [TexMap] resolveOverlaps() should be passed-in the first Region parameter via a reference
+        https://bugs.webkit.org/show_bug.cgi?id=156158
+
+        Reviewed by Antonio Gomes.
+
+        * platform/graphics/texmap/TextureMapperLayer.cpp:
+        (WebCore::resolveOverlaps): Don't copy the Region object that's passed through
+        the first parameter by accepting a reference to the object instead. This does
+        modify the passed-in object, but these modifications don't have any effect on
+        any state via the call sites in TextureMapperLayer::computeOverlapRegions().
+
+2016-04-04  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Dump blobs to disk before storing them in an object store.
+        https://bugs.webkit.org/show_bug.cgi?id=156068
+        
+        Reviewed by Alex Christensen.
+
+        No new tests (Under development, no observable change in behavior yet).
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * CMakeLists.txt:
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::putOrAddOnServer):
+        
+        * Modules/indexeddb/IDBValue.cpp: Copied from Source/WebCore/platform/ScopeGuard.h.
+        (WebCore::IDBValue::IDBValue):
+        * Modules/indexeddb/IDBValue.h: Copied from Source/WebCore/platform/ScopeGuard.h.
+        
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::putOrAdd):
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+        
+        * Modules/indexeddb/client/TransactionOperation.h:
+        
+        * bindings/js/SerializedScriptValue.cpp:
+        (WebCore::SerializedScriptValue::SerializedScriptValue):
+        (WebCore::SerializedScriptValue::writeBlobsToDiskForIndexedDB):
+        (WebCore::SerializedScriptValue::addBlobURL): Deleted.
+        * bindings/js/SerializedScriptValue.h:
+        
+        * platform/FileSystem.cpp:
+        (WebCore::appendFileContentsToFileHandle):
+        * platform/FileSystem.h:
+        
+        * platform/ScopeGuard.h:
+        
+        * platform/network/BlobRegistry.h:
+        * platform/network/BlobRegistryImpl.cpp:
+        (WebCore::blobUtilityQueue):
+        (WebCore::BlobRegistryImpl::writeBlobsToTemporaryFiles):
+        * platform/network/BlobRegistryImpl.h:
+
+2016-04-04  Jer Noble  <jer.noble@apple.com>
+
+        [iOS] Crash when playing <video> after playing Web Audio
+        https://bugs.webkit.org/show_bug.cgi?id=156185
+        <rdar://problem/10177005>
+
+        Reviewed by Eric Carlson.
+
+        Off-by-one error in AudioDestinationIOS::render. The ivars m_firstSpareFrame and m_lastSpareFrame imply that
+        the sample range is inclusive, i.e. [m_firstSpareFrame .. m_lastSpareFrame], but the length of the range was
+        being calculated as if m_lastSpareFrame was exclusive; when the two were equal, the length was calculated as
+        0, rather than 1. This was caught by an ASSERT (and would have been caught by a downstream ASSERT had that one
+        not been present).
+
+        Fix the off-by-one by treating them as inclusive/exclusive--similar to C++ iterators--and renaming them to reflect
+        this: [m_startSpareFrame .. m_endSpareFrame). This corrects the "length" math which caused the crash.
+
+        * platform/audio/ios/AudioDestinationIOS.cpp:
+        (WebCore::AudioDestinationIOS::render):
+        * platform/audio/ios/AudioDestinationIOS.h:
+
+2016-04-04  John Wilander  <wilander@apple.com>
+
+        Block plaintext WebSocket requests to domains under HSTS.
+        https://bugs.webkit.org/show_bug.cgi?id=156049
+        <rdar://problem/13820000>
+
+        Reviewed by Brent Fulgham.
+
+        No new tests because the way TLS is setup for layout tests doesn't allow the server to set HSTS for 127.0.0.1 nor localhost. This is tracked in <rdar://problem/25467825>.
+
+        * Modules/websockets/WebSocketChannel.cpp:
+        (WebCore::WebSocketChannel::connect):
+            - Now sends usesEphemeralSession to SocketStreamHandle::create.
+        * platform/network/cf/SocketStreamHandle.h:
+        (WebCore::SocketStreamHandle::create):
+            - Added parameter usesEphemeralSession which it passes on to the SocketStreamHandle constructor.
+        * platform/network/cf/SocketStreamHandleCFNet.cpp:
+        (WebCore::SocketStreamHandle::SocketStreamHandle):
+            - Now blocks plaintext WebSocket connections for domains under HSTS if not in an ephemeral session.
+
+2016-04-04  Simon Fraser  <simon.fraser@apple.com>
+
+        Make FrameView's exposedRect an Optional<>
+        https://bugs.webkit.org/show_bug.cgi?id=156189
+
+        Reviewed by Tim Horton.
+
+        Instead of testing against isInfinite(), make FrameView::exposedRect() and the
+        member variable an Optional<FloatRect>.
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::setExposedRect):
+        * page/FrameView.h:
+        * rendering/RenderLayerBacking.cpp:
+        (WebCore::computeTileCoverage):
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::flushPendingLayerChanges):
+
+2016-04-04  Simon Fraser  <simon.fraser@apple.com>
+
+        Don't crash when rendering form controls with Display List Drawing enabled
+        https://bugs.webkit.org/show_bug.cgi?id=156122
+
+        Reviewed by Sam Weinig.
+        
+        Don't attempt to paint form controls if display-list drawing is enabled, since
+        doing so attempts to get at a CGContextRef that doens't exist.
+
+        * rendering/RenderTheme.cpp:
+        (WebCore::RenderTheme::paint):
+
+2016-04-04  Zalan Bujtas  <zalan@apple.com>
+
+        CSS Triangles Rendering Regression affecting CSS Ribbons.
+        https://bugs.webkit.org/show_bug.cgi?id=156121
+
+        Reviewed by Simon Fraser.
+
+        We use floored border width values for painting (see BorderEdge).
+        However border-box sizing is based on rounded border values. This mismatch could result in a 2 device pixel
+        gap when both top and bottom (or left and right) borders are present.
+        
+        This patch applies flooring on the computed border width value.
+
+        It matches FireFox (44.0.2) behaviour (both by inspecting box-sizing visually and through getComputedStyle() values on border-width).
+    
+        Covered by existing tests.
+
+        * css/StyleBuilderConverter.h:
+        (WebCore::StyleBuilderConverter::convertLineWidth):
+
+2016-04-04  Doug Russell  <d_russell@apple.com>
+
+        AX: new lines in content editable elements don't notify accessibility
+        https://bugs.webkit.org/show_bug.cgi?id=153361
+
+        Reviewed by Ryosuke Niwa.
+
+        Relocate accessibility edit notification logic into higher level logic.
+        Typing notifications relocated into TypingCommand.
+        Cut & Paste notifications relocated into Editor.
+        Undo relocated into EditCommandComposition.
+
+        Tests: accessibility/mac/value-change/value-change-user-info-contenteditable.html
+               accessibility/mac/value-change/value-change-user-info-textarea.html
+               accessibility/mac/value-change/value-change-user-info-textfield.html
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::AccessibilityReplacedText::AccessibilityReplacedText):
+        (WebCore::AccessibilityReplacedText::postTextStateChangeNotification):
+        (WebCore::AXObjectCache::postTextStateChangeNotification):
+        (WebCore::AXObjectCache::postTextReplacementNotification):
+        * accessibility/AXObjectCache.h:
+        (WebCore::VisiblePositionIndexRange::isNull):
+        (WebCore::AccessibilityReplacedText::AccessibilityReplacedText):
+        (WebCore::AccessibilityReplacedText::replacedRange):
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::listMarkerTextForNodeAndPosition):
+        (WebCore::AccessibilityObject::stringForVisiblePositionRange):
+        * accessibility/AccessibilityObject.h:
+        (WebCore::VisiblePositionRange::VisiblePositionRange):
+        * accessibility/mac/AXObjectCacheMac.mm:
+        (WebCore::AXObjectCache::postTextStateChangePlatformNotification):
+        (WebCore::AXObjectCache::postTextReplacementPlatformNotification):
+        * editing/AppendNodeCommand.cpp:
+        (WebCore::AppendNodeCommand::doApply): Deleted.
+        (WebCore::AppendNodeCommand::doUnapply): Deleted.
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::AccessibilityUndoReplacedText::indexForVisiblePosition):
+        (WebCore::AccessibilityUndoReplacedText::confgureTextToBeDeletedByUnapplyIndexesWithEditCommandEndingSelection):
+        (WebCore::AccessibilityUndoReplacedText::confgureTextToBeDeletedByUnapplyStartIndexWithEditCommandStartingSelection):
+        (WebCore::AccessibilityUndoReplacedText::setTextInsertedByUnapplyRange):
+        (WebCore::AccessibilityUndoReplacedText::captureTextToBeDeletedByUnapply):
+        (WebCore::AccessibilityUndoReplacedText::captureTextToBeDeletedByReapply):
+        (WebCore::stringForVisiblePositionIndexRange):
+        (WebCore::AccessibilityUndoReplacedText::textInsertedByUnapply):
+        (WebCore::AccessibilityUndoReplacedText::textInsertedByReapply):
+        (WebCore::postTextStateChangeNotification):
+        (WebCore::AccessibilityUndoReplacedText::postTextStateChangeNotificationForUnapply):
+        (WebCore::AccessibilityUndoReplacedText::postTextStateChangeNotificationForReapply):
+        (WebCore::EditCommandComposition::EditCommandComposition):
+        (WebCore::EditCommandComposition::unapply):
+        (WebCore::EditCommandComposition::reapply):
+        (WebCore::EditCommandComposition::setStartingSelection):
+        (WebCore::EditCommandComposition::setEndingSelection):
+        (WebCore::EditCommandComposition::setTextInsertedByUnapplyRange):
+        (WebCore::CompositeEditCommand::removeNode):
+        (WebCore::CompositeEditCommand::replaceTextInNode):
+        (WebCore::deleteSelectionEditingActionForEditingAction):
+        (WebCore::CompositeEditCommand::deleteSelection):
+        (WebCore::CompositeEditCommand::applyStyle): Deleted.
+        (WebCore::CompositeEditCommand::updatePositionForNodeRemovalPreservingChildren): Deleted.
+        (WebCore::CompositeEditCommand::inputText): Deleted.
+        * editing/CompositeEditCommand.h:
+        (WebCore::AccessibilityUndoReplacedText::AccessibilityUndoReplacedText):
+        * editing/DeleteFromTextNodeCommand.cpp:
+        (WebCore::DeleteFromTextNodeCommand::doApply): Deleted.
+        (WebCore::DeleteFromTextNodeCommand::getNodesInCommand): Deleted.
+        * editing/DeleteFromTextNodeCommand.h:
+        * editing/DictationCommand.cpp:
+        (WebCore::DictationCommand::doApply):
+        * editing/EditCommand.cpp:
+        (WebCore::EditCommand::postTextStateChangeNotification):
+        (WebCore::SimpleEditCommand::SimpleEditCommand): Deleted.
+        (WebCore::SimpleEditCommand::doReapply): Deleted.
+        (WebCore::SimpleEditCommand::addNodeAndDescendants): Deleted.
+        * editing/EditCommand.h:
+        * editing/EditingAllInOne.cpp:
+        * editing/Editor.cpp:
+        (WebCore::Editor::replaceSelectionWithFragment):
+        (WebCore::Editor::appliedEditing):
+        (WebCore::Editor::unappliedEditing):
+        (WebCore::Editor::postTextStateChangeNotificationForCut):
+        (WebCore::Editor::performCutOrCopy):
+        (WebCore::Editor::changeSelectionAfterCommand):
+        (WebCore::dispatchEditableContentChangedEvents): Deleted.
+        (WebCore::Editor::addTextToKillRing): Deleted.
+        * editing/Editor.h:
+        * editing/InsertIntoTextNodeCommand.cpp:
+        (WebCore::InsertIntoTextNodeCommand::doApply): Deleted.
+        (WebCore::InsertIntoTextNodeCommand::getNodesInCommand): Deleted.
+        * editing/InsertNodeBeforeCommand.cpp:
+        (WebCore::InsertNodeBeforeCommand::doApply): Deleted.
+        (WebCore::InsertNodeBeforeCommand::doUnapply): Deleted.
+        (WebCore::InsertNodeBeforeCommand::getNodesInCommand): Deleted.
+        * editing/RemoveNodeCommand.cpp:
+        (WebCore::RemoveNodeCommand::RemoveNodeCommand):
+        * editing/RemoveNodeCommand.h:
+        (WebCore::RemoveNodeCommand::create):
+        * editing/ReplaceDeleteFromTextNodeCommand.cpp: Removed.
+        * editing/ReplaceDeleteFromTextNodeCommand.h: Removed.
+        * editing/ReplaceInsertIntoTextNodeCommand.cpp: Removed.
+        * editing/ReplaceInsertIntoTextNodeCommand.h: Removed.
+        * editing/ReplaceSelectionCommand.cpp:
+        (WebCore::ReplaceSelectionCommand::doApply):
+        (WebCore::ReplaceSelectionCommand::completeHTMLReplacement):
+        (WebCore::ReplaceSelectionCommand::performTrivialReplace):
+        * editing/ReplaceSelectionCommand.h:
+        (WebCore::ReplaceSelectionCommand::visibleSelectionForInsertedText):
+        * editing/TextInsertionBaseCommand.cpp:
+        (WebCore::TextInsertionBaseCommand::TextInsertionBaseCommand):
+        * editing/TextInsertionBaseCommand.h:
+        * editing/TypingCommand.cpp:
+        (WebCore::TypingCommand::TypingCommand):
+        (WebCore::TypingCommand::insertText):
+        (WebCore::TypingCommand::insertLineBreak):
+        (WebCore::TypingCommand::insertParagraphSeparatorInQuotedContent):
+        (WebCore::TypingCommand::insertParagraphSeparator):
+        (WebCore::TypingCommand::postTextStateChangeNotificationForDeletion):
+        (WebCore::TypingCommand::doApply):
+        (WebCore::TypingCommand::insertTextAndNotifyAccessibility):
+        (WebCore::TypingCommand::insertLineBreakAndNotifyAccessibility):
+        (WebCore::TypingCommand::insertParagraphSeparatorAndNotifyAccessibility):
+        (WebCore::TypingCommand::insertParagraphSeparatorInQuotedContentAndNotifyAccessibility):
+        (WebCore::TypingCommand::deleteKeyPressed):
+        (WebCore::TypingCommand::forwardDeleteKeyPressed):
+        * editing/TypingCommand.h:
+
+2016-04-04  Dean Jackson  <dino@apple.com>
+
+        Add color-gamut media query support
+        https://bugs.webkit.org/show_bug.cgi?id=155994
+        <rdar://problem/23282326>
+
+        Reviewed by Darin Adler.
+
+        Add the new CSS media query: color-gamut
+        https://drafts.csswg.org/mediaqueries-4/#color-gamut
+
+        This ultimately calls into screenSupportsExtendedColor,
+        which has only been implemented on iOS at the moment.
+        All displays will match the "srgb" keyword, but only
+        iOS devices with an extended color screen will
+        match against "p3" (e.g. the iPad Pro 9.7").
+        Nothing will match against "rec2020".
+
+        Test: fast/media/mq-color-gamut.html
+
+        * css/CSSValueKeywords.in: Add "p3" and "rec2020".
+        * css/MediaFeatureNames.h: Add "color-gamut"
+        * css/MediaQueryEvaluator.cpp:
+        (WebCore::color_gamutMediaFeatureEval): Call
+        screenSupportsExtendedColor to see if we're srgb or p3.
+        * css/MediaQueryExp.cpp:
+        (WebCore::featureWithCSSValueID):
+        * platform/efl/PlatformScreenEfl.cpp: Add empty implementation.
+        (WebCore::screenSupportsExtendedColor):
+        * platform/gtk/PlatformScreenGtk.cpp: Ditto.
+        (WebCore::screenSupportsExtendedColor):
+        * platform/win/PlatformScreenWin.cpp: Ditto.
+        (WebCore::screenSupportsExtendedColor):
+
+2016-04-04  Brent Fulgham  <bfulgham@apple.com>
+
+        Update feature status on anchor download attribute.
+
+        * features.json:
+
+2016-04-04  Beth Dakin  <bdakin@apple.com>
+
+        Add some logic to decide when a video can control the videoControlsManager
+        https://bugs.webkit.org/show_bug.cgi?id=156089
+        -and corresponding-
+        rdar://problem/23833752
+
+        Reviewed by Eric Carlson and Tim Horton.
+
+        With this patch, a video can take over the videoControlsManager if all of 
+        these conditions are met:
+        -Playback is permitted
+        -The video has a renderer
+        -The video is 400x300 or larger
+        AND
+        -The video has both audio and video
+
+        If those criteria are not met the video will still be allowed to take over 
+        the videoControlsManager if:
+        -Playback is permitted
+        -The video has a renderer
+        -The video started playing because of a user gesture.
+
+        If multiple videos meet this criteria, then the video that most recently 
+        started playing will take over the videoControlsManager.
+
+        We might consider more restrictions in the future, but this seems like a good 
+        place to start.
+
+        Move all decisions about the videoControlsManager to updatePlayState() 
+        instead of playInternal().
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::playInternal):
+
+        If the video will play after updatePlayState, then invoke 
+        setUpVideoControlsManager() if canControlControlsManager() is true. If the 
+        video will not be playing after updatePlayState, then check to see if 
+        endedPlayback() is true. If it is, then invoke clearVideoControlsManager().
+        (WebCore::HTMLMediaElement::updatePlayState):
+
+        The logic for the heuristic is here:
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canControlControlsManager):
+        * html/MediaElementSession.h:
+
+        New ChromeClient function clearVideoControlsManager().
+        * page/ChromeClient.h:
+
+2016-04-03  Sam Weinig  <sam@webkit.org>
+
+        Add SPI to allow install script message handlers in isolated worlds
+        https://bugs.webkit.org/show_bug.cgi?id=156153
+
+        Reviewed by Anders Carlsson.
+
+        Added API Test: WKUserContentController.ScriptMessageHandlerBasicPostIsolatedWorld
+
+        - Changes the signature of the method in UserContentProvider to get UserMessageHandlerDescriptors
+          to match that of UserScripts and UserStyleSheets.
+        - Removes the need for UserMessageHandlerDescriptor::Client by making UserMessageHandlerDescriptor
+          directly subclassable.
+        - Changes invalidation model of UserMessageHandlersNamespace to be more direct by allowing it to
+          register for invalidation notifications, rather than always checking if handler has been removed
+          on each invocation.
+
+        * loader/EmptyClients.cpp:
+        Update for new signature.
+
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::shouldHaveWebKitNamespaceForWorld):
+        Switch to using forEachUserMessageHandler.
+
+        (WebCore::DOMWindow::webkitNamespace):
+        Pass the UserContentProvider to the namespace on creation, so the UserMessageHandlersNamespace
+        can use it to register to listen for UserMessageHandler changes.
+
+        * page/UserContentController.h:
+        * page/UserContentController.cpp:
+        (WebCore::UserContentController::forEachUserStyleSheet):
+        (WebCore::UserContentController::forEachUserMessageHandler):
+        (WebCore::UserContentController::addUserScript):
+        (WebCore::UserContentController::removeUserStyleSheets):
+        (WebCore::UserContentController::removeAllUserContent):
+        (WebCore::UserContentController::addUserMessageHandlerDescriptor): Deleted.
+        (WebCore::UserContentController::removeUserMessageHandlerDescriptor): Deleted.
+        (WebCore::UserContentController::addUserContentExtension): Deleted.
+        (WebCore::UserContentController::removeUserContentExtension): Deleted.
+        (WebCore::UserContentController::removeAllUserContentExtensions): Deleted.
+        Removed unused functions, all the UserMessageHandler and UserContentExtension ones. UserContentController
+        is only used for Legacy WebKit where those features are not exposed.
+
+        * page/UserContentProvider.h:
+        * page/UserContentProvider.cpp:
+        (WebCore::UserContentProvider::registerForUserMessageHandlerInvalidation):
+        (WebCore::UserContentProvider::unregisterForUserMessageHandlerInvalidation):
+        (WebCore::UserContentProvider::invalidateAllRegisteredUserMessageHandlerInvalidationClients):
+        (WebCore::UserContentProviderInvalidationClient::~UserContentProviderInvalidationClient):
+        Update signature for UserMessageHandlerDescriptor access to match UserScript and UserStyleSheet.
+        Adds explicit invalidation for UserMessageHandlers.
+
+        * page/UserMessageHandler.cpp:
+        (WebCore::UserMessageHandler::UserMessageHandler):
+        (WebCore::UserMessageHandler::postMessage):
+        (WebCore::UserMessageHandler::name): Deleted.
+        (WebCore::UserMessageHandler::world): Deleted.
+        * page/UserMessageHandler.h:
+        (WebCore::UserMessageHandler::descriptor):
+        (WebCore::UserMessageHandler::invalidateDescriptor):
+        * page/UserMessageHandlerDescriptor.cpp:
+        (WebCore::UserMessageHandlerDescriptor::UserMessageHandlerDescriptor):
+        (WebCore::UserMessageHandlerDescriptor::~UserMessageHandlerDescriptor):
+        (WebCore::UserMessageHandlerDescriptor::name):
+        (WebCore::UserMessageHandlerDescriptor::world):
+        * page/UserMessageHandlerDescriptor.h:
+        (WebCore::UserMessageHandlerDescriptor::Client::~Client): Deleted.
+        (WebCore::UserMessageHandlerDescriptor::create): Deleted.
+        (WebCore::UserMessageHandlerDescriptor::client): Deleted.
+        (WebCore::UserMessageHandlerDescriptor::invalidateClient): Deleted.
+        Simplify by removing the Client. Now, when the UserMessageHandlerDescriptor is no longer
+        active, it gets nulled out in the UserMessageHandler.
+
+        * page/UserMessageHandlersNamespace.cpp:
+        (WebCore::UserMessageHandlersNamespace::UserMessageHandlersNamespace):
+        (WebCore::UserMessageHandlersNamespace::~UserMessageHandlersNamespace):
+        (WebCore::UserMessageHandlersNamespace::didInvalidate):
+        (WebCore::UserMessageHandlersNamespace::handler):
+        * page/UserMessageHandlersNamespace.h:
+        Change the logic to listen for invalidations of the UserMessageHandlerDescriptor map. When it
+        is invalidated, re-build the map of cached UserMessageHandlers from the UserContentProvider,
+        and invalidate any remaining UserMessageHandlers that no longer exist in the UserContentProvider.
+
+        * page/WebKitNamespace.cpp:
+        (WebCore::WebKitNamespace::WebKitNamespace):
+        * page/WebKitNamespace.h:
+        (WebCore::WebKitNamespace::create):
+        Pass through the UserContentProvider.
+
+2016-04-04  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r196145): Crash in getOwnPropertyDescriptor on http://www.history.com/shows/vikings
+        https://bugs.webkit.org/show_bug.cgi?id=156136
+        <rdar://problem/25410767>
+
+        Reviewed by Ryosuke Niwa.
+
+        The page was crashing when doing the following:
+        Object.getOwnPropertyDescriptor(window, "indexedDB")
+
+        getOwnPropertyDescriptor() expected getDirect() to return a CustomGetterSetter for
+        CustomAccessors but it was not the case for window.indexedDB. The reason was that
+        window.indexedDB was a special property, which is not part of the static table but
+        returned by GetOwnPropertySlot() if IndexedDB feature is enabled. This weirdness
+        was due to our bindings generator not having proper support for [EnabledAtRuntime]
+        properties on Window.
+
+        This patch adds support for [EnabledAtRuntime] properties on Window by omitting
+        these properties from the static property table and then setting them at runtime
+        in JSDOMWindow::finishCreation() if the corresponding feature is enabled.
+        window.indexedDB now looks like a regular property when IndexedDB is enabled
+        and getOwnPropertyDescriptor() works as expected for this property.
+
+        Test: storage/indexeddb/indexeddb-getownpropertyDescriptor.html
+
+        * Modules/indexeddb/DOMWindowIndexedDatabase.cpp:
+        (WebCore::DOMWindowIndexedDatabase::indexedDB):
+        * Modules/indexeddb/DOMWindowIndexedDatabase.h:
+        The generated bindings pass DOMWindow by reference instead of pointer so update
+        the implementation accordingly.
+
+        * Modules/indexeddb/DOMWindowIndexedDatabase.idl:
+        Add 'indexedDB' and 'webkitIndexedDB' properties and mark them as
+        [EnabledAtRuntime]. Now that the bindings generator correctly handles
+        [EnabledAtRuntime] properties on the Window, there is no need to
+        custom-handle them in JSDOMWindowCustom.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        Drop custom handling for 'indexedDB' and 'webkitIndexedDB' properties
+        in getOwnPropertySlot(). The generated bindings code now makes sure to
+        only set those properties on the Window if IndexedDB is enabled so we
+        can let the regular code path look up those properties.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetJSCAttributesForAttribute):
+        (GenerateHeader):
+        (GeneratePropertiesHashTable):
+        (GenerateImplementation):
+        Add support for [EnabledAtRuntime] properties on DOMWindow. For such
+        properties, we do the following:
+        1. Omit them from the static property table
+        2. In JSDOMWindow::finishCreation(), dynamically add those properties
+           at runtime if the corresponding feature is enabled.
+
+        Note that this works for constructors as well.
+
+        * inspector/InspectorIndexedDBAgent.cpp:
+        (WebCore::assertIDBFactory):
+        Pass Window by reference instead of pointer.
+
 2016-04-04  Myles C. Maxfield  <mmaxfield@apple.com>
 
         Addressing post-review feedback on r198970

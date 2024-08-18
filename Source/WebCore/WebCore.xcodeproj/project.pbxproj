@@ -2045,6 +2045,8 @@
 		5160712F1BD8307800DBC4F2 /* IDBObjectStoreInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 5160712D1BD8307200DBC4F2 /* IDBObjectStoreInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		516071321BD8308B00DBC4F2 /* TransactionOperation.h in Headers */ = {isa = PBXBuildFile; fileRef = 5160712B1BD8305300DBC4F2 /* TransactionOperation.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		5160F4980B0AA75F00C1D2AF /* HistoryItemMac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5160F4970B0AA75F00C1D2AF /* HistoryItemMac.mm */; };
+		516103AF1CADBA770016B4C7 /* IDBValue.h in Headers */ = {isa = PBXBuildFile; fileRef = 516103AE1CADB9A30016B4C7 /* IDBValue.h */; };
+		516103B01CADBA7A0016B4C7 /* IDBValue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 516103AD1CADB9A30016B4C7 /* IDBValue.cpp */; };
 		5162C7F411F77EFB00612EFE /* SchemeRegistry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5162C7F211F77EFA00612EFE /* SchemeRegistry.cpp */; };
 		5162C7F511F77EFB00612EFE /* SchemeRegistry.h in Headers */ = {isa = PBXBuildFile; fileRef = 5162C7F311F77EFB00612EFE /* SchemeRegistry.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		516953971329A3C800B92D04 /* IconDatabaseBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 516953951329A3C800B92D04 /* IconDatabaseBase.cpp */; };
@@ -6740,10 +6742,6 @@
 		F52AD5E41534245F0059FBE6 /* EmptyClients.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F52AD5E31534245F0059FBE6 /* EmptyClients.cpp */; };
 		F544F78815CFB2A800AF33A8 /* PlatformLocale.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F544F78615CFB2A800AF33A8 /* PlatformLocale.cpp */; };
 		F544F78915CFB2A800AF33A8 /* PlatformLocale.h in Headers */ = {isa = PBXBuildFile; fileRef = F544F78715CFB2A800AF33A8 /* PlatformLocale.h */; };
-		F5528DA51AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.h in Headers */ = {isa = PBXBuildFile; fileRef = F5528DA31AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.h */; };
-		F5528DA61AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5528DA41AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.cpp */; };
-		F5528DA91AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5528DA71AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.cpp */; };
-		F5528DAA1AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.h in Headers */ = {isa = PBXBuildFile; fileRef = F5528DA81AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.h */; };
 		F55B3DAD1251F12D003EF269 /* BaseTextInputType.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F55B3D791251F12D003EF269 /* BaseTextInputType.cpp */; };
 		F55B3DAE1251F12D003EF269 /* BaseTextInputType.h in Headers */ = {isa = PBXBuildFile; fileRef = F55B3D7A1251F12D003EF269 /* BaseTextInputType.h */; };
 		F55B3DAF1251F12D003EF269 /* ButtonInputType.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F55B3D7B1251F12D003EF269 /* ButtonInputType.cpp */; };
@@ -9601,6 +9599,8 @@
 		5160712C1BD8307200DBC4F2 /* IDBObjectStoreInfo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IDBObjectStoreInfo.cpp; sourceTree = "<group>"; };
 		5160712D1BD8307200DBC4F2 /* IDBObjectStoreInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBObjectStoreInfo.h; sourceTree = "<group>"; };
 		5160F4970B0AA75F00C1D2AF /* HistoryItemMac.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = HistoryItemMac.mm; sourceTree = "<group>"; };
+		516103AD1CADB9A30016B4C7 /* IDBValue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = IDBValue.cpp; sourceTree = "<group>"; };
+		516103AE1CADB9A30016B4C7 /* IDBValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBValue.h; sourceTree = "<group>"; };
 		5162C7F211F77EFA00612EFE /* SchemeRegistry.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SchemeRegistry.cpp; sourceTree = "<group>"; };
 		5162C7F311F77EFB00612EFE /* SchemeRegistry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SchemeRegistry.h; sourceTree = "<group>"; };
 		51645B411B9F889B00F789CE /* IDBCursor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IDBCursor.h; sourceTree = "<group>"; };
@@ -14801,10 +14801,6 @@
 		F52AD5E31534245F0059FBE6 /* EmptyClients.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = EmptyClients.cpp; sourceTree = "<group>"; };
 		F544F78615CFB2A800AF33A8 /* PlatformLocale.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PlatformLocale.cpp; sourceTree = "<group>"; };
 		F544F78715CFB2A800AF33A8 /* PlatformLocale.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PlatformLocale.h; sourceTree = "<group>"; };
-		F5528DA31AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ReplaceDeleteFromTextNodeCommand.h; sourceTree = "<group>"; };
-		F5528DA41AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ReplaceDeleteFromTextNodeCommand.cpp; sourceTree = "<group>"; };
-		F5528DA71AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ReplaceInsertIntoTextNodeCommand.cpp; sourceTree = "<group>"; };
-		F5528DA81AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ReplaceInsertIntoTextNodeCommand.h; sourceTree = "<group>"; };
 		F55B3D791251F12D003EF269 /* BaseTextInputType.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = BaseTextInputType.cpp; sourceTree = "<group>"; };
 		F55B3D7A1251F12D003EF269 /* BaseTextInputType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BaseTextInputType.h; sourceTree = "<group>"; };
 		F55B3D7B1251F12D003EF269 /* ButtonInputType.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ButtonInputType.cpp; sourceTree = "<group>"; };
@@ -18893,10 +18889,6 @@
 				93309DB8099E64910056E581 /* RemoveNodePreservingChildrenCommand.h */,
 				9B32CDA813DF7FA900F34D13 /* RenderedPosition.cpp */,
 				9B32CDA713DF7FA900F34D13 /* RenderedPosition.h */,
-				F5528DA41AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.cpp */,
-				F5528DA31AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.h */,
-				F5528DA71AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.cpp */,
-				F5528DA81AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.h */,
 				A89CCC500F44E98100B5DA10 /* ReplaceNodeWithSpanCommand.cpp */,
 				A89CCC510F44E98100B5DA10 /* ReplaceNodeWithSpanCommand.h */,
 				93309DBA099E64910056E581 /* ReplaceSelectionCommand.cpp */,
@@ -19602,6 +19594,8 @@
 				51645B501B9F889B00F789CE /* IDBTransaction.cpp */,
 				51645B511B9F889B00F789CE /* IDBTransaction.h */,
 				51D719A6181106E00016DC51 /* IDBTransaction.idl */,
+				516103AD1CADB9A30016B4C7 /* IDBValue.cpp */,
+				516103AE1CADB9A30016B4C7 /* IDBValue.h */,
 				51645B521B9F889B00F789CE /* IDBVersionChangeEvent.cpp */,
 				51645B531B9F889B00F789CE /* IDBVersionChangeEvent.h */,
 				51D719AD181106E00016DC51 /* IDBVersionChangeEvent.idl */,
@@ -26008,6 +26002,7 @@
 				976D6C89122B8A3D001FD1F7 /* FileReader.h in Headers */,
 				2E75841E12779ADA0062628B /* FileReaderLoader.h in Headers */,
 				2E75841F12779ADA0062628B /* FileReaderLoaderClient.h in Headers */,
+				516103AF1CADBA770016B4C7 /* IDBValue.h in Headers */,
 				2EDF369D122C94B4002F7D4E /* FileReaderSync.h in Headers */,
 				2EF1BFEB121C9F4200C27627 /* FileStream.h in Headers */,
 				2EF1BFF9121CB0CE00C27627 /* FileStreamClient.h in Headers */,
@@ -27662,8 +27657,6 @@
 				BCEA4868097D93020094C9E4 /* RenderView.h in Headers */,
 				BE20507E18A458C20080647E /* RenderVTTCue.h in Headers */,
 				A871DFE40A15376B00B12A68 /* RenderWidget.h in Headers */,
-				F5528DA51AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.h in Headers */,
-				F5528DAA1AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.h in Headers */,
 				A89CCC530F44E98100B5DA10 /* ReplaceNodeWithSpanCommand.h in Headers */,
 				93309E0A099E64920056E581 /* ReplaceSelectionCommand.h in Headers */,
 				99CC0B5418BE9849006CEBCC /* ReplayController.h in Headers */,
@@ -31286,8 +31279,6 @@
 				BCEA4867097D93020094C9E4 /* RenderView.cpp in Sources */,
 				BE20507D18A458BF0080647E /* RenderVTTCue.cpp in Sources */,
 				A871DFE50A15376B00B12A68 /* RenderWidget.cpp in Sources */,
-				F5528DA61AC1033E000EF7AD /* ReplaceDeleteFromTextNodeCommand.cpp in Sources */,
-				F5528DA91AC109DF000EF7AD /* ReplaceInsertIntoTextNodeCommand.cpp in Sources */,
 				A89CCC520F44E98100B5DA10 /* ReplaceNodeWithSpanCommand.cpp in Sources */,
 				93309E09099E64920056E581 /* ReplaceSelectionCommand.cpp in Sources */,
 				99CC0B5318BE9849006CEBCC /* ReplayController.cpp in Sources */,
@@ -31806,6 +31797,7 @@
 				376DCCE113B4F966002EBEFC /* TextRun.cpp in Sources */,
 				B2C3DA4A0D006C1D00EF6F26 /* TextStream.cpp in Sources */,
 				9759E93F14EF1CF80026A2DD /* TextTrack.cpp in Sources */,
+				516103B01CADBA7A0016B4C7 /* IDBValue.cpp in Sources */,
 				9759E94214EF1CF80026A2DD /* TextTrackCue.cpp in Sources */,
 				071A9EC2168FBC43002629F9 /* TextTrackCueGeneric.cpp in Sources */,
 				9759E94514EF1CF80026A2DD /* TextTrackCueList.cpp in Sources */,

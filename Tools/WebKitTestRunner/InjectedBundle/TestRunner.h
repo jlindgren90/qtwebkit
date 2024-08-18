@@ -104,6 +104,7 @@ public:
     void setXSSAuditorEnabled(bool);
     void setShadowDOMEnabled(bool);
     void setCustomElementsEnabled(bool);
+    void setWebGL2Enabled(bool);
     void setAllowUniversalAccessFromFileURLs(bool);
     void setAllowFileAccessFromFileURLs(bool);
     void setPluginsEnabled(bool);
