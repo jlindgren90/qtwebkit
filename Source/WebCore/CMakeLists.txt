@@ -3793,9 +3793,8 @@ list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/XMLNames.cpp)
 
 if (ENABLE_ALLINONE_BUILD)
     message(STATUS "All-in-One DerivedSources build is enabled.")
-    PROCESS_ALLINONE_FILE("${WebCore_SOURCES}" DerivedSources.cpp newSources TRUE)
-    set(WebCore_SOURCES DerivedSources.cpp ${newSources})
-    list(APPEND WebCore_DERIVED_SOURCES DerivedSources.cpp)
+    PROCESS_ALLINONE_FILE("${WebCore_DERIVED_SOURCES}" DerivedSources.cpp newSources TRUE)
+    set(WebCore_DERIVED_SOURCES DerivedSources.cpp ${newSources})
 endif ()
 
 WEBKIT_WRAP_SOURCELIST(${WebCore_IDL_FILES} ${WebCore_DERIVED_SOURCES})
@@ -3812,9 +3811,9 @@ endif ()
 add_library(WebCoreDerivedSources STATIC ${WebCore_DERIVED_SOURCES})
 set_target_properties(WebCoreDerivedSources PROPERTIES OUTPUT_NAME WebCoreDerivedSources${DEBUG_SUFFIX})
 set_target_properties(WebCoreDerivedSources PROPERTIES FOLDER "WebCore")
-list(APPEND WebCore_LIBRARIES WebCoreDerivedSources${DEBUG_SUFFIX})
-
-list(APPEND WebCore_SOURCES ${WebCore_DERIVED_SOURCES})
+if (NOT WIN32)
+    list(APPEND WebCore_LIBRARIES WebCoreDerivedSources${DEBUG_SUFFIX})
+endif ()
 
 WEBKIT_FRAMEWORK(WebCore)
 

@@ -388,6 +388,9 @@ EventHandler::EventHandler(Frame& frame)
 #if ENABLE(CURSOR_SUPPORT)
     , m_cursorUpdateTimer(*this, &EventHandler::cursorUpdateTimerFired)
 #endif
+#if PLATFORM(MAC)
+    , m_pendingMomentumWheelEventsTimer(*this, &EventHandler::clearLatchedState)
+#endif
     , m_autoscrollController(std::make_unique<AutoscrollController>())
 #if !ENABLE(IOS_TOUCH_EVENTS)
     , m_fakeMouseMoveEventTimer(*this, &EventHandler::fakeMouseMoveEventTimerFired)
@@ -2600,6 +2603,10 @@ IntPoint EventHandler::effectiveMousePositionForSelectionAutoscroll() const
     return m_lastKnownMousePosition;
 }
 
+void EventHandler::clearOrScheduleClearingLatchedStateIfNeeded(const PlatformWheelEvent&)
+{
+    clearLatchedState();
+}
 #endif
 
 bool EventHandler::handleWheelEvent(const PlatformWheelEvent& event)

@@ -1,3 +1,67 @@
+2016-03-29  Keith Miller  <keith_miller@apple.com>
+
+        [ES6] Add support for Symbol.isConcatSpreadable.
+        https://bugs.webkit.org/show_bug.cgi?id=155351
+
+        Reviewed by Saam Barati.
+
+        Fix tests for Symbol.isConcatSpreadable on the Symbol object.
+
+        * js/Object-getOwnPropertyNames-expected.txt:
+        * js/dom/array-prototype-properties-expected.txt:
+        * js/script-tests/Object-getOwnPropertyNames.js:
+
+2016-03-29  Nan Wang  <n_wang@apple.com>
+
+        AX: VoiceOver: Navigating Numbered Lists Causes Number to be announced On Each Line of List
+        https://bugs.webkit.org/show_bug.cgi?id=155984
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/attributed-string-with-listitem-multiple-lines-expected.txt: Added.
+        * accessibility/mac/attributed-string-with-listitem-multiple-lines.html: Added.
+
+2016-03-29  Antonio Gomes  <tonikitoo@webkit.org>
+
+        Wheel events' latching state is not reset when appropriate
+        https://bugs.webkit.org/show_bug.cgi?id=155746
+
+        Reviewed by Simon Fraser.
+
+        * tiled-drawing/scrolling/resources/selects-iframe.html: Added.
+        * tiled-drawing/scrolling/scroll-iframe-latched-selects.html: Added.
+
+2016-03-29  Saam barati  <sbarati@apple.com>
+
+        "Can not" => "cannot" in String.prototype error messages
+        https://bugs.webkit.org/show_bug.cgi?id=155895
+
+        Reviewed by Mark Lam.
+
+        * js/string-includes-expected.txt:
+
+2016-03-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Adding Timeout to ios-simulator TestExpectations for perf/adding-radio-buttons.html
+        https://bugs.webkit.org/show_bug.cgi?id=154055
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: We should have a way to capture heap snapshots programatically.
+        https://bugs.webkit.org/show_bug.cgi?id=154407
+        <rdar://problem/24726292>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/console/heapSnapshot-expected.txt: Added.
+        * inspector/console/heapSnapshot.html: Added.
+        Test that we get expected data and events after calling
+        console.takeHeapSnapshot when the inspector is open.
+
 2016-03-29  Eric Carlson  <eric.carlson@apple.com>
 
         media/track/track-remove-track.html is flaky, crashing and failing
