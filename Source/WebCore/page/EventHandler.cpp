@@ -2595,6 +2595,11 @@ void EventHandler::platformNotifyIfEndGesture(const PlatformWheelEvent&, Scrolla
 {
 }
 
+IntPoint EventHandler::effectiveMousePositionForSelectionAutoscroll() const
+{
+    return m_lastKnownMousePosition;
+}
+
 #endif
 
 bool EventHandler::handleWheelEvent(const PlatformWheelEvent& event)

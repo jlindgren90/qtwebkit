@@ -184,6 +184,8 @@ public:
     IntPoint lastKnownMouseGlobalPosition() const { return m_lastKnownMouseGlobalPosition; }
     Cursor currentMouseCursor() const { return m_currentMouseCursor; }
 
+    IntPoint effectiveMousePositionForSelectionAutoscroll() const;
+
     static Frame* subframeForTargetNode(Node*);
     static Frame* subframeForHitTestResult(const MouseEventWithHitTestResults&);
 
