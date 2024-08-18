@@ -130,7 +130,7 @@ bool FrameData::clear(bool clearMetadata)
     if (clearMetadata)
         m_haveMetadata = false;
 
-    m_orientation = DefaultImageOrientation;
+    m_orientation = ImageOrientation();
     m_subsamplingLevel = 0;
 
     if (m_image) {
@@ -169,7 +169,6 @@ void Image::drawPattern(GraphicsContext& ctxt, const FloatRect& tileRect, const 
 
 BitmapImage::BitmapImage(NativeImagePtr &&pixmap, ImageObserver* observer)
     : Image(observer)
-    , m_minimumSubsamplingLevel(0)
     , m_currentFrame(0)
     , m_frames(0)
     , m_repetitionCount(cAnimationNone)
@@ -295,11 +294,6 @@ void BitmapImage::draw(GraphicsContext& ctxt, const FloatRect& dst,
 
     if (imageObserver())
         imageObserver()->didDraw(this);
-}
-
-void BitmapImage::determineMinimumSubsamplingLevel() const
-{
-    m_minimumSubsamplingLevel = 0;
 }
 
 void BitmapImage::checkForSolidColor()

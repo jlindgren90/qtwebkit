@@ -42,6 +42,7 @@
 #include "IDBOpenDBRequest.h"
 #include "IDBRequest.h"
 #include "IDBResultData.h"
+#include "JSDOMWindowBase.h"
 #include "Logging.h"
 #include "ScriptExecutionContext.h"
 #include "TransactionOperation.h"

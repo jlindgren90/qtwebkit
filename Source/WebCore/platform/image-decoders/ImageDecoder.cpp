@@ -131,7 +131,7 @@ std::unique_ptr<ImageDecoder> ImageDecoder::create(const SharedBuffer& data, Ima
         return std::unique_ptr<ImageDecoder> { std::make_unique<BMPImageDecoder>(alphaOption, gammaAndColorProfileOption) };
 
 #if PLATFORM(QT)
-    return new ImageDecoderQt(alphaOption, gammaAndColorProfileOption);
+    return std::unique_ptr<ImageDecoder> { std::make_unique<ImageDecoderQt>(alphaOption, gammaAndColorProfileOption) };
 #endif
     return nullptr;
 }
