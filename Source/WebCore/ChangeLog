@@ -1,3 +1,101 @@
+2016-03-30  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198828.
+        https://bugs.webkit.org/show_bug.cgi?id=156030
+
+        Confirming PLT regression (Requested by anttik on #webkit).
+
+        Reverted changeset:
+
+        "Separate render tree updating from style resolve"
+        https://bugs.webkit.org/show_bug.cgi?id=155298
+        http://trac.webkit.org/changeset/198828
+
+2016-03-30  Keith Miller <keith_miller@apple.com>
+
+        Unreviewed, rollout r198808. The patch causes crashes on 32-bit and appears to be a JSBench regression.
+
+2016-03-30  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] [RTL Scrollbars] List boxes should obey RTL scrollbars
+        https://bugs.webkit.org/show_bug.cgi?id=155991
+
+        Reviewed by Darin Adler.
+
+        List boxes were created before RenderLayers, and therefore don't share
+        the scollbar logic with them. Instead, they manage their own Scrollbars.
+        The placement logic needs to be updated to take RTL scrollbars into
+        account.
+
+        Tests: fast/scrolling/rtl-scrollbars-listbox-scroll.html
+               fast/scrolling/rtl-scrollbars-listbox-select-left.html
+               fast/scrolling/rtl-scrollbars-listbox-select-right.html
+               fast/scrolling/rtl-scrollbars-listbox-simple.html
+               fast/scrolling/rtl-scrollbars-listbox.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::contentBoxRect):
+        * rendering/RenderBox.h:
+        (WebCore::RenderBox::contentBoxRect): Deleted.
+        * rendering/RenderListBox.cpp:
+        (WebCore::RenderListBox::itemBoundingBoxRect):
+        (WebCore::RenderListBox::paintScrollbar):
+        (WebCore::RenderListBox::paintItemBackground):
+        (WebCore::RenderListBox::isPointInOverflowControl):
+        (WebCore::RenderListBox::listIndexAtOffset):
+        (WebCore::RenderListBox::nodeAtPoint):
+        (WebCore::RenderListBox::controlClipRect):
+        (WebCore::RenderListBox::invalidateScrollbarRect):
+        (WebCore::RenderListBox::convertFromScrollbarToContainingView):
+        (WebCore::RenderListBox::convertFromContainingViewToScrollbar):
+        (WebCore::RenderListBox::scrolledToTop):
+        (WebCore::RenderListBox::scrolledToBottom):
+
+2016-03-30  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Use references instead of pointers in scrollbar-related code
+        https://bugs.webkit.org/show_bug.cgi?id=155998
+
+        Reviewed by Dean Jackson.
+
+        Migrate pointers to references.
+
+        No new tests because there is no behavior change.
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::invalidateScrollbarRect):
+        (WebCore::FrameView::setVisibleScrollerThumbRect):
+        * page/FrameView.h:
+        * platform/ScrollView.cpp:
+        (WebCore::ScrollView::convertFromScrollbarToContainingView):
+        (WebCore::ScrollView::convertFromContainingViewToScrollbar):
+        * platform/ScrollView.h:
+        * platform/ScrollableArea.cpp:
+        (WebCore::ScrollableArea::invalidateScrollbar):
+        * platform/ScrollableArea.h:
+        (WebCore::ScrollableArea::convertFromScrollbarToContainingView):
+        (WebCore::ScrollableArea::convertFromContainingViewToScrollbar):
+        * platform/Scrollbar.cpp:
+        (WebCore::Scrollbar::invalidateRect):
+        (WebCore::Scrollbar::convertToContainingView):
+        (WebCore::Scrollbar::convertFromContainingView):
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::convertFromScrollbarToContainingView):
+        (WebCore::RenderLayer::convertFromContainingViewToScrollbar):
+        (WebCore::RenderLayer::scrollbarOffset):
+        (WebCore::RenderLayer::invalidateScrollbarRect):
+        * rendering/RenderLayer.h:
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::destroyRootLayer):
+        * rendering/RenderListBox.cpp:
+        (WebCore::RenderListBox::invalidateScrollbarRect):
+        (WebCore::RenderListBox::convertFromScrollbarToContainingView):
+        (WebCore::RenderListBox::convertFromContainingViewToScrollbar):
+        * rendering/RenderListBox.h:
+        * platform/win/PopupMenuWin.cpp:
+        (WebCore::RenderListBox::invalidateScrollbarRect):
+        * platform/win/PopupMenuWin.h:
+
 2016-03-24  Simon Fraser  <simon.fraser@apple.com>
 
         Make animation events non-cancelable

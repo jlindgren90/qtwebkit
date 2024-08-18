@@ -518,8 +518,6 @@ putDirectWithoutTransition(vm, vm.propertyNames-> jsName, lowerName ## Construct
     putDirectWithoutTransition(vm, vm.propertyNames->Uint32ArrayPrivateName, m_typedArrays[toIndex(TypeUint32)].constructor.get(), DontEnum);
     putDirectWithoutTransition(vm, vm.propertyNames->Float32ArrayPrivateName, m_typedArrays[toIndex(TypeFloat32)].constructor.get(), DontEnum);
     putDirectWithoutTransition(vm, vm.propertyNames->Float64ArrayPrivateName, m_typedArrays[toIndex(TypeFloat64)].constructor.get(), DontEnum);
-    putDirectWithoutTransition(vm, vm.propertyNames->ObjectPrivateName, objectConstructor, DontEnum | DontDelete | ReadOnly);
-    putDirectWithoutTransition(vm, vm.propertyNames->ArrayPrivateName, arrayConstructor, DontEnum | DontDelete | ReadOnly);
 
     m_moduleLoader.set(vm, this, ModuleLoaderObject::create(vm, this, ModuleLoaderObject::createStructure(vm, this, m_objectPrototype.get())));
     if (Options::exposeInternalModuleLoader())
@@ -542,19 +540,17 @@ putDirectWithoutTransition(vm, vm.propertyNames-> jsName, lowerName ## Construct
     JSFunction* privateFuncHasInstanceBoundFunction = JSFunction::create(vm, this, 0, String(), hasInstanceBoundFunction);
     JSFunction* privateFuncInstanceOf = JSFunction::create(vm, this, 0, String(), objectPrivateFuncInstanceOf);
     JSFunction* privateFuncThisTimeValue = JSFunction::create(vm, this, 0, String(), dateProtoFuncGetTime);
-    JSFunction* privateFuncIsArrayConstructor = JSFunction::create(vm, this, 0, String(), arrayConstructorPrivateFuncIsArrayConstructor, IsArrayConstructorIntrinsic);
-    JSFunction* privateFuncIsJSArray = JSFunction::create(vm, this, 0, String(), arrayProtoPrivateFuncIsJSArray, IsJSArrayIntrinsic);
-    JSFunction* privateFuncConcatMemcpy = JSFunction::create(vm, this, 0, String(), arrayProtoPrivateFuncConcatMemcpy);
-    JSFunction* privateFuncAppendMemcpy = JSFunction::create(vm, this, 0, String(), arrayProtoPrivateFuncAppendMemcpy);
-    JSFunction* privateFuncConcatSlowPath = JSFunction::createBuiltinFunction(vm, arrayPrototypeConcatSlowPathCodeGenerator(vm), this);
+    JSFunction* privateFuncIsArrayConstructor = JSFunction::create(vm, this, 0, String(), arrayConstructorPrivateFuncIsArrayConstructor);
 
     GlobalPropertyInfo staticGlobals[] = {
         GlobalPropertyInfo(vm.propertyNames->NaN, jsNaN(), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->Infinity, jsNumber(std::numeric_limits<double>::infinity()), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->undefinedKeyword, jsUndefined(), DontEnum | DontDelete | ReadOnly),
+        GlobalPropertyInfo(vm.propertyNames->ObjectPrivateName, objectConstructor, DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->ownEnumerablePropertyKeysPrivateName, JSFunction::create(vm, this, 0, String(), ownEnumerablePropertyKeys), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->getTemplateObjectPrivateName, privateFuncGetTemplateObject, DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->enqueueJobPrivateName, JSFunction::create(vm, this, 0, String(), enqueueJob), DontEnum | DontDelete | ReadOnly),
+        GlobalPropertyInfo(vm.propertyNames->ErrorPrivateName, m_errorConstructor.get(), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->RangeErrorPrivateName, m_rangeErrorConstructor.get(), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->TypeErrorPrivateName, m_typeErrorConstructor.get(), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->typedArrayLengthPrivateName, privateFuncTypedArrayLength, DontEnum | DontDelete | ReadOnly),
@@ -564,6 +560,7 @@ putDirectWithoutTransition(vm, vm.propertyNames-> jsName, lowerName ## Construct
         GlobalPropertyInfo(vm.propertyNames->hasInstanceBoundFunctionPrivateName, privateFuncHasInstanceBoundFunction, DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->instanceOfPrivateName, privateFuncInstanceOf, DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->BuiltinLogPrivateName, builtinLog, DontEnum | DontDelete | ReadOnly),
+        GlobalPropertyInfo(vm.propertyNames->ArrayPrivateName, arrayConstructor, DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->NumberPrivateName, numberConstructor, DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->RegExpPrivateName, m_regExpConstructor.get(), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->StringPrivateName, stringConstructor, DontEnum | DontDelete | ReadOnly),
@@ -575,16 +572,15 @@ putDirectWithoutTransition(vm, vm.propertyNames-> jsName, lowerName ## Construct
         GlobalPropertyInfo(vm.propertyNames->ReflectPrivateName, reflectObject, DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->InternalPromisePrivateName, internalPromiseConstructor, DontEnum | DontDelete | ReadOnly),
 
+        GlobalPropertyInfo(vm.propertyNames->repeatCharacterPrivateName, JSFunction::create(vm, this, 2, String(), stringProtoFuncRepeatCharacter), DontEnum | DontDelete | ReadOnly),
+        GlobalPropertyInfo(vm.propertyNames->builtinNames().repeatSlowPathPrivateName(), JSFunction::createBuiltinFunction(vm, stringPrototypeRepeatSlowPathCodeGenerator(vm), this), DontEnum | DontDelete | ReadOnly),
+
         GlobalPropertyInfo(vm.propertyNames->isSetPrivateName, JSFunction::create(vm, this, 1, String(), privateFuncIsSet), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->SetIteratorPrivateName, JSFunction::create(vm, this, 1, String(), privateFuncSetIterator), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->setIteratorNextPrivateName, JSFunction::create(vm, this, 0, String(), privateFuncSetIteratorNext), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->isMapPrivateName, JSFunction::create(vm, this, 1, String(), privateFuncIsMap), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->isArrayPrivateName, arrayConstructor->getDirect(vm, vm.propertyNames->isArray), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->isArrayConstructorPrivateName, privateFuncIsArrayConstructor, DontEnum | DontDelete | ReadOnly),
-        GlobalPropertyInfo(vm.propertyNames->isJSArrayPrivateName, privateFuncIsJSArray, DontEnum | DontDelete | ReadOnly),
-        GlobalPropertyInfo(vm.propertyNames->concatMemcpyPrivateName, privateFuncConcatMemcpy, DontEnum | DontDelete | ReadOnly),
-        GlobalPropertyInfo(vm.propertyNames->appendMemcpyPrivateName, privateFuncAppendMemcpy, DontEnum | DontDelete | ReadOnly),
-        GlobalPropertyInfo(vm.propertyNames->builtinNames().concatSlowPathPrivateName(), privateFuncConcatSlowPath, DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->MapIteratorPrivateName, JSFunction::create(vm, this, 1, String(), privateFuncMapIterator), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->mapIteratorNextPrivateName, JSFunction::create(vm, this, 0, String(), privateFuncMapIteratorNext), DontEnum | DontDelete | ReadOnly),
 

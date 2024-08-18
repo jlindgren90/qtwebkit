@@ -1,3 +1,94 @@
+2016-03-30  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198828.
+        https://bugs.webkit.org/show_bug.cgi?id=156030
+
+        Confirming PLT regression (Requested by anttik on #webkit).
+
+        Reverted changeset:
+
+        "Separate render tree updating from style resolve"
+        https://bugs.webkit.org/show_bug.cgi?id=155298
+        http://trac.webkit.org/changeset/198828
+
+2016-03-30  Keith Miller <keith_miller@apple.com>
+
+        Unreviewed, rollout r198808. The patch causes crashes on 32-bit and appears to be a JSBench regression.
+
+2016-03-30  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] [RTL Scrollbars] List boxes should obey RTL scrollbars
+        https://bugs.webkit.org/show_bug.cgi?id=155991
+
+        Reviewed by Darin Adler.
+
+        As with the previous patches, mark new tests as failing on all OSes that
+        don't support RTL scrollbars.
+
+        * TestExpectations:
+        * fast/scrolling/rtl-scrollbars-listbox-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-listbox-scroll-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-listbox-scroll.html: Added.
+        * fast/scrolling/rtl-scrollbars-listbox-select-left-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-listbox-select-left.html: Added.
+        * fast/scrolling/rtl-scrollbars-listbox-select-right-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-listbox-select-right.html: Added.
+        * fast/scrolling/rtl-scrollbars-listbox-simple-expected-mismatch.html: Added.
+        * fast/scrolling/rtl-scrollbars-listbox-simple.html: Added.
+        * fast/scrolling/rtl-scrollbars-listbox.html: Added.
+
+2016-03-30  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Implement String.prototype.repeat in builtins JS
+        https://bugs.webkit.org/show_bug.cgi?id=155974
+
+        Reviewed by Darin Adler.
+
+        Update the error messages.
+
+        * js/regress/script-tests/string-repeat-not-resolving-fixed.js: Added.
+        (test):
+        * js/regress/script-tests/string-repeat-not-resolving-no-inline.js: Added.
+        (test):
+        * js/regress/script-tests/string-repeat-not-resolving.js: Added.
+        (test):
+        * js/regress/script-tests/string-repeat-resolving-fixed.js: Added.
+        (test):
+        * js/regress/script-tests/string-repeat-resolving-no-inline.js: Added.
+        (test):
+        * js/regress/script-tests/string-repeat-resolving.js: Added.
+        (test):
+        * js/regress/script-tests/string-repeat-single-not-resolving.js: Added.
+        (test):
+        * js/regress/script-tests/string-repeat-single-resolving.js: Added.
+        (test):
+        * js/regress/script-tests/string-repeat-small-not-resolving.js: Added.
+        (test):
+        * js/regress/script-tests/string-repeat-small-resolving.js: Added.
+        (test):
+        * js/regress/string-repeat-not-resolving-expected.txt: Added.
+        * js/regress/string-repeat-not-resolving-fixed-expected.txt: Added.
+        * js/regress/string-repeat-not-resolving-fixed.html: Added.
+        * js/regress/string-repeat-not-resolving-noinline-expected.txt: Added.
+        * js/regress/string-repeat-not-resolving-noinline.html: Added.
+        * js/regress/string-repeat-not-resolving.html: Added.
+        * js/regress/string-repeat-resolving-expected.txt: Added.
+        * js/regress/string-repeat-resolving-fixed-expected.txt: Added.
+        * js/regress/string-repeat-resolving-fixed.html: Added.
+        * js/regress/string-repeat-resolving-no-inline-expected.txt: Added.
+        * js/regress/string-repeat-resolving-no-inline.html: Added.
+        * js/regress/string-repeat-resolving.html: Added.
+        * js/regress/string-repeat-single-not-resolving-expected.txt: Added.
+        * js/regress/string-repeat-single-not-resolving.html: Added.
+        * js/regress/string-repeat-single-resolving-expected.txt: Added.
+        * js/regress/string-repeat-single-resolving.html: Added.
+        * js/regress/string-repeat-small-not-resolving-expected.txt: Added.
+        * js/regress/string-repeat-small-not-resolving.html: Added.
+        * js/regress/string-repeat-small-resolving-expected.txt: Added.
+        * js/regress/string-repeat-small-resolving.html: Added.
+        * js/script-tests/string-repeat.js:
+        * js/string-repeat-expected.txt:
+
 2016-03-24  Simon Fraser  <simon.fraser@apple.com>
 
         Make animation events non-cancelable

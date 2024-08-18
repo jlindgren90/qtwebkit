@@ -133,7 +133,6 @@
 #include "ProcessingInstruction.h"
 #include "RenderChildIterator.h"
 #include "RenderLayerCompositor.h"
-#include "RenderTreeUpdater.h"
 #include "RenderView.h"
 #include "RenderWidget.h"
 #include "ResourceLoadObserver.h"
@@ -1911,22 +1910,15 @@ void Document::recalcStyle(Style::Change change)
         }
 
         Style::TreeResolver resolver(*this);
-        auto styleUpdate = resolver.resolve(change);
+        resolver.resolve(change);
+
+        updatedCompositingLayers = frameView.updateCompositingLayersAfterStyleChange();
 
         clearNeedsStyleRecalc();
         clearChildNeedsStyleRecalc();
         unscheduleStyleRecalc();
 
         m_inStyleRecalc = false;
-
-        if (styleUpdate) {
-            TemporaryChange<bool> inRenderTreeUpdate(m_inRenderTreeUpdate, true);
-
-            RenderTreeUpdater updater(*this);
-            updater.commit(WTFMove(styleUpdate));
-        }
-
-        updatedCompositingLayers = frameView.updateCompositingLayersAfterStyleChange();
     }
 
     // If we wanted to call implicitClose() during recalcStyle, do so now that we're finished.
@@ -2044,10 +2036,7 @@ Ref<RenderStyle> Document::styleForElementIgnoringPendingStylesheets(Element& el
     TemporaryChange<bool> change(m_ignorePendingStylesheets, true);
     auto elementStyle = element.resolveStyle(parentStyle);
 
-    if (elementStyle.relations) {
-        Style::Update emptyUpdate(*this);
-        Style::commitRelations(WTFMove(elementStyle.relations), emptyUpdate);
-    }
+    Style::commitRelationsToDocument(WTFMove(elementStyle.relations));
 
     return WTFMove(elementStyle.renderStyle);
 }
