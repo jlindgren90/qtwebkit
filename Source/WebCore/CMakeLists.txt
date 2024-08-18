@@ -3812,10 +3812,14 @@ add_library(WebCoreDerivedSources STATIC ${WebCore_DERIVED_SOURCES})
 set_target_properties(WebCoreDerivedSources PROPERTIES OUTPUT_NAME WebCoreDerivedSources${DEBUG_SUFFIX})
 set_target_properties(WebCoreDerivedSources PROPERTIES FOLDER "WebCore")
 if (NOT WIN32)
-    list(APPEND WebCore_LIBRARIES WebCoreDerivedSources${DEBUG_SUFFIX})
+    list(APPEND WebCore_LIBRARIES WebCoreDerivedSources)
 endif ()
 
 WEBKIT_FRAMEWORK(WebCore)
+
+if (WIN32)
+    add_dependencies(WebCore WebCoreDerivedSources)
+endif ()
 
 if (NOT MSVC AND WIN32 AND ${PORT} STREQUAL "Qt")
     ADD_PREFIX_HEADER(WebCore "${WEBCORE_DIR}/WebCorePrefix.h")

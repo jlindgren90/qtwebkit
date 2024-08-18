@@ -1,3 +1,62 @@
+2016-03-29  Nan Wang  <n_wang@apple.com>
+
+        AX: VoiceOver not announcing the right header information for table on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=155907
+
+        Reviewed by Chris Fleizach.
+
+        Make sure we consider the case where header elements size does not equal to
+        row size.
+
+        Test: accessibility/ios-simulator/table-row-column-headers.html
+
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper accessibilityHeaderElements]):
+
+2016-03-29  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        REGRESSION (r198782): CGImageSourceUpdateData() is called twice with the same data every time ImageSource::setData() is called
+        https://bugs.webkit.org/show_bug.cgi?id=155997
+
+        Reviewed by Simon Fraser.
+
+        Remove a call to CGImageSourceUpdateData() which was mistakenly left in
+        ImageDecoder::setData() after ImageSource refactoring.
+
+        * platform/graphics/cg/ImageSourceCG.cpp:
+        (WebCore::ImageDecoder::setData):
+
+2016-03-29  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        REGRESSION(r198784) Shouldn't add platform-dependent code to ScrollableArea.h
+        https://bugs.webkit.org/show_bug.cgi?id=155999
+
+        Rolling out the patch.
+
+        * platform/ScrollableArea.h:
+        (WebCore::ScrollableArea::horizontalScrollbar):
+        (WebCore::ScrollableArea::verticalScrollbar):
+        (WebCore::ScrollableArea::tiledBacking):
+        (WebCore::ScrollableArea::layerForHorizontalScrollbar):
+        (WebCore::ScrollableArea::layerForVerticalScrollbar):
+        (WebCore::ScrollableArea::layerForScrolling):
+        (WebCore::ScrollableArea::layerForScrollCorner):
+        (WebCore::ScrollableArea::layerForOverhangAreas):
+        * platform/mac/ScrollAnimatorMac.mm:
+        (WebCore::ScrollAnimatorMac::updateScrollerStyle): Deleted.
+        * platform/mac/ScrollableAreaMac.mm:
+        (WebCore::ScrollableArea::setScrollbarLayoutDirection): Deleted.
+        * platform/mac/ScrollbarThemeMac.mm:
+        (WebCore::ScrollbarThemeMac::registerScrollbar): Deleted.
+        * platform/spi/mac/NSScrollerImpSPI.h:
+
+2016-03-29  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows clean build.
+
+        * CMakeLists.txt:
+        Make sure WebCoreDerivedSources is done building before building WebCore.
+
 2016-03-29  Keith Miller  <keith_miller@apple.com>
 
         [ES6] Add support for Symbol.isConcatSpreadable.

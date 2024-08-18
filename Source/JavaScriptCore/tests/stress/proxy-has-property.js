@@ -2,7 +2,7 @@
 // disabled for Qt
 function assert(b) {
     if (!b)
-        throw new Error("Bad assertion.");
+        throw new Error("Bad assertion");
 }
 
 {
@@ -147,7 +147,7 @@ function assert(b) {
         try {
             "x" in proxy;
         } catch(e) {
-            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties.");
+            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties");
             threw = true;
         }
         assert(threw);
@@ -169,7 +169,7 @@ function assert(b) {
         try {
             "x" in proxy;
         } catch(e) {
-            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties.");
+            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties");
             threw = true;
         }
         assert(threw);
@@ -191,7 +191,7 @@ function assert(b) {
         try {
             "x" in proxy;
         } catch(e) {
-            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties.");
+            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties");
             threw = true;
         }
         assert(threw);
@@ -213,7 +213,7 @@ function assert(b) {
         try {
             "x" in proxy;
         } catch(e) {
-            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties.");
+            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties");
             threw = true;
         }
         assert(threw);
@@ -235,7 +235,7 @@ function assert(b) {
         try {
             "x" in proxy;
         } catch(e) {
-            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties.");
+            assert(e.toString() === "TypeError: Proxy 'has' must return 'true' for non-configurable properties");
             threw = true;
         }
         assert(threw);
