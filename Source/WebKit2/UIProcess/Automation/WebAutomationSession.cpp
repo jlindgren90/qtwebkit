@@ -364,7 +364,7 @@ void WebAutomationSession::navigateBrowsingContext(Inspector::ErrorString& error
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
 
     if (auto callback = m_pendingNavigationInBrowsingContextCallbacksPerPage.take(page->pageID()))
-        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
+        callback->sendFailure(Inspector::Protocol::AutomationHelpers::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
     m_pendingNavigationInBrowsingContextCallbacksPerPage.set(page->pageID(), WTFMove(callback));
 
     page->loadRequest(WebCore::URL(WebCore::URL(), url));
@@ -377,7 +377,7 @@ void WebAutomationSession::goBackInBrowsingContext(Inspector::ErrorString& error
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
 
     if (auto callback = m_pendingNavigationInBrowsingContextCallbacksPerPage.take(page->pageID()))
-        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
+        callback->sendFailure(Inspector::Protocol::AutomationHelpers::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
     m_pendingNavigationInBrowsingContextCallbacksPerPage.set(page->pageID(), WTFMove(callback));
 
     page->goBack();
@@ -390,7 +390,7 @@ void WebAutomationSession::goForwardInBrowsingContext(Inspector::ErrorString& er
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
 
     if (auto callback = m_pendingNavigationInBrowsingContextCallbacksPerPage.take(page->pageID()))
-        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
+        callback->sendFailure(Inspector::Protocol::AutomationHelpers::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
     m_pendingNavigationInBrowsingContextCallbacksPerPage.set(page->pageID(), WTFMove(callback));
 
     page->goForward();
@@ -403,7 +403,7 @@ void WebAutomationSession::reloadBrowsingContext(Inspector::ErrorString& errorSt
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
 
     if (auto callback = m_pendingNavigationInBrowsingContextCallbacksPerPage.take(page->pageID()))
-        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
+        callback->sendFailure(Inspector::Protocol::AutomationHelpers::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
     m_pendingNavigationInBrowsingContextCallbacksPerPage.set(page->pageID(), WTFMove(callback));
 
     const bool reloadFromOrigin = false;
@@ -757,14 +757,14 @@ void WebAutomationSession::performKeyboardInteractions(ErrorString& errorString,
         String interactionTypeString;
         if (!interactionObject->getString(ASCIILiteral("type"), interactionTypeString))
             FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
-        auto interactionType = Inspector::Protocol::parseEnumValueFromString<Inspector::Protocol::Automation::KeyboardInteractionType>(interactionTypeString);
+        auto interactionType = Inspector::Protocol::AutomationHelpers::parseEnumValueFromString<Inspector::Protocol::Automation::KeyboardInteractionType>(interactionTypeString);
         if (!interactionType)
             FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
 
         String virtualKeyString;
         bool foundVirtualKey = interactionObject->getString(ASCIILiteral("key"), virtualKeyString);
         if (foundVirtualKey) {
-            auto virtualKey = Inspector::Protocol::parseEnumValueFromString<Inspector::Protocol::Automation::VirtualKey>(virtualKeyString);
+            auto virtualKey = Inspector::Protocol::AutomationHelpers::parseEnumValueFromString<Inspector::Protocol::Automation::VirtualKey>(virtualKeyString);
             if (!virtualKey)
                 FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
 
@@ -826,7 +826,7 @@ void WebAutomationSession::didTakeScreenshot(uint64_t callbackID, const Shareabl
 
     String base64EncodedData = platformGetBase64EncodedPNGData(imageDataHandle);
     if (base64EncodedData.isEmpty()) {
-        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::InternalError));
+        callback->sendFailure(Inspector::Protocol::AutomationHelpers::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::InternalError));
         return;
     }
 

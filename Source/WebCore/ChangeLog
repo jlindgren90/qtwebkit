@@ -1,3 +1,187 @@
+2016-04-04  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Addressing post-review feedback on r198970
+        https://bugs.webkit.org/show_bug.cgi?id=156123
+
+        Unreviewed.
+
+        * platform/text/BidiResolver.h:
+        (WebCore::BidiCharacterRun::~BidiCharacterRun):
+
+2016-04-04  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [SVG -> OTF Converter] Crash when trying to re-convert a previously-failed font conversion
+        https://bugs.webkit.org/show_bug.cgi?id=156175
+        <rdar://problem/25130547>
+
+        Reviewed by David Kilzer.
+
+        m_externalSVGFontElement points inside the document owned by m_externalSVGDocument.
+        However, when the m_externalSVGDocument is destroyed (due to a failed conversion),
+        we weren't resetting m_externalSVGFontElement. Then, when trying to re-convert, we
+        were using the fact that m_externalSVGFontElement is non-null to mean it's valid.
+
+        Test: fast/text/svg-font-invalid-glyph-path-failure.html (Under GuardMalloc)
+
+        * loader/cache/CachedSVGFont.cpp:
+        (WebCore::CachedSVGFont::ensureCustomFontData):
+
+2016-04-04  Anders Carlsson  <andersca@apple.com>
+
+        Properly generate static functions that return Promises
+        https://bugs.webkit.org/show_bug.cgi?id=156169
+
+        Reviewed by Sam Weinig.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateReturnParameters):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunction):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionWithException):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-04-04  Joonghun Park  <jh718.park@samsung.com>
+
+        [EFL] Fix build break since r198800
+        https://bugs.webkit.org/show_bug.cgi?id=156011
+
+        Reviewed by Alex Christensen.
+
+        * PlatformEfl.cmake: Remove temorary statement which was applied to avoid build failure of Efl port.
+
+2016-04-04  Antti Koivisto  <antti@apple.com>
+
+        Re-disable event dispatch assertions in RenderTreeUpdater::updateRenderTree
+        https://bugs.webkit.org/show_bug.cgi?id=156172
+
+        Some ruby tests on iOS hit these.
+
+        * style/RenderTreeUpdater.cpp:
+        (WebCore::RenderTreeUpdater::updateRenderTree):
+
+2016-04-04  Alejandro G. Castro  <alex@igalia.com>
+
+        REGRESSION(r198492): [GTK] The WEB_RTC flag was not correctly added in some situations
+        https://bugs.webkit.org/show_bug.cgi?id=156164
+
+        Reviewed by Philippe Normand.
+
+        Replace WEBRTC with WEB_RTC, in the idls add the new option
+        UsePointersEvenForNonNullableObjectArguments to fix compilation.
+
+        * Modules/mediastream/RTCDataChannel.idl:
+        * Modules/mediastream/RTCPeerConnection.idl:
+        * Modules/mediastream/RTCRtpReceiver.cpp:
+        * Modules/mediastream/RTCRtpReceiver.h:
+        * Modules/mediastream/RTCRtpSender.cpp:
+        * Modules/mediastream/RTCRtpSender.h:
+        * Modules/mediastream/RTCRtpSender.idl:
+        * Modules/mediastream/RTCRtpSenderReceiverBase.h:
+        * Modules/mediastream/RTCSessionDescription.cpp:
+        * Modules/mediastream/RTCSessionDescription.h:
+        * Modules/mediastream/RTCStatsReport.cpp:
+        * Modules/mediastream/RTCStatsResponse.cpp:
+        * Modules/mediastream/RTCTrackEvent.cpp:
+        * Modules/mediastream/RTCTrackEvent.h:
+        * Modules/mediastream/SDPProcessor.cpp:
+        * Modules/mediastream/SDPProcessor.h:
+        * bindings/generic/RuntimeEnabledFeatures.cpp:
+        (WebCore::RuntimeEnabledFeatures::RuntimeEnabledFeatures):
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        * bindings/js/WebCoreJSBuiltinInternals.cpp:
+        (WebCore::JSBuiltinInternalFunctions::JSBuiltinInternalFunctions):
+        (WebCore::JSBuiltinInternalFunctions::visit):
+        (WebCore::JSBuiltinInternalFunctions::initialize):
+        * bindings/js/WebCoreJSBuiltinInternals.h:
+        * bindings/js/WebCoreJSBuiltins.h:
+        (WebCore::JSBuiltinFunctions::JSBuiltinFunctions):
+        * platform/mediastream/RTCSessionDescriptionDescriptor.cpp:
+        * platform/mediastream/RTCSessionDescriptionDescriptor.h:
+        * platform/mediastream/RTCSessionDescriptionRequest.h:
+        * platform/mediastream/RTCStatsRequest.h:
+        * platform/mediastream/RTCStatsResponseBase.h:
+        * platform/mediastream/RTCVoidRequest.h:
+        * platform/mediastream/SDPProcessorScriptResource.cpp:
+        * platform/mediastream/SDPProcessorScriptResource.h:
+        * platform/mock/TimerEventBasedMock.h:
+
+2016-04-04  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r198792): [GTK] Inspector crashes in Inspector::Protocol::getEnumConstantValue since r198792
+        https://bugs.webkit.org/show_bug.cgi?id=155745
+        <rdar://problem/25289456>
+
+        Reviewed by Brian Burg.
+
+        Use Inspector::Protocol::AutomationEnums namespace for getEnumConstantValue().
+
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::buildObjectForAccessibilityProperties):
+        * inspector/InspectorTimelineAgent.cpp:
+        (WebCore::InspectorTimelineAgent::addRecordToTimeline):
+
+2016-04-04  Antti Koivisto  <antti@apple.com>
+
+        Avoid double traversal in RenderTreeUpdater for slot roots
+        https://bugs.webkit.org/show_bug.cgi?id=156110
+
+        Reviewed by Andreas Kling.
+
+        * style/RenderTreeUpdater.cpp:
+        (WebCore::hasDisplayContents):
+        (WebCore::findRenderingRoot):
+        (WebCore::findRenderingRoots):
+        (WebCore::RenderTreeUpdater::commit):
+
+            If there are multiple roots that are slots we may end up updating the same rendering root multiple times.
+            Fix by deduplicating the roots.
+
+        (WebCore::RenderTreeUpdater::updateRenderTree):
+
+            Some cleanups.
+
+2016-04-04  Antti Koivisto  <antti@apple.com>
+
+        Enable assertions against DOM mutations in RenderTreeUpdater
+        https://bugs.webkit.org/show_bug.cgi?id=156156
+
+        Reviewed by Andreas Kling.
+
+        Ensure we don't mutate DOM or dispatch events during render tree updates.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/ContainerNode.cpp:
+        * dom/ContainerNode.h:
+        (WebCore::NoEventDispatchAssertion::NoEventDispatchAssertion): Deleted.
+        (WebCore::NoEventDispatchAssertion::~NoEventDispatchAssertion): Deleted.
+        (WebCore::NoEventDispatchAssertion::isEventDispatchForbidden): Deleted.
+
+            Move NoEventDispatchAssertion to a header of its own.
+
+        * dom/NoEventDispatchAssertion.h: Added.
+        (WebCore::NoEventDispatchAssertion::NoEventDispatchAssertion):
+        (WebCore::NoEventDispatchAssertion::~NoEventDispatchAssertion):
+        (WebCore::NoEventDispatchAssertion::isEventDispatchForbidden):
+        (WebCore::NoEventDispatchAssertion::dropTemporarily):
+        (WebCore::NoEventDispatchAssertion::restoreDropped):
+
+            Add a way to disable event assertions temporarily.
+
+        * loader/cache/CachedSVGFont.cpp:
+        (WebCore::CachedSVGFont::ensureCustomFontData):
+
+            Temporary SVG font document may get constructed during render tree update. These can't run scripts or generally
+            affect anything outside the font document as it does not have a frame. Disable event assertions temporarily.
+
+            Tested by svg/W3C-SVG-1.1/fonts-elem-07-b.svg
+
+        * style/RenderTreeUpdater.cpp:
+        (WebCore::RenderTreeUpdater::updateRenderTree):
+
+            Enable assertions.
+
 2016-04-04  Emanuele Aina  <emanuele.aina@collabora.com>
 
         [TexMap] Trim redundant guards

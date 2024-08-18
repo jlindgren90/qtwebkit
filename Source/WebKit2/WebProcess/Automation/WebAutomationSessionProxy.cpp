@@ -144,11 +144,11 @@ static JSValueRef evaluateJavaScriptCallback(JSContextRef context, JSObjectRef f
 
     if (resultIsErrorName) {
         if (result->string() == "JavaScriptTimeout") {
-            String errorType = Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::JavaScriptTimeout);
+            String errorType = Inspector::Protocol::AutomationHelpers::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::JavaScriptTimeout);
             automationSessionProxy->didEvaluateJavaScriptFunction(frameID, callbackID, String(), errorType);
         } else {
             ASSERT_NOT_REACHED();
-            String errorType = Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::InternalError);
+            String errorType = Inspector::Protocol::AutomationHelpers::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::InternalError);
             automationSessionProxy->didEvaluateJavaScriptFunction(frameID, callbackID, String(), errorType);
         }
     } else
@@ -465,7 +465,7 @@ void WebAutomationSessionProxy::computeElementLayout(uint64_t frameID, String no
 void WebAutomationSessionProxy::takeScreenshot(uint64_t pageID, uint64_t callbackID)
 {
     ShareableBitmap::Handle handle;
-    String windowNotFoundErrorType = Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::WindowNotFound);
+    String windowNotFoundErrorType = Inspector::Protocol::AutomationHelpers::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::WindowNotFound);
 
     WebPage* page = WebProcess::singleton().webPage(pageID);
     if (!page) {
