@@ -1860,6 +1860,10 @@ private:
     std::unique_ptr<NodeAssistanceArguments> m_deferredNodeAssistanceArguments;
 #endif
 
+#if ENABLE(DOWNLOAD_ATTRIBUTE)
+    bool m_syncNavigationActionHasDownloadAttribute { false };
+#endif
+
     HashMap<String, RefPtr<WebURLSchemeHandler>> m_urlSchemeHandlersByScheme;
     HashMap<uint64_t, RefPtr<WebURLSchemeHandler>> m_urlSchemeHandlersByIdentifier;
 };

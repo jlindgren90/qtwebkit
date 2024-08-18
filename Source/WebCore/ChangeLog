@@ -1,3 +1,273 @@
+2016-03-31  Jeremy Jones  <jeremyj@apple.com>
+
+        mediaShouldUsePersistentCache() is redundant. Use Page::usesEphemeralSession() instead.
+        https://bugs.webkit.org/show_bug.cgi?id=155924
+
+        Reviewed by Simon Fraser.
+
+        No new tests because there is no behavior change.
+
+        Remove machinery for mediaShouldUsePersistentCache() adopt usesEphemeralSession().
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::mediaPlayerShouldUsePersistentCache):
+        * page/ChromeClient.h: remove mediaShouldUsePersistentCache()
+
+2016-03-30  Ada Chan  <adachan@apple.com>
+
+        Add the new "toggle enhanced fullscreen" context menu item to the video context menu on supporting platforms.
+        https://bugs.webkit.org/show_bug.cgi?id=156031
+
+        Reviewed by Eric Carlson.
+
+        * page/ContextMenuController.cpp:
+        (WebCore::ContextMenuController::contextMenuItemSelected):
+        Handle the selection of the context menu item.
+        (WebCore::ContextMenuController::populate):
+        Add this menu item on Mac.
+        (WebCore::ContextMenuController::checkOrEnableIfNeeded):
+        Set the menu item's title depending on the current enhanced fullscreen state
+        and enable this menu item if supported.
+
+        * platform/ContextMenuItem.h:
+        Define the new tag for this menu item.
+
+        * platform/LocalizedStrings.cpp:
+        (WebCore::contextMenuItemTagEnterVideoEnhancedFullscreen):
+        (WebCore::contextMenuItemTagExitVideoEnhancedFullscreen):
+        * platform/LocalizedStrings.h:
+
+        * rendering/HitTestResult.cpp:
+        (WebCore::HitTestResult::mediaSupportsEnhancedFullscreen):
+        (WebCore::HitTestResult::mediaIsInEnhancedFullscreen):
+        (WebCore::HitTestResult::toggleEnhancedFullscreenForVideo):
+        * rendering/HitTestResult.h:
+
+2016-03-31  Nan Wang  <n_wang@apple.com>
+
+        AX: aria-hidden=false causes video fallback content to be exposed to AX API
+        https://bugs.webkit.org/show_bug.cgi?id=149278
+
+        Reviewed by Chris Fleizach.
+
+        The comment says when aria-hidden="false" and object is not rendered, we should
+        check each parent's aria-hidden status until we encounter a rendered object. So 
+        added a check for the rendered parent in order to break out of the loop earlier.
+
+        Test case covered in modified accessibility/aria-hidden-negates-no-visibility.html
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::isNodeAriaVisible):
+
+2016-03-31  Brent Fulgham  <bfulgham@apple.com>
+
+        [WK2] Support download attribute feature
+        https://bugs.webkit.org/show_bug.cgi?id=102914
+        <rdar://problem/13177492>
+
+        Reviewed by Darin Adler.
+
+        Tested by imported/w3c/web-platform-tests/html/dom/interfaces.html
+                  imported/w3c/web-platform-tests/html/dom/reflection-text.html
+
+        A first draft implementation of this feature.
+
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::handleClick): If the anchor has the 'download'
+        attribute, pass along the information to the rest of the load system.
+        * loader/FrameLoadRequest.h:
+        (WebCore::FrameLoadRequest::FrameLoadRequest): Create new overload that
+        accepts a download attribute flag and a suggested filename.
+        (WebCore::FrameLoadRequest::hasDownloadAttribute): Added.
+        (WebCore::FrameLoadRequest::suggestedFilename): Added.
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::urlSelected): Expand to accept the download attribute
+        flag and suggested filename.
+        (WebCore::FrameLoader::loadURL): Populate the NavigationAction with the new
+        download attribute flag and suggested filename.
+        (WebCore::FrameLoader::loadPostRequest): Ditto.
+        * loader/FrameLoader.h:
+        * loader/FrameLoaderTypes.h: Add new 'HasDownloadAttribute' enum.
+        * loader/NavigationAction.cpp:
+        (WebCore::navigationType):
+        (WebCore::NavigationAction::NavigationAction): Update to accept new download
+        attribute flag and suggested filename.
+        * loader/NavigationAction.h:
+        (WebCore::NavigationAction::hasDownloadAttribute): Added.
+        (WebCore::NavigationAction::suggestedFilename): Added.
+        * loader/PolicyChecker.cpp:
+        (WebCore::PolicyChecker::checkNavigationPolicy): Pass more information to
+        'continueAfterNavigationPolicy'
+        (WebCore::PolicyChecker::continueAfterNavigationPolicy): Accept suggested
+        filename
+        * loader/PolicyChecker.h:
+
+2016-03-31  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Add basic loading of resources for Workers
+        https://bugs.webkit.org/show_bug.cgi?id=155886
+
+        Reviewed by Alex Christensen.
+
+        Adding impplementation to WorkerGlobalScopeFetch::fetch similarly to DOMWindowFetch::fetch.
+        Refactored code in FetchResponse to share code between the two.
+
+        Updated WorkerThreadableLoader to cope with an ASSERT.
+        The ASSERT ensures that a DocumentThreadableLoader::create returns non null. 
+        In our case, it might happen as all cross origin fetch requests are denied at the moment.
+        This leads to calling didFail in DocumentThreadableLoader::create call and DocumentThreadableLoader::create to return null.
+        Updated the ASSERT to ensures that either the load is finished or DocumentThreadableLoader::create does not return null.
+
+        Covered by rebased tests.
+
+        * Modules/fetch/DOMWindowFetch.cpp:
+        (WebCore::DOMWindowFetch::fetch):
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::startFetching):
+        (WebCore::FetchResponse::fetch):
+        * Modules/fetch/FetchResponse.h:
+        * Modules/fetch/WorkerGlobalScopeFetch.cpp:
+        (WebCore::WorkerGlobalScopeFetch::fetch):
+        * Modules/fetch/WorkerGlobalScopeFetch.h:
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::MainThreadBridge):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFinishLoading):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFail):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFailAccessControlCheck):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFailRedirectCheck):
+        * loader/WorkerThreadableLoader.h:
+
+2016-03-31  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Move isDisturbed handling to FetchBodyOwner
+        https://bugs.webkit.org/show_bug.cgi?id=155968
+
+        Reviewed by Darin Adler.
+
+        Moved isDisturbed handling in FetchBodyOwner.
+        This includes promise rejection in case of disturbed bodies.
+
+        No behavior change observable from user scripts.
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::arrayBuffer):
+        (WebCore::FetchBody::blob):
+        (WebCore::FetchBody::json):
+        (WebCore::FetchBody::text):
+        (WebCore::FetchBody::extractFromBody):
+        (WebCore::FetchBody::consume):
+        (WebCore::FetchBody::consumeArrayBuffer):
+        (WebCore::FetchBody::processIfEmptyOrDisturbed): Deleted.
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::isEmpty): Deleted.
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::arrayBuffer):
+        (WebCore::FetchBodyOwner::blob):
+        (WebCore::FetchBodyOwner::formData):
+        (WebCore::FetchBodyOwner::json):
+        (WebCore::FetchBodyOwner::text):
+        * Modules/fetch/FetchBodyOwner.h:
+        (WebCore::FetchBodyOwner::isDisturbed):
+        (WebCore::FetchBodyOwner::setDisturbed):
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::create):
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::clone):
+
+2016-03-31  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Remove forEach use from Fetch Headers builtin constructor
+        https://bugs.webkit.org/show_bug.cgi?id=155967
+
+        Reviewed by Joseph Pecoraro.
+
+        Tests: fetch/shadowing-forEach.html
+               streams/shadowing-Promise.html
+               streams/shadowing-defineProperty.html
+
+        * Modules/fetch/FetchHeaders.idl: Adding fillFromJS private method.
+        * Modules/fetch/FetchHeaders.js:
+        (initializeFetchHeaders): Using fillFromJS private method. Using
+        instanceof test to check whether parameter is Headers or subclass of it.
+        * bindings/js/WebCoreBuiltinNames.h: Adding fillFromJS private symbol.
+
+2016-03-30  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build.
+
+        * platform/text/LineEnding.cpp:
+        make the char's and uint8_t's compile.
+
+2016-03-30  Alex Christensen  <achristensen@webkit.org>
+
+        Build fix.
+
+        * platform/text/LineEnding.cpp:
+
+2016-03-30  Alex Christensen  <achristensen@webkit.org>
+
+        Fix GTK and Windows builds after r198869.
+
+        * platform/network/soup/ResourceHandleSoup.cpp:
+        (WebCore::blobIsOutOfDate):
+        (WebCore::addEncodedBlobItemToSoupMessageBody):
+        * platform/text/LineEnding.cpp:
+
+2016-03-30  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Avoid creating tiles that are too large for rendering
+        https://bugs.webkit.org/show_bug.cgi?id=156050
+        rdar://problem/25424541
+
+        Reviewed by Darin Adler.
+
+        In the case of a WKWebView which is sized large enough to show an entire document
+        (for example, when enclosed inside a UIScrollView), we would create tiles that were
+        larger than CoreAnimation was willing to deal with.
+        
+        * platform/graphics/ca/TileController.cpp:
+        (WebCore::TileController::tileSize): Take the device scale, and the max IOSurface size
+        into account when computing the max tile size.
+        * platform/graphics/cocoa/IOSurface.mm:
+        (IOSurface::maximumSize): CoreAnimation imposes limits in addition to the size reported
+        by IOSurfaceGetPropertyMaximum(), namely an 8k cap, so mimic that here.
+        (IOSurface::ensurePlatformContext): Typo.
+
+2016-03-30  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL][CMake] WebKit include path has been added to system include path
+        https://bugs.webkit.org/show_bug.cgi?id=156019
+
+        Reviewed by Darin Adler.
+
+        Fix wrong include path addition.
+
+        * PlatformEfl.cmake:
+
+            Add ${WEBCORE_DIR}/platform/graphics/surfaces/egl to WebCore include directory path.
+
+2016-03-30  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: Update handling of SVG elements with presentational role
+        https://bugs.webkit.org/show_bug.cgi?id=156042
+
+        Reviewed by Chris Fleizach.
+
+        Because the new expected behavior is to treat SVG elements with a
+        presentational role just like we treat other host language elements
+        with a presentational role, delete AccessibilitySVGElement's
+        determineAriaRoleAttribute().
+
+        No new test files. The expectations for w3c-svg-presentational-role.html
+        were updated because the presentational elements which have global ARIA
+        attributes are now being included in the accessibility tree. In addition,
+        several new test cases were added to this layout test so that we have
+        coverage for more presentational elements which lack global ARIA attributes.
+
+        * accessibility/AccessibilitySVGElement.cpp:
+        (WebCore::AccessibilitySVGElement::determineAriaRoleAttribute): Deleted.
+        * accessibility/AccessibilitySVGElement.h:
+
 2016-03-30  Brady Eidson  <beidson@apple.com>
 
         Make BlobData use ThreadSafeSharedBuffer instead of RawData.

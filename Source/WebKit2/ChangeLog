@@ -1,3 +1,169 @@
+2016-03-31  Jeremy Jones  <jeremyj@apple.com>
+
+        mediaShouldUsePersistentCache() is redundant. Use Page::usesEphemeralSession() instead.
+        https://bugs.webkit.org/show_bug.cgi?id=155924
+
+        Reviewed by Simon Fraser.
+
+        Remove machinery for mediaShouldUsePersistentCache as it is redundant.
+
+        * Shared/WebPageCreationParameters.cpp:
+        (WebKit::WebPageCreationParameters::encode): Deleted.
+        (WebKit::WebPageCreationParameters::decode): Deleted.
+        * Shared/WebPageCreationParameters.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::creationParameters): Deleted.
+        * WebProcess/WebCoreSupport/WebChromeClient.cpp:
+        (WebKit::WebChromeClient::mediaShouldUsePersistentCache): Deleted.
+        * WebProcess/WebCoreSupport/WebChromeClient.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::m_mediaShouldUsePersistentCache): Deleted.
+        * WebProcess/WebPage/WebPage.h:
+        (WebKit::WebPage::mediaShouldUsePersistentCache): Deleted.
+
+2016-03-30  Ada Chan  <adachan@apple.com>
+
+        Add the new "toggle enhanced fullscreen" context menu item to the video context menu on supporting platforms.
+        https://bugs.webkit.org/show_bug.cgi?id=156031
+
+        Reviewed by Eric Carlson.
+
+        * Shared/API/c/WKContextMenuItemTypes.h:
+        * Shared/API/c/WKSharedAPICast.h:
+        (WebKit::toAPI):
+        (WebKit::toImpl):
+
+2016-03-31  Brent Fulgham  <bfulgham@apple.com>
+
+        Unreviewed build fix after r198893.
+
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::findPendingDownloadLocation): Pass
+        new argument to download method.
+
+2016-03-31  Brent Fulgham  <bfulgham@apple.com>
+
+        [WK2] Support download attribute feature
+        https://bugs.webkit.org/show_bug.cgi?id=102914
+        <rdar://problem/13177492>
+
+        Reviewed by Darin Adler.
+
+        A first draft implementation of this feature.
+
+        * NetworkProcess/Downloads/Download.cpp:
+        (WebKit::Download::Download): Update to accept default filename.
+        (WebKit::Download::didStart): Send default filename in message.
+        * NetworkProcess/Downloads/Download.h:
+        * NetworkProcess/Downloads/DownloadManager.cpp:
+        (WebKit::DownloadManager::startDownload): Expect a default filename argument.
+        * NetworkProcess/Downloads/DownloadManager.h:
+        * NetworkProcess/NetworkConnectionToWebProcess.cpp:
+        (WebKit::NetworkConnectionToWebProcess::startDownload): Expect a default
+        filename argument.
+        * NetworkProcess/NetworkConnectionToWebProcess.h:
+        * NetworkProcess/NetworkConnectionToWebProcess.messages.in: Update messages to
+        expect a default filename argument.
+        * Shared/NavigationActionData.cpp:
+        (WebKit::NavigationActionData::encode): Handle the download attribute flag and
+        the default filename.
+        (WebKit::NavigationActionData::decode): Ditto.
+        * Shared/NavigationActionData.h:
+        * UIProcess/API/APINavigationAction.h:
+        * UIProcess/Downloads/DownloadProxy.cpp:
+        (WebKit::DownloadProxy::didStart): Expect a default filename argument.
+        (WebKit::DownloadProxy::decideDestinationWithSuggestedFilename): Use the suggested
+        filename if the client delegate does not override it.
+        * UIProcess/Downloads/DownloadProxy.h:
+        * UIProcess/Downloads/DownloadProxy.messages.in: Include a default filename value.
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::receivedPolicyDecision): If the feature is enabled, and
+        the load was started with a download attribute, convert a "PolicyUse" decision
+        to "PolicyDownload".
+        (WebKit::WebPageProxy::decidePolicyForNavigationAction): Remember if the load
+        is happening due to a 'download' attribute link.
+        * UIProcess/WebPageProxy.h:
+        * WebProcess/WebCoreSupport/WebChromeClient.cpp:
+        (WebKit::WebChromeClient::createWindow): Populate the navigationActionData object
+        with any download attribute and suggested filename.
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::dispatchDecidePolicyForNewWindowAction): Populate the
+        navigationActionData object with any download attribute and suggested filename.
+        (WebKit::WebFrameLoaderClient::dispatchDecidePolicyForNavigationAction): Ditto.
+        (WebKit::WebFrameLoaderClient::startDownload): Expect a suggested filename argument.
+        * WebProcess/WebPage/WebFrame.cpp:
+        (WebKit::WebFrame::startDownload): Expect a suggested filename argument.
+        * WebProcess/WebPage/WebFrame.h:
+
+2016-03-30  Alex Christensen  <achristensen@webkit.org>
+
+        CMake build fix.
+
+        * PlatformMac.cmake:
+
+2016-03-30  Alex Christensen  <achristensen@webkit.org>
+
+        Speculative Yosemite fix after r198872.
+
+        * UIProcess/Cocoa/WebAutomationSessionCocoa.mm:
+        (WebKit::WebAutomationSession::platformSimulateKeySequence):
+        Yosemite didn't like _Nullable.
+
+2016-03-30  Yongjun Zhang  <yongjun_zhang@apple.com>
+
+        Need to expose makeAllShadowRootsOpen in WKWebProcessPlugInScriptWorld.
+        https://bugs.webkit.org/show_bug.cgi?id=156046
+
+        Add an SPI makeAllShadowRootsOpen method in WKWebProcessPlugInScriptWorld.
+
+        Reviewed by Dan Bernstein.
+
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInScriptWorld.h:
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInScriptWorld.mm:
+        (-[WKWebProcessPlugInScriptWorld makeAllShadowRootsOpen]):
+
+2016-03-30  Brian Burg  <bburg@apple.com>
+
+        Web Automation: Add Automation.performKeyboardInteractions
+        https://bugs.webkit.org/show_bug.cgi?id=155990
+        <rdar://problem/25426408>
+
+        Reviewed by Timothy Hatcher.
+
+        Add a command that allows automation to simulate single
+        key strokes or insertion of an entire string, character
+        by character.
+
+        * UIProcess/Automation/Automation.json: Add new command.
+        Add a large enumeration of all virtual keys that exist
+        on a US 109-key keyboard layout. Add an interaction object.
+
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::performKeyboardInteractions):
+        Added. This method validates the incoming key interactions
+        from the protocol and makes a list of simulated interactions
+        to perform. If everything validates, then delegate the key
+        interaction simulations to platform-specific methods.
+
+        (WebKit::WebAutomationSession::platformSimulateKeyStroke):
+        (WebKit::WebAutomationSession::platformSimulateKeySequence):
+        Add stubs for other platforms.
+
+        * UIProcess/Automation/WebAutomationSession.h: Add new
+        protocol command handler and platform simulation methods.
+
+        * UIProcess/Cocoa/WebAutomationSessionCocoa.mm:
+        (WebKit::WebAutomationSession::platformSimulateKeyStroke):
+        (WebKit::WebAutomationSession::platformSimulateKeySequence):
+        These methods implement keyboard simulation for AppKit, used
+        by the Mac port. In the keystroke case, figure out the AppKit
+        keyCode for the key as well as any key modifiers that should
+        be included with the key event. Keep track of sticky modifiers
+        and update the session state appropriately. In the key sequence
+        case, split the string into combining character sequences and
+        send a 'key up/down'. This is a weird way to send non-ASCII
+        text, so a better alternative should be explored in the future.
+
 2016-03-30  Brady Eidson  <beidson@apple.com>
 
         Make BlobData use ThreadSafeSharedBuffer instead of RawData.
