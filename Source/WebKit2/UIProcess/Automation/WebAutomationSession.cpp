@@ -357,45 +357,67 @@ void WebAutomationSession::moveWindowOfBrowsingContext(Inspector::ErrorString& e
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InternalError);
 }
 
-void WebAutomationSession::navigateBrowsingContext(Inspector::ErrorString& errorString, const String& handle, const String& url)
+void WebAutomationSession::navigateBrowsingContext(Inspector::ErrorString& errorString, const String& handle, const String& url, Ref<NavigateBrowsingContextCallback>&& callback)
 {
     WebPageProxy* page = webPageProxyForHandle(handle);
     if (!page)
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
+
+    if (auto callback = m_pendingNavigationInBrowsingContextCallbacksPerPage.take(page->pageID()))
+        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
+    m_pendingNavigationInBrowsingContextCallbacksPerPage.set(page->pageID(), WTFMove(callback));
 
     page->loadRequest(WebCore::URL(WebCore::URL(), url));
 }
 
-void WebAutomationSession::goBackInBrowsingContext(Inspector::ErrorString& errorString, const String& handle)
+void WebAutomationSession::goBackInBrowsingContext(Inspector::ErrorString& errorString, const String& handle, Ref<GoBackInBrowsingContextCallback>&& callback)
 {
     WebPageProxy* page = webPageProxyForHandle(handle);
     if (!page)
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
+
+    if (auto callback = m_pendingNavigationInBrowsingContextCallbacksPerPage.take(page->pageID()))
+        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
+    m_pendingNavigationInBrowsingContextCallbacksPerPage.set(page->pageID(), WTFMove(callback));
 
     page->goBack();
 }
 
-void WebAutomationSession::goForwardInBrowsingContext(Inspector::ErrorString& errorString, const String& handle)
+void WebAutomationSession::goForwardInBrowsingContext(Inspector::ErrorString& errorString, const String& handle, Ref<GoForwardInBrowsingContextCallback>&& callback)
 {
     WebPageProxy* page = webPageProxyForHandle(handle);
     if (!page)
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
+
+    if (auto callback = m_pendingNavigationInBrowsingContextCallbacksPerPage.take(page->pageID()))
+        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
+    m_pendingNavigationInBrowsingContextCallbacksPerPage.set(page->pageID(), WTFMove(callback));
 
     page->goForward();
 }
 
-void WebAutomationSession::reloadBrowsingContext(Inspector::ErrorString& errorString, const String& handle)
+void WebAutomationSession::reloadBrowsingContext(Inspector::ErrorString& errorString, const String& handle, Ref<ReloadBrowsingContextCallback>&& callback)
 {
     WebPageProxy* page = webPageProxyForHandle(handle);
     if (!page)
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
+
+    if (auto callback = m_pendingNavigationInBrowsingContextCallbacksPerPage.take(page->pageID()))
+        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::Timeout));
+    m_pendingNavigationInBrowsingContextCallbacksPerPage.set(page->pageID(), WTFMove(callback));
 
     const bool reloadFromOrigin = false;
     const bool contentBlockersEnabled = true;
     page->reload(reloadFromOrigin, contentBlockersEnabled);
 }
 
-void WebAutomationSession::evaluateJavaScriptFunction(Inspector::ErrorString& errorString, const String& browsingContextHandle, const String* optionalFrameHandle, const String& function, const Inspector::InspectorArray& arguments, bool expectsImplicitCallbackArgument, Ref<EvaluateJavaScriptFunctionCallback>&& callback)
+void WebAutomationSession::navigationOccurredForPage(const WebPageProxy& page)
+{
+    if (auto callback = m_pendingNavigationInBrowsingContextCallbacksPerPage.take(page.pageID()))
+        callback->sendSuccess(InspectorObject::create());
+}
+
+void WebAutomationSession::evaluateJavaScriptFunction(Inspector::ErrorString& errorString, const String& browsingContextHandle, const String* optionalFrameHandle, const String& function, const Inspector::InspectorArray& arguments, const bool* optionalExpectsImplicitCallbackArgument, const int* optionalCallbackTimeout, Ref<EvaluateJavaScriptFunctionCallback>&& callback)
 {
     WebPageProxy* page = webPageProxyForHandle(browsingContextHandle);
     if (!page)
@@ -414,10 +436,13 @@ void WebAutomationSession::evaluateJavaScriptFunction(Inspector::ErrorString& er
         argumentsVector.uncheckedAppend(argumentString);
     }
 
+    bool expectsImplicitCallbackArgument = optionalExpectsImplicitCallbackArgument ? *optionalExpectsImplicitCallbackArgument : false;
+    int callbackTimeout = optionalCallbackTimeout ? *optionalCallbackTimeout : 0;
+
     uint64_t callbackID = m_nextEvaluateJavaScriptCallbackID++;
     m_evaluateJavaScriptFunctionCallbacks.set(callbackID, WTFMove(callback));
 
-    page->process().send(Messages::WebAutomationSessionProxy::EvaluateJavaScriptFunction(frame->frameID(), function, argumentsVector, expectsImplicitCallbackArgument, callbackID), 0);
+    page->process().send(Messages::WebAutomationSessionProxy::EvaluateJavaScriptFunction(frame->frameID(), function, argumentsVector, expectsImplicitCallbackArgument, callbackTimeout, callbackID), 0);
 }
 
 void WebAutomationSession::didEvaluateJavaScriptFunction(uint64_t callbackID, const String& result, const String& errorType)
@@ -721,11 +746,12 @@ void WebAutomationSession::performKeyboardInteractions(ErrorString& errorString,
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
 
     // Validate all of the parameters before performing any interactions with the browsing context under test.
-    Vector<std::function<void()>> actionsToPerform(interactions.length());
+    Vector<std::function<void()>> actionsToPerform;
+    actionsToPerform.reserveCapacity(interactions.length());
 
-    for (auto it = interactions.begin(); it != interactions.end(); ++it) {
+    for (auto interaction : interactions) {
         RefPtr<InspectorObject> interactionObject;
-        if (!it->get()->asObject(interactionObject))
+        if (!interaction->asObject(interactionObject))
             FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
 
         String interactionTypeString;
@@ -742,7 +768,7 @@ void WebAutomationSession::performKeyboardInteractions(ErrorString& errorString,
             if (!virtualKey)
                 FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
 
-            actionsToPerform.append([this, page, interactionType, virtualKey] {
+            actionsToPerform.uncheckedAppend([this, page, interactionType, virtualKey] {
                 platformSimulateKeyStroke(*page, interactionType.value(), virtualKey.value());
             });
         }
@@ -757,7 +783,7 @@ void WebAutomationSession::performKeyboardInteractions(ErrorString& errorString,
                 FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
 
             case Inspector::Protocol::Automation::KeyboardInteractionType::InsertByKey:
-                actionsToPerform.append([this, page, keySequence] {
+                actionsToPerform.uncheckedAppend([this, page, keySequence] {
                     platformSimulateKeySequence(*page, keySequence);
                 });
                 break;
@@ -766,13 +792,45 @@ void WebAutomationSession::performKeyboardInteractions(ErrorString& errorString,
 
         if (!foundVirtualKey && !foundKeySequence)
             FAIL_WITH_PREDEFINED_ERROR_MESSAGE(MissingParameter);
-
-        ASSERT(actionsToPerform.size());
-        for (auto& action : actionsToPerform)
-            action();
     }
 
+    ASSERT(actionsToPerform.size());
+    for (auto& action : actionsToPerform)
+        action();
+
 #endif // USE(APPKIT)
+}
+
+void WebAutomationSession::takeScreenshot(ErrorString& errorString, const String& handle, Ref<TakeScreenshotCallback>&& callback)
+{
+    WebPageProxy* page = webPageProxyForHandle(handle);
+    if (!page)
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
+
+    uint64_t callbackID = m_nextScreenshotCallbackID++;
+    m_screenshotCallbacks.set(callbackID, WTFMove(callback));
+
+    page->process().send(Messages::WebAutomationSessionProxy::TakeScreenshot(page->pageID(), callbackID), 0);
+}
+
+void WebAutomationSession::didTakeScreenshot(uint64_t callbackID, const ShareableBitmap::Handle& imageDataHandle, const String& errorType)
+{
+    auto callback = m_screenshotCallbacks.take(callbackID);
+    if (!callback)
+        return;
+
+    if (!errorType.isEmpty()) {
+        callback->sendFailure(errorType);
+        return;
+    }
+
+    String base64EncodedData = platformGetBase64EncodedPNGData(imageDataHandle);
+    if (base64EncodedData.isEmpty()) {
+        callback->sendFailure(Inspector::Protocol::getEnumConstantValue(Inspector::Protocol::Automation::ErrorMessage::InternalError));
+        return;
+    }
+
+    callback->sendSuccess(base64EncodedData);
 }
 
 #if !USE(APPKIT)
@@ -786,6 +844,11 @@ void WebAutomationSession::platformSimulateKeyStroke(WebPageProxy&, Inspector::P
 
 void WebAutomationSession::platformSimulateKeySequence(WebPageProxy&, const String&)
 {
+}
+
+String WebAutomationSession::platformGetBase64EncodedPNGData(const ShareableBitmap::Handle&)
+{
+    return String();
 }
 #endif // !USE(APPKIT)
 

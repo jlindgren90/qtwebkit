@@ -1,3 +1,154 @@
+2016-03-31  Brian Burg  <bburg@apple.com>
+
+        Web Automation: the interaction queue in WebAutomationSession::performKeyInteractions doesn't work
+        https://bugs.webkit.org/show_bug.cgi?id=156083
+
+        Reviewed by Timothy Hatcher.
+
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::performKeyboardInteractions):
+        Use Vector::reserveCapacity instead of the size constructor since we use append.
+        Empty the interaction queue outside of loops so all interactions are performed once.
+
+2016-03-31  Timothy Hatcher  <timothy@apple.com>
+
+        Web Automation: Add support for script timeouts to the evaluateJavaScriptFunction command
+
+        https://bugs.webkit.org/show_bug.cgi?id=156052
+        rdar://problem/25457151
+
+        Address additional review comments.
+
+        * WebProcess/Automation/WebAutomationSessionProxy.js:
+        (AutomationSessionProxy.prototype.evaluateJavaScriptFunction): Add semicolons and remove
+        and clearTimeout that wasn't needed.
+
+2016-03-31  Timothy Hatcher  <timothy@apple.com>
+
+        Web Automation: Navigation commands should not return until page loads or fails
+
+        https://bugs.webkit.org/show_bug.cgi?id=156063
+        rdar://problem/25464373
+
+        Reviewed by Brian Burg.
+
+        * UIProcess/Automation/Automation.json: Make navigation commands async.
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::navigateBrowsingContext): Save callback and timeout previous.
+        (WebKit::WebAutomationSession::goBackInBrowsingContext): Ditto.
+        (WebKit::WebAutomationSession::goForwardInBrowsingContext): Ditto.
+        (WebKit::WebAutomationSession::reloadBrowsingContext): Ditto.
+        (WebKit::WebAutomationSession::navigationOccuredForPage): Added. Fire callback for page.
+        * UIProcess/Automation/WebAutomationSession.h:
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::didFinishLoadForFrame): Call WebAutomationSession::navigationOccuredForPage.
+        (WebKit::WebPageProxy::didFailLoadForFrame): Ditto.
+        (WebKit::WebPageProxy::didSameDocumentNavigationForFrame): Ditto.
+
+        * UIProcess/WebProcessPool.h: Added automationSession() getter.
+
+2016-03-30  Timothy Hatcher  <timothy@apple.com>
+
+        Web Automation: Add support for script timeouts to the evaluateJavaScriptFunction command
+
+        https://bugs.webkit.org/show_bug.cgi?id=156052
+        rdar://problem/25457151
+
+        Reviewed by Brian Burg.
+
+        * UIProcess/Automation/Automation.json: Added callbackTimeout to evaluateJavaScriptFunction.
+        Also made expectsImplicitCallbackArgument optional, since it is not required. Added JavaScriptTimeout error.
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::evaluateJavaScriptFunction): Added callbackTimeout.
+        * UIProcess/Automation/WebAutomationSession.h:
+        * WebProcess/Automation/WebAutomationSessionProxy.cpp:
+        (WebKit::evaluateJavaScriptCallback): Send JavaScriptTimeout error if the timeout fired.
+        (WebKit::WebAutomationSessionProxy::evaluateJavaScriptFunction): Added callbackTimeout.
+        * WebProcess/Automation/WebAutomationSessionProxy.h:
+        * WebProcess/Automation/WebAutomationSessionProxy.js:
+        (AutomationSessionProxy.prototype.evaluateJavaScriptFunction): Set a timeout to fire if the
+        callback is not called, then return an error.
+        * WebProcess/Automation/WebAutomationSessionProxy.messages.in:
+        (EvaluateJavaScriptFunction): Added callbackTimeout parameter.
+
+2016-03-31  Jiewen Tan  <jiewen_tan@apple.com>
+
+        WebKit should set Original URL of a download request correctly
+        https://bugs.webkit.org/show_bug.cgi?id=155914
+        <rdar://problem/10473811>
+
+        Reviewed by Anders Carlsson.
+
+        * NetworkProcess/NetworkConnectionToWebProcess.cpp:
+        (WebKit::NetworkConnectionToWebProcess::convertMainResourceLoadToDownload):
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::convertTaskToDownload):
+        (WebKit::NetworkLoad::didReceiveResponseNetworkSession):
+        * NetworkProcess/NetworkLoad.h:
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::findPendingDownloadLocation):
+        * NetworkProcess/NetworkProcess.h:
+        Add logic to set the original URL of a download request when a main resource load
+        is converted to a download.
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::download):
+        * UIProcess/WebProcessPool.h:
+        Add logic to set the original URL of a download request during a context menu:
+        Download Linked File action.
+
+2016-03-31  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Automation: Add Automation.screenshot
+        https://bugs.webkit.org/show_bug.cgi?id=156073
+        <rdar://problem/25468646>
+
+        Reviewed by Timothy Hatcher and Brian Burg.
+
+        * UIProcess/Automation/Automation.json:
+        Add Automation.screenshot which returns base64 encoded PNG data.
+
+        * WebProcess/Automation/WebAutomationSessionProxy.h:
+        * WebProcess/Automation/WebAutomationSessionProxy.messages.in:
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::screenshot):
+        (WebKit::WebAutomationSession::didTakeScreenshot):
+        (WebKit::WebAutomationSession::platformGetBase64EncodedPNGData):
+        Send a message to the WebPage to get an Image of the page
+        and handle the response.
+
+        * UIProcess/Cocoa/WebAutomationSessionCocoa.mm:
+        (WebKit::WebAutomationSession::platformGetBase64EncodedPNGData):
+        Convert the bitmap data to a base64 encoded PNG.
+
+        * UIProcess/Automation/WebAutomationSession.h:
+        * UIProcess/Automation/WebAutomationSession.messages.in:
+        * WebProcess/Automation/WebAutomationSessionProxy.cpp:
+        (WebKit::evaluateJavaScriptCallback):
+        (WebKit::WebAutomationSessionProxy::didClearWindowObjectForFrame):
+        (WebKit::WebAutomationSessionProxy::resolveChildFrameWithOrdinal):
+        (WebKit::WebAutomationSessionProxy::resolveChildFrameWithNodeHandle):
+        (WebKit::WebAutomationSessionProxy::resolveChildFrameWithName):
+        (WebKit::WebAutomationSessionProxy::resolveParentFrame):
+        (WebKit::WebAutomationSessionProxy::computeElementLayout):
+        Use null string where possible for efficiency.
+
+        (WebKit::WebAutomationSessionProxy::takeScreenshot):
+        Take an image of the entire page and pass back to the UIProcess.
+
+2016-03-31  Timothy Hatcher  <timothy@apple.com>
+
+        Web Automation: Handle undefined when calling a function that has no result
+
+        https://bugs.webkit.org/show_bug.cgi?id=156075
+        rdar://problem/25468907
+
+        Reviewed by Brian Burg.
+
+        * WebProcess/Automation/WebAutomationSessionProxy.js:
+        (let.AutomationSessionProxy.prototype._jsonParse): Return undefined for empty string.
+        (let.AutomationSessionProxy.prototype._jsonStringify): Always return a string.
+
 2016-03-31  Jeremy Jones  <jeremyj@apple.com>
 
         mediaShouldUsePersistentCache() is redundant. Use Page::usesEphemeralSession() instead.

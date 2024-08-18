@@ -47,7 +47,9 @@
             "description": "This enum contains predefined error messages that can be used to signal a well-defined error condition, such as a missing implementation, unknown window handle, and so forth. The backend signals one of these errors by using it as a prefix of the commands's error message (the errorString argument in generated C++ backend dispatchers). This will be reported to the frontend as a protocol error with a JSON-RPC error code of 'ServerError'. It is up to the frontend whether and how to deal with errors.",
             "enum": [
                 "InternalError",
+                "Timeout",
                 "JavaScriptError",
+                "JavaScriptTimeout",
                 "WindowNotFound",
                 "FrameNotFound",
                 "NodeNotFound",
@@ -249,28 +251,32 @@
             "parameters": [
                 { "name": "handle", "$ref": "BrowsingContextHandle", "description": "The handle for the browsing context that should be navigated." },
                 { "name": "url", "type": "string", "description": "The URL to load in the browsing context." }
-            ]
+            ],
+            "async": true
         },
         {
             "name": "goBackInBrowsingContext",
             "description": "Navigates a browsing context to go back one page in history.",
             "parameters": [
                 { "name": "handle", "$ref": "BrowsingContextHandle", "description": "The handle for the browsing context that should be navigated." }
-            ]
+            ],
+            "async": true
         },
         {
             "name": "goForwardInBrowsingContext",
             "description": "Navigates a browsing context to got forward one page in history.",
             "parameters": [
                 { "name": "handle", "$ref": "BrowsingContextHandle", "description": "The handle for the browsing context that should be navigated." }
-            ]
+            ],
+            "async": true
         },
         {
             "name": "reloadBrowsingContext",
             "description": "Reloads the current page in a browsing context.",
             "parameters": [
                 { "name": "handle", "$ref": "BrowsingContextHandle", "description": "The handle for the browsing context that should be reloaded." }
-            ]
+            ],
+            "async": true
         },
         {
             "name": "evaluateJavaScriptFunction",
@@ -280,7 +286,8 @@
                 { "name": "frameHandle", "$ref": "FrameHandle", "optional": true, "description": "The handle for the frame the script should be evaluated. The main frame is used if this parameter empty string or excluded." },
                 { "name": "function", "type": "string", "description": "The script to evaluate in the browsing context. It must be a function result." },
                 { "name": "arguments", "type": "array", "items": { "type": "string" }, "description": "The arguments to pass to the function when called. They will be parsed as JSON before calling the function." },
-                { "name": "expectsImplicitCallbackArgument", "type": "boolean", "description": "The function expects a callback function as the last argument. It is expected to call this callback with a result." }
+                { "name": "expectsImplicitCallbackArgument", "type": "boolean", "optional": true, "description": "The function expects a callback function as the last argument. It is expected to call this callback with a result." },
+                { "name": "callbackTimeout", "type": "integer", "optional": true, "description": "The timeout in milliseconds that the implicit callback is expected to be called in, otherwise a <code>JavaScriptTimeout</code> error is returned." }
             ],
             "returns": [
                 { "name": "result", "type": "string", "description": "The result returned by the called function. It is JSON encoded after the function returns or calls the callback." }
@@ -305,9 +312,20 @@
             "name": "performKeyboardInteractions",
             "description": "Simulates delivering the results of pressing one or more keyboard keys together or successively.",
             "parameters": [
-                { "name": "handle", "$ref": "BrowsingContextHandle", "description": "The handle for the browsing context which should recieve key." },
+                { "name": "handle", "$ref": "BrowsingContextHandle", "description": "The handle for the browsing context which should receive key." },
                 { "name": "interactions", "type": "array", "items": { "$ref": "KeyboardInteraction" }, "description": "An ordered list of key sequences to be delivered using native key events." }
             ]
+        },
+        {
+            "name": "takeScreenshot",
+            "description": "Take a screenshot of the current page in a browsing context.",
+            "parameters": [
+                { "name": "handle", "$ref": "BrowsingContextHandle", "description": "The handle for the browsing context to take a screenshot of." }
+            ],
+            "returns": [
+                { "name": "data", "type": "string", "description": "Base64-encoded image data (PNG)." }
+            ],
+            "async": true
         },
         {
             "name": "resolveChildFrameHandle",

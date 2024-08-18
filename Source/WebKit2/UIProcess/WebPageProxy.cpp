@@ -71,6 +71,7 @@
 #include "TextCheckerState.h"
 #include "UserMediaPermissionRequestProxy.h"
 #include "WKContextPrivate.h"
+#include "WebAutomationSession.h"
 #include "WebBackForwardList.h"
 #include "WebBackForwardListItem.h"
 #include "WebCertificateInfo.h"
@@ -3193,6 +3194,11 @@ void WebPageProxy::didFinishLoadForFrame(uint64_t frameID, uint64_t navigationID
     if (isMainFrame)
         m_pageLoadState.didFinishLoad(transaction);
 
+    if (isMainFrame && m_controlledByAutomation) {
+        if (auto* automationSession = process().processPool().automationSession())
+            automationSession->navigationOccurredForPage(*this);
+    }
+
     frame->didFinishLoad();
 
     m_pageLoadState.commitChanges();
@@ -3229,6 +3235,11 @@ void WebPageProxy::didFailLoadForFrame(uint64_t frameID, uint64_t navigationID, 
     if (isMainFrame)
         m_pageLoadState.didFailLoad(transaction);
 
+    if (isMainFrame && m_controlledByAutomation) {
+        if (auto* automationSession = process().processPool().automationSession())
+            automationSession->navigationOccurredForPage(*this);
+    }
+
     frame->didFailLoad();
 
     m_pageLoadState.commitChanges();
@@ -3260,6 +3271,11 @@ void WebPageProxy::didSameDocumentNavigationForFrame(uint64_t frameID, uint64_t 
     bool isMainFrame = frame->isMainFrame();
     if (isMainFrame)
         m_pageLoadState.didSameDocumentNavigation(transaction, url);
+
+    if (isMainFrame && m_controlledByAutomation) {
+        if (auto* automationSession = process().processPool().automationSession())
+            automationSession->navigationOccurredForPage(*this);
+    }
 
     m_pageLoadState.clearPendingAPIRequestURL(transaction);
     frame->didSameDocumentNavigation(url);
