@@ -1,3 +1,231 @@
+2016-04-03  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Add truncate operation (rounding to zero)
+        https://bugs.webkit.org/show_bug.cgi?id=156072
+
+        Reviewed by Saam Barati.
+
+        Add TruncIntrinsic for Math.trunc. DFG handles it as ArithTrunc.
+        In DFG, ArithTrunc behaves similar to ArithRound, ArithCeil, and ArithFloor.
+        ArithTrunc rounds the value towards zero.
+
+        And we rewrite @toInteger to use @trunc instead of @abs, @floor, negation and branch.
+        This is completely the same to what we do in JSValue::toInteger.
+
+        Since DFG recognize it, DFG can convert ArithTrunc to Identity if the given argument is Int32.
+        This is useful because almost all the argument is Int32 in @toLength -> @toInteger -> @trunc case.
+        In such cases, we can eliminate trunc() call.
+
+        As a bonus, to speed up Math.trunc operation, we use x86 SSE round and frintz in ARM64 for ArithRound.
+        In DFG, we emit these instructions. In FTL, we use Patchpoint to emit these instructions to avoid adding a new B3 IR.
+
+        * assembler/MacroAssemblerARM64.h:
+        (JSC::MacroAssemblerARM64::roundTowardZeroDouble):
+        (JSC::MacroAssemblerARM64::roundTowardZeroFloat):
+        * assembler/MacroAssemblerARMv7.h:
+        (JSC::MacroAssemblerARMv7::roundTowardZeroDouble):
+        * assembler/MacroAssemblerMIPS.h:
+        (JSC::MacroAssemblerMIPS::roundTowardZeroDouble):
+        * assembler/MacroAssemblerSH4.h:
+        (JSC::MacroAssemblerSH4::roundTowardZeroDouble):
+        * assembler/MacroAssemblerX86Common.h:
+        (JSC::MacroAssemblerX86Common::roundTowardZeroDouble):
+        (JSC::MacroAssemblerX86Common::roundTowardZeroFloat):
+        * builtins/GlobalObject.js:
+        (toInteger):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGGraph.h:
+        (JSC::DFG::Graph::roundShouldSpeculateInt32):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::arithNodeFlags):
+        (JSC::DFG::Node::hasHeapPrediction):
+        (JSC::DFG::Node::hasArithRoundingMode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        (JSC::DFG::PredictionPropagationPhase::propagate):
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithRounding):
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithTrunc):
+        * ftl/FTLOutput.cpp:
+        (JSC::FTL::Output::doubleTrunc):
+        * ftl/FTLOutput.h:
+        * jit/ThunkGenerators.cpp:
+        (JSC::truncThunkGenerator):
+        * jit/ThunkGenerators.h:
+        * runtime/CommonIdentifiers.h:
+        * runtime/Intrinsic.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/MathObject.cpp:
+        (JSC::MathObject::finishCreation):
+        * runtime/MathObject.h:
+        * runtime/VM.cpp:
+        (JSC::thunkGeneratorForIntrinsic):
+        * tests/stress/math-rounding-infinity.js:
+        (testTrunc):
+        * tests/stress/math-rounding-nan.js:
+        (testTrunc):
+        * tests/stress/math-rounding-negative-zero.js:
+        (testTrunc):
+        * tests/stress/math-trunc-arith-rounding-mode.js: Added.
+        (firstCareAboutZeroSecondDoesNot):
+        (firstDoNotCareAboutZeroSecondDoes):
+        (warmup):
+        (verifyNegativeZeroIsPreserved):
+        * tests/stress/math-trunc-basics.js: Added.
+        (mathTruncOnIntegers):
+        (mathTruncOnDoubles):
+        (mathTruncOnBooleans):
+        (uselessMathTrunc):
+        (mathTruncWithOverflow):
+        (mathTruncConsumedAsDouble):
+        (mathTruncDoesNotCareAboutMinusZero):
+        (mathTruncNoArguments):
+        (mathTruncTooManyArguments):
+        (testMathTruncOnConstants):
+        (mathTruncStructTransition):
+        (Math.trunc):
+        * tests/stress/math-trunc-should-be-truncate.js: Added.
+        (mathTrunc):
+
+2016-04-03  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES6] Class syntax. Access to new.target inside of the eval should not lead to SyntaxError
+        https://bugs.webkit.org/show_bug.cgi?id=155545
+
+        Reviewed by Saam Barati.
+       
+        Current patch allow to invoke new.target in eval if this eval is executed within function, 
+        otherwise this will lead to Syntax error 
+   
+        * bytecode/EvalCodeCache.h:
+        (JSC::EvalCodeCache::getSlow):
+        * bytecode/ExecutableInfo.h:
+        (JSC::ExecutableInfo::ExecutableInfo):
+        (JSC::ExecutableInfo::evalContextType):
+        * bytecode/UnlinkedCodeBlock.cpp:
+        (JSC::UnlinkedCodeBlock::UnlinkedCodeBlock):
+        * bytecode/UnlinkedCodeBlock.h:
+        (JSC::UnlinkedCodeBlock::evalContextType):
+        * bytecode/UnlinkedFunctionExecutable.cpp:
+        (JSC::generateUnlinkedFunctionCodeBlock):
+        * debugger/DebuggerCallFrame.cpp:
+        (JSC::DebuggerCallFrame::evaluate):
+        * interpreter/Interpreter.cpp:
+        (JSC::eval):
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::Parser):
+        (JSC::Parser<LexerType>::parseMemberExpression):
+        * parser/Parser.h:
+        (JSC::Scope::Scope):
+        (JSC::Scope::setEvalContextType):
+        (JSC::Scope::evalContextType):
+        (JSC::parse):
+        * runtime/CodeCache.cpp:
+        (JSC::CodeCache::getGlobalCodeBlock):
+        (JSC::CodeCache::getProgramCodeBlock):
+        (JSC::CodeCache::getEvalCodeBlock):
+        (JSC::CodeCache::getModuleProgramCodeBlock):
+        * runtime/CodeCache.h:
+        * runtime/Executable.cpp:
+        (JSC::ScriptExecutable::ScriptExecutable):
+        (JSC::EvalExecutable::create):
+        (JSC::EvalExecutable::EvalExecutable):
+        (JSC::ProgramExecutable::ProgramExecutable):
+        (JSC::ModuleProgramExecutable::ModuleProgramExecutable):
+        (JSC::FunctionExecutable::FunctionExecutable):
+        * runtime/Executable.h:
+        (JSC::ScriptExecutable::evalContextType):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::createEvalCodeBlock):
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncEval):
+        * tests/stress/arrowfunction-lexical-bind-newtarget.js:
+        * tests/stress/new-target.js:
+
+2016-04-02  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198976.
+        https://bugs.webkit.org/show_bug.cgi?id=156140
+
+        "Causes js/regress/array-nonarray-polymorhpic-access.html to
+        crash." (Requested by ddkilzer on #webkit).
+
+        Reverted changeset:
+
+        "[JSC] Initialize SSA's live values at tail lazily"
+        https://bugs.webkit.org/show_bug.cgi?id=156126
+        http://trac.webkit.org/changeset/198976
+
+2016-04-02  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Initialize SSA's live values at tail lazily
+        https://bugs.webkit.org/show_bug.cgi?id=156126
+
+        Reviewed by Mark Lam.
+
+        Setting up the clean state early looks harmless but it is
+        actually quite expensive.
+
+        The problem is AbstractValue is gigantic, you really want
+        to minimize how much you touch that memory.
+
+        By removing the initialization, most blocks only
+        get 2 or 3 accesses. Once to setup the value, and a few
+        queries for merging the current block with the successors.
+
+        * dfg/DFGInPlaceAbstractState.cpp:
+        (JSC::DFG::InPlaceAbstractState::endBasicBlock):
+        (JSC::DFG::setLiveValues): Deleted.
+        (JSC::DFG::InPlaceAbstractState::initialize): Deleted.
+
+2016-04-02  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Add an option to avoid disassembling baseline code for the JSC Profiler
+        https://bugs.webkit.org/show_bug.cgi?id=156127
+
+        Reviewed by Mark Lam.
+
+        The profiler run out of memory on big programs if you dump
+        the baseline disassembly.
+
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompile):
+        * runtime/Options.h:
+
+2016-04-02  Dan Bernstein  <mitz@apple.com>
+
+        jsc binary embedded in relocatable JavaScriptCore.framework links against system JavaScriptCore.framework
+        https://bugs.webkit.org/show_bug.cgi?id=156134
+        <rdar://problem/25443824>
+
+        Reviewed by Mark Lam.
+
+        * Configurations/JSC.xcconfig: Define WK_RELOCATABLE_FRAMEWORKS_LDFLAGS when building
+          relocatable frameworks to include a -dyld_env option setting DYLD_FRAMEWORK_PATH to point
+          to the directory containing JavaScript.framework, and add
+          WK_RELOCATABLE_FRAMEWORKS_LDFLAGS to OTHER_LDFLAGS.
+
 2016-04-01  Benjamin Poulain  <bpoulain@apple.com>
 
         [JSC][x86] Add the 3 operands form of floating point substraction

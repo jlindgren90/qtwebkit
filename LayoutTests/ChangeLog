@@ -1,3 +1,69 @@
+2016-04-03  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r198859): fast/scrolling/rtl-scrollbars-animation-property.html fails on non-Mac platforms
+        <http://webkit.org/b/155962>
+
+        Unreviewed; land platform-specific test results.
+
+        * platform/gtk/fast/scrolling/rtl-scrollbars-animation-property-expected.txt: Added.
+        * platform/ios-simulator/fast/scrolling/rtl-scrollbars-animation-property-expected.txt: Added.
+        * platform/win/fast/scrolling/rtl-scrollbars-animation-property-expected.txt: Added.
+
+2016-04-03  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Add truncate operation (rounding to zero)
+        https://bugs.webkit.org/show_bug.cgi?id=156072
+
+        Reviewed by Saam Barati.
+
+        * js/regress/many-foreach-calls-expected.txt: Added.
+        * js/regress/many-foreach-calls.html: Added.
+        * js/regress/math-trunc-expected.txt: Added.
+        * js/regress/math-trunc.html: Added.
+        * js/regress/script-tests/many-foreach-calls.js: Added.
+        forEach calls @toInteger. It includes @trunc now.
+        (i.array.forEach):
+        * js/regress/script-tests/math-trunc.js: Added.
+        Call Math.trunc repeatedly.
+        (mathTruncInt):
+        (mathTruncDouble):
+        (mathTruncMixed):
+        (mathTruncDoubleDoesNotCareNegativeZero):
+
+2016-04-02  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES6] Arrow function syntax. Add missed test for using 'with' and 'this' in arrow function.
+        https://bugs.webkit.org/show_bug.cgi?id=156059
+
+        Reviewed by Saam Barati.
+
+        Added test case that cover using 'with' with lexically bound 'this' in arrow function, this case was not 
+        covered by tests for arrow function.        
+
+        * js/arrowfunction-lexical-bind-this-expected.txt:
+        * js/script-tests/arrowfunction-lexical-bind-this.js:
+
+2016-04-02  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r198963): css3/filters/backdrop/dynamic-backdrop-filter-change.html frequently fails
+        <http://webkit.org/b/149319>
+
+        Unreviewed attempt to fix layout test.
+
+        * css3/filters/backdrop/dynamic-backdrop-filter-change.html:
+        Use testRunner.notifyDone() after testRunner.waitUntilDone().
+
+2016-04-01  Simon Fraser  <simon.fraser@apple.com>
+
+        Backdrop Filter should repaint when changed via script
+        https://bugs.webkit.org/show_bug.cgi?id=149319
+        rdar://problem/22749892
+
+        Reviewed by Tim Horton.
+
+        * css3/filters/backdrop/dynamic-backdrop-filter-change-expected.html: Added.
+        * css3/filters/backdrop/dynamic-backdrop-filter-change.html: Added.
+
 2016-03-31  Zalan Bujtas  <zalan@apple.com>
 
         putImageData leaves visible artifacts on retina display
