@@ -473,6 +473,8 @@ set(WebKit2_SOURCES
     UIProcess/Authentication/WebCredential.cpp
     UIProcess/Authentication/WebProtectionSpace.cpp
 
+    UIProcess/Automation/WebAutomationSession.cpp
+
     UIProcess/Databases/DatabaseProcessProxy.cpp
 
     UIProcess/Downloads/DownloadProxy.cpp
@@ -758,6 +760,12 @@ set(PluginProcess_LIBRARIES
     WebKit2
 )
 
+if (WIN32 AND INTERNAL_BUILD)
+    set(JavaScriptCore_SCRIPTS_DIR "${CMAKE_BINARY_DIR}/../include/private/JavaScriptCore/Scripts")
+else ()
+    set(JavaScriptCore_SCRIPTS_DIR "${DERIVED_SOURCES_DIR}/ForwardingHeaders/JavaScriptCore/Scripts")
+endif ()
+
 if (COMPILER_IS_GCC_OR_CLANG)
     set(ATOMIC_TEST_SOURCE
     "
@@ -845,7 +853,7 @@ add_custom_command(
     VERBATIM)
 
 list(APPEND WebKit2_HEADERS
-    ${DERIVED_SOURCES_WEBKIT2_DIR}/WebauotmationSessionProxyScriptSource.h
+    ${DERIVED_SOURCES_WEBKIT2_DIR}/WebAutomationSessionProxyScriptSource.h
 )
 
 WEBKIT_FRAMEWORK(WebKit2)

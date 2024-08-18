@@ -1,3 +1,106 @@
+2016-03-28  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Remove abstract base classes for all IDB DOM classes.
+        https://bugs.webkit.org/show_bug.cgi?id=155951
+
+        Reviewed by Alex Christensen.
+
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.cpp:
+
+2016-03-28  Brian Burg  <bburg@apple.com>
+
+        Web Automation: add commands to move and resize a browsing context's window
+        https://bugs.webkit.org/show_bug.cgi?id=155349
+        <rdar://problem/25104911>
+
+        Reviewed by Timothy Hatcher.
+
+        Parse the new origin or size and request the window to change to the
+        new frame. This calls through to PageUIClient::setWindowFrame().
+
+        * UIProcess/Automation/Automation.json:
+        Add new enum values for protocol parsing error cases.
+        Add new commands.
+
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::resizeWindowOfBrowsingContext):
+        (WebKit::WebAutomationSession::moveWindowOfBrowsingContext):
+        Added. Parse the incoming payload and bail if nothing would happen
+        or the values are not usable or out of range. Complain if a change
+        did not happen when the requested and actual size are different.
+
+        * UIProcess/Automation/WebAutomationSession.h:
+        * UIProcess/WebPageProxy.h: Move setWindowFrame to be public.
+
+2016-03-28  Brian Burg  <bburg@apple.com>
+
+        Web Automation: split protocol object BrowsingContext.windowFrame into two separate members
+        https://bugs.webkit.org/show_bug.cgi?id=155952
+        <rdar://problem/25393597>
+
+        Reviewed by Timothy Hatcher.
+
+        Using the name 'windowFrame' causes conflicts with some Objective-C code.
+
+        * UIProcess/Automation/Automation.json:
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::buildBrowsingContextForPage):
+
+2016-03-28  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [CMake] Unreviewed build fix after r198736.
+        https://bugs.webkit.org/show_bug.cgi?id=155221
+
+        Unreviewed.
+
+        * CMakeLists.txt: Fix typo, add WebAutomationSession.cpp and declare JavaScriptCore_SCRIPTS_DIR.
+        * WebProcess/Automation/WebAutomationSessionProxy.h: Add missing include.
+
+2016-03-28  Alex Christensen  <achristensen@webkit.org>
+
+        Use std::exchange for std::functions instead of WTFMove
+        https://bugs.webkit.org/show_bug.cgi?id=155950
+        rdar://problem/25348817
+
+        Reviewed by Anders Carlsson.
+
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::convertTaskToDownload):
+        (WebKit::NetworkLoad::setPendingDownloadID):
+        (WebKit::NetworkLoad::continueCanAuthenticateAgainstProtectionSpace):
+        This makes the member variable nullptr when the value is moved so we don't use it again.
+
+2016-03-28  Brian Burg  <bburg@apple.com>
+
+        Web Automation: report the browsing context's window frame (size and origin)
+        https://bugs.webkit.org/show_bug.cgi?id=155323
+        <rdar://problem/25094089>
+
+        Reviewed by Timothy Hatcher.
+
+        To prepare for implementing resize and move commands, add a
+        windowFrame member to the browsing context protocol type.
+
+        * UIProcess/Automation/Automation.json:
+        Add a frame Rect to BrowsingContext.
+
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::handleForWebPageProxy):
+        (WebKit::WebAutomationSession::buildBrowsingContextForPage):
+        Extract the code to build a BrowsingContext object. Add
+        code to calculate and insert the page's window frame size.
+
+        (WebKit::WebAutomationSession::getBrowsingContexts):
+        (WebKit::WebAutomationSession::getBrowsingContext):
+        (WebKit::WebAutomationSession::createBrowsingContext):
+        (WebKit::WebAutomationSession::switchToBrowsingContext):
+        Refactoring as above.
+
+        * UIProcess/Automation/WebAutomationSession.h:
+        Adjust signatures.
+
+        * UIProcess/WebPageProxy.h: Make getWindowFrame public.
+
 2016-03-28  Brian Burg  <bburg@apple.com>
 
         Unreviewed, fix the build.

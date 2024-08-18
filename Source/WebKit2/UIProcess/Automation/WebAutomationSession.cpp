@@ -190,24 +190,43 @@ String WebAutomationSession::handleForWebFrameProxy(const WebFrameProxy& webFram
     return handleForWebFrameID(webFrameProxy.frameID());
 }
 
+RefPtr<Inspector::Protocol::Automation::BrowsingContext> WebAutomationSession::buildBrowsingContextForPage(WebPageProxy& page)
+{
+    WebCore::FloatRect windowFrame;
+    page.getWindowFrame(windowFrame);
+
+    auto originObject = Inspector::Protocol::Automation::Point::create()
+        .setX(windowFrame.x())
+        .setY(windowFrame.y())
+        .release();
+
+    auto sizeObject = Inspector::Protocol::Automation::Size::create()
+        .setWidth(windowFrame.width())
+        .setHeight(windowFrame.height())
+        .release();
+
+    String handle = handleForWebPageProxy(page);
+
+    return Inspector::Protocol::Automation::BrowsingContext::create()
+        .setHandle(handle)
+        .setActive(m_activeBrowsingContextHandle == handle)
+        .setUrl(page.pageLoadState().activeURL())
+        .setWindowOrigin(WTFMove(originObject))
+        .setWindowSize(WTFMove(sizeObject))
+        .release();
+}
+
 void WebAutomationSession::getBrowsingContexts(Inspector::ErrorString& errorString, RefPtr<Inspector::Protocol::Array<Inspector::Protocol::Automation::BrowsingContext>>& contexts)
 {
     contexts = Inspector::Protocol::Array<Inspector::Protocol::Automation::BrowsingContext>::create();
 
     for (auto& process : m_processPool->processes()) {
-        for (auto& page : process->pages()) {
+        for (auto* page : process->pages()) {
+            ASSERT(page);
             if (!page->isControlledByAutomation())
                 continue;
 
-            String handle = handleForWebPageProxy(*page);
-
-            auto browsingContext = Inspector::Protocol::Automation::BrowsingContext::create()
-                .setHandle(handleForWebPageProxy(*page))
-                .setActive(m_activeBrowsingContextHandle == handle)
-                .setUrl(page->pageLoadState().activeURL())
-                .release();
-
-            contexts->addItem(browsingContext.copyRef());
+            contexts->addItem(buildBrowsingContextForPage(*page));
         }
     }
 }
@@ -218,11 +237,7 @@ void WebAutomationSession::getBrowsingContext(Inspector::ErrorString& errorStrin
     if (!page)
         FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
 
-    context = Inspector::Protocol::Automation::BrowsingContext::create()
-        .setHandle(handleForWebPageProxy(*page))
-        .setActive(m_activeBrowsingContextHandle == handle)
-        .setUrl(page->pageLoadState().activeURL())
-        .release();
+    context = buildBrowsingContextForPage(*page);
 }
 
 void WebAutomationSession::createBrowsingContext(Inspector::ErrorString& errorString, String* handle)
@@ -265,6 +280,80 @@ void WebAutomationSession::switchToBrowsingContext(Inspector::ErrorString& error
 
     page->setFocus(true);
     page->process().send(Messages::WebAutomationSessionProxy::FocusFrame(frame->frameID()), 0);
+}
+
+void WebAutomationSession::resizeWindowOfBrowsingContext(Inspector::ErrorString& errorString, const String& handle, const Inspector::InspectorObject& sizeObject)
+{
+    // FIXME <rdar://problem/25094106>: Specify what parameter was missing or invalid and how.
+    // This requires some changes to the other end's error handling. Right now it looks for an
+    // exact error message match. We could stuff this into the 'data' field on error object.
+    float width;
+    if (!sizeObject.getDouble(WTF::ASCIILiteral("width"), width))
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(MissingParameter);
+
+    float height;
+    if (!sizeObject.getDouble(WTF::ASCIILiteral("height"), height))
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(MissingParameter);
+
+    if (width < 0 || height < 0)
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
+
+    WebPageProxy* page = webPageProxyForHandle(handle);
+    if (!page)
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
+
+    WebCore::FloatRect originalFrame;
+    page->getWindowFrame(originalFrame);
+    
+    WebCore::FloatRect newFrame = WebCore::FloatRect(originalFrame.location(), WebCore::FloatSize(width, height));
+    if (newFrame == originalFrame)
+        return;
+
+    page->setWindowFrame(newFrame);
+    
+    // If nothing changed at all, it's probably fair to report that something went wrong.
+    // (We can't assume that the requested frame size will be honored exactly, however.)
+    WebCore::FloatRect updatedFrame;
+    page->getWindowFrame(updatedFrame);
+    if (originalFrame == updatedFrame)
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InternalError);
+}
+
+void WebAutomationSession::moveWindowOfBrowsingContext(Inspector::ErrorString& errorString, const String& handle, const Inspector::InspectorObject& positionObject)
+{
+    // FIXME <rdar://problem/25094106>: Specify what parameter was missing or invalid and how.
+    // This requires some changes to the other end's error handling. Right now it looks for an
+    // exact error message match. We could stuff this into the 'data' field on error object.
+    float x;
+    if (!positionObject.getDouble(WTF::ASCIILiteral("x"), x))
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(MissingParameter);
+
+    float y;
+    if (!positionObject.getDouble(WTF::ASCIILiteral("y"), y))
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(MissingParameter);
+
+    if (x < 0 || y < 0)
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InvalidParameter);
+
+    WebPageProxy* page = webPageProxyForHandle(handle);
+    if (!page)
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(WindowNotFound);
+
+    WebCore::FloatRect originalFrame;
+    page->getWindowFrame(originalFrame);
+    
+    WebCore::FloatRect newFrame = WebCore::FloatRect(WebCore::FloatPoint(x, y), originalFrame.size());
+    if (newFrame == originalFrame)
+        return;
+
+    page->setWindowFrame(newFrame);
+    
+    // If nothing changed at all, it's probably fair to report that something went wrong.
+    // (We can't assume that the requested frame size will be honored exactly, however.)
+    WebCore::FloatRect updatedFrame;
+    page->getWindowFrame(updatedFrame);
+    if (originalFrame == updatedFrame)
+        FAIL_WITH_PREDEFINED_ERROR_MESSAGE(InternalError);
 }
 
 void WebAutomationSession::navigateBrowsingContext(Inspector::ErrorString& errorString, const String& handle, const String& url)

@@ -1,3 +1,54 @@
+2016-03-28  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: Crash when AX trying to create element for an old auto fill element
+        https://bugs.webkit.org/show_bug.cgi?id=155943
+
+        Reviewed by Joanmarie Diggs.
+
+        * accessibility/auto-fill-crash-expected.txt: Added.
+        * accessibility/auto-fill-crash.html: Added.
+
+2016-03-28  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: iOS: Can't navigate inside ContentEditable fields with voiceover enabled
+        https://bugs.webkit.org/show_bug.cgi?id=155942
+
+        Reviewed by Joanmarie Diggs.
+
+        * accessibility/set-selected-text-range-contenteditable-expected.txt: Added.
+        * accessibility/set-selected-text-range-contenteditable.html: Added.
+        * platform/efl/TestExpectations:
+        * platform/gtk/TestExpectations:
+
+2016-03-28  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Unreviewed EFL gardening on 29th Mar.
+
+        Mark svg text tests to failure. Besides remove duplicated a test.
+
+        * platform/efl/TestExpectations:
+
+2016-03-28  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [RTL Scrollbars] Position:sticky can be positioned under vertical RTL scrollbar
+        https://bugs.webkit.org/show_bug.cgi?id=155949
+
+        Reviewed by Simon Fraser.
+
+        * platform/ios-simulator/TestExpectations:
+        * fast/scrolling/rtl-scrollbars-sticky-document-2-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-document-2.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-document-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-document.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-iframe-2-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-iframe-2.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-iframe-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-iframe.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-overflow-scroll-2-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-overflow-scroll-2.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-overflow-scroll-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-sticky-overflow-scroll.html: Added.
+
 2016-03-28  Zalan Bujtas  <zalan@apple.com>
 
         Setup cloned continuation renderer properly.
