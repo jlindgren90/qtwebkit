@@ -668,6 +668,7 @@ private:
         case GetStack:
         case GetRegExpObjectLastIndex:
         case SetRegExpObjectLastIndex:
+        case RecordRegExpCachedResult:
         case LazyJSConstant: {
             // This node should never be visible at this stage of compilation. It is
             // inserted by fixup(), which follows this phase.
@@ -764,6 +765,8 @@ private:
         case Check:
         case PutGlobalVariable:
         case CheckWatchdogTimer:
+        case LogShadowChickenPrologue:
+        case LogShadowChickenTail:
         case Unreachable:
         case LoopHint:
         case NotifyWrite:

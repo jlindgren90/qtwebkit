@@ -3048,6 +3048,11 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
         
+    case RecordRegExpCachedResult: {
+        compileRecordRegExpCachedResult(node);
+        break;
+    }
+        
     case ArrayPush: {
         ASSERT(node->arrayMode().isJSArray());
         
@@ -3493,7 +3498,7 @@ void SpeculativeJIT::compile(Node* node)
             GPRReg resultGPR = result.gpr();
             GPRReg storageGPR = storage.gpr();
 
-            emitAllocateJSArray(resultGPR, structure, storageGPR, numElements);
+            emitAllocateRawObject(resultGPR, structure, storageGPR, numElements, numElements);
             
             // At this point, one way or another, resultGPR and storageGPR have pointers to
             // the JSArray and the Butterfly, respectively.
@@ -3729,7 +3734,7 @@ void SpeculativeJIT::compile(Node* node)
             GPRReg resultGPR = result.gpr();
             GPRReg storageGPR = storage.gpr();
 
-            emitAllocateJSArray(resultGPR, globalObject->arrayStructureForIndexingTypeDuringAllocation(indexingType), storageGPR, numElements);
+            emitAllocateRawObject(resultGPR, globalObject->arrayStructureForIndexingTypeDuringAllocation(indexingType), storageGPR, numElements, numElements);
             
             if (node->indexingType() == ArrayWithDouble) {
                 JSValue* data = m_jit.codeBlock()->constantBuffer(node->startConstant());
@@ -4939,6 +4944,24 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
+    case LogShadowChickenPrologue: {
+        flushRegisters();
+        prepareForExternalCall();
+        m_jit.emitStoreCodeOrigin(node->origin.semantic);
+        m_jit.logShadowChickenProloguePacket();
+        noResult(node);
+        break;
+    }
+
+    case LogShadowChickenTail: {
+        flushRegisters();
+        prepareForExternalCall();
+        m_jit.emitStoreCodeOrigin(node->origin.semantic);
+        m_jit.logShadowChickenTailPacket();
+        noResult(node);
+        break;
+    }
+
     case ForceOSRExit: {
         terminateSpeculativeExecution(InadequateCoverage, JSValueRegs(), 0);
         break;
@@ -4978,7 +5001,10 @@ void SpeculativeJIT::compile(Node* node)
         noResult(node);
         break;
         
-        
+    case MaterializeNewObject:
+        compileMaterializeNewObject(node);
+        break;
+
     case Unreachable:
         RELEASE_ASSERT_NOT_REACHED();
         break;
@@ -5005,7 +5031,6 @@ void SpeculativeJIT::compile(Node* node)
     case PhantomCreateActivation:
     case PutHint:
     case CheckStructureImmediate:
-    case MaterializeNewObject:
     case MaterializeCreateActivation:
     case PutStack:
     case KillStack:

@@ -1955,6 +1955,7 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         break;
 
     case SetRegExpObjectLastIndex:
+    case RecordRegExpCachedResult:
         break;
         
     case GetFromArguments:
@@ -2625,6 +2626,8 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         break;
 
     case CheckWatchdogTimer:
+    case LogShadowChickenPrologue:
+    case LogShadowChickenTail:
         break;
 
     case ProfileWillCall:

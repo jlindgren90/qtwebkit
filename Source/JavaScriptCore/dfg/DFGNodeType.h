@@ -224,6 +224,7 @@ namespace JSC { namespace DFG {
     macro(VarInjectionWatchpoint, NodeMustGenerate) \
     macro(GetRegExpObjectLastIndex, NodeResultJS) \
     macro(SetRegExpObjectLastIndex, NodeMustGenerate) \
+    macro(RecordRegExpCachedResult, NodeMustGenerate | NodeHasVarArgs) \
     macro(CheckCell, NodeMustGenerate) \
     macro(CheckNotEmpty, NodeMustGenerate) \
     macro(CheckBadCell, NodeMustGenerate) \
@@ -263,6 +264,10 @@ namespace JSC { namespace DFG {
     macro(TailCallInlinedCaller, NodeResultJS | NodeMustGenerate | NodeHasVarArgs) \
     macro(TailCallVarargsInlinedCaller, NodeResultJS | NodeMustGenerate) \
     macro(TailCallForwardVarargsInlinedCaller, NodeResultJS | NodeMustGenerate) \
+    \
+    /* Shadow Chicken */\
+    macro(LogShadowChickenPrologue, NodeMustGenerate) \
+    macro(LogShadowChickenTail, NodeMustGenerate) \
     \
     /* Allocations. */\
     macro(NewObject, NodeResultJS) \

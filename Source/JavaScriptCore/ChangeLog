@@ -1,3 +1,772 @@
+2016-04-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199073.
+        https://bugs.webkit.org/show_bug.cgi?id=156261
+
+        This change broke internal Mac builds (Requested by ryanhaddad
+        on #webkit).
+
+        Reverted changeset:
+
+        "We should support the ability to do a non-effectful getById"
+        https://bugs.webkit.org/show_bug.cgi?id=156116
+        http://trac.webkit.org/changeset/199073
+
+2016-04-05  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Add a runtime flag to fetch API and related constructs
+        https://bugs.webkit.org/show_bug.cgi?id=156113
+ 
+        Reviewed by Alex Christensen.
+
+        Add a fetch API runtime flag based on preferences.
+        Disable fetch API by default.
+ 
+        * runtime/CommonIdentifiers.h:
+
+2016-04-05  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, fix cloop some more.
+
+        * runtime/RegExpInlines.h:
+        (JSC::RegExp::hasCodeFor):
+        (JSC::RegExp::hasMatchOnlyCodeFor):
+
+2016-04-05  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, fix cloop.
+
+        * jit/CCallHelpers.cpp:
+
+2016-03-18  Filip Pizlo  <fpizlo@apple.com>
+
+        JSC should use a shadow stack version of CHICKEN so that debuggers have the option of retrieving tail-deleted frames
+        https://bugs.webkit.org/show_bug.cgi?id=155598
+
+        Reviewed by Saam Barati.
+        
+        JSC is the first JSVM to have proper tail calls. This means that error.stack and the
+        debugger will appear to "delete" strict mode stack frames, if the call that this frame made
+        was in tail position. This is exactly what functional programmers expect - they don't want
+        the VM to waste resources on tail-deleted frames to ensure that it's legal to loop forever
+        using tail calls. It's also something that non-functional programmers fear. It's not clear
+        that tail-deleted frames would actually degrade the debugging experience, but the fear is
+        real, so it's worthwhile to do something about it.
+
+        It turns out that there is at least one tail call implementation that doesn't suffer from
+        this problem. It implements proper tail calls in the sense that you won't run out of memory
+        by tail-looping. It also has the power to show you tail-deleted frames in a backtrace, so
+        long as you haven't yet run out of memory. It's called CHICKEN Scheme, and it's one of my
+        favorite hacks:
+        
+        http://www.more-magic.net/posts/internals-gc.html
+
+        CHICKEN does many awesome things. The intuition from CHICKEN that we use here is a simple
+        one: what if a tail call still kept the tail-deleted frame, and the GC actually deleted that
+        frame only once we proved that there was insufficient memory to keep it around.
+        
+        CHICKEN does this by reshaping the C stack with longjmp/setjmp. We can't do that because we
+        can have arbitrary native code, and that native code does not have relocatable stack frames.
+        
+        But we can do something almost like CHICKEN on a shadow stack. It's a common trick to have a
+        VM maintain two stacks - the actual execution stack plus a shadow stack that has some extra
+        information. The shadow stack can be reshaped, moved, etc, since the VM tightly controls its
+        layout. The main stack can then continue to obey ABI rules.
+
+        This patch implements a mechanism for being able to display stack traces that include
+        tail-deleted frames. It uses a shadow stack that behaves like a CHICKEN stack: it has all
+        frames all the time, though we will collect the tail-deleted ones if the stack gets too big.
+        This new mechanism is called ShadowChicken, obviously: it's CHICKEN on a shadow stack.
+        
+        ShadowChicken is always on, but individual CodeBlocks may make their own choices about
+        whether to opt into it. They will do that at bytecompile time based on the debugger mode on
+        their global object.
+
+        When no CodeBlock opts in, there is no overhead, since ShadowChicken ends up doing nothing
+        in that case. Well, except when exceptions are thrown. Then it might do some work, but it's
+        minor.
+
+        When all CodeBlocks opt in, there is about 6% overhead. That's too much overhead to enable
+        this all the time, but it's low enough to justify enabling in the Inspector. It's currently
+        enabled on all CodeBlocks only when you use an Option. Otherwise it will auto-enable if the
+        debugger is on.
+
+        Note that ShadowChicken attempts to gracefully handle the presence of stack frames that have
+        no logging. This is essential since we *can* have debugging enabled in one GlobalObject and
+        disabled in another. Also, some frames don't do ShadowChicken because they just haven't been
+        hacked to do it yet. Native frames fall into this category, as do the VM entry frames.
+
+        This doesn't yet wire ShadowChicken into DebuggerCallFrame. That will take more work. It
+        just makes a ShadowChicken stack walk function available to jsc. It's used from the
+        shadow-chicken tests.
+
+        * API/JSContextRef.cpp:
+        (BacktraceFunctor::BacktraceFunctor):
+        (BacktraceFunctor::operator()):
+        (JSContextCreateBacktrace):
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        (JSC::RecursionCheckFunctor::RecursionCheckFunctor):
+        (JSC::RecursionCheckFunctor::operator()):
+        (JSC::CodeBlock::noticeIncomingCall):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitEnter):
+        (JSC::BytecodeGenerator::emitCallInTailPosition):
+        (JSC::BytecodeGenerator::emitCallVarargsInTailPosition):
+        (JSC::BytecodeGenerator::emitCallVarargs):
+        (JSC::BytecodeGenerator::emitLogShadowChickenPrologueIfNecessary):
+        (JSC::BytecodeGenerator::emitLogShadowChickenTailIfNecessary):
+        (JSC::BytecodeGenerator::emitCallDefineProperty):
+        * bytecompiler/BytecodeGenerator.h:
+        * debugger/DebuggerCallFrame.cpp:
+        (JSC::LineAndColumnFunctor::operator()):
+        (JSC::LineAndColumnFunctor::column):
+        (JSC::FindCallerMidStackFunctor::FindCallerMidStackFunctor):
+        (JSC::FindCallerMidStackFunctor::operator()):
+        (JSC::DebuggerCallFrame::DebuggerCallFrame):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        (JSC::DFG::PredictionPropagationPhase::propagate):
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLAbstractHeapRepository.cpp:
+        * ftl/FTLAbstractHeapRepository.h:
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileSetRegExpObjectLastIndex):
+        (JSC::FTL::DFG::LowerDFGToB3::compileLogShadowChickenPrologue):
+        (JSC::FTL::DFG::LowerDFGToB3::compileLogShadowChickenTail):
+        (JSC::FTL::DFG::LowerDFGToB3::didOverflowStack):
+        (JSC::FTL::DFG::LowerDFGToB3::allocateJSArray):
+        (JSC::FTL::DFG::LowerDFGToB3::setupShadowChickenPacket):
+        (JSC::FTL::DFG::LowerDFGToB3::boolify):
+        * heap/Heap.cpp:
+        (JSC::Heap::markRoots):
+        (JSC::Heap::visitSamplingProfiler):
+        (JSC::Heap::visitShadowChicken):
+        (JSC::Heap::traceCodeBlocksAndJITStubRoutines):
+        (JSC::Heap::collectImpl):
+        * heap/Heap.h:
+        * inspector/ScriptCallStackFactory.cpp:
+        (Inspector::CreateScriptCallStackFunctor::CreateScriptCallStackFunctor):
+        (Inspector::CreateScriptCallStackFunctor::operator()):
+        (Inspector::createScriptCallStack):
+        * interpreter/CallFrame.h:
+        (JSC::ExecState::iterate):
+        * interpreter/Interpreter.cpp:
+        (JSC::DumpRegisterFunctor::DumpRegisterFunctor):
+        (JSC::DumpRegisterFunctor::operator()):
+        (JSC::GetStackTraceFunctor::GetStackTraceFunctor):
+        (JSC::GetStackTraceFunctor::operator()):
+        (JSC::Interpreter::getStackTrace):
+        (JSC::GetCatchHandlerFunctor::handler):
+        (JSC::GetCatchHandlerFunctor::operator()):
+        (JSC::notifyDebuggerOfUnwinding):
+        (JSC::UnwindFunctor::UnwindFunctor):
+        (JSC::UnwindFunctor::operator()):
+        (JSC::UnwindFunctor::copyCalleeSavesToVMCalleeSavesBuffer):
+        * interpreter/ShadowChicken.cpp: Added.
+        (JSC::ShadowChicken::Packet::dump):
+        (JSC::ShadowChicken::Frame::dump):
+        (JSC::ShadowChicken::ShadowChicken):
+        (JSC::ShadowChicken::~ShadowChicken):
+        (JSC::ShadowChicken::log):
+        (JSC::ShadowChicken::update):
+        (JSC::ShadowChicken::visitChildren):
+        (JSC::ShadowChicken::reset):
+        (JSC::ShadowChicken::dump):
+        (JSC::ShadowChicken::functionsOnStack):
+        * interpreter/ShadowChicken.h: Added.
+        (JSC::ShadowChicken::Packet::Packet):
+        (JSC::ShadowChicken::Packet::tailMarker):
+        (JSC::ShadowChicken::Packet::throwMarker):
+        (JSC::ShadowChicken::Packet::prologue):
+        (JSC::ShadowChicken::Packet::tail):
+        (JSC::ShadowChicken::Packet::throwPacket):
+        (JSC::ShadowChicken::Packet::operator bool):
+        (JSC::ShadowChicken::Packet::isPrologue):
+        (JSC::ShadowChicken::Packet::isTail):
+        (JSC::ShadowChicken::Packet::isThrow):
+        (JSC::ShadowChicken::Frame::Frame):
+        (JSC::ShadowChicken::Frame::operator==):
+        (JSC::ShadowChicken::Frame::operator!=):
+        (JSC::ShadowChicken::log):
+        (JSC::ShadowChicken::logSize):
+        (JSC::ShadowChicken::addressOfLogCursor):
+        (JSC::ShadowChicken::logEnd):
+        * interpreter/ShadowChickenInlines.h: Added.
+        (JSC::ShadowChicken::iterate):
+        * interpreter/StackVisitor.h:
+        (JSC::StackVisitor::Frame::callee):
+        (JSC::StackVisitor::Frame::codeBlock):
+        (JSC::StackVisitor::Frame::bytecodeOffset):
+        (JSC::StackVisitor::Frame::inlineCallFrame):
+        (JSC::StackVisitor::Frame::isJSFrame):
+        (JSC::StackVisitor::Frame::isInlinedFrame):
+        (JSC::StackVisitor::visit):
+        * jit/CCallHelpers.cpp: Added.
+        (JSC::CCallHelpers::logShadowChickenProloguePacket):
+        (JSC::CCallHelpers::logShadowChickenTailPacket):
+        (JSC::CCallHelpers::setupShadowChickenPacket):
+        * jit/CCallHelpers.h:
+        (JSC::CCallHelpers::prepareForTailCallSlow):
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        * jit/JIT.h:
+        * jit/JITExceptions.cpp:
+        (JSC::genericUnwind):
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_resume):
+        (JSC::JIT::emit_op_log_shadow_chicken_prologue):
+        (JSC::JIT::emit_op_log_shadow_chicken_tail):
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * jsc.cpp:
+        (GlobalObject::finishCreation):
+        (FunctionJSCStackFunctor::FunctionJSCStackFunctor):
+        (FunctionJSCStackFunctor::operator()):
+        (functionClearSamplingFlags):
+        (functionShadowChickenFunctionsOnStack):
+        (functionReadline):
+        * llint/LLIntOffsetsExtractor.cpp:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        (JSC::LLInt::llint_throw_stack_overflow_error):
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter.asm:
+        * profiler/ProfileGenerator.cpp:
+        (JSC::AddParentForConsoleStartFunctor::foundParent):
+        (JSC::AddParentForConsoleStartFunctor::operator()):
+        * runtime/Error.cpp:
+        (JSC::FindFirstCallerFrameWithCodeblockFunctor::FindFirstCallerFrameWithCodeblockFunctor):
+        (JSC::FindFirstCallerFrameWithCodeblockFunctor::operator()):
+        (JSC::addErrorInfoAndGetBytecodeOffset):
+        * runtime/JSFunction.cpp:
+        (JSC::RetrieveArgumentsFunctor::result):
+        (JSC::RetrieveArgumentsFunctor::operator()):
+        (JSC::retrieveArguments):
+        (JSC::RetrieveCallerFunctionFunctor::result):
+        (JSC::RetrieveCallerFunctionFunctor::operator()):
+        (JSC::retrieveCallerFunction):
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::GlobalFuncProtoGetterFunctor::result):
+        (JSC::GlobalFuncProtoGetterFunctor::operator()):
+        (JSC::globalFuncProtoGetter):
+        (JSC::GlobalFuncProtoSetterFunctor::allowsAccess):
+        (JSC::GlobalFuncProtoSetterFunctor::operator()):
+        * runtime/NullSetterFunction.cpp:
+        (JSC::GetCallerStrictnessFunctor::GetCallerStrictnessFunctor):
+        (JSC::GetCallerStrictnessFunctor::operator()):
+        (JSC::GetCallerStrictnessFunctor::callerIsStrict):
+        (JSC::callerIsStrict):
+        * runtime/ObjectConstructor.cpp:
+        (JSC::ObjectConstructorGetPrototypeOfFunctor::result):
+        (JSC::ObjectConstructorGetPrototypeOfFunctor::operator()):
+        (JSC::objectConstructorGetPrototypeOf):
+        * runtime/Options.h:
+        * runtime/VM.cpp:
+        (JSC::VM::VM):
+        (JSC::SetEnabledProfilerFunctor::operator()):
+        * runtime/VM.h:
+        (JSC::VM::shouldBuilderPCToCodeOriginMapping):
+        (JSC::VM::bytecodeIntrinsicRegistry):
+        (JSC::VM::shadowChicken):
+        * tests/stress/resources/shadow-chicken-support.js: Added.
+        (describeFunction):
+        (describeArray):
+        (expectStack):
+        (initialize):
+        * tests/stress/shadow-chicken-disabled.js: Added.
+        (test1.foo):
+        (test1.bar):
+        (test1.baz):
+        (test1):
+        (test2.foo):
+        (test2.bar):
+        (test2.baz):
+        (test2):
+        (test3.foo):
+        (test3.bar):
+        (test3.baz):
+        (test3):
+        * tests/stress/shadow-chicken-enabled.js: Added.
+        (test1.foo):
+        (test1.bar):
+        (test1.baz):
+        (test1):
+        (test2.foo):
+        (test2.bar):
+        (test2.baz):
+        (test2):
+        (test3.bob):
+        (test3.thingy):
+        (test3.foo):
+        (test3.bar):
+        (test3.baz):
+        (test3):
+        (test4.bob):
+        (test4.thingy):
+        (test4.foo):
+        (test4.bar):
+        (test4.baz):
+        (test4):
+        (test5.foo):
+        (test5):
+        * tools/JSDollarVMPrototype.cpp:
+        (JSC::CallerFrameJITTypeFunctor::CallerFrameJITTypeFunctor):
+        (JSC::CallerFrameJITTypeFunctor::operator()):
+        (JSC::CallerFrameJITTypeFunctor::jitType):
+        (JSC::functionLLintTrue):
+        (JSC::CellAddressCheckFunctor::CellAddressCheckFunctor):
+        (JSC::CellAddressCheckFunctor::operator()):
+        (JSC::JSDollarVMPrototype::isValidCell):
+        (JSC::JSDollarVMPrototype::isValidCodeBlock):
+        (JSC::JSDollarVMPrototype::codeBlockForFrame):
+        (JSC::PrintFrameFunctor::PrintFrameFunctor):
+        (JSC::PrintFrameFunctor::operator()):
+        (JSC::printCallFrame):
+
+2016-03-19  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG and FTL should constant-fold RegExpExec, RegExpTest, and StringReplace
+        https://bugs.webkit.org/show_bug.cgi?id=155270
+
+        Reviewed by Saam Barati.
+
+        This enables constant-folding of RegExpExec, RegExpTest, and StringReplace.
+
+        It's now possible to run Yarr on the JIT threads. Since previous work on constant-folding
+        strings gave the DFG an API for reasoning about JSString constants in terms of
+        JIT-thread-local WTF::Strings, it's now super easy to just pass strings to Yarr and build IR
+        based on the results.
+
+        But RegExpExec is hard: the folded version still must allocate a RegExpMatchesArray. We must
+        use the same Structure that the code would have used or else we'll pollute the program's
+        inline caches. Also, RegExpMatchesArray.h|cpp will allocate the array and its named
+        properties in one go - we don't want to lose that optimization. So, this patch enables
+        MaterializeNewObject to allocate objects or arrays with any number of indexed or named
+        properties. Previously it could only handle objects (but not arrays) and named properties
+        (but not indexed ones).
+
+        This also adds a few minor things for setting the RegExpConstructor cached result.
+
+        This is about a 2x speed-up on microbenchmarks when we fold a match success and about a
+        8x speed-up when we fold a match failure. It's a 10% speed-up on Octane/regexp.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::dump):
+        * dfg/DFGInsertionSet.cpp:
+        (JSC::DFG::InsertionSet::insertSlow):
+        (JSC::DFG::InsertionSet::execute):
+        * dfg/DFGInsertionSet.h:
+        (JSC::DFG::InsertionSet::insertCheck):
+        * dfg/DFGLazyJSValue.cpp:
+        (JSC::DFG::LazyJSValue::tryGetString):
+        * dfg/DFGMayExit.cpp:
+        (JSC::DFG::mayExit):
+        * dfg/DFGNode.h:
+        (JSC::DFG::StackAccessData::flushedAt):
+        (JSC::DFG::OpInfo::OpInfo): Deleted.
+        * dfg/DFGNodeType.h:
+        * dfg/DFGObjectAllocationSinkingPhase.cpp:
+        * dfg/DFGObjectMaterializationData.cpp:
+        (JSC::DFG::ObjectMaterializationData::dump):
+        (JSC::DFG::PhantomPropertyValue::dump): Deleted.
+        (JSC::DFG::ObjectMaterializationData::oneWaySimilarityScore): Deleted.
+        (JSC::DFG::ObjectMaterializationData::similarityScore): Deleted.
+        * dfg/DFGObjectMaterializationData.h:
+        (JSC::DFG::PhantomPropertyValue::PhantomPropertyValue): Deleted.
+        (JSC::DFG::PhantomPropertyValue::operator==): Deleted.
+        * dfg/DFGOpInfo.h: Added.
+        (JSC::DFG::OpInfo::OpInfo):
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        (JSC::DFG::PredictionPropagationPhase::propagate):
+        * dfg/DFGPromotedHeapLocation.cpp:
+        (WTF::printInternal):
+        * dfg/DFGPromotedHeapLocation.h:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::~SpeculativeJIT):
+        (JSC::DFG::SpeculativeJIT::emitAllocateRawObject):
+        (JSC::DFG::SpeculativeJIT::emitGetLength):
+        (JSC::DFG::SpeculativeJIT::compileLazyJSConstant):
+        (JSC::DFG::SpeculativeJIT::compileMaterializeNewObject):
+        (JSC::DFG::SpeculativeJIT::compileRecordRegExpCachedResult):
+        (JSC::DFG::SpeculativeJIT::emitAllocateJSArray): Deleted.
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::emitAllocateDestructibleObject):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGStoreBarrierInsertionPhase.cpp:
+        * dfg/DFGStrengthReductionPhase.cpp:
+        (JSC::DFG::StrengthReductionPhase::StrengthReductionPhase):
+        (JSC::DFG::StrengthReductionPhase::handleNode):
+        (JSC::DFG::StrengthReductionPhase::handleCommutativity):
+        (JSC::DFG::StrengthReductionPhase::executeInsertionSet):
+        * dfg/DFGValidate.cpp:
+        (JSC::DFG::Validate::validate):
+        (JSC::DFG::Validate::validateCPS):
+        * ftl/FTLAbstractHeapRepository.cpp:
+        * ftl/FTLAbstractHeapRepository.h:
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileNewArrayWithSize):
+        (JSC::FTL::DFG::LowerDFGToB3::compileMaterializeNewObject):
+        (JSC::FTL::DFG::LowerDFGToB3::compileMaterializeCreateActivation):
+        (JSC::FTL::DFG::LowerDFGToB3::compileSetRegExpObjectLastIndex):
+        (JSC::FTL::DFG::LowerDFGToB3::compileRecordRegExpCachedResult):
+        (JSC::FTL::DFG::LowerDFGToB3::didOverflowStack):
+        (JSC::FTL::DFG::LowerDFGToB3::storageForTransition):
+        (JSC::FTL::DFG::LowerDFGToB3::initializeArrayElements):
+        (JSC::FTL::DFG::LowerDFGToB3::allocatePropertyStorage):
+        (JSC::FTL::DFG::LowerDFGToB3::isNotCellOrMisc):
+        (JSC::FTL::DFG::LowerDFGToB3::unboxDouble):
+        * ftl/FTLOperations.cpp:
+        (JSC::FTL::operationPopulateObjectInOSR):
+        (JSC::FTL::operationNewObjectWithButterfly): Deleted.
+        * ftl/FTLOperations.h:
+        * inspector/ContentSearchUtilities.cpp:
+        * runtime/JSObject.h:
+        (JSC::JSObject::createRawObject):
+        (JSC::JSFinalObject::create):
+        * runtime/RegExp.cpp:
+        (JSC::RegExp::compile):
+        (JSC::RegExp::match):
+        (JSC::RegExp::matchConcurrently):
+        (JSC::RegExp::compileMatchOnly):
+        (JSC::RegExp::deleteCode):
+        * runtime/RegExp.h:
+        * runtime/RegExpCachedResult.h:
+        (JSC::RegExpCachedResult::offsetOfLastRegExp):
+        (JSC::RegExpCachedResult::offsetOfLastInput):
+        (JSC::RegExpCachedResult::offsetOfResult):
+        (JSC::RegExpCachedResult::offsetOfReified):
+        * runtime/RegExpConstructor.h:
+        (JSC::RegExpConstructor::offsetOfCachedResult):
+        * runtime/RegExpInlines.h:
+        (JSC::RegExp::hasCodeFor):
+        (JSC::RegExp::compileIfNecessary):
+        (JSC::RegExp::matchInline):
+        (JSC::RegExp::hasMatchOnlyCodeFor):
+        (JSC::RegExp::compileIfNecessaryMatchOnly):
+        * runtime/RegExpObjectInlines.h:
+        (JSC::RegExpObject::execInline):
+        * runtime/StringPrototype.cpp:
+        (JSC::substituteBackreferencesSlow):
+        (JSC::substituteBackreferencesInline):
+        (JSC::substituteBackreferences):
+        (JSC::StringRange::StringRange):
+        * runtime/StringPrototype.h:
+        * runtime/VM.h:
+        * tests/stress/simple-regexp-exec-folding-fail.js: Added.
+        (foo):
+        * tests/stress/simple-regexp-exec-folding.js: Added.
+        (foo):
+        * tests/stress/simple-regexp-test-folding-fail.js: Added.
+        (foo):
+        * tests/stress/simple-regexp-test-folding.js: Added.
+        (foo):
+        * yarr/RegularExpression.cpp:
+        * yarr/Yarr.h:
+        * yarr/YarrInterpreter.cpp:
+        (JSC::Yarr::Interpreter::interpret):
+        (JSC::Yarr::ByteCompiler::ByteCompiler):
+        (JSC::Yarr::ByteCompiler::compile):
+        (JSC::Yarr::ByteCompiler::checkInput):
+        (JSC::Yarr::byteCompile):
+        (JSC::Yarr::interpret):
+        * yarr/YarrInterpreter.h:
+        (JSC::Yarr::BytecodePattern::BytecodePattern):
+
+2016-04-05  Keith Miller  <keith_miller@apple.com>
+
+        We should support the ability to do a non-effectful getById
+        https://bugs.webkit.org/show_bug.cgi?id=156116
+
+        Reviewed by Benjamin Poulain.
+
+        Currently, there is no way in JS to do a non-effectful getById. A non-effectful getById is
+        useful because it enables us to take different code paths based on values that we would
+        otherwise not be able to have knowledge of. This patch adds this new feature called
+        try_get_by_id that will attempt to do as much of a get_by_id as possible without performing
+        an effectful behavior. Thus, try_get_by_id will return the value if the slot is a value, the
+        GetterSetter object if the slot is a normal accessor (not a CustomGetterSetter) and
+        undefined if the slot is unset.  If the slot is proxied or any other cases then the result
+        is null. In theory, if we ever wanted to check for null we could add a sentinal object to
+        the global object that indicates we could not get the result.
+
+        In order to implement this feature we add a new enum GetByIdKind that indicates what to do
+        for accessor properties in PolymorphicAccess. If the GetByIdKind is pure then we treat the
+        get_by_id the same way we would for load and return the value at the appropriate offset.
+        Additionally, in order to make sure the we can properly compare the GetterSetter object
+        with === GetterSetters are now JSObjects. This comes at the cost of eight extra bytes on the
+        GetterSetter object but it vastly simplifies the patch. Additionally, the extra bytes are
+        likely to have little to no impact on memory usage as normal accessors are generally rare.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * builtins/BuiltinExecutables.cpp:
+        (JSC::BuiltinExecutables::createDefaultConstructor):
+        (JSC::BuiltinExecutables::createBuiltinExecutable):
+        (JSC::createBuiltinExecutable):
+        (JSC::BuiltinExecutables::createExecutable):
+        (JSC::createExecutableInternal): Deleted.
+        * builtins/BuiltinExecutables.h:
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::tryGet):
+        (JSC::AccessCase::generate):
+        (WTF::printInternal):
+        * bytecode/PolymorphicAccess.h:
+        (JSC::AccessCase::isGet): Deleted.
+        (JSC::AccessCase::isPut): Deleted.
+        (JSC::AccessCase::isIn): Deleted.
+        * bytecode/StructureStubInfo.cpp:
+        (JSC::StructureStubInfo::reset):
+        * bytecode/StructureStubInfo.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitTryGetById):
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_tryGetById):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::cachedGetById):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::cachedGetById):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::getById):
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        (JSC::JIT::privateCompileSlowCases):
+        * jit/JIT.h:
+        * jit/JITInlineCacheGenerator.cpp:
+        (JSC::JITGetByIdGenerator::JITGetByIdGenerator):
+        * jit/JITInlineCacheGenerator.h:
+        * jit/JITInlines.h:
+        (JSC::JIT::callOperation):
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::emitGetByValWithCachedId):
+        (JSC::JIT::emit_op_try_get_by_id):
+        (JSC::JIT::emitSlow_op_try_get_by_id):
+        (JSC::JIT::emit_op_get_by_id):
+        * jit/JITPropertyAccess32_64.cpp:
+        (JSC::JIT::emitGetByValWithCachedId):
+        (JSC::JIT::emit_op_try_get_by_id):
+        (JSC::JIT::emitSlow_op_try_get_by_id):
+        (JSC::JIT::emit_op_get_by_id):
+        * jit/Repatch.cpp:
+        (JSC::repatchByIdSelfAccess):
+        (JSC::appropriateOptimizingGetByIdFunction):
+        (JSC::appropriateGenericGetByIdFunction):
+        (JSC::tryCacheGetByID):
+        (JSC::repatchGetByID):
+        (JSC::resetGetByID):
+        * jit/Repatch.h:
+        * jsc.cpp:
+        (GlobalObject::finishCreation):
+        (functionGetGetterSetter):
+        (functionCreateBuiltin):
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::Data::performAssertions):
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter.asm:
+        * runtime/GetterSetter.cpp:
+        * runtime/GetterSetter.h:
+        * runtime/JSType.h:
+        * runtime/PropertySlot.cpp:
+        (JSC::PropertySlot::getPureResult):
+        * runtime/PropertySlot.h:
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::getOwnPropertySlotCommon):
+        * tests/stress/try-get-by-id.js: Added.
+        (tryGetByIdText):
+        (getCaller.obj.1.throw.new.Error.let.func):
+        (getCaller.obj.1.throw.new.Error):
+        (throw.new.Error.get let):
+        (throw.new.Error.):
+        (throw.new.Error.let.get createBuiltin):
+        (get let):
+        (let.get createBuiltin):
+        (let.func):
+        (get let.func):
+        (get throw):
+
+2016-04-05  Saam barati  <sbarati@apple.com>
+
+        jsc-layout-tests.yaml/js/script-tests/regress-141098.js failing on Yosemite Debug after r198989
+        https://bugs.webkit.org/show_bug.cgi?id=156187
+
+        Reviewed by Filip Pizlo.
+
+        This is a speculative fix. Lets see if the prevents the timeout.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseStatementListItem):
+
+2016-04-04  Filip Pizlo  <fpizlo@apple.com>
+
+        PolymorphicAccess should have a MegamorphicLoad case
+        https://bugs.webkit.org/show_bug.cgi?id=156182
+
+        Reviewed by Geoffrey Garen and Keith Miller.
+
+        This introduces a new case to PolymorphicAccess called MegamorphicLoad. This inlines the lookup in
+        the PropertyTable. It's cheaper than switching on a huge number of cases and it's cheaper than
+        calling into C++ to do the same job - particularly since inlining the lookup into an access means
+        that we can precompute the hash code.
+
+        When writing the inline code for the hashtable lookup, I found that our hashing algorithm was not
+        optimal. It used a double-hashing method for reducing collision pathologies. This is great for
+        improving the performance of some worst-case scenarios. But this misses the point of a hashtable: we
+        want to optimize the average-case performance. When optimizing for average-case, we can choose to
+        either focus on maximizing the likelihood of the fast case happening, or to minimize the cost of the
+        worst-case, or to minimize the cost of the fast case. Even a very basic hashtable will achieve a high
+        probability of hitting the fast case. So, doing work to reduce the likelihood of a worst-case
+        pathology only makes sense if it also preserves the good performance of the fast case, or reduces the
+        likelihood of the worst-case by so much that it's a win for the average case even with a slow-down in
+        the fast case.
+
+        I don't believe, based on looking at how the double-hashing is implemented, that it's possible that
+        this preserves the good performance of the fast case. It requires at least one more value to be live
+        around the loop, and dramatically increases the register pressure at key points inside the loop. The
+        biggest offender is the doubleHash() method itself. There is no getting around how bad this is: if
+        the compiler live-range-splits that method to death to avoid degrading register pressure elsewhere
+        then we will pay a steep price anytime we take the second iteration around the loop; but if the
+        compiler doesn't split around the call then the hashtable lookup fast path will be full of spills on
+        some architectures (I performed biological register allocation and found that I needed 9 registers
+        for complete lookup, while x86-64 has only 6 callee-saves; OTOH ARM64 has 10 callee-saves so it might
+        be better off).
+
+        Hence, this patch changes the hashtable lookup to use simple linear probing. This was not a slow-down
+        on anything, and it made MegamorphicLoad much more sensible since it is less likely to have to spill.
+
+        There are some other small changes in this patch, like rationalizing the IC's choice between giving
+        up after a repatch (i.e. never trying again) and just pretending that nothing happened (so we can
+        try to repatch again in the future). It looked like the code in Repatch.cpp was set up to be able to
+        choose between those options, but we weren't fully taking advantage of it because the
+        regenerateWithCase() method just returned null for any failure, and didn't say whether it was the
+        sort of failure that renders the inline cache unrepatchable (like memory allocation failure). Now
+        this is all made explicit. I wanted to make sure this change happened in this patch since the
+        MegamorphicLoad code automagically generates a MegamorphicLoad case by coalescing other cases. Since
+        this is intended to avoid blowing out the cache and making it unrepatchable, I wanted to make sure
+        that the rules for giving up were something that made sense to me.
+        
+        This is a big win on microbenchmarks. It's neutral on traditional JS benchmarks. It's a slight
+        speed-up for page loading, because many real websites like to have megamorphic property accesses.
+
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessGenerationResult::dump):
+        (JSC::AccessGenerationState::addWatchpoint):
+        (JSC::AccessCase::get):
+        (JSC::AccessCase::megamorphicLoad):
+        (JSC::AccessCase::replace):
+        (JSC::AccessCase::guardedByStructureCheck):
+        (JSC::AccessCase::couldStillSucceed):
+        (JSC::AccessCase::canBeReplacedByMegamorphicLoad):
+        (JSC::AccessCase::canReplace):
+        (JSC::AccessCase::generateWithGuard):
+        (JSC::AccessCase::generate):
+        (JSC::PolymorphicAccess::PolymorphicAccess):
+        (JSC::PolymorphicAccess::~PolymorphicAccess):
+        (JSC::PolymorphicAccess::regenerateWithCases):
+        (JSC::PolymorphicAccess::regenerateWithCase):
+        (WTF::printInternal):
+        * bytecode/PolymorphicAccess.h:
+        (JSC::AccessCase::isGet):
+        (JSC::AccessCase::isPut):
+        (JSC::AccessCase::isIn):
+        (JSC::AccessGenerationResult::AccessGenerationResult):
+        (JSC::AccessGenerationResult::operator==):
+        (JSC::AccessGenerationResult::operator!=):
+        (JSC::AccessGenerationResult::operator bool):
+        (JSC::AccessGenerationResult::kind):
+        (JSC::AccessGenerationResult::code):
+        (JSC::AccessGenerationResult::madeNoChanges):
+        (JSC::AccessGenerationResult::gaveUp):
+        (JSC::AccessGenerationResult::generatedNewCode):
+        (JSC::PolymorphicAccess::isEmpty):
+        (JSC::AccessGenerationState::AccessGenerationState):
+        * bytecode/StructureStubInfo.cpp:
+        (JSC::StructureStubInfo::aboutToDie):
+        (JSC::StructureStubInfo::addAccessCase):
+        * bytecode/StructureStubInfo.h:
+        * jit/AssemblyHelpers.cpp:
+        (JSC::AssemblyHelpers::emitStoreStructureWithTypeInfo):
+        (JSC::AssemblyHelpers::loadProperty):
+        (JSC::emitRandomThunkImpl):
+        (JSC::AssemblyHelpers::emitRandomThunk):
+        (JSC::AssemblyHelpers::emitLoadStructure):
+        * jit/AssemblyHelpers.h:
+        (JSC::AssemblyHelpers::loadValue):
+        (JSC::AssemblyHelpers::moveValueRegs):
+        (JSC::AssemblyHelpers::argumentsStart):
+        (JSC::AssemblyHelpers::emitStoreStructureWithTypeInfo):
+        (JSC::AssemblyHelpers::emitLoadStructure): Deleted.
+        * jit/GPRInfo.cpp:
+        (JSC::JSValueRegs::dump):
+        * jit/GPRInfo.h:
+        (JSC::JSValueRegs::uses):
+        * jit/Repatch.cpp:
+        (JSC::replaceWithJump):
+        (JSC::tryCacheGetByID):
+        (JSC::tryCachePutByID):
+        (JSC::tryRepatchIn):
+        * jit/ThunkGenerators.cpp:
+        (JSC::virtualThunkFor):
+        * runtime/Options.h:
+        * runtime/PropertyMapHashTable.h:
+        (JSC::PropertyTable::begin):
+        (JSC::PropertyTable::find):
+        (JSC::PropertyTable::get):
+        * runtime/Structure.h:
+
 2016-04-05  Antoine Quint  <graouts@apple.com>
 
         [WebGL2] Turn the ENABLE_WEBGL2 flag on

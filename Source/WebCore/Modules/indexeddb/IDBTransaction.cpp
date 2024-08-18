@@ -42,6 +42,7 @@
 #include "IDBOpenDBRequest.h"
 #include "IDBRequest.h"
 #include "IDBResultData.h"
+#include "IDBValue.h"
 #include "JSDOMWindowBase.h"
 #include "Logging.h"
 #include "ScriptExecutionContext.h"
@@ -869,11 +870,15 @@ void IDBTransaction::putOrAddOnServer(IDBClient::TransactionOperation& operation
     ASSERT(!isReadOnly());
     ASSERT(value);
 
+    if (!value->hasBlobURLs()) {
+        serverConnection().putOrAdd(operation, key.get(), *value, overwriteMode);
+        return;
+    }
+
     RefPtr<IDBTransaction> protector(this);
     RefPtr<IDBClient::TransactionOperation> operationRef(&operation);
-    value->writeBlobsToDiskForIndexedDB([protector, this, operationRef, key, value, overwriteMode](const IDBValue&) {
-        // FIXME: Send the passed in IDBValue to the IDB server instead of the SerializedScriptValue.
-        serverConnection().putOrAdd(*operationRef, key.get(), *value, overwriteMode);
+    value->writeBlobsToDiskForIndexedDB([protector, this, operationRef, key, value, overwriteMode](const IDBValue& idbValue) {
+        serverConnection().putOrAdd(*operationRef, key.get(), idbValue, overwriteMode);
     });
 }
 

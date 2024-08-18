@@ -1,6 +1,6 @@
 /*
  *  Copyright (C) 1999-2000 Harri Porten (porten@kde.org)
- *  Copyright (C) 2004-2008, 2012-2013, 2015 Apple Inc. All rights reserved.
+ *  Copyright (C) 2004-2008, 2012-2013, 2015-2016 Apple Inc. All rights reserved.
  *  Copyright (C) 2006 Bjoern Graf (bjoern.graf@gmail.com)
  *
  *  This library is free software; you can redistribute it and/or
@@ -51,6 +51,7 @@
 #include "JSWASMModule.h"
 #include "ProfilerDatabase.h"
 #include "SamplingProfiler.h"
+#include "ShadowChicken.h"
 #include "StackVisitor.h"
 #include "StructureInlines.h"
 #include "StructureRareDataInlines.h"
@@ -631,6 +632,8 @@ static EncodedJSValue JSC_HOST_CALL functionSetSamplingFlags(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionClearSamplingFlags(ExecState*);
 #endif
 
+static EncodedJSValue JSC_HOST_CALL functionShadowChickenFunctionsOnStack(ExecState*);
+
 struct Script {
     bool isFile;
     char* argument;
@@ -769,6 +772,7 @@ protected:
         addFunction(vm, "setSamplingFlags", functionSetSamplingFlags, 1);
         addFunction(vm, "clearSamplingFlags", functionClearSamplingFlags, 1);
 #endif
+        addFunction(vm, "shadowChickenFunctionsOnStack", functionShadowChickenFunctionsOnStack, 0);
         addConstructableFunction(vm, "Root", functionCreateRoot, 0);
         addConstructableFunction(vm, "Element", functionCreateElement, 1);
         addFunction(vm, "getElement", functionGetElement, 1);
@@ -1151,7 +1155,7 @@ public:
     {
     }
 
-    StackVisitor::Status operator()(StackVisitor& visitor)
+    StackVisitor::Status operator()(StackVisitor& visitor) const
     {
         m_trace.append(String::format("    %zu   %s\n", visitor->index(), visitor->toString().utf8().data()));
         return StackVisitor::Continue;
@@ -1443,6 +1447,11 @@ EncodedJSValue JSC_HOST_CALL functionClearSamplingFlags(ExecState* exec)
     return JSValue::encode(jsNull());
 }
 #endif
+
+EncodedJSValue JSC_HOST_CALL functionShadowChickenFunctionsOnStack(ExecState* exec)
+{
+    return JSValue::encode(exec->vm().shadowChicken().functionsOnStack(exec));
+}
 
 EncodedJSValue JSC_HOST_CALL functionReadline(ExecState* exec)
 {

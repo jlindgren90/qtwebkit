@@ -191,7 +191,7 @@ MacroAssemblerCodeRef virtualThunkFor(VM* vm, CallLinkInfo& callLinkInfo)
             CCallHelpers::NotEqual, GPRInfo::regT1,
             CCallHelpers::TrustedImm32(JSValue::CellTag)));
 #endif
-    AssemblyHelpers::emitLoadStructure(jit, GPRInfo::regT0, GPRInfo::regT4, GPRInfo::regT1);
+    jit.emitLoadStructure(GPRInfo::regT0, GPRInfo::regT4, GPRInfo::regT1);
     slowCase.append(
         jit.branchPtr(
             CCallHelpers::NotEqual,
@@ -238,6 +238,9 @@ enum ThunkEntryType { EnterViaCall, EnterViaJump };
 
 static MacroAssemblerCodeRef nativeForGenerator(VM* vm, CodeSpecializationKind kind, ThunkEntryType entryType = EnterViaCall)
 {
+    // FIXME: This should be able to log ShadowChicken prologue packets.
+    // https://bugs.webkit.org/show_bug.cgi?id=155689
+    
     int executableOffsetToFunction = NativeExecutable::offsetOfNativeFunctionFor(kind);
     
     JSInterfaceJIT jit(vm);
