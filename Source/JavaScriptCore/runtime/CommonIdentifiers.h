@@ -346,6 +346,7 @@
     macro(floor) \
     macro(isFinite) \
     macro(isNaN) \
+    macro(create) \
     macro(getPrototypeOf) \
     macro(getOwnPropertyDescriptor) \
     macro(getOwnPropertyNames) \

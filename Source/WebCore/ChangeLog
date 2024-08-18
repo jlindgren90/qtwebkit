@@ -1,3 +1,169 @@
+2016-03-28  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Remove unneeded lines in offsetAndBreadthForPositionedChild()
+        https://bugs.webkit.org/show_bug.cgi?id=155788
+
+        Reviewed by Sergio Villar Senin.
+
+        Just remove 2 lines/variables that were not needed at all in
+        RenderGrid::offsetAndBreadthForPositionedChild().
+
+        No new tests, no change of behavior.
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+
+2016-03-27  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Removed redundant #if conditions in ANGLEWebKitBridge.h
+        https://bugs.webkit.org/show_bug.cgi?id=155880
+
+        Reviewed by Csaba Osztrogonác.
+
+        GTK, Efl, AppleWin, and WinCairo ports can be built only with cmake,
+        so condition !defined(BUILDING_WITH_CMAKE) implies
+        !PLATFORM(GTK) && !PLATFORM(EFL) && !PLATOFRM(WIN).
+
+        No new tests needed.
+
+        * platform/graphics/ANGLEWebKitBridge.h:
+
+2016-03-26  Alex Christensen  <achristensen@webkit.org>
+
+        Mac CMake build fix.
+
+        * PlatformMac.cmake:
+        Link with AVFoundation libraries.
+
+2016-03-25  Dean Jackson  <dino@apple.com>
+
+        Move extended color detection into Open Source
+        https://bugs.webkit.org/show_bug.cgi?id=155909
+        <rdar://problem/25369754>
+
+        Reviewed by Anders Carlsson.
+
+        The code for detecting extended color displays
+        was hidden while the iPad Pro 9.7" was in development.
+        Now it is public, move the detection to Open Source.
+
+        While doing this, add a new method to PlatformScreen
+        so that we have a more obvious way to detect such
+        displays.
+
+        * platform/PlatformScreen.h: Add screenSupportsExtendedColor.
+
+        * platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm:
+        (PlatformCALayerCocoa::commonInit): Set the backing
+        store format to the RGBA10XR if we're on an extended
+        display.
+        * platform/ios/LegacyTileGridTile.mm:
+        (WebCore::LegacyTileGridTile::LegacyTileGridTile): Ditto.
+        (WebCore::setBackingStoreFormat): Deleted. Now set directly
+        in the constructor.
+
+        * platform/ios/PlatformScreenIOS.mm:
+        (WebCore::screenDepthPerComponent): Cleanup.
+        (WebCore::screenSupportsExtendedColor): Implement the
+        iOS version of this using MobileGestalt.
+
+        * platform/mac/PlatformScreenMac.mm:
+        (WebCore::displayFromWidget): Whitespace cleanup.
+        (WebCore::screenForWidget):
+        (WebCore::screenForWindow):
+        (WebCore::screenSupportsExtendedColor): Default implementation
+        returns false for all screens at the moment.
+
+        * platform/spi/cocoa/QuartzCoreSPI.h: New constant.
+        * platform/spi/ios/MobileGestaltSPI.h: Ditto.
+
+2016-03-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] Layout  sometimes flakily assumes overlay scrollbars when clicky-scroll-wheel-mouse is attached and system preference detects scrollbar mode
+        https://bugs.webkit.org/show_bug.cgi?id=155912
+
+        Reviewed by Simon Fraser.
+
+        When the system preference is set to detect the scrollbar type (overlay or
+        always-on, and a clicky scroll wheel mouse is connected, AppKit
+        asynchronously tells all the NSScrollerImpPairs about the kind of scrollbar
+        it should be using. However, when this notification is delivered, it may
+        be in between FrameViews, which means we may not have any
+        NSScrollerImpPairs created to listen to the notification.
+
+        r198444 solved this by asking if we missed any update whenever we create
+        an NSScrollerImpPair. This works partially; however, there is a significant
+        amount of layout which occurs before we create the first ScrollAnimatorMac.
+        This layout will ask the ScrollbarThemeMac if overlay scrollbars are
+        enabled, and the results will be stale (because we haven't created any the
+        NSScrollerImpPairs yet).
+
+        Luckly, AppKit fires a notification when it discovers what kind of
+        scrollbars should be used. We can rely on this notification in the event
+        that we don't have any NSScrollerImpPairs created.
+
+        Covered (as best as possible) by existing RTL scrollbar tests. However,
+        the system preference that governs this is not currently testable.
+
+        * platform/mac/ScrollbarThemeMac.mm:
+        (+[WebScrollbarPrefsObserver registerAsObserver]):
+        * platform/mac/ScrollAnimatorMac.mm:
+        (WebCore::ScrollAnimatorMac::ScrollAnimatorMac):  Remove the old code.
+
+2016-03-25  Jer Noble  <jer.noble@apple.com>
+
+        [Mac] Audio tracks in alternate groups are not represented correctly as AudioTracks
+        https://bugs.webkit.org/show_bug.cgi?id=155891
+        <rdar://problem/24841372>
+
+        Reviewed by Eric Carlson.
+
+        Test: media/track/video-track-alternate-groups.html
+
+        Previously, we created an AudioTrack for every AVPlayerItemTrack, and additionally, a
+        AudioTrack for every AVMediaSelectionOption that did not have an associated AVAssetTrack.
+        This caused a number of issues with various types of media, including media with fallback
+        tracks.
+
+        Now, we will create an AudioTrack for every AVMediaSelectionOption, and only create an
+        AudioTrack for every AVPlayerItem track if no AVMediaSelectionGroups (and thus no
+        AVMediaSeletionOptions) exist.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::determineChangedTracksFromNewTracksAndOldItems):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::updateAudioTracks):
+
+2016-03-25  Zalan Bujtas  <zalan@apple.com>
+
+        RenderImage::repaintOrMarkForLayout fails when the renderer is detached.
+        https://bugs.webkit.org/show_bug.cgi?id=155885
+        <rdar://problem/25359164>
+
+        Reviewed by Simon Fraser.
+
+        Making containingBlockFor* functions standalone ensures that we don't
+        call them on an invalid object. 
+
+        Covered by existing tests.
+
+        * dom/Element.cpp:
+        (WebCore::layoutOverflowRectContainsAllDescendants):
+        * rendering/LogicalSelectionOffsetCaches.h:
+        (WebCore::LogicalSelectionOffsetCaches::LogicalSelectionOffsetCaches):
+        * rendering/RenderElement.cpp:
+        (WebCore::containingBlockForFixedPosition):
+        (WebCore::containingBlockForAbsolutePosition):
+        (WebCore::containingBlockForObjectInFlow):
+        (WebCore::RenderElement::containingBlockForFixedPosition): Deleted.
+        (WebCore::RenderElement::containingBlockForAbsolutePosition): Deleted.
+        (WebCore::isNonRenderBlockInline): Deleted.
+        (WebCore::RenderElement::containingBlockForObjectInFlow): Deleted.
+        * rendering/RenderElement.h:
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::styleWillChange):
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::containingBlock):
+
 2016-03-25  Dean Jackson  <dino@apple.com>
 
         Remove use of extern "C" to include QuartzCore files

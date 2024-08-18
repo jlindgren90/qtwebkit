@@ -1,3 +1,94 @@
+2016-03-28  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Mark failing indexeddb tests to failure
+
+        Unreviewed EFL gardening.
+
+        Additionally a shadow dom test is marked to failure because shadow dom is not enabled on EFL port yet.
+
+        * platform/efl/TestExpectations:
+
+2016-03-28  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        [EFL] Remove the more passed tests after r198728
+
+        Unreviewed EFL gardening. 
+
+        * platform/efl/TestExpectations:
+
+2016-03-27  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        [EFL] REGRESSION(r188793): It made 200 layout tests and Bindings/event-target-wrapper.html performance test fail
+        https://bugs.webkit.org/show_bug.cgi?id=148470
+
+        Reviewed by Darin Adler.
+
+        * platform/efl/TestExpectations: Unskip the passed tests.
+
+2016-03-27  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL][AX] Mark AX failing tests to failure
+
+        Unreveiwed EFL gardening.
+
+        * platform/efl/TestExpectations:
+
+2016-03-27  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Mark rtl-scrollbar's tests to pass with incorrectly
+
+        Unreviewed EFL gardening.
+
+        * platform/efl/TestExpectations: Though rtl scrollbar isn't supported by EFL yet, it has been passed.
+
+2016-03-26  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Remove duplicated tests in EFL TextExpectations.
+
+        Unreviewed EFL gardening.
+
+        * platform/efl/TestExpectations: Clean up duplicated pathes.
+
+2016-03-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        ES6 Class syntax. Invoking method of parent class in constructor before super() lead to crash
+        https://bugs.webkit.org/show_bug.cgi?id=152108
+
+        Reviewed by Ryosuke Niwa.
+
+        * js/arrowfunction-superproperty-expected.txt:
+        * js/script-tests/arrowfunction-superproperty.js:
+        * js/script-tests/class-syntax-name.js:
+        * js/script-tests/class-syntax-string-and-numeric-names.js:
+        Remove stale FIXMEs from LayoutTests where the bugs have been fixed.
+
+2016-03-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Date.prototype.toLocaleDateString uses overridable Object.create
+        https://bugs.webkit.org/show_bug.cgi?id=155917
+
+        Reviewed by Mark Lam.
+
+        * js/regress-155917-expected.txt: Added.
+        * js/regress-155917.html: Added.
+        * js/script-tests/regress-155917.js: Added.
+        (Object.create):
+
+2016-03-25  Jer Noble  <jer.noble@apple.com>
+
+        [Mac] Audio tracks in alternate groups are not represented correctly as AudioTracks
+        https://bugs.webkit.org/show_bug.cgi?id=155891
+        <rdar://problem/24841372>
+
+        Reviewed by Eric Carlson.
+
+        * media/content/audio-tracks-alternate-group-with-fallback.mp4: Added.
+        * media/content/audio-tracks-no-alternate-group.mp4: Added.
+        * media/content/audio-tracks-some-in-alternate-group.mp4: Added.
+        * media/track/video-track-alternate-groups-expected.txt: Added.
+        * media/track/video-track-alternate-groups.html: Added.
+        * platform/mac-yosemite/media/track/video-track-alternate-groups-expected.txt: Added.
+
 2016-03-25  Mark Lam  <mark.lam@apple.com>
 
         ES6's throwing of TypeErrors on access of RegExp.prototype flag properties breaks websites.
