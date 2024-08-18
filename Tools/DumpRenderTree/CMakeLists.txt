@@ -108,10 +108,6 @@ set(TestNetscapePlugin_LIBRARIES
     WebKit
 )
 
-list(APPEND TestNetscapePlugin_LIBRARIES
-    WebKit
-)
-
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
 include_directories(${DumpRenderTree_INCLUDE_DIRECTORIES})

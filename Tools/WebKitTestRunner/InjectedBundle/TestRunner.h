@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2011, 2012 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,6 +70,7 @@ public:
     void dumpAsText(bool dumpPixels);
     void waitForPolicyDelegate();
     void dumpChildFramesAsText() { m_whatToDump = AllFramesText; }
+    void waitUntilDownloadFinished();
     void waitUntilDone();
     void notifyDone();
     double preciseTime();
@@ -198,6 +199,7 @@ public:
     bool waitToDump() const { return m_waitToDump; }
     void waitToDumpWatchdogTimerFired();
     void invalidateWaitToDumpWatchdogTimer();
+    bool shouldFinishAfterDownload() const { return m_shouldFinishAfterDownload; }
 
     bool shouldAllowEditing() const { return m_shouldAllowEditing; }
 
@@ -292,7 +294,7 @@ public:
     void queueNonLoadingScript(JSStringRef script);
 
     bool secureEventInputIsEnabled() const;
-    
+
     JSValueRef failNextNewCodeBlock();
     JSValueRef numberOfDFGCompiles(JSValueRef theFunction);
     JSValueRef neverInlineFunction(JSValueRef theFunction);
@@ -367,6 +369,7 @@ private:
     double m_databaseMaxQuota;
 
     bool m_shouldDecideNavigationPolicyAfterDelay { false };
+    bool m_shouldFinishAfterDownload { false };
 
     bool m_userStyleSheetEnabled;
     WKRetainPtr<WKStringRef> m_userStyleSheetLocation;

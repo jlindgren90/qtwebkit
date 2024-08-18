@@ -1,3 +1,35 @@
+2016-04-01  Brent Fulgham  <bfulgham@apple.com>
+
+        Confirm <a download> satisfies specification criteria
+        https://bugs.webkit.org/show_bug.cgi?id=156057
+
+        Reviewed by Andy Estes.
+
+        * WebProcess/InjectedBundle/API/c/WKBundleNavigationAction.cpp:
+        (WKBundleNavigationActionGetHasDownloadAttribute): Added.
+        * WebProcess/InjectedBundle/API/c/WKBundleNavigationActionPrivate.h:
+        * WebProcess/InjectedBundle/InjectedBundleNavigationAction.cpp:
+        (WebKit::InjectedBundleNavigationAction::InjectedBundleNavigationAction):
+        * WebProcess/InjectedBundle/InjectedBundleNavigationAction.h:
+        (WebKit::InjectedBundleNavigationAction::hasDownloadAttribute): Added.
+
+2016-04-01  Alex Christensen  <achristensen@webkit.org>
+
+        CMake build fix.
+
+        * PlatformMac.cmake:
+
+2016-04-01  Alex Christensen  <achristensen@webkit.org>
+
+        Compile DumpRenderTree with CMake on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=156088
+
+        Reviewed by Brent Fulgham.
+
+        * CMakeLists.txt:
+        * PlatformMac.cmake:
+        * UIProcess/API/Cocoa/WebKitLegacy.h: Added.
+
 2016-03-31  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
 
         Unreviewed EFL build fix caused by r198929.
