@@ -1,3 +1,87 @@
+2016-03-30  Enrica Casucci  <enrica@apple.com>
+
+        Add a style for Data Detectors links.
+        https://bugs.webkit.org/show_bug.cgi?id=155996
+        rdar://problem/25343514
+
+        Reviewed by Sam Weinig.
+
+        Based on indication from the data detection engine,
+        we style some of the links differently.
+
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::DataDetection::detectContentInRange):
+        * platform/cocoa/DataDetectorsCoreSoftLink.h:
+        * platform/cocoa/DataDetectorsCoreSoftLink.mm:
+
+2016-03-30  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] [RTL Scrollbars] Overlay RTL scrollbars animate in from the wrong side
+        https://bugs.webkit.org/show_bug.cgi?id=155962
+
+        Reviewed by Darin Adler.
+
+        We can control the animation direction with the NSScrollerImp property
+        userInterfaceLayoutDirection.
+
+        This patch also adds an Internals function to set whether or not we
+        should mock the scrollbars. Not mocking the scrollbars is required
+        to use NSScrollerImps.
+
+        Test: fast/scrolling/rtl-scrollbars-animation-property.html
+
+        * platform/ScrollableArea.h: Use nullptr instead of 0.
+        (WebCore::ScrollableArea::horizontalScrollbar):
+        (WebCore::ScrollableArea::verticalScrollbar):
+        (WebCore::ScrollableArea::tiledBacking):
+        (WebCore::ScrollableArea::layerForHorizontalScrollbar):
+        (WebCore::ScrollableArea::layerForVerticalScrollbar):
+        (WebCore::ScrollableArea::layerForScrolling):
+        (WebCore::ScrollableArea::layerForScrollCorner):
+        (WebCore::ScrollableArea::layerForOverhangAreas):
+        * platform/mac/ScrollAnimatorMac.mm:
+        (WebCore::ScrollAnimatorMac::updateScrollerStyle): Set the direction
+        of the new NSScrollerImps.
+        * platform/mac/ScrollbarThemeMac.h:
+        * platform/mac/ScrollbarThemeMac.mm:
+        (WebCore::ScrollbarThemeMac::didCreateScrollerImp): Set the direction
+        of an NSScrollerImp.
+        (WebCore::ScrollbarThemeMac::registerScrollbar): Call
+        didCreateScrollerImp().
+        (WebCore::ScrollbarThemeMac::isLayoutDirectionRTL): Used for testing,
+        to tell if the scroller's direction is RTL.
+        * platform/spi/mac/NSScrollerImpSPI.h:
+        * rendering/RenderTreeAsText.cpp:
+        (WebCore::write):
+        * testing/Internals.cpp:
+        (WebCore::Internals::setMockScrollbarsEnabled): Used for testing.
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-03-30  Sam Weinig  <sam@webkit.org>
+
+        -webkit-text-underline-position: under; does not work in ToT
+        https://bugs.webkit.org/show_bug.cgi?id=156038
+
+        Reviewed by David Hyatt.
+
+        Test: fast/css3-text/css3-text-decoration/text-underline-position/text-underline-position-under-vs-alphabetic.html
+
+        * style/InlineTextBoxStyle.cpp:
+        (WebCore::computeUnderlineOffset):
+        Only resolve the underline position when based on the InlineTextBox when it is specified as auto.
+
+2016-03-30  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows EWS after r198766
+        https://bugs.webkit.org/show_bug.cgi?id=156029
+
+        Reviewed by Brent Fulgham.
+
+        * CMakeLists.txt:
+        * PlatformWin.cmake:
+        Copy headers before compiling WebCoreDerivedSources, not just before compiling WebCore.
+
 2016-03-30  Brady Eidson  <beidson@apple.com>
 
         Random SerializedScriptValue cleanup.
