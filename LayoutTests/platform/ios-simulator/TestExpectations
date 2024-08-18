@@ -88,10 +88,14 @@ http/tests/security/contentSecurityPolicy/1.1/plugintypes-nourl-allowed.html
 http/tests/security/contentSecurityPolicy/1.1/plugintypes-nourl-blocked.html
 http/tests/security/contentSecurityPolicy/1.1/plugintypes-url-01.html
 http/tests/security/contentSecurityPolicy/1.1/plugintypes-url-02.html
+http/tests/security/contentSecurityPolicy/embed-with-no-url-allowed-by-default-src-star.html
+http/tests/security/contentSecurityPolicy/embed-with-no-url-allowed-by-star.html
 http/tests/security/contentSecurityPolicy/object-src-param-code-blocked.html
 http/tests/security/contentSecurityPolicy/object-src-param-movie-blocked.html
 http/tests/security/contentSecurityPolicy/object-src-param-src-blocked.html
 http/tests/security/contentSecurityPolicy/object-src-param-url-blocked.html
+http/tests/security/contentSecurityPolicy/object-with-no-url-allowed-by-default-src-star.html
+http/tests/security/contentSecurityPolicy/object-with-no-url-allowed-by-star.html
 
 # Pointer-lock not supported on iOS
 pointer-lock
@@ -2052,6 +2056,7 @@ fast/regions/percentage-margins-mixed-ltr-dominant-regions.html [ ImageOnlyFailu
 fast/regions/percentage-margins-mixed-rtl-dominant-regions.html [ ImageOnlyFailure ]
 fast/regions/percentage-margins-rtl-variable-width-regions.html [ ImageOnlyFailure ]
 fast/regions/percentage-margins-variable-width-regions.html [ ImageOnlyFailure ]
+fast/regions/position-writing-modes-in-variable-width-regions.html [ ImageOnlyFailure ]
 fast/regions/positioning/fixed-in-named-flow-position-changed.html [ ImageOnlyFailure ]
 fast/regions/positioning/fixed-inside-fixed-in-named-flow.html [ ImageOnlyFailure ]
 fast/regions/positioning/fixed-inside-named-flow-zIndex.html [ ImageOnlyFailure ]

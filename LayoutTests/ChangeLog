@@ -1,3 +1,145 @@
+2016-04-01  Joonghun Park  <jh718.park@samsung.com>
+
+        Unreviewed EFL gardening about new RTL scrollbar testcase
+        This testcase has been added in r198859.
+
+        * platform/efl/TestExpectations:
+        * platform/efl/fast/scrolling/rtl-scrollbars-animation-property-expected.txt: Added.
+
+2016-03-31  Antti Koivisto  <antti@apple.com>
+
+        Separate render tree updating from style resolve
+        https://bugs.webkit.org/show_bug.cgi?id=155298
+
+        Reviewed by Andreas Kling.
+
+        * TestExpectations:
+
+            Skip mathml/presentation/menclose-notation-attribute-change-value.html. It will be fixed by upcoming MathML refactoring.
+
+        * css3/blending/repaint/blend-mode-isolate-stacking-context-expected.txt:
+        * css3/viewport-percentage-lengths/viewport-percentage-lengths-resize-expected.txt:
+
+            This is a progression.
+
+        * editing/mac/spelling/autocorrection-contraction-expected.txt:
+        * editing/mac/spelling/autocorrection-removing-underline-after-paste-expected.txt:
+        * editing/mac/spelling/autocorrection-removing-underline-expected.txt:
+        * editing/mac/spelling/autocorrection-simple-expected.txt:
+        * editing/style/remove-underline-from-stylesheet-expected.txt:
+        * editing/style/typing-style-003-expected.txt:
+
+            Non-rendered whitespace related changes.
+
+        * platform/ios-simulator/TestExpectations:
+
+            Skip fast/regions/position-writing-modes-in-variable-width-regions.html on iOS. Similar tests are mostly already skipped.
+
+        * platform/ios-simulator/editing/style/typing-style-003-expected.txt: Added.
+        * platform/mac-wk2/editing/mac/spelling/autocorrection-contraction-expected.txt:
+        * platform/mac/editing/inserting/editable-html-element-expected.txt:
+        * platform/mac/editing/inserting/editing-empty-divs-expected.txt:
+        * platform/mac/editing/inserting/insert-at-end-02-expected.txt:
+        * platform/mac/editing/pasteboard/4989774-expected.txt:
+        * platform/mac/editing/selection/4983858-expected.txt:
+
+            Non-rendered whitespace related changes.
+
+2016-03-31  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: <attachment> element not accessible
+        https://bugs.webkit.org/show_bug.cgi?id=156045
+
+        Reviewed by Joanmarie Diggs.
+
+        * accessibility/attachment-element-expected.txt: Added.
+        * accessibility/attachment-element.html: Added.
+        * platform/efl/TestExpectations:
+        * platform/gtk/TestExpectations:
+
+2016-03-31  Nan Wang  <n_wang@apple.com>
+
+        AX: AX hit-testing does not work on WebKit video playback buttons
+        https://bugs.webkit.org/show_bug.cgi?id=156084
+
+        Reviewed by Darin Adler.
+
+        * accessibility/mac/video-tag-hit-test-expected.txt: Added.
+        * accessibility/mac/video-tag-hit-test.html: Added.
+
+2016-03-31  Daniel Bates  <dabates@apple.com>
+
+        REGRESSION (r197724): <object>/<embed> with no URL does not match source *
+        https://bugs.webkit.org/show_bug.cgi?id=156079
+        <rdar://problem/25470805>
+
+        Reviewed by Brent Fulgham.
+
+        Add tests to ensure that HTML object and embed elements are allowed by source *.
+
+        * platform/ios-simulator/TestExpectations: Skip added tests as plugins are not supported on iOS.
+        * http/tests/security/contentSecurityPolicy/embed-with-no-url-allowed-by-default-src-star-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/embed-with-no-url-allowed-by-default-src-star.html: Added.
+        * http/tests/security/contentSecurityPolicy/embed-with-no-url-allowed-by-star-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/embed-with-no-url-allowed-by-star.html: Added.
+        * http/tests/security/contentSecurityPolicy/object-with-no-url-allowed-by-default-src-star-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/object-with-no-url-allowed-by-default-src-star.html: Added.
+        * http/tests/security/contentSecurityPolicy/object-with-no-url-allowed-by-star-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/object-with-no-url-allowed-by-star.html: Added.
+
+2016-03-31  Saam barati  <sbarati@apple.com>
+
+        [ES6] Disallow var assignments in for-in loops
+        https://bugs.webkit.org/show_bug.cgi?id=155451
+
+        Reviewed by Mark Lam.
+
+        * js/parser-syntax-check-expected.txt:
+        * js/script-tests/parser-syntax-check.js:
+
+2016-03-31  Saam barati  <sbarati@apple.com>
+
+        parsing arrow function expressions slows down the parser by 8% lets recoup some loss
+        https://bugs.webkit.org/show_bug.cgi?id=155988
+
+        Reviewed by Benjamin Poulain.
+
+        * js/parser-syntax-check-expected.txt:
+        * js/script-tests/parser-syntax-check.js:
+        (catch):
+
+2016-03-31  Per Arne Vollan  <peavo@outlook.com>
+
+        [Win] Skip INTL related tests.
+        https://bugs.webkit.org/show_bug.cgi?id=156074
+
+        Reviewed by Alex Christensen.
+
+        Temporarily skip failing INTL related tests, because AppleWin currently
+        does not have INTL enabled.
+
+        * js/script-tests/array-toLocaleString.js:
+        * js/script-tests/date-toLocaleString.js:
+        * js/script-tests/intl-collator.js:
+        * js/script-tests/intl-datetimeformat.js:
+        * js/script-tests/intl-numberformat.js:
+        * js/script-tests/intl.js:
+        * js/script-tests/number-toLocaleString.js:
+        * js/script-tests/string-toLocaleLowerCase.js:
+        * js/script-tests/string-toLocaleUpperCase.js:
+        * platform/win/TestExpectations:
+
+2016-03-31  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: ScriptSyntaxTree doesn't handle RestElement AST nodes
+        https://bugs.webkit.org/show_bug.cgi?id=156085
+
+        Reviewed by Saam Barati.
+
+        * inspector/model/parse-script-syntax-tree-expected.txt:
+        * inspector/model/parse-script-syntax-tree.html:
+        Add a test for a RestElement.
+
 2016-03-31  Daniel Bates  <dabates@apple.com>
 
         REGRESSION (r195605): ASSERTION FAILED: !NoEventDispatchAssertion::isEventDispatchForbidden()

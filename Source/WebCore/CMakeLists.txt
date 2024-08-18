@@ -1043,6 +1043,7 @@ set(WebCore_SOURCES
     accessibility/AccessibilityARIAGrid.cpp
     accessibility/AccessibilityARIAGridCell.cpp
     accessibility/AccessibilityARIAGridRow.cpp
+    accessibility/AccessibilityAttachment.cpp
     accessibility/AccessibilityImageMapLink.cpp
     accessibility/AccessibilityList.cpp
     accessibility/AccessibilityListBox.cpp
@@ -2626,12 +2627,14 @@ set(WebCore_SOURCES
     style/IdChangeInvalidation.cpp
     style/InlineTextBoxStyle.cpp
     style/RenderTreePosition.cpp
+    style/RenderTreeUpdater.cpp
     style/StyleChange.cpp
     style/StyleFontSizeFunctions.cpp
     style/StyleRelations.cpp
     style/StyleResolveForDocument.cpp
     style/StyleSharingResolver.cpp
     style/StyleTreeResolver.cpp
+    style/StyleUpdate.cpp
 
     svg/SVGAElement.cpp
     svg/SVGAltGlyphDefElement.cpp
