@@ -3791,12 +3791,6 @@ list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/XMLNSNames.cp
 GENERATE_DOM_NAMES(XML ${WEBCORE_DIR}/xml/xmlattrs.in)
 list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/XMLNames.cpp)
 
-if (ENABLE_ALLINONE_BUILD)
-    message(STATUS "All-in-One DerivedSources build is enabled.")
-    PROCESS_ALLINONE_FILE("${WebCore_DERIVED_SOURCES}" DerivedSources.cpp newSources TRUE)
-    set(WebCore_DERIVED_SOURCES DerivedSources.cpp ${newSources})
-endif ()
-
 WEBKIT_WRAP_SOURCELIST(${WebCore_IDL_FILES} ${WebCore_DERIVED_SOURCES})
 WEBKIT_WRAP_SOURCELIST(${WebCoreTestSupport_IDL_FILES} ${WebCoreTestSupport_SOURCES})
 
@@ -3805,21 +3799,10 @@ if (MSVC)
     ADD_PRECOMPILED_HEADER("WebCorePrefix.h" "WebCoreDerivedSourcesPrefix.cpp" WebCore_DERIVED_SOURCES)
 endif ()
 
-# This is split into a separate library as a workaround for command line length
-# limits. This should no longer be needed when CMake supports Ninja response
-# files on OS X.
-add_library(WebCoreDerivedSources STATIC ${WebCore_DERIVED_SOURCES})
-set_target_properties(WebCoreDerivedSources PROPERTIES OUTPUT_NAME WebCoreDerivedSources${DEBUG_SUFFIX})
-set_target_properties(WebCoreDerivedSources PROPERTIES FOLDER "WebCore")
-if (NOT WIN32)
-    list(APPEND WebCore_LIBRARIES WebCoreDerivedSources)
-endif ()
+# FIXME: link errors when WebCoreDerivedSources is separate
+list(APPEND WebCore_SOURCES ${WebCore_DERIVED_SOURCES})
 
 WEBKIT_FRAMEWORK(WebCore)
-
-if (WIN32)
-    add_dependencies(WebCore WebCoreDerivedSources)
-endif ()
 
 if (NOT MSVC AND WIN32 AND ${PORT} STREQUAL "Qt")
     ADD_PREFIX_HEADER(WebCore "${WEBCORE_DIR}/WebCorePrefix.h")
