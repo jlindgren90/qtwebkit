@@ -1,3 +1,48 @@
+2016-04-06  Sam Weinig  <sam@webkit.org>
+
+        window.CSS should be a constructor with static functions
+        <rdar://problem/25580516>
+        https://bugs.webkit.org/show_bug.cgi?id=156294
+
+        Reviewed by Chris Dumez.
+
+        * platform/efl/js/dom/global-constructors-attributes-expected.txt:
+        * platform/gtk/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * platform/win/js/dom/global-constructors-attributes-expected.txt:
+        Update for new CSS constructor property.
+
+2016-04-06  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        REGRESSION(r195463): [GTK] accessibility/roles-computedRoleString.html and accessibility/roles-exposed.html failing
+        https://bugs.webkit.org/show_bug.cgi?id=153696
+
+        Reviewed by Chris Fleizach.
+
+        Now that RenderInline style format groups are exposed as InlineRole, there is
+        no longer a corresponding computed role for ins, samp, and var elements. Updated
+        the roles-computedRoleString.html test and expectations accordingly. Also added
+        the now-correct results for Gtk for both of the previously-failing tests.
+
+        * accessibility/roles-computedRoleString-expected.txt: Updated.
+        * accessibility/roles-computedRoleString.html: Updated.
+        * platform/gtk/TestExpectations: Unskip the two tests which are now passing.
+        * platform/gtk/accessibility/roles-computedRoleString-expected.txt: Updated.
+        * platform/gtk/accessibility/roles-exposed-expected.txt: Updated.
+
+2016-04-06  Keith Miller  <keith_miller@apple.com>
+
+        RegExp constructor should use Symbol.match and other properties
+        https://bugs.webkit.org/show_bug.cgi?id=155873
+
+        Reviewed by Michael Saboff.
+
+        Fix test for new behavior.
+
+        * fast/regex/constructor-expected.txt:
+        * fast/regex/script-tests/constructor.js:
+
 2016-04-06  Zalan Bujtas  <zalan@apple.com>
 
         ASSERTION FAILED: !floatingObject->originatingLine() in WebCore::RenderBlockFlow::linkToEndLineIfNeeded

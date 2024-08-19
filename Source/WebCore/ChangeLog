@@ -1,5 +1,226 @@
 2016-04-06  Zalan Bujtas  <zalan@apple.com>
 
+        Add ASSERT_WITH_SECURITY_IMPLICATION when a float box is referenced by multiple RootInlineBoxes.
+        https://bugs.webkit.org/show_bug.cgi?id=156297
+        <rdar://problem/25580844>
+
+        Reviewed by Brent Fulgham.
+
+        See http://trac.webkit.org/changeset/199101
+
+        No change in functionality.
+
+        * rendering/RenderBlockLineLayout.cpp:
+        (WebCore::RenderBlockFlow::appendFloatingObjectToLastLine):
+        (WebCore::RenderBlockFlow::reattachCleanLineFloats):
+        (WebCore::RenderBlockFlow::determineStartPosition):
+
+2016-04-06  Sam Weinig  <sam@webkit.org>
+
+        window.CSS should be a constructor with static functions
+        <rdar://problem/25580516>
+        https://bugs.webkit.org/show_bug.cgi?id=156294
+
+        Reviewed by Chris Dumez.
+
+        Rename DOMWindowCSS to DOMCSSNamespace to avoid name collisions, DOMWindow prefixed
+        classes cause collisions in JSDOMWindow.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        Update for renames.
+
+        * css/DOMCSSNamespace.cpp: Copied from Source/WebCore/css/DOMWindowCSS.cpp.
+        (WebCore::valueWithoutImportant):
+        (WebCore::DOMCSSNamespace::supports):
+        (WebCore::DOMWindowCSS::create): Deleted.
+        (WebCore::DOMWindowCSS::supports): Deleted.
+        * css/DOMCSSNamespace.h: Copied from Source/WebCore/css/DOMWindowCSS.h.
+        (WebCore::DOMWindowCSS::DOMWindowCSS): Deleted.
+        Rename DOMWindowCSS to DOMCSSNamespace and turn functions into static functions.
+
+        * css/DOMCSSNamespace.idl: Copied from Source/WebCore/css/DOMWindowCSS.idl.
+        Remove NoInterfaceObject, to inject a constructor, and turn functions into
+        static functions matching spec.
+
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::css): Deleted.
+        * page/DOMWindow.h:
+        * page/DOMWindow.idl:
+        Remove CSS property. Constructor will be implicitly added.
+
+2016-04-05  Simon Fraser  <simon.fraser@apple.com>
+
+        Rename exposedRect to viewExposedRect and propagate it as Optional<> through WK2
+        https://bugs.webkit.org/show_bug.cgi?id=156274
+
+        Reviewed by Tim Horton.
+
+        DrawingArea and FrameView have an "exposedRect" property that is used by applications
+        on Mac, like Mail, that embed web views inside scroll views. However, this name is very
+        similar to the "exposedContentRect" that is used on iOS to denote the part of the view
+        whose pixels are visible, including through blurring overlaid UI.
+        
+        To disambiguate these two, rename the Mac "exposedRect" to "viewExposedRect" to
+        emphasize that it's a rect that takes into account clipping in the native view
+        hierarchy.
+        
+        Also make this rect Optional<> through the DrawingArea, removing comparisons against
+        FloatRect::infiniteRect().
+        
+        Do some other minor renaming in VisibleContentRectUpdateInfo.
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::setViewExposedRect): This now takes an Optional<> because WebViewImpl::updateViewExposedRect()
+        can clear it.
+        * page/FrameView.h:
+        * page/PageOverlayController.cpp:
+        (WebCore::PageOverlayController::didChangeViewExposedRect):
+        (WebCore::PageOverlayController::didChangeExposedRect): Deleted.
+        * page/PageOverlayController.h:
+        * rendering/RenderLayerBacking.cpp:
+        (WebCore::computeTileCoverage):
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::flushPendingLayerChanges):
+
+2016-04-06  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        REGRESSION(r195463): [GTK] accessibility/roles-computedRoleString.html and accessibility/roles-exposed.html failing
+        https://bugs.webkit.org/show_bug.cgi?id=153696
+
+        Reviewed by Chris Fleizach.
+
+        The failures were due to always mapping style format groups to GroupRole, even for
+        RenderInline objects. The fix is to expose inline style format groups as InlineRole,
+        add handling of GroupRole style groups to the ATK code, and InlineRole style groups
+        to the Mac code.
+
+        No new tests because we have sufficient coverage. Updated roles-computedRoleString.html
+        to reflect new exposure.
+
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::determineAccessibilityRole):
+        * accessibility/atk/WebKitAccessibleWrapperAtk.cpp:
+        (atkRole):
+        * accessibility/mac/AccessibilityObjectMac.mm:
+        (WebCore::AccessibilityObject::accessibilityPlatformIncludesObject):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (createAccessibilityRoleMap):
+        (-[WebAccessibilityObjectWrapper subrole]):
+
+2016-04-06  Jer Noble  <jer.noble@apple.com>
+
+        CRASH in -[WebCoreNSURLSession taskCompleted:]
+        https://bugs.webkit.org/show_bug.cgi?id=156290
+
+        Reviewed by Eric Carlson.
+
+        Fixes currently flakily crashing http/tests/media tests.
+
+        Protect against -taskCompleted: being called multiple times by only calling
+        -taskCompleted: if the task's state is not yet NSURLSessionTaskStateCompleted.
+        Additionally, make sure to clear the task's session pointer when removing it
+        from _dataTasks, as this ensures a task that outlives its session does not
+        keep a pointer to a dealloc'd object.
+
+        * platform/network/cocoa/WebCoreNSURLSession.mm:
+        (-[WebCoreNSURLSession taskCompleted:]):
+        (-[WebCoreNSURLSessionDataTask _resource:loadFinishedWithError:]):
+
+2016-04-06  Chris Dumez  <cdumez@apple.com>
+
+        [IDL] Extend support for [EnabledAtRuntime] attributes / operations to all global objects, not just Window
+        https://bugs.webkit.org/show_bug.cgi?id=156291
+
+        Reviewed by Alex Christensen.
+
+        Extend support for [EnabledAtRuntime] attributes / operations to all
+        global objects, not just Window. This is needed by the Fetch API which
+        is enabled at runtime and exposed on both Window and WorkerGlobalScope.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (IsDOMGlobalObject):
+        (OperationShouldBeOnInstance):
+        (GenerateHeader):
+        (GeneratePropertiesHashTable):
+        (GenerateImplementation):
+        * bindings/scripts/test/GObject/WebKitDOMTestGlobalObject.cpp: Added.
+        (WebKit::kit):
+        (WebKit::core):
+        (WebKit::wrapTestGlobalObject):
+        (webkit_dom_test_global_object_finalize):
+        (webkit_dom_test_global_object_set_property):
+        (webkit_dom_test_global_object_get_property):
+        (webkit_dom_test_global_object_constructor):
+        (webkit_dom_test_global_object_class_init):
+        (webkit_dom_test_global_object_init):
+        (webkit_dom_test_global_object_regular_operation):
+        (webkit_dom_test_global_object_enabled_at_runtime_operation):
+        (webkit_dom_test_global_object_get_regular_attribute):
+        (webkit_dom_test_global_object_set_regular_attribute):
+        (webkit_dom_test_global_object_get_enabled_at_runtime_attribute):
+        (webkit_dom_test_global_object_set_enabled_at_runtime_attribute):
+        * bindings/scripts/test/GObject/WebKitDOMTestGlobalObject.h: Added.
+        * bindings/scripts/test/GObject/WebKitDOMTestGlobalObjectPrivate.h: Added.
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp: Added.
+        (WebCore::JSTestGlobalObjectConstructor::prototypeForStructure):
+        (WebCore::JSTestGlobalObjectConstructor::initializeProperties):
+        (WebCore::JSTestGlobalObjectPrototype::getOwnPropertySlot):
+        (WebCore::JSTestGlobalObject::JSTestGlobalObject):
+        (WebCore::JSTestGlobalObject::finishCreation):
+        (WebCore::JSTestGlobalObject::destroy):
+        (WebCore::JSTestGlobalObject::getOwnPropertySlot):
+        (WebCore::jsTestGlobalObjectRegularAttribute):
+        (WebCore::jsTestGlobalObjectEnabledAtRuntimeAttribute):
+        (WebCore::jsTestGlobalObjectConstructor):
+        (WebCore::setJSTestGlobalObjectConstructor):
+        (WebCore::setJSTestGlobalObjectRegularAttribute):
+        (WebCore::setJSTestGlobalObjectEnabledAtRuntimeAttribute):
+        (WebCore::JSTestGlobalObject::getConstructor):
+        (WebCore::jsTestGlobalObjectInstanceFunctionRegularOperation):
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation1):
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation2):
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation):
+        (WebCore::JSTestGlobalObjectOwner::isReachableFromOpaqueRoots):
+        (WebCore::JSTestGlobalObjectOwner::finalize):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestGlobalObject::toWrapped):
+        * bindings/scripts/test/JS/JSTestGlobalObject.h: Added.
+        (WebCore::JSTestGlobalObject::create):
+        (WebCore::JSTestGlobalObject::createStructure):
+        (WebCore::JSTestGlobalObject::finishCreation):
+        (WebCore::wrapperOwner):
+        (WebCore::wrapperKey):
+        (WebCore::toJS):
+        (WebCore::JSTestGlobalObjectPrototype::create):
+        (WebCore::JSTestGlobalObjectPrototype::createStructure):
+        (WebCore::JSTestGlobalObjectPrototype::JSTestGlobalObjectPrototype):
+        * bindings/scripts/test/ObjC/DOMTestGlobalObject.h: Added.
+        * bindings/scripts/test/ObjC/DOMTestGlobalObject.mm: Added.
+        (-[DOMTestGlobalObject dealloc]):
+        (-[DOMTestGlobalObject regularAttribute]):
+        (-[DOMTestGlobalObject setRegularAttribute:]):
+        (-[DOMTestGlobalObject enabledAtRuntimeAttribute]):
+        (-[DOMTestGlobalObject setEnabledAtRuntimeAttribute:]):
+        (-[DOMTestGlobalObject regularOperation:]):
+        (-[DOMTestGlobalObject enabledAtRuntimeOperation:]):
+        (core):
+        (kit):
+        * bindings/scripts/test/ObjC/DOMTestGlobalObjectInternal.h: Added.
+        * bindings/scripts/test/TestGlobalObject.idl: Added.
+
+2016-04-06  Brady Eidson  <beidson@apple.com>
+
+        Update IndexedDB feature status to the much more correct "In Development"
+
+        Reviewed by Tim Hatcher.
+
+        * features.json:
+
+2016-04-06  Zalan Bujtas  <zalan@apple.com>
+
         ASSERTION FAILED: !floatingObject->originatingLine() in WebCore::RenderBlockFlow::linkToEndLineIfNeeded
         https://bugs.webkit.org/show_bug.cgi?id=153001
 
