@@ -1,3 +1,330 @@
+2016-04-09  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199242.
+        https://bugs.webkit.org/show_bug.cgi?id=156442
+
+        Caused many many leaks (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "Web Inspector: get rid of InspectorBasicValue and
+        InspectorString subclasses"
+        https://bugs.webkit.org/show_bug.cgi?id=156407
+        http://trac.webkit.org/changeset/199242
+
+2016-04-09  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199268.
+        https://bugs.webkit.org/show_bug.cgi?id=156440
+
+        Broke Windows build (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "Implement functional :host() pseudo class"
+        https://bugs.webkit.org/show_bug.cgi?id=156397
+        http://trac.webkit.org/changeset/199268
+
+2016-04-09  Antti Koivisto  <antti@apple.com>
+
+        Implement functional :host() pseudo class
+        https://bugs.webkit.org/show_bug.cgi?id=156397
+        <rdar://problem/25621445>
+
+        Reviewed by Darin Adler.
+
+        We already support :host. Add functional syntax too.
+
+        * css/CSSGrammar.y.in:
+
+            Parse functional :host().
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::detectFunctionTypeToken):
+        * css/CSSParserValues.cpp:
+        (WebCore::CSSParserSelector::parsePseudoClassHostFunctionSelector):
+        * css/CSSParserValues.h:
+        * css/ElementRuleCollector.cpp:
+        (WebCore::ElementRuleCollector::matchedRuleList):
+        (WebCore::ElementRuleCollector::addMatchedRule):
+
+            Factor some shared code here.
+
+        (WebCore::ElementRuleCollector::matchHostPseudoClassRules):
+
+            Instead of using the generic paths use a :host specific code path for matching.
+            This makes it easier to avoid :host matching when it shouldn't.
+
+        (WebCore::ElementRuleCollector::collectMatchingRulesForList):
+        * css/ElementRuleCollector.h:
+        * css/RuleSet.cpp:
+        (WebCore::computeMatchBasedOnRuleHash):
+
+            :host is always handled by the special matching path.
+
+        * css/SelectorChecker.cpp:
+        (WebCore::SelectorChecker::match):
+        (WebCore::SelectorChecker::matchHostPseudoClass):
+
+            Add a function specifically for checking :host. In always fails on the normal code paths.
+            Check the argument selector if provided.
+
+        (WebCore::hasScrollbarPseudoElement):
+        * css/SelectorChecker.h:
+
+2016-04-07  Darin Adler  <darin@apple.com>
+
+        Improve IDL support for object arguments that are neither optional nor nullable
+        https://bugs.webkit.org/show_bug.cgi?id=156149
+
+        Reviewed by Chris Dumez.
+
+        After this patch, we are almost ready to change some more DOM functions to
+        use references instead of pointers. Remaining blocking issue is lack of support
+        for ShouldPassWrapperByReference in the gobject bindings.
+
+        * bindings/objc/ExceptionHandlers.h: Add NO_RETURN to raiseDOMException.
+        Added a new raiseTypeErrorException. Re-indented header and removed unneeded
+        include and forward declarations.
+
+        * bindings/objc/ExceptionHandlers.mm:
+        (WebCore::raiseDOMException): Added RELEASE_ASSERT_NOT_REACHED so the compiler
+        will understand this is NO_RETURN. Also updated FIXME comment.
+        (WebCore::raiseTypeErrorException): Added.
+
+        * bindings/scripts/CodeGenerator.pm: Removed unneeded code that allows the type
+        "AtomicString" in IDL files.
+        (ShouldPassWrapperByReference): Added. Contains the logic from the function in
+        the JavaScript code generator that was named IsPointerParameterPassedByReference,
+        minus a couple checks that are unneeded. For use in other code generators so they
+        are all consistent about how they call the DOM implementation.
+
+        * bindings/scripts/CodeGeneratorGObject.pm:
+        (SkipFunction): Removed support for unused CustomBinding extended attribute.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader): Removed support for unused CustomBinding extended attribute.
+        (GenerateImplementation): Ditto. Also changed type checking code to throw a
+        type error in a more efficient way, using throwVMTypeError directly.
+        (GenerateParametersCheck): Rearranged code a bit so that arguments that need to
+        be passed in unusual ways are handled all in one place. Use WTFMove for newly
+        created NodeFilter objects. Simplified the reference logic so it doesn't need
+        to do an additional check to see if a type is a callback. Also changed type
+        checking code to throw a type error in a more efficient way, using throwVMTypeError
+        directly. Also corrected mistake where null checking code was throwing
+        TYPE_MISMATCH_ERR instead of a type error.
+        (GetNativeType): Coding style tweak.
+        (ShouldPassWrapperByReference): Renamed from IsPointerParameterPassedByReference.
+        Changed to call underlying ShouldPassWrapperByReference function in the language-
+        independent code generator.
+        (GenerateConstructorDefinition): Updated for name change.
+
+        * bindings/scripts/CodeGeneratorObjC.pm:
+        (SkipFunction): Removed support for unused CustomBinding extended attribute.
+        (GenerateImplementation): Added code to null check and pass a reference when
+        ShouldPassWrapperByReference returns true.
+
+        * bindings/scripts/IDLAttributes.txt: Sorted in the AppleCopyright and
+        UsePointersEvenForNonNullableObjectArguments arguments. Removed the unused
+        CPPPureInterface and CustomBinding attributes.
+
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp: Regenerated test results.
+        * bindings/scripts/test/JS/JSTestInterface.cpp: Ditto.
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp: Ditto.
+        * bindings/scripts/test/JS/JSTestObj.cpp: Ditto.
+        * bindings/scripts/test/JS/JSTestObj.h: Ditto.
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp: Ditto.
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp: Ditto.
+        * bindings/scripts/test/ObjC/DOMTestActiveDOMObject.mm: Ditto.
+        * bindings/scripts/test/ObjC/DOMTestCallback.mm: Ditto.
+        * bindings/scripts/test/ObjC/DOMTestCallbackFunction.mm: Ditto.
+        * bindings/scripts/test/ObjC/DOMTestInterface.mm: Ditto.
+        * bindings/scripts/test/ObjC/DOMTestMediaQueryListListener.mm: Ditto.
+        * bindings/scripts/test/ObjC/DOMTestObj.mm: Ditto.
+
+        * bindings/scripts/test/TestObj.idl: Removed test for CustomBinding.
+
+        * dom/DOMImplementation.idl: Fixed #if so that only the return type is different
+        between JavaScript and the other bindings. Without this change, the different
+        bindings got different results for ShouldPassWrapperByReference. Also formatted
+        functions all on a single line.
+
+        * dom/EventListener.idl: Removed CPPPureInterface, since it had no effect.
+        * dom/EventTarget.idl: Ditto.
+
+2016-04-08  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Add support for [ExportMacro=XXX] IDL extended attribute
+        https://bugs.webkit.org/show_bug.cgi?id=156428
+
+        Reviewed by Ryosuke Niwa.
+
+        Add support for [ExportMacro=XXX] IDL extended attribute (e.g. [ExportMacro=WEBCORE_EXPORT])
+        so developers can indicate in the IDL which macro to use to export the generated JS bindings
+        class.
+
+        We previously supported this by hard-coding JS class names in the bindings generator which
+        was ugly.
+
+        * Modules/mediasession/MediaSession.idl:
+        * Modules/mediasource/SourceBuffer.idl:
+        * Modules/notifications/Notification.idl:
+        * Modules/webaudio/AudioContext.idl:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetExportMacroForJSClass):
+        (GenerateHeader):
+        (AddIncludesForType): Deleted.
+        (AddToImplIncludes): Deleted.
+        * bindings/scripts/IDLAttributes.txt:
+        * bindings/scripts/test/TestInterface.idl:
+        * bindings/scripts/test/TestNode.idl:
+        * css/CSSStyleDeclaration.idl:
+        * dom/ClientRect.idl:
+        * dom/ClientRectList.idl:
+        * dom/Document.idl:
+        * dom/Element.idl:
+        * dom/Node.idl:
+        * dom/Range.idl:
+        * fileapi/File.idl:
+        * html/DOMURL.idl:
+        * html/HTMLElement.idl:
+        * html/HTMLMediaElement.idl:
+        * html/TimeRanges.idl:
+        * html/canvas/DOMPath.idl:
+        * inspector/ScriptProfile.idl:
+        * inspector/ScriptProfileNode.idl:
+        * page/DOMWindow.idl:
+        * page/make_settings.pl:
+        (generateInternalSettingsIdlFile):
+        * testing/InternalSettings.idl:
+        * testing/Internals.idl:
+        * testing/MallocStatistics.idl:
+        * testing/MemoryInfo.idl:
+        * testing/TypeConversions.idl:
+        * xml/XMLHttpRequest.idl:
+
+2016-04-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: XHRs and Web Worker scripts are not searchable
+        https://bugs.webkit.org/show_bug.cgi?id=154214
+        <rdar://problem/24643587>
+
+        Reviewed by Timothy Hatcher.
+
+        Test: inspector/page/searchInResources.html
+
+        * inspector/InspectorPageAgent.h:
+        * inspector/InspectorPageAgent.cpp:
+        (WebCore::InspectorPageAgent::searchInResource):
+        (WebCore::InspectorPageAgent::searchInResources):
+        Let the NetworkAgent handle individual search requests
+        with a requestId. And provide global search results for
+        "other" resources and will include requestId properties.
+
+        * inspector/InspectorNetworkAgent.h:
+        * inspector/InspectorNetworkAgent.cpp:
+        (WebCore::InspectorNetworkAgent::didFinishXHRLoading):
+        (WebCore::buildObjectForSearchResult):
+        (WebCore::InspectorNetworkAgent::searchOtherRequests):
+        (WebCore::InspectorNetworkAgent::searchInRequest):
+        Search saved "other" resource data content.
+
+        * inspector/NetworkResourcesData.h:
+        * inspector/NetworkResourcesData.cpp:
+        (WebCore::NetworkResourcesData::resources):
+        Expose the resources for iteration by the NetworkAgent.
+
+2016-04-08  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: "AXLandmarkApplication" is an inappropriate subrole for ARIA "application" since it's no longer a landmark
+        https://bugs.webkit.org/show_bug.cgi?id=155403
+
+        Reviewed by Chris Fleizach.
+
+        The new subrole is AXWebApplication and the new role description is "web application".
+        As part of the fix, the WebCore AccessibilityRole for ARIA's "application" role was
+        renamed from LandmarkApplicationRole to WebApplicationRole.
+
+        The roles-exposed.html and aria-grouping-roles.html test expectations were also updated.
+
+        * English.lproj/Localizable.strings:
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::accessibleNameDerivesFromContent):
+        (WebCore::AccessibilityObject::isLandmark):
+        (WebCore::initializeRoleMap):
+        * accessibility/AccessibilityObject.h:
+        * accessibility/atk/WebKitAccessibleWrapperAtk.cpp:
+        (atkRole):
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper determineIsAccessibilityElement]):
+        (-[WebAccessibilityObjectWrapper _accessibilityIsLandmarkRole:]):
+        * accessibility/mac/WebAccessibilityObjectWrapperBase.mm:
+        (-[WebAccessibilityObjectWrapperBase ariaLandmarkRoleDescription]):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (createAccessibilityRoleMap):
+        (-[WebAccessibilityObjectWrapper subrole]):
+        * platform/LocalizedStrings.cpp:
+        (WebCore::AXARIAContentGroupText):
+
+2016-04-08  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] WKWebViews should consult ancestor UIScrollViews to determine tiling area
+        https://bugs.webkit.org/show_bug.cgi?id=156429
+        rdar://problem/25455111
+
+        Reviewed by Tim Horton.
+
+        When a WKWebView is expanded to full size, then embedded in UIScrollView, it would
+        create huge tiles that cover the entire view area (since it considered itself non-scrollable).
+
+        Fix to always use 512x512 tiles in this configuration, and to adjust the tile coverage
+        for the area exposed through the enclosing UIScrollView.
+
+        * loader/HistoryController.cpp:
+        (WebCore::HistoryController::saveScrollPositionAndViewStateToItem): setObscuredInset()
+        moved from FrameView to Page.
+        * page/FrameView.cpp:
+        (WebCore::FrameView::adjustTiledBackingScrollability): If we're clipped by an ancestor scrollView,
+        just assume we're scrollable on both axes.
+        * page/Page.h:
+        (WebCore::Page::obscuredInset):
+        (WebCore::Page::setObscuredInset):
+        (WebCore::Page::enclosedInScrollView):
+        (WebCore::Page::setEnclosedInScrollView):
+        * platform/ScrollView.h:
+        (WebCore::ScrollView::platformObscuredInset): Deleted.
+        (WebCore::ScrollView::platformSetObscuredInset): Deleted.
+
+2016-04-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        [iOS Simulator] Build failure (property 'contentsFormat' not found on object of type 'LegacyTileLayer *')
+        https://bugs.webkit.org/show_bug.cgi?id=156415
+
+        Reviewed by Simon Fraser.
+
+        * platform/spi/cocoa/QuartzCoreSPI.h:
+        Provide SPI forward declaration of the CALayer contentsFormat property.
+
+2016-04-08  Alex Christensen  <achristensen@webkit.org>
+
+        Progress towards running CMake WebKit2 on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=156426
+
+        Reviewed by Tim Horton.
+
+        * CMakeLists.txt:
+        * PlatformGTK.cmake:
+        * PlatformMac.cmake:
+        * PlatformWin.cmake:
+        On Mac, WTF is a static library that is linked only with JavaScriptCore.
+
+2016-04-08  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed 32-bit build fix; make type of std::min<> explicit.
+
+        * platform/audio/ios/AudioDestinationIOS.cpp:
+        (WebCore::AudioDestinationIOS::render):
+
 2016-04-08  Jer Noble  <jer.noble@apple.com>
 
         CRASH in AudioDestinationNode::render()

@@ -2969,7 +2969,6 @@ set(WebCore_PLUG_INS_RESOURCES
 set(WebCore_LIBRARIES
     ${ICU_LIBRARIES}
     JavaScriptCore${DEBUG_SUFFIX}
-    WTF${DEBUG_SUFFIX}
 )
 
 if (ENABLE_ENCRYPTED_MEDIA OR ENABLE_ENCRYPTED_MEDIA_V2)
@@ -3425,7 +3424,6 @@ list(APPEND WebCoreTestSupport_SOURCES
 
 set(WebCoreTestSupport_LIBRARIES
     PRIVATE JavaScriptCore${DEBUG_SUFFIX}
-    PRIVATE WTF${DEBUG_SUFFIX}
 )
 
 # Modules that the bindings generator scripts may use
