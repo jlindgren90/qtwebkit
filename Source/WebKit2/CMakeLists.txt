@@ -273,7 +273,6 @@ set(WebKit2_SOURCES
     Shared/WebMediaSessionMetadata.cpp
     Shared/WebMemorySampler.cpp
     Shared/WebMouseEvent.cpp
-    Shared/WebOpenPanelParameters.cpp
     Shared/WebPageCreationParameters.cpp
     Shared/WebPageGroupData.cpp
     Shared/WebPlatformTouchPoint.cpp
@@ -409,6 +408,7 @@ set(WebKit2_SOURCES
     UIProcess/API/APINavigationData.cpp
     UIProcess/API/APIPageConfiguration.cpp
     UIProcess/API/APIProcessPoolConfiguration.cpp
+    UIProcess/API/APIOpenPanelParameters.cpp
     UIProcess/API/APISession.cpp
     UIProcess/API/APISessionState.cpp
     UIProcess/API/APIURLSchemeHandlerTask.cpp

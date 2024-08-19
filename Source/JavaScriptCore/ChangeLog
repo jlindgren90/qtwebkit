@@ -1,3 +1,144 @@
+2016-04-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: sourceMappingURL not used when sourceURL is set
+        https://bugs.webkit.org/show_bug.cgi?id=156021
+        <rdar://problem/25438417>
+
+        Reviewed by Timothy Hatcher.
+
+        Clean up Debugger.sourceParsed to separately include:
+
+            - url ("resource URL", "source url" in JSC APIs)
+            - sourceURL - //# sourceURL directive
+
+        By always having the resource URL the Web Inspector frontend
+        can better match this Script to a Resource of the same URL,
+        and decide to use the sourceURL if it is available when
+        appropriate.
+
+        * inspector/protocol/Debugger.json:
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::InspectorDebuggerAgent::setBreakpointByUrl):
+        (Inspector::InspectorDebuggerAgent::didParseSource):
+        Send the new sourceParsed parameters.
+
+2016-04-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Cleanup inspector/debugger tests
+        https://bugs.webkit.org/show_bug.cgi?id=156619
+
+        Reviewed by Brian Burg.
+
+        While cleaning up the tests it exposed the fact that breakpoints
+        were not getting disabled when the inspector closes. This means
+        that opening the inspector, with breakpoints, and closing the
+        inspector, would leave the JSC::Debugger thinking breakpoints
+        are active. The JSC::Debugger should be reset.
+
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::InspectorDebuggerAgent::disable):
+
+2016-04-14  Geoffrey Garen  <ggaren@apple.com>
+
+        CopiedBlock should be 64kB
+
+        Reviewed by Benjamin Poulain.
+
+        Let's try another value.
+
+        This is 25% faster on kraken-audio-beat-detection on Mac Pro.
+
+        * heap/CopiedBlock.h:
+
+2016-04-15  Zan Dobersek  <zdobersek@igalia.com>
+
+        Tail call optimizations lead to crashes on ARM Thumb + Linux
+        https://bugs.webkit.org/show_bug.cgi?id=150083
+
+        Reviewed by Csaba Osztrogonác.
+
+        * assembler/AbstractMacroAssembler.h:
+        (JSC::AbstractMacroAssembler::repatchNearCall): In case of a tail call relink to the
+        data location of the destination, and not the executable address. This is needed for
+        the ARM Thumb2 platform where both the source and destination addresses of a jump relink
+        must not have the bottom bit decorated, as asserted in ARMv7Assembler::relinkJump().
+        * jit/Repatch.cpp:
+        (JSC::linkPolymorphicCall): Similarly, when linking a tail call we must link to the
+        address that has a non-decorated bottom bit, as asserted in ARMv7Assembler::linkJumpAbsolute().
+
+2016-04-14  Geoffrey Garen  <ggaren@apple.com>
+
+        Unreviewed, rolling out r199567.
+
+        performance regression on kraken on macbook*
+
+        Reverted changeset:
+
+        "CopiedBlock should be 8kB"
+        https://bugs.webkit.org/show_bug.cgi?id=156610
+        http://trac.webkit.org/changeset/199567
+
+2016-04-14  Geoffrey Garen  <ggaren@apple.com>
+
+        CopiedBlock should be 8kB
+        https://bugs.webkit.org/show_bug.cgi?id=156610
+
+        Reviewed by Michael Saboff.
+
+        On Mac Pro, this is:
+
+            15% faster on kraken-audio-beat-detection
+
+            5% faster on v8-splay
+
+        Hopefully, this will be OK on MacBook* bots as well.
+
+        32kB is the full size of L1 cache on x86. So, allocating and zero-filling
+        a 32kB CopiedBlock would basically flush the L1 cache. We can ameliorate
+        this problem by using smaller blocks -- or, if that doesn't work, we can
+        use larger blocks to amortize the cost.
+
+        * heap/CopiedBlock.h:
+
+2016-04-14  Filip Pizlo  <fpizlo@apple.com>
+
+        PolymorphicAccess should try to generate a stub only once
+        https://bugs.webkit.org/show_bug.cgi?id=156555
+
+        Reviewed by Geoffrey Garen.
+        
+        This changes the PolymorphicAccess heuristics to reduce the amount of code generation even
+        more than before. We used to always generate a monomorphic stub for the first case we saw.
+        This change disables that. This change also increases the buffering countdown to match the
+        cool-down repatch count. This means that we will allow for ten slow paths for adding cases,
+        then we will generate a stub, and then we will go into cool-down and the repatching slow
+        paths will not even attempt repatching for a while. After we emerge from cool-down - which
+        requires a bunch of slow path calls - we will again wait for ten slow paths to get new
+        cases. Note that it only takes 13 cases to cause the stub to give up on future repatching
+        entirely. Also, most stubs don't ever get to 10 cases. Therefore, for most stubs this change
+        means that each IC will repatch once. If they make it to two repatching, then the likelihood
+        of a third becomes infinitesimal because of all of the rules that come into play at that
+        point (the size limit being 13, the fact that we go into exponential cool-down every time we
+        generate code, and the fact that if we have lots of self cases then we will create a
+        catch-all megamorphic load case).
+
+        This also undoes a change to the megamorphic optimization that I think was unintentional.
+        As in the change that originally introduced megamorphic loads, we want to do this only if we
+        would otherwise exhaust the max size of the IC. This is because megamorphic loads are pretty
+        expensive and it's best to use them only if we know that the alternative is giving up on
+        caching.
+
+        This is neutral on JS benchmarks, but looks like it's another speed-up for page loading.
+
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::canBeReplacedByMegamorphicLoad):
+        (JSC::AccessCase::canReplace):
+        (JSC::AccessCase::dump):
+        (JSC::PolymorphicAccess::regenerate):
+        * bytecode/StructureStubInfo.cpp:
+        (JSC::StructureStubInfo::StructureStubInfo):
+        * runtime/Options.h:
+
 2016-04-14  Mark Lam  <mark.lam@apple.com>
 
         Update treatment of invoking RegExp.prototype methods on RegExp.prototype.

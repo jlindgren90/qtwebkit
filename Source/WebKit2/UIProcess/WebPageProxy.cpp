@@ -42,6 +42,7 @@
 #include "APINavigationAction.h"
 #include "APINavigationClient.h"
 #include "APINavigationResponse.h"
+#include "APIOpenPanelParameters.h"
 #include "APIPageConfiguration.h"
 #include "APIPolicyClient.h"
 #include "APISecurityOrigin.h"
@@ -90,7 +91,6 @@
 #include "WebInspectorProxyMessages.h"
 #include "WebNavigationState.h"
 #include "WebNotificationManagerProxy.h"
-#include "WebOpenPanelParameters.h"
 #include "WebOpenPanelResultListenerProxy.h"
 #include "WebPageCreationParameters.h"
 #include "WebPageGroup.h"
@@ -173,6 +173,10 @@
 
 #if USE(APPLE_INTERNAL_SDK)
 #include <WebKitAdditions/WebPageProxyIncludes.h>
+#endif
+
+#if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
+#include "WebPlaybackSessionManagerProxy.h"
 #endif
 
 // This controls what strategy we use for mouse wheel coalescing.
@@ -498,7 +502,8 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, uin
     m_fullScreenManager = WebFullScreenManagerProxy::create(*this, m_pageClient.fullScreenManagerProxyClient());
 #endif
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-    m_videoFullscreenManager = WebVideoFullscreenManagerProxy::create(*this);
+    m_playbackSessionManager = WebPlaybackSessionManagerProxy::create(*this);
+    m_videoFullscreenManager = WebVideoFullscreenManagerProxy::create(*this, *m_playbackSessionManager);
 #endif
 #if ENABLE(VIBRATION)
     m_vibration = WebVibrationProxy::create(this);
@@ -737,7 +742,8 @@ void WebPageProxy::reattachToWebProcess()
     m_fullScreenManager = WebFullScreenManagerProxy::create(*this, m_pageClient.fullScreenManagerProxyClient());
 #endif
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-    m_videoFullscreenManager = WebVideoFullscreenManagerProxy::create(*this);
+    m_playbackSessionManager = WebPlaybackSessionManagerProxy::create(*this);
+    m_videoFullscreenManager = WebVideoFullscreenManagerProxy::create(*this, *m_playbackSessionManager);
 #endif
 
 #if USE(APPLE_INTERNAL_SDK)
@@ -3914,7 +3920,7 @@ void WebPageProxy::pageDidScroll()
     m_uiClient->pageDidScroll(this);
 }
 
-void WebPageProxy::runOpenPanel(uint64_t frameID, const FileChooserSettings& settings)
+void WebPageProxy::runOpenPanel(uint64_t frameID, const SecurityOriginData& frameSecurityOrigin, const FileChooserSettings& settings)
 {
     if (m_openPanelResultListener) {
         m_openPanelResultListener->invalidate();
@@ -3924,14 +3930,15 @@ void WebPageProxy::runOpenPanel(uint64_t frameID, const FileChooserSettings& set
     WebFrameProxy* frame = m_process->webFrame(frameID);
     MESSAGE_CHECK(frame);
 
-    RefPtr<WebOpenPanelParameters> parameters = WebOpenPanelParameters::create(settings);
+    Ref<API::OpenPanelParameters> parameters = API::OpenPanelParameters::create(settings);
     m_openPanelResultListener = WebOpenPanelResultListenerProxy::create(this);
 
     // Since runOpenPanel() can spin a nested run loop we need to turn off the responsiveness timer.
     m_process->responsivenessTimer().stop();
 
-    if (!m_uiClient->runOpenPanel(this, frame, parameters.get(), m_openPanelResultListener.get())) {
-        if (!m_pageClient.handleRunOpenPanel(this, frame, parameters.get(), m_openPanelResultListener.get()))
+
+    if (!m_uiClient->runOpenPanel(this, frame, frameSecurityOrigin, parameters.ptr(), m_openPanelResultListener.get())) {
+        if (!m_pageClient.handleRunOpenPanel(this, frame, parameters.ptr(), m_openPanelResultListener.get()))
             didCancelForOpenPanel();
     }
 }
@@ -4089,9 +4096,14 @@ WebFullScreenManagerProxy* WebPageProxy::fullScreenManager()
 #endif
     
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-RefPtr<WebVideoFullscreenManagerProxy> WebPageProxy::videoFullscreenManager()
+WebPlaybackSessionManagerProxy* WebPageProxy::playbackSessionManager()
 {
-    return m_videoFullscreenManager;
+    return m_playbackSessionManager.get();
+}
+
+WebVideoFullscreenManagerProxy* WebPageProxy::videoFullscreenManager()
+{
+    return m_videoFullscreenManager.get();
 }
 #endif
 
@@ -5137,6 +5149,10 @@ void WebPageProxy::resetState(ResetStateReason resetStateReason)
     m_visibleScrollerThumbRect = IntRect();
 
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
+    if (m_playbackSessionManager) {
+        m_playbackSessionManager->invalidate();
+        m_playbackSessionManager = nullptr;
+    }
     if (m_videoFullscreenManager) {
         m_videoFullscreenManager->invalidate();
         m_videoFullscreenManager = nullptr;
@@ -6122,7 +6138,7 @@ void WebPageProxy::videoControlsManagerDidChange()
 bool WebPageProxy::hasActiveVideoForControlsManager() const
 {
 #if ENABLE(VIDEO_PRESENTATION_MODE)
-    return m_videoFullscreenManager && m_videoFullscreenManager->controlsManagerInterface() && m_mediaState & MediaProducer::HasAudioOrVideo;
+    return m_playbackSessionManager && m_playbackSessionManager->controlsManagerInterface() && m_mediaState & MediaProducer::HasAudioOrVideo;
 #else
     return false;
 #endif

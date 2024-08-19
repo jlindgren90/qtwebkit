@@ -1,3 +1,722 @@
+2016-04-15  Jer Noble  <jer.noble@apple.com>
+
+        Audio elements should be able to have a controls manager.
+        https://bugs.webkit.org/show_bug.cgi?id=156630
+
+        Reviewed by Beth Dakin.
+
+        Now that there is no longer a architectural restriction about what kind of media elements
+        can be used with WebPlaybackSessionManager, allow audio elements to create a controls
+        manager.
+
+        Drive-by fix: clear the controls manager when destroying the media player due to entering
+        the page cache, and when destroying the media element.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::~HTMLMediaElement):
+        (WebCore::HTMLMediaElement::updatePlayState):
+        (WebCore::HTMLMediaElement::stopWithoutDestroyingMediaPlayer):
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canControlControlsManager):
+
+2016-04-15  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Calling SVGAnimatedPropertyTearOff::animationEnded() will crash if the SVG property is not animating
+        https://bugs.webkit.org/show_bug.cgi?id=156549
+
+        Reviewed by Darin Adler.
+
+        A speculative fix for a crash which may happen when calling animationEnded()
+        of any SVGAnimatedProperty while it is not animating.
+
+        * svg/SVGAnimatedTypeAnimator.h:
+        (WebCore::SVGAnimatedTypeAnimator::executeAction):
+
+2016-04-15  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed build fix for iOS simulator. Assert the correct variable.
+
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (-[WebAVPlayerLayer layoutSublayers]):
+        (-[WebAVPlayerLayer resolveBounds]):
+        (-[WebAVPlayerLayer setVideoGravity:]):
+
+2016-04-14  Jer Noble  <jer.noble@apple.com>
+
+        Allow WebVideoFullscreenManager and Proxy to be used by audio elements.
+        https://bugs.webkit.org/show_bug.cgi?id=156564
+
+        Reviewed by Beth Dakin.
+
+        No new tests; this refactors existing functionality into new classes.
+
+        Tease apart the various WebVideoFullscreen{Interface,Model}{AVKit,Mac,VideoElement} into new
+        WebPlaybackSession… classes dealing exclusively with playback state and commands, leaving
+        fullscreen state and commands in the WebVideoFullscreen… classes. Specifically, create the
+        following new classes:
+
+        - WebPlaybackSessionInterface (copied from WebVideoFullscreenInterface)
+        - WebPlaybackSessionModelMediaElement (copied from WebVideoFullscreenModelMediaElement)
+        - WebPlaybackSessionModel (copied from WebVideoFullscreenModel)
+        - WebPlaybackSessionInterfaceAVKit (copied from WebVideoFullscreenInterfaceAVKit)
+        - WebPlaybackSessionInterfaceMac (copied from WebVideoFullscreenInterfaceMac)
+
+        WebVideoFullscreenInterface and WebVideoFullscreenModel now inherit from
+        WebPlaybackSessionInterface and WebPlaybackSessionModel, respectively. The concrete
+        WebVideoFullscreen… subclasses each take their respective WebPlaybackSession… subclasses and
+        fulfill their WebPlaybackSession interfaces through composition.
+
+        As part of this big tease-apart, the WebAVPlayerController class needs to be exposed in a
+        header (as it's accessed by two different classes now), so that class is moved into its own
+        implementation and header files.
+
+        The one case where a change in a WebPlaybackSession… class needs to be reflected in a
+        WebVideoFullscreen… class is in WebPlaybackSessionInterfaceAVKit, where
+        WebVideoFullscreenInterfaceAVKit needs to be notified when external playback becomes dis/en-
+        abled, so a new WebPlaybackSessionInterfaceAVKitClient interface has been added to allow the
+        WebPlaybackSession… to notify the WebVideoFullscreen….
+
+        The responsibility for the "controls manager" has moved from the WebVideoFullscreen… classes
+        to the WebPlaybackSession… classes, so the ChromeClient interface for creating and destroying
+        those controls is similarly renamed from setUpVideoControlsManager() to
+        setUpPlaybackControlsManager().
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::updatePlayState):
+        * page/ChromeClient.h:
+        * platform/cocoa/WebPlaybackSessionInterface.h: Copied from Source/WebCore/platform/cocoa/WebVideoFullscreenInterface.h.
+        (WebCore::WebPlaybackSessionInterface::~WebPlaybackSessionInterface):
+        * platform/cocoa/WebPlaybackSessionModel.h: Added.
+        (WebCore::WebPlaybackSessionModel::~WebPlaybackSessionModel):
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.h: Added.
+        (WebCore::WebPlaybackSessionModelMediaElement::create):
+        (WebCore::WebPlaybackSessionModelMediaElement::mediaElement):
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.mm: Added.
+        (WebPlaybackSessionModelMediaElement::WebPlaybackSessionModelMediaElement):
+        (WebPlaybackSessionModelMediaElement::~WebPlaybackSessionModelMediaElement):
+        (WebPlaybackSessionModelMediaElement::setWebPlaybackSessionInterface):
+        (WebPlaybackSessionModelMediaElement::setMediaElement):
+        (WebPlaybackSessionModelMediaElement::handleEvent):
+        (WebPlaybackSessionModelMediaElement::updateForEventName):
+        (WebPlaybackSessionModelMediaElement::play):
+        (WebPlaybackSessionModelMediaElement::pause):
+        (WebPlaybackSessionModelMediaElement::togglePlayState):
+        (WebPlaybackSessionModelMediaElement::beginScrubbing):
+        (WebPlaybackSessionModelMediaElement::endScrubbing):
+        (WebPlaybackSessionModelMediaElement::seekToTime):
+        (WebPlaybackSessionModelMediaElement::fastSeek):
+        (WebPlaybackSessionModelMediaElement::beginScanningForward):
+        (WebPlaybackSessionModelMediaElement::beginScanningBackward):
+        (WebPlaybackSessionModelMediaElement::endScanning):
+        (WebPlaybackSessionModelMediaElement::selectAudioMediaOption):
+        (WebPlaybackSessionModelMediaElement::selectLegibleMediaOption):
+        (WebPlaybackSessionModelMediaElement::updateLegibleOptions):
+        (WebPlaybackSessionModelMediaElement::observedEventNames):
+        (WebPlaybackSessionModelMediaElement::eventNameAll):
+        * platform/cocoa/WebPlaybackSessionModelVideoElement.cpp: Copied from Source/WebCore/platform/cocoa/WebVideoFullscreenModelVideoElement.mm.
+        (WebPlaybackSessionModelVideoElement::WebPlaybackSessionModelVideoElement):
+        (WebPlaybackSessionModelVideoElement::~WebPlaybackSessionModelVideoElement):
+        (WebPlaybackSessionModelVideoElement::setWebVideoFullscreenInterface):
+        (WebPlaybackSessionModelVideoElement::setVideoElement):
+        (WebPlaybackSessionModelVideoElement::handleEvent):
+        (WebPlaybackSessionModelVideoElement::updateForEventName):
+        (WebPlaybackSessionModelVideoElement::play):
+        (WebPlaybackSessionModelVideoElement::pause):
+        (WebPlaybackSessionModelVideoElement::togglePlayState):
+        (WebPlaybackSessionModelVideoElement::beginScrubbing):
+        (WebPlaybackSessionModelVideoElement::endScrubbing):
+        (WebPlaybackSessionModelVideoElement::seekToTime):
+        (WebPlaybackSessionModelVideoElement::fastSeek):
+        (WebPlaybackSessionModelVideoElement::beginScanningForward):
+        (WebPlaybackSessionModelVideoElement::beginScanningBackward):
+        (WebPlaybackSessionModelVideoElement::endScanning):
+        (WebPlaybackSessionModelVideoElement::selectAudioMediaOption):
+        (WebPlaybackSessionModelVideoElement::selectLegibleMediaOption):
+        (WebPlaybackSessionModelVideoElement::updateLegibleOptions):
+        (WebPlaybackSessionModelVideoElement::observedEventNames):
+        (WebPlaybackSessionModelVideoElement::eventNameAll):
+        * platform/cocoa/WebVideoFullscreenInterface.h:
+        * platform/cocoa/WebVideoFullscreenModel.h:
+        (WebCore::WebVideoFullscreenModel::~WebVideoFullscreenModel): Deleted.
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.h:
+        (WebCore::WebVideoFullscreenModelVideoElement::create):
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.mm:
+        (WebVideoFullscreenModelVideoElement::WebVideoFullscreenModelVideoElement):
+        (WebVideoFullscreenModelVideoElement::setWebVideoFullscreenInterface):
+        (WebVideoFullscreenModelVideoElement::setVideoElement):
+        (WebVideoFullscreenModelVideoElement::play):
+        (WebVideoFullscreenModelVideoElement::pause):
+        (WebVideoFullscreenModelVideoElement::togglePlayState):
+        (WebVideoFullscreenModelVideoElement::beginScrubbing):
+        (WebVideoFullscreenModelVideoElement::endScrubbing):
+        (WebVideoFullscreenModelVideoElement::seekToTime):
+        (WebVideoFullscreenModelVideoElement::fastSeek):
+        (WebVideoFullscreenModelVideoElement::beginScanningForward):
+        (WebVideoFullscreenModelVideoElement::beginScanningBackward):
+        (WebVideoFullscreenModelVideoElement::endScanning):
+        (WebVideoFullscreenModelVideoElement::selectAudioMediaOption):
+        (WebVideoFullscreenModelVideoElement::selectLegibleMediaOption):
+        (WebVideoFullscreenModelVideoElement::handleEvent): Deleted.
+        (WebVideoFullscreenModelVideoElement::setVideoFullscreenLayer): Deleted.
+        (WebVideoFullscreenModelVideoElement::setVideoLayerFrame): Deleted.
+        (WebVideoFullscreenModelVideoElement::setVideoLayerGravity): Deleted.
+        (WebVideoFullscreenModelVideoElement::observedEventNames): Deleted.
+        (WebVideoFullscreenModelVideoElement::eventNameAll): Deleted.
+        (WebVideoFullscreenModelVideoElement::fullscreenModeChanged): Deleted.
+        (WebVideoFullscreenModelVideoElement::isVisible): Deleted.
+        * platform/ios/WebAVPlayerController.h: Added.
+        * platform/ios/WebAVPlayerController.mm: Added.
+        (-[WebAVPlayerController dealloc]):
+        (-[WebAVPlayerController resetState]):
+        (-[WebAVPlayerController player]):
+        (-[WebAVPlayerController forwardingTargetForSelector:]):
+        (-[WebAVPlayerController play:]):
+        (-[WebAVPlayerController pause:]):
+        (-[WebAVPlayerController togglePlayback:]):
+        (-[WebAVPlayerController togglePlaybackEvenWhenInBackground:]):
+        (-[WebAVPlayerController isPlaying]):
+        (-[WebAVPlayerController setPlaying:]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingPlaying]):
+        (-[WebAVPlayerController beginScrubbing:]):
+        (-[WebAVPlayerController endScrubbing:]):
+        (-[WebAVPlayerController seekToTime:]):
+        (-[WebAVPlayerController currentTimeWithinEndTimes]):
+        (-[WebAVPlayerController setCurrentTimeWithinEndTimes:]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingCurrentTimeWithinEndTimes]):
+        (-[WebAVPlayerController hasLiveStreamingContent]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingHasLiveStreamingContent]):
+        (-[WebAVPlayerController skipBackwardThirtySeconds:]):
+        (-[WebAVPlayerController gotoEndOfSeekableRanges:]):
+        (-[WebAVPlayerController canScanForward]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingCanScanForward]):
+        (-[WebAVPlayerController beginScanningForward:]):
+        (-[WebAVPlayerController endScanningForward:]):
+        (-[WebAVPlayerController beginScanningBackward:]):
+        (-[WebAVPlayerController endScanningBackward:]):
+        (-[WebAVPlayerController canSeekToBeginning]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingCanSeekToBeginning]):
+        (-[WebAVPlayerController seekToBeginning:]):
+        (-[WebAVPlayerController seekChapterBackward:]):
+        (-[WebAVPlayerController canSeekToEnd]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingCanSeekToEnd]):
+        (-[WebAVPlayerController seekToEnd:]):
+        (-[WebAVPlayerController seekChapterForward:]):
+        (-[WebAVPlayerController hasMediaSelectionOptions]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingHasMediaSelectionOptions]):
+        (-[WebAVPlayerController hasAudioMediaSelectionOptions]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingHasAudioMediaSelectionOptions]):
+        (-[WebAVPlayerController hasLegibleMediaSelectionOptions]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingHasLegibleMediaSelectionOptions]):
+        (-[WebAVPlayerController currentAudioMediaSelectionOption]):
+        (-[WebAVPlayerController setCurrentAudioMediaSelectionOption:]):
+        (-[WebAVPlayerController currentLegibleMediaSelectionOption]):
+        (-[WebAVPlayerController setCurrentLegibleMediaSelectionOption:]):
+        (-[WebAVPlayerController isPlayingOnExternalScreen]):
+        (+[WebAVPlayerController keyPathsForValuesAffectingPlayingOnExternalScreen]):
+        (-[WebAVPlayerController isPictureInPictureInterrupted]):
+        (-[WebAVPlayerController setPictureInPictureInterrupted:]):
+        * platform/ios/WebPlaybackSessionInterfaceAVKit.h: Added.
+        (WebCore::WebPlaybackSessionInterfaceAVKitClient::~WebPlaybackSessionInterfaceAVKitClient):
+        * platform/ios/WebPlaybackSessionInterfaceAVKit.mm: Added.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::WebPlaybackSessionInterfaceAVKit):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::~WebPlaybackSessionInterfaceAVKit):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::resetMediaState):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setWebPlaybackSessionModel):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setDuration):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setCurrentTime):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setBufferedTime):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setRate):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setSeekableRanges):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setCanPlayFastReverse):
+        (WebCore::mediaSelectionOptions):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setAudioMediaSelectionOptions):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setLegibleMediaSelectionOptions):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setExternalPlayback):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setWirelessVideoPlaybackDisabled):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::wirelessVideoPlaybackDisabled):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::invalidate):
+        * platform/ios/WebVideoFullscreenControllerAVKit.mm:
+        (WebVideoFullscreenControllerContext::setUpFullscreen):
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.h:
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (-[WebAVPlayerViewControllerDelegate fullscreenInterface]):
+        (-[WebAVPlayerViewControllerDelegate setFullscreenInterface:]):
+        (-[WebAVPlayerLayer fullscreenInterface]):
+        (-[WebAVPlayerLayer setFullscreenInterface:]):
+        (-[WebAVPlayerLayer layoutSublayers]):
+        (-[WebAVPlayerLayer resolveBounds]):
+        (-[WebAVPlayerLayer setVideoGravity:]):
+        (WebVideoFullscreenInterfaceAVKit::create):
+        (WebVideoFullscreenInterfaceAVKit::WebVideoFullscreenInterfaceAVKit):
+        (WebVideoFullscreenInterfaceAVKit::~WebVideoFullscreenInterfaceAVKit):
+        (WebVideoFullscreenInterfaceAVKit::playerController):
+        (WebVideoFullscreenInterfaceAVKit::resetMediaState):
+        (WebVideoFullscreenInterfaceAVKit::setDuration):
+        (WebVideoFullscreenInterfaceAVKit::setCurrentTime):
+        (WebVideoFullscreenInterfaceAVKit::setBufferedTime):
+        (WebVideoFullscreenInterfaceAVKit::setRate):
+        (WebVideoFullscreenInterfaceAVKit::setVideoDimensions):
+        (WebVideoFullscreenInterfaceAVKit::setSeekableRanges):
+        (WebVideoFullscreenInterfaceAVKit::setCanPlayFastReverse):
+        (WebVideoFullscreenInterfaceAVKit::setAudioMediaSelectionOptions):
+        (WebVideoFullscreenInterfaceAVKit::setLegibleMediaSelectionOptions):
+        (WebVideoFullscreenInterfaceAVKit::setExternalPlayback):
+        (WebVideoFullscreenInterfaceAVKit::externalPlaybackEnabledChanged):
+        (WebVideoFullscreenInterfaceAVKit::setWirelessVideoPlaybackDisabled):
+        (WebVideoFullscreenInterfaceAVKit::wirelessVideoPlaybackDisabled):
+        (WebVideoFullscreenInterfaceAVKit::setupFullscreen):
+        (WebVideoFullscreenInterfaceAVKit::cleanupFullscreen):
+        (WebVideoFullscreenInterfaceAVKit::mayAutomaticallyShowVideoPictureInPicture):
+        (-[WebAVPlayerViewControllerDelegate playerViewControllerWillStartPictureInPicture:]): Deleted.
+        (-[WebAVPlayerViewControllerDelegate playerViewControllerDidStartPictureInPicture:]): Deleted.
+        (-[WebAVPlayerViewControllerDelegate playerViewControllerFailedToStartPictureInPicture:withError:]): Deleted.
+        (-[WebAVPlayerViewControllerDelegate playerViewControllerWillStopPictureInPicture:]): Deleted.
+        (-[WebAVPlayerViewControllerDelegate playerViewControllerDidStopPictureInPicture:]): Deleted.
+        (convertToExitFullScreenReason): Deleted.
+        (-[WebAVPlayerViewControllerDelegate playerViewController:shouldExitFullScreenWithReason:]): Deleted.
+        (-[WebAVPlayerViewControllerDelegate playerViewController:restoreUserInterfaceForPictureInPictureStopWithCompletionHandler:]): Deleted.
+        (-[WebAVPlayerLayer init]): Deleted.
+        (-[WebAVPlayerLayer dealloc]): Deleted.
+        (-[WebAVPlayerLayer videoGravity]): Deleted.
+        (-[WebAVPlayerLayer videoRect]): Deleted.
+        (+[WebAVPlayerLayer keyPathsForValuesAffectingVideoRect]): Deleted.
+        (WebAVPictureInPicturePlayerLayerView_layerClass): Deleted.
+        (getWebAVPictureInPicturePlayerLayerViewClass): Deleted.
+        (WebAVPlayerLayerView_layerClass): Deleted.
+        (WebAVPlayerLayerView_playerController): Deleted.
+        (WebAVPlayerLayerView_setPlayerController): Deleted.
+        (WebAVPlayerLayerView_videoView): Deleted.
+        (WebAVPlayerLayerView_setVideoView): Deleted.
+        (WebAVPlayerLayerView_startRoutingVideoToPictureInPicturePlayerLayerView): Deleted.
+        (WebAVPlayerLayerView_stopRoutingVideoToPictureInPicturePlayerLayerView): Deleted.
+        (WebAVPlayerLayerView_pictureInPicturePlayerLayerView): Deleted.
+        (WebAVPlayerLayerView_dealloc): Deleted.
+        (getWebAVPlayerLayerViewClass): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setWebVideoFullscreenModel): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setWebVideoFullscreenChangeObserver): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::applicationDidBecomeActive): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::enterFullscreen): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::enterFullscreenStandard): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::exitFullscreen): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::didStartPictureInPicture): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::failedToStartPictureInPicture): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::willStopPictureInPicture): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::didStopPictureInPicture): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::prepareForPictureInPictureStopWithCompletionHandler): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::shouldExitFullscreenWithReason): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::watchdogTimerFired): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setMode): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::clearMode): Deleted.
+        (WebCore::supportsPictureInPicture): Deleted.
+        * platform/mac/WebPlaybackSessionInterfaceMac.h: Added.
+        * platform/mac/WebPlaybackSessionInterfaceMac.mm: Copied from Source/WebCore/platform/mac/WebVideoFullscreenInterfaceMac.mm.
+        (-[WebAVMediaSelectionOptionMac localizedDisplayName]):
+        (-[WebAVMediaSelectionOptionMac setLocalizedDisplayName:]):
+        (-[WebPlaybackControlsManager initWithWebPlaybackSessionInterfaceMac:]):
+        (-[WebPlaybackControlsManager timing]):
+        (-[WebPlaybackControlsManager setTiming:]):
+        (-[WebPlaybackControlsManager seekableTimeRanges]):
+        (-[WebPlaybackControlsManager setSeekableTimeRanges:]):
+        (-[WebPlaybackControlsManager isSeeking]):
+        (-[WebPlaybackControlsManager seekToTime:toleranceBefore:toleranceAfter:]):
+        (-[WebPlaybackControlsManager audioMediaSelectionOptions]):
+        (-[WebPlaybackControlsManager setAudioMediaSelectionOptions:]):
+        (-[WebPlaybackControlsManager currentAudioMediaSelectionOption]):
+        (-[WebPlaybackControlsManager setCurrentAudioMediaSelectionOption:]):
+        (-[WebPlaybackControlsManager legibleMediaSelectionOptions]):
+        (-[WebPlaybackControlsManager setLegibleMediaSelectionOptions:]):
+        (-[WebPlaybackControlsManager currentLegibleMediaSelectionOption]):
+        (-[WebPlaybackControlsManager setCurrentLegibleMediaSelectionOption:]):
+        (-[WebPlaybackControlsManager cancelThumbnailAndAudioAmplitudeSampleGeneration]):
+        (WebCore::WebPlaybackSessionInterfaceMac::~WebPlaybackSessionInterfaceMac):
+        (WebCore::WebPlaybackSessionInterfaceMac::setWebPlaybackSessionModel):
+        (WebCore::WebPlaybackSessionInterfaceMac::setDuration):
+        (WebCore::WebPlaybackSessionInterfaceMac::setCurrentTime):
+        (WebCore::WebPlaybackSessionInterfaceMac::setRate):
+        (WebCore::WebPlaybackSessionInterfaceMac::setSeekableRanges):
+        (WebCore::mediaSelectionOptions):
+        (WebCore::WebPlaybackSessionInterfaceMac::setAudioMediaSelectionOptions):
+        (WebCore::WebPlaybackSessionInterfaceMac::setLegibleMediaSelectionOptions):
+        (WebCore::WebPlaybackSessionInterfaceMac::invalidate):
+        (WebCore::WebPlaybackSessionInterfaceMac::ensureControlsManager):
+        (WebCore::WebPlaybackSessionInterfaceMac::playBackControlsManager):
+        * platform/mac/WebVideoFullscreenInterfaceMac.h:
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (WebCore::WebVideoFullscreenInterfaceMac::WebVideoFullscreenInterfaceMac):
+        (WebCore::WebVideoFullscreenInterfaceMac::setWebVideoFullscreenModel):
+        (WebCore::WebVideoFullscreenInterfaceMac::setDuration):
+        (WebCore::WebVideoFullscreenInterfaceMac::setCurrentTime):
+        (WebCore::WebVideoFullscreenInterfaceMac::setRate):
+        (WebCore::WebVideoFullscreenInterfaceMac::setSeekableRanges):
+        (WebCore::WebVideoFullscreenInterfaceMac::setAudioMediaSelectionOptions):
+        (WebCore::WebVideoFullscreenInterfaceMac::setLegibleMediaSelectionOptions):
+        (WebCore::WebVideoFullscreenInterfaceMac::ensureControlsManager):
+        (WebCore::WebVideoFullscreenInterfaceMac::~WebVideoFullscreenInterfaceMac): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setWebVideoFullscreenChangeObserver): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setMode): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::clearMode): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setupFullscreen): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::enterFullscreen): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::exitFullscreen): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::exitFullscreenWithoutAnimationToMode): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::cleanupFullscreen): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::invalidate): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::preparedToReturnToInline): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setVideoDimensions): Deleted.
+        (WebCore::supportsPictureInPicture): Deleted.
+
+2016-04-15  Chris Dumez  <cdumez@apple.com>
+
+        [COCOA] Do not unnecessarily initialize ResourceResponse::m_httpVersion as part of common fields
+        https://bugs.webkit.org/show_bug.cgi?id=156606
+
+        Reviewed by Darin Adler.
+
+        Do not unnecessarily initialize ResourceResponse::m_httpVersion as part of common fields.
+
+        We previously initialized m_httpVersion when calling platformLazyInit(CommonFieldsOnly),
+        even though this is not a common field. The corresponding getter/setter in
+        HTTPResponseBase call lazyInit(AllFields).
+
+        * platform/network/cf/ResourceResponseCFNet.cpp:
+        (WebCore::ResourceResponse::platformLazyInit):
+        * platform/network/cocoa/ResourceResponseCocoa.mm:
+        (WebCore::ResourceResponse::platformLazyInit):
+
+2016-04-15  John Wilander  <wilander@apple.com>
+
+        Refactor WebSockets handshake to use StringView instead of String for header validation.
+        https://bugs.webkit.org/show_bug.cgi?id=155602
+
+        Reviewed by Darin Adler.
+
+        No new tests. Existing test have been augmented.
+
+        * Modules/websockets/WebSocketHandshake.cpp:
+        (WebCore::WebSocketHandshake::readServerHandshake):
+            Made sure failure reason was set consistently with makeString().
+        (WebCore::headerHasValidHTTPVersion):
+            Now operates on the HTTP status line with StringView.
+        (WebCore::WebSocketHandshake::readStatusLine):
+            Now operates on the HTTP status line with StringView.
+        (WebCore::WebSocketHandshake::readHTTPHeaders):
+            Now operates on header names with StringView.
+            Made sure failure reason was set consistently with makeString() and ASCIILiteral().
+        (WebCore::WebSocketHandshake::checkResponseHeaders):
+            Made sure failure reason was set consistently with ASCIILiteral().
+        * platform/network/HTTPParsers.cpp:
+        (WebCore::parseHTTPRequestLine):
+            Made sure failure reason was set consistently with ASCIILiteral().
+        (WebCore::isValidHeaderNameCharacter):
+            Inlined function to check if a character is allowed in an HTTP header name according to RFC 7230.
+            https://tools.ietf.org/html/rfc7230 (June 2014)
+        (WebCore::parseHTTPHeader):
+        * platform/network/HTTPParsers.h:
+            Now receives the HTTP header name as a StringView.
+            Checks that header names only contain valid characters according to RFC 7230 (see above).
+        * platform/network/ResourceRequestBase.cpp:
+        (WebCore::ResourceRequestBase::addHTTPHeaderField):
+        * platform/network/ResourceRequestBase.h:
+             Now has an overloaded function which receives the HTTP header name as an HTTPHeaderName enum value.
+        * platform/network/ResourceResponseBase.cpp:
+        (WebCore::ResourceResponseBase::addHTTPHeaderField):
+        * platform/network/ResourceResponseBase.h:
+             Now has an overloaded function which receives the HTTP header name as an HTTPHeaderName enum value.
+
+2016-04-15  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: Presentational role on SVG elements is trumped by child 'title' and 'desc' elements
+        https://bugs.webkit.org/show_bug.cgi?id=156519
+
+        Reviewed by Chris Fleizach.
+
+        Override the presentational role on SVG elements which have a child 'title' or 'desc'
+        element. As a result of this change, AccessibilitySVGRoot objects would be exposed
+        with an AccessibilityRole of UnknownRole. Therefore map included AccessibilitySVGRoot
+        objects to GroupRole as per the SVG Accessibility API Mapping specification.
+
+        Also use indexOfBestMatchingLanguageInList() to identify which child 'title' or 'desc'
+        element is the best match for the parent element.
+
+        New Test: accessibility/w3c-svg-content-language-attribute.html
+
+        Also: Update w3c-svg-presentational-role.html expectations because there are test cases
+        in which elements are now being included in the accessibility tree as a result of this
+        change. Also add new test cases which lack child 'title' and 'desc' elements.
+
+        * accessibility/AccessibilityNodeObject.h:
+        * accessibility/AccessibilitySVGElement.cpp:
+        (WebCore::AccessibilitySVGElement::childElementWithMatchingLanguage):
+        (WebCore::AccessibilitySVGElement::accessibilityDescription):
+        (WebCore::AccessibilitySVGElement::helpText):
+        (WebCore::AccessibilitySVGElement::computeAccessibilityIsIgnored):
+        (WebCore::AccessibilitySVGElement::determineAriaRoleAttribute):
+        * accessibility/AccessibilitySVGElement.h:
+        * accessibility/AccessibilitySVGRoot.h:
+
+2016-04-15  Chris Dumez  <cdumez@apple.com>
+
+        Rename [GlobalContext] extended attribute to [Exposed] and align with WebIDL
+        https://bugs.webkit.org/show_bug.cgi?id=156615
+
+        Reviewed by Youenn Fablet.
+
+        Rename [GlobalContext] extended attribute to [Exposed] and align with WebIDL:
+        - http://heycam.github.io/webidl/#Exposed
+
+        * bindings/scripts/IDLAttributes.txt:
+        Stop recognizing [GlobalContext] and start recognizing [Exposed].
+
+        * bindings/scripts/IDLParser.pm:
+        (parseIdentifierList):
+        (parseExtendedAttributeRest2):
+        Add IDL parser support for having a list of identifiers as value
+        for an IDL extended attribute, e.g. Exposed=(Window, Worker).
+
+        * bindings/scripts/preprocess-idls.pl:
+        Tweak existing support for [GlobalContext] to use [Exposed] instead
+        and support the new syntax.
+
+        (getInterfaceExtendedAttributesFromIDL):
+        Do not split on commas that are within brackets.
+
+        * Modules/fetch/FetchBody.idl:
+        * Modules/fetch/FetchHeaders.idl:
+        * Modules/fetch/FetchRequest.idl:
+        * Modules/fetch/FetchResponse.idl:
+        * Modules/streams/ByteLengthQueuingStrategy.idl:
+        * Modules/streams/CountQueuingStrategy.idl:
+        * Modules/streams/ReadableStream.idl:
+        * Modules/streams/ReadableStreamController.idl:
+        * Modules/streams/ReadableStreamReader.idl:
+        * Modules/websockets/WebSocket.idl:
+        * dom/MessageChannel.idl:
+        * dom/MessageEvent.idl:
+        * fileapi/Blob.idl:
+        * fileapi/FileReader.idl:
+        * fileapi/FileReaderSync.idl:
+        * html/DOMURL.idl:
+        * html/ImageData.idl:
+        * page/EventSource.idl:
+        * workers/DedicatedWorkerGlobalScope.idl:
+        * workers/WorkerGlobalScope.idl:
+        * workers/WorkerLocation.idl:
+        * xml/XMLHttpRequest.idl:
+        * xml/XMLHttpRequestEventTarget.idl:
+        Use [Exposed] instead of [GlobalContext] to match their respective
+        specifications.
+
+2016-04-15  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Selection.deleteFromDocument should not leave a selection character
+        https://bugs.webkit.org/show_bug.cgi?id=151442
+
+        Reviewed by Michael Catanzaro.
+
+        This is a merge of Blink r172511:
+        https://codereview.chromium.org/255453003
+
+        Let Selection.deleteFromDocument not delete a character when the
+        selection is a caret.
+
+        Selection.deleteFromDocument delete a character when the selection
+        is a caret.
+        However, current standard says that Selection.deleteFromDocument
+        does nothing when the selection is a caret:
+        https://dvcs.w3.org/hg/editing/raw-file/tip/editing.html#dom-selection-deletefromdocument
+        Both IE10 and FireFox seem following the spec.
+
+        Test: imported/blink/editing/selection/deleteFromDocument-undo-crash.html
+
+        * page/DOMSelection.cpp:
+        (WebCore::DOMSelection::deleteFromDocument): Deleted.
+
+2016-04-15  Antti Koivisto  <antti@apple.com>
+
+        Fix return value nullptr -> false.
+
+        * style/StyleSharingResolver.cpp:
+        (WebCore::Style::SharingResolver::canShareStyleWithElement):
+
+2016-04-14  Antti Koivisto  <antti@apple.com>
+
+        AffectsNextSibling style relation marking is inefficient
+        https://bugs.webkit.org/show_bug.cgi?id=156593
+
+        Reviewed by Benjamin Poulain.
+
+        We currently add a Style::Relation entry for each sibling to mark. With long sibling lists this can be inefficient
+        in terms of both memory and speed. Instead make a single entry that includes the sibling count to mark.
+
+        * css/SelectorChecker.cpp:
+        (WebCore::addStyleRelation):
+
+            When adding AffectsNextSibling entry check if the last entry in the style relation vector has the
+            same type and is part of the same sibling chain. If so just update the existing entry.
+
+        * cssjit/SelectorCompiler.cpp:
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateAddStyleRelation):
+
+            The same thing in hand-crafted macro assembler.
+
+        * cssjit/SelectorCompiler.h:
+
+            Stop lying about the constness of the CheckingContext.
+
+        * style/StyleRelations.cpp:
+        (WebCore::Style::commitRelations):
+
+            Mark as many sibling elements as the value indicates.
+
+        * style/StyleRelations.h:
+        (WebCore::Style::Relation::Relation):
+
+            Make element a pointer so we can udpate it.
+
+2016-04-15  Brady Eidson  <beidson@apple.com>
+
+        Add the message property to DOMError.
+        https://bugs.webkit.org/show_bug.cgi?id=139173
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Updated existing tests).
+        
+        Adding this property brings us up to date with other browsers, and will help
+        test the few web features that still use DOMError.
+
+        * Modules/indexeddb/IDBOpenDBRequest.cpp:
+        (WebCore::IDBOpenDBRequest::onError):
+        (WebCore::IDBOpenDBRequest::fireErrorAfterVersionChangeCompletion):
+
+        * Modules/indexeddb/IDBRequest.cpp:
+        (WebCore::IDBRequest::uncaughtExceptionInEventHandler):
+        (WebCore::IDBRequest::onError):
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::didCreateIndexOnServer):
+
+        * Modules/mediastream/NavigatorUserMediaError.h:
+        (WebCore::NavigatorUserMediaError::NavigatorUserMediaError):
+
+        * dom/DOMError.cpp:
+        (WebCore::DOMError::DOMError):
+
+        * dom/DOMError.h:
+        (WebCore::DOMError::create):
+        (WebCore::DOMError::message):
+        * dom/DOMError.idl:
+
+2016-04-14  Brent Fulgham  <bfulgham@apple.com>
+
+        Make <a download> a runtime enabled option
+        https://bugs.webkit.org/show_bug.cgi?id=156583
+        <rdar://problem/25733449>
+
+        Reviewed by Alex Christensen.
+
+        Mark the download attribute interface as EnabledAtRuntime=DownloadAttribute.
+        Add DownloadAttribute runtime flag getter and setter.
+
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::fetchAPIEnabled):
+        (WebCore::RuntimeEnabledFeatures::setDownloadAttributeEnabled):
+        (WebCore::RuntimeEnabledFeatures::downloadAttributeEnabled):
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::handleClick):
+        * html/HTMLAnchorElement.idl:
+
+2016-04-14  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r158956): Remove vestigial range code in FileReaderLoader class after removing ENABLE(STREAM)
+        <http://webkit.org/b/156609>
+
+        Reviewed by Brent Fulgham.
+
+        This code was left behind when ENABLE(STREAM) was removed in
+        November 2013.
+
+        * fileapi/FileReaderLoader.cpp:
+        (WebCore::FileReaderLoader::FileReaderLoader): Remove
+        initializers.
+        (WebCore::FileReaderLoader::start): Remove code that uses
+        m_hasRange, which is always false.
+        (WebCore::FileReaderLoader::didReceiveResponse): Ditto.
+        * fileapi/FileReaderLoader.h:
+        (WebCore::FileReaderLoader): Remove unused instance variables.
+
+2016-04-14  Alex Christensen  <achristensen@webkit.org>
+
+        Build fix after r199549.
+        https://bugs.webkit.org/show_bug.cgi?id=156580
+
+        * CMakeLists.txt:
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * PlatformWin.cmake:
+        KillRingNone.cpp is indeed platform-specific. KillRingMac.mm is used instead only on Mac.
+
+2016-04-14  Dean Jackson  <dino@apple.com>
+
+        CrashTracer: com.apple.WebKit.WebContent at com.apple.WebCore: WebCore::CachedResource::addClientToSet + 27
+        https://bugs.webkit.org/show_bug.cgi?id=156602
+        <rdar://problem/18921091>
+
+        Reviewed by Simon Fraser.
+
+        The CSS property list-style-image is inherited, so a transition on a parent
+        might cause a transition on a child. On that child, the value might be between
+        two generated crossfade images which haven't yet resolved, causing a crash.
+
+        Test: transitions/crossfade-transition.html
+
+        * css/CSSCrossfadeValue.cpp:
+        (WebCore::CSSCrossfadeValue::blend): Return null if there are no cached images.
+        * page/animation/CSSPropertyAnimation.cpp:
+        (WebCore::blendFunc): If we don't have an actual image to blend between, fall
+        out to the default case.
+
+2016-04-14  Antonio Gomes  <tonikitoo@webkit.org>
+
+        Allow listbox content and scrollbar to intrude padding area.
+        https://bugs.webkit.org/show_bug.cgi?id=128489
+
+        Reviewed by Myles C. Maxfield.
+
+        Originally when the RenderListBox::controlClipRect method was implemented (see [1]), it used
+        to allow its content (<option>'s) to intrude padding to get rendered. Overlay scrollbars were also
+        allowed to paint over the padding area, if necessary.
+
+        [2] changed this behavior to restrict list-box'es content within the content box rect (excluding padding and border).
+
+        This had two consequences:
+        1) it made WebKit disallow list-box' content to intrude the padding area, diverging from other vendors.
+        like Firefox and Chrome.
+        2) Since overlay scrollbar might get painted over the padding area, if any, [2] could result
+        in the scrollbar being clipped out if padding-right is set (or padding-left in case of RTL content).
+
+        Patch changed WebKit back so that it allows list-box' content and overlay scrollbars to intrude the
+        padding area, matching other browsers vendors
+
+        [1] https://trac.webkit.org/changeset/18819/trunk/WebCore/rendering/RenderListBox.cpp
+        [2] https://trac.webkit.org/changeset/19037/trunk/WebCore/rendering/RenderListBox.cpp
+
+        Tests: fast/forms/listbox-selection-3.html
+               fast/forms/listbox-padding-clip-selected.html
+               fast/forms/listbox-padding-clip-expected-mismatch.html (renamed from listbox-padding-clip-overlay-expected.html)
+               fast/forms/listbox-padding-clip-overlay-expected-mismatch.html (renamed from listbox-padding-clip-expected.html)
+
+        * rendering/RenderListBox.cpp:
+        (WebCore::RenderListBox::numVisibleItems): changed to allow list-box items to get rendered on the padding-bottom area.
+        This matches Firefox and Chrome.
+        (WebCore::RenderListBox::listIndexAtOffset): relax the check for a given list-box item at a specific offset in the vertical axis.
+        This means if an list-box item has its content painted into the padding-bottom area, it will be actionable by mouse clicking.
+        This matches Firefox and Chrome.
+        (WebCore::RenderListBox::controlClipRect): clips list-box content against the padding box rect rather than the content box rect,
+        to allow its list-box items' content intrude the padding area.
+        This matches Firefox and Chrome.
+
 2016-04-14  Antti Koivisto  <antti@apple.com>
 
         Collapsed border cache invalidation can lead to O(n^2) during style resolve

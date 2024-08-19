@@ -1,5 +1,6 @@
+
 /*
- * Copyright (C) 2010, 2011, 2012, 2013-2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
  * Copyright (C) 2012 Intel Corporation. All rights reserved.
  * Copyright (C) 2010 Nokia Corporation and/or its subsidiary(-ies)
  *
@@ -197,6 +198,7 @@
 #include "PDFPlugin.h"
 #include "RemoteLayerTreeTransaction.h"
 #include "WKStringCF.h"
+#include "WebPlaybackSessionManager.h"
 #include "WebVideoFullscreenManager.h"
 #include <WebCore/LegacyWebArchive.h>
 #endif
@@ -3247,6 +3249,10 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
     RuntimeEnabledFeatures::sharedFeatures().setFetchAPIEnabled(store.getBoolValueForKey(WebPreferencesKey::fetchAPIEnabledKey()));
 #endif
 
+#if ENABLE(DOWNLOAD_ATTRIBUTE)
+    RuntimeEnabledFeatures::sharedFeatures().setDownloadAttributeEnabled(store.getBoolValueForKey(WebPreferencesKey::downloadAttributeEnabledKey()));
+#endif
+    
     bool processSuppressionEnabled = store.getBoolValueForKey(WebPreferencesKey::pageVisibilityBasedProcessSuppressionEnabledKey());
     if (m_processSuppressionEnabled != processSuppressionEnabled) {
         m_processSuppressionEnabled = processSuppressionEnabled;
@@ -3332,11 +3338,18 @@ WebInspectorUI* WebPage::inspectorUI()
 }
 
 #if PLATFORM(IOS) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
-WebVideoFullscreenManager* WebPage::videoFullscreenManager()
+WebPlaybackSessionManager& WebPage::playbackSessionManager()
+{
+    if (!m_playbackSessionManager)
+        m_playbackSessionManager = WebPlaybackSessionManager::create(*this);
+    return *m_playbackSessionManager;
+}
+
+WebVideoFullscreenManager& WebPage::videoFullscreenManager()
 {
     if (!m_videoFullscreenManager)
-        m_videoFullscreenManager = WebVideoFullscreenManager::create(this);
-    return m_videoFullscreenManager.get();
+        m_videoFullscreenManager = WebVideoFullscreenManager::create(*this, playbackSessionManager());
+    return *m_videoFullscreenManager;
 }
 #endif
 
