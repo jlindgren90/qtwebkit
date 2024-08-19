@@ -43,6 +43,7 @@ endif ()
 if (APPLE)
     add_subdirectory(DumpRenderTree)
     add_subdirectory(WebKitTestRunner)
+    add_subdirectory(MiniBrowser/mac)
 endif ()
 
 if (ENABLE_WEBKIT2 AND ENABLE_API_TESTS)

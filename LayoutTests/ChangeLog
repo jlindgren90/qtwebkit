@@ -1,3 +1,106 @@
+2016-03-17  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Add parsing support for <auto-repeat> syntax
+        https://bugs.webkit.org/show_bug.cgi?id=155583
+
+        Reviewed by Antti Koivisto.
+
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set-expected.txt: Added.
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set.html: Added.
+
+2016-04-12  Alex Christensen  <achristensen@webkit.org>
+
+        Remove failing assertion in ANGLE
+        https://bugs.webkit.org/show_bug.cgi?id=156485
+
+        Reviewed by Dean Jackson.
+
+        * fast/canvas/webgl/fragment-shader-assertion-expected.txt: Added.
+        * fast/canvas/webgl/fragment-shader-assertion.html: Added.
+
+2016-04-11  Brent Fulgham  <bfulgham@apple.com>
+
+        Use WeakPtrs to avoid using deallocated Widgets and ScrollableAreas
+        https://bugs.webkit.org/show_bug.cgi?id=156420
+        <rdar://problem/25637378>
+
+        Reviewed by Darin Adler.
+
+        * fast/events/wheel-event-destroys-overflow-expected.txt: Added.
+        * fast/events/wheel-event-destroys-overflow.html: Added.
+        * platform/ios-simulator/TestExpectations: Skip wheel-event test on iOS.
+
+2016-04-11  Dean Jackson  <dino@apple.com>
+
+        putImageData needs to premultiply input
+        https://bugs.webkit.org/show_bug.cgi?id=156488
+        <rdar://problem/25672675>
+
+        Reviewed by Zalan Bujtas.
+
+        Tests that putImageData is taking unmultiplied data,
+        premultiplying it, then copying into the backing store.
+
+        * fast/canvas/putImageData-unmultiplied-expected.html: Added.
+        * fast/canvas/putImageData-unmultiplied.html: Added.
+
+2016-04-11  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unskip imported/w3c/web-platform-tests/IndexedDB/idbindex-multientry-big.htm
+        https://bugs.webkit.org/show_bug.cgi?id=156480
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-04-11  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Skip imported/w3c/web-platform-tests/IndexedDB/idbindex-multientry-big.htm on ios-simulators
+        https://bugs.webkit.org/show_bug.cgi?id=156480
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-04-11  Jiewen Tan  <jiewen_tan@apple.com>
+
+        fast/loader/opaque-base-url.html crashing during mac and ios debug tests
+        https://bugs.webkit.org/show_bug.cgi?id=156179
+        <rdar://problem/25507719>
+
+        Reviewed by Ryosuke Niwa.
+
+        * fast/loader/iframe-src-invalid-url-expected.txt: Added.
+        * fast/loader/iframe-src-invalid-url.html: Added.
+
+2016-04-11  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        Merge CG ImageSource and non CG ImageSource implementation in one file
+        https://bugs.webkit.org/show_bug.cgi?id=155456
+
+        Reviewed by Darin Adler.
+        
+        Add a test for image sub-sampling. The image subsampling is enabled by
+        default for iOS platform only. But it can be explicitly enabled through
+        the setting ImageSubsamplingEnabled.
+
+        * fast/images/image-subsampling-expected.html: Added.
+        * fast/images/image-subsampling.html: Added.
+
+2016-04-11  Zalan Bujtas  <zalan@apple.com>
+
+        REGRESSION (r193857): Text selection causes text to disappear.
+        https://bugs.webkit.org/show_bug.cgi?id=156448
+        rdar://problem/25578952
+
+        Reviewed by Simon Fraser.
+
+        Apparently when the end position of the selection range is smaller than the start position, we need
+        to repaint the entire text as it indicates selection clearing.
+
+        * fast/text/text-disappear-on-deselect-expected.html: Added.
+        * fast/text/text-disappear-on-deselect.html: Added.
+
 2016-04-11  Chris Dumez  <cdumez@apple.com>
 
         DOMTokenList.contains() should not throw

@@ -1299,6 +1299,7 @@ set(WebCore_SOURCES
     css/CSSFontValue.cpp
     css/CSSFunctionValue.cpp
     css/CSSGradientValue.cpp
+    css/CSSGridAutoRepeatValue.cpp
     css/CSSGridLineNamesValue.cpp
     css/CSSGridTemplateAreasValue.cpp
     css/CSSGroupingRule.cpp
@@ -2213,6 +2214,7 @@ set(WebCore_SOURCES
     platform/graphics/Image.cpp
     platform/graphics/ImageBuffer.cpp
     platform/graphics/ImageOrientation.cpp
+    platform/graphics/ImageSource.cpp
     platform/graphics/IntPoint.cpp
     platform/graphics/IntRect.cpp
     platform/graphics/IntSize.cpp

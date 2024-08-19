@@ -4986,7 +4986,6 @@
 		B275355A0B053814002CE64F /* FloatRectCG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B275352C0B053814002CE64F /* FloatRectCG.cpp */; };
 		B275355B0B053814002CE64F /* FloatSizeCG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B275352D0B053814002CE64F /* FloatSizeCG.cpp */; };
 		B275355E0B053814002CE64F /* ImageCG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27535300B053814002CE64F /* ImageCG.cpp */; };
-		B275355F0B053814002CE64F /* ImageSourceCG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27535310B053814002CE64F /* ImageSourceCG.cpp */; };
 		B27535600B053814002CE64F /* IntPointCG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27535320B053814002CE64F /* IntPointCG.cpp */; };
 		B27535610B053814002CE64F /* IntRectCG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27535330B053814002CE64F /* IntRectCG.cpp */; };
 		B27535620B053814002CE64F /* IntSizeCG.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27535340B053814002CE64F /* IntSizeCG.cpp */; };
@@ -6337,6 +6336,8 @@
 		E10B9B6D0B747599003ED890 /* NativeXPathNSResolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E10B9B6B0B747599003ED890 /* NativeXPathNSResolver.cpp */; };
 		E10B9CCC0B747A44003ED890 /* DOMCustomXPathNSResolver.h in Headers */ = {isa = PBXBuildFile; fileRef = E10B9CCA0B747A44003ED890 /* DOMCustomXPathNSResolver.h */; };
 		E10B9CCD0B747A44003ED890 /* DOMCustomXPathNSResolver.mm in Sources */ = {isa = PBXBuildFile; fileRef = E10B9CCB0B747A44003ED890 /* DOMCustomXPathNSResolver.mm */; };
+		E11003301C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E110032E1C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.cpp */; };
+		E11003311C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.h in Headers */ = {isa = PBXBuildFile; fileRef = E110032F1C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.h */; };
 		E11AF15111B9A1A300805103 /* Cursor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E11AF15011B9A1A300805103 /* Cursor.cpp */; };
 		E11C9D9B0EB3681200E409DB /* ScriptExecutionContext.h in Headers */ = {isa = PBXBuildFile; fileRef = E11C9D9A0EB3681200E409DB /* ScriptExecutionContext.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E11C9DB00EB3699500E409DB /* ScriptExecutionContext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E11C9DAF0EB3699500E409DB /* ScriptExecutionContext.cpp */; };
@@ -12877,7 +12878,6 @@
 		B275352C0B053814002CE64F /* FloatRectCG.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = FloatRectCG.cpp; sourceTree = "<group>"; };
 		B275352D0B053814002CE64F /* FloatSizeCG.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = FloatSizeCG.cpp; sourceTree = "<group>"; };
 		B27535300B053814002CE64F /* ImageCG.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = ImageCG.cpp; sourceTree = "<group>"; };
-		B27535310B053814002CE64F /* ImageSourceCG.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = ImageSourceCG.cpp; sourceTree = "<group>"; };
 		B27535320B053814002CE64F /* IntPointCG.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = IntPointCG.cpp; sourceTree = "<group>"; };
 		B27535330B053814002CE64F /* IntRectCG.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = IntRectCG.cpp; sourceTree = "<group>"; };
 		B27535340B053814002CE64F /* IntSizeCG.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = IntSizeCG.cpp; sourceTree = "<group>"; };
@@ -14355,6 +14355,8 @@
 		E10B9B6B0B747599003ED890 /* NativeXPathNSResolver.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = NativeXPathNSResolver.cpp; sourceTree = "<group>"; };
 		E10B9CCA0B747A44003ED890 /* DOMCustomXPathNSResolver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DOMCustomXPathNSResolver.h; sourceTree = "<group>"; };
 		E10B9CCB0B747A44003ED890 /* DOMCustomXPathNSResolver.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DOMCustomXPathNSResolver.mm; sourceTree = "<group>"; };
+		E110032E1C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CSSGridAutoRepeatValue.cpp; sourceTree = "<group>"; };
+		E110032F1C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSSGridAutoRepeatValue.h; sourceTree = "<group>"; };
 		E11AF15011B9A1A300805103 /* Cursor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Cursor.cpp; sourceTree = "<group>"; };
 		E11C9D9A0EB3681200E409DB /* ScriptExecutionContext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScriptExecutionContext.h; sourceTree = "<group>"; };
 		E11C9DAF0EB3699500E409DB /* ScriptExecutionContext.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ScriptExecutionContext.cpp; sourceTree = "<group>"; };
@@ -21783,7 +21785,6 @@
 				B27535300B053814002CE64F /* ImageCG.cpp */,
 				555B87EA1CAAF0AB00349425 /* ImageDecoderCG.cpp */,
 				555B87EB1CAAF0AB00349425 /* ImageDecoderCG.h */,
-				B27535310B053814002CE64F /* ImageSourceCG.cpp */,
 				4B3480920EEF50D400AC1B41 /* ImageSourceCG.h */,
 				4B3480910EEF50D400AC1B41 /* ImageSourceCGMac.mm */,
 				B27535320B053814002CE64F /* IntPointCG.cpp */,
@@ -23554,6 +23555,8 @@
 		F523D18402DE42E8018635CA /* css */ = {
 			isa = PBXGroup;
 			children = (
+				E110032E1C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.cpp */,
+				E110032F1C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.h */,
 				FBD6AF8415EF21D4008B7110 /* BasicShapeFunctions.cpp */,
 				FBD6AF8515EF21D4008B7110 /* BasicShapeFunctions.h */,
 				A80E6CDA0A1989CA007FB8C5 /* Counter.h */,
@@ -27662,6 +27665,7 @@
 				934F713C0D5A6F1900018D69 /* ResourceErrorBase.h in Headers */,
 				514C76790CE923A1007EF3CD /* ResourceHandle.h in Headers */,
 				26FAE4CD1852E3A5004C8C46 /* ResourceHandleCFURLConnectionDelegate.h in Headers */,
+				E11003311C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.h in Headers */,
 				26C15CF71857E15E00F15C03 /* ResourceHandleCFURLConnectionDelegateWithOperationQueue.h in Headers */,
 				514C767A0CE923A1007EF3CD /* ResourceHandleClient.h in Headers */,
 				514C767B0CE923A1007EF3CD /* ResourceHandleInternal.h in Headers */,
@@ -29334,6 +29338,7 @@
 				FEB26D28167A8F2A00FDD26B /* DatabaseServer.cpp in Sources */,
 				97BC6A2D1505F081001B74AC /* DatabaseTask.cpp in Sources */,
 				97BC6A2F1505F081001B74AC /* DatabaseThread.cpp in Sources */,
+				E11003301C9AC3DE00412DD0 /* CSSGridAutoRepeatValue.cpp in Sources */,
 				97BC6A311505F081001B74AC /* DatabaseTracker.cpp in Sources */,
 				BE23480C18A9870B00E4B6E8 /* DataCue.cpp in Sources */,
 				C5227DF21C3C6DF900F5ED54 /* DataDetection.mm in Sources */,
@@ -30000,7 +30005,6 @@
 				2D5A592F152525230036EE51 /* ImageOrientation.cpp in Sources */,
 				B51A2F4117D7D5DE0072517A /* ImageQualityController.cpp in Sources */,
 				0F3C725E1974874B00AEDD0C /* ImageSource.cpp in Sources */,
-				B275355F0B053814002CE64F /* ImageSourceCG.cpp in Sources */,
 				4B3480930EEF50D400AC1B41 /* ImageSourceCGMac.mm in Sources */,
 				316FE1170E6E1DA700BF6088 /* ImplicitAnimation.cpp in Sources */,
 				BE961C5418AD338500D07DC5 /* InbandDataTextTrack.cpp in Sources */,

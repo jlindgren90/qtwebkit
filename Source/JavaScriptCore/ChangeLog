@@ -1,3 +1,176 @@
+2016-04-12  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] addStaticGlobals should emit SymbolTableEntry watchpoints to encourage constant folding in DFG
+        https://bugs.webkit.org/show_bug.cgi?id=155110
+
+        Reviewed by Saam Barati.
+
+        `addStaticGlobals` does not emit SymbolTableEntry watchpoints for the added entries.
+        So, all the global variable lookups pointing to these static globals are not converted
+        into constants in DFGBytecodeGenerator: this fact leaves these lookups as GetGlobalVar.
+        Such thing avoids constant folding chance and emits CheckCell for @privateFunction inlining.
+        This operation is pure overhead.
+
+        Static globals are not configurable, and they are typically non-writable.
+        So they are constants in almost all the cases.
+
+        This patch initializes watchpoints for these static globals.
+        These watchpoints allow DFG to convert these nodes into constants in DFG BytecodeParser.
+        These watchpoints includes many builtin operations and `undefined`.
+
+        The microbenchmark, many-foreach-calls shows 5 - 7% improvement since it removes unnecessary CheckCell.
+
+        * bytecode/VariableWriteFireDetail.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::addGlobalVar):
+        (JSC::JSGlobalObject::addStaticGlobals):
+        * runtime/JSSymbolTableObject.h:
+        (JSC::symbolTablePutTouchWatchpointSet):
+        (JSC::symbolTablePutInvalidateWatchpointSet):
+        (JSC::symbolTablePut):
+        (JSC::symbolTablePutWithAttributesTouchWatchpointSet): Deleted.
+        * runtime/SymbolTable.h:
+        (JSC::SymbolTableEntry::SymbolTableEntry):
+        (JSC::SymbolTableEntry::operator=):
+        (JSC::SymbolTableEntry::swap):
+
+2016-04-12  Alex Christensen  <achristensen@webkit.org>
+
+        Build fix after r199299.
+        https://bugs.webkit.org/show_bug.cgi?id=155508
+
+        * jit/ExecutableAllocatorFixedVMPool.cpp:
+        (JSC::FixedVMPoolExecutableAllocator::initializeSeparatedWXHeaps):
+        memset_s is not defined.  __STDC_WANT_LIB_EXT1__ is not defined anywhere.
+        Since the return value is unused and set_constraint_handler_s is never called
+        I'm chaning it to memset.
+
+2016-04-11  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] B3 can use undefined bits or not defined required bits when spilling
+        https://bugs.webkit.org/show_bug.cgi?id=156486
+
+        Reviewed by Filip Pizlo.
+
+        Spilling had issues when replacing arguments in place.
+
+        The problems are:
+        1) If we have a 32bit stackslot, a x86 instruction could still try to load 64bits from it.
+        2) If we have a 64bit stackslot, Move32 would only set half the bits.
+        3) We were reducing Move to Move32 even if the top bits are read from the stack slot.
+
+        The case 1 appear with something like this:
+            Move32 %tmp0, %tmp1
+            Op64 %tmp1, %tmp2, %tmp3
+        When we spill %tmp1, the stack slot is 32bit, Move32 sets 32bits
+        but Op64 supports addressing for %tmp1. When we substitute %tmp1 in Op64,
+        we are creating a 64bit read for a 32bit stack slot.
+
+        The case 2 is an other common one. If we have:
+            BB#1
+                Move32 %tmp0, %tmp1
+                Jump #3
+            BB#2
+                Op64 %tmp0, %tmp1
+                Jump #3
+            BB#3
+                Use64 %tmp1
+
+        We have a stack slot of 64bits. When spilling %tmp1 in #1, we are
+        effectively doing a 32bit store on the stack slot, leaving the top bits undefined.
+
+        Case 3 is pretty much the same as 2 but we create the Move32 ourself
+        because the source is a 32bit with ZDef.
+
+        Case (1) is solved by requiring that the stack slot is at least as large as the largest
+        use/def of that tmp.
+
+        Case (2) and (3) are solved by not replacing a Tmp by an Address if the Def
+        is smaller than the stack slot.
+
+        * b3/air/AirIteratedRegisterCoalescing.cpp:
+        * b3/testb3.cpp:
+        (JSC::B3::testSpillDefSmallerThanUse):
+        (JSC::B3::testSpillUseLargerThanDef):
+        (JSC::B3::run):
+
+2016-04-11  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: get rid of InspectorBasicValue and InspectorString subclasses
+        https://bugs.webkit.org/show_bug.cgi?id=156407
+        <rdar://problem/25627659>
+
+        Reviewed by Joseph Pecoraro.
+
+        There's no point having these subclasses as they don't save any space.
+        Add a StringImpl to the union and merge some implementations of writeJSON.
+
+        Rename m_data to m_map and explicitly name the union as InspectorValue::m_value.
+        If the value is a string and the string is not empty or null (i.e., it has a
+        StringImpl), then we need to ref() and deref() the string as the InspectorValue
+        is created or destroyed.
+
+        Move uses of the subclass to InspectorValue and delete redundant methods.
+        Now, most InspectorValue methods are non-virtual so they can be templated.
+
+        * bindings/ScriptValue.cpp:
+        (Deprecated::jsToInspectorValue):
+        * inspector/InjectedScriptBase.cpp:
+        (Inspector::InjectedScriptBase::makeCall):
+        Don't used deleted subclasses.
+
+        * inspector/InspectorValues.cpp:
+        (Inspector::InspectorValue::null):
+        (Inspector::InspectorValue::create):
+        (Inspector::InspectorValue::asValue):
+        (Inspector::InspectorValue::asBoolean):
+        (Inspector::InspectorValue::asDouble):
+        (Inspector::InspectorValue::asInteger):
+        (Inspector::InspectorValue::asString):
+        These only need one implementation now.
+
+        (Inspector::InspectorValue::writeJSON):
+        Still a virtual method since Object and Array need their members.
+
+        (Inspector::InspectorObjectBase::InspectorObjectBase):
+        (Inspector::InspectorBasicValue::asBoolean): Deleted.
+        (Inspector::InspectorBasicValue::asDouble): Deleted.
+        (Inspector::InspectorBasicValue::asInteger): Deleted.
+        (Inspector::InspectorBasicValue::writeJSON): Deleted.
+        (Inspector::InspectorString::asString): Deleted.
+        (Inspector::InspectorString::writeJSON): Deleted.
+        (Inspector::InspectorString::create): Deleted.
+        (Inspector::InspectorBasicValue::create): Deleted.
+
+        * inspector/InspectorValues.h:
+        (Inspector::InspectorObjectBase::find):
+        (Inspector::InspectorObjectBase::setBoolean):
+        (Inspector::InspectorObjectBase::setInteger):
+        (Inspector::InspectorObjectBase::setDouble):
+        (Inspector::InspectorObjectBase::setString):
+        (Inspector::InspectorObjectBase::setValue):
+        (Inspector::InspectorObjectBase::setObject):
+        (Inspector::InspectorObjectBase::setArray):
+        (Inspector::InspectorArrayBase::pushBoolean):
+        (Inspector::InspectorArrayBase::pushInteger):
+        (Inspector::InspectorArrayBase::pushDouble):
+        (Inspector::InspectorArrayBase::pushString):
+        (Inspector::InspectorArrayBase::pushValue):
+        (Inspector::InspectorArrayBase::pushObject):
+        (Inspector::InspectorArrayBase::pushArray):
+        Use new factory methods.
+
+        * replay/EncodedValue.cpp:
+        (JSC::ScalarEncodingTraits<bool>::encodeValue):
+        (JSC::ScalarEncodingTraits<double>::encodeValue):
+        (JSC::ScalarEncodingTraits<float>::encodeValue):
+        (JSC::ScalarEncodingTraits<int32_t>::encodeValue):
+        (JSC::ScalarEncodingTraits<int64_t>::encodeValue):
+        (JSC::ScalarEncodingTraits<uint32_t>::encodeValue):
+        (JSC::ScalarEncodingTraits<uint64_t>::encodeValue):
+        * replay/EncodedValue.h:
+        Use new factory methods.
+
 2016-04-11  Filip Pizlo  <fpizlo@apple.com>
 
         It should be possible to edit StructureStubInfo without recompiling the world

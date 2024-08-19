@@ -1,3 +1,206 @@
+2016-04-11  Alex Christensen  <achristensen@webkit.org>
+
+        Build MiniBrowser with CMake on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=156471
+
+        Reviewed by Daniel Bates.
+
+        * DatabaseProcess/DatabaseProcess.messages.in:
+
+2016-04-11  Ryuan Choi  <ryuan.choi@navercorp.com>
+
+        [EFL] Do not pass context to EwkViewCreate
+        https://bugs.webkit.org/show_bug.cgi?id=156461
+
+        Reviewed by Darin Adler.
+
+        EWKViewCreate already has pageConfiguration which contains context.
+        So, this patch removes context argument from EWKViewCreate.
+
+        * UIProcess/API/C/CoordinatedGraphics/WKView.cpp:
+        (WKViewCreate):
+        * UIProcess/API/C/CoordinatedGraphics/WKView.h:
+        * UIProcess/API/efl/ewk_view.cpp:
+        (EWKViewCreate): Call WebView::Create instead of WKViewCreate not to use WK API.
+        (ewk_view_smart_add):
+        (ewk_view_add_with_configuration):
+        (ewk_view_add_with_context):
+        * UIProcess/API/efl/ewk_view_private.h:
+        * UIProcess/efl/WebInspectorProxyEfl.cpp:
+        (WebKit::WebInspectorProxy::platformCreateInspectorPage):
+        * UIProcess/efl/WebView.cpp:
+        (WebKit::WebView::create):
+        (WebKit::WebView::WebView):
+        * UIProcess/efl/WebView.h:
+
+2016-04-11  Darin Adler  <darin@apple.com>
+
+        Remove UsePointersEvenForNonNullableObjectArguments from HTMLSelectElement
+        https://bugs.webkit.org/show_bug.cgi?id=156458
+
+        Reviewed by Chris Dumez.
+
+        * WebProcess/Plugins/PDF/PDFPluginAnnotation.mm: Updated includes.
+
+2016-04-11  Jeremy Jones  <jeremyj@apple.com>
+
+        When clearing cache, also clear AVFoundation cache.
+        https://bugs.webkit.org/show_bug.cgi?id=155783
+        rdar://problem/25252541
+
+        Reviewed by Darin Adler.
+
+        Include the HTMLMediaElement media cache when doing disk cache operations.
+        Add a sandbox extension for media cache directory. This allows the UI process and the web process
+        to access the same cache.
+
+        * Shared/WebProcessCreationParameters.cpp:
+        (WebKit::WebProcessCreationParameters::encode): Add media cache directory.
+        (WebKit::WebProcessCreationParameters::decode): Add media cache directory.
+        * Shared/WebProcessCreationParameters.h:
+        * UIProcess/API/APIProcessPoolConfiguration.cpp:
+        (API::ProcessPoolConfiguration::createWithLegacyOptions):
+        (API::ProcessPoolConfiguration::ProcessPoolConfiguration): Add media cache directory.
+        (API::ProcessPoolConfiguration::copy): Add media cache directory.
+        * UIProcess/API/APIProcessPoolConfiguration.h:
+        * UIProcess/API/APIWebsiteDataStore.cpp:
+        (API::WebsiteDataStore::defaultMediaCacheDirectory): Default implementation.
+        * UIProcess/API/APIWebsiteDataStore.h:
+        * UIProcess/API/Cocoa/APIWebsiteDataStoreCocoa.mm:
+        (API::WebsiteDataStore::defaultMediaCacheDirectory): Media cache is in temporary directory.
+        (API::WebsiteDataStore::tempDirectoryFileSystemRepresentation): For resources in temporary directory.
+        (API::WebsiteDataStore::defaultDataStoreConfiguration): Init media cache directory.
+        * UIProcess/Cocoa/WebProcessPoolCocoa.mm:
+        (WebKit::WebProcessPool::legacyPlatformDefaultMediaCacheDirectory):
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::legacyWebsiteDataStoreConfiguration): Add mediaCacheDirectory.
+        (WebKit::WebProcessPool::createNewWebProcess): Add mediaCacheDirectory.
+        * UIProcess/WebProcessPool.h:
+        * UIProcess/WebsiteData/WebsiteDataStore.cpp:
+        (WebKit::WebsiteDataStore::WebsiteDataStore):
+        (WebKit::WebsiteDataStore::fetchData): Implement for mediaCacheDirectory.
+        (WebKit::WebsiteDataStore::removeData): Implement for mediaCacheDirectory.
+        * UIProcess/WebsiteData/WebsiteDataStore.h:
+        * UIProcess/efl/WebProcessPoolEfl.cpp:
+        (WebKit::WebProcessPool::legacyPlatformDefaultMediaCacheDirectory): Added.
+        * UIProcess/gtk/WebProcessPoolGtk.cpp:
+        (WebKit::WebProcessPool::legacyPlatformDefaultMediaCacheDirectory): Added.
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess): Initialize media cache directory.
+        * WebProcess/cocoa/WebProcessCocoa.mm:
+        (WebKit::WebProcess::platformInitializeWebProcess): Consume sandbox extension.
+
+2016-04-11  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199315.
+        https://bugs.webkit.org/show_bug.cgi?id=156482
+
+        This change broke the OS X Yosemite build. (Requested by jwtan
+        on #webkit).
+
+        Reverted changeset:
+
+        "When clearing cache, also clear AVFoundation cache."
+        https://bugs.webkit.org/show_bug.cgi?id=155783
+        http://trac.webkit.org/changeset/199315
+
+2016-04-11  Jeremy Jones  <jeremyj@apple.com>
+
+        When clearing cache, also clear AVFoundation cache.
+        https://bugs.webkit.org/show_bug.cgi?id=155783
+        rdar://problem/25252541
+
+        Reviewed by Darin Adler.
+
+        Include the HTMLMediaElement media cache when doing disk cache operations.
+        Add a sandbox extension for media cache directory. This allows the UI process and the web process
+        to access the same cache.
+
+        * Shared/WebProcessCreationParameters.cpp:
+        (WebKit::WebProcessCreationParameters::encode): Add media cache directory.
+        (WebKit::WebProcessCreationParameters::decode): Add media cache directory.
+        * Shared/WebProcessCreationParameters.h:
+        * UIProcess/API/APIProcessPoolConfiguration.cpp:
+        (API::ProcessPoolConfiguration::createWithLegacyOptions):
+        (API::ProcessPoolConfiguration::ProcessPoolConfiguration): Add media cache directory.
+        (API::ProcessPoolConfiguration::copy): Add media cache directory.
+        * UIProcess/API/APIProcessPoolConfiguration.h:
+        * UIProcess/API/APIWebsiteDataStore.cpp:
+        (API::WebsiteDataStore::defaultMediaCacheDirectory): Default implementation.
+        * UIProcess/API/APIWebsiteDataStore.h:
+        * UIProcess/API/Cocoa/APIWebsiteDataStoreCocoa.mm:
+        (API::WebsiteDataStore::defaultMediaCacheDirectory): Media cache is in temporary directory.
+        (API::WebsiteDataStore::tempDirectoryFileSystemRepresentation): For resources in temporary directory.
+        (API::WebsiteDataStore::defaultDataStoreConfiguration): Init media cache directory.
+        * UIProcess/Cocoa/WebProcessPoolCocoa.mm:
+        (WebKit::WebProcessPool::legacyPlatformDefaultMediaCacheDirectory):
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::legacyWebsiteDataStoreConfiguration): Add mediaCacheDirectory.
+        (WebKit::WebProcessPool::createNewWebProcess): Add mediaCacheDirectory.
+        * UIProcess/WebProcessPool.h:
+        * UIProcess/WebsiteData/WebsiteDataStore.cpp:
+        (WebKit::WebsiteDataStore::WebsiteDataStore):
+        (WebKit::WebsiteDataStore::fetchData): Implement for mediaCacheDirectory.
+        (WebKit::WebsiteDataStore::removeData): Implement for mediaCacheDirectory.
+        * UIProcess/WebsiteData/WebsiteDataStore.h:
+        * UIProcess/efl/WebProcessPoolEfl.cpp:
+        (WebKit::WebProcessPool::legacyPlatformDefaultMediaCacheDirectory): Added.
+        * UIProcess/gtk/WebProcessPoolGtk.cpp:
+        (WebKit::WebProcessPool::legacyPlatformDefaultMediaCacheDirectory): Added.
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess): Initialize media cache directory.
+        * WebProcess/cocoa/WebProcessCocoa.mm:
+        (WebKit::WebProcess::platformInitializeWebProcess): Consume sandbox extension.
+
+2016-04-11  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        Merge CG ImageSource and non CG ImageSource implementation in one file
+        https://bugs.webkit.org/show_bug.cgi?id=155456
+
+        Reviewed by Darin Adler.
+
+        * UIProcess/API/efl/EwkView.cpp:
+        (EwkView::setCursor):
+        Replace the call to Image::getHotSpot() by Image::hotSpot().
+
+2016-04-11  Anders Carlsson  <andersca@apple.com>
+
+        Rename WKOpenPanelParameters files to WKOpenPanelParametersRef
+        https://bugs.webkit.org/show_bug.cgi?id=156473
+
+        Reviewed by Alex Christensen.
+
+        * UIProcess/API/C/WKOpenPanelParameters.cpp:
+        (WKOpenPanelParametersGetTypeID): Deleted.
+        (WKOpenPanelParametersGetAllowsMultipleFiles): Deleted.
+        (WKOpenPanelParametersCopyAcceptedMIMETypes): Deleted.
+        (WKOpenPanelParametersCopyCapture): Deleted.
+        (WKOpenPanelParametersGetCaptureEnabled): Deleted.
+        (WKOpenPanelParametersCopySelectedFileNames): Deleted.
+        * UIProcess/API/C/WKOpenPanelParametersRef.cpp: Renamed from Source/WebKit2/UIProcess/API/C/WKOpenPanelParameters.cpp.
+        (WKOpenPanelParametersGetTypeID):
+        (WKOpenPanelParametersGetAllowsMultipleFiles):
+        (WKOpenPanelParametersCopyAcceptedMIMETypes):
+        (WKOpenPanelParametersCopyCapture):
+        (WKOpenPanelParametersGetCaptureEnabled):
+        (WKOpenPanelParametersCopySelectedFileNames):
+        * UIProcess/API/C/WKOpenPanelParametersRef.h: Renamed from Source/WebKit2/UIProcess/API/C/WKOpenPanelParameters.h.
+        * UIProcess/API/C/WebKit2_C.h:
+        * UIProcess/API/efl/ewk_file_chooser_request.cpp:
+        * UIProcess/mac/WebInspectorProxyMac.mm:
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-04-09  Gavin Barraclough  <barraclough@apple.com>
+
+        WebKit should adopt journal_mode=wal for all SQLite databases.
+        https://bugs.webkit.org/show_bug.cgi?id=133496
+
+        Reviewed by Darin Adler.
+
+        * WebProcess/InjectedBundle/API/c/WKBundle.cpp:
+        (WKBundleClearAllDatabases):
+            - renamed deleteAllDatabases -> deleteAllDatabasesImmediately.
+
 2016-04-11  Daniel Bates  <dabates@apple.com>
 
         REGRESSION (r198933): Unable to login to Google account from Internet Accounts preference pane

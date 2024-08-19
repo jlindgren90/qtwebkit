@@ -15,7 +15,6 @@ set(DumpRenderTree_SOURCES
 
 set(DumpRenderTree_LIBRARIES
     JavaScriptCore
-    WTF
     WebCoreTestSupport
 )
 
