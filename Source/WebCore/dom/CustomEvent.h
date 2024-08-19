@@ -57,7 +57,8 @@ public:
 
     JSValueInWrappedObject& detail() { return m_detail; }
     
-    RefPtr<SerializedScriptValue> trySerializeDetail(JSC::ExecState*);
+    RefPtr<SerializedScriptValue> trySerializeDetail(JSC::ExecState&);
+    void visitAdditionalChildren(JSC::SlotVisitor&);
 
 private:
     CustomEvent();

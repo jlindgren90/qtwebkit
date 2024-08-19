@@ -57,13 +57,12 @@ void CustomEvent::initCustomEvent(const AtomicString& type, bool canBubble, bool
     m_triedToSerialize = false;
 }
 
-RefPtr<SerializedScriptValue> CustomEvent::trySerializeDetail(JSC::ExecState* exec)
+RefPtr<SerializedScriptValue> CustomEvent::trySerializeDetail(JSC::ExecState& state)
 {
-    if (!m_serializedDetail && !m_triedToSerialize) {
-        m_serializedDetail = SerializedScriptValue::create(exec, m_detail, nullptr, nullptr, NonThrowing);
+    if (!m_triedToSerialize) {
+        m_serializedDetail = SerializedScriptValue::create(&state, m_detail, nullptr, nullptr, NonThrowing);
         m_triedToSerialize = true;
     }
-    
     return m_serializedDetail;
 }
 
