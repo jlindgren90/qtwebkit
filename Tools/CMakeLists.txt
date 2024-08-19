@@ -1,5 +1,7 @@
 WEBKIT_INCLUDE_CONFIG_FILES_IF_EXISTS()
 
+set_property(DIRECTORY . PROPERTY FOLDER "Tools")
+
 if ("${PORT}" STREQUAL "Efl")
     if (DEVELOPER_MODE)
       add_subdirectory(WebKitTestRunner)
