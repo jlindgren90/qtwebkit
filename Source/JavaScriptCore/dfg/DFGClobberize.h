@@ -107,6 +107,17 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     if (edgesUseStructure(graph, node))
         read(JSCell_structureID);
     
+    // We allow the runtime to perform a stack scan at any time. We don't model which nodes get implemented
+    // by calls into the runtime. For debugging we might replace the implementation of any node with a call
+    // to the runtime, and that call may walk stack. Therefore, each node must read() anything that a stack
+    // scan would read. That's what this does.
+    for (InlineCallFrame* inlineCallFrame = node->origin.semantic.inlineCallFrame; inlineCallFrame; inlineCallFrame = inlineCallFrame->directCaller.inlineCallFrame) {
+        if (inlineCallFrame->isClosureCall)
+            read(AbstractHeap(Stack, inlineCallFrame->stackOffset + JSStack::Callee));
+        if (inlineCallFrame->isVarargs())
+            read(AbstractHeap(Stack, inlineCallFrame->stackOffset + JSStack::ArgumentCount));
+    }
+    
     switch (node->op()) {
     case JSConstant:
     case DoubleConstant:
@@ -142,6 +153,8 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case GetGlobalObject:
     case StringCharCodeAt:
     case CompareStrictEq:
+    case IsJSArray:
+    case IsArrayConstructor:
     case IsUndefined:
     case IsBoolean:
     case IsNumber:
@@ -181,7 +194,8 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         read(MathDotRandomState);
         write(MathDotRandomState);
         return;
-        
+
+    case IsArrayObject:
     case HasGenericProperty:
     case HasStructureProperty:
     case GetEnumerableLength:
@@ -402,6 +416,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         write(HeapObjectCount);
         return;
 
+    case CallObjectConstructor:
     case ToThis:
     case CreateThis:
         read(MiscFields);

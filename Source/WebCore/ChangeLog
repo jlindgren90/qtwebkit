@@ -1,3 +1,108 @@
+2016-04-06  Simon Fraser  <simon.fraser@apple.com>
+
+        Page tiles are missing when graphics acceleration is unavailable
+        https://bugs.webkit.org/show_bug.cgi?id=156325
+        rdar://problem/25587476
+
+        Reviewed by Tim Horton.
+
+        When graphics acceleration is unavailable on Mac (e.g. in a VM or when running from
+        the recovery partition), page contents were missing. This is because
+        IOSurfaceGetPropertyMaximum(kIOSurfaceWidth) and IOSurfaceGetPropertyMaximum(kIOSurfaceHeight)
+        returned INT_MAX, causing us to compute a tile size of 0x0.
+
+        Fix by changing IOSurface::maximumSize() to report a value between 1K x 1K and 32K x 32K.
+
+        Rename kGiantTileSize to better describe its purpose.
+
+        Add correct clamping in IOSurface::maximumSize().
+
+        * platform/graphics/ca/TileController.cpp:
+        (WebCore::TileController::tileSize):
+        * platform/graphics/ca/TileController.h:
+        * platform/graphics/cocoa/IOSurface.mm:
+        (IOSurface::maximumSize):
+
+2016-03-29  Keith Miller  <keith_miller@apple.com>
+
+        [ES6] Add support for Symbol.isConcatSpreadable.
+        https://bugs.webkit.org/show_bug.cgi?id=155351
+
+        Reviewed by Saam Barati.
+
+        Makes runtime arrays have the new ArrayType
+
+        * bridge/runtime_array.h:
+        (JSC::RuntimeArray::createStructure):
+
+2016-04-06  Eric Carlson  <eric.carlson@apple.com>
+
+        [iOS Simulator WK1] Crash in MediaPlayer::setPrivateBrowsingMode()
+        https://bugs.webkit.org/show_bug.cgi?id=155721
+        <rdar://problem/18590481>
+
+        Speculative fix for a crash that appears to happen when the media engine is destroyed
+        during a callback.
+
+        Reviewed by Dean Jackson.
+
+        No new tests, this prevents existing tests from crashing.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::actionName): Log MediaEngineUpdated.
+        (WebCore::HTMLMediaElement::scheduleDelayedAction): Support MediaEngineUpdated.
+        (WebCore::HTMLMediaElement::pendingActionTimerFired): Ditto. Clear m_pendingActionFlags.
+        (WebCore::HTMLMediaElement::mediaEngineWasUpdated): New.
+        (WebCore::HTMLMediaElement::mediaPlayerEngineUpdated): Move guts to mediaEngineWasUpdated and
+          call it on a timer so we can't change the media engine in the middle of a callback from
+          MediaPlayer or the media engine.
+        * html/HTMLMediaElement.h:
+        * html/HTMLMediaElementEnums.h:
+
+        * platform/graphics/MediaPlayer.cpp:
+        (WebCore::MediaPlayer::~MediaPlayer): Assert if new flag m_initializingMediaEngine is set to
+          catch HTMLMediaElement destroying the media engine during a callback.
+        (WebCore::MediaPlayer::loadWithNextMediaEngine): Set/clear m_initializingMediaEngine.
+        * platform/graphics/MediaPlayer.h:
+
+2016-04-06  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Make sure SQLite backing store records have a INTEGER PRIMARY KEY column.
+        https://bugs.webkit.org/show_bug.cgi?id=156264
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No testable change in behavior yet, current tests pass).
+
+        * Modules/indexeddb/IDBKeyData.cpp:
+        (WebCore::IDBKeyData::encode): Fix the key name for backwards compatibility.
+        (WebCore::IDBKeyData::decode): Ditto.
+
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::v3RecordsTableSchema): Added v3 Records schema that includes a primary key column.
+        (WebCore::IDBServer::v3RecordsTableSchemaAlternate):
+        (WebCore::IDBServer::createOrMigrateRecordsTableIfNecessary): Upgrade to v3 instead of v2.
+        (WebCore::IDBServer::SQLiteIDBBackingStore::addRecord):
+
+2016-04-06  Simon Fraser  <simon.fraser@apple.com>
+
+        Avoid using an unengaged Optional<FloatRect> when positioning the tiled scrolling indicator
+        https://bugs.webkit.org/show_bug.cgi?id=156313
+
+        Reviewed by Tim Horton.
+
+        Fixes an assertion seen when running the WebKit2.AutoLayoutIntegration API test.
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::setViewExposedRect):
+
+2016-04-06  Sam Weinig  <sam@webkit.org>
+
+        Fix windows build.
+
+        * DerivedSources.cpp:
+        * css/CSSAllInOne.cpp:
+
 2016-04-06  Jer Noble  <jer.noble@apple.com>
 
         CRASH in AudioDestinationNode::render()
