@@ -436,21 +436,11 @@ public:
         return value >= Options::couldTakeSlowCaseMinimumCount();
     }
 
-    ResultProfile* ensureResultProfile(int bytecodeOffset)
-    {
-        ResultProfile* profile = resultProfileForBytecodeOffset(bytecodeOffset);
-        if (!profile) {
-            m_resultProfiles.append(ResultProfile(bytecodeOffset));
-            profile = &m_resultProfiles.last();
-            ASSERT(&m_resultProfiles.last() == &m_resultProfiles[m_resultProfiles.size() - 1]);
-            if (!m_bytecodeOffsetToResultProfileIndexMap)
-                m_bytecodeOffsetToResultProfileIndexMap = std::make_unique<BytecodeOffsetToResultProfileIndexMap>();
-            m_bytecodeOffsetToResultProfileIndexMap->add(bytecodeOffset, m_resultProfiles.size() - 1);
-        }
-        return profile;
-    }
+    ResultProfile* ensureResultProfile(int bytecodeOffset);
+    ResultProfile* ensureResultProfile(const ConcurrentJITLocker&, int bytecodeOffset);
     unsigned numberOfResultProfiles() { return m_resultProfiles.size(); }
     ResultProfile* resultProfileForBytecodeOffset(int bytecodeOffset);
+    ResultProfile* resultProfileForBytecodeOffset(const ConcurrentJITLocker&, int bytecodeOffset);
 
     unsigned specialFastCaseProfileCountForBytecodeOffset(int bytecodeOffset)
     {
@@ -946,15 +936,7 @@ private:
 
     void updateAllPredictionsAndCountLiveness(unsigned& numberOfLiveNonArgumentValueProfiles, unsigned& numberOfSamplesInProfiles);
 
-    void setConstantRegisters(const Vector<WriteBarrier<Unknown>>& constants, const Vector<SourceCodeRepresentation>& constantsSourceCodeRepresentation)
-    {
-        ASSERT(constants.size() == constantsSourceCodeRepresentation.size());
-        size_t count = constants.size();
-        m_constantRegisters.resizeToFit(count);
-        for (size_t i = 0; i < count; i++)
-            m_constantRegisters[i].set(*m_vm, this, constants[i].get());
-        m_constantsSourceCodeRepresentation = constantsSourceCodeRepresentation;
-    }
+    void setConstantRegisters(const Vector<WriteBarrier<Unknown>>& constants, const Vector<SourceCodeRepresentation>& constantsSourceCodeRepresentation);
 
     void replaceConstant(int index, JSValue value)
     {

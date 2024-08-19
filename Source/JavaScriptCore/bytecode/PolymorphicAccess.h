@@ -84,10 +84,9 @@ struct AccessGenerationState;
 //
 // An AccessCase may be destroyed while in any of these states.
 //
-// Note that right now, an AccessCase goes from Primordial to Generated quite quickly.
-// FIXME: Make it possible for PolymorphicAccess to hold onto AccessCases that haven't been
-// generated. That would allow us to significantly reduce the number of regeneration events.
-// https://bugs.webkit.org/show_bug.cgi?id=156457
+// We will sometimes buffer committed AccessCases in the PolymorphicAccess object before generating
+// code. This allows us to only regenerate once we've accumulated (hopefully) more than one new
+// AccessCase.
 class AccessCase {
     WTF_MAKE_NONCOPYABLE(AccessCase);
     WTF_MAKE_FAST_ALLOCATED;
@@ -216,6 +215,8 @@ public:
         }
     }
 
+    // This can return null even for a getter/setter, if it hasn't been generated yet. That's
+    // actually somewhat likely because of how we do buffering of new cases.
     CallLinkInfo* callLinkInfo() const
     {
         if (!m_rareData)
@@ -309,7 +310,9 @@ public:
     enum Kind {
         MadeNoChanges,
         GaveUp,
-        GeneratedNewCode
+        Buffered,
+        GeneratedNewCode,
+        GeneratedFinalCode // Generated so much code that we never want to generate code again.
     };
     
     AccessGenerationResult()
@@ -319,13 +322,15 @@ public:
     AccessGenerationResult(Kind kind)
         : m_kind(kind)
     {
-        ASSERT(kind != GeneratedNewCode);
+        RELEASE_ASSERT(kind != GeneratedNewCode);
+        RELEASE_ASSERT(kind != GeneratedFinalCode);
     }
     
-    AccessGenerationResult(MacroAssemblerCodePtr code)
-        : m_kind(GeneratedNewCode)
+    AccessGenerationResult(Kind kind, MacroAssemblerCodePtr code)
+        : m_kind(kind)
         , m_code(code)
     {
+        RELEASE_ASSERT(kind == GeneratedNewCode || kind == GeneratedFinalCode);
         RELEASE_ASSERT(code);
     }
     
@@ -350,7 +355,15 @@ public:
     
     bool madeNoChanges() const { return m_kind == MadeNoChanges; }
     bool gaveUp() const { return m_kind == GaveUp; }
+    bool buffered() const { return m_kind == Buffered; }
     bool generatedNewCode() const { return m_kind == GeneratedNewCode; }
+    bool generatedFinalCode() const { return m_kind == GeneratedFinalCode; }
+    
+    // If we gave up on this attempt to generate code, or if we generated the "final" code, then we
+    // should give up after this.
+    bool shouldGiveUpNow() const { return gaveUp() || generatedFinalCode(); }
+    
+    bool generatedSomeCode() const { return generatedNewCode() || generatedFinalCode(); }
     
     void dump(PrintStream&) const;
     
@@ -366,14 +379,15 @@ public:
     PolymorphicAccess();
     ~PolymorphicAccess();
 
-    // This may return null, in which case the old stub routine is left intact. You are required to
-    // pass a vector of non-null access cases. This will prune the access cases by rejecting any case
-    // in the list that is subsumed by a later case in the list.
-    AccessGenerationResult regenerateWithCases(
+    // When this fails (returns GaveUp), this will leave the old stub intact but you should not try
+    // to call this method again for that PolymorphicAccess instance.
+    AccessGenerationResult addCases(
         VM&, CodeBlock*, StructureStubInfo&, const Identifier&, Vector<std::unique_ptr<AccessCase>>);
 
-    AccessGenerationResult regenerateWithCase(
+    AccessGenerationResult addCase(
         VM&, CodeBlock*, StructureStubInfo&, const Identifier&, std::unique_ptr<AccessCase>);
+    
+    AccessGenerationResult regenerate(VM&, CodeBlock*, StructureStubInfo&, const Identifier&);
     
     bool isEmpty() const { return m_list.isEmpty(); }
     unsigned size() const { return m_list.size(); }
@@ -401,6 +415,10 @@ private:
     friend struct AccessGenerationState;
     
     typedef Vector<std::unique_ptr<AccessCase>, 2> ListType;
+    
+    void commit(
+        VM&, std::unique_ptr<WatchpointsOnStructureStubInfo>&, CodeBlock*, StructureStubInfo&,
+        const Identifier&, AccessCase&);
 
     MacroAssemblerCodePtr regenerate(
         VM&, CodeBlock*, StructureStubInfo&, const Identifier&, ListType& cases);

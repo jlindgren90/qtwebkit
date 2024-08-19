@@ -1,3 +1,426 @@
+2016-04-13  Zalan Bujtas  <zalan@apple.com>
+
+        Text on compositing layer with negative letter-spacing is truncated.
+        https://bugs.webkit.org/show_bug.cgi?id=156550
+        <rdar://problem/24212140>
+
+        Reviewed by Antti Koivisto.
+
+        Negative letter-spacing affects the right edge of content's visual overflow (for both RTL and LTR).
+        This is similar to how normal line layout adjusts it at InlineFlowBox::addTextBoxVisualOverflow().
+
+        Test: fast/text/negative-letter-spacing-visual-overflow.html
+
+        * rendering/SimpleLineLayoutFunctions.cpp:
+        (WebCore::SimpleLineLayout::computeOverflow):
+        (WebCore::SimpleLineLayout::paintFlow):
+        (WebCore::SimpleLineLayout::collectFlowOverflow):
+
+2016-04-13  Eric Carlson  <eric.carlson@apple.com>
+
+        [iOS] remote command should be considered user events
+        https://bugs.webkit.org/show_bug.cgi?id=156546
+        <rdar://problem/25560877>
+
+        Reviewed by Jer Noble.
+
+        Test: media/remote-control-command-is-user-gesture.html
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::didReceiveRemoteControlCommand): Increment/decrement 
+          m_processingRemoteControlCommand around calling remote command method.
+        (WebCore::HTMLMediaElement::processingUserGesture): Return true if called while handling
+          a remote control command.
+        * html/HTMLMediaElement.h:
+
+2016-04-13  Antonio Gomes  <tonikitoo@webkit.org>
+
+        Non-resizable text field looks resizable
+        https://bugs.webkit.org/show_bug.cgi?id=152271
+
+        Reviewed by Darin Adler.
+
+        The 'resizability' of an HTML element is controlled by its 'resize' CSS property value.
+        By default it is 'none', but certain HTML elements, including <textarea>, have it
+        set to 'both' by default (defined in html.css). These values mean no resize at all, and
+        resizable in both vertical and horizontal axis, respectively.
+        Additionally, 'vertical' and 'horizontal' values are also valid.
+
+        Problem here is that the way WebKit handles the 'resize' property on single line
+        input elements (e.g. <input>) is different than other engines (read Gecko, Blink and Presto):
+
+        - Match: WebKit, Firefox, Presto and Blink all force single line input elements to be non-resizable,
+        regardless of either the 'resize' properly is set or not.
+
+        - Mismatch: WebKit is the only engine that actually paints the resize control on single line
+        input elements, even it having no effect.
+
+        On WebKit, this happens because the 'resize' property is wrongly implemented as 'inheritable',
+        differently from other engines. In the way WebKit contructs its RenderTree, 'resize' property
+        ends up spilling out of <input> and entering its shadow representation, carrying the 'resize'
+        property on.
+
+        Patch fixes this by making the 'resize' properly be non-inherited, matching other vendors
+        and the spec [1].
+
+        [1] https://drafts.csswg.org/css-ui/#resize
+
+        Tests: fast/css/resize-not-inherited.html
+               fast/css/resize-single-line-input-no-paint.html
+
+        * rendering/style/RenderStyle.h:
+        * rendering/style/StyleRareInheritedData.cpp:
+        (WebCore::StyleRareInheritedData::StyleRareInheritedData):
+        (WebCore::StyleRareInheritedData::operator==):
+        * rendering/style/StyleRareInheritedData.h:
+        * rendering/style/StyleRareNonInheritedData.cpp:
+        (WebCore::StyleRareNonInheritedData::StyleRareNonInheritedData):
+        (WebCore::StyleRareNonInheritedData::operator==):
+        * rendering/style/StyleRareNonInheritedData.h:
+
+2016-04-13  Darin Adler  <darin@apple.com>
+
+        Remove UsePointersEvenForNonNullableObjectArguments from DataTransfer
+        https://bugs.webkit.org/show_bug.cgi?id=156495
+
+        Reviewed by Chris Dumez.
+
+        * dom/DataTransfer.idl: Removed UsePointersEvenForNonNullableObjectArguments
+        and marked the element argument to setDragImage as nullable.
+
+2016-04-13  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB (Blob support): Support deleting stored blob files.
+        https://bugs.webkit.org/show_bug.cgi?id=156523
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No testable change in behavior yet, current tests pass).
+
+        There's 3 points in time when we need to delete blob files (and records of them):
+        1 - When deleting a specific object store record.
+        2 - When deleting an entire object store.
+        3 - When deleting a whole database.
+        
+        This patch does those three things.
+
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::SQLiteIDBBackingStore::deleteObjectStore):
+        (WebCore::IDBServer::SQLiteIDBBackingStore::deleteUnusedBlobFileRecords):
+        (WebCore::IDBServer::SQLiteIDBBackingStore::deleteRecord):
+        (WebCore::IDBServer::SQLiteIDBBackingStore::addRecord):
+        (WebCore::IDBServer::SQLiteIDBBackingStore::getRecord):
+        (WebCore::IDBServer::SQLiteIDBBackingStore::deleteBackingStore):
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.h:
+
+        * Modules/indexeddb/server/SQLiteIDBTransaction.cpp:
+        (WebCore::IDBServer::SQLiteIDBTransaction::commit):
+        (WebCore::IDBServer::SQLiteIDBTransaction::deleteBlobFilesIfNecessary):
+        (WebCore::IDBServer::SQLiteIDBTransaction::addRemovedBlobFile):
+        * Modules/indexeddb/server/SQLiteIDBTransaction.h:
+
+2016-04-13  Frederic Wang  <fwang@igalia.com>
+
+        Fix two coding mistakes in MathMLInlineContainerElement::childrenChanged
+        https://bugs.webkit.org/show_bug.cgi?id=156538
+
+        Reviewed by Darin Adler.
+
+        We fix the call to updateOperatorProperties inside MathMLInlineContainerElement::childrenChanged
+        for the <math> and <msqrt> tags.
+
+        The <math> tag is already a RenderMathMLRow so the hasTagName(mathTag)
+        conditional is never executed. The tag does not create any anonymous
+        wrapper so we do not need a special case for it anyway.
+
+        The <msqrt> tag is not a RenderMathMLRow (yet). However, the anonymous
+        wrapper behaving as a RenderMathMLRow is actually the last child, not
+        the first one.
+
+        No new tests, this is already covered by mathml/presentation/mo-form-dynamic.html
+        Note that for some reason the coding error for <msqrt> only shows up
+        after the refactoring of bug 152244.
+
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::childrenChanged): Fix the two mistakes and add some FIXME comments.
+
+2016-04-12  Chris Dumez  <cdumez@apple.com>
+
+        Attr.value should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=156515
+
+        Reviewed by Benjamin Poulain.
+
+        Update Attr.value so that it is no longer nullable, as per:
+        https://dom.spec.whatwg.org/#interface-attr
+
+        This aligns our behavior with Firefox and Chrome as well.
+
+        Test: fast/dom/Attr/value-not-nullable.html
+
+        * dom/Attr.cpp:
+        (WebCore::Attr::setValueForBindings):
+        (WebCore::Attr::setNodeValue):
+        (WebCore::Attr::setValue):
+        * dom/Attr.h:
+        * dom/Attr.idl:
+
+2016-04-12  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Fixed uninitialization of Node::DataUnion with GCC 4.8.
+        https://bugs.webkit.org/show_bug.cgi?id=156507
+
+        Reviewed by Michael Catanzaro.
+
+        This change fixes run time crashes caused by access to uninitialized
+        memory in Node::renderer().
+
+        No new tests needed.
+
+        * dom/Node.h:
+
+2016-04-12  Eric Carlson  <eric.carlson@apple.com>
+
+        [iOS] do not exit AirPlay when the screen locks
+        https://bugs.webkit.org/show_bug.cgi?id=156502
+        <rdar://problem/24616592>
+
+        Reviewed by Jer Noble.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::shouldOverrideBackgroundPlaybackRestriction): Add logging.
+        (WebCore::HTMLMediaElement::purgeBufferedDataIfPossible): Don't tell the media engine to purge 
+          data if it is playing to a wireless target because that will drop the connection.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::playbackPermitted): Add logging.
+        (WebCore::MediaElementSession::canPlayToWirelessPlaybackTarget): Drive by fix: iOS doesn't 
+          have an explicit playbackTarget, don't test for it.
+        (WebCore::MediaElementSession::isPlayingToWirelessPlaybackTarget): Ditto.
+
+2016-04-12  Gavin Barraclough  <barraclough@apple.com>
+
+        WebKit should adopt journal_mode=wal for all SQLite databases.
+        https://bugs.webkit.org/show_bug.cgi?id=133496
+
+        Rubber stamped by Chris Dumez.
+
+        Temporarily disable on iOS - this broke a test.
+        (storage/websql/alter-to-info-table.html)
+
+        * platform/sql/SQLiteDatabase.cpp:
+        (WebCore::SQLiteDatabase::open):
+
+2016-04-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Keyboard shortcut for "Inspect Element" only works when Web Inspector is open.
+        https://bugs.webkit.org/show_bug.cgi?id=111193
+        <rdar://problem/13325889>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/InspectorClient.h:
+        (WebCore::InspectorClient::elementSelectionChanged):
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::setSearchingForNode):
+        Inform the client when element selection changes.
+
+2016-04-12  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r199360): assertion hit in Element::fastGetAttribute()
+        https://bugs.webkit.org/show_bug.cgi?id=156509
+
+        Reviewed by Ryosuke Niwa.
+
+        Stop using fastGetAttribute() / setAttributeWithoutSynchronization()
+        given that DOMTokenList is used for the class attribute and we need
+        to synchronize in this case.
+
+        No new tests, already covered by existing tests.
+
+        * html/DOMTokenList.cpp:
+        (WebCore::DOMTokenList::updateAssociatedAttributeFromTokens):
+        (WebCore::DOMTokenList::tokens):
+
+2016-04-12  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [RTL Scrollbars] Overlay scrollbars push contents inwards
+        https://bugs.webkit.org/show_bug.cgi?id=156225
+        <rdar://problem/25137040>
+
+        Reviewed by Darin Adler.
+
+        The contents should be pushed in by the occupied width of the
+        scrollbar, which is 0 for overlay scrollbars.
+
+        Test: fast/scrolling/rtl-scrollbars-overlay-no-push-contents.html
+
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::computeScrollDimensions):
+
+2016-04-12  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] Flakey crash after ScrollAnimatorMac destruction
+        https://bugs.webkit.org/show_bug.cgi?id=156372
+
+        Reviewed by Darin Adler.
+
+        Previously, we were disabling the mock scrollbars using JavaScript after
+        the WebView was created. However, enabling these mock scrollbars can be
+        triggered with a bit of state inside the WebPreferences object, which
+        means WebKit clients can change it at any point. DumpRenderTree is doing
+        this during the document's lifetime.
+
+        This means that the creation of the Scrollbar objects saw a non-mock
+        ScrollbarTheme, but the destruction of the Scrollbar objects saw a mock
+        ScrollbarTheme. Therefore, the non-mock ScrollbarTheme doesn't get
+        cleaned up correctly (ScrollAnimatorMac::willRemoveVerticalScrollbar()
+        returns early because it sees that there is nothing to deregister
+        due to the ScrollbarTheme being mocked).
+
+        This cleanup is necessary because it sets the NSScrollerImp's delegate
+        to nil before the NSScrollerImpDelegate gets destroyed. Because the
+        cleanup wasn't happening, the delegate pointer wasn't getting set to
+        nil, so the pointer was dangling, and AppKit was following it and
+        crashing.
+
+        Because the clients of this bit of state can change it at any time,
+        it is incorrect to change it in JavaScript. Instead, the client must
+        manage this bit of state (so the client and the web process are always
+        in sync). Therefore, the correct way to set this bit of state must be
+        done in the test runner rather than Javascript internals. The mechanism
+        we have to do that is the <!-- webkit-test-runner --> comment at the
+        beginning of the test. This patch migrates to this mechanism and removes
+        the old internals method.
+
+        Test: fast/scrolling/rtl-scrollbars-animation-property.html
+
+        * page/Settings.cpp:
+        * testing/Internals.cpp:
+        (WebCore::Internals::setMockScrollbarsEnabled): Deleted.
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-04-12  Darin Adler  <darin@apple.com>
+
+        Remove UsePointersEvenForNonNullableObjectArguments from SVG lists
+        https://bugs.webkit.org/show_bug.cgi?id=156494
+
+        Reviewed by Chris Dumez.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (ShouldPassWrapperByReference): For now, don't do this for any tear-off classes.
+        This includes the items stored in most SVG list classes.
+
+        * svg/SVGLengthList.idl: Removed UsePointersEvenForNonNullableObjectArguments.
+        * svg/SVGNumberList.idl: Ditto.
+        * svg/SVGPointList.idl: Ditto.
+        * svg/SVGTransformList.idl: Ditto.
+
+        * svg/SVGPathSegList.idl: Removed UsePointersEvenForNonNullableObjectArguments.
+        Marked the arguments nullable, and added FIXMEs about returning later since they
+        don't really need to be nullable. But fixing this requires some reworking of the
+        SVG list template and it's not urgent at this time. Preserves behavior where we
+        get an exception when passing null, it's just an SVG exception instead of TypeError.
+
+2016-04-12  Chris Dumez  <cdumez@apple.com>
+
+        Lazily update tokens in DOMTokenList when the associated attribute value changes
+        https://bugs.webkit.org/show_bug.cgi?id=156474
+
+        Reviewed by Ryosuke Niwa.
+
+        Lazily update tokens in DOMTokenList when the associated attribute value
+        changes for performance. Constructing the sanitized vector of tokens
+        every time the associated Element attribute changes is too expensive.
+        Instead, we mark the vector as dirty whenever the attribute changes, and
+        we only construct the sanitized vector when it is actually required.
+
+        Also do some renaming for clarity.
+
+        There is no web-exposed behavior change.
+
+        * dom/Element.cpp:
+        (WebCore::Element::classAttributeChanged):
+        * html/DOMTokenList.cpp:
+        (WebCore::DOMTokenList::contains):
+        (WebCore::DOMTokenList::addInternal):
+        (WebCore::DOMTokenList::removeInternal):
+        (WebCore::DOMTokenList::toggle):
+        (WebCore::DOMTokenList::value):
+        (WebCore::DOMTokenList::setValue):
+        (WebCore::DOMTokenList::updateTokensFromAttributeValue):
+        (WebCore::DOMTokenList::associatedAttributeValueChanged):
+        (WebCore::DOMTokenList::updateAssociatedAttributeFromTokens):
+        (WebCore::DOMTokenList::tokens):
+        (WebCore::DOMTokenList::DOMTokenList): Deleted.
+        * html/DOMTokenList.h:
+        (WebCore::DOMTokenList::tokens):
+        (WebCore::DOMTokenList::length):
+        (WebCore::DOMTokenList::item):
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::parseAttribute):
+        * html/HTMLIFrameElement.cpp:
+        (WebCore::HTMLIFrameElement::parseAttribute):
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::parseAttribute):
+        * html/HTMLOutputElement.cpp:
+        (WebCore::HTMLOutputElement::parseAttribute):
+
+2016-04-12  Darin Adler  <darin@apple.com>
+
+        Remove UsePointersEvenForNonNullableObjectArguments from HTMLMediaElement
+        https://bugs.webkit.org/show_bug.cgi?id=156492
+
+        Reviewed by Chris Dumez.
+
+        * html/HTMLMediaElement.idl: Removed UsePointersEvenForNonNullableObjectArguments,
+        sorted remaining class attributes, simplified #if around canPlayType a bit,
+        removed comment that is not all that useful, made the argument to
+        webkitSetMediaKeys nullable since the implementation supports that.
+
+2016-04-12  Eric Carlson  <eric.carlson@apple.com>
+
+        [iOS] media title sometimes remain in Control Center after tab is closed
+        https://bugs.webkit.org/show_bug.cgi?id=156243
+        <rdar://problem/20167445>
+
+        Reviewed by Darin Adler.
+
+        * Modules/webaudio/AudioContext.h: Implement characteristics.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::mediaLoadingFailed): Call mediaSession->clientCharacteristicsChanged.
+        (WebCore::HTMLMediaElement::setReadyState): Ditto.
+        (WebCore::HTMLMediaElement::clearMediaPlayer): Ditto.
+        (WebCore::HTMLMediaElement::stop): Call mediaSession->stopSession.
+        (WebCore::HTMLMediaElement::characteristics): New, return current characteristics.
+        * html/HTMLMediaElement.h:
+
+        * platform/audio/PlatformMediaSession.cpp:
+        (WebCore::PlatformMediaSession::stopSession): Suspend playback, and remove the session 
+          from the manager, it will never play again.
+        (WebCore::PlatformMediaSession::characteristics): Return client characteristics.
+        (WebCore::PlatformMediaSession::clientCharacteristicsChanged):
+        * platform/audio/PlatformMediaSession.h:
+
+        * platform/audio/PlatformMediaSessionManager.cpp:
+        (WebCore::PlatformMediaSessionManager::stopAllMediaPlaybackForProcess): Call stopSession 
+          instead of pauseSession to signal that playback will never start again.
+        * platform/audio/PlatformMediaSessionManager.h:
+
+        * platform/audio/ios/MediaSessionManagerIOS.h:
+        * platform/audio/ios/MediaSessionManagerIOS.mm:
+        (WebCore::MediaSessionManageriOS::sessionWillBeginPlayback): Add logging.
+        (WebCore::MediaSessionManageriOS::removeSession): Update NowPlaying.
+        (WebCore::MediaSessionManageriOS::sessionWillEndPlayback): Add logging.
+        (WebCore::MediaSessionManageriOS::clientCharacteristicsChanged): Update NowPlaying.
+        (WebCore::MediaSessionManageriOS::nowPlayingEligibleSession): New, return the first session
+          that is an audio or video element with playable audio. WebAudio is not currently controllable
+          so it isn't appropriate to show it in the NowPlaying info center.
+        (WebCore::MediaSessionManageriOS::updateNowPlayingInfo): Remember the last state passed to
+          NowPlaying so we can call it only when something has changed.
+
 2016-04-12  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GTK] Rework scrollbars theming code for GTK+ 3.20
