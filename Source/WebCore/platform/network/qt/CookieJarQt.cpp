@@ -138,6 +138,11 @@ void deleteCookie(const NetworkStorageSession&, const URL&, const String&)
     // FIXME: Not yet implemented
 }
 
+void addCookie(const NetworkStorageSession&, const URL&, const Cookie&)
+{
+    // FIXME: Not yet implemented
+}
+
 void getHostnamesWithCookies(const NetworkStorageSession& session, HashSet<String>& hostnames)
 {
     ASSERT_UNUSED(session, !session.context()); // Not yet implemented for cookie jars other than the shared one.

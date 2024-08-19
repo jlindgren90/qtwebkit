@@ -113,6 +113,11 @@ void PlatformStrategiesQt::deleteCookie(const NetworkStorageSession& session, co
     WebCore::deleteCookie(session, url, cookieName);
 }
 
+void PlatformStrategiesQt::addCookie(const NetworkStorageSession& session, const URL& url, const Cookie& cookie)
+{
+    WebCore::addCookie(session, url, cookie);
+}
+
 void PlatformStrategiesQt::refreshPlugins()
 {
     PluginDatabase::installedPlugins()->refresh();

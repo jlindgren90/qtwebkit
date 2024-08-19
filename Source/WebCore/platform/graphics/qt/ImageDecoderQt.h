@@ -43,7 +43,7 @@ public:
     ImageDecoderQt(ImageSource::AlphaOption, ImageSource::GammaAndColorProfileOption);
     ~ImageDecoderQt();
 
-    void setData(SharedBuffer* data, bool allDataReceived) final;
+    void setData(SharedBuffer& data, bool allDataReceived) final;
     bool isSizeAvailable() final;
     size_t frameCount() final;
     int repetitionCount() const final;

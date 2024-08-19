@@ -65,7 +65,7 @@ static bool isFormatWhiteListed(const QByteArray &format)
     return whiteListSet.contains(format);
 }
 
-void ImageDecoderQt::setData(SharedBuffer* data, bool allDataReceived)
+void ImageDecoderQt::setData(SharedBuffer& data, bool allDataReceived)
 {
     if (failed())
         return;
