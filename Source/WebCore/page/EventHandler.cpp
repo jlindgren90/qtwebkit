@@ -2621,6 +2621,18 @@ void EventHandler::clearOrScheduleClearingLatchedStateIfNeeded(const PlatformWhe
 }
 #endif
 
+static Widget* widgetForElement(const Element& element)
+{
+    RenderElement* target = element.renderer();
+    if (!target)
+        return nullptr;
+
+    if (!is<RenderWidget>(target))
+        return nullptr;
+
+    return downcast<RenderWidget>(*target).widget();
+}
+
 bool EventHandler::handleWheelEvent(const PlatformWheelEvent& event)
 {
     RenderView* renderView = m_frame.contentRenderer();
@@ -2661,18 +2673,21 @@ bool EventHandler::handleWheelEvent(const PlatformWheelEvent& event)
 
     if (element) {
         if (isOverWidget) {
-            RenderElement* target = element->renderer();
-            if (is<RenderWidget>(target)) {
-                Widget* widget = downcast<RenderWidget>(*target).widget();
-                if (widget && passWheelEventToWidget(event, *widget)) {
-                    m_isHandlingWheelEvent = false;
-                    if (scrollableArea)
-                        scrollableArea->setScrolledProgrammatically(false);
-                    platformNotifyIfEndGesture(adjustedEvent, scrollableArea);
-                    if (!widget->platformWidget())
-                        return true;
-                    return platformCompletePlatformWidgetWheelEvent(event, *widget, scrollableContainer.get());
-                }
+            Widget* widget = widgetForElement(*element);
+            if (widget && passWheelEventToWidget(event, *widget)) {
+                m_isHandlingWheelEvent = false;
+
+                // We do another check on the widget because the event handler can run JS which results in the frame getting destroyed.
+                Widget* widget = widgetForElement(*element);
+                if (!widget)
+                    return false;
+
+                if (scrollableArea)
+                    scrollableArea->setScrolledProgrammatically(false);
+                platformNotifyIfEndGesture(adjustedEvent, scrollableArea);
+                if (!widget->platformWidget())
+                    return true;
+                return platformCompletePlatformWidgetWheelEvent(event, *widget, scrollableContainer.get());
             }
         }
 

@@ -1,3 +1,201 @@
+2016-04-08  Jer Noble  <jer.noble@apple.com>
+
+        CRASH in AudioDestinationNode::render()
+        https://bugs.webkit.org/show_bug.cgi?id=156308
+
+        Reviewed by Eric Carlson.
+
+        Yet another math error in AudioDestinationIOS::render(). It is possible for the difference between
+        m_startSpareFrame and m_endSpareFrame to be greater than the numberOfFrames to be rendered. Protect
+        against this case by taking the min() of those two values and only advancing m_startSpareFrame by
+        that amount.  This guarantees that framesThisTime will never underflow, and that data will not be
+        written past the end of the ioData parameter.
+
+        * platform/audio/ios/AudioDestinationIOS.cpp:
+        (WebCore::AudioDestinationIOS::render):
+
+2016-04-08  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Use more IDBValue and IDBGetResult in IDBBackingStore.
+        https://bugs.webkit.org/show_bug.cgi?id=156418
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Refactor, no change in behavior).
+
+        * Modules/indexeddb/IDBValue.cpp:
+        (WebCore::IDBValue::IDBValue):
+        * Modules/indexeddb/IDBValue.h:
+        
+        * Modules/indexeddb/server/IDBBackingStore.h:
+        
+        * Modules/indexeddb/server/MemoryBackingStoreTransaction.cpp:
+        (WebCore::IDBServer::MemoryBackingStoreTransaction::abort):
+        
+        * Modules/indexeddb/server/MemoryIDBBackingStore.cpp:
+        (WebCore::IDBServer::MemoryIDBBackingStore::addRecord):
+        (WebCore::IDBServer::MemoryIDBBackingStore::getRecord):
+        * Modules/indexeddb/server/MemoryIDBBackingStore.h:
+        
+        * Modules/indexeddb/server/MemoryObjectStore.cpp:
+        (WebCore::IDBServer::MemoryObjectStore::addRecord):
+        * Modules/indexeddb/server/MemoryObjectStore.h:
+        
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::SQLiteIDBBackingStore::addRecord):
+        (WebCore::IDBServer::SQLiteIDBBackingStore::getRecord):
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.h:
+        
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::performPutOrAdd):
+        (WebCore::IDBServer::UniqueIDBDatabase::performGetRecord):
+
+2016-04-08  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Make IDBGetResult contain an IDBValue instead of a buffer, and remove unused methods.
+        https://bugs.webkit.org/show_bug.cgi?id=156416
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Refactor, no change in behavior).
+
+        * Modules/indexeddb/IDBCursor.cpp:
+        (WebCore::IDBCursor::setGetResult):
+        
+        * Modules/indexeddb/IDBGetResult.cpp:
+        (WebCore::IDBGetResult::dataFromBuffer):
+        (WebCore::IDBGetResult::isolatedCopy):
+        * Modules/indexeddb/IDBGetResult.h:
+        (WebCore::IDBGetResult::IDBGetResult):
+        (WebCore::IDBGetResult::value):
+        (WebCore::IDBGetResult::encode):
+        (WebCore::IDBGetResult::decode):
+        (WebCore::IDBGetResult::valueBuffer): Deleted.
+        (WebCore::IDBGetResult::setValueBuffer): Deleted.
+        (WebCore::IDBGetResult::setKeyData): Deleted.
+        (WebCore::IDBGetResult::setPrimaryKeyData): Deleted.
+        (WebCore::IDBGetResult::setKeyPath): Deleted.
+        
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::didGetRecordOnServer):
+        
+        * Modules/indexeddb/IDBValue.cpp:
+        (WebCore::IDBValue::IDBValue):
+        * Modules/indexeddb/IDBValue.h:
+        
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::SQLiteIDBBackingStore::getIndexRecord):
+
+2016-04-08  Zalan Bujtas  <zalan@apple.com>
+
+        Focus ring drawn at incorrect location on image map with CSS transform.
+        https://bugs.webkit.org/show_bug.cgi?id=143527
+        <rdar://problem/21908735>
+
+        Reviewed by Simon Fraser.
+
+        Implement pathForFocusRing for HTMLAreaElement. It follows the logic of RenderObject::addFocusRingRects().
+
+        Tests: fast/images/image-map-outline-in-positioned-container.html
+               fast/images/image-map-outline-with-paint-root-offset.html
+               fast/images/image-map-outline-with-scale-transform.html
+               fast/images/image-map-outline.html
+
+        * html/HTMLAreaElement.cpp:
+        (WebCore::HTMLAreaElement::pathForFocusRing):
+        * html/HTMLAreaElement.h:
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::paintFocusRing): Move addFocusRingRects() out of focus ring painting.
+        (WebCore::RenderElement::paintOutline):
+        * rendering/RenderElement.h:
+        * rendering/RenderImage.cpp:
+        (WebCore::RenderImage::paint):
+        (WebCore::RenderImage::paintAreaElementFocusRing):
+        * rendering/RenderImage.h:
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::paintOutline):
+
+2016-04-08  Brent Fulgham  <bfulgham@apple.com>
+
+        [WK1] Wheel event callback removing the window causes crash in WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=156409
+        <rdar://problem/25631267>
+
+        Reviewed by Simon Fraser.
+
+        Null check the Widget before using it, since the iframe may have been removed
+        from its parent document inside the event handler.
+
+        This is the WK1 fix for https://bugs.webkit.org/show_bug.cgi?id=150871.
+
+        Tested by fast/events/wheel-event-destroys-frame.html
+
+        * page/EventHandler.cpp:
+        (WebCore::widgetForElement): Added.
+        (WebCore::EventHandler::handleWheelEvent): Use new helper function to
+        clean up the code, and allow us to check that the Widget has not been
+        destroyed during the event handler.
+
+2016-04-08  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        Timing attack on SVG feComposite filter circumvents same-origin policy
+        https://bugs.webkit.org/show_bug.cgi?id=154338
+
+        Reviewed by Oliver Hunt.
+
+        Ensure the FEComposite arithmetic filter is clamping the resulted color
+        components in a constant time.
+
+        * platform/graphics/filters/FEComposite.cpp:
+        (WebCore::clampByte):
+        (WebCore::computeArithmeticPixels):
+
+2016-04-08  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: get rid of InspectorBasicValue and InspectorString subclasses
+        https://bugs.webkit.org/show_bug.cgi?id=156407
+        <rdar://problem/25627659>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/InspectorDatabaseAgent.cpp: Don't use deleted subclasses.
+
+2016-04-08  Beth Dakin  <bdakin@apple.com>
+
+        Fix leaks in WebAVMediaSelectionOptionMac and WebPlaybackControlsManager
+        https://bugs.webkit.org/show_bug.cgi?id=156379
+
+        Reviewed by Tim Horton.
+
+        These classes should use RetainPtrs.
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (-[WebAVMediaSelectionOptionMac localizedDisplayName]):
+        (-[WebAVMediaSelectionOptionMac setLocalizedDisplayName:]):
+        (-[WebPlaybackControlsManager timing]):
+        (-[WebPlaybackControlsManager setTiming:]):
+        (-[WebPlaybackControlsManager seekableTimeRanges]):
+        (-[WebPlaybackControlsManager setSeekableTimeRanges:]):
+        (-[WebPlaybackControlsManager audioMediaSelectionOptions]):
+        (-[WebPlaybackControlsManager setAudioMediaSelectionOptions:]):
+        (-[WebPlaybackControlsManager currentAudioMediaSelectionOption]):
+        (-[WebPlaybackControlsManager setCurrentAudioMediaSelectionOption:]):
+        (-[WebPlaybackControlsManager legibleMediaSelectionOptions]):
+        (-[WebPlaybackControlsManager setLegibleMediaSelectionOptions:]):
+        (-[WebPlaybackControlsManager currentLegibleMediaSelectionOption]):
+        (-[WebPlaybackControlsManager setCurrentLegibleMediaSelectionOption:]):
+
+2016-04-08  Fujii Hironori  <Hironori.Fujii@jp.sony.com>
+
+        Touching any IDL files rebuilds all bindings in CMake Ninja build
+        https://bugs.webkit.org/show_bug.cgi?id=156400
+
+        Reviewed by Brent Fulgham.
+
+        * bindings/scripts/preprocess-idls.pl:
+        (GenerateConstructorAttribute):
+        WriteFileIfChanged does not work due to flaky results of 'keys'.
+        Sort results of 'keys'.
+
 2016-04-07  Simon Fraser  <simon.fraser@apple.com>
 
         [iOS WK2] Stop using exposedContentRect for history scroll state restoration
