@@ -3424,8 +3424,8 @@ list(APPEND WebCoreTestSupport_SOURCES
 )
 
 set(WebCoreTestSupport_LIBRARIES
-    JavaScriptCore${DEBUG_SUFFIX}
-    WTF${DEBUG_SUFFIX}
+    PRIVATE JavaScriptCore${DEBUG_SUFFIX}
+    PRIVATE WTF${DEBUG_SUFFIX}
 )
 
 # Modules that the bindings generator scripts may use
@@ -3805,6 +3805,10 @@ endif ()
 list(APPEND WebCore_SOURCES ${WebCore_DERIVED_SOURCES})
 
 WEBKIT_FRAMEWORK(WebCore)
+
+if (APPLE)
+    set_target_properties(WebCore PROPERTIES LINK_FLAGS "-sub_library libobjc -umbrella WebKit -allowable_client WebCoreTestSupport -allowable_client WebKit2 -allowable_client WebKitLegacy")
+endif ()
 
 if (NOT MSVC AND WIN32 AND ${PORT} STREQUAL "Qt")
     ADD_PREFIX_HEADER(WebCore "${WEBCORE_DIR}/WebCorePrefix.h")

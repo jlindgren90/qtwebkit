@@ -1,3 +1,137 @@
+2016-04-05  Chris Dumez  <cdumez@apple.com>
+
+        Add support for [EnabledAtRuntime] operations on DOMWindow
+        https://bugs.webkit.org/show_bug.cgi?id=156272
+
+        Reviewed by Alex Christensen.
+
+        Add identifier for 'fetch' so it can be used from the generated
+        bindings.
+
+        * runtime/CommonIdentifiers.h:
+
+2016-04-05  Alex Christensen  <achristensen@webkit.org>
+
+        Make CMake-generated binaries on Mac able to run
+        https://bugs.webkit.org/show_bug.cgi?id=156268
+
+        Reviewed by Daniel Bates.
+
+        * CMakeLists.txt:
+
+2016-04-05  Filip Pizlo  <fpizlo@apple.com>
+
+        Improve some other cases of context-sensitive inlining
+        https://bugs.webkit.org/show_bug.cgi?id=156277
+
+        Reviewed by Benjamin Poulain.
+        
+        This implements some improvements for inlining:
+
+        - We no longer do guarded inlining when the profiling doesn't come from a stub. Doing so would have
+          been risky, and according to benchmarks, it wasn't common enough to matter. I think it's better to
+          err on the side of not inlining.
+        
+        - The jneq_ptr pattern for variadic calls no longer breaks the basic block. Not breaking the block
+          increases the chances of the parser seeing the callee constant. While inlining doesn't require a
+          callee constant, sometimes it makes a difference. Note that we were previously breaking the block
+          for no reason at all: if the boundary after jneq_ptr is a jump target from some other jump, then
+          the parser will automatically break the block for us. There is no reason to add any block breaking
+          ourselves since we implement jneq_ptr by ignoring the affirmative jump destination and inserting a
+          check and falling through.
+        
+        - get_by_id handling now tries to apply some common sense to its status object. In particular, if
+          the source is a NewObject and there was no interfering operation that could clobber the structure,
+          then we know which case of a polymorphic GetByIdStatus we would take. This arises in some
+          constructor patterns.
+        
+        Long term, we should address all of these cases comprehensively by having a late inliner. The inliner
+        being part of the bytecode parser means that there is a lot of complexity in the parser and it
+        prevents us from inlining upon learning new information from static analysis. But for now, I think
+        it's fine to experiment with one-off hacks, if only to learn what the possibilities are.
+        
+        This is a 14% speed-up on Octane/raytrace.
+
+        * bytecode/CallLinkStatus.cpp:
+        (JSC::CallLinkStatus::dump):
+        * bytecode/CallLinkStatus.h:
+        (JSC::CallLinkStatus::couldTakeSlowPath):
+        (JSC::CallLinkStatus::setCouldTakeSlowPath):
+        (JSC::CallLinkStatus::variants):
+        (JSC::CallLinkStatus::size):
+        (JSC::CallLinkStatus::at):
+        * bytecode/GetByIdStatus.cpp:
+        (JSC::GetByIdStatus::makesCalls):
+        (JSC::GetByIdStatus::filter):
+        (JSC::GetByIdStatus::dump):
+        * bytecode/GetByIdStatus.h:
+        (JSC::GetByIdStatus::wasSeenInJIT):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleCall):
+        (JSC::DFG::ByteCodeParser::refineStatically):
+        (JSC::DFG::ByteCodeParser::handleVarargsCall):
+        (JSC::DFG::ByteCodeParser::handleInlining):
+        (JSC::DFG::ByteCodeParser::handleGetById):
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * runtime/Options.h:
+
+2016-04-05  Saam barati  <sbarati@apple.com>
+
+        JSC SamplingProfiler: Use a thread + sleep loop instead of WTF::WorkQueue for taking samples
+        https://bugs.webkit.org/show_bug.cgi?id=154017
+
+        Reviewed by Geoffrey Garen.
+
+        By moving to an explicitly created seperate thread + sample-then-sleep
+        loop, we can remove a lot of the crufty code around WorkQueue.
+        We're also getting sample rates that are much closer to what we're
+        asking the OS for. When the sampling handler was built off of WorkQueue,
+        we'd often get sample rates much higher than the 1ms we asked for. On Kraken,
+        we would average about 1.7ms sample rates, even though we'd ask for a 1ms rate.
+        Now, on Kraken, we're getting about 1.2ms rates. Because we're getting
+        higher rates, this patch is a performance regression. It's slower because
+        we're sampling more frequently.
+
+        Before this patch, the sampling profiler had the following overhead:
+        - 10% on Kraken
+        - 12% on octane
+        - 15% on AsmBench
+
+        With this patch, the sampling profiler has the following overhead:
+        - 16% on Kraken
+        - 17% on Octane
+        - 30% on AsmBench
+
+        Comparatively, this new patch has the following overhead over the old sampling profiler:
+        - 5% on Kraken
+        - 3.5% on Octane
+        - 13% slower on AsmBench
+
+        * inspector/agents/InspectorScriptProfilerAgent.cpp:
+        (Inspector::InspectorScriptProfilerAgent::trackingComplete):
+        * runtime/SamplingProfiler.cpp:
+        (JSC::SamplingProfiler::SamplingProfiler):
+        (JSC::SamplingProfiler::~SamplingProfiler):
+        (JSC::SamplingProfiler::createThreadIfNecessary):
+        (JSC::SamplingProfiler::timerLoop):
+        (JSC::SamplingProfiler::takeSample):
+        (JSC::tryGetBytecodeIndex):
+        (JSC::SamplingProfiler::shutdown):
+        (JSC::SamplingProfiler::start):
+        (JSC::SamplingProfiler::pause):
+        (JSC::SamplingProfiler::noticeCurrentThreadAsJSCExecutionThread):
+        (JSC::SamplingProfiler::noticeJSLockAcquisition):
+        (JSC::SamplingProfiler::noticeVMEntry):
+        (JSC::SamplingProfiler::clearData):
+        (JSC::SamplingProfiler::stop): Deleted.
+        (JSC::SamplingProfiler::dispatchIfNecessary): Deleted.
+        (JSC::SamplingProfiler::dispatchFunction): Deleted.
+        * runtime/SamplingProfiler.h:
+        (JSC::SamplingProfiler::setTimingInterval):
+        (JSC::SamplingProfiler::setStopWatch):
+        * runtime/VM.cpp:
+        (JSC::VM::VM):
+
 2016-04-05  Commit Queue  <commit-queue@webkit.org>
 
         Unreviewed, rolling out r199073.
