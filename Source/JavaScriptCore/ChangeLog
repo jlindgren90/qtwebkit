@@ -1,3 +1,162 @@
+2016-04-14  Mark Lam  <mark.lam@apple.com>
+
+        Update treatment of invoking RegExp.prototype methods on RegExp.prototype.
+        https://bugs.webkit.org/show_bug.cgi?id=155922
+
+        Reviewed by Keith Miller.
+
+        According to the TC39 committee, when invoking the following RegExp.prototype
+        methods on the RegExp.prototype:
+        1. RegExp.prototype.flags yields ""
+        2. RegExp.prototype.global yields undefined
+        3. RegExp.prototype.ignoreCase yields undefined
+        4. RegExp.prototype.multiline yields undefined
+        5. RegExp.prototype.unicode yields undefined
+        6. RegExp.prototype.source yields "(?:)"
+        7. RegExp.prototype.sticky yields undefined
+        8. RegExp.prototype.toString() yields "/(?:)/"
+
+        and RegExp.prototype is still NOT an instance of RegExp.  The above behavior
+        changes is a special dispensation applicable only to RegExp.prototype.  The ES6
+        spec of throwing errors still applies if those methods are applied to anything =
+        else that is not a RegExp object.
+
+        * runtime/RegExpPrototype.cpp:
+        (JSC::regExpProtoGetterGlobal):
+        (JSC::regExpProtoGetterIgnoreCase):
+        (JSC::regExpProtoGetterMultiline):
+        (JSC::regExpProtoGetterSticky):
+        (JSC::regExpProtoGetterUnicode):
+        (JSC::regExpProtoGetterFlags):
+        (JSC::regExpProtoGetterSource):
+        - Implemented new behavior.
+
+        * tests/es6/miscellaneous_built-in_prototypes_are_not_instances.js:
+        (test):
+        - Updated to match current kangax test.
+
+2016-04-14  Geoffrey Garen  <ggaren@apple.com>
+
+        Some imported ES6 tests are missing __createIterableObject
+        https://bugs.webkit.org/show_bug.cgi?id=156584
+
+        Reviewed by Keith Miller.
+
+        These tests were failing because I neglected to include __createIterableObject
+        when I first imported them. Now they pass.
+
+        * tests/es6.yaml:
+        * tests/es6/Array_static_methods_Array.from_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/Array_static_methods_Array.from_instances_of_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/Array_static_methods_Array.from_iterator_closing.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/Array_static_methods_Array.from_map_function_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/Array_static_methods_Array.from_map_function_instances_of_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/Map_iterator_closing.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/Promise_Promise.all_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test.asyncTestPassed):
+        * tests/es6/Promise_Promise.race_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test.asyncTestPassed):
+        * tests/es6/Set_iterator_closing.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/WeakMap_iterator_closing.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/WeakSet_iterator_closing.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/destructuring_iterator_closing.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/destructuring_with_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/destructuring_with_instances_of_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/for..of_loops_iterator_closing_break.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/for..of_loops_iterator_closing_throw.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/for..of_loops_with_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/for..of_loops_with_instances_of_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/generators_yield_star_generic_iterables.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/generators_yield_star_iterator_closing_via_throw.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        * tests/es6/spread_..._operator_with_generic_iterables_in_arrays.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/spread_..._operator_with_generic_iterables_in_calls.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/spread_..._operator_with_instances_of_iterables_in_arrays.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+        * tests/es6/spread_..._operator_with_instances_of_iterables_in_calls.js:
+        (iterator.next):
+        (iterable.Symbol.iterator):
+        (__createIterableObject):
+        (test):
+
 2016-04-13  Alex Christensen  <achristensen@webkit.org>
 
         CMake MiniBrowser should be an app bundle

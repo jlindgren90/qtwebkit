@@ -1,3 +1,121 @@
+2016-04-14  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Implement CSSGridTemplateAreasValue::equals
+        https://bugs.webkit.org/show_bug.cgi?id=156578
+
+        Reviewed by Darin Adler.
+
+        This was causing an infinite loop setting grid-template-areas
+        from JavaScript.
+
+        The reason was that CSSGridTemplateAreasValue needs
+        an specific implementation of equals() method.
+
+        Test: fast/css-grid-layout/grid-template-areas-infinite-loop.html
+
+        * css/CSSGridTemplateAreasValue.cpp:
+        (WebCore::CSSGridTemplateAreasValue::equals):
+        * css/CSSGridTemplateAreasValue.h:
+
+2016-04-14  Brent Fulgham  <bfulgham@apple.com>
+
+        [CMake] Clean up CMake files
+        https://bugs.webkit.org/show_bug.cgi?id=156580
+
+        Reviewed by Alex Christensen.
+
+        Revise the various CMake input files to reduce the amount of duplicated file references in
+        the various ports.
+
+        * CMakeLists.txt:
+        * PlatformAppleWin.cmake:
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * PlatformWin.cmake:
+        * PlatformWinCairo.cmake:
+
+2016-04-14  Frederic Wang  <fred.wang@free.fr>
+
+        RenderMathMLOperator: Add helper function to retrieve italic correction
+        https://bugs.webkit.org/show_bug.cgi?id=156572
+
+        Reviewed by Darin Adler.
+
+        No new tests, the helper function will only be used in bug 153918.
+
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::italicCorrection): Return the italic correction from the MATH table if it's a large operator.
+        * rendering/mathml/RenderMathMLOperator.h: Declare italicCorrection.
+
+2016-04-14  Frederic Wang  <fwang@igalia.com>
+
+        RenderMathMLOperator: Move glyph measuring helper functions outside the class
+        https://bugs.webkit.org/show_bug.cgi?id=156571
+
+        Reviewed by Darin Adler.
+
+        No new tests, this is just a simple refactoring to prepare the patch
+        for bug 156542, without any behavior change.
+
+        * rendering/mathml/RenderMathMLOperator.cpp: MATHML_OPDICT_SIZE was removed in bug 152242, so no need to undef it.
+        (WebCore::boundsForGlyph): Static inline helper function moved from the RenderMathMLOperator class.
+        (WebCore::heightForGlyph): Ditto.
+        (WebCore::advanceWidthForGlyph): Ditto and renamed.
+        (WebCore::RenderMathMLOperator::computePreferredLogicalWidths): Rename advanceForGlyph.
+        (WebCore::RenderMathMLOperator::findStretchyData): Ditto.
+        (WebCore::RenderMathMLOperator::updateStyle): Ditto.
+        (WebCore::RenderMathMLOperator::paintGlyph): Ditto.
+        (WebCore::RenderMathMLOperator::paint): Ditto.
+        (WebCore::RenderMathMLOperator::trailingSpaceError): Ditto.
+        (WebCore::RenderMathMLOperator::setOperatorProperties): Deleted.
+        (WebCore::RenderMathMLOperator::boundsForGlyph): Deleted.
+        (WebCore::RenderMathMLOperator::heightForGlyph): Deleted.
+        (WebCore::RenderMathMLOperator::advanceForGlyph): Deleted.
+        * rendering/mathml/RenderMathMLOperator.h:
+
+2016-04-14  Frederic Wang  <fred.wang@free.fr>
+
+        Set some RenderMathMLOperator members as final
+        https://bugs.webkit.org/show_bug.cgi?id=156574
+
+        Reviewed by Darin Adler.
+
+        No new tests, this is only a simple refactoring without behavior change.
+
+        * rendering/mathml/RenderMathMLOperator.h: Replace "override" with "final" for some members.
+
+2016-04-14  Frederic Wang  <fwang@igalia.com>
+
+        Ensure that RenderMathMLOperator::stretchTo functions are called with stretchy operators that have the correct direction
+        https://bugs.webkit.org/show_bug.cgi?id=156542
+
+        Reviewed by Darin Adler.
+
+        In the RenderMathMLUnderOver refactoring (r199293), we avoided doing a
+        horizontal stretchTo call for non-stretchy operators. Here we do the
+        same for RenderMathMLRow and avoid doing a vertical stretchTo call for
+        horizontal or non-stretchy operators. We also add appropriate ASSERT in
+        the RenderMathMLOperator::stretchTo functions. To avoid failing tests
+        with DOM/style update, we make our updates a bit stricter. Hopefully,
+        we could manage such things better in the future (bug 156536).
+
+        Tests: mathml/presentation/row-nonstretchy-or-horizontal.html
+               mathml/presentation/underover-nonstretchy-or-vertical.html
+
+        * mathml/MathMLTextElement.cpp:
+        (WebCore::MathMLTextElement::parseAttribute): Replace setOperatorFlagAndScheduleLayoutIfNeeded with a stronger rendering update.
+        Also ensure that this is done when the lspace/rspace attributes change.
+        This avoids breaking mathml/presentation/mo-lspace-rspace-dynamic.html
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::stretchTo): Add ASSERT to ensure that it is only called with stretchy operators that have the correct direction.
+        (WebCore::RenderMathMLOperator::styleDidChange): Do a stronger rendering update when the style changes.
+        This avoids breaking mathml/presentation/style-changed.html
+        (WebCore::RenderMathMLOperator::setOperatorFlagAndScheduleLayoutIfNeeded): Deleted.
+        * rendering/mathml/RenderMathMLOperator.h: Make updateFromElement public so that it can be called from MathMLTextElement::parseAttribute
+        Remove setOperatorFlagAndScheduleLayoutIfNeeded and declare styleDidChange.
+        * rendering/mathml/RenderMathMLRow.cpp:
+        (WebCore::RenderMathMLRow::layoutRowItems): Only call stretchTo for vertical stretchy operators.
+
 2016-04-14  Anders Carlsson  <andersca@apple.com>
 
         When FileInputType::setFiles is called with an empty file list, the last set icon is not cleared
