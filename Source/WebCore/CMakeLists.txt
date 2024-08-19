@@ -1609,7 +1609,6 @@ set(WebCore_SOURCES
     history/HistoryItem.cpp
     history/PageCache.cpp
 
-    html/AttributeDOMTokenList.cpp
     html/Autofill.cpp
     html/BaseButtonInputType.cpp
     html/BaseCheckableInputType.cpp
@@ -2214,7 +2213,6 @@ set(WebCore_SOURCES
     platform/graphics/Image.cpp
     platform/graphics/ImageBuffer.cpp
     platform/graphics/ImageOrientation.cpp
-    platform/graphics/ImageSource.cpp
     platform/graphics/IntPoint.cpp
     platform/graphics/IntRect.cpp
     platform/graphics/IntSize.cpp

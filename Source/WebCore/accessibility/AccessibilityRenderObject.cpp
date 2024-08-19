@@ -3968,7 +3968,7 @@ int AccessibilityRenderObject::mathLineThickness() const
     if (!is<RenderMathMLFraction>(m_renderer))
         return -1;
     
-    return downcast<RenderMathMLFraction>(*m_renderer).lineThickness();
+    return downcast<RenderMathMLFraction>(*m_renderer).relativeLineThickness();
 }
 
 #endif

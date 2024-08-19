@@ -30,10 +30,18 @@
 #include "HTMLParserIdioms.h"
 #include "SpaceSplitString.h"
 #include <wtf/HashSet.h>
+#include <wtf/TemporaryChange.h>
 #include <wtf/text/AtomicStringHash.h>
 #include <wtf/text/StringBuilder.h>
 
 namespace WebCore {
+
+DOMTokenList::DOMTokenList(Element& element, const QualifiedName& attributeName)
+    : m_element(element)
+    , m_attributeName(attributeName)
+{
+    setValueInternal(m_element.getAttribute(m_attributeName));
+}
 
 bool DOMTokenList::validateToken(const String& token, ExceptionCode& ec)
 {
@@ -62,11 +70,8 @@ bool DOMTokenList::validateTokens(const String* tokens, size_t length, Exception
     return true;
 }
 
-bool DOMTokenList::contains(const AtomicString& token, ExceptionCode& ec) const
+bool DOMTokenList::contains(const AtomicString& token) const
 {
-    if (!validateToken(token, ec))
-        return false;
-
     return m_tokens.contains(token);
 }
 
@@ -191,6 +196,23 @@ void DOMTokenList::setValueInternal(const WTF::String& value)
 
     m_tokens.shrinkToFit();
     m_cachedValue = nullAtom;
+}
+
+void DOMTokenList::attributeValueChanged(const AtomicString& newValue)
+{
+    // Do not reset the DOMTokenList value if the attribute value was changed by us.
+    if (m_isUpdatingAttributeValue)
+        return;
+
+    setValueInternal(newValue);
+}
+
+void DOMTokenList::updateAfterTokenChange()
+{
+    m_cachedValue = nullAtom;
+
+    TemporaryChange<bool> inAttributeUpdate(m_isUpdatingAttributeValue, true);
+    m_element.setAttribute(m_attributeName, value());
 }
 
 } // namespace WebCore

@@ -68,8 +68,9 @@
 #include "ScopedArguments.h"
 #include "ScopedArgumentsTable.h"
 #include "ScratchRegisterAllocator.h"
-#include "ShadowChicken.h"
 #include "SetupVarargsFrame.h"
+#include "ShadowChicken.h"
+#include "StructureStubInfo.h"
 #include "VirtualRegister.h"
 #include "Watchdog.h"
 #include <atomic>
@@ -660,7 +661,6 @@ private:
             compileCreateActivation();
             break;
         case NewFunction:
-        case NewArrowFunction:
         case NewGeneratorFunction:
             compileNewFunction();
             break;
@@ -3347,7 +3347,7 @@ private:
     
     void compileNewFunction()
     {
-        ASSERT(m_node->op() == NewFunction || m_node->op() == NewArrowFunction || m_node->op() == NewGeneratorFunction);
+        ASSERT(m_node->op() == NewFunction || m_node->op() == NewGeneratorFunction);
         bool isGeneratorFunction = m_node->op() == NewGeneratorFunction;
         
         LValue scope = lowCell(m_node->child1());

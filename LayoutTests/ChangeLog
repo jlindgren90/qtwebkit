@@ -1,3 +1,83 @@
+2016-04-11  Chris Dumez  <cdumez@apple.com>
+
+        DOMTokenList.contains() should not throw
+        https://bugs.webkit.org/show_bug.cgi?id=156453
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing layout tests now that DOMTokenList.contains() no longer
+        throws when called with an invalid token.
+
+        * fast/dom/HTMLElement/class-list-expected.txt:
+        * fast/dom/HTMLElement/class-list-quirks-expected.txt:
+        * fast/dom/HTMLElement/script-tests/class-list.js:
+        (shouldThrowDOMException): Deleted.
+        * fast/dom/HTMLOutputElement/dom-settable-token-list-expected.txt:
+        * fast/dom/HTMLOutputElement/script-tests/dom-settable-token-list.js:
+        (shouldThrowDOMException): Deleted.
+        * fast/dom/rel-list-expected.txt:
+        * fast/dom/rel-list.html:
+
+2016-04-11  Frederic Wang  <fwang@igalia.com>
+
+        Refactor RenderMathMLFraction layout to avoid using flexbox
+        https://bugs.webkit.org/show_bug.cgi?id=153917
+
+        Reviewed by Sergio Villar Senin.
+
+        * TestExpectations: No longer skip mathml/presentation/fractions-positions.html
+        * mathml/opentype/fraction-line-expected.html: Added. New test to verify AxisHeight and
+        FractionRuleThickness parameters.
+        * mathml/opentype/fraction-line.html: Added. New test to verify axis height and rule
+        thickness parameters.
+        * mathml/presentation/fractions-linethickness-expected.html: Adjust the test to be sure that
+        the default rule thickness is 1px.
+        * mathml/presentation/fractions-linethickness.html: Adjust the test to be sure that the
+        default rule thickness is 1px.
+        * platform/gtk/mathml/presentation/roots-expected.txt: Update reference to take into account
+        changes in the render tree.
+        * platform/ios-simulator/mathml/presentation/roots-expected.txt: Ditto
+        * platform/mac/TestExpectations: Mark fraction-line and fractions-linethickness as
+        possibly failing since these tests require Latin Modern Math to work reliably.
+        * platform/ios-simulator/TestExpectations: Ditto
+
+2016-04-11  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199290.
+        https://bugs.webkit.org/show_bug.cgi?id=156465
+
+        broke 300 tests (Requested by mcatanzaro on #webkit).
+
+        Reverted changeset:
+
+        "Merge CG ImageSource and non CG ImageSource implementation in
+        one file"
+        https://bugs.webkit.org/show_bug.cgi?id=155456
+        http://trac.webkit.org/changeset/199290
+
+2016-04-11  Frederic Wang  <fwang@igalia.com>
+
+        Refactor RenderMathMLUnderOver layout functions to avoid using flexbox
+        https://bugs.webkit.org/show_bug.cgi?id=153742
+
+        Reviewed by Sergio Villar Senin.
+
+        Apply some small adjustments to the expectations of MathML tests after
+        the refactoring of RenderMathMLUnderOver. We also add a test for
+        non-stretchy horizontal operators in underover.
+
+        * platform/gtk/mathml/opentype/horizontal-expected.png:
+        * platform/gtk/mathml/opentype/horizontal-expected.txt:
+        * platform/gtk/mathml/opentype/opentype-stretchy-horizontal-expected.png:
+        * platform/gtk/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+        * platform/mac/mathml/opentype/opentype-stretchy-horizontal-expected.png:
+        * platform/mac/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+        * mathml/mn-as-list-item-assert.html: Move the test description out of the invalid munderover
+        so that it is still displayed.
+        * mathml/mn-as-list-item-assert-expected.txt: Update the text expectation.
+        * mathml/presentation/underover-nonstretchy-horizontal.html: Ensure that nonstretchy horizontal operators are not stretched in munderover.
+        * mathml/presentation/underover-nonstretchy-horizontal-expected.html: Ditto.
+
 2016-04-11  Antti Koivisto  <antti@apple.com>
 
         Implement functional :host() pseudo class

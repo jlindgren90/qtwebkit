@@ -1,3 +1,209 @@
+2016-04-11  Filip Pizlo  <fpizlo@apple.com>
+
+        It should be possible to edit StructureStubInfo without recompiling the world
+        https://bugs.webkit.org/show_bug.cgi?id=156470
+
+        Reviewed by Keith Miller.
+
+        This change makes it less painful to make changes to the IC code. It used to be that any
+        change to StructureStubInfo caused every JIT-related file to get recompiled. Now only a
+        smaller set of files - ones that actually peek into StructureStubInfo - will recompile. This
+        is mainly because CodeBlock.h no longer includes StructureStubInfo.h.
+
+        * bytecode/ByValInfo.h:
+        * bytecode/CodeBlock.cpp:
+        * bytecode/CodeBlock.h:
+        * bytecode/GetByIdStatus.cpp:
+        * bytecode/GetByIdStatus.h:
+        * bytecode/PutByIdStatus.cpp:
+        * bytecode/PutByIdStatus.h:
+        * bytecode/StructureStubInfo.h:
+        (JSC::getStructureStubInfoCodeOrigin):
+        * dfg/DFGByteCodeParser.cpp:
+        * dfg/DFGJITCompiler.cpp:
+        * dfg/DFGOSRExitCompilerCommon.cpp:
+        * dfg/DFGSpeculativeJIT.h:
+        * ftl/FTLLowerDFGToB3.cpp:
+        * ftl/FTLSlowPathCall.h:
+        * jit/IntrinsicEmitter.cpp:
+        * jit/JITInlineCacheGenerator.cpp:
+        * jit/JITInlineCacheGenerator.h:
+        * jit/JITOperations.cpp:
+        * jit/JITPropertyAccess.cpp:
+        * jit/JITPropertyAccess32_64.cpp:
+
+2016-04-11  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        Remove NewArrowFunction from DFG IR
+        https://bugs.webkit.org/show_bug.cgi?id=156439
+
+        Reviewed by Saam Barati.
+
+        It seems that NewArrowFunction was left in DFG IR during refactoring by mistake.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGClobbersExitState.cpp:
+        * dfg/DFGDoesGC.cpp:
+        * dfg/DFGFixupPhase.cpp:
+        * dfg/DFGMayExit.cpp:
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::convertToPhantomNewFunction):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGObjectAllocationSinkingPhase.cpp:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileNewFunction):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        * dfg/DFGSpeculativeJIT64.cpp:
+        * dfg/DFGStoreBarrierInsertionPhase.cpp:
+        * dfg/DFGStructureRegistrationPhase.cpp:
+        * ftl/FTLCapabilities.cpp:
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNewFunction):
+
+2016-04-05  Oliver Hunt  <oliver@apple.com>
+
+        Remove compile time define for SEPARATED_HEAP
+        https://bugs.webkit.org/show_bug.cgi?id=155508
+
+        Reviewed by Mark Lam.
+
+        Remove the SEPARATED_HEAP compile time flag. The separated
+        heap is available, but off by default, on x86_64, ARMv7, and
+        ARM64.
+
+        Working through the issues that happened last time essentially
+        required implementing the ARMv7 path for the separated heap
+        just so I could find all the ways it was going wrong.
+
+        We fixed all the logic by making the branch and jump logic in
+        the linker and assemblers take two parameters, the location to
+        write to, and the location we'll actually be writing to. We 
+        need to do this because it's no longer sufficient to compute
+        jumps relative to region the linker is writing to.
+
+        The repatching jump, branch, and call functions only need the
+        executable address as the patching is performed directly using
+        performJITMemcpy function which works in terms of the executable
+        address.
+
+        There is no performance impact on jsc-benchmarks with the separate
+        heap either emabled or disabled.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * assembler/ARM64Assembler.h:
+        (JSC::ARM64Assembler::linkJump):
+        (JSC::ARM64Assembler::linkCall):
+        (JSC::ARM64Assembler::relinkJump):
+        (JSC::ARM64Assembler::relinkCall):
+        (JSC::ARM64Assembler::link):
+        (JSC::ARM64Assembler::linkJumpOrCall):
+        (JSC::ARM64Assembler::linkCompareAndBranch):
+        (JSC::ARM64Assembler::linkConditionalBranch):
+        (JSC::ARM64Assembler::linkTestAndBranch):
+        (JSC::ARM64Assembler::relinkJumpOrCall):
+        * assembler/ARMv7Assembler.h:
+        (JSC::ARMv7Assembler::revertJumpTo_movT3movtcmpT2):
+        (JSC::ARMv7Assembler::revertJumpTo_movT3):
+        (JSC::ARMv7Assembler::link):
+        (JSC::ARMv7Assembler::linkJump):
+        (JSC::ARMv7Assembler::relinkJump):
+        (JSC::ARMv7Assembler::repatchCompact):
+        (JSC::ARMv7Assembler::replaceWithJump):
+        (JSC::ARMv7Assembler::replaceWithLoad):
+        (JSC::ARMv7Assembler::replaceWithAddressComputation):
+        (JSC::ARMv7Assembler::setInt32):
+        (JSC::ARMv7Assembler::setUInt7ForLoad):
+        (JSC::ARMv7Assembler::isB):
+        (JSC::ARMv7Assembler::isBX):
+        (JSC::ARMv7Assembler::isMOV_imm_T3):
+        (JSC::ARMv7Assembler::isMOVT):
+        (JSC::ARMv7Assembler::isNOP_T1):
+        (JSC::ARMv7Assembler::isNOP_T2):
+        (JSC::ARMv7Assembler::linkJumpT1):
+        (JSC::ARMv7Assembler::linkJumpT2):
+        (JSC::ARMv7Assembler::linkJumpT3):
+        (JSC::ARMv7Assembler::linkJumpT4):
+        (JSC::ARMv7Assembler::linkConditionalJumpT4):
+        (JSC::ARMv7Assembler::linkBX):
+        (JSC::ARMv7Assembler::linkConditionalBX):
+        (JSC::ARMv7Assembler::linkJumpAbsolute):
+        * assembler/LinkBuffer.cpp:
+        (JSC::LinkBuffer::copyCompactAndLinkCode):
+        * assembler/MacroAssemblerARM64.h:
+        (JSC::MacroAssemblerARM64::link):
+        * assembler/MacroAssemblerARMv7.h:
+        (JSC::MacroAssemblerARMv7::link):
+        * jit/ExecutableAllocator.h:
+        (JSC::performJITMemcpy):
+        * jit/ExecutableAllocatorFixedVMPool.cpp:
+        (JSC::FixedVMPoolExecutableAllocator::initializeSeparatedWXHeaps):
+        (JSC::FixedVMPoolExecutableAllocator::jitWriteThunkGenerator):
+        (JSC::FixedVMPoolExecutableAllocator::genericWriteToJITRegion):
+        (JSC::FixedVMPoolExecutableAllocator::FixedVMPoolExecutableAllocator): Deleted.
+        * runtime/Options.cpp:
+        (JSC::recomputeDependentOptions):
+        * runtime/Options.h:
+
+2016-04-10  Filip Pizlo  <fpizlo@apple.com>
+
+        Clean up how we reason about the states of AccessCases
+        https://bugs.webkit.org/show_bug.cgi?id=156454
+
+        Reviewed by Mark Lam.
+        
+        Currently when we add an AccessCase to a PolymorphicAccess stub, we regenerate the stub.
+        That means that as we grow a stub to have N cases, we will do O(N^2) generation work. I want
+        to explore buffering AccessCases so that we can do O(N) generation work instead. But to
+        before I go there, I want to make sure that the statefulness of AccessCase makes sense. So,
+        I broke it down into three different states and added assertions about the transitions. I
+        also broke out a separate operation called AccessCase::commit(), which is the work that
+        cannot be buffered since there cannot be any JS effects between when the AccessCase was
+        created and when we do the work in commit().
+        
+        This opens up a fairly obvious path to buffering AccessCases: add them to the list without
+        regenerating. Then when we do eventually trigger regeneration, those cases will get cloned
+        and generated automagically. This patch doesn't implement this technique yet, but gives us
+        an opportunity to independently test the scaffolding necessary to do it.
+
+        This is perf-neutral on lots of tests.
+
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessGenerationResult::dump):
+        (JSC::AccessCase::clone):
+        (JSC::AccessCase::commit):
+        (JSC::AccessCase::guardedByStructureCheck):
+        (JSC::AccessCase::dump):
+        (JSC::AccessCase::generateWithGuard):
+        (JSC::AccessCase::generate):
+        (JSC::AccessCase::generateImpl):
+        (JSC::PolymorphicAccess::regenerateWithCases):
+        (JSC::PolymorphicAccess::regenerate):
+        (WTF::printInternal):
+        * bytecode/PolymorphicAccess.h:
+        (JSC::AccessCase::type):
+        (JSC::AccessCase::state):
+        (JSC::AccessCase::offset):
+        (JSC::AccessCase::viaProxy):
+        (JSC::AccessCase::callLinkInfo):
+        * bytecode/StructureStubInfo.cpp:
+        (JSC::StructureStubInfo::addAccessCase):
+        * bytecode/Watchpoint.h:
+        * dfg/DFGOperations.cpp:
+        * jit/Repatch.cpp:
+        (JSC::repatchGetByID):
+        (JSC::repatchPutByID):
+        (JSC::repatchIn):
+        * runtime/VM.cpp:
+        (JSC::VM::dumpRegExpTrace):
+        (JSC::VM::ensureWatchpointSetForImpureProperty):
+        (JSC::VM::registerWatchpointForImpureProperty):
+        (JSC::VM::addImpureProperty):
+        * runtime/VM.h:
+
 2016-04-11  Fujii Hironori  <Hironori.Fujii@jp.sony.com>
 
         [CMake] Make FOLDER property INHERITED
