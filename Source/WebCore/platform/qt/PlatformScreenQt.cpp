@@ -101,6 +101,11 @@ FloatRect screenAvailableRect(Widget* widget)
     return FloatRect(r.x(), r.y(), r.width(), r.height());
 }
 
+bool screenSupportsExtendedColor()
+{
+    return false;
+}
+
 void screenColorProfile(ColorProfile&)
 {
     notImplemented();
