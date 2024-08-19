@@ -119,7 +119,7 @@ namespace JSC { namespace DFG {
     /* Bitwise operators call ToInt32 on their operands. */\
     macro(ValueToInt32, NodeResultInt32) \
     /* Used to box the result of URShift nodes (result has range 0..2^32-1). */\
-    macro(UInt32ToNumber, NodeResultNumber) \
+    macro(UInt32ToNumber, NodeResultNumber | NodeMustGenerate) \
     /* Converts booleans to numbers but passes everything else through. */\
     macro(BooleanToNumber, NodeResultJS) \
     \
@@ -296,11 +296,6 @@ namespace JSC { namespace DFG {
     macro(OverridesHasInstance, NodeMustGenerate | NodeResultBoolean) \
     macro(InstanceOf, NodeResultBoolean) \
     macro(InstanceOfCustom, NodeMustGenerate | NodeResultBoolean) \
-    \
-    /* I'd like to call this IsArray but then we get namespace problems with the indexing type name. Also, it is marked must generate because it can throw. */ \
-    macro(IsArrayObject, NodeMustGenerate | NodeResultBoolean) \
-    macro(IsJSArray, NodeResultBoolean) \
-    macro(IsArrayConstructor, NodeResultBoolean) \
     macro(IsUndefined, NodeResultBoolean) \
     macro(IsBoolean, NodeResultBoolean) \
     macro(IsNumber, NodeResultBoolean) \
@@ -312,7 +307,6 @@ namespace JSC { namespace DFG {
     macro(LogicalNot, NodeResultBoolean) \
     macro(ToPrimitive, NodeResultJS | NodeMustGenerate) \
     macro(ToString, NodeResultJS | NodeMustGenerate) \
-    macro(CallObjectConstructor, NodeResultJS) \
     macro(CallStringConstructor, NodeResultJS | NodeMustGenerate) \
     macro(NewStringObject, NodeResultJS) \
     macro(MakeRope, NodeResultJS) \

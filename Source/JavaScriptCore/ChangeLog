@@ -1,3 +1,338 @@
+2016-04-07  Saam barati  <sbarati@apple.com>
+
+        Initial implementation of annex b.3.3 behavior was incorrect
+        https://bugs.webkit.org/show_bug.cgi?id=156276
+
+        Reviewed by Keith Miller.
+
+        I almost got annex B.3.3 correct in my first implementation.
+        There is a subtlety here I got wrong. We always create a local binding for
+        a function at the very beginning of execution of a block scope. So we
+        hoist function declarations to their local binding within a given
+        block scope. When we actually evaluate the function declaration statement
+        itself, we must lookup the binding in the current scope, and bind the
+        value to the binding in the "var" scope. We perform the following
+        abstract operations when executing a function declaration statement.
+
+        f = lookupBindingInCurrentScope("func")
+        store(varScope, "func", f)
+
+        I got this wrong by performing the store to the var binding at the beginning
+        of the block scope instead of when we evaluate the function declaration statement.
+        This behavior is observable. For example, a program could change the value
+        of "func" before the actual function declaration statement executes.
+        Consider the following two functions:
+        ```
+        function foo1() {
+            // func === undefined
+            {
+                // typeof func === "function"
+                function func() { } // Executing this statement binds the local "func" binding to the implicit "func" var binding.
+                func = 20 // This sets the local "func" binding to 20.
+            }
+            // typeof func === "function"
+        }
+
+        function foo2() {
+            // func === undefined
+            {
+                // typeof func === "function"
+                func = 20 // This sets the local "func" binding to 20.
+                function func() { } // Executing this statement binds the local "func" binding to the implicit "func" var binding.
+            }
+            // func === 20
+        }
+        ```
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::initializeBlockScopedFunctions):
+        (JSC::BytecodeGenerator::hoistSloppyModeFunctionIfNecessary):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::emitNodeForLeftHandSide):
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::FuncDeclNode::emitBytecode):
+        * tests/stress/sloppy-mode-function-hoisting.js:
+        (test.foo):
+        (test):
+        (test.):
+        (test.bar):
+        (test.switch.case.0):
+        (test.capFoo1):
+        (test.switch.capFoo2):
+        (test.outer):
+        (foo):
+
+2016-04-07  Alex Christensen  <achristensen@webkit.org>
+
+        Build fix after r199170
+
+        * CMakeLists.txt:
+
+2016-04-07  Keith Miller  <keith_miller@apple.com>
+
+        We should support the ability to do a non-effectful getById
+        https://bugs.webkit.org/show_bug.cgi?id=156116
+
+        Reviewed by Benjamin Poulain.
+
+        Currently, there is no way in JS to do a non-effectful getById. A non-effectful getById is
+        useful because it enables us to take different code paths based on values that we would
+        otherwise not be able to have knowledge of. This patch adds this new feature called
+        try_get_by_id that will attempt to do as much of a get_by_id as possible without performing
+        an effectful behavior. Thus, try_get_by_id will return the value if the slot is a value, the
+        GetterSetter object if the slot is a normal accessor (not a CustomGetterSetter) and
+        undefined if the slot is unset.  If the slot is proxied or any other cases then the result
+        is null. In theory, if we ever wanted to check for null we could add a sentinal object to
+        the global object that indicates we could not get the result.
+
+        In order to implement this feature we add a new enum GetByIdKind that indicates what to do
+        for accessor properties in PolymorphicAccess. If the GetByIdKind is pure then we treat the
+        get_by_id the same way we would for load and return the value at the appropriate offset.
+        Additionally, in order to make sure the we can properly compare the GetterSetter object
+        with === GetterSetters are now JSObjects. This comes at the cost of eight extra bytes on the
+        GetterSetter object but it vastly simplifies the patch. Additionally, the extra bytes are
+        likely to have little to no impact on memory usage as normal accessors are generally rare.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * builtins/BuiltinExecutableCreator.cpp: Added.
+        (JSC::createBuiltinExecutable):
+        * builtins/BuiltinExecutableCreator.h: Copied from Source/JavaScriptCore/builtins/BuiltinExecutables.h.
+        * builtins/BuiltinExecutables.cpp:
+        (JSC::BuiltinExecutables::createDefaultConstructor):
+        (JSC::BuiltinExecutables::createBuiltinExecutable):
+        (JSC::createBuiltinExecutable):
+        (JSC::BuiltinExecutables::createExecutable):
+        (JSC::createExecutableInternal): Deleted.
+        * builtins/BuiltinExecutables.h:
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::tryGet):
+        (JSC::AccessCase::generate):
+        (WTF::printInternal):
+        * bytecode/PolymorphicAccess.h:
+        (JSC::AccessCase::isGet): Deleted.
+        (JSC::AccessCase::isPut): Deleted.
+        (JSC::AccessCase::isIn): Deleted.
+        * bytecode/StructureStubInfo.cpp:
+        (JSC::StructureStubInfo::reset):
+        * bytecode/StructureStubInfo.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitTryGetById):
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_tryGetById):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::cachedGetById):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::cachedGetById):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::getById):
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        (JSC::JIT::privateCompileSlowCases):
+        * jit/JIT.h:
+        * jit/JITInlineCacheGenerator.cpp:
+        (JSC::JITGetByIdGenerator::JITGetByIdGenerator):
+        * jit/JITInlineCacheGenerator.h:
+        * jit/JITInlines.h:
+        (JSC::JIT::callOperation):
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::emitGetByValWithCachedId):
+        (JSC::JIT::emit_op_try_get_by_id):
+        (JSC::JIT::emitSlow_op_try_get_by_id):
+        (JSC::JIT::emit_op_get_by_id):
+        * jit/JITPropertyAccess32_64.cpp:
+        (JSC::JIT::emitGetByValWithCachedId):
+        (JSC::JIT::emit_op_try_get_by_id):
+        (JSC::JIT::emitSlow_op_try_get_by_id):
+        (JSC::JIT::emit_op_get_by_id):
+        * jit/Repatch.cpp:
+        (JSC::repatchByIdSelfAccess):
+        (JSC::appropriateOptimizingGetByIdFunction):
+        (JSC::appropriateGenericGetByIdFunction):
+        (JSC::tryCacheGetByID):
+        (JSC::repatchGetByID):
+        (JSC::resetGetByID):
+        * jit/Repatch.h:
+        * jsc.cpp:
+        (GlobalObject::finishCreation):
+        (functionGetGetterSetter):
+        (functionCreateBuiltin):
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::Data::performAssertions):
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter.asm:
+        * runtime/GetterSetter.cpp:
+        * runtime/GetterSetter.h:
+        * runtime/JSType.h:
+        * runtime/PropertySlot.cpp:
+        (JSC::PropertySlot::getPureResult):
+        * runtime/PropertySlot.h:
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::getOwnPropertySlotCommon):
+        * tests/stress/try-get-by-id.js: Added.
+        (tryGetByIdText):
+        (getCaller.obj.1.throw.new.Error.let.func):
+        (getCaller.obj.1.throw.new.Error):
+        (throw.new.Error.get let):
+        (throw.new.Error.):
+        (throw.new.Error.let.get createBuiltin):
+        (get let):
+        (let.get createBuiltin):
+        (let.func):
+        (get let.func):
+        (get throw):
+
+2016-04-07  Filip Pizlo  <fpizlo@apple.com>
+
+        Rationalize the makeSpaceForCCall stuff
+        https://bugs.webkit.org/show_bug.cgi?id=156352
+
+        Reviewed by Mark Lam.
+
+        I want to add more code to PolymorphicAccess that makes C calls, so that I can finally fix
+        https://bugs.webkit.org/show_bug.cgi?id=130914 (allow transition caches to handle indexing
+        headers).
+
+        When trying to understand what it takes to make a C call, I came across code that was making
+        room on the stack for spilled arguments. This logic was guarded with some complicated
+        condition. At first, I tried to just refactor the code so that the same ugly condition
+        wouldn't have to be copy-pasted everywhere that we made C calls. But then I started thinking
+        about the condition, and realized that it was probably wrong: if the outer PolymorphicAccess
+        harness decides to reuse a register for the scratchGPR then the top of the stack will store
+        the old value of scratchGPR, but the condition wouldn't necessarily trigger. So if the call
+        then overwrote something on the stack, we'd have a bad time.
+
+        Making room on the stack for a call is a cheap operation. It's orders of magnitude cheaper
+        than the rest of the call. Therefore, I think that it's best to just unconditionally make
+        room on the stack.
+
+        This patch makes us do just that. I also made the relevant helpers not inline, because I
+        think that we have too many inline methods in our assemblers. Now it's much easier to make
+        C calls from PolymorphicAccess because you just call the AssemblyHelper methods for making
+        space. There are no special conditions or anything like that.
+
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::generate):
+        * jit/AssemblyHelpers.cpp:
+        (JSC::AssemblyHelpers::emitLoadStructure):
+        (JSC::AssemblyHelpers::makeSpaceOnStackForCCall):
+        (JSC::AssemblyHelpers::reclaimSpaceOnStackForCCall):
+        (JSC::emitRandomThunkImpl):
+        * jit/AssemblyHelpers.h:
+        (JSC::AssemblyHelpers::makeSpaceOnStackForCCall): Deleted.
+        (JSC::AssemblyHelpers::reclaimSpaceOnStackForCCall): Deleted.
+
+2016-04-07  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199128 and r199141.
+        https://bugs.webkit.org/show_bug.cgi?id=156348
+
+        Causes crashes on multiple webpages (Requested by keith_mi_ on
+        #webkit).
+
+        Reverted changesets:
+
+        "[ES6] Add support for Symbol.isConcatSpreadable."
+        https://bugs.webkit.org/show_bug.cgi?id=155351
+        http://trac.webkit.org/changeset/199128
+
+        "Unreviewed, uncomment accidentally commented line in test."
+        http://trac.webkit.org/changeset/199141
+
+2016-04-07  Filip Pizlo  <fpizlo@apple.com>
+
+        Rationalize the handling of PutById transitions a bit
+        https://bugs.webkit.org/show_bug.cgi?id=156330
+
+        Reviewed by Mark Lam.
+
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::generate): Get rid of the specialized slow calls. We can just use the failAndIgnore jump target. We just need to make sure that we don't make observable effects until we're done with all of the fast path checks.
+        * bytecode/StructureStubInfo.cpp:
+        (JSC::StructureStubInfo::addAccessCase): MadeNoChanges indicates that we should keep trying to repatch. Currently PutById transitions might trigger the case that addAccessCase() sees null, if the transition involves an indexing header. Doing repatching in that case is probably not good. But, we should just fix this the right way eventually.
+
+2016-04-07  Per Arne Vollan  <peavo@outlook.com>
+
+        [Win] Fix for JSC stress test failures.
+        https://bugs.webkit.org/show_bug.cgi?id=156343
+
+        Reviewed by Filip Pizlo.
+
+        We need to make it clear to MSVC that the method loadPtr(ImplicitAddress address, RegisterID dest)
+        should be used, and not loadPtr(const void* address, RegisterID dest).
+
+        * jit/CCallHelpers.cpp:
+        (JSC::CCallHelpers::setupShadowChickenPacket):
+
+2016-04-06  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] UInt32ToNumber should be NodeMustGenerate
+        https://bugs.webkit.org/show_bug.cgi?id=156329
+
+        Reviewed by Filip Pizlo.
+
+        It exits on negative numbers on the integer path.
+
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+
+2016-04-04  Geoffrey Garen  <ggaren@apple.com>
+
+        Unreviewed, rolling out r199016.
+        https://bugs.webkit.org/show_bug.cgi?id=156140
+
+        "Perf bots are down, so I can't re-land this right now."
+
+        Reverted changeset:
+
+        CopiedBlock should be 16kB
+        https://bugs.webkit.org/show_bug.cgi?id=156168
+        http://trac.webkit.org/changeset/199016
+
+2016-04-06  Mark Lam  <mark.lam@apple.com>
+
+        String.prototype.match() should be calling internal function RegExpCreate.
+        https://bugs.webkit.org/show_bug.cgi?id=156318
+
+        Reviewed by Filip Pizlo.
+
+        RegExpCreate is not the same as the RegExp constructor.  The current implementation
+        invokes new @RegExp which calls the constructor.  This results in failures in
+        es6/Proxy_internal_get_calls_String.prototype.match.js, and
+        es6/Proxy_internal_get_calls_String.prototype.search.js due to observable side
+        effects.
+
+        This patch fixes this by factoring out the part of the RegExp constructor that
+        makes the RegExpCreate function, and changing String's match and search to call
+        RegExpCreate instead in accordance with the ES6 spec. 
+
+        * builtins/StringPrototype.js:
+        (match):
+        (search):
+        * runtime/CommonIdentifiers.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/RegExpConstructor.cpp:
+        (JSC::toFlags):
+        (JSC::regExpCreate):
+        (JSC::constructRegExp):
+        (JSC::esSpecRegExpCreate):
+        (JSC::constructWithRegExpConstructor):
+        * runtime/RegExpConstructor.h:
+        (JSC::isRegExp):
+
 2016-04-06  Keith Miller  <keith_miller@apple.com>
 
         Unreviewed, uncomment accidentally commented line in test.

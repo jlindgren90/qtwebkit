@@ -182,9 +182,6 @@ static bool affectsRenderedSubtree(Element& element, const RenderStyle& newStyle
         return true;
     if (newStyle.display() != NONE)
         return true;
-    // FIXME: Make 'contents' an actual display property value.
-    if (hasImplicitDisplayContents(element))
-        return true;
     if (element.rendererIsNeeded(newStyle))
         return true;
     if (element.shouldMoveToFlowThread(newStyle))
@@ -393,7 +390,7 @@ void TreeResolver::resolveComposedTree()
         ElementUpdate update;
         update.style = element.renderStyle();
 
-        bool shouldResolve = parent.change >= Inherit || element.needsStyleRecalc() || shouldResolveForPseudoElement || affectedByPreviousSibling || hasImplicitDisplayContents(element);
+        bool shouldResolve = parent.change >= Inherit || element.needsStyleRecalc() || shouldResolveForPseudoElement || affectedByPreviousSibling || element.hasDisplayContents();
         if (shouldResolve) {
 #if PLATFORM(IOS)
             CheckForVisibilityChangeOnRecalcStyle checkForVisibilityChange(&element, element.renderStyle());
