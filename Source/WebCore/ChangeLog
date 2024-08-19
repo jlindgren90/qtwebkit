@@ -1,3 +1,357 @@
+2016-04-08  Darin Adler  <darin@apple.com>
+
+        Remove unneeded UsePointersEvenForNonNullableObjectArguments from event classes
+        https://bugs.webkit.org/show_bug.cgi?id=156396
+
+        Reviewed by Youenn Fablet.
+
+        * dom/CompositionEvent.idl:
+        * dom/KeyboardEvent.idl:
+        * dom/MouseEvent.idl:
+        * dom/MutationEvent.idl:
+        * dom/TextEvent.idl:
+        * dom/TouchEvent.idl:
+        * dom/UIEvent.idl:
+        * dom/WheelEvent.idl:
+        Removed UsePointersEvenForNonNullableObjectArguments, which was having no effect.
+
+2016-04-08  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Fix positioned items with grid gaps
+        https://bugs.webkit.org/show_bug.cgi?id=156288
+
+        Reviewed by Darin Adler.
+
+        When we place a positioned items in a grid with gaps,
+        we were not taking into accounts the gutter size.
+        We've to use that size to properly place and size the item.
+
+        Tests: fast/css-grid-layout/grid-positioned-items-gaps-rtl.html
+               fast/css-grid-layout/grid-positioned-items-gaps.html
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+
+2016-04-08  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Remove unnecessary iteration in populateGridPositions loop
+        https://bugs.webkit.org/show_bug.cgi?id=156376
+
+        Reviewed by Darin Adler.
+
+        The populateGridPositions loop limit was set to 'lastLine'. However, the
+        the position of last track's start line is updated after the loop, since
+        it does not follow the same pattern; it does not have a content
+        distribution offset.
+
+        So, since we are essentially overwriting the value stored in the last
+        iteration, we can just lower the loop limit.
+
+        No new tests added, because there is no change in the functionality.
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::populateGridPositions):
+
+2016-04-08  John Wilander  <wilander@apple.com>
+
+        CSP: Block XHR when calling XMLHttpRequest.send() and throw network error.
+        https://bugs.webkit.org/show_bug.cgi?id=153598
+        <rdar://problem/24391483>
+
+        Reviewed by Darin Adler.
+
+        No new tests. Changes to existing tests are sufficient.
+
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::open):
+        (WebCore::XMLHttpRequest::initSend):
+            Moved the CSP check from XMLHttpRequest::open() to XMLHttpRequest::initSend().
+            Changed the thrown error type from Security to Network for synchronous requests.
+            Changed from throwing an error to firing an error event for asynchronous requests.
+            These changes are in conformance with connect-src of Content Security Policy Level 2.
+            https://www.w3.org/TR/CSP2/#directive-connect-src (W3C Candidate Recommendation, 21 July 2015)
+
+2016-04-07  Darin Adler  <darin@apple.com>
+
+        FontFaceSet binding does not handle null correctly
+        https://bugs.webkit.org/show_bug.cgi?id=156141
+
+        Reviewed by Youenn Fablet.
+
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::FontFaceSet): Pass a reference to add rather than a pointer.
+        (WebCore::FontFaceSet::has): Take a reference rather than a pointer.
+        (WebCore::FontFaceSet::add): Ditto.
+        (WebCore::FontFaceSet::remove): Ditto.
+        (WebCore::FontFaceSet::load): Initialize ec since we check it. Caller is not required
+        to do this, nor is the matchingFaces function. Rearranged function to avoid needless
+        creation/destruction of PendingPromise for the immediate failure case. Removed some
+        unneeded type casts and local variables.
+        (WebCore::FontFaceSet::status): Use ASCIILiteral instead of ConstructFromLiteral.
+        No reason to use the more aggressive optimization.
+        (WebCore::FontFaceSet::faceFinished): Factored out a common hasReachedTerminalState
+        check to streamline the logic a bit.
+        (WebCore::FontFaceSet::load): Moved overload without a string in here; not critical
+        to inline it.
+        (WebCore::FontFaceSet::check): Ditto.
+
+        * css/FontFaceSet.h: Removed many unneeded includes and forward declarations.
+        Changed functions to take FontFace& instead of RefPtr<FontFace>. Removed unneeded
+        WebCore namespace prefixes. Use final instead of override for virtual functions.
+
+        * css/FontFaceSet.idl: Removed UsePointersEvenForNonNullableObjectArguments, which
+        was preserving incorrect behavior for null as demonstrated by the test cases.
+
+2016-04-07  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove ENABLE(ENABLE_ES6_CLASS_SYNTAX) guards
+        https://bugs.webkit.org/show_bug.cgi?id=156384
+
+        Reviewed by Ryosuke Niwa.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-04-07  Dean Jackson  <dino@apple.com>
+
+        [iOS] Media playback button should use appearance
+        https://bugs.webkit.org/show_bug.cgi?id=156388
+        <rdar://problem/25618352>
+
+        Reviewed by Simon Fraser.
+
+        With the recent change in backdrop appearance, we can
+        now use the system style directly for the play button.
+
+        While I was here I also updated the artwork to the
+        latest style (slightly rounded corners on the triangle).
+
+        Covered by the test in ManualTests/ios/start-playback-button-appearance.html.
+
+        * Modules/mediacontrols/mediaControlsiOS.css: Move the clip onto the backdrop
+        element. Use an appearance insted.
+        * Modules/mediacontrols/mediaControlsiOS.js: Remove the tint element, and
+        set the highlight on the glyph instead.
+
+2016-04-07  Ada Chan  <adachan@apple.com>
+
+        Roll out the css change in mediaControlsApple.css that has been causing assertions in layout for multiple tests
+        https://bugs.webkit.org/show_bug.cgi?id=156381
+
+        Rubber-stamped by Alexey Proskuryakov.
+
+        * Modules/mediacontrols/mediaControlsApple.css:
+        (::-webkit-media-controls):
+        Remove overflow: hidden.
+
+2016-04-07  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rolling out r199199.
+
+        Revision breaks layout tests
+
+        Reverted changeset:
+
+        "fast/loader/opaque-base-url.html crashing during mac and ios
+        debug tests"
+        https://bugs.webkit.org/show_bug.cgi?id=156179
+        http://trac.webkit.org/changeset/199199
+
+2016-04-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Make it possible to test effect of view exposed rect on tiled backing
+        https://bugs.webkit.org/show_bug.cgi?id=156365
+
+        Reviewed by Tim Horton.
+
+        Implement Internals::setViewExposedRect().
+
+        When the viewExposedRect is non-null, assume that we're scrollable on both axes
+        to avoid creation of huge tiles in this scenario.
+
+        We also need to call adjustTiledBackingScrollability() when setViewExposedRect()
+        has been called.
+
+        Tests: tiled-drawing/tile-coverage-view-exposed-rect.html
+               tiled-drawing/tile-size-view-exposed-rect.html
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::adjustTiledBackingScrollability):
+        (WebCore::FrameView::setViewExposedRect):
+        * testing/Internals.cpp:
+        (WebCore::Internals::setViewExposedRect):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-04-07  Jiewen Tan  <jiewen_tan@apple.com>
+
+        fast/loader/opaque-base-url.html crashing during mac and ios debug tests
+        https://bugs.webkit.org/show_bug.cgi?id=156179
+        <rdar://problem/25507719>
+
+        Reviewed by Andy Estes.
+
+        A relative URL other than "#" with a non-hierarchical base is invalid, but prior to this
+        change the URL's string would still contain the invalid relative URL. To avoid mistakes
+        where we might later treat this URL string as a parsed URL string, set the string to
+        "about:blank" instead.
+
+        Test: fast/url/data-uri-based-urls.html
+
+        * platform/URL.cpp:
+        (WebCore::URL::init):
+
+2016-04-07  Brian Burg  <bburg@apple.com>
+
+        Web Automation: implement Automation.addSingleCookie
+        https://bugs.webkit.org/show_bug.cgi?id=156319
+        <rdar://problem/25589605>
+
+        Reviewed by Timothy Hatcher.
+
+        * platform/Cookie.h: Document the units used by the 'expires' field.
+
+2016-04-07  Jon Davis  <jond@apple.com>
+
+        Add ImageBitmap as under consideration on Feature Status page
+        https://bugs.webkit.org/show_bug.cgi?id=156362
+
+        Reviewed by Timothy Hatcher.
+
+        * features.json:
+
+2016-04-07  Jon Davis  <jond@apple.com>
+
+        Include Conical Gradients on the Feature Status page.
+        https://bugs.webkit.org/show_bug.cgi?id=156363
+
+        Reviewed by Timothy Hatcher.
+
+        * features.json:
+
+2016-04-07  Beth Dakin  <bdakin@apple.com>
+
+        Build fix.
+
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+
+2016-04-07  Jeremy Jones  <jeremyj@apple.com>
+
+        In WK1 WebVideoFullscreen interface may be accessed from WK1 main thread instead of UI thread.
+        https://bugs.webkit.org/show_bug.cgi?id=154252
+        rdar://problem/22460539
+
+        Reviewed by Eric Carlson.
+
+        In WebKit1, Javascript can cause enter fullscreen to happen on the main thead, which is not
+        necessarily the UI thread. This can cause autolayout errors. Move this code to the UI thread.
+
+        * platform/ios/WebVideoFullscreenControllerAVKit.mm:
+        (WebVideoFullscreenControllerContext::setUpFullscreen): Move setup to the UI thread.
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (-[WebAVPlayerLayer layoutSublayers]): Move call to resolveBounds to the UI thread.
+
+2016-04-07  Beth Dakin  <bdakin@apple.com>
+
+        Build fix.
+
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+
+2016-04-07  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Add support for [EnabledAtRuntime] attributes on non-global objects
+        https://bugs.webkit.org/show_bug.cgi?id=156346
+
+        Reviewed by Ryosuke Niwa.
+
+        Add support for [EnabledAtRuntime] attributes on non-global objects by
+        using the same approach as for [EnabledAtRuntime] operations. This means
+        we add these attributes to the static property table but they get removed
+        at runtime in JS*Prototype::finishCreation(), if the feature is disabled,
+        after the eager reification of the prototype.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GeneratePropertiesHashTable):
+        (GenerateImplementation):
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.cpp:
+        (webkit_dom_test_obj_set_property):
+        (webkit_dom_test_obj_get_property):
+        (webkit_dom_test_obj_class_init):
+        (webkit_dom_test_obj_enabled_at_runtime_operation):
+        (webkit_dom_test_obj_get_enabled_at_runtime_attribute):
+        (webkit_dom_test_obj_set_enabled_at_runtime_attribute):
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.h:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjPrototype::finishCreation):
+        (WebCore::jsTestObjEnabledAtRuntimeAttribute):
+        (WebCore::setJSTestObjEnabledAtRuntimeAttribute):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation1):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation2):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation):
+        * bindings/scripts/test/ObjC/DOMTestObj.h:
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+        (-[DOMTestObj enabledAtRuntimeAttribute]):
+        (-[DOMTestObj setEnabledAtRuntimeAttribute:]):
+        (-[DOMTestObj enabledAtRuntimeOperation:]):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-04-07  Beth Dakin  <bdakin@apple.com>
+
+        Attempted build fix.
+
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (-[WebPlaybackControlsManager seekToTime:toleranceBefore:toleranceAfter:]):
+        (-[WebPlaybackControlsManager setCurrentAudioMediaSelectionOption:]):
+        (-[WebPlaybackControlsManager setCurrentLegibleMediaSelectionOption:]):
+        (-[WebPlaybackControlsManager currentAudioMediaSelectionOption]): Deleted.
+        (-[WebPlaybackControlsManager currentLegibleMediaSelectionOption]): Deleted.
+
+2016-04-07  Ada Chan  <adachan@apple.com>
+
+        Add WebKitAdditions extension point in HTMLVideoElement::supportsFullscreen()
+        https://bugs.webkit.org/show_bug.cgi?id=156366
+
+        Reviewed by Alex Christensen.
+
+        * html/HTMLVideoElement.cpp:
+        (WebCore::HTMLVideoElement::supportsFullscreen):
+
+2016-04-07  Jon Davis  <jond@apple.com>
+
+        Add WOFF2 to the Feature Status page
+        https://bugs.webkit.org/show_bug.cgi?id=156361
+
+        Reviewed by Timothy Hatcher.
+
+        * features.json:
+
+2016-04-07  Beth Dakin  <bdakin@apple.com>
+
+        WebPlaybackControlsManager should support mediaSelectionOptions
+        https://bugs.webkit.org/show_bug.cgi?id=156358
+        -and corresponding-
+        rdar://problem/25048743
+
+        Reviewed by Jer Noble.
+
+        This patch just implements 
+        WebVideoFullscreenInterfaceMac::setAudioMediaSelectionOptions and 
+        WebVideoFullscreenInterfaceMac::setLegibleMediaSelectionOptions and passes that 
+        information on to WebPlaybackControlsManager. If selection options are set via 
+        the WebPlaybackControlsManager, then it gets the webVideoFullscreenModel() to 
+        set the new value.
+
+        * platform/mac/WebVideoFullscreenInterfaceMac.h:
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (-[WebPlaybackControlsManager currentAudioMediaSelectionOption]):
+        (-[WebPlaybackControlsManager setCurrentAudioMediaSelectionOption:]):
+        (-[WebPlaybackControlsManager currentLegibleMediaSelectionOption]):
+        (-[WebPlaybackControlsManager setCurrentLegibleMediaSelectionOption:]):
+        (WebCore::mediaSelectionOptions):
+        (WebCore::WebVideoFullscreenInterfaceMac::setAudioMediaSelectionOptions):
+        (WebCore::WebVideoFullscreenInterfaceMac::setLegibleMediaSelectionOptions):
+        (-[WebPlaybackControlsManager audioMediaSelectionOptions]): Deleted.
+        (-[WebPlaybackControlsManager legibleMediaSelectionOptions]): Deleted.
+
 2016-04-07  Brent Fulgham  <bfulgham@apple.com>
 
         Wheel event callback removing the window causes crash in WebCore.

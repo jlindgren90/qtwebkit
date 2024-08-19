@@ -80,14 +80,15 @@ class BuildbotTriggerable {
     _pullBuildbotOnAllSyncers(buildReqeustsByGroup)
     {
         let updates = {};
+        let associatedRequests = new Set;
         let self = this;
         return Promise.all(this._syncers.map(function (syncer) {
-            self._logger.log(`Fetching builds on ${syncer.builderName()}`);
             return syncer.pullBuildbot(self._lookbackCount).then(function (entryList) {
                 for (let entry of entryList) {
                     let request = BuildRequest.findById(entry.buildRequestId());
                     if (!request)
                         continue;
+                    associatedRequests.add(request);
 
                     let info = buildReqeustsByGroup.get(request.testGroupId());
                     assert(!info.syncer || info.syncer == syncer);
@@ -104,7 +105,14 @@ class BuildbotTriggerable {
                     }
                 }
             });
-        })).then(function () { return updates; });
+        })).then(function () {
+            for (let request of BuildRequest.all()) {
+                if (request.hasStarted() && !request.hasFinished() && !associatedRequests.has(request)) {
+                    assert(!(request.id() in updates));
+                    updates[request.id()] = {status: 'failedIfNotCompleted'};
+                }
+            }
+        }).then(function () { return updates; });
     }
 
     _scheduleNextRequestInGroupIfSlaveIsAvailable(groupInfo, pendingUpdates)

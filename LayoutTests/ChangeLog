@@ -1,3 +1,174 @@
+2016-04-08  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Quick Open fails to match pattern "bB" in file "abBc"
+        https://bugs.webkit.org/show_bug.cgi?id=156398
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/unit-tests/resource-query-controller-expected.txt:
+        * inspector/unit-tests/resource-query-controller.html:
+        Test that two repeated characters in the search string are correctly
+        matched when the first character is lowercase and the second is uppercase.
+
+2016-04-08  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Testharness-based tests that time out should be able to produce a detailled output
+        https://bugs.webkit.org/show_bug.cgi?id=145313
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        * TestExpectations: Removed TIMEOUT for some tests for which testharness.timeout will be called just before WTR times out.
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/request/request-cache-expected.txt: GTK specific baseline.
+        * resources/testharnessreport.js:
+        (add_completion_callback): Improving error logging message. Dumping of the tests status in error case.
+
+2016-04-08  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Fix positioned items with grid gaps
+        https://bugs.webkit.org/show_bug.cgi?id=156288
+
+        Reviewed by Darin Adler.
+
+        Added new tests checking the right behavior.
+
+        * fast/css-grid-layout/grid-positioned-items-gaps-expected.txt: Added.
+        * fast/css-grid-layout/grid-positioned-items-gaps-rtl-expected.txt: Added.
+        * fast/css-grid-layout/grid-positioned-items-gaps-rtl.html: Added.
+        * fast/css-grid-layout/grid-positioned-items-gaps.html: Added.
+
+2016-04-08  John Wilander  <wilander@apple.com>
+
+        CSP: Block XHR when calling XMLHttpRequest.send() and throw network error.
+        https://bugs.webkit.org/show_bug.cgi?id=153598
+        <rdar://problem/24391483>
+
+        Reviewed by Darin Adler.
+
+        * fast/workers/resources/worker-inherits-csp-blocks-xhr.js:
+        (catch):
+        * fast/workers/worker-inherits-csp-blocks-xhr-expected.txt:
+            Changed expected error from DOMException.SECURITY_ERR to DOMException.NETWORK_ERR.
+        * http/tests/security/contentSecurityPolicy/connect-src-xmlhttprequest-blocked-expected.txt:
+        * http/tests/security/contentSecurityPolicy/connect-src-xmlhttprequest-blocked.html:
+            Now tests that XMLHttpRequest.send() is blocked if the URL voilates the connect-src directive in CSP.
+        * http/tests/security/contentSecurityPolicy/resources/worker.php:
+            Added two additional calls to XMLHttpRequest.send() and switched to receiving an error event to make
+            existing tests work with code changes.
+        * http/tests/security/contentSecurityPolicy/source-list-parsing-malformed-meta.html:
+            Added an additional call to XMLHttpRequest.send() and switched to receiving an error event to make 
+            existing test work with code changes.
+        * http/tests/security/isolatedWorld/bypass-main-world-csp-for-xhr-expected.txt:
+        * http/tests/security/isolatedWorld/bypass-main-world-csp-for-xhr.html:
+            Added an additional call to XMLHttpRequest.send() and switched to receiving an error event to make 
+            existing tests work with code changes.
+            Refactored test mechnism with additional parameters to cover synchronous/asynchronous as well as 
+            same-origin/cross-origin in isolated worlds.
+
+2016-04-07  Darin Adler  <darin@apple.com>
+
+        FontFaceSet binding does not handle null correctly
+        https://bugs.webkit.org/show_bug.cgi?id=156141
+
+        Reviewed by Youenn Fablet.
+
+        * fast/text/font-face-set-javascript-expected.txt: Added expected results for new tests.
+        * fast/text/font-face-set-javascript.html: Added tests for handling of null, also added tests for
+        the has function.
+
+2016-04-07  Filip Pizlo  <fpizlo@apple.com>
+
+        Implementing caching transition puts that need to reallocate with indexing storage
+        https://bugs.webkit.org/show_bug.cgi?id=130914
+
+        Reviewed by Saam Barati.
+
+        * js/regress/put-by-id-transition-with-indexing-header-expected.txt: Added.
+        * js/regress/put-by-id-transition-with-indexing-header.html: Added.
+        * js/regress/script-tests/put-by-id-transition-with-indexing-header.js: Added.
+        (allocate):
+
+2016-04-07  Ada Chan  <adachan@apple.com>
+
+        Roll out the css change in mediaControlsApple.css that has been causing assertions in layout for multiple tests
+        https://bugs.webkit.org/show_bug.cgi?id=156381
+
+        Rubber-stamped by Alexey Proskuryakov.
+
+        * platform/mac/TestExpectations:
+        * platform/mac/media/media-document-audio-repaint-expected.txt:
+        * platform/mac/media/video-zoom-controls-expected.txt:
+
+2016-04-07  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rolling out r199199.
+
+        Revision breaks layout tests
+
+        Reverted changeset:
+
+        "fast/loader/opaque-base-url.html crashing during mac and ios
+        debug tests"
+        https://bugs.webkit.org/show_bug.cgi?id=156179
+        http://trac.webkit.org/changeset/199199
+
+2016-04-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Make it possible to test effect of view exposed rect on tiled backing
+        https://bugs.webkit.org/show_bug.cgi?id=156365
+
+        Reviewed by Tim Horton.
+
+        Tests for tile size and tile coverage when we have an exposed view rect.
+
+        * tiled-drawing/tile-coverage-view-exposed-rect-expected.txt: Added.
+        * tiled-drawing/tile-coverage-view-exposed-rect.html: Added.
+        * tiled-drawing/tile-size-view-exposed-rect-expected.txt: Added.
+        * tiled-drawing/tile-size-view-exposed-rect.html: Added.
+
+2016-04-07  Jiewen Tan  <jiewen_tan@apple.com>
+
+        fast/loader/opaque-base-url.html crashing during mac and ios debug tests
+        https://bugs.webkit.org/show_bug.cgi?id=156179
+        <rdar://problem/25507719>
+
+        Reviewed by Andy Estes.
+
+        * TestExpectations:
+        * fast/url/data-uri-based-urls-expected.txt: Added.
+        * fast/url/data-uri-based-urls.html: Added.
+        * fast/url/relative-expected.txt:
+
+2016-04-07  Ada Chan  <adachan@apple.com>
+
+        Skip a couple more tests that are asserting in FrameView::scheduleRelayoutOfSubtree().
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-04-07  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Mark http/tests/cache/disk-cache/disk-cache-validation-back-navigation-policy.html as timeout in ios-simulator-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=149087
+
+        Unreviewed, test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-04-07  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectation gardening for
+        Assertion failure in MessagePort::contextDestroyed in http/tests/security/MessagePort/event-listener-context.html,
+        usually attributed to later tests
+        https://bugs.webkit.org/show_bug.cgi?id=94458
+
+        http/tests/security/MessagePort/event-listener-context.html is the only culprit,
+        so it should be skipped everywhere, and subsequent tests shouldn't be marked.
+
+        * TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+
 2016-04-07  Brent Fulgham  <bfulgham@apple.com>
 
         Wheel event callback removing the window causes crash in WebCore.

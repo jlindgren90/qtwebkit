@@ -1,3 +1,75 @@
+2016-04-07  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove ENABLE(ENABLE_ES6_CLASS_SYNTAX) guards
+        https://bugs.webkit.org/show_bug.cgi?id=156384
+
+        Reviewed by Ryosuke Niwa.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-04-07  Dean Jackson  <dino@apple.com>
+
+        [iOS] Play button on video is too dark
+        https://bugs.webkit.org/show_bug.cgi?id=156383
+        <rdar://problem/23540816>
+
+        Reviewed by Simon Fraser.
+
+        Elements that are backed by a layer with either LightBackdropAppearance
+        or DarkBackdropAppearance are actually a combination of a
+        few layers (inside a special view). If we apply a mask to one
+        of those layers, it needs to be attached to the correct
+        child layer.
+
+        * Shared/mac/RemoteLayerTreePropertyApplier.mm:
+        (WebKit::RemoteLayerTreePropertyApplier::applyProperties): If we have
+        one of the special appearance flags, apply the mask layer to
+        a particular child, rather than the layer itself.
+
+2016-04-07  Jeremy Jones  <jeremyj@apple.com>
+
+        Clearing the application cache doesn't work.
+        https://bugs.webkit.org/show_bug.cgi?id=156354
+        rdar://problem/22369239
+
+        Reviewed by Brady Eidson.
+
+        Use the correct "ApplicationCache" directory.
+        Delete the caches, not just the entries.
+
+        * UIProcess/WebsiteData/WebsiteDataStore.cpp:
+        (WebKit::WebsiteDataStore::fetchData):
+        (WebKit::WebsiteDataStore::removeData):
+
+2016-04-07  Brian Burg  <bburg@apple.com>
+
+        Web Automation: implement Automation.addSingleCookie
+        https://bugs.webkit.org/show_bug.cgi?id=156319
+        <rdar://problem/25589605>
+
+        Reviewed by Timothy Hatcher.
+
+        Implement this command by converting the protocol cookie to
+        WebCore::Cookie, then sending the cookie to NetworkProcess to
+        be added to the storage session using CookieJar::addCookie.
+
+        * UIProcess/Automation/Automation.json:
+        Clarify the units used in the 'expires' field and how the default value
+        for the domain field should be computed.
+
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::addSingleCookie):
+        Parse the cookie and send it out via WebCookieManagerProxy.
+
+        * UIProcess/WebCookieManagerProxy.cpp:
+        (WebKit::WebCookieManagerProxy::addCookie): Added.
+        * UIProcess/WebCookieManagerProxy.h:
+        * WebProcess/Cookies/WebCookieManager.cpp:
+        (WebKit::WebCookieManager::addCookie):
+        * WebProcess/Cookies/WebCookieManager.h:
+        * WebProcess/Cookies/WebCookieManager.messages.in:
+        Forward the message to WebCore::addCookie.
+
 2016-04-06  Ada Chan  <adachan@apple.com>
 
         Add WebKitAdditions extension points around preferences

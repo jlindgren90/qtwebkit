@@ -1,3 +1,79 @@
+2016-04-08  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Testharness-based tests that time out should be able to produce a detailed output
+        https://bugs.webkit.org/show_bug.cgi?id=145313
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Adding timeout readonly accessor to TestRunner for both WK1 and WK2.
+
+        * DumpRenderTree/TestRunner.cpp:
+        (getTimeoutCallback): The js "timeout" property getter.
+        (TestRunner::staticValues): Adding "timeout" property to DumpRenderTree so that testRunner.timeout called from JS returns the timeout value.
+        * DumpRenderTree/TestRunner.h:
+        (TestRunner::timeout): Adding access to DRT m_timeout private value.
+        * WebKitTestRunner/InjectedBundle/Bindings/TestRunner.idl: Adding timeout readonly attribute so that testRunner.timeout can be called from JS.
+        * WebKitTestRunner/InjectedBundle/TestRunner.h: Adding DOM timeout getter to implement timeout IDL definition.
+        (WTR::TestRunner::timeout):
+
+2016-04-07  Joseph Pecoraro  <pecoraro@apple.com>
+
+        stylebot should know about TestWebKitAPI FeatureDefines.xcconfig
+        https://bugs.webkit.org/show_bug.cgi?id=156387
+
+        Rubber-stamped by Dan Bernstein.
+
+        * Scripts/webkitpy/style/checkers/featuredefines.py:
+        (FeatureDefinesChecker.check):
+
+2016-04-07  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove ENABLE(ENABLE_ES6_CLASS_SYNTAX) guards
+        https://bugs.webkit.org/show_bug.cgi?id=156384
+
+        Reviewed by Ryosuke Niwa.
+
+        * Scripts/webkitperl/FeatureList.pm:
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-04-06  Dean Jackson  <dino@apple.com>
+
+        Watchlist modifications:
+        - remove roger_fong
+        - add myself to a few areas
+        - remove graouts from WebInspectorAPI
+
+        * Scripts/webkitpy/common/config/watchlist:
+
+2016-04-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Make it possible to test effect of view exposed rect on tiled backing
+        https://bugs.webkit.org/show_bug.cgi?id=156365
+
+        Reviewed by Tim Horton.
+
+        Expose testRunner.setViewSize() and internals.setViewExposedRect() to enable
+        testing of tile coverage when setViewExposedRect() is passed a non-null rectangle.
+
+        testRunner.setViewSize() is used instead of using window.resizeTo(), since we
+        can't easily resize a window to larger than the screen being tested on.
+
+        * DumpRenderTree/TestRunner.cpp:
+        (setViewSizeCallback):
+        (TestRunner::staticFunctions):
+        * DumpRenderTree/TestRunner.h:
+        * DumpRenderTree/mac/TestRunnerMac.mm:
+        (TestRunner::setViewSize):
+        * WebKitTestRunner/InjectedBundle/Bindings/TestRunner.idl:
+        * WebKitTestRunner/InjectedBundle/InjectedBundle.cpp:
+        (WTR::InjectedBundle::postSetViewSize):
+        * WebKitTestRunner/InjectedBundle/InjectedBundle.h:
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp:
+        (WTR::TestRunner::setViewSize):
+        * WebKitTestRunner/InjectedBundle/TestRunner.h:
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::didReceiveSynchronousMessageFromInjectedBundle):
+
 2016-04-07  Jason Marcell  <jmarcell@apple.com>
 
         Adding layout tests for the bot watcher's dashboard QUnit tests.

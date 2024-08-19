@@ -1,3 +1,86 @@
+2016-04-08  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Attempting to dismiss a popover that is already being dismissed causes an error
+        https://bugs.webkit.org/show_bug.cgi?id=156385
+        <rdar://problem/25617962>
+
+        Reviewed by Timothy Hatcher.
+
+        The Popover element is removed from the DOM once it's fade-out transition
+        completes. Since Popover.dismiss proceeds as long as it's element has a
+        parent, successive calls to dismiss can run before the popover is removed.
+
+        Rather than rely on the presence of the popover in the DOM, set a "dismissing"
+        flag the first time dismiss is called, before the fade-out animation begins.
+
+        * UserInterface/Controllers/BreakpointPopoverController.js:
+        (WebInspector.BreakpointPopoverController.prototype._conditionCodeMirrorEscapeOrEnterKey):
+        Check for null popover.
+
+        * UserInterface/Views/Popover.js:
+        (WebInspector.Popover):
+        (WebInspector.Popover.prototype.dismiss):
+        Do nothing if already dismissing.
+
+        (WebInspector.Popover.prototype.handleEvent):
+        Reset dismissing flag after style transition completes.
+
+2016-04-08  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Quick Open fails to match pattern "bB" in file "abBc"
+        https://bugs.webkit.org/show_bug.cgi?id=156398
+
+        Reviewed by Timothy Hatcher.
+
+        Correct an off-by-one error in the backtrack routine that set the dead
+        branch index to the character just before the match that was popped.
+        The dead branch index should equal the index of the popped match.
+
+        * UserInterface/Controllers/ResourceQueryController.js:
+        (WebInspector.ResourceQueryController.prototype._findQueryMatches.backtrack):
+        (WebInspector.ResourceQueryController.prototype._findQueryMatches):
+
+2016-04-07  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: OpenResourceDialog should keep its resources list up-to-date
+        https://bugs.webkit.org/show_bug.cgi?id=155321
+        <rdar://problem/25093890>
+
+        Reviewed by Timothy Hatcher.
+
+        The Quick Open dialog should listen for resource change events, refreshing
+        the resource list and current query results as needed.
+
+        * UserInterface/Views/OpenResourceDialog.js:
+        (WebInspector.OpenResourceDialog):
+        (WebInspector.OpenResourceDialog.prototype.didDismissDialog):
+        Unregister resource event handlers.
+
+        (WebInspector.OpenResourceDialog.prototype.didPresentDialog):
+        Register resource event handlers and add main frame resources.
+
+        (WebInspector.OpenResourceDialog.prototype._addResource):
+        Add resource to the query controller, if valid. Optionally suppress
+        the potentially expensive filter update, which is useful when adding
+        multiple resources at once.
+
+        (WebInspector.OpenResourceDialog.prototype._addResourcesForFrame):
+        Add the entire frame resource tree and update dialog filter.
+
+        (WebInspector.OpenResourceDialog.prototype._mainResourceDidChange):
+        (WebInspector.OpenResourceDialog.prototype._resourceWasAdded):
+
+2016-04-07  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: ProfileView source links are off by 1 line, worse in pretty printed code
+        https://bugs.webkit.org/show_bug.cgi?id=156371
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/ProfileDataGridNode.js:
+        (WebInspector.ProfileDataGridNode.prototype._displayContent):
+        Switch the 1-based locations in the CCT data structure to 0-based for SourceCodeLocation.
+
 2016-04-07  Joseph Pecoraro  <pecoraro@apple.com>
 
         Web Inspector: Uncaught Exception: No resource with given URL found
