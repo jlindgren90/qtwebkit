@@ -1,3 +1,159 @@
+2016-04-29  Chris Dumez  <cdumez@apple.com>
+
+        Drop useless check in SpeculativeLoadManager::registerLoad()
+        https://bugs.webkit.org/show_bug.cgi?id=157204
+
+        Reviewed by Antti Koivisto.
+
+        Drop useless check in SpeculativeLoadManager::registerLoad(). There is
+        no way to end up this code path with a non-HTTP family request.
+
+        * NetworkProcess/cache/NetworkCacheSpeculativeLoadManager.cpp:
+        (WebKit::NetworkCache::SpeculativeLoadManager::registerLoad):
+
+2016-04-29  Brian Burg  <bburg@apple.com>
+
+        Web Automation: add SPI to mark an existing NSEvent as synthesized for automation
+        https://bugs.webkit.org/show_bug.cgi?id=157221
+        <rdar://problem/26019356>
+
+        Reviewed by Timothy Hatcher.
+
+        In cases where an NSEvent is duplicated, clients need to re-mark an NSEvent
+        as synthesized for automation if the original NSEvent was marked as such.
+
+        * UIProcess/API/Cocoa/_WKAutomationSession.h:
+        * UIProcess/API/Cocoa/_WKAutomationSession.mm:
+        (-[_WKAutomationSession markEventAsSynthesizedForAutomation:]):
+        * UIProcess/Automation/WebAutomationSession.h:
+        * UIProcess/Cocoa/WebAutomationSessionCocoa.mm:
+        (WebKit::WebAutomationSession::sendSynthesizedEventsToPage):
+        (WebKit::WebAutomationSession::markEventAsSynthesizedForAutomation):
+
+2016-04-29  Brian Burg  <bburg@apple.com>
+
+        Web Automation: use a magic eventNumber as a fallback for detecting NSEvents synthesized for automation
+        https://bugs.webkit.org/show_bug.cgi?id=157222
+
+        Reviewed by Timothy Hatcher.
+
+        Sometimes events are copied and redelivered in a way that can't be reliably intercepted,
+        so use eventNumber as an alternate means of detecting synthesized mouse NSEvents.
+
+        * UIProcess/Cocoa/WebAutomationSessionCocoa.mm:
+        (WebKit::WebAutomationSession::wasEventSynthesizedForAutomation):
+        If it's a mouse-related event, check the eventNumber if the associated object was missing.
+
+        (WebKit::WebAutomationSession::platformSimulateMouseInteraction):
+        Most real events from input devices fill in eventNumber with a non-zero value.
+        In my testing, using zero did not seem to adversely affect event delivery.
+
+2016-04-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Issues inspecting the inspector, pausing on breakpoints causes content to not load
+        https://bugs.webkit.org/show_bug.cgi?id=157198
+        <rdar://problem/26011049>
+
+        Reviewed by Timothy Hatcher.
+
+        * WebProcess/WebPage/WebInspectorFrontendAPIDispatcher.h:
+        * WebProcess/WebPage/WebInspectorFrontendAPIDispatcher.cpp:
+        (WebKit::WebInspectorFrontendAPIDispatcher::reset):
+        (WebKit::WebInspectorFrontendAPIDispatcher::frontendLoaded):
+        (WebKit::WebInspectorFrontendAPIDispatcher::suspend):
+        (WebKit::WebInspectorFrontendAPIDispatcher::unsuspend):
+        (WebKit::WebInspectorFrontendAPIDispatcher::dispatchCommand):
+        (WebKit::WebInspectorFrontendAPIDispatcher::dispatchMessageAsync):
+        (WebKit::WebInspectorFrontendAPIDispatcher::evaluateOrQueueExpression):
+        (WebKit::WebInspectorFrontendAPIDispatcher::evaluateQueuedExpressions):
+        Avoid evaluating expressions when the page is paused. Generalize the
+        message queueing and dispatching for pause/suspend that we already
+        had for waiting for the frontend page to be loaded.
+
+        * WebProcess/WebPage/WebInspectorUI.h:
+        * WebProcess/WebPage/WebInspectorUI.cpp:
+        (WebKit::WebInspectorUI::pagePaused):
+        (WebKit::WebInspectorUI::pageUnpaused):
+        When the frontend page pauses/unpauses, suspend/resume the dispatcher.
+
+2016-04-29  Chris Dumez  <cdumez@apple.com>
+
+        Remove unnecessary isolated String copying from one of NetworkCache::Key's constructor
+        https://bugs.webkit.org/show_bug.cgi?id=157207
+
+        Reviewed by Antti Koivisto.
+
+        Remove unnecessary isolated String copying from one of NetworkCache::Key's
+        constructor. We are anyway going to create isolated copies if the Key ends
+        up getting copied.
+
+        * NetworkProcess/cache/NetworkCacheKey.cpp:
+        (WebKit::NetworkCache::Key::Key):
+
+2016-04-29  Brian Burg  <bburg@apple.com>
+
+        Web Automation: performMouseInteraction command computes mouse event coordinates incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=157218
+        <rdar://problem/26018230>
+
+        Reviewed by Timothy Hatcher.
+
+        This patch fixes two issues: the min/max clamp was in the wrong order,
+        and the y-value did not account for the window's top content inset.
+
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::performMouseInteraction):
+
+2016-04-29  Dean Jackson  <dino@apple.com>
+
+        RTL <select> popup menu is in the wrong location
+        https://bugs.webkit.org/show_bug.cgi?id=157159
+        <rdar://problem/25894451>
+
+        Reapply http://trac.webkit.org/changeset/200217
+        but with changes that will allow it to build on Yosemite.
+
+        * UIProcess/mac/WebPopupMenuProxyMac.mm:
+        (WebKit::WebPopupMenuProxyMac::showPopupMenu):
+
+2016-04-28  Ada Chan  <adachan@apple.com>
+
+        Indicate we are processing user gesture when handling messages from WebPlaybackSessionManagerProxy to WebPlaybackSessionManager
+        https://bugs.webkit.org/show_bug.cgi?id=157151
+
+        Reviewed by Jer Noble.
+
+        Messages from WebPlaybackSessionManagerProxy to WebPlaybackSessionManager are triggered by
+        user actions, so add a UserGestureIndicator in the methods that handle those messages.
+
+        * WebProcess/cocoa/WebPlaybackSessionManager.mm:
+        (WebKit::WebPlaybackSessionManager::play):
+        (WebKit::WebPlaybackSessionManager::pause):
+        (WebKit::WebPlaybackSessionManager::togglePlayState):
+        (WebKit::WebPlaybackSessionManager::beginScrubbing):
+        (WebKit::WebPlaybackSessionManager::endScrubbing):
+        (WebKit::WebPlaybackSessionManager::seekToTime):
+        (WebKit::WebPlaybackSessionManager::fastSeek):
+        (WebKit::WebPlaybackSessionManager::beginScanningForward):
+        (WebKit::WebPlaybackSessionManager::beginScanningBackward):
+        (WebKit::WebPlaybackSessionManager::endScanning):
+        (WebKit::WebPlaybackSessionManager::selectAudioMediaOption):
+        (WebKit::WebPlaybackSessionManager::selectLegibleMediaOption):
+
+2016-04-29  Brady Eidson  <beidson@apple.com>
+
+        Add a default ".isolatedCopy()" specialization to CrossThreadCopier, and other small cleanup.
+        https://bugs.webkit.org/show_bug.cgi?id=157185
+
+        Reviewed by Anders Carlsson.
+
+        * Shared/WebCrossThreadCopier.cpp:
+        (WebCore::Vector<char>>::copy): reserveInitialCapacity() before creating the copy.
+        (WebCore::Vector<int64_t>>::copy): Ditto.
+        (WebCore::Vector<uint8_t>>::copy): Ditto.
+        (WebCore::Vector<Vector<IDBKeyData>>>::copy): Deleted dead code.
+        * Shared/WebCrossThreadCopier.h:
+
 2016-04-29  Commit Queue  <commit-queue@webkit.org>
 
         Unreviewed, rolling out r200217.

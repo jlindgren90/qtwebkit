@@ -1,3 +1,183 @@
+2016-04-29  Mark Lam  <mark.lam@apple.com>
+
+        Make RegExp.prototype.test spec compliant.
+        https://bugs.webkit.org/show_bug.cgi?id=155862
+
+        Reviewed by Saam Barati.
+
+        * js/regress/regexp-prototype-test-observable-side-effects-expected.txt: Added.
+        * js/regress/regexp-prototype-test-observable-side-effects.html: Added.
+        * js/regress/regexp-prototype-test-observable-side-effects2-expected.txt: Added.
+        * js/regress/regexp-prototype-test-observable-side-effects2.html: Added.
+        * js/regress/script-tests/regexp-prototype-test-observable-side-effects.js: Added.
+        * js/regress/script-tests/simple-regexp-test-folding-fail-with-hoisted-regexp.js: Added.
+        * js/regress/script-tests/simple-regexp-test-folding-with-hoisted-regexp.js: Added.
+        * js/regress/simple-regexp-test-folding-fail-with-hoisted-regexp-expected.txt: Added.
+        * js/regress/simple-regexp-test-folding-fail-with-hoisted-regexp.html: Added.
+        * js/regress/simple-regexp-test-folding-with-hoisted-regexp-expected.txt: Added.
+        * js/regress/simple-regexp-test-folding-with-hoisted-regexp.html: Added.
+
+2016-04-29  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200150 and r200256.
+        https://bugs.webkit.org/show_bug.cgi?id=157216
+
+        This change introduced flakiness in existing CJK LayoutTests.
+        Also reverting the change that marked the tests as flaky.
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changesets:
+
+        "Clean up Font::removeFromSystemFallbackCache()"
+        https://bugs.webkit.org/show_bug.cgi?id=157093
+        http://trac.webkit.org/changeset/200150
+
+        "Marking fast/ruby/ruby-expansion-cjk.html and fast/ruby/ruby-
+        expansion-cjk-4.html as flaky on Mac"
+        https://bugs.webkit.org/show_bug.cgi?id=157197
+        http://trac.webkit.org/changeset/200256
+
+2016-04-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Change ios-simulator expectation for tests added with r200265 from ImageOnlyFailure to Failure
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-04-29  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac] AirPlay fails if target is set before AVPlayer has been created
+        https://bugs.webkit.org/show_bug.cgi?id=157147
+        <rdar://problem/24197592>
+
+        Unreviewed, update test so the results are consistent on different machines.
+
+        * media/media-source/media-source-airplay-expected.txt:
+        * media/media-source/media-source-airplay.html:
+
+2016-04-29  Antonio Gomes  <tonikitoo@webkit.org>
+
+        <select multiple> padding should react when scrolling
+        https://bugs.webkit.org/show_bug.cgi?id=156590
+        https://bugs.webkit.org/show_bug.cgi?id=156591
+
+        Reviewed by Reviewed by Darin Adler.
+
+        * fast/forms/listbox-respects-padding-bottom-expected.txt: Added.
+        * fast/forms/listbox-respects-padding-bottom.html: Added.
+        * fast/forms/listbox-top-padding-do-not-clip-items-expected.txt: Added.
+        * fast/forms/listbox-top-padding-do-not-clip-items.html: Added.
+
+2016-04-29  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac] AirPlay fails if target is set before AVPlayer has been created
+        https://bugs.webkit.org/show_bug.cgi?id=157147
+        <rdar://problem/24197592>
+
+        Reviewed by Jer Noble.
+
+        * media/media-source/media-source-airplay-expected.txt: Added.
+        * media/media-source/media-source-airplay.html: Added.
+        * platform/efl/TestExpectations: Skip Mac-only test.
+        * platform/gtk/TestExpectations: Ditto.
+        * platform/ios-simulator/TestExpectations: Ditto.
+        * platform/mac/TestExpectations: Skipped new tests on older versions of OS X.
+        * platform/win/TestExpectations: Skip Mac-only test.
+
+2016-04-29  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [RTL Scrollbars] REGRESSION(r200116): Positioned contents can overlap RTL scrollbars
+        https://bugs.webkit.org/show_bug.cgi?id=157164
+        <rdar://problem/25993610>
+
+        Reviewed by Darin Adler.
+
+        * TestExpectations:
+        * fast/scrolling/rtl-scrollbars-positioned-intersect-scrollbars-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-positioned-intersect-scrollbars.html: Added.
+
+2016-04-29  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [GTK] r65681 broke a couple GTK+ a11y tests
+        https://bugs.webkit.org/show_bug.cgi?id=44316
+
+        Reviewed by Martin Robinson.
+
+        The original regression has apparently been fixed, possibly quite some time
+        ago. Updating both tests and associated expectations to reflect what has
+        changed over the years. Leaving title-and-alt.html as skipped, but marked
+        as failing due to a different bug (157187).
+
+        * accessibility/gtk/object-attributes-expected.txt:
+        * accessibility/gtk/object-attributes.html:
+        * accessibility/gtk/title-and-alt-expected.txt:
+        * accessibility/gtk/title-and-alt.html:
+        * platform/gtk/TestExpectations:
+
+2016-04-29  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Fix a typo in r200255.
+
+        * resources/testharnessreport.js:
+        (self.testRunner.add_completion_callback):
+
+2016-04-29  Nan Wang  <n_wang@apple.com>
+
+        AX: CharacterOffset not working correctly with composed characters and collapsed white spaces
+        https://bugs.webkit.org/show_bug.cgi?id=157190
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/text-marker-word-nav.html:
+        * accessibility/text-marker/text-marker-previous-next-expected.txt:
+        * accessibility/text-marker/text-marker-previous-next.html:
+
+2016-04-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/ruby/ruby-expansion-cjk.html and fast/ruby/ruby-expansion-cjk-4.html as flaky on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=157197
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-04-29  Ryosuke Niwa  <rniwa@webkit.org>
+
+        test harness tests complain about testRunner not being declared inside a browser
+        https://bugs.webkit.org/show_bug.cgi?id=157056
+
+        Reviewed by Alex Christensen.
+
+        Don't run the code meant to re-format results for DRT/WTR when testRunner is not defined (i.e. inside a browser).
+        Also fixed various styling issues with this JavaScript file and removed useless comments.
+
+        * resources/testharnessreport.js:
+
+2016-04-29  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200232.
+        https://bugs.webkit.org/show_bug.cgi?id=157189
+
+        This change broke the Mac CMake build and its LayoutTest is
+        failing and/or flaky on all platforms (Requested by ryanhaddad
+        on #webkit).
+
+        Reverted changeset:
+
+        "Move ResourceTiming behind a runtime flag"
+        https://bugs.webkit.org/show_bug.cgi?id=157133
+        http://trac.webkit.org/changeset/200232
+
+2016-04-29  Miguel Gomez  <magomez@igalia.com>
+
+        [GTK] Unreviewed gardening: update expectations after r200234
+        https://bugs.webkit.org/show_bug.cgi?id=157181
+
+        Unreviewed gardening.
+
+        * platform/gtk/TestExpectations:
+
 2016-04-29  Simon Fraser  <simon.fraser@apple.com>
 
         Wheel Event Not Fired For `body,html { height:100% }`

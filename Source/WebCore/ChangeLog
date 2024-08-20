@@ -1,5 +1,336 @@
 2016-04-29  Simon Fraser  <simon.fraser@apple.com>
 
+        Clean up GraphicsContext use in RenderLayer::paintLayerContents()
+        https://bugs.webkit.org/show_bug.cgi?id=157193
+
+        Reviewed by Zalan Bujtas.
+
+        Make the lifetime of the temporary GraphicsContext used to paint filters more explicit
+        by putting it in an inner scope.
+        
+        Make currentContext a reference.
+        
+        transparencyLayerContext was a confusing name (it doens't mean we've started a
+        transparency layer), so just use "context" to refer to the original context. When
+        passed to other functions, this is called "contextForTransparencyLayer".
+        
+        No longer leaves "context" as a null pointer if filterPainter->filterContext() returns
+        a null pointer. It's unclear if this ever happened.
+
+        * rendering/FilterEffectRenderer.cpp:
+        (WebCore::FilterEffectRendererHelper::filterContext):
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::beginTransparencyLayers):
+        (WebCore::RenderLayer::applyFilters):
+        (WebCore::RenderLayer::paintLayerContents):
+        (WebCore::RenderLayer::paintBackgroundForFragments):
+        (WebCore::RenderLayer::paintForegroundForFragments):
+        * rendering/RenderLayer.h:
+
+2016-04-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Issues inspecting the inspector, pausing on breakpoints causes content to not load
+        https://bugs.webkit.org/show_bug.cgi?id=157198
+        <rdar://problem/26011049>
+
+        Reviewed by Timothy Hatcher.
+
+        No new tests. This only affects inspecting an inspector.
+
+        * inspector/InspectorController.h:
+        * inspector/InspectorFrontendClient.h:
+        (WebCore::InspectorFrontendClient::pagePaused):
+        (WebCore::InspectorFrontendClient::pageUnpaused):
+        * inspector/PageScriptDebugServer.cpp:
+        (WebCore::PageScriptDebugServer::setJavaScriptPaused):
+        Inform a frontend client if the frontend page itself pauses/unpauses.
+
+2016-04-29  Eric Carlson  <eric.carlson@apple.com>
+
+        [iOS] do not exit AirPlay when the screen locks
+        https://bugs.webkit.org/show_bug.cgi?id=156502
+        <rdar://problem/24616592>
+
+        Reviewed by Dean Jackson
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::pendingActionTimerFired): Use m_isPlayingToWirelessTarget.
+        (WebCore::HTMLMediaElement::webkitCurrentPlaybackTargetIsWireless): Ditto.
+        (WebCore::HTMLMediaElement::wirelessRoutesAvailableDidChange): Set m_isPlayingToWirelessTarget.
+        (WebCore::HTMLMediaElement::mediaPlayerCurrentPlaybackTargetIsWirelessChanged): Use
+          m_isPlayingToWirelessTarget.
+        (WebCore::HTMLMediaElement::isPlayingToWirelessPlaybackTarget): Ditto.
+        (WebCore::HTMLMediaElement::configureMediaControls): Ditto.
+        (WebCore::HTMLMediaElement::shouldOverrideBackgroundPlaybackRestriction): Add logging.
+        (WebCore::HTMLMediaElement::purgeBufferedDataIfPossible): Don't tell the media engine to purge 
+          data if it is playing to a wireless target because that will drop the connection.
+        * html/HTMLMediaElement.h:
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::playbackPermitted): Add logging.
+        (WebCore::MediaElementSession::canPlayToWirelessPlaybackTarget): Drive by fix: iOS doesn't 
+          have an explicit playbackTarget, don't test for it.
+        (WebCore::MediaElementSession::isPlayingToWirelessPlaybackTarget): Ditto.
+
+2016-04-29  Chris Dumez  <cdumez@apple.com>
+
+        Node.nodeName should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=157211
+
+        Reviewed by Ryosuke Niwa.
+
+        Node.nodeName should not be nullable as per the specification:
+        https://dom.spec.whatwg.org/#interface-node
+
+        Our implementation never returns null anyway. However, having
+        it as nullable in the IDL means we use jsStringOrNull() instead
+        of jsStringWithCache(), thus doing an unnecessary null check.
+
+        This should not be observable by JS.
+
+        * dom/Node.idl:
+
+2016-04-29  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200150 and r200256.
+        https://bugs.webkit.org/show_bug.cgi?id=157216
+
+        This change introduced flakiness in existing CJK LayoutTests.
+        Also reverting the change that marked the tests as flaky.
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changesets:
+
+        "Clean up Font::removeFromSystemFallbackCache()"
+        https://bugs.webkit.org/show_bug.cgi?id=157093
+        http://trac.webkit.org/changeset/200150
+
+        "Marking fast/ruby/ruby-expansion-cjk.html and fast/ruby/ruby-
+        expansion-cjk-4.html as flaky on Mac"
+        https://bugs.webkit.org/show_bug.cgi?id=157197
+        http://trac.webkit.org/changeset/200256
+
+2016-04-29  Antonio Gomes  <tonikitoo@webkit.org>
+
+        <select multiple> padding should react when scrolling
+
+        https://bugs.webkit.org/show_bug.cgi?id=156590
+        https://bugs.webkit.org/show_bug.cgi?id=156591
+
+        Reviewed by Reviewed by Darin Adler.
+
+        Tests: fast/forms/listbox-respects-padding-bottom.html
+               fast/forms/listbox-top-padding-do-not-clip-items.html
+
+        Non-dropdown listboxes have support to padding-{top,bottom} implemented similarly
+        to the border model: the padding area does not move when the listbox' content gets scrolled,
+        but instead it clips out its content.
+        This is not consistent with other browsers and is not consistent with the CSS box model.
+
+        This in practice, if a <select> has padding-top set, the padding-top area will clip out listbox'
+        content as one scrolls upwards.
+        It also means that if padding-bottom is set, when one scrolls all the way to the bottom
+        of the listbox content, padding-bottom is not respected.
+
+        In order to fix these two problems, and make WebKit match Blink with respect to the the way
+        padding-{top,bottom} are handled, patch adds two class member variables that control the number
+        of list items (i.e. <option>s) that can be painted over the current listbox' padding area.
+
+        In short, depending on the scroll position and the amount of space available in the padding top/bottom
+        areas, items are painted or not on top of it, mimic'ing the CSS box model behavior of other browsers.
+
+        Note that this is specific solution is worth it to pursue on the short/mid term, but a long-term solution
+        to this problem and many other listbox discrepancies on WebKit's implementation, would be to reimplement
+        RenderListBox class in terms of RenderLayer. This will be a follow up work.
+
+        * rendering/RenderListBox.cpp:
+        (WebCore::RenderListBox::updateFromElement):
+        (WebCore::RenderListBox::numVisibleItems):
+        (WebCore::RenderListBox::paintObject):
+        (WebCore::RenderListBox::scrollToRevealElementAtListIndex):
+        (WebCore::RenderListBox::listIndexIsVisible):
+        (WebCore::RenderListBox::maximumNumberOfItemsThatFitInPaddingBottomArea):
+        (WebCore::RenderListBox::numberOfVisibleItemsInPaddingTop):
+        (WebCore::RenderListBox::numberOfVisibleItemsInPaddingBottom):
+        (WebCore::RenderListBox::computeFirstIndexesVisibleInPaddingTopBottomAreas):
+        (WebCore::RenderListBox::scrollTo):
+        * rendering/RenderListBox.h:
+
+2016-04-29  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac] AirPlay fails if target is set before AVPlayer has been created
+        https://bugs.webkit.org/show_bug.cgi?id=157147
+        <rdar://problem/24197592>
+
+        Reviewed by Jer Noble.
+
+        Test: media/media-source/media-source-airplay.html
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createAVPlayer): Clear flag before calling
+          setShouldPlayToPlaybackTarget so it does the necessary setup.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::isAvailable): Return false if the mock
+          MSE source has been registered.
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::supportsType): Return 'not supported' if
+          isAvailable is false.
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::load): Fail if isAvailable is false.
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::isCurrentPlaybackTargetWireless): Cleanup.
+
+        * platform/mock/mediasource/MockMediaPlayerMediaSource.cpp:
+        (WebCore::registered): Global accessor.
+        (WebCore::MockMediaPlayerMediaSource::isRegistered): 
+        (WebCore::MockMediaPlayerMediaSource::registerMediaEngine): Set registered to true.
+        (WebCore::MockMediaPlayerMediaSource::setWirelessPlaybackTarget): New, remember the target.
+        (WebCore::MockMediaPlayerMediaSource::setShouldPlayToPlaybackTarget): New, remember the setting.
+        (WebCore::MockMediaPlayerMediaSource::isCurrentPlaybackTargetWireless):
+        * platform/mock/mediasource/MockMediaPlayerMediaSource.h:
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::initializeMockMediaSource): Don't disable AVFoundation.
+
+2016-04-29  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [RTL Scrollbars] REGRESSION(r200116): Positioned contents can overlap RTL scrollbars
+        https://bugs.webkit.org/show_bug.cgi?id=157164
+        <rdar://problem/25993610>
+
+        Reviewed by Darin Adler.
+
+        There was some code left over from the old implementation of RTL_SCROLLBARS
+        which had some faulty assumptions about the interaction between direction
+        and scrollbar placement. In particular, once we began obeying the "dir"
+        attribute in r200116, these assumptions were no longer valid.
+
+        Test: fast/scrolling/rtl-scrollbars-positioned-intersect-scrollbars.html
+              scrollbars/rtl/div-absolute.html
+              scrollbars/rtl/div-horizontal.html
+
+        * rendering/InlineFlowBox.h:
+        (WebCore::InlineFlowBox::layoutOverflowRect):
+        * rendering/RenderBlock.cpp:
+        (WebCore::RenderBlock::computeOverflow): Deleted.
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::layoutOverflowRectForPropagation):
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::computeScrollDimensions):
+
+2016-04-29  Nan Wang  <n_wang@apple.com>
+
+        AX: CharacterOffset not working correctly with composed characters and collapsed white spaces
+        https://bugs.webkit.org/show_bug.cgi?id=157190
+
+        Reviewed by Chris Fleizach.
+
+        When navigating emoji, next/previous text marker call is only moving by one character. Fixed it by
+        using the helper function in Position to get the real character count for the composed character sequence.
+        Also there's another issue with collapsed white spaces, TextIterator emits only one space. So we have to 
+        use the actual space length to create the CharacterOffset in order to generate valid Range object from it.
+
+        New test cases in accessibility/text-marker/text-marker-previous-next.html.
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::AXObjectCache::traverseToOffsetInRange):
+        (WebCore::AXObjectCache::textMarkerDataForNextCharacterOffset):
+        (WebCore::AXObjectCache::textMarkerDataForPreviousCharacterOffset):
+        (WebCore::AXObjectCache::nextNode):
+        (WebCore::AXObjectCache::characterOffsetFromVisiblePosition):
+        (WebCore::AXObjectCache::nextCharacterOffset):
+        (WebCore::AXObjectCache::previousCharacterOffset):
+        (WebCore::AXObjectCache::startCharacterOffsetOfWord):
+
+2016-04-28  Jer Noble  <jer.noble@apple.com>
+
+        WebPlaybackControlsManager should not be owned by the WebPlaybackSessionInterfaceMac.
+        https://bugs.webkit.org/show_bug.cgi?id=157155
+        <rdar://problem/25991724>
+
+        Reviewed by Beth Dakin.
+
+        Move the WebPlaybackControlsManager class into its own header and implementation files.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/mac/WebPlaybackControlsManager.h: Added.
+        * platform/mac/WebPlaybackControlsManager.mm: Added.
+        (-[WebPlaybackControlsManager timing]): Moved from WebPlaybackSessionInterfaceMac.
+        (-[WebPlaybackControlsManager setTiming:]): Ditto.
+        (-[WebPlaybackControlsManager seekableTimeRanges]): Ditto.
+        (-[WebPlaybackControlsManager setSeekableTimeRanges:]): Ditto.
+        (-[WebPlaybackControlsManager setAudioMediaSelectionOptions:withSelectedIndex:]): Ditto.
+        (-[WebPlaybackControlsManager setLegibleMediaSelectionOptions:withSelectedIndex:]): Ditto.
+        * platform/mac/WebPlaybackSessionInterfaceMac.h:
+        * platform/mac/WebPlaybackSessionInterfaceMac.mm:
+        (WebCore::WebPlaybackSessionInterfaceMac::setPlayBackControlsManager):
+        (-[WebPlaybackControlsManager initWithWebPlaybackSessionInterfaceMac:]): Deleted.
+        (-[WebPlaybackControlsManager timing]): Deleted.
+        (-[WebPlaybackControlsManager setTiming:]): Deleted.
+        (-[WebPlaybackControlsManager seekableTimeRanges]): Deleted.
+        (-[WebPlaybackControlsManager setSeekableTimeRanges:]): Deleted.
+        (-[WebPlaybackControlsManager setAudioMediaSelectionOptions:withSelectedIndex:]): Deleted.
+        (-[WebPlaybackControlsManager setLegibleMediaSelectionOptions:withSelectedIndex:]): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceMac::playBackControlsManager): Deleted.
+
+2016-04-29  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200232.
+        https://bugs.webkit.org/show_bug.cgi?id=157189
+
+        This change broke the Mac CMake build and its LayoutTest is
+        failing and/or flaky on all platforms (Requested by ryanhaddad
+        on #webkit).
+
+        Reverted changeset:
+
+        "Move ResourceTiming behind a runtime flag"
+        https://bugs.webkit.org/show_bug.cgi?id=157133
+        http://trac.webkit.org/changeset/200232
+
+2016-04-29  Jeremy Huddleston Sequoia  <jeremyhu@apple.com>
+
+        [GTK] Fix build failure introduced by r199738
+        https://bugs.webkit.org/show_bug.cgi?id=157182
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt:
+
+2016-04-29  Brady Eidson  <beidson@apple.com>
+
+        Add a default ".isolatedCopy()" specialization to CrossThreadCopier, and other small cleanup.
+        https://bugs.webkit.org/show_bug.cgi?id=157185
+
+        Reviewed by Anders Carlsson.
+
+        No new tests (Code cleanup, no change in behavior).
+
+        * platform/CrossThreadCopier.cpp:
+        (WebCore::IndexedDB::TransactionMode>::copy): Deleted.
+        (WebCore::IndexedDB::CursorDirection>::copy): Deleted.
+        (WebCore::IndexedDB::CursorType>::copy): Deleted.
+        (WebCore::IDBGetResult>::copy): Deleted.
+        (WebCore::IDBKeyData>::copy): Deleted.
+        (WebCore::IDBKeyRangeData>::copy): Deleted.
+        (WebCore::IDBDatabaseInfo>::copy): Deleted.
+        (WebCore::IDBDatabaseIdentifier>::copy): Deleted.
+        (WebCore::IDBTransactionInfo>::copy): Deleted.
+        (WebCore::IDBResourceIdentifier>::copy): Deleted.
+        (WebCore::IDBError>::copy): Deleted.
+        (WebCore::IDBObjectStoreInfo>::copy): Deleted.
+        (WebCore::IDBIndexInfo>::copy): Deleted.
+        (WebCore::IDBCursorInfo>::copy): Deleted.
+        (WebCore::IDBValue>::copy): Deleted.
+
+        * platform/CrossThreadCopier.h:
+        (WebCore::AllowCrossThreadAccessWrapper::AllowCrossThreadAccessWrapper): Deleted dead code.
+        (WebCore::AllowCrossThreadAccessWrapper::value): Deleted dead code.
+        (WebCore::AllowCrossThreadAccess): Deleted dead code.
+        (WebCore::AllowAccessLaterWrapper::AllowAccessLaterWrapper): Deleted dead code.
+        (WebCore::AllowAccessLaterWrapper::value): Deleted dead code.
+        (WebCore::AllowAccessLater): Deleted dead code.
+
+2016-04-29  Simon Fraser  <simon.fraser@apple.com>
+
         Wheel Event Not Fired For `body,html { height:100% }`
         https://bugs.webkit.org/show_bug.cgi?id=148450
 

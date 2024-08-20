@@ -3003,6 +3003,11 @@ fast/scrolling/rtl-scrollbars-sticky-iframe.html [ ImageOnlyFailure ]
 fast/forms/listbox-padding-clip.html [ ImageOnlyFailure ]
 fast/forms/listbox-padding-clip-overlay.html [ ImageOnlyFailure ]
 fast/forms/listbox-padding-clip-selected.html [ ImageOnlyFailure ]
+fast/forms/listbox-respects-padding-bottom.html [ Failure ]
+fast/forms/listbox-top-padding-do-not-clip-items.html [ Failure ]
+
+# MSE not enabled.
+media/media-source/media-source-airplay.html [ Skip ]
 
 # No focusring on iOS.
 fast/images/image-map-outline-in-positioned-container.html [ Pass ImageOnlyFailure ]

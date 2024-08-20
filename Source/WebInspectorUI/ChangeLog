@@ -1,3 +1,67 @@
+2016-04-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Issues inspecting the inspector, pausing on breakpoints causes content to not load
+        https://bugs.webkit.org/show_bug.cgi?id=157198
+        <rdar://problem/26011049>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Protocol/InspectorBackend.js:
+        (InspectorBackendClass.prototype._sendCommandToBackendWithCallback):
+        (InspectorBackendClass.prototype._sendCommandToBackendExpectingPromise):
+        While auditing, use simpler check.
+
+        * UserInterface/Proxies/FormatterWorkerProxy.js:
+        (WebInspector.FormatterWorkerProxy.canFormat): Deleted.
+        While auditing, remove dead code.
+
+2016-04-29  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Scrolling in Timelines causes flashing of the DataGrid
+        https://bugs.webkit.org/show_bug.cgi?id=157212
+        rdar://problem/25994717
+
+        Listen for mousewheel events too so we can update the visible rows sooner.
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid): Call _updateScrollListeners.
+        (WebInspector.DataGrid.prototype.set inline): Use _updateScrollListeners.
+        (WebInspector.DataGrid.prototype.set variableHeightRows): Use _updateScrollListeners.
+        (WebInspector.DataGrid.prototype._updateScrollListeners): Added. Listen for mousewheel too.
+
+2016-04-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Jump to Line in auto formatted JavaScript does not work the first time
+        https://bugs.webkit.org/show_bug.cgi?id=157194
+        <rdar://problem/26008471>
+
+        Reviewed by Timothy Hatcher.
+
+        When doing asynchronous formatting we set the content of the editor
+        twice. First to prime the editors back/foward list with the original
+        content, and then again after we get the formatted content from the
+        Worker, and then display the content.
+
+        The TextEditor attempts to reveal a position when the initial string
+        has been set. Back when autoformatting was synchronous this was fine.
+        Asynchronously however, this ends up happening between the original
+        and formatted value. Also, the TextEditor has no idea that the
+        SourceCodeTextEditor is going to format / defer displaying the
+        contents. Add a "defer" property to the TextEditor that the
+        SourceCodeTextEditor can use in this circumstance.
+
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype._populateWithContent):
+        Avoid revealing a position when setting the original content. We will
+        be formatting and we will want to reveal the position afterwards.
+
+        * UserInterface/Views/TextEditor.js:
+        (WebInspector.TextEditor):
+        (WebInspector.TextEditor.prototype.set deferReveal):
+        Provide another reason to defer revealing.
+
 2016-04-28  Joseph Pecoraro  <pecoraro@apple.com>
 
         Web Inspector: FormatterWorker fails to find "External/Esprima.js" in Production builds

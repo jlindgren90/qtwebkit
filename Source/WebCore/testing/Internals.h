@@ -475,7 +475,6 @@ public:
     
     void setViewportForceAlwaysUserScalable(bool);
     void setLinkPreloadSupport(bool);
-    void setResourceTimingSupport(bool);
 
 #if ENABLE(CSS_GRID_LAYOUT)
     void setCSSGridLayoutEnabled(bool);

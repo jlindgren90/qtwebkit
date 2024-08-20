@@ -71,9 +71,6 @@
     macro(Number) \
     macro(NumberFormat) \
     macro(Object) \
-    macro(PerformanceEntry) \
-    macro(PerformanceEntryList) \
-    macro(PerformanceResourceTiming) \
     macro(Promise) \
     macro(Proxy) \
     macro(RangeError) \
@@ -439,10 +436,11 @@
     macro(regExpProtoSourceGetter) \
     macro(regExpProtoStickyGetter) \
     macro(regExpProtoUnicodeGetter) \
+    macro(regExpPrototypeSymbolReplace) \
     macro(regExpReplaceFast) \
     macro(regExpSearchFast) \
     macro(regExpSplitFast) \
-    macro(regExpPrototypeSymbolReplace) \
+    macro(regExpTestFast) \
     macro(stringIncludesInternal) \
     macro(stringSplitFast) \
     macro(stringSubstrInternal) \

@@ -1,3 +1,123 @@
+2016-04-29  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC][ARMv7S] Arithmetic module results change when tiering up to DFG
+        https://bugs.webkit.org/show_bug.cgi?id=157217
+        rdar://problem/24733432
+
+        Reviewed by Mark Lam.
+
+        ARMv7's fmod() returns less accurate results than an integer division.
+        Since we have integer div on ARMv7s, the results start changing when
+        we reach DFG.
+
+        In this patch, I change our fmod slow path to behave like the fast path
+        on ARMv7s.
+
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithMod):
+        (JSC::DFG::fmodAsDFGOperation): Deleted.
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::SLOW_PATH_DECL):
+        * runtime/MathCommon.cpp:
+        (JSC::isStrictInt32):
+        * runtime/MathCommon.h:
+
+2016-04-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Issues inspecting the inspector, pausing on breakpoints causes content to not load
+        https://bugs.webkit.org/show_bug.cgi?id=157198
+        <rdar://problem/26011049>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/InspectorBackendDispatcher.cpp:
+        (Inspector::BackendDispatcher::sendResponse):
+        While auditing the code, add a WTFMove.
+
+2016-04-29  Mark Lam  <mark.lam@apple.com>
+
+        Make RegExp.prototype.test spec compliant.
+        https://bugs.webkit.org/show_bug.cgi?id=155862
+
+        Reviewed by Saam Barati.
+
+        * builtins/RegExpPrototype.js:
+        (intrinsic.RegExpTestIntrinsic.test):
+
+        * create_hash_table:
+        - Delete obsoleted code.
+
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::addToGraph):
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        - We now have 2 intrinsics for RegExp.prototype.test:
+          RegExpTestIntrinsic and RegExpTestFastIntrinsic.
+
+          RegExpTestIntrinsic maps to the entry at the top of the builtin ES6
+          RegExp.prototype.test.
+          RegExpTestFastIntrinsic maps to the fast path in the builtin ES6
+          RegExp.prototype.test.
+
+          Both will end up using the RegExpTest DFG node to implement the fast path
+          of RegExp.prototype.test.  RegExpTestIntrinsic will have some additional checks
+          before the RegExpTest node.  Those checks are for speculating that it is ok for
+          us to take the fast path.
+
+        * runtime/CommonIdentifiers.h:
+        * runtime/Intrinsic.h:
+
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        - Added the regExpTestFast function.
+        - Also fixed the parameter length on 2 other functions that were erroneous.
+
+        * runtime/RegExpPrototype.cpp:
+        (JSC::RegExpPrototype::finishCreation):
+        (JSC::regExpProtoFuncTestFast):
+        (JSC::regExpProtoFuncTest): Deleted.
+        * runtime/RegExpPrototype.h:
+        * tests/es6.yaml:
+
+2016-04-29  Benjamin Poulain  <benjamin@webkit.org>
+
+        Extend math-pow-stable-results.js to get more information about the failure
+
+        * tests/stress/math-pow-stable-results.js:
+
+2016-04-29  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Assertion failure for exception in "prototype" property getter and Reflect.construct
+        https://bugs.webkit.org/show_bug.cgi?id=157084
+
+        Reviewed by Mark Lam.
+
+        InternalFunction::createSubclassStrucuture may throw exceptions because it performs [[Get]] to
+        look up the "prototype" object. The current assertion is invalid.
+        We also found that Object constructor is not aware of new.target. This is filed[1].
+
+        [1]: https://bugs.webkit.org/show_bug.cgi?id=157196
+
+        * runtime/InternalFunction.cpp:
+        (JSC::InternalFunction::createSubclassStructure):
+        * tests/stress/create-subclass-structure-may-throw-exception-when-getting-prototype.js: Added.
+        (shouldThrow):
+        (bf):
+
+2016-04-29  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200232.
+        https://bugs.webkit.org/show_bug.cgi?id=157189
+
+        This change broke the Mac CMake build and its LayoutTest is
+        failing and/or flaky on all platforms (Requested by ryanhaddad
+        on #webkit).
+
+        Reverted changeset:
+
+        "Move ResourceTiming behind a runtime flag"
+        https://bugs.webkit.org/show_bug.cgi?id=157133
+        http://trac.webkit.org/changeset/200232
+
 2016-04-29  Yusuke Suzuki  <utatane.tea@gmail.com>
 
         [ES6] RegExp.prototype.@@replace should use @isObject instead of `instanceof` for object guard
