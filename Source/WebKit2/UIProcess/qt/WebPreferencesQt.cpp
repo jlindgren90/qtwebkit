@@ -55,7 +55,7 @@ void WebPreferences::platformInitializeStore()
     qFontHint["SerifFontFamily"] = QFont::Serif;
     qFontHint["PictographFontFamily"] = QFont::Serif;
 
-#define INITIALIZE_FONT_PREFERENCES(KeyUpper, KeyLower, TypeName, Type, DefaultValue) \
+#define INITIALIZE_FONT_PREFERENCES(KeyUpper, KeyLower, TypeName, Type, DefaultValue, HumanReadableName, HumanReadableDescription) \
     set##TypeName##ValueIfInUserDefaults(WebPreferencesKey::KeyLower##Key(), m_store, qFontHint);
 
     FOR_EACH_WEBKIT_FONT_FAMILY_PREFERENCE(INITIALIZE_FONT_PREFERENCES)

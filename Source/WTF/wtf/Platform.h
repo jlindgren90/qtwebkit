@@ -1188,6 +1188,8 @@
  * Thus, USE(EFL_EVENT_LOOP) && USE(GLIB) can be true.
  */
 #define USE_EFL_EVENT_LOOP 1
+#elif PLATFORM(QT)
+/* Use Qt event loop abstraction. */
 #elif USE(GLIB)
 /* Use GLib's event loop abstraction. Primarily GTK port uses it. */
 #define USE_GLIB_EVENT_LOOP 1
