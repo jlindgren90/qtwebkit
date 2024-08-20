@@ -1,8 +1,10 @@
 /*
  * Copyright (C) 2006, 2007, 2008, 2010, 2013 Apple Inc.
  * Copyright (C) 2006 Michael Emmel mike.emmel@gmail.com
- * Copyright (C) 2007 Holger Hans Peter Freyther
+ * Copyright (C) 2007, 2008 Holger Hans Peter Freyther
  * Copyright (C) 2007 Pioneer Research Center USA, Inc.
+ * Copyright (C) 2008 Nokia Corporation and/or its subsidiary(-ies)
+ * Copyright (C) 2009 Torch Mobile Inc. http://www.torchmobile.com/
  * Copyright (C) 2010, 2011 Brent Fulgham <bfulgham@webkit.org>
  *
  * This library is free software; you can redistribute it and/or
@@ -22,14 +24,15 @@
  *
  */
 
-#if PLATFORM(QT)
-#include "qt/FontPlatformData.h"
-#else
-
 #ifndef FontPlatformData_h
 #define FontPlatformData_h
 
 #include "TextFlags.h"
+
+#if PLATFORM(QT)
+#include <QRawFont>
+#include <wtf/text/WTFString.h>
+#endif
 
 #if PLATFORM(WIN)
 #include "SharedGDIObject.h"
@@ -93,6 +96,13 @@ public:
     FontPlatformData(const FontDescription&, const AtomicString& family);
     FontPlatformData(float size, bool syntheticBold, bool syntheticOblique, FontOrientation = Horizontal, FontWidthVariant = RegularWidth, TextRenderingMode = AutoTextRendering);
 
+#if PLATFORM(QT)
+    FontPlatformData(const QRawFont& rawFont)
+        : m_rawFont(rawFont)
+        , m_size(rawFont.pixelSize())
+    { }
+#endif
+
 #if PLATFORM(COCOA)
     WEBCORE_EXPORT FontPlatformData(CTFontRef, float size, bool syntheticBold = false, bool syntheticOblique = false, FontOrientation = Horizontal, FontWidthVariant = RegularWidth, TextRenderingMode = AutoTextRendering);
 #endif
@@ -120,6 +130,10 @@ public:
     FontPlatformData(cairo_font_face_t*, const FontDescription&, bool syntheticBold, bool syntheticOblique);
     FontPlatformData(const FontPlatformData&);
     ~FontPlatformData();
+#endif
+
+#if PLATFORM(QT)
+    QRawFont rawFont() const { return m_rawFont; }
 #endif
 
 #if PLATFORM(WIN)
@@ -171,7 +185,12 @@ public:
 
     unsigned hash() const
     {
-#if PLATFORM(WIN) && !USE(CAIRO)
+#if PLATFORM(QT)
+        return qHash(m_rawFont.familyName())
+                ^ qHash(m_rawFont.style())
+                ^ qHash(m_rawFont.weight())
+                ^ qHash(*reinterpret_cast<const quint32*>(&m_size));
+#elif PLATFORM(WIN) && !USE(CAIRO)
         return m_font ? m_font->hash() : 0;
 #elif OS(DARWIN)
         uintptr_t flags = static_cast<uintptr_t>(m_isHashTableDeletedValue << 5 | m_textRenderingMode << 3 | m_orientation << 2 | m_syntheticBold << 1 | m_syntheticOblique);
@@ -220,16 +239,25 @@ public:
 #endif
     }
 
-#if PLATFORM(COCOA) || PLATFORM(WIN) || USE(FREETYPE)
+#if PLATFORM(QT) || PLATFORM(COCOA) || PLATFORM(WIN) || USE(FREETYPE)
     RefPtr<SharedBuffer> openTypeTable(uint32_t table) const;
 #endif
 
 #ifndef NDEBUG
+#if PLATFORM(QT)
+    String description() const { return m_rawFont.familyName(); }
+#else
     String description() const;
+#endif
 #endif
 
 private:
+#if PLATFORM(QT)
+    QRawFont m_rawFont;
+    bool platformIsEqual(const FontPlatformData& other) const { return m_rawFont == other.m_rawFont; }
+#else
     bool platformIsEqual(const FontPlatformData&) const;
+#endif
 #if PLATFORM(COCOA)
     CGFloat ctFontSize() const;
 #endif
