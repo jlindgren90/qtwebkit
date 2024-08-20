@@ -21,6 +21,7 @@
 #include "config.h"
 #include "QWebPageAdapter.h"
 
+#include "ApplicationCacheStorage.h"
 #include "BackForwardController.h"
 #include "CSSComputedStyleDeclaration.h"
 #include "CSSParser.h"
@@ -230,6 +231,7 @@ void QWebPageAdapter::initializeWebCorePage()
     pageConfiguration.inspectorClient = new InspectorClientQt(this);
     pageConfiguration.loaderClientForMainFrame = new FrameLoaderClientQt();
     pageConfiguration.progressTrackerClient = new ProgressTrackerClientQt(this);
+    pageConfiguration.applicationCacheStorage = ApplicationCacheStorage::create(String(), "ApplicationCache");
     pageConfiguration.databaseProvider = &WebDatabaseProvider::singleton();
     pageConfiguration.storageNamespaceProvider = WebStorageNamespaceProvider::create(
         QWebSettings::globalSettings()->localStoragePath());
