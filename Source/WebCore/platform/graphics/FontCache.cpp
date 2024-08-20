@@ -282,7 +282,11 @@ struct FontDataCacheKeyHash {
 };
 
 struct FontDataCacheKeyTraits : WTF::GenericHashTraits<FontPlatformData> {
+#if PLATFORM(QT)
+    static const bool emptyValueIsZero = false; // due to QRawFont member
+#else
     static const bool emptyValueIsZero = true;
+#endif
     static const FontPlatformData& emptyValue()
     {
         static NeverDestroyed<FontPlatformData> key(0.f, false, false);
