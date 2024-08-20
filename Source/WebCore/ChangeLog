@@ -1,3 +1,59 @@
+2016-04-25  Eric Carlson  <eric.carlson@apple.com>
+
+        Stop listening for "media can start" notifications when media player is cleared
+        https://bugs.webkit.org/show_bug.cgi?id=156985
+        <rdar://problem/23158505>
+
+        Reviewed by Jer Noble.
+
+        No new tests, I have not been able to create a test that reliably reproduces this.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::loadInternal): Add logging.
+        (WebCore::HTMLMediaElement::selectMediaResource): Assert and return early if there is
+          no media player.
+        (WebCore::HTMLMediaElement::clearMediaPlayer): Stop listening for can start notifications.
+        (WebCore::HTMLMediaElement::visibilityStateChanged): Add logging.
+        (WebCore::HTMLMediaElement::mediaCanStart): Ditto.
+
+2016-04-25  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Specify default values for parameters of type 'unsigned short'
+        https://bugs.webkit.org/show_bug.cgi?id=156967
+
+        Reviewed by Darin Adler.
+
+        Specify default values for parameters of type 'unsigned short' and let
+        the bindings generator use WTF::Optional<> for the ones without a
+        default value.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (CanUseWTFOptionalForParameter):
+        (GenerateParametersCheck):
+        * testing/Internals.cpp:
+        (WebCore::Internals::layerTreeAsText): Deleted.
+        (WebCore::Internals::displayListForElement): Deleted.
+        (WebCore::Internals::replayDisplayListForElement): Deleted.
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-04-25  Per Arne Vollan  <peavo@outlook.com>
+
+        [Win][IndexedDB] Fix build errors.
+        https://bugs.webkit.org/show_bug.cgi?id=156713
+
+        Reviewed by Alex Christensen.
+
+        Fix compile and link errors when building with IndexedDB enabled.
+
+        * Modules/indexeddb/IDBCursor.h:
+        * Modules/indexeddb/IDBTransaction.cpp:
+        * Modules/indexeddb/server/MemoryBackingStoreTransaction.h:
+        * Modules/indexeddb/server/MemoryIDBBackingStore.h:
+        * PlatformWin.cmake:
+        * platform/win/FileSystemWin.cpp:
+        (WebCore::hardLinkOrCopyFile):
+
 2016-04-25  Brady Eidson  <beidson@apple.com>
 
         Implement latest File object spec (including its constructor).

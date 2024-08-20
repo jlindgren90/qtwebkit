@@ -29,6 +29,7 @@
 
 #include "DOMWrapperWorld.h"
 #include "ActiveDOMObject.h"
+#include "DOMWrapperWorld.h"
 #include "IDBCursorInfo.h"
 #include <heap/Strong.h>
 
