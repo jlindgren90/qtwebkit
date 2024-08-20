@@ -434,6 +434,7 @@ private:
         m_availableRecoveries.resize(0);
         
         m_interpreter.startExecuting();
+        m_interpreter.executeKnownEdgeTypes(m_node);
         
         switch (m_node->op()) {
         case DFG::Upsilon:
@@ -843,6 +844,9 @@ private:
         case InvalidationPoint:
             compileInvalidationPoint();
             break;
+        case IsEmpty:
+            compileIsEmpty();
+            break;
         case IsUndefined:
             compileIsUndefined();
             break;
@@ -955,6 +959,7 @@ private:
             compileSetFunctionName();
             break;
         case StringReplace:
+        case StringReplaceRegExp:
             compileStringReplace();
             break;
         case GetRegExpObjectLastIndex:
@@ -5759,6 +5764,11 @@ private:
 
         // When this abruptly terminates, it could read any heap location.
         patchpoint->effects.reads = HeapRange::top();
+    }
+
+    void compileIsEmpty()
+    {
+        setBoolean(m_out.isZero64(lowJSValue(m_node->child1())));
     }
     
     void compileIsUndefined()

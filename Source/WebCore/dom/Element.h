@@ -282,7 +282,7 @@ public:
     void setTabIndex(int);
     virtual Element* focusDelegate();
 
-    RenderStyle* computedStyle(PseudoId = NOPSEUDO) override;
+    const RenderStyle* computedStyle(PseudoId = NOPSEUDO) override;
 
     bool needsStyleInvalidation() const;
 
@@ -483,7 +483,7 @@ public:
     virtual void didAttachRenderers();
     virtual void willDetachRenderers();
     virtual void didDetachRenderers();
-    virtual Optional<ElementStyle> resolveCustomStyle(RenderStyle& parentStyle, RenderStyle* shadowHostStyle);
+    virtual Optional<ElementStyle> resolveCustomStyle(const RenderStyle& parentStyle, const RenderStyle* shadowHostStyle);
 
     LayoutRect absoluteEventHandlerBounds(bool& includesFixedPositionElements) override;
 
@@ -502,7 +502,7 @@ public:
 #endif
 
     StyleResolver& styleResolver();
-    ElementStyle resolveStyle(RenderStyle* parentStyle);
+    ElementStyle resolveStyle(const RenderStyle* parentStyle);
 
     bool hasDisplayContents() const;
     void setHasDisplayContents(bool);
@@ -595,8 +595,8 @@ private:
 
     void removeShadowRoot();
 
-    RenderStyle* existingComputedStyle();
-    RenderStyle& resolveComputedStyle();
+    const RenderStyle* existingComputedStyle();
+    const RenderStyle& resolveComputedStyle();
 
     bool rareDataStyleAffectedByEmpty() const;
     bool rareDataChildrenAffectedByHover() const;

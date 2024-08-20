@@ -1988,7 +1988,7 @@ void Document::updateLayoutIgnorePendingStylesheets(Document::RunPostLayoutTasks
     m_ignorePendingStylesheets = oldIgnore;
 }
 
-std::unique_ptr<RenderStyle> Document::styleForElementIgnoringPendingStylesheets(Element& element, RenderStyle* parentStyle)
+std::unique_ptr<RenderStyle> Document::styleForElementIgnoringPendingStylesheets(Element& element, const RenderStyle* parentStyle)
 {
     ASSERT(&element.document() == this);
 
@@ -2500,7 +2500,7 @@ void Document::setVisuallyOrdered()
 {
     m_visuallyOrdered = true;
     if (renderView())
-        renderView()->style().setRTLOrdering(VisualOrder);
+        renderView()->mutableStyle().setRTLOrdering(VisualOrder);
 }
 
 Ref<DocumentParser> Document::createParser()

@@ -674,6 +674,7 @@ private:
         case RegExpExec:
         case RegExpTest:
         case StringReplace:
+        case StringReplaceRegExp:
         case GetById:
         case GetByIdFlush:
         case GetByOffset:
@@ -764,6 +765,7 @@ private:
         case IsArrayObject:
         case IsJSArray:
         case IsArrayConstructor:
+        case IsEmpty:
         case IsUndefined:
         case IsBoolean:
         case IsNumber:

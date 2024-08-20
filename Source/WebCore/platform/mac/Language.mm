@@ -75,7 +75,9 @@ static String httpStyleLanguageCode(NSString *language, NSString *country)
     SInt32 languageCode;
     SInt32 regionCode; 
     SInt32 scriptCode; 
-    CFStringEncoding stringEncoding; 
+    CFStringEncoding stringEncoding;
+    
+    bool languageDidSpecifyExplicitVariant = [language rangeOfCharacterFromSet:[NSCharacterSet characterSetWithCharactersInString:@"-_"]].location != NSNotFound;
 
     // FIXME: This transformation is very wrong:
     // 1. There is no reason why CFBundle localization names would be at all related to language names as used on the Web.
@@ -91,12 +93,12 @@ static String httpStyleLanguageCode(NSString *language, NSString *country)
     NSString *lowercaseCountryCode = [country lowercaseString];
     
     // If we see a "_" after a 2-letter language code:
-    // If the country is valid, replace the "_" and whatever comes after it with "-" followed by the
-    // country code.
+    // If the country is valid and the language did not specify a variant, replace the "_" and
+    // whatever comes after it with "-" followed by the country code.
     // Otherwise, replace the "_" with a "-" and use whatever country
     // CFBundleCopyLocalizationForLocalizationInfo() returned.
     if ([lowercaseLanguageCode length] >= 3 && [lowercaseLanguageCode characterAtIndex:2] == '_') {
-        if (country)
+        if (country && !languageDidSpecifyExplicitVariant)
             return [NSString stringWithFormat:@"%@-%@", [lowercaseLanguageCode substringWithRange:NSMakeRange(0, 2)], lowercaseCountryCode];
         
         // Fall back to older behavior, which used the original language-based code but just changed

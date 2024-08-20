@@ -179,6 +179,7 @@ inline CapabilityLevel canCompile(Node* node)
     case IsArrayObject:
     case IsJSArray:
     case IsArrayConstructor:
+    case IsEmpty:
     case IsUndefined:
     case IsBoolean:
     case IsNumber:
@@ -232,6 +233,7 @@ inline CapabilityLevel canCompile(Node* node)
     case RegExpTest:
     case NewRegexp:
     case StringReplace:
+    case StringReplaceRegExp: 
     case GetRegExpObjectLastIndex:
     case SetRegExpObjectLastIndex:
     case RecordRegExpCachedResult:

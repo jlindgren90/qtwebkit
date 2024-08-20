@@ -268,6 +268,8 @@ VM& JSDOMWindowBase::commonVM()
         vm->heap.machineThreads().addCurrentThread();
 #endif
 
+        vm->setGlobalConstRedeclarationShouldThrow(Settings::globalConstRedeclarationShouldThrow());
+
         initNormalWorldClientData(vm);
     }
 

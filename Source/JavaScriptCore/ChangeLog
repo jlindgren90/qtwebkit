@@ -1,3 +1,390 @@
+2016-04-27  Saam barati  <sbarati@apple.com>
+
+        JSC should have an option to allow global const redeclarations
+        https://bugs.webkit.org/show_bug.cgi?id=157006
+
+        Reviewed by Geoffrey Garen.
+
+        This patch implements an option that dictates whether
+        const redeclarations at the program level will throw.
+        This option defaults to true but allows users of JSC
+        to set it to false. This option is per VM. This is needed
+        for backwards compatibility with our old const implementation.
+
+        * jsc.cpp:
+        (GlobalObject::finishCreation):
+        (functionShadowChickenFunctionsOnStack):
+        (functionSetGlobalConstRedeclarationShouldNotThrow):
+        (functionReadline):
+        * runtime/Executable.cpp:
+        (JSC::ProgramExecutable::initializeGlobalProperties):
+        * runtime/JSGlobalLexicalEnvironment.cpp:
+        (JSC::JSGlobalLexicalEnvironment::put):
+        (JSC::JSGlobalLexicalEnvironment::isConstVariable):
+        * runtime/JSGlobalLexicalEnvironment.h:
+        (JSC::JSGlobalLexicalEnvironment::isEmpty):
+        * runtime/VM.h:
+        (JSC::VM::setGlobalConstRedeclarationShouldThrow):
+        (JSC::VM::globalConstRedeclarationShouldThrow):
+        * tests/stress/global-const-redeclaration-setting: Added.
+        * tests/stress/global-const-redeclaration-setting-2.js: Added.
+        (assert):
+        * tests/stress/global-const-redeclaration-setting-3.js: Added.
+        (assert):
+        (catch):
+        * tests/stress/global-const-redeclaration-setting-4.js: Added.
+        (assert):
+        (catch):
+        * tests/stress/global-const-redeclaration-setting-5.js: Added.
+        (assert):
+        (catch):
+        * tests/stress/global-const-redeclaration-setting.js: Added.
+        (assert):
+        * tests/stress/global-const-redeclaration-setting/first.js: Added.
+        * tests/stress/global-const-redeclaration-setting/let.js: Added.
+        * tests/stress/global-const-redeclaration-setting/second.js: Added.
+        * tests/stress/global-const-redeclaration-setting/strict.js: Added.
+
+2016-04-26  Michael Saboff  <msaboff@apple.com>
+
+        [ES] Implement RegExp.prototype.@@replace and use it for String.prototype.replace
+        https://bugs.webkit.org/show_bug.cgi?id=156562
+
+        Reviewed by Filip Pizlo.
+
+        Added builtins for String.prototype.replace as well as RegExp.prototype[Symbol.replace].
+
+        The String.prototype.replace also has an intrinsic, StringPrototypeReplaceIntrinsic.
+        This original intrinsic was copied to make StringPrototypeReplaceRegExpIntrinsic.
+        The difference between the two intrinsics is that StringPrototypeReplaceIntrinsic has
+        the same checks found in the new builtin hasObservableSideEffectsForStringReplace.
+        We implement these primordial checks for StringPrototypeReplaceIntrinsic in two places.
+        First, we do a trial check during ByteCode parsing time to see if the current
+        RegExp.prototype properties have changed from the original.  If they have, we don't
+        inline the intrinsic.  Later, in the fixup phase, we add nodes to the IR to emit the
+        checks at runtime.
+
+        The new intrinsic StringPrototypeReplaceRegExpIntrinsic is only available via the
+        private @replaceUsingRegExp, which is called in the String.prototype.replace builtin.
+        It is only called after hasObservableSideEffectsForStringReplace has been called
+
+        Both of these intrinsics are needed, because the JS code containing String.replace() calls
+        runs initially in the LLint and then the baseline JIT.  Even after the function tiers up
+        to the DFG JIT, the inlining budget may not allow StringPrototypeReplaceIntrinsic to be inlined.
+        Having StringPrototypeReplaceRegExpIntrinsic allows for the String.prototype.replace builtin to
+        get reasonable performance before the other intrinsic is inlined or when it can't.
+
+        * builtins/RegExpPrototype.js:
+        (match):
+        (getSubstitution):
+        (replace):
+        (search):
+        (split):
+        * builtins/StringPrototype.js:
+        (repeat):
+        (hasObservableSideEffectsForStringReplace):
+        (intrinsic.StringPrototypeReplaceIntrinsic.replace):
+        (localeCompare):
+        New builtins for String.prototype.replace and RegExp.prototype[Symbol.replace].
+
+        * bytecode/BytecodeIntrinsicRegistry.cpp:
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        (JSC::DFG::FixupPhase::fixupGetAndSetLocalsInBlock):
+        (JSC::DFG::FixupPhase::tryAddStringReplacePrimordialChecks):
+        (JSC::DFG::FixupPhase::checkArray):
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::getRegExpPrototypeProperty):
+        * dfg/DFGGraph.h:
+        (JSC::DFG::Graph::getRegExpPrototypeProperty):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::hasHeapPrediction):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGStrengthReductionPhase.cpp:
+        (JSC::DFG::StrengthReductionPhase::handleNode):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        * runtime/CommonIdentifiers.h:
+        * runtime/Intrinsic.h:
+        * runtime/RegExpPrototype.cpp:
+        (JSC::RegExpPrototype::finishCreation):
+        * runtime/StringPrototype.cpp:
+        (JSC::StringPrototype::finishCreation):
+        (JSC::replace):
+        (JSC::stringProtoFuncReplaceUsingRegExp):
+        (JSC::stringProtoFuncReplaceUsingStringSearch):
+        (JSC::operationStringProtoFuncReplaceGeneric):
+        (JSC::stringProtoFuncReplace): Deleted.
+        Added StringReplaceRegExp intrinsic.  Added checks for RegExp profiled arguments to StringReplace
+        that mirror what is in hasObservableSideEffectsForStringReplace().  If we aren't able to add the
+        checks, we OSR exit.  Add Graph::getPrimordialRegExpPrototypeProperty() as a helper to get the
+        primordial values from RegExp.prototype.
+
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init): Added @regExpPrototypeSymbolReplace and
+        @hasObservableSideEffectsForStringReplace here instead og String.prototype so that we reduce the
+        number of objects we have to traverse.
+
+        * tests/es6.yaml: Changed expectations for the various replace related tests to passing.
+
+        * tests/stress/regexp-replace-proxy.js:
+        (assert):
+        (let.getProxyNullExec.new.Proxy):
+        (let.getSetProxyNullExec.new.Proxy):
+        (get resetTracking):
+        (let.getSetProxyMatches_comma.new.Proxy):
+        (set get getSetProxyNullExec):
+        (let.getSetProxyReplace_phoneNumber.new.Proxy):
+        (set get getSetProxyMatches_comma):
+        (let.getSetProxyReplaceUnicode_digit_nonGreedy.new.Proxy):
+        (set get resetTracking):
+        * tests/stress/string-replace-proxy.js:
+        (assert):
+        (let.getSetProxyReplace.new.Proxy.replace):
+        New tests.
+
+2016-04-26  Mark Lam  <mark.lam@apple.com>
+
+        Gardening: speculative build fix.
+
+        Not reviewed.
+
+        * API/JSWrapperMap.mm:
+
+2016-04-26  Mark Lam  <mark.lam@apple.com>
+
+        Update the compatibility version check for the ObjC API's InitConstructorSupport to use dyld_get_program_sdk_version().
+        https://bugs.webkit.org/show_bug.cgi?id=157048
+
+        Reviewed by Geoffrey Garen.
+
+        * API/JSWrapperMap.mm:
+        (supportsInitMethodConstructors):
+        (getJSExportProtocol):
+
+2016-04-26  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] GetByVal on Undecided use its children before its OSR Exit
+        https://bugs.webkit.org/show_bug.cgi?id=157046
+
+        Reviewed by Mark Lam.
+
+        Very silly bug: GetByVal on Undecided uses its children before
+        the speculationCheck(). If we fail the speculation, we have already
+        lost how to recover the values.
+
+        The existing tests did not catch this because we tier up to B3
+        before such Exits happen. B3 has explicit liveness and did not suffer
+        from this bug.
+        The new test has a smaller warmup to exercise the OSR Exit in DFG
+        instead of FTL.
+
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * tests/stress/get-by-val-on-undecided-out-of-bounds.js: Added.
+        (string_appeared_here.opaqueGetByValKnownArray):
+
+2016-04-26  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        calling super() a second time in a constructor should throw
+        https://bugs.webkit.org/show_bug.cgi?id=151113
+
+        Reviewed by Saam Barati.
+
+        Currently, our implementation checks if 'super()' was called in a constructor more
+        than once and raises a RuntimeError before the second call. According to the spec
+        we need to raise an error just after the second super() is finished and before
+        the new 'this' is assigned https://esdiscuss.org/topic/duplicate-super-call-behaviour.
+        To implement this behavior this patch adds a new op code, op_is_empty, that is used
+        to check if 'this' is empty.
+
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitIsEmpty):
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::FunctionCallValueNode::emitBytecode):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileIsEmpty):
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        * jit/JIT.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_is_empty):
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_is_empty):
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+        * tests/stress/class-syntax-double-constructor.js: Added.
+
+2016-04-26  Mark Lam  <mark.lam@apple.com>
+
+        Changed jsc options title to be more descriptive.
+        https://bugs.webkit.org/show_bug.cgi?id=157036
+
+        Reviewed by Joseph Pecoraro.
+
+        Let the title for --dumpOptions be "Modified JSC runtime options:" since it only
+        dumps overridden options.  The title for --options will remain "All JSC runtime
+        options:" since it dumps all all options with verbose detail.
+
+        * jsc.cpp:
+        (CommandLine::parseArguments):
+
+2016-04-26  Oliver Hunt  <oliver@apple.com>
+
+        Enable separated heap by default on ios
+        https://bugs.webkit.org/show_bug.cgi?id=156720
+
+        Unreviewed roll-in of this change. There is only one
+        additional allocation involved in this logic, and that
+        is a duplicate mapping.
+
+        Either our tools are not report real memory usage
+        or this revision is not responsible for the regression.
+
+        * runtime/Options.cpp:
+        (JSC::recomputeDependentOptions):
+
+2016-04-26  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG backends shouldn't emit type checks at KnownBlah edges
+        https://bugs.webkit.org/show_bug.cgi?id=157025
+
+        Reviewed by Michael Saboff.
+        
+        This fixes a crash I found when browsing Bing maps with forceEagerCompilation. I include a
+        100% repro test case.
+        
+        The issue is that our code still doesn't fully appreciate the devious implications of
+        KnownBlah use kinds. Consider KnownCell for example. It means: "trust me, I know that this
+        value will be a cell". You aren't required to provide a proof when you use KnownCell. Often,
+        we use it as a result of a path-sensitive proof. The abstract interpreter is not
+        path-sensitive, so AI will be absolutely sure that the KnownCell use might see a non-cell.
+        This can lead to debug assertions (which this change removes) and it can lead to the backends
+        emitting a type check. That type check can be pure evil if the node that has this edge does
+        not have an exit origin. Such a node would have passed validation because the validater would
+        have thought that the node cannot exit (after all, according to the IR semantics, there is no
+        speculation at KnownCell).
+
+        This comprehensively fixes the issue by recognizing that Foo(KnownCell:@x) means: I have
+        already proved that by the time you start executing Foo, @x will already be a cell. I cannot
+        tell you how I proved this but you can rely on it anyway. AI now takes advantage of this
+        meaning and will always do filtering of KnownBlah edges regardless of whether the backend
+        actually emits any type checks for those edges. Since the filtering runs before the backend,
+        the backend will not emit any checks because it will know that the edge was already checked
+        (by whatever mechanism we used when we made the edge KnownBlah).
+        
+        Note that it's good that we found this bug now. The DFG currently does very few
+        sparse-conditional or path-sensitive optimizations, but it will probably do more in the
+        future. The bug happens because GetByOffset and friends can achieve path-sensitive proofs via
+        watchpoints on the inferred type. Normally, AI can follow along with this proof. But in the
+        example program, and on Bing maps, we would GCSE one GetByOffset with another that had a
+        weaker proven type. That turned out to be completely sound - between the two GetByOffset's
+        there was a Branch to null check it. The inferred type of the second GetByOffset ended up
+        knowing that it cannot be null because null only occurred in some structures but not others.
+        If we added more sparse-conditional stuff to Branch, then AI would know how to follow along
+        with the proof but it would also create more situations where we'd have a path-sensitive
+        proof. So, it's good that we're now getting this right.
+
+        * dfg/DFGAbstractInterpreter.h:
+        (JSC::DFG::AbstractInterpreter::filterEdgeByUse):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEdges):
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeKnownEdgeTypes):
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::verifyEdge):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileCurrentBlock):
+        * dfg/DFGUseKind.h:
+        (JSC::DFG::typeFilterFor):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        * tests/stress/path-sensitive-known-cell-crash.js: Added.
+        (bar):
+        (foo):
+
+2016-04-26  Gavin Barraclough  <barraclough@apple.com>
+
+        Enable separated heap by default on ios
+        https://bugs.webkit.org/show_bug.cgi?id=156720
+
+        Unreviewed rollout - caused memory regression.
+
+        * runtime/Options.cpp:
+        (JSC::recomputeDependentOptions):
+
+2016-04-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Improve jsc --help and making sampling options
+        https://bugs.webkit.org/show_bug.cgi?id=157015
+
+        Reviewed by Saam Barati.
+
+        Simplify sampling options to be easier to remember:
+
+          * --reportSamplingProfilerData => --sample
+          * --samplingProfilerTimingInterval => --sampleInterval
+
+        Update the --help to mention --sample, and restore the behavior of
+        --options outputing all possible options so you can discover which
+        options are available.        
+
+        * jsc.cpp:
+        (printUsageStatement):
+        (CommandLine::parseArguments):
+        Improve help and modify option dumping.
+
+        * runtime/Options.h:
+        * runtime/SamplingProfiler.cpp:
+        (JSC::SamplingProfiler::SamplingProfiler):
+        Rename the sampling interval option.
+
 2016-04-26  Commit Queue  <commit-queue@webkit.org>
 
         Unreviewed, rolling out r200083.
@@ -1684,16 +2071,6 @@
         (JSC::functionValue):
         (JSC::JSDollarVMPrototype::finishCreation):
         (JSC::functionPrintValue): Deleted.
-
-2016-04-18  Oliver Hunt  <oliver@apple.com>
-
-        Enable separated heap by default on ios
-        https://bugs.webkit.org/show_bug.cgi?id=156720
-
-        Reviewed by ggaren.
-
-        * runtime/Options.cpp:
-        (JSC::recomputeDependentOptions):
 
 2016-04-19  Mark Lam  <mark.lam@apple.com>
 

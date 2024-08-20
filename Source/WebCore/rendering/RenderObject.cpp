@@ -1826,7 +1826,7 @@ int RenderObject::innerLineHeight() const
     return style().computedLineHeight();
 }
 
-static Color decorationColor(RenderStyle* style)
+static Color decorationColor(const RenderStyle* style)
 {
     Color result;
     // Check for text decoration color first.
@@ -1848,7 +1848,7 @@ void RenderObject::getTextDecorationColorsAndStyles(int decorations, Color& unde
     TextDecorationStyle& underlineStyle, TextDecorationStyle& overlineStyle, TextDecorationStyle& linethroughStyle, bool firstlineStyle) const
 {
     const RenderObject* current = this;
-    RenderStyle* styleToUse = nullptr;
+    const RenderStyle* styleToUse = nullptr;
     TextDecoration currDecs = TextDecorationNone;
     Color resultColor;
     do {

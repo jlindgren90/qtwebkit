@@ -852,7 +852,7 @@ EditorState WebPage::editorState(IncludePostLayoutDataHint shouldIncludePostLayo
         auto& postLayoutData = result.postLayoutData();
         if (!selection.isNone()) {
             Node* nodeToRemove;
-            if (RenderStyle* style = Editor::styleForSelectionStart(&frame, nodeToRemove)) {
+            if (auto* style = Editor::styleForSelectionStart(&frame, nodeToRemove)) {
                 if (style->fontCascade().weight() >= FontWeightBold)
                     postLayoutData.typingAttributes |= AttributeBold;
                 if (style->fontCascade().italic() == FontItalicOn)
@@ -3215,6 +3215,13 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
     settings.setEnableInheritURIQueryComponent(store.getBoolValueForKey(WebPreferencesKey::enableInheritURIQueryComponentKey()));
 
     settings.setShouldDispatchJavaScriptWindowOnErrorEvents(true);
+
+    auto userInterfaceDirectionCandidate = static_cast<WebCore::UserInterfaceDirectionPolicy>(store.getUInt32ValueForKey(WebPreferencesKey::userInterfaceDirectionKey()));
+    if (userInterfaceDirectionCandidate == WebCore::UserInterfaceDirectionPolicy::Content || userInterfaceDirectionCandidate == WebCore::UserInterfaceDirectionPolicy::System)
+        settings.setUserInterfaceDirectionPolicy(!store.getUInt32ValueForKey(WebPreferencesKey::userInterfaceDirectionKey()) ? UserInterfaceDirectionPolicy::Content : UserInterfaceDirectionPolicy::System);
+    TextDirection systemLayoutDirectionCandidate = static_cast<TextDirection>(store.getUInt32ValueForKey(WebPreferencesKey::systemLayoutDirectionKey()));
+    if (systemLayoutDirectionCandidate == WebCore::LTR || systemLayoutDirectionCandidate == WebCore::RTL)
+        settings.setSystemLayoutDirection(systemLayoutDirectionCandidate);
 
 #if USE(APPLE_INTERNAL_SDK)
 #include <WebKitAdditions/WebPagePreferences.cpp>

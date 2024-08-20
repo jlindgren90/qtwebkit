@@ -685,8 +685,8 @@ void RenderImage::layoutShadowControls(const LayoutSize& oldSize)
 
     if (shadowControlsNeedCustomLayoutMetrics()) {
         controlsRenderer->setLocation(LayoutPoint(borderLeft(), borderTop()) + LayoutSize(paddingLeft(), paddingTop()));
-        controlsRenderer->style().setHeight(Length(newSize.height(), Fixed));
-        controlsRenderer->style().setWidth(Length(newSize.width(), Fixed));
+        controlsRenderer->mutableStyle().setHeight(Length(newSize.height(), Fixed));
+        controlsRenderer->mutableStyle().setWidth(Length(newSize.width(), Fixed));
     }
 
     controlsRenderer->setNeedsLayout(MarkOnlyThis);

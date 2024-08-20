@@ -256,6 +256,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case IsArrayObject:
     case IsJSArray:
     case IsArrayConstructor:
+    case IsEmpty:
     case IsUndefined:
     case IsBoolean:
     case IsNumber:
@@ -343,6 +344,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case ForwardVarargs:
     case CopyRest:
     case StringReplace:
+    case StringReplaceRegExp:
     case GetRegExpObjectLastIndex:
     case SetRegExpObjectLastIndex:
     case RecordRegExpCachedResult:

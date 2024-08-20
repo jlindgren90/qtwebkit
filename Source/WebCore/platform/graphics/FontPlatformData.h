@@ -39,6 +39,7 @@
 #endif
 
 #if USE(CAIRO)
+#include "RefPtrCairo.h"
 #include <wtf/HashFunctions.h>
 #include <cairo.h>
 #endif
@@ -76,18 +77,24 @@ namespace WebCore {
 class FontDescription;
 class SharedBuffer;
 
+// This class is conceptually immutable. Once created, no instances should ever change (in an observable way).
 class FontPlatformData {
     WTF_MAKE_FAST_ALLOCATED;
 public:
     FontPlatformData(WTF::HashTableDeletedValueType);
     FontPlatformData();
-    FontPlatformData(const FontPlatformData&);
+    FontPlatformData(const FontPlatformData&) = default;
+    FontPlatformData(FontPlatformData&&) = default;
     FontPlatformData(const FontDescription&, const AtomicString& family);
     FontPlatformData(float size, bool syntheticBold, bool syntheticOblique, FontOrientation = Horizontal, FontWidthVariant = RegularWidth, TextRenderingMode = AutoTextRendering);
 
 #if PLATFORM(COCOA)
     WEBCORE_EXPORT FontPlatformData(CTFontRef, float size, bool syntheticBold = false, bool syntheticOblique = false, FontOrientation = Horizontal, FontWidthVariant = RegularWidth, TextRenderingMode = AutoTextRendering);
 #endif
+
+    static FontPlatformData cloneWithOrientation(const FontPlatformData&, FontOrientation);
+    static FontPlatformData cloneWithSyntheticOblique(const FontPlatformData&, bool);
+    static FontPlatformData cloneWithSize(const FontPlatformData&, float);
 
 #if USE(CG)
     FontPlatformData(CGFontRef, float size, bool syntheticBold, bool syntheticOblique, FontOrientation, FontWidthVariant, TextRenderingMode);
@@ -102,8 +109,6 @@ public:
     FontPlatformData(GDIObject<HFONT>, cairo_font_face_t*, float size, bool bold, bool italic);
 #endif
 #endif
-
-    WEBCORE_EXPORT ~FontPlatformData();
 
 #if PLATFORM(WIN)
     HFONT hfont() const { return m_font ? m_font->get() : 0; }
@@ -126,7 +131,6 @@ public:
 
 #if PLATFORM(WIN) || PLATFORM(COCOA)
     bool isSystemFont() const { return m_isSystemFont; }
-    void setIsSystemFont(bool isSystemFont) { m_isSystemFont = isSystemFont; }
 #endif
 
 #if USE(CG)
@@ -135,7 +139,6 @@ public:
 
     bool isFixedPitch() const;
     float size() const { return m_size; }
-    void setSize(float size) { m_size = size; }
     bool syntheticBold() const { return m_syntheticBold; }
     bool syntheticOblique() const { return m_syntheticOblique; }
     bool isColorBitmapFont() const { return m_isColorBitmapFont; }
@@ -144,11 +147,8 @@ public:
     TextRenderingMode textRenderingMode() const { return m_textRenderingMode; }
     bool isForTextCombine() const { return widthVariant() != RegularWidth; } // Keep in sync with callers of FontDescription::setWidthVariant().
 
-    void setOrientation(FontOrientation orientation) { m_orientation = orientation; }
-    void setSyntheticOblique(bool syntheticOblique) { m_syntheticOblique = syntheticOblique; }
-
 #if USE(CAIRO)
-    cairo_scaled_font_t* scaledFont() const { return m_scaledFont; }
+    cairo_scaled_font_t* scaledFont() const { return m_scaledFont.get(); }
 #endif
 
     unsigned hash() const
@@ -165,11 +165,11 @@ public:
         uintptr_t hashCodes[3] = { fontHash, m_widthVariant, flags };
         return StringHasher::hashMemory<sizeof(hashCodes)>(hashCodes);
 #elif USE(CAIRO)
-        return PtrHash<cairo_scaled_font_t*>::hash(m_scaledFont);
+        return PtrHash<cairo_scaled_font_t*>::hash(m_scaledFont.get());
 #endif
     }
 
-    const FontPlatformData& operator=(const FontPlatformData&);
+    FontPlatformData& operator=(const FontPlatformData&) = default;
 
     bool operator==(const FontPlatformData& other) const
     {
@@ -199,7 +199,7 @@ public:
     }
 
 #if PLATFORM(COCOA) || PLATFORM(WIN)
-    PassRefPtr<SharedBuffer> openTypeTable(uint32_t table) const;
+    RefPtr<SharedBuffer> openTypeTable(uint32_t table) const;
 #endif
 
 #ifndef NDEBUG
@@ -208,8 +208,6 @@ public:
 
 private:
     bool platformIsEqual(const FontPlatformData&) const;
-    void platformDataInit(const FontPlatformData&);
-    const FontPlatformData& platformDataAssign(const FontPlatformData&);
 #if PLATFORM(COCOA)
     CGFloat ctFontSize() const;
 #endif
@@ -217,15 +215,6 @@ private:
     void platformDataInit(HFONT, float size, HDC, WCHAR* faceName);
 #endif
 
-public:
-    bool m_syntheticBold { false };
-    bool m_syntheticOblique { false };
-    FontOrientation m_orientation { Horizontal };
-    float m_size { 0 };
-    FontWidthVariant m_widthVariant { RegularWidth };
-    TextRenderingMode m_textRenderingMode { AutoTextRendering };
-
-private:
 #if PLATFORM(COCOA)
     // FIXME: Get rid of one of these. These two fonts are subtly different, and it is not obvious which one to use where.
     RetainPtr<CTFontRef> m_font;
@@ -238,12 +227,24 @@ private:
     RetainPtr<CGFontRef> m_cgFont;
 #endif
 #if USE(CAIRO)
-    cairo_scaled_font_t* m_scaledFont { nullptr };
+    RefPtr<cairo_scaled_font_t> m_scaledFont;
 #endif
 
+    // The values below are common to all ports
+    // FIXME: If they're common to all ports, they should move to Font
+    float m_size { 0 };
+
+    FontOrientation m_orientation { Horizontal };
+    FontWidthVariant m_widthVariant { RegularWidth };
+    TextRenderingMode m_textRenderingMode { AutoTextRendering };
+
+    bool m_syntheticBold { false };
+    bool m_syntheticOblique { false };
     bool m_isColorBitmapFont { false };
     bool m_isHashTableDeletedValue { false };
     bool m_isSystemFont { false };
+    // The values above are common to all ports
+
 #if PLATFORM(IOS)
     bool m_isEmoji { false };
 #endif

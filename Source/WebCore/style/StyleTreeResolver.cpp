@@ -103,7 +103,7 @@ TreeResolver::Parent::Parent(Document& document, Change change)
 {
 }
 
-TreeResolver::Parent::Parent(Element& element, RenderStyle& style, Change change)
+TreeResolver::Parent::Parent(Element& element, const RenderStyle& style, Change change)
     : element(&element)
     , style(style)
     , change(change)
@@ -129,7 +129,7 @@ void TreeResolver::popScope()
     return m_scopeStack.removeLast();
 }
 
-std::unique_ptr<RenderStyle> TreeResolver::styleForElement(Element& element, RenderStyle& inheritedStyle)
+std::unique_ptr<RenderStyle> TreeResolver::styleForElement(Element& element, const RenderStyle& inheritedStyle)
 {
     if (!m_document.haveStylesheetsLoaded() && !element.renderer()) {
         m_document.setHasNodesWithPlaceholderStyle();
@@ -245,7 +245,7 @@ static EVisibility elementImplicitVisibility(const Element* element)
     if (!renderer)
         return VISIBLE;
 
-    RenderStyle& style = renderer->style();
+    auto& style = renderer->style();
 
     Length width(style.width());
     Length height(style.height());
@@ -264,7 +264,7 @@ static EVisibility elementImplicitVisibility(const Element* element)
 
 class CheckForVisibilityChangeOnRecalcStyle {
 public:
-    CheckForVisibilityChangeOnRecalcStyle(Element* element, RenderStyle* currentStyle)
+    CheckForVisibilityChangeOnRecalcStyle(Element* element, const RenderStyle* currentStyle)
         : m_element(element)
         , m_previousDisplay(currentStyle ? currentStyle->display() : NONE)
         , m_previousVisibility(currentStyle ? currentStyle->visibility() : HIDDEN)
@@ -277,7 +277,7 @@ public:
             return;
         if (m_element->isInUserAgentShadowTree())
             return;
-        RenderStyle* style = m_element->renderStyle();
+        auto* style = m_element->renderStyle();
         if (!style)
             return;
         if ((m_previousDisplay == NONE && style->display() != NONE) || (m_previousVisibility == HIDDEN && style->visibility() != HIDDEN)
@@ -292,7 +292,7 @@ private:
 };
 #endif // PLATFORM(IOS)
 
-void TreeResolver::pushParent(Element& element, RenderStyle& style, Change change)
+void TreeResolver::pushParent(Element& element, const RenderStyle& style, Change change)
 {
     scope().selectorFilter.pushParent(&element);
 
@@ -392,7 +392,7 @@ void TreeResolver::resolveComposedTree()
 
         bool shouldResolveForPseudoElement = shouldResolvePseudoElement(element.beforePseudoElement()) || shouldResolvePseudoElement(element.afterPseudoElement());
 
-        RenderStyle* style;
+        const RenderStyle* style;
         Change change;
 
         bool shouldResolve = parent.change >= Inherit || element.needsStyleRecalc() || shouldResolveForPseudoElement || affectedByPreviousSibling || element.hasDisplayContents();
