@@ -1,3 +1,85 @@
+2016-04-19  Michael Saboff  <msaboff@apple.com>
+
+        iTunes crashing JavaScriptCore.dll
+        https://bugs.webkit.org/show_bug.cgi?id=156647
+
+        Reviewed by Saam Barati.
+
+        Disabled fast/workers/dedicated-worker-lifecycle.html as it creates
+        more workers that we have ThreadSpecific keys.  We need at least one
+        key per JSC VM we create.  I didn't want to weaken the test for other
+        platforms.
+
+        * platform/win/TestExpectations:
+
+2016-04-19  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [INTL] Use @thisNumberValue instead of `instanceof @Number`
+        https://bugs.webkit.org/show_bug.cgi?id=156680
+
+        Reviewed by Saam Barati.
+
+        * js/number-toLocaleString-expected.txt:
+        * js/script-tests/number-toLocaleString.js:
+
+2016-04-19  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199712.
+        https://bugs.webkit.org/show_bug.cgi?id=156741
+
+        It caused a serious regression on 32 bit platform (Requested
+        by gskachkov on #webkit).
+
+        Reverted changeset:
+
+        "calling super() a second time in a constructor should throw"
+        https://bugs.webkit.org/show_bug.cgi?id=151113
+        http://trac.webkit.org/changeset/199712
+
+2016-04-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed GTK+ gardening. Update CSP tests.
+
+        Rebaseline http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-basics.html after r197118 and
+        remove specific expectations of http/tests/security/contentSecurityPolicy/source-list-parsing-10.html.
+
+        * platform/gtk/http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-basics-expected.txt:
+        * platform/gtk/http/tests/security/contentSecurityPolicy/source-list-parsing-10-expected.txt: Removed.
+
+2016-04-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed GTK+ gardening. Rebaseline fast/events/updateLayoutForHitTest.html after r195263.
+
+        * platform/gtk/fast/events/updateLayoutForHitTest-expected.txt:
+
+2016-04-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed GTK+ gardening. Rebaseline fast/transforms/bounding-rect-zoom.html after r197450.
+
+        * platform/gtk/fast/transforms/bounding-rect-zoom-expected.txt:
+
+2016-04-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed GTK+ gardening. Rebaseline tests after r199659.
+
+        We are now using the theme colors for the menu lists text.
+
+        * platform/gtk/fast/forms/basic-selects-expected.txt:
+        * platform/gtk/fast/forms/disabled-select-change-index-expected.txt:
+        * platform/gtk/fast/forms/menulist-style-color-expected.txt:
+        * platform/gtk/fast/forms/select-baseline-expected.txt:
+        * platform/gtk/fast/forms/select-disabled-appearance-expected.txt:
+
+2016-04-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed GTK+ gardening. Rebaseline tests after r199034.
+
+        * platform/gtk/fast/block/float/016-expected.txt:
+        * platform/gtk/fast/css/bidi-override-in-anonymous-block-expected.txt:
+        * platform/gtk/media/video-zoom-controls-expected.txt:
+        * platform/gtk/svg/zoom/page/zoom-replaced-intrinsic-ratio-001-expected.txt:
+        * platform/gtk/tables/mozilla_expected_failures/bugs/bug1055-2-expected.txt:
+
 2016-04-19  Joanmarie Diggs  <jdiggs@igalia.com>
 
         [GTK] accessibility/gtk/entry-and-password.html is failing since r194847

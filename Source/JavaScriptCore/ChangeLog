@@ -1,3 +1,66 @@
+2016-04-19  Michael Saboff  <msaboff@apple.com>
+
+        iTunes crashing JavaScriptCore.dll
+        https://bugs.webkit.org/show_bug.cgi?id=156647
+
+        Reviewed by Saam Barati.
+
+        Given that there there are only 128 FLS indices compared to over a 1000 for TLS, I
+        eliminated the thread specific m_threadSpecificForThread and instead we look for the
+        current thread in m_registeredThreads list when we need it.  In most cases there
+        will only be one thread.
+
+        * heap/MachineStackMarker.cpp:
+        (JSC::MachineThreads::MachineThreads):
+        (JSC::MachineThreads::~MachineThreads):
+        (JSC::MachineThreads::addCurrentThread):
+        (JSC::MachineThreads::machineThreadForCurrentThread):
+        (JSC::MachineThreads::removeThread):
+        * heap/MachineStackMarker.h:
+
+2016-04-19  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [INTL] Use @thisNumberValue instead of `instanceof @Number`
+        https://bugs.webkit.org/show_bug.cgi?id=156680
+
+        Reviewed by Saam Barati.
+
+        Use @thisNumberValue instead of `instanceof @Number`.
+        `instanceof @Number` is not enough;
+        For example, given 2 realms, the object created in one realm does not
+        inherit the Number of another realm.
+        Another example is that the object which does not inherit Number.
+
+        ```
+        var number = new Number(42);
+        number.__proto__ = null;
+        ```
+
+        * builtins/NumberPrototype.js:
+        (toLocaleString):
+        * runtime/CommonIdentifiers.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/NumberPrototype.cpp:
+        (JSC::numberProtoFuncValueOf):
+        * runtime/NumberPrototype.h:
+        * tests/stress/number-to-locale-string-should-accept-strange-number-objects.js: Added.
+        (shouldBe):
+
+2016-04-19  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199712.
+        https://bugs.webkit.org/show_bug.cgi?id=156741
+
+        It caused a serious regression on 32 bit platform (Requested
+        by gskachkov on #webkit).
+
+        Reverted changeset:
+
+        "calling super() a second time in a constructor should throw"
+        https://bugs.webkit.org/show_bug.cgi?id=151113
+        http://trac.webkit.org/changeset/199712
+
 2016-04-09  Skachkov Oleksandr  <gskachkov@gmail.com>
 
         calling super() a second time in a constructor should throw
