@@ -1,3 +1,218 @@
+2016-04-27  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Implement native IDBFactory.getAllDatabaseNames for WebInspector.
+        https://bugs.webkit.org/show_bug.cgi?id=157072
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Covered by changes to existing test).
+
+        Implement a new "getAllDatabaseNames" call on IDBFactory.
+        
+        It is not exposed to the DOM, and is meant solely for internal WebInspector use.
+
+        * Modules/indexeddb/DOMWindowIndexedDatabase.h: Export some stuff to WebCoreTestSupport
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::createObjectStore):
+
+        * Modules/indexeddb/IDBDatabaseIdentifier.cpp:
+        (WebCore::IDBDatabaseIdentifier::databaseDirectoryRelativeToRoot):
+        * Modules/indexeddb/IDBDatabaseIdentifier.h:
+
+        * Modules/indexeddb/IDBFactory.cpp:
+        (WebCore::IDBFactory::getAllDatabaseNames):
+        * Modules/indexeddb/IDBFactory.h:
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::getAllDatabaseNames):
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::getAllDatabaseNames):
+        (WebCore::IDBClient::IDBConnectionToServer::didGetAllDatabaseNames):
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+        * Modules/indexeddb/client/IDBConnectionToServerDelegate.h:
+
+        * Modules/indexeddb/server/IDBConnectionToClient.cpp:
+        (WebCore::IDBServer::IDBConnectionToClient::didGetAllDatabaseNames):
+        * Modules/indexeddb/server/IDBConnectionToClient.h:
+        * Modules/indexeddb/server/IDBConnectionToClientDelegate.h:
+
+        * Modules/indexeddb/server/IDBServer.cpp:
+        (WebCore::IDBServer::IDBServer::getAllDatabaseNames):
+        (WebCore::IDBServer::IDBServer::performGetAllDatabaseNames): Do the actual work of getting 
+          the appropriate directory listing and converting the paths to database names.
+        (WebCore::IDBServer::IDBServer::didGetAllDatabaseNames):
+        * Modules/indexeddb/server/IDBServer.h:
+
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::SQLiteIDBBackingStore::databaseNameFromEncodedFilename): Helper for IDBServer.
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.h:
+
+        * Modules/indexeddb/shared/InProcessIDBServer.cpp:
+        (WebCore::InProcessIDBServer::getAllDatabaseNames):
+        (WebCore::InProcessIDBServer::didGetAllDatabaseNames):
+        * Modules/indexeddb/shared/InProcessIDBServer.h:
+
+        * inspector/InspectorIndexedDBAgent.cpp:
+        (WebCore::InspectorIndexedDBAgent::requestDatabaseNames): Use the new IDBFactory API to
+          asynchronously get the list of database names.
+
+        * platform/CrossThreadCopier.cpp:
+        (WebCore::SecurityOriginData>::copy):
+        (WebCore::Vector<String>>::copy):
+        * platform/CrossThreadCopier.h:
+
+        * platform/FileSystem.cpp:
+        (WebCore::decodeFromFilename): Perform the reverse of encodeForFilename.
+        * platform/FileSystem.h:
+
+        * platform/cf/FileSystemCF.cpp:
+        (WebCore::stringFromFileSystemRepresentation):
+
+        * platform/glib/FileSystemGlib.cpp:
+        (WebCore::stringFromFileSystemRepresentation):
+        
+        * platform/posix/FileSystemPOSIX.cpp:
+        (WebCore::lastComponentOfPathIgnoringTrailingSlash): Utility for peeling off the last component
+          of a multi-component path.
+        (WebCore::listDirectory): This was broken when returning filenames with UTF in them. Fix it.
+        
+        * platform/mac/WebCoreNSURLExtras.mm: Move the static hex digit utility functions to WTF.
+        (WebCore::userVisibleString):
+        (WebCore::isUserVisibleURL):
+        (WebCore::isHexDigit): Deleted.
+        (WebCore::hexDigit): Deleted.
+        (WebCore::hexDigitValue): Deleted.
+    
+
+2016-04-27  Enrica Casucci  <enrica@apple.com>
+
+        Refactor findExplodedTextNodeAtPoint to move core functionality in RenderBlockFlow.
+        https://bugs.webkit.org/show_bug.cgi?id=157076
+
+        Reviewed by Simon Fraser.
+
+        * bindings/objc/DOMUIKitExtensions.mm:
+        (-[DOMNode findExplodedTextNodeAtPoint:]):
+        * rendering/RenderBlockFlow.cpp:
+        (WebCore::RenderBlockFlow::findClosestTextAtAbsolutePoint):
+        * rendering/RenderBlockFlow.h:
+        * rendering/RenderText.h:
+
+2016-04-27  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] When determining tile size, check whether ancestor UIScrollViews are actually scrollable
+        https://bugs.webkit.org/show_bug.cgi?id=157107
+        rdar://problem/25943577
+
+        Reviewed by Tim Horton.
+
+        Rename "enclosedInScrollView" to "enclosedInScrollableAncestorView" everywhere.
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::adjustTiledBackingScrollability):
+        * page/Page.h:
+        (WebCore::Page::enclosedInScrollableAncestorView):
+        (WebCore::Page::setEnclosedInScrollableAncestorView):
+        (WebCore::Page::enclosedInScrollView): Deleted.
+        (WebCore::Page::setEnclosedInScrollView): Deleted.
+
+2016-04-27  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [SOUP] Implement PlatformCookieJar::addCookie
+        https://bugs.webkit.org/show_bug.cgi?id=156295
+
+        Reviewed by Carlos Garcia Campos.
+
+        * platform/network/soup/CookieJarSoup.cpp:
+        (WebCore::msToSoupDate):
+        (WebCore::toSoupCookie):
+        (WebCore::addCookie):
+
+2016-04-27  Chris Dumez  <cdumez@apple.com>
+
+        Let the bindings generator use WTF::Optional for optional parameters using [Clamp]
+        https://bugs.webkit.org/show_bug.cgi?id=157077
+
+        Reviewed by Darin Adler.
+
+        Let the bindings generator use WTF::Optional for optional parameters using [Clamp],
+        if they do not have a default value.
+
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::WebSocket::close):
+        * Modules/websockets/WebSocket.h:
+        * Modules/websockets/WebSocket.idl:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (CanUseWTFOptionalForParameter): Deleted.
+
+2016-04-26  Ada Chan  <adachan@apple.com>
+
+        Set WebVideoFullscreenInterfaceMac up as a client of WebPlaybackSessionInterfaceMac to listen for playback state changes
+        https://bugs.webkit.org/show_bug.cgi?id=157008
+
+        Reviewed by Jer Noble.
+
+        For WebVideoFullscreenInterfaceMac to be notified when the playback rate changes in
+        WebPlaybackSessionInterfaceMac, add a new WebPlaybackSessionInterfaceMacClient base
+        class that WebVideoFullscreenInterfaceMac implements, similar to the WebPlaybackSessionInterfaceAVKitClient
+        on iOS. WebVideoFullscreenInterfaceMac sets itself as a client of WebPlaybackSessionInterfaceMac
+        so WebPlaybackSessionInterfaceMac can notify WebVideoFullscreenInterfaceMac whenever the
+        playback rate changes.
+
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.mm:
+        (WebVideoFullscreenModelVideoElement::setWebVideoFullscreenInterface):
+        We should not change the WebPlaybackSessionModelMediaElement's interface here since WebPlaybackSessionManager
+        has already set that up when creating the context for this media element.
+        (WebVideoFullscreenModelVideoElement::setVideoElement):
+        We should not change the WebPlaybackSessionModelMediaElement's media element here because
+        this will be called with NULL when the fullscreen context is cleaned up, but the
+        WebPlaybackSessionModelMediaElement might still need to stay around. We'll make sure the
+        WebPlaybackSessionModelMediaElement's media element is set when setting up the fullscreen
+        context in WebVideoFullscreenManager::enterVideoFullscreenForVideoElement().
+
+        * platform/mac/WebPlaybackSessionInterfaceMac.h:
+        (WebCore::WebPlaybackSessionInterfaceMacClient::~WebPlaybackSessionInterfaceMacClient):
+
+        * platform/mac/WebPlaybackSessionInterfaceMac.mm:
+        (WebCore::WebPlaybackSessionInterfaceMac::setClient):
+        Set the client. Notify the client about the current playback state.
+        (WebCore::WebPlaybackSessionInterfaceMac::setRate):
+        If a client is set, let that client know about the change in playback rate.
+
+        * platform/mac/WebVideoFullscreenInterfaceMac.h:
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (WebCore::WebVideoFullscreenInterfaceMac::WebVideoFullscreenInterfaceMac):
+        Set itself as a client of WebPlaybackSessionInterfaceMac.
+        (WebCore::WebVideoFullscreenInterfaceMac::~WebVideoFullscreenInterfaceMac):
+        Make sure WebPlaybackSessionInterfaceMac won't hold onto a stale pointer to itself.
+        (WebCore::WebVideoFullscreenInterfaceMac::setRate):
+        We don't have to update the WebVideoFullscreenInterfaceMac's rate here anymore. The change
+        in playback rate in WebPlaybackSessionInterfaceMac should trigger
+        WebVideoFullscreenInterfaceMac::rateChanged() to be called.
+        (WebCore::WebVideoFullscreenInterfaceMac::rateChanged):
+        Pass in both the isPlaying state and the playback rate to WebVideoFullscreenInterfaceMacObjC.
+
+2016-04-27  Brady Eidson  <beidson@apple.com>
+
+        Modernize platform/CrossThreadCopier.h style.
+        https://bugs.webkit.org/show_bug.cgi?id=157106
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No change in behavior).
+
+        * platform/CrossThreadCopier.h:
+        (WebCore::CrossThreadCopierPassThrough::copy):
+        (WebCore::AllowCrossThreadAccessWrapper::AllowCrossThreadAccessWrapper):
+        (WebCore::AllowCrossThreadAccessWrapper::value):
+        (WebCore::AllowCrossThreadAccess):
+        (WebCore::AllowAccessLaterWrapper::AllowAccessLaterWrapper):
+        (WebCore::AllowAccessLaterWrapper::value):
+        (WebCore::AllowAccessLater):
+
 2016-04-27  Filip Pizlo  <fpizlo@apple.com>
 
         Speculative fix for null pointer dereference.

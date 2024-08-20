@@ -1,3 +1,109 @@
+2016-04-27  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Implement native IDBFactory.getAllDatabaseNames for WebInspector.
+        https://bugs.webkit.org/show_bug.cgi?id=157072
+
+        Reviewed by Alex Christensen.
+
+        Handle the process hop for the new getAllDatabaseNames call.
+        
+        * DatabaseProcess/IndexedDB/WebIDBConnectionToClient.cpp:
+        (WebKit::WebIDBConnectionToClient::didGetAllDatabaseNames):
+        (WebKit::WebIDBConnectionToClient::getAllDatabaseNames):
+        * DatabaseProcess/IndexedDB/WebIDBConnectionToClient.h:
+        * DatabaseProcess/IndexedDB/WebIDBConnectionToClient.messages.in:
+
+        * Shared/WebCrossThreadCopier.cpp:
+        (WebCore::SecurityOriginData>::copy): Deleted, as its in WebCore now.
+        * Shared/WebCrossThreadCopier.h:
+
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.cpp:
+        (WebKit::WebIDBConnectionToServer::getAllDatabaseNames):
+        (WebKit::WebIDBConnectionToServer::didGetAllDatabaseNames):
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.h:
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.messages.in:
+
+2016-04-27  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] When determining tile size, check whether ancestor UIScrollViews are actually scrollable
+        https://bugs.webkit.org/show_bug.cgi?id=157107
+        rdar://problem/25943577
+
+        Reviewed by Tim Horton.
+        
+        We should only fall back to 512x512 tiles if the WKWebView has a UIScrollView ancestor,
+        and that UIScrollView actually scrolls. This avoids falling back to small tiles in
+        MobileSafari.
+
+        Rename "enclosedInScrollView" to "enclosedInScrollableAncestorView" everywhere.
+
+        * Shared/VisibleContentRectUpdateInfo.cpp:
+        (WebKit::VisibleContentRectUpdateInfo::encode):
+        (WebKit::VisibleContentRectUpdateInfo::decode):
+        * Shared/VisibleContentRectUpdateInfo.h:
+        (WebKit::VisibleContentRectUpdateInfo::VisibleContentRectUpdateInfo):
+        (WebKit::VisibleContentRectUpdateInfo::enclosedInScrollableAncestorView):
+        (WebKit::operator==):
+        (WebKit::VisibleContentRectUpdateInfo::enclosedInScrollView): Deleted.
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (scrollViewCanScroll):
+        (-[WKWebView _updateContentRectsWithState:]):
+        * UIProcess/ios/WKContentView.h:
+        * UIProcess/ios/WKContentView.mm:
+        (-[WKContentView didUpdateVisibleRect:unobscuredRect:unobscuredRectInScrollViewCoordinates:obscuredInset:scale:minimumScale:inStableState:isChangingObscuredInsetsInteractively:enclosedInScrollableAncestorView:]):
+        (-[WKContentView didUpdateVisibleRect:unobscuredRect:unobscuredRectInScrollViewCoordinates:obscuredInset:scale:minimumScale:inStableState:isChangingObscuredInsetsInteractively:enclosedInScrollView:]): Deleted.
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::updateVisibleContentRects):
+
+2016-04-26  Ada Chan  <adachan@apple.com>
+
+        Set WebVideoFullscreenInterfaceMac up as a client of WebPlaybackSessionInterfaceMac to listen for playback state changes
+        https://bugs.webkit.org/show_bug.cgi?id=157008
+
+        Reviewed by Jer Noble.
+
+        Since WebVideoFullscreenInterfaceMac holds onto WebPlaybackSessionInterfaceMac, we can't let
+        WebPlaybackSessionManagerProxy unregister the context for that media element while
+        WebVideoFullscreenInterfaceMac is still using it. WebVideoFullscreenInterfaceMac should add
+        to the client count for that WebPlaybackSession context.
+
+        * UIProcess/Cocoa/WebVideoFullscreenManagerProxy.mm:
+        (WebKit::WebVideoFullscreenManagerProxy::createModelAndInterface):
+        When the context for the media element is created with the WebVideoFullscreenManagerProxy, it should
+        add one to the client count for the media element context in WebPlaybackSessionManagerProxy.
+        (WebKit::WebVideoFullscreenManagerProxy::removeClientForContext):
+        When WebVideoFullscreenManagerProxy unregisters the context for this media element, it should
+        subtract one from the client count for the media element context in WebPlaybackSessionManagerProxy.
+
+        * WebProcess/cocoa/WebPlaybackSessionManager.mm:
+        (WebKit::WebPlaybackSessionManager::clearPlaybackControlsManager):
+        Bail early if m_controlsManagerContextId is zero. Otherwise, we'd end up sending a
+        ClearPlaybackControlsManager message to the UI process inadvertently.
+        (WebKit::WebPlaybackSessionManager::contextIdForMediaElement):
+        Make sure the model element for the context ID is set to the media element.
+
+        * WebProcess/cocoa/WebVideoFullscreenManager.mm:
+        (WebKit::WebVideoFullscreenManager::createModelAndInterface):
+        When the context for the media element is created with the WebVideoFullscreenManager, it should
+        add one to the client count for the media element context in WebPlaybackSessionManager.
+        (WebKit::WebVideoFullscreenManager::removeContext):
+        When WebVideoFullscreenManager unregisters the context for this media element, it should
+        subtract one from the client count for the media element context in WebPlaybackSessionManager.
+
+2016-04-27  Alex Christensen  <achristensen@webkit.org>
+
+        Remove download message receiver when NetworkProcess crashes
+        https://bugs.webkit.org/show_bug.cgi?id=157102
+        <rdar://problem/25550106>
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/Downloads/DownloadProxyMap.cpp:
+        (WebKit::DownloadProxyMap::processDidClose):
+        When the NetworkProcess crashes during a download, we want to remove the message receiver from the map
+        so we don't get an assertion in ~MessageReceiver in the UIProcess so we do not have a freed
+        message receiver in the map.
+
 2016-04-27  Alex Christensen  <achristensen@webkit.org>
 
         Fix client certificate authentication with NSURLSession on iOS
