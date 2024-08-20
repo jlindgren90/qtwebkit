@@ -1,3 +1,74 @@
+2016-04-27  Keith Miller  <keith_miller@apple.com>
+
+        Unreviewed, Revert r199397 due to PLT regressions
+
+        * js/Object-getOwnPropertyNames-expected.txt:
+        * js/dom/array-prototype-properties-expected.txt:
+        * js/script-tests/Object-getOwnPropertyNames.js:
+
+2016-04-27  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Remove failure expectation for tests that now pass on ios-simulator.
+
+        Unreviewed test gardening.
+
+		I evaluated all of the unexpected passes from ios-simulator-wk2 and removed failure
+		expectations where appropriate. Some of the tests only pass on wk2, so some expectations
+		were moved to the ios-simulator-wk1 file.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-04-27  John Wilander  <wilander@apple.com>
+
+        Add layout tests for legacy HTTP headers in WebSockets
+        https://bugs.webkit.org/show_bug.cgi?id=157095
+
+        Reviewed by Alexey Proskuryakov.
+
+        * http/tests/websocket/tests/hybi/handshake-ok-with-legacy-sec-websocket-response-headers-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/handshake-ok-with-legacy-sec-websocket-response-headers.html: Added.
+        * http/tests/websocket/tests/hybi/handshake-ok-with-legacy-sec-websocket-response-headers_wsh.py: Added.
+        (web_socket_do_extra_handshake):
+        (web_socket_transfer_data):
+            Test for legacy response headers 'Sec-WebSocket-Location' and 'Sec-WebSocket-Origin'.
+        * http/tests/websocket/tests/hybi/handshake-ok-with-legacy-websocket-response-headers-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/handshake-ok-with-legacy-websocket-response-headers.html: Added.
+        * http/tests/websocket/tests/hybi/handshake-ok-with-legacy-websocket-response-headers_wsh.py: Added.
+        (web_socket_do_extra_handshake):
+        (web_socket_transfer_data):
+            Test for legacy response headers 'WebSocket-Location' and 'WebSocket-Origin'.
+
+2016-04-27  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: RTCIceCandidate don't need a custom bindings
+        https://bugs.webkit.org/show_bug.cgi?id=157074
+
+        Reviewed by Eric Carlson.
+
+        * fast/mediastream/RTCIceCandidate-expected.txt:
+        Updated with error messages from generated constructor binding.
+
+2016-04-27  Eric Carlson  <eric.carlson@apple.com>
+
+        media/video-fullscreen-restriction-removed.html is flaky on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=156983
+
+        Reviewed by Darin Adler.
+
+        * media/video-fullscreen-restriction-removed-expected.txt:
+        * media/video-fullscreen-restriction-removed.html: Start the test on 'canplaythrough' instead
+          of 'loadedmetadata' so playback can begin immediately.
+
+2016-04-27  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Add ios-simulator baseline for LayoutTest fast/text/hyphenate-avoid-orphaned-word.html
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/fast/text/hyphenate-avoid-orphaned-word-expected.txt: Added.
+
 2016-04-27  Hunseop Jeong  <hs85.jeong@samsung.com>
 
         [EFL][GTK] Volume slider only changes volume when thumb is released, not while dragging

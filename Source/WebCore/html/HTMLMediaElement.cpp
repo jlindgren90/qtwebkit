@@ -6691,16 +6691,12 @@ void HTMLMediaElement::didReceiveRemoteControlCommand(PlatformMediaSession::Remo
 
 bool HTMLMediaElement::shouldOverrideBackgroundPlaybackRestriction(PlatformMediaSession::InterruptionType type) const
 {
-    if (type != PlatformMediaSession::EnteringBackground) {
-        LOG(Media, "HTMLMediaElement::shouldOverrideBackgroundPlaybackRestriction(%p) - returning false because type != PlatformMediaSession::EnteringBackground", this);
+    if (type != PlatformMediaSession::EnteringBackground)
         return false;
-    }
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
-    if (m_player && m_player->isCurrentPlaybackTargetWireless()) {
-        LOG(Media, "HTMLMediaElement::shouldOverrideBackgroundPlaybackRestriction(%p) - returning true because m_player->isCurrentPlaybackTargetWireless is true", this);
+    if (m_player && m_player->isCurrentPlaybackTargetWireless())
         return true;
-    }
 #endif
     if (m_videoFullscreenMode & VideoFullscreenModePictureInPicture)
         return true;
@@ -6807,11 +6803,6 @@ void HTMLMediaElement::purgeBufferedDataIfPossible()
 #if PLATFORM(IOS)
     if (!MemoryPressureHandler::singleton().isUnderMemoryPressure() && PlatformMediaSessionManager::sharedManager().sessionCanLoadMedia(*m_mediaSession))
         return;
-
-    if (isPlayingToWirelessPlaybackTarget()) {
-        LOG(Media, "HTMLMediaElement::purgeBufferedDataIfPossible(%p) - early return because m_player->isCurrentPlaybackTargetWireless is true", this);
-        return;
-    }
 
     // This is called to relieve memory pressure. Turning off buffering causes the media playback
     // daemon to release memory associated with queued-up video frames.

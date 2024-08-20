@@ -1197,7 +1197,6 @@ set(WebCore_SOURCES
     bindings/js/JSPopStateEventCustom.cpp
     bindings/js/JSReadableStreamPrivateConstructors.cpp
     bindings/js/JSReadableStreamSourceCustom.cpp
-    bindings/js/JSRTCIceCandidateCustom.cpp
     bindings/js/JSRTCPeerConnectionCustom.cpp
     bindings/js/JSRTCSessionDescriptionCustom.cpp
     bindings/js/JSRTCStatsResponseCustom.cpp
@@ -2203,6 +2202,7 @@ set(WebCore_SOURCES
     platform/graphics/FontDescription.cpp
     platform/graphics/FontFeatureSettings.cpp
     platform/graphics/FontGenericFamilies.cpp
+    platform/graphics/FontPlatformData.cpp
     platform/graphics/FontRanges.cpp
     platform/graphics/GeneratedImage.cpp
     platform/graphics/GeometryUtilities.cpp

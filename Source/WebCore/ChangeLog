@@ -1,3 +1,245 @@
+2016-04-27  Filip Pizlo  <fpizlo@apple.com>
+
+        Speculative fix for null pointer dereference.
+        rdar://problem/25964854
+
+        Reviewed by Michael Saboff.
+
+        * platform/mac/Language.mm:
+        (WebCore::isValidICUCountryCode):
+
+2016-04-27  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Clean up Font::removeFromSystemFallbackCache()
+        https://bugs.webkit.org/show_bug.cgi?id=157093
+
+        Reviewed by Darin Adler.
+
+        Fonts have a bit which represents whether or not the system fallback cache references them.
+        This bit gets set to 1 when they are inserted into the system fallback cache, but was not
+        being reset back to 0 when it was removed.
+
+        This is benign, since the old codepath has no effect. However, we can speed up the function
+        by properly updating this bit.
+
+        No new tests because there is no behavior change.
+
+        * platform/graphics/Font.cpp:
+        (WebCore::Font::removeFromSystemFallbackCache):
+
+2016-04-27  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: RTCIceCandidate don't need a custom bindings
+        https://bugs.webkit.org/show_bug.cgi?id=157074
+
+        Reviewed by Eric Carlson.
+
+        Removed custom constructor and replaced custom attribute getters with
+        nullable types. Removed custom binding from builds.
+
+        Testing: Updated existing test.
+
+        * CMakeLists.txt:
+        * Modules/mediastream/RTCIceCandidate.idl:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSRTCIceCandidateCustom.cpp: Removed.
+        (WebCore::constructJSRTCIceCandidate): Deleted.
+        (WebCore::JSRTCIceCandidate::sdpMid): Deleted.
+        (WebCore::JSRTCIceCandidate::sdpMLineIndex): Deleted.
+
+2016-04-27  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r199383.
+
+        Seems to have caused a 0.5% PLT regression on iOS
+
+        Reverted changeset:
+
+        "[iOS] do not exit AirPlay when the screen locks"
+        https://bugs.webkit.org/show_bug.cgi?id=156502
+        http://trac.webkit.org/changeset/199383
+
+2016-04-27  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Remove unnecessary HashMap from Font
+        https://bugs.webkit.org/show_bug.cgi?id=157090
+
+        Reviewed by Darin Adler.
+
+        There were only ever a maximum of 2 keys in the hashmap.
+
+        No new tests because there is no behavior change.
+
+        * platform/graphics/Font.h:
+        * platform/graphics/mac/SimpleFontDataCoreText.cpp:
+        (WebCore::Font::getCFStringAttributes):
+
+2016-04-27  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Rename DerivedFontData to DerivedFonts
+        https://bugs.webkit.org/show_bug.cgi?id=157092
+
+        Reviewed by Darin Adler.
+
+        This is a follow-up to r178510 where we named SimpleFontData to Font.
+        This patch didn't include renaming DerivedFontData to DerivedFonts.
+
+        No new tests because there is no behavior change.
+
+        * platform/graphics/Font.cpp:
+        (WebCore::Font::verticalRightOrientationFont):
+        (WebCore::Font::uprightOrientationFont):
+        (WebCore::Font::smallCapsFont):
+        (WebCore::Font::noSynthesizableFeaturesFont):
+        (WebCore::Font::emphasisMarkFont):
+        (WebCore::Font::brokenIdeographFont):
+        (WebCore::Font::nonSyntheticItalicFont):
+        (WebCore::Font::DerivedFonts::~DerivedFonts):
+        (WebCore::Font::DerivedFontData::~DerivedFontData): Deleted.
+        * platform/graphics/Font.h:
+        (WebCore::Font::DerivedFonts::DerivedFonts):
+        (WebCore::Font::DerivedFontData::DerivedFontData): Deleted.
+
+2016-04-27  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Clean up support for [Clamp] IDL extended attribute
+        https://bugs.webkit.org/show_bug.cgi?id=157060
+
+        Reviewed by Darin Adler.
+
+        Clean up support for [Clamp] IDL extended attribute:
+        1.  Move [Clamp] handling in the bindings generator from the parameter
+            conversion to JSValueToNative(). This has the benefit of
+            simplifying the parameter conversion code, adding support for [Clamp]
+            on non-readonly attributes, and improving consistency by handling
+            this in the same place as [EnforceRange].
+        2.  Add 'Clamp' to the IntegerConversionConfiguration enumeration in
+            JSDOMbindings.h and add support for it to the various toInt*() /
+            toUInt*() functions, similary to [EnforceRange]. Call these from
+            the generated bindings.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::toSmallerInt):
+        (WebCore::toSmallerUInt):
+        (WebCore::toInt32EnforceRange):
+        (WebCore::toInt32Clamp):
+        (WebCore::toUInt32Clamp):
+        (WebCore::toUInt32EnforceRange):
+        (WebCore::toInt64):
+        (WebCore::toUInt64):
+        (WebCore::toUInt8): Deleted.
+        (WebCore::toUInt16): Deleted.
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::toInt32):
+        (WebCore::toUInt32):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (JSValueToNative):
+        (GenerateParametersCheck): Deleted.
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.cpp:
+        (webkit_dom_test_obj_set_property):
+        (webkit_dom_test_obj_get_property):
+        (webkit_dom_test_obj_class_init):
+        (webkit_dom_test_obj_class_method_with_enforce_range):
+        (webkit_dom_test_obj_get_clamped_short_attr):
+        (webkit_dom_test_obj_set_clamped_short_attr):
+        (webkit_dom_test_obj_get_enforce_range_short_attr):
+        (webkit_dom_test_obj_set_enforce_range_short_attr):
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.h:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjClampedShortAttr):
+        (WebCore::jsTestObjEnforceRangeShortAttr):
+        (WebCore::setJSTestObjClampedShortAttr):
+        (WebCore::setJSTestObjEnforceRangeShortAttr):
+        (WebCore::jsTestObjPrototypeFunctionClassMethodWithClamp):
+        (WebCore::jsTestObjPrototypeFunctionClassMethodWithEnforceRange):
+        (WebCore::jsTestObjConstructorFunctionClassMethodWithOptional): Deleted.
+        (WebCore::jsTestObjConstructorFunctionClassMethod2): Deleted.
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::jsTestTypedefsPrototypeFunctionFuncWithClamp):
+        (WebCore::jsTestTypedefsPrototypeFunctionImmutablePointFunction): Deleted.
+        * bindings/scripts/test/ObjC/DOMTestObj.h:
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+        (-[DOMTestObj clampedShortAttr]):
+        (-[DOMTestObj setClampedShortAttr:]):
+        (-[DOMTestObj enforceRangeShortAttr]):
+        (-[DOMTestObj setEnforceRangeShortAttr:]):
+        (-[DOMTestObj classMethodWithEnforceRange:objArgsLong:]):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-04-27  Daniel Bates  <dabates@apple.com>
+
+        CSP: Add app-specific workaround for Ecobee and Quora
+        https://bugs.webkit.org/show_bug.cgi?id=157005
+        <rdar://problem/25560776>
+
+        Reviewed by Brent Fulgham.
+
+        * page/Settings.in: Add setting allowContentSecurityPolicySourceStarToMatchAnyProtocol (disabled by default).
+        * page/csp/ContentSecurityPolicy.cpp:
+        (WebCore::ContentSecurityPolicy::allowContentSecurityPolicySourceStarToMatchAnyProtocol): Added.
+        * page/csp/ContentSecurityPolicy.h:
+        * page/csp/ContentSecurityPolicySourceList.cpp:
+        (WebCore::ContentSecurityPolicySourceList::isProtocolAllowedByStar): Modified to return true
+        if ContentSecurityPolicy::allowContentSecurityPolicySourceStarToMatchAnyProtocol() evaluates to true.
+        * platform/RuntimeApplicationChecks.h:
+        * platform/RuntimeApplicationChecks.mm:
+        (WebCore::IOSApplication::isEcobee): Added.
+        (WebCore::IOSApplication::isQuora): Added.
+
+2016-04-27  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r200094): [FreeType] Vertical text is broken after r200094
+        https://bugs.webkit.org/show_bug.cgi?id=157066
+
+        Reviewed by Martin Robinson.
+
+        The problem is that Freetype implementation needs to call buildScaledFont() when orientation, SyntheticOblique
+        or size change, but the new static clone methods don't do that. I think it's the time to stop using our own
+        header for FontPlatformData for the FreeType implementation to make cross-platform changes easier and prevent
+        regressions like this in the future.
+
+        * CMakeLists.txt: Compile FontPlatformData.cpp for all ports.
+        * PlatformMac.cmake: Remove FontPlatformData.cpp.
+        * PlatformWin.cmake: Ditto.
+        * platform/graphics/FontPlatformData.cpp: We need our own clone methods in the FreeType backend.
+        * platform/graphics/FontPlatformData.h: Move FreeType specific methods and members from the old header file.
+        * platform/graphics/cairo/CairoUtilities.cpp:
+        (WebCore::CairoFtFaceLocker::CairoFtFaceLocker): Move CairoFtFaceLocker implementation here from
+        HarfBuzzFaceCairo.cpp to make it available to other classes, and make it handle the case of
+        cairo_ft_scaled_font_lock_face() returning nullptr.
+        (WebCore::CairoFtFaceLocker::~CairoFtFaceLocker):
+        * platform/graphics/cairo/CairoUtilities.h:
+        (WebCore::CairoFtFaceLocker::ftFace):
+        * platform/graphics/freetype/FontCacheFreeType.cpp:
+        (WebCore::findBestFontGivenFallbacks): Move the fallbacks implementation to FontPlatformData where it belongs
+        and here simply use FontPlatformData::fallbacks().
+        * platform/graphics/freetype/FontPlatformData.h: Removed.
+        * platform/graphics/freetype/FontPlatformDataFreeType.cpp:
+        (WebCore::FontPlatformData::FontPlatformData): Remove members already initialized in the header.
+        (WebCore::FontPlatformData::operator=): Add missing members to be copied.
+        (WebCore::FontPlatformData::~FontPlatformData): Do not free m_scaledFont manually since we are now using a smart pointer.
+        (WebCore::FontPlatformData::cloneWithOrientation): Call buildScaledFont() like setOrientation() did.
+        (WebCore::FontPlatformData::cloneWithSyntheticOblique): Call buildScaledFont() like setSyntheticOblique() did.
+        (WebCore::FontPlatformData::cloneWithSize): Call buildScaledFont().
+        (WebCore::FontPlatformData::fallbacks): Lazily initialize fallbacks if needed and return it.
+        (WebCore::FontPlatformData::platformIsEqual): Only compare FreeType specific members.
+        (WebCore::FontPlatformData::buildScaledFont): Use RefPtr for m_scaledFont.
+        (WebCore::FontPlatformData::hasCompatibleCharmap): Use CairoFtFaceLocker.
+        (WebCore::FontPlatformData::openTypeTable): Update to return RefPtr instead of PassRefPtr and use CairoFtFaceLocker.
+        (WebCore::FontPlatformData::operator==): Deleted.
+        (WebCore::FontPlatformData::setOrientation): Deleted.
+        (WebCore::FontPlatformData::setSyntheticOblique): Deleted.
+        * platform/graphics/freetype/GlyphPageTreeNodeFreeType.cpp:
+        (WebCore::GlyphPage::fill): Use CairoFtFaceLocker.
+        * platform/graphics/freetype/SimpleFontDataFreeType.cpp:
+        (WebCore::Font::platformInit): Ditto.
+        (WebCore::Font::canRenderCombiningCharacterSequence): Ditto.
+        * platform/graphics/harfbuzz/HarfBuzzFaceCairo.cpp:
+        (WebCore::harfBuzzCairoGetTable): Ditto.
+        (WebCore::CairoFtFaceLocker::CairoFtFaceLocker): Deleted.
+        (WebCore::CairoFtFaceLocker::lock): Deleted.
+        (WebCore::CairoFtFaceLocker::~CairoFtFaceLocker): Deleted.
+
 2016-04-27  Hunseop Jeong  <hs85.jeong@samsung.com>
 
         [EFL][GTK] Volume slider only changes volume when thumb is released, not while dragging

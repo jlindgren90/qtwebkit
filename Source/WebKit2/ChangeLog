@@ -1,3 +1,72 @@
+2016-04-27  Alex Christensen  <achristensen@webkit.org>
+
+        Fix client certificate authentication with NSURLSession on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=157094
+        <rdar://problem/25946859>
+
+        Reviewed by Darin Adler.
+
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:task:didReceiveChallenge:completionHandler:]):
+        We only want to create a non-persistent credential with the given user and password 
+        and store the user and password in the CredentialStorage if there is a user and password.
+        We previously only skipped this if we were doing server trust evaluation, in which case 
+        we will have a credential from serverTrustCredential which has no user or password.
+        When doing client certificate authentication on iOS, this completion handler is called with
+        a credential with session persistence and also no user or password, so we need to do the same thing.
+        The reason this was never hit on Mac was because the credential came from tryUseCertificateInfoForChallenge,
+        which always had persistence none.
+
+2016-04-27  Claudio Saavedra  <csaavedra@igalia.com>
+
+        [GTK][EFL] Move WK2 platform code to a common place
+        https://bugs.webkit.org/show_bug.cgi?id=157069
+
+        Reviewed by Carlos Garcia Campos.
+
+        Logging implementation can be shared between EFL and GTK, so move it to unix.
+        The GTK Module implementation doesn't depend on GTK anyhow so move it to glib.
+
+        * Platform/efl/LoggingEfl.cpp: Removed.
+        (WebKit::logLevelString): Deleted.
+        * Platform/glib/ModuleGlib.cpp: Renamed from Source/WebKit2/Platform/gtk/ModuleGtk.cpp.
+        (WebKit::Module::load):
+        (WebKit::Module::unload):
+        (WebKit::Module::platformFunctionPointer):
+        * Platform/gtk/LoggingGtk.cpp:
+        (WebKit::logLevelString): Deleted.
+        * Platform/gtk/ModuleGtk.cpp:
+        (WebKit::Module::load): Deleted.
+        (WebKit::Module::unload): Deleted.
+        (WebKit::Module::platformFunctionPointer): Deleted.
+        * Platform/unix/LoggingUnix.cpp: Renamed from Source/WebKit2/Platform/gtk/LoggingGtk.cpp.
+        (WebKit::logLevelString):
+        * PlatformEfl.cmake: Update.
+        * PlatformGTK.cmake: Update
+
+2016-04-27  Alex Christensen  <achristensen@webkit.org>
+
+        Fix assertion when downloading with NSURLSession after r198955
+        https://bugs.webkit.org/show_bug.cgi?id=157051
+
+        Reviewed by Brady Eidson.
+
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::continueDecidePendingDownloadDestination):
+
+2016-04-27  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r200094): [FreeType] Vertical text is broken after r200094
+        https://bugs.webkit.org/show_bug.cgi?id=157066
+
+        Reviewed by Martin Robinson.
+
+        Add Source/WebCore/platform/graphics/freetype to the list of include dirs, because now FontPlatformData.h
+        includes FcUniquePtr.h.
+
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+
 2016-04-26  Joseph Pecoraro  <pecoraro@apple.com>
 
         Uncaught Exception: SecurityError: DOM Exception 18: An attempt was made to break through the security policy of the user agent.
