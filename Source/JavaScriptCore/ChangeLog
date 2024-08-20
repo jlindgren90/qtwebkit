@@ -1,3 +1,154 @@
+2016-04-19  Benjamin Poulain  <bpoulain@webkit.org>
+
+        [JSC] Small cleanup of RegisterAtOffsetList
+        https://bugs.webkit.org/show_bug.cgi?id=156779
+
+        Reviewed by Mark Lam.
+
+        I was wondering why RegisterAtOffsetList always cache-miss.
+        It looks like it is doing more than it needs to.
+
+        We do not need to sort the values. The total order of
+        RegisterAtOffset is:
+        1) Order of Reg.
+        2) Order of offsets.
+        We already generate the list in order.
+
+        Also allocate the right array size ahead of filling the array.
+
+        * jit/RegisterAtOffsetList.cpp:
+        (JSC::RegisterAtOffsetList::RegisterAtOffsetList):
+        (JSC::RegisterAtOffsetList::sort): Deleted.
+        * jit/RegisterAtOffsetList.h:
+        (JSC::RegisterAtOffsetList::append): Deleted.
+
+2016-04-19  Saam barati  <sbarati@apple.com>
+
+        Add a couple UNLIKELY macros in parseMemberExpression
+        https://bugs.webkit.org/show_bug.cgi?id=156775
+
+        Reviewed by Filip Pizlo.
+
+        These UNLIKELY macros have to do with the base of the
+        member expression being 'super'. I think it's safe to
+        argue that this is truly UNLIKELY. I am seeing speedups
+        sometimes on Octane codeload. Usually around 0.5%. Sometimes 1%.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseMemberExpression):
+
+2016-04-19  Saam barati  <sbarati@apple.com>
+
+        allow jsc shell to dump sampling profiler data
+        https://bugs.webkit.org/show_bug.cgi?id=156725
+
+        Reviewed by Benjamin Poulain.
+
+        This patch adds a '--reportSamplingProfilerData' option to the
+        JSC shell which will enable the sampling profiler and dump
+        its data at the end of execution. The dump will include the
+        40 hottest functions and the 80 hottest bytecode locations.
+        If you're using this option to debug, it's easy to just hack
+        on the code to make it dump more or less information.
+
+        * jsc.cpp:
+        (CommandLine::parseArguments):
+        (jscmain):
+        * runtime/Options.h:
+        * runtime/SamplingProfiler.cpp:
+        (JSC::SamplingProfiler::processUnverifiedStackTraces):
+        (JSC::SamplingProfiler::stackTracesAsJSON):
+        (JSC::SamplingProfiler::reportTopFunctions):
+        (JSC::SamplingProfiler::reportTopBytecodes):
+        * runtime/SamplingProfiler.h:
+        (JSC::SamplingProfiler::StackFrame::hasExpressionInfo):
+        (JSC::SamplingProfiler::StackFrame::hasBytecodeIndex):
+        (JSC::SamplingProfiler::StackFrame::hasCodeBlockHash):
+        (JSC::SamplingProfiler::setStopWatch):
+
+2016-04-19  Mark Lam  <mark.lam@apple.com>
+
+        Re-landing: ES6: Implement RegExp.prototype[@@search].
+        https://bugs.webkit.org/show_bug.cgi?id=156331
+
+        Reviewed by Keith Miller.
+
+        What changed?
+        1. Implemented search builtin in RegExpPrototype.js.
+           The native path is now used as a fast path.
+        2. Added DFG support for an IsRegExpObjectIntrinsic (modelled after the
+           IsJSArrayIntrinsic).
+        3. Renamed @isRegExp to @isRegExpObject to match the new IsRegExpObjectIntrinsic.
+        4. Change the esSpecIsRegExpObject() implementation to check if the object's
+           JSType is RegExpObjectType instead of walking the classinfo chain.
+
+        * builtins/RegExpPrototype.js:
+        (search):
+        * builtins/StringPrototype.js:
+        (search):
+        - fixed some indentation.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        (JSC::DFG::PredictionPropagationPhase::propagate):
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileIsArrayConstructor):
+        (JSC::DFG::SpeculativeJIT::compileIsRegExpObject):
+        (JSC::DFG::SpeculativeJIT::compileCallObjectConstructor):
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileIsFunction):
+        (JSC::FTL::DFG::LowerDFGToB3::compileIsRegExpObject):
+        (JSC::FTL::DFG::LowerDFGToB3::compileTypeOf):
+        (JSC::FTL::DFG::LowerDFGToB3::isExoticForTypeof):
+        (JSC::FTL::DFG::LowerDFGToB3::isRegExpObject):
+        (JSC::FTL::DFG::LowerDFGToB3::isType):
+        * runtime/Intrinsic.h:
+        - Added IsRegExpObjectIntrinsic.
+
+        * runtime/CommonIdentifiers.h:
+
+        * runtime/ECMAScriptSpecInternalFunctions.cpp:
+        (JSC::esSpecIsConstructor):
+        - Changed to use uncheckedArgument since this is only called from internal code.
+        (JSC::esSpecIsRegExpObject):
+        (JSC::esSpecIsRegExp): Deleted.
+        * runtime/ECMAScriptSpecInternalFunctions.h:
+        - Changed to check the object for a JSType of RegExpObjectType.
+
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        - Added split fast path.
+
+        * runtime/RegExpPrototype.cpp:
+        (JSC::RegExpPrototype::finishCreation):
+        (JSC::regExpProtoFuncSearchFast):
+        (JSC::regExpProtoFuncSearch): Deleted.
+        * runtime/RegExpPrototype.h:
+
+        * tests/es6.yaml:
+        * tests/stress/regexp-search.js:
+        - Rebased test.
+
 2016-04-19  Mark Lam  <mark.lam@apple.com>
 
         Replace $vm.printValue() with $vm.value().

@@ -1,3 +1,101 @@
+2016-04-19  Brent Fulgham  <bfulgham@apple.com>
+
+        Remove remaining bits of dynamic <link> rel='icon' loading
+        https://bugs.webkit.org/show_bug.cgi?id=156727
+
+        Reviewed by Darin Adler.
+
+        Don't call 'shouldLoadLink' for 'icon' link types. It performs no
+        useful checks for 'icon' types, and emits the non-standard
+        'onbeforeload' event.
+
+        This work finishes up https://webkit.org/b/153151, where we removed
+        FrameLoaderClient::dispatchDidChangeIcons() and related code.
+
+        Test: webarchive/test-link-rel-subresource-beforeload.html
+
+        * loader/LinkLoader.cpp:
+        (WebCore::LinkLoader::loadLink): Remove unneeded call to 'shouldLoadLink'.
+
+2016-04-19  Chris Dumez  <cdumez@apple.com>
+
+        AudioBufferSourceNode.buffer should be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=156769
+
+        Reviewed by Darin Adler.
+
+        AudioBufferSourceNode.buffer should be nullable as per the
+        specification:
+        https://webaudio.github.io/web-audio-api/#AudioBufferSourceNode
+
+        Our implementation was initially returning null when getting
+        AudioBufferSourceNode.buffer, which is correct. However, it would
+        throw a TypeError when trying to set the attribute to null. Our
+        implementation setter actually supported setting the buffer to
+        null but the custom bindings for the setter would not.
+
+        This patch does the following:
+        - Get rid of the custom bindings for the AudioBufferSourceNode.buffer
+          setter. We can have the bindings generator generate the same code
+          by using [StrictTypeChecking]. The custom bindinds were also throwing
+          a TypeError if the input AudioBuffer had too many channels but this
+          does not seem to be possible.
+        - Mark AudioBufferSourceNode.buffer as nullable in the IDL so that
+          we no longer throw when the JS tries to assign null, but instead
+          calls AudioBufferSourceNode::setBuffer(nullptr)
+
+        No new test, updated webaudio/audiobuffersource-channels.html
+
+        * CMakeLists.txt:
+        * Modules/webaudio/AudioBufferSourceNode.cpp:
+        (WebCore::AudioBufferSourceNode::setBuffer):
+        * Modules/webaudio/AudioBufferSourceNode.h:
+        * Modules/webaudio/AudioBufferSourceNode.idl:
+        * Modules/webaudio/AudioContext.h:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSAudioBufferSourceNodeCustom.cpp: Removed.
+
+2016-04-19  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Lots of IDB bindings cleanup (including making IDBVersionChangeEvent constructible).
+        https://bugs.webkit.org/show_bug.cgi?id=156760
+
+        Reviewed by Darin Adler (and looked over by Chris Dumez and Alex Christensen).
+
+        Test: storage/indexeddb/modern/idbversionchangeevent-constructor.html
+
+        Add WorkerGlobalScopeConstructors to the xcodeproj:
+        * WebCore.xcodeproj/project.pbxproj:
+
+        Remove the completely irrelevant webkit* prefixed constructors from DOMWindow:
+        * page/DOMWindow.idl:
+
+        Remove the poor way most objects were exposed on the WorkerGlobalScope:
+        * Modules/indexeddb/WorkerGlobalScopeIndexedDatabase.idl:
+
+        Expose most of the objects on the WorkerGlobalScope the correct way:
+        * Modules/indexeddb/IDBCursor.idl:
+        * Modules/indexeddb/IDBCursorWithValue.idl:
+        * Modules/indexeddb/IDBDatabase.idl:
+        * Modules/indexeddb/IDBFactory.idl:
+        * Modules/indexeddb/IDBIndex.idl:
+        * Modules/indexeddb/IDBKeyRange.idl:
+        * Modules/indexeddb/IDBObjectStore.idl:
+        * Modules/indexeddb/IDBOpenDBRequest.idl:
+        * Modules/indexeddb/IDBRequest.idl:
+        * Modules/indexeddb/IDBTransaction.idl:
+
+        Make IDBVersionChangeEvent constructible:        
+        * Modules/indexeddb/IDBVersionChangeEvent.cpp:
+        (WebCore::IDBVersionChangeEvent::IDBVersionChangeEvent):
+        (WebCore::IDBVersionChangeEvent::newVersion): Deleted.
+        * Modules/indexeddb/IDBVersionChangeEvent.h:
+        * Modules/indexeddb/IDBVersionChangeEvent.idl:
+
+        * bindings/js/JSDictionary.h:
+        (WebCore::JSDictionary::convertValue): Add a templated form of convertValue that
+          handles Optional<>s.
+
 2016-04-19  Alex Christensen  <achristensen@webkit.org>
 
         Build fix after r199738

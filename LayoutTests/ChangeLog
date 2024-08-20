@@ -1,3 +1,85 @@
+2016-04-19  Brent Fulgham  <bfulgham@apple.com>
+
+        Remove remaining bits of dynamic <link> rel='icon' loading
+        https://bugs.webkit.org/show_bug.cgi?id=156727
+
+        Reviewed by Darin Adler.
+
+        Rename 'test-link-rel-icon-beforeload.html' to 'test-link-rel-subresource-beforeload.html'.
+
+        * fast/dom/icon-url-property-expected.txt: Removed.
+        * fast/dom/icon-url-property.html: Removed.
+        * platform/gtk/TestExpectations: Remove references to deleted tests.
+        * platform/ios-simulator/TestExpectations: Ditto. 
+        * platform/wk2/TestExpectations: Ditto.
+        * webarchive/test-link-rel-icon-beforeload-expected.webarchive: Removed.
+        * webarchive/test-link-rel-icon-beforeload.html: Removed.
+        * webarchive/test-link-rel-subresource-beforeload-expected.webarchive: Copied from LayoutTests/webarchive/test-link-rel-icon-beforeload-expected.webarchive.
+        * webarchive/test-link-rel-subresource-beforeload.html: Copied from LayoutTests/webarchive/test-link-rel-icon-beforeload.html.
+
+2016-04-19  Chris Dumez  <cdumez@apple.com>
+
+        AudioBufferSourceNode.buffer should be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=156769
+
+        Reviewed by Darin Adler.
+
+        Update existing layout test to check that:
+        - AudioBufferSourceNode.buffer is initially null
+        - AudioBufferSourceNode.buffer can be set to null
+        - We cannot create an AudioBuffer that has too many channels
+
+        * webaudio/audiobuffersource-channels-expected.txt:
+        * webaudio/audiobuffersource-channels.html:
+
+2016-04-19  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Lots of IDB bindings cleanup (including making IDBVersionChangeEvent constructible).
+        https://bugs.webkit.org/show_bug.cgi?id=156760
+
+        Reviewed by Darin Adler (and looked over by Chris Dumez and Alex Christensen).
+
+        * js/dom/global-constructors-attributes-idb-expected.txt: Updated for removed attributes.
+        * storage/indexeddb/modern/idbversionchangeevent-constructor-expected.txt: Added.
+        * storage/indexeddb/modern/idbversionchangeevent-constructor.html: Added.
+
+2016-04-19  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Unskip media tests since r199649
+
+        Unreviewed EFL gardening.
+
+        * platform/efl/TestExpectations: r199649 fixed media test crash as well.
+
+2016-04-19  Mark Lam  <mark.lam@apple.com>
+
+        Re-landing: ES6: Implement RegExp.prototype[@@search].
+        https://bugs.webkit.org/show_bug.cgi?id=156331
+
+        Reviewed by Keith Miller.
+
+        * js/regress/regexp-prototype-search-observable-side-effects-expected.txt: Added.
+        * js/regress/regexp-prototype-search-observable-side-effects.html: Added.
+        * js/regress/regexp-prototype-search-observable-side-effects2-expected.txt: Added.
+        * js/regress/regexp-prototype-search-observable-side-effects2.html: Added.
+
+        * js/regress/script-tests/regexp-prototype-search-observable-side-effects.js: Added.
+        * js/regress/script-tests/regexp-prototype-search-observable-side-effects2.js: Added.
+
+        * js/regress/script-tests/string-prototype-search-observable-side-effects.js: Added.
+        * js/regress/script-tests/string-prototype-search-observable-side-effects2.js: Added.
+        * js/regress/script-tests/string-prototype-search-observable-side-effects3.js: Added.
+        * js/regress/script-tests/string-prototype-search-observable-side-effects4.js: Added.
+
+        * js/regress/string-prototype-search-observable-side-effects-expected.txt: Added.
+        * js/regress/string-prototype-search-observable-side-effects.html: Added.
+        * js/regress/string-prototype-search-observable-side-effects2-expected.txt: Added.
+        * js/regress/string-prototype-search-observable-side-effects2.html: Added.
+        * js/regress/string-prototype-search-observable-side-effects3-expected.txt: Added.
+        * js/regress/string-prototype-search-observable-side-effects3.html: Added.
+        * js/regress/string-prototype-search-observable-side-effects4-expected.txt: Added.
+        * js/regress/string-prototype-search-observable-side-effects4.html: Added.
+
 2016-04-19  Alex Christensen  <achristensen@webkit.org>
 
         Rebase test after r199738
