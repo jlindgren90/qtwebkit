@@ -292,7 +292,7 @@ void NotificationPresenterClientQt::notificationControllerDestroyed()
 {
 }
 
-void NotificationPresenterClientQt::requestPermission(ScriptExecutionContext* context, PassRefPtr<NotificationPermissionCallback> callback)
+void NotificationPresenterClientQt::requestPermission(ScriptExecutionContext* context, RefPtr<NotificationPermissionCallback>&& callback)
 {
     if (dumpNotification)
         printf("DESKTOP NOTIFICATION PERMISSION REQUESTED: %s\n", QString(context->securityOrigin()->toString()).toUtf8().constData());
