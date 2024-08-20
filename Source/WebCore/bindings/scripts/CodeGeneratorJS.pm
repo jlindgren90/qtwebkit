@@ -3381,15 +3381,10 @@ sub CanUseWTFOptionalForParameter
     return 0 if $parameter->isVariadic;
     return 0 if $codeGenerator->IsCallbackInterface($type);
     return 0 if $codeGenerator->IsEnumType($type);
-    return 0 if $codeGenerator->IsTypedArrayType($type);
     return 0 if $codeGenerator->IsWrapperType($type);
     return 0 if $type eq "DOMString";
     return 0 if $type eq "Dictionary";
     return 0 if $type eq "any";
-    return 0 if $type eq "float";
-    return 0 if $type eq "long";
-    return 0 if $type eq "unrestricted float";
-    return 0 if $type eq "unrestricted double";
     return 0 if $type eq "unsigned long";
 
     return 1;

@@ -1,3 +1,351 @@
+2016-04-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Clarify Heap Snapshot instance Retained Size by hiding retained size of non-dominated children
+        https://bugs.webkit.org/show_bug.cgi?id=157018
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Proxies/HeapSnapshotNodeProxy.js:
+        (WebInspector.HeapSnapshotNodeProxy):
+        (WebInspector.HeapSnapshotNodeProxy.deserialize):
+        * UserInterface/Workers/HeapSnapshot/HeapSnapshot.js:
+        (HeapSnapshot.prototype.serializeNode):
+        Include dominatorNodeIdentifier in the default proxy properties.
+
+        * UserInterface/Views/HeapSnapshotInstanceDataGridNode.js:
+        (WebInspector.HeapSnapshotInstanceDataGridNode):
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype.get node):
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype.createCellContent):
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype._isDominatedByBase):
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype._isDominatedByNonBaseParent):
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype._populate):
+        * UserInterface/Views/HeapSnapshotInstancesContentView.css:
+        (.heap-snapshot > .data-grid td .sub-retained):
+        Save the base HeapSnapshotInstanceDataGridNode so that it can be referenced by
+        children. When expanding an instance, hide the retained size for children
+        that are not dominated by the base object. Show the retained size for children
+        for children that are dominated. If dominated directly, show the size in the
+        normal black. If dominated transitively, show the size in a dimmed gray.
+
+2016-04-25  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: hook up grid row filtering in the new Timelines UI
+        https://bugs.webkit.org/show_bug.cgi?id=154924
+        <rdar://problem/24934607>
+
+        Reviewed by Timothy Hatcher.
+
+        Re-implement timeline data grid filtering that previously existed in the
+        navigation sidebar. This patch adds support for filter text, scope bars,
+        and filtering based on ruler selection.
+
+        Multi-column filter support is now part of DataGrid. The grid checks compares
+        filter text against cell data of type string. DataGridNode subclasses may
+        provide custom string data for columns that format complex objects (such
+        as SourceCodeLocations). Cells containing data of type number are not
+        considered for filtering at this time.
+
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid):
+        (WebInspector.DataGrid.prototype.set filterText):
+        (WebInspector.DataGrid.prototype.get filterDelegate):
+        (WebInspector.DataGrid.prototype.set filterDelegate):
+        (WebInspector.DataGrid.prototype.filterDidChange):
+        Called internally by the grid whenever the filter text or delegate changes.
+        Also called by clients that implement a filter delegate, to inform the
+        grid that a custom filter has changed.
+
+        (WebInspector.DataGrid.prototype.hasCustomFilters):
+        (WebInspector.DataGrid.prototype.matchNodeAgainstCustomFilters):
+        Calls the filter delegate, if it exists, and provides a hook for
+        subclasses to provide custom filtering.
+
+        (WebInspector.DataGrid.prototype._applyFiltersToNode.matchTextFilter):
+        (WebInspector.DataGrid.prototype._applyFiltersToNode.makeVisible):
+        (WebInspector.DataGrid.prototype._applyFiltersToNode):
+        Filters data grid nodes and fires filter events as needed.
+        (WebInspector.DataGrid.prototype._hasFilterDelegate):
+        Helper function.
+        (WebInspector.DataGrid.prototype._updateVisibleRows):
+        Exclude hidden nodes from revealed rows.
+        (WebInspector.DataGrid.prototype._updateFilter):
+        Filtering entry point, called on an animation frame. Updates visible
+        rows if any node was filtered/unfiltered.
+
+        (WebInspector.DataGridNode):
+        (WebInspector.DataGridNode.prototype.get filterableData):
+        Gets an array of filterable strings for the node.
+        (WebInspector.DataGridNode.prototype.refresh):
+        Resets cached filterable strings.
+        (WebInspector.DataGridNode.prototype.filterableDataForColumn):
+        Can be overridden by subclasses to provide filterable text for complex
+        cell data, like as objects formatted as document fragments.
+
+        * UserInterface/Views/LayoutTimelineDataGridNode.js:
+        (WebInspector.LayoutTimelineDataGridNode.prototype.get data):
+
+        * UserInterface/Views/LayoutTimelineView.js:
+        (WebInspector.LayoutTimelineView):
+        Register grid and remove logic that has been moved to the base class.
+        (WebInspector.LayoutTimelineView.prototype.filterDidChange):
+        Update highlight after grid filter change.
+        (WebInspector.LayoutTimelineView.prototype._dataGridSelectedNodeChanged):
+        Update highlight when selection changes.
+        (WebInspector.LayoutTimelineView.prototype.matchTreeElementAgainstCustomFilters): Deleted.
+        (WebInspector.LayoutTimelineView.prototype.treeElementDeselected): Deleted.
+        (WebInspector.LayoutTimelineView.prototype._dataGridFiltersDidChange): Deleted.
+        (WebInspector.LayoutTimelineView.prototype._dataGridNodeSelected): Deleted.
+        No longer needed.
+
+        * UserInterface/Views/NetworkTimelineView.js:
+        (WebInspector.NetworkTimelineView):
+        Register grid and remove logic that has been moved to the base class.
+        (WebInspector.NetworkTimelineView.prototype.matchTreeElementAgainstCustomFilters): Deleted.
+        (WebInspector.NetworkTimelineView.prototype._dataGridFiltersDidChange): Deleted.
+        (WebInspector.NetworkTimelineView.prototype._dataGridNodeSelected): Deleted.
+        No longer needed.
+
+        * UserInterface/Views/OverviewTimelineView.js:
+        (WebInspector.OverviewTimelineView):
+        Register grid and remove logic that has been moved to the base class.
+        (WebInspector.OverviewTimelineView.prototype._dataGridNodeSelected): Deleted.
+        No longer needed.
+
+        * UserInterface/Views/RenderingFrameTimelineView.js:
+        (WebInspector.RenderingFrameTimelineView):
+        Register grid and remove logic that has been moved to the base class.
+        (WebInspector.RenderingFrameTimelineView.prototype.get filterStartTime):
+        (WebInspector.RenderingFrameTimelineView.prototype.get filterEndTime):
+        Convert selection indices into filter start and end times.
+        (WebInspector.RenderingFrameTimelineView.prototype.matchDataGridNodeAgainstCustomFilters):
+        Perform custom filtering on rendering frame duration.
+        (WebInspector.RenderingFrameTimelineView.prototype._scopeBarSelectionDidChange):
+        Inform grid of custom filter change.
+        (WebInspector.RenderingFrameTimelineView.prototype.matchTreeElementAgainstCustomFilters): Deleted.
+        (WebInspector.RenderingFrameTimelineView.prototype._dataGridNodeSelected): Deleted.
+        No longer needed.
+
+        * UserInterface/Views/ResourceTimelineDataGridNode.js:
+        (WebInspector.ResourceTimelineDataGridNode.prototype.filterableDataForColumn):
+        Use URL string for filtering "name" column.
+
+        * UserInterface/Views/ScriptClusterTimelineView.js:
+        (WebInspector.ScriptClusterTimelineView.prototype.updateFilter):
+        Forwarding for TimelineView API.
+        (WebInspector.ScriptClusterTimelineView.prototype.matchDataGridNodeAgainstCustomFilters):
+        (WebInspector.ScriptClusterTimelineView.prototype.matchTreeElementAgainstCustomFilters): Deleted.
+        Renamed to matchDataGridNodeAgainstCustomFilters.
+        (WebInspector.ScriptClusterTimelineView.prototype._scriptClusterViewCurrentContentViewDidChange): Deleted.
+        Removed FIXME comment. Updating TimelineView times is sufficient to trigger filtering.
+
+        * UserInterface/Views/ScriptDetailsTimelineView.js:
+        (WebInspector.ScriptDetailsTimelineView):
+        Register grid and remove logic that has been moved to the base class.
+        (WebInspector.ScriptDetailsTimelineView.prototype._dataGridFiltersDidChange): Deleted.
+        (WebInspector.ScriptDetailsTimelineView.prototype._dataGridNodeSelected): Deleted.
+        No longer needed.
+
+        * UserInterface/Views/ScriptTimelineDataGridNode.js:
+        (WebInspector.ScriptTimelineDataGridNode.prototype.filterableDataForColumn):
+        Use main title and subtitle strings for filtering "name" column.
+        (WebInspector.ScriptTimelineDataGridNode.prototype._createNameCellDocumentFragment):
+        (WebInspector.ScriptTimelineDataGridNode.prototype._subtitle):
+        Break out for use in filterableDataForColumn.
+
+        * UserInterface/Views/TimelineDataGrid.js:
+        (WebInspector.TimelineDataGrid):
+        Cleanup variable names.
+        (WebInspector.TimelineDataGrid.prototype.hasCustomFilters):
+        Always true because filtering on ruler selection always occurs.
+        (WebInspector.TimelineDataGrid.prototype.matchNodeAgainstCustomFilters):
+        Match nodes against scope bar filters.
+        (WebInspector.TimelineDataGrid.prototype._scopeBarSelectedItemsDidChange):
+        Inform grid of custom filter change.
+        (WebInspector.TimelineDataGrid.prototype.treeElementMatchesActiveScopeFilters): Deleted.
+        Re-implemented as _nodeMatchesActiveScopeFilters.
+        (WebInspector.TimelineDataGrid.prototype._updateScopeBarForcedVisibility): Deleted.
+        Old UI. No longer needed.
+
+        * UserInterface/Views/TimelineDataGridNode.js:
+        (WebInspector.TimelineDataGridNode.prototype.filterableDataForColumn):
+        Filter strings for SourceCodeLocation and CallFrame objects.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView):
+        Listen for FilterBar changes and TimelineView record filtering.
+        (WebInspector.TimelineRecordingContentView.prototype._filterDidChange):
+        Update grid filters when filter bar changes.
+        (WebInspector.TimelineRecordingContentView.prototype._recordWasFiltered):
+        Update overview when records are filtered/unfiltered.
+        (WebInspector.TimelineRecordingContentView.prototype.filterDidChange): Deleted.
+        (WebInspector.TimelineRecordingContentView.prototype.recordWasFiltered): Deleted.
+        (WebInspector.TimelineRecordingContentView.prototype.matchTreeElementAgainstCustomFilters.checkTimeBounds): Deleted.
+        (WebInspector.TimelineRecordingContentView.prototype.matchTreeElementAgainstCustomFilters): Deleted.
+        Re-implemented in DataGrid.
+        (WebInspector.TimelineRecordingContentView.prototype._updateTimes): Deleted.
+        FIXME comment removed. Filtering occurs when TimelineView times are updated.
+        (WebInspector.TimelineRecordingContentView.prototype._timeRangeSelectionChanged): Deleted.
+
+        * UserInterface/Views/TimelineView.js:
+        (WebInspector.TimelineView):
+        (WebInspector.TimelineView.prototype.get navigationItems):
+        Used by TimelineRecordingContentView to add scope bar items to the
+        lower content browser's navigation bar.
+
+        (WebInspector.TimelineView.prototype.set startTime):
+        (WebInspector.TimelineView.prototype.set endTime):
+        (WebInspector.TimelineView.prototype.set currentTime):
+        Update grid filter when recording times change.
+        (WebInspector.TimelineView.prototype.get filterStartTime):
+        (WebInspector.TimelineView.prototype.get filterEndTime):
+        Let subclasses (RenderingFrameTimelineView) provide filter start/end times.
+        (WebInspector.TimelineView.prototype.setupDataGrid):
+        Register the grid used by the TimelineView subclass, allowing the base
+        class to hook into common event listeners and provide boilerplate functionality.
+
+        (WebInspector.TimelineView.prototype.updateFilter):
+        For data grid views, updates grid filters and sets new filter text.
+        (WebInspector.TimelineView.prototype.matchDataGridNodeAgainstCustomFilters):
+        (WebInspector.TimelineView.prototype.dataGridMatchNodeAgainstCustomFilters.checkTimeBounds):
+        (WebInspector.TimelineView.prototype.dataGridMatchNodeAgainstCustomFilters):
+        DataGrid filter delegate. Lets subclasses apply custom filters first,
+        then filters based on ruler selection if needed.
+
+        (WebInspector.TimelineView.prototype.filterDidChange):
+        Hook for subclasses to respond to filter changes.
+        (WebInspector.TimelineView.prototype._filterTimesDidChange.delayedWork):
+        (WebInspector.TimelineView.prototype._filterTimesDidChange):
+        Helper function for coalescing ruler selection updates into a single
+        filter update.
+
+        (WebInspector.TimelineView.prototype.matchTreeElementAgainstCustomFilters): Deleted.
+        (WebInspector.TimelineView.prototype.filterUpdated): Deleted.
+        No longer needed.
+
+2016-04-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: React.js JSXTransformer produces bogus error locations
+        https://bugs.webkit.org/show_bug.cgi?id=150010
+        <rdar://problem/23062233>
+
+        Reviewed by Timothy Hatcher.
+
+        Show dynamically added <script> elements added to a frame as resources.
+        For cases where the scripts had source map resources or error messages
+        we have a root from which to associate them to.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        "Script Element %d" tree element title.
+
+        * UserInterface/Models/Frame.js:
+        (WebInspector.Frame.prototype.commitProvisionalLoad):
+        (WebInspector.Frame.prototype.get extraScripts):
+        (WebInspector.Frame.prototype.addExtraScript):
+        Have a frame keep a list of its extra scripts.
+
+        * UserInterface/Models/Script.js:
+        (WebInspector.Script):
+        (WebInspector.Script.prototype.get displayName):
+        (WebInspector.Script.prototype.get dynamicallyAddedScriptElement):
+        Identify dynamically added script elements and associate them
+        with the frame, instead of the frame's main resource.
+
+        * UserInterface/Views/FrameTreeElement.js:
+        (WebInspector.FrameTreeElement.prototype.onpopulate):
+        (WebInspector.FrameTreeElement.prototype._extraScriptAdded):
+        Show named / source mapped dynamic script elements under a frame.
+
+        * UserInterface/Views/ResourceSidebarPanel.js:
+        (WebInspector.ResourceSidebarPanel.prototype._scriptWasAdded):
+        Dynamically added script element Scripts will be added by the frame that
+        owns them.
+
+        * UserInterface/Views/ScriptTreeElement.js:
+        (WebInspector.ScriptTreeElement):
+        Don't include a subtitle for dynamicallyAddedScriptElement, details match
+        the frame that owns them.
+
+2016-04-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Line error widget showed in the wrong resource
+        https://bugs.webkit.org/show_bug.cgi?id=150009
+        <rdar://problem/23062199>
+
+        Reviewed by Timothy Hatcher.
+
+        This addresses a few long standing issues:
+
+            - IssueMessage and ConsoleMessage should not fight eachother
+            - Displayed issue messages now correctly have format string formatting, e.g. console.error("Foo %s", str)
+            - IssueMessage wraps a ConsoleMessage, so we don't duplicate everything
+            - Gives ConsoleMessage a sourceCodeLocation (lazy)
+                - Since a sourceCodeLocation can have the exact SourceCode, if it was a Script
+                  without a Resource, we can only show the error in the Script's editor.            
+
+        * UserInterface/Models/CallFrame.js:
+        (WebInspector.CallFrame.fromPayload):
+        Prefer the script identifier lookup first. And from the Script go
+        to a resource if possible. This allows us to distinguish a location
+        that should be in a Script that doesn't have a Resource when there
+        exists a Resource with the same URL. This will soon be the case
+        for dyanamic <script> elements append to a document.
+
+        * UserInterface/Controllers/IssueManager.js:
+        (WebInspector.IssueManager.issueMatchSourceCode):
+        Consolidate all the different checks to this one function.
+
+        (WebInspector.IssueManager.prototype.issueWasAdded):
+        Create IssueMessages with ConsoleMessages.
+
+        (WebInspector.IssueManager.prototype.issuesForSourceCode):
+        Simplify now that we have the better check.
+
+        * UserInterface/Controllers/LogManager.js:
+        (WebInspector.LogManager.prototype.messageWasAdded):
+        Once a ConsoleMessage has been created (and modified `parameters` for us)
+        create the IssueMessage if it was an issue.
+
+        * UserInterface/Models/ConsoleMessage.js:
+        (WebInspector.ConsoleMessage.prototype.get sourceCodeLocation):
+        Lazily create a source code from the best possible location. This can
+        be the top call frame or the url/line/column combination.
+
+        * UserInterface/Models/IssueMessage.js:
+        (WebInspector.IssueMessage):
+        Creation and most properties just call through to a ConsoleMessage.
+        The `type` and `text` are Issue specific. Anything that uses location
+        data should use the sourceCodeLocation.
+        
+        (WebInspector.IssueMessage.prototype.saveIdentityToCookie):
+        Fix implementation that didn't account for a null sourceCodeLocation.
+
+        (WebInspector.IssueMessage.prototype._formatTextIfNecessary):
+        Basic text format message formatting.
+
+        * UserInterface/Protocol/ConsoleObserver.js:
+        (WebInspector.ConsoleObserver.prototype.messageAdded):
+        No longer call IssueMessage from the observer. Let LogManager trigger issues.
+
+        * UserInterface/Views/ContentView.js:
+        (WebInspector.ContentView.createFromRepresentedObject):
+        (WebInspector.ContentView.resolvedRepresentedObjectForRepresentedObject):
+        (WebInspector.ContentView.isViewable):
+        An IssueMessage represented object for an IssueMessageTreeElement should be
+        restorable by just going to the sourceCodeLocation it references. This is
+        identical to a Breakpoint.
+
+        * UserInterface/Views/IssueTreeElement.js:
+        (WebInspector.IssueTreeElement.prototype._updateTitles):
+        (WebInspector.IssueTreeElement):
+        * UserInterface/Views/ResourceContentView.js:
+        (WebInspector.ResourceContentView.prototype._issueWasAdded):
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype._issueWasAdded):
+        (WebInspector.SourceCodeTextEditor.prototype._addIssue):
+        (WebInspector.SourceCodeTextEditor.prototype._reinsertAllIssues):
+        (WebInspector.SourceCodeTextEditor.prototype._matchesIssue): Deleted.
+        Update to use Issue's sourceCodeLocation or IssueManager's new APIs.
+
 2016-04-24  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: Can't sort by name/source code location columns in Timeline data grids

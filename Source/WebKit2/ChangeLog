@@ -1,3 +1,54 @@
+2016-04-26  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Update expectation result in ewk_context_preferred_languages API test
+        https://bugs.webkit.org/show_bug.cgi?id=157027
+
+        Reviewed by Carlos Garcia Campos.
+
+        platformLanguage() has been returning lower case value since r199815. Thus existing expected result
+        needs to be updated together.
+
+        * UIProcess/API/efl/tests/test_ewk2_context.cpp: Change en-US with en-us.
+        (TEST_F):
+
+2016-04-26  Zan Dobersek  <zdobersek@igalia.com>
+
+        Mark two methods in the CoordinatedGraphicsScene and the
+        ThreadedCoordinatedLayerTreeHost classes as overrides, fixing
+        the compiler warnings.
+
+        Rubber-stamped by Carlos Garcia Campos.
+
+        * Shared/CoordinatedGraphics/CoordinatedGraphicsScene.h:
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.h:
+
+2016-04-25  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Remove the build flag for template elements
+        https://bugs.webkit.org/show_bug.cgi?id=157022
+
+        Reviewed by Daniel Bates.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-04-25  Chris Dumez  <cdumez@apple.com>
+
+        Crash under -[WKWebView _mayAutomaticallyShowVideoPictureInPicture] + 32 (WKWebView.mm:309)
+        https://bugs.webkit.org/show_bug.cgi?id=156990
+        <rdar://problem/25904376>
+
+        Reviewed by Jer Noble.
+
+        In case of WebProcess crash, WebPageProxy::processDidCrash() will call resetState() which
+        will nullify WebPageProxy::m_videoFullscreenManager. In WebPageProxy::reattachToWebProcess(),
+        we then call updateViewState() before re-initializing m_videoFullscreenManager, and
+        updateViewState() ends up calling [WKWebView _mayAutomaticallyShowVideoPictureInPicture]
+        which dereferences WebPageProxy::m_videoFullscreenManager without null check. This patch
+        adds a null check for m_videoFullscreenManager in _mayAutomaticallyShowVideoPictureInPicture.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _mayAutomaticallyShowVideoPictureInPicture]):
+
 2016-04-25  Dan Bernstein  <mitz@apple.com>
 
         Fix a couple of mistakes from r199700.

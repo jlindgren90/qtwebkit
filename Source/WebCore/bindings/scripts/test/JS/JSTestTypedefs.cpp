@@ -499,12 +499,7 @@ EncodedJSValue JSC_HOST_CALL jsTestTypedefsPrototypeFunctionSetShadow(ExecState*
     String color = state->argument(3).toString(state)->value(state);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    if (argsCount <= 4) {
-        impl.setShadow(width, height, blur, color);
-        return JSValue::encode(jsUndefined());
-    }
-
-    float alpha = state->argument(4).toFloat(state);
+    Optional<float> alpha = state->argument(4).isUndefined() ? Optional<float>() : state->uncheckedArgument(4).toFloat(state);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.setShadow(width, height, blur, color, alpha);
@@ -562,6 +557,13 @@ EncodedJSValue JSC_HOST_CALL jsTestTypedefsPrototypeFunctionFuncWithClamp(ExecSt
 
     if (!std::isnan(arg1NativeValue))
         arg1 = clampTo<unsigned long long>(arg1NativeValue);
+
+
+    size_t argsCount = state->argumentCount();
+    if (argsCount <= 1) {
+        impl.funcWithClamp(arg1);
+        return JSValue::encode(jsUndefined());
+    }
 
     unsigned long long arg2 = 0;
     double arg2NativeValue = state->argument(1).toNumber(state);

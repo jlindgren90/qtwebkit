@@ -1,3 +1,535 @@
+2016-04-26  Brent Fulgham  <bfulgham@apple.com>
+
+        GuardMalloc crash in WebCore::HTMLFrameElementBase::marginHeight() 
+        https://bugs.webkit.org/show_bug.cgi?id=157020
+        <rdar://problem/25148315>
+
+        Reviewed by Darin Adler.
+
+        Calls to setIntegralAttribute triggers event handling code, which can cause
+        the underlying m_frameOwnerElement member to be deleted. We could clone this
+        object, but since we only want the width and height we should just read them
+        while we know the object is in a good state, then execute the potentially
+        mutating methods.
+
+        Tested by imported/blink/fast/dom/HTMLBodyElement/body-inserting-iframe-crash.html.
+
+        * html/HTMLBodyElement.cpp:
+        (WebCore::HTMLBodyElement::insertedInto): Read margin width and height before
+        calling setIntegralAttribute.
+
+2016-04-25  Filip Pizlo  <fpizlo@apple.com>
+
+        WebCore on Mac ignores the user's preferred region (country) while getting the language
+        https://bugs.webkit.org/show_bug.cgi?id=156993
+
+        Reviewed by Geoffrey Garen.
+
+        I don't know how to test this since this depends on user settings.
+        
+        WebCore was previously getting the list of preferred languages, and for each one, deducing
+        the default region. That's wrong, since for example it doesn't respect the user's choice (in
+        System Preferences) to display dates/calenders/etc according to a different region (like how
+        I have my machine set to en-pl right now).
+        
+        It might be possible for the country code we get via kCFLocaleCountryCode to be something
+        that our ICU doesn't handle. To defend against this, we search for the resulting country
+        code in ICU's ISO countries list. If it doesn't appear in that list, we fall back on old
+        behavior.
+
+        * platform/mac/Language.mm:
+        (WebCore::httpStyleLanguageCode):
+        (WebCore::platformUserPreferredLanguages):
+
+2016-04-26  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Specify default values for optional parameters of TypedArray types
+        https://bugs.webkit.org/show_bug.cgi?id=157017
+
+        Reviewed by Darin Adler.
+
+        Specify default values for optional parameters of TypedArray types and let
+        the bindings generator use WTF::Optional<> for the ones that do not have a
+        default value.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (CanUseWTFOptionalForParameter): Deleted.
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::webkitGenerateKeyRequest):
+        (WebCore::HTMLMediaElement::webkitAddKey):
+        (WebCore::HTMLMediaElement::webkitCancelKeyRequest): Deleted.
+        * html/HTMLMediaElement.h:
+        * html/HTMLMediaElement.idl:
+
+2016-04-26  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Specify default values for optional parameters of type 'long' / 'unrestricted double'
+        https://bugs.webkit.org/show_bug.cgi?id=157012
+
+        Reviewed by Darin Adler.
+
+        Specify default values for optional parameters of type 'long' / 'unrestricted double'
+        and let the bindings generator use WTF::Optional<> for the ones that do not have a
+        default value.
+
+        * Modules/mediastream/RTCDTMFSender.cpp:
+        (WebCore::RTCDTMFSender::insertDTMF):
+        (WebCore::RTCDTMFSender::didPlayTone): Deleted.
+        * Modules/mediastream/RTCDTMFSender.h:
+        * Modules/webaudio/AudioBufferSourceNode.cpp:
+        (WebCore::AudioBufferSourceNode::start):
+        (WebCore::AudioBufferSourceNode::startPlaying): Deleted.
+        * Modules/webaudio/AudioBufferSourceNode.h:
+        * Modules/webaudio/AudioBufferSourceNode.idl:
+        * Modules/webaudio/AudioContext.cpp:
+        (WebCore::AudioContext::createDelay): Deleted.
+        * Modules/webaudio/AudioContext.h:
+        * Modules/webaudio/AudioContext.idl:
+        * Modules/webaudio/AudioScheduledSourceNode.cpp:
+        (WebCore::AudioScheduledSourceNode::start): Deleted.
+        (WebCore::AudioScheduledSourceNode::stop): Deleted.
+        * Modules/webaudio/AudioScheduledSourceNode.h:
+        * Modules/webaudio/OscillatorNode.idl:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (CanUseWTFOptionalForParameter): Deleted.
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonOptionalArgAndOptionalArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonOptionalArgAndTwoOptionalArgs):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod2):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter2):
+        (WebCore::jsTestObjConstructorFunctionClassMethodWithOptional):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalArgAndDefaultValue): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalString): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod4): Deleted.
+        (WebCore::jsTestObjConstructorFunctionClassMethod2): Deleted.
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod1): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise): Deleted.
+        * html/HTMLInputElement.idl:
+        * page/WindowTimers.idl:
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-04-26  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from SpeechSynthesis
+        https://bugs.webkit.org/show_bug.cgi?id=156901
+
+        Reviewed by Darin Adler.
+
+        SpeechSynthesis.speak will now throw in case of bad parameters instead of silently failing.
+        Started refactoring to use more references where possible.
+
+        Covered by updated test.
+
+        * Modules/speech/SpeechSynthesis.cpp:
+        (WebCore::SpeechSynthesis::startSpeakingImmediately): Refactored to get a reference.
+        (WebCore::SpeechSynthesis::speak):
+        (WebCore::SpeechSynthesis::fireEvent):
+        (WebCore::SpeechSynthesis::handleSpeakingCompleted): Removing first item in utteranceQueue unconditionally,
+        since that would crash in Debug mode otherwise.
+        (WebCore::SpeechSynthesis::boundaryEventOccurred):
+        (WebCore::SpeechSynthesis::didStartSpeaking):
+        (WebCore::SpeechSynthesis::didPauseSpeaking):
+        (WebCore::SpeechSynthesis::didResumeSpeaking):
+        (WebCore::SpeechSynthesis::didFinishSpeaking):
+        (WebCore::SpeechSynthesis::speakingErrorOccurred):
+        * Modules/speech/SpeechSynthesis.h:
+        * Modules/speech/SpeechSynthesis.idl:
+
+2016-04-26  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from WebKitNamedFlow
+        https://bugs.webkit.org/show_bug.cgi?id=156979
+
+        Reviewed by Chris Dumez.
+
+        No change of behavior.
+
+        * dom/WebKitNamedFlow.idl: Marking contentNode parameter as nullable.
+
+2016-04-26  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from EventTarget
+        https://bugs.webkit.org/show_bug.cgi?id=156977
+
+        Reviewed by Chris Dumez.
+
+        No change of behavior.
+
+        * dom/EventTarget.idl:
+
+2016-04-25  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Remove the build flag for template elements
+        https://bugs.webkit.org/show_bug.cgi?id=157022
+
+        Reviewed by Daniel Bates.
+
+        Removed the build flag.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * DerivedSources.cpp:
+        * bindings/js/JSHTMLTemplateElementCustom.cpp:
+        (WebCore::JSHTMLTemplateElement::content):
+        * css/html.css:
+        (summary::-webkit-details-marker):
+        (template):
+        (bdi, output):
+        * dom/ContainerNode.cpp:
+        (WebCore::isInTemplateContent):
+        (WebCore::containsConsideringHostElements):
+        (WebCore::ContainerNode::parserInsertBefore):
+        (WebCore::ContainerNode::parserAppendChild):
+        * dom/Document.cpp:
+        (WebCore::Document::Document):
+        (WebCore::Document::~Document):
+        (WebCore::Document::getCachedLocale):
+        (WebCore::Document::ensureTemplateDocument):
+        (WebCore::Document::fonts):
+        * dom/Document.h:
+        (WebCore::Document::setTemplateDocumentHost):
+        (WebCore::Document::templateDocumentHost):
+        (WebCore::Document::hasDisabledFieldsetElement):
+        (WebCore::Document::textEncoding):
+        (WebCore::Document::templateDocument):
+        * dom/Element.cpp:
+        (WebCore::Element::setInnerHTML):
+        * dom/Node.cpp:
+        (WebCore::Node::containsIncludingHostElements):
+        (WebCore::Node::pseudoAwarePreviousSibling):
+        * dom/TemplateContentDocumentFragment.h:
+        * editing/MarkupAccumulator.cpp:
+        (WebCore::MarkupAccumulator::serializeNodesWithNamespaces):
+        * editing/markup.cpp:
+        (WebCore::createFragmentForInnerOuterHTML):
+        * html/HTMLTagNames.in:
+        * html/HTMLTemplateElement.cpp:
+        (WebCore::HTMLTemplateElement::didMoveToNewDocument):
+        * html/HTMLTemplateElement.h:
+        * html/HTMLTemplateElement.idl:
+        * html/parser/HTMLConstructionSite.cpp:
+        (WebCore::insert):
+        (WebCore::HTMLConstructionSite::insertTextNode):
+        (WebCore::HTMLConstructionSite::ownerDocumentForCurrentNode):
+        (WebCore::HTMLConstructionSite::findFosterSite):
+        * html/parser/HTMLElementStack.cpp:
+        (WebCore::HTMLNames::isScopeMarker):
+        (WebCore::HTMLNames::isTableScopeMarker):
+        (WebCore::HTMLNames::isTableBodyScopeMarker):
+        (WebCore::HTMLNames::isTableRowScopeMarker):
+        (WebCore::HTMLElementStack::inSelectScope):
+        (WebCore::HTMLElementStack::hasTemplateInHTMLScope):
+        (WebCore::HTMLElementStack::htmlElement):
+        * html/parser/HTMLElementStack.h:
+        * html/parser/HTMLPreloadScanner.cpp:
+        (WebCore::TokenPreloadScanner::scan):
+        * html/parser/HTMLPreloadScanner.h:
+        * html/parser/HTMLStackItem.h:
+        (WebCore::isSpecialNode):
+        * html/parser/HTMLTreeBuilder.cpp:
+        (WebCore::HTMLTreeBuilder::isParsingTemplateContents):
+        (WebCore::HTMLTreeBuilder::isParsingFragmentOrTemplateContents):
+        (WebCore::HTMLTreeBuilder::HTMLTreeBuilder):
+        (WebCore::HTMLTreeBuilder::processStartTagForInBody):
+        (WebCore::HTMLTreeBuilder::didCreateCustomOrCallbackElement):
+        (WebCore::HTMLTreeBuilder::processTemplateStartTag):
+        (WebCore::HTMLTreeBuilder::processEndOfFileForInTemplateContents):
+        (WebCore::HTMLTreeBuilder::processColgroupEndTagForInColumnGroup):
+        (WebCore::HTMLTreeBuilder::processStartTagForInTable):
+        (WebCore::HTMLTreeBuilder::processStartTag):
+        (WebCore::HTMLTreeBuilder::processHtmlStartTagForInBody):
+        (WebCore::HTMLTreeBuilder::resetInsertionModeAppropriately):
+        (WebCore::HTMLTreeBuilder::processEndTagForInCell):
+        (WebCore::HTMLTreeBuilder::processEndTagForInBody):
+        (WebCore::HTMLTreeBuilder::processEndTag):
+        (WebCore::HTMLTreeBuilder::processCharacterBuffer):
+        (WebCore::HTMLTreeBuilder::processEndOfFile):
+        (WebCore::HTMLTreeBuilder::processStartTagForInHead):
+        (WebCore::HTMLTreeBuilder::finished):
+        * html/parser/HTMLTreeBuilder.h:
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::buildObjectForNode):
+        * inspector/InspectorInstrumentation.h:
+        (WebCore::InspectorInstrumentation::instrumentingAgentsForDocument):
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+        (WebCore::XMLDocumentParser::startElementNs):
+
+2016-04-25  Jiewen Tan  <jiewen_tan@apple.com>
+
+        [iOS] ftp links crash @ WebCore::FTPDirectoryDocumentParser::appendEntry
+        https://bugs.webkit.org/show_bug.cgi?id=157019
+        <rdar://problem/24292650>
+
+        Reviewed by Chris Dumez.
+
+        Create separate Ref<Element> object for every row element instead of reusing
+        one because Ref<>'s operator=() does not allow assignment after a WTFMove().
+
+        * html/FTPDirectoryDocument.cpp:
+        (WebCore::FTPDirectoryDocumentParser::appendEntry):
+
+2016-04-25  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Guarantee FontPlatformData's m_cgFont is never nullptr
+        https://bugs.webkit.org/show_bug.cgi?id=156929
+
+        Reviewed by Darin Adler.
+
+        After some investigation, it turns out that there is no place where it is meaningful
+        to pass us a null CoreText font. Therefore, the CoreGraphics font is also never null.
+
+        We should simply check for these null values at the ingestion site in order to
+        make the guarantee internally of having non-null values.
+
+        * platform/graphics/FontPlatformData.cpp:
+        (WebCore::FontPlatformData::FontPlatformData): Because the pointer is never null, we
+        can delete the code which handles that case.
+        * platform/graphics/FontPlatformData.h:
+        * platform/graphics/cocoa/FontPlatformDataCocoa.mm: Ditto.
+        (WebCore::webFallbackFontFamily): Deleted.
+        (WebCore::FontPlatformData::setFallbackCGFont): Deleted.
+        * platform/graphics/mac/ComplexTextControllerCoreText.mm:
+        (WebCore::ComplexTextController::collectComplexTextRunsForCharacters): Asking the
+        CTRun for its kCTFontAttributeName will always return non-null.
+        * platform/graphics/mac/FontCustomPlatformData.cpp:
+        (WebCore::FontCustomPlatformData::fontPlatformData): Once we have a font descriptor,
+        CTFontCreateWithFontDescriptor() will always return non-null. We check if the font
+        descriptor is null elsewhere.
+        * platform/mac/DragImageMac.mm: The fonts in this file are gotten by asking for the
+        system font, which will always return non-null.
+        (WebCore::fontFromNSFont):
+        (WebCore::widthWithFont):
+        (WebCore::drawAtPoint):
+        (WebCore::createDragImageForLink):
+
+2016-04-25  Chris Dumez  <cdumez@apple.com>
+
+        Crash under MemoryCache::remove()
+        https://bugs.webkit.org/show_bug.cgi?id=157000
+        <rdar://problem/23344660>
+
+        Reviewed by Andreas Kling.
+
+        MemoryCache::evictResources() was caching the number of resources ('size')
+        in the cache for a particular sessionID, and then proceed to call
+        MemoryCache::remove() 'size' times using the first item in the HashMap
+        each time. This was unsafe because resources may be ref'ing each other
+        and therefore removing one may cause other resources to get removed as
+        well. In such case, we would call remove() too many times and crash because
+        we dereferenced resources.begin()->value (with the HashMap being empty).
+
+        This patch avoids the issue by copying the resources to a Vector and
+        ref'ing them first, before going on to remove each one from the cache.
+
+        * loader/cache/MemoryCache.cpp:
+        (WebCore::MemoryCache::forEachSessionResource):
+        (WebCore::MemoryCache::evictResources):
+        * loader/cache/MemoryCache.h:
+
+2016-04-25  Chris Dumez  <cdumez@apple.com>
+
+        Crash under WebCore::MutationObserver::deliverAllMutations()
+        https://bugs.webkit.org/show_bug.cgi?id=156997
+        <rdar://problem/16542323>
+
+        Reviewed by Ryosuke Niwa.
+
+        The crash traces indicate that we may derefence a null pointer when
+        dereferencing MutationCallback::scriptExecutationContext() in
+        MutationObserver::canDeliver(). This can happen when the script
+        execution context gets destroyed as a JSMutationCallback is an
+        ActiveDOMObject, which is a ContextDestructionObserver.
+
+        This patch refactors the code so that MutationObserver::canDeliver()
+        now simply asks JSMutationCallback if it can invoke its callback.
+        JSMutationCallback makes this decision using
+        ActiveDOMCallback::canInvokeCallback() which does a proper null
+        check of the ScriptExecutationContext. This avoids some code
+        duplication and fixes the crash.
+
+        * bindings/js/JSMutationCallback.h:
+        * dom/MutationCallback.h:
+        * dom/MutationObserver.cpp:
+        (WebCore::MutationObserver::canDeliver):
+
+2016-04-25  Brady Eidson  <beidson@apple.com>
+
+        Fix a flaky test after r200032
+
+        * fileapi/File.cpp:
+        (WebCore::File::lastModified): This used to return a date object which did a WTF::timeClip on the double,
+          but now that we're returning a raw double we need to WTF::timeClip it ourselves.
+
+2016-04-25  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Specify default values for optional parameters of type 'float' / 'unrestricted float'
+        https://bugs.webkit.org/show_bug.cgi?id=156995
+
+        Reviewed by Darin Adler.
+
+        Specify default values for optional parameters of type 'float' / 'unrestricted float'
+        and let the bindings generator use WTF::Optional<> for the ones that do not have a
+        default value.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (CanUseWTFOptionalForParameter): Deleted.
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::jsTestTypedefsPrototypeFunctionSetShadow):
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::setStrokeColor):
+        (WebCore::CanvasRenderingContext2D::setFillColor):
+        (WebCore::CanvasRenderingContext2D::setShadow):
+        (WebCore::CanvasRenderingContext2D::fillText):
+        (WebCore::CanvasRenderingContext2D::strokeText):
+        (WebCore::CanvasRenderingContext2D::drawTextInternal):
+        (WebCore::CanvasRenderingContext2D::clearShadow): Deleted.
+        (WebCore::normalizeSpaces): Deleted.
+        (WebCore::CanvasRenderingContext2D::measureText): Deleted.
+        * html/canvas/CanvasRenderingContext2D.h:
+        * html/canvas/CanvasRenderingContext2D.idl:
+        * testing/Internals.idl:
+
+2016-04-25  Brent Fulgham  <bfulgham@apple.com>
+
+        Add port 4190 (managesieve) to port blacklist
+        https://bugs.webkit.org/show_bug.cgi?id=156986
+        <rdar://problem/9119470>
+
+        Reviewed by Daniel Bates.
+
+        Tested by security/block-test.html.
+
+        * platform/URL.cpp:
+        (WebCore::portAllowed): Add 4190 to the port blacklist.
+
+2016-04-25  Nan Wang  <n_wang@apple.com>
+
+        AX: Crash at -[WebAccessibilityObjectWrapper accessibilityAttributeValue:] + 4391
+        https://bugs.webkit.org/show_bug.cgi?id=156987
+
+        Reviewed by Chris Fleizach.
+
+        When we hit test on a slider indicator asking for the value when the parent slider's
+        accessibility object is not created or the parent slider has been removed, it will cause
+        crash. Fixed it by adding a check to see if the object is detached from the parent. 
+
+        Test: accessibility/mac/slider-thumb-value-crash.html
+
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (-[WebAccessibilityObjectWrapper accessibilityAttributeValue:]):
+
+2016-04-25  Jer Noble  <jer.noble@apple.com>
+
+        WebKitPlaybackSessionModelMediaElement should initialize the interface added by setWebPlaybackSessionInterface() with initial data
+        https://bugs.webkit.org/show_bug.cgi?id=156996
+
+        Reviewed by Beth Dakin.
+
+        Notify the interface of the current values in the media element when the model is given an interface.
+
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.mm:
+        (WebPlaybackSessionModelMediaElement::setWebPlaybackSessionInterface):
+
+2016-04-25  Simon Fraser  <simon.fraser@apple.com>
+
+        Toggling animation-play-state can re-start a finished animation
+        https://bugs.webkit.org/show_bug.cgi?id=156731
+
+        Reviewed by Dean Jackson.
+
+        After an animation completed, CompositeAnimation::updateKeyframeAnimations() cleared
+        all state that the animation had run on the element, so changing the value of some
+        animation property triggered the animation to run again. This is wrong, since animation-name
+        still applied to the element.
+
+        Fix by keeping state for keyframe animations in the Done state in the m_keyframeAnimations
+        map. This allows for the removal of the index property on KeyframeAnimation.
+
+        Tests: animations/change-completed-animation-transform.html
+               animations/change-completed-animation.html
+
+        * page/animation/AnimationBase.cpp:
+        (WebCore::AnimationBase::timeToNextService):
+        * page/animation/AnimationBase.h:
+        (WebCore::AnimationBase::isAnimatingProperty):
+        * page/animation/CompositeAnimation.cpp: Add animations that should stick around to AnimationNameMap,
+        and swap with m_keyframeAnimations at the end.
+        (WebCore::CompositeAnimation::updateKeyframeAnimations):
+        * page/animation/KeyframeAnimation.cpp:
+        (WebCore::KeyframeAnimation::KeyframeAnimation):
+        (WebCore::KeyframeAnimation::getAnimatedStyle):
+        * page/animation/KeyframeAnimation.h:
+
+2016-04-25  Alberto Garcia  <berto@igalia.com>
+
+        [GTK] Crashes if DISPLAY is unset
+        https://bugs.webkit.org/show_bug.cgi?id=156972
+
+        Reviewed by Carlos Garcia Campos.
+
+        If DISPLAY is unset then m_display will be NULL, crashing WebKit
+        when XCloseDisplay is called in the PlatformDisplayX11 destructor.
+
+        * platform/graphics/x11/PlatformDisplayX11.cpp:
+        (WebCore::PlatformDisplayX11::~PlatformDisplayX11):
+
+2016-04-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Update JS bindings test results after r200037
+
+        Unreviewed test gardening.
+
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::jsTestTypedefsPrototypeFunctionFuncWithClamp):
+
+2016-04-25  Simon Fraser  <simon.fraser@apple.com>
+
+        play-state not parsed as part of animation shorthand
+        https://bugs.webkit.org/show_bug.cgi?id=156959
+
+        Reviewed by Darin Adler.
+
+        We failed to parse animation-play-state as part of the animation shorthand, contrary
+        to the spec and other browsers.
+
+        Fix for both the prefixed and unprefixed properties. There is some compat risk here,
+        but only changing unprefixed behavior will probably lead to more author confusion.
+
+        Test: animations/play-state-in-shorthand.html
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseAnimationShorthand):
+        * css/CSSPropertyNames.in:
+        * css/StylePropertyShorthand.cpp:
+        (WebCore::animationShorthandForParsing): Remove the long comment which is no longer relevant
+        now that the behavior has been written into the spec.
+
+2016-04-25  Simon Fraser  <simon.fraser@apple.com>
+
+        Negative animation-delay is treated as 0s
+        https://bugs.webkit.org/show_bug.cgi?id=141008
+
+        Reviewed by Daniel Bates.
+        
+        Fix keyframe animations which start in the paused state.
+        
+        Explicitly move such animations from the new to the paused state, and
+        set m_pauseTime to 0, rather than leaving it at -1. Fix getElapsedTime()
+        to compute a correct time elapsed time for such animations, which takes
+        negative delay into account correctly.
+        
+        Fix assertions which need to account for the new transition of New -> PlayStatePaused.
+
+        Test: animations/play-state-start-paused.html
+
+        * page/animation/AnimationBase.cpp:
+        (WebCore::AnimationBase::updateStateMachine):
+        (WebCore::AnimationBase::getElapsedTime):
+        * page/animation/KeyframeAnimation.cpp:
+        (WebCore::KeyframeAnimation::animate):
+
 2016-04-25  Antti Koivisto  <antti@apple.com>
 
         Inline RenderStyle into RenderElement

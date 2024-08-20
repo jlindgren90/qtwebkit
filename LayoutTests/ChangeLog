@@ -1,3 +1,182 @@
+2016-04-26  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200083.
+        https://bugs.webkit.org/show_bug.cgi?id=157033
+
+         It brokes the debug build (Requested by gskachkov on
+        #webkit).
+
+        Reverted changeset:
+
+        "calling super() a second time in a constructor should throw"
+        https://bugs.webkit.org/show_bug.cgi?id=151113
+        http://trac.webkit.org/changeset/200083
+
+2016-04-26  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        calling super() a second time in a constructor should throw
+        https://bugs.webkit.org/show_bug.cgi?id=151113
+
+        Reviewed by Saam Barati and Keith Miller.
+
+        * js/class-syntax-super-expected.txt:
+        * js/script-tests/class-syntax-super.js:
+
+2016-04-26  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from SpeechSynthesis
+        https://bugs.webkit.org/show_bug.cgi?id=156901
+
+        Reviewed by Darin Adler.
+
+        Updated test to handle speak throwing behavior in case of bad parameters.
+
+        * fast/speechsynthesis/speech-synthesis-crash-on-bad-utterance-expected.txt:
+        * fast/speechsynthesis/speech-synthesis-crash-on-bad-utterance.html:
+
+2016-04-26  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from EventTarget
+        https://bugs.webkit.org/show_bug.cgi?id=156977
+
+        Reviewed by Chris Dumez.
+
+        * fast/events/dispatchEvent-crash-expected.txt:
+        * fast/events/dispatchEvent-crash.html: Ensuring exceptions are logged.
+
+2016-04-25  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Update template element tests
+        https://bugs.webkit.org/show_bug.cgi?id=154996
+
+        Reviewed by Daniel Bates.
+
+        * platform/mac/TestExpectations:
+
+2016-04-25  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Cloning a textarea does not clone the textarea's value
+        https://bugs.webkit.org/show_bug.cgi?id=156637
+
+        Reviewed by Chris Dumez.
+
+        https://dom.spec.whatwg.org/#concept-node-clone describes that the value
+        of a node shouldn't be copied when cloning the node.
+
+        * fast/forms/checkValidity-cloneNode-crash-expected.txt:
+        * fast/forms/checkValidity-cloneNode-crash.html:
+
+2016-04-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: React.js JSXTransformer produces bogus error locations
+        https://bugs.webkit.org/show_bug.cgi?id=150010
+        <rdar://problem/23062233>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/model/frame-extra-scripts-expected.txt: Added.
+        * inspector/model/frame-extra-scripts.html: Added.
+        Add a test for a WebInspector.Frame's extraScripts list.
+
+        * inspector/model/stack-trace-expected.txt:
+        Update output that we correctly get the sourceURL of the inner script.
+
+        * inspector/model/script-resource-relationship-expected.txt
+        * inspector/model/script-resource-relationship.html
+        Add a test for a dynamicallyAddedScriptElement.
+        Remove debug logging.
+
+2016-04-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip fast/layers/no-clipping-overflow-hidden-added-after-transform.html on mac-wk1 debug
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-04-25  Brent Fulgham  <bfulgham@apple.com>
+
+        Add port 4190 (managesieve) to port blacklist
+        https://bugs.webkit.org/show_bug.cgi?id=156986
+        <rdar://problem/9119470>
+
+        Reviewed by Daniel Bates.
+
+        * platform/mac/security/block-test-expected.txt
+        * security/block-test-expected.txt:
+        * security/block-test.html:
+
+2016-04-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline editing tests for ios-simulator-wk1
+
+        Unreviewed test gardening
+
+        * platform/ios-simulator-wk1/editing/deleting/delete-at-paragraph-boundaries-002-expected.txt:
+        * +71 more
+
+2016-04-25  Nan Wang  <n_wang@apple.com>
+
+        AX: Crash at -[WebAccessibilityObjectWrapper accessibilityAttributeValue:] + 4391
+        https://bugs.webkit.org/show_bug.cgi?id=156987
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/slider-thumb-value-crash-expected.txt: Added.
+        * accessibility/mac/slider-thumb-value-crash.html: Added.
+
+2016-04-25  Brady Eidson  <beidson@apple.com>
+
+        Attempt to fix a flaky test after r200032
+        https://bugs.webkit.org/show_bug.cgi?id=156994
+
+        * http/tests/local/fileapi/script-tests/file-last-modified-after-delete.js: Missed renaming this along with all the others.
+
+2016-04-25  Simon Fraser  <simon.fraser@apple.com>
+
+        Toggling animation-play-state can re-start a finished animation
+        https://bugs.webkit.org/show_bug.cgi?id=156731
+
+        Reviewed by Dean Jackson.
+
+        * animations/animation-direction-reverse-expected.txt:
+        * animations/animation-direction-reverse.html: This is a progression. The test was detecting a
+        restarted animation.
+        * animations/change-completed-animation-expected.txt: Added.
+        * animations/change-completed-animation-transform-expected.html: Added.
+        * animations/change-completed-animation-transform.html: Added. Ref test that ensures that the final
+        state for normal and accelerated animations is correct.
+        * animations/change-completed-animation.html: Added. Tests that changing a property doesn't trigger
+        another animation, by detecting a second animationstart event.
+
+2016-04-25  Simon Fraser  <simon.fraser@apple.com>
+
+        play-state not parsed as part of animation shorthand
+        https://bugs.webkit.org/show_bug.cgi?id=156959
+
+        Reviewed by Darin Adler.
+
+        * animations/animation-shorthand-expected.txt:
+        * animations/animation-shorthand.html:
+        * animations/play-state-in-shorthand-expected.txt: Added.
+        * animations/play-state-in-shorthand.html: Added.
+        * animations/resources/animation-test-helpers.js:
+        (getPropertyValue):
+        (comparePropertyValue):
+
+2016-04-25  Simon Fraser  <simon.fraser@apple.com>
+
+        Negative animation-delay is treated as 0s
+        https://bugs.webkit.org/show_bug.cgi?id=141008
+
+        Reviewed by Daniel Bates.
+        
+        Ref test that has an initially-paused animation on 'left' and with a
+        3d transform.
+
+        * animations/play-state-start-paused-expected.html: Added.
+        * animations/play-state-start-paused.html: Added.
+
 2016-04-25  Brady Eidson  <beidson@apple.com>
 
         Implement latest File object spec (including its constructor).

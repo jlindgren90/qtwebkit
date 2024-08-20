@@ -1,3 +1,162 @@
+2016-04-26  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200083.
+        https://bugs.webkit.org/show_bug.cgi?id=157033
+
+         It brokes the debug build (Requested by gskachkov on
+        #webkit).
+
+        Reverted changeset:
+
+        "calling super() a second time in a constructor should throw"
+        https://bugs.webkit.org/show_bug.cgi?id=151113
+        http://trac.webkit.org/changeset/200083
+
+2016-04-26  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        calling super() a second time in a constructor should throw
+        https://bugs.webkit.org/show_bug.cgi?id=151113
+
+        Reviewed by Saam Barati.
+
+        Currently, our implementation checks if 'super()' was called in a constructor more 
+        than once and raises a RuntimeError before the second call. According to the spec 
+        we need to raise an error just after the second super() is finished and before 
+        the new 'this' is assigned https://esdiscuss.org/topic/duplicate-super-call-behaviour. 
+        To implement this behavior this patch adds a new op code, op_is_empty, that is used 
+        to check if 'this' is empty.
+
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitIsEmpty):
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::FunctionCallValueNode::emitBytecode):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileIsEmpty):
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        * jit/JIT.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_is_empty):
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_is_empty):
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+        * tests/stress/class-syntax-double-constructor.js: Added.
+
+2016-04-25  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Remove the build flag for template elements
+        https://bugs.webkit.org/show_bug.cgi?id=157022
+
+        Reviewed by Daniel Bates.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-04-25  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Constant folding of UInt32ToNumber is incorrect
+        https://bugs.webkit.org/show_bug.cgi?id=157011
+        rdar://problem/25769641
+
+        Reviewed by Geoffrey Garen.
+
+        UInt32ToNumber should return the unsigned 32bit value of
+        its child. The abstract interpreter fails to do that when handling
+        Int52.
+
+        None of the tests caught that because the bytecode generator already
+        fold the operation if given a constant. If the constant is not visible
+        from the bytecode generator (for example because it comes from an inlined call),
+        then the abstract interpreter folding was producing invalid results.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * tests/stress/uint32-to-number-constant-folding.js: Added.
+        (uint32ToNumberMinusOne):
+        (uint32ToNumberMinusOnePlusInteger):
+        (inlineMinusOne):
+        (uint32ToNumberOnHiddenMinusOne):
+        (uint32ToNumberOnHiddenMinusOnePlusInteger):
+        (inlineLargeNegativeNumber1):
+        (inlineLargeNegativeNumber2):
+        (inlineLargeNegativeNumber3):
+        (uint32ToNumberOnHiddenLargeNegativeNumber1):
+        (uint32ToNumberOnHiddenLargeNegativeNumber2):
+        (uint32ToNumberOnHiddenLargeNegativeNumber3):
+
+2016-04-25  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        Heap corruption is detected when destructing JSGlobalObject
+        https://bugs.webkit.org/show_bug.cgi?id=156831
+
+        Reviewed by Mark Lam.
+
+        WebKit uses CRT static library on Windows.  Each copy of the CRT
+        library has its own heap manager, allocating memory in one CRT
+        library and passing the pointer across a DLL boundary to be freed
+        by a different copy of the CRT library is a potential cause for
+        heap corruption.
+
+          Potential Errors Passing CRT Objects Across DLL Boundaries
+          <https://msdn.microsoft.com/en-us/library/ms235460(v=vs.140).aspx>
+
+        JSGlobalObject::createRareDataIfNeeded is inlined but
+        JSGlobalObject::~JSGlobalObject is not.  Then, the heap of
+        allocating JSGlobalObjectRareData is WebKit.dll, but deallocating
+        JavaScriptCore.dll.  Adding WTF_MAKE_FAST_ALLOCATED to
+        JSGlobalObjectRareData ensures heap consistency of it.  WTF::Lock
+        also needs WTF_MAKE_FAST_ALLOCATED because it is allocated from
+        the inlined constructor of JSGlobalObjectRareData.
+
+        Test: fast/dom/insertedIntoDocument-iframe.html
+
+        * runtime/JSGlobalObject.h:
+        Add WTF_MAKE_FAST_ALLOCATED to JSGlobalObjectRareData.
+
+2016-04-25  Michael Saboff  <msaboff@apple.com>
+
+        Crash using @tryGetById in DFG
+        https://bugs.webkit.org/show_bug.cgi?id=156992
+
+        Reviewed by Filip Pizlo.
+
+        We need to spill live registers when compiling TryGetById in DFG.
+
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileTryGetById):
+        * tests/stress/regress-156992.js: New test.
+        (tryMultipleGetByIds):
+        (test):
+
 2016-04-25  Saam barati  <sbarati@apple.com>
 
         We don't have to parse a function's parameters every time if the function is in the source provider cache
