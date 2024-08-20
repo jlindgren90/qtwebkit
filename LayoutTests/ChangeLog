@@ -1,3 +1,169 @@
+2016-04-22  Filip Pizlo  <fpizlo@apple.com>
+
+        Speed up bound functions a bit
+        https://bugs.webkit.org/show_bug.cgi?id=156889
+
+        Reviewed by Saam Barati.
+
+        This microbenchmark speeds up by >4x with this change.
+
+        * js/regress/bound-function-call-expected.txt: Added.
+        * js/regress/bound-function-call.html: Added.
+        * js/regress/script-tests/bound-function-call.js: Added.
+        (foo):
+
+2016-04-22  Chris Dumez  <cdumez@apple.com>
+
+        Cannot access the SQLTransaction.constructor.prototype
+        https://bugs.webkit.org/show_bug.cgi?id=156613
+
+        Reviewed by Darin Adler.
+
+        Rebaseline existing test now that more SQL constructors are exposed on the
+        global Window object. Also add a test to confirm that it is possible to
+        access SQLTransaction.constructor.prototype and that it seems correct.
+
+        * js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-mavericks/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * storage/websql/transaction-prototype-expected.txt: Added.
+        * storage/websql/transaction-prototype.html: Added.
+
+2016-04-22  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Source directives lost when using Function constructor repeatedly
+        https://bugs.webkit.org/show_bug.cgi?id=156863
+        <rdar://problem/25861064>
+
+        Reviewed by Geoffrey Garen.
+
+        * inspector/debugger/sourceURL-repeated-identical-executions-expected.txt: Added.
+        * inspector/debugger/sourceURL-repeated-identical-executions.html: Added.
+
+2016-04-22  Mark Lam  <mark.lam@apple.com>
+
+        javascript jit bug affecting Google Maps.
+        https://bugs.webkit.org/show_bug.cgi?id=153431
+
+        Reviewed by Filip Pizlo.
+
+        * js/regress/bug-153431-expected.txt: Added.
+        * js/regress/bug-153431.html: Added.
+        * js/regress/script-tests/bug-153431.js: Added.
+
+2016-04-22  Geoffrey Garen  <ggaren@apple.com>
+
+        super should be available in object literals
+        https://bugs.webkit.org/show_bug.cgi?id=156933
+
+        Reviewed by Saam Barati.
+
+        Updated expected results and added a few new tests.
+
+        * js/arrowfunction-syntax-errors-expected.txt:
+        * js/class-syntax-super-expected.txt:
+        * js/object-literal-methods-expected.txt:
+        * js/script-tests/arrowfunction-syntax-errors.js:
+        * js/script-tests/class-syntax-super.js:
+        * js/script-tests/object-literal-methods.js:
+
+2016-04-22  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaselining inspector/model/stack-trace.html after r199897
+
+        Unreviewed test gardening.
+
+        * inspector/model/stack-trace-expected.txt:
+
+2016-04-22  Dave Hyatt  <hyatt@apple.com>
+
+        REGRESSION (r189567): The top of Facebook's messenger.com looks visually broken
+        https://bugs.webkit.org/show_bug.cgi?id=156869
+        <rdar://problem/23204668>
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/block/min-content-box-sizing-expected.html: Added.
+        * fast/block/min-content-box-sizing.html: Added.
+
+2016-04-22  Chris Dumez  <cdumez@apple.com>
+
+        Support disabling at runtime IndexedDB constructors exposed to workers
+        https://bugs.webkit.org/show_bug.cgi?id=156883
+
+        Reviewed by Darin Adler.
+
+        Add layout test coverage.
+
+        * storage/indexeddb/modern/resources/workers-disabled.js:
+        * storage/indexeddb/modern/resources/workers-enable.js:
+        * storage/indexeddb/modern/workers-disabled-expected.txt:
+        * storage/indexeddb/modern/workers-enable-expected.txt:
+
+2016-04-22  Dave Hyatt  <hyatt@apple.com>
+
+        -webkit-image-set doesn't work inside CSS variables
+        https://bugs.webkit.org/show_bug.cgi?id=156915
+        <rdar://problem/25473972>
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/hidpi/image-srcset-simple-in-variable-1x-expected.txt: Added.
+        * fast/hidpi/image-srcset-simple-in-variable-1x.html: Added.
+        * fast/hidpi/image-srcset-simple-in-variable-2x-expected.txt: Added.
+        * fast/hidpi/image-srcset-simple-in-variable-2x.html: Added.
+
+2016-04-22  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199877.
+        https://bugs.webkit.org/show_bug.cgi?id=156918
+
+        The LayoutTest added with this change is failing on all
+        platforms. (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "REGRESSION (r189567): The top of Facebook's messenger.com
+        looks visually broken"
+        https://bugs.webkit.org/show_bug.cgi?id=156869
+        http://trac.webkit.org/changeset/199877
+
+2016-04-22  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r194898): Multi download of external SVG defs file by <use> xlinks:href (caching)
+        https://bugs.webkit.org/show_bug.cgi?id=156368
+        <rdar://problem/25611746>
+
+        Reviewed by Simon Fraser.
+
+        * http/tests/svg/resources/symbol-defs.svg: Added.
+        * http/tests/svg/svg-use-external-expected.txt: Added.
+        * http/tests/svg/svg-use-external.html: Added.
+
+2016-04-22  Chris Dumez  <cdumez@apple.com>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from MutationObserver
+        https://bugs.webkit.org/show_bug.cgi?id=156890
+
+        Reviewed by Darin Adler.
+
+        Rebaseline now that MutationObserver.observe() throws a TypeError instead
+        of a NOT_FOUND_ERR when passed a null Node.
+
+        * fast/dom/MutationObserver/observe-exceptions-expected.txt:
+
+2016-04-22  Dave Hyatt  <hyatt@apple.com>
+
+        REGRESSION (r189567): The top of Facebook's messenger.com looks visually broken
+        https://bugs.webkit.org/show_bug.cgi?id=156869
+        <rdar://problem/23204668>
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/block/min-content-with-box-sizing-expected.html: Added.
+        * fast/block/min-content-with-box-sizing.html: Added.
+
 2016-04-22  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GTK] Enable the download attribute support

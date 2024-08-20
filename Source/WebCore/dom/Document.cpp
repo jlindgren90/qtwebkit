@@ -415,12 +415,12 @@ uint64_t Document::s_globalTreeVersion = 0;
 #if ENABLE(IOS_TEXT_AUTOSIZING)
 void TextAutoSizingTraits::constructDeletedValue(TextAutoSizingKey& slot)
 {
-    new (&slot) TextAutoSizingKey(TextAutoSizingKey::deletedKeyStyle(), TextAutoSizingKey::deletedKeyDoc());
+    new (&slot) TextAutoSizingKey(TextAutoSizingKey::Deleted);
 }
 
 bool TextAutoSizingTraits::isDeletedValue(const TextAutoSizingKey& value)
 {
-    return value.style() == TextAutoSizingKey::deletedKeyStyle() && value.doc() == TextAutoSizingKey::deletedKeyDoc();
+    return value.isDeleted();
 }
 #endif
 
@@ -3056,7 +3056,7 @@ IDBClient::IDBConnectionProxy* Document::idbConnectionProxy()
         if (!currentPage)
             return nullptr;
 
-        m_idbConnectionProxy = IDBClient::IDBConnectionProxy::create(currentPage->idbConnection());
+        m_idbConnectionProxy = &currentPage->idbConnection().proxy();
     }
 
     return m_idbConnectionProxy.get();
@@ -5296,11 +5296,11 @@ HTMLCanvasElement* Document::getCSSCanvasElement(const String& name)
 #if ENABLE(IOS_TEXT_AUTOSIZING)
 void Document::addAutoSizingNode(Node* node, float candidateSize)
 {
-    TextAutoSizingKey key(&node->renderer()->style(), &document());
-    TextAutoSizingMap::AddResult result = m_textAutoSizedNodes.add(key, nullptr);
-    if (result.isNewEntry)
-        result.iterator->value = TextAutoSizingValue::create();
-    result.iterator->value->addNode(node, candidateSize);
+    TextAutoSizingKey key(&node->renderer()->style());
+    auto addResult = m_textAutoSizedNodes.ensure(WTFMove(key), [] {
+        return TextAutoSizingValue::create();
+    });
+    addResult.iterator->value->addNode(node, candidateSize);
 }
 
 void Document::validateAutoSizingNodes()
@@ -5310,23 +5310,17 @@ void Document::validateAutoSizingNodes()
         TextAutoSizingValue* value = keyValuePair.value.get();
         // Update all the nodes in the collection to reflect the new
         // candidate size.
-        if (!value)
-            continue;
-
         value->adjustNodeSizes();
-        if (!value->numNodes())
-            nodesForRemoval.append(keyValuePair.key);
     }
-    for (auto& key : nodesForRemoval)
-        m_textAutoSizedNodes.remove(key);
+    m_textAutoSizedNodes.removeIf([] (TextAutoSizingMap::KeyValuePairType& keyAndValue) {
+        return !keyAndValue.value->numNodes();
+    });
 }
     
 void Document::resetAutoSizingNodes()
 {
-    for (auto& value : m_textAutoSizedNodes.values()) {
-        if (value)
-            value->reset();
-    }
+    for (auto& value : m_textAutoSizedNodes.values())
+        value->reset();
     m_textAutoSizedNodes.clear();
 }
 

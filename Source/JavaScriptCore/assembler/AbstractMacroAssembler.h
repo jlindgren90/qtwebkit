@@ -157,7 +157,9 @@ public:
             return TimesFour;
         return TimesEight;
     }
-
+    
+    struct BaseIndex;
+    
     // Address:
     //
     // Describes a simple base-offset address.
@@ -172,6 +174,8 @@ public:
         {
             return Address(base, offset + additionalOffset);
         }
+        
+        BaseIndex indexedBy(RegisterID index, Scale) const;
         
         RegisterID base;
         int32_t offset;
@@ -230,7 +234,7 @@ public:
             , offset(offset)
         {
         }
-
+        
         RegisterID base;
         RegisterID index;
         Scale scale;
@@ -1157,6 +1161,15 @@ protected:
 
     friend class LinkBuffer;
 }; // class AbstractMacroAssembler
+
+template <class AssemblerType, class MacroAssemblerType>
+inline typename AbstractMacroAssembler<AssemblerType, MacroAssemblerType>::BaseIndex
+AbstractMacroAssembler<AssemblerType, MacroAssemblerType>::Address::indexedBy(
+    typename AbstractMacroAssembler<AssemblerType, MacroAssemblerType>::RegisterID index,
+    typename AbstractMacroAssembler<AssemblerType, MacroAssemblerType>::Scale scale) const
+{
+    return BaseIndex(base, index, scale, offset);
+}
 
 } // namespace JSC
 

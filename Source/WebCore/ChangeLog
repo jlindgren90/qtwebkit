@@ -1,3 +1,430 @@
+2016-04-22  Chris Dumez  <cdumez@apple.com>
+
+        Cannot access the SQLTransaction.constructor.prototype
+        https://bugs.webkit.org/show_bug.cgi?id=156613
+
+        Reviewed by Darin Adler.
+
+        Drop [NoInterfaceObject] from the following SQL interfaces:
+        Database, SQLError, SQLResultSet, SQLResultSetRowList and SQLTransaction.
+
+        This matches the specification:
+        https://dev.w3.org/html5/webdatabase/
+
+        This was causing the 'constructor' property to be wrong for these
+        interfaces as it would be a generic Object.
+
+        Test: storage/websql/transaction-prototype.html
+
+        * Modules/webdatabase/Database.idl:
+        * Modules/webdatabase/SQLError.idl:
+        * Modules/webdatabase/SQLResultSet.idl:
+        * Modules/webdatabase/SQLResultSetRowList.idl:
+        * Modules/webdatabase/SQLTransaction.idl:
+
+2016-04-22  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Include columnNumber in event listener locations
+        https://bugs.webkit.org/show_bug.cgi?id=156927
+        <rdar://problem/25884584>
+
+        Reviewed by Brian Burg.
+
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::buildObjectForEventListener):
+        Include the column number in the location as well.
+
+2016-04-22  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] Unreviewed build fix.
+
+        * platform/graphics/ca/win/PlatformCALayerWin.cpp:
+        (PlatformCALayerWin::isHidden):
+
+2016-04-22  Jer Noble  <jer.noble@apple.com>
+
+        [iOS] Crash at -[WebAVPlayerLayer resolveBounds]
+        https://bugs.webkit.org/show_bug.cgi?id=156931
+        <rdar://problem/25865315> 
+
+        Reviewed by Eric Carlson.
+
+        When cloning the WebAVPlayerLayer, we must copy over the fullscreenInterface to the cloned layer.
+
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (WebAVPlayerLayerView_startRoutingVideoToPictureInPicturePlayerLayerView):
+
+2016-04-22  Chris Dumez  <cdumez@apple.com>
+
+        Crash under WebCore::DataDetection::detectContentInRange()
+        https://bugs.webkit.org/show_bug.cgi?id=156880
+        <rdar://problem/25622631>
+
+        Reviewed by Darin Adler.
+
+        We would sometimes crash under WebCore::DataDetection::detectContentInRange()
+        when dereferencing a null parentNode pointer. This patch adds a null check
+        for parentNode in the for() loop. It also does some clean up and optimization
+        since I was passing by.
+
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::DataDetection::detectContentInRange):
+
+2016-04-22  Keith Miller  <keith_miller@apple.com>
+
+        buildObjectForEventListener should not call into JSC with a null ExecState
+        https://bugs.webkit.org/show_bug.cgi?id=156923
+
+        Reviewed by Joseph Pecoraro.
+
+        If a user had disabled JavaScript on their page then the inspector tried to
+        add an event listener we would fail to create an ExecState. Since we didn't
+        check this ExecState was valid we would then attempt to stringify the value,
+        which would cause JSC to crash.
+
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::buildObjectForEventListener):
+
+2016-04-22  Dean Jackson  <dino@apple.com>
+
+        Yet another attempt at fixing Windows.
+
+        * platform/graphics/ca/win/PlatformCALayerWin.cpp:
+        (PlatformCALayerWin::isHidden):
+        * platform/graphics/ca/win/PlatformCALayerWin.h:
+
+2016-04-22  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Attempt to fix Windows build after r199862
+
+        Unreviewed build fix.
+
+        * platform/graphics/ca/win/PlatformCALayerWin.h:
+
+2016-04-22  Brent Fulgham  <bfulgham@apple.com>
+
+        Anchor element 'ping' property should only apply to http/https destinations
+        https://bugs.webkit.org/show_bug.cgi?id=156801
+        <rdar://problem/25834419>
+
+        Reviewed by Chris Dumez.
+
+        Take advantage of the hyperlink auditing language "UAs may either ignore the
+        ping attribute altogether, or selectively ignore URLs in the list (e.g. ignoring
+        any third-party URLs)" to restrict pings to http/https targets. For details, see
+        <https://html.spec.whatwg.org/multipage/semantics.html#hyperlink-auditing>.
+
+        Tested by http/tests/navigation/ping-attribute tests.
+
+        * loader/PingLoader.cpp:
+        (WebCore::PingLoader::sendPing): Ignore requests to ping anything outside the
+        family of HTTP protocols (http/https).
+
+2016-04-22  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Fix builds that do not support AVKit
+
+        Unreviewed build fix.
+
+        * platform/ios/WebAVPlayerController.h:
+        * platform/ios/WebAVPlayerController.mm:
+
+2016-04-22  Dave Hyatt  <hyatt@apple.com>
+
+        REGRESSION (r189567): The top of Facebook's messenger.com looks visually broken
+        https://bugs.webkit.org/show_bug.cgi?id=156869
+        <rdar://problem/23204668>
+
+        Reviewed by Zalan Bujtas.
+
+        Added fast/block/min-content-with-box-sizing.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::computeIntrinsicLogicalContentHeightUsing):
+
+2016-04-22  Antti Koivisto  <antti@apple.com>
+
+        TextAutoSizingKey should use normal refcounting
+        https://bugs.webkit.org/show_bug.cgi?id=156893
+
+        Reviewed by Andreas Kling.
+
+        Get rid of special refcounting of style in favor of RefPtr. It also becomes a move-only type
+        to support future switch to non-refcounted RenderStyle.
+
+        Also general cleanups and modernization.
+
+        * dom/Document.cpp:
+        (WebCore::TextAutoSizingTraits::constructDeletedValue):
+        (WebCore::TextAutoSizingTraits::isDeletedValue):
+        (WebCore::Document::addAutoSizingNode):
+        (WebCore::Document::validateAutoSizingNodes):
+        (WebCore::Document::resetAutoSizingNodes):
+
+            Adopt to being move-only.
+
+        * rendering/TextAutoSizing.cpp:
+        (WebCore::cloneRenderStyleWithState):
+        (WebCore::TextAutoSizingKey::TextAutoSizingKey):
+
+            Clone the style for safety against mutations. Cloning is cheap.
+
+        (WebCore::TextAutoSizingValue::numNodes):
+        (WebCore::TextAutoSizingValue::adjustNodeSizes):
+        (WebCore::TextAutoSizingValue::reset):
+        (WebCore::TextAutoSizingKey::~TextAutoSizingKey): Deleted.
+        (WebCore::TextAutoSizingKey::operator=): Deleted.
+        (WebCore::TextAutoSizingKey::ref): Deleted.
+        (WebCore::TextAutoSizingKey::deref): Deleted.
+        * rendering/TextAutoSizing.h:
+        (WebCore::TextAutoSizingKey::TextAutoSizingKey):
+        (WebCore::TextAutoSizingKey::style):
+        (WebCore::TextAutoSizingKey::isDeleted):
+        (WebCore::operator==):
+        (WebCore::TextAutoSizingKey::doc): Deleted.
+        (WebCore::TextAutoSizingKey::isValidDoc): Deleted.
+        (WebCore::TextAutoSizingKey::isValidStyle): Deleted.
+        (WebCore::TextAutoSizingKey::deletedKeyDoc): Deleted.
+        (WebCore::TextAutoSizingKey::deletedKeyStyle): Deleted.
+
+            m_doc member is not used for anything except deleted value comparisons. Replace it with a bit.
+
+2016-04-22  Chris Dumez  <cdumez@apple.com>
+
+        Crash under FontCache::purgeInactiveFontData()
+        https://bugs.webkit.org/show_bug.cgi?id=156822
+        <rdar://problem/25373970>
+
+        Reviewed by Darin Adler.
+
+        In some rare cases, the Font constructor would mutate the FontPlatformData
+        that is being passed in. This is an issue because because our FontCache
+        uses the FontPlatformData as key for the cached fonts. This could lead to
+        crashes because the WTFMove() in FontCache::purgeInactiveFontData() would
+        nullify values in our HashMap but we would then fail to remove them from
+        the HashMap (because the key did not match). We would then reference the
+        null font when looping again when doing font->hasOneRef().
+
+        This patch marks Font::m_platformData member as const to avoid such issues
+        in the future and moves the code altering the FontPlatformData from the
+        Font constructor into the FontPlatformData constructor. The purpose of
+        that code was to initialize FontPlatformData::m_cgFont in case the CGFont
+        passed in the constructor was null.
+
+        * platform/graphics/Font.h:
+        * platform/graphics/FontCache.cpp:
+        (WebCore::FontCache::fontForPlatformData):
+        (WebCore::FontCache::purgeInactiveFontData):
+        * platform/graphics/FontPlatformData.cpp:
+        (WebCore::FontPlatformData::FontPlatformData):
+        * platform/graphics/FontPlatformData.h:
+        * platform/graphics/cocoa/FontCocoa.mm:
+        (WebCore::webFallbackFontFamily): Deleted.
+        (WebCore::Font::platformInit): Deleted.
+        * platform/graphics/cocoa/FontPlatformDataCocoa.mm:
+        (WebCore::webFallbackFontFamily):
+        (WebCore::FontPlatformData::setFallbackCGFont):
+        * platform/graphics/win/FontPlatformDataCGWin.cpp:
+        (WebCore::FontPlatformData::setFallbackCGFont):
+
+2016-04-22  Chris Dumez  <cdumez@apple.com>
+
+        Support disabling at runtime IndexedDB constructors exposed to workers
+        https://bugs.webkit.org/show_bug.cgi?id=156883
+
+        Reviewed by Darin Adler.
+
+        Support disabling at runtime IndexedDB constructors exposed to workers.
+        Previously, constructors visibility to workers and window was constrolled
+        by the same runtime flag.
+
+        * Modules/indexeddb/IDBCursor.idl:
+        * Modules/indexeddb/IDBCursorWithValue.idl:
+        * Modules/indexeddb/IDBDatabase.idl:
+        * Modules/indexeddb/IDBFactory.idl:
+        * Modules/indexeddb/IDBIndex.idl:
+        * Modules/indexeddb/IDBKeyRange.idl:
+        * Modules/indexeddb/IDBObjectStore.idl:
+        * Modules/indexeddb/IDBOpenDBRequest.idl:
+        * Modules/indexeddb/IDBRequest.idl:
+        * Modules/indexeddb/IDBTransaction.idl:
+        * Modules/indexeddb/IDBVersionChangeEvent.idl:
+        * workers/WorkerGlobalScope.idl:
+
+2016-04-22  Dean Jackson  <dino@apple.com>
+
+        Attempting to fix Windows build. Add isHidden implementation.
+
+        * platform/graphics/ca/win/PlatformCALayerWin.cpp:
+        (PlatformCALayerWin::isHidden):
+
+2016-04-22  Brady Eidson  <beidson@apple.com>
+
+        Attempt at a Windows build fix.
+
+        * workers/WorkerMessagingProxy.cpp:
+        (WebCore::WorkerMessagingProxy::startWorkerGlobalScope):
+
+2016-04-22  Dave Hyatt  <hyatt@apple.com>
+
+         -webkit-image-set doesn't work inside CSS variables
+        https://bugs.webkit.org/show_bug.cgi?id=156915
+        <rdar://problem/25473972>
+
+        Reviewed by Zalan Bujtas.
+
+        Added new tests in fast/hidpi.
+
+        * css/CSSPrimitiveValue.cpp:
+        (WebCore::CSSPrimitiveValue::equals):
+        (WebCore::CSSPrimitiveValue::buildParserValue):
+
+2016-04-22  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199877.
+        https://bugs.webkit.org/show_bug.cgi?id=156918
+
+        The LayoutTest added with this change is failing on all
+        platforms. (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "REGRESSION (r189567): The top of Facebook's messenger.com
+        looks visually broken"
+        https://bugs.webkit.org/show_bug.cgi?id=156869
+        http://trac.webkit.org/changeset/199877
+
+2016-04-22  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Rework the ownership/RefCounting model of IDBConnectionToServer and IDBConnectionProxy.
+        https://bugs.webkit.org/show_bug.cgi?id=156916
+
+        Reviewed by Tim Horton.
+
+        No new tests (No behavior change).
+
+        * Modules/indexeddb/IDBFactory.cpp: Remove unneeded include.
+        
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::ref): Ref the ConnectionToServer.
+        (WebCore::IDBClient::IDBConnectionProxy::deref): Deref it.
+        (WebCore::IDBClient::IDBConnectionProxy::connectionToServer):
+        (WebCore::IDBClient::IDBConnectionProxy::openDatabase):
+        (WebCore::IDBClient::IDBConnectionProxy::deleteDatabase):
+        (WebCore::IDBClient::IDBConnectionProxy::create): Deleted.
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+        
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::IDBConnectionToServer): Create a proxy owned by this.
+        (WebCore::IDBClient::IDBConnectionToServer::proxy): Expose it.
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+        
+        * dom/Document.cpp:
+        (WebCore::Document::idbConnectionProxy):
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-04-22  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r194898): Multi download of external SVG defs file by <use> xlinks:href (caching)
+        https://bugs.webkit.org/show_bug.cgi?id=156368
+        <rdar://problem/25611746>
+
+        Reviewed by Simon Fraser.
+
+        We would load svg resources with fragment identifier again because the encoding never matched.
+
+        Test: http/tests/svg/svg-use-external.html
+
+        * loader/TextResourceDecoder.cpp:
+        (WebCore::TextResourceDecoder::setEncoding):
+        (WebCore::TextResourceDecoder::hasEqualEncodingForCharset):
+
+            Encoding can depend on mime type. Add a comparison function that takes this into account.
+
+        (WebCore::findXMLEncoding):
+        * loader/TextResourceDecoder.h:
+        (WebCore::TextResourceDecoder::encoding):
+        * loader/cache/CachedCSSStyleSheet.h:
+        * loader/cache/CachedResource.h:
+        (WebCore::CachedResource::textResourceDecoder):
+
+            Add a way to get the TextResourceDecoder from a cached resource.
+
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::determineRevalidationPolicy):
+
+            Use the new comparison function.
+
+        * loader/cache/CachedSVGDocument.h:
+        * loader/cache/CachedScript.h:
+        * loader/cache/CachedXSLStyleSheet.h:
+
+2016-04-22  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from InspectorFrontendHost
+        https://bugs.webkit.org/show_bug.cgi?id=156908
+
+        Reviewed by Timothy Hatcher.
+
+        No change of behavior.
+
+        * inspector/InspectorFrontendHost.idl: Marking event parameter as nullable to keep compatibility.
+
+2016-04-22  Chris Dumez  <cdumez@apple.com>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from MutationObserver
+        https://bugs.webkit.org/show_bug.cgi?id=156890
+
+        Reviewed by Darin Adler.
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from MutationObserver
+        and clean up / modernize the code a bit. There is not significant Web-
+        exposed behavior change except that MutationObserver.observe() now throws
+        a different kind of exception (a TypeError as per Web IDL) when passed in
+        a null Node.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/js/JSMutationCallback.cpp:
+        (WebCore::JSMutationCallback::call):
+        * bindings/js/JSMutationCallback.h:
+        * bindings/js/JSMutationObserverCustom.cpp:
+        (WebCore::constructJSMutationObserver):
+        * css/PropertySetCSSStyleDeclaration.cpp:
+        * dom/ChildListMutationScope.cpp:
+        (WebCore::ChildListMutationAccumulator::enqueueMutationRecord):
+        * dom/MutationCallback.h:
+        * dom/MutationObserver.cpp:
+        (WebCore::MutationObserver::create):
+        (WebCore::MutationObserver::MutationObserver):
+        (WebCore::MutationObserver::observe):
+        (WebCore::MutationObserver::takeRecords):
+        (WebCore::MutationObserver::enqueueMutationRecord):
+        (WebCore::MutationObserver::deliver):
+        (WebCore::MutationObserver::disconnect): Deleted.
+        * dom/MutationObserver.h:
+        * dom/MutationObserver.idl:
+        * dom/MutationObserverInterestGroup.cpp:
+        (WebCore::MutationObserverInterestGroup::enqueueMutationRecord):
+        * dom/MutationObserverInterestGroup.h:
+        * dom/MutationRecord.cpp:
+        (WebCore::MutationRecord::createChildList):
+        * dom/MutationRecord.h:
+
+2016-04-22  Dave Hyatt  <hyatt@apple.com>
+
+        REGRESSION (r189567): The top of Facebook's messenger.com looks visually broken
+        https://bugs.webkit.org/show_bug.cgi?id=156869
+        <rdar://problem/23204668>
+
+        Reviewed by Zalan Bujtas.
+
+        Added fast/block/min-content-with-box-sizing.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::computeContentLogicalHeight):
+
 2016-04-22  Manuel Rego Casasnovas  <rego@igalia.com>
 
         [css-grid] Fix bug with positioned items in vertical writing mode
