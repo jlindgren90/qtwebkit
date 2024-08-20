@@ -1,3 +1,70 @@
+2016-04-18  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Fix positioned items with content alignment
+        https://bugs.webkit.org/show_bug.cgi?id=156597
+
+        Reviewed by Darin Adler.
+
+        Like for the case of gaps we need to take into account
+        the content alignment in order to properly place and size
+        the positioned items.
+
+        Regarding content alignment we need to care about 2 values:
+        the position offset and the distribution offset.
+        The position offset can be extracted from m_column|rowPositions,
+        but the distribution offset is stored in 2 new variables called
+        m_offsetBetweenColumns|Rows.
+
+        Tests: fast/css-grid-layout/grid-positioned-items-content-alignment.html
+               fast/css-grid-layout/grid-positioned-items-content-alignment-rtl.html
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+        (WebCore::RenderGrid::populateGridPositions):
+        (WebCore::RenderGrid::columnAxisOffsetForChild):
+        (WebCore::RenderGrid::rowAxisOffsetForChild):
+        (WebCore::RenderGrid::rowAxisPositionForChild): Deleted.
+        * rendering/RenderGrid.h:
+
+2016-04-18  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Add method to translate RTL coordinates
+        https://bugs.webkit.org/show_bug.cgi?id=156589
+
+        Reviewed by Antonio Gomes.
+
+        This is just a small refactoring adding a new function
+        LayoutGrid::translateRTLCoordinate().
+        This method translates to physical coordinates the information
+        stored in m_columnPositions when you're using RTL direction.
+
+        No new tests, no change of behavior.
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild): Use the new
+        method translateRTLCoordinate().
+        (WebCore::RenderGrid::translateRTLCoordinate): New method that converts
+        a coordinate from m_columnPositions in RTL into a physical coordinate.
+        (WebCore::RenderGrid::findChildLogicalPosition): Use the new method
+        translateRTLCoordinate().
+        * rendering/RenderGrid.h: Add method signature.
+
+2016-04-18  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [Fetch] Use @isArray instead of `instanceof @Array`
+        https://bugs.webkit.org/show_bug.cgi?id=156682
+
+        Reviewed by Alex Christensen.
+
+        Currently, we query whether the given value is Array by using `instanceof @Array`.
+        But it is not enough; Array from the other realm should be accepted. And Array
+        not inheriting @Array should be also accepted.
+
+        Test: fetch/header-constructor-is-array.html
+
+        * Modules/fetch/FetchHeaders.js:
+        (initializeFetchHeaders):
+
 2016-04-17  Yoav Weiss  <yoav@yoav.ws>
 
         Initial Link preload support
