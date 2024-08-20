@@ -1,3 +1,59 @@
+2016-04-28  Dean Jackson  <dino@apple.com>
+
+        RTL <select> popup menu is in the wrong location
+        https://bugs.webkit.org/show_bug.cgi?id=157159
+        <rdar://problem/25894451>
+
+        Reviewed by Simon Fraser.
+
+        Make sure both the NSPopupMenuCell and the NSPopupMenu take
+        the text direction into account, and offset the position
+        of the menu slightly if we're in RTL mode.
+
+        Unfortunately our test infrastructure is unable to exercise
+        this because it runs without a window, and the popup menu
+        is not captured in the screenshot.
+
+        * WebCoreSupport/PopupMenuMac.mm:
+        (PopupMenuMac::show):
+
+2016-04-28  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Add CSS Grid Layout runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157134
+
+        Reviewed by Simon Fraser.
+
+        Add CSS Grid Layout runtime flag based on preferences,
+        enabled by default.
+
+        * WebView/WebPreferenceKeysPrivate.h:
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+        (-[WebPreferences isCSSGridLayoutEnabled]):
+        (-[WebPreferences setCSSGridLayoutEnabled:]):
+        * WebView/WebPreferencesPrivate.h:
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChanged:]):
+
+2016-04-28  Daniel Bates  <dabates@apple.com>
+
+        Another fix for the Apple Internal OS X build
+        <rdar://problem/25989808>
+
+        Reviewed by Anders Carlsson.
+
+        * WebView/WebPDFView.h:
+
+2016-04-28  Daniel Bates  <dabates@apple.com>
+
+        Fix the Apple Internal OS X build
+
+        * WebView/WebPDFView.h: Import PDFKit for definition of protocol PDFViewDelegate.
+        Forward declare protocol PDFViewDelegate as appropriate. Mark WebPDFView as implementing
+        protocol PDFViewDelegate.
+        * WebView/WebPDFView.mm: Move import of PDFKit from here to the header.
+
 2016-04-27  Daniel Bates  <dabates@apple.com>
 
         CSP: Add app-specific workaround for Ecobee and Quora

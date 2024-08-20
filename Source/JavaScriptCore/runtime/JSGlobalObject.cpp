@@ -294,6 +294,7 @@ void JSGlobalObject::init(VM& vm)
     m_functionStructure.set(vm, this, JSFunction::createStructure(vm, this, m_functionPrototype.get()));
     m_boundSlotBaseFunctionStructure.set(vm, this, JSBoundSlotBaseFunction::createStructure(vm, this, m_functionPrototype.get()));
     m_boundFunctionStructure.set(vm, this, JSBoundFunction::createStructure(vm, this, m_functionPrototype.get()));
+    m_getterSetterStructure.set(vm, this, GetterSetter::createStructure(vm, this, jsNull()));
     m_nativeStdFunctionStructure.set(vm, this, JSNativeStdFunction::createStructure(vm, this, m_functionPrototype.get()));
     m_namedFunctionStructure.set(vm, this, Structure::addPropertyTransition(vm, m_functionStructure.get(), vm.propertyNames->name, DontDelete | ReadOnly | DontEnum, m_functionNameOffset));
     m_internalFunctionStructure.set(vm, this, InternalFunction::createStructure(vm, this, m_functionPrototype.get()));
@@ -601,6 +602,7 @@ putDirectWithoutTransition(vm, vm.propertyNames-> jsName, lowerName ## Construct
 
         GlobalPropertyInfo(vm.propertyNames->repeatCharacterPrivateName, JSFunction::create(vm, this, 2, String(), stringProtoFuncRepeatCharacter), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->builtinNames().repeatSlowPathPrivateName(), JSFunction::createBuiltinFunction(vm, stringPrototypeRepeatSlowPathCodeGenerator(vm), this), DontEnum | DontDelete | ReadOnly),
+        GlobalPropertyInfo(vm.propertyNames->builtinNames().repeatCharactersSlowPathPrivateName(), JSFunction::createBuiltinFunction(vm, stringPrototypeRepeatCharactersSlowPathCodeGenerator(vm), this), DontEnum | DontDelete | ReadOnly),
 
         GlobalPropertyInfo(vm.propertyNames->isSetPrivateName, JSFunction::create(vm, this, 1, String(), privateFuncIsSet), DontEnum | DontDelete | ReadOnly),
         GlobalPropertyInfo(vm.propertyNames->SetIteratorPrivateName, JSFunction::create(vm, this, 1, String(), privateFuncSetIterator), DontEnum | DontDelete | ReadOnly),
@@ -979,6 +981,7 @@ void JSGlobalObject::visitChildren(JSCell* cell, SlotVisitor& visitor)
     visitor.append(&thisObject->m_functionStructure);
     visitor.append(&thisObject->m_boundSlotBaseFunctionStructure);
     visitor.append(&thisObject->m_boundFunctionStructure);
+    visitor.append(&thisObject->m_getterSetterStructure);
     visitor.append(&thisObject->m_nativeStdFunctionStructure);
     visitor.append(&thisObject->m_namedFunctionStructure);
     visitor.append(&thisObject->m_symbolObjectStructure);
@@ -1091,7 +1094,7 @@ UnlinkedProgramCodeBlock* JSGlobalObject::createProgramCodeBlock(CallFrame* call
     return unlinkedCodeBlock;
 }
 
-UnlinkedEvalCodeBlock* JSGlobalObject::createEvalCodeBlock(CallFrame* callFrame, EvalExecutable* executable, ThisTDZMode thisTDZMode, bool isArrowFunctionContext, const VariableEnvironment* variablesUnderTDZ)
+UnlinkedEvalCodeBlock* JSGlobalObject::createEvalCodeBlock(CallFrame* callFrame, EvalExecutable* executable, ThisTDZMode thisTDZMode, const VariableEnvironment* variablesUnderTDZ)
 {
     ParserError error;
     JSParserStrictMode strictMode = executable->isStrictMode() ? JSParserStrictMode::Strict : JSParserStrictMode::NotStrict;
@@ -1100,7 +1103,7 @@ UnlinkedEvalCodeBlock* JSGlobalObject::createEvalCodeBlock(CallFrame* callFrame,
     
     ProfilerMode profilerMode = hasLegacyProfiler() ? ProfilerOn : ProfilerOff;
     UnlinkedEvalCodeBlock* unlinkedCodeBlock = vm().codeCache()->getEvalCodeBlock(
-        vm(), executable, executable->source(), JSParserBuiltinMode::NotBuiltin, strictMode, thisTDZMode, isArrowFunctionContext, debuggerMode, profilerMode, error, evalContextType, variablesUnderTDZ);
+        vm(), executable, executable->source(), JSParserBuiltinMode::NotBuiltin, strictMode, thisTDZMode, debuggerMode, profilerMode, error, evalContextType, variablesUnderTDZ);
 
     if (hasDebugger())
         debugger()->sourceParsed(callFrame, executable->source().provider(), error.line(), error.message());

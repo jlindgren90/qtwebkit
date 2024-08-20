@@ -1,3 +1,83 @@
+2016-04-28  Dean Jackson  <dino@apple.com>
+
+        RTL <select> popup menu is in the wrong location
+        https://bugs.webkit.org/show_bug.cgi?id=157159
+        <rdar://problem/25894451>
+
+        Reviewed by Simon Fraser.
+
+        Make sure the NSPopupMenu takes the text direction
+        into account, and offset the position
+        of the menu slightly if we're in RTL mode.
+
+        Unfortunately our test infrastructure is unable to exercise
+        this because it runs without a window, and the popup menu
+        is not captured in the screenshot.
+
+        * UIProcess/mac/WebPopupMenuProxyMac.mm:
+        (WebKit::WebPopupMenuProxyMac::showPopupMenu):
+
+2016-04-28  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Add CSS Grid Layout runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157134
+
+        Reviewed by Simon Fraser.
+
+        Add CSS Grid Layout runtime flag based on preferences,
+        enabled by default.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetCSSGridLayoutEnabled):
+        (WKPreferencesGetCSSGridLayoutEnabled):
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+        (WebKit::InjectedBundle::overrideBoolPreferenceForTestRunner):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-04-28  Daniel Bates  <dabates@apple.com>
+
+        Fix the Apple Internal OS X build
+
+        * UIProcess/mac/WKPrintingView.mm:
+        (-[WKPrintingView _drawPDFDocument:page:atPoint:]): Ignore deprecation warning for -[PDFPage drawWithBox:].
+        * WebProcess/WebPage/mac/WebPageMac.mm:
+        (WebKit::drawPDFPage): Ditto.
+
+2016-04-28  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        Fix mistake in custom elements runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157130
+
+        Reviewed by Chris Dumez.
+
+        The methods for the custom elements runtime flag were using
+        the Shadow DOM flag instead.
+        These methods were introduced in r197921,
+        it seems it was just a copy&paste mistake.
+
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetCustomElementsEnabled):
+        (WKPreferencesGetCustomElementsEnabled):
+
+2016-04-28  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Add missing files to the compilation of GTK+ inspector.
+
+        * PlatformGTK.cmake:
+
+2016-04-27  Dan Bernstein  <mitz@apple.com>
+
+        <rdar://problem/25915253> REGRESSION (r199628): Netflix playback fails in Safari Technology Preview with error code S7363-1260-FFFF58D8
+
+        Rubber-stamped by Tim Horton.
+
+        Reverted r199628.
+
+        * Configurations/WebContentService.xcconfig:
+
 2016-04-27  Brady Eidson  <beidson@apple.com>
 
         Modern IDB: Implement native IDBFactory.getAllDatabaseNames for WebInspector.

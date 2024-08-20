@@ -3433,4 +3433,11 @@ void Internals::setLinkPreloadSupport(bool enable)
     RuntimeEnabledFeatures::sharedFeatures().setLinkPreloadEnabled(enable);
 }
 
+#if ENABLE(CSS_GRID_LAYOUT)
+void Internals::setCSSGridLayoutEnabled(bool enable)
+{
+    RuntimeEnabledFeatures::sharedFeatures().setCSSGridLayoutEnabled(enable);
+}
+#endif
+
 }

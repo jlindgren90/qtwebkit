@@ -1,3 +1,265 @@
+2016-04-28  Zalan Bujtas  <zalan@apple.com>
+
+        Content disappears on mouse over.
+        https://bugs.webkit.org/show_bug.cgi?id=157073
+        <rdar://problem/24389168>
+
+        Reviewed by Simon Fraser.
+
+        When a redundant inlinebox is found after constructing the line, we remove it from the tree.
+        The remove operation marks the ancestor tree dirty (and this newly constructed line is supposed to be clean).
+        This patch resets this dirty flag on the boxes all the way up to the rootlinebox.
+        Previously we only cleared the rootinlinebox and we ended up with dirty inlineflowboxes.
+
+        * fast/text/text-node-remains-dirty-after-calling-surroundContents-expected.html: Added.
+        * fast/text/text-node-remains-dirty-after-calling-surroundContents.html: Added.
+
+2016-04-27  Brent Fulgham  <bfulgham@apple.com>
+
+        Make sure we don't mishandle HTMLFrameOwnerElement lifecycle
+        https://bugs.webkit.org/show_bug.cgi?id=157040
+
+        Reviewed by Chris Dumez.
+
+        * fast/dom/HTMLAnchorElement/anchor-in-noscroll-iframe-crash-expected.txt: Added.
+        * fast/dom/HTMLAnchorElement/anchor-in-noscroll-iframe-crash.html: Added.
+        * fast/dom/HTMLAnchorElement/resources/iframe-with-anchor-crash.html: Added.
+
+2016-04-28  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Add CSS Grid Layout runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157134
+
+        Reviewed by Simon Fraser.
+
+        Add test to verify that CSS Grid Layout is disabled if the flag is off.
+
+        * fast/css-grid-layout/grid-disable-expected.txt: Added.
+        * fast/css-grid-layout/grid-disable.html: Added.
+
+2016-04-28  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: superscript content exposed as plain text; VoiceOver does not speak or pause to make this understandable     
+        https://bugs.webkit.org/show_bug.cgi?id=157122
+        <rdar://problem/21231487>
+
+        Reviewed by Daniel Bates.
+
+        * accessibility/mac/subroles-for-formatted-groups-expected.txt:
+        * accessibility/mac/subroles-for-formatted-groups.html:
+        * platform/mac/accessibility/accessibility/roles-exposed-expected.txt:
+        * accessibility/roles-computedRoleString-expected.txt:
+
+2016-04-28  Simon Fraser  <simon.fraser@apple.com>
+
+        https://bugs.webkit.org/show_bug.cgi?id=157140
+
+        Attempted to reduce the flakiness of this test by making the animation longer, to give
+        enough time for the iteration event to fire.
+
+        * animations/animation-events-not-cancelable.html:
+
+2016-04-28  Brady Eidson  <beidson@apple.com>
+
+        inspector/indexeddb/requestDatabaseNames.html is flaky on Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=157141
+
+        Reviewed by Alex Christensen.
+
+        * inspector/indexeddb/deleteDatabaseNamesWithSpace-expected.txt: Added.
+        * inspector/indexeddb/deleteDatabaseNamesWithSpace.html: Added.
+
+2016-04-28  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Add ios-simulator baseline for fast/forms/select-non-native-rendering-direction.html
+        https://bugs.webkit.org/show_bug.cgi?id=157112
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/fast/forms/select-non-native-rendering-direction-expected.txt: Added.
+
+2016-04-28  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        imported/w3c/web-platform-tests/fetch/nosniff/stylesheet.html is failing on some bots
+        https://bugs.webkit.org/show_bug.cgi?id=157145
+
+        Unreviewed.
+
+        * TestExpectations: Marking imported/w3c/web-platform-tests/fetch/nosniff/stylesheet.html as failing and passing.
+
+2016-04-28  Brady Eidson  <beidson@apple.com>
+
+        REGRESSION(r200163): inspector/indexeddb/requestDatabaseNames.html is flaky on Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=157141
+
+        Unreviewed.
+
+        Add one more chunk of logging here to add even more supporting evidence to our theory.
+        
+        * inspector/indexeddb/requestDatabaseNames-expected.txt:
+        * inspector/indexeddb/requestDatabaseNames.html:
+
+2016-04-28  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping media/video-with-file-url-allowed-by-csp-media-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html
+        https://bugs.webkit.org/show_bug.cgi?id=155196
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-04-28  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from MediaSource interfaces
+        https://bugs.webkit.org/show_bug.cgi?id=156904
+
+        Reviewed by Darin Adler.
+
+        * http/tests/media/media-source/mediasource-addsourcebuffer.html: Changing expected exception to TypeError.
+        * http/tests/media/media-source/mediasource-append-buffer-expected.txt:
+        * http/tests/media/media-source/mediasource-append-buffer.html: Checking passing null or undefined to
+        appendBuffer, addSourceBuffer and removeSourceBuffer.
+        * media/media-source/media-source-addsourcebuffer-expected.txt:
+        * media/media-source/media-source-addsourcebuffer.html: Removing redundant test.
+
+
+2016-04-27  Ada Chan  <adachan@apple.com>
+
+        Set overflow: hidden on ::-webkit-media-controls in mediaControlsApple.css
+        https://bugs.webkit.org/show_bug.cgi?id=157110
+
+        Reviewed by Eric Carlson.
+
+        The style change caused an image only failure for fast/regions/inline-block-inside-anonymous-overflow.html.
+        Mark that test as image-failure-only and add a new test that's basically a copy of inline-block-inside-anonymous-overflow.html
+        with the default controls covered so we can still catch layout regressions related to flowing content from region to region.
+
+        * fast/regions/inline-block-inside-anonymous-overflow-with-covered-controls-expected.html: Added.
+        * fast/regions/inline-block-inside-anonymous-overflow-with-covered-controls.html: Added.
+        * platform/ios-simulator/TestExpectations:
+        fast/regions/inline-block-inside-anonymous-overflow.html is already marked as image-failure-only
+        so this new test needs to be marked too.
+        * platform/mac/TestExpectations:
+        * platform/mac/media/media-document-audio-repaint-expected.txt:
+        * platform/mac/media/video-zoom-controls-expected.txt:
+        Rebaseline test due to style change in mediaControlsApple.css.
+
+2016-04-28  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Import remaining fetch tests
+        https://bugs.webkit.org/show_bug.cgi?id=156914
+
+        Reviewed by Darin Adler.
+
+        * TestExpectations: Skipping new fetch worker tests as they are
+        causing other tests to crash (see bug 156737 and bug 157068).
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/redirect/redirect-location-expected.txt: Added.
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/redirect/redirect-method-expected.txt: Added.
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/nosniff/stylesheet-expected.txt: Added.
+        * platform/mac-wk1/imported/w3c/web-platform-tests/fetch/api/credentials/authentication-basic-expected.txt: Added.
+
+2016-04-28  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Specify default values for optional parameters of type 'DOMString'
+        https://bugs.webkit.org/show_bug.cgi?id=157116
+
+        Reviewed by Darin Adler.
+
+        * media/track/w3c/interfaces/HTMLMediaElement/addTextTrack.html:
+        Resync test from upstream so that it expects a TypeError to be thrown if a
+        wrong 'kind' parameter is passed, and so that it expects the label / language
+        parameter to have the empty string as default value.
+
+2016-04-28  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        Crash for non-static super property call in derived class constructor
+        https://bugs.webkit.org/show_bug.cgi?id=157089
+
+        Reviewed by Darin Adler.
+
+        * js/class-syntax-super-expected.txt:
+        * js/script-tests/class-syntax-super.js:
+
+2016-04-28  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Fix typo in CSS class for layout tests
+        https://bugs.webkit.org/show_bug.cgi?id=157129
+
+        Reviewed by Sergio Villar Senin.
+
+        CSS class "secondRowFourthColumn" was not actually setting
+        the second row due to a typo.
+
+        The change doesn't affect any test just by chance,
+        as the auto-placement algorithm is already positioning
+        those items on the second row.
+
+        * fast/css-grid-layout/resources/grid.css:
+        (.secondRowFourthColumn):
+
+2016-04-28  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: [ATK] We need to be smarter about flattening and the accessible text implementation
+        https://bugs.webkit.org/show_bug.cgi?id=144639
+
+        Reviewed by Chris Fleizach.
+
+        Added two new tests and updated three existing tests to reflect the new behavior
+        regarding inclusion of elements in the accessibility tree and the text value of
+        included elements.
+
+        * accessibility/gtk/nested-block-element-children-expected.txt: Added.
+        * accessibility/gtk/nested-block-element-children.html: Added.
+        * accessibility/gtk/spans-paragraphs-and-divs-expected.txt: Updated for new behavior.
+        * accessibility/gtk/spans-paragraphs-and-divs-tree-expected.txt: Added.
+        * accessibility/gtk/spans-paragraphs-and-divs-tree.html: Added.
+        * accessibility/gtk/spans-paragraphs-and-divs.html: Updated for new behavior.
+        * platform/gtk/accessibility/generated-content-with-display-table-crash-expected.txt: Updated for new behavior.
+        * platform/gtk/accessibility/gtk/replaced-objects-in-anonymous-blocks-expected.txt: Updated for new behavior.
+
+2016-04-28  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Fix alignment with content distribution
+        https://bugs.webkit.org/show_bug.cgi?id=156623
+
+        Reviewed by Sergio Villar Senin.
+
+        Created new test and renamed the old one as it was only testing
+        items spanning several cells.
+
+        * fast/css-grid-layout/grid-content-alignment-and-self-alignment-expected.txt:
+        * fast/css-grid-layout/grid-content-alignment-and-self-alignment-spanning-expected.txt:
+        Renamed from fast/css-grid-layout/grid-content-alignment-and-self-alignment-expected.txt.
+        * fast/css-grid-layout/grid-content-alignment-and-self-alignment-spanning.html:
+        Renamed from fast/css-grid-layout/grid-content-alignment-and-self-alignment.html.
+        * fast/css-grid-layout/grid-content-alignment-and-self-alignment.html:
+
+2016-04-28  Daniel Bates  <dabates@apple.com>
+
+        Skip test LayoutTests/media/video-with-file-url-allowed-by-csp-media-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html
+        as it is flaky on the WebKit1 bots.
+
+        For completeness, the test video-with-file-url-allowed-by-csp-media-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html
+        was added in r200155 (<https://bugs.webkit.org/show_bug.cgi?id=157100>). We will look to fix this test in <https://bugs.webkit.org/show_bug.cgi?id=155196>.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-04-27  Dean Jackson  <dino@apple.com>
+
+        RTL non-native <select> buttons should have arrows on the left
+        https://bugs.webkit.org/show_bug.cgi?id=157112
+        <rdar://problem/25894441>
+
+        Reviewed by Simon Fraser.
+
+        New test that checks the layout of WebCore-drawn <select>
+        elements in right-to-left mode.
+
+        * fast/forms/select-non-native-rendering-direction.html: Added.
+        * platform/mac/fast/forms/select-non-native-rendering-direction-expected.png: Added.
+        * platform/mac/fast/forms/select-non-native-rendering-direction-expected.txt: Added.
+
 2016-04-27  Brady Eidson  <beidson@apple.com>
 
         Modern IDB: Implement native IDBFactory.getAllDatabaseNames for WebInspector.

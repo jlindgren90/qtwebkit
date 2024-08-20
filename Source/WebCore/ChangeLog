@@ -1,3 +1,598 @@
+2016-04-28  Zalan Bujtas  <zalan@apple.com>
+
+        Content disappears on mouse over.
+        https://bugs.webkit.org/show_bug.cgi?id=157073
+        <rdar://problem/24389168>
+
+        Reviewed by Simon Fraser.
+
+        When a redundant inlinebox is found after constructing the line, we remove it from the tree.
+        The remove operation marks the ancestor tree dirty (and this newly constructed line is supposed to be clean).
+        This patch resets this dirty flag on the boxes all the way up to the rootlinebox.
+        Previously we only cleared the rootinlinebox and we ended up with dirty inlineflowboxes.
+
+        Test: fast/text/text-node-remains-dirty-after-calling-surroundContents.html
+
+        * rendering/BidiRun.h:
+        (WebCore::BidiRun::setBox):
+        * rendering/RenderBlockFlow.h:
+        * rendering/RenderBlockLineLayout.cpp:
+        (WebCore::RenderBlockFlow::constructLine):
+        (WebCore::RenderBlockFlow::removeLineBoxIfNeeded):
+        (WebCore::RenderBlockFlow::computeBlockDirectionPositionsForLine):
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::positionLineBox): Deleted.
+        * rendering/RenderText.cpp:
+        (WebCore::RenderText::setText):
+        (WebCore::RenderText::positionLineBox): Deleted.
+
+2016-04-28  John Wilander  <wilander@apple.com>
+
+        Allow non-standard HTTP headers in WebSocket handshake
+        https://bugs.webkit.org/show_bug.cgi?id=157157
+
+        Reviewed by Brent Fulgham.
+
+        No new tests since https://bugs.webkit.org/show_bug.cgi?id=157095
+        tests that non-standard headers are allowed.
+
+        * Modules/websockets/WebSocketHandshake.cpp:
+        (WebCore::WebSocketHandshake::readHTTPHeaders):
+            Changed from fail to allow for unrecognized headers.
+            This was the behavior before https://bugs.webkit.org/show_bug.cgi?id=155602.
+        * platform/network/HTTPHeaderNames.in:
+            Removed whitelisted legacy headers since we now allow all non-standard headers.
+
+2016-04-27  Brent Fulgham  <bfulgham@apple.com>
+
+        Make sure we don't mishandle HTMLFrameOwnerElement lifecycle
+        https://bugs.webkit.org/show_bug.cgi?id=157040
+
+        Reviewed by Chris Dumez.
+
+        Protect a couple of sites where event handling could result in the owning frame
+        being destroyed during execution.
+
+        Tested by fast/dom/HTMLAnchorElement/anchor-in-noscroll-iframe-crash.html.
+
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::didCommitLoad):
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::scrollRectToVisible):
+
+2016-04-28  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Add CSS Grid Layout runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157134
+
+        Reviewed by Simon Fraser.
+
+        Add CSS Grid Layout runtime flag enabled by default.
+        Disable parsing of CSS Grid Layout properties
+        if the runtime flag is not enabled.
+        Expose runtime flag through internals to verify that
+        it's working as expected.
+
+        Test: fast/css-grid-layout/grid-disable.html
+
+        * bindings/generic/RuntimeEnabledFeatures.cpp:
+        (WebCore::RuntimeEnabledFeatures::RuntimeEnabledFeatures):
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::setCSSGridLayoutEnabled):
+        (WebCore::RuntimeEnabledFeatures::isCSSGridLayoutEnabled):
+        * css/CSSParser.cpp:
+        (WebCore::CSSParserContext::CSSParserContext):
+        (WebCore::operator==):
+        (WebCore::isValidKeywordPropertyAndValue):
+        (WebCore::CSSParser::parseValue):
+        (WebCore::CSSParser::parseIntegerOrCustomIdentFromGridPosition):
+        (WebCore::CSSParser::parseGridPosition):
+        (WebCore::CSSParser::parseGridItemPositionShorthand):
+        (WebCore::CSSParser::parseGridGapShorthand):
+        (WebCore::CSSParser::parseGridTemplateColumns):
+        (WebCore::CSSParser::parseGridTemplateRowsAndAreasAndColumns):
+        (WebCore::CSSParser::parseGridTemplateShorthand):
+        (WebCore::CSSParser::parseGridShorthand):
+        (WebCore::CSSParser::parseGridAreaShorthand):
+        (WebCore::CSSParser::parseSingleGridAreaLonghand):
+        (WebCore::CSSParser::parseGridLineNames):
+        (WebCore::CSSParser::parseGridTrackList):
+        (WebCore::CSSParser::parseGridTrackRepeatFunction):
+        (WebCore::CSSParser::parseGridTrackSize):
+        (WebCore::CSSParser::parseGridBreadth):
+        (WebCore::CSSParser::parseGridAutoFlow):
+        (WebCore::CSSParser::parseGridTemplateAreasRow):
+        (WebCore::CSSParser::parseGridTemplateAreas):
+        (WebCore::CSSParser::iscSSGridLayoutEnabled):
+        * css/CSSParser.h:
+        * css/CSSParserMode.h:
+        * dom/Document.cpp:
+        (WebCore::Document::isCSSGridLayoutEnabled):
+        * dom/Document.h:
+        * testing/Internals.cpp:
+        (WebCore::Internals::setCSSGridLayoutEnabled):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-04-28  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: superscript content exposed as plain text; VoiceOver does not speak or pause to make this understandable
+        https://bugs.webkit.org/show_bug.cgi?id=157122
+        <rdar://problem/21231487>
+
+        Reviewed by Daniel Bates.
+
+        Expose role types for subscript and superscript.
+
+        Modified: accessibility/mac/subroles-for-formatted-groups.html
+
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::isStyleFormatGroup):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (-[WebAccessibilityObjectWrapper subrole]):
+
+2016-04-28  Brady Eidson  <beidson@apple.com>
+
+        inspector/indexeddb/requestDatabaseNames.html is flaky on Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=157141
+
+        Reviewed by Alex Christensen.
+
+        Test: inspector/indexeddb/deleteDatabaseNamesWithSpace.html
+
+        * platform/FileSystem.cpp:
+        (WebCore::decodeFromFilename): Advance iterator after decoding.
+
+2016-04-28  Dan Bernstein  <mitz@apple.com>
+
+        <rdar://problem/25986324> WebKit build broken with error: undeclared selector 'childViewControllerForWhitePointAdaptivityStyle'
+
+        Fixed the build by removing use of API that no longer does anything.
+
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (WebVideoFullscreenInterfaceAVKit::setupFullscreen): Revert to using a plain UIViewController.
+        (createFullScreenVideoRootViewControllerClass): Deleted.
+        (allocWebFullScreenVideoRootViewControllerInstance): Deleted.
+
+2016-04-28  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Reimplement Web Inspector code that was tied to Legacy IDB.
+        https://bugs.webkit.org/show_bug.cgi?id=154686
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Inspector folks will have to write them if they're possible).
+
+        * inspector/InspectorIndexedDBAgent.cpp: Reimplement missing functionality mostly with code that was 
+          removed in http://trac.webkit.org/changeset/197131/trunk/Source/WebCore/inspector/InspectorIndexedDBAgent.cpp
+
+2016-04-28  Daniel Bates  <dabates@apple.com>
+
+        Fix the Apple Internal OS X build
+
+        * platform/graphics/mac/PDFDocumentImageMac.mm:
+        (WebCore::PDFDocumentImage::drawPDFPage): Ignore deprecation warning for -[PDFPage drawWithBox:].
+
+2016-04-28  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from MediaSource interfaces
+        https://bugs.webkit.org/show_bug.cgi?id=156904
+
+        Reviewed by Darin Adler.
+
+        MediaSource::addSourceBuffer will now throw a TypeError if a null parameter is passed.
+        MediaSource::removeSourceBuffer will now throw a TypeError if a null parameter is passed.
+        SourceBuffer::appendBuffer will now throw a TypeError if a null parameter is passed.
+
+        Did some refactoring to use more references.
+
+        Covered by updated test.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::endOfStream):
+        (WebCore::MediaSource::addSourceBuffer):
+        (WebCore::MediaSource::removeSourceBuffer):
+        * Modules/mediasource/MediaSource.h:
+        * Modules/mediasource/MediaSource.idl:
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::appendBuffer):
+        * Modules/mediasource/SourceBuffer.h:
+        * Modules/mediasource/SourceBuffer.idl:
+        * Modules/mediasource/SourceBufferList.cpp:
+        (WebCore::SourceBufferList::add):
+        (WebCore::SourceBufferList::remove):
+        * Modules/mediasource/SourceBufferList.h:
+
+2016-04-28  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from Node
+        https://bugs.webkit.org/show_bug.cgi?id=156978
+
+        Reviewed by Chris Dumez.
+
+        No change of behavior.
+
+        * dom/Node.idl: Marking some parameters nullable.
+
+2016-04-27  Ada Chan  <adachan@apple.com>
+
+        Set overflow: hidden on ::-webkit-media-controls in mediaControlsApple.css
+        https://bugs.webkit.org/show_bug.cgi?id=157110
+
+        Reviewed by Eric Carlson.
+
+        Test: fast/regions/inline-block-inside-anonymous-overflow-with-covered-controls.html
+
+        This matches what we do in mediaControlsiOS.css.
+
+        * Modules/mediacontrols/mediaControlsApple.css:
+        (::-webkit-media-controls):
+
+2016-04-28  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Specify default values for optional parameters of type 'DOMString'
+        https://bugs.webkit.org/show_bug.cgi?id=157116
+
+        Reviewed by Darin Adler.
+
+        Specify default values for optional parameters of type 'DOMString' so
+        that this default value is used if the parameter is either omitted or
+        undefined. For parameters of type DOMString and that are not nullable,
+        the bindings generator now uses the null string as implicit default
+        value (unless explicitely specified otherwise in the IDL). This
+        simplifies the IDL a little and makes it a bit less confusing (it is
+        a bit weird to see something like "optional DOMString param = null",
+        considering the parameter is not nullable). I also think it makes
+        more sense to use the null String() rather than Optional<String> in
+        this case.
+
+        No new tests, existing tests were rebaselined.
+
+        * Modules/encryptedmedia/MediaKeys.idl:
+        * Modules/indexeddb/IDBDatabase.idl:
+        * Modules/indexeddb/IDBIndex.h:
+        * Modules/indexeddb/IDBIndex.idl:
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::openCursor): Deleted.
+        * Modules/indexeddb/IDBObjectStore.h:
+        * Modules/indexeddb/IDBObjectStore.idl:
+        * Modules/speech/SpeechSynthesisUtterance.idl:
+        * Modules/websockets/WebSocket.idl:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        (CanUseWTFOptionalForParameter): Deleted.
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalAtomicString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalStringAndDefaultValue): Deleted.
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::jsTestTypedefsPrototypeFunctionSetShadow):
+        * bindings/scripts/test/TestNamedConstructor.idl:
+        * css/FontFaceSet.cpp:
+        * css/FontFaceSet.h:
+        * css/FontFaceSet.idl:
+        * css/WebKitCSSMatrix.idl:
+        * dom/Comment.idl:
+        * dom/DOMImplementation.idl:
+        * dom/DataTransfer.cpp:
+        (WebCore::DataTransfer::clearData):
+        (WebCore::DataTransfer::getData): Deleted.
+        * dom/DataTransfer.h:
+        * dom/Document.idl:
+        * dom/Text.idl:
+        * fileapi/FileReader.cpp:
+        (WebCore::FileReader::readAsDataURL): Deleted.
+        * fileapi/FileReader.h:
+        * fileapi/FileReaderSync.h:
+        * fileapi/FileReaderSync.idl:
+        * html/HTMLAudioElement.idl:
+        * html/HTMLInputElement.idl:
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::addTextTrack):
+        Throw a TypeError if the 'kind' parameter is not a valid string in the
+        TextTrackKind enum:
+        https://html.spec.whatwg.org/multipage/embedded-content.html#htmlmediaelement
+
+        We previously threw a SYNTAX_ERR instead of a TypeError in such case,
+        which was not correct as per Web IDL specification.
+
+        * html/HTMLMediaElement.h:
+        * html/HTMLMediaElement.idl:
+        * html/HTMLOptionElement.idl:
+        * html/HTMLTextAreaElement.idl:
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::setShadow):
+        * html/canvas/CanvasRenderingContext2D.h:
+        * page/Performance.idl:
+
+2016-04-28  Antonio Gomes  <tonikitoo@webkit.org>
+
+        Factor out the "paint item" logic in RenderListBox into a helper
+        https://bugs.webkit.org/show_bug.cgi?id=157117
+
+        Reviewed by Daniel Bates.
+
+        Patch factors out the duplicated painting logic in RenderListBox::paintObject()
+        into a member function named paintItem.
+
+        This is in preparation for bug 156590.
+        No new tests, since there is no behavior change.
+
+        * rendering/RenderListBox.cpp:
+        (WebCore::RenderListBox::paintItem):
+        (WebCore::RenderListBox::paintObject):
+        * rendering/RenderListBox.h:
+
+2016-04-28  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: [ATK] We need to be smarter about flattening and the accessible text implementation
+        https://bugs.webkit.org/show_bug.cgi?id=144639
+
+        Reviewed by Chris Fleizach.
+
+        Defer to WebCore Accessibility more regarding when to include anonymous blocks in the
+        accessibility tree. Explicitly flatten menu items, headings, list items, and paragraphs
+        in order to preserve the expected platform behavior for backwards compatibility. Also
+        map anonymous table parts to DivRole rather than GroupRole for GTK and EFL because ATK
+        has separate roles for generic text block elements and other generic containers.
+
+        Tests: accessibility/gtk/nested-block-element-children.html
+               accessibility/gtk/spans-paragraphs-and-divs-tree.html
+
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::determineAccessibilityRole):
+        * accessibility/atk/AccessibilityObjectAtk.cpp:
+        (WebCore::AccessibilityObject::accessibilityPlatformIncludesObject):
+
+2016-04-28  Frederic Wang  <fred.wang@free.fr>
+
+        RenderMathMLOperator refactoring: introduce getBaseGlyph and remove parameter from getDisplayStyleLargeOperator
+        https://bugs.webkit.org/show_bug.cgi?id=156910
+
+        Reviewed by Alejandro G. Castro.
+
+        No new tests, the behavior is not changed.
+
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::italicCorrection): We do not need to pass m_textContent to
+        getDisplayStyleLargeOperator.
+        (WebCore::RenderMathMLOperator::computePreferredLogicalWidths): We use getBaseGlyph and do
+        not pass m_textContent to getDisplayStyleLargeOperator or findStretchyData.
+        (WebCore::RenderMathMLOperator::getBaseGlyph): Introduce a helper function to retrieve the
+        base glyph and do some validity checks.
+        (WebCore::RenderMathMLOperator::getDisplayStyleLargeOperator): We remove the character
+        parameter as it is always m_textContent.
+        We use getBaseGlyph and replace primaryFont with baseGlyph.font.
+        (WebCore::RenderMathMLOperator::findStretchyData): Ditto.
+        (WebCore::RenderMathMLOperator::updateStyle): We do not pass m_textContent to
+        getDisplayStyleLargeOperator or findStretchyData.
+        * rendering/mathml/RenderMathMLOperator.h: Declare getBaseGlyph and remove the parameter
+        from getDisplayStyleLargeOperator and findStretchyData.
+
+2016-04-28  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200185.
+        https://bugs.webkit.org/show_bug.cgi?id=157131
+
+        Bad temporary file added unintentionally (Requested by fredw
+        on #webkit).
+
+        Reverted changeset:
+
+        "RenderMathMLOperator refactoring: introduce getBaseGlyph and
+        remove parameter from getDisplayStyleLargeOperator"
+        https://bugs.webkit.org/show_bug.cgi?id=156910
+        http://trac.webkit.org/changeset/200185
+
+2016-04-28  Frederic Wang  <fred.wang@free.fr>
+
+        RenderMathMLOperator refactoring: introduce getBaseGlyph and remove parameter from getDisplayStyleLargeOperator
+        https://bugs.webkit.org/show_bug.cgi?id=156910
+
+        Reviewed by Alejandro G. Castro.
+
+        No new tests, the behavior is not changed.
+
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::italicCorrection): We do not need to pass m_textContent
+        to getDisplayStyleLargeOperator.
+        (WebCore::RenderMathMLOperator::computePreferredLogicalWidths): We use getBaseGlyph and do
+        not pass m_textContent to getDisplayStyleLargeOperator or findStretchyData.
+        (WebCore::RenderMathMLOperator::getBaseGlyph): Introduce a helper function to retrieve the
+        base glyph and do some validity checks.
+        (WebCore::RenderMathMLOperator::getDisplayStyleLargeOperator): We remove the character
+        parameter as it is always m_textContent.
+        We use getBaseGlyph and replace primaryFont with baseGlyph.font.
+        (WebCore::RenderMathMLOperator::findStretchyData): Ditto.
+        (WebCore::RenderMathMLOperator::updateStyle): We do not pass m_textContent to
+        getDisplayStyleLargeOperator or findStretchyData.
+        * rendering/mathml/RenderMathMLOperator.h: Declare getBaseGlyph and remove the parameter
+        from getDisplayStyleLargeOperator and findStretchyData.
+
+2016-04-28  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r199659): Web Process crash when RenderTheme::adjustMenuListStyle is called with a null element
+        https://bugs.webkit.org/show_bug.cgi?id=157127
+
+        Reviewed by Sergio Villar Senin.
+
+        This happens for example with tests fast/css/appearance-with-pseudo-elements-in-quirks-mode.html and
+        fast/css/appearance-with-pseudo-elements.html.
+
+        * rendering/RenderThemeGtk.cpp:
+        (WebCore::RenderThemeGtk::adjustMenuListStyle): Do not change the style color if the given element is nullptr.
+
+2016-04-28  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Store auto-repeat information in style
+        https://bugs.webkit.org/show_bug.cgi?id=157097
+
+        Reviewed by Darin Adler.
+
+        This is the second step to implement auto-repeat. This patch provides the necessary
+        machinery to store the auto-repeat data extracted by the parser in the RenderStyle class. We
+        are not doing anything with that information yet, it will be used later to compute the
+        number of auto-repeat tracks in a follow up patch.
+
+        No new tests required as there is no change in behavior yet (we're just storing the info we
+        already get from the parser).
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::valueForGridTrackList): Check also that the auto-repeat list of tracks is empty.
+        * css/StyleBuilderConverter.h:
+        (WebCore::createGridLineNamesList): Refactored from createGridTrackList.
+        (WebCore::StyleBuilderConverter::createGridTrackList): Extract auto-repeat data from the
+        parser. Also gathered all the out arguments in a single new struct called TracksData.
+        * css/StyleBuilderCustom.h: Added new macro SET_TRACKS_DATA which properly sets the info
+        from TracksData struct into style.
+        (WebCore::StyleBuilderCustom::applyValueWebkitGridTemplateColumns): Store auto-repeat data
+        in RenderStyle.
+        (WebCore::StyleBuilderCustom::applyValueWebkitGridTemplateRows): Ditto.
+        * rendering/style/RenderStyle.h: Add methods and attributes for auto-repeat data.
+        * rendering/style/RenderStyleConstants.h: New AutoRepeatType enumerated type.
+        * rendering/style/StyleGridData.cpp:
+        (WebCore::StyleGridData::StyleGridData): Add auto-repeat data.
+        * rendering/style/StyleGridData.h:
+        (WebCore::StyleGridData::operator==): Check also auto-repeat data.
+
+2016-04-28  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Fix alignment with content distribution
+        https://bugs.webkit.org/show_bug.cgi?id=156623
+
+        Reviewed by Sergio Villar Senin.
+
+        We were only subtracting the distribution offset for items spanning
+        several tracks, but not for items in a single cell.
+        We should actually subtract the offset in that situation too,
+        the same that we do for the grid gaps.
+
+        Test: fast/css-grid-layout/grid-content-alignment-and-self-alignment-spanning.html
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::columnAxisOffsetForChild): Subtract distribution
+        offset like we do for gaps.
+        (WebCore::RenderGrid::rowAxisOffsetForChild): Ditto.
+
+2016-04-27  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Overlay scrollbars with steppers enabled render incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=156988
+
+        Reviewed by Michael Catanzaro.
+
+        Fix rendering of scrollbars when using GTK+ themes having stepper buttons.
+
+        * platform/gtk/RenderThemeGadget.cpp:
+        (WebCore::RenderThemeBoxGadget::RenderThemeBoxGadget): Receive the box orientation as constructor parameter.
+        (WebCore::RenderThemeBoxGadget::preferredSize): Fix the preferred size calculation taking into account the box orientation.
+        (WebCore::RenderThemeScrollbarGadget::renderStepper): New method to render scrollbar steppers.
+        * platform/gtk/RenderThemeGadget.h:
+        (WebCore::RenderThemeGadget::context): Make this public instead of protected.
+        * platform/gtk/ScrollAnimatorGtk.cpp:
+        (WebCore::ScrollAnimatorGtk::updateOverlayScrollbarsOpacity): Invalidate the whole scrollbars instead of just
+        the thumb when opacity changes, because themes can actually render the trough or even stepper buttons when in
+        indicator mode too.
+        * platform/gtk/ScrollbarThemeGtk.cpp:
+        (WebCore::ScrollbarThemeGtk::hasButtons): Properly implement this method instead of returning true unconditionally.
+        (WebCore::contentsGadgetForLayout): Pass orientation to RenderThemeBoxGadget constructor.
+        (WebCore::ScrollbarThemeGtk::trackRect): Fix the calculation of the track rect taking stepper buttons into account.
+        (WebCore::ScrollbarThemeGtk::backButtonRect): Fix the calculation of the stepper button rectangle.
+        (WebCore::ScrollbarThemeGtk::forwardButtonRect): Ditto.
+        (WebCore::ScrollbarThemeGtk::paint): Use RenderThemeScrollbarGadget::renderStepper() to render the stepper
+        buttons, and fix the calculation of the steppers button rectangle.
+        (WebCore::ScrollbarThemeGtk::handleMousePressEvent): Handle clicks on stepper buttons.
+        (WebCore::ScrollbarThemeGtk::scrollbarThickness): Fix the calculation of the scrollbar thickness.
+        (WebCore::ScrollbarThemeGtk::minimumThumbLength): Pass orientation to RenderThemeBoxGadget constructor.
+        * platform/gtk/ScrollbarThemeGtk.h:
+        * rendering/RenderThemeGtk.cpp:
+        (WebCore::menuListColor): Ditto.
+        (WebCore::RenderThemeGtk::popupInternalPaddingBox): Ditto.
+        (WebCore::RenderThemeGtk::paintMenuList): Ditto.
+
+2016-04-27  Simon Fraser  <simon.fraser@apple.com>
+
+        SVG SMIL animations run at less than 60fps
+        https://bugs.webkit.org/show_bug.cgi?id=157119
+        rdar://problem/25971304
+
+        Reviewed by Tim Horton.
+        
+        If you re-fetch current time while doing animation computations you're gonna have
+        a bad time.
+        
+        More specifically, SMILTimeContainer::startTimer() re-fetched elapsedTime() when
+        computing the delay for the next timer fire, then clamped to 16.667ms, so the timer
+        would actually be scheduled at intervals greater than desired, causing a ~54fps framerate.
+        
+        Fix by using the elapsedTime fetched at the start of animation processing.
+
+        Tested by iOS content-animation performance tests.
+
+        * svg/SVGSVGElement.cpp:
+        (WebCore::SVGSVGElement::SVGSVGElement): Just cleanup.
+        * svg/animation/SMILTimeContainer.cpp:
+        (WebCore::SMILTimeContainer::notifyIntervalsChanged):
+        (WebCore::SMILTimeContainer::resume):
+        (WebCore::SMILTimeContainer::startTimer):
+        (WebCore::SMILTimeContainer::updateAnimations):
+        * svg/animation/SMILTimeContainer.h:
+
+2016-04-27  Brady Eidson  <beidson@apple.com>
+
+        Build fix followup to r200163
+        
+        Unreviewed.
+
+        * platform/efl/FileSystemEfl.cpp:
+        (WebCore::stringFromFileSystemRepresentation): At least stub this out for now until EFL folks can do better.
+
+2016-04-27  Saam barati  <sbarati@apple.com>
+
+        Move the implementation of Settings::globalConstRedeclarationShouldThrow into the cpp file
+        https://bugs.webkit.org/show_bug.cgi?id=157109
+
+        Rubber-stamped by Geoffrey Garen.
+
+        * page/Settings.cpp:
+        (WebCore::Settings::networkInterfaceName):
+        (WebCore::Settings::globalConstRedeclarationShouldThrow):
+        * page/Settings.h:
+        (WebCore::Settings::shouldUseHighResolutionTimers):
+        (WebCore::Settings::backgroundShouldExtendBeyondPage):
+        (WebCore::Settings::globalConstRedeclarationShouldThrow): Deleted.
+
+2016-04-27  Dean Jackson  <dino@apple.com>
+
+        RTL non-native <select> buttons should have arrows on the left
+        https://bugs.webkit.org/show_bug.cgi?id=157112
+        <rdar://problem/25894441>
+
+        Reviewed by Simon Fraser.
+
+        The <select> elements that are completely rendered by WebCore
+        (i.e. not the native controls) always assumed that they
+        were left-to-right.
+
+        This change allows the button to handle both directions,
+        swapping the side the little arrows are rendered on, as
+        well as the padding of the text label.
+
+        Test: fast/forms/select-non-native-rendering-direction.html
+
+        * rendering/RenderMenuList.cpp:
+        (RenderMenuList::clientPaddingLeft): This must take into account
+        the direction of the element.
+        (RenderMenuList::clientPaddingRight): Ditto.
+        * rendering/RenderThemeMac.mm: Change the left and right constants
+        to use the terms before and after.
+        (WebCore::RenderThemeMac::paintMenuListButtonDecorations): The left
+        and right positions must take the direction into account, which
+        means different calculations.
+        (WebCore::RenderThemeMac::popupInternalPaddingBox): Similarly for
+        the padding that is used to position the text label.
+
 2016-04-27  Simon Fraser  <simon.fraser@apple.com>
 
         CSS and SVG animations should run at 60fps

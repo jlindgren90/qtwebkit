@@ -1120,6 +1120,13 @@ bool Document::cssCompositingEnabled() const
     return RuntimeEnabledFeatures::sharedFeatures().cssCompositingEnabled();
 }
 
+#if ENABLE(CSS_GRID_LAYOUT)
+bool Document::isCSSGridLayoutEnabled() const
+{
+    return RuntimeEnabledFeatures::sharedFeatures().isCSSGridLayoutEnabled();
+}
+#endif
+
 #if ENABLE(CSS_REGIONS)
 
 RefPtr<DOMNamedFlowCollection> Document::webkitGetNamedFlows()
