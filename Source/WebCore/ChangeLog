@@ -1,3 +1,934 @@
+2016-04-30  Darin Adler  <darin@apple.com>
+
+        Update XMLHttpRequest to use enum class instead of string for enumeration
+        https://bugs.webkit.org/show_bug.cgi?id=157238
+
+        Reviewed by Chris Dumez.
+
+        * bindings/js/JSXMLHttpRequestCustom.cpp:
+        (WebCore::JSXMLHttpRequest::response): Rewrite to use responseType function
+        instead of responseTypeCode function.
+
+        * bindings/scripts/CodeGenerator.pm: Removed XMLHttpRequestResponseType
+        from the list of enumerations that use a string-based implementation.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetEnumerationImplementationContent): Use emptyString instead of ASCIILiteral
+        when the string constant is empty, to avoid the assertion.
+
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::XMLHttpRequest): Move simple scalar data member
+        initialization to where the data members are defined in the header.
+        (WebCore::XMLHttpRequest::responseText): Use m_responseType instead of
+        m_responseTypeCode.
+        (WebCore::XMLHttpRequest::didCacheResponseJSON): Ditto.
+        (WebCore::XMLHttpRequest::responseXML): Ditto.
+        (WebCore::XMLHttpRequest::responseBlob): Ditto.
+        (WebCore::XMLHttpRequest::responseArrayBuffer): Ditto.
+        (WebCore::XMLHttpRequest::setResponseType): Ditto.
+        (WebCore::XMLHttpRequest::responseType): Moved to header now that it's a
+        trivial function that should be inlined.
+        (WebCore::XMLHttpRequest::open): Use m_responseType instead of
+        m_responseTypeCode.
+        (WebCore::XMLHttpRequest::responseMIMEType): Removed one redundant check.
+        (WebCore::XMLHttpRequest::status): Ditto.
+        (WebCore::XMLHttpRequest::statusText): Ditto.
+        (WebCore::shouldDecodeResponse): Moved here from the header. This is now
+        a non-member function that gets passed a response type. It uses a switch
+        now instead of ordering the types so that the binary ones are all at the
+        end of the list.
+        (WebCore::XMLHttpRequest::didReceiveData): Use the new shouldDecodeResponse.
+        Also removed an unnecessary check that non-decoded responses are of type
+        "arraybuffer" or "blob"; that's the same check that shouldDecodeResponse does.
+
+        * xml/XMLHttpRequest.h: Removed some unneeded includes and forward declarations.
+        Removed a comment about the State values needing to be stable numbers; for one
+        thing the bindings already check that these values have no changed. It's not a
+        valuable comment. Removed ResponseTypeCode, responseTypeCode, and
+        m_responseTypeCode. Changed the type of the result of responseType and the
+        argument to setResponseType from a string to XMLHttpRequestResponseType.
+        Removed shouldDecodeResponse. Added the initial values for lots of data members
+        that are simple scalars, matching what was set in the constructor before.
+
+2016-04-30  Darin Adler  <darin@apple.com>
+
+        Streamline and remove unused bindings generation code
+        https://bugs.webkit.org/show_bug.cgi?id=157237
+
+        Reviewed by Chris Dumez.
+
+        * Modules/notifications/NotificationCenter.idl: Replace non-standard "int"
+        with standard "long", which means the same thing.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (UpdateFile): Use a better perl idiom for open.
+        (IsTypedArrayType): Use a hash instead of a list of checks in the code.
+        (IsRefPtrType): Use GetArrayOrSequenceType. Add handling for "any", which
+        is not a "RefPtr" type.
+        (IsWrapperType): Build on top of IsRefPtr type so we don't have to repeat
+        the list.
+        (getInterfaceExtendedAttributesFromName): Added a FIXME about why this is no good.
+        (ComputeIsCallbackInterface): Renamed.
+        (IsCallbackInterface): Added a cache so we don't keep reading the same file
+        over and over again. Added a FIXME about why this is no good.
+        (ComputeIsFunctionOnlyCallbackInterface): Ditto.
+        (IsFunctionOnlyCallbackInterface): Ditto.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AddIncludesForType): Use GetArrayOrSequenceType.
+        (IsScriptProfileType): Deleted.
+        (AddTypedefForScriptProfileType): Deleted.
+        (AddClassForwardIfNeeded): Streamlined the code and made the ScriptProfileNode
+        special case easier to read.
+        (GenerateParametersCheckExpression): Use GetArrayOrSequenceType.
+        (GetFunctionLength): Tweaked formatting and argument names.
+        (GenerateImplementation): Merged a couple checks into a single if statement.
+        (WillConvertUndefinedToDefaultParameterValue): Streamlined the function by
+        using a hash instead of a sequence of if statements for most cases.
+        (GetNativeType): Use GetArrayOrSequenceType.
+        (JSValueToNative): Do the integer conversion based on a hash rather than
+        with lots of separate lines of code. Moved more of the simple names down to
+        the bottom of the function and streamlined the logic. Removed unnecessary
+        includes of the DOM headers directly, since our header file includes those.
+        (NativeToJSValue): Factored out the global object handling so it works across
+        more cases. Simplified the logic for dates. Use IsNumericType instead of
+        IsPrimitiveType to guard code that is right only for the numeric types.
+        Removed code to handle "Symbol" since we don't ever use that.
+
+        * bindings/scripts/test/JS/JSTestCallback.cpp:
+        * bindings/scripts/test/JS/JSTestCallbackFunction.cpp:
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        Regenerated.
+
+        * bindings/scripts/test/TestObj.idl: Removed test coverage for Symbol, which
+        we never use anywhere.
+
+        * html/canvas/EXTBlendMinMax.idl: Replace non-standard "int" with standard
+        "long", which means the same thing.
+        * html/canvas/EXTTextureFilterAnisotropic.idl: Ditto.
+        * html/canvas/EXTsRGB.idl: Ditto.
+        * html/canvas/OESStandardDerivatives.idl: Ditto.
+        * html/canvas/OESVertexArrayObject.idl: Ditto.
+        * html/canvas/WebGLCompressedTextureATC.idl: Ditto.
+        * html/canvas/WebGLCompressedTexturePVRTC.idl: Ditto.
+        * html/canvas/WebGLCompressedTextureS3TC.idl: Ditto.
+        * html/canvas/WebGLDebugRendererInfo.idl: Ditto.
+        * html/canvas/WebGLDepthTexture.idl: Ditto.
+
+2016-04-30  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Pass even more types by reference
+        https://bugs.webkit.org/show_bug.cgi?id=157231
+
+        Reviewed by Darin Adler.
+
+        Pass even more types by reference when the parameters are not marked as
+        nullable in the IDL.
+
+        * Modules/encryptedmedia/MediaKeySession.cpp:
+        (WebCore::MediaKeySession::generateKeyRequest):
+        (WebCore::MediaKeySession::keyRequestTimerFired):
+        (WebCore::MediaKeySession::update):
+        (WebCore::MediaKeySession::addKeyTimerFired):
+        * Modules/encryptedmedia/MediaKeySession.h:
+        * Modules/encryptedmedia/MediaKeys.cpp:
+        (WebCore::MediaKeys::createSession):
+        * Modules/encryptedmedia/MediaKeys.h:
+        * Modules/encryptedmedia/MediaKeys.idl:
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::appendBuffer):
+        (WebCore::SourceBuffer::resetParserState): Deleted.
+        * Modules/mediasource/SourceBuffer.h:
+        * Modules/mediastream/RTCDataChannel.cpp:
+        (WebCore::RTCDataChannel::send):
+        * Modules/mediastream/RTCDataChannel.h:
+        * Modules/webaudio/AnalyserNode.h:
+        (WebCore::AnalyserNode::getFloatFrequencyData):
+        (WebCore::AnalyserNode::getByteFrequencyData):
+        (WebCore::AnalyserNode::getByteTimeDomainData):
+        * Modules/webaudio/AnalyserNode.idl:
+        * Modules/webaudio/AudioContext.cpp:
+        (WebCore::AudioContext::createPeriodicWave):
+        * Modules/webaudio/AudioContext.h:
+        * Modules/webaudio/AudioParam.h:
+        (WebCore::AudioParam::setValueCurveAtTime):
+        * Modules/webaudio/AudioParam.idl:
+        * Modules/webaudio/BiquadFilterNode.cpp:
+        (WebCore::BiquadFilterNode::getFrequencyResponse):
+        * Modules/webaudio/BiquadFilterNode.h:
+        * Modules/webaudio/BiquadFilterNode.idl:
+        * Modules/webaudio/PeriodicWave.cpp:
+        (WebCore::PeriodicWave::create):
+        (WebCore::PeriodicWave::createSine): Deleted.
+        * Modules/webaudio/PeriodicWave.h:
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::WebSocket::send):
+        * Modules/websockets/WebSocket.h:
+        * bindings/js/JSWebGLRenderingContextBaseCustom.cpp:
+        (WebCore::dataFunctionf):
+        (WebCore::dataFunctioni):
+        (WebCore::dataFunctionMatrix):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        (ShouldPassWrapperByReference):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionDomStringListFunction):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::constructJSTestOverloadedConstructors2):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::webkitAddKey):
+        (WebCore::HTMLMediaElement::webkitCancelKeyRequest): Deleted.
+        * html/HTMLMediaElement.h:
+        * html/HTMLMediaElement.idl:
+        * html/ImageData.cpp:
+        (WebCore::ImageData::create):
+        (WebCore::ImageData::ImageData):
+        * html/ImageData.h:
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::getImageData):
+        * html/canvas/WebGL2RenderingContext.cpp:
+        (WebCore::WebGL2RenderingContext::texImage3D):
+        (WebCore::WebGL2RenderingContext::texSubImage3D):
+        (WebCore::WebGL2RenderingContext::compressedTexImage3D):
+        (WebCore::WebGL2RenderingContext::compressedTexSubImage3D):
+        (WebCore::WebGL2RenderingContext::uniform1uiv):
+        (WebCore::WebGL2RenderingContext::uniform2uiv):
+        (WebCore::WebGL2RenderingContext::uniform3uiv):
+        (WebCore::WebGL2RenderingContext::uniform4uiv):
+        (WebCore::WebGL2RenderingContext::uniformMatrix2x3fv):
+        (WebCore::WebGL2RenderingContext::uniformMatrix3x2fv):
+        (WebCore::WebGL2RenderingContext::uniformMatrix2x4fv):
+        (WebCore::WebGL2RenderingContext::uniformMatrix4x2fv):
+        (WebCore::WebGL2RenderingContext::uniformMatrix3x4fv):
+        (WebCore::WebGL2RenderingContext::uniformMatrix4x3fv):
+        (WebCore::WebGL2RenderingContext::vertexAttribI4iv):
+        (WebCore::WebGL2RenderingContext::vertexAttribI4uiv):
+        (WebCore::WebGL2RenderingContext::clearBufferiv):
+        (WebCore::WebGL2RenderingContext::clearBufferuiv):
+        (WebCore::WebGL2RenderingContext::clearBufferfv):
+        (WebCore::WebGL2RenderingContext::getActiveUniforms):
+        (WebCore::WebGL2RenderingContext::texSubImage2D):
+        * html/canvas/WebGL2RenderingContext.h:
+        * html/canvas/WebGL2RenderingContext.idl:
+        * html/canvas/WebGLRenderingContext.cpp:
+        (WebCore::WebGLRenderingContext::texSubImage2D):
+        * html/canvas/WebGLRenderingContext.h:
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::bufferData):
+        (WebCore::WebGLRenderingContextBase::bufferSubData):
+        (WebCore::WebGLRenderingContextBase::compressedTexImage2D):
+        (WebCore::WebGLRenderingContextBase::compressedTexSubImage2D):
+        (WebCore::WebGLRenderingContextBase::readPixels):
+        (WebCore::WebGLRenderingContextBase::texImage2D):
+        (WebCore::WebGLRenderingContextBase::uniform1fv):
+        (WebCore::WebGLRenderingContextBase::uniform1iv):
+        (WebCore::WebGLRenderingContextBase::uniform2fv):
+        (WebCore::WebGLRenderingContextBase::uniform2iv):
+        (WebCore::WebGLRenderingContextBase::uniform3fv):
+        (WebCore::WebGLRenderingContextBase::uniform3iv):
+        (WebCore::WebGLRenderingContextBase::uniform4fv):
+        (WebCore::WebGLRenderingContextBase::uniform4iv):
+        (WebCore::WebGLRenderingContextBase::uniformMatrix2fv):
+        (WebCore::WebGLRenderingContextBase::uniformMatrix3fv):
+        (WebCore::WebGLRenderingContextBase::uniformMatrix4fv):
+        (WebCore::WebGLRenderingContextBase::vertexAttrib1fv):
+        (WebCore::WebGLRenderingContextBase::vertexAttrib2fv):
+        (WebCore::WebGLRenderingContextBase::vertexAttrib3fv):
+        (WebCore::WebGLRenderingContextBase::vertexAttrib4fv):
+        (WebCore::WebGLRenderingContextBase::validateCompressedTexFuncData):
+        (WebCore::WebGLRenderingContextBase::validateUniformParameters):
+        (WebCore::WebGLRenderingContextBase::validateUniformMatrixParameters):
+        (WebCore::WebGLRenderingContextBase::vertexAttribfvImpl):
+        (WebCore::WebGLRenderingContextBase::validateSettableTexFormat): Deleted.
+        (WebCore::WebGLRenderingContextBase::uniform1i): Deleted.
+        (WebCore::WebGLRenderingContextBase::uniform2i): Deleted.
+        (WebCore::WebGLRenderingContextBase::uniform3f): Deleted.
+        (WebCore::WebGLRenderingContextBase::uniform3i): Deleted.
+        (WebCore::WebGLRenderingContextBase::uniform4f): Deleted.
+        (WebCore::WebGLRenderingContextBase::uniform4i): Deleted.
+        (WebCore::WebGLRenderingContextBase::useProgram): Deleted.
+        (WebCore::WebGLRenderingContextBase::vertexAttribPointer): Deleted.
+        (WebCore::WebGLRenderingContextBase::validateCompressedTexDimensions): Deleted.
+        (WebCore::WebGLRenderingContextBase::validateBufferDataParameters): Deleted.
+        * html/canvas/WebGLRenderingContextBase.h:
+        * html/canvas/WebGLRenderingContextBase.idl:
+        * testing/Internals.cpp:
+        (WebCore::Internals::createTimeRanges):
+        * testing/Internals.h:
+
+2016-04-30  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Node.prototype.rootNode is not Web compatible
+        https://bugs.webkit.org/show_bug.cgi?id=157233
+
+        Reviewed by Chris Dumez.
+
+        Turns out that the name rootNode is not Web compatible. Remove the method for now
+        until we can come up with a better name in https://github.com/whatwg/dom/issues/241.
+
+        No new tests since we're just removing a method.
+
+        * dom/Node.idl:
+
+2016-04-30  Darin Adler  <darin@apple.com>
+
+        Try to fix GTK build.
+
+        * testing/Internals.h: Added conditional around include of
+        MediaSessionInterruptionProvider.h.
+
+2016-04-30  Darin Adler  <darin@apple.com>
+
+        Stop using old-style string-based enums in Internals.idl
+        https://bugs.webkit.org/show_bug.cgi?id=157235
+
+        Reviewed by Chris Dumez.
+
+        * bindings/scripts/CodeGenerator.pm: Removed the six enumeration names
+        that are used in Internals.idl.
+        (GenerateCompileTimeCheckForEnumsIfNeeded): Unrelated cleanup. Tighten
+        code and use static_assert instead of COMPILE_ASSERT.
+        (IsStringType): Marked this function as deprecated. Calling a function
+        just to check if something is specifically "DOMString" isn't a good pattern.
+        Lots of call sites were checking "DOMString" directly and there is no
+        reason to mix the two different idioms.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetEnumerationImplementationContent): Use GenerateConditionalString.
+        (GenerateImplementation): Use static_assert instead of COMPILE_ASSERT.
+        (GenerateCallbackHeader): Tighten code. Remove peculiar code that was
+        trying to emit COMPILE_ASSERT(false); not an important case to detect, and
+        if we did want to detect it, then having the code generator report an error
+        is better than COMPILE_ASSERT when compiling the output.
+        (NativeToJSValue): Stop using IsStringType.
+
+        * bindings/scripts/CodeGeneratorObjC.pm:
+        (GetClassName): Stop using IsStringType.
+        (GetPropertyAttributes): Ditto.
+        (ConversionNeeded): Ditto.
+        (GetObjCTypeGetter): Ditto.
+        (AddIncludesForType): Ditto.
+        (GenerateImplementation): Removed unused @needsAssert. It was a write-only
+        variable.
+
+        * bindings/scripts/IDLParser.pm:
+        (parseEnum): Put the extended attributes into the enumeration object.
+
+        * bindings/scripts/test/TestObj.idl: Added test cases for the Conditional
+        extended attribute, used with enumerations.
+
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        * bindings/scripts/test/JS/JSTestCallback.cpp:
+        * bindings/scripts/test/JS/JSTestCallback.h:
+        * bindings/scripts/test/JS/JSTestCallbackFunction.h:
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.cpp:
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestEventTarget.cpp:
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.cpp:
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp:
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        * bindings/scripts/test/JS/JSreadonly.cpp:
+        Regenerated.
+
+        * testing/Internals.cpp:
+        (WebCore::toResourceRequestCachePolicy): Take enum instead of string.
+        (WebCore::Internals::setOverrideCachePolicy): Ditto.
+        (WebCore::toResourceLoadPriority): Ditto.
+        (WebCore::Internals::setOverrideResourceLoadPriority): Ditto.
+        (WebCore::toAutoFillButtonType): Ditto.
+        (WebCore::Internals::setShowAutoFillButton): Ditto.
+        (WebCore::interruptingCategoryFromString): Deleted.
+        (WebCore::Internals::sendMediaSessionStartOfInterruptionNotification): Ditto.
+        (WebCore::Internals::sendMediaSessionEndOfInterruptionNotification): Ditto.
+        (WebCore::Internals::sendMediaControlEvent): Ditto.
+        (WebCore::Internals::installMockPageOverlay): Ditto.
+
+        * testing/Internals.h: Added enum class and use those instead of strings for
+        enumerations defined in the IDL.
+
+        * testing/Internals.idl: Renamed enumerations that conflict with ones that already
+        exist in WebCore; added Internals prefix. Made MediaSessionInterruptingCategory and
+        MediaControlEvent conditional to match the functions they are used on. Added some
+        FIXMEs about peculiarities of some of the enumerations.
+
+2016-04-30  Darin Adler  <darin@apple.com>
+
+        Fixed expected results from bindings tests.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp: Regenerated.
+
+2016-04-30  Darin Adler  <darin@apple.com>
+
+        Next batch of conversions to use C++ enum class instead of strings for enumerations
+        https://bugs.webkit.org/show_bug.cgi?id=157232
+
+        Reviewed by Chris Dumez.
+
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::error): Use ResponseType.
+        (WebCore::FetchResponse::redirect): Ditto.
+        (WebCore::FetchResponse::FetchResponse): Ditto.
+        (WebCore::FetchResponse::clone): Ditto.
+        (WebCore::FetchResponse::type): Return ResponseType.
+        (WebCore::FetchResponse::startFetching): Use auto.
+        * Modules/fetch/FetchResponse.h: Added ResponseType and used it for the return value
+        of the type function, and also to replace FetchResponse::Type.
+
+        * Modules/mediacontrols/MediaControlsHost.cpp:
+        (WebCore::MediaControlsHost::externalDeviceType): Return DeviceType.
+        * Modules/mediacontrols/MediaControlsHost.h: Added DeviceType and use it for the
+        return value for the externalDeviceType function.
+
+        * Modules/mediasession/MediaSession.cpp:
+        (WebCore::MediaSession::parseKind): Deleted.
+        (WebCore::MediaSession::MediaSession): Use MediaSessionKind.
+        (WebCore::MediaSession::kind): Deleted.
+        * Modules/mediasession/MediaSession.h: Added MediaSessionKind and use it as the
+        argument to MediaSession::create and the return type for the kind function.
+        Probably didn't get this 100% right because this code does not seem to be compiled.
+        * Modules/mediasession/MediaSession.idl: Added default value for kind, as specified
+        in the current version of the specification for this class.
+        * Modules/mediasession/MediaSessionManager.cpp:
+        (WebCore::MediaSessionManager::didReceiveStartOfInterruptionNotification):
+        Tried to update for changes above.
+        (WebCore::MediaSessionManager::didReceiveEndOfInterruptionNotification): Ditto.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::endOfStream): Changed to take Optional<EndOfStreamError>
+        instead of overloading and taking const AtomicString&.
+        (WebCore::MediaSource::streamEndedWithError): Ditto. Also removed exception code.
+        (WebCore::MediaSource::addSourceBuffer): Updated to use EndOfStreamError. Also
+        used an if statement.
+        (WebCore::MediaSource::sourceBufferDidChangeActiveState): Updated to take a reference
+        instead of a pointer.
+        * Modules/mediasource/MediaSource.h: Added EndOfStreamError and changed as above.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::segmentsKeyword): Deleted.
+        (WebCore::SourceBuffer::sequenceKeyword): Deleted.
+        (WebCore::SourceBuffer::TrackBuffer::TrackBuffer): Initialize booleans where they are
+        defined rather than in this constructor.
+        (WebCore::SourceBuffer::create): Use Ref instead of RefPtr.
+        (WebCore::SourceBuffer::SourceBuffer): Initialize many data members where they are
+        defined rather than in this constructor.
+        (WebCore::SourceBuffer::setTimestampOffset): Use AppendMode.
+        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveRenderingError): Ditto.
+        (WebCore::SourceBuffer::decodeError): Deleted.
+        (WebCore::SourceBuffer::networkError): Deleted.
+        (WebCore::SourceBuffer::setActive): Pass reference instead of pointer.
+        (WebCore::SourceBuffer::sourceBufferPrivateDidEndStream): Deleted. No callers.
+        (WebCore::SourceBuffer::appendError): Use AppendMode.
+        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample): Ditto.
+        (WebCore::SourceBuffer::setMode): Take AppendMode.
+        * Modules/mediasource/SourceBuffer.h: Added AppendMode, removed various string
+        constant functions, initialize more data emebers in this header. Removed unused
+        sourceBufferPrivateDidEndStream function.
+
+        * Modules/mediastream/MediaDeviceInfo.cpp:
+        (WebCore::MediaDeviceInfo::MediaDeviceInfo): Take MediaDeviceKind instead of string.
+        (WebCore::MediaDeviceInfo::create): Ditto.
+        (WebCore::MediaDeviceInfo::audioInputType): Deleted.
+        (WebCore::MediaDeviceInfo::audioOutputType): Deleted.
+        (WebCore::MediaDeviceInfo::videoInputType): Deleted.
+        * Modules/mediastream/MediaDeviceInfo.h: Aedded MediaDeviceKind and used it.
+        * Modules/mediastream/MediaDeviceInfo.idl: Changed type of the kind attribute
+        to be MediaDeviceKind as in the specification.
+
+        * Modules/mediastream/MediaDevicesRequest.cpp:
+        (WebCore::MediaDevicesRequest::didCompleteTrackSourceInfoRequest): Fix loop to not
+        churn the reference countds. Also updated to use String instead of AtomicString for
+        label, and MediaDeviceKind instead of string for kind.
+
+        * Modules/mediastream/MediaStreamTrack.cpp:
+        (WebCore::MediaStreamTrack::readyState): Return MediaStreamTrackState.
+        * Modules/mediastream/MediaStreamTrack.h: Added MediaStreamTrackState and used it
+        for the return value from the readyState function.
+
+        * Modules/webaudio/AudioContext.cpp:
+        (WebCore::AudioContext::state): Return AudioContextState.
+        * Modules/webaudio/AudioContext.h: Added AudioContextState and used it.
+
+        * Modules/webaudio/WaveShaperNode.cpp:
+        (WebCore::processorType): Added.
+        (WebCore::WaveShaperNode::setOversample): Take OverSampletype instead of a string.
+        (WebCore::WaveShaperNode::oversample): Return OverSampleType.
+        * Modules/webaudio/WaveShaperNode.h: Added OverSampleType and used it.
+        * Modules/webaudio/WaveShaperNode.idl: Removed unneeded [SetterRaisesException].
+
+        * bindings/scripts/CodeGenerator.pm: Removed special cases for 18 enumerations that
+        either don't exist or were converted to no longer pass strings in to the C++ DOM.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeaderContentHeader): Use #pragma once instead of header guards.
+        (GetEnumerationValueName): Added logic to handle names with "-" and starting with
+        a numeric digit.
+        (GetEnumerationImplementationContent): Changed functions so they do more of the
+        binding work. Added JSValueTraits specialization so we can generate bindings for
+        a vector of any enumeration. Added special cases for null string. Removed special
+        case to keep the style checker happy.
+        (GenerateHeader): Removed the #endif that matched the header guards in
+        GenerateHeaderContentHeader.
+        (GenerateImplementation): Use the $type local variable rather than writing out
+        $attribute->signature->type or $attributeType. Fixed code path that checks for
+        valid enumeration values to work for non-string-based enumerations.
+        (CanUseWTFOptionalForParameter): Turn this function off for the new enumerations.
+        For now, leave it on for the old string-based enumerations.
+        (GenerateParametersCheck): Added appropriate parameter checking for the new
+        enumerations.
+        (GenerateCallbackHeader): Removed the #endif that matched the header guards in
+        GenerateHeaderContentHeader.
+        (GetNativeType): Use "auto" instead of the enumeration name in generated code.
+        (JSValueToNative): Updated since the name of enumerationValueMyEnum was changed
+        to parseMyEnum.
+        (NativeToJSValue): Took out call to stringValue, since we now overload the
+        jsStringWithCache function instead.
+
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.h:
+        * bindings/scripts/test/JS/JSTestCallback.h:
+        * bindings/scripts/test/JS/JSTestCallbackFunction.h:
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.h:
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.h:
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.h:
+        * bindings/scripts/test/JS/JSTestEventConstructor.h:
+        * bindings/scripts/test/JS/JSTestEventTarget.h:
+        * bindings/scripts/test/JS/JSTestException.h:
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.h:
+        * bindings/scripts/test/JS/JSTestGlobalObject.h:
+        * bindings/scripts/test/JS/JSTestInterface.h:
+        * bindings/scripts/test/JS/JSTestJSBuiltinConstructor.h:
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.h:
+        * bindings/scripts/test/JS/JSTestNamedConstructor.h:
+        * bindings/scripts/test/JS/JSTestNode.h:
+        * bindings/scripts/test/JS/JSTestNondeterministic.h:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestObj.h:
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.h:
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.h:
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.h:
+        * bindings/scripts/test/JS/JSTestTypedefs.h:
+        * bindings/scripts/test/JS/JSattribute.h:
+        * bindings/scripts/test/JS/JSreadonly.h:
+        Regenerated.
+
+        * crypto/CryptoKey.cpp:
+        (WebCore::CryptoKey::type): Use CryptoKeyType.
+        (WebCore::CryptoKey::usages): Use KeyUsage.
+        * crypto/CryptoKey.h: Added KeyUsage and use CryptoKeyType.
+
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::status): Use FontFaceSetLoadStatus.
+        * css/FontFaceSet.h: Added FontFaceSetLoadStatus and used it.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::playInternal): Use kind instead of kindEnum.
+
+        * html/HTMLVideoElement.cpp:
+        (WebCore::presentationModeFullscreen): Deleted.
+        (WebCore::presentationModePictureInPicture): Deleted.
+        (WebCore::presentationModeInline): Deleted.
+        (WebCore::HTMLVideoElement::webkitSupportsPresentationMode): Use VideoPresentationMode.
+        (WebCore::toFullscreenMode): Ditto.
+        (WebCore::HTMLVideoElement::webkitSetPresentationMode): Ditto.
+        (WebCore::toPresentationMode): Ditto.
+        (WebCore::HTMLVideoElement::webkitPresentationMode): Ditto.
+        * html/HTMLVideoElement.h: Added VideoPresentationMode and used it.
+
+        * html/canvas/CanvasRenderingContext2D.cpp: Tweaked formatting. Changed
+        DefaultSmoothingQuality macro to a constant.
+        (WebCore::toWindRule): Replaces parseWinding.
+        (WebCore::CanvasRenderingContext2D::fill): Use CanvasWindingRule instead of string.
+        (WebCore::CanvasRenderingContext2D::clip): Ditto.
+        (WebCore::CanvasRenderingContext2D::fillInternal): Ditto.
+        (WebCore::CanvasRenderingContext2D::clipInternal): Ditto.
+        (WebCore::CanvasRenderingContext2D::isPointInPath): Ditto.
+        (WebCore::CanvasRenderingContext2D::isPointInStroke): Ditto.
+        (WebCore::CanvasRenderingContext2D::isPointInPathInternal): Ditto.
+        (WebCore::smoothingToInterpolationQuality): Ditto.
+        (WebCore::CanvasRenderingContext2D::imageSmoothingQuality): Ditto.
+        (WebCore::CanvasRenderingContext2D::setImageSmoothingQuality): Ditto.
+        * html/canvas/CanvasRenderingContext2D.h: Added CanvasWindingRule and
+        ImageSmoothingQuality, and use them throughout the class.
+
+        * platform/graphics/SourceBufferPrivateClient.h: Removed unused
+        sourceBufferPrivateDidEndStream function.
+
+2016-04-30  Nan Wang  <n_wang@apple.com>
+
+        AX: @aria-label attribute should work on <label> element
+        https://bugs.webkit.org/show_bug.cgi?id=157219
+
+        Reviewed by Chris Fleizach.
+
+        When there's aria-label on a <label> element, we shouldn't expose it
+        as the titleUIElement. Instead, we return its aria-label as a title.
+
+        Test: accessibility/mac/aria-label-on-label-element.html
+
+        * accessibility/AccessibilityNodeObject.cpp:
+        (WebCore::AccessibilityNodeObject::titleElementText):
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::exposesTitleUIElement):
+
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.mm:
+        (WebCore::WebPlaybackSessionModelMediaElement::updateForEventName):
+        Use DeviceType instead of String for externalDeviceType.
+
+2016-04-29  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Specify default parameter values for callback parameters
+        https://bugs.webkit.org/show_bug.cgi?id=157188
+
+        Reviewed by Darin Adler.
+
+        Specify default parameter values for callback parameters.
+
+        * Modules/geolocation/Geolocation.idl:
+        * Modules/notifications/Notification.cpp:
+        (WebCore::Notification::requestPermission):
+        * Modules/notifications/Notification.h:
+        * Modules/notifications/Notification.idl:
+        * Modules/notifications/NotificationCenter.idl:
+        * Modules/quota/StorageInfo.cpp:
+        (WebCore::StorageInfo::queryUsageAndQuota):
+        (WebCore::StorageInfo::requestQuota):
+        * Modules/quota/StorageInfo.h:
+        * Modules/quota/StorageInfo.idl:
+        * Modules/quota/StorageQuota.h:
+        * Modules/quota/StorageQuota.idl:
+        * Modules/webaudio/AudioContext.idl:
+        * Modules/webdatabase/DOMWindowWebDatabase.cpp:
+        (WebCore::DOMWindowWebDatabase::openDatabase):
+        * Modules/webdatabase/DOMWindowWebDatabase.h:
+        (WebCore::DOMWindowWebDatabase::DOMWindowWebDatabase):
+        (WebCore::DOMWindowWebDatabase::~DOMWindowWebDatabase):
+        * Modules/webdatabase/DOMWindowWebDatabase.idl:
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::runTransaction):
+        (WebCore::Database::changeVersion):
+        (WebCore::Database::transaction):
+        (WebCore::Database::readTransaction):
+        * Modules/webdatabase/Database.h:
+        * Modules/webdatabase/Database.idl:
+        * Modules/webdatabase/SQLTransaction.idl:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        (CanUseWTFOptionalForParameter): Deleted.
+        * bindings/scripts/test/TestObj.idl:
+        * dom/DataTransferItem.h:
+        * dom/DataTransferItem.idl:
+
+2016-04-28  Darin Adler  <darin@apple.com>
+
+        First step in using "enum class" instead of "String" for enumerations in DOM
+        https://bugs.webkit.org/show_bug.cgi?id=157163
+
+        Reviewed by Chris Dumez.
+
+        This patch adds the basic support for using "enum class" to implement enumerations
+        in the C++ DOM. This is enough so we can use it for one case, but not enough for
+        others. For example, it correctly generates code to get an attribute, but likely
+        does not correctly generate code to set an attribute or call a function with an
+        argument type that is the new style of enum.
+
+        * bindings/scripts/CodeGenerator.pm: Cleaned up the formatting of the hashes
+        at the start of this file. Added a new one named stringBasedEnumerationHash
+        and a comment explaining that we need to eventually make it empty.
+        (ProcessDocument): Pass the enumerations into the GenerateInterface function.
+        (IsStringBasedEnumType): Added. Returns 1 for the old-style string-based enumerations,
+        as opposed to enumerations we use "enum class" for.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateInterface): Take the enumerations argument and pass it along to the
+        functions that generate headers and implementation files.
+        (EnumerationClassName): Added. Maps from an enumeration type name as seen
+        in the IDL file to the enumeration class name used in the C++ DOM implementation.
+        (EnumerationValueName): Added. Maps from an anumeration string value as seen
+        in the IDL file to an enumeration value name used in the C++ DOM implementatino.
+        (EnumerationImplementationContent): Added. Generates a string with all the content
+        needed in the implementation file to define the helper functions for enumerations.
+        (GenerateHeader): Tweak.
+        (GenerateImplementation): Added call to EnumerationImplementationContent.
+        (GenerateParametersCheck): Use toWTFString instead of toString/value, which is a
+        longer way of writing out the same thing.
+        (GenerateCallbackHeader): Tweak.
+        (GenerateCallbackImplementation): Added call to EnumerationImplementationContent.
+        (GetNativeType): Continue to return String for string-based enum types, but for
+        other enum types, return the result of EnumerationClassName instead.
+        (JSValueToNative): Use toWTFString instead of toString/value (see above), convert
+        to a string only for string-based enum types, and add a preliminary, probably not
+        yet working, version of the code for non-string-based enum types. Will finish this
+        in the next patch when we are trying to use one of the new enumerations for a setter
+        or a function argument.
+        (NativeToJSValue): Call the stringValue function to convert an enumeration value
+        into a string when it's not a string-based enumeration.
+
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestObj.h:
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        Regenerated.
+
+        * css/FontFace.cpp:
+        (WebCore::FontFace::status): Updated to return enum values rather than strings.
+
+        * css/FontFace.h: Removed unneeded forward declaration of Deprecated::ScriptValue.
+        Added enum class for FontFaceLoadStatus, with names that match the names from the
+        enumeration in the IDL, but with our standard enum capitalization style. Changed
+        the return value of the status function to FontFaceLoadStatus.
+
+2016-04-29  Chris Dumez  <cdumez@apple.com>
+
+        Get rid of unnecessary null check in wrap(JSDOMGlobalObject*, DOMClass*)
+        https://bugs.webkit.org/show_bug.cgi?id=157224
+
+        Reviewed by Ryosuke Niwa.
+
+        Get rid of unnecessary null check in wrap(JSDOMGlobalObject*, DOMClass*)
+        since all the call sites already do a null check. Also update the function
+        to take the implementation object by reference instead of pointer. Finally,
+        use is<>() / downcast<>() more at the call sites.
+
+        * Modules/indexeddb/IDBCursor.cpp:
+        (WebCore::IDBCursor::update):
+        (WebCore::IDBCursor::deleteFunction):
+        (WebCore::IDBCursor::setGetResult):
+        * Modules/indexeddb/IDBCursor.h:
+        (WebCore::IDBCursor::isKeyCursorWithValue):
+        (WebCore::IDBCursor::isKeyCursor): Deleted.
+        * Modules/indexeddb/IDBCursorWithValue.h:
+        (isType):
+        * bindings/js/JSBlobCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSCanvasRenderingContextCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::wrap):
+        * bindings/js/JSIDBCursorCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSMediaStreamCapabilitiesCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSPerformanceEntryCustom.cpp:
+        (WebCore::toJS):
+        * html/canvas/WebGL2RenderingContext.h:
+        * html/canvas/WebGLRenderingContext.h:
+        * page/PerformanceMark.h:
+        (isType):
+        (WebCore::PerformanceMark::isMark): Deleted.
+        * page/PerformanceMeasure.h:
+        (isType):
+        (WebCore::PerformanceMeasure::isMeasure): Deleted.
+        * page/PerformanceResourceTiming.h:
+        (isType):
+        (WebCore::PerformanceResourceTiming::isResource): Deleted.
+
+2016-04-29  Chris Dumez  <cdumez@apple.com>
+
+        Use LIKELY() / UNLIKELY() hints when suitable in the JavaScript bindings
+        https://bugs.webkit.org/show_bug.cgi?id=157210
+
+        Reviewed by Darin Adler.
+
+        Use LIKELY() / UNLIKELY() hints when suitable in the JavaScript bindings.
+        We already make use of them in the JS bindings but they are some cases
+        where we don't and they may be useful.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateOverloadedFunction):
+        (GenerateImplementation):
+        (GenerateParametersCheck):
+        (GenerateImplementationFunctionCall):
+        (GenerateOverloadedConstructorDefinition):
+        (GenerateConstructorDefinition):
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        (WebCore::jsTestActiveDOMObjectConstructor):
+        (WebCore::jsTestActiveDOMObjectPrototypeFunctionExcitingFunction):
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.cpp:
+        (WebCore::jsTestClassWithJSBuiltinConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.cpp:
+        (WebCore::jsTestCustomConstructorWithNoInterfaceObjectConstructor):
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        (WebCore::jsTestCustomNamedGetterConstructor):
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        (WebCore::jsTestEventConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestEventTarget.cpp:
+        (WebCore::JSTestEventTarget::getOwnPropertySlotByIndex):
+        (WebCore::jsTestEventTargetConstructor):
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        (WebCore::jsTestExceptionConstructor):
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.cpp:
+        (WebCore::jsTestGenerateIsReachableConstructor):
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::jsTestGlobalObjectConstructor):
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::JSTestInterfaceConstructor::construct):
+        (WebCore::jsTestInterfaceConstructor):
+        (WebCore::jsTestInterfacePrototypeFunctionImplementsMethod2):
+        (WebCore::jsTestInterfacePrototypeFunctionSupplementalMethod2):
+        * bindings/scripts/test/JS/JSTestJSBuiltinConstructor.cpp:
+        (WebCore::jsTestJSBuiltinConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp:
+        (WebCore::jsTestMediaQueryListListenerConstructor):
+        (WebCore::jsTestMediaQueryListListenerPrototypeFunctionMethod):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::JSTestNamedConstructorNamedConstructor::construct):
+        (WebCore::jsTestNamedConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::jsTestNodeConstructor):
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        (WebCore::jsTestNondeterministicConstructor):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjConstructor::construct):
+        (WebCore::JSTestObj::getOwnPropertySlotByIndex):
+        (WebCore::jsTestObjTestSubObjEnabledBySettingConstructor):
+        (WebCore::jsTestObjConstructor):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation):
+        (WebCore::jsTestObjPrototypeFunctionVoidMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionByteMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionOctetMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionLongMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionObjMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionMethodThatRequiresAllArgsAndThrows):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackFunctionArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackFunctionArg):
+        (WebCore::jsTestObjConstructorFunctionStaticMethodWithCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod5):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod8):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod1):
+        (WebCore::jsTestObjPrototypeFunctionConvert1):
+        (WebCore::jsTestObjPrototypeFunctionStrictFunctionWithSequence):
+        (WebCore::jsTestObjPrototypeFunctionStrictFunctionWithArray):
+        (WebCore::jsTestObjPrototypeFunctionVariadicNodeMethod):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::constructJSTestOverloadedConstructors1):
+        (WebCore::constructJSTestOverloadedConstructors3):
+        (WebCore::JSTestOverloadedConstructorsConstructor::construct):
+        (WebCore::jsTestOverloadedConstructorsConstructor):
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        (WebCore::jsTestOverrideBuiltinsConstructor):
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        (WebCore::jsTestSerializedScriptValueInterfaceConstructor):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::JSTestTypedefsConstructor::construct):
+        (WebCore::jsTestTypedefsConstructor):
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        (WebCore::jsattributeConstructor):
+        * bindings/scripts/test/JS/JSreadonly.cpp:
+        (WebCore::jsreadonlyConstructor):
+
+2016-04-29  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Rename getAssignedNodes to assignedNodes and support flattened option
+        https://bugs.webkit.org/show_bug.cgi?id=157225
+
+        Reviewed by Antti Koivisto.
+
+        Renamed getAssignedNodes and added the the support for {flattened: true/false} as spec'ed at
+        http://w3c.github.io/webcomponents/spec/shadow/#widl-HTMLSlotElement-assignedNodes-sequence-Node--AssignedNodesOptions-options
+
+        Test: fast/shadow-dom/HTMLSlotElement-interface.html
+
+        * html/HTMLSlotElement.cpp:
+        (WebCore::flattenAssignedNodes): Added.
+        (WebCore::HTMLSlotElement::assignedNodesForBindings): Added.
+        * html/HTMLSlotElement.h:
+        * html/HTMLSlotElement.idl:
+
+2016-04-29  Simon Fraser  <simon.fraser@apple.com>
+
+        Make clipToRect() and restoreClip() have similar signatures
+        https://bugs.webkit.org/show_bug.cgi?id=157229
+
+        Reviewed by Zalan Bujtas.
+
+        clipToRect() and restoreClip() are always called in pairs, but had different
+        parameter order, and parameter types. So make them more similar.
+        
+        In future we could use them in a stack-based class.
+
+        No behavior change.
+
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::clipToRect):
+        (WebCore::RenderLayer::restoreClip):
+        (WebCore::RenderLayer::paintLayer):
+        (WebCore::RenderLayer::applyFilters):
+        (WebCore::RenderLayer::paintTransformedLayerIntoFragments):
+        (WebCore::RenderLayer::paintBackgroundForFragments):
+        (WebCore::RenderLayer::paintForegroundForFragments):
+        (WebCore::RenderLayer::paintForegroundForFragmentsWithPhase):
+        (WebCore::RenderLayer::paintOutlineForFragments):
+        (WebCore::RenderLayer::paintMaskForFragments):
+        (WebCore::RenderLayer::paintChildClippingMaskForFragments):
+        (WebCore::RenderLayer::paintOverflowControlsForFragments):
+        (WebCore::RenderLayer::calculateClipRects):
+        * rendering/RenderLayer.h:
+
+2016-04-29  Simon Fraser  <simon.fraser@apple.com>
+
+        Blur filter escapes an enclosing overflow:hidden
+        https://bugs.webkit.org/show_bug.cgi?id=155029
+
+        Reviewed by Zalan Bujtas.
+
+        The clipping that was applied when drawing the results of filters was wrong for two reasons.
+
+        First, it used localPaintingInfo which has already been contaminated when setting up the filters.
+        When painting the result, we need to use the original paintingInfo, to get the right paintDirtyRect.
+
+        Secondly, when setting up the clip to paint the filter result, it was relying on layerFragments[0].backgroundRect.
+        However, that was also contaminated by filter setup, since calculateRects() intersects with paintDirtyRect to
+        compute that backgroundRect, and that paintDirtyRect came from filterPainter->repaintRect().
+        
+        Fix this second issue by re-running collectFragments(), which computes a fragment backgroundRect using
+        the original paintDirtyRect.
+
+        Tests: css3/filters/blur-clipped-by-ancestor.html
+               css3/filters/blur-clipped-with-overflow.html
+               css3/filters/drop-shadow-with-overflow-hidden.html
+               css3/filters/drop-shadow.html
+
+        * platform/graphics/filters/FilterEffect.cpp:
+        (WebCore::FilterEffect::clearResult): Unconditionally null these out.
+        * rendering/FilterEffectRenderer.cpp:
+        (WebCore::FilterEffectRendererHelper::beginFilterEffect): Typo fix.
+        * rendering/FilterEffectRenderer.h:
+        (WebCore::FilterEffectRendererHelper::FilterEffectRendererHelper): C++11 initialization.
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::applyFilters):
+        (WebCore::RenderLayer::paintLayerContents):
+        * rendering/RenderLayer.h: const
+
 2016-04-29  Myles C. Maxfield  <mmaxfield@apple.com>
 
         REGRESSION(194502): overflow: scroll; direction: rtl; divs jump horizontally when scrolled vertically

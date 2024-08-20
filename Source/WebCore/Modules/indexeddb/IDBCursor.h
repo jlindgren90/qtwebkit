@@ -78,7 +78,7 @@ public:
 
     void setGetResult(IDBRequest&, const IDBGetResult&);
 
-    virtual bool isKeyCursor() const { return true; }
+    virtual bool isKeyCursorWithValue() const { return false; }
 
     void decrementOutstandingRequestCount();
 
