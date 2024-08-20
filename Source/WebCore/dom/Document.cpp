@@ -1860,10 +1860,10 @@ void Document::recalcStyle(Style::Change change)
             // font selector, so set a font selector if needed.
             if (Settings* settings = this->settings()) {
                 if (settings->fontFallbackPrefersPictographs())
-                    documentStyle->fontCascade().update(&fontSelector());
+                    documentStyle.fontCascade().update(&fontSelector());
             }
 
-            auto documentChange = Style::determineChange(*documentStyle, m_renderView->style());
+            auto documentChange = Style::determineChange(documentStyle, m_renderView->style());
             if (documentChange != Style::NoChange)
                 renderView()->setStyle(WTFMove(documentStyle));
         }
@@ -5843,7 +5843,7 @@ void Document::webkitWillEnterFullScreenForElement(Element* element)
     bool shouldCreatePlaceholder = is<RenderBox>(renderer);
     if (shouldCreatePlaceholder) {
         m_savedPlaceholderFrameRect = downcast<RenderBox>(*renderer).frameRect();
-        m_savedPlaceholderRenderStyle = RenderStyle::clone(&renderer->style());
+        m_savedPlaceholderRenderStyle = RenderStyle::clonePtr(renderer->style());
     }
 
     if (m_fullScreenElement != documentElement())
@@ -5923,7 +5923,7 @@ void Document::setFullScreenRenderer(RenderFullScreen* renderer)
         renderer->createPlaceholder(WTFMove(m_savedPlaceholderRenderStyle), m_savedPlaceholderFrameRect);
     else if (renderer && m_fullScreenRenderer && m_fullScreenRenderer->placeholder()) {
         RenderBlock* placeholder = m_fullScreenRenderer->placeholder();
-        renderer->createPlaceholder(RenderStyle::clone(&placeholder->style()), placeholder->frameRect());
+        renderer->createPlaceholder(RenderStyle::clonePtr(placeholder->style()), placeholder->frameRect());
     }
 
     if (m_fullScreenRenderer)
