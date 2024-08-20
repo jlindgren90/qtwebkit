@@ -40,9 +40,9 @@ public:
     bool setNeedsLayoutIfNeededAfterIntrinsicSizeChange();
 
 protected:
-    RenderReplaced(Element&, Ref<RenderStyle>&&);
-    RenderReplaced(Element&, Ref<RenderStyle>&&, const LayoutSize& intrinsicSize);
-    RenderReplaced(Document&, Ref<RenderStyle>&&, const LayoutSize& intrinsicSize);
+    RenderReplaced(Element&, std::unique_ptr<RenderStyle>);
+    RenderReplaced(Element&, std::unique_ptr<RenderStyle>, const LayoutSize& intrinsicSize);
+    RenderReplaced(Document&, std::unique_ptr<RenderStyle>, const LayoutSize& intrinsicSize);
 
     void layout() override;
 

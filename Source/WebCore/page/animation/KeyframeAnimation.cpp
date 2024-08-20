@@ -44,7 +44,7 @@ namespace WebCore {
 KeyframeAnimation::KeyframeAnimation(Animation& animation, RenderElement* renderer, CompositeAnimation* compositeAnimation, RenderStyle* unanimatedStyle)
     : AnimationBase(animation, renderer, compositeAnimation)
     , m_keyframes(animation.name())
-    , m_unanimatedStyle(unanimatedStyle)
+    , m_unanimatedStyle(RenderStyle::clone(unanimatedStyle))
 {
     // Get the keyframe RenderStyles
     if (m_object && m_object->element())
@@ -113,7 +113,7 @@ void KeyframeAnimation::fetchIntervalEndpointsForProperty(CSSPropertyID property
     prog = progress(scale, offset, prevKeyframe.timingFunction(name()));
 }
 
-bool KeyframeAnimation::animate(CompositeAnimation* compositeAnimation, RenderElement*, const RenderStyle*, RenderStyle* targetStyle, RefPtr<RenderStyle>& animatedStyle)
+bool KeyframeAnimation::animate(CompositeAnimation* compositeAnimation, RenderElement*, const RenderStyle*, RenderStyle* targetStyle, std::unique_ptr<RenderStyle>& animatedStyle)
 {
     // Fire the start timeout if needed
     fireAnimationEventsIfNeeded();
@@ -130,7 +130,7 @@ bool KeyframeAnimation::animate(CompositeAnimation* compositeAnimation, RenderEl
     // If so, we need to send back the targetStyle.
     if (postActive()) {
         if (!animatedStyle)
-            animatedStyle = const_cast<RenderStyle*>(targetStyle);
+            animatedStyle = RenderStyle::clone(targetStyle);
         return false;
     }
 
@@ -176,7 +176,7 @@ bool KeyframeAnimation::animate(CompositeAnimation* compositeAnimation, RenderEl
     return state() != oldState;
 }
 
-void KeyframeAnimation::getAnimatedStyle(RefPtr<RenderStyle>& animatedStyle)
+void KeyframeAnimation::getAnimatedStyle(std::unique_ptr<RenderStyle>& animatedStyle)
 {
     // If we're done, or in the delay phase and we're not backwards filling, tell the caller to use the current style.
     if (postActive() || (waitingToStart() && m_animation->delay() > 0 && !m_animation->fillsBackwards()))
