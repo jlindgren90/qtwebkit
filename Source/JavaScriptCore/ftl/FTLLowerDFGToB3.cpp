@@ -4796,6 +4796,8 @@ private:
             [&] (LValue left, LValue right) {
                 return m_out.doubleLessThan(left, right);
             },
+            operationCompareStringImplLess,
+            operationCompareStringLess,
             operationCompareLess);
     }
     
@@ -4808,6 +4810,8 @@ private:
             [&] (LValue left, LValue right) {
                 return m_out.doubleLessThanOrEqual(left, right);
             },
+            operationCompareStringImplLessEq,
+            operationCompareStringLessEq,
             operationCompareLessEq);
     }
     
@@ -4820,6 +4824,8 @@ private:
             [&] (LValue left, LValue right) {
                 return m_out.doubleGreaterThan(left, right);
             },
+            operationCompareStringImplGreater,
+            operationCompareStringGreater,
             operationCompareGreater);
     }
     
@@ -4832,6 +4838,8 @@ private:
             [&] (LValue left, LValue right) {
                 return m_out.doubleGreaterThanOrEqual(left, right);
             },
+            operationCompareStringImplGreaterEq,
+            operationCompareStringGreaterEq,
             operationCompareGreaterEq);
     }
     
@@ -5985,10 +5993,16 @@ private:
                 patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
                 patchpoint->clobber(RegisterSet::macroScratchRegisters());
 
+                RefPtr<PatchpointExceptionHandle> exceptionHandle = preparePatchpointForExceptions(patchpoint);
+
                 State* state = &m_ftlState;
                 patchpoint->setGenerator(
                     [=] (CCallHelpers& jit, const StackmapGenerationParams& params) {
                         AllowMacroScratchRegisterUsage allowScratch(jit);
+
+                        // This is the direct exit target for operation calls. We don't need a JS exceptionHandle because we don't
+                        // cache Proxy objects.
+                        Box<CCallHelpers::JumpList> exceptions = exceptionHandle->scheduleExitCreation(params)->jumps(jit);
 
                         GPRReg baseGPR = params[1].gpr();
                         GPRReg resultGPR = params[0].gpr();
@@ -6013,7 +6027,7 @@ private:
                                 CCallHelpers::Label slowPathBegin = jit.label();
                                 CCallHelpers::Call slowPathCall = callOperation(
                                     *state, params.unavailableRegisters(), jit,
-                                    node->origin.semantic, nullptr, operationInOptimize,
+                                    node->origin.semantic, exceptions.get(), operationInOptimize,
                                     resultGPR, CCallHelpers::TrustedImmPtr(stubInfo), baseGPR,
                                     CCallHelpers::TrustedImmPtr(str)).call();
                                 jit.jump().linkTo(done, &jit);
@@ -7527,7 +7541,9 @@ private:
     template<typename IntFunctor, typename DoubleFunctor>
     void compare(
         const IntFunctor& intFunctor, const DoubleFunctor& doubleFunctor,
-        S_JITOperation_EJJ helperFunction)
+        C_JITOperation_TT stringIdentFunction,
+        C_JITOperation_B_EJssJss stringFunction,
+        S_JITOperation_EJJ fallbackFunction)
     {
         if (m_node->isBinaryUseKind(Int32Use)) {
             LValue left = lowInt32(m_node->child1());
@@ -7550,9 +7566,29 @@ private:
             setBoolean(doubleFunctor(left, right));
             return;
         }
-        
+
+        if (m_node->isBinaryUseKind(StringIdentUse)) {
+            LValue left = lowStringIdent(m_node->child1());
+            LValue right = lowStringIdent(m_node->child2());
+            setBoolean(m_out.callWithoutSideEffects(m_out.boolean, stringIdentFunction, left, right));
+            return;
+        }
+
+        if (m_node->isBinaryUseKind(StringUse)) {
+            LValue left = lowCell(m_node->child1());
+            LValue right = lowCell(m_node->child2());
+            speculateString(m_node->child1(), left);
+            speculateString(m_node->child2(), right);
+
+            LValue result = vmCall(
+                m_out.boolean, m_out.operation(stringFunction),
+                m_callFrame, left, right);
+            setBoolean(result);
+            return;
+        }
+
         if (m_node->isBinaryUseKind(UntypedUse)) {
-            nonSpeculativeCompare(intFunctor, helperFunction);
+            nonSpeculativeCompare(intFunctor, fallbackFunction);
             return;
         }
         

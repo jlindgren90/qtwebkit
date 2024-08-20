@@ -1,3 +1,627 @@
+2016-04-21  Darin Adler  <darin@apple.com>
+
+        Follow-on to the build fix.
+
+        * runtime/MathCommon.h: Use the C++ std namespace version of the
+        frexp function too.
+
+2016-04-21  Joonghun Park  <jh718.park@samsung.com>
+
+        [JSC] Fix build break since r199866. Unreviewed.
+        https://bugs.webkit.org/show_bug.cgi?id=156892
+
+        * runtime/MathCommon.h: Add namespace std to isnormal invoking.
+
+2016-04-21  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Add primitive String support to compare operators
+        https://bugs.webkit.org/show_bug.cgi?id=156783
+
+        Reviewed by Geoffrey Garen.
+
+        Just the basics.
+        We should eventually inline some of the simplest cases.
+
+        This is a 2% improvement on Longspider. It is unfortunately neutral
+        for Sunspider on my machine because most of the comparison are from
+        baseline.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compare):
+        (JSC::DFG::SpeculativeJIT::compileStringCompare):
+        (JSC::DFG::SpeculativeJIT::compileStringIdentCompare):
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::callOperation):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareLess):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareLessEq):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareGreater):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareGreaterEq):
+        (JSC::FTL::DFG::LowerDFGToB3::compare):
+        * ftl/FTLOutput.h:
+        (JSC::FTL::Output::callWithoutSideEffects):
+        * jit/JITOperations.h:
+        * tests/stress/string-compare.js: Added.
+        (makeRope):
+        (makeString):
+        (let.operator.of.operators.eval.compareStringIdent):
+        (let.operator.of.operators.compareStringString):
+        (let.operator.of.operators.compareStringIdentString):
+        (let.operator.of.operators.compareStringStringIdent):
+        (let.operator.of.operators.let.left.of.typeCases.let.right.of.typeCases.eval):
+
+2016-04-21  Benjamin Poulain  <bpoulain@webkit.org>
+
+        [JSC] Commute FDiv-by-constant into FMul-by-reciprocal when it is safe
+        https://bugs.webkit.org/show_bug.cgi?id=156871
+
+        Reviewed by Filip Pizlo.
+
+        FMul is significantly faster than FDiv.
+        For example, on Haswell, FMul has a latency of 5, a throughput of 1
+        while FDiv has latency 10-24, throughput 8-18.
+
+        Fortunately for us, Sunspider and Kraken have plenty of division
+        by a simple power of 2 constant. Those are just exponent operations
+        and can be easily reversed to use FMul instead of FDiv.
+
+        LLVM does something similar in InstCombine.
+
+        * dfg/DFGStrengthReductionPhase.cpp:
+        (JSC::DFG::StrengthReductionPhase::handleNode):
+        * jit/JITDivGenerator.cpp:
+        (JSC::JITDivGenerator::loadOperand):
+        (JSC::JITDivGenerator::generateFastPath):
+        * jit/SnippetOperand.h:
+        (JSC::SnippetOperand::asConstNumber):
+        * runtime/MathCommon.h:
+        (JSC::safeReciprocalForDivByConst):
+        * tests/stress/floating-point-div-to-mul.js: Added.
+        (opaqueDivBy2):
+        (opaqueDivBy3):
+        (opaqueDivBy4):
+        (opaqueDivBySafeMaxMinusOne):
+        (opaqueDivBySafeMax):
+        (opaqueDivBySafeMaxPlusOne):
+        (opaqueDivBySafeMin):
+        (opaqueDivBySafeMinMinusOne):
+        (i.catch):
+        (i.result.opaqueDivBySafeMin.valueOf):
+
+2016-04-21  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Improve the absThunkGenerator() for 64bit
+        https://bugs.webkit.org/show_bug.cgi?id=156888
+
+        Reviewed by Michael Saboff.
+
+        A few tests spend a lot of time in this abs() with double argument.
+
+        This patch adds custom handling for the JSValue64 representation.
+        In particular:
+        -Do not load the value twice. Unbox the GPR if it is not an Int32.
+        -Deal with IntMin inline instead of falling back to the C function call.
+        -Box the values ourself to avoid a duplicate function tail and return.
+
+        * jit/ThunkGenerators.cpp:
+        (JSC::absThunkGenerator):
+
+2016-04-21  Saam barati  <sbarati@apple.com>
+
+        LLInt CallSiteIndex off by 1
+        https://bugs.webkit.org/show_bug.cgi?id=156886
+
+        Reviewed by Benjamin Poulain.
+
+        I think was done for historical reasons but isn't needed anymore.
+
+        * llint/LLIntSlowPaths.cpp:
+
+2016-04-21  Keith Miller  <keith_miller@apple.com>
+
+        FTL should handle exceptions in operationInOptimize
+        https://bugs.webkit.org/show_bug.cgi?id=156885
+
+        Reviewed by Michael Saboff.
+
+        For some reasone we didn't handle any exceptions in "in" when we called
+        operationInOptimize in the FTL.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpAssumingJITType):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileIn):
+        * ftl/FTLPatchpointExceptionHandle.h: Add comments explaining which
+        function to use for different exception types.
+
+        * jsc.cpp:
+        (GlobalObject::finishCreation):
+        (functionNoFTL):
+        * runtime/Executable.cpp:
+        (JSC::ScriptExecutable::ScriptExecutable):
+        * runtime/Executable.h:
+        (JSC::ScriptExecutable::setNeverFTLOptimize):
+        (JSC::ScriptExecutable::neverFTLOptimize):
+        * tests/stress/in-ftl-exception-check.js: Added.
+        (foo):
+        (bar):
+        (catch):
+
+2016-04-21  Filip Pizlo  <fpizlo@apple.com>
+
+        JSC virtual call thunk shouldn't do a structure->classInfo lookup
+        https://bugs.webkit.org/show_bug.cgi?id=156874
+
+        Reviewed by Keith Miller.
+        
+        This lookup was unnecessary because we can just test the inlined type field.
+
+        But also, this meant that we were exempting JSBoundFunction from the virtual call optimization.
+        That's pretty bad.
+
+        * jit/ThunkGenerators.cpp:
+        (JSC::virtualThunkFor):
+
+2016-04-21  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: sourceMappingURL not loaded in generated script
+        https://bugs.webkit.org/show_bug.cgi?id=156022
+        <rdar://problem/25438595>
+
+        Reviewed by Geoffrey Garen.
+
+        * inspector/JSGlobalObjectInspectorController.cpp:
+        (Inspector::JSGlobalObjectInspectorController::appendAPIBacktrace):
+        Synthetic CallFrames for native code will not have script identifiers.
+
+        * inspector/ScriptCallFrame.cpp:
+        (Inspector::ScriptCallFrame::ScriptCallFrame):
+        (Inspector::ScriptCallFrame::isEqual):
+        (Inspector::ScriptCallFrame::buildInspectorObject):
+        * inspector/ScriptCallFrame.h:
+        * inspector/protocol/Console.json:
+        Include the script identifier in ScriptCallFrame so we can correlate this
+        to the exactly script, even if there isn't a URL. The Script may have a
+        sourceURL, so the Web Inspector frontend may decide to show / link to it.
+
+        * inspector/ScriptCallStackFactory.cpp:
+        (Inspector::CreateScriptCallStackFunctor::operator()):
+        (Inspector::createScriptCallStackFromException):
+        Include SourceID when we have it.
+
+        * interpreter/Interpreter.cpp:
+        (JSC::GetStackTraceFunctor::operator()):
+        * interpreter/Interpreter.h:
+        * interpreter/StackVisitor.cpp:
+        (JSC::StackVisitor::Frame::sourceID):
+        * interpreter/StackVisitor.h:
+        Access the SourceID when we have it.
+
+2016-04-21  Saam barati  <sbarati@apple.com>
+
+        Lets do less locking of symbol tables in the BytecodeGenerator where we don't have race conditions
+        https://bugs.webkit.org/show_bug.cgi?id=156821
+
+        Reviewed by Filip Pizlo.
+
+        The BytecodeGenerator allocates all the SymbolTables that it uses.
+        This is before any concurrent compiler thread can use that SymbolTable.
+        This means we don't actually need to lock for any operations of the
+        SymbolTable. This patch makes this change by removing all locking.
+        To do this, I've introduced a new constructor for ConcurrentJITLocker
+        which implies no locking is necessary. You instantiate such a ConcurrentJITLocker like so:
+        `ConcurrentJITLocker locker(ConcurrentJITLocker::NoLockingNecessary);`
+
+        This patch also removes all uses of Strong<SymbolTable> from the bytecode
+        generator and instead wraps bytecode generation in a DeferGC.
+
+        * bytecode/UnlinkedFunctionExecutable.cpp:
+        (JSC::generateUnlinkedFunctionCodeBlock):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::initializeDefaultParameterValuesAndSetupFunctionScopeStack):
+        (JSC::BytecodeGenerator::initializeArrowFunctionContextScopeIfNeeded):
+        (JSC::BytecodeGenerator::instantiateLexicalVariables):
+        (JSC::BytecodeGenerator::emitPrefillStackTDZVariables):
+        (JSC::BytecodeGenerator::pushLexicalScopeInternal):
+        (JSC::BytecodeGenerator::initializeBlockScopedFunctions):
+        (JSC::BytecodeGenerator::hoistSloppyModeFunctionIfNecessary):
+        (JSC::BytecodeGenerator::popLexicalScopeInternal):
+        (JSC::BytecodeGenerator::prepareLexicalScopeForNextForLoopIteration):
+        (JSC::BytecodeGenerator::variable):
+        (JSC::BytecodeGenerator::createVariable):
+        (JSC::BytecodeGenerator::emitResolveScope):
+        (JSC::BytecodeGenerator::emitPushWithScope):
+        (JSC::BytecodeGenerator::emitPushFunctionNameScope):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::constructorKind):
+        (JSC::BytecodeGenerator::superBinding):
+        (JSC::BytecodeGenerator::generate):
+        * runtime/CodeCache.cpp:
+        (JSC::CodeCache::getGlobalCodeBlock):
+        * runtime/ConcurrentJITLock.h:
+        (JSC::ConcurrentJITLockerBase::ConcurrentJITLockerBase):
+        (JSC::ConcurrentJITLockerBase::~ConcurrentJITLockerBase):
+        (JSC::ConcurrentJITLocker::ConcurrentJITLocker):
+
+2016-04-21  Saam barati  <sbarati@apple.com>
+
+        Remove some unnecessary RefPtrs in the parser
+        https://bugs.webkit.org/show_bug.cgi?id=156865
+
+        Reviewed by Filip Pizlo.
+
+        The IdentifierArena or the SourceProviderCacheItem will own these UniquedStringImpls
+        while we are using them. There is no need for us to reference count them.
+
+        This might be a 0.5% speedup on octane code-load.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseInner):
+        * parser/Parser.h:
+        (JSC::Scope::setIsLexicalScope):
+        (JSC::Scope::isLexicalScope):
+        (JSC::Scope::closedVariableCandidates):
+        (JSC::Scope::declaredVariables):
+        (JSC::Scope::lexicalVariables):
+        (JSC::Scope::finalizeLexicalEnvironment):
+        (JSC::Scope::computeLexicallyCapturedVariablesAndPurgeCandidates):
+        (JSC::Scope::collectFreeVariables):
+        (JSC::Scope::getCapturedVars):
+        (JSC::Scope::setStrictMode):
+        (JSC::Scope::isValidStrictMode):
+        (JSC::Scope::shadowsArguments):
+        (JSC::Scope::copyCapturedVariablesToVector):
+        * parser/SourceProviderCacheItem.h:
+        (JSC::SourceProviderCacheItem::usedVariables):
+        (JSC::SourceProviderCacheItem::~SourceProviderCacheItem):
+        (JSC::SourceProviderCacheItem::create):
+        (JSC::SourceProviderCacheItem::SourceProviderCacheItem):
+        (JSC::SourceProviderCacheItem::writtenVariables): Deleted.
+
+2016-04-21  Filip Pizlo  <fpizlo@apple.com>
+
+        PolymorphicAccess adds sizeof(CallerFrameAndPC) rather than subtracting it when calculating stack height
+        https://bugs.webkit.org/show_bug.cgi?id=156872
+
+        Reviewed by Geoffrey Garen.
+        
+        The code that added sizeof(CallerFrameAndPC) emerged from a bad copy-paste in r189586. That was
+        the revision that created the PolymorphicAccess class. It moved code for generating a
+        getter/setter call from Repatch.cpp to PolymorphicAccess.cpp. You can see the code doing a
+        subtraction here:
+        
+            http://trac.webkit.org/changeset/189586/trunk/Source/JavaScriptCore/jit/Repatch.cpp
+        
+        This makes the world right again.
+
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::generateImpl):
+
+2016-04-21  Geoffrey Garen  <ggaren@apple.com>
+
+        Build warning: CODE_SIGN_ENTITLEMENTS specified without specifying CODE_SIGN_IDENTITY
+        https://bugs.webkit.org/show_bug.cgi?id=156862
+
+        Reviewed by Joseph Pecoraro.
+
+        * Configurations/Base.xcconfig: Specify the ad hoc signing identity by
+        default. See <http://trac.webkit.org/changeset/143544>.
+
+2016-04-21  Andy Estes  <aestes@apple.com>
+
+        REGRESSION (r199734): WebKit crashes loading numerous websites in iOS Simulator
+        https://bugs.webkit.org/show_bug.cgi?id=156842
+
+        Reviewed by Daniel Bates.
+
+        Disable separated heap on iOS Simulator.
+
+        * runtime/Options.cpp:
+        (JSC::recomputeDependentOptions):
+
+2016-04-21  Michael Saboff  <msaboff@apple.com>
+
+        Align RegExp[@@match] with other @@ methods
+        https://bugs.webkit.org/show_bug.cgi?id=156832
+
+        Reviewed by Mark Lam.
+
+        Various changes to align the RegExp[@@match] with [@@search] and [@@split].
+
+        Made RegExp.prototype.@exec a hidden property on the global object and
+        called it @regExpBuiltinExec to match the name it has in the standard.
+        Changed all places that used the old name to use the new one.
+
+        Made the match fast path function, which used to be call @match, to be called
+        @regExpMatchFast and put it on the global object.  Changed it to also handle
+        expressions both with and without the global flag.  Refactored the builtin
+        @match accordingly.
+
+        Added the builtin function @hasObservableSideEffectsForRegExpMatch() that
+        checks to see if we can use the fast path of if we need the explicit version.
+
+        Put the main RegExp functions @match, @search and @split in alphabetical
+        order in RegExpPrototype.js.  Did the same for @match, @repeat, @search and 
+        @split in StringPrototype.js.
+        
+        * builtins/RegExpPrototype.js:
+        (regExpExec):
+        (hasObservableSideEffectsForRegExpMatch): New.
+        (match):
+        (search):
+        (hasObservableSideEffectsForRegExpSplit):
+        Reordered in the file and updated to use @regExpBuiltinExec.
+
+        * builtins/StringPrototype.js:
+        (match):
+        (repeatSlowPath):
+        (repeat):
+        (search):
+        (split):
+        Reordered functions in the file.
+
+        * runtime/CommonIdentifiers.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::setGlobalThis):
+        (JSC::getById):
+        (JSC::getGetterById):
+        (JSC::JSGlobalObject::init):
+        * runtime/RegExpPrototype.cpp:
+        (JSC::RegExpPrototype::finishCreation):
+        (JSC::regExpProtoFuncExec):
+        (JSC::regExpProtoFuncMatchFast):
+        (JSC::regExpProtoFuncMatchPrivate): Deleted.
+        * runtime/RegExpPrototype.h:
+
+2016-04-20  Geoffrey Garen  <ggaren@apple.com>
+
+        JavaScriptCore garbage collection is missing an autorelease pool
+        https://bugs.webkit.org/show_bug.cgi?id=156751
+        <rdar://problem/25787802>
+
+        Reviewed by Mark Lam.
+
+        * heap/Heap.cpp:
+        (JSC::Heap::releaseDelayedReleasedObjects): Add an autorelease pool to
+        catch autoreleases when we call out to arbitrary ObjC code.
+
+        We use the C interface here because this is not an ObjC compilation unit.
+
+2016-04-20  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG del_by_id support forgets to set()
+        https://bugs.webkit.org/show_bug.cgi?id=156830
+
+        Reviewed by Saam Barati.
+
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * tests/stress/dfg-del-by-id.js: Added.
+
+2016-04-20  Saam barati  <sbarati@apple.com>
+
+        Improve sampling profiler CLI JSC tool
+        https://bugs.webkit.org/show_bug.cgi?id=156824
+
+        Reviewed by Mark Lam.
+
+        This patch enhances the Sampling Profiler CLI tool from the JSC shell
+        to display the JITType of a particular CodeBlock. Because this happens
+        once we process a log of stack frames, the data for a particular frame
+        being in LLInt vs. Baseline could be wrong. For example, we may have taken 
+        a stack trace of a CodeBlock while it was executing in the LLInt, then 
+        it tiers up to the baseline, then we process the log. We will show such CodeBlocks
+        as being in the baseline JIT. We could be smarter about this in the future if
+        it turns out to truly be a problem.
+
+        This patch also adds a 'samplingProfilerTimingInterval' JSC option to allow
+        CLI users to control the sleep time between stack traces.
+
+        * jsc.cpp:
+        (jscmain):
+        * runtime/Options.h:
+        * runtime/SamplingProfiler.cpp:
+        (JSC::SamplingProfiler::SamplingProfiler):
+        (JSC::SamplingProfiler::processUnverifiedStackTraces):
+        (JSC::SamplingProfiler::reportTopBytecodes):
+        * runtime/SamplingProfiler.h:
+        (JSC::SamplingProfiler::StackFrame::hasExpressionInfo):
+
+2016-04-20  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] DFG should not generate two jumps when the target of DoubleBranch is the next block  
+        https://bugs.webkit.org/show_bug.cgi?id=156815
+
+        Reviewed by Mark Lam.
+
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compilePeepHoleDoubleBranch):
+
+2016-04-20  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Add register reuse for ArithAdd of an Int32 and constant in DFG
+        https://bugs.webkit.org/show_bug.cgi?id=155164
+
+        Reviewed by Mark Lam.
+
+        Every "inc" in loop was looking like this:
+            move rX, rY
+            inc rY
+            jo 0x230f4a200580
+
+        This patch add register Reuse to that case to remove
+        the extra "move".
+
+        * dfg/DFGOSRExit.h:
+        (JSC::DFG::SpeculationRecovery::SpeculationRecovery):
+        (JSC::DFG::SpeculationRecovery::immediate):
+        * dfg/DFGOSRExitCompiler32_64.cpp:
+        (JSC::DFG::OSRExitCompiler::compileExit):
+        * dfg/DFGOSRExitCompiler64.cpp:
+        (JSC::DFG::OSRExitCompiler::compileExit):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithAdd):
+        * tests/stress/arith-add-with-constant-overflow.js: Added.
+        (opaqueAdd):
+
+2016-04-20  Saam barati  <sbarati@apple.com>
+
+        We don't need a manual stack for an RAII object when the machine's stack will do just fine
+        https://bugs.webkit.org/show_bug.cgi?id=156807
+
+        Reviewed by Mark Lam.
+
+        We kept around a vector for an RAII object to maintain
+        the recursive nature of having these RAII objects on
+        the stack as the parser recursed. Instead, the RAII object
+        can just have a field with the value it wants to restore
+        and use the machine's stack.
+
+        This is a 1% octane code-load progression.
+
+        * parser/SyntaxChecker.h:
+        (JSC::SyntaxChecker::BinaryExprContext::BinaryExprContext):
+        (JSC::SyntaxChecker::BinaryExprContext::~BinaryExprContext):
+        (JSC::SyntaxChecker::UnaryExprContext::UnaryExprContext):
+        (JSC::SyntaxChecker::UnaryExprContext::~UnaryExprContext):
+        (JSC::SyntaxChecker::operatorStackPop):
+
+2016-04-20  Michael Saboff  <msaboff@apple.com>
+
+        REGRESSION(r190289): Spin trying to view/sign in to hbogo.com
+        https://bugs.webkit.org/show_bug.cgi?id=156765
+
+        Reviewed by Saam Barati.
+
+        In the op_get_by_val case, we were holding the lock on a profiled CodeBlock
+        when we call into handleGetById(). Changed to drop the lock before calling
+        handleGetById().
+
+        The bug here was that the call to handleGetById() may end up calling in to
+        getPredictionWithoutOSRExit() for a tail call opcode. As part of that
+        processing, we walk back up the stack to find the effective caller and when
+        found, we lock the corresponding CodeBlock to get the predicition.
+        That CodeBLock may be the same one locked above. There is no need anyway
+        to hold the CodeBlock lock when calling handleGetById().
+
+        Added a new stress test.
+
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * tests/stress/regress-156765.js: Added.
+        (realValue):
+        (object.get hello):
+        (ok):
+
+2016-04-20  Mark Lam  <mark.lam@apple.com>
+
+        Unindent an unnecessary block in stringProtoFuncSplitFast().
+        https://bugs.webkit.org/show_bug.cgi?id=156802
+
+        Reviewed by Filip Pizlo.
+
+        In webkit.org/b/156013, I refactored stringProtoFuncSplit into
+        stringProtoFuncSplitFast.  In that patch, I left an unnecessary block of code in
+        its original block (with FIXMEs) to keep the diff for that patch minimal.  Now
+        that the patch for webkit.org/b/156013 has landed, I will unindent that block and
+        remove the FIXMEs.
+
+        * runtime/StringPrototype.cpp:
+        (JSC::stringProtoFuncSplitFast):
+
+2016-04-20  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB (Workers): Enable INDEXED_DATABASE_IN_WORKERS compile time flag, but disabled in RuntimeEnabledFeatures.
+        https://bugs.webkit.org/show_bug.cgi?id=156782
+
+        Reviewed by Alex Christensen.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-04-20  Saam barati  <sbarati@apple.com>
+
+        Remove unused m_writtenVariables from the parser and related bits
+        https://bugs.webkit.org/show_bug.cgi?id=156784
+
+        Reviewed by Yusuke Suzuki.
+
+        This isn't a octane/codeload speedup even though we're doing less work in
+        collectFreeVariables. But it's good to get rid of things that are not used.
+
+        * parser/Nodes.h:
+        (JSC::ScopeNode::usesEval):
+        (JSC::ScopeNode::usesArguments):
+        (JSC::ScopeNode::usesArrowFunction):
+        (JSC::ScopeNode::isStrictMode):
+        (JSC::ScopeNode::setUsesArguments):
+        (JSC::ScopeNode::usesThis):
+        (JSC::ScopeNode::modifiesParameter): Deleted.
+        (JSC::ScopeNode::modifiesArguments): Deleted.
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseInner):
+        (JSC::Parser<LexerType>::parseAssignmentExpression):
+        * parser/Parser.h:
+        (JSC::Scope::Scope):
+        (JSC::Scope::hasDeclaredParameter):
+        (JSC::Scope::preventAllVariableDeclarations):
+        (JSC::Scope::collectFreeVariables):
+        (JSC::Scope::mergeInnerArrowFunctionFeatures):
+        (JSC::Scope::getSloppyModeHoistedFunctions):
+        (JSC::Scope::getCapturedVars):
+        (JSC::Scope::setStrictMode):
+        (JSC::Scope::strictMode):
+        (JSC::Scope::fillParametersForSourceProviderCache):
+        (JSC::Scope::restoreFromSourceProviderCache):
+        (JSC::Parser::hasDeclaredParameter):
+        (JSC::Parser::exportName):
+        (JSC::Scope::declareWrite): Deleted.
+        (JSC::Parser::declareWrite): Deleted.
+        * parser/ParserModes.h:
+
+2016-04-19  Saam barati  <sbarati@apple.com>
+
+        Unreviewed, fix cloop build after r199754.
+
+        * jsc.cpp:
+        (jscmain):
+
+2016-04-19  Michael Saboff  <msaboff@apple.com>
+
+        iTunes crashing JavaScriptCore.dll
+        https://bugs.webkit.org/show_bug.cgi?id=156647
+
+        Reviewed by Filip Pizlo.
+
+        Given that there there are only 128 FLS indices compared to over a 1000 for TLS,
+        I eliminated the thread specific m_threadSpecificForThread and instead we look
+        for the current thread in m_registeredThreads list when we need it.
+        In most cases there will only be one thread.
+
+        Added THREAD_SPECIFIC_CALL to signature of ThreadSpecific remove callbacks
+        to set the calling convention correctly for Windows 32 bit.
+
+        * heap/MachineStackMarker.cpp:
+        (JSC::ActiveMachineThreadsManager::remove):
+        (JSC::MachineThreads::MachineThreads):
+        (JSC::MachineThreads::~MachineThreads):
+        (JSC::MachineThreads::addCurrentThread):
+        (JSC::MachineThreads::machineThreadForCurrentThread):
+        (JSC::MachineThreads::removeThread):
+        * heap/MachineStackMarker.h:
+
 2016-04-19  Benjamin Poulain  <bpoulain@webkit.org>
 
         [JSC] Small cleanup of RegisterAtOffsetList

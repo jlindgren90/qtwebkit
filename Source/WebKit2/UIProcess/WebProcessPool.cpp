@@ -145,6 +145,7 @@ static WebsiteDataStore::Configuration legacyWebsiteDataStoreConfiguration(API::
     configuration.localStorageDirectory = processPoolConfiguration.localStorageDirectory();
     configuration.webSQLDatabaseDirectory = processPoolConfiguration.webSQLDatabaseDirectory();
     configuration.applicationCacheDirectory = processPoolConfiguration.applicationCacheDirectory();
+    configuration.applicationCacheFlatFileSubdirectoryName = processPoolConfiguration.applicationCacheFlatFileSubdirectoryName();
     configuration.mediaCacheDirectory = processPoolConfiguration.mediaCacheDirectory();
     configuration.mediaKeysStorageDirectory = processPoolConfiguration.mediaKeysStorageDirectory();
     configuration.networkCacheDirectory = processPoolConfiguration.diskCacheDirectory();
@@ -555,6 +556,8 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
         SandboxExtension::createHandle(parameters.injectedBundlePath, SandboxExtension::ReadOnly, parameters.injectedBundlePathExtensionHandle);
 
     parameters.applicationCacheDirectory = m_configuration->applicationCacheDirectory();
+    parameters.applicationCacheFlatFileSubdirectoryName = m_configuration->applicationCacheFlatFileSubdirectoryName();
+
     if (!parameters.applicationCacheDirectory.isEmpty())
         SandboxExtension::createHandleForReadWriteDirectory(parameters.applicationCacheDirectory, parameters.applicationCacheDirectoryExtensionHandle);
 
@@ -662,9 +665,6 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
 
 #if PLATFORM(COCOA)
     process->send(Messages::WebProcess::SetQOS(webProcessLatencyQOS(), webProcessThroughputQOS()), 0);
-#endif
-#if PLATFORM(IOS)
-    ApplicationCacheStorage::singleton().setDefaultOriginQuota(25ULL * 1024 * 1024);
 #endif
 
     if (WebPreferences::anyPagesAreUsingPrivateBrowsing())

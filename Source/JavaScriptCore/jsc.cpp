@@ -596,6 +596,7 @@ static EncodedJSValue JSC_HOST_CALL functionReadline(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionPreciseTime(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionNeverInlineFunction(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionNoDFG(ExecState*);
+static EncodedJSValue JSC_HOST_CALL functionNoFTL(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionOptimizeNextInvocation(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionNumberOfDFGCompiles(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionReoptimizationRetryCount(ExecState*);
@@ -772,6 +773,7 @@ protected:
         addFunction(vm, "neverInlineFunction", functionNeverInlineFunction, 1);
         addFunction(vm, "noInline", functionNeverInlineFunction, 1);
         addFunction(vm, "noDFG", functionNoDFG, 1);
+        addFunction(vm, "noFTL", functionNoFTL, 1);
         addFunction(vm, "numberOfDFGCompiles", functionNumberOfDFGCompiles, 1);
         addFunction(vm, "optimizeNextInvocation", functionOptimizeNextInvocation, 1);
         addFunction(vm, "reoptimizationRetryCount", functionReoptimizationRetryCount, 1);
@@ -1522,6 +1524,16 @@ EncodedJSValue JSC_HOST_CALL functionNeverInlineFunction(ExecState* exec)
 EncodedJSValue JSC_HOST_CALL functionNoDFG(ExecState* exec)
 {
     return JSValue::encode(setNeverOptimize(exec));
+}
+
+EncodedJSValue JSC_HOST_CALL functionNoFTL(ExecState* exec)
+{
+    if (JSFunction* function = jsDynamicCast<JSFunction*>(exec->argument(0))) {
+        FunctionExecutable* executable = function->jsExecutable();
+        executable->setNeverFTLOptimize(true);
+    }
+
+    return JSValue::encode(jsUndefined());
 }
 
 EncodedJSValue JSC_HOST_CALL functionOptimizeNextInvocation(ExecState* exec)
@@ -2281,8 +2293,13 @@ int jscmain(int argc, char** argv)
     }
 
     if (options.m_dumpSamplingProfilerData) {
+#if ENABLE(SAMPLING_PROFILER)
+        JSLockHolder locker(vm);
         vm->samplingProfiler()->reportTopFunctions();
         vm->samplingProfiler()->reportTopBytecodes();
+#else
+        dataLog("Sampling profiler is not enabled on this platform\n");
+#endif
     }
 
     printSuperSamplerState();

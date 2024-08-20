@@ -1,3 +1,256 @@
+2016-04-22  Zan Dobersek  <zdobersek@igalia.com>
+
+        NetworkCacheIOChannelSoup: detach the newly-created IOChannel::readSync thread
+        https://bugs.webkit.org/show_bug.cgi?id=156907
+
+        Reviewed by Carlos Garcia Campos.
+
+        * NetworkProcess/cache/NetworkCacheIOChannelSoup.cpp:
+        (WebKit::NetworkCache::IOChannel::readSyncInThread): Detach the new thread,
+        ensuring the resources are released after the thread exits. Next step is
+        to set up a thread pool and use that, avoiding thread re-creation.
+
+2016-04-21  Dean Jackson  <dino@apple.com>
+
+        Backdrop Filter should not be visible if element has visibility:hidden
+        https://bugs.webkit.org/show_bug.cgi?id=149318
+        <rdar://problem/22749780>
+
+        Reviewed by Simon Fraser.
+
+        Add the isHidden method to PlatformCALayerRemote.
+
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.cpp:
+        (WebKit::PlatformCALayerRemote::isHidden):
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.h:
+
+2016-04-21  Anders Carlsson  <andersca@apple.com>
+
+        WKWebView HTML5 AppCache not working
+        https://bugs.webkit.org/show_bug.cgi?id=156887
+        rdar://problem/17944162
+
+        Reviewed by Tim Horton.
+
+        * Shared/WebPreferencesDefinitions.h:
+        Set the offlineWebApplicationCacheEnabled property to true by default.
+
+        * UIProcess/API/Cocoa/APIWebsiteDataStoreCocoa.mm:
+        (API::WebsiteDataStore::defaultDataStoreConfiguration):
+        Set the default applicationCacheFlatFileSubdirectoryName to "Files".
+
+2016-04-21  Anders Carlsson  <andersca@apple.com>
+
+        Get rid of the last uses of ApplicationCacheStorage::singleton() from WebKit2
+        https://bugs.webkit.org/show_bug.cgi?id=156876
+
+        Reviewed by Tim Horton.
+
+        * Shared/WebProcessCreationParameters.cpp:
+        (WebKit::WebProcessCreationParameters::encode):
+        (WebKit::WebProcessCreationParameters::decode):
+        * Shared/WebProcessCreationParameters.h:
+        Add and encode and decode a applicationCacheFlatFileSubdirectoryName.
+
+        * UIProcess/API/APIProcessPoolConfiguration.cpp:
+        (API::ProcessPoolConfiguration::createWithLegacyOptions):
+        Set m_applicationCacheFlatFileSubdirectoryName to "ApplicationCache".
+
+        (API::ProcessPoolConfiguration::ProcessPoolConfiguration):
+        Set m_applicationCacheFlatFileSubdirectoryName to "Files".
+
+        (API::ProcessPoolConfiguration::copy):
+        Copy m_applicationCacheFlatFileSubdirectoryName.
+
+        * UIProcess/API/APIProcessPoolConfiguration.h:
+        Add getter for applicationCacheFlatFileSubdirectoryName.
+
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::legacyWebsiteDataStoreConfiguration):
+        Initialize applicationCacheFlatFileSubdirectoryName from the process pool configuration.
+
+        (WebKit::WebProcessPool::createNewWebProcess):
+        Initialize parameters.applicationCacheFlatFileSubdirectoryName. Remove a call to 
+        ApplicationCacheStorage::singleton().setDefaultOriginQuota since it had no effect (it was called in the UI process).
+
+        * UIProcess/WebsiteData/WebsiteDataStore.cpp:
+        (WebKit::WebsiteDataStore::WebsiteDataStore):
+        Initialize m_applicationCacheFlatFileSubdirectoryName.
+
+        (WebKit::WebsiteDataStore::fetchData):
+        (WebKit::WebsiteDataStore::removeData):
+        Pass m_applicationCacheFlatFileSubdirectoryName when creating the application cache storage.
+
+        * UIProcess/WebsiteData/WebsiteDataStore.h:
+        Add new members.
+
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::WebPage):
+        Set the application cache storage.
+
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess):
+        Initialize the application cache storage.
+
+        * WebProcess/WebProcess.h:
+        (WebKit::WebProcess::applicationCacheStorage):
+        Add new getter.
+
+2016-04-21  Anders Carlsson  <andersca@apple.com>
+
+        Remove two uses of ApplicationCacheStorage::singleton() from WebKit2
+        https://bugs.webkit.org/show_bug.cgi?id=156873
+
+        Reviewed by Beth Dakin.
+
+        * WebProcess/WebCoreSupport/WebChromeClient.cpp:
+        (WebKit::WebChromeClient::reachedApplicationCacheOriginQuota):
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::clearApplicationCache): Deleted.
+        * WebProcess/WebProcess.h:
+
+2016-04-21  Beth Dakin  <bdakin@apple.com>
+
+        showCandidates() should take a range and the string should be the whole 
+        paragraph
+        https://bugs.webkit.org/show_bug.cgi?id=156813
+        -and corresponding-
+        rdar://problem/25760533
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/Cocoa/WebViewImpl.h:
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::updateWebViewImplAdditions):
+        (WebKit::WebViewImpl::showCandidates):
+        (WebKit::WebViewImpl::requestCandidatesForSelectionIfNeeded):
+        (WebKit::WebViewImpl::handleRequestedCandidates):
+
+2016-04-21  Chelsea Pugh  <cpugh@apple.com>
+
+        [iOS] Allow clients to hide the accessory view on a form input session
+        https://bugs.webkit.org/show_bug.cgi?id=155574
+
+        Reviewed by Dan Bernstein.
+
+        * UIProcess/API/Cocoa/_WKFormInputSession.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKFormInputSession accessoryViewShouldNotShow]): Getter for accessoryViewShouldNotShow.
+        (-[WKFormInputSession setAccessoryViewShouldNotShow:]): Set accessoryViewShouldNotShow and reload input views.
+        (-[WKContentView requiresAccessoryView]): If the accessory view should be not be shown, do not require
+        the accessory view.
+
+2016-04-21  Chris Dumez  <cdumez@apple.com>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from Range
+        https://bugs.webkit.org/show_bug.cgi?id=156805
+
+        Reviewed by Youenn Fablet.
+
+        * WebProcess/InjectedBundle/API/mac/WKDOMRange.mm:
+        (-[WKDOMRange setStart:offset:]):
+        (-[WKDOMRange setEnd:offset:]):
+        (-[WKDOMRange selectNode:]):
+        (-[WKDOMRange selectNodeContents:]):
+        * WebProcess/WebPage/WebFrame.cpp:
+        (WebKit::WebFrame::contentsAsString):
+
+2016-04-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] WebKitWebView should claim the contents size as its natural size
+        https://bugs.webkit.org/show_bug.cgi?id=156835
+
+        Reviewed by Žan Doberšek.
+
+        And keep claiming 0 as its minimum size since it's scrollable.
+
+        * UIProcess/API/gtk/PageClientImpl.cpp:
+        (WebKit::PageClientImpl::didChangeContentSize): Call webkitWebViewBaseSetContentsSize().
+        * UIProcess/API/gtk/PageClientImpl.h:
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseGetPreferredWidth): Return the contents width as natural width.
+        (webkitWebViewBaseGetPreferredHeight): Return the contents height as natural height.
+        (webkit_web_view_base_class_init): Add implementations of get_preferred_width/height.
+        (webkitWebViewBaseSetContentsSize): Save the contents size.
+        * UIProcess/API/gtk/WebKitWebViewBasePrivate.h:
+
+2016-04-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] WebKitWebView should propagate wheel events not handled by the web process
+        https://bugs.webkit.org/show_bug.cgi?id=156834
+
+        Reviewed by Žan Doberšek.
+
+        We are currently swallowing all wheel events unconditionally, not allowing applications to handle wheel events
+        when not handled by us. Since the GTK+ event propagation system is synchronous, and our events are handled
+        asynchronously, we need to do something similar to what we do for key events, not propagate the event the first
+        time and if not handled by the web process, re-inject it in the event loop and then just propagate it.
+
+        * Shared/NativeWebWheelEvent.h:
+        (WebKit::NativeWebWheelEvent::nativeEvent): Remove useless const.
+        * UIProcess/API/gtk/PageClientImpl.cpp:
+        (WebKit::PageClientImpl::wheelEventWasNotHandledByWebCore): Tell the web view to propagate the next wheel event,
+        and re-inject the event not handled by the web process in the event loop.
+        * UIProcess/API/gtk/PageClientImpl.h:
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseScrollEvent): Propagate the event if shouldForwardNextWheelEvent is true.
+        (webkitWebViewBaseForwardNextWheelEvent): Set shouldForwardNextWheelEvent to true.
+        * UIProcess/API/gtk/WebKitWebViewBasePrivate.h:
+        * UIProcess/PageClient.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::didReceiveEvent): Remove ifdef.
+        * UIProcess/efl/WebView.h:
+
+2016-04-20  Dustin Falgout  <dustin@falgout.us>
+
+        [GTK] Expose AllowUniversalAccessFromFileURLs preference now that calling localStorage.getItem() results in SecurityError: DOM Exception 18
+        
+        Reviewed by Michael Catanzaro.
+                
+        As of r197858 JavaScript loaded in the context of a file scheme url cannot access local storage. That is a major 
+        breaking change as many applications that serve files locally rely on having access to local storage. The point  
+        of that security fix is to avoid cases of downloaded HTML content (such as e-mail attachments or JS injected
+        into local contexts) from having access to your local file system and arbitrary local storage. If you are serving 
+        local files in your applications, you can use the WebKitAllowUniversalAccessFromFileURLs preference key to tell 
+        Webkit that you are approve of these kinds of interactions.
+                                              
+        https://bugs.webkit.org/show_bug.cgi?id=156651
+
+        * UIProcess/API/gtk/WebKitSettings.cpp:
+        (webKitSettingsSetProperty):
+        (webKitSettingsGetProperty):
+        (webkit_settings_class_init):
+        (webkit_settings_get_allow_universal_access_from_file_urls):
+        (webkit_settings_set_allow_universal_access_from_file_urls):
+        * UIProcess/API/gtk/WebKitSettings.h:
+        * UIProcess/API/gtk/docs/webkit2gtk-4.0-sections.txt:
+
+2016-04-20  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB (Workers): Enable INDEXED_DATABASE_IN_WORKERS compile time flag, but disabled in RuntimeEnabledFeatures.
+        https://bugs.webkit.org/show_bug.cgi?id=156782
+
+        Reviewed by Alex Christensen.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-04-20  Brent Fulgham  <bfulgham@apple.com>
+
+        [WK2][Mac][iOS] WebContent crash when using special file:// URI scheme @ WebKit::resolveSymlinksInPath(WTF::CString const&) + 159
+        https://bugs.webkit.org/show_bug.cgi?id=156747
+        <rdar://problem/24648176>
+
+        Reviewed by Alexey Proskuryakov.
+
+        FileSystemCF::fileSystemRepresentation return a null string when presented with a file URL that contains embedded nulls. When
+        this happens, SandboxExtension::createHandle attempts to pass a null string to 'resolveSymlinksInPath', which attemps to call
+        'strrchr' on the null pointer, causing a crash.
+
+        Test: fast/url/file-uri-with-embedded-null-no-crash.html
+
+        * Shared/mac/SandboxExtensionMac.mm:
+        (WebKit::SandboxExtension::createHandle): If 'fileSystemRepresentation' is null, return early with an error.
+
 2016-04-19  Alex Christensen  <achristensen@webkit.org>
 
         Fix CMake build.

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -48,6 +48,7 @@ class ScopeGuard;
 class ThreadSafeDataBuffer;
 
 namespace IDBClient {
+class IDBConnectionProxy;
 class IDBConnectionToServer;
 }
 
@@ -104,14 +105,14 @@ public:
     bool hasPendingActivity() const final;
 
 protected:
-    IDBRequest(IDBClient::IDBConnectionToServer&, ScriptExecutionContext&);
+    IDBRequest(ScriptExecutionContext&, IDBClient::IDBConnectionProxy&);
 
     void enqueueEvent(Ref<Event>&&);
     bool dispatchEvent(Event&) override;
 
-    IDBClient::IDBConnectionToServer& connection() { return m_connection; }
-
     void setResult(Ref<IDBDatabase>&&);
+
+    IDBClient::IDBConnectionProxy& connectionProxy() { return m_connectionProxy.get(); }
 
     // FIXME: Protected data members aren't great for maintainability.
     // Consider adding protected helper functions and making these private.
@@ -154,7 +155,6 @@ private:
     RefPtr<IDBDatabase> m_databaseResult;
 
     IDBError m_idbError;
-    IDBClient::IDBConnectionToServer& m_connection;
     IDBResourceIdentifier m_resourceIdentifier;
 
     // Could consider storing these three in a union or union-like class instead.
@@ -168,6 +168,8 @@ private:
     RefPtr<IDBCursor> m_pendingCursor;
 
     std::unique_ptr<ScopeGuard> m_cursorRequestNotifier;
+
+    Ref<IDBClient::IDBConnectionProxy> m_connectionProxy;
 };
 
 } // namespace WebCore

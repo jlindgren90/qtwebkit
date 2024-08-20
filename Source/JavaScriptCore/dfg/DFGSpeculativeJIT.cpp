@@ -1334,7 +1334,12 @@ void SpeculativeJIT::compilePeepHoleDoubleBranch(Node* node, Node* branchNode, J
 {
     BasicBlock* taken = branchNode->branchData()->taken.block;
     BasicBlock* notTaken = branchNode->branchData()->notTaken.block;
-    
+
+    if (taken == nextBlock()) {
+        condition = MacroAssembler::invert(condition);
+        std::swap(taken, notTaken);
+    }
+
     SpeculateDoubleOperand op1(this, node->child1());
     SpeculateDoubleOperand op2(this, node->child2());
     
@@ -1479,13 +1484,12 @@ bool SpeculativeJIT::compilePeepHoleBranch(Node* node, MacroAssembler::Relationa
         else if (node->isBinaryUseKind(Int52RepUse))
             compilePeepHoleInt52Branch(node, branchNode, condition);
 #endif // USE(JSVALUE64)
-        else if (node->isBinaryUseKind(DoubleRepUse))
+        else if (node->isBinaryUseKind(StringUse) || node->isBinaryUseKind(StringIdentUse)) {
+            // Use non-peephole comparison, for now.
+            return false;
+        } else if (node->isBinaryUseKind(DoubleRepUse))
             compilePeepHoleDoubleBranch(node, branchNode, doubleCondition);
         else if (node->op() == CompareEq) {
-            if (node->isBinaryUseKind(StringUse) || node->isBinaryUseKind(StringIdentUse)) {
-                // Use non-peephole comparison, for now.
-                return false;
-            }
             if (node->isBinaryUseKind(BooleanUse))
                 compilePeepHoleBooleanBranch(node, branchNode, condition);
             else if (node->isBinaryUseKind(SymbolUse))
@@ -3496,19 +3500,26 @@ void SpeculativeJIT::compileArithAdd(Node* node)
 
         if (node->child2()->isInt32Constant()) {
             SpeculateInt32Operand op1(this, node->child1());
+            GPRTemporary result(this, Reuse, op1);
+
+            GPRReg gpr1 = op1.gpr();
             int32_t imm2 = node->child2()->asInt32();
+            GPRReg gprResult = result.gpr();
 
             if (!shouldCheckOverflow(node->arithMode())) {
-                GPRTemporary result(this, Reuse, op1);
-                m_jit.add32(Imm32(imm2), op1.gpr(), result.gpr());
-                int32Result(result.gpr(), node);
+                m_jit.add32(Imm32(imm2), gpr1, gprResult);
+                int32Result(gprResult, node);
                 return;
             }
 
-            GPRTemporary result(this);
-            speculationCheck(Overflow, JSValueRegs(), 0, m_jit.branchAdd32(MacroAssembler::Overflow, op1.gpr(), Imm32(imm2), result.gpr()));
+            MacroAssembler::Jump check = m_jit.branchAdd32(MacroAssembler::Overflow, gpr1, Imm32(imm2), gprResult);
+            if (gpr1 == gprResult) {
+                speculationCheck(Overflow, JSValueRegs(), 0, check,
+                    SpeculationRecovery(SpeculativeAddImmediate, gpr1, imm2));
+            } else
+                speculationCheck(Overflow, JSValueRegs(), 0, check);
 
-            int32Result(result.gpr(), node);
+            int32Result(gprResult, node);
             return;
         }
                 
@@ -4967,20 +4978,26 @@ bool SpeculativeJIT::compare(Node* node, MacroAssembler::RelationalCondition con
         compileDoubleCompare(node, doubleCondition);
         return false;
     }
-    
-    if (node->op() == CompareEq) {
-        if (node->isBinaryUseKind(StringUse)) {
+
+    if (node->isBinaryUseKind(StringUse)) {
+        if (node->op() == CompareEq)
             compileStringEquality(node);
-            return false;
-        }
-        
+        else
+            compileStringCompare(node, condition);
+        return false;
+    }
+
+    if (node->isBinaryUseKind(StringIdentUse)) {
+        if (node->op() == CompareEq)
+            compileStringIdentEquality(node);
+        else
+            compileStringIdentCompare(node, condition);
+        return false;
+    }
+
+    if (node->op() == CompareEq) {
         if (node->isBinaryUseKind(BooleanUse)) {
             compileBooleanCompare(node, condition);
-            return false;
-        }
-
-        if (node->isBinaryUseKind(StringIdentUse)) {
-            compileStringIdentEquality(node);
             return false;
         }
 
@@ -5430,6 +5447,76 @@ void SpeculativeJIT::compileStringIdentToNotStringVarEquality(
     notString.link(&m_jit);
     
     unblessedBooleanResult(rightTempGPR, node);
+}
+
+void SpeculativeJIT::compileStringCompare(Node* node, MacroAssembler::RelationalCondition condition)
+{
+    SpeculateCellOperand left(this, node->child1());
+    SpeculateCellOperand right(this, node->child2());
+    GPRReg leftGPR = left.gpr();
+    GPRReg rightGPR = right.gpr();
+
+    speculateString(node->child1(), leftGPR);
+    speculateString(node->child2(), rightGPR);
+
+    C_JITOperation_B_EJssJss compareFunction = nullptr;
+    if (condition == MacroAssembler::LessThan)
+        compareFunction = operationCompareStringLess;
+    else if (condition == MacroAssembler::LessThanOrEqual)
+        compareFunction = operationCompareStringLessEq;
+    else if (condition == MacroAssembler::GreaterThan)
+        compareFunction = operationCompareStringGreater;
+    else if (condition == MacroAssembler::GreaterThanOrEqual)
+        compareFunction = operationCompareStringGreaterEq;
+    else
+        RELEASE_ASSERT_NOT_REACHED();
+
+    GPRFlushedCallResult result(this);
+    GPRReg resultGPR = result.gpr();
+
+    flushRegisters();
+    callOperation(compareFunction, resultGPR, leftGPR, rightGPR);
+    m_jit.exceptionCheck();
+
+    unblessedBooleanResult(resultGPR, node);
+}
+
+void SpeculativeJIT::compileStringIdentCompare(Node* node, MacroAssembler::RelationalCondition condition)
+{
+    SpeculateCellOperand left(this, node->child1());
+    SpeculateCellOperand right(this, node->child2());
+    GPRFlushedCallResult result(this);
+    GPRTemporary leftTemp(this);
+    GPRTemporary rightTemp(this);
+
+    GPRReg leftGPR = left.gpr();
+    GPRReg rightGPR = right.gpr();
+    GPRReg resultGPR = result.gpr();
+    GPRReg leftTempGPR = leftTemp.gpr();
+    GPRReg rightTempGPR = rightTemp.gpr();
+
+    speculateString(node->child1(), leftGPR);
+    speculateString(node->child2(), rightGPR);
+
+    C_JITOperation_TT compareFunction = nullptr;
+    if (condition == MacroAssembler::LessThan)
+        compareFunction = operationCompareStringImplLess;
+    else if (condition == MacroAssembler::LessThanOrEqual)
+        compareFunction = operationCompareStringImplLessEq;
+    else if (condition == MacroAssembler::GreaterThan)
+        compareFunction = operationCompareStringImplGreater;
+    else if (condition == MacroAssembler::GreaterThanOrEqual)
+        compareFunction = operationCompareStringImplGreaterEq;
+    else
+        RELEASE_ASSERT_NOT_REACHED();
+
+    speculateStringIdentAndLoadStorage(node->child1(), leftGPR, leftTempGPR);
+    speculateStringIdentAndLoadStorage(node->child2(), rightGPR, rightTempGPR);
+
+    flushRegisters();
+    callOperation(compareFunction, resultGPR, leftTempGPR, rightTempGPR);
+
+    unblessedBooleanResult(resultGPR, node);
 }
 
 void SpeculativeJIT::compileStringZeroLength(Node* node)

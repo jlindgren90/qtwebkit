@@ -677,13 +677,13 @@ webkit.org/b/154390 http/tests/media/video-query-url.html [ Failure ]
 webkit.org/b/154390 http/tests/media/video-throttled-load-metadata.html [ Failure ]
 webkit.org/b/154390 http/tests/media/video-served-as-text.html [ Failure ]
 webkit.org/b/154390 http/tests/media/video-redirect.html [ Failure ]
-webkit.org/b/154390 http/tests/media/hls/video-controller-getStartDate.html [ Timeout Failure ]
-webkit.org/b/154390 http/tests/media/hls/hls-audio-tracks-locale-selection.html [ Timeout Failure ]
-webkit.org/b/154390 http/tests/media/hls/hls-video-resize.html [ Timeout Failure ]
-webkit.org/b/154390 http/tests/media/hls/hls-audio-tracks.html [ Timeout Failure ]
-webkit.org/b/154390 http/tests/media/hls/hls-audio-tracks-has-audio.html [ Timeout Failure ]
-webkit.org/b/154390 http/tests/media/hls/hls-accessiblity-describes-video.html [ Timeout Failure ]
-webkit.org/b/154390 http/tests/media/hls/video-cookie.html [ Failure ]
+webkit.org/b/154390 [ Release ] http/tests/media/hls/video-controller-getStartDate.html [ Timeout Failure ]
+webkit.org/b/154390 [ Release ] http/tests/media/hls/hls-audio-tracks-locale-selection.html [ Timeout Failure ]
+webkit.org/b/154390 [ Release ] http/tests/media/hls/hls-video-resize.html [ Timeout Failure ]
+webkit.org/b/154390 [ Release ] http/tests/media/hls/hls-audio-tracks.html [ Timeout Failure ]
+webkit.org/b/154390 [ Release ] http/tests/media/hls/hls-audio-tracks-has-audio.html [ Timeout Failure ]
+webkit.org/b/154390 [ Release ] http/tests/media/hls/hls-accessiblity-describes-video.html [ Timeout Failure ]
+webkit.org/b/154390 [ Release ] http/tests/media/hls/video-cookie.html [ Failure ]
 webkit.org/b/154390 http/tests/security/local-video-source-from-remote.html [ Timeout Pass ]
 
 webkit.org/b/155505 http/tests/security/contentSecurityPolicy/userAgentShadowDOM/allow-audio.html [ Skip ]
@@ -1402,6 +1402,12 @@ webkit.org/b/149916 inspector/unit-tests/object.html [ Pass Slow ]
 
 Bug(GTK) http/tests/misc/large-js-program.php [ Pass Slow ]
 
+[ Debug ] editing/selection/move-by-character-brute-force.html [ Pass Timeout ]
+[ Debug ] editing/selection/move-by-word-visually-inline-block-positioned-element.html [ Pass Timeout ]
+[ Debug ] editing/selection/move-by-word-visually-mac.html [ Failure Timeout ]
+[ Debug ] editing/selection/move-by-word-visually-multi-line.html [ Pass Timeout ]
+[ Debug ] editing/selection/move-by-word-visually-multi-space.html [ Failure Timeout ]
+
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of slow tests
 #////////////////////////////////////////////////////////////////////////////////////////
@@ -1697,7 +1703,7 @@ webkit.org/b/63706 fast/events/drag-customData.html  [ Timeout ]
 fast/events/touch/scroll-without-mouse-lacks-mousemove-events.html
 
 # WebKit2 testRunner.setEditingBehaviour appears broken sometimes.
-webkit.org/b/144764 editing/selection/move-by-word-visually-mac.html [ Failure ]
+webkit.org/b/144764 [ Release ] editing/selection/move-by-word-visually-mac.html [ Failure ]
 Bug(GTK) editing/selection/extend-after-mouse-selection.html [ Failure ]
 
 # WebKit2 needs textInputController.selectedRange
