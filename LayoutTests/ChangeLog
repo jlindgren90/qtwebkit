@@ -1,3 +1,109 @@
+2016-04-29  Alex Christensen  <achristensen@webkit.org>
+
+        Do not reuse cache entries with conditional headers
+        https://bugs.webkit.org/show_bug.cgi?id=157205
+        rdar://problem/25856933
+
+        Reviewed by Chris Dumez.
+
+        * http/tests/xmlhttprequest/if-modified-since-0-expected.txt: Added.
+        * http/tests/xmlhttprequest/if-modified-since-0.html: Added.
+
+2016-05-01  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        Class contructor and methods shouldn't have "arguments" and "caller"
+        https://bugs.webkit.org/show_bug.cgi?id=144238
+
+        Reviewed by Ryosuke Niwa.
+
+        * js/class-method-and-constructor-properties-expected.txt: Added.
+        * js/class-method-and-constructor-properties.html: Added.
+        * js/script-tests/class-method-and-constructor-properties.js: Added.
+
+2016-05-02  Yoav Weiss  <yoav@yoav.ws>
+
+        Move ResourceTiming behind a runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157133
+
+        Reviewed by Alex Christensen.
+
+        Added tests that make sure ResourceTiming APIs are exposed and that resources
+        show up as entries in the performance timeline.
+
+        * fast/dom/Window/window-properties-performance-resource-timing-expected.txt: Added.
+        * fast/dom/Window/window-properties-performance-resource-timing.html: Added.
+        * fast/dom/Window/window-properties-performance.html: Removed "//;".
+        * http/tests/performance/performance-resource-timing-entries-expected.txt: Added.
+        * http/tests/performance/performance-resource-timing-entries.html: Added.
+
+2016-05-01  Nan Wang  <n_wang@apple.com>
+
+        AX: Crash at  WebCore::AccessibilityObject::getAttribute const + 9
+        https://bugs.webkit.org/show_bug.cgi?id=157256
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/aria-label-on-label-element-expected.txt:
+        * accessibility/mac/aria-label-on-label-element.html:
+
+2016-05-01  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200264 and r200266.
+        https://bugs.webkit.org/show_bug.cgi?id=157251
+
+        This change caused existing LayoutTest media/media-source
+        /media-source-stalled-holds-sleep-assertion.html to time out
+        on Mac on every run. (Requested by ryanhaddad on #webkit).
+
+        Reverted changesets:
+
+        "[Mac] AirPlay fails if target is set before AVPlayer has been
+        created"
+        https://bugs.webkit.org/show_bug.cgi?id=157147
+        http://trac.webkit.org/changeset/200264
+
+        "[Mac] AirPlay fails if target is set before AVPlayer has been
+        created"
+        https://bugs.webkit.org/show_bug.cgi?id=157147
+        http://trac.webkit.org/changeset/200266
+
+2016-05-01  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Sync web-platform-tests up to revision 4af8373
+        https://bugs.webkit.org/show_bug.cgi?id=157170
+
+        Reviewed by Chris Dumez.
+
+        * platform/ios-simulator/TestExpectations: Marking some tests as failing.
+        * platform/wk2/imported/w3c/web-platform-tests/html/semantics/document-metadata/styling/LinkStyle-expected.txt:
+
+2016-04-30  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r199640): position:absolute generated content inherits text-decoration from its element
+        https://bugs.webkit.org/show_bug.cgi?id=157199
+        <rdar://problem/26013111>
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/css/text-decoration-inheritance-pseudo-expected.html: Added.
+        * fast/css/text-decoration-inheritance-pseudo.html: Added.
+
+2016-04-30  Zalan Bujtas  <zalan@apple.com>
+
+        Some content causes deep recursion.
+        https://bugs.webkit.org/show_bug.cgi?id=157230
+        <rdar://problem/7694756>
+
+        Reviewed by Antti Koivisto.
+
+        This patch sets a limit(512) on content nesting for the render tree. Elements injected over the limit
+        are still accessible through DOM APIs but
+        1. we stop generating renderers for them -they behave like display: none. 
+        2. their layout related computed style values are set to default (e.g. window.computedStyle(document.elementById("over512").width -> auto) 
+
+        * fast/block/nested-renderers-expected.html: Added.
+        * fast/block/nested-renderers.html: Added.
+
 2016-04-30  Chris Dumez  <cdumez@apple.com>
 
         [Web IDL] Pass even more types by reference

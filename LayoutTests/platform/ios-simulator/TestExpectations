@@ -3006,9 +3006,6 @@ fast/forms/listbox-padding-clip-selected.html [ ImageOnlyFailure ]
 fast/forms/listbox-respects-padding-bottom.html [ Failure ]
 fast/forms/listbox-top-padding-do-not-clip-items.html [ Failure ]
 
-# MSE not enabled.
-media/media-source/media-source-airplay.html [ Skip ]
-
 # No focusring on iOS.
 fast/images/image-map-outline-in-positioned-container.html [ Pass ImageOnlyFailure ]
 fast/images/image-map-outline-with-paint-root-offset.html [ Pass ImageOnlyFailure ]
@@ -3018,3 +3015,11 @@ webkit.org/b/156812 compositing/webgl/webgl-reflection.html [ Failure ]
 
 # iOS does not allow you to scroll by dragging the scrollbar thumb.
 webkit.org/b/157201 fast/scrolling/rtl-drag-vertical-scroller.html [ Failure ]
+
+# Tests that are failing after bug 157170 (WPT test sync). These tests may just need rebasing.
+imported/w3c/web-platform-tests/html/semantics/selectors/pseudo-classes/readwrite-readonly.html [ Failure ]
+imported/w3c/web-platform-tests/html/dom/interfaces.html [ Failure ]
+imported/w3c/web-platform-tests/dom/nodes/Document-createEvent.html [ Failure ]
+imported/w3c/web-platform-tests/html/semantics/forms/the-input-element/selection.html [ Failure ]
+imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-badInput.html [ Failure ]
+imported/w3c/web-platform-tests/html/semantics/selectors/pseudo-classes/inrange-outofrange.html [ Failure ]

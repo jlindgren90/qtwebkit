@@ -460,4 +460,5 @@ enum InternalsAutoFillButtonType {
     void setCSSGridLayoutEnabled(boolean enable);
 #endif
 
+    void setResourceTimingSupport(boolean scalable);
 };

@@ -1,3 +1,87 @@
+2016-05-02  Keith Miller  <keith_miller@apple.com>
+
+        ToThis should be able to be eliminated in Constant Folding
+        https://bugs.webkit.org/show_bug.cgi?id=157213
+
+        Reviewed by Saam Barati.
+
+        This patch enables eliminating the ToThis value when we have abstract interpreter
+        indicates the node is not needed. Since there are Objects that override their
+        ToThis behavior we first check if we can eliminate the node by looking at its
+        speculated type. If the function is in strict mode then we can eliminate ToThis as
+        long as the speculated type is not SpecObjectOther since that contains objects
+        that may set OverridesToThis. If the function is not in strict mode then we can
+        eliminate ToThis as long is the speculated type is an object that is not SpecObjectOther.
+
+        If we can't eliminate with type information we can still eliminate the ToThis node with
+        the proven structure set. When ToThis only sees structures that do not set OverridesToThis
+        it can be eliminated. Additionally, if the function is in strict mode then we can eliminate
+        ToThis as long as all only the object structures don't set OverridesToThis.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::isToThisAnIdentity):
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGConstantFoldingPhase.cpp:
+        (JSC::DFG::ConstantFoldingPhase::foldConstants):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupToThis):
+        * tests/stress/to-this-global-object.js: Added.
+        (test):
+        (test2):
+        (get for):
+
+2016-05-01  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        Class contructor and methods shouldn't have "arguments" and "caller"
+        https://bugs.webkit.org/show_bug.cgi?id=144238
+
+        Reviewed by Ryosuke Niwa.
+
+        Added TypeError that is raised in case of access to properties 'arguments' or 'caller'
+        of constructor or method of class. Actually TypeError already raised for most cases, except
+        case with undeclared constructor e. g. 
+        class A {}
+        (new A).constructor.caller 
+        (new A).constructor.arguments
+
+        * runtime/JSFunction.cpp:
+        (JSC::getThrowTypeErrorGetterSetter):
+        (JSC::JSFunction::getOwnPropertySlot):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::createThrowTypeErrorArgumentsAndCaller):
+        (JSC::JSGlobalObject::visitChildren):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::throwTypeErrorArgumentsAndCallerGetterSetter):
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncThrowTypeErrorArgumentsAndCaller):
+        * runtime/JSGlobalObjectFunctions.h:
+
+2016-05-02  Yoav Weiss  <yoav@yoav.ws>
+
+        Move ResourceTiming behind a runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157133
+
+        Reviewed by Alex Christensen.
+
+        * runtime/CommonIdentifiers.h: Added PerformanceEntry, PerformanceEntryList and PerformanceResourceTiming as property names.
+
+2016-05-02  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Assertion failure for bound function with custom prototype and Reflect.construct
+        https://bugs.webkit.org/show_bug.cgi?id=157081
+
+        Reviewed by Saam Barati.
+
+        We ensured `newTarget != exec->callee()`. However, it does not mean `newTarget.get("prototype") != exec->callee()->get("prototype")`.
+        When the given `prototype` is the same to `baseStructure->sotredPrototype()`, it is unnecessary to create a new structure from this
+        baseStructure.
+
+        * bytecode/InternalFunctionAllocationProfile.h:
+        (JSC::InternalFunctionAllocationProfile::createAllocationStructureFromBase):
+        * tests/stress/custom-prototype-may-be-same-to-original-one.js: Added.
+        (shouldBe):
+        (boundFunction):
+
 2016-04-30  Konstantin Tokarev  <annulen@yandex.ru>
 
         Guard ObjC-specific code in Heap.cpp with USE(FOUNDATION)

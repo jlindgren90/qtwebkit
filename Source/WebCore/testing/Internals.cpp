@@ -2860,6 +2860,9 @@ bool Internals::isPluginSnapshotted(Element& element)
 
 void Internals::initializeMockMediaSource()
 {
+#if USE(AVFOUNDATION)
+    WebCore::Settings::setAVFoundationEnabled(false);
+#endif
     MediaPlayerFactorySupport::callRegisterMediaEngine(MockMediaPlayerMediaSource::registerMediaEngine);
 }
 
@@ -3427,5 +3430,10 @@ void Internals::setCSSGridLayoutEnabled(bool enable)
     RuntimeEnabledFeatures::sharedFeatures().setCSSGridLayoutEnabled(enable);
 }
 #endif
+
+void Internals::setResourceTimingSupport(bool enable)
+{
+    RuntimeEnabledFeatures::sharedFeatures().setResourceTimingEnabled(enable);
+}
 
 }

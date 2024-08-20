@@ -1,3 +1,585 @@
+2016-04-29  Alex Christensen  <achristensen@webkit.org>
+
+        Do not reuse cache entries with conditional headers
+        https://bugs.webkit.org/show_bug.cgi?id=157205
+        rdar://problem/25856933
+
+        Reviewed by Chris Dumez.
+
+        Test: http/tests/xmlhttprequest/if-modified-since-0.html
+
+        * loader/cache/CachedRawResource.cpp:
+        (WebCore::CachedRawResource::canReuse):
+        CachedResourceLoader::determineRevalidationPolicy asserts that the request is not conditional,
+        which means that it does not have any headers like If-Modified-Since.  They are usually different,
+        because we put the timestamp in the If-Modified-Since header, so it fails the canReuse test because
+        time has passed since the last If-Modified-Since header was sent.  When a user sets the If-Modified-Since
+        manually to something that is constant, we reuse cache entries when we should not.
+        * platform/network/mac/WebCoreResourceHandleAsDelegate.mm:
+        (-[WebCoreResourceHandleAsDelegate connection:didReceiveResponse:]):
+        Set the source so we can use it in Internals.
+
+2016-05-02  Yoav Weiss  <yoav@yoav.ws>
+
+        Speculatively fix the cmake build
+        https://bugs.webkit.org/show_bug.cgi?id=157262
+
+        Reviewed by Darin Adler.
+
+        This patch adds WEB_TIMING build flag guards around calls to DOMWindow()->performance(),
+        in order to make sure builds that have WEB_TIMING disabled (e.g. cmake on Mac) continue
+        to build.
+
+        No new tests as there's no functional change.
+
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::loadDone):
+
+2016-05-02  Daniel Bates  <dabates@apple.com>
+
+        CSP: Add workaround for XtraMath
+        https://bugs.webkit.org/show_bug.cgi?id=157252
+
+        Reviewed by Andy Estes.
+
+        * platform/RuntimeApplicationChecks.h:
+        * platform/RuntimeApplicationChecks.mm:
+        (WebCore::IOSApplication::isXtraMath): Added.
+
+2016-05-02  Daniel Bates  <dabates@apple.com>
+
+        DatabaseTracker::closeAllDatabases calls Database::close from the wrong thread
+        https://bugs.webkit.org/show_bug.cgi?id=147672
+        <rdar://problem/22357464>
+
+        Reviewed by Brady Eidson.
+
+        Schedule a DatabaseCloseTask when Database::close() is called from a thread other than the
+        database thread as the database thread is responsible for interacting with the database.
+
+        Currently -[WebDatabaseManager startBackgroundTask] and WebProcess::processWillSuspendImminently()
+        call DatabaseTracker::closeAllDatabases() indirectly and directly, respectively, from a
+        thread other than the database thread. In a debug build, this causes an assertion failure
+        in Database::close(). In a release/production build, this starts a race between the calling
+        thread and the database thread that can lead to a crash. It is the responsibility of the
+        database thread to manage the database. We should ensure that calling Database::close()
+        delegates the responsibility of actually closing the database to the database thread to
+        avoid interfering with the database thread or the need to synchronize access to data
+        structures used by the database thread.
+
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::interrupt): Added. Turns around and calls SQLiteDatabase::interrupt().
+        (WebCore::Database::close): Added. Schedules a DatabaseCloseTask to close the database and
+        wait for it to complete if we have not already scheduled closing the database.
+        (WebCore::Database::performClose): Renamed; formerly named close.
+        (WebCore::Database::markAsDeletedAndClose): Extracted logic to schedule a DatabaseCloseTask
+        from here to Database::close() and modified this function to call Database::close().
+        * Modules/webdatabase/Database.h:
+        * Modules/webdatabase/DatabaseTask.cpp:
+        (WebCore::DatabaseCloseTask::doPerformTask): Call Database::performClose() instead of Database::close()
+        as the latter has been repurposed to schedule closing the database.
+        * Modules/webdatabase/DatabaseThread.cpp:
+        (WebCore::DatabaseThread::databaseThread): Ditto.
+        * Modules/webdatabase/DatabaseTracker.cpp:
+        (WebCore::DatabaseTracker::closeAllDatabases): Added argument currentQueryBehavior (defaults
+        to CurrentQueryBehavior::RunToCompletion - close every database after completion of the
+        current database query, if any).
+        * Modules/webdatabase/DatabaseTracker.h:
+        * platform/sql/SQLiteDatabase.cpp:
+        (WebCore::SQLiteDatabase::interrupt): Added. This is safe to call regardless of the state
+        of the database and thread safe by <https://www.sqlite.org/c3ref/interrupt.html>.
+        * platform/sql/SQLiteDatabase.h:
+
+2016-05-02  Yoav Weiss  <yoav@yoav.ws>
+
+        Move ResourceTiming behind a runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157133
+
+        Reviewed by Alex Christensen.
+
+        Move the ResourceTiming API from being behind a build time flag to be behind an
+        off-by-default runtime flag, that can be turned on using internals.
+
+        Tests: fast/dom/Window/window-properties-performance-resource-timing.html
+               http/tests/performance/performance-resource-timing-entries.html
+
+        * DerivedSources.make: Added idl files for PerformanceEntry, PerformanceEntryList and PerformanceResourceTiming.
+        * WebCore.xcodeproj/project.pbxproj: Added the various Performance* files to the project.
+        * bindings/generic/RuntimeEnabledFeatures.cpp: Added ResourceTiming as a runtime flag.
+        (WebCore::RuntimeEnabledFeatures::RuntimeEnabledFeatures):
+        * bindings/generic/RuntimeEnabledFeatures.h: Added ResourceTiming as a runtime flag.
+        (WebCore::RuntimeEnabledFeatures::setResourceTimingEnabled):
+        (WebCore::RuntimeEnabledFeatures::resourceTimingEnabled):
+        * bindings/js/JSPerformanceEntryCustom.cpp: Removed #if for ResourceTiming, and replaced PERFORMANCE_TIMELINE for WEB_TIMING.
+        Added build flag around UserTiming related h files.
+        (WebCore::toJS): Deleted.
+        * dom/EventNames.h: Renamed webkitresourcetimingbufferfull to resourcetimingbufferfull.
+        * loader/DocumentThreadableLoader.cpp: Replace #if for ResourceTiming with runtime flag.
+        (WebCore::DocumentThreadableLoader::loadRequest):
+        * loader/ResourceLoadNotifier.cpp: Replace #if for ResourceTiming with runtime flag.
+        (WebCore::ResourceLoadNotifier::dispatchWillSendRequest):
+        * loader/cache/CachedResourceLoader.cpp: Replace #if for ResourceTiming with runtime flag.
+        (WebCore::CachedResourceLoader::revalidateResource):
+        (WebCore::CachedResourceLoader::loadResource):
+        (WebCore::CachedResourceLoader::storeResourceTimingInitiatorInformation):
+        (WebCore::CachedResourceLoader::loadDone):
+        * loader/cache/CachedResourceLoader.h: Remove #if for ResourceTiming.
+        * page/Performance.cpp: Remove #if for ResourceTiming.
+        (WebCore::Performance::Performance): Removed #if for ResourceTiming related initialization.
+        (WebCore::Performance::webkitGetEntries): Renamed to getEntries.
+        (WebCore::Performance::webkitGetEntriesByType): Renamed to getEntriesByType.
+        (WebCore::Performance::webkitGetEntriesByName): Renamed to getEntriesByName.
+        * page/Performance.h: Remove #if for ResourceTiming.
+        * page/Performance.idl: Replace #if for ResourceTiming with runtime flag.
+        * page/PerformanceEntry.cpp: Remove the PERFORMANCE_TIMELINE build flag.
+        * page/PerformanceEntry.h: Remove the PERFORMANCE_TIMELINE build flag.
+        * page/PerformanceEntry.idl: Replace the PERFORMANCE_TIMELINE build flag with runtime flag.
+        * page/PerformanceEntryList.cpp: Remove the PERFORMANCE_TIMELINE build flag.
+        * page/PerformanceEntryList.h: Remove the PERFORMANCE_TIMELINE build flag.
+        * page/PerformanceEntryList.idl: Replace the PERFORMANCE_TIMELINE build flag with runtime flag.
+        * page/PerformanceResourceTiming.cpp: Remove the RESOURCE_TIMING build flag.
+        * page/PerformanceResourceTiming.h: Remove the RESOURCE_TIMING build flag.
+        * page/PerformanceResourceTiming.idl: Replace the RESOURCE_TIMING build flag with runtime flag.
+        * testing/Internals.cpp: Add a method that enables ResourceTiming.
+        (WebCore::Internals::setResourceTimingSupport):
+        * testing/Internals.h: Add a method that enables ResourceTiming.
+        * testing/Internals.idl: Add a method that enables ResourceTiming.
+
+2016-05-01  Nan Wang  <n_wang@apple.com>
+
+        AX: Crash at  WebCore::AccessibilityObject::getAttribute const + 9
+        https://bugs.webkit.org/show_bug.cgi?id=157256
+
+        Reviewed by Chris Fleizach.
+
+        When the <label> for the input element has no renderer, it will cause
+        crash when we ask for the title element text. Fixed it by getting the 
+        aria-label attribute directly from the <label> element instead of its 
+        accessibility object. 
+
+        Test case covered in accessibility/mac/aria-label-on-label-element.html.
+
+        * accessibility/AccessibilityNodeObject.cpp:
+        (WebCore::AccessibilityNodeObject::titleElementText):
+
+2016-05-01  Darin Adler  <darin@apple.com>
+
+        Stop using string-based enumerations in TextTrack, and eliminate support for string-based enumerations
+        https://bugs.webkit.org/show_bug.cgi?id=157253
+
+        Reviewed by Chris Dumez.
+
+        This was the most difficult case to convert from the old style of enumeration to enum class.
+        Afterward there is a bit of messy duplication, but it still seems like an improvement overall.
+
+        After this patch, I plan to change the rule for the name of the enumeration; instead of
+        living at the top level of the WebCore namespace, we will look for them inside the class for the
+        first interface defined in the same file along with the enumeration, and remove the name prefix,
+        if the interfaces's name is a prefix of the enumerations's name.
+
+        Once that's done, next step is to do something in the bindings for dictionaries. And adopt both the
+        enumeration and dictionary mechanisms more widely, and remove the old use of "dictionary" as a type name.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::removeSourceBuffer): Use enum values instead of keywords.
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::textTrackModeChanged): Ditto.
+
+        * bindings/js/JSTextTrackCustom.cpp:
+        (WebCore::JSTextTrack::setKind): Deleted.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (IsStringBasedEnumType): Deleted.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetEnumerationImplementationContent): Removed IsStringBasedEnumType check.
+        (GenerateParametersCheck): Ditto.
+        (GenerateImplementation): Ditto.
+        (GetNativeType): Ditto.
+        (JSValueToNative): Ditto.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::loadInternal): Use enum values instead of keywords.
+        (WebCore::HTMLMediaElement::textTrackModeChanged): Ditto.
+        (WebCore::HTMLMediaElement::textTrackKindChanged): Ditto.
+        (WebCore::HTMLMediaElement::textTrackAddCues): Ditto.
+        (WebCore::HTMLMediaElement::textTrackAddCue): Ditto.
+        (WebCore::HTMLMediaElement::addTextTrack): Ditto.
+        (WebCore::HTMLMediaElement::configureTextTrackGroup): Ditto.
+        (WebCore::HTMLMediaElement::setSelectedTextTrack): Ditto.
+        (WebCore::HTMLMediaElement::configureTextTracks): Ditto.
+        (WebCore::HTMLMediaElement::hasClosedCaptions): Ditto.
+        (WebCore::HTMLMediaElement::configureTextTrackDisplay): Ditto.
+        (WebCore::HTMLMediaElement::markCaptionAndSubtitleTracksAsUnconfigured): Ditto.
+        (WebCore::toPlatform): Added helpers for the outOfBandTrackSources function.
+        (WebCore::HTMLMediaElement::outOfBandTrackSources): Removed unneeded fastHasAttribute
+        check since getNonEmptyURLAttribute already returns an empty URL when the attribute is
+        not present. Changed to use enum values instead of keywords.
+
+        * html/HTMLTrackElement.cpp:
+        (WebCore::HTMLTrackElement::parseAttribute): Use new setKindKeywordIgnoringASCIICase
+        function rather than calling setKind and convertToASCIILowercase. Also use ensureTrack
+        instead of track since the latter is a cover that calls it and dumbs down the return type.
+        (WebCore::HTMLTrackElement::kind): Changed return type to const AtomicString& since
+        that's what we will have for kind keywords and because it matches what we normally have
+        for attribute getting fuctions. Also use ensureTrack.
+        (WebCore::HTMLTrackElement::setKind): Changed argument to AtomicString so we don't waste
+        time making a string and then destroying it before turning it into an AtomicString so it
+        can be an attribute value.
+        (WebCore::HTMLTrackElement::srclang): Changed return type to const AtomicString& as is
+        customary and efficient for attribute value convenience functions. Also use fastGetAttribute.
+        (WebCore::HTMLTrackElement::setSrclang): Deleted.
+        (WebCore::HTMLTrackElement::label): Ditto.
+        (WebCore::HTMLTrackElement::setLabel): Deleted.
+        (WebCore::HTMLTrackElement::setIsDefault): Deleted.
+        (WebCore::HTMLTrackElement::scheduleLoad): Use enum values instead of keywords.
+
+        * html/HTMLTrackElement.h: Use pragma once. Update for changes mentioned above.
+        Also mark things final instead of override as per our recent style discussion.
+
+        * html/HTMLTrackElement.idl: Use [Reflect] for srclang and label.
+
+        * html/shadow/MediaControlElements.cpp:
+        (WebCore::MediaControlClosedCaptionsTrackListElement::updateDisplay): Use enum value
+        instead of keyword.
+        (WebCore::MediaControlTextTrackContainerElement::updateDisplay): Ditto.
+
+        * html/track/AudioTrack.cpp:
+        (WebCore::AudioTrack::AudioTrack): Use new base class MediaTrackBase.
+
+        * html/track/AudioTrack.h: Use pragma once. Make base class be MediaTrackBase instead
+        of TrackBase.
+
+        * html/track/InbandTextTrack.cpp:
+        (WebCore::InbandTextTrack::setMode): Change argument type to enum instead of string.
+        (WebCore::toPrivate): Added. Helper for setModeInternal.
+        (WebCore::InbandTextTrack::setModeInternal): Change argument type to enum instead of string.
+        (WebCore::InbandTextTrack::updateKindFromPrivate): Use enum instead of string to call setKind.
+
+        * html/track/InbandTextTrack.h: Use pragma once. Use TextTrackMode for argument types.
+
+        * html/track/TextTrack.cpp:
+        (WebCore::captionsKeyword): Converted this to a non-member function since it is now
+        private to this file.
+        (WebCore::descriptionsKeyword): Ditto.
+        (WebCore::chaptersKeyword): Ditto.
+        (WebCore::metadataKeyword): Ditto.
+        (WebCore::forcedKeyword): Ditto.
+        (WebCore::TextTrack::disabledKeyword): Deleted.
+        (WebCore::TextTrack::hiddenKeyword): Deleted.
+        (WebCore::TextTrack::showingKeyword): Deleted.
+        (WebCore::TextTrack::TextTrack): Moved some initialization to be done in the header where
+        the data members are defined. Put the code that is the equivalent to setKindInternal here,
+        because it turns out it's not needed anywhere else. Over time we might change the types
+        involved and there's no need to have that be across multiple functions.
+        (WebCore::TextTrack::~TextTrack): Removed unneeded call to clearClient, right when the
+        object is about to be destroyed. Perhaps there was an illusion that the old call might
+        be a virtual function call that invokes the clearClient from a derived class, but that
+        doesn't work in a destructor, so this code was only clearing out the data member and
+        that does not need to be done.
+        (WebCore::TextTrack::isValidKind): Deleted.
+        (WebCore::TextTrack::enabled): Use enum value instead of keyword.
+        (WebCore::TextTrack::kindKeyword): Added. Function for callers who need a string, not the
+        enum value.
+        (WebCore::TextTrack::setKind): Take enum value instead of keyword. Also changed since
+        we store the kind in a data member in this class, not inherited.
+        (WebCore::TextTrack::setKindKeywordIgnoringASCIICase): Added. For HTMLTrackElement to use
+        when setting the kind attribute.
+        (WebCore::TextTrack::setMode): Take enum value instread of keyword. Also removed assertion
+        since the enum already makes it intrinsically clear what values are valid, unlike a string.
+        (WebCore::TextTrack::cues): Use enum value instead of keyword.
+        (WebCore::TextTrack::activeCues): Ditto.
+        (WebCore::TextTrack::addCue): Ditto.
+        (WebCore::TextTrack::ensureVTTRegionList): Changed return type to reference.
+        (WebCore::TextTrack::regions): Use enum value instead of keyword.
+        (WebCore::TextTrack::addRegion): Use reference.
+        (WebCore::TextTrack::cueDidChange): Ditto.
+        (WebCore::TextTrack::isRendered): Use enum values instead of keywords. Also write to be
+        a boolean expression instead of a couple different if statements.
+        (WebCore::TextTrack::ensureTextTrackCueList): Changed return type to reference.
+        (WebCore::TextTrack::isMainProgramContent): Use enum value instead of keyword.
+        (WebCore::TextTrack::containsOnlyForcedSubtitles): Ditto.
+
+        * html/track/TextTrack.h: Use pragma once. Removed unneeded include. Added enums for
+        TextTrackKind and TextTrackMode. Updated for changes to functions listed above.
+        Added m_mode and m_kind and initialized those data members and some others.
+
+        * html/track/TextTrack.idl: Tweaked formatting. Used ImplementedAs for the kind
+        attribute rather than using a CustomSetter. This preserves the strange behavior
+        where setting kind does nothing when !ENABLE(MEDIA_SOURCE). If we discover we don't
+        need that, then we won't need ImplementedAs any more either.
+
+        * html/track/TextTrackCue.cpp:
+        (WebCore::TextTrackCue::dispatchEvent): Use enum instad of keyword.
+        (WebCore::TextTrackCue::isActive): Ditto.
+
+        * html/track/TrackBase.cpp:
+        (WebCore::TrackBase::TrackBase): Removed unneeded initialization that is handled in
+        the data member definition in the header now.
+        (WebCore::MediaTrackBase::MediaTrackBase): Added. Calls through to TrackBase.
+        (WebCore::MediaTrackBase::setKind): Moved to MediaTrackBase from TrackBase, because
+        this isn't needed for text tracks.
+        (WebCore::MediaTrackBase::setKindInternal): Ditto.
+
+        * html/track/TrackBase.h: Use pragma once. Move kind, setKind, isValidKind, defaultKindKeyword,
+        setKindInternal, and m_kind all to a derived class, MediaTrackBase, since TextTrack doesn't need
+        any of those any more. Later we might adopt enumerations more and it's possible the need for
+        MediaTrackBase will go away.
+
+        * html/track/VideoTrack.cpp:
+        (WebCore::VideoTrack::VideoTrack): Updated to use MediaTrackBase.
+        (WebCore::VideoTrack::setLanguage): Ditto.
+
+        * html/track/VideoTrack.h: Use pragma once. Removed unneeded header include.
+        Derive from MediaTrackBase instead of TrackBase.
+
+        * page/CaptionUserPreferences.cpp:
+        (WebCore::CaptionUserPreferences::sortedTrackListForMenu): Use enum values instead
+        of keywords.
+        (WebCore::CaptionUserPreferences::textTrackSelectionScore): Ditto.
+        * page/CaptionUserPreferencesMediaAF.cpp:
+        (WebCore::CaptionUserPreferencesMediaAF::textTrackSelectionScore): Ditto.
+        (WebCore::CaptionUserPreferencesMediaAF::sortedTrackListForMenu): Ditto. Also used
+        kindKeyword since we want a string for logging.
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.mm:
+        (WebPlaybackSessionModelMediaElement::updateLegibleOptions): Ditto.
+
+2016-05-01  Chris Dumez  <cdumez@apple.com>
+
+        Pass reference instead of pointer to IDL attribute setters if not nullable
+        https://bugs.webkit.org/show_bug.cgi?id=157250
+
+        Reviewed by Darin Adler.
+
+        Update the bindings generator so that we pass wrapper types by reference
+        to attribute setters instead of by raw pointer when the attribute is not
+        marked as nullable in the IDL.
+
+        There is no intended Web-exposed behavior change.
+
+        * Modules/speech/SpeechSynthesisUtterance.idl:
+        * Modules/webaudio/ConvolverNode.idl:
+        * bindings/js/JSDataCueCustom.cpp:
+        (WebCore::constructJSDataCue):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * bindings/scripts/CodeGeneratorObjC.pm:
+        (GenerateImplementation):
+
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/ObjC/DOMTestInterface.mm:
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+        Rebaseline bindings tests.
+
+        * dom/Document.cpp:
+        (WebCore::Document::moveNodeIteratorsToNewDocument):
+        * dom/NodeIterator.cpp:
+        (WebCore::NodeIterator::NodePointer::NodePointer):
+        (WebCore::NodeIterator::NodePointer::moveToNext):
+        (WebCore::NodeIterator::NodePointer::moveToPrevious):
+        (WebCore::NodeIterator::NodeIterator):
+        (WebCore::NodeIterator::~NodeIterator):
+        (WebCore::NodeIterator::updateForNodeRemoval):
+        (WebCore::NodeIterator::NodePointer::clear): Deleted.
+        (WebCore::NodeIterator::nextNode): Deleted.
+        * dom/NodeIterator.h:
+        * dom/Traversal.cpp:
+        (WebCore::NodeIteratorBase::NodeIteratorBase):
+        * dom/Traversal.h:
+        (WebCore::NodeIteratorBase::root):
+        * dom/TreeWalker.cpp:
+        (WebCore::TreeWalker::setCurrentNode):
+        (WebCore::TreeWalker::setCurrent):
+        (WebCore::TreeWalker::parentNode):
+        (WebCore::TreeWalker::firstChild):
+        (WebCore::TreeWalker::lastChild):
+        (WebCore::TreeWalker::traverseSiblings):
+        (WebCore::TreeWalker::previousNode):
+        (WebCore::TreeWalker::nextNode):
+        * dom/TreeWalker.h:
+        (WebCore::TreeWalker::currentNode):
+        * dom/TreeWalker.idl:
+        * html/HTMLAttachmentElement.idl:
+        * html/HTMLInputElement.idl:
+        * html/HTMLTableElement.idl:
+        * html/track/DataCue.cpp:
+        (WebCore::DataCue::DataCue):
+        (WebCore::DataCue::setData):
+        (WebCore::toDataCue): Deleted.
+        * html/track/DataCue.h:
+        * html/track/DataCue.idl:
+
+2016-05-01  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200264 and r200266.
+        https://bugs.webkit.org/show_bug.cgi?id=157251
+
+        This change caused existing LayoutTest media/media-source
+        /media-source-stalled-holds-sleep-assertion.html to time out
+        on Mac on every run. (Requested by ryanhaddad on #webkit).
+
+        Reverted changesets:
+
+        "[Mac] AirPlay fails if target is set before AVPlayer has been
+        created"
+        https://bugs.webkit.org/show_bug.cgi?id=157147
+        http://trac.webkit.org/changeset/200264
+
+        "[Mac] AirPlay fails if target is set before AVPlayer has been
+        created"
+        https://bugs.webkit.org/show_bug.cgi?id=157147
+        http://trac.webkit.org/changeset/200266
+
+2016-05-01  Chris Dumez  <cdumez@apple.com>
+
+        Drop CanUseWTFOptionalForParameter() from bindings generator
+        https://bugs.webkit.org/show_bug.cgi?id=157247
+
+        Reviewed by Darin Adler.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        (CanUseWTFOptionalForParameter): Deleted.
+
+2016-05-01  Darin Adler  <darin@apple.com>
+
+        Update Fetch to use enum class instead of string for enumerations
+        https://bugs.webkit.org/show_bug.cgi?id=157241
+
+        Reviewed by Chris Dumez.
+
+        * Modules/fetch/FetchOptions.h: Changed this class into a struct,
+        getting rid of all the getter and setter functions. Moved all the
+        enumeration types out of this class to the WebCore namespace level
+        and gave them all the names and values that match the ones from the
+        IDL file.
+
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::setReferrerPolicy): Updated for the changes to FetchOptions.
+        The string matching here will likely go away when we change dictionary
+        so it sets up a structure, which will parse the enumeration values, but
+        that won't be for a while, so this stays for now.
+        (WebCore::setMode): Ditto.
+        (WebCore::setCredentials): Ditto.
+        (WebCore::setCache): Ditto.
+        (WebCore::setRedirect): Ditto.
+        (WebCore::buildOptions): Updated for changes to FetchOptions.
+        (WebCore::buildHeaders): Ditto.
+        (WebCore::FetchRequest::create): Ditto.
+        (WebCore::FetchRequest::type): Moved this to the header and changed its
+        return type to the enum; it's not just a single return statement.
+        (WebCore::FetchRequest::destination): Ditto.
+        (WebCore::FetchRequest::referrerPolicy): Ditto.
+        (WebCore::FetchRequest::mode): Ditto.
+        (WebCore::FetchRequest::credentials): Ditto.
+        (WebCore::FetchRequest::cache): Ditto.
+        (WebCore::FetchRequest::redirect): Ditto.
+
+        * Modules/fetch/FetchRequest.h: Changed all the getters that return
+        enumerations to return the enum class values instead of strings.
+        Put all the inline versions here in the header.
+
+        * bindings/scripts/CodeGenerator.pm: Removed the seven enum types that
+        are in FetchRequest.idl from the list of "string-based" enums.
+
+        * dom/Document.cpp:
+        (WebCore::Document::Document): Updated for the change where I
+        renamed ReferrerPolicy to ReferrerHeaderPolicy, at least for now.
+        (WebCore::Document::processReferrerPolicy): Ditto.
+        (WebCore::Document::applyContentDispositionAttachmentSandbox): Ditto.
+        * dom/Document.h: Ditto.
+        * loader/FrameNetworkingContext.h: Ditto.
+        * page/SecurityPolicy.cpp:
+        (WebCore::SecurityPolicy::generateReferrerHeader): Ditto.
+        * page/SecurityPolicy.h: Ditto.
+
+        * platform/ReferrerPolicy.h: Renamed this enum from ReferrerPolicy to
+        ReferrerHeaderPolicy, since the one specified in the Fetch API has the
+        name ReferrerPolicy. I think the best way to resolve this longer term is
+        to merge them since they really do represent the same concept, although
+        the one from the Fetch API has a few more features.
+
+2016-05-01  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed attempt to fix Windows build after r200288.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+
+2016-05-01  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed attempt to fix Windows build after r200288.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetEnumerationImplementationContent):
+
+2016-05-01  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rebaseline bindings tests after r200300.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsStringWithCache):
+
+2016-05-01  Darin Adler  <darin@apple.com>
+
+        Use enum class instead of string-based enums in RTC code
+        https://bugs.webkit.org/show_bug.cgi?id=157242
+
+        Reviewed by Alex Christensen.
+
+        * Modules/mediastream/RTCConfiguration.cpp:
+        (WebCore::RTCConfiguration::RTCConfiguration): Don't initialize members here,
+        do it in the header instead.
+        (WebCore::RTCConfiguration::initialize): Initialize data members to enum values,
+        not strings.
+
+        * Modules/mediastream/RTCConfiguration.h: Tried to keep this class compiling.
+        Added the new enum class, and changed to use that instead of strings. But note,
+        this should not even be a class. Needs to become a dictionary.
+
+        * Modules/mediastream/RTCConfiguration.idl: Updated the names and values of the
+        enums to match the current RTC specification. Again, as I said, this should be
+        a dictionary, not an interface.
+
+        * bindings/scripts/CodeGenerator.pm: Removed the RTC enumerations from the list
+        of string-based enums.
+
+2016-04-30  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r199640): position:absolute generated content inherits text-decoration from its element
+        https://bugs.webkit.org/show_bug.cgi?id=157199
+        <rdar://problem/26013111>
+
+        Reviewed by Zalan Bujtas.
+
+        Test: fast/css/text-decoration-inheritance-pseudo.html
+
+        * css/StyleResolver.cpp:
+        (WebCore::doesNotInheritTextDecoration):
+        (WebCore::StyleResolver::adjustRenderStyle):
+
+            There was an accidental logic change here. Even if element is null other conditions may make this test true.
+
+2016-04-30  Zalan Bujtas  <zalan@apple.com>
+
+        Some content causes deep recursion.
+        https://bugs.webkit.org/show_bug.cgi?id=157230
+        <rdar://problem/7694756>
+
+        Reviewed by Antti Koivisto.
+
+        This patch sets a limit(512) on content nesting for the render tree. Elements injected over the limit
+        are still accessible through DOM APIs but
+        1. we stop generating renderers for them -they behave like display: none. 
+        2. their layout related computed style values are set to default (e.g. window.computedStyle(document.elementById("over512").width -> auto) 
+
+        Test: fast/block/nested-renderers.html
+
+        * page/Settings.h:
+        * style/StyleTreeResolver.cpp: Skip renderer constructing and continue with the sibling node. 
+        (WebCore::Style::TreeResolver::resolveComposedTree):
+
 2016-04-30  Darin Adler  <darin@apple.com>
 
         Update XMLHttpRequest to use enum class instead of string for enumeration
