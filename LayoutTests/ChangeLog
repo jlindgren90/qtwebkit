@@ -1,3 +1,144 @@
+2016-04-29  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Specify default values for optional parameters of wrapper types
+        https://bugs.webkit.org/show_bug.cgi?id=157161
+
+        Reviewed by Darin Adler.
+
+        Rebaseline as a different exception message is now given when calling
+        Selection.extend() without enough parameters.
+
+        * editing/selection/extend-expected.txt:
+
+2016-04-29  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [ATK] Expose the value of aria-roledescription via an AtkObject attribute
+        https://bugs.webkit.org/show_bug.cgi?id=146719
+
+        Reviewed by Chris Fleizach.
+
+        Platform-specific expectations are needed because falling back on the default
+        role description is done by assistive technologies. That this fall back is needed
+        is identified by the lack of an author-provided value. Thus we do not wish to
+        expose the default role description in our implementation.
+
+        * platform/gtk/TestExpectations: Unskipped the failing test.
+        * platform/gtk/accessibility/aria-roledescription-expected.txt: Added.
+
+2016-04-29  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [ATK] accessibility/aria-current-global-attribute.html has been failed since r198303
+        https://bugs.webkit.org/show_bug.cgi?id=155935
+
+        Reviewed by Chris Fleizach.
+
+        * platform/efl/TestExpectations: Unskipped the failing test.
+
+2016-04-29  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [ATK] accessibility/double-nested-inline-element-missing-from-tree.html has been failed since r198219
+        https://bugs.webkit.org/show_bug.cgi?id=155939
+
+        Reviewed by Darin Adler.
+
+        Platform-specific expectations were needed because the ATK accessibility tree folds
+        certain elements, including spans, into the parent element.
+
+        * platform/efl/TestExpectations: Unskipped the failing test.
+        * platform/efl/accessibility/double-nested-inline-element-missing-from-tree-expected.txt: Added.
+        * platform/gtk/accessibility/double-nested-inline-element-missing-from-tree-expected.txt: Added.
+
+2016-04-29  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: [ATK] Expose elements with ARIA's "text" role
+        https://bugs.webkit.org/show_bug.cgi?id=157160
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/aria-text-role.html: Modified to do platform-specific role checks.
+        * platform/gtk/TestExpectations: Unskipped three previously-failing tests.
+        * platform/gtk/accessibility/roles-computedRoleString-expected.txt: Updated for new behavior.
+
+2016-04-29  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Import W3C CSS WG tests for shadow DOM
+        https://bugs.webkit.org/show_bug.cgi?id=157063
+
+        Reviewed by Antti Koivisto.
+
+        Remove tests that have been upstreamed and imported under imported/w3c/csswg-test/css-scoping-1.
+
+        * fast/shadow-dom/css-scoping-shadow-assigned-node-with-before-after-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-assigned-node-with-before-after.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-assigned-node-with-rules-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-assigned-node-with-rules.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-host-functional-rule-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-host-functional-rule.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-host-rule-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-host-rule.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-host-with-before-after-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-host-with-before-after.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-invisible-slot-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-invisible-slot.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-root-hides-children-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-root-hides-children.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slot-display-override-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slot-display-override.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slot-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slot-fallback-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slot-fallback.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slot.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slotted-nested-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slotted-nested.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slotted-rule-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-slotted-rule.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-with-outside-rules-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-with-outside-rules.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-with-rules-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-with-rules-no-style-leak-expected.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-with-rules-no-style-leak.html: Removed.
+        * fast/shadow-dom/css-scoping-shadow-with-rules.html: Removed.
+
+2016-04-29  Yoav Weiss  <yoav@yoav.ws>
+
+        Move ResourceTiming behind a runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157133
+
+        Reviewed by Alex Christensen.
+
+        Added tests that make sure ResourceTiming APIs are exposed and that resources
+        show up as entries in the performance timeline.
+
+        * fast/dom/Window/window-properties-performance-resource-timing-expected.txt: Added.
+        * fast/dom/Window/window-properties-performance-resource-timing.html: Added.
+        * fast/dom/Window/window-properties-performance.html: Removed "//;".
+        * http/tests/performance/performance-resource-timing-entries-expected.txt: Added.
+        * http/tests/performance/performance-resource-timing-entries.html: Added.
+
+2016-04-29  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from MediaStream interfaces
+        https://bugs.webkit.org/show_bug.cgi?id=156905
+
+        Reviewed by Darin Adler.
+
+        * fast/mediastream/MediaStream-add-remove-null-undefined-tracks-expected.txt: Added.
+        * fast/mediastream/MediaStream-add-remove-null-undefined-tracks.html: Added.
+        * fast/mediastream/RTCPeerConnection-add-removeTrack-expected.txt: Rebasing.
+        * fast/mediastream/RTCPeerConnection-add-removeTrack.html: Adding null/undefined tests for addTrack/removeTrack.
+        * fast/mediastream/RTCPeerConnection-datachannel.html: Adding test for send() method.
+        Test expectation is not rebased as test is timing out and marked as skip.
+
+2016-04-28  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: [ATK] Expose subscript and superscript format style groups using ATK_ROLE_SUBSCRIPT and ATK_ROLE_SUPERSCRIPT
+        https://bugs.webkit.org/show_bug.cgi?id=157158
+
+        Reviewed by Chris Fleizach.
+
+        * platform/gtk/accessibility/roles-computedRoleString-expected.txt: Updated for new behavior.
+        * platform/gtk/accessibility/roles-exposed-expected.txt: Updated for new behavior.
+
 2016-04-28  Zalan Bujtas  <zalan@apple.com>
 
         Content disappears on mouse over.

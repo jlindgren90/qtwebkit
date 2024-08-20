@@ -1,3 +1,387 @@
+2016-04-29  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Specify default values for optional parameters of wrapper types
+        https://bugs.webkit.org/show_bug.cgi?id=157161
+
+        Reviewed by Darin Adler.
+
+        Specify default values for optional parameters of wrapper types.
+
+        * Modules/indexeddb/IDBIndex.cpp:
+        (WebCore::IDBIndex::count): Deleted.
+        * Modules/indexeddb/IDBIndex.h:
+        * Modules/indexeddb/IDBIndex.idl:
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::count): Deleted.
+        * Modules/indexeddb/IDBObjectStore.h:
+        * Modules/indexeddb/IDBObjectStore.idl:
+        * Modules/mediastream/RTCPeerConnection.cpp:
+        (WebCore::RTCPeerConnection::createDataChannel): Deleted.
+        * Modules/mediastream/RTCPeerConnection.h:
+        * Modules/mediastream/RTCPeerConnection.idl:
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (WillConvertUndefinedToDefaultParameterValue):
+        Optimization to avoid generating a ternary if the default
+        value of a wrapper type parameter is null, since undefined
+        will already convert to null for those.
+
+        (GenerateParametersCheck):
+        Use null as implicit default value for nullable parameters, given that Web IDL
+        converts undefined to null for such parameters:
+        http://heycam.github.io/webidl/#es-nullable-type
+
+        (CanUseWTFOptionalForParameter):
+        Drop the check for wrapper types.
+
+        * bindings/scripts/test/*:
+        Improve bindings tests coverage / rebaseline.
+
+        * css/MediaQueryList.idl:
+        * css/MediaQueryListListener.idl:
+        * dom/Document.idl:
+
+        * html/canvas/DOMPath.idl:
+        The previous syntax was working because the bindings was generating an early
+        return if addPath() was called with only one parameter, calling the
+        implementation method with only 1 parameter. However, since we no longer
+        generate early returns for optional parameters, we now have to use a slightly
+        different syntax to maintain the previous behavior. This is only temporary,
+        I just did not want to deal with SVG tear off types in this patch since they
+        are very special in the bindings generator.
+
+        * page/DOMSelection.idl:
+        The node parameter to extend() was confusingly marked as optional. However,
+        when omitted, it would get translated into null, which would throw an
+        exception since the type is not nullable. Since the specification says 'node'
+        should not be optional, and since there is no behavior change, I dropped
+        the 'optional'. The only web-exposed difference is the message provided with
+        the TypeError that is thrown when called without enough parameters. The new
+        message is more accurate (see rebaselined layout test).
+
+        * svg/SVGMarkerElement.idl:
+        The parameter for setOrientToAngle() was confusingly marked as optional and
+        having a default value of null. However, the bindings would throw a TypeError
+        if called with no parameters or when calling it with null. This is because
+        this is an SVG Tear off type and the bindings always throw when passing null
+        for an SVG Tear off type. I therefore updated the IDL to reflect the actual
+        behavior (no actual behavior change). The new IDL also now matches the spec:
+        http://www.w3.org/TR/SVG2/painting.html#InterfaceSVGMarkerElement
+
+        * svg/SVGSVGElement.idl:
+        Same comments as for SVGMarkerElement. The new IDL matches the actual
+        behavior and is closer to the specification. I added FIXME comments for when
+        it does not match the specification:
+        http://www.w3.org/TR/SVG2/struct.html#InterfaceSVGSVGElement
+        I did not change web-exposed behavior in this patch.
+
+        * svg/SVGTextContentElement.idl:
+        Same as above. No actual behavior change.
+
+        * testing/Internals.cpp:
+        * testing/Internals.h:
+        * testing/Internals.idl:
+        * xml/XPathEvaluator.idl:
+
+2016-04-29  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [ATK] Expose the value of aria-roledescription via an AtkObject attribute
+        https://bugs.webkit.org/show_bug.cgi?id=146719
+
+        Reviewed by Chris Fleizach.
+
+        The author-provided value is now exposed via an AtkObject attribute.
+
+        Implementation is already covered by aria-roledescription.html. The ATK
+        expectations are slightly different than those for AX API because falling
+        back on the default role description is done by assistive technologies.
+        That this fall back is needed is identified by the lack of an author-
+        provided value. Thus we do not wish to expose the default role description
+        in our implementation.
+
+        * accessibility/atk/WebKitAccessibleWrapperAtk.cpp:
+        (webkitAccessibleGetAttributes):
+
+2016-04-29  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [ATK] accessibility/aria-current-global-attribute.html has been failed since r198303
+        https://bugs.webkit.org/show_bug.cgi?id=155935
+
+        Reviewed by Chris Fleizach.
+
+        In ATK, the text of span elements is typically exposed through the parent
+        element, unless the span has some attribute requiring inclusion in the
+        accessibility tree. We were not checking for the presence of global ARIA
+        attributes (including aria-current), other than describedby and role.
+        The fix is to also check AccessibilityObject::supportsARIAAttributes().
+
+        No new tests. This issue was caught as a result of a failing test.
+
+        * accessibility/atk/AccessibilityObjectAtk.cpp:
+        (WebCore::AccessibilityObject::accessibilityPlatformIncludesObject):
+
+2016-04-29  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Drop 'any' type handling from CanUseWTFOptionalForParameter()
+        https://bugs.webkit.org/show_bug.cgi?id=157152
+
+        Reviewed by Darin Adler.
+
+        Drop 'any' type handling from CanUseWTFOptionalForParameter(). Always
+        use undefined as default value for parameters of type 'any' unless
+        specified otherwise.
+
+        * Modules/indexeddb/IDBCursor.cpp:
+        (WebCore::IDBCursor::continueFunction): Deleted.
+        * Modules/indexeddb/IDBCursor.h:
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::add): Deleted.
+        (WebCore::IDBObjectStore::putOrAdd): Deleted.
+        * Modules/indexeddb/IDBObjectStore.h:
+        * bindings/scripts/CodeGeneratorJS.pm:
+
+        (WillConvertUndefinedToDefaultParameterValue):
+        Fix optimization for optional DOMString attributes whose default value
+        is the string "undefined". I also added bindings test coverage for it.
+
+        (GenerateParametersCheck):
+        (CanUseWTFOptionalForParameter): Deleted.
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.cpp:
+        (webkit_dom_test_obj_method_with_optional_string_is_undefined):
+        (webkit_dom_test_obj_method_with_optional_any):
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.h:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalStringIsUndefined):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalAny):
+        * bindings/scripts/test/ObjC/DOMTestObj.h:
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+        (-[DOMTestObj methodWithOptionalStringIsUndefined:]):
+        (-[DOMTestObj methodWithOptionalAny:]):
+        * bindings/scripts/test/TestObj.idl:
+        * testing/Internals.h:
+
+2016-04-29  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: [ATK] Expose elements with ARIA's "text" role
+        https://bugs.webkit.org/show_bug.cgi?id=157160
+
+        Reviewed by Chris Fleizach.
+
+        WebCore Accessibility's StaticTextRole is used for exposed RenderText
+        objects and for the ARIA "text" role. The former should be folded into
+        the parent element; the latter should not be, but was. Now we check to
+        see which type we have when building the accessibility tree. Also map
+        the "text" role to ATK_ROLE_STATIC.
+
+        We already have sufficient test coverage. Three previously-failing tests
+        are now passing.
+
+        * accessibility/atk/AccessibilityObjectAtk.cpp:
+        (WebCore::AccessibilityObject::accessibilityPlatformIncludesObject):
+        * accessibility/atk/WebKitAccessibleWrapperAtk.cpp:
+        (atkRole):
+
+2016-04-29  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [FreeType] ASSERTION FAILED: !lookupForWriting(Extractor::extract(entry)).second in FontCache::getVerticalData()
+        https://bugs.webkit.org/show_bug.cgi?id=157132
+
+        Reviewed by Darin Adler.
+
+        I've noticed that some tests fail randomly in the GTK+ debug bot due to an assertion in HashMap when getting
+        vertical data from the FontCache. I don't know exactly what's wrong, but looks like a problem with the
+        FontVerticalDataCache hash traits implementation. Looking at the code, I've realized that we could simplify
+        everything by reusing the FontDataCache hash and traits, since we are actually using the
+        FontPlatformData::hash() in the end in both cases. Also, I don't see why we need to get the vertical data from
+        the FontPlatformData while it's actually cached by the font cache. We could just use the FontCache directly
+        passing only the FontPlatformData. These changes seem to fix the crashes and make the code a lot simpler.
+
+        * platform/graphics/Font.cpp:
+        (WebCore::Font::Font): Use FontCache::verticalData().
+        * platform/graphics/FontCache.cpp:
+        (WebCore::fontVerticalDataCache):
+        (WebCore::FontCache::verticalData):
+        (WebCore::FontCache::purgeInactiveFontData): Also remove the cached vertical data when removing a font.
+        (WebCore::FontCache::invalidate): Clear also the vertical data.
+        * platform/graphics/FontCache.h:
+        * platform/graphics/FontPlatformData.h:
+        * platform/graphics/freetype/FontPlatformDataFreeType.cpp:
+        (WebCore::FontPlatformData::openTypeTable): Deleted.
+        * platform/graphics/opentype/OpenTypeVerticalData.h: Remove the m_inFontCache member that is now unused.
+
+2016-04-29  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Remove UsePointersEvenForNonNullableObjectArguments keyword
+        https://bugs.webkit.org/show_bug.cgi?id=156844
+
+        Reviewed by Darin Adler.
+
+        No change of behavior.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (ShouldPassWrapperByReference): Removed UsePointersEvenForNonNullableObjectArguments support.
+        * bindings/scripts/IDLAttributes.txt: Removed UsePointersEvenForNonNullableObjectArguments.
+
+2016-04-29  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        FetchResponse should return a ReadableStream even if disturbed
+        https://bugs.webkit.org/show_bug.cgi?id=156911
+
+        Reviewed by Darin Adler.
+
+        Covered by rebased test.
+
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::createReadableStreamSource): Asserting in case response is disturbed.
+        * bindings/js/JSFetchResponseCustom.cpp:
+        (WebCore::JSFetchResponse::body): Creating a locked empty readable stream if response is disturbed.
+        * bindings/js/ReadableStreamController.cpp:
+        (WebCore::createReadableStream): Constructing a readable stream even if source is null.
+        (WebCore::getReadableStreamReader): Retrieving the reader from a readable stream. Stream must not be locked.
+        * bindings/js/ReadableStreamController.h:
+
+2016-04-29  Yoav Weiss  <yoav@yoav.ws>
+
+        Move ResourceTiming behind a runtime flag
+        https://bugs.webkit.org/show_bug.cgi?id=157133
+
+        Reviewed by Alex Christensen.
+
+        Move the ResourceTiming API from being behind a build time flag to be behind an
+        off-by-default runtime flag, that can be turned on using internals.
+
+        Tests: fast/dom/Window/window-properties-performance-resource-timing.html
+               http/tests/performance/performance-resource-timing-entries.html
+
+        * DerivedSources.make: Added idl files for PerformanceEntry, PerformanceEntryList and PerformanceResourceTiming.
+        * WebCore.xcodeproj/project.pbxproj: Added the various Performance* files to the project.
+        * bindings/generic/RuntimeEnabledFeatures.cpp: Added ResourceTiming as a runtime flag.
+        (WebCore::RuntimeEnabledFeatures::RuntimeEnabledFeatures):
+        * bindings/generic/RuntimeEnabledFeatures.h: Added ResourceTiming as a runtime flag.
+        (WebCore::RuntimeEnabledFeatures::setResourceTimingEnabled):
+        (WebCore::RuntimeEnabledFeatures::resourceTimingEnabled):
+        * bindings/js/JSPerformanceEntryCustom.cpp: Removed #if for ResourceTiming. Added build flag around UserTiming related h files.
+        (WebCore::toJS): Deleted.
+        * dom/EventNames.h: Renamed webkitresourcetimingbufferfull to resourcetimingbufferfull.
+        * loader/DocumentThreadableLoader.cpp: Replace #if for ResourceTiming with runtime flag.
+        (WebCore::DocumentThreadableLoader::loadRequest):
+        * loader/ResourceLoadNotifier.cpp: Replace #if for ResourceTiming with runtime flag.
+        (WebCore::ResourceLoadNotifier::dispatchWillSendRequest):
+        * loader/cache/CachedResourceLoader.cpp: Replace #if for ResourceTiming with runtime flag.
+        (WebCore::CachedResourceLoader::revalidateResource):
+        (WebCore::CachedResourceLoader::loadResource):
+        (WebCore::CachedResourceLoader::storeResourceTimingInitiatorInformation):
+        (WebCore::CachedResourceLoader::loadDone):
+        * loader/cache/CachedResourceLoader.h: Remove #if for ResourceTiming.
+        * page/Performance.cpp: Remove #if for ResourceTiming.
+        (WebCore::Performance::Performance): Removed #if for ResourceTiming related initialization.
+        (WebCore::Performance::webkitGetEntries): Renamed to getEntries.
+        (WebCore::Performance::webkitGetEntriesByType): Renamed to getEntriesByType.
+        (WebCore::Performance::webkitGetEntriesByName): Renamed to getEntriesByName.
+        * page/Performance.h: Remove #if for ResourceTiming.
+        * page/Performance.idl: Replace #if for ResourceTiming with runtime flag.
+        * page/PerformanceEntry.cpp: Remove the PERFORMANCE_TIMELINE build flag.
+        * page/PerformanceEntry.h: Remove the PERFORMANCE_TIMELINE build flag.
+        * page/PerformanceEntry.idl: Replace the PERFORMANCE_TIMELINE build flag with runtime flag.
+        * page/PerformanceEntryList.cpp: Remove the PERFORMANCE_TIMELINE build flag.
+        * page/PerformanceEntryList.h: Remove the PERFORMANCE_TIMELINE build flag.
+        * page/PerformanceEntryList.idl: Replace the PERFORMANCE_TIMELINE build flag with runtime flag.
+        * page/PerformanceResourceTiming.cpp: Remove the RESOURCE_TIMING build flag.
+        * page/PerformanceResourceTiming.h: Remove the RESOURCE_TIMING build flag.
+        * page/PerformanceResourceTiming.idl: Replace the RESOURCE_TIMING build flag with runtime flag.
+        * testing/Internals.cpp: Add a method that enables ResourceTiming.
+        (WebCore::Internals::setResourceTimingSupport):
+        * testing/Internals.h: Add a method that enables ResourceTiming.
+        * testing/Internals.idl: Add a method that enables ResourceTiming.
+
+2016-04-29  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Drop [UsePointersEvenForNonNullableObjectArguments] from MediaStream interfaces
+        https://bugs.webkit.org/show_bug.cgi?id=156905
+
+        Reviewed by Darin Adler.
+
+        Removing UsePointersEvenForNonNullableObjectArguments from MediaStream, RTCPeerConnection and RTCRtpSender.
+        Updating methods to take references and making some related refactoring.
+
+        Test: fast/mediastream/MediaStream-add-remove-null-undefined-tracks.html
+        Changes also covered by updated tests.
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::createOfferTask):
+        * Modules/mediastream/MediaStream.cpp:
+        (WebCore::MediaStream::create):
+        (WebCore::MediaStream::addTrack):
+        (WebCore::MediaStream::removeTrack):
+        (WebCore::MediaStream::didAddTrack):
+        (WebCore::MediaStream::didRemoveTrack):
+        (WebCore::MediaStream::internalAddTrack):
+        (WebCore::MediaStream::internalRemoveTrack):
+        * Modules/mediastream/MediaStream.h:
+        * Modules/mediastream/MediaStream.idl:
+        * Modules/mediastream/RTCDataChannel.cpp:
+        (WebCore::RTCDataChannel::send):
+        * Modules/mediastream/RTCDataChannel.h:
+        * Modules/mediastream/RTCDataChannel.idl:
+        * Modules/mediastream/RTCPeerConnection.cpp:
+        (WebCore::RTCPeerConnection::addTrack):
+        (WebCore::RTCPeerConnection::removeTrack):
+        (WebCore::RTCPeerConnection::queuedSetLocalDescription):
+        (WebCore::RTCPeerConnection::queuedSetRemoteDescription):
+        (WebCore::RTCPeerConnection::queuedAddIceCandidate):
+        (WebCore::RTCPeerConnection::privateGetStats):
+        (WebCore::RTCPeerConnection::queuedCreateOffer): Deleted.
+        (WebCore::RTCPeerConnection::localDescription): Deleted.
+        (WebCore::RTCPeerConnection::currentLocalDescription): Deleted.
+        (WebCore::RTCPeerConnection::remoteDescription): Deleted.
+        (WebCore::RTCPeerConnection::currentRemoteDescription): Deleted.
+        (WebCore::RTCPeerConnection::signalingState): Deleted.
+        (WebCore::RTCPeerConnection::createDataChannel): Deleted.
+        (WebCore::RTCPeerConnection::close): Deleted.
+        * Modules/mediastream/RTCPeerConnection.h:
+        * Modules/mediastream/RTCPeerConnection.idl:
+        * Modules/mediastream/RTCRtpReceiver.cpp:
+        (WebCore::RTCRtpReceiver::RTCRtpReceiver):
+        * Modules/mediastream/RTCRtpReceiver.h:
+        (WebCore::RTCRtpReceiver::create):
+        * Modules/mediastream/RTCRtpSender.cpp:
+        (WebCore::RTCRtpSender::RTCRtpSender):
+        (WebCore::RTCRtpSender::replaceTrack):
+        * Modules/mediastream/RTCRtpSender.h:
+        (WebCore::RTCRtpSender::create):
+        * Modules/mediastream/RTCRtpSender.idl:
+        * Modules/mediastream/RTCRtpSenderReceiverBase.h:
+        (WebCore::RTCRtpSenderReceiverBase::track):
+        (WebCore::RTCRtpSenderReceiverBase::RTCRtpSenderReceiverBase):
+
+2016-04-28  Daniel Bates  <dabates@apple.com>
+
+        Remove extraneous space characters from parameter list for RenderListBox::paintItem()
+        that were added in r200190 (https://bugs.webkit.org/show_bug.cgi?id=157117).
+
+        * rendering/RenderListBox.h:
+
+2016-04-28  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: [ATK] Expose subscript and superscript format style groups using ATK_ROLE_SUBSCRIPT and ATK_ROLE_SUPERSCRIPT
+        https://bugs.webkit.org/show_bug.cgi?id=157158
+
+        Reviewed by Chris Fleizach.
+
+        r200214 caused the sup and sub elements to be exposed as ATK_ROLE_STATIC.
+        While this exposure is much better than folding the text into the parent
+        element, ATK has roles for subscript and superscript, so use them instead.
+
+        The roles-exposed.html and roles-computedRoleString.html tests were updated
+        to reflect the new behavior.
+
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::isSubscriptStyleGroup):
+        (WebCore::AccessibilityObject::isSuperscriptStyleGroup):
+        * accessibility/AccessibilityObject.h:
+        * accessibility/atk/WebKitAccessibleWrapperAtk.cpp:
+        (atkRole):
+
 2016-04-28  Zalan Bujtas  <zalan@apple.com>
 
         Content disappears on mouse over.

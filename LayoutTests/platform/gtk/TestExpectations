@@ -590,8 +590,6 @@ webkit.org/b/107601 fullscreen/video-cursor-auto-hide.html [ Failure ]
 
 webkit.org/b/146718 accessibility/aria-hidden-false-works-in-subtrees.html [ Failure ]
 
-webkit.org/b/146719 accessibility/aria-roledescription.html [ Failure ]
-
 webkit.org/b/146720 media/accessiblity-describes-video.html [ Failure ]
 
 webkit.org/b/146724 fast/text/word-break-keep-all.html [ ImageOnlyFailure ]
@@ -1839,14 +1837,11 @@ webkit.org/b/73766 css3/unicode-bidi-isolate-aharon-failing.html [ ImageOnlyFail
 
 # Need platform specific update to test to make it run.
 
-webkit.org/b/98359 accessibility/aria-text-role.html [ Failure ]
 webkit.org/b/98363 accessibility/canvas-fallback-content-2.html [ Failure ]
 webkit.org/b/98372 accessibility/onclick-handlers.html [ Failure ]
 webkit.org/b/98377 accessibility/textarea-insertion-point-line-number.html [ Failure ]
 webkit.org/b/98380 accessibility/th-as-title-ui.html [ Failure ]
 webkit.org/b/98382 accessibility/visible-elements.html [ Failure ]
-
-webkit.org/b/125506 accessibility/alt-tag-on-image-with-nonimage-role.html [ Failure ]
 
 # Blur and focus events are not received for the following tests.
 Bug(GTK) fast/events/frame-tab-focus.html [ Failure ]
@@ -2084,8 +2079,6 @@ webkit.org/b/115437 fast/text/complex-initial-advance.html [ ImageOnlyFailure ]
 webkit.org/b/116153 fast/css/text-overflow-ellipsis-full-truncate-rtl.html [ ImageOnlyFailure ]
 
 webkit.org/b/116806 fast/css/text-overflow-ellipsis-behind-floats.html [ ImageOnlyFailure ]
-
-webkit.org/b/117581 accessibility/text-role-with-aria-hidden-inside.html [ Failure ]
 
 webkit.org/b/117582 fast/flexbox/clear-overflow-before-scroll-update.html [ Failure ]
 

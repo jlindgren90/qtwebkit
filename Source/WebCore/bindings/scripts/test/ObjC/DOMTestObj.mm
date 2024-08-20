@@ -1310,6 +1310,12 @@
     IMPL->methodWithOptionalStringIsNull(str);
 }
 
+- (void)methodWithOptionalStringIsUndefined:(NSString *)str
+{
+    WebCore::JSMainThreadNullState state;
+    IMPL->methodWithOptionalStringIsUndefined(str);
+}
+
 - (void)methodWithOptionalAtomicStringIsNull:(NSString *)str
 {
     WebCore::JSMainThreadNullState state;
@@ -1374,6 +1380,24 @@
 {
     WebCore::JSMainThreadNullState state;
     IMPL->methodWithOptionalBooleanIsFalse(b);
+}
+
+- (void)methodWithOptionalAny:(DOMany *)a
+{
+    WebCore::JSMainThreadNullState state;
+    IMPL->methodWithOptionalAny(core(a));
+}
+
+- (void)methodWithOptionalNullableWrapper:(DOMTestObj *)obj
+{
+    WebCore::JSMainThreadNullState state;
+    IMPL->methodWithOptionalNullableWrapper(core(obj));
+}
+
+- (void)methodWithOptionalNullableWrapperIsNull:(DOMTestObj *)obj
+{
+    WebCore::JSMainThreadNullState state;
+    IMPL->methodWithOptionalNullableWrapperIsNull(core(obj));
 }
 
 

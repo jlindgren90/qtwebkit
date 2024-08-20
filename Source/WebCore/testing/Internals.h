@@ -208,7 +208,7 @@ public:
     RefPtr<NodeList> nodesFromRect(Document&, int x, int y, unsigned topPadding, unsigned rightPadding,
         unsigned bottomPadding, unsigned leftPadding, bool ignoreClipping, bool allowShadowContent, bool allowChildFrameContent, ExceptionCode&) const;
 
-    String parserMetaData(JSC::JSValue = { });
+    String parserMetaData(JSC::JSValue = JSC::JSValue::JSUndefined);
 
     void updateEditorUINowIfScheduled();
 
@@ -334,7 +334,6 @@ public:
     void startTrackingCompositingUpdates(ExceptionCode&);
     unsigned compositingUpdateCount(ExceptionCode&);
 
-    void updateLayoutIgnorePendingStylesheetsAndRunPostLayoutTasks(ExceptionCode&);
     void updateLayoutIgnorePendingStylesheetsAndRunPostLayoutTasks(Node*, ExceptionCode&);
     unsigned layoutCount() const;
 
@@ -476,6 +475,7 @@ public:
     
     void setViewportForceAlwaysUserScalable(bool);
     void setLinkPreloadSupport(bool);
+    void setResourceTimingSupport(bool);
 
 #if ENABLE(CSS_GRID_LAYOUT)
     void setCSSGridLayoutEnabled(bool);
