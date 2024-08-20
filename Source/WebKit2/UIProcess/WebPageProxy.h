@@ -46,6 +46,7 @@
 #include "ProcessThrottler.h"
 #include "SandboxExtension.h"
 #include "ShareableBitmap.h"
+#include "UserInterfaceLayoutDirection.h"
 #include "UserMediaPermissionRequestManagerProxy.h"
 #include "VisibleContentRectUpdateInfo.h"
 #include "WKBase.h"
@@ -1132,6 +1133,8 @@ public:
 
     bool isResourceCachingDisabled() const { return m_isResourceCachingDisabled; }
     void setResourceCachingDisabled(bool);
+
+    UserInterfaceLayoutDirection userInterfaceLayoutDirection();
 
     void setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&&, const String& scheme);
     WebURLSchemeHandler* urlSchemeHandlerForScheme(const String& scheme);

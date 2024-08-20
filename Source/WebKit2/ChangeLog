@@ -1,3 +1,317 @@
+2016-04-18  Dean Jackson  <dino@apple.com>
+
+        New SPI to export a dictionary of runtime features
+        https://bugs.webkit.org/show_bug.cgi?id=156645
+        <rdar://problem/23621666>
+
+        Trying to fix GTK and EFL builds. I forgot to add files
+        to CMake.
+
+        * CMakeLists.txt:
+        * PlatformMac.cmake:
+
+2016-04-18  Dean Jackson  <dino@apple.com>
+
+        New SPI to export a dictionary of runtime features
+        https://bugs.webkit.org/show_bug.cgi?id=156645
+        <rdar://problem/23621666>
+
+        Reviewed by Darin Adler.
+
+        Add a new type of Preference for experimental features so that we
+        can dynamically toggle them from a WebKit2 host. These are special
+        keys that are tied to runtime flags. The host process can ask WebKit
+        for the list of keys, each with a small description, in order to
+        display UI.
+
+        - Add HumanReadableName and HumanReadableDescription parameters to our
+          macros, which are used when building a ExperimentalFeature.
+          These are both empty strings for the existing preferences. At some
+          point we should probably move all this to code generation rather
+          than macros, so that we don't have to carry around unused parameters.
+
+        - I've included two sample experimental features: WebGL2 and ShadowDOM.
+          They are not actually hooked up to the runtime settings yet, but its
+          pretty clear how that will happen. Note that these are new preferences
+          that have an "Experimental" prefix. This is so toggling an experimental
+          feature to off won't cause the feature to not work once it becomes
+          stable enough to enable by default. In other words, when it moves
+          out of the experimental stage, the experimental feature flag will be
+          removed, and you'll no longer check for values with that key.
+
+        - The ExperimentalFeature object is what the host process
+          will read in order to show some UI. It contains the human readable info,
+          as well as the actual key that can be used to query and toggle the
+          experimental feature.
+
+        * Shared/API/APIObject.h: Add the ExperimentalFeature.
+
+        * Shared/Cocoa/APIObject.mm:
+        (API::Object::newObject): Exposes a wrapper around a _WKExperimentalFeature ObjC type.
+
+        * Shared/WebPreferencesDefinitions.h: Change all the existing macros to take the new
+        parameters, and add the initial experimental keys.
+
+        * Shared/WebPreferencesKeys.cpp: Add new parameters to existing macros.
+        * Shared/WebPreferencesKeys.h: Ditto.
+        * Shared/WebPreferencesStore.cpp: Ditto.
+        (WebKit::defaults):
+
+        * UIProcess/API/APIExperimentalFeature.cpp: The API side of the ExperimentalFeature.
+        (API::ExperimentalFeature::create):
+        (API::ExperimentalFeature::ExperimentalFeature):
+        (API::ExperimentalFeature::~ExperimentalFeature):
+        * UIProcess/API/APIExperimentalFeature.h:
+
+        * UIProcess/API/Cocoa/WKPreferences.mm: The actual implementation of the SPI.
+        (+[WKPreferences _experimentalFeatures]): Create and return a list of feature descriptors.
+        (-[WKPreferences _isEnabledForFeature:]): Get the value.
+        (-[WKPreferences _setEnabled:forFeature:]): Set the value.
+        * UIProcess/API/Cocoa/WKPreferencesPrivate.h:
+
+        * UIProcess/API/Cocoa/_WKExperimentalFeature.h: The ObjC version.
+        * UIProcess/API/Cocoa/_WKExperimentalFeature.mm:
+        (-[_WKExperimentalFeature dealloc]):
+        (-[_WKExperimentalFeature description]):
+        (-[_WKExperimentalFeature name]):
+        (-[_WKExperimentalFeature key]):
+        (-[_WKExperimentalFeature details]):
+        (-[_WKExperimentalFeature _apiObject]):
+        * UIProcess/API/Cocoa/_WKExperimentalFeatureInternal.h: Implementation of the wrapper.
+        (WebKit::wrapper):
+
+        * UIProcess/WebPreferences.cpp: The C++ implementation that provides the data for the ObjC API.
+        (WebKit::globalExperimentalFeatures):
+        (WebKit::WebPreferences::ExperimentalFeatures):
+        (WebKit::WebPreferences::isEnabledForFeature):
+        (WebKit::WebPreferences::setEnabledForFeature):
+        * UIProcess/WebPreferences.h:
+
+        * UIProcess/mac/WebPreferencesMac.mm: Update some macros.
+        (WebKit::WebPreferences::platformInitializeStore):
+        * WebProcess/WebPage/WebPage.cpp: Ditto
+        (WebKit::WebPage::updatePreferences):
+
+        * WebKit2.xcodeproj/project.pbxproj: Add the new files.
+
+2016-04-18  Tim Horton  <timothy_horton@apple.com>
+
+        Swipe view gesture should be reversed in right-to-left contexts
+        https://bugs.webkit.org/show_bug.cgi?id=156714
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/API/gtk/PageClientImpl.h:
+        * UIProcess/PageClient.h:
+        * UIProcess/UserInterfaceLayoutDirection.h: Added.
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::userInterfaceLayoutDirection):
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/ios/PageClientImplIOS.h:
+        * UIProcess/ios/PageClientImplIOS.mm:
+        (WebKit::PageClientImpl::userInterfaceLayoutDirection):
+        * UIProcess/mac/PageClientImpl.h:
+        * UIProcess/mac/PageClientImpl.mm:
+        (WebKit::PageClientImpl::userInterfaceLayoutDirection):
+        Plumb RTL-ness through to WebPageProxy.
+        We look at the WK(Web)View's UI layout direction.
+        For other platforms, we just assume LTR.
+
+        * UIProcess/mac/ViewGestureController.h:
+        * UIProcess/mac/ViewGestureControllerMac.mm:
+        (WebKit::ViewGestureController::PendingSwipeTracker::scrollEventCanBecomeSwipe):
+        Decide which way to swipe (and which way to look for back-forward items)
+        based on the WebPageProxy's reported RTLness.
+
+        (WebKit::ViewGestureController::isPhysicallySwipingLeft):
+        "Back" means "swiping left" in LTR and "swiping right" in RTL.
+
+        (WebKit::ViewGestureController::trackSwipeGesture):
+        (WebKit::ViewGestureController::determineLayerAdjacentToSnapshotForParent):
+        (WebKit::ViewGestureController::beginSwipeGesture):
+        (WebKit::ViewGestureController::handleSwipeGesture):
+        Make things that were equating "back" with "left" instead check isPhysicallySwipingLeft.
+
+2016-04-18  Anders Carlsson  <andersca@apple.com>
+
+        Fix build with newer versions of clang.
+        rdar://problem/25749769
+
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        * UIProcess/mac/WebPageProxyMac.mm:
+        Forward declare some AppKit IPI.
+
+2016-04-18  Tina Liu  <iting_liu@apple.com>
+
+        Implement functions to set plug-in load policies for private browsing mode
+        https://bugs.webkit.org/show_bug.cgi?id=156540
+
+        Reviewed by Anders Carlsson.
+
+        This patch implements API and wrappers for clients to set policies to use when using
+        private browsing. WebPlatformStrategies would return which policies to use depending
+        on whether the page is in private browsing mode.
+
+        * Shared/WebProcessCreationParameters.h:
+        Add a hash map for plug-in load policies for private browsing.
+        * Shared/WebProcessCreationParameters.cpp:
+        (WebKit::WebProcessCreationParameters::encode):
+        (WebKit::WebProcessCreationParameters::decode):
+
+        * UIProcess/API/C/mac/WKContextPrivateMac.h:
+        * UIProcess/API/C/mac/WKContextPrivateMac.mm:
+        (WKContextSetPrivateBrowsingPluginLoadClientPolicy):
+        Add a wrapper.
+
+        * UIProcess/WebProcessPool.h:
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::createNewWebProcess):
+        Set the WebProcessCreationParameters's pluginLoadClientPoliciesForPrivateBrowsing.
+        (WebKit::WebProcessPool::setPluginLoadClientPolicyForBrowsingMode):
+        A helper function that sets plug-in policies to the corresponding instance variable:
+        m_pluginLoadClientPolicies for general browsing and m_pluginLoadClientPoliciesForPrivateBrowsing
+        for private browsing. The logic is extracted from the original setPluginLoadClientPolicy.
+        While we are here, get rid of the .contains() lookup as .get() will just return a
+        constructed object if the key is not found.
+        (WebKit::WebProcessPool::setPluginLoadClientPolicy):
+        Switch to use the helper function to set policies.
+        (WebKit::WebProcessPool::setPrivateBrowsingPluginLoadClientPolicy):
+        Ditto. Also send a message to the WebProcess for setting policies for private browsing.
+        (WebKit::WebProcessPool::clearPluginClientPolicies):
+        Clear plug-ins' private browsing policies.
+
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h:
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebKit::WebPlatformStrategies::setPluginLoadClientPolicyForBrowsingMode):
+        Ditto as WebProcessPool::setPluginLoadClientPolicyForBrowsingMode.
+        (WebKit::WebPlatformStrategies::setPluginLoadClientPolicy):
+        Switch to use setPluginLoadClientPolicyForBrowsingMode to set policies.
+        (WebKit::WebPlatformStrategies::setPrivateBrowsingPluginLoadClientPolicy):
+        Use setPluginLoadClientPolicyForBrowsingMode to set policies for private browsing.
+        (WebKit::WebPlatformStrategies::clearPluginClientPolicies):
+        Clear plug-ins' private browsing policies.
+        (WebKit::WebPlatformStrategies::longestMatchedWildcardHostForHost):
+        Add an argument for private browsing. Read from the corresponding ivar.
+        (WebKit::WebPlatformStrategies::replaceHostWithMatchedWildcardHost):
+        Ditto.
+        (WebKit::WebPlatformStrategies::pluginLoadClientPolicyForHost): Deleted.
+        Renamed this function as pluginLoadClientPolicyForHostForBrowsingMode.
+        (WebKit::WebPlatformStrategies::pluginLoadClientPolicyForHostForBrowsingMode):
+        Ditto.
+        (WebKit::WebPlatformStrategies::populatePluginCache):
+        Get the plug-in load policies for a specific host based on the page's session status. If the page
+        is using ephemeral session, use the private browsing policies.
+
+        * WebProcess/WebProcess.h:
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess):
+        Switch to call the helper function setPluginLoadClientPolicyFromCreationParameters.
+        (WebKit::WebProcess::setPluginLoadClientPolicies):
+        Logic moved from initializeWebProcess. Call PluginStrategy::setPluginLoadClientPolicy or
+        PluginStrategy::setPrivateBrowsingPluginLoadClientPolicy depending on the input argument.
+        (WebKit::WebProcess::setPrivateBrowsingPluginLoadClientPolicy):
+        Add a wrapper to call PluginStrategy::setPrivateBrowsingPluginLoadClientPolicy.
+
+        * WebProcess/WebProcess.messages.in:
+        Declare an entry for setPrivateBrowsingPluginLoadClientPolicy.
+
+2016-04-18  Chris Dumez  <cdumez@apple.com>
+
+        [WK2][iOS] Only adjust network responses' MIME type for QuickLook in the context of a main resource load
+        https://bugs.webkit.org/show_bug.cgi?id=156639
+        <rdar://problem/25765848>
+
+        Reviewed by Alex Christensen.
+
+        * NetworkProcess/NetworkDataTask.h:
+        (WebKit::NetworkDataTask::firstRequest):
+        Add getter to return the first request.
+
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:dataTask:didReceiveResponse:completionHandler:]):
+        Pass flag to adjustMIMETypeIfNecessary() indicated if this is a main resource load.
+
+2016-04-18  Brian Burg  <bburg@apple.com>
+
+        Web Automation: provide detailed error messages when an automation command fails
+        https://bugs.webkit.org/show_bug.cgi?id=156635
+        <rdar://problem/25754051>
+
+        Reviewed by Darin Adler and Timothy Hatcher.
+
+        Fill in lots of missing error message details now that the remote end knows
+        how to parse error strings with predefined error names and details.
+
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        Rearrange the error message macros. Make it possible to pass a ErrorMessage
+        variable or just the enum value name and get out an encoded error message
+        that optionally includes a free-form details string. The predefined error
+        name and the details string are joined together with a semicolon.
+
+        (WebKit::WebAutomationSession::getBrowsingContext):
+        (WebKit::WebAutomationSession::createBrowsingContext):
+        (WebKit::WebAutomationSession::closeBrowsingContext):
+        (WebKit::WebAutomationSession::switchToBrowsingContext):
+        (WebKit::WebAutomationSession::resizeWindowOfBrowsingContext):
+        (WebKit::WebAutomationSession::moveWindowOfBrowsingContext):
+        (WebKit::WebAutomationSession::navigateBrowsingContext):
+        (WebKit::WebAutomationSession::goBackInBrowsingContext):
+        (WebKit::WebAutomationSession::goForwardInBrowsingContext):
+        (WebKit::WebAutomationSession::reloadBrowsingContext):
+        (WebKit::WebAutomationSession::evaluateJavaScriptFunction):
+        (WebKit::WebAutomationSession::didEvaluateJavaScriptFunction):
+        (WebKit::WebAutomationSession::resolveChildFrameHandle):
+        (WebKit::WebAutomationSession::didResolveChildFrame):
+        (WebKit::WebAutomationSession::resolveParentFrameHandle):
+        (WebKit::WebAutomationSession::didResolveParentFrame):
+        (WebKit::WebAutomationSession::computeElementLayout):
+        (WebKit::WebAutomationSession::didComputeElementLayout):
+        (WebKit::WebAutomationSession::isShowingJavaScriptDialog):
+        (WebKit::WebAutomationSession::dismissCurrentJavaScriptDialog):
+        (WebKit::WebAutomationSession::acceptCurrentJavaScriptDialog):
+        (WebKit::WebAutomationSession::messageOfCurrentJavaScriptDialog):
+        (WebKit::WebAutomationSession::setUserInputForCurrentJavaScriptPrompt):
+        (WebKit::WebAutomationSession::getAllCookies):
+        (WebKit::WebAutomationSession::didGetCookiesForFrame):
+        (WebKit::WebAutomationSession::deleteSingleCookie):
+        (WebKit::WebAutomationSession::didDeleteCookie):
+        (WebKit::WebAutomationSession::addSingleCookie):
+        (WebKit::WebAutomationSession::deleteAllCookies):
+        (WebKit::WebAutomationSession::performMouseInteraction):
+        (WebKit::WebAutomationSession::performKeyboardInteractions):
+        (WebKit::WebAutomationSession::takeScreenshot):
+        (WebKit::WebAutomationSession::didTakeScreenshot):
+        Audit almost all early exits and provide a relevant error details message
+        if the error itself is ambiguous. Make sure to format asynchronous errors.
+
+2016-04-18  Brent Fulgham  <bfulgham@apple.com>
+
+        CSP: Remove stubs for dynamically-added favicons (via link rel="icon")
+        https://bugs.webkit.org/show_bug.cgi?id=153151
+        <rdar://problem/24383176>
+
+        Reviewed by Darin Adler.
+
+        Remove the unused dynamic favicon code and tests.
+
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::dispatchDidChangeIcons): Deleted.
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.h:
+
+2016-04-18  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION( r199603): Pandora crashes WebKit in WebPlaybackSessionManager::removeClientForContext
+        https://bugs.webkit.org/show_bug.cgi?id=156648
+
+        Reviewed by Darin Adler.
+
+        Follow up patch to r199615; avoid a double hash lookup by using a .find() pattern instead of
+        .contains() & .get().
+
+        * WebProcess/cocoa/WebPlaybackSessionManager.mm:
+        (WebKit::WebPlaybackSessionManager::setUpPlaybackControlsManager):
+        (WebKit::WebPlaybackSessionManager::clearPlaybackControlsManager):
+
 2016-04-18  Chris Dumez  <cdumez@apple.com>
 
         Unreviewed, rolling out r199644.

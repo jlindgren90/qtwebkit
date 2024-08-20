@@ -1066,6 +1066,23 @@ void SpeculativeJIT::compileIn(Node* node)
     blessedBooleanResult(resultGPR, node, UseChildrenCalledExplicitly);
 }
 
+void SpeculativeJIT::compileDeleteById(Node* node)
+{
+    JSValueOperand value(this, node->child1());
+    GPRFlushedCallResult result(this);
+
+    JSValueRegs valueRegs = value.jsValueRegs();
+    GPRReg resultGPR = result.gpr();
+
+    value.use();
+
+    flushRegisters();
+    callOperation(operationDeleteById, resultGPR, valueRegs, identifierUID(node->identifierNumber()));
+    m_jit.exceptionCheck();
+
+    unblessedBooleanResult(resultGPR, node, UseChildrenCalledExplicitly);
+}
+
 bool SpeculativeJIT::nonSpeculativeCompare(Node* node, MacroAssembler::RelationalCondition cond, S_JITOperation_EJJ helperFunction)
 {
     unsigned branchIndexInBlock = detectPeepHoleBranch();
@@ -7845,6 +7862,58 @@ void SpeculativeJIT::compilePutGetterSetterById(Node* node)
 #endif
     m_jit.exceptionCheck();
 
+    noResult(node);
+}
+
+void SpeculativeJIT::compileResolveScope(Node* node)
+{
+    SpeculateCellOperand scope(this, node->child1());
+    GPRReg scopeGPR = scope.gpr();
+    GPRFlushedCallResult result(this);
+    GPRReg resultGPR = result.gpr();
+    flushRegisters();
+    callOperation(operationResolveScope, resultGPR, scopeGPR, identifierUID(node->identifierNumber()));
+    m_jit.exceptionCheck();
+    cellResult(resultGPR, node);
+}
+
+void SpeculativeJIT::compileGetDynamicVar(Node* node)
+{
+    SpeculateCellOperand scope(this, node->child1());
+    GPRReg scopeGPR = scope.gpr();
+#if USE(JSVALUE64)
+    flushRegisters();
+    GPRFlushedCallResult result(this);
+    callOperation(operationGetDynamicVar, result.gpr(), scopeGPR, identifierUID(node->identifierNumber()), node->getPutInfo());
+    m_jit.exceptionCheck();
+    jsValueResult(result.gpr(), node);
+#else
+    flushRegisters();
+    GPRFlushedCallResult2 resultTag(this);
+    GPRFlushedCallResult resultPayload(this);
+    callOperation(operationGetDynamicVar, resultTag.gpr(), resultPayload.gpr(), scopeGPR, identifierUID(node->identifierNumber()), node->getPutInfo());
+    m_jit.exceptionCheck();
+    jsValueResult(resultTag.gpr(), resultPayload.gpr(), node);
+#endif
+}
+
+void SpeculativeJIT::compilePutDynamicVar(Node* node)
+{
+    SpeculateCellOperand scope(this, node->child1());
+    GPRReg scopeGPR = scope.gpr();
+    JSValueOperand value(this, node->child2());
+
+#if USE(JSVALUE64)
+    GPRReg valueGPR = value.gpr();
+    flushRegisters();
+    callOperation(operationPutDynamicVar, NoResult, scopeGPR, valueGPR, identifierUID(node->identifierNumber()), node->getPutInfo());
+#else
+    GPRReg tag = value.tagGPR();
+    GPRReg payload = value.payloadGPR();
+    flushRegisters();
+    callOperation(operationPutDynamicVar, NoResult, scopeGPR, tag, payload, identifierUID(node->identifierNumber()), node->getPutInfo());
+#endif
+    m_jit.exceptionCheck();
     noResult(node);
 }
 

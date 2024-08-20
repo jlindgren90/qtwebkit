@@ -204,6 +204,11 @@ private:
             changed |= setPrediction(node->getHeapPrediction());
             break;
         }
+
+        case GetDynamicVar: {
+            changed |= setPrediction(SpecBytecodeTop);
+            break;
+        }
             
         case GetGetterSetterByOffset:
         case GetExecutable: {
@@ -411,7 +416,8 @@ private:
                 changed |= mergePrediction(speculatedDoubleTypeForPrediction(child));
             break;
         }
-            
+
+        case DeleteById:
         case LogicalNot:
         case CompareLess:
         case CompareLessEq:
@@ -564,6 +570,11 @@ private:
             
         case SkipScope:
         case GetGlobalObject: {
+            changed |= setPrediction(SpecObjectOther);
+            break;
+        }
+
+        case ResolveScope: {
             changed |= setPrediction(SpecObjectOther);
             break;
         }
@@ -788,6 +799,7 @@ private:
         case ExitOK:
         case LoadVarargs:
         case CopyRest:
+        case PutDynamicVar:
             break;
             
         // This gets ignored because it only pretends to produce a value.

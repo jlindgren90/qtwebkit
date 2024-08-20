@@ -27,6 +27,7 @@
 #define PageClient_h
 
 #include "ShareableBitmap.h"
+#include "UserInterfaceLayoutDirection.h"
 #include "WebColorPicker.h"
 #include "WebPageProxy.h"
 #include "WebPopupMenuProxy.h"
@@ -377,6 +378,8 @@ public:
     virtual void didRestoreScrollPosition() = 0;
 
     virtual bool windowIsFrontWindowUnderMouse(const NativeWebMouseEvent&) { return false; }
+
+    virtual UserInterfaceLayoutDirection userInterfaceLayoutDirection() = 0;
 };
 
 } // namespace WebKit

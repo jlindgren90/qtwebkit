@@ -1,3 +1,60 @@
+2016-04-18  Dean Jackson  <dino@apple.com>
+
+        New SPI to export a dictionary of runtime features
+        https://bugs.webkit.org/show_bug.cgi?id=156645
+        <rdar://problem/23621666>
+
+        Reviewed by Darin Adler.
+
+        Test the experimental features SPI on WKPreferences.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/Preferences.mm:
+
+2016-04-18  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSCOnly] Implement RunLoop and remove glib dependency
+        https://bugs.webkit.org/show_bug.cgi?id=155706
+
+        Reviewed by Michael Catanzaro.
+
+        Add TestWTF to JSCOnly port to test WorkQueue and RunLoop.
+        Platform specific ones locate under jsconly directory since
+        it is not `generic` (Since it includes the GLIB event loop case).
+
+        * CMakeLists.txt:
+        * TestWebKitAPI/PlatformJSCOnly.cmake: Added.
+        * TestWebKitAPI/PlatformUtilities.h:
+        * TestWebKitAPI/Tests/WTF/RunLoop.cpp:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/config.h:
+        * TestWebKitAPI/jsconly/PlatformUtilitiesJSCOnly.cpp: Renamed from Source/WTF/wtf/none/RunLoopNone.cpp.
+        (TestWebKitAPI::Util::run):
+        (TestWebKitAPI::Util::sleep):
+        * TestWebKitAPI/jsconly/main.cpp: Renamed from Source/WTF/wtf/none/WorkQueueNone.cpp.
+        (main):
+
+2016-04-18  Jon Lee  <jonlee@apple.com>
+
+        Update Animometer plan.
+        https://bugs.webkit.org/show_bug.cgi?id=156652
+
+        Reviewed by Darin Adler.
+
+        * Scripts/webkitpy/benchmark_runner/data/plans/animometer.plan: Update to r199616.
+
+2016-04-18  Dana Burkart  <dburkart@apple.com>
+
+        svn-apply: add option for ignoring changes to ChangeLog files
+        https://bugs.webkit.org/show_bug.cgi?id=156618
+
+        Reviewed by Darin Adler.
+
+        This change adds a new option to svn-apply, --skip-changelogs, which short-circuits out of
+        patch() if the file in question is a ChangeLog.
+
+        * Scripts/svn-apply:
+        (patch):
+
 2016-04-18  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         Pending API Request URL is wrong after reloading

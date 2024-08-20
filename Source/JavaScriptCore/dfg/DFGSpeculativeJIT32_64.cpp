@@ -3842,10 +3842,11 @@ void SpeculativeJIT::compile(Node* node)
         
         MacroAssembler::JumpList slowCases;
         slowCases.append(m_jit.branchIfNotCell(thisValue.jsValueRegs()));
-        slowCases.append(m_jit.branch8(
-            MacroAssembler::NotEqual,
-            MacroAssembler::Address(thisValuePayloadGPR, JSCell::typeInfoTypeOffset()),
-            TrustedImm32(FinalObjectType)));
+        slowCases.append(
+            m_jit.branchTest8(                             
+                MacroAssembler::NonZero,
+                MacroAssembler::Address(thisValuePayloadGPR, JSCell::typeInfoFlagsOffset()),
+                MacroAssembler::TrustedImm32(OverridesToThis)));
         m_jit.move(thisValuePayloadGPR, tempGPR);
         m_jit.move(thisValueTagGPR, tempTagGPR);
         J_JITOperation_EJ function;
@@ -4088,6 +4089,11 @@ void SpeculativeJIT::compile(Node* node)
     case GetArrayLength:
         compileGetArrayLength(node);
         break;
+
+    case DeleteById: {
+        compileDeleteById(node);
+        break;
+    }
         
     case CheckCell: {
         SpeculateCellOperand cell(this, node->child1());
@@ -5039,6 +5045,21 @@ void SpeculativeJIT::compile(Node* node)
     case MaterializeNewObject:
         compileMaterializeNewObject(node);
         break;
+
+    case PutDynamicVar: {
+        compilePutDynamicVar(node);
+        break;
+    }
+
+    case GetDynamicVar: {
+        compileGetDynamicVar(node);
+        break;
+    }
+
+    case ResolveScope: {
+        compileResolveScope(node);
+        break;
+    }
 
     case Unreachable:
         RELEASE_ASSERT_NOT_REACHED();

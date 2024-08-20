@@ -1,3 +1,66 @@
+2016-04-18  Brent Fulgham  <bfulgham@apple.com>
+
+        Unreviewed test fix after r199696.
+
+        * inspector/console/x-frame-options-message-expected.txt: Rebaseline.):
+
+2016-04-18  Gavin Barraclough  <barraclough@apple.com>
+
+        WebKit should adopt journal_mode=wal for all SQLite databases.
+        https://bugs.webkit.org/show_bug.cgi?id=133496
+
+        Reviewed by Brady Eidson.
+
+        Enabling sqlite3 WAL mode on iOS causes a test failure, but appears just be something that should fail still failing, only in a different way.
+        Enabling & marking test as failing for now. Tracking test failure here:
+            https://bugs.webkit.org/show_bug.cgi?id=156718
+
+        * platform/ios-simulator/TestExpectations:
+            - storage/websql/alter-to-info-table.html [ Failure ]
+
+2016-04-18  Chris Dumez  <cdumez@apple.com>
+
+        Crash in ElementDescendantIterator::operator--() when calling m_ancestorSiblingStack.last()
+        https://bugs.webkit.org/show_bug.cgi?id=156715
+        <rdar://problem/25750864>
+
+        Reviewed by Antti Koivisto.
+
+        Add regression test that reproduced the crash.
+
+        * fast/dom/collection-backward-traversal-crash-expected.txt: Added.
+        * fast/dom/collection-backward-traversal-crash.html: Added.
+
+2016-04-18  Brent Fulgham  <bfulgham@apple.com>
+
+        Remove support for X-Frame-Options in `<meta>`
+        https://bugs.webkit.org/show_bug.cgi?id=156625
+        <rdar://problem/25748714>
+
+        Rubberstamped by Darin Adler.
+
+        * http/tests/security/XFrameOptions/x-frame-options-ignore-deny-meta-tag-expected.txt:
+        * http/tests/security/XFrameOptions/x-frame-options-ignore-deny-meta-tag-in-body-expected.txt:
+        * http/tests/security/XFrameOptions/x-frame-options-ignore-deny-meta-tag-parent-same-origin-allow-expected.txt:
+        * http/tests/security/XFrameOptions/x-frame-options-ignore-deny-meta-tag-parent-same-origin-deny-expected.txt:
+        * http/tests/security/xssAuditor/meta-tag-http-refresh-x-frame-options-ignored-expected.txt:
+
+2016-04-18  Brent Fulgham  <bfulgham@apple.com>
+
+        CSP: Remove stubs for dynamically-added favicons (via link rel="icon")
+        https://bugs.webkit.org/show_bug.cgi?id=153151
+        <rdar://problem/24383176>
+
+        Reviewed by Darin Adler.
+
+        Remove the unused dynamic favicon code and tests.
+
+        * TestExpectations:
+        * http/tests/security/contentSecurityPolicy/icon-allowed-expected.txt: Removed.
+        * http/tests/security/contentSecurityPolicy/icon-allowed.html: Removed.
+        * http/tests/security/contentSecurityPolicy/icon-blocked-expected.txt: Removed.
+        * http/tests/security/contentSecurityPolicy/icon-blocked.html: Removed.
+
 2016-04-18  Eric Carlson  <eric.carlson@apple.com>
 
         Media element "user gesture for fullscreen" restriction is never lifted

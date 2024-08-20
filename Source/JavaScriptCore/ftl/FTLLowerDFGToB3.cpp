@@ -968,6 +968,15 @@ private:
         case RecordRegExpCachedResult:
             compileRecordRegExpCachedResult();
             break;
+        case ResolveScope:
+            compileResolveScope();
+            break;
+        case GetDynamicVar:
+            compileGetDynamicVar();
+            break;
+        case PutDynamicVar:
+            compilePutDynamicVar();
+            break;
 
         case PhantomLocal:
         case LoopHint:
@@ -1463,7 +1472,11 @@ private:
         
         LBasicBlock lastNext = m_out.appendTo(isCellCase, slowCase);
         ValueFromBlock fastResult = m_out.anchor(value);
-        m_out.branch(isType(value, FinalObjectType), usually(continuation), rarely(slowCase));
+        m_out.branch(
+            m_out.testIsZero32(
+                m_out.load8ZeroExt32(value, m_heaps.JSCell_typeInfoFlags),
+                m_out.constInt32(OverridesToThis)),
+            usually(continuation), rarely(slowCase));
         
         m_out.appendTo(slowCase, continuation);
         J_JITOperation_EJ function;
@@ -2405,6 +2418,8 @@ private:
         B3::PatchpointValue* patchpoint = m_out.patchpoint(Void);
         patchpoint->appendSomeRegister(base);
         patchpoint->appendSomeRegister(value);
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
         patchpoint->clobber(RegisterSet::macroScratchRegisters());
 
         // FIXME: If this is a PutByIdFlush, we might want to late-clobber volatile registers.
@@ -4867,6 +4882,8 @@ private:
         RefPtr<PatchpointExceptionHandle> exceptionHandle =
             preparePatchpointForExceptions(patchpoint);
         
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
         patchpoint->clobber(RegisterSet::macroScratchRegisters());
         patchpoint->clobberLate(RegisterSet::volatileRegistersForJSCall());
         patchpoint->resultConstraint = ValueRep::reg(GPRInfo::returnValueGPR);
@@ -4955,6 +4972,9 @@ private:
 
         PatchpointValue* patchpoint = m_out.patchpoint(Void);
         patchpoint->appendVector(arguments);
+
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
 
         // Prevent any of the arguments from using the scratch register.
         patchpoint->clobberEarly(RegisterSet::macroScratchRegisters());
@@ -5073,6 +5093,9 @@ private:
         RefPtr<PatchpointExceptionHandle> exceptionHandle =
             preparePatchpointForExceptions(patchpoint);
         
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
+
         patchpoint->clobber(RegisterSet::macroScratchRegisters());
         patchpoint->clobberLate(RegisterSet::volatileRegistersForJSCall());
         patchpoint->resultConstraint = ValueRep::reg(GPRInfo::returnValueGPR);
@@ -5936,6 +5959,8 @@ private:
                 UniquedStringImpl* str = bitwise_cast<UniquedStringImpl*>(string->tryGetValueImpl());
                 B3::PatchpointValue* patchpoint = m_out.patchpoint(Int64);
                 patchpoint->appendSomeRegister(cell);
+                patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+                patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
                 patchpoint->clobber(RegisterSet::macroScratchRegisters());
 
                 State* state = &m_ftlState;
@@ -7395,6 +7420,8 @@ private:
 
         B3::PatchpointValue* patchpoint = m_out.patchpoint(Int64);
         patchpoint->appendSomeRegister(base);
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
 
         // FIXME: If this is a GetByIdFlush, we might get some performance boost if we claim that it
         // clobbers volatile registers late. It's not necessary for correctness, though, since the
@@ -7508,6 +7535,27 @@ private:
         }
         
         DFG_CRASH(m_graph, m_node, "Bad use kinds");
+    }
+
+    void compileResolveScope()
+    {
+        UniquedStringImpl* uid = m_graph.identifiers()[m_node->identifierNumber()];
+        setJSValue(vmCall(m_out.intPtr, m_out.operation(operationResolveScope),
+            m_callFrame, lowCell(m_node->child1()), m_out.constIntPtr(uid)));
+    }
+
+    void compileGetDynamicVar()
+    {
+        UniquedStringImpl* uid = m_graph.identifiers()[m_node->identifierNumber()];
+        setJSValue(vmCall(m_out.int64, m_out.operation(operationGetDynamicVar),
+            m_callFrame, lowCell(m_node->child1()), m_out.constIntPtr(uid), m_out.constInt32(m_node->getPutInfo())));
+    }
+
+    void compilePutDynamicVar()
+    {
+        UniquedStringImpl* uid = m_graph.identifiers()[m_node->identifierNumber()];
+        setJSValue(vmCall(Void, m_out.operation(operationPutDynamicVar),
+            m_callFrame, lowCell(m_node->child1()), lowJSValue(m_node->child2()), m_out.constIntPtr(uid), m_out.constInt32(m_node->getPutInfo())));
     }
     
     void compareEqObjectOrOtherToObject(Edge leftChild, Edge rightChild)
