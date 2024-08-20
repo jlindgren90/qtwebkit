@@ -1,3 +1,140 @@
+2016-05-02  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200337.
+        https://bugs.webkit.org/show_bug.cgi?id=157294
+
+        Console hangs when evaluating expresisons (Requested by
+        JoePeck on #webkit).
+
+        Reverted changeset:
+
+        "Web Inspector: Adding a new console message shouldn't modify
+        DOM when the console log is hidden"
+        https://bugs.webkit.org/show_bug.cgi?id=155629
+        http://trac.webkit.org/changeset/200337
+
+2016-05-02  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Unexpected "Script Element #" resources in Debugger Sidebar
+        https://bugs.webkit.org/show_bug.cgi?id=157280
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/DebuggerSidebarPanel.js:
+        (WebInspector.DebuggerSidebarPanel.prototype._addScript):
+        Don't include Script Element resources in the debugger sidebar by default.
+
+2016-05-02  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Prefer "Console Evaluation" to "Eval Code" if we know it was a console evaluation
+        https://bugs.webkit.org/show_bug.cgi?id=157278
+
+        Reviewed by Timothy Hatcher.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        "Console Evaluation" string.
+
+        * UserInterface/Controllers/DebuggerManager.js:
+        (WebInspector.DebuggerManager.prototype._sourceCodeLocationFromPayload): Deleted.
+        Delete an assert that would throw when the location is noSourceID:-1:-1.
+
+        * UserInterface/Models/CallFrame.js:
+        (WebInspector.CallFrame.fromDebuggerPayload):
+        (WebInspector.CallFrame.fromPayload):
+        (WebInspector.CallFrame):
+        When this is in a Console Evalution provide better values.
+
+        * UserInterface/Models/GarbageCollection.js:
+        (WebInspector.GarbageCollection):
+        Drive-by address a common assertions seen while paused.
+
+2016-05-02  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Adding a new console message shouldn't modify DOM when the console log is hidden
+        https://bugs.webkit.org/show_bug.cgi?id=155629
+        <rdar://problem/25235470>
+
+        Reviewed by Timothy Hatcher.
+
+        Instead of rendering console messages right away, store them (in _pendingMessages)
+        and render only when the console tab or the split console is visible.
+        Also, batch rendering operations using requestAnimationFrame.
+
+        * UserInterface/Controllers/JavaScriptLogViewController.js:
+        (WebInspector.JavaScriptLogViewController):
+        Store console message views in _pendingMessages.
+
+        (WebInspector.JavaScriptLogViewController.prototype._appendConsoleMessageView):
+        (WebInspector.JavaScriptLogViewController.prototype.renderPendingMessages):
+        Use requestAnimationFrame batching. Run isScrolledToBottom() at most only once
+        per batch.
+
+        (WebInspector.JavaScriptLogViewController.prototype.renderPendingMessagesSoon):
+        (WebInspector.JavaScriptLogViewController.prototype._didRenderConsoleMessageView):
+        There is no need to run scrollToBottom again.
+
+        * UserInterface/Views/ConsoleCommandView.js:
+        (WebInspector.ConsoleCommandView):
+        Move all DOM operations to a new render method.
+
+        (WebInspector.ConsoleCommandView.prototype.render):
+        * UserInterface/Views/ConsoleMessageView.js:
+        (WebInspector.ConsoleMessageView):
+        (WebInspector.ConsoleMessageView.prototype.render):
+        (WebInspector.ConsoleMessageView.prototype.set repeatCount):
+        (WebInspector.ConsoleMessageView.prototype._renderRepeatCount):
+        * UserInterface/Views/LogContentView.js:
+        (WebInspector.LogContentView.prototype.shown):
+        When the console tab or the split console is opened render all pending messages.
+
+        (WebInspector.LogContentView.prototype.didAppendConsoleMessageView):
+        No need to scrollToBottom once again.
+
+        (WebInspector.LogContentView.prototype._messageAdded):
+        (WebInspector.LogContentView.prototype._previousMessageRepeatCountUpdated):
+        (WebInspector.LogContentView.prototype._scopeFromMessageLevel): Deleted.
+        (WebInspector.LogContentView.prototype._markScopeBarItemUnread): Added.
+        Rename _pulseScopeBarItemBorder. In the very first version the border was pulsing,
+        but now we use small colored circles instead.
+
+2016-05-02  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Uncaught Exception: TypeError: null is not an object (evaluating 'sourceCodeLocation.formattedLineNumber')
+        https://bugs.webkit.org/show_bug.cgi?id=157239
+        <rdar://problem/26030791>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Controllers/IssueManager.js:
+        (WebInspector.IssueManager.issueMatchSourceCode):
+        Require a sourceCodeLocation for Script errors.
+
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype._addIssue):
+        Be safe against a missing sourceCodeLocation.
+
+        * UserInterface/Views/SourceCodeTextEditor.css:
+        (.source-code.text-editor > .CodeMirror .issue-widget.inline > .arrow):
+        (@media (-webkit-min-device-pixel-ratio: 2)):
+        Adjust the style, on non-Retina the inline message arrow would sometimes
+        be detached from the warning message.
+
+2016-05-02  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Zooming of docked Web Inspector affects the webpage, but reset to 0 does not
+        https://bugs.webkit.org/show_bug.cgi?id=157234
+        rdar://problem/26027177
+
+        Always prevent default for the zoom keyboard shortcuts to avoid passing the event back to
+        Safari to handle and add explicit beeps when max/min is hit.
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector.contentLoaded): Removed setting implicitlyPreventsDefault on zoom keyboard shortcuts.
+        (WebInspector._increaseZoom): Add explicit beep and remove preventDefault call.
+        (WebInspector._decreaseZoom): Ditto.
+
 2016-05-01  Dan Bernstein  <mitz@apple.com>
 
         WebInspectorUI.framework/Versions/A/Resources/Images/Legacy is empty

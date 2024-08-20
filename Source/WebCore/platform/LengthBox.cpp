@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,46 +20,20 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef JSConsole_h
-#define JSConsole_h
+#include "config.h"
+#include "LengthBox.h"
 
-#include "JSObject.h"
+#include "TextStream.h"
 
-namespace JSC {
+namespace WebCore {
 
-class JSConsole : public JSNonFinalObject {
-public:
-    typedef JSNonFinalObject Base;
-
-    DECLARE_EXPORT_INFO;
-
-    static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
-    {
-        return Structure::create(vm, globalObject, prototype, TypeInfo(ObjectType, StructureFlags), info());
-    }
-
-    static JSConsole* create(VM& vm, Structure* structure)
-    {
-        JSConsole* instance = new (NotNull, allocateCell<JSConsole>(vm.heap)) JSConsole(vm, structure);
-        instance->finishCreation(vm);
-        return instance;
-    }
-
-    static JSConsole* create(ExecState* exec, Structure* structure)
-    {
-        return create(exec->vm(), structure);
-    }
-
-private:
-    JSConsole(VM& vm, Structure* structure)
-        : Base(vm, structure)
-    {
-    }
-};
-
+TextStream& operator<<(TextStream& ts, const LengthBox& box)
+{
+    ts << "top: " << box.top() << " right: " << box.right() << " bottom: " << box.bottom() << " left: " << box.left();
+    return ts;
 }
 
-#endif // !defined(JSConsole_h)
+} // namespace WebCore

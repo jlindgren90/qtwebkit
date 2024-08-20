@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,42 +20,19 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef ConsolePrototype_h
-#define ConsolePrototype_h
+#pragma once
 
-#include "JSObject.h"
+#include <wtf/text/WTFString.h>
 
-namespace JSC {
+namespace WTF {
 
-class ConsolePrototype : public JSNonFinalObject {
-public:
-    typedef JSNonFinalObject Base;
+WTF_EXPORT_PRIVATE void resetAccumulatedLogs();
+WTF_EXPORT_PRIVATE String getAndResetAccumulatedLogs();
 
-    DECLARE_INFO;
+} // namespace WTF
 
-    static ConsolePrototype* create(VM& vm, JSGlobalObject* globalObject, Structure* structure)
-    {
-        ConsolePrototype* prototype = new (NotNull, allocateCell<ConsolePrototype>(vm.heap)) ConsolePrototype(vm, structure);
-        prototype->finishCreation(vm, globalObject);
-        return prototype;
-    }
-
-    static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
-    {
-        return Structure::create(vm, globalObject, prototype, TypeInfo(ObjectType, StructureFlags), info());
-    }
-
-private:
-    ConsolePrototype(VM& vm, Structure* structure)
-        : Base(vm, structure)
-    {
-    }
-    void finishCreation(VM&, JSGlobalObject*);
-};
-
-}
-
-#endif // !defined(ConsolePrototype_h)
+using WTF::resetAccumulatedLogs;
+using WTF::getAndResetAccumulatedLogs;
