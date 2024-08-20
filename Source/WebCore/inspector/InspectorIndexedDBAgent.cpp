@@ -44,6 +44,7 @@
 #include "EventTarget.h"
 #include "ExceptionCode.h"
 #include "Frame.h"
+#include "IDBBindingUtilities.h"
 #include "IDBCursor.h"
 #include "IDBCursorWithValue.h"
 #include "IDBDatabase.h"
@@ -58,6 +59,7 @@
 #include "IDBTransaction.h"
 #include "InspectorPageAgent.h"
 #include "InstrumentingAgents.h"
+#include "ScriptState.h"
 #include "SecurityOrigin.h"
 #include <inspector/InjectedScript.h>
 #include <inspector/InjectedScriptManager.h>
@@ -333,7 +335,7 @@ public:
         return this == &other;
     }
 
-    void handleEvent(ScriptExecutionContext*, Event* event) override
+    void handleEvent(ScriptExecutionContext* context, Event* event) override
     {
         if (event->type() != eventNames().successEvent) {
             m_requestCallback->sendFailure("Unexpected event type.");
@@ -380,10 +382,14 @@ public:
             return;
         }
 
+        JSC::ExecState* state = context ? context->execState() : nullptr;
+        if (!state)
+            return;
+
         RefPtr<DataEntry> dataEntry = DataEntry::create()
-            .setKey(m_injectedScript.wrapObject(idbCursor->key(), String(), true))
-            .setPrimaryKey(m_injectedScript.wrapObject(idbCursor->primaryKey(), String(), true))
-            .setValue(m_injectedScript.wrapObject(idbCursor->value(), String(), true))
+            .setKey(m_injectedScript.wrapObject(idbCursor->key(*state), String(), true))
+            .setPrimaryKey(m_injectedScript.wrapObject(idbCursor->primaryKey(*state), String(), true))
+            .setValue(m_injectedScript.wrapObject(idbCursor->value(*state), String(), true))
             .release();
         m_result->addItem(WTFMove(dataEntry));
 

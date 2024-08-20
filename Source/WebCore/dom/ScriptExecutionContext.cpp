@@ -36,6 +36,7 @@
 #include "MessagePort.h"
 #include "NoEventDispatchAssertion.h"
 #include "PublicURLManager.h"
+#include "ScriptState.h"
 #include "Settings.h"
 #include "WorkerGlobalScope.h"
 #include "WorkerThread.h"
@@ -485,6 +486,17 @@ bool ScriptExecutionContext::hasPendingActivity() const
     }
 
     return false;
+}
+
+JSC::ExecState* ScriptExecutionContext::execState()
+{
+    if (is<Document>(*this)) {
+        Document& document = downcast<Document>(*this);
+        return execStateFromPage(mainThreadNormalWorld(), document.page());
+    }
+
+    WorkerGlobalScope* workerGlobalScope = static_cast<WorkerGlobalScope*>(this);
+    return execStateFromWorkerGlobalScope(workerGlobalScope);
 }
 
 } // namespace WebCore

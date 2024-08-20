@@ -561,6 +561,7 @@ static EncodedJSValue JSC_HOST_CALL functionCreateRuntimeArray(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionCreateImpureGetter(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionCreateCustomGetterObject(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionCreateBuiltin(ExecState*);
+static EncodedJSValue JSC_HOST_CALL functionCreateGlobalObject(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionSetImpureGetterDelegate(ExecState*);
 
 static EncodedJSValue JSC_HOST_CALL functionSetElementRoot(ExecState*);
@@ -806,6 +807,7 @@ protected:
         addFunction(vm, "createImpureGetter", functionCreateImpureGetter, 1);
         addFunction(vm, "createCustomGetterObject", functionCreateCustomGetterObject, 0);
         addFunction(vm, "createBuiltin", functionCreateBuiltin, 2);
+        addFunction(vm, "createGlobalObject", functionCreateGlobalObject, 0);
         addFunction(vm, "setImpureGetterDelegate", functionSetImpureGetterDelegate, 2);
 
         addFunction(vm, "dumpTypesForAllVariables", functionDumpTypesForAllVariables , 0);
@@ -1777,6 +1779,12 @@ EncodedJSValue JSC_HOST_CALL functionCreateBuiltin(ExecState* exec)
     JSFunction* func = JSFunction::createBuiltinFunction(vm, createBuiltinExecutable(vm, source, Identifier::fromString(&vm, "foo"), ConstructorKind::None, ConstructAbility::CannotConstruct)->link(vm, source), exec->lexicalGlobalObject());
 
     return JSValue::encode(func);
+}
+
+EncodedJSValue JSC_HOST_CALL functionCreateGlobalObject(ExecState* exec)
+{
+    VM& vm = exec->vm();
+    return JSValue::encode(GlobalObject::create(vm, GlobalObject::createStructure(vm, jsNull()), Vector<String>()));
 }
 
 EncodedJSValue JSC_HOST_CALL functionCheckModuleSyntax(ExecState* exec)

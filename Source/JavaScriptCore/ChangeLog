@@ -1,3 +1,240 @@
+2016-04-18  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES7] yield star should not return if the inner iterator.throw returns { done: true }
+        https://bugs.webkit.org/show_bug.cgi?id=156576
+
+        Reviewed by Saam Barati.
+
+        This is slight generator fix in ES7. When calling generator.throw(),
+        the yield-star should call the throw() of the inner generator. At that
+        time, when the result of throw() is { done: true}, the generator should
+        not stop itself.
+
+            function * gen()
+            {
+                yield * (function * () {
+                    try {
+                        yield 42;
+                    } catch (error) { }
+                }());
+                // Continue executing.
+                yield 42;
+            }
+
+            let g = gen();
+            g.next();
+            shouldBe(g.throw().value, 42);
+
+
+        * builtins/GeneratorPrototype.js:
+        (generatorResume):
+        (next):
+        (return):
+        (throw):
+        * bytecode/BytecodeIntrinsicRegistry.cpp:
+        (JSC::BytecodeIntrinsicRegistry::BytecodeIntrinsicRegistry):
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitDelegateYield):
+        * runtime/JSGeneratorFunction.h:
+        * tests/stress/generator-yield-star.js:
+        (gen):
+        * tests/stress/yield-star-throw-continue.js: Added.
+        (shouldBe):
+        (generator):
+        (shouldThrow):
+
+2016-04-17  Jeremy Huddleston Sequoia  <jeremyhu@apple.com>
+
+        Fix incorrect assumption that APPLE implies Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=156683
+    
+        Addresses build failure introduced in r199094
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt:
+
+2016-04-17  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] ReduceDoubleToFloat should work accross Phis
+        https://bugs.webkit.org/show_bug.cgi?id=156603
+        <rdar://problem/25736205>
+
+        Reviewed by Saam Barati and Filip Pizlo.
+
+        This patch extends B3's ReduceDoubleToFloat phase to work accross
+        Upsilon-Phis. This is important to optimize loops and some crazy cases.
+
+        In its simplest form, we can have conversion propagated from something
+        like this:
+            Double @1 = Phi()
+            Float @2 = DoubleToFloat(@1)
+
+        When that happens, we just need to propagate that the result only
+        need float precision accross all values coming to this Phi.
+
+
+        There are more complicated cases when the value produced is effectively Float
+        but the user of the value does not do DoubleToFloat.
+
+        Typically, we have something like:
+            #1
+                @1 = ConstDouble(1)
+                @2 = Upsilon(@1, ^5)
+            #2
+                @3 = FloatToDouble(@x)
+                @4 = Upsilon(@3, ^5)
+            #3
+                @5 = Phi()
+                @6 = Add(@5, @somethingFloat)
+                @7 = DoubleToFloat(@6)
+
+        Here with a Phi-Upsilon that is a Double but can be represented
+        as Float without loss of precision.
+
+        It is valuable to convert such Phis to float if and only if the value
+        is used as float. Otherwise, you may be just adding useless conversions
+        (for example, two double constants that flow into a double Add should not
+        turn into two float constant flowing into a FloatToDouble then Add).
+
+
+        ReduceDoubleToFloat do two analysis passes to gather the necessary
+        meta information. Then we have a simplify() phase to actually reduce
+        operation. Finally, the cleanup() pass put the graph into a valid
+        state again.
+
+        The two analysis passes work by disproving that something is float.
+        -findCandidates() accumulates anything used as Double.
+        -findPhisContainingFloat() accumulates phis that would lose precision
+         by converting the input to float.
+
+        With this change, Unity3D improves by ~1.5%, box2d-f32 improves
+        by ~2.8% (on Haswell).
+
+        * b3/B3ReduceDoubleToFloat.cpp:
+        (JSC::B3::reduceDoubleToFloat):
+        * b3/testb3.cpp:
+        (JSC::B3::testCompareTwoFloatToDouble):
+        (JSC::B3::testCompareOneFloatToDouble):
+        (JSC::B3::testCompareFloatToDoubleThroughPhi):
+        (JSC::B3::testDoubleToFloatThroughPhi):
+        (JSC::B3::testDoubleProducerPhiToFloatConversion):
+        (JSC::B3::testDoubleProducerPhiToFloatConversionWithDoubleConsumer):
+        (JSC::B3::testDoubleProducerPhiWithNonFloatConst):
+        (JSC::B3::testStoreDoubleConstantAsFloat):
+        (JSC::B3::run):
+        * tests/stress/double-compare-to-float.js: Added.
+        (canSimplifyToFloat):
+        (canSimplifyToFloatWithConstant):
+        (cannotSimplifyA):
+        (cannotSimplifyB):
+        * tests/stress/double-to-float.js: Added.
+        (upsilonReferencingItsPhi):
+        (upsilonReferencingItsPhiAllFloat):
+        (upsilonReferencingItsPhiWithoutConversion):
+        (conversionPropagages):
+        (chainedUpsilonBothConvert):
+        (chainedUpsilonFirstConvert):
+
+2016-04-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Use @isObject to check Object Type instead of using instanceof
+        https://bugs.webkit.org/show_bug.cgi?id=156676
+
+        Reviewed by Darin Adler.
+
+        Use @isObject instead of `instanceof @Object`.
+        The `instanceof` check is not enough to check Object Type.
+        For example, given 2 realms, the object created in one realm does not inherit the Object of another realm.
+        Another example is that the object which does not inherit Object.
+        This object can be easily created by calling `Object.create(null)`.
+
+        * builtins/RegExpPrototype.js:
+        (match):
+        * jsc.cpp:
+        (GlobalObject::finishCreation):
+        (functionCreateGlobalObject):
+        * tests/stress/regexp-match-in-other-realm-should-work.js: Added.
+        (shouldBe):
+        * tests/stress/regexp-match-should-work-with-objects-not-inheriting-object-prototype.js: Added.
+        (shouldBe):
+        (regexp.exec):
+
+2016-04-17  Darin Adler  <darin@apple.com>
+
+        Remove more uses of Deprecated::ScriptXXX
+        https://bugs.webkit.org/show_bug.cgi?id=156660
+
+        Reviewed by Antti Koivisto.
+
+        * bindings/ScriptFunctionCall.cpp:
+        (Deprecated::ScriptCallArgumentHandler::appendArgument): Deleted
+        unneeded overloads that take a ScriptObject and ScriptValue.
+        * bindings/ScriptFunctionCall.h: Ditto.
+
+        * bindings/ScriptObject.h: Added operator so this can change
+        itself into a JSObject*. Helps while phasing this class out.
+
+        * bindings/ScriptValue.h: Export toInspectorValue so it can be
+        used in WebCore.
+
+        * inspector/InjectedScriptManager.cpp:
+        (Inspector::InjectedScriptManager::createInjectedScript): Changed
+        return value from Deprecated::ScriptObject to JSObject*.
+        (Inspector::InjectedScriptManager::injectedScriptFor): Updated for
+        the return value change above.
+        * inspector/InjectedScriptManager.h: Ditto.
+
+2016-04-16  Benjamin Poulain  <bpoulain@webkit.org>
+
+        [JSC] DFG should support relational comparisons of Number and Other
+        https://bugs.webkit.org/show_bug.cgi?id=156669
+
+        Reviewed by Darin Adler.
+
+        In Sunspider/3d-raytrace, DFG falls back to JSValue in some important
+        relational compare because profiling sees "undefined" from time to time.
+
+        This case is fairly common outside Sunspider too because of out-of-bounds array access.
+        Unfortunately for us, our fallback for compare is really inefficient.
+
+        Fortunately, relational comparison with null/undefined/true/false are trival.
+        We can just convert both side to Double. That's what this patch adds.
+
+        I also extended constant folding for those cases because I noticed
+        a bunch of "undefined" constant going through DoubleRep at runtime.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * tests/stress/compare-number-and-other.js: Added.
+        (opaqueSideEffect):
+        (let.operator.of.operators.eval.testPolymorphic):
+        (let.operator.of.operators.let.left.of.typeCases.let.right.of.typeCases.eval.testMonomorphic):
+        (let.operator.of.operators.let.left.of.typeCases.let.right.of.typeCases.testMonomorphicLeftConstant):
+        (let.operator.of.operators.let.left.of.typeCases.let.right.of.typeCases.testMonomorphicRightConstant):
+        (let.operator.of.operators.let.left.of.typeCases.let.right.of.typeCases.i.testPolymorphic):
+
+2016-04-16  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] FRound/Negate can produce an impure NaN out of a pure NaN
+        https://bugs.webkit.org/show_bug.cgi?id=156528
+
+        Reviewed by Filip Pizlo.
+
+        If you fround a double with the bits 0xfff7000000000000
+        you get 0xfffe000000000000. The first is a pure NaN, the second isn't.
+
+        This is without test because I could not find a way to create a 0xfff7000000000000
+        while convincing DFG that its pure.
+        When we purify NaNs from typed array, we use a specific value of NaN if the input
+        is any NaN, making testing tricky.
+
+        * bytecode/SpeculatedType.cpp:
+        (JSC::typeOfDoubleNegation):
+
 2016-04-16  Konstantin Tokarev  <annulen@yandex.ru>
 
         JS::DFG::nodeValuePairListDump does not compile with libstdc++ 4.8
