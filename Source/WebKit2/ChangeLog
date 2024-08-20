@@ -1,3 +1,78 @@
+2016-04-19  Chris Dumez  <cdumez@apple.com>
+
+        Crash under WebKit::PluginView::pluginSnapshotTimerFired
+        https://bugs.webkit.org/show_bug.cgi?id=156754
+        <rdar://problem/22566764>
+
+        Reviewed by Beth Dakin.
+
+        Add null check for frame() before trying to access the frame settings,
+        similarly to what is done earlier in this function. This fixes a top
+        crasher.
+
+        * WebProcess/Plugins/PluginView.cpp:
+        (WebKit::PluginView::pluginSnapshotTimerFired):
+
+2016-04-19  Dean Jackson  <dino@apple.com>
+
+        New SPI to export a dictionary of runtime features
+        https://bugs.webkit.org/show_bug.cgi?id=156645
+        <rdar://problem/23621666>
+
+        Reviewed by Anders Carlsson.
+
+        Mark the new SPI as WK_MAC_TBA, WK_IOS_TBA.
+
+        * UIProcess/API/Cocoa/_WKExperimentalFeature.h:
+
+2016-04-19  Dean Jackson  <dino@apple.com>
+
+        New SPI to export a dictionary of runtime features
+        https://bugs.webkit.org/show_bug.cgi?id=156645
+        <rdar://problem/23621666>
+
+        Post commit follow-up. Darin gave review comments that
+        I didn't address in my original commit - I was waiting
+        on some advice.
+
+        * UIProcess/WebPreferences.cpp:
+        (WebKit::WebPreferences::isEnabledForFeature): Change the macro
+        to generate a static list of function pointers, rather than
+        a lot of conditional statements.
+        (WebKit::WebPreferences::setEnabledForFeature): Ditto.
+
+2016-04-19  Chris Dumez  <cdumez@apple.com>
+
+        Mark more classes as WTF_MAKE_FAST_ALLOCATED
+        https://bugs.webkit.org/show_bug.cgi?id=156732
+
+        Reviewed by Darin Adler.
+
+        * NetworkProcess/Downloads/Download.h:
+        * NetworkProcess/Downloads/PendingDownload.h:
+        * NetworkProcess/cache/NetworkCacheSpeculativeLoadManager.h:
+        * Shared/API/Cocoa/RemoteObjectInvocation.h:
+
+2016-04-19  Alex Christensen  <achristensen@webkit.org>
+
+        Build fix.
+
+        * NetworkProcess/NetworkConnectionToWebProcess.cpp:
+        (WebKit::NetworkConnectionToWebProcess::preregisterSandboxExtensionsForOptionallyFileBackedBlob):
+        result is unused.
+
+2016-04-19  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: ObjectStore Blob Support.
+        https://bugs.webkit.org/show_bug.cgi?id=143193
+
+        Reviewed by Alex Christensen.
+
+        * NetworkProcess/NetworkConnectionToWebProcess.cpp:
+        (WebKit::NetworkConnectionToWebProcess::preregisterSandboxExtensionsForOptionallyFileBackedBlob): Don't ASSERT that
+          this is the first we've heard of this path - The Connection now remembers all extensions.
+        (WebKit::NetworkConnectionToWebProcess::getBlobDataFileReferenceForPath): Don't take - Just get.
+
 2016-04-19  Antti Koivisto  <antti@apple.com>
 
         Try to fix iOS build.

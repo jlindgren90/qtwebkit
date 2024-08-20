@@ -277,17 +277,14 @@ void NetworkConnectionToWebProcess::preregisterSandboxExtensionsForOptionallyFil
 {
     ASSERT(filePaths.size() == handles.size());
 
-    for (size_t i = 0; i < filePaths.size(); ++i) {
-        auto result = m_blobDataFileReferences.add(filePaths[i], BlobDataFileReferenceWithSandboxExtension::create(filePaths[i], SandboxExtension::create(handles[i])));
-        ASSERT_UNUSED(result, result.isNewEntry);
-    }
+    for (size_t i = 0; i < filePaths.size(); ++i)
+        m_blobDataFileReferences.add(filePaths[i], BlobDataFileReferenceWithSandboxExtension::create(filePaths[i], SandboxExtension::create(handles[i])));
 }
 
-RefPtr<WebCore::BlobDataFileReference> NetworkConnectionToWebProcess::takeBlobDataFileReferenceForPath(const String& path)
+RefPtr<WebCore::BlobDataFileReference> NetworkConnectionToWebProcess::getBlobDataFileReferenceForPath(const String& path)
 {
-    auto fileReference = m_blobDataFileReferences.take(path);
-    ASSERT(fileReference);
-    return fileReference;
+    ASSERT(m_blobDataFileReferences.contains(path));
+    return m_blobDataFileReferences.get(path);
 }
 
 void NetworkConnectionToWebProcess::registerBlobURLOptionallyFileBacked(const URL& url, const URL& srcURL, const String& fileBackedPath)

@@ -43,7 +43,7 @@ class HTMLSlotElement;
 class Node;
 
 class SlotAssignment {
-    WTF_MAKE_NONCOPYABLE(SlotAssignment);
+    WTF_MAKE_NONCOPYABLE(SlotAssignment); WTF_MAKE_FAST_ALLOCATED;
 public:
     SlotAssignment();
     virtual ~SlotAssignment();
@@ -65,6 +65,8 @@ public:
 
 private:
     struct SlotInfo {
+        WTF_MAKE_FAST_ALLOCATED;
+    public:
         SlotInfo() { }
         SlotInfo(HTMLSlotElement& slotElement)
             : element(&slotElement)
