@@ -45,7 +45,7 @@ private:
 public:
     static PassRefPtr<RenderTheme> create(Page*);
 
-    void adjustSliderThumbSize(RenderStyle&, Element*) const final;
+    void adjustSliderThumbSize(RenderStyle&, const Element*) const final;
 
     bool isControlStyled(const RenderStyle&, const BorderData&, const FillLayer&, const Color& backgroundColor) const final;
 
@@ -60,14 +60,14 @@ public:
 
 protected:
 
-    void adjustButtonStyle(StyleResolver&, RenderStyle&, Element*) const final;
+    void adjustButtonStyle(StyleResolver&, RenderStyle&, const Element*) const final;
     bool paintButton(const RenderObject&, const PaintInfo&, const IntRect&) final;
 
     bool paintTextField(const RenderObject&, const PaintInfo&, const FloatRect&) final;
-    void adjustTextFieldStyle(StyleResolver&, RenderStyle&, Element*) const final;
+    void adjustTextFieldStyle(StyleResolver&, RenderStyle&, const Element*) const final;
 
     bool paintMenuList(const RenderObject&, const PaintInfo&, const FloatRect&) final;
-    void adjustMenuListStyle(StyleResolver&, RenderStyle&, Element*) const final;
+    void adjustMenuListStyle(StyleResolver&, RenderStyle&, const Element*) const final;
 
     virtual bool paintMenuListButton(RenderObject&, const PaintInfo&, const IntRect&);
 
