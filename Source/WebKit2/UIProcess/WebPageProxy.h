@@ -1137,6 +1137,8 @@ public:
 
     UserInterfaceLayoutDirection userInterfaceLayoutDirection();
 
+    bool hasHadSelectionChangesFromUserInteraction() const { return m_hasHadSelectionChangesFromUserInteraction; }
+
     void setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&&, const String& scheme);
     WebURLSchemeHandler* urlSchemeHandlerForScheme(const String& scheme);
 
@@ -1301,6 +1303,7 @@ private:
 
     void editorStateChanged(const EditorState&);
     void compositionWasCanceled(const EditorState&);
+    void setHasHadSelectionChangesFromUserInteraction(bool);
 #if PLATFORM(QT)
     void willSetInputMethodState();
 #endif
@@ -1856,6 +1859,8 @@ private:
     WebCore::MediaProducer::MediaStateFlags m_mediaState { WebCore::MediaProducer::IsNotPlaying };
 
     bool m_isResourceCachingDisabled { false };
+
+    bool m_hasHadSelectionChangesFromUserInteraction { false };
 
 #if ENABLE(MEDIA_SESSION)
     bool m_hasMediaSessionWithActiveMediaElements { false };
