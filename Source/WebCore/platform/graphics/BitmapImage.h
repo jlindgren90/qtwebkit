@@ -61,8 +61,13 @@ namespace WebCore {
 class Timer;
 
 namespace NativeImage {
+#if PLATFORM(QT)
+    inline IntSize size(const NativeImagePtr& image) { return { image->width(), image->height() }; }
+    inline bool hasAlpha(const NativeImagePtr& image) { return image->hasAlpha(); }
+#else
     IntSize size(const NativeImagePtr&);
     bool hasAlpha(const NativeImagePtr&);
+#endif
 }
 
 // ================================================
