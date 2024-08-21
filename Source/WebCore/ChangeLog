@@ -1,3 +1,130 @@
+2016-05-04  Jiewen Tan  <jiewen_tan@apple.com>
+
+        CrashTracer: [USER] com.apple.WebKit.WebContent at …ple.WebCore: WebCore::EditCommandComposition::unapply + 105
+        https://bugs.webkit.org/show_bug.cgi?id=157282
+        <rdar://problem/25391441>
+
+        Reviewed by Darin Adler.
+
+        A frame could be destroyed in the middle of executing undo/redo command.
+        Therefore, add an early return.
+
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::EditCommandComposition::unapply):
+        (WebCore::EditCommandComposition::reapply):
+
+2016-05-04  Zan Dobersek  <zdobersek@igalia.com>
+
+        [CoordGraphics] CompositingCoordinator should hande root compositing and view overlay layers separately
+        https://bugs.webkit.org/show_bug.cgi?id=157305
+
+        Reviewed by Carlos Garcia Campos.
+
+        Split out handling of the root compositing and the view overlay layers
+        into two separate methods. Both do nothing if the passed-in layer is
+        the same as the current one. Otherwise, the current one is removed
+        from the tree and the new one added to it.
+
+        No change in behavior is expected.
+
+        * platform/graphics/texmap/coordinated/CompositingCoordinator.cpp:
+        (WebCore::CompositingCoordinator::setRootCompositingLayer):
+        (WebCore::CompositingCoordinator::setViewOverlayRootLayer):
+        * platform/graphics/texmap/coordinated/CompositingCoordinator.h:
+
+2016-05-04  Zan Dobersek  <zdobersek@igalia.com>
+
+        [TexMap] Clean up TextureMapperGLData, TextureMapperGLData::SharedGLData
+        https://bugs.webkit.org/show_bug.cgi?id=157303
+
+        Reviewed by Carlos Garcia Campos.
+
+        Torch the TextureMapperGLData and TextureMapperGLData::SharedGLData
+        classes into a better form.
+
+        SharedGLData is now private to the TextureMapperGLData class, but
+        lists that class as a friend. This enables moving the getShaderProgram()
+        method to TextureMapperGLData and removes the need to expose the
+        SharedGLData publicly. SharedGLData also doesn't have to keep a
+        reference to the GraphicsContext3D object.
+
+        TextureMapperGLData now default-initializes the publicly accessible
+        member variables while making some other members private, not exposing
+        anything that isn't necessary.
+
+        Usual whitespace cleanup included. More elegant HashMap::ensure()
+        insertions are used where they don't obfuscate object creation.
+
+        No new tests -- no change in behavior.
+
+        * platform/graphics/texmap/TextureMapperGL.cpp:
+        (WebCore::TextureMapperGLData::SharedGLData::currentSharedGLData):
+        (WebCore::TextureMapperGLData::SharedGLData::~SharedGLData):
+        (WebCore::TextureMapperGLData::SharedGLData::contextDataMap):
+        (WebCore::TextureMapperGLData::SharedGLData::SharedGLData):
+        (WebCore::TextureMapperGLData::TextureMapperGLData):
+        (WebCore::TextureMapperGLData::~TextureMapperGLData):
+        (WebCore::TextureMapperGLData::initializeStencil):
+        (WebCore::TextureMapperGLData::getStaticVBO):
+        (WebCore::TextureMapperGLData::getShaderProgram):
+        (WebCore::TextureMapperGL::TextureMapperGL):
+        (WebCore::TextureMapperGL::drawBorder):
+        (WebCore::TextureMapperGL::drawTexture):
+        (WebCore::TextureMapperGL::drawSolidColor):
+        (WebCore::TextureMapperGL::drawFiltered):
+        (WebCore::TextureMapperGL::beginClip):
+        (WebCore::TextureMapperGLData::SharedGLData::glContextDataMap): Deleted.
+        (WebCore::TextureMapperGLData::SharedGLData::getShaderProgram): Deleted.
+        (WebCore::TextureMapperGLData::sharedGLData): Deleted.
+        * platform/graphics/texmap/TextureMapperGL.h:
+
+2016-05-03  Chris Dumez  <cdumez@apple.com>
+
+        Optimize [StrictTypeChecking] on IDL attributes
+        https://bugs.webkit.org/show_bug.cgi?id=157321
+
+        Reviewed by Geoffrey Garen.
+
+        Optimize [StrictTypeChecking] on IDL attributes:
+        - Only generate extra code for nullable attributes because for non-nullable
+          attributes, JSXXX::toWrapped() will return null in case of a bad input
+          type. We will then throw a TypeError when null-checking it already.
+        - After the JSValue::isNullOrUndefined() check, avoid calling
+          JSXXX::toWrapped() and set nativeValue to nullptr directly.
+        - Drop the check for JSValue::inherits(JSXXX::info()) and just do a null
+          check on the value returned by JSXXX::toWrapped(). toWrapped() already
+          does a JSValue::inherits(JSXXX::info() check. Since we only call
+          toWrapped() if the JSValue is not null/undefined, a null return value
+          always indicates a bad input type.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.cpp:
+        (webkit_dom_test_obj_set_strict_type_checking_attribute):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::setJSTestObjStrictTypeCheckingAttribute):
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+        (-[DOMTestObj setStrictTypeCheckingAttribute:]):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-05-03  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r199259 and r200161.
+
+        Seems to have caused a ~1.2% PLT regression on iOS
+
+        Reverted changesets:
+
+        "[iOS WK2] WKWebViews should consult ancestor UIScrollViews to
+        determine tiling area"
+        https://bugs.webkit.org/show_bug.cgi?id=156429
+        http://trac.webkit.org/changeset/199259
+
+        "[iOS WK2] When determining tile size, check whether ancestor
+        UIScrollViews are actually scrollable"
+        https://bugs.webkit.org/show_bug.cgi?id=157107
+        http://trac.webkit.org/changeset/200161
+
 2016-05-03  Filip Pizlo  <fpizlo@apple.com>
 
         Speed up JSGlobalObject initialization by making some properties lazy

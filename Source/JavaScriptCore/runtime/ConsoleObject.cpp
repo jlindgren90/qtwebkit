@@ -146,8 +146,7 @@ static EncodedJSValue JSC_HOST_CALL consoleProtoFuncClear(ExecState* exec)
     if (!client)
         return JSValue::encode(jsUndefined());
 
-    RefPtr<Inspector::ScriptArguments> arguments(Inspector::createScriptArguments(exec, 0));
-    client->clear(exec, WTFMove(arguments));
+    client->clear(exec);
     return JSValue::encode(jsUndefined());
 }
 
@@ -284,18 +283,27 @@ static EncodedJSValue JSC_HOST_CALL consoleProtoFuncTakeHeapSnapshot(ExecState* 
     return JSValue::encode(jsUndefined());
 }
 
+static String valueOrDefaultLabelString(ExecState* exec, JSValue value)
+{
+    if (value.isUndefined())
+        return ASCIILiteral("default");
+    return value.toString(exec)->value(exec);
+}
+
 static EncodedJSValue JSC_HOST_CALL consoleProtoFuncTime(ExecState* exec)
 {
     ConsoleClient* client = exec->lexicalGlobalObject()->consoleClient();
     if (!client)
         return JSValue::encode(jsUndefined());
 
+    String title;
     if (exec->argumentCount() < 1)
-        return throwVMError(exec, createNotEnoughArgumentsError(exec));
-
-    const String& title(valueToStringWithUndefinedOrNullCheck(exec, exec->argument(0)));
-    if (exec->hadException())
-        return JSValue::encode(jsUndefined());
+        title = ASCIILiteral("default");
+    else {
+        title = valueOrDefaultLabelString(exec, exec->argument(0));
+        if (exec->hadException())
+            return JSValue::encode(jsUndefined());
+    }
 
     client->time(exec, title);
     return JSValue::encode(jsUndefined());
@@ -307,12 +315,14 @@ static EncodedJSValue JSC_HOST_CALL consoleProtoFuncTimeEnd(ExecState* exec)
     if (!client)
         return JSValue::encode(jsUndefined());
 
+    String title;
     if (exec->argumentCount() < 1)
-        return throwVMError(exec, createNotEnoughArgumentsError(exec));
-
-    const String& title(valueToStringWithUndefinedOrNullCheck(exec, exec->argument(0)));
-    if (exec->hadException())
-        return JSValue::encode(jsUndefined());
+        title =  ASCIILiteral("default");
+    else {
+        title = valueOrDefaultLabelString(exec, exec->argument(0));
+        if (exec->hadException())
+            return JSValue::encode(jsUndefined());
+    }
 
     client->timeEnd(exec, title);
     return JSValue::encode(jsUndefined());
