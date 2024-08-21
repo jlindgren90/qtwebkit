@@ -29,8 +29,8 @@
 #include "Frame.h"
 #include "HTMLNames.h"
 #include "JSDOMBinding.h"
-#include "JSDOMBuild.h"
 #include "JSDOMConstructor.h"
+#include "JSDOMConvert.h"
 #include "JSDOMIterator.h"
 #include "JSDOMPromise.h"
 #include "JSDOMStringList.h"
@@ -46,6 +46,7 @@
 #include "JSTestNode.h"
 #include "JSTestObj.h"
 #include "JSTestSubObj.h"
+#include "JSXPathNSResolver.h"
 #include "LifecycleCallbackQueue.h"
 #include "RuntimeEnabledFeatures.h"
 #include "SVGDocument.h"
@@ -124,7 +125,7 @@ template<> Optional<TestObj::EnumType> parse<TestObj::EnumType>(ExecState& state
     return Nullopt;
 }
 
-template<> TestObj::EnumType build<TestObj::EnumType>(ExecState& state, JSValue value)
+template<> TestObj::EnumType convert<TestObj::EnumType>(ExecState& state, JSValue value)
 {
     auto result = parse<TestObj::EnumType>(state, value);
     if (UNLIKELY(!result)) {
@@ -174,7 +175,7 @@ template<> Optional<TestObj::Optional> parse<TestObj::Optional>(ExecState& state
     return Nullopt;
 }
 
-template<> TestObj::Optional build<TestObj::Optional>(ExecState& state, JSValue value)
+template<> TestObj::Optional convert<TestObj::Optional>(ExecState& state, JSValue value)
 {
     auto result = parse<TestObj::Optional>(state, value);
     if (UNLIKELY(!result)) {
@@ -214,7 +215,7 @@ template<> Optional<TestObj::EnumA> parse<TestObj::EnumA>(ExecState& state, JSVa
     return Nullopt;
 }
 
-template<> TestObj::EnumA build<TestObj::EnumA>(ExecState& state, JSValue value)
+template<> TestObj::EnumA convert<TestObj::EnumA>(ExecState& state, JSValue value)
 {
     auto result = parse<TestObj::EnumA>(state, value);
     if (UNLIKELY(!result)) {
@@ -256,7 +257,7 @@ template<> Optional<TestObj::EnumB> parse<TestObj::EnumB>(ExecState& state, JSVa
     return Nullopt;
 }
 
-template<> TestObj::EnumB build<TestObj::EnumB>(ExecState& state, JSValue value)
+template<> TestObj::EnumB convert<TestObj::EnumB>(ExecState& state, JSValue value)
 {
     auto result = parse<TestObj::EnumB>(state, value);
     if (UNLIKELY(!result)) {
@@ -298,7 +299,7 @@ template<> Optional<TestObj::EnumC> parse<TestObj::EnumC>(ExecState& state, JSVa
     return Nullopt;
 }
 
-template<> TestObj::EnumC build<TestObj::EnumC>(ExecState& state, JSValue value)
+template<> TestObj::EnumC convert<TestObj::EnumC>(ExecState& state, JSValue value)
 {
     auto result = parse<TestObj::EnumC>(state, value);
     if (UNLIKELY(!result)) {
@@ -342,7 +343,7 @@ template<> Optional<TestObj::Kind> parse<TestObj::Kind>(ExecState& state, JSValu
     return Nullopt;
 }
 
-template<> TestObj::Kind build<TestObj::Kind>(ExecState& state, JSValue value)
+template<> TestObj::Kind convert<TestObj::Kind>(ExecState& state, JSValue value)
 {
     auto result = parse<TestObj::Kind>(state, value);
     if (UNLIKELY(!result)) {
@@ -384,7 +385,7 @@ template<> Optional<TestObj::Size> parse<TestObj::Size>(ExecState& state, JSValu
     return Nullopt;
 }
 
-template<> TestObj::Size build<TestObj::Size>(ExecState& state, JSValue value)
+template<> TestObj::Size convert<TestObj::Size>(ExecState& state, JSValue value)
 {
     auto result = parse<TestObj::Size>(state, value);
     if (UNLIKELY(!result)) {
@@ -426,7 +427,7 @@ template<> Optional<TestObj::Confidence> parse<TestObj::Confidence>(ExecState& s
     return Nullopt;
 }
 
-template<> TestObj::Confidence build<TestObj::Confidence>(ExecState& state, JSValue value)
+template<> TestObj::Confidence convert<TestObj::Confidence>(ExecState& state, JSValue value)
 {
     auto result = parse<TestObj::Confidence>(state, value);
     if (UNLIKELY(!result)) {
@@ -468,7 +469,7 @@ template<> Optional<TestObj::ShadowRootMode> parse<TestObj::ShadowRootMode>(Exec
     return Nullopt;
 }
 
-template<> TestObj::ShadowRootMode build<TestObj::ShadowRootMode>(ExecState& state, JSValue value)
+template<> TestObj::ShadowRootMode convert<TestObj::ShadowRootMode>(ExecState& state, JSValue value)
 {
     auto result = parse<TestObj::ShadowRootMode>(state, value);
     if (UNLIKELY(!result)) {
@@ -483,11 +484,50 @@ template<> inline const char* expectedEnumerationValues<TestObj::ShadowRootMode>
     return "\"open\", \"closed\"";
 }
 
-template<> TestObj::ShadowRootInit build<TestObj::ShadowRootInit>(ExecState& state, JSValue value)
+template<> TestObj::ShadowRootInit convert<TestObj::ShadowRootInit>(ExecState& state, JSValue value)
 {
-    return { 
-        build<TestObj::ShadowRootMode>(state, value, "mode"),
-    };
+    auto* object = value.getObject();
+    if (UNLIKELY(!object || object->type() == RegExpObjectType)) {
+        throwTypeError(&state);
+        return { };
+    }
+    auto mode = convert<TestObj::ShadowRootMode>(state, object->get(&state, Identifier::fromString(&state, "mode")));
+    return { WTFMove(mode) };
+}
+
+template<> TestObj::FontFaceDescriptors convert<TestObj::FontFaceDescriptors>(ExecState& state, JSValue value)
+{
+    if (value.isUndefinedOrNull())
+        return { "normal", "U+0-10FFFF" };
+    auto* object = value.getObject();
+    if (UNLIKELY(!object || object->type() == RegExpObjectType)) {
+        throwTypeError(&state);
+        return { };
+    }
+    auto style = convertOptional<String>(state, object->get(&state, Identifier::fromString(&state, "style")), "normal");
+    if (UNLIKELY(state.hadException()))
+        return { };
+    auto unicodeRange = convertOptional<String>(state, object->get(&state, Identifier::fromString(&state, "unicodeRange")), "U+0-10FFFF");
+    return { WTFMove(style), WTFMove(unicodeRange) };
+}
+
+template<> TestObj::MutationObserverInit convert<TestObj::MutationObserverInit>(ExecState& state, JSValue value)
+{
+    if (value.isUndefinedOrNull())
+        return { false, Nullopt, Nullopt };
+    auto* object = value.getObject();
+    if (UNLIKELY(!object || object->type() == RegExpObjectType)) {
+        throwTypeError(&state);
+        return { };
+    }
+    auto childList = convertOptional<bool>(state, object->get(&state, Identifier::fromString(&state, "childList")), false);
+    if (UNLIKELY(state.hadException()))
+        return { };
+    auto attributes = convertOptional<bool>(state, object->get(&state, Identifier::fromString(&state, "attributes")));
+    if (UNLIKELY(state.hadException()))
+        return { };
+    auto attributeFilter = convertOptional<Vector<String>>(state, object->get(&state, Identifier::fromString(&state, "attributeFilter")));
+    return { WTFMove(childList), WTFMove(attributes), WTFMove(attributeFilter) };
 }
 
 // Functions
@@ -507,6 +547,7 @@ JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionObjMethod(JSC::ExecS
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionObjMethodWithArgs(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjInstanceFunctionUnforgeableMethod(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithArgTreatingNullAsEmptyString(JSC::ExecState*);
+JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithXPathNSResolverParameter(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionNullableStringMethod(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjConstructorFunctionNullableStringStaticMethod(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionNullableStringSpecialMethod(JSC::ExecState*);
@@ -561,6 +602,7 @@ JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalBo
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalAny(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalNullableWrapper(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalNullableWrapperIsNull(JSC::ExecState*);
+JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalXPathNSResolver(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithCallbackArg(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackArg(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithCallbackAndOptionalArg(JSC::ExecState*);
@@ -1076,6 +1118,7 @@ static const HashTableValue JSTestObjPrototypeTableValues[] =
     { "objMethod", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionObjMethod), (intptr_t) (0) } },
     { "objMethodWithArgs", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionObjMethodWithArgs), (intptr_t) (3) } },
     { "methodWithArgTreatingNullAsEmptyString", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithArgTreatingNullAsEmptyString), (intptr_t) (1) } },
+    { "methodWithXPathNSResolverParameter", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithXPathNSResolverParameter), (intptr_t) (1) } },
     { "nullableStringMethod", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionNullableStringMethod), (intptr_t) (0) } },
     { "nullableStringSpecialMethod", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionNullableStringSpecialMethod), (intptr_t) (1) } },
     { "methodWithSequenceArg", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithSequenceArg), (intptr_t) (1) } },
@@ -1138,6 +1181,7 @@ static const HashTableValue JSTestObjPrototypeTableValues[] =
     { "methodWithOptionalAny", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithOptionalAny), (intptr_t) (0) } },
     { "methodWithOptionalNullableWrapper", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithOptionalNullableWrapper), (intptr_t) (0) } },
     { "methodWithOptionalNullableWrapperIsNull", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithOptionalNullableWrapperIsNull), (intptr_t) (0) } },
+    { "methodWithOptionalXPathNSResolver", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithOptionalXPathNSResolver), (intptr_t) (0) } },
     { "methodWithCallbackArg", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithCallbackArg), (intptr_t) (1) } },
     { "methodWithNonCallbackArgAndCallbackArg", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackArg), (intptr_t) (2) } },
     { "methodWithCallbackAndOptionalArg", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithCallbackAndOptionalArg), (intptr_t) (0) } },
@@ -2646,7 +2690,7 @@ bool setJSTestObjByteAttr(ExecState* state, EncodedJSValue thisValue, EncodedJSV
         return throwSetterTypeError(*state, "TestObj", "byteAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt8(state, value, NormalConversion);
+    auto nativeValue = convert<int8_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setByteAttr(WTFMove(nativeValue));
@@ -2663,7 +2707,7 @@ bool setJSTestObjOctetAttr(ExecState* state, EncodedJSValue thisValue, EncodedJS
         return throwSetterTypeError(*state, "TestObj", "octetAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toUInt8(state, value, NormalConversion);
+    auto nativeValue = convert<uint8_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setOctetAttr(WTFMove(nativeValue));
@@ -2680,7 +2724,7 @@ bool setJSTestObjShortAttr(ExecState* state, EncodedJSValue thisValue, EncodedJS
         return throwSetterTypeError(*state, "TestObj", "shortAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt16(state, value, NormalConversion);
+    auto nativeValue = convert<int16_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setShortAttr(WTFMove(nativeValue));
@@ -2697,7 +2741,7 @@ bool setJSTestObjClampedShortAttr(ExecState* state, EncodedJSValue thisValue, En
         return throwSetterTypeError(*state, "TestObj", "clampedShortAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt16(state, value, Clamp);
+    auto nativeValue = convert<int16_t>(*state, value, Clamp);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setClampedShortAttr(WTFMove(nativeValue));
@@ -2714,7 +2758,7 @@ bool setJSTestObjEnforceRangeShortAttr(ExecState* state, EncodedJSValue thisValu
         return throwSetterTypeError(*state, "TestObj", "enforceRangeShortAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt16(state, value, EnforceRange);
+    auto nativeValue = convert<int16_t>(*state, value, EnforceRange);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setEnforceRangeShortAttr(WTFMove(nativeValue));
@@ -2731,7 +2775,7 @@ bool setJSTestObjUnsignedShortAttr(ExecState* state, EncodedJSValue thisValue, E
         return throwSetterTypeError(*state, "TestObj", "unsignedShortAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toUInt16(state, value, NormalConversion);
+    auto nativeValue = convert<uint16_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setUnsignedShortAttr(WTFMove(nativeValue));
@@ -2748,7 +2792,7 @@ bool setJSTestObjLongAttr(ExecState* state, EncodedJSValue thisValue, EncodedJSV
         return throwSetterTypeError(*state, "TestObj", "longAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setLongAttr(WTFMove(nativeValue));
@@ -2765,7 +2809,7 @@ bool setJSTestObjLongLongAttr(ExecState* state, EncodedJSValue thisValue, Encode
         return throwSetterTypeError(*state, "TestObj", "longLongAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt64(state, value, NormalConversion);
+    auto nativeValue = convert<int64_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setLongLongAttr(WTFMove(nativeValue));
@@ -2782,7 +2826,7 @@ bool setJSTestObjUnsignedLongLongAttr(ExecState* state, EncodedJSValue thisValue
         return throwSetterTypeError(*state, "TestObj", "unsignedLongLongAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toUInt64(state, value, NormalConversion);
+    auto nativeValue = convert<uint64_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setUnsignedLongLongAttr(WTFMove(nativeValue));
@@ -2939,7 +2983,7 @@ bool setJSTestObjReflectedIntegralAttr(ExecState* state, EncodedJSValue thisValu
         return throwSetterTypeError(*state, "TestObj", "reflectedIntegralAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setIntegralAttribute(WebCore::HTMLNames::reflectedintegralattrAttr, WTFMove(nativeValue));
@@ -2956,7 +3000,7 @@ bool setJSTestObjReflectedUnsignedIntegralAttr(ExecState* state, EncodedJSValue 
         return throwSetterTypeError(*state, "TestObj", "reflectedUnsignedIntegralAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toUInt32(state, value, NormalConversion);
+    auto nativeValue = convert<uint32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setUnsignedIntegralAttribute(WebCore::HTMLNames::reflectedunsignedintegralattrAttr, WTFMove(nativeValue));
@@ -3024,7 +3068,7 @@ bool setJSTestObjReflectedCustomIntegralAttr(ExecState* state, EncodedJSValue th
         return throwSetterTypeError(*state, "TestObj", "reflectedCustomIntegralAttr");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setIntegralAttribute(WebCore::HTMLNames::customContentIntegralAttrAttr, WTFMove(nativeValue));
@@ -3115,7 +3159,7 @@ bool setJSTestObjAttrWithGetterException(ExecState* state, EncodedJSValue thisVa
         return throwSetterTypeError(*state, "TestObj", "attrWithGetterException");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setAttrWithGetterException(WTFMove(nativeValue));
@@ -3132,7 +3176,7 @@ bool setJSTestObjAttrWithGetterExceptionWithMessage(ExecState* state, EncodedJSV
         return throwSetterTypeError(*state, "TestObj", "attrWithGetterExceptionWithMessage");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setAttrWithGetterExceptionWithMessage(WTFMove(nativeValue));
@@ -3150,7 +3194,7 @@ bool setJSTestObjAttrWithSetterException(ExecState* state, EncodedJSValue thisVa
     }
     auto& impl = castedThis->wrapped();
     ExceptionCode ec = 0;
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setAttrWithSetterException(WTFMove(nativeValue), ec);
@@ -3169,7 +3213,7 @@ bool setJSTestObjAttrWithSetterExceptionWithMessage(ExecState* state, EncodedJSV
     }
     auto& impl = castedThis->wrapped();
     ExceptionCodeWithMessage ec;
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setAttrWithSetterExceptionWithMessage(WTFMove(nativeValue), ec);
@@ -3284,7 +3328,7 @@ bool setJSTestObjWithScriptStateAttribute(ExecState* state, EncodedJSValue thisV
         return throwSetterTypeError(*state, "TestObj", "withScriptStateAttribute");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setWithScriptStateAttribute(*state, WTFMove(nativeValue));
@@ -3301,7 +3345,7 @@ bool setJSTestObjWithCallWithAndSetterCallWithAttribute(ExecState* state, Encode
         return throwSetterTypeError(*state, "TestObj", "withCallWithAndSetterCallWithAttribute");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setWithCallWithAndSetterCallWithAttribute(*state, activeDOMWindow(state), firstDOMWindow(state), WTFMove(nativeValue));
@@ -3467,7 +3511,7 @@ bool setJSTestObjConditionalAttr1(ExecState* state, EncodedJSValue thisValue, En
         return throwSetterTypeError(*state, "TestObj", "conditionalAttr1");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setConditionalAttr1(WTFMove(nativeValue));
@@ -3486,7 +3530,7 @@ bool setJSTestObjConditionalAttr2(ExecState* state, EncodedJSValue thisValue, En
         return throwSetterTypeError(*state, "TestObj", "conditionalAttr2");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setConditionalAttr2(WTFMove(nativeValue));
@@ -3505,7 +3549,7 @@ bool setJSTestObjConditionalAttr3(ExecState* state, EncodedJSValue thisValue, En
         return throwSetterTypeError(*state, "TestObj", "conditionalAttr3");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setConditionalAttr3(WTFMove(nativeValue));
@@ -3613,7 +3657,7 @@ bool setJSTestObjStrawberry(ExecState* state, EncodedJSValue thisValue, EncodedJ
         return throwSetterTypeError(*state, "TestObj", "strawberry");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setBlueberry(WTFMove(nativeValue));
@@ -3630,7 +3674,7 @@ bool setJSTestObjStrictFloat(ExecState* state, EncodedJSValue thisValue, Encoded
         return throwSetterTypeError(*state, "TestObj", "strictFloat");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = build<float>(*state, value, ShouldAllowNonFinite::Yes);
+    auto nativeValue = convert<float>(*state, value, ShouldAllowNonFinite::Yes);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setStrictFloat(WTFMove(nativeValue));
@@ -3647,7 +3691,7 @@ bool setJSTestObjId(ExecState* state, EncodedJSValue thisValue, EncodedJSValue e
         return throwSetterTypeError(*state, "TestObj", "id");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setId(WTFMove(nativeValue));
@@ -3677,7 +3721,7 @@ bool setJSTestObjNullableLongSettableAttribute(ExecState* state, EncodedJSValue 
         return throwSetterTypeError(*state, "TestObj", "nullableLongSettableAttribute");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setNullableLongSettableAttribute(WTFMove(nativeValue));
@@ -3711,7 +3755,7 @@ bool setJSTestObjNullableStringValue(ExecState* state, EncodedJSValue thisValue,
         return throwSetterTypeError(*state, "TestObj", "nullableStringValue");
     }
     auto& impl = castedThis->wrapped();
-    auto nativeValue = toInt32(state, value, NormalConversion);
+    auto nativeValue = convert<int32_t>(*state, value, NormalConversion);
     if (UNLIKELY(state->hadException()))
         return false;
     impl.setNullableStringValue(WTFMove(nativeValue));
@@ -3821,7 +3865,7 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionEnabledAtRuntimeOperation
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto testParam = toInt32(state, state->argument(0), NormalConversion);
+    auto testParam = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.enabledAtRuntimeOperation(WTFMove(testParam));
@@ -3870,7 +3914,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionVoidMethodWithArgs(ExecSt
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 3))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto longArg = toInt32(state, state->argument(0), NormalConversion);
+    auto longArg = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     auto strArg = state->argument(1).toWTFString(state);
@@ -3905,7 +3949,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionByteMethodWithArgs(ExecSt
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 3))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto byteArg = toInt8(state, state->argument(0), NormalConversion);
+    auto byteArg = convert<int8_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     auto strArg = state->argument(1).toWTFString(state);
@@ -3940,7 +3984,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionOctetMethodWithArgs(ExecS
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 3))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto octetArg = toUInt8(state, state->argument(0), NormalConversion);
+    auto octetArg = convert<uint8_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     auto strArg = state->argument(1).toWTFString(state);
@@ -3975,7 +4019,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionLongMethodWithArgs(ExecSt
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 3))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto longArg = toInt32(state, state->argument(0), NormalConversion);
+    auto longArg = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     auto strArg = state->argument(1).toWTFString(state);
@@ -4010,7 +4054,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionObjMethodWithArgs(ExecSta
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 3))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto longArg = toInt32(state, state->argument(0), NormalConversion);
+    auto longArg = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     auto strArg = state->argument(1).toWTFString(state);
@@ -4052,6 +4096,25 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithArgTreatingNull
     return JSValue::encode(jsUndefined());
 }
 
+EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithXPathNSResolverParameter(ExecState* state)
+{
+    JSValue thisValue = state->thisValue();
+    auto castedThis = jsDynamicCast<JSTestObj*>(thisValue);
+    if (UNLIKELY(!castedThis))
+        return throwThisTypeError(*state, "TestObj", "methodWithXPathNSResolverParameter");
+    ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
+    auto& impl = castedThis->wrapped();
+    if (UNLIKELY(state->argumentCount() < 1))
+        return throwVMError(state, createNotEnoughArgumentsError(state));
+    auto resolver = JSXPathNSResolver::toWrapped(*state, state->argument(0));
+    if (UNLIKELY(state->hadException()))
+        return JSValue::encode(jsUndefined());
+    if (UNLIKELY(!resolver))
+        return throwVMTypeError(state);
+    impl.methodWithXPathNSResolverParameter(*resolver);
+    return JSValue::encode(jsUndefined());
+}
+
 EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionNullableStringMethod(ExecState* state)
 {
     JSValue thisValue = state->thisValue();
@@ -4080,7 +4143,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionNullableStringSpecialMeth
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto index = toUInt32(state, state->argument(0), NormalConversion);
+    auto index = convert<uint32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     JSValue result = jsStringOrNull(state, impl.nullableStringSpecialMethod(WTFMove(index)));
@@ -4114,7 +4177,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodReturningSequence(E
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto longArg = toInt32(state, state->argument(0), NormalConversion);
+    auto longArg = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     JSValue result = jsArray(state, castedThis->globalObject(), impl.methodReturningSequence(WTFMove(longArg)));
@@ -4480,7 +4543,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalArg(Exe
         return throwThisTypeError(*state, "TestObj", "methodWithOptionalArg");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
     auto& impl = castedThis->wrapped();
-    auto opt = state->argument(0).isUndefined() ? Optional<int>() : toInt32(state, state->uncheckedArgument(0), NormalConversion);
+    auto opt = state->argument(0).isUndefined() ? Optional<int32_t>() : convert<int32_t>(*state, state->uncheckedArgument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithOptionalArg(WTFMove(opt));
@@ -4495,7 +4558,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalArgAndD
         return throwThisTypeError(*state, "TestObj", "methodWithOptionalArgAndDefaultValue");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
     auto& impl = castedThis->wrapped();
-    auto opt = state->argument(0).isUndefined() ? 666 : toInt32(state, state->uncheckedArgument(0), NormalConversion);
+    auto opt = state->argument(0).isUndefined() ? 666 : convert<int32_t>(*state, state->uncheckedArgument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithOptionalArgAndDefaultValue(WTFMove(opt));
@@ -4512,10 +4575,10 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithNonOptionalArgA
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto nonOpt = toInt32(state, state->argument(0), NormalConversion);
+    auto nonOpt = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto opt = state->argument(1).isUndefined() ? Optional<int>() : toInt32(state, state->uncheckedArgument(1), NormalConversion);
+    auto opt = state->argument(1).isUndefined() ? Optional<int32_t>() : convert<int32_t>(*state, state->uncheckedArgument(1), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithNonOptionalArgAndOptionalArg(WTFMove(nonOpt), WTFMove(opt));
@@ -4532,13 +4595,13 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithNonOptionalArgA
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto nonOpt = toInt32(state, state->argument(0), NormalConversion);
+    auto nonOpt = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto opt1 = state->argument(1).isUndefined() ? Optional<int>() : toInt32(state, state->uncheckedArgument(1), NormalConversion);
+    auto opt1 = state->argument(1).isUndefined() ? Optional<int32_t>() : convert<int32_t>(*state, state->uncheckedArgument(1), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto opt2 = state->argument(2).isUndefined() ? Optional<int>() : toInt32(state, state->uncheckedArgument(2), NormalConversion);
+    auto opt2 = state->argument(2).isUndefined() ? Optional<int32_t>() : convert<int32_t>(*state, state->uncheckedArgument(2), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithNonOptionalArgAndTwoOptionalArgs(WTFMove(nonOpt), WTFMove(opt1), WTFMove(opt2));
@@ -4688,7 +4751,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalDoubleI
         return throwThisTypeError(*state, "TestObj", "methodWithOptionalDoubleIsNaN");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
     auto& impl = castedThis->wrapped();
-    auto number = build<double>(*state, state->argument(0), ShouldAllowNonFinite::Yes);
+    auto number = convert<double>(*state, state->argument(0), ShouldAllowNonFinite::Yes);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithOptionalDoubleIsNaN(WTFMove(number));
@@ -4703,7 +4766,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalFloatIs
         return throwThisTypeError(*state, "TestObj", "methodWithOptionalFloatIsNaN");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
     auto& impl = castedThis->wrapped();
-    auto number = build<float>(*state, state->argument(0), ShouldAllowNonFinite::Yes);
+    auto number = convert<float>(*state, state->argument(0), ShouldAllowNonFinite::Yes);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithOptionalFloatIsNaN(WTFMove(number));
@@ -4733,7 +4796,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalLongLon
         return throwThisTypeError(*state, "TestObj", "methodWithOptionalLongLong");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
     auto& impl = castedThis->wrapped();
-    auto number = state->argument(0).isUndefined() ? Optional<long long>() : toInt64(state, state->uncheckedArgument(0), NormalConversion);
+    auto number = state->argument(0).isUndefined() ? Optional<int64_t>() : convert<int64_t>(*state, state->uncheckedArgument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithOptionalLongLong(WTFMove(number));
@@ -4748,7 +4811,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalLongLon
         return throwThisTypeError(*state, "TestObj", "methodWithOptionalLongLongIsZero");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
     auto& impl = castedThis->wrapped();
-    auto number = toInt64(state, state->argument(0), NormalConversion);
+    auto number = convert<int64_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithOptionalLongLongIsZero(WTFMove(number));
@@ -4763,7 +4826,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalUnsigne
         return throwThisTypeError(*state, "TestObj", "methodWithOptionalUnsignedLongLong");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
     auto& impl = castedThis->wrapped();
-    auto number = state->argument(0).isUndefined() ? Optional<unsigned long long>() : toUInt64(state, state->uncheckedArgument(0), NormalConversion);
+    auto number = state->argument(0).isUndefined() ? Optional<uint64_t>() : convert<uint64_t>(*state, state->uncheckedArgument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithOptionalUnsignedLongLong(WTFMove(number));
@@ -4778,7 +4841,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalUnsigne
         return throwThisTypeError(*state, "TestObj", "methodWithOptionalUnsignedLongLongIsZero");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
     auto& impl = castedThis->wrapped();
-    auto number = toUInt64(state, state->argument(0), NormalConversion);
+    auto number = convert<uint64_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithOptionalUnsignedLongLongIsZero(WTFMove(number));
@@ -4884,6 +4947,21 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalNullabl
     return JSValue::encode(jsUndefined());
 }
 
+EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalXPathNSResolver(ExecState* state)
+{
+    JSValue thisValue = state->thisValue();
+    auto castedThis = jsDynamicCast<JSTestObj*>(thisValue);
+    if (UNLIKELY(!castedThis))
+        return throwThisTypeError(*state, "TestObj", "methodWithOptionalXPathNSResolver");
+    ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
+    auto& impl = castedThis->wrapped();
+    auto resolver = JSXPathNSResolver::toWrapped(*state, state->argument(0));
+    if (UNLIKELY(state->hadException()))
+        return JSValue::encode(jsUndefined());
+    impl.methodWithOptionalXPathNSResolver(WTFMove(resolver));
+    return JSValue::encode(jsUndefined());
+}
+
 EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithCallbackArg(ExecState* state)
 {
     JSValue thisValue = state->thisValue();
@@ -4911,7 +4989,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithNonCallbackArgA
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 2))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto nonCallback = toInt32(state, state->argument(0), NormalConversion);
+    auto nonCallback = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     if (UNLIKELY(!state->argument(1).isObject()))
@@ -4966,7 +5044,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithNonCallbackArgA
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 2))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto nonCallback = toInt32(state, state->argument(0), NormalConversion);
+    auto nonCallback = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     if (UNLIKELY(!state->argument(1).isFunction()))
@@ -5091,7 +5169,7 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionOverloadedMethod2(ExecSta
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
     auto objArg = JSTestObj::toWrapped(state->argument(0));
-    auto longArg = state->argument(1).isUndefined() ? Optional<int>() : toInt32(state, state->uncheckedArgument(1), NormalConversion);
+    auto longArg = state->argument(1).isUndefined() ? Optional<int32_t>() : convert<int32_t>(*state, state->uncheckedArgument(1), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.overloadedMethod(WTFMove(objArg), WTFMove(longArg));
@@ -5125,7 +5203,7 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionOverloadedMethod4(ExecSta
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto longArg = toInt32(state, state->argument(0), NormalConversion);
+    auto longArg = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.overloadedMethod(WTFMove(longArg));
@@ -5159,7 +5237,7 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionOverloadedMethod6(ExecSta
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto listArg = toDOMStringList(state, state->argument(0));
+    auto listArg = JSDOMStringList::toWrapped(*state, state->argument(0));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.overloadedMethod(WTFMove(listArg));
@@ -5227,7 +5305,7 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionOverloadedMethod10(ExecSt
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto arrayArg = toNativeArray<unsigned>(state, state->argument(0));
+    auto arrayArg = toNativeArray<uint32_t>(state, state->argument(0));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.overloadedMethod(WTFMove(arrayArg));
@@ -5330,7 +5408,7 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionOverloadedMethodWithOptio
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
     auto objArg = JSTestObj::toWrapped(state->argument(0));
-    auto longArg = state->argument(1).isUndefined() ? Optional<int>() : toInt32(state, state->uncheckedArgument(1), NormalConversion);
+    auto longArg = state->argument(1).isUndefined() ? Optional<int32_t>() : convert<int32_t>(*state, state->uncheckedArgument(1), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.overloadedMethodWithOptionalParameter(WTFMove(objArg), WTFMove(longArg));
@@ -5359,7 +5437,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjConstructorFunctionClassMethod(ExecState* 
 
 EncodedJSValue JSC_HOST_CALL jsTestObjConstructorFunctionClassMethodWithOptional(ExecState* state)
 {
-    auto arg = state->argument(0).isUndefined() ? Optional<int>() : toInt32(state, state->uncheckedArgument(0), NormalConversion);
+    auto arg = state->argument(0).isUndefined() ? Optional<int32_t>() : convert<int32_t>(*state, state->uncheckedArgument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     JSValue result = jsNumber(TestObj::classMethodWithOptional(WTFMove(arg)));
@@ -5378,7 +5456,7 @@ static inline EncodedJSValue jsTestObjConstructorFunctionOverloadedMethod11(Exec
 {
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto arg = toInt32(state, state->argument(0), NormalConversion);
+    auto arg = convert<int32_t>(*state, state->argument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     TestObj::overloadedMethod1(WTFMove(arg));
@@ -5430,10 +5508,10 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionClassMethodWithClamp(Exec
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 2))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto objArgsShort = toUInt16(state, state->argument(0), Clamp);
+    auto objArgsShort = convert<uint16_t>(*state, state->argument(0), Clamp);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto objArgsLong = toUInt32(state, state->argument(1), Clamp);
+    auto objArgsLong = convert<uint32_t>(*state, state->argument(1), Clamp);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.classMethodWithClamp(WTFMove(objArgsShort), WTFMove(objArgsLong));
@@ -5450,10 +5528,10 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionClassMethodWithEnforceRan
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 2))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto objArgsShort = toUInt16(state, state->argument(0), EnforceRange);
+    auto objArgsShort = convert<uint16_t>(*state, state->argument(0), EnforceRange);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto objArgsLong = toUInt32(state, state->argument(1), EnforceRange);
+    auto objArgsLong = convert<uint32_t>(*state, state->argument(1), EnforceRange);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.classMethodWithEnforceRange(WTFMove(objArgsShort), WTFMove(objArgsLong));
@@ -5470,7 +5548,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithUnsignedLongSeq
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto unsignedLongSequence = toNativeArray<unsigned>(state, state->argument(0));
+    auto unsignedLongSequence = toNativeArray<uint32_t>(state, state->argument(0));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithUnsignedLongSequence(WTFMove(unsignedLongSequence));
@@ -5508,7 +5586,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionDomStringListFunction(Exe
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
     ExceptionCode ec = 0;
-    auto values = toDOMStringList(state, state->argument(0));
+    auto values = JSDOMStringList::toWrapped(*state, state->argument(0));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     if (UNLIKELY(!values))
@@ -5529,10 +5607,10 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithAndWithoutNulla
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 2))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto arrayArg = toNativeArray<unsigned>(state, state->argument(0));
+    auto arrayArg = toNativeArray<uint32_t>(state, state->argument(0));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto nullableArrayArg = toNativeArray<unsigned>(state, state->argument(1));
+    auto nullableArrayArg = toNativeArray<uint32_t>(state, state->argument(1));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithAndWithoutNullableSequence(WTFMove(arrayArg), WTFMove(nullableArrayArg));
@@ -5549,10 +5627,10 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithAndWithoutNulla
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 2))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto arrayArg = toNativeArray<unsigned>(state, state->argument(0));
+    auto arrayArg = toNativeArray<uint32_t>(state, state->argument(0));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto nullableArrayArg = toNativeArray<unsigned>(state, state->argument(1));
+    auto nullableArrayArg = toNativeArray<uint32_t>(state, state->argument(1));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.methodWithAndWithoutNullableSequence2(WTFMove(arrayArg), WTFMove(nullableArrayArg));
@@ -5692,10 +5770,10 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionStrictFunction(ExecState*
     auto str = state->argument(0).toWTFString(state);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto a = build<float>(*state, state->argument(1), ShouldAllowNonFinite::Yes);
+    auto a = convert<float>(*state, state->argument(1), ShouldAllowNonFinite::Yes);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto b = toInt32(state, state->argument(2), NormalConversion);
+    auto b = convert<int32_t>(*state, state->argument(2), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     JSValue result = jsBoolean(impl.strictFunction(WTFMove(str), WTFMove(a), WTFMove(b), ec));
@@ -5720,7 +5798,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionStrictFunctionWithSequenc
     auto objArg = JSTestObj::toWrapped(state->argument(0));
     if (UNLIKELY(!objArg))
         return throwVMTypeError(state);
-    auto a = toNativeArray<unsigned>(state, state->argument(1));
+    auto a = toNativeArray<uint32_t>(state, state->argument(1));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     JSValue result = jsBoolean(impl.strictFunctionWithSequence(*objArg, WTFMove(a), ec));
@@ -5745,7 +5823,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionStrictFunctionWithArray(E
     auto objArg = JSTestObj::toWrapped(state->argument(0));
     if (UNLIKELY(!objArg))
         return throwVMTypeError(state);
-    auto array = toNativeArray<int>(state, state->argument(1));
+    auto array = toNativeArray<int32_t>(state, state->argument(1));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     JSValue result = jsBoolean(impl.strictFunctionWithArray(*objArg, WTFMove(array), ec));
@@ -5784,7 +5862,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionVariadicDoubleMethod(Exec
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto head = build<double>(*state, state->argument(0), ShouldAllowNonFinite::Yes);
+    auto head = convert<double>(*state, state->argument(0), ShouldAllowNonFinite::Yes);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     Vector<double> tail = toNativeArguments<double>(state, 1);
@@ -5827,10 +5905,10 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionAny(ExecState* state)
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 2))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto a = build<float>(*state, state->argument(0), ShouldAllowNonFinite::Yes);
+    auto a = convert<float>(*state, state->argument(0), ShouldAllowNonFinite::Yes);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
-    auto b = toInt32(state, state->argument(1), NormalConversion);
+    auto b = convert<int32_t>(*state, state->argument(1), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.any(WTFMove(a), WTFMove(b));
@@ -5871,7 +5949,7 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithFl
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto a = build<float>(*state, state->argument(0), ShouldAllowNonFinite::No);
+    auto a = convert<float>(*state, state->argument(0), ShouldAllowNonFinite::No);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.testPromiseFunctionWithFloatArgument(WTFMove(a), DeferredWrapper(state, castedThis->globalObject(), promiseDeferred));
@@ -5912,7 +5990,7 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithOp
         return throwThisTypeError(*state, "TestObj", "testPromiseFunctionWithOptionalIntArgument");
     ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
     auto& impl = castedThis->wrapped();
-    auto a = state->argument(0).isUndefined() ? Optional<int>() : toInt32(state, state->uncheckedArgument(0), NormalConversion);
+    auto a = state->argument(0).isUndefined() ? Optional<int32_t>() : convert<int32_t>(*state, state->uncheckedArgument(0), NormalConversion);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.testPromiseFunctionWithOptionalIntArgument(WTFMove(a), DeferredWrapper(state, castedThis->globalObject(), promiseDeferred));
@@ -5935,7 +6013,7 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunc
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto a = build<float>(*state, state->argument(0), ShouldAllowNonFinite::No);
+    auto a = convert<float>(*state, state->argument(0), ShouldAllowNonFinite::No);
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.testPromiseOverloadedFunction(WTFMove(a), DeferredWrapper(state, castedThis->globalObject(), promiseDeferred));
@@ -6029,7 +6107,7 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionAttachShadowRoot(ExecStat
     auto& impl = castedThis->wrapped();
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto init = build<TestObj::ShadowRootInit>(*state, state->argument(0));
+    auto init = convert<TestObj::ShadowRootInit>(*state, state->argument(0));
     if (UNLIKELY(state->hadException()))
         return JSValue::encode(jsUndefined());
     impl.attachShadowRoot(WTFMove(init));

@@ -1,3 +1,546 @@
+2016-05-08  Darin Adler  <darin@apple.com>
+
+        Change EventSource constructor to take an IDL dictionary instead of a WebCore::Dictionary
+        https://bugs.webkit.org/show_bug.cgi?id=157459
+
+        Reviewed by Chris Dumez.
+
+        Patch also includes some updating of EventSource class to modern idioms.
+
+        * page/EventSource.cpp:
+        (WebCore::EventSource::EventSource): Initialize based on Init.
+        (WebCore::EventSource::create): Take/pass Init instead of Dictionary.
+
+        * bindings/js/SerializedScriptValue.cpp:
+        (WebCore::CloneSerializer::serialize): Take a StringView instead of a string
+        so callers don't have to allocate a String just to use this.
+        (WebCore::SerializedScriptValue::create): Ditto.
+        * bindings/js/SerializedScriptValue.h: Ditto.
+
+        * page/EventSource.cpp: Changed defaultReconnectDelay to be a uint64_t
+        instead of an unsigned long long.
+        (WebCore::EventSource::EventSource): Changed constructor to take a struct
+        instead of a Dictionary for eventSourceInit. Also moved initialization of
+        data members to the header and used ASCIILiteral.
+        (WebCore::EventSource::create): Changed type to Init and streamlined code
+        a little bit using auto.
+        (WebCore::EventSource::connect): Used a reference instead of a pointer.
+        Also added a FIXME since I noticed that m_requestInFlight is probably not
+        needed, since it's basically the same thing as "is m_loader null".
+        (WebCore::EventSource::url): Moved to the header and made it inline.
+        (WebCore::EventSource::networkRequestEnded): Removed unneeded check that
+        is already done by all callers and turned it into an assertion.
+        (WebCore::EventSource::withCredentials): Ditto.
+        (WebCore::EventSource::readyState): Ditto.
+        (WebCore::EventSource::responseIsValid): Added. Helper function to make
+        the logic in didReceiveResponse easier to read. Fixed logic to compare
+        MIME type ignoring ASCII case, since that's how MIME types work.
+        (WebCore::EventSource::didReceiveResponse): Use the helper above, and also
+        move the m_eventStreamOrigin set up code into the valid response case,
+        since there is no point doing it if the response is not valid. Also use
+        the early return idiom.
+        (WebCore::EventSource::didReceiveData): Removed the unneeded explicit
+        conversion to StringView here. Also removed a FIXME that I fixed.
+        (WebCore::EventSource::didFinishLoading): Added code to flush the decoder
+        as mentioned in didReceiveData. Added FIXME about peculiar clearing code
+        that exists only here. Removed check for empty receive buffer and data
+        that is not needed since parseEventStream does sufficient checking.
+        (WebCore::EventSource::didFail): Added FIXME because of things that
+        didFinishLoading does that seem equally valuable here.
+        (WebCore::EventSource::parseEventStream): Tweaked types and names of local
+        variables, and changed to use Optional instead of magic number -1. Also
+        added a FIXME about how the buffer type is probably not right since we
+        keep moving the characters in the buffer as we consume the start of it.
+        (WebCore::EventSource::parseEventStreamLine): Refactor and reorganize so
+        this doesn't do so much string allocation and is easier to read
+        (WebCore::EventSource::canSuspendForDocumentSuspension): Tweaked comment.
+        (WebCore::EventSource::dispatchMessageEvent): Renamed this from
+        createMessageEvent, and moved more code in here. We now don't have to
+        allocate a temporary string just to pass it to SerializedScriptValue.
+
+        * page/EventSource.h: Updated for changes above. Use pragma once.
+        Define and use EventSource::Init struct. Other small cleanup.
+
+        * page/EventSource.idl: Define EventSourceInit dictionary and use it.
+        Other small cleanup.
+
+        * page/EventSource.idl: U
+
+2016-05-07  Darin Adler  <darin@apple.com>
+
+        Change HTMLSlotElement::assignedNodes to take a IDL dictionary instead of a WebCore::Dictionary
+        https://bugs.webkit.org/show_bug.cgi?id=157457
+
+        Reviewed by Chris Dumez.
+
+        * html/HTMLSlotElement.cpp:
+        (WebCore::HTMLSlotElement::removedFrom): Fixed typo in comment.
+        (WebCore::HTMLSlotElement::assignedNodes): Renamed assignedNodesForBindings back to this
+        and changed the argument type to Optional<AssignedNodesOptions> instead of Dictionary.
+        Also streamlined the logic a bit.
+        (WebCore::HTMLSlotElement::enqueueSlotChangeEvent): Changed to use a pointer to the
+        enqueued event instead of a boolean. With only a boolean, we could end up clearing the
+        flag in cases where we don't really want to.
+        (WebCore::HTMLSlotElement::dispatchEvent): Ditto.
+        (WebCore::HTMLSlotElement::assignedNodesForBindings): Deleted.
+        * html/HTMLSlotElement.h: Use pragma once. Added AssignedNodeOptions. Changed for the
+        above, including changing the data member.
+        * html/HTMLSlotElement.idl: Removed use of ImplementedAs. Fixed the type of the options
+        dictionary.
+
+2016-05-08  Chris Dumez  <cdumez@apple.com>
+
+        [Bindings] Add convert<>() template specializations for integer types
+        https://bugs.webkit.org/show_bug.cgi?id=157458
+
+        Reviewed by Darin Adler.
+
+        Add convert<>() template specializations for integer types and use them
+        in the JS bindings. Also, treat non-32bit types the same way as the
+        32bit ones, allowing the compiler to optimize out branching based on
+        the IntegerConversionConfiguration.
+
+        * bindings/js/JSCryptoAlgorithmDictionary.cpp:
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::enforceRange):
+        (WebCore::toSmallerInt):
+        (WebCore::toSmallerUInt):
+        (WebCore::toInt8EnforceRange):
+        (WebCore::toUInt8EnforceRange):
+        (WebCore::toInt8Clamp):
+        (WebCore::toUInt8Clamp):
+        (WebCore::toInt8):
+        (WebCore::toUInt8):
+        (WebCore::toInt16EnforceRange):
+        (WebCore::toUInt16EnforceRange):
+        (WebCore::toInt16Clamp):
+        (WebCore::toUInt16Clamp):
+        (WebCore::toInt16):
+        (WebCore::toUInt16):
+        (WebCore::toInt32EnforceRange):
+        (WebCore::toInt32Clamp):
+        (WebCore::toUInt32Clamp):
+        (WebCore::toUInt32EnforceRange):
+        (WebCore::toInt64EnforceRange):
+        (WebCore::toUInt64EnforceRange):
+        (WebCore::toInt64Clamp):
+        (WebCore::toUInt64Clamp):
+        (WebCore::toInt64):
+        (WebCore::toUInt64):
+        * bindings/js/JSDOMBinding.h:
+        - Splt some integer conversion functions into 3 Normal / Clamp /
+          Enforce versions, similarly to what was done for 32bit types already.
+          This is so that these can be called from the inline functions in
+          JSDOMConvert.h, allowing the compiler to optimize out the branches.
+        - Get rid of some unnecessary state.hadException() checks.
+
+        * bindings/js/JSDOMConvert.h:
+        Add convert<> specializations for integer types.
+
+        * bindings/js/JSNodeFilterCustom.cpp:
+        (WebCore::JSNodeFilter::acceptNode):
+
+        * bindings/scripts/CodeGenerator.pm:
+        - Add utility function to distinguish integer types.
+        - Have IsNumericType() using the integerType / floatingPointType
+          hashes to avoid duplication.
+        - Stop int / unsigned int from integer types as those are not
+          in Web IDL and they are not used.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetIntegerConversionType):
+        (JSValueToNative):
+        Use convert<>() for converting JSValue to integer types.
+
+        * bindings/scripts/IDLParser.pm:
+        Stop allowing int / unsigned int types as those are not in Web IDL.
+
+        * bindings/scripts/test/JS/JSTestEventTarget.cpp:
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        Rebaseline bindings tests.
+
+2016-05-08  Darin Adler  <darin@apple.com>
+
+        Correct dictionary bindings handling of optional, null, and undefined
+        https://bugs.webkit.org/show_bug.cgi?id=157463
+
+        Reviewed by Chris Dumez.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::propertyValue): Deleted.
+        * bindings/js/JSDOMBinding.h: Deleted propertyValue, not all that helpful for now.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDictionaryImplementationContent): Added a new early exit for convert to
+        a dictionary type when the value is undefined or null and all members are either
+        optional or have a default value. This returns the default values for everything
+        without raising an exception. Added checking that requires that the dictionary
+        argument is an object and not a regular expression, since that's also called for
+        in the latest draft of the Web IDL specification. This ends up speeding up the
+        code a bit since we now use JSObject::get for properties instead of JSValue::get.
+        (GenerateParametersCheck): Renamed some local variables. Taught the code that
+        optional dictionaries all have a default value; before it was doing that for the
+        type "Dictionary" but not the real dictionary types (IsDictionaryType).
+
+        * bindings/scripts/test/JS/JSTestObj.cpp: Regenerated.
+
+        * css/FontFace.cpp:
+        (WebCore::FontFace::create): Changed argument to be Descriptors instead of
+        Optional<Descriptors>. It would have compiled the other way, but there is now
+        no caller that will pass a null. Because the IDL dictionary support was new,
+        this was the only place that was doing it wrong. Good that we "nipped it in the bud"
+        before doing this in more places.
+        * css/FontFace.h: Ditto.
+
+2016-05-08  David Kilzer  <ddkilzer@apple.com>
+
+        ThreadSanitizer: Data race and thread leak in WebCore::ScrollingThread::createThreadIfNeeded
+        <https://webkit.org/b/157462>
+
+        Reviewed by Darin Adler.
+
+        Reproduced with multiple existing tests.
+
+        * page/scrolling/ScrollingThread.cpp:
+        (WebCore::ScrollingThread::createThreadIfNeeded): Use a
+        std::once_flag to initialize Scrolling Thread since this may be
+        called from background threads.
+
+2016-05-08  Darin Adler  <darin@apple.com>
+
+        Try to fix build without rolling out that last change.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::convert<Vector<String>>): Make this an inline. Just call toNativeArray.
+
+2016-05-07  Darin Adler  <darin@apple.com>
+
+        Change MutationObserver::observe to take an IDL dictionary, rather than WebCore::Dictionary
+        https://bugs.webkit.org/show_bug.cgi?id=157456
+
+        Reviewed by Chris Dumez.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::convertOptional): Use a specific Optional null rather than Nullopt so we
+        can compile the ternary operator.
+        (WebCore::convert<bool>): Added.
+        (WebCore::convert<Vector<String>>): Added. Later we probably need to change convert to use
+        a member function of a class template rather than a function template so we can make partial
+        specialization work and do this just once for all Vector<T>.
+
+        * bindings/js/JSMutationObserverCustom.cpp:
+        (WebCore::JSMutationObserverOwner::isReachableFromOpaqueRoots): Streamlined code and removed
+        some local variables. Changed to call the new observedNodes rather than getObservedNodes.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDictionaryImplementationContent): Fixed bug where we tried to call the version of
+        the convert function with a default value even when there was none.
+
+        * bindings/scripts/test/TestObj.idl: Added a test case basically identical to what's needed
+        in MutationObserver.idl.
+        * bindings/scripts/test/JS/JSTestObj.cpp: Regenerated.
+
+        * dom/MutationObserver.cpp:
+        (WebCore::MutationObserver::observe): Chagned function to take a MutationObserver::Init
+        instead of a Dictionary.
+        (WebCore::MutationObserver::observationStarted): Changed argument type to a reference.
+        (WebCore::MutationObserver::observationEnded): Ditto.
+        (WebCore::MutationObserverMicrotask): Removed unneeded explicit constructor and destructor.
+        (WebCore::queueMutationObserverCompoundMicrotask): Got rid of unnneeded local variable.
+        (WebCore::MutationObserver::observedNodes): Renamed to remove the "get" prefix.
+
+        * dom/MutationObserver.h: Reduced includes. Added MutationObserver::Init struct and
+        used it for the type of the argument to the observe function. Changed a few argument
+        types and removed unused forward declarations.
+
+        * dom/MutationObserver.idl: Added MutationObserverInit and used it instead of Dictionary.
+
+        * dom/MutationObserverRegistration.cpp:
+        (WebCore::MutationObserverRegistration::MutationObserverRegistration): Pass a reference.
+        (WebCore::MutationObserverRegistration::~MutationObserverRegistration): Ditto.
+
+2016-05-07  Chris Dumez  <cdumez@apple.com>
+
+        Reduce special handling of XPathNSResolver type in the bindings
+        https://bugs.webkit.org/show_bug.cgi?id=157454
+
+        Reviewed by Darin Adler.
+
+        Reduce special handling of XPathNSResolver type in the bindings.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        Add new JSXPathNSResolverCustom.cpp file.
+
+        * bindings/js/JSDOMStringListCustom.cpp:
+        (WebCore::JSDOMStringList::toWrapped):
+        Take the ExecState by reference instead of pointer.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::toWrapped):
+        Update to take an ExecState& parameter. The bindings now pass
+        an ExecState to all custom toWrapped() methods for consistency
+        and flexibility.
+
+        * bindings/js/JSDictionary.cpp:
+        (WebCore::JSDictionary::convertValue):
+        Pass an ExecState now that those toWrapped() methods expect
+        it.
+
+        * bindings/js/JSEventTargetCustom.cpp:
+        (WebCore::JSEventTarget::toWrapped):
+        Update to take an ExecState& parameter.
+
+        * bindings/js/JSIDBDatabaseCustom.cpp:
+        (WebCore::JSIDBDatabase::transaction):
+        Pass ExecState by reference instead of pointer.
+
+        * bindings/js/JSMessageEventCustom.cpp:
+        (WebCore::handleInitMessageEvent):
+        Pass ExecState to JSDOMWindow::toWrapped().
+
+        * bindings/js/JSXPathNSResolverCustom.cpp: Added.
+        (WebCore::JSXPathNSResolver::toWrapped):
+        Provide a custom implementation of JSXPathNSResolver::toWrapped()
+        instead of having the custom code in the bindings generator.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AddIncludesForType):
+        Drop special includes for XPathNSResolver as they are no longer needed.
+
+        (GenerateHeader):
+        Drop special casing of certain types for generating the toWrapped()
+        declaration by:
+        1. Relying on GetNativeType() for the return value as certain types
+           return a RefPtr instead of a raw pointer.
+        2. Adding an extra ExecState parameter when a custom implementation of
+           toWrapped() is provided, given that some of them need it.
+
+        (GenerateParametersCheck):
+        Drop custom code for XPathNSResolver and use the normal code path for
+        this type now. The custom code now resides in the custom implementation
+        of JSXPathNSResolver::toWrapped(), in custom bindings.
+
+        (JSValueToNative):
+        - Drop NodeFilter from the nativeType hash map as it was updated to
+          be a callback interface a while back.
+        - Add XPathNSResolver to nativeType hash map so that we now to use
+          a RefPtr<> instead of a raw pointer in the bindings. We should
+          probably add an IDL extended attribute for this at some point.
+        - Drop special casing for DOMStringList which was outdated since there
+          is no toDOMStringList() function. DOMStringList has a custom
+          toWrapped() function instead nowadays so we now call this one
+          instead. We apparently do not have any DOMStringList parameters
+          outside our bindings tests at the moment, which is why no one
+          noticed.
+        - Pass an ExecState to toWrapped() if the interface has the
+          JSCustomToNativeObject IDL extended attribute.
+
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.cpp:
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.h:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/ObjC/DOMTestObj.h:
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+        * bindings/scripts/test/TestObj.idl:
+        Add bindings test coverage for having an operation with an
+        XPathNSResolver parameter.
+
+        * dom/Document.idl:
+        * xml/XPathEvaluator.idl:
+        Drop some unnecessary default parameter values.
+
+        * xml/XPathNSResolver.idl:
+        Add JSCustomToNativeObject IDL extended attribute so that we can
+        provide our own custom implementation of JSXPathNSResolver::toWrapped(),
+        instead of having the custom code in the bindings generator.
+
+        * dom/Document.cpp:
+        (WebCore::Document::createExpression):
+        (WebCore::Document::evaluate):
+        * dom/Document.h:
+        * inspector/InspectorNodeFinder.cpp:
+        * xml/XPathEvaluator.cpp:
+        (WebCore::XPathEvaluator::createExpression):
+        (WebCore::XPathEvaluator::evaluate):
+        * xml/XPathEvaluator.h:
+        * xml/XPathExpression.cpp:
+        (WebCore::XPathExpression::createExpression):
+        * xml/XPathExpression.h:
+        * xml/XPathParser.cpp:
+        (WebCore::XPath::Parser::Parser):
+        (WebCore::XPath::Parser::parseStatement):
+        * xml/XPathParser.h:
+        Take XPathNSResolver parameter as a Ref<XPathNSResolver>&& as this is
+        what the generated bindings now provide us, given that this sometimes
+        have to create a wrapper around a JSObject.
+
+2016-05-07  Darin Adler  <darin@apple.com>
+
+        Fix crash introduced by the last patch.
+
+        Fix suggested by Chris Dumez.
+
+        * css/FontFace.cpp:
+        (WebCore::FontFace::FontFace): Roll out incorrect change. Things were getting
+        initialized in the wrong order in a change I had made to the FontFace constructor
+        that takes a CSSFontSelector.
+
+2016-05-07  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rebaseline bindings tests after r200547.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convert<TestObj::FontFaceDescriptors>):
+
+2016-05-07  Darin Adler  <darin@apple.com>
+
+        Next step on dictionary bindings, along with other bindings refinements
+        https://bugs.webkit.org/show_bug.cgi?id=157451
+
+        Reviewed by Chris Dumez.
+
+        Converted one dictionary, the one passed to the constructor in FontFace.
+
+        * WebCore.xcodeproj/project.pbxproj: Updated for name change of JSDOMBuild.h to
+        JSDOMConvert.h and also let Xcode update a file type.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::propertyValue): Added.
+        * bindings/js/JSDOMBinding.h: Use pragma once. Remove unnecessary forward declaration.
+        Move all declarations to the top of the file, separating them from definitions. This
+        is a small step toward better overview of what's in this file and paves the way for
+        future simplifications and improvements we can make after we observe patterns.
+        Also removed a couple unused functions.
+
+        * bindings/js/JSDOMConvert.h: Renamed from JSDOMBuild.h.
+        Renamed function templates from build to convert. Added convertOptional.
+
+        * bindings/js/ReadableStreamController.cpp:
+        (WebCore::callFunction): Use auto and remove some unneeded namespacing.
+        (WebCore::ReadableStreamController::invoke): Ditto. Also remove use of helper function
+        getPropertyFromObject, since this was the only call site and it was not very helpful.
+        (WebCore::ReadableStreamController::isControlledReadableStreamLocked): Ditto.
+        (WebCore::createReadableStream): Ditto.
+        (WebCore::getReadableStreamReader): Ditto.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateEnumerationImplementationContent): Updated for name change from build to
+        convert and JSDOMBuild.h to JSDOMConvert.h.
+        (GenerateDictionaryImplementationContent): Ditto. Also added code to handle optional
+        and added explicit exception checking, using local variables. Not clear longer term
+        if the local variable approach is OK since this will unnecessarily change types like
+        const String& to String.
+        (GenerateParametersCheck): Removed local variable $optional and use $parameter->isOptional
+        directly consistently. This is slightly clearer because the old code used a mix of the
+        two, and also is a better pattern for when we refactor this into smaller functions.
+        Note that this function name is not good any more--this is a lot more then parameter checks.
+        (GetNativeType): Return appropriate name for dictionary types.
+        (JSValueToNative): Updated for name change from build to convert and JSDOMBuild.h to
+        JSDOMConvert.h.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        Regenerated results.
+
+        * bindings/scripts/test/TestObj.idl: Added another dictionary test case, just a copy
+        of the current state of the one in FontFace.idl.
+
+        * css/CSSFontFace.cpp:
+        (WebCore::CSSFontFace::setUnicodeRange): Update for simplified UnicodeRange struct.
+        (WebCore::CSSFontFace::setFeatureSettings): Fix to correctly handle being called
+        with "normal". Also fix so it doesn't call fontPropertyChanged if nothing changed.
+        Also got rid of return value, which had no real value: it was returning false for
+        some bad inputs, but others would just lead to assertions, and the real reason this
+        was OK is that this function is only passed known-valid values.
+
+        * css/CSSFontFace.h: Used prama once. Tweaked formatting. Removed return value from
+        the setFeatureSettings function. Changed UnicodeRange to be struct with public data
+        members instead a struct with a constructor and getter functions.
+
+        * css/CSSFontSelector.cpp:
+        (WebCore::CSSFontSelector::addFontFaceRule): Updated since setFeatureSettings no
+        longer has a boolean return value.
+
+        * css/CSSSegmentedFontFace.cpp:
+        (WebCore::appendFontWithInvalidUnicodeRangeIfLoading): Updated for simplified
+        UnicodeRange struct.
+
+        * css/FontFace.cpp:
+        (WebCore::valueFromDictionary): Deleted.
+        (WebCore::FontFace::create): Updated to take the descriptors as a struct instead of
+        a WebCore::Dictionary. Also made that argument optional as specified in the current
+        specification draft.
+        (WebCore::FontFace::setFeatureSettings): Updated since setFeatureSettings no longer
+        has a boolean return value.
+        (WebCore::FontFace::unicodeRange): Updated for simplified UnicodeRange struct.
+
+        * css/FontFace.h: Used pragma once. Removed unneeded includes and forward declarations.
+        Derived privately from CSSFontFace::Client. Added a FontFace::Descriptors struct and
+        used it as an argument to the create function as described above.
+
+        * css/FontFace.idl: Added FontFaceDescriptors and changed the argument to the
+        constructor to be an optional FontFaceDescriptors instead of a Dictionary.
+
+2016-05-07  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Rework FontFace promise attribute handling
+        https://bugs.webkit.org/show_bug.cgi?id=157310
+
+        Reviewed by Myles C. Maxfield.
+
+        Making promise attributes cached attributes, so that they are created only once.
+        They are created in the custom binding code and passed to DOM class as needed.
+
+        Removed usage of ExecState& from DOM iterators.
+
+        No change should be visible from user scripts.
+
+        * Modules/fetch/FetchHeaders.cpp:
+        (WebCore::FetchHeaders::Iterator::next): Removing ExecState parameter.
+        * Modules/fetch/FetchHeaders.h:
+        * bindings/js/JSDOMIterator.h:
+        (WebCore::keyValueIteratorForEach):
+        (WebCore::JSDOMIterator<JSWrapper>::next): Ditto.
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::DeferredWrapper::promise): Removed deferred() and added access to promise directly.
+        * bindings/js/JSDOMPromise.h:
+        * bindings/js/JSFontFaceCustom.cpp:
+        (WebCore::JSFontFace::loaded): Using cached attribute to call FontFace::loaded only once.
+        * bindings/js/JSFontFaceSetCustom.cpp:
+        (WebCore::JSFontFaceSet::ready): Using cached attribute to call FontFaceSet::ready only once.
+        * css/CSSFontFace.cpp:
+        (WebCore::CSSFontFace::wrapper): Removing ExecState parameter.
+        * css/CSSFontFace.h:
+        * css/FontFace.cpp:
+        (WebCore::FontFace::create): Ditto.
+        (WebCore::FontFace::FontFace): Ditto.
+        (WebCore::FontFace::fontStateChanged): Updating promise handling.
+        (WebCore::FontFace::registerLoaded): Resolving/rejecting promise if backing CSSFontFace loading is ended.
+        (WebCore::FontFace::load): Calling backing load.
+        * css/FontFace.h:
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::Iterator::next): Removing ExecState parameter.
+        (WebCore::FontFaceSet::load): Removing ExecState and ExceptionCode parameter.
+        (WebCore::FontFaceSet::registerReady): Resolving promise if ready otherwise storing it for resolving it later.
+        (WebCore::FontFaceSet::completedLoading): Resolving promise if any is stored.
+        (WebCore::FontFaceSet::create): Deleted.
+        * css/FontFaceSet.h:
+        * css/FontFaceSet.idl:
+
+2016-05-07  Jeremy Huddleston Sequoia  <jeremyhu@apple.com>
+
+        Fix an incorrect usage of OS(DARWIN) with PLATFORM(COCOA)
+        https://bugs.webkit.org/show_bug.cgi?id=157167
+
+        Reviewed by Myles C. Maxfield.
+
+        * platform/graphics/FontPlatformData.h:
+        (WebCore::FontPlatformData::hash):
+
 2016-05-07  Joanmarie Diggs  <jdiggs@igalia.com>
 
         REGRESSION(r196222): [AX][GTK] accessibility/gtk/caret-offsets.html failing

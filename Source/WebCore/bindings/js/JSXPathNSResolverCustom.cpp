@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,46 +24,20 @@
  */
 
 #include "config.h"
-#include "JSNodeFilter.h"
+#include "JSXPathNSResolver.h"
 
-#include "JSCallbackData.h"
-#include "JSDOMConvert.h"
-#include "JSNode.h"
-#include "NodeFilter.h"
-
-namespace WebCore {
+#include "JSCustomXPathNSResolver.h"
 
 using namespace JSC;
 
-// FIXME: The bindings generator is currently not able to generate
-// callback function calls if they return something other than a
-// boolean.
-uint16_t JSNodeFilter::acceptNode(Node* node)
+namespace WebCore {
+
+RefPtr<XPathNSResolver> JSXPathNSResolver::toWrapped(ExecState& state, JSValue value)
 {
-    Ref<JSNodeFilter> protect(*this);
+    if (value.inherits(JSXPathNSResolver::info()))
+        return &jsCast<JSXPathNSResolver*>(asObject(value))->wrapped();
 
-    JSLockHolder lock(m_data->globalObject()->vm());
-
-    ExecState* state = m_data->globalObject()->globalExec();
-    MarkedArgumentBuffer args;
-    args.append(toJS(state, m_data->globalObject(), node));
-    if (state->hadException())
-        return NodeFilter::FILTER_REJECT;
-
-    NakedPtr<Exception> returnedException;
-    JSValue value = m_data->invokeCallback(args, JSCallbackData::CallbackType::FunctionOrObject, Identifier::fromString(state, "acceptNode"), returnedException);
-    if (returnedException) {
-        // Rethrow exception.
-        state->vm().throwException(state, returnedException);
-
-        return NodeFilter::FILTER_REJECT;
-    }
-
-    uint16_t result = convert<uint16_t>(*state, value, NormalConversion);
-    if (state->hadException())
-        return NodeFilter::FILTER_REJECT;
-
-    return result;
+    return JSCustomXPathNSResolver::create(&state, value);
 }
 
 } // namespace WebCore

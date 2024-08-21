@@ -190,9 +190,11 @@ public:
                 ^ qHash(m_rawFont.style())
                 ^ qHash(m_rawFont.weight())
                 ^ qHash(*reinterpret_cast<const quint32*>(&m_size));
-#elif PLATFORM(WIN) && !USE(CAIRO)
+#elif USE(CAIRO)
+        return PtrHash<cairo_scaled_font_t*>::hash(m_scaledFont.get());
+#elif PLATFORM(WIN)
         return m_font ? m_font->hash() : 0;
-#elif OS(DARWIN)
+#elif PLATFORM(COCOA)
         uintptr_t flags = static_cast<uintptr_t>(m_isHashTableDeletedValue << 5 | m_textRenderingMode << 3 | m_orientation << 2 | m_syntheticBold << 1 | m_syntheticOblique);
 #if USE(APPKIT)
         uintptr_t fontHash = (uintptr_t)m_font.get();
@@ -201,8 +203,8 @@ public:
 #endif
         uintptr_t hashCodes[3] = { fontHash, m_widthVariant, flags };
         return StringHasher::hashMemory<sizeof(hashCodes)>(hashCodes);
-#elif USE(CAIRO)
-        return PtrHash<cairo_scaled_font_t*>::hash(m_scaledFont.get());
+#else
+#error "Unsupported configuration"
 #endif
     }
 
