@@ -364,7 +364,7 @@ public:
     }
 
 private:
-    static EncodedJSValue customGetter(ExecState* exec, EncodedJSValue thisValue, PropertyName)
+    static EncodedJSValue customGetter(ExecState* exec, EncodedJSValue thisValue, PropertyName, JSObject*)
     {
         CustomGetter* thisObject = jsDynamicCast<CustomGetter*>(JSValue::decode(thisValue));
         if (!thisObject)
@@ -469,7 +469,7 @@ private:
     {
     }
 
-    static EncodedJSValue lengthGetter(ExecState* exec, EncodedJSValue thisValue, PropertyName)
+    static EncodedJSValue lengthGetter(ExecState* exec, EncodedJSValue thisValue, PropertyName, JSObject*)
     {
         RuntimeArray* thisObject = jsDynamicCast<RuntimeArray*>(JSValue::decode(thisValue));
         if (!thisObject)

@@ -1507,7 +1507,7 @@ sub GenerateHeader
             my $conditionalString = $codeGenerator->GenerateConditionalString($attribute->signature);
             push(@headerContent, "#if ${conditionalString}\n") if $conditionalString;
             my $getter = GetAttributeGetterName($interface, $className, $attribute);
-            push(@headerContent, "JSC::EncodedJSValue ${getter}(JSC::ExecState*, JSC::EncodedJSValue, JSC::PropertyName);\n");
+            push(@headerContent, "JSC::EncodedJSValue ${getter}(JSC::ExecState*, JSC::EncodedJSValue, JSC::PropertyName, JSC::JSObject*);\n");
             if (!IsReadonly($attribute)) {
                 my $setter = GetAttributeSetterName($interface, $className, $attribute);
                 push(@headerContent, "bool ${setter}(JSC::ExecState*, JSC::EncodedJSValue, JSC::EncodedJSValue);\n");
@@ -2068,7 +2068,7 @@ sub GenerateImplementation
             my $conditionalString = $codeGenerator->GenerateConditionalString($attribute->signature);
             push(@implContent, "#if ${conditionalString}\n") if $conditionalString;
             my $getter = GetAttributeGetterName($interface, $className, $attribute);
-            push(@implContent, "JSC::EncodedJSValue ${getter}(JSC::ExecState*, JSC::EncodedJSValue, JSC::PropertyName);\n");
+            push(@implContent, "JSC::EncodedJSValue ${getter}(JSC::ExecState*, JSC::EncodedJSValue, JSC::PropertyName, JSC::JSObject*);\n");
             if (!IsReadonly($attribute)) {
                 my $setter = GetAttributeSetterName($interface, $className, $attribute);
                 push(@implContent, "bool ${setter}(JSC::ExecState*, JSC::EncodedJSValue, JSC::EncodedJSValue);\n");
@@ -2078,7 +2078,7 @@ sub GenerateImplementation
         
         if (NeedsConstructorProperty($interface)) {
             my $getter = "js" . $interfaceName . "Constructor";
-            push(@implContent, "JSC::EncodedJSValue ${getter}(JSC::ExecState*, JSC::EncodedJSValue, JSC::PropertyName);\n");
+            push(@implContent, "JSC::EncodedJSValue ${getter}(JSC::ExecState*, JSC::EncodedJSValue, JSC::PropertyName, JSC::JSObject*);\n");
         }
 
         my $constructorFunctionName = "setJS" . $interfaceName . "Constructor";
@@ -2538,11 +2538,12 @@ sub GenerateImplementation
             my $attributeConditionalString = $codeGenerator->GenerateConditionalString($attribute->signature);
             push(@implContent, "#if ${attributeConditionalString}\n") if $attributeConditionalString;
 
-            push(@implContent, "EncodedJSValue ${getFunctionName}(ExecState* state, EncodedJSValue thisValue, PropertyName)\n");
+            push(@implContent, "EncodedJSValue ${getFunctionName}(ExecState* state, EncodedJSValue thisValue, PropertyName, JSObject* slotBase)\n");
             push(@implContent, "{\n");
 
             push(@implContent, "    UNUSED_PARAM(state);\n");
             push(@implContent, "    UNUSED_PARAM(thisValue);\n");
+            push(@implContent, "    UNUSED_PARAM(slotBase);\n");
 
             if (!$attribute->isStatic || $attribute->signature->type =~ /Constructor$/) {
                 push(@implContent, "    JSValue decodedThisValue = JSValue::decode(thisValue);\n");
@@ -2705,7 +2706,7 @@ sub GenerateImplementation
                     my $jsType = NativeToJSValue($attribute->signature, 0, $interface, "${functionName}(" . join(", ", @arguments) . ")", "castedThis");
                     push(@implContent, "    auto& impl = castedThis->wrapped();\n") if !$attribute->isStatic;
                     if ($codeGenerator->IsSVGAnimatedType($type)) {
-                        push(@implContent, "    RefPtr<$type> obj = $jsType;\n");
+                        push(@implContent, "    auto obj = $jsType;\n");
                         push(@implContent, "    JSValue result = toJS(state, castedThis->globalObject(), obj.get());\n");
                     } else {
                         push(@implContent, "    JSValue result = $jsType;\n");
@@ -2741,7 +2742,7 @@ sub GenerateImplementation
         if (NeedsConstructorProperty($interface)) {
             my $constructorFunctionName = "js" . $interfaceName . "Constructor";
 
-            push(@implContent, "EncodedJSValue ${constructorFunctionName}(ExecState* state, EncodedJSValue thisValue, PropertyName)\n");
+            push(@implContent, "EncodedJSValue ${constructorFunctionName}(ExecState* state, EncodedJSValue thisValue, PropertyName, JSObject*)\n");
             push(@implContent, "{\n");
             push(@implContent, "    ${className}Prototype* domObject = jsDynamicCast<${className}Prototype*>(JSValue::decode(thisValue));\n");
             push(@implContent, "    if (UNLIKELY(!domObject))\n");
@@ -2918,7 +2919,7 @@ sub GenerateImplementation
                     if ($putForwards) {
                         my $implGetterFunctionName = $codeGenerator->WK_lcfirst($attribute->signature->extendedAttributes->{"ImplementedAs"} || $name);
                         if ($attribute->signature->isNullable) {
-                            push(@implContent, "    RefPtr<${type}> forwardedImpl = castedThis->wrapped().${implGetterFunctionName}();\n");
+                            push(@implContent, "    auto forwardedImpl = castedThis->wrapped().${implGetterFunctionName}();\n");
                             push(@implContent, "    if (!forwardedImpl)\n");
                             push(@implContent, "        return false;\n");
                             push(@implContent, "    auto& impl = *forwardedImpl;\n");
@@ -3659,9 +3660,9 @@ sub GenerateParametersCheck
                 push(@$outputArray, "        return throwArgumentMustBeFunctionError(*state, $argumentIndex, \"$name\", \"$interfaceName\", $quotedFunctionName);\n");
                 if ($function->isStatic) {
                     AddToImplIncludes("CallbackFunction.h");
-                    push(@$outputArray, "    RefPtr<$type> $name = createFunctionOnlyCallback<${callbackClassName}>(state, jsCast<JSDOMGlobalObject*>(state->lexicalGlobalObject()), state->uncheckedArgument($argumentIndex));\n");
+                    push(@$outputArray, "    auto $name = createFunctionOnlyCallback<${callbackClassName}>(state, jsCast<JSDOMGlobalObject*>(state->lexicalGlobalObject()), state->uncheckedArgument($argumentIndex));\n");
                 } else {
-                    push(@$outputArray, "    RefPtr<$type> $name = ${callbackClassName}::create(asObject(state->uncheckedArgument($argumentIndex)), castedThis->globalObject());\n");
+                    push(@$outputArray, "    auto $name = ${callbackClassName}::create(asObject(state->uncheckedArgument($argumentIndex)), castedThis->globalObject());\n");
                 }
             }
             $value = "WTFMove($name)";

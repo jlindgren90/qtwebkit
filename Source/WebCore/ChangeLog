@@ -1,3 +1,396 @@
+2016-05-24  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r196629): Safari can get into a state where switching Reader theme doesn't apply to the webpage
+        https://bugs.webkit.org/show_bug.cgi?id=158018
+        <rdar://problem/24732776>
+
+        Reviewed by Darin Adler.
+
+        When a tab goes to background we clear the style resolver. It is recreated lazily when the tab is again active.
+        However style invalidation code tests if the style resolver exists and skips the invalidation if it doesn't.
+        With sufficiently simple document (like in Reader) we may never create one for other reasons and so style
+        invalidation doesn't work.
+
+        No test, don't know how to make one.
+
+        * dom/Element.cpp:
+        (WebCore::Element::needsStyleInvalidation):
+
+            Remove styleResolverIfExists() check and do the invalidation normally.
+            Instead check for forced style recalc. If there is one pending we don't need to bother with invalidation.
+
+2016-05-24  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, updating binding test results
+        https://bugs.webkit.org/show_bug.cgi?id=157080
+
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        (WebCore::jsTestActiveDOMObjectExcitingAttr):
+        (WebCore::jsTestActiveDOMObjectConstructor):
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.cpp:
+        (WebCore::jsTestClassWithJSBuiltinConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.cpp:
+        (WebCore::jsTestCustomConstructorWithNoInterfaceObjectConstructor):
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        (WebCore::jsTestCustomNamedGetterConstructor):
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        (WebCore::jsTestEventConstructorAttr1):
+        (WebCore::jsTestEventConstructorAttr2):
+        (WebCore::jsTestEventConstructorAttr3):
+        (WebCore::jsTestEventConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestEventTarget.cpp:
+        (WebCore::jsTestEventTargetConstructor):
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        (WebCore::jsTestExceptionName):
+        (WebCore::jsTestExceptionConstructor):
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.cpp:
+        (WebCore::jsTestGenerateIsReachableConstructor):
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::jsTestGlobalObjectRegularAttribute):
+        (WebCore::jsTestGlobalObjectEnabledAtRuntimeAttribute):
+        (WebCore::jsTestGlobalObjectConstructor):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::jsTestInterfaceConstructorImplementsStaticReadOnlyAttr):
+        (WebCore::jsTestInterfaceConstructorImplementsStaticAttr):
+        (WebCore::jsTestInterfaceImplementsStr1):
+        (WebCore::jsTestInterfaceImplementsStr2):
+        (WebCore::jsTestInterfaceImplementsStr3):
+        (WebCore::jsTestInterfaceImplementsNode):
+        (WebCore::jsTestInterfaceConstructorSupplementalStaticReadOnlyAttr):
+        (WebCore::jsTestInterfaceConstructorSupplementalStaticAttr):
+        (WebCore::jsTestInterfaceSupplementalStr1):
+        (WebCore::jsTestInterfaceSupplementalStr2):
+        (WebCore::jsTestInterfaceSupplementalStr3):
+        (WebCore::jsTestInterfaceSupplementalNode):
+        (WebCore::jsTestInterfaceConstructor):
+        * bindings/scripts/test/JS/JSTestJSBuiltinConstructor.cpp:
+        (WebCore::jsTestJSBuiltinConstructorTestAttributeCustom):
+        (WebCore::jsTestJSBuiltinConstructorTestAttributeRWCustom):
+        (WebCore::jsTestJSBuiltinConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp:
+        (WebCore::jsTestMediaQueryListListenerConstructor):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::jsTestNamedConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::jsTestNodeName):
+        (WebCore::jsTestNodeConstructor):
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        (WebCore::jsTestNondeterministicNondeterministicReadonlyAttr):
+        (WebCore::jsTestNondeterministicNondeterministicWriteableAttr):
+        (WebCore::jsTestNondeterministicNondeterministicExceptionAttr):
+        (WebCore::jsTestNondeterministicNondeterministicGetterExceptionAttr):
+        (WebCore::jsTestNondeterministicNondeterministicSetterExceptionAttr):
+        (WebCore::jsTestNondeterministicConstructor):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjReadOnlyLongAttr):
+        (WebCore::jsTestObjReadOnlyStringAttr):
+        (WebCore::jsTestObjReadOnlyTestObjAttr):
+        (WebCore::jsTestObjConstructorStaticReadOnlyLongAttr):
+        (WebCore::jsTestObjConstructorStaticStringAttr):
+        (WebCore::jsTestObjConstructorTestSubObj):
+        (WebCore::jsTestObjTestSubObjEnabledBySettingConstructor):
+        (WebCore::jsTestObjEnumAttr):
+        (WebCore::jsTestObjByteAttr):
+        (WebCore::jsTestObjOctetAttr):
+        (WebCore::jsTestObjShortAttr):
+        (WebCore::jsTestObjClampedShortAttr):
+        (WebCore::jsTestObjEnforceRangeShortAttr):
+        (WebCore::jsTestObjUnsignedShortAttr):
+        (WebCore::jsTestObjLongAttr):
+        (WebCore::jsTestObjLongLongAttr):
+        (WebCore::jsTestObjUnsignedLongLongAttr):
+        (WebCore::jsTestObjStringAttr):
+        (WebCore::jsTestObjTestObjAttr):
+        (WebCore::jsTestObjTestNullableObjAttr):
+        (WebCore::jsTestObjLenientTestObjAttr):
+        (WebCore::jsTestObjUnforgeableAttr):
+        (WebCore::jsTestObjStringAttrTreatingNullAsEmptyString):
+        (WebCore::jsTestObjXMLObjAttr):
+        (WebCore::jsTestObjCreate):
+        (WebCore::jsTestObjReflectedStringAttr):
+        (WebCore::jsTestObjReflectedIntegralAttr):
+        (WebCore::jsTestObjReflectedUnsignedIntegralAttr):
+        (WebCore::jsTestObjReflectedBooleanAttr):
+        (WebCore::jsTestObjReflectedURLAttr):
+        (WebCore::jsTestObjReflectedCustomIntegralAttr):
+        (WebCore::jsTestObjReflectedCustomBooleanAttr):
+        (WebCore::jsTestObjReflectedCustomURLAttr):
+        (WebCore::jsTestObjEnabledAtRuntimeAttribute):
+        (WebCore::jsTestObjTypedArrayAttr):
+        (WebCore::jsTestObjAttrWithGetterException):
+        (WebCore::jsTestObjAttrWithGetterExceptionWithMessage):
+        (WebCore::jsTestObjAttrWithSetterException):
+        (WebCore::jsTestObjAttrWithSetterExceptionWithMessage):
+        (WebCore::jsTestObjStringAttrWithGetterException):
+        (WebCore::jsTestObjStringAttrWithSetterException):
+        (WebCore::jsTestObjStrictTypeCheckingAttribute):
+        (WebCore::jsTestObjCustomAttr):
+        (WebCore::jsTestObjOnfoo):
+        (WebCore::jsTestObjOnwebkitfoo):
+        (WebCore::jsTestObjWithScriptStateAttribute):
+        (WebCore::jsTestObjWithCallWithAndSetterCallWithAttribute):
+        (WebCore::jsTestObjWithScriptExecutionContextAttribute):
+        (WebCore::jsTestObjWithScriptStateAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateAttribute):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute):
+        (WebCore::jsTestObjWithScriptArgumentsAndCallStackAttribute):
+        (WebCore::jsTestObjConditionalAttr1):
+        (WebCore::jsTestObjConditionalAttr2):
+        (WebCore::jsTestObjConditionalAttr3):
+        (WebCore::jsTestObjConditionalAttr4Constructor):
+        (WebCore::jsTestObjConditionalAttr5Constructor):
+        (WebCore::jsTestObjConditionalAttr6Constructor):
+        (WebCore::jsTestObjCachedAttribute1):
+        (WebCore::jsTestObjCachedAttribute2):
+        (WebCore::jsTestObjAnyAttribute):
+        (WebCore::jsTestObjContentDocument):
+        (WebCore::jsTestObjMutablePoint):
+        (WebCore::jsTestObjImmutablePoint):
+        (WebCore::jsTestObjStrawberry):
+        (WebCore::jsTestObjStrictFloat):
+        (WebCore::jsTestObjDescription):
+        (WebCore::jsTestObjId):
+        (WebCore::jsTestObjHash):
+        (WebCore::jsTestObjReplaceableAttribute):
+        (WebCore::jsTestObjNullableDoubleAttribute):
+        (WebCore::jsTestObjNullableLongAttribute):
+        (WebCore::jsTestObjNullableBooleanAttribute):
+        (WebCore::jsTestObjNullableStringAttribute):
+        (WebCore::jsTestObjNullableLongSettableAttribute):
+        (WebCore::jsTestObjNullableStringSettableAttribute):
+        (WebCore::jsTestObjNullableStringValue):
+        (WebCore::jsTestObjAttribute):
+        (WebCore::jsTestObjAttributeWithReservedEnumType):
+        (WebCore::jsTestObjPutForwardsAttribute):
+        (WebCore::jsTestObjPutForwardsNullableAttribute):
+        (WebCore::jsTestObjConstructor):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::jsTestOverloadedConstructorsConstructor):
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        (WebCore::jsTestOverrideBuiltinsConstructor):
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        (WebCore::jsTestSerializedScriptValueInterfaceValue):
+        (WebCore::jsTestSerializedScriptValueInterfaceReadonlyValue):
+        (WebCore::jsTestSerializedScriptValueInterfaceCachedValue):
+        (WebCore::jsTestSerializedScriptValueInterfacePorts):
+        (WebCore::jsTestSerializedScriptValueInterfaceCachedReadonlyValue):
+        (WebCore::jsTestSerializedScriptValueInterfaceConstructor):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::jsTestTypedefsUnsignedLongLongAttr):
+        (WebCore::jsTestTypedefsImmutableSerializedScriptValue):
+        (WebCore::jsTestTypedefsConstructorTestSubObj):
+        (WebCore::jsTestTypedefsAttrWithGetterException):
+        (WebCore::jsTestTypedefsAttrWithSetterException):
+        (WebCore::jsTestTypedefsStringAttrWithGetterException):
+        (WebCore::jsTestTypedefsStringAttrWithSetterException):
+        (WebCore::jsTestTypedefsConstructor):
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        (WebCore::jsattributeReadonly):
+        (WebCore::jsattributeConstructor):
+        * bindings/scripts/test/JS/JSreadonly.cpp:
+        (WebCore::jsreadonlyConstructor):
+
+2016-05-24  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Fix behavior of flexible track breadths
+        https://bugs.webkit.org/show_bug.cgi?id=157834
+
+        Reviewed by Sergio Villar Senin.
+
+        This patch is fixing 2 issues that are interrelated:
+
+        1) Flex sizes are invalid as min track sizing function.
+
+          The syntax has been recently updated on the spec:
+            <track-size> =
+              <track-breadth> |
+              minmax( <inflexible-breadth> , <track-breadth> )
+
+        2) Flex sizes outside minmax() behave as auto minimum.
+
+          Flex sizes outside minmax() were previously behaving like
+          minimum and maximum (e.g. 1fr => minmax(1fr, 1fr)).
+          However the spec changed and now this would be invalid,
+          so they should behave like auto minimum (e.g. minmax(auto, 1fr)).
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseGridTrackSize): Call parseGridBreadth()
+        for min sizing function using "InflexibleSizeOnly" restriction
+        when needed.
+        (WebCore::CSSParser::parseGridBreadth): Add check for
+        "InflexibleSizeOnly" resctriction.
+        * css/CSSParser.h: Add new type of restriction "InflexibleSizeOnly".
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::gridTrackSize): Add new condition to make
+        |minTrackBreadth| auto if it was a flex size.
+
+2016-05-24  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        [Fetch API] Implement Fetch redirect mode
+        https://bugs.webkit.org/show_bug.cgi?id=157837
+
+        Reviewed by Alex Christensen.
+
+        Implementing step 5 of https://fetch.spec.whatwg.org/#http-fetch.
+        Making ResourceLoaderOptions include FetchOptions.
+        This allows SubresourceLoader to follow or not redirections based on that option.
+        CachedResource is made responsible to handle the type of the response (opaqueredirect, opaque, cors, basic...).
+        If redirection is not to be followed, either an error is returned or an empty response is returned.
+
+        Moved Response type and redirected flag from FetchResponse to ResourceResponse.
+        This allows CachedResource to easily communicate that information to FetchResponse.
+
+        Made some clean-up refactoring in ThreadableLoaderOptions.
+
+        http/tests/fetch/caching-with-different-options.html ensures that
+        caching at CachedResourceLoader will not have bad effects on fetch.
+        Covered by updated and rebased tests.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start):
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::error):
+        (WebCore::FetchResponse::redirect):
+        (WebCore::FetchResponse::FetchResponse):
+        (WebCore::FetchResponse::clone):
+        (WebCore::FetchResponse::startFetching):
+        * Modules/fetch/FetchResponse.h:
+        * WebCore.xcodeproj/project.pbxproj:
+        * loader/FetchOptions.h: Moved from Source/WebCore/Modules/fetch/FetchOptions.h.
+        * loader/ResourceLoaderOptions.h:
+        (WebCore::ResourceLoaderOptions::fetchOptions):
+        (WebCore::ResourceLoaderOptions::setFetchOptions):
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::willSendRequestInternal):
+        * loader/ThreadableLoader.cpp:
+        * loader/ThreadableLoader.h:
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::setResponse):
+        * loader/cache/CachedResource.h:
+        (WebCore::CachedResource::setOpaqueRedirect):
+        * platform/network/ResourceResponseBase.cpp:
+        (WebCore::ResourceResponseBase::adopt):
+        (WebCore::ResourceResponseBase::copyData):
+        * platform/network/ResourceResponseBase.h:
+        (WebCore::ResourceResponseBase::type):
+        (WebCore::ResourceResponseBase::setType):
+        (WebCore::ResourceResponseBase::encode):
+        (WebCore::ResourceResponseBase::decode):
+
+2016-05-23  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Assertion failure for Reflect.get with Proxy and primitive value as explicit receiver
+        https://bugs.webkit.org/show_bug.cgi?id=157080
+
+        Reviewed by Saam Barati.
+
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::nonCachingStaticFunctionGetter):
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::jsDOMWindowWebKit):
+        * bindings/js/JSPluginElementFunctions.cpp:
+        (WebCore::pluginElementPropertyGetter):
+        * bindings/js/JSPluginElementFunctions.h:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        (GenerateImplementation):
+        * bridge/runtime_array.cpp:
+        (JSC::RuntimeArray::lengthGetter):
+        * bridge/runtime_array.h:
+        * bridge/runtime_method.cpp:
+        (JSC::RuntimeMethod::lengthGetter):
+        * bridge/runtime_method.h:
+        * bridge/runtime_object.cpp:
+        (JSC::Bindings::RuntimeObject::fallbackObjectGetter):
+        (JSC::Bindings::RuntimeObject::fieldGetter):
+        (JSC::Bindings::RuntimeObject::methodGetter):
+        * bridge/runtime_object.h:
+
+2016-05-23  Alex Christensen  <achristensen@webkit.org>
+
+        Modernize CSS code
+        https://bugs.webkit.org/show_bug.cgi?id=157875
+
+        Reviewed by Chris Dumez.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        (GenerateParametersCheck):
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp:
+        (WebCore::jsTestMediaQueryListListenerPrototypeFunctionMethod):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjConstructor::construct):
+        (WebCore::setJSTestObjPutForwardsNullableAttribute):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackFunctionArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackFunctionArg):
+        (WebCore::jsTestObjConstructorFunctionStaticMethodWithCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod5):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::JSTestTypedefsConstructor::construct):
+        * css/CSSBasicShapes.cpp:
+        (WebCore::serializePositionOffset):
+        (WebCore::buildSerializablePositionOffset):
+        (WebCore::CSSBasicShapeCircle::cssText):
+        (WebCore::CSSBasicShapeEllipse::cssText):
+        * css/CSSCalculationValue.cpp:
+        (WebCore::determineCategory):
+        (WebCore::CSSCalcExpressionNodeParser::parseValue):
+        * css/CSSMediaRule.cpp:
+        (WebCore::CSSMediaRule::media):
+        * css/CSSMediaRule.h:
+        * css/CSSOMUtils.h:
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::createImportRule):
+        (WebCore::CSSParser::createMediaRule):
+        * css/CSSReflectValue.h:
+        * css/CSSStyleSheet.cpp:
+        (WebCore::CSSStyleSheet::setDisabled):
+        (WebCore::CSSStyleSheet::setMediaQueries):
+        (WebCore::CSSStyleSheet::insertRule):
+        (WebCore::CSSStyleSheet::deleteRule):
+        (WebCore::CSSStyleSheet::isLoading):
+        (WebCore::CSSStyleSheet::media):
+        (WebCore::CSSStyleSheet::parentStyleSheet):
+        (WebCore::CSSStyleSheet::ownerDocument):
+        (WebCore::CSSStyleSheet::clearChildRuleCSSOMWrappers):
+        (WebCore::CSSStyleSheet::RuleMutationScope::RuleMutationScope):
+        * css/CSSStyleSheet.h:
+        * css/PropertySetCSSStyleDeclaration.cpp:
+        * css/StyleRule.cpp:
+        (WebCore::StyleRuleBase::createCSSOMWrapper):
+        (WebCore::StyleRuleBase::destroy):
+        (WebCore::StyleRuleGroup::wrapperRemoveRule):
+        (WebCore::StyleRuleMedia::StyleRuleMedia):
+        * css/StyleRule.h:
+        (WebCore::StyleRuleBase::deref):
+        (WebCore::StyleRuleBase::StyleRuleBase):
+        (WebCore::StyleRuleMedia::create):
+        (WebCore::StyleRuleMedia::mediaQueries):
+        (WebCore::StyleRuleMedia::copy):
+        (isType):
+        * css/StyleRuleImport.cpp:
+        (WebCore::StyleRuleImport::create):
+        (WebCore::StyleRuleImport::StyleRuleImport):
+        * css/StyleRuleImport.h:
+        * css/StyleSheetContents.cpp:
+        (WebCore::StyleSheetContents::isCacheable):
+        (WebCore::StyleSheetContents::parserAppendRule):
+        (WebCore::StyleSheetContents::ruleAt):
+        (WebCore::StyleSheetContents::parserSetEncodingFromCharsetRule):
+        (WebCore::StyleSheetContents::wrapperInsertRule):
+        * css/StyleSheetContents.h:
+        (WebCore::StyleSheetContents::hasSyntacticallyValidCSSHeader):
+        (WebCore::StyleSheetContents::parserSetUsesRemUnits):
+        (WebCore::StyleSheetContents::parserSetUsesStyleBasedEditability):
+        (WebCore::StyleSheetContents::copy):
+        * dom/InlineStyleSheetOwner.cpp:
+        (WebCore::InlineStyleSheetOwner::createSheet):
+        * inspector/InspectorStyleSheet.cpp:
+
 2016-05-23  Zalan Bujtas  <zalan@apple.com>
 
         Changing border color and size simultaneously fails to repaint.
