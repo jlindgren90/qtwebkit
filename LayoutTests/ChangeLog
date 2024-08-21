@@ -1,3 +1,118 @@
+2016-05-16  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Focus ordering should respect slot elements
+        https://bugs.webkit.org/show_bug.cgi?id=151379
+
+        Reviewed by Antti Koivisto.
+
+        Added regression tests for moving focus by tab and shift+tab across
+        user-defined shadow trees with slots and details element.
+
+        * fast/shadow-dom/focus-across-details-element-expected.txt: Added.
+        * fast/shadow-dom/focus-across-details-element.html: Added.
+        * fast/shadow-dom/focus-navigation-across-slots-expected.txt: Added.
+        * fast/shadow-dom/focus-navigation-across-slots.html: Added.
+
+2016-05-16  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline tests for ios-simulator
+
+        Unreviewed test gardening.
+
+        * fast/events/touch/document-create-touch-list-ios-expected.txt:
+        * platform/ios-simulator/ios/touch/construct-TouchList-expected.txt:
+
+2016-05-16  Filip Pizlo  <fpizlo@apple.com>
+
+        FixupPhase should be more eager to demote bit math to untyped
+        https://bugs.webkit.org/show_bug.cgi?id=157746
+
+        Reviewed by Mark Lam.
+
+        * js/regress/object-and-expected.txt: Added.
+        * js/regress/object-and.html: Added.
+        * js/regress/object-int-and-array-expected.txt: Added.
+        * js/regress/object-int-and-array.html: Added.
+        * js/regress/object-lshift-expected.txt: Added.
+        * js/regress/object-lshift.html: Added.
+        * js/regress/object-or-expected.txt: Added.
+        * js/regress/object-or.html: Added.
+        * js/regress/object-rshift-expected.txt: Added.
+        * js/regress/object-rshift.html: Added.
+        * js/regress/object-urshift-expected.txt: Added.
+        * js/regress/object-urshift.html: Added.
+        * js/regress/object-xor-expected.txt: Added.
+        * js/regress/object-xor.html: Added.
+        * js/regress/script-tests/object-and.js: Added.
+        (o.valueOf):
+        * js/regress/script-tests/object-int-and-array.js: Added.
+        (i.o.valueOf):
+        * js/regress/script-tests/object-lshift.js: Added.
+        (o.valueOf):
+        * js/regress/script-tests/object-or.js: Added.
+        (o.valueOf):
+        * js/regress/script-tests/object-rshift.js: Added.
+        (o.valueOf):
+        * js/regress/script-tests/object-urshift.js: Added.
+        (o.valueOf):
+        * js/regress/script-tests/object-xor.js: Added.
+        (o.valueOf):
+
+2016-05-16  Michael Saboff  <msaboff@apple.com>
+
+        RegExp /y flag incorrect handling of mixed-length alternation
+        https://bugs.webkit.org/show_bug.cgi?id=157723
+
+        Reviewed by Filip Pizlo.
+
+        Added tests for alternatives with shorter to longer lengths.
+
+        * js/regexp-sticky-expected.txt:
+        * js/script-tests/regexp-sticky.js:
+
+2016-05-16  Brent Fulgham  <bfulgham@apple.com>
+
+        REGRESSION (r192098): Content missing after copy and paste to Notes App on retina displays
+        https://bugs.webkit.org/show_bug.cgi?id=157630
+        <rdar://problem/25277577>
+
+        Reviewed by Simon Fraser.
+
+        * http/tests/images/hidpi-srcset-copy-expected.txt: Added.
+        * http/tests/images/hidpi-srcset-copy.html: Added.
+        * http/tests/resources/img-srcset: Added.
+        * http/tests/resources/img-srcset/image1-620x442.jpg: Added.
+        * http/tests/resources/img-srcset/image2-1024x731.jpg: Added.
+        * http/tests/resources/img-srcset/image2-1400x1000.jpg: Added.
+        * http/tests/resources/img-srcset/image2-300x214.jpg: Added.
+        * http/tests/resources/img-srcset/image2-620x442.jpg: Added.
+        * http/tests/resources/img-srcset/image2-840x600.jpg: Added.
+        * http/tests/resources/img-srcset/image3-250x178.jpg: Added.
+        * http/tests/resources/img-srcset/image3-615x438.jpg: Added.
+        * http/tests/resources/img-srcset/image3-620x440.jpg: Added.
+        * http/tests/resources/img-srcset/image3-700x498.jpg: Added.
+        * http/tests/resources/img-srcset/image3-840x598.jpg: Added.
+        * http/tests/resources/img-srcset/image3.jpg: Added.
+        * http/tests/resources/img-srcset/image4-1024x612.jpg: Added.
+        * http/tests/resources/img-srcset/image4-300x179.jpg: Added.
+        * http/tests/resources/img-srcset/image4-620x370.jpg: Added.
+        * http/tests/resources/img-srcset/image4-768x459.jpg: Added.
+        * http/tests/resources/img-srcset/image4-840x502.jpg: Added.
+        * http/tests/resources/img-srcset/image4-940x560.jpg: Added.
+        * platform/efl/TestExpectations: No pasteboard implementation. Skip.
+        * platform/gtk/TestExpectations: Ditto.
+        * platform/win/TestExpectations: Ditto.
+
+2016-05-16  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [GTK] Unreviewed gardening
+
+        Re-mark a failing test as failing. Update the expectations file so
+        that it fails rather than passes unexpectedly.
+
+        * accessibility/gtk/title-and-alt-expected.txt:
+        * platform/gtk/TestExpectations:
+
 2016-05-16  Said Abou-Hallawa  <sabouhallawa@apple.com>
 
         REGRESSION (r199821): Large animated GIFs with slow network do not animate till the last frame

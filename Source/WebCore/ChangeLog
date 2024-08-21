@@ -1,3 +1,337 @@
+2016-05-13  Enrica Casucci  <enrica@apple.com>
+
+        Remove unused initializer for WebEvent on iOS.
+        https://bugs.webkit.org/show_bug.cgi?id=157689
+
+        Reviewed by Anders Carlsson.
+
+        This is no longer used and can be removed.
+        The logic tied to isPopupVariant has been incorporated
+        in keyboard flags. The characterSet property is no longer needed too.
+
+        * platform/ios/WebEvent.h:
+        * platform/ios/WebEvent.mm:
+        (-[WebEvent initWithKeyEventType:timeStamp:characters:charactersIgnoringModifiers:modifiers:isRepeating:withFlags:keyCode:isTabKey:characterSet:]):
+        (-[WebEvent initWithKeyEventType:timeStamp:characters:charactersIgnoringModifiers:modifiers:isRepeating:isPopupVariant:keyCode:isTabKey:characterSet:]): Deleted.
+        (-[WebEvent _characterSetDescription]): Deleted.
+        (-[WebEvent isPopupVariant]): Deleted.
+        (-[WebEvent characterSet]): Deleted.
+
+2016-05-16  Simon Fraser  <simon.fraser@apple.com>
+
+        Add a WebCore logging channel for images
+        https://bugs.webkit.org/show_bug.cgi?id=157752
+
+        Reviewed by Zalan Bujtas.
+
+        Create an Images log channel, and log various things related to decoding and drawing
+        images.
+
+        * platform/Logging.h:
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::destroyDecodedDataIfNecessary):
+        (WebCore::BitmapImage::cacheFrame):
+        (WebCore::BitmapImage::startAnimation):
+        * platform/graphics/cg/GraphicsContextCG.cpp:
+        (WebCore::GraphicsContext::drawNativeImage):
+        * platform/graphics/cg/ImageDecoderCG.cpp:
+        (WebCore::ImageDecoder::createFrameImageAtIndex):
+
+2016-05-12  Ada Chan  <adachan@apple.com>
+
+        Don't execute JavaScript within HTMLMediaElement::stop()
+        https://bugs.webkit.org/show_bug.cgi?id=157655
+
+        Reviewed by Chris Dumez.
+
+        * dom/ScriptExecutionContext.cpp:
+        (WebCore::ScriptExecutionContext::suspendActiveDOMObjects):
+        Move the setting of m_activeDOMObjectsAreSuspended to true earlier so we won't execute
+        any JS while suspending the objects.
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::updateMediaControlsAfterPresentationModeChange):
+        Bail early if the controls script hasn't been injected yet or the DOM object has been
+        stopped or suspended.
+
+2016-05-16  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Focus ordering should respect slot elements
+        https://bugs.webkit.org/show_bug.cgi?id=151379
+
+        Reviewed by Antti Koivisto.
+
+        Implemented the sequential focus navigation ordering as discussed on
+        https://github.com/w3c/webcomponents/issues/375
+
+        New behavior treats each shadow root and slot as a "focus scope". The focus navigation ordering
+        is defined within each "focus scope" using tabindex, treating any "focus scope owner"
+        (e.g. shadow host or a slot) as if it was having tabindex=0 if it wasn't itself focusable.
+
+        This patch modifies FocusNavigationScope to support a focus scope defined for a slot element in
+        addition to the one defined for a shadow tree and a document as previously supported.
+
+        Tests: fast/shadow-dom/focus-across-details-element.html
+               fast/shadow-dom/focus-navigation-across-slots.html
+
+        * dom/Node.cpp:
+        (WebCore::parentShadowRoot): Extracted from assignedSlot.
+        (WebCore::Node::assignedSlot):
+        (WebCore::Node::assignedSlotForBindings): Added.
+        * dom/Node.h:
+        * dom/NonDocumentTypeChildNode.idl:
+        * html/HTMLDetailsElement.h:
+        (HTMLDetailsElement::hasCustomFocusLogic): Added. Don't treat details element as a "focus scope".
+        * html/HTMLSummaryElement.h:
+        (HTMLSummaryElement::hasCustomFocusLogic): Ditto for summary element.
+        * page/FocusController.cpp:
+        (WebCore::hasCustomFocusLogic): Moved.
+        (WebCore::isFocusScopeOwner): Added. Returns true on a shadow host without a custom focus logic or
+        on a slot inside a shadow tree whose shadow host doesn't have a custom focus logic.
+        (WebCore::FocusNavigationScope::firstChildInScope): Now takes a reference. Call isFocusScopeOwner
+        to check for both slots and shadow roots instead of just the latter. This fixes a subtle bug that
+        focus may never get out of textarea in some cases due to its failure to check hasCustomFocusLogic.
+        (WebCore::FocusNavigationScope::lastChildInScope): Ditto.
+        (WebCore::FocusNavigationScope::parentInScope): Made this a member function since it needs to check
+        against m_slotElement inside the focus scope of a slot.
+        (WebCore::FocusNavigationScope::nextSiblingInScope): Added. Finds the next assigned node in a slot
+        in the focus scope defined for a slot. Just calls nextSibling() in the focus scope for shadow tree
+        and document.
+        (WebCore::FocusNavigationScope::previousSiblingInScope): Ditto for finding the previous sibling.
+        (WebCore::FocusNavigationScope::firstNodeInScope): Added. This function replaces rootNode() which
+        doesn't exist for the focus scope of a slot element.
+        (WebCore::FocusNavigationScope::lastNodeInScope): Ditto for the last node.
+        (WebCore::FocusNavigationScope::nextInScope):
+        (WebCore::FocusNavigationScope::previousInScope):
+        (WebCore::FocusNavigationScope::FocusNavigationScope): Added a variant that takes HTMLSlotElement.
+        (WebCore::FocusNavigationScope::owner): Added the support for slot elements.
+        (WebCore::FocusNavigationScope::scopeOf): Ditto.
+        (WebCore::FocusNavigationScope::scopeOwnedByScopeOwner): Ditto.
+        (WebCore::isFocusableElementOrScopeOwner): Added the support for slot elements and renamed from
+        isFocusableOrHasShadowTreeWithoutCustomFocusLogic.
+        (WebCore::isNonFocusableScopeOwner): Ditto. Renamed from isNonFocusableShadowHost.
+        (WebCore::isFocusableScopeOwner): Ditto. Renamed from isFocusableShadowHost.
+        (WebCore::shadowAdjustedTabIndex): Added the support for slot elements.
+        (WebCore::FocusController::findFocusableElementAcrossFocusScope):
+        (WebCore::FocusController::nextFocusableElementWithinScope):
+        (WebCore::FocusController::previousFocusableElementWithinScope):
+        (WebCore::FocusController::findElementWithExactTabIndex):
+        (WebCore::nextElementWithGreaterTabIndex): Call firstNodeInScope() instead of rootNode() here since
+        there is no root node for the focus scope defined for a slot element.
+        (WebCore::previousElementWithLowerTabIndex): Ditto for scope.lastNodeInScope().
+        (WebCore::FocusController::nextFocusableElementOrScopeOwner):
+        (WebCore::FocusController::previousFocusableElementOrScopeOwner):
+        (WebCore::parentInScope): Deleted.
+        (WebCore::FocusNavigationScope::rootNode): Deleted.
+        (WebCore::FocusNavigationScope::scopeOwnedByShadowHost): Deleted.
+        (WebCore::isNonFocusableShadowHost): Deleted.
+        (WebCore::isFocusableShadowHost): Deleted.
+        (WebCore::isFocusableOrHasShadowTreeWithoutCustomFocusLogic): Deleted.
+
+2016-05-16  Chris Dumez  <cdumez@apple.com>
+
+        Use WTF::Optional for ScrollView's m_deferredScrollDelta / m_deferredScrollOffsets
+        https://bugs.webkit.org/show_bug.cgi?id=157747
+
+        Reviewed by Zalan Bujtas.
+
+        Use WTF::Optional for ScrollView's m_deferredScrollDelta / m_deferredScrollOffsets
+        instead of std::unique_ptr as it is more suited for this purpose.
+
+        * platform/ScrollView.cpp:
+        (WebCore::ScrollView::scrollOffsetChangedViaPlatformWidget):
+        (WebCore::ScrollView::handleDeferredScrollUpdateAfterContentSizeChange):
+        (WebCore::ScrollView::scrollTo):
+        * platform/ScrollView.h:
+
+2016-05-16  Zalan Bujtas  <zalan@apple.com>
+
+        containingBlockFor*Position functions should take the renderer instead of the parent.
+        https://bugs.webkit.org/show_bug.cgi?id=157659
+
+        Reviewed by Simon Fraser.
+
+        containingBlockForFixedPosition, containingBlockForAbsolutePosition and containingBlockForObjectInFlow functions
+        expect the renderer's parent to be passed in (unless it is a RenderInline!). It is rather misleading and highly error-prone.
+        We should call them with the renderer itself instead.
+
+        * dom/Element.cpp:
+        (WebCore::layoutOverflowRectContainsAllDescendants): This expects ancestor containing block.
+        * rendering/LogicalSelectionOffsetCaches.h:
+        (WebCore::LogicalSelectionOffsetCaches::LogicalSelectionOffsetCaches):
+        * rendering/RenderElement.cpp:
+        (WebCore::containingBlockForFixedPosition):
+        (WebCore::containingBlockForAbsolutePosition):
+        (WebCore::containingBlockForObjectInFlow):
+        * rendering/RenderElement.h:
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::styleWillChange):
+        * rendering/RenderLineBreak.cpp:
+        (WebCore::RenderLineBreak::collectSelectionRects): Not a behaviour change.
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::containingBlock): RenderScrollbarPart renderer now returns
+        the containing block based on its owning renderer's style.
+
+2016-05-16  Brent Fulgham  <bfulgham@apple.com>
+
+        REGRESSION (r192098): Content missing after copy and paste to Notes App on retina displays
+        https://bugs.webkit.org/show_bug.cgi?id=157630
+        <rdar://problem/25277577>
+
+        Reviewed by Simon Fraser.
+
+        Tested by http/tests/images/hidpi-srcset-copy.html
+
+        The code to create a WebArchive (or other representation) of a webpage was using the 'src' attribute of
+        the image element, which might be changed to reflect the optimal image dimensions for a specific
+        display. Instead, we should use the 'imageSourceURL' method of the Element class so we get the correct
+        'original' image URL in our cached resources.
+
+        * editing/cocoa/HTMLConverter.mm:
+        (HTMLConverter::_processElement): Use 'imageSourceURL', rather than getting the raw 'src' attribute.
+        * html/HTMLImageElement.cpp:
+        (WebCore::HTMLImageElement::addSubresourceAttributeURLs): Ditto.
+
+2016-05-16  Brady Eidson  <beidson@apple.com>
+
+        Random CachedFont.cpp cleanup.
+        https://bugs.webkit.org/show_bug.cgi?id=157740
+
+        Reviewed by Myles C. Maxfield.
+
+        No new tests (Refactor/cleanup, no behavior change)
+
+        * loader/cache/CachedFont.cpp:
+        (WebCore::CachedFont::ensureCustomFontData): Remove unneeded local RefPtr<>
+        (WebCore::CachedFont::createCustomFontData): Refactor to not require unnecessary Ref-churn in the common case.
+
+2016-05-16  Chris Dumez  <cdumez@apple.com>
+
+        Modernize Track classes' code
+        https://bugs.webkit.org/show_bug.cgi?id=157735
+
+        Reviewed by Eric Carlson.
+
+        Modernize Track classes' code a bit.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::removeSourceBuffer):
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveInitializationSegment):
+        * bindings/js/JSTrackCustom.cpp:
+        (WebCore::toTrack):
+        (WebCore::toJS):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::audioTrackEnabledChanged):
+        (WebCore::HTMLMediaElement::textTrackModeChanged):
+        (WebCore::HTMLMediaElement::videoTrackSelectedChanged):
+        (WebCore::HTMLMediaElement::textTrackRemoveCues):
+        (WebCore::HTMLMediaElement::mediaPlayerDidAddTextTrack):
+        (WebCore::HTMLMediaElement::addAudioTrack):
+        (WebCore::HTMLMediaElement::addTextTrack):
+        (WebCore::HTMLMediaElement::addVideoTrack):
+        (WebCore::HTMLMediaElement::removeAudioTrack):
+        (WebCore::HTMLMediaElement::removeTextTrack):
+        (WebCore::HTMLMediaElement::removeVideoTrack):
+        (WebCore::HTMLMediaElement::forgetResourceSpecificTracks):
+        (WebCore::HTMLMediaElement::audioTracks):
+        (WebCore::HTMLMediaElement::textTracks):
+        (WebCore::HTMLMediaElement::videoTracks):
+        (WebCore::HTMLMediaElement::didAddTextTrack):
+        (WebCore::HTMLMediaElement::didRemoveTextTrack):
+        (WebCore::HTMLMediaElement::setSelectedTextTrack):
+        (WebCore::HTMLMediaElement::textTrackAddCues): Deleted.
+        (WebCore::HTMLMediaElement::closeCaptionTracksChanged): Deleted.
+        * html/HTMLMediaElement.h:
+        * html/shadow/MediaControlElements.cpp:
+        (WebCore::MediaControlClosedCaptionsTrackListElement::updateDisplay):
+        (WebCore::MediaControlClosedCaptionsTrackListElement::rebuildTrackListMenu):
+        * html/track/AudioTrack.cpp:
+        (WebCore::AudioTrack::~AudioTrack):
+        (WebCore::AudioTrack::setPrivate):
+        (WebCore::AudioTrack::isValidKind):
+        (WebCore::AudioTrack::willRemove):
+        (WebCore::AudioTrack::setEnabled): Deleted.
+        (WebCore::AudioTrack::updateKindFromPrivate): Deleted.
+        * html/track/AudioTrack.h:
+        (isType):
+        * html/track/AudioTrackList.cpp:
+        (AudioTrackList::append):
+        (AudioTrackList::item):
+        (AudioTrackList::getTrackById):
+        (AudioTrackList::eventTargetInterface): Deleted.
+        * html/track/AudioTrackList.h:
+        * html/track/InbandTextTrack.cpp:
+        (WebCore::InbandTextTrack::willRemove):
+        * html/track/TextTrack.cpp:
+        (WebCore::TextTrack::setKind):
+        (WebCore::TextTrack::trackIndex):
+        (WebCore::TextTrack::trackIndexRelativeToRenderedTracks):
+        (WebCore::TextTrack::setLanguage):
+        * html/track/TextTrack.h:
+        (isType):
+        * html/track/TextTrackList.cpp:
+        (TextTrackList::getTrackIndex):
+        (TextTrackList::getTrackIndexRelativeToRenderedTracks):
+        (TextTrackList::item):
+        (TextTrackList::getTrackById):
+        (TextTrackList::invalidateTrackIndexesAfterTrack):
+        (TextTrackList::append):
+        (TextTrackList::remove):
+        (TextTrackList::contains):
+        * html/track/TextTrackList.h:
+        * html/track/TrackBase.h:
+        * html/track/TrackEvent.cpp:
+        (WebCore::TrackEvent::TrackEvent):
+        * html/track/TrackEvent.h:
+        * html/track/TrackListBase.cpp:
+        (TrackListBase::remove):
+        (TrackListBase::contains):
+        (TrackListBase::scheduleTrackEvent):
+        (TrackListBase::scheduleAddTrackEvent):
+        (TrackListBase::scheduleRemoveTrackEvent):
+        * html/track/TrackListBase.h:
+        * html/track/VideoTrack.cpp:
+        (WebCore::VideoTrack::willRemove):
+        (WebCore::VideoTrack::setKind):
+        (WebCore::VideoTrack::setLanguage):
+        * html/track/VideoTrack.h:
+        (isType):
+        * html/track/VideoTrackList.cpp:
+        (VideoTrackList::append):
+        (VideoTrackList::item):
+        (VideoTrackList::getTrackById):
+        (VideoTrackList::selectedIndex):
+        * html/track/VideoTrackList.h:
+
+2016-05-16  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        CSSParser.cpp triggers -Wunused-parameter
+        https://bugs.webkit.org/show_bug.cgi?id=157734
+
+        Reviewed by Csaba Osztrogonác.
+
+        * css/CSSParser.cpp:
+        (WebCore::isValidKeywordPropertyAndValue):
+
+2016-05-16  Zan Dobersek  <zdobersek@igalia.com>
+
+        [Cairo] GraphicsContext3D::ImageExtractor should use the correct size for copying non-image surfaces
+        https://bugs.webkit.org/show_bug.cgi?id=157580
+
+        Reviewed by Darin Adler.
+
+        GraphicsContext3D::ImageExtractor::extractImage() shouldn't use m_imageWidth
+        and m_imageHeight members when copying the non-image-backed Cairo surface into
+        the image-based replacement simply because these two are not initialized until
+        later in this method.
+
+        Instead, the size of the to-be-copied image should be queried via the
+        cairoSurfaceSize() utility function which properly handles Cairo surfaces of
+        different types.
+
+        * platform/graphics/cairo/GraphicsContext3DCairo.cpp:
+        (WebCore::GraphicsContext3D::ImageExtractor::extractImage):
+
 2016-05-16  Said Abou-Hallawa  <sabouhallawa@apple.com>
 
         REGRESSION (r199821): Large animated GIFs with slow network do not animate till the last frame

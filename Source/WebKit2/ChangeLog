@@ -1,3 +1,123 @@
+2016-05-16  Chelsea Pugh  <cpugh@apple.com>
+
+        [iOS] Remove dispatch_after in -[WKFormInputSession setSuggestions:]
+        https://bugs.webkit.org/show_bug.cgi?id=157745
+
+        Reviewed by Dan Bernstein.
+
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKFormInputSession setSuggestions:]): Remove the dispatch_after since
+        there is no longer a chance of keyboard suggestions replacing the
+        suggestions set here.
+
+2016-05-16  Brian Burg  <bburg@apple.com>
+
+        Crash simulating keystrokes at WebKit::WebAutomationSession::platformSimulateKeyStroke
+        https://bugs.webkit.org/show_bug.cgi?id=157737
+        <rdar://problem/26292946>
+
+        Reviewed by Timothy Hatcher.
+
+        * UIProcess/Cocoa/WebAutomationSessionCocoa.mm:
+        (WebKit::WebAutomationSession::platformSimulateKeyStroke):
+        AppKit expects characters passed to [NSEvent keyEventWithType:...]
+        to be non-nil even if there are no characters. Initialize characters
+        to the empty string @"". It will be overwritten if the keystroke should
+        produce any unicode characters.
+
+2016-05-16  Brian Burg  <bburg@apple.com>
+
+        Web Automation: Automation.inspectBrowsingContext should automatically start page profiling
+        https://bugs.webkit.org/show_bug.cgi?id=157739
+
+        Reviewed by Timothy Hatcher.
+
+        * UIProcess/API/C/WKInspector.cpp:
+        (WKInspectorTogglePageProfiling):
+        Implicitly show the Web Inspector in the C API command to preserve existing behavior.
+
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::inspectorFrontendLoaded):
+        If the frontend loaded, it was either because the user opened Web Inspector (and
+        turning on page profiling is harmless), or it was loaded but not shown by the
+        inspectBrowsingContext command. For the latter, we want to start page profiling
+        before processing any additional commands so subsequent execution is captured.
+
+        * UIProcess/WebInspectorProxy.cpp:
+        (WebKit::WebInspectorProxy::togglePageProfiling):
+        Send the start/stop profiling messages directly to the WebInspectorUI process instead of
+        bouncing through the inspected page's process, which does an implicit show() we don't want.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::inspector): Make it const.
+        * UIProcess/WebPageProxy.h:
+
+2016-05-16  Conrad Shultz  <conrad_shultz@apple.com>
+
+        Fix some deprecation warnings.
+
+        * UIProcess/mac/WKPrintingView.mm:
+        (-[WKPrintingView _drawPDFDocument:page:atPoint:]):
+        * WebProcess/Plugins/PDF/DeprecatedPDFPlugin.mm:
+        (WebKit::PDFPlugin::setActiveAnnotation):
+        (WebKit::PDFPlugin::lookupTextAtLocation):
+        * WebProcess/Plugins/PDF/PDFPluginChoiceAnnotation.h:
+        * WebProcess/Plugins/PDF/PDFPluginChoiceAnnotation.mm:
+        (WebKit::PDFPluginChoiceAnnotation::createAnnotationElement):
+        * WebProcess/Plugins/PDF/PDFPluginTextAnnotation.h:
+        * WebProcess/Plugins/PDF/PDFPluginTextAnnotation.mm:
+        (WebKit::PDFPluginTextAnnotation::createAnnotationElement):
+        * WebProcess/WebPage/mac/WebPageMac.mm:
+        (WebKit::drawPDFPage):
+
+2016-04-06  Jer Noble  <jer.noble@apple.com>
+
+        [WK2] Add API to WKWebViewConfiguration to control autoplay policy.
+        https://bugs.webkit.org/show_bug.cgi?id=156312
+
+        Reviewed by Dan Bernstein.
+
+        Add a new API to WKWebViewConfiguration to allow fine-grained control over when media is allowed
+        to play without a user gesture, and simultaneously deprecate the existing, all-or-nothing API,
+        and deprecated the equivalent SPIs.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.h:
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration init]):
+        (-[WKWebViewConfiguration encodeWithCoder:]):
+        (-[WKWebViewConfiguration initWithCoder:]):
+        (-[WKWebViewConfiguration copyWithZone:]):
+        (-[WKWebViewConfiguration _requiresUserActionForVideoPlayback]):
+        (-[WKWebViewConfiguration _setRequiresUserActionForVideoPlayback:]):
+        (-[WKWebViewConfiguration _requiresUserActionForAudioPlayback]):
+        (-[WKWebViewConfiguration _setRequiresUserActionForAudioPlayback:]):
+        (-[WKWebViewConfiguration requiresUserActionForMediaPlayback]):
+        (-[WKWebViewConfiguration setRequiresUserActionForMediaPlayback:]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+
+2016-05-16  Brian Burg  <bburg@apple.com>
+
+        Web Automation: WebAutomationSessionProxy.js gets injected more than once sometimes
+        https://bugs.webkit.org/show_bug.cgi?id=157716
+        <rdar://problem/26287306>
+
+        Reviewed by Timothy Hatcher.
+
+        Whenever a script was injected into a non-normal world by a WebKit client,
+        the WebProcess's WebAutomationSessionProxy singleton would get a
+        notification that the window was cleared from the relevant frame.
+        This notification happens when creating the world's window shell for
+        the first time.
+
+        This code should ignore such notifications that originate from non-main world
+        contexts. Web Inspector's instrumentation already ignored this, but
+        the automation session notification comes in via a different WebKit2 layer.
+
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::dispatchDidClearWindowObjectInWorld):
+
 2016-05-13  Dean Jackson  <dino@apple.com>
 
         Fix iOS Build.

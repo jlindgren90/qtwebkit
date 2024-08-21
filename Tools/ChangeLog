@@ -1,3 +1,73 @@
+2016-05-16  Enrica Casucci  <enrica@apple.com>
+
+        Remove unused initializer for WebEvent on iOS.
+        https://bugs.webkit.org/show_bug.cgi?id=157689
+
+        Reviewed by Anders Carlsson.
+
+        Adopting different initializer for WebEvent to fix the build.
+
+        * DumpRenderTree/mac/EventSendingController.mm:
+        (-[EventSendingController keyDown:withModifiers:withLocation:]):
+
+2016-05-16  Srinivasan Vijayaraghavan  <svijayaraghavan@apple.com>
+
+        Add machine-readable results for JSC API tests to the Buildbot json log
+        https://bugs.webkit.org/show_bug.cgi?id=157642
+
+        Reviewed by Geoffrey Garen.
+
+        * BuildSlaveSupport/build.webkit.org-config/master.cfg:
+        (RunJavaScriptCoreTests): Use --no-fail-fast option on run-javascriptcore-tests
+        * Scripts/run-javascriptcore-tests:
+        (runJSCStressTests): Abstracted out writing JSON to file (new function below)
+        (writeJsonDataIfApplicable): Added
+
+2016-04-06  Jer Noble  <jer.noble@apple.com>
+
+        [WK2] Add API to WKWebViewConfiguration to control autoplay policy.
+        https://bugs.webkit.org/show_bug.cgi?id=156312
+
+        Reviewed by Dan Bernstein.
+
+        * WebKitTestRunner/cocoa/TestControllerCocoa.mm:
+        (WTR::initializeWebViewConfiguration):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/RequiresUserActionForPlayback.mm:
+        (TEST_F):
+
+2016-05-16  Brent Fulgham  <bfulgham@apple.com>
+
+        REGRESSION (r192098): Content missing after copy and paste to Notes App on retina displays
+        https://bugs.webkit.org/show_bug.cgi?id=157630
+        <rdar://problem/25277577>
+
+        Reviewed by Simon Fraser.
+
+        Update test infrastructure to support checking the number of images in the pasteboard.
+
+        * DumpRenderTree/TestRunner.cpp:
+        (imageCountInGeneralPasteboardCallback): Added.
+        (TestRunner::staticFunctions):
+        * DumpRenderTree/TestRunner.h:
+        * DumpRenderTree/mac/TestRunnerMac.mm:
+        (TestRunner::imageCountInGeneralPasteboard): Added.
+        * DumpRenderTree/win/TestRunnerWin.cpp:
+        (TestRunner::imageCountInGeneralPasteboard): Added stub method.
+        * WebKitTestRunner/InjectedBundle/Bindings/TestRunner.idl:
+        * WebKitTestRunner/InjectedBundle/InjectedBundle.cpp:
+        (WTR::InjectedBundle::imageCountInGeneralPasteboard): Added.
+        * WebKitTestRunner/InjectedBundle/InjectedBundle.h:
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp:
+        (WTR::TestRunner::imageCountInGeneralPasteboard): Added.
+        * WebKitTestRunner/InjectedBundle/TestRunner.h:
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::imageCountInGeneralPasteboard): Added stub implementation.
+        * WebKitTestRunner/TestController.h:
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::didReceiveSynchronousMessageFromInjectedBundle): Handle copy message.
+        * WebKitTestRunner/cocoa/TestControllerCocoa.mm:
+        (WTR::TestController::imageCountInGeneralPasteboard): Added.
+
 2016-05-13  Dewei Zhu  <dewei_zhu@apple.com>
 
         Fix JSBench which causes math domain error in run-benchmark script.

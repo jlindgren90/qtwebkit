@@ -1,3 +1,107 @@
+2016-05-16  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Contents of Duration column are covered by always on (legacy) scroll bars
+        https://bugs.webkit.org/show_bug.cgi?id=157590
+
+        Reviewed by Timothy Hatcher.
+
+        Set the right padding of the DataGrid header to match the scrollbar width.
+
+        * UserInterface/Views/DataGrid.css:
+        (.data-grid .data-container):
+        (.data-grid.inline .data-container):
+        Don't show scrollbars for inline data grids.
+
+        (.data-grid > .header-wrapper):
+        (.data-grid.no-header > .header-wrapper > table.header):
+        (.data-grid.no-header > table.header): Deleted.
+        (.data-grid th): Deleted.
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid):
+        We can't add padding-rigth to a table. Wrap the table in div.header-wrapper.
+
+        (WebInspector.DataGrid.prototype._updateScrollbarPadding):
+        (WebInspector.DataGrid.prototype.layout):
+
+2016-05-16  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Background stripes don't span the width of Network sidebar
+        https://bugs.webkit.org/show_bug.cgi?id=157744
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/NetworkSidebarPanel.css:
+        (.sidebar > .panel.navigation.network.network-grid-content-view-showing > .content):
+
+2016-05-16  Antoine Quint  <graouts@apple.com>
+
+        Web Inspector: Computed style shows both prefixed and unprefixed variants of properties
+        https://bugs.webkit.org/show_bug.cgi?id=157674
+        <rdar://problem/24339756>
+
+        Reviewed by Timothy Hatcher.
+
+        We make the CSSProperty `implicit` property read-write, and in the case where a computed style
+        has a property marked as explicit, we also check that it's found in matching rules to consider
+        it non-implicit. This correctly filters out variants of properties set explicitly.
+
+        * UserInterface/Models/CSSProperty.js:
+        (WebInspector.CSSProperty.prototype.set implicit):
+        * UserInterface/Models/DOMNodeStyles.js:
+        (WebInspector.DOMNodeStyles.prototype.refresh.fetchedComputedStyle):
+        (WebInspector.DOMNodeStyles.prototype.refresh):
+        (WebInspector.DOMNodeStyles.prototype._isPropertyFoundInMatchingRules):
+        (WebInspector.DOMNodeStyles):
+
+2016-05-14  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: DataGrid _updateVisibleRows dominates profiles of timeline recordings when data grid (Overview or TimelineDataGrids) is showing
+        https://bugs.webkit.org/show_bug.cgi?id=157664
+        rdar://problem/26262219
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid): Added new members.
+        (WebInspector.DataGrid.prototype.layout): Reset _cachedScrollTop and _cachedScrollHeight on resize.
+        (WebInspector.DataGrid.prototype._noteScrollPositionChanged): Added.
+        (WebInspector.DataGrid.prototype._updateVisibleRows): Cache sizes and positions when possible.
+        (WebInspector.DataGridNode.prototype.set hidden): Added call to _noteRowsChanged.
+        (WebInspector.DataGridNode.prototype.collapse): Call _noteRowsChanged instead of needsLayout.
+        (WebInspector.DataGridNode.prototype.expand): Call _noteRowsChanged instead of needsLayout.
+        (WebInspector.DataGrid.prototype._updateFilter): Removed direct call to _updateVisibleRows, this is
+        better handled by DataGridNode's hidden setter.
+
+2016-05-14  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Many DataGrid instances do not save/restore their scroll position
+        https://bugs.webkit.org/show_bug.cgi?id=157709
+        rdar://problem/26286090
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Models/BackForwardEntry.js:
+        (WebInspector.BackForwardEntry.prototype.makeCopy): Added.
+        * UserInterface/Views/ContentViewContainer.js:
+        (WebInspector.ContentViewContainer.prototype.showContentView): Copy the last entry for the view.
+        * UserInterface/Views/DOMStorageContentView.js:
+        (WebInspector.DOMStorageContentView.prototype.get scrollableElements): Added.
+        * UserInterface/Views/HeapSnapshotContentView.js:
+        (WebInspector.HeapSnapshotContentView.prototype.get scrollableElements): Added.
+        * UserInterface/Views/IndexedDatabaseObjectStoreContentView.js:
+        (WebInspector.IndexedDatabaseObjectStoreContentView.prototype.get scrollableElements): Added.
+        * UserInterface/Views/MemoryTimelineView.js:
+        (WebInspector.MemoryTimelineView.prototype.get scrollableElements): Added.
+        * UserInterface/Views/ProfileView.js:
+        (WebInspector.ProfileView.prototype.get scrollableElements): Added.
+        (WebInspector.ProfileView.prototype._repopulateDataGridFromTree): Removed unused skipRefresh argument.
+        * UserInterface/Views/ScriptClusterTimelineView.js:
+        (WebInspector.ScriptClusterTimelineView.prototype.get scrollableElements): Added.
+        * UserInterface/Views/ScriptProfileTimelineView.js:
+        (WebInspector.ScriptProfileTimelineView.prototype.get scrollableElements): Added.
+        * UserInterface/Views/TimelineView.js:
+        (WebInspector.TimelineView.prototype.get scrollableElements): Added.
+
 2016-05-14  Nikita Vasilyev  <nvasilyev@apple.com>
 
         Web Inspector: Empty line shows arrow when hovering over Animation Frame Requested in timeline recording
