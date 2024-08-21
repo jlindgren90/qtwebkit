@@ -37,6 +37,7 @@
 #include "EventNames.h"
 #include "MainFrame.h"
 #include "Notification.h"
+#include "NotificationPermissionCallback.h"
 #include "Page.h"
 #include "QWebFrameAdapter.h"
 #include "QWebPageAdapter.h"
@@ -423,7 +424,8 @@ void NotificationPresenterClientQt::removeReplacedNotificationFromQueue(Notifica
 void NotificationPresenterClientQt::detachNotification(Notification* notification)
 {
     delete m_notifications.take(notification);
-    notification->detachPresenter();
+    // FIXME: removed
+    // notification->detachPresenter();
     notification->unsetPendingActivity(notification);
 }
 

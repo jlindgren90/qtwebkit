@@ -79,7 +79,7 @@ public:
         SiteSpecificQuirksEnabled,
         JavascriptCanCloseWindows,
         WebGLEnabled,
-        CSSRegionsEnabled,
+        CSSRegionsEnabled, // no effect, always enabled
         HyperlinkAuditingEnabled,
         CSSGridLayoutEnabled,
         ScrollAnimatorEnabled,
