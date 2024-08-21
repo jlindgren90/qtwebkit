@@ -1,3 +1,342 @@
+2016-05-27  Chris Dumez  <cdumez@apple.com>
+
+        callOnMainThread() should not copy captured lambda variables
+        https://bugs.webkit.org/show_bug.cgi?id=158166
+
+        Reviewed by Brady Eidson.
+
+        callOnMainThread() should not copy captured lambda variables. This 
+        function is usually called cross-thread with a lambda and copying
+        the lambda (and its captured variables) can lead to thread-safety
+        issues.
+
+        This patch updates callOnMainThread() to take a NoncopyableFunction&&
+        in parameter instead of a std::function. The call sites of
+        callOnMainThread() have also been updated to use C++14's lambda
+        capture with initializer.
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::putOrAddOnServer):
+        * Modules/mediastream/MediaDevicesRequest.cpp:
+        (WebCore::MediaDevicesRequest::didCompletePermissionCheck):
+        (WebCore::MediaDevicesRequest::didCompleteTrackSourceInfoRequest):
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::runTask):
+        * Modules/mediastream/MediaEndpointPeerConnection.h:
+        * Modules/mediastream/UserMediaRequest.cpp:
+        (WebCore::UserMediaRequest::constraintsValidated):
+        (WebCore::UserMediaRequest::userMediaAccessGranted):
+        * Modules/webaudio/AudioContext.cpp:
+        (WebCore::AudioContext::scheduleNodeDeletion):
+        (WebCore::AudioContext::isPlayingAudioDidChange):
+        * dom/Document.cpp:
+        (WebCore::Document::postTask):
+        (WebCore::Document::pendingTasksTimerFired): Deleted.
+        * dom/ScriptElement.cpp:
+        (WebCore::ScriptElement::requestScript):
+        * fileapi/AsyncFileStream.cpp:
+        (WebCore::callOnFileThread):
+        (WebCore::AsyncFileStream::~AsyncFileStream):
+        (WebCore::AsyncFileStream::perform):
+        * fileapi/AsyncFileStream.h:
+        * fileapi/ThreadableBlobRegistry.cpp:
+        (WebCore::ThreadableBlobRegistry::registerFileBlobURL):
+        (WebCore::ThreadableBlobRegistry::registerBlobURL):
+        (WebCore::ThreadableBlobRegistry::registerBlobURLForSlice):
+        (WebCore::ThreadableBlobRegistry::blobSize):
+        (WebCore::ThreadableBlobRegistry::unregisterBlobURL):
+        (WebCore::ThreadableBlobRegistry::registerBlobURLOptionallyFileBacked): Deleted.
+        * loader/icon/IconDatabase.cpp:
+        (WebCore::IconDatabase::dispatchDidImportIconURLForPageURLOnMainThread):
+        (WebCore::IconDatabase::dispatchDidImportIconDataForPageURLOnMainThread):
+        * page/ResourceUsageThread.cpp:
+        (WebCore::ResourceUsageThread::notifyObservers):
+        (WebCore::ResourceUsageThread::threadBody):
+        * page/ResourceUsageThread.h:
+        * page/scrolling/ScrollingThread.cpp:
+        (WebCore::ScrollingThread::dispatch):
+        (WebCore::ScrollingThread::dispatchBarrier):
+        (WebCore::ScrollingThread::dispatchFunctionsFromScrollingThread):
+        * page/scrolling/ScrollingThread.h:
+        * page/scrolling/ios/ScrollingTreeIOS.cpp:
+        (WebCore::ScrollingTreeIOS::invalidate):
+        (WebCore::ScrollingTreeIOS::scrollingTreeNodeDidScroll):
+        (WebCore::ScrollingTreeIOS::currentSnapPointIndicesDidChange):
+        (WebCore::ScrollingTreeIOS::createScrollingTreeNode): Deleted.
+        * page/scrolling/mac/ScrollingTreeFrameScrollingNodeMac.mm:
+        (WebCore::ScrollingTreeFrameScrollingNodeMac::releaseReferencesToScrollerImpsOnTheMainThread):
+        * platform/MemoryPressureHandler.cpp:
+        (WebCore::MemoryPressureHandler::releaseMemory):
+        * platform/audio/ios/MediaSessionManagerIOS.mm:
+        (-[WebMediaSessionHelper dealloc]):
+        (-[WebMediaSessionHelper startMonitoringAirPlayRoutes]):
+        (-[WebMediaSessionHelper stopMonitoringAirPlayRoutes]):
+        * platform/graphics/avfoundation/AudioSourceProviderAVFObjC.mm:
+        (WebCore::AudioSourceProviderAVFObjC::prepare):
+        * platform/graphics/avfoundation/MediaPlayerPrivateAVFoundation.cpp:
+        (WebCore::MediaPlayerPrivateAVFoundation::scheduleMainThreadNotification):
+        (WebCore::MediaPlayerPrivateAVFoundation::dispatchNotification):
+        * platform/graphics/avfoundation/objc/CDMSessionAVFoundationObjC.mm:
+        (-[WebCDMSessionAVFoundationObjCListener observeValueForKeyPath:ofObject:change:context:]):
+        * platform/graphics/avfoundation/objc/MediaPlaybackTargetPickerMac.mm:
+        (-[WebAVOutputDeviceMenuControllerHelper observeValueForKeyPath:ofObject:change:context:]):
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createVideoLayer):
+        (-[WebCoreAVFMovieObserver legibleOutput:didOutputAttributedStrings:nativeSampleBuffers:forItemTime:]):
+        (-[WebCoreAVFMovieObserver outputSequenceWasFlushed:]):
+        (-[WebCoreAVFLoaderDelegate resourceLoader:shouldWaitForLoadingOfRequestedResource:]):
+        (-[WebCoreAVFLoaderDelegate resourceLoader:shouldWaitForResponseToAuthenticationChallenge:]):
+        (-[WebCoreAVFLoaderDelegate resourceLoader:didCancelLoadingRequest:]):
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm:
+        (WebCore::CMTimebaseEffectiveRateChangedCallback):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::play):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::pause):
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::scheduleDeferredTask):
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+        (-[WebAVStreamDataParserListener streamDataParser:didParseStreamDataAsAsset:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didParseStreamDataAsAsset:withDiscontinuity:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didFailToParseStreamDataWithError:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didProvideMediaData:forTrackID:mediaType:flags:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didReachEndOfTrackWithTrackID:mediaType:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didProvideContentKeyRequestInitializationData:forTrackID:]):
+        (-[WebAVSampleBufferErrorListener observeValueForKeyPath:ofObject:change:context:]):
+        (-[WebAVSampleBufferErrorListener layerFailedToDecode:]):
+        * platform/graphics/cg/GraphicsContextCG.cpp:
+        (WebCore::patternReleaseCallback):
+        * platform/graphics/cg/PatternCG.cpp:
+        (WebCore::patternReleaseCallback):
+        * platform/graphics/win/MediaPlayerPrivateMediaFoundation.cpp:
+        (WebCore::MediaPlayerPrivateMediaFoundation::endCreatedMediaSource):
+        (WebCore::MediaPlayerPrivateMediaFoundation::endGetEvent):
+        (WebCore::MediaPlayerPrivateMediaFoundation::CustomVideoPresenter::processInputNotify):
+        * platform/mediastream/MediaStreamPrivate.cpp:
+        (WebCore::MediaStreamPrivate::scheduleDeferredTask):
+        * platform/mediastream/MediaStreamPrivate.h:
+        * platform/mediastream/mac/AVMediaCaptureSource.h:
+        * platform/mediastream/mac/AVMediaCaptureSource.mm:
+        (WebCore::AVMediaCaptureSource::scheduleDeferredTask):
+        * platform/mediastream/mac/RealtimeMediaSourceCenterMac.cpp:
+        (WebCore::RealtimeMediaSourceCenterMac::getMediaStreamTrackSources):
+        * platform/mediastream/mac/WebAudioSourceProviderAVFObjC.mm:
+        (WebCore::WebAudioSourceProviderAVFObjC::prepare):
+        * platform/mock/MockRealtimeMediaSourceCenter.cpp:
+        (WebCore::MockRealtimeMediaSourceCenter::getMediaStreamTrackSources):
+        * platform/network/BlobResourceHandle.cpp:
+        (WebCore::BlobResourceHandle::start):
+        (WebCore::BlobResourceHandle::notifyFinish):
+        * platform/network/DataURLDecoder.cpp:
+        (WebCore::DataURLDecoder::decode):
+        * platform/network/DataURLDecoder.h:
+        * platform/network/cocoa/WebCoreNSURLSession.mm:
+        (-[WebCoreNSURLSession dealloc]):
+        (-[WebCoreNSURLSessionDataTask cancel]):
+        (-[WebCoreNSURLSessionDataTask suspend]):
+        (-[WebCoreNSURLSessionDataTask resume]):
+        * platform/network/curl/CurlDownload.cpp:
+        (WebCore::CurlDownload::didReceiveHeader):
+        (WebCore::CurlDownload::didReceiveData): Deleted.
+
+2016-05-27  Tim Horton  <timothy_horton@apple.com>
+
+        REGRESSION (r190574): Swipe snapshots are always black on iPhone 5
+        https://bugs.webkit.org/show_bug.cgi?id=158171
+        <rdar://problem/24639709>
+
+        Reviewed by Beth Dakin.
+
+        * platform/graphics/cocoa/IOSurface.mm:
+        (optionsForBiplanarSurface):
+        (optionsFor32BitSurface):
+        (IOSurface::IOSurface):
+        (IOSurface::format):
+        We are supposed to be using bi-planar 422f, not yuvf. They're the same
+        size, but different formats, and 422f is supported in more places.
+
+        Clean up the IOSurface constructor so we don't have a switch inside an if
+        with random ASSERT_NOT_REACHED, making helper functions to build the
+        options dictionary for arbitrary-size biplanar and 32-bit single-planar
+        surfaces.
+
+        I don't know how to write a test because IOSurface is not supported
+        in the simulator.
+
+2016-05-27  Zalan Bujtas  <zalan@apple.com>
+
+        EventHandler finds incorrect scrollable container.
+        https://bugs.webkit.org/show_bug.cgi?id=158132
+        <rdar://problem/26423126>
+
+        Reviewed by Brent Fulgham.
+
+        Fix the logic that checks whether we are at the beginning or at the end of the container (horizontally).
+        While scrolling to the right, deltaX has negative values. So in case of deltaX < 0, we need to check if
+        the container is not scrolled all the way to the right.
+
+        Test: fast/scrolling/scroll-container-horizontally.html
+
+        * page/mac/EventHandlerMac.mm:
+        (WebCore::findEnclosingScrollableContainer):
+
+2016-05-27  Jeremy Jones  <jeremyj@apple.com>
+
+        Decrease flicker when changing video presentation mode.
+        https://bugs.webkit.org/show_bug.cgi?id=158148
+        rdar://problem/24476949
+
+        Reviewed by Jer Noble.
+
+        No new tests because there is no behavior change. This change is about the timing of
+        moving AVPlayerLayers between layers to prevent flicker.
+
+        1) Moving an AVPlayerLayer between CAContexts can flicker. So always keep two
+        AVPlayerLayers around and add and remove them from the inline and fullscreen contexts.
+        2) Wait to show the inline placeholder until the fullscreen video layer has been installed.
+        3) Wait to remove the fullscreen video layer until the placeholder has been removed.
+
+        * Modules/mediacontrols/MediaControlsHost.cpp:
+        (WebCore::MediaControlsHost::isVideoLayerInline): Expose isVideoLayerInline to the shadow DOM.
+        (WebCore::MediaControlsHost::setPreparedForInline): Expose setPreparedForInline to the shadow DOM.
+        * Modules/mediacontrols/MediaControlsHost.h: Add setPreparedForInline and isVideoLayerInline
+        * Modules/mediacontrols/MediaControlsHost.idl: Add setPreparedForInline and isVideoLayerInline
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.showInlinePlaybackPlaceholderWhenSafe): Wait to show placeholder when entering fullscreen.
+        (Controller.prototype.handlePresentationModeChange): Wait to show placeholder, and notify when placeholder is removed.
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::setPreparedForInline):
+        (WebCore::HTMLMediaElement::waitForPreparedForInlineThen): Used to delay fullscreen cleanup until placeholder is removed.
+        (WebCore::HTMLMediaElement::setVideoFullscreenLayer): Add a callback so we can wait until this completes before continuing.
+        * html/HTMLMediaElement.h:
+        (WebCore::HTMLMediaElement::isVideoLayerInline):
+        (WebCore::HTMLMediaElement::waitForPreparedForInlineThen):
+        (WebCore::HTMLMediaElement::setVideoFullscreenLayer): Add completionHandler.
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.h:
+        (WebCore::WebVideoFullscreenModelVideoElement::setVideoFullscreenLayer): Add completionHandler.
+        (WebCore::WebVideoFullscreenModelVideoElement::waitForPreparedForInlineThen): Added.
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.mm:
+        (WebVideoFullscreenModelVideoElement::setVideoFullscreenLayer): Add completionHandler.
+        (WebVideoFullscreenModelVideoElement::waitForPreparedForInlineThen):
+        * platform/graphics/MediaPlayer.cpp:
+        (WebCore::MediaPlayer::setVideoFullscreenLayer): Add completionHandler.
+        * platform/graphics/MediaPlayer.h:
+        (WebCore::MediaPlayer::setVideoFullscreenLayer): Add completionHandler.
+        * platform/graphics/MediaPlayerPrivate.h:
+        (WebCore::MediaPlayerPrivateInterface::setVideoFullscreenLayer): Add completionHandler.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createAVPlayerLayer): Create two video layers.
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::destroyVideoLayer): Allow two video layers.
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::setVideoFullscreenLayer): Add completionHandler.
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::updateVideoLayerGravity): Allow two video layers.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::addDisplayLayer): Allow two video layers.
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::setVideoFullscreenLayer): Add completionHandler.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::createPreviewLayers): Allow two video layers.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::setVideoFullscreenLayer): Add completionHandler.
+        * platform/graphics/avfoundation/objc/VideoFullscreenLayerManager.h:
+        * platform/graphics/avfoundation/objc/VideoFullscreenLayerManager.mm:
+        (WebCore::VideoFullscreenLayerManager::setVideoLayers): Allow two video layers.
+        (WebCore::VideoFullscreenLayerManager::setVideoFullscreenLayer): Add completionHandler.
+        (WebCore::VideoFullscreenLayerManager::setVideoFullscreenFrame): Allow two video layers.
+        (WebCore::VideoFullscreenLayerManager::didDestroyVideoLayer): Allow two video layers.
+        (WebCore::VideoFullscreenLayerManager::setVideoLayer): Deleted.
+        * platform/ios/WebVideoFullscreenControllerAVKit.mm:
+        (WebVideoFullscreenControllerContext::didSetupFullscreen): Use completionHandler. 
+        (WebVideoFullscreenControllerContext::didExitFullscreen): Use completionHandler.
+
+2016-05-26  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Crash in TreeScope::focusedElement
+        https://bugs.webkit.org/show_bug.cgi?id=158108
+
+        Reviewed by Enrica Casucci.
+
+        The bug was caused by a flawed sequence of steps we took to remove an element. When an element is removed,
+        willRemoveChild and willRemoveChildren fire blur events on removed focused element and its ancestors and
+        unload event on any removed iframes. However, it was possible to focus an element on which we had fired blur
+        during an unload event, leaving m_focusedElement point to an element that's not in the document anymore.
+
+        Changing the order doesn't help because that would make it possible to insert the removed iframes back into
+        the document inside a event listener of the blur event, which was specifically fixed by r127534 four years ago.
+
+        Instead, fix the bug by not firing blur and change events on removed nodes. New behavior matches Firefox and HTML5
+        specification: https://html.spec.whatwg.org/multipage/interaction.html#focus-fixup-rule-one
+
+        Test: fast/shadow-dom/shadow-root-active-element-crash.html
+
+        * dom/ContainerNode.cpp:
+        (WebCore::willRemoveChild): Made this function static local since it didn't need to have access to any private
+        member variables. Call Document::nodeWillBeRemoved after disconnecting iframes since unload event handler could
+        allocate new Ranges just like mutation events.
+        (WebCore::willRemoveChildren): Ditto.
+        (WebCore::ContainerNode::removeChild): Removed the calls to removeFullScreenElementOfSubtree and
+        removeFocusedNodeOfSubtree as they're now called in Document::nodeWillBeRemoved.
+        (WebCore::ContainerNode::removeChildren): Ditto.
+        * dom/ContainerNode.h:
+        * dom/Document.cpp:
+        (WebCore::Document::removeFocusedNodeOfSubtree): Don't dispatch blur and change events when a node is removed.
+        (WebCore::Document::setFocusedElement): Added FocusRemovalEventsMode as the third argument. Avoid dispatching blur
+        and change events when FocusRemovalEventsMode::Dispatch is set.
+        (WebCore::Document::nodeChildrenWillBeRemoved): Added calls to removeFullScreenElementOfSubtree and
+        removeFocusedNodeOfSubtree. Also assert that no events are fired within this function. If we ever fire an event here,
+        "unloaded" iframes can be inserted back into a document before ContainerNode::removeChild actually removes them.
+        (WebCore::Document::nodeWillBeRemoved): Ditto.
+        * dom/Document.h:
+        * dom/TreeScope.cpp:
+        (WebCore::TreeScope::focusedElement): Added a release assertion to make sure the focused element is in the document
+        of the tree scope, and added an explicit type check just in case.
+
+2016-05-27  Brent Fulgham  <bfulgham@apple.com>
+
+        CSP: Fire 'load' events even when blocking loads via 'frame-src'.
+        https://bugs.webkit.org/show_bug.cgi?id=153150
+        <rdar://problem/24383162>
+
+        Reviewed by Daniel Bates.
+
+        Always fire a load event, even when the load is blocked by CSP rules, so that
+        attackers cannot gain knowledge about the URL in the frame by blocking the
+        load and waiting long enough to be sure that a 'load' event would have
+        fired if the load wasn't blocked.
+
+        Inspired by Blink patch:
+        <https://src.chromium.org/viewvc/blink?view=rev&revision=165743>
+
+        Tests: http/tests/security/contentSecurityPolicy/frame-src-cross-origin-load.html
+
+        * loader/PolicyChecker.cpp:
+        (WebCore::PolicyChecker::checkNavigationPolicy):
+
+2016-05-27  Andreas Kling  <akling@apple.com>
+
+        Document abandons its EventTargetData.
+        <https://webkit.org/b/158158>
+
+        Reviewed by Darin Adler.
+
+        Node::willBeDeletedFrom() is called when destroying all Node types *except* Document.
+        If a Document had an associated EventTargetData, it would not get cleaned up.
+
+        This patch moves the EventTargetData cleanup to ~Node() where it's guaranteed to run.
+
+        * dom/Node.cpp:
+        (WebCore::Node::~Node):
+        (WebCore::Node::willBeDeletedFrom):
+
+2016-05-27  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Attempt to fix the iOS build.
+
+        Unreviewed build fix.
+
+        * platform/graphics/cocoa/TextTrackRepresentationCocoa.mm:
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (-[WebAVPlayerLayer layoutSublayers]):
+
 2016-05-27  Brady Eidson  <beidson@apple.com>
 
         Modern IDB: After closing a Netflix video, trying to watch it again fails.

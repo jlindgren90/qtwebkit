@@ -309,6 +309,9 @@ Node::~Node()
     if (!isContainerNode())
         willBeDeletedFrom(document());
 
+    if (hasEventTargetData())
+        clearEventTargetData();
+
     document().decrementReferencingNodeCount();
 }
 
@@ -321,7 +324,6 @@ void Node::willBeDeletedFrom(Document& document)
 #else
         // FIXME: This should call didRemoveTouchEventHandler().
 #endif
-        clearEventTargetData();
     }
 
     if (AXObjectCache* cache = document.existingAXObjectCache())

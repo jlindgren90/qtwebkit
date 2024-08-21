@@ -1,3 +1,101 @@
+2016-05-28  Chris Dumez  <cdumez@apple.com>
+
+        Modernize lambda captures in the network disk cache implementation
+        https://bugs.webkit.org/show_bug.cgi?id=158179
+
+        Reviewed by Darin Adler.
+
+        Modernize lambda captures in the network disk cache implementation.
+
+        * NetworkProcess/cache/NetworkCache.cpp:
+        (WebKit::NetworkCache::Cache::retrieve):
+        (WebKit::NetworkCache::Cache::store):
+        (WebKit::NetworkCache::Cache::traverse):
+        * NetworkProcess/cache/NetworkCache.h:
+        * NetworkProcess/cache/NetworkCacheIOChannelSoup.cpp:
+        (WebKit::NetworkCache::inputStreamReadReadyCallback):
+        (WebKit::NetworkCache::outputStreamWriteReadyCallback):
+        * NetworkProcess/cache/NetworkCacheStatistics.cpp:
+        (WebKit::NetworkCache::Statistics::initialize):
+        (WebKit::NetworkCache::Statistics::shrinkIfNeeded):
+        (WebKit::NetworkCache::Statistics::queryWasEverRequested):
+        * NetworkProcess/cache/NetworkCacheStatistics.h:
+        * NetworkProcess/cache/NetworkCacheStorage.cpp:
+        (WebKit::NetworkCache::Storage::updateFileModificationTime):
+        (WebKit::NetworkCache::Storage::clear):
+
+2016-05-27  Caitlin Potter  <caitp@igalia.com>
+
+        [JSC] implement async functions proposal
+        https://bugs.webkit.org/show_bug.cgi?id=156147
+
+        Reviewed by Yusuke Suzuki.
+
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * UIProcess/API/Cocoa/WKPreferencesPrivate.h:
+
+2016-05-27  Chris Dumez  <cdumez@apple.com>
+
+        Improve lambda capture in NetworkCache::Storage::synchronize()
+        https://bugs.webkit.org/show_bug.cgi?id=158176
+
+        Reviewed by Brady Eidson.
+
+        Improve lambda capture in NetworkCache::Storage::synchronize(). We can
+        now capture the std::unique_ptr<> variables directly thanks to:
+        1. C++14's support for initializer's in lambda captures
+        2. RunLoop::dispatch() now takes a NoncopyableFunction in instead of
+           a std::function, allowing us to capture non-copyable variables.
+
+        * NetworkProcess/cache/NetworkCacheStorage.cpp:
+        (WebKit::NetworkCache::Storage::synchronize):
+
+2016-05-27  Jeremy Jones  <jeremyj@apple.com>
+
+        Decrease flicker when changing video presentation mode.
+        https://bugs.webkit.org/show_bug.cgi?id=158148
+        rdar://problem/24476949
+
+        Reviewed by Tim Horton.
+
+        Prevent flicker by using setVideoFullscreenLayer with a completion handler to delay 
+        enter fullscreen and cleanup fullscreen until the video layer has completely been
+        installed or removed.
+
+        * WebProcess/cocoa/WebVideoFullscreenManager.mm:
+        (WebKit::WebVideoFullscreenManager::didSetupFullscreen):
+        (WebKit::WebVideoFullscreenManager::didExitFullscreen):
+
+2016-05-27  Chris Dumez  <cdumez@apple.com>
+
+        WorkQueue::dispatch() / RunLoop::dispatch() should not copy captured lambda variables
+        https://bugs.webkit.org/show_bug.cgi?id=158111
+
+        Reviewed by Darin Adler.
+
+        WorkQueue::dispatch() / RunLoop::dispatch() should not copy captured lambda variables.
+        These are often used cross-thread and copying the captured lambda variables can be
+        dangerous (e.g. we do not want to copy a String after calling isolatedCopy() upon
+        capture).
+
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::clearDiskCacheEntries):
+        * NetworkProcess/cache/NetworkCache.cpp:
+        (WebKit::NetworkCache::Cache::clear):
+        * NetworkProcess/cache/NetworkCacheIOChannelSoup.cpp:
+        (WebKit::NetworkCache::runTaskInQueue):
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::processIncomingMessage):
+        * UIProcess/Storage/StorageManager.cpp:
+        (WebKit::StorageManager::getSessionStorageOrigins):
+        (WebKit::StorageManager::deleteSessionStorageOrigins):
+        (WebKit::StorageManager::deleteSessionStorageEntriesForOrigins):
+        (WebKit::StorageManager::getLocalStorageOrigins):
+        (WebKit::StorageManager::getLocalStorageOriginDetails):
+        (WebKit::StorageManager::deleteLocalStorageOriginsModifiedSince):
+        (WebKit::StorageManager::deleteLocalStorageEntriesForOrigins):
+        * UIProcess/Storage/StorageManager.h:
+
 2016-05-27  Alex Christensen  <achristensen@webkit.org>
 
         Expose content extension failure error codes in SPI
