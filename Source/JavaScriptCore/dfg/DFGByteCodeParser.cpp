@@ -969,8 +969,6 @@ private:
                 node->mergeFlags(NodeMayOverflowInt32InBaseline);
             if (resultProfile.didObserveNegZeroDouble() || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, NegativeZero))
                 node->mergeFlags(NodeMayNegZeroInBaseline);
-            if (resultProfile.didObserveNonInt32())
-                node->mergeFlags(NodeMayHaveNonIntResult);
             break;
         }
 
@@ -4193,6 +4191,14 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             set(VirtualRegister(currentInstruction[1].u.operand),
                 addToGraph(DeleteById, OpInfo(identifierNumber), base));
             NEXT_OPCODE(op_del_by_id);
+        }
+
+        case op_del_by_val: {
+            int dst = currentInstruction[1].u.operand;
+            Node* base = get(VirtualRegister(currentInstruction[2].u.operand));
+            Node* key = get(VirtualRegister(currentInstruction[3].u.operand));
+            set(VirtualRegister(dst), addToGraph(DeleteByVal, base, key));
+            NEXT_OPCODE(op_del_by_val);
         }
 
         case op_profile_type: {

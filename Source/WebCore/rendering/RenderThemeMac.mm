@@ -68,6 +68,7 @@
 #import "StyleResolver.h"
 #import "ThemeMac.h"
 #import "TimeRanges.h"
+#import "UTIUtilities.h"
 #import "UserAgentScripts.h"
 #import "UserAgentStyleSheets.h"
 #import "WebCoreSystemInterface.h"
@@ -230,8 +231,16 @@ NSView* RenderThemeMac::documentViewFor(const RenderObject& o) const
 String RenderThemeMac::mediaControlsStyleSheet()
 {
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
-    if (m_mediaControlsStyleSheet.isEmpty())
-        m_mediaControlsStyleSheet = [NSString stringWithContentsOfFile:[[NSBundle bundleForClass:[WebCoreRenderThemeBundle class]] pathForResource:@"mediaControlsApple" ofType:@"css"] encoding:NSUTF8StringEncoding error:nil];
+    if (m_mediaControlsStyleSheet.isEmpty()) {
+        StringBuilder styleSheetBuilder;
+        styleSheetBuilder.append([NSString stringWithContentsOfFile:[[NSBundle bundleForClass:[WebCoreRenderThemeBundle class]] pathForResource:@"mediaControlsApple" ofType:@"css"] encoding:NSUTF8StringEncoding error:nil]);
+
+#if USE(APPLE_INTERNAL_SDK)
+#import <WebKitAdditions/RenderThemeMacMediaControlsStyleSheetAdditions.mm>
+#endif
+
+        m_mediaControlsStyleSheet = styleSheetBuilder.toString();
+    }
     return m_mediaControlsStyleSheet;
 #else
     return emptyString();
@@ -245,6 +254,11 @@ String RenderThemeMac::mediaControlsScript()
         StringBuilder scriptBuilder;
         scriptBuilder.append([NSString stringWithContentsOfFile:[[NSBundle bundleForClass:[WebCoreRenderThemeBundle class]] pathForResource:@"mediaControlsLocalizedStrings" ofType:@"js"] encoding:NSUTF8StringEncoding error:nil]);
         scriptBuilder.append([NSString stringWithContentsOfFile:[[NSBundle bundleForClass:[WebCoreRenderThemeBundle class]] pathForResource:@"mediaControlsApple" ofType:@"js"] encoding:NSUTF8StringEncoding error:nil]);
+
+#if USE(APPLE_INTERNAL_SDK)
+#import <WebKitAdditions/RenderThemeMacMediaControlsScriptAdditions.mm>
+#endif
+        
         m_mediaControlsScript = scriptBuilder.toString();
     }
     return m_mediaControlsScript;
@@ -2390,13 +2404,23 @@ static void paintAttachmentIconBackground(const RenderAttachment&, GraphicsConte
 
 static RefPtr<Icon> iconForAttachment(const RenderAttachment& attachment)
 {
-    String MIMEType = attachment.attachmentElement().attachmentType();
-    if (!MIMEType.isEmpty()) {
-        if (equalIgnoringASCIICase(MIMEType, "multipart/x-folder") || equalIgnoringASCIICase(MIMEType, "application/vnd.apple.folder")) {
+    String attachmentType = attachment.attachmentElement().attachmentType();
+    
+    if (!attachmentType.isEmpty()) {
+        if (equalIgnoringASCIICase(attachmentType, "multipart/x-folder") || equalIgnoringASCIICase(attachmentType, "application/vnd.apple.folder")) {
             if (auto icon = Icon::createIconForUTI("public.directory"))
                 return icon;
-        } else if (auto icon = Icon::createIconForMIMEType(MIMEType))
-            return icon;
+        } else {
+            auto attachmentTypeCF = attachmentType.createCFString();
+            RetainPtr<CFStringRef> UTI;
+            if (isDeclaredUTI(attachmentTypeCF.get()))
+                UTI = attachmentTypeCF;
+            else
+                UTI = UTIFromMIMEType(attachmentTypeCF.get());
+
+            if (auto icon = Icon::createIconForUTI(UTI.get()))
+                return icon;
+        }
     }
 
     if (File* file = attachment.attachmentElement().file()) {

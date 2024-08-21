@@ -31,7 +31,8 @@
 
 (function (InjectedScriptHost, inspectedGlobalObject, injectedScriptId) {
 
-// Protect against Object overwritten by the user code.
+// FIXME: <https://webkit.org/b/152294> Web Inspector: Parse InjectedScriptSource as a built-in to get guaranteed non-user-overriden built-ins
+
 var Object = {}.constructor;
 
 function toString(obj)
@@ -475,7 +476,7 @@ InjectedScript.prototype = {
             if (this.CommandLineAPI)
                 commandLineAPI = new this.CommandLineAPI(this._commandLineAPIImpl, isEvalOnCallFrame ? object : null);
             else
-                commandLineAPI = new BasicCommandLineAPI;
+                commandLineAPI = new BasicCommandLineAPI(isEvalOnCallFrame ? object : null);
         }
 
         if (isEvalOnCallFrame) {
@@ -519,32 +520,12 @@ InjectedScript.prototype = {
             return result;
         }
 
-        // When not evaluating on a call frame we use a 'with' statement to allow var and function statements to leak
-        // into the global scope. This allow them to stick around between evaluations.
-
-        try {
-            if (commandLineAPI) {
-                if (inspectedGlobalObject.console)
-                    inspectedGlobalObject.console.__commandLineAPI = commandLineAPI;
-                else
-                    inspectedGlobalObject.__commandLineAPI = commandLineAPI;
-                expression = "with ((this && (this.console ? this.console.__commandLineAPI : this.__commandLineAPI)) || {}) { " + expression + "\n}";
-            }
-
-            var result = evalFunction.call(inspectedGlobalObject, expression);
-
-            if (saveResult)
-                this._saveResult(result);
-
-            return result;
-        } finally {
-            if (commandLineAPI) {
-                if (inspectedGlobalObject.console)
-                    delete inspectedGlobalObject.console.__commandLineAPI;
-                else
-                    delete inspectedGlobalObject.__commandLineAPI;
-            }
-        }
+        // When not evaluating on a call frame, we evaluate as a program
+        // with the Command Line API as a scope extension object.
+        var result = InjectedScriptHost.evaluateWithScopeExtension(expression, commandLineAPI);
+        if (saveResult)
+            this._saveResult(result);
+        return result;
     },
 
     wrapCallFrames: function(callFrame)
@@ -862,6 +843,9 @@ InjectedScript.prototype = {
         var className = InjectedScriptHost.internalConstructorName(obj);
         if (subtype === "array")
             return className;
+
+        if (subtype === "iterator" && Symbol.toStringTag in obj)
+            return obj[Symbol.toStringTag];
 
         // NodeList in JSC is a function, check for array prior to this.
         if (typeof obj === "function")
@@ -1390,35 +1374,45 @@ InjectedScript.CallFrameProxy._createScopeJson = function(scopeTypeCode, scopeOb
 }
 
 
-function slice(array, index)
+function bind(func, thisObject, ...outerArgs)
 {
-    var result = [];
-    for (var i = index || 0; i < array.length; ++i)
-        result.push(array[i]);
-    return result;
+    return function(...innerArgs) {
+        return func.apply(thisObject, outerArgs.concat(innerArgs));
+    };
 }
 
-function bind(func, thisObject, var_args)
-{
-    var args = slice(arguments, 2);
-    return function(var_args) {
-        return func.apply(thisObject, args.concat(slice(arguments)));
-    }
-}
-
-function BasicCommandLineAPI()
+function BasicCommandLineAPI(callFrame)
 {
     this.$_ = injectedScript._lastResult;
     this.$exception = injectedScript._exceptionValue;
 
     // $1-$99
-    for (var i = 1; i <= injectedScript._savedResults.length; ++i) {
-        var member = "$" + i;
-        if (member in inspectedGlobalObject)
-            continue;
+    for (let i = 1; i <= injectedScript._savedResults.length; ++i)
         this.__defineGetter__("$" + i, bind(injectedScript._savedResult, injectedScript, i));
-    }
+
+    // Command Line API methods.
+    for (let method of BasicCommandLineAPI.methods)
+        this[method.name] = method;
 }
+
+BasicCommandLineAPI.methods = [
+    function dir() { return inspectedGlobalObject.console.dir(...arguments); },
+    function clear() { return inspectedGlobalObject.console.clear(...arguments); },
+    function table() { return inspectedGlobalObject.console.table(...arguments); },
+    function profile() { return inspectedGlobalObject.console.profile(...arguments); },
+    function profileEnd() { return inspectedGlobalObject.console.profileEnd(...arguments); },
+
+    function keys(object) { return Object.keys(object); },
+    function values(object) {
+        let result = [];
+        for (let key in object)
+            result.push(object[key]);
+        return result;
+    },
+];
+
+for (let method of BasicCommandLineAPI.methods)
+    method.toString = function() { return "function " + method.name + "() { [Command Line API] }"; };
 
 return injectedScript;
 })

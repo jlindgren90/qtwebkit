@@ -1,3 +1,1538 @@
+2016-05-07  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        REGRESSION(r196222): [AX][GTK] accessibility/gtk/caret-offsets.html failing
+        https://bugs.webkit.org/show_bug.cgi?id=153956
+
+        Reviewed by Chris Fleizach.
+
+        The reason the test began failing is that it was checking the new caret offset
+        synchronously. For most of the test cases, this was not a problem. But when the
+        caret was moved out of a focused link, the focus change (and associated repainting)
+        delayed the caret-moved event long enough to cause the associated test case to fail.
+        The test now uses shouldBecomeEqualToString() instead of shouldBeEqualToString().
+
+        The test also had a supposedly-correct expectation which was wrong: When moving the
+        caret to a valid accessible offset, the caret-moved event should be for that offset.
+        This was not the case for the list item test case because emitTextSelectionChange()
+        was not adjusting the offset for the RenderListMarker, the text of which is exposed
+        as part of the ATK_ROLE_LIST_ITEM object. This bug was also fixed and the test case
+        updated accordingly.
+
+        No new tests are needed. The previously-failing test is now passing.
+
+        * editing/atk/FrameSelectionAtk.cpp:
+        (WebCore::emitTextSelectionChange):
+
+2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Rename HitTestRequest DisallowShadowContent to DisallowUserAgentShadowContent
+        https://bugs.webkit.org/show_bug.cgi?id=157447
+
+        Reviewed by Ryosuke Niwa.
+
+        HitTesting is intended to reach nodes inside shadow content. This property
+        on the HitTestRequest is intended to avoid hit testing in UserAgent shadow
+        content. Rename the enum value, and cascading methods for clarity.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::isMainContent):
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::eventMayStartDrag):
+        (WebCore::EventHandler::updateSelectionForMouseDrag):
+        (WebCore::EventHandler::hitTestResultAtPoint):
+        (WebCore::EventHandler::handleMousePressEvent):
+        (WebCore::EventHandler::handleMouseDoubleClickEvent):
+        (WebCore::EventHandler::mouseMoved):
+        (WebCore::EventHandler::handleMouseMoveEvent):
+        (WebCore::EventHandler::handleMouseReleaseEvent):
+        (WebCore::EventHandler::handleMouseForceEvent):
+        (WebCore::EventHandler::updateDragAndDrop):
+        (WebCore::EventHandler::isInsideScrollbar):
+        (WebCore::EventHandler::sendContextMenuEvent):
+        (WebCore::EventHandler::sendContextMenuEventForKey):
+        (WebCore::EventHandler::hoverTimerFired):
+        (WebCore::EventHandler::dragSourceEndedAt):
+        (WebCore::EventHandler::handleDrag):
+        (WebCore::EventHandler::dispatchSyntheticTouchEventIfEnabled):
+        * page/EventHandler.h:
+        * page/FocusController.cpp:
+        (WebCore::updateFocusCandidateIfNeeded):
+        * rendering/HitTestRequest.h:
+        (WebCore::HitTestRequest::HitTestRequest):
+        (WebCore::HitTestRequest::disallowsUserAgentShadowContent):
+        (WebCore::HitTestRequest::disallowsShadowContent): Deleted.
+        * rendering/HitTestResult.cpp:
+        (WebCore::HitTestResult::setToNonUserAgentShadowAncestor):
+        (WebCore::HitTestResult::addNodeToRectBasedTestResult):
+        (WebCore::HitTestResult::setToNonShadowAncestor): Deleted.
+        * rendering/HitTestResult.h:
+        * rendering/RenderEmbeddedObject.cpp:
+        (WebCore::RenderEmbeddedObject::isReplacementObscured):
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::calculateClipRects):
+        * rendering/svg/RenderSVGResourceClipper.cpp:
+        (WebCore::RenderSVGResourceClipper::hitTestClipContent):
+        * testing/Internals.cpp:
+        (WebCore::Internals::nodesFromRect):
+
+2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Inspect Element and Element Selection searching should work with Shadow DOM Nodes
+        https://bugs.webkit.org/show_bug.cgi?id=157446
+        <rdar://problem/24688447>
+
+        Reviewed by Ryosuke Niwa.
+
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::innerParentNode):
+        The Inspector backend was informing the frontend that all ShadowRoots
+        were floating and had no parent. Get the host element for ShadowRoots.
+
+        * rendering/HitTestResult.cpp:
+        (WebCore::moveOutOfUserAgentShadowTree):
+        (WebCore::HitTestResult::setToNonShadowAncestor):
+        EventHandler::mouseMoved is calling setToNonShadowAncestor before
+        notifying Page::chrome / Inspector about the moused over element.
+        This should be the deepest non-user-agent-shadow node.
+
+2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Misc CommandLineAPI cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=157450
+
+        Reviewed by Ryosuke Niwa.
+
+        * inspector/CommandLineAPIModuleSource.js:
+        (bind):
+
+2016-05-06  Simon Fraser  <simon.fraser@apple.com>
+
+        Enable IOS_TEXT_AUTOSIZING on Mac and make it testable
+        https://bugs.webkit.org/show_bug.cgi?id=157432
+        rdar://problem/16406720
+
+        Reviewed by Dean Jackson.
+
+        Enable IOS_TEXT_AUTOSIZING on Mac so it can be tested.
+
+        Make the setTextAutosizingEnabled() Setting work, and plumb it through WK1 and WK2
+        preferences for WTR and DRT. Make textAutosizingWindowSizeOverride() work, for layout tests.
+        These two settings are shared with TEXT_AUTOSIZING.
+
+        Add a TextAutosizing log channel, which is useful for generated -expected.html results.
+
+        Move adjustComputedFontSizesOnBlocks() and related code from RenderObject to RenderElement
+        without changes.
+
+        An implication of this set of changes is that the way clients enable text autosizing
+        has changed. Previously, they set the "MinimumZoomFontSize" preference to 0.
+        Settings::defaultMinimumZoomFontSize() used to do this in order to enable text autosizing
+        on iPhone only, not iPad.
+
+        Now the preferred technique is to leave minimumZoomFontSize alone, and to use textAutosizingEnabled()
+        instead. Settings::defaultTextAutosizingEnabled() now does the check for iPhone.
+
+        UIWebView calls WebKitGetMinimumZoomFontSize() to setup the default minimum font zoom size,
+        which will now always return 15, but had no other code that toggled this. So it's safe to just rely
+        on Settings::defaultTextAutosizingEnabled() doing the right thing for iPhone/iPad.
+
+        Test: fast/text-autosizing/ios/autosize-width.html
+
+        * Configurations/FeatureDefines.xcconfig:
+        * dom/Document.cpp:
+        (WebCore::Document::addAutoSizingNode):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::layout):
+        * page/Settings.cpp:
+        (WebCore::Settings::Settings): Deleted.
+        (WebCore::Settings::setTextAutosizingEnabled): Deleted.
+        (WebCore::Settings::setTextAutosizingWindowSizeOverride): Deleted.
+        * page/Settings.h:
+        (WebCore::Settings::textAutosizingEnabled): Deleted.
+        (WebCore::Settings::textAutosizingWindowSizeOverride): Deleted.
+        * page/Settings.in:
+        * page/cocoa/SettingsCocoa.mm:
+        (WebCore::Settings::defaultMinimumZoomFontSize):
+        (WebCore::Settings::defaultTextAutosizingEnabled):
+        * platform/Logging.h:
+        * rendering/RenderBlockFlow.cpp:
+        (WebCore::RenderBlockFlow::adjustComputedFontSizes):
+        * rendering/RenderElement.cpp:
+        (WebCore::includeNonFixedHeight):
+        (WebCore::RenderElement::adjustComputedFontSizesOnBlocks):
+        (WebCore::RenderElement::resetTextAutosizing):
+        * rendering/RenderElement.h:
+        * rendering/RenderObject.cpp:
+        (WebCore::includeNonFixedHeight): Deleted.
+        (WebCore::RenderObject::adjustComputedFontSizesOnBlocks): Deleted.
+        (WebCore::RenderObject::resetTextAutosizing): Deleted.
+        * rendering/RenderObject.h:
+        * rendering/TextAutoSizing.cpp:
+        (WebCore::TextAutoSizingValue::adjustNodeSizes):
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo):
+        (WebCore::InternalSettings::setTextAutosizingEnabled):
+        (WebCore::InternalSettings::setTextAutosizingWindowSizeOverride):
+        * testing/InternalSettings.h:
+
+2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Console: Variables defined with let/const aren't accessible outside of console's scope
+        https://bugs.webkit.org/show_bug.cgi?id=150752
+        <rdar://problem/23343385>
+
+        Reviewed by Mark Lam.
+
+        Test: inspector/runtime/evaluate-CommandLineAPI.html
+
+        * inspector/CommandLineAPIModuleSource.js:
+        (bind):
+        (this.member.toString):
+        (CommandLineAPI):
+        (CommandLineAPIImpl.prototype):
+        (slice): Deleted.
+        (bound): Deleted.
+        (bound.toString): Deleted.
+        (inScopeVariables): Deleted.
+        (customToStringMethod): Deleted.
+        Simplify now that we don't need to do our own variable shadow checking.
+
+2016-05-06  Tim Horton  <timothy_horton@apple.com>
+
+        <attachment> element should understand UTIs
+        https://bugs.webkit.org/show_bug.cgi?id=157425
+        <rdar://problem/25585401>
+
+        Reviewed by Anders Carlsson.
+
+        UTIs are often much more specific than MIME types, so we should allow
+        clients of <attachment> to use them to get more accurate icons.
+
+        Test: fast/attachment/attachment-uti.html
+
+        * platform/graphics/Icon.h:
+        * platform/graphics/mac/IconMac.mm:
+        (WebCore::Icon::createIconForMIMEType): Deleted.
+        Remove the now-unused createIconForMIMEType.
+
+        * platform/network/mac/UTIUtilities.h:
+        * platform/network/mac/UTIUtilities.mm:
+        (WebCore::isDeclaredUTI):
+        Expose UTTypeIsDeclared as isDeclaredUTI.
+
+        * rendering/RenderThemeIOS.mm:
+        (WebCore::iconForAttachment):
+        * rendering/RenderThemeMac.mm:
+        (WebCore::iconForAttachment):
+        If the attachment's type is a UTI, request the icon for it directly.
+        If it's a MIME type, convert to a UTI before requesting.
+
+2016-05-06  Chris Dumez  <cdumez@apple.com>
+
+        Clean up converting from JSValue to float / double in the bindings generator
+        https://bugs.webkit.org/show_bug.cgi?id=157407
+
+        Reviewed by Darin Adler.
+
+        Clean up converting from JSValue to float / double in the bindings generator:
+        - Handle all aspects of converting to float / double inside JSValueToNative()
+          instead of relying partly on the call sites.
+        - Add a build<>() template function to JSDOMBuild.h that is now
+          called from the bindings to convert to float / double and deal with
+          non-finite values.
+        - Provide a better message with the TypeError that is thrown for non-finite
+          values.
+
+        No new tests, rebaselined existing tests.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::throwSequenceTypeError):
+        (WebCore::throwNonFiniteTypeError):
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSDOMBuild.h:
+        (WebCore::build):
+        * bindings/scripts/CodeGenerator.pm:
+        (IsFloatingPointType):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (JSValueToNative):
+        (GenerateImplementation): Deleted.
+        (GenerateParametersCheck): Deleted.
+        (GenerateReturnParameters): Deleted.
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::setJSTestObjStrictFloat):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalDoubleIsNaN):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalFloatIsNaN):
+        (WebCore::jsTestObjPrototypeFunctionStrictFunction):
+        (WebCore::jsTestObjPrototypeFunctionVariadicDoubleMethod):
+        (WebCore::jsTestObjPrototypeFunctionAny):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::jsTestTypedefsPrototypeFunctionSetShadow):
+
+2016-05-06  Dean Jackson  <dino@apple.com>
+
+        Regions, Shapes and Tracks don't need runtime features
+        https://bugs.webkit.org/show_bug.cgi?id=157426
+        <rdar://problem/26146262>
+
+        Reviewed by Simon Fraser.
+
+        The following RuntimeEnabledFeatures can be removed since
+        we have no need to disable them (they are stable and have
+        shipped for a while):
+        - CSS Regions
+        - CSS Shapes
+        - Media tracks
+
+        * bindings/generic/RuntimeEnabledFeatures.cpp:
+        (WebCore::RuntimeEnabledFeatures::RuntimeEnabledFeatures): Deleted.
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::setCSSShapesEnabled): Deleted.
+        (WebCore::RuntimeEnabledFeatures::cssShapesEnabled): Deleted.
+        (WebCore::RuntimeEnabledFeatures::setCSSRegionsEnabled): Deleted.
+        (WebCore::RuntimeEnabledFeatures::cssRegionsEnabled): Deleted.
+        (WebCore::RuntimeEnabledFeatures::setCSSCompositingEnabled): Deleted.
+        (WebCore::RuntimeEnabledFeatures::cssCompositingEnabled): Deleted.
+        (WebCore::RuntimeEnabledFeatures::webkitVideoTrackEnabled): Deleted.
+        (WebCore::RuntimeEnabledFeatures::setWebkitVideoTrackEnabled): Deleted.
+        * css/CSSParser.cpp:
+        (WebCore::isSimpleLengthPropertyID):
+        (WebCore::isValidKeywordPropertyAndValue):
+        (WebCore::CSSParser::parseValue):
+        (WebCore::CSSParser::parseFillProperty):
+        (WebCore::CSSParser::createRegionRule):
+        (WebCore::CSSParserContext::CSSParserContext): Deleted.
+        (WebCore::operator==): Deleted.
+        (WebCore::CSSParser::parseShapeProperty): Deleted.
+        (WebCore::CSSParser::cssRegionsEnabled): Deleted.
+        (WebCore::CSSParser::cssCompositingEnabled): Deleted.
+        (WebCore::CSSParser::parseFlowThread): Deleted.
+        (WebCore::CSSParser::parseRegionThread): Deleted.
+        * css/CSSParser.h:
+        * css/CSSParserMode.h:
+        * dom/Document.cpp:
+        (WebCore::Document::webkitGetNamedFlows):
+        (WebCore::Document::cssRegionsEnabled): Deleted.
+        (WebCore::Document::cssCompositingEnabled): Deleted.
+        * dom/Document.h:
+        * dom/Element.cpp:
+        (WebCore::Element::unregisterNamedFlowContentElement):
+        (WebCore::Element::webkitRegionOverset):
+        (WebCore::Element::webkitGetRegionFlowRanges): Deleted.
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::scheduleDelayedAction):
+        (WebCore::HTMLMediaElement::pendingActionTimerFired):
+        (WebCore::HTMLMediaElement::prepareForLoad):
+        (WebCore::HTMLMediaElement::loadInternal):
+        (WebCore::HTMLMediaElement::setReadyState):
+        (WebCore::HTMLMediaElement::playbackProgressTimerFired):
+        (WebCore::HTMLMediaElement::mediaPlayerTimeChanged):
+        (WebCore::HTMLMediaElement::userCancelledLoad):
+        (WebCore::HTMLMediaElement::setVideoFullscreenLayer):
+        (WebCore::HTMLMediaElement::hasClosedCaptions):
+        (WebCore::HTMLMediaElement::setClosedCaptionsVisible):
+        (WebCore::HTMLMediaElement::configureTextTrackDisplay):
+        (WebCore::HTMLMediaElement::finishParsingChildren): Deleted.
+        (WebCore::HTMLMediaElement::audioTrackEnabledChanged): Deleted.
+        (WebCore::HTMLMediaElement::videoTrackSelectedChanged): Deleted.
+        (WebCore::HTMLMediaElement::mediaPlayerDidAddAudioTrack): Deleted.
+        (WebCore::HTMLMediaElement::mediaPlayerDidAddTextTrack): Deleted.
+        (WebCore::HTMLMediaElement::mediaPlayerDidAddVideoTrack): Deleted.
+        (WebCore::HTMLMediaElement::addAudioTrack): Deleted.
+        (WebCore::HTMLMediaElement::addTextTrack): Deleted.
+        (WebCore::HTMLMediaElement::addVideoTrack): Deleted.
+        (WebCore::HTMLMediaElement::removeAudioTrack): Deleted.
+        (WebCore::HTMLMediaElement::removeTextTrack): Deleted.
+        (WebCore::HTMLMediaElement::removeVideoTrack): Deleted.
+        (WebCore::HTMLMediaElement::audioTracks): Deleted.
+        (WebCore::HTMLMediaElement::textTracks): Deleted.
+        (WebCore::HTMLMediaElement::videoTracks): Deleted.
+        (WebCore::HTMLMediaElement::didAddTextTrack): Deleted.
+        (WebCore::HTMLMediaElement::didRemoveTextTrack): Deleted.
+        * html/HTMLTrackElement.cpp:
+        (WebCore::HTMLTrackElement::parseAttribute):
+        (WebCore::HTMLTrackElement::scheduleLoad): Deleted.
+        (WebCore::HTMLTrackElement::canLoadURL): Deleted.
+        * rendering/RenderBlockFlow.cpp:
+        (WebCore::RenderBlockFlow::createRenderNamedFlowFragmentIfNeeded):
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo): Deleted.
+        (WebCore::InternalSettings::setCSSShapesEnabled): Deleted.
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+
+2016-05-06  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB (Workers): Start running a lot of the workers tests.
+        https://bugs.webkit.org/show_bug.cgi?id=157424
+
+        Reviewed by Sam Weinig.
+
+        No new tests (Covered by enabling a whole bunch of existing tests).
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::stop): Call removeAllEventListeners() to clean up the Worker VM
+          before it shuts down.
+
+        * Modules/indexeddb/IDBRequest.cpp:
+        (WebCore::IDBRequest::stop): Call removeAllEventListeners()
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::IDBTransaction): Initialize with the correct VM.
+        (WebCore::IDBTransaction::stop): Call removeAllEventListeners()
+        (WebCore::IDBTransaction::operationDidComplete):
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::takeIDBOpenDBRequest):
+        (WebCore::IDBClient::IDBConnectionProxy::completeOpenDBRequest): Don't take the request from
+          the map, but rather let the request take itself from its appropriate thread.
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+
+        * Modules/indexeddb/client/TransactionOperation.h:
+        (WebCore::IDBClient::TransactionOperation::completed): Rework clearing out the completion 
+          handler, as the handler itself might hold the last reference to `this`.
+
+        * page/SecurityOrigin.h:
+        (WebCore::SecurityOrigin::hasUniversalAccess):
+
+        * workers/WorkerGlobalScope.cpp:
+        (WebCore::WorkerGlobalScope::WorkerGlobalScope): If the parent context's SecurityOrigin had
+          universal access, grant it to this one.
+
+2016-05-06  Ryosuke Niwa  <rniwa@webkit.org>
+
+        FKA: No way to get focus from DOM to shadow DOM components (Was: HTML5 media controls not keyboard accessible)
+        https://bugs.webkit.org/show_bug.cgi?id=117857
+
+        Reviewed by Jer Noble.
+
+        The bug was caused by hasCustomFocusLogic returning true on media elements.
+
+        Fix the bug by removing this function so that FocusController will walk into the shadow tree of media elements
+        to look for focusable elements. This will allow AT such as Voice Over to iterate through controls.
+
+        We don't seem to draw focus rings inside the media elements but that could be tweaked in a separate patch.
+
+        Test: media/tab-focus-inside-media-elements.html
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::hasCustomFocusLogic): Deleted.
+        * html/HTMLMediaElement.h:
+
+2016-05-06  Anders Carlsson  <andersca@apple.com>
+
+        Tidy up the LinkRelAttribute code
+        https://bugs.webkit.org/show_bug.cgi?id=157429
+
+        Reviewed by Sam Weinig.
+
+        Get rid of IconURL.h and move the IconType enumeration inside LinkRelAttribute.
+        Remove the InvalidIcon enum declaration and use WTF::Optional instead.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/IconURL.h: Removed.
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::iconType):
+        (WebCore::HTMLLinkElement::addSubresourceAttributeURLs):
+        * html/HTMLLinkElement.h:
+        * html/LinkRelAttribute.cpp:
+        (WebCore::LinkRelAttribute::LinkRelAttribute):
+        * html/LinkRelAttribute.h:
+        * html/parser/HTMLPreloadScanner.cpp:
+        (WebCore::TokenPreloadScanner::StartTagScanner::relAttributeIsStyleSheet):
+        * loader/FrameLoader.h:
+        * loader/FrameLoaderClient.h:
+        * loader/icon/IconController.cpp:
+        (WebCore::iconFromLinkElements):
+
+2016-05-06  Jer Noble  <jer.noble@apple.com>
+
+        Muted media elements should be allowed to autoplay, even if RequireUserGestureForAudioRateChange is set.
+        https://bugs.webkit.org/show_bug.cgi?id=157404
+        <rdar://problem/26016802>
+
+        Reviewed by Eric Carlson.
+
+        Test: media/audio-playback-restriction-play-muted.html
+
+        Add element.muted() as a critera of whether playback is permitted when
+        RequireUserGestureForAudioRateChange is set. Also, make sure to re-evaluate whether the
+        element should be playing when muted is changed without a user gesture.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::setMuted):
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::playbackPermitted):
+
+2016-05-06  Brent Fulgham  <bfulgham@apple.com>
+
+        Don't use invalidated ResourceLoadStatistics iterators
+        https://bugs.webkit.org/show_bug.cgi?id=157412
+        <rdar://problem/26133153>
+
+        Reviewed by Chris Dumez.
+
+        ResourceLoadObserver::logFrameNavigation was using references bound to the 'value'
+        member of iterators from the ResourceLoadStatistics HashMap. When new entries were
+        added, these iterators were invalidated causing the references to refer to invalid
+        memory.
+
+        Renamed 'resourceStatisticsForPrimaryDomain' to 'ensureResourceStatisticsForPrimaryDomain'
+        to clarify that it may mutate the underlying HashMap, thereby invalidating any
+        existing iterators.
+
+        * loader/ResourceLoadObserver.cpp:
+        (WebCore::ResourceLoadObserver::logFrameNavigation): Protect against HashMap
+        elements being copied/moved when new intries are added.
+        * loader/ResourceLoadStatisticsStore.cpp:
+        (WebCore::ResourceLoadStatisticsStore::setResourceStatisticsForPrimaryDomain): Added.
+        * loader/ResourceLoadStatisticsStore.h:
+
+2016-05-06  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Unprefix CSS Grid Layout properties
+        https://bugs.webkit.org/show_bug.cgi?id=157137
+
+        Reviewed by Simon Fraser.
+
+        Remove "-webkit" prefix from all the grid layout properties,
+        including the display value.
+        Update the source code to remove the prefix where it was used too.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::isLayoutDependent):
+        (WebCore::ComputedStyleExtractor::propertyValue):
+        * css/CSSParser.cpp:
+        (WebCore::isSimpleLengthPropertyID):
+        (WebCore::isValidKeywordPropertyAndValue):
+        (WebCore::CSSParser::parseValue):
+        (WebCore::CSSParser::parseGridGapShorthand):
+        (WebCore::CSSParser::parseGridTemplateRowsAndAreasAndColumns):
+        (WebCore::CSSParser::parseGridTemplateShorthand):
+        (WebCore::CSSParser::parseGridShorthand):
+        (WebCore::CSSParser::parseGridAreaShorthand):
+        * css/CSSPrimitiveValueMappings.h:
+        (WebCore::CSSPrimitiveValue::CSSPrimitiveValue):
+        * css/CSSPropertyNames.in:
+        * css/CSSValueKeywords.in:
+        * css/StyleBuilderCustom.h:
+        (WebCore::StyleBuilderCustom::applyInitialGridTemplateAreas):
+        (WebCore::StyleBuilderCustom::applyInheritGridTemplateAreas):
+        (WebCore::StyleBuilderCustom::applyValueGridTemplateAreas):
+        (WebCore::StyleBuilderCustom::applyInitialGridTemplateColumns):
+        (WebCore::StyleBuilderCustom::applyInheritGridTemplateColumns):
+        (WebCore::StyleBuilderCustom::applyValueGridTemplateColumns):
+        (WebCore::StyleBuilderCustom::applyInitialGridTemplateRows):
+        (WebCore::StyleBuilderCustom::applyInheritGridTemplateRows):
+        (WebCore::StyleBuilderCustom::applyValueGridTemplateRows):
+        * css/StyleProperties.cpp:
+        (WebCore::StyleProperties::getPropertyValue):
+
+2016-05-06  Nan Wang  <n_wang@apple.com>
+
+        AX: <attachment> element should have a replacement character
+        https://bugs.webkit.org/show_bug.cgi?id=157406
+
+        Reviewed by Chris Fleizach.
+
+        Make sure attachment element is considered as a replaced node.
+
+        Test: accessibility/mac/attachment-element-replacement-character.html
+
+        * editing/TextIterator.cpp:
+        (WebCore::isRendererReplacedElement):
+
+2016-05-06  Nan Wang  <n_wang@apple.com>
+
+        AX: String for document range is empty if end visible position anchors to a ignored replaced node
+        https://bugs.webkit.org/show_bug.cgi?id=157403
+
+        Reviewed by Chris Fleizach.
+
+        The CharacterOffset that is converted from VisiblePositon is wrong when the VisiblePostion anchors
+        to an ignored replaced node. Fixed it by adjusting the offset of the CharacterOffset correctly in 
+        such case.
+
+        Test: accessibility/mac/text-marker-string-for-document-end-replaced-node.html
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::characterOffsetsInOrder):
+        (WebCore::AXObjectCache::characterOffsetFromVisiblePosition):
+        (WebCore::AXObjectCache::accessibilityObjectForTextMarkerData):
+
+2016-05-05  David Kilzer  <ddkilzer@apple.com>
+
+        [iOS] WebCore does not need to link to CoreAudio, GraphicsServices, SystemConfiguration frameworks
+        <https://webkit.org/b/157413>
+        <rdar://problem/26104189>
+
+        Reviewed by Gavin Barraclough.
+
+        * Configurations/WebCore.xcconfig:
+        (OTHER_LDFLAGS_BASE_ios): Remove "-framework GraphicsServices".
+        (OTHER_LDFLAGS_PLATFORM[sdk=macosx*]): Add "-framework CoreAudio"
+        and "-framework SystemConfiguration".
+        * WebCore.xcodeproj/project.pbxproj: Remove CoreAudio.framework
+        and SystemConfiguration.framework from the project file.
+
+2016-05-05  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB (Workers): Get everything to the right threads.
+        https://bugs.webkit.org/show_bug.cgi?id=157398
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No current change in behavior, will be tested as bug 149953 is resolved, enabling IDB in workers).
+
+        * dom/ScriptExecutionContext.h:
+        (WebCore::ScriptExecutionContext::postCrossThreadTask): Add a helper to post a CrossThreadTask to a context.
+                
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::performCallbackOnCorrectThread): Helper to perform an IDB callback on either the main thread
+          or Worker thread as necessary.
+        (WebCore::IDBClient::IDBConnectionProxy::openDatabase):
+        (WebCore::IDBClient::IDBConnectionProxy::deleteDatabase):
+        (WebCore::IDBClient::IDBConnectionProxy::completeOpenDBRequest):
+        (WebCore::IDBClient::IDBConnectionProxy::createObjectStore):
+        (WebCore::IDBClient::IDBConnectionProxy::deleteObjectStore):
+        (WebCore::IDBClient::IDBConnectionProxy::clearObjectStore):
+        (WebCore::IDBClient::IDBConnectionProxy::createIndex):
+        (WebCore::IDBClient::IDBConnectionProxy::deleteIndex):
+        (WebCore::IDBClient::IDBConnectionProxy::putOrAdd):
+        (WebCore::IDBClient::IDBConnectionProxy::getRecord):
+        (WebCore::IDBClient::IDBConnectionProxy::getCount):
+        (WebCore::IDBClient::IDBConnectionProxy::deleteRecord):
+        (WebCore::IDBClient::IDBConnectionProxy::openCursor):
+        (WebCore::IDBClient::IDBConnectionProxy::iterateCursor):
+        (WebCore::IDBClient::IDBConnectionProxy::completeOperation):
+        (WebCore::IDBClient::IDBConnectionProxy::abortOpenAndUpgradeNeeded):
+        (WebCore::IDBClient::IDBConnectionProxy::fireVersionChangeEvent):
+        (WebCore::IDBClient::IDBConnectionProxy::didFireVersionChangeEvent):
+        (WebCore::IDBClient::IDBConnectionProxy::notifyOpenDBRequestBlocked):
+        (WebCore::IDBClient::IDBConnectionProxy::establishTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didStartTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::commitTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didCommitTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::abortTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didAbortTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didFinishHandlingVersionChangeTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::databaseConnectionClosed):
+        (WebCore::IDBClient::IDBConnectionProxy::scheduleMainThreadTasks):
+        (WebCore::IDBClient::IDBConnectionProxy::handleMainThreadTasks):
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+        (WebCore::IDBClient::IDBConnectionProxy::callConnectionOnMainThread): Helper to marshall IDB operations from the
+          Worker thread to the main thread.
+        (WebCore::IDBClient::IDBConnectionProxy::postMainThreadTask):
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::originThreadID):
+        * Modules/indexeddb/IDBTransaction.h:
+        
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::putOrAdd):
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+
+        * Modules/indexeddb/client/IDBConnectionToServerDelegate.h:
+
+        * Modules/indexeddb/client/TransactionOperation.cpp:
+        (WebCore::IDBClient::TransactionOperation::scriptExecutionContext):
+        * Modules/indexeddb/client/TransactionOperation.h:
+
+        * Modules/indexeddb/shared/IDBResourceIdentifier.cpp:
+        (WebCore::nextClientResourceNumber):
+
+        * Modules/indexeddb/shared/InProcessIDBServer.cpp:
+        (WebCore::InProcessIDBServer::putOrAdd):
+        * Modules/indexeddb/shared/InProcessIDBServer.h:
+
+2016-05-05  Dean Jackson  <dino@apple.com>
+
+        4 and 8 digit color attributes should use the crazypants algorithm, not the CSS one.
+        https://bugs.webkit.org/show_bug.cgi?id=157402
+        <rdar://problem/26131142>
+
+        Reviewed by Simon Fraser.
+
+        Noel and Tab from Google alerted me to the fact I broke some legacy
+        HTML color attributes when I added support for 4 and 8 digit hex colors
+        in CSS. The fix is to favor the "crazy" parsing unless we know it is a 3 or 6
+        digit hex value (in which case we try the CSS algorithm first).
+
+        Covered by reverting an existing test.
+
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::addHTMLColorToStyle):
+
+2016-05-05  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB (Workers): Remove the need for IDBConnectionProxy to expose its IDBConnectionToServer.
+        https://bugs.webkit.org/show_bug.cgi?id=157394
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No current change in behavior, will be tested as bug 149953 makes progress).
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::transaction):
+        (WebCore::IDBDatabase::fireVersionChangeEvent):
+        (WebCore::IDBDatabase::dispatchEvent):
+        * Modules/indexeddb/IDBDatabase.h:
+        (WebCore::IDBDatabase::serverConnection): Deleted.
+
+        * Modules/indexeddb/IDBOpenDBRequest.cpp:
+        (WebCore::IDBOpenDBRequest::requestCompleted):
+
+        * Modules/indexeddb/IDBRequest.cpp:
+        (WebCore::IDBRequest::IDBRequest):
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::connectionProxy):
+        (WebCore::IDBTransaction::serverConnection): Deleted.
+        * Modules/indexeddb/IDBTransaction.h:
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::abortOpenAndUpgradeNeeded):
+        (WebCore::IDBClient::IDBConnectionProxy::connectionToServer): Deleted.
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::abortOpenAndUpgradeNeeded):
+
+        * Modules/indexeddb/client/TransactionOperation.h:
+        (WebCore::IDBClient::TransactionOperation::TransactionOperation):
+
+        * Modules/indexeddb/shared/IDBCursorInfo.cpp:
+        (WebCore::IDBCursorInfo::IDBCursorInfo):
+
+        * Modules/indexeddb/shared/IDBRequestData.cpp:
+        (WebCore::IDBRequestData::IDBRequestData):
+
+        * Modules/indexeddb/shared/IDBResourceIdentifier.cpp:
+        (WebCore::IDBResourceIdentifier::IDBResourceIdentifier):
+        * Modules/indexeddb/shared/IDBResourceIdentifier.h:
+
+        * Modules/indexeddb/shared/IDBTransactionInfo.cpp:
+        (WebCore::IDBTransactionInfo::clientTransaction):
+        * Modules/indexeddb/shared/IDBTransactionInfo.h:
+
+2016-05-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200479.
+        https://bugs.webkit.org/show_bug.cgi?id=157397
+
+        A LayoutTest added with this change is crashing on Mac WK1
+        test runs. (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "For keyboard users, activating a fragment URL should transfer
+        focus and caret to the destination"
+        https://bugs.webkit.org/show_bug.cgi?id=116046
+        http://trac.webkit.org/changeset/200479
+
+2016-05-05  Chris Dumez  <cdumez@apple.com>
+
+        CORS check is sometimes incorrectly failing for media loads
+        https://bugs.webkit.org/show_bug.cgi?id=157370
+        <rdar://problem/26071607>
+
+        Reviewed by Alex Christensen.
+
+        When the media library is issuing a conditional request for a media
+        element that had the 'crossorigin' attribute, we would fail the CORS
+        check and log an error if the server were to respond with a "304 Not
+        Modified" response because the 304 response usually does not have
+        the necessary "Access-Control-Allow-Origin: *" header (At least for
+        Apache) and we cannot use the cached headers either since WebKit
+        does not have them.
+
+        To work around the problem in the short term, we now drop the
+        conditional headers from the request that the media library is
+        giving us when the media element has the 'crossorigin' attribute
+        set. As a result, the server will never respond with a 304 and we
+        will be able to do a CORS check on the full (e.g. 206) response.
+
+        In the long term, we need to deal with this better as this means
+        we may sometimes fail to reuse cached data. For now, this is only
+        potentially inefficient in the cases that were broken (i.e. no
+        video would play and we would log an error in the console).
+
+        Test: http/tests/security/video-cross-origin-caching.html
+
+        * loader/MediaResourceLoader.cpp:
+        (WebCore::MediaResourceLoader::requestResource):
+        Make the request unconditional if the media element has the
+        'crossorigin' attribute set.
+
+        * platform/network/ResourceRequestBase.cpp:
+        (WebCore::ResourceRequestBase::isConditional):
+        (WebCore::ResourceRequestBase::makeUnconditional):
+        When fixing the bug above, I noticed that those method do not do
+        the right thing if the m_httpHeaderFields data member has not
+        been populated yet. m_httpHeaderFields is lazily initialized so
+        we need to call updateResourceRequest() before using it.
+
+2016-05-05  Zalan Bujtas  <zalan@apple.com>
+
+        Stop traversing at the container block when computing RTL inline static distance.
+        https://bugs.webkit.org/show_bug.cgi?id=157349
+        <rdar://problem/25994087>
+
+        Reviewed by David Hyatt.
+
+        When computing the inline static distance for a child renderer, we start at its enclosing box
+        and traverse up all the way to the container block.
+        However when the enclosing box is the ancestor of the container block, we
+        should just bail out right away since there's no container to use to adjust the position.
+
+        Test: fast/multicol/positioned-rtl-column-crash.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::computeInlineStaticDistance):
+
+2016-05-05  Ada Chan  <adachan@apple.com>
+
+        Add WebKitAdditions extension points in media controls related code in RenderThemeMac
+        https://bugs.webkit.org/show_bug.cgi?id=157390
+
+        Reviewed by Anders Carlsson.
+
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::mediaControlsStyleSheet):
+        (WebCore::RenderThemeMac::mediaControlsScript):
+
+2016-05-05  Jer Noble  <jer.noble@apple.com>
+
+        [WK2] Media controls don't update if controller is created after the interface is created
+        https://bugs.webkit.org/show_bug.cgi?id=157376
+
+        Reviewed by Beth Dakin.
+
+        Add getter methods to WebPlaybackSessionModel so that the model's values can be retrieved
+        if those values were missed before the equivalent WebPlaybackSessionInterface methods were
+        called. This necessatates a bunch of changes in HTMLMediaElement and related classes to
+        change PassRefPtr<TimeRanges> types to Ref<TimeRanges> (and one change in TimeRanges itself).
+        WebPlaybackSessionModelMediaElement can implement these new getter methods by querying the
+        values from the HTMLMediaElement, something it was doing already, so most of those changes
+        are simple refactoring.
+
+        There's no reason any longer for WebVideoFullscreenModel to inherit from WebPlaybackSessionModel,
+        so remove that superclass.
+
+        In WebPlaybackSessionInterfaceMac, when a new WebPlaybackControlsManager is set, use the new
+        getter methods on WebPlaybackSessionModel to update the values in the manager.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::mediaPlayerCharacteristicChanged):
+        (WebCore::HTMLMediaElement::maxBufferedTime):
+        (WebCore::HTMLMediaElement::played):
+        (WebCore::HTMLMediaElement::buffered): Deleted.
+        (WebCore::HTMLMediaElement::seekable): Deleted.
+        * html/HTMLMediaElement.h:
+        * html/MediaController.cpp:
+        (MediaController::buffered):
+        (MediaController::seekable):
+        (MediaController::played):
+        * html/MediaController.h:
+        * html/MediaControllerInterface.h:
+        * html/TimeRanges.cpp:
+        (WebCore::TimeRanges::copy):
+        * html/TimeRanges.h:
+        * platform/cocoa/WebPlaybackSessionModel.h:
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.h:
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.mm:
+        (WebPlaybackSessionModelMediaElement::setWebPlaybackSessionInterface):
+        (WebPlaybackSessionModelMediaElement::updateForEventName):
+        (WebPlaybackSessionModelMediaElement::updateLegibleOptions):
+        (WebPlaybackSessionModelMediaElement::observedEventNames):
+        (WebPlaybackSessionModelMediaElement::eventNameAll):
+        (WebPlaybackSessionModelMediaElement::duration):
+        (WebPlaybackSessionModelMediaElement::currentTime):
+        (WebPlaybackSessionModelMediaElement::bufferedTime):
+        (WebPlaybackSessionModelMediaElement::isPlaying):
+        (WebPlaybackSessionModelMediaElement::playbackRate):
+        (WebPlaybackSessionModelMediaElement::seekableRanges):
+        (WebPlaybackSessionModelMediaElement::canPlayFastReverse):
+        (WebPlaybackSessionModelMediaElement::audioMediaSelectionOptions):
+        (WebPlaybackSessionModelMediaElement::audioMediaSelectedIndex):
+        (WebPlaybackSessionModelMediaElement::legibleMediaSelectionOptions):
+        (WebPlaybackSessionModelMediaElement::legibleMediaSelectedIndex):
+        (WebPlaybackSessionModelMediaElement::externalPlaybackEnabled):
+        (WebPlaybackSessionModelMediaElement::wirelessVideoPlaybackDisabled):
+        * platform/cocoa/WebVideoFullscreenModel.h:
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.h:
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.mm:
+        (WebVideoFullscreenModelVideoElement::requestFullscreenMode): Deleted.
+        (WebVideoFullscreenModelVideoElement::setVideoLayerFrame): Deleted.
+        (WebVideoFullscreenModelVideoElement::setVideoLayerGravity): Deleted.
+        (WebVideoFullscreenModelVideoElement::observedEventNames): Deleted.
+        (WebVideoFullscreenModelVideoElement::eventNameAll): Deleted.
+        (WebVideoFullscreenModelVideoElement::fullscreenModeChanged): Deleted.
+        * platform/ios/WebPlaybackSessionInterfaceAVKit.h:
+        * platform/ios/WebVideoFullscreenControllerAVKit.mm:
+        (WebVideoFullscreenControllerContext::play): Deleted.
+        (WebVideoFullscreenControllerContext::pause): Deleted.
+        (WebVideoFullscreenControllerContext::togglePlayState): Deleted.
+        (WebVideoFullscreenControllerContext::beginScrubbing): Deleted.
+        (WebVideoFullscreenControllerContext::endScrubbing): Deleted.
+        (WebVideoFullscreenControllerContext::seekToTime): Deleted.
+        (WebVideoFullscreenControllerContext::fastSeek): Deleted.
+        (WebVideoFullscreenControllerContext::beginScanningForward): Deleted.
+        (WebVideoFullscreenControllerContext::beginScanningBackward): Deleted.
+        (WebVideoFullscreenControllerContext::endScanning): Deleted.
+        (WebVideoFullscreenControllerContext::selectAudioMediaOption): Deleted.
+        (WebVideoFullscreenControllerContext::selectLegibleMediaOption): Deleted.
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.h:
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (WebVideoFullscreenInterfaceAVKit::requestHideAndExitFullscreen):
+        (WebVideoFullscreenInterfaceAVKit::shouldExitFullscreenWithReason):
+        * platform/mac/WebPlaybackSessionInterfaceMac.mm:
+        (WebCore::timeRangesToArray):
+        (WebCore::WebPlaybackSessionInterfaceMac::setSeekableRanges):
+        (WebCore::WebPlaybackSessionInterfaceMac::setPlayBackControlsManager):
+        * platform/mac/WebVideoFullscreenInterfaceMac.h:
+
+2016-05-05  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB (Workers): Move TransactionOperation management from IDBConnectionToServer to IDBConnectionProxy.
+        https://bugs.webkit.org/show_bug.cgi?id=157392
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No current change in behavior, will be tested as bug 149953 makes progress).
+
+        Set up TransactionOperations on the IDBConnectionProxy instead of the IDBConnectionToServer:
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::createObjectStoreOnServer):
+        (WebCore::IDBTransaction::createIndexOnServer):
+        (WebCore::IDBTransaction::openCursorOnServer):
+        (WebCore::IDBTransaction::iterateCursorOnServer):
+        (WebCore::IDBTransaction::getRecordOnServer):
+        (WebCore::IDBTransaction::getCountOnServer):
+        (WebCore::IDBTransaction::deleteRecordOnServer):
+        (WebCore::IDBTransaction::clearObjectStoreOnServer):
+        (WebCore::IDBTransaction::putOrAddOnServer):
+        (WebCore::IDBTransaction::deleteObjectStoreOnServer):
+        (WebCore::IDBTransaction::deleteIndexOnServer):
+        
+        IDBConnectionProxy is now the owner of dispatched TransactionOperations:
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::createObjectStore):
+        (WebCore::IDBClient::IDBConnectionProxy::deleteObjectStore):
+        (WebCore::IDBClient::IDBConnectionProxy::clearObjectStore):
+        (WebCore::IDBClient::IDBConnectionProxy::createIndex):
+        (WebCore::IDBClient::IDBConnectionProxy::deleteIndex):
+        (WebCore::IDBClient::IDBConnectionProxy::putOrAdd):
+        (WebCore::IDBClient::IDBConnectionProxy::getRecord):
+        (WebCore::IDBClient::IDBConnectionProxy::getCount):
+        (WebCore::IDBClient::IDBConnectionProxy::deleteRecord):
+        (WebCore::IDBClient::IDBConnectionProxy::openCursor):
+        (WebCore::IDBClient::IDBConnectionProxy::iterateCursor):
+        (WebCore::IDBClient::IDBConnectionProxy::saveOperation):
+        (WebCore::IDBClient::IDBConnectionProxy::completeOperation):
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+        
+        Proxy this in-and-out calls to the ConnectionProxy:
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::createObjectStore):
+        (WebCore::IDBClient::IDBConnectionToServer::didCreateObjectStore):
+        (WebCore::IDBClient::IDBConnectionToServer::deleteObjectStore):
+        (WebCore::IDBClient::IDBConnectionToServer::didDeleteObjectStore):
+        (WebCore::IDBClient::IDBConnectionToServer::clearObjectStore):
+        (WebCore::IDBClient::IDBConnectionToServer::didClearObjectStore):
+        (WebCore::IDBClient::IDBConnectionToServer::createIndex):
+        (WebCore::IDBClient::IDBConnectionToServer::didCreateIndex):
+        (WebCore::IDBClient::IDBConnectionToServer::deleteIndex):
+        (WebCore::IDBClient::IDBConnectionToServer::didDeleteIndex):
+        (WebCore::IDBClient::IDBConnectionToServer::putOrAdd):
+        (WebCore::IDBClient::IDBConnectionToServer::didPutOrAdd):
+        (WebCore::IDBClient::IDBConnectionToServer::getRecord):
+        (WebCore::IDBClient::IDBConnectionToServer::didGetRecord):
+        (WebCore::IDBClient::IDBConnectionToServer::getCount):
+        (WebCore::IDBClient::IDBConnectionToServer::didGetCount):
+        (WebCore::IDBClient::IDBConnectionToServer::deleteRecord):
+        (WebCore::IDBClient::IDBConnectionToServer::didDeleteRecord):
+        (WebCore::IDBClient::IDBConnectionToServer::openCursor):
+        (WebCore::IDBClient::IDBConnectionToServer::didOpenCursor):
+        (WebCore::IDBClient::IDBConnectionToServer::iterateCursor):
+        (WebCore::IDBClient::IDBConnectionToServer::didIterateCursor):
+        (WebCore::IDBClient::IDBConnectionToServer::saveOperation): Deleted.
+        (WebCore::IDBClient::IDBConnectionToServer::completeOperation): Deleted.
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+
+        - Give TransactionOperation a ThreadIdentifier member
+        - Privatize most public methods from TransactionOperation
+        - Make IDBRequestData a friend so it can get at the private methods
+        * Modules/indexeddb/client/TransactionOperation.h:
+        (WebCore::IDBClient::TransactionOperation::~TransactionOperation):
+        (WebCore::IDBClient::TransactionOperation::perform):
+        (WebCore::IDBClient::TransactionOperation::completed):
+        (WebCore::IDBClient::TransactionOperation::originThreadID):
+        (WebCore::IDBClient::TransactionOperation::transactionIdentifier):
+        (WebCore::IDBClient::TransactionOperation::objectStoreIdentifier):
+        (WebCore::IDBClient::TransactionOperation::indexIdentifier):
+        (WebCore::IDBClient::TransactionOperation::cursorIdentifier):
+        (WebCore::IDBClient::TransactionOperation::transaction):
+        (WebCore::IDBClient::TransactionOperation::indexRecordType):
+
+2016-05-05  Zalan Bujtas  <zalan@apple.com>
+
+        Do not attempt to compute min/max width.
+        https://bugs.webkit.org/show_bug.cgi?id=157320
+
+        Reviewed by David Hyatt.
+
+        Replaced elements with no intrinsic size (only with ratio) should not call the containing
+        block to compute the min/max width when the containing block's min/max width
+        depends on the children's intrinsic size. It could lead to infinite recursion.
+
+        Test: fast/replaced/before-content-intrinsic-crash.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::computeReplacedLogicalWidthRespectingMinMaxWidth): Unrelated code change.
+        * rendering/RenderImage.cpp: Unrelated code change.
+        (WebCore::RenderImage::RenderImage): Deleted.
+        * rendering/RenderImage.h:
+        * rendering/RenderReplaced.cpp:
+        (WebCore::RenderReplaced::computeReplacedLogicalWidth):
+
+2016-05-04  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Move all IDB DOM object management from IDBConnectionToServer to IDBConnectionProxy.
+        https://bugs.webkit.org/show_bug.cgi?id=157348
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Refactor, no change in behavior yet).
+
+        This is in-progress IDB-in-Workers code that is isolated enough to land right now.
+        
+        The goal is to have IDBConnectionToServer be a main-thread-only object, leaving IDBConnectionProxy
+        as the threading bridge between the worker thread and the main thread.
+        
+        As such, IDBConnectionToServer no longer maintains maps of IDB DOM objects, but instead the proxy
+        does and guards that access with locks.
+        
+        No threading changes takes place in this patch but it does scatter some isMainThread() checks and FIXMEs 
+        accurately representing where threading changes will take place once I can return to this.
+        
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::IDBDatabase):
+        (WebCore::IDBDatabase::~IDBDatabase):
+        (WebCore::IDBDatabase::maybeCloseInServer):
+
+        * Modules/indexeddb/IDBOpenDBRequest.cpp:
+        (WebCore::IDBOpenDBRequest::dispatchEvent):
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::abortOnServerAndCancelRequests):
+        (WebCore::IDBTransaction::commitOnServer):
+        (WebCore::IDBTransaction::establishOnServer):
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::openDatabase):
+        (WebCore::IDBClient::IDBConnectionProxy::deleteDatabase):
+        (WebCore::IDBClient::IDBConnectionProxy::didOpenDatabase):
+        (WebCore::IDBClient::IDBConnectionProxy::didDeleteDatabase):
+        (WebCore::IDBClient::IDBConnectionProxy::completeOpenDBRequest):
+        (WebCore::IDBClient::IDBConnectionProxy::fireVersionChangeEvent):
+        (WebCore::IDBClient::IDBConnectionProxy::didFireVersionChangeEvent):
+        (WebCore::IDBClient::IDBConnectionProxy::notifyOpenDBRequestBlocked):
+        (WebCore::IDBClient::IDBConnectionProxy::establishTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didStartTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::commitTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didCommitTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::abortTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didAbortTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::hasRecordOfTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didFinishHandlingVersionChangeTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::databaseConnectionClosed):
+        (WebCore::IDBClient::IDBConnectionProxy::registerDatabaseConnection):
+        (WebCore::IDBClient::IDBConnectionProxy::unregisterDatabaseConnection):
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+        
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::deleteDatabase):
+        (WebCore::IDBClient::IDBConnectionToServer::didDeleteDatabase):
+        (WebCore::IDBClient::IDBConnectionToServer::openDatabase):
+        (WebCore::IDBClient::IDBConnectionToServer::didOpenDatabase):
+        (WebCore::IDBClient::IDBConnectionToServer::establishTransaction):
+        (WebCore::IDBClient::IDBConnectionToServer::commitTransaction):
+        (WebCore::IDBClient::IDBConnectionToServer::didCommitTransaction):
+        (WebCore::IDBClient::IDBConnectionToServer::didFinishHandlingVersionChangeTransaction):
+        (WebCore::IDBClient::IDBConnectionToServer::abortTransaction):
+        (WebCore::IDBClient::IDBConnectionToServer::didAbortTransaction):
+        (WebCore::IDBClient::IDBConnectionToServer::fireVersionChangeEvent):
+        (WebCore::IDBClient::IDBConnectionToServer::didFireVersionChangeEvent):
+        (WebCore::IDBClient::IDBConnectionToServer::didStartTransaction):
+        (WebCore::IDBClient::IDBConnectionToServer::notifyOpenDBRequestBlocked):
+        (WebCore::IDBClient::IDBConnectionToServer::databaseConnectionClosed):
+        (WebCore::IDBClient::IDBConnectionToServer::registerDatabaseConnection): Deleted.
+        (WebCore::IDBClient::IDBConnectionToServer::unregisterDatabaseConnection): Deleted.
+        (WebCore::IDBClient::IDBConnectionToServer::hasRecordOfTransaction): Deleted.
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+        
+        * Modules/indexeddb/shared/IDBRequestData.cpp:
+        (WebCore::IDBRequestData::IDBRequestData):
+        * Modules/indexeddb/shared/IDBRequestData.h:
+        
+        * Modules/indexeddb/shared/IDBResourceIdentifier.cpp:
+        (WebCore::IDBResourceIdentifier::IDBResourceIdentifier):
+        * Modules/indexeddb/shared/IDBResourceIdentifier.h:
+
+2016-05-04  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Add isolatedCopy to a few more objects.
+        https://bugs.webkit.org/show_bug.cgi?id=157330
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No current change in behavior, will be tested as bug 149953 makes progress).
+
+        * Modules/indexeddb/shared/IDBRequestData.cpp:
+        (WebCore::IDBRequestData::IDBRequestData):
+        (WebCore::IDBRequestData::isolatedCopy):
+        * Modules/indexeddb/shared/IDBRequestData.h:
+
+        * Modules/indexeddb/shared/IDBResultData.cpp:
+        (WebCore::IDBResultData::IDBResultData):
+        (WebCore::IDBResultData::isolatedCopy):
+        * Modules/indexeddb/shared/IDBResultData.h:
+
+2016-05-04  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Add thread identifiers and assertions to IDB DOM objects.
+        https://bugs.webkit.org/show_bug.cgi?id=157329
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No current change in behavior, will be tested as bug 149953 makes progress).
+
+        * Modules/indexeddb/IDBCursor.cpp:
+        (WebCore::IDBCursor::IDBCursor):
+        (WebCore::IDBCursor::~IDBCursor):
+        (WebCore::IDBCursor::sourcesDeleted):
+        (WebCore::IDBCursor::transaction):
+        (WebCore::IDBCursor::direction):
+        (WebCore::IDBCursor::update):
+        (WebCore::IDBCursor::advance):
+        (WebCore::IDBCursor::continueFunction):
+        (WebCore::IDBCursor::uncheckedIterateCursor):
+        (WebCore::IDBCursor::deleteFunction):
+        (WebCore::IDBCursor::setGetResult):
+        
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::~IDBDatabase):
+        (WebCore::IDBDatabase::hasPendingActivity):
+        (WebCore::IDBDatabase::name):
+        (WebCore::IDBDatabase::version):
+        (WebCore::IDBDatabase::objectStoreNames):
+        (WebCore::IDBDatabase::createObjectStore):
+        (WebCore::IDBDatabase::transaction):
+        (WebCore::IDBDatabase::deleteObjectStore):
+        (WebCore::IDBDatabase::close):
+        (WebCore::IDBDatabase::maybeCloseInServer):
+        (WebCore::IDBDatabase::activeDOMObjectName):
+        (WebCore::IDBDatabase::canSuspendForDocumentSuspension):
+        (WebCore::IDBDatabase::stop):
+        (WebCore::IDBDatabase::startVersionChangeTransaction):
+        (WebCore::IDBDatabase::didStartTransaction):
+        (WebCore::IDBDatabase::willCommitTransaction):
+        (WebCore::IDBDatabase::didCommitTransaction):
+        (WebCore::IDBDatabase::willAbortTransaction):
+        (WebCore::IDBDatabase::didAbortTransaction):
+        (WebCore::IDBDatabase::didCommitOrAbortTransaction):
+        (WebCore::IDBDatabase::fireVersionChangeEvent):
+        (WebCore::IDBDatabase::dispatchEvent):
+        (WebCore::IDBDatabase::didCreateIndexInfo):
+        (WebCore::IDBDatabase::didDeleteIndexInfo):
+        * Modules/indexeddb/IDBDatabase.h:
+        (WebCore::IDBDatabase::originThreadID):
+        
+        * Modules/indexeddb/IDBIndex.cpp:
+        (WebCore::IDBIndex::IDBIndex):
+        (WebCore::IDBIndex::~IDBIndex):
+        (WebCore::IDBIndex::name):
+        (WebCore::IDBIndex::objectStore):
+        (WebCore::IDBIndex::keyPath):
+        (WebCore::IDBIndex::unique):
+        (WebCore::IDBIndex::multiEntry):
+        (WebCore::IDBIndex::openCursor):
+        (WebCore::IDBIndex::doCount):
+        (WebCore::IDBIndex::openKeyCursor):
+        (WebCore::IDBIndex::doGet):
+        (WebCore::IDBIndex::doGetKey):
+        (WebCore::IDBIndex::markAsDeleted):
+        
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::IDBObjectStore):
+        (WebCore::IDBObjectStore::~IDBObjectStore):
+        (WebCore::IDBObjectStore::name):
+        (WebCore::IDBObjectStore::keyPath):
+        (WebCore::IDBObjectStore::indexNames):
+        (WebCore::IDBObjectStore::transaction):
+        (WebCore::IDBObjectStore::autoIncrement):
+        (WebCore::IDBObjectStore::openCursor):
+        (WebCore::IDBObjectStore::get):
+        (WebCore::IDBObjectStore::putOrAdd):
+        (WebCore::IDBObjectStore::doDelete):
+        (WebCore::IDBObjectStore::clear):
+        (WebCore::IDBObjectStore::createIndex):
+        (WebCore::IDBObjectStore::index):
+        (WebCore::IDBObjectStore::deleteIndex):
+        (WebCore::IDBObjectStore::doCount):
+        (WebCore::IDBObjectStore::markAsDeleted):
+        (WebCore::IDBObjectStore::rollbackInfoForVersionChangeAbort):
+        
+        * Modules/indexeddb/IDBOpenDBRequest.cpp:
+        (WebCore::IDBOpenDBRequest::~IDBOpenDBRequest):
+        (WebCore::IDBOpenDBRequest::onError):
+        (WebCore::IDBOpenDBRequest::versionChangeTransactionDidFinish):
+        (WebCore::IDBOpenDBRequest::fireSuccessAfterVersionChangeCommit):
+        (WebCore::IDBOpenDBRequest::fireErrorAfterVersionChangeCompletion):
+        (WebCore::IDBOpenDBRequest::dispatchEvent):
+        (WebCore::IDBOpenDBRequest::onSuccess):
+        (WebCore::IDBOpenDBRequest::onUpgradeNeeded):
+        (WebCore::IDBOpenDBRequest::onDeleteDatabaseSuccess):
+        (WebCore::IDBOpenDBRequest::requestCompleted):
+        (WebCore::IDBOpenDBRequest::requestBlocked):
+        
+        * Modules/indexeddb/IDBRequest.cpp:
+        (WebCore::IDBRequest::~IDBRequest):
+        (WebCore::IDBRequest::errorCode):
+        (WebCore::IDBRequest::error):
+        (WebCore::IDBRequest::setSource):
+        (WebCore::IDBRequest::setVersionChangeTransaction):
+        (WebCore::IDBRequest::transaction):
+        (WebCore::IDBRequest::readyState):
+        (WebCore::IDBRequest::sourceObjectStoreIdentifier):
+        (WebCore::IDBRequest::sourceIndexIdentifier):
+        (WebCore::IDBRequest::requestedIndexRecordType):
+        (WebCore::IDBRequest::eventTargetInterface):
+        (WebCore::IDBRequest::activeDOMObjectName):
+        (WebCore::IDBRequest::canSuspendForDocumentSuspension):
+        (WebCore::IDBRequest::hasPendingActivity):
+        (WebCore::IDBRequest::stop):
+        (WebCore::IDBRequest::enqueueEvent):
+        (WebCore::IDBRequest::dispatchEvent):
+        (WebCore::IDBRequest::uncaughtExceptionInEventHandler):
+        (WebCore::IDBRequest::setResult):
+        (WebCore::IDBRequest::setResultToStructuredClone):
+        (WebCore::IDBRequest::clearResult):
+        (WebCore::IDBRequest::setResultToUndefined):
+        (WebCore::IDBRequest::resultCursor):
+        (WebCore::IDBRequest::willIterateCursor):
+        (WebCore::IDBRequest::didOpenOrIterateCursor):
+        (WebCore::IDBRequest::requestCompleted):
+        (WebCore::IDBRequest::onError):
+        (WebCore::IDBRequest::onSuccess):
+        * Modules/indexeddb/IDBRequest.h:
+        (WebCore::IDBRequest::originThreadID):
+        
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::IDBTransaction):
+        (WebCore::IDBTransaction::~IDBTransaction):
+        (WebCore::IDBTransaction::mode):
+        (WebCore::IDBTransaction::db):
+        (WebCore::IDBTransaction::serverConnection):
+        (WebCore::IDBTransaction::error):
+        (WebCore::IDBTransaction::objectStore):
+        (WebCore::IDBTransaction::abortDueToFailedRequest):
+        (WebCore::IDBTransaction::transitionedToFinishing):
+        (WebCore::IDBTransaction::abort):
+        (WebCore::IDBTransaction::abortOnServerAndCancelRequests):
+        (WebCore::IDBTransaction::activeDOMObjectName):
+        (WebCore::IDBTransaction::canSuspendForDocumentSuspension):
+        (WebCore::IDBTransaction::hasPendingActivity):
+        (WebCore::IDBTransaction::stop):
+        (WebCore::IDBTransaction::isActive):
+        (WebCore::IDBTransaction::isFinishedOrFinishing):
+        (WebCore::IDBTransaction::addRequest):
+        (WebCore::IDBTransaction::removeRequest):
+        (WebCore::IDBTransaction::scheduleOperation):
+        (WebCore::IDBTransaction::scheduleOperationTimer):
+        (WebCore::IDBTransaction::operationTimerFired):
+        (WebCore::IDBTransaction::commit):
+        (WebCore::IDBTransaction::commitOnServer):
+        (WebCore::IDBTransaction::finishAbortOrCommit):
+        (WebCore::IDBTransaction::didStart):
+        (WebCore::IDBTransaction::notifyDidAbort):
+        (WebCore::IDBTransaction::didAbort):
+        (WebCore::IDBTransaction::didCommit):
+        (WebCore::IDBTransaction::fireOnComplete):
+        (WebCore::IDBTransaction::fireOnAbort):
+        (WebCore::IDBTransaction::enqueueEvent):
+        (WebCore::IDBTransaction::dispatchEvent):
+        (WebCore::IDBTransaction::createObjectStore):
+        (WebCore::IDBTransaction::createObjectStoreOnServer):
+        (WebCore::IDBTransaction::didCreateObjectStoreOnServer):
+        (WebCore::IDBTransaction::createIndex):
+        (WebCore::IDBTransaction::createIndexOnServer):
+        (WebCore::IDBTransaction::didCreateIndexOnServer):
+        (WebCore::IDBTransaction::requestOpenCursor):
+        (WebCore::IDBTransaction::doRequestOpenCursor):
+        (WebCore::IDBTransaction::openCursorOnServer):
+        (WebCore::IDBTransaction::didOpenCursorOnServer):
+        (WebCore::IDBTransaction::iterateCursor):
+        (WebCore::IDBTransaction::iterateCursorOnServer):
+        (WebCore::IDBTransaction::didIterateCursorOnServer):
+        (WebCore::IDBTransaction::requestGetRecord):
+        (WebCore::IDBTransaction::requestGetValue):
+        (WebCore::IDBTransaction::requestGetKey):
+        (WebCore::IDBTransaction::requestIndexRecord):
+        (WebCore::IDBTransaction::getRecordOnServer):
+        (WebCore::IDBTransaction::didGetRecordOnServer):
+        (WebCore::IDBTransaction::requestCount):
+        (WebCore::IDBTransaction::getCountOnServer):
+        (WebCore::IDBTransaction::didGetCountOnServer):
+        (WebCore::IDBTransaction::requestDeleteRecord):
+        (WebCore::IDBTransaction::deleteRecordOnServer):
+        (WebCore::IDBTransaction::didDeleteRecordOnServer):
+        (WebCore::IDBTransaction::requestClearObjectStore):
+        (WebCore::IDBTransaction::clearObjectStoreOnServer):
+        (WebCore::IDBTransaction::didClearObjectStoreOnServer):
+        (WebCore::IDBTransaction::requestPutOrAdd):
+        (WebCore::IDBTransaction::putOrAddOnServer):
+        (WebCore::IDBTransaction::didPutOrAddOnServer):
+        (WebCore::IDBTransaction::deleteObjectStore):
+        (WebCore::IDBTransaction::deleteObjectStoreOnServer):
+        (WebCore::IDBTransaction::didDeleteObjectStoreOnServer):
+        (WebCore::IDBTransaction::deleteIndex):
+        (WebCore::IDBTransaction::deleteIndexOnServer):
+        (WebCore::IDBTransaction::didDeleteIndexOnServer):
+        (WebCore::IDBTransaction::operationDidComplete):
+        (WebCore::IDBTransaction::establishOnServer):
+        (WebCore::IDBTransaction::activate):
+        (WebCore::IDBTransaction::deactivate):
+
+2016-05-05  Nan Wang  <n_wang@apple.com>
+
+        For keyboard users, activating a fragment URL should transfer focus and caret to the destination
+        https://bugs.webkit.org/show_bug.cgi?id=116046
+
+        Reviewed by Ryosuke Niwa.
+
+        Added a sequential focus navigation starting node to document. When TAB or SHIFT-TAB is pressed
+        and there is no focused element, we start searching for next focus candidates at the sequential
+        focus navigation node.
+
+        Test: fast/events/sequential-focus-navigation-starting-point.html
+
+        * dom/Document.cpp:
+        (WebCore::Document::removedLastRef):
+        (WebCore::Document::destroyRenderTree):
+        (WebCore::Document::removeFocusedNodeOfSubtree):
+        (WebCore::Document::hoveredElementDidDetach):
+        (WebCore::Document::setFocusedElement):
+        (WebCore::isNodeFrameOrDocument):
+        (WebCore::Document::setFocusNavigationStartingNode):
+        (WebCore::Document::focusNavigationStartingNode):
+        (WebCore::Document::setCSSTarget):
+        (WebCore::Document::nodeChildrenWillBeRemoved):
+        (WebCore::Document::nodeWillBeRemoved):
+        (WebCore::fallbackFocusNavigationStartingNodeAfterRemoval):
+        (WebCore::Document::updateFocusNavigationStartingNodeWithNodeRemoval):
+        (WebCore::Document::textInserted):
+        * dom/Document.h:
+        (WebCore::Document::userActionElements):
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::handleMousePressEvent):
+        * page/FocusController.cpp:
+        (WebCore::FocusController::advanceFocusInDocumentOrder):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::scrollToAnchor):
+
+2016-05-05  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Another iOS debug build fix after r200464.
+
+        * dom/EventContext.h:
+        (WebCore::EventContext::isUnreachableNode):
+
+2016-05-05  Ryosuke Niwa  <rniwa@webkit.org>
+
+        iOS debug build fix after r200464.
+
+        * dom/EventContext.cpp:
+        (WebCore::TouchEventContext::checkReachability):
+
+2016-05-05  Simon Fraser  <simon.fraser@apple.com>
+
+        Revert r200390, thus putting r199259 and r200161 and back.
+
+        * loader/HistoryController.cpp:
+        (WebCore::HistoryController::saveScrollPositionAndViewStateToItem):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::adjustTiledBackingScrollability):
+        * page/Page.h:
+        (WebCore::Page::obscuredInset):
+        (WebCore::Page::setObscuredInset):
+        (WebCore::Page::enclosedInScrollableAncestorView):
+        (WebCore::Page::setEnclosedInScrollableAncestorView):
+        * platform/ScrollView.h:
+        (WebCore::ScrollView::platformObscuredInset): Deleted.
+        (WebCore::ScrollView::platformSetObscuredInset): Deleted.
+
+2016-05-05  Sam Weinig  <sam@webkit.org>
+
+        Fix the build.
+
+        * platform/network/cf/CertificateInfo.h:
+
+2016-05-05  Eric Carlson  <eric.carlson@apple.com>
+
+        [iOS] Media information is sometimes not shown in Control Center
+        https://bugs.webkit.org/show_bug.cgi?id=157377
+
+        Reviewed by Jer Noble.
+
+        * platform/audio/ios/MediaSessionManagerIOS.h:
+        * platform/audio/ios/MediaSessionManagerIOS.mm:
+        (WebCore::MediaSessionManageriOS::updateNowPlayingInfo): Store values passed to MPNowPlayingInfoCenter
+          individually instead of in a dictionary.
+
+2016-05-04  Simon Fraser  <simon.fraser@apple.com>
+
+        Comments on wired.com are blurry
+        https://bugs.webkit.org/show_bug.cgi?id=148630
+        rdar://problem/22499655
+
+        Reviewed by Tim Horton.
+
+        Make sure to set -rasterizationScale on TileGrid container layers to avoid blurry layers
+        with some configurations of transforms, perspective and clipping.
+
+        Test: compositing/contents-scale/rasterization-scale.html
+
+        * platform/graphics/ca/TileController.cpp:
+        (WebCore::TileController::TileController): Initialize m_deviceScaleFactor before m_tileGrid,
+        because TileGrid's constructor needs to read the device scale.
+        * platform/graphics/ca/TileController.h:
+        * platform/graphics/ca/TileGrid.cpp:
+        (WebCore::TileGrid::TileGrid): Push a contentsScale (which also sets rasterizationScale) onto 
+        the tile grid container layer on constructions, and in setScale().
+        (WebCore::TileGrid::setScale):
+
+2016-05-05  Ryosuke Niwa  <rniwa@webkit.org>
+
+        event.target shouldn't be retargeted as the event bubbles into a slot
+        https://bugs.webkit.org/show_bug.cgi?id=157369
+
+        Reviewed by Antti Koivisto.
+
+        When an event bubbles up from an assigned node to its assigned slot, we shouldn't be adjusting
+        event.target to point to the slot. Since a shadow tree should have access to nodes outside
+        the shadow tree, event.target is accessible inside the shadow tree of such a slot.
+
+        New behavior matches the behavior of Google Chrome Canary as well as the shadow DOM specification:
+        http://w3c.github.io/webcomponents/spec/shadow/#dfn-retargeting-algorithm
+
+        Test: fast/shadow-dom/event-inside-slotted-node.html
+
+        * dom/Event.cpp:
+        (WebCore::Event::deepPath):
+        * dom/EventContext.h:
+        (WebCore::EventContext::isUnreachableNode): Use Node::isUnclosedNode instead of isReachable.
+        (WebCore::EventContext::isReachable): Deleted.
+        * dom/EventPath.cpp:
+        (WebCore::EventPath::EventPath): Don't set the target to the slot when entering a slot. Also moved
+        the code to adjust the target as we exit a shadow tree to the end of the outer loop for clarity.
+        (WebCore::isUnclosedNodeOf): Deleted. Renamed to Node::isUnclosedNode.
+        (WebCore::EventPath::setRelatedTarget):
+        (WebCore::EventPath::computePathUnclosedToTarget): Renamed from computePathDisclosedToTarget.
+        (WebCore::moveOutOfAllShadowRoots): Extracted from RelatedNodeRetargeter::RelatedNodeRetargeter.
+        (WebCore::RelatedNodeRetargeter::RelatedNodeRetargeter): Fixed a bug that we were exiting early
+        without setting m_hasDifferentTreeRoot true when target and relatedNode are disconnected from
+        a document.
+        (WebCore::RelatedNodeRetargeter::currentNode):
+        (WebCore::RelatedNodeRetargeter::checkConsistency): Updated to match the spec with one exception.
+        We don't use null as the adjusted related target when the (original) related target and the target
+        are in two distinct disconnected trees since such a behavior is not Web compatible. This spec bug is
+        tracked by https://github.com/w3c/webcomponents/issues/494
+        * dom/EventPath.h:
+        (WebCore::EventPath::eventTargetRespectingTargetRules): Returns Node* instead of EventTarget* since
+        we need a Node in RelatedNodeRetargeter::checkConsistency.
+        * dom/Node.cpp:
+        (WebCore::Node::isUnclosedNode): Moved from RelatedNodeRetargeter.cpp
+        * dom/Node.h:
+
+2016-05-02  Sam Weinig  <sam@webkit.org>
+
+        On platforms that support it, use a SecTrustRef as the basis of CertificateInfo instead of a chain of SecCertificateRefs.
+        https://bugs.webkit.org/show_bug.cgi?id=157220
+
+        Reviewed by Darin Adler.
+
+        * platform/network/cf/CertificateInfo.h:
+        (WebCore::CertificateInfo::CertificateInfo):
+        (WebCore::CertificateInfo::trust):
+        (WebCore::CertificateInfo::isEmpty):
+        (WebCore::CertificateInfo::setCertificateChain): Deleted.
+        (WebCore::CertificateInfo::certificateChain): Deleted.
+        * platform/network/mac/CertificateInfoMac.mm:
+        (WebCore::CertificateInfo::type):
+        (WebCore::CertificateInfo::certificateChain):
+        (WebCore::CertificateInfo::containsNonRootSHA1SignedCertificate):
+        (WebCore::CertificateInfo::dump):
+        When supported, allow CertificateInfo to contain a SecTrustRef instead of a certificate chain. We keep
+        support for holding on to a certificate chain as well, since there is API that depends on this.
+
+        * platform/network/cocoa/ResourceResponseCocoa.mm:
+        (WebCore::ResourceResponse::platformCertificateInfo):
+        When supported, use the SecTrustRef from the error instead of extracting it's certificate chain.
+
+2016-05-04  Ada Chan  <adachan@apple.com>
+
+        When exiting fullscreen, call a JS method immediately to implement the style changes for the presentation mode change right away
+        https://bugs.webkit.org/show_bug.cgi?id=157359
+
+        Reviewed by Eric Carlson.
+
+        No new tests as this is done to just mitigate a visual glitch.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::exitFullscreen):
+        (WebCore::HTMLMediaElement::updateMediaControlsAfterPresentationModeChange):
+        * html/HTMLMediaElement.h:
+
+2016-05-04  Alex Christensen  <achristensen@webkit.org>
+
+        Blocked redirected main resource requests need descriptive errors
+        https://bugs.webkit.org/show_bug.cgi?id=156828
+        rdar://problem/25711316
+
+        Reviewed by Daniel Bates.
+
+        Test: http/tests/contentextensions/main-resource-redirect-error.html
+
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::startLoadingMainResource):
+        Call cancelMainResourceLoad() so that InjectedBundlePage::didFailProvisionalLoadWithErrorForFrame()
+        is called to be consistent with blocked redirected main resource requests.
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::willSendRequestInternal):
+        (WebCore::ResourceLoader::blockedError):
+        (WebCore::ResourceLoader::blockedByContentBlockerError):
+        (WebCore::ResourceLoader::cannotShowURLError):
+        * loader/ResourceLoader.h:
+        Use a blockedByContentBlockerError() instead of a cannotShowURLError() when we blocked the load.
+
+2016-05-05  Zan Dobersek  <zdobersek@igalia.com>
+
+        Fix assertions in debug builds for the GTK+ port.
+
+        Rubber-stamped by Carlos Garcia Campos.
+
+        * platform/graphics/texmap/TextureMapperGL.cpp:
+        (WebCore::TextureMapperGLData::SharedGLData::currentSharedGLData):
+        Switch back to the find() + add() combo for retrieving the pointer
+        to the SharedGLData object stored for the specific GraphicsContext3D.
+        add() + isNewEntry is causing assertions in debug builds when adding
+        the first entry.
+
 2016-05-05  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GStreamer] Adaptive streaming issues

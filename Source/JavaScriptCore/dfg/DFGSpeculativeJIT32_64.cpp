@@ -4100,6 +4100,11 @@ void SpeculativeJIT::compile(Node* node)
         compileDeleteById(node);
         break;
     }
+
+    case DeleteByVal: {
+        compileDeleteByVal(node);
+        break;
+    }
         
     case CheckCell: {
         SpeculateCellOperand cell(this, node->child1());
@@ -4378,6 +4383,7 @@ void SpeculativeJIT::compile(Node* node)
         JSValueOperand hasInstanceValue(this, node->child2());
         GPRTemporary result(this);
 
+        GPRReg baseGPR = base.gpr();
         GPRReg resultGPR = result.gpr();
 
         // If we have proven that the constructor's Symbol.hasInstance will always be the one on
@@ -4393,7 +4399,7 @@ void SpeculativeJIT::compile(Node* node)
         }
 
         // Check that constructor 'ImplementsDefaultHasInstance'.
-        m_jit.test8(MacroAssembler::Zero, MacroAssembler::Address(base.gpr(), JSCell::typeInfoFlagsOffset()), MacroAssembler::TrustedImm32(ImplementsDefaultHasInstance), resultGPR);
+        m_jit.test8(MacroAssembler::Zero, MacroAssembler::Address(baseGPR, JSCell::typeInfoFlagsOffset()), MacroAssembler::TrustedImm32(ImplementsDefaultHasInstance), resultGPR);
         MacroAssembler::Jump done = m_jit.jump();
 
         if (!hasInstanceValueNode->isCellConstant()) {

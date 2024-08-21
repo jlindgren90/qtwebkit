@@ -1,3 +1,890 @@
+2016-05-07  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        REGRESSION(r196222): [AX][GTK] accessibility/gtk/caret-offsets.html failing
+        https://bugs.webkit.org/show_bug.cgi?id=153956
+
+        Reviewed by Chris Fleizach.
+
+        Change the test to run asynchronously and update the expectations.
+
+        * accessibility/gtk/caret-offsets-expected.txt: Updated.
+        * accessibility/gtk/caret-offsets.html: Updated.
+        * platform/gtk/TestExpectations: Unskipped the previously-failing test.
+
+2016-05-06  Per Arne Vollan  <peavo@outlook.com>
+
+        [Win] Skip failing INTL test.
+        https://bugs.webkit.org/show_bug.cgi?id=157418
+
+        Reviewed by Alex Christensen.
+
+        Temporarily skip string-localeCompare.js, because AppleWin currently does not have INTL enabled.
+
+        * js/script-tests/string-localeCompare.js:
+        * platform/win/TestExpectations:
+
+2016-05-06  Ryosuke Niwa  <rniwa@webkit.org>
+
+        MouseEvent's offsetX and offsetY should be based on relative target
+        https://bugs.webkit.org/show_bug.cgi?id=157444
+        <rdar://problem/24396408>
+
+        Reviewed by Darin Adler.
+
+        Add a W3C style testharness.js test for adjusting offsetX and offsetY to the adjusted target
+        since our existing behavior matches the spec as well as Chrome's behavior:
+        http://w3c.github.io/webcomponents/spec/shadow/#event-dispatch
+
+        * fast/shadow-dom/MouseEvent-prototype-offsetX-offsetY-expected.txt: Added.
+        * fast/shadow-dom/MouseEvent-prototype-offsetX-offsetY.html: Added.
+
+2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Improve console.count()
+        https://bugs.webkit.org/show_bug.cgi?id=157439
+        <rdar://problem/26152654>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/console/console-api-expected.txt:
+        * inspector/console/console-count-expected.txt: Added.
+        * inspector/console/console-count.html: Added.
+        * inspector/console/console-time.html:
+
+2016-05-06  Simon Fraser  <simon.fraser@apple.com>
+
+        Enable IOS_TEXT_AUTOSIZING on Mac and make it testable
+        https://bugs.webkit.org/show_bug.cgi?id=157432
+        rdar://problem/16406720
+
+        Reviewed by Dean Jackson.
+
+        Enable fast/text-autosizing/ios/ on Mac and iOS
+
+        * fast/text-autosizing/ios/autosize-width-expected.html: Added.
+        * fast/text-autosizing/ios/autosize-width.html: Added.
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac-wk2/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Console: Variables defined with let/const aren't accessible outside of console's scope
+        https://bugs.webkit.org/show_bug.cgi?id=150752
+        <rdar://problem/23343385>
+
+        Reviewed by Mark Lam.
+
+        * inspector/runtime/evaluate-CommandLineAPI-expected.txt: Added.
+        * inspector/runtime/evaluate-CommandLineAPI.html: Added.
+        New test covering the different cases of global evaluation with the
+        CommandLineAPI as a scope extension.
+
+        * http/tests/inspector/console/cross-domain-inspected-node-access-expected.txt:
+        * inspector/console/command-line-api-expected.txt:
+        * inspector/debugger/js-stacktrace-expected.txt:
+        * inspector/debugger/js-stacktrace.html:
+        * inspector/model/stack-trace-expected.txt:
+        * platform/mac/inspector/model/remote-object-expected.txt:
+        Update expectations now that global evaluations are treated as
+        program's [global code] and not evals [eval code]. Also some
+        line number changes.
+
+2016-05-06  Tim Horton  <timothy_horton@apple.com>
+
+        <attachment> element should understand UTIs
+        https://bugs.webkit.org/show_bug.cgi?id=157425
+        <rdar://problem/25585401>
+
+        Reviewed by Anders Carlsson.
+
+        * fast/attachment/attachment-uti-expected.html: Added.
+        * fast/attachment/attachment-uti.html: Added.
+        Add a test that UTIs render the same as their corresponding MIME types.
+
+2016-05-06  Chris Dumez  <cdumez@apple.com>
+
+        Clean up converting from JSValue to float / double in the bindings generator
+        https://bugs.webkit.org/show_bug.cgi?id=157407
+
+        Reviewed by Darin Adler.
+
+        Rebaseline the tests now that we provide a more useful exception message.
+
+        * fast/canvas/canvas-2d-imageData-create-nonfinite-expected.txt:
+        * fast/canvas/canvas-getImageData-invalid-expected.txt:
+        * fast/canvas/canvas-putImageData-expected.txt:
+        * fast/canvas/canvas-putImageData.js:
+        * fast/canvas/linearGradient-infinite-values-expected.txt:
+        * fast/canvas/radialGradient-infinite-values-expected.txt:
+        * fast/canvas/resources/canvas-2d-imageData-create-nonfinite.js:
+        * fast/canvas/script-tests/canvas-getImageData-invalid.js:
+        * fast/canvas/script-tests/linearGradient-infinite-values.js:
+        * fast/canvas/script-tests/radialGradient-infinite-values.js:
+
+2016-05-06  Brady Eidson  <beidson@apple.com>
+
+        Unreviewed IDB test gardening.
+
+        * TestExpectations:
+        * storage/indexeddb/pending-activity-workers-expected.txt: Updated expectations.
+
+2016-05-06  Brady Eidson  <beidson@apple.com>
+
+        Unreviewed IDB test gardening.
+
+        Fix a failing test, and add better classification/comments to a different failing test.
+
+        * TestExpectations:
+        * storage/indexeddb/dont-commit-on-blocked-expected.txt:
+        * storage/indexeddb/dont-commit-on-blocked.html:
+
+2016-05-06  Brady Eidson  <beidson@apple.com>
+
+        Unreviewed IDB test gardening.
+
+        Update the workers variant of "deletedatabase-delayed-by-open-and-versionchange" to the modern expected results.
+
+        * TestExpectations:
+        * storage/indexeddb/deletedatabase-delayed-by-open-and-versionchange-workers-expected.txt:
+
+2016-05-06  Dean Jackson  <dino@apple.com>
+
+        Regions, Shapes and Tracks don't need runtime features
+        https://bugs.webkit.org/show_bug.cgi?id=157426
+        <rdar://problem/26146262>
+
+        Reviewed by Simon Fraser.
+
+        Remove these tests since their runtime flags no longer exist.
+
+        * fast/regions/css-regions-disabled-expected.txt: Removed.
+        * fast/regions/css-regions-disabled.html: Removed.
+        * fast/shapes/css-shapes-disabled-expected.txt: Removed.
+        * fast/shapes/css-shapes-disabled.html: Removed.
+
+2016-05-06  Brady Eidson  <beidson@apple.com>
+
+        Unreviewed IDB test gardening.
+
+        Finish removing unsupported lines from the "unprefix" test.
+
+        * storage/indexeddb/unprefix-private-expected.txt:
+
+2016-05-06  Brady Eidson  <beidson@apple.com>
+
+        Unreviewed IDB test gardening.
+
+        Remove unsupported lines from the "unprefix" test.
+        
+        * TestExpectations:
+        * storage/indexeddb/resources/unprefix.js:
+        * storage/indexeddb/unprefix-expected.txt:
+        * storage/indexeddb/unprefix-workers-expected.txt:
+
+2016-05-06  Brady Eidson  <beidson@apple.com>
+
+        Unreviewed IDB test gardening.
+
+        Remove the Workers variant of a test that had been removed for being irrelevant.
+
+        * TestExpectations:
+        * storage/indexeddb/factory-basics-workers-expected.txt: Removed.
+        * storage/indexeddb/factory-basics-workers.html: Removed.
+
+2016-05-06  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB (Workers): Start running a lot of the workers tests.
+        https://bugs.webkit.org/show_bug.cgi?id=157424
+
+        Reviewed by Sam Weinig.
+
+        Many tests that obviously pass need updated expectations for the details of error messages.
+
+        Others just work right out of the box.
+
+        * TestExpectations: Enable some tests, and categorize remaining failures.
+        
+        * http/tests/security/cross-origin-worker-indexeddb-allowed-expected.txt:
+        * http/tests/security/cross-origin-worker-indexeddb-allowed.html:
+        * http/tests/security/cross-origin-worker-indexeddb-expected.txt:
+        * http/tests/security/cross-origin-worker-indexeddb.html:
+        * http/tests/security/resources/cross-origin-iframe-for-worker-indexeddb.html:
+        * http/tests/security/resources/document-for-cross-origin-worker-indexeddb.html:
+        * http/tests/security/resources/worker-for-indexeddb.js:
+        * storage/indexeddb/basics-workers.html:
+        * storage/indexeddb/cursor-advance-workers-expected.txt:
+        * storage/indexeddb/cursor-advance-workers.html:
+        * storage/indexeddb/deletedatabase-delayed-by-open-and-versionchange-workers.html:
+        * storage/indexeddb/dont-commit-on-blocked-private.html:
+        * storage/indexeddb/dont-commit-on-blocked.html:
+        * storage/indexeddb/factory-basics-workers.html:
+        * storage/indexeddb/index-basics-workers-expected.txt:
+        * storage/indexeddb/index-basics-workers.html:
+        * storage/indexeddb/modern/workers-disabled.html:
+        * storage/indexeddb/objectstore-basics-workers-expected.txt:
+        * storage/indexeddb/objectstore-basics-workers.html:
+        * storage/indexeddb/open-twice-workers.html:
+        * storage/indexeddb/pending-activity-workers.html:
+        * storage/indexeddb/pending-version-change-on-exit-private.html:
+        * storage/indexeddb/pending-version-change-on-exit.html:
+        * storage/indexeddb/pending-version-change-stuck-private.html:
+        * storage/indexeddb/pending-version-change-stuck-works-with-terminate-private.html:
+        * storage/indexeddb/pending-version-change-stuck-works-with-terminate.html:
+        * storage/indexeddb/pending-version-change-stuck.html:
+        * storage/indexeddb/transaction-complete-workers-expected.txt:
+        * storage/indexeddb/transaction-complete-workers-private-expected.txt:
+        * storage/indexeddb/transaction-complete-workers-private.html:
+        * storage/indexeddb/transaction-complete-workers.html:
+        * storage/indexeddb/unprefix-workers.html:
+
+2016-05-06  Ryosuke Niwa  <rniwa@webkit.org>
+
+        FKA: No way to get focus from DOM to shadow DOM components (Was: HTML5 media controls not keyboard accessible)
+        https://bugs.webkit.org/show_bug.cgi?id=117857
+
+        Reviewed by Jer Noble.
+
+        Added a regression test for moving focus into media elements by pressing tab key.
+
+        * media/tab-focus-inside-media-elements-expected.txt: Added.
+        * media/tab-focus-inside-media-elements.html: Added.
+
+2016-05-06  Filip Pizlo  <fpizlo@apple.com>
+
+        JS Function removed after parsing
+        https://bugs.webkit.org/show_bug.cgi?id=149175
+
+        Reviewed by Mark Lam.
+        
+        This bug doesn't happen anymore, but the test case is still useful. This test will fail 1/5 of
+        the time if we regress.
+
+        * js/dom/function-removed-after-parsing-expected.txt: Added.
+        * js/dom/function-removed-after-parsing.html: Added.
+
+2016-05-06  Jer Noble  <jer.noble@apple.com>
+
+        Muted media elements should be allowed to autoplay, even if RequireUserGestureForAudioRateChange is set.
+        https://bugs.webkit.org/show_bug.cgi?id=157404
+        <rdar://problem/26016802>
+
+        Reviewed by Eric Carlson.
+
+        * media/audio-playback-restriction-play-muted-expected.txt: Added.
+        * media/audio-playback-restriction-play-muted.html: Added.
+
+2016-05-06  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Unprefix CSS Grid Layout properties
+        https://bugs.webkit.org/show_bug.cgi?id=157137
+
+        Reviewed by Simon Fraser.
+
+        Remove "-webkit" prefix from all the grid layout properties,
+        including the display value.
+        Update the source code to remove the prefix where it was used too.
+
+        * css3/parse-align-content.html:
+        * css3/parse-align-items.html:
+        * css3/parse-align-self.html:
+        * css3/parse-justify-content.html:
+        * fast/css-grid-layout/absolute-positioning-definite-sizes.html:
+        * fast/css-grid-layout/absolute-positioning-grid-container-containing-block.html:
+        * fast/css-grid-layout/absolute-positioning-grid-container-parent.html:
+        * fast/css-grid-layout/anonymous-grid-items-expected.html:
+        * fast/css-grid-layout/anonymous-grid-items.html:
+        * fast/css-grid-layout/auto-content-resolution-columns.html:
+        * fast/css-grid-layout/auto-content-resolution-rows.html:
+        * fast/css-grid-layout/breadth-size-resolution-grid.html:
+        * fast/css-grid-layout/calc-resolution-grid-item.html:
+        * fast/css-grid-layout/compute-intrinsic-widths-scrollbar.html:
+        * fast/css-grid-layout/display-grid-set-get-expected.txt:
+        * fast/css-grid-layout/explicit-grid-size.html:
+        * fast/css-grid-layout/flex-and-content-sized-resolution-columns-expected.txt:
+        * fast/css-grid-layout/flex-and-content-sized-resolution-columns.html:
+        * fast/css-grid-layout/flex-and-intrinsic-sizes.html:
+        * fast/css-grid-layout/flex-and-minmax-content-resolution-columns.html:
+        * fast/css-grid-layout/flex-and-minmax-content-resolution-rows.html:
+        * fast/css-grid-layout/flex-content-distribution.html:
+        * fast/css-grid-layout/flex-content-resolution-columns.html:
+        * fast/css-grid-layout/flex-content-resolution-rows.html:
+        * fast/css-grid-layout/flex-content-sized-column-use-available-width.html:
+        * fast/css-grid-layout/flex-content-sized-columns-resize.html:
+        * fast/css-grid-layout/flex-factor-sum-less-than-1.html:
+        * fast/css-grid-layout/float-not-protruding-into-next-grid-item.html:
+        * fast/css-grid-layout/floating-empty-grids.html:
+        * fast/css-grid-layout/grid-align-content-distribution-vertical-lr.html:
+        * fast/css-grid-layout/grid-align-content-distribution-vertical-rl.html:
+        * fast/css-grid-layout/grid-align-content-distribution.html:
+        * fast/css-grid-layout/grid-align-content-vertical-lr.html:
+        * fast/css-grid-layout/grid-align-content-vertical-rl.html:
+        * fast/css-grid-layout/grid-align-content.html:
+        * fast/css-grid-layout/grid-align-justify-margin-border-padding-vertical-lr.html:
+        * fast/css-grid-layout/grid-align-justify-margin-border-padding-vertical-rl.html:
+        * fast/css-grid-layout/grid-align-justify-margin-border-padding.html:
+        * fast/css-grid-layout/grid-align-justify-overflow.html:
+        * fast/css-grid-layout/grid-align-justify-stretch.html:
+        * fast/css-grid-layout/grid-align-stretching-replaced-items.html:
+        * fast/css-grid-layout/grid-align.html:
+        * fast/css-grid-layout/grid-auto-columns-rows-auto-flow-resolution.html:
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set-expected.txt:
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set.html:
+        * fast/css-grid-layout/grid-auto-columns-rows-resolution.html:
+        * fast/css-grid-layout/grid-auto-columns-rows-update.html:
+        * fast/css-grid-layout/grid-auto-flow-get-set-expected.txt:
+        * fast/css-grid-layout/grid-auto-flow-get-set.html:
+        * fast/css-grid-layout/grid-auto-flow-resolution.html:
+        * fast/css-grid-layout/grid-auto-flow-sparse.html:
+        * fast/css-grid-layout/grid-auto-flow-update.html:
+        * fast/css-grid-layout/grid-automatic-minimum-for-auto-columns-expected.txt:
+        * fast/css-grid-layout/grid-automatic-minimum-for-auto-columns.html:
+        * fast/css-grid-layout/grid-automatic-minimum-for-auto-rows-expected.txt:
+        * fast/css-grid-layout/grid-automatic-minimum-for-auto-rows.html:
+        * fast/css-grid-layout/grid-columns-rows-get-set-expected.txt:
+        * fast/css-grid-layout/grid-columns-rows-get-set-multiple-expected.txt:
+        * fast/css-grid-layout/grid-columns-rows-get-set-multiple.html:
+        * fast/css-grid-layout/grid-columns-rows-get-set.html:
+        * fast/css-grid-layout/grid-container-change-named-grid-lines-recompute-child.html:
+        * fast/css-grid-layout/grid-container-ignore-first-letter.html:
+        * fast/css-grid-layout/grid-content-alignment-and-self-alignment-spanning.html:
+        * fast/css-grid-layout/grid-content-alignment-and-self-alignment.html:
+        * fast/css-grid-layout/grid-content-alignment-overflow.html:
+        * fast/css-grid-layout/grid-content-alignment-stretch-only-valid-for-auto-sized-tracks.html:
+        * fast/css-grid-layout/grid-content-alignment-stretch-with-different-sized-tracks.html:
+        * fast/css-grid-layout/grid-content-alignment-with-span-vertical-lr.html:
+        * fast/css-grid-layout/grid-content-alignment-with-span-vertical-rl.html:
+        * fast/css-grid-layout/grid-content-alignment-with-span.html:
+        * fast/css-grid-layout/grid-content-sized-columns-resolution-expected.txt:
+        * fast/css-grid-layout/grid-content-sized-columns-resolution.html:
+        * fast/css-grid-layout/grid-disable.html:
+        * fast/css-grid-layout/grid-dynamic-updates-relayout.html:
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set-expected.txt:
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set.html:
+        * fast/css-grid-layout/grid-element-border-grid-item.html:
+        * fast/css-grid-layout/grid-element-border-padding-grid-item.html:
+        * fast/css-grid-layout/grid-element-change-columns-repaint.html:
+        * fast/css-grid-layout/grid-element-change-rows-repaint.html:
+        * fast/css-grid-layout/grid-element-empty-row-column.html:
+        * fast/css-grid-layout/grid-element-min-max-height.html:
+        * fast/css-grid-layout/grid-element-min-max-width.html:
+        * fast/css-grid-layout/grid-element-padding-grid-item.html:
+        * fast/css-grid-layout/grid-element-padding-margin.html:
+        * fast/css-grid-layout/grid-element-repeat-get-set-expected.txt:
+        * fast/css-grid-layout/grid-element-repeat-get-set.html:
+        * fast/css-grid-layout/grid-element-shrink-to-fit.html:
+        * fast/css-grid-layout/grid-grow-tracks-to-their-max-expected.txt:
+        * fast/css-grid-layout/grid-grow-tracks-to-their-max.html:
+        * fast/css-grid-layout/grid-gutters-and-alignment.html:
+        * fast/css-grid-layout/grid-gutters-and-flex-content.html:
+        * fast/css-grid-layout/grid-gutters-and-tracks.html:
+        * fast/css-grid-layout/grid-gutters-get-set-expected.txt:
+        * fast/css-grid-layout/grid-gutters-get-set.html:
+        * fast/css-grid-layout/grid-indefinite-calculated-height-crash-expected.txt:
+        * fast/css-grid-layout/grid-indefinite-calculated-height-crash.html:
+        * fast/css-grid-layout/grid-initialize-span-one-items-expected.txt:
+        * fast/css-grid-layout/grid-initialize-span-one-items.html:
+        * fast/css-grid-layout/grid-item-addition-auto-placement-update.html:
+        * fast/css-grid-layout/grid-item-addition-track-breadth-update.html:
+        * fast/css-grid-layout/grid-item-area-get-set-expected.txt:
+        * fast/css-grid-layout/grid-item-area-get-set.html:
+        * fast/css-grid-layout/grid-item-auto-margins-alignment-vertical-lr.html:
+        * fast/css-grid-layout/grid-item-auto-margins-alignment-vertical-rl.html:
+        * fast/css-grid-layout/grid-item-auto-margins-alignment.html:
+        * fast/css-grid-layout/grid-item-auto-margins-and-stretch.html:
+        * fast/css-grid-layout/grid-item-auto-margins-must-respect-specified-margins.html:
+        * fast/css-grid-layout/grid-item-auto-placement-automatic-span.html:
+        * fast/css-grid-layout/grid-item-auto-placement-definite-span.html:
+        * fast/css-grid-layout/grid-item-auto-placement-fixed-row-column.html:
+        * fast/css-grid-layout/grid-item-auto-sized-align-justify-margin-border-padding.html:
+        * fast/css-grid-layout/grid-item-bad-named-area-auto-placement.html:
+        * fast/css-grid-layout/grid-item-bad-resolution-double-span.html:
+        * fast/css-grid-layout/grid-item-change-column-repaint.html:
+        * fast/css-grid-layout/grid-item-change-row-repaint.html:
+        * fast/css-grid-layout/grid-item-column-row-get-set-expected.txt:
+        * fast/css-grid-layout/grid-item-column-row-get-set.html:
+        * fast/css-grid-layout/grid-item-display.html:
+        * fast/css-grid-layout/grid-item-end-after-get-set-expected.txt:
+        * fast/css-grid-layout/grid-item-end-after-get-set.html:
+        * fast/css-grid-layout/grid-item-margin-auto-columns-rows-horizontal-ltr.html:
+        * fast/css-grid-layout/grid-item-margin-auto-columns-rows-horizontal-rtl.html:
+        * fast/css-grid-layout/grid-item-margin-auto-columns-rows-vertical-ltr.html:
+        * fast/css-grid-layout/grid-item-margin-auto-columns-rows-vertical-rtl.html:
+        * fast/css-grid-layout/grid-item-margin-resolution.html:
+        * fast/css-grid-layout/grid-item-margins-not-collapse.html:
+        * fast/css-grid-layout/grid-item-multiple-minmax-content-resolution.html:
+        * fast/css-grid-layout/grid-item-named-grid-area-resolution.html:
+        * fast/css-grid-layout/grid-item-named-grid-line-resolution.html:
+        * fast/css-grid-layout/grid-item-negative-indexes.html:
+        * fast/css-grid-layout/grid-item-negative-integer-explicit-grid-resolution.html:
+        * fast/css-grid-layout/grid-item-negative-position-resolution.html:
+        * fast/css-grid-layout/grid-item-order-auto-flow-resolution.html:
+        * fast/css-grid-layout/grid-item-order-in-content-sized-columns-resolution.html:
+        * fast/css-grid-layout/grid-item-order-paint-order.html:
+        * fast/css-grid-layout/grid-item-position-changed-dynamic.html:
+        * fast/css-grid-layout/grid-item-removal-auto-placement-update.html:
+        * fast/css-grid-layout/grid-item-removal-track-breadth-update.html:
+        * fast/css-grid-layout/grid-item-spanning-resolution.html:
+        * fast/css-grid-layout/grid-item-start-before-get-set-expected.txt:
+        * fast/css-grid-layout/grid-item-start-before-get-set.html:
+        * fast/css-grid-layout/grid-item-stretch-with-margins-borders-padding-vertical-lr.html:
+        * fast/css-grid-layout/grid-item-stretch-with-margins-borders-padding-vertical-rl.html:
+        * fast/css-grid-layout/grid-item-stretch-with-margins-borders-padding.html:
+        * fast/css-grid-layout/grid-item-text-background-not-interleaved.html:
+        * fast/css-grid-layout/grid-item-unknown-named-grid-line-resolution.html:
+        * fast/css-grid-layout/grid-item-with-border-in-fr.html:
+        * fast/css-grid-layout/grid-item-with-border-in-intrinsic.html:
+        * fast/css-grid-layout/grid-item-with-percent-height-in-auto-height-grid-resolution.html:
+        * fast/css-grid-layout/grid-item-with-percent-min-max-height-dynamic.html:
+        * fast/css-grid-layout/grid-item-z-index-change-repaint-expected.html:
+        * fast/css-grid-layout/grid-item-z-index-change-repaint.html:
+        * fast/css-grid-layout/grid-item-z-index-stacking-context-expected.html:
+        * fast/css-grid-layout/grid-item-z-index-stacking-context.html:
+        * fast/css-grid-layout/grid-item-z-index-support.html:
+        * fast/css-grid-layout/grid-items-should-not-be-stretched-when-height-or-width-or-margin-change.html:
+        * fast/css-grid-layout/grid-justify-content-distribution-vertical-lr.html:
+        * fast/css-grid-layout/grid-justify-content-distribution-vertical-rl.html:
+        * fast/css-grid-layout/grid-justify-content-distribution.html:
+        * fast/css-grid-layout/grid-justify-content-vertical-lr.html:
+        * fast/css-grid-layout/grid-justify-content-vertical-rl.html:
+        * fast/css-grid-layout/grid-justify-content.html:
+        * fast/css-grid-layout/grid-percent-track-margin-border-padding.html:
+        * fast/css-grid-layout/grid-percent-track-scrollbar.html:
+        * fast/css-grid-layout/grid-positioned-children-writing-modes.html:
+        * fast/css-grid-layout/grid-positioned-items-background-rtl.html:
+        * fast/css-grid-layout/grid-positioned-items-background.html:
+        * fast/css-grid-layout/grid-positioned-items-content-alignment-rtl.html:
+        * fast/css-grid-layout/grid-positioned-items-content-alignment.html:
+        * fast/css-grid-layout/grid-positioned-items-gaps-rtl.html:
+        * fast/css-grid-layout/grid-positioned-items-gaps.html:
+        * fast/css-grid-layout/grid-positioned-items-implicit-grid-line.html:
+        * fast/css-grid-layout/grid-positioned-items-implicit-grid.html:
+        * fast/css-grid-layout/grid-positioned-items-padding.html:
+        * fast/css-grid-layout/grid-positioned-items-unknown-named-grid-line.html:
+        * fast/css-grid-layout/grid-positioned-items-within-grid-implicit-track.html:
+        * fast/css-grid-layout/grid-preferred-logical-widths.html:
+        * fast/css-grid-layout/grid-repeat-calc-expected.txt:
+        * fast/css-grid-layout/grid-repeat-calc.html:
+        * fast/css-grid-layout/grid-shorthand-computed-style-crash.html:
+        * fast/css-grid-layout/grid-shorthand-get-set-expected.txt:
+        * fast/css-grid-layout/grid-shorthand-get-set.html:
+        * fast/css-grid-layout/grid-sizing-positioned-items.html:
+        * fast/css-grid-layout/grid-strict-ordering-crash.html:
+        * fast/css-grid-layout/grid-template-areas-empty-string-crash.html:
+        * fast/css-grid-layout/grid-template-areas-get-set-expected.txt:
+        * fast/css-grid-layout/grid-template-areas-get-set.html:
+        * fast/css-grid-layout/grid-template-areas-infinite-loop.html:
+        * fast/css-grid-layout/grid-template-columns-rows-computed-style-gaps-content-alignment-expected.txt:
+        * fast/css-grid-layout/grid-template-columns-rows-computed-style-gaps-content-alignment.html:
+        * fast/css-grid-layout/grid-template-shorthand-computed-style-crash.html:
+        * fast/css-grid-layout/grid-template-shorthand-get-set-expected.txt:
+        * fast/css-grid-layout/grid-template-shorthand-get-set.html:
+        * fast/css-grid-layout/grid-update-sizes-after-distributing-all-expected.txt:
+        * fast/css-grid-layout/grid-update-sizes-after-distributing-all.html:
+        * fast/css-grid-layout/grid-was-populated-assert.html:
+        * fast/css-grid-layout/grid-with-relative-font-length-crash.html:
+        * fast/css-grid-layout/implicit-columns-auto-resolution.html:
+        * fast/css-grid-layout/implicit-position-dynamic-change-expected.txt:
+        * fast/css-grid-layout/implicit-position-dynamic-change.html:
+        * fast/css-grid-layout/implicit-rows-auto-resolution.html:
+        * fast/css-grid-layout/implicit-tracks-before-explicit.html:
+        * fast/css-grid-layout/justify-self-cell.html:
+        * fast/css-grid-layout/mark-as-infinitely-growable-expected.txt:
+        * fast/css-grid-layout/mark-as-infinitely-growable.html:
+        * fast/css-grid-layout/maximize-tracks-definite-indefinite-height.html:
+        * fast/css-grid-layout/min-content-row-must-shrink-when-column-grows.html:
+        * fast/css-grid-layout/min-height-border-box.html:
+        * fast/css-grid-layout/min-width-height-auto-and-margins.html:
+        * fast/css-grid-layout/min-width-height-auto-overflow.html:
+        * fast/css-grid-layout/min-width-height-auto.html:
+        * fast/css-grid-layout/min-width-margin-box.html:
+        * fast/css-grid-layout/minmax-fixed-logical-height-only.html:
+        * fast/css-grid-layout/minmax-fixed-logical-width-only.html:
+        * fast/css-grid-layout/minmax-max-content-resolution-columns.html:
+        * fast/css-grid-layout/minmax-max-content-resolution-rows.html:
+        * fast/css-grid-layout/minmax-min-content-column-resolution-columns.html:
+        * fast/css-grid-layout/minmax-min-content-column-resolution-rows.html:
+        * fast/css-grid-layout/minmax-spanning-resolution-columns.html:
+        * fast/css-grid-layout/minmax-spanning-resolution-rows.html:
+        * fast/css-grid-layout/named-grid-line-get-set-expected.txt:
+        * fast/css-grid-layout/named-grid-line-get-set.html:
+        * fast/css-grid-layout/named-grid-lines-computed-style-implicit-tracks-expected.txt:
+        * fast/css-grid-layout/named-grid-lines-computed-style-implicit-tracks.html:
+        * fast/css-grid-layout/named-grid-lines-with-named-grid-areas-dynamic-get-set.html:
+        * fast/css-grid-layout/named-grid-lines-with-named-grid-areas-get-set-expected.txt:
+        * fast/css-grid-layout/named-grid-lines-with-named-grid-areas-get-set.html:
+        * fast/css-grid-layout/named-grid-lines-with-named-grid-areas-resolution.html:
+        * fast/css-grid-layout/non-grid-columns-rows-get-set-expected.txt:
+        * fast/css-grid-layout/non-grid-columns-rows-get-set-multiple-expected.txt:
+        * fast/css-grid-layout/non-grid-columns-rows-get-set-multiple.html:
+        * fast/css-grid-layout/non-grid-columns-rows-get-set.html:
+        * fast/css-grid-layout/non-grid-element-repeat-get-set-expected.txt:
+        * fast/css-grid-layout/non-grid-element-repeat-get-set.html:
+        * fast/css-grid-layout/non-named-grid-line-get-set-expected.txt:
+        * fast/css-grid-layout/non-named-grid-line-get-set.html:
+        * fast/css-grid-layout/percent-grid-item-in-percent-grid-track-in-percent-grid.html:
+        * fast/css-grid-layout/percent-grid-item-in-percent-grid-track-update.html:
+        * fast/css-grid-layout/percent-grid-item-in-percent-grid-track.html:
+        * fast/css-grid-layout/percent-intrinsic-track-breadth.html:
+        * fast/css-grid-layout/percent-of-indefinite-track-size-in-auto.html:
+        * fast/css-grid-layout/percent-of-indefinite-track-size-in-minmax-crash.html:
+        * fast/css-grid-layout/percent-of-indefinite-track-size.html:
+        * fast/css-grid-layout/percent-padding-margin-resolution-grid-item-update.html:
+        * fast/css-grid-layout/percent-padding-margin-resolution-grid-item.html:
+        * fast/css-grid-layout/percent-resolution-grid-item.html:
+        * fast/css-grid-layout/percent-track-breadths-regarding-container-size.html:
+        * fast/css-grid-layout/place-cell-by-index.html:
+        * fast/css-grid-layout/positioned-grid-items-should-not-create-implicit-tracks.html:
+        * fast/css-grid-layout/positioned-grid-items-should-not-take-up-space.html:
+        * fast/css-grid-layout/relayout-align-items-changed.html:
+        * fast/css-grid-layout/relayout-align-self-changed.html:
+        * fast/css-grid-layout/relayout-indefinite-heights.html:
+        * fast/css-grid-layout/relayout-justify-items-changed.html:
+        * fast/css-grid-layout/relayout-justify-self-changed.html:
+        * fast/css-grid-layout/resources/display-grid-set-get.js:
+        * fast/css-grid-layout/resources/grid-columns-rows-get-set-multiple.js:
+        (testInherit):
+        (testInitial):
+        * fast/css-grid-layout/resources/grid-columns-rows-get-set.js:
+        (testInherit):
+        (testInitial):
+        * fast/css-grid-layout/resources/grid-definitions-parsing-utils.js:
+        (testGridTemplatesValues):
+        (checkGridTemplatesSetJSValues):
+        (testGridTemplatesSetBadJSValues):
+        (checkGridAutoFlowSetCSSValue):
+        (checkGridAutoFlowSetJSValue):
+        (testGridAutoDefinitionsValues):
+        (testGridGapDefinitionsValues):
+        * fast/css-grid-layout/resources/grid-item-column-row-parsing-utils.js:
+        (checkColumnRowValues):
+        (window.testColumnRowJSParsing):
+        (window.testColumnRowInvalidJSParsing):
+        (window.testColumnStartRowStartJSParsing):
+        (window.testColumnEndRowEndJSParsing):
+        (setupInheritTest):
+        (setupInitialTest):
+        (window.testColumnRowInheritJSParsing):
+        (window.testStartBeforeInheritJSParsing):
+        (window.testEndAfterInheritJSParsing):
+        (window.testColumnRowInitialJSParsing):
+        (window.testStartBeforeInitialJSParsing):
+        (window.testEndAfterInitialJSParsing):
+        * fast/css-grid-layout/resources/grid-shorthand-parsing-utils.js:
+        (testGridDefinitionsValues):
+        (checkGridDefinitionsSetJSValues):
+        (testGridDefinitionsSetBadJSValues):
+        * fast/css-grid-layout/resources/grid-template-shorthand-parsing-utils.js:
+        (testGridDefinitionsValues):
+        (checkGridDefinitionsSetJSValues):
+        (testGridDefinitionsSetBadJSValues):
+        * fast/css-grid-layout/resources/grid.css:
+        (.grid):
+        (.inline-grid):
+        (.firstRowFirstColumn):
+        (.onlyFirstRowOnlyFirstColumn):
+        (.firstRowSecondColumn):
+        (.onlyFirstRowOnlySecondColumn):
+        (.firstRowThirdColumn):
+        (.firstRowFourthColumn):
+        (.secondRowFirstColumn):
+        (.onlySecondRowOnlyFirstColumn):
+        (.secondRowSecondColumn):
+        (.onlySecondRowOnlySecondColumn):
+        (.endSecondRowEndSecondColumn):
+        (.secondRowThirdColumn):
+        (.secondRowFourthColumn):
+        (.thirdRowFirstColumn):
+        (.thirdRowSecondColumn):
+        (.thirdRowThirdColumn):
+        (.fourthRowFirstColumn):
+        (.fourthRowSecondColumn):
+        (.firstAutoRowSecondAutoColumn):
+        (.autoLastRowAutoLastColumn):
+        (.autoSecondRowAutoFirstColumn):
+        (.firstRowBothColumn):
+        (.secondRowBothColumn):
+        (.bothRowFirstColumn):
+        (.bothRowSecondColumn):
+        (.bothRowBothColumn):
+        (.autoRowAutoColumn):
+        (.firstRowAutoColumn):
+        (.secondRowAutoColumn):
+        (.thirdRowAutoColumn):
+        (.autoRowFirstColumn):
+        (.autoRowSecondColumn):
+        (.autoRowThirdColumn):
+        (.autoRowAutoColumnSpanning2):
+        (.autoRowSpanning2AutoColumn):
+        (.autoRowSpanning2AutoColumnSpanning3):
+        (.autoRowSpanning3AutoColumnSpanning2):
+        (.autoRowFirstColumnSpanning2):
+        (.autoRowSecondColumnSpanning2):
+        (.firstRowSpanning2AutoColumn):
+        (.secondRowSpanning2AutoColumn):
+        (.gridAutoFlowColumnSparse):
+        (.gridAutoFlowColumnDense):
+        (.gridAutoFlowRowSparse):
+        (.gridAutoFlowRowDense):
+        * fast/css-grid-layout/resources/non-grid-columns-rows-get-set-multiple.js:
+        (testInherit):
+        (testInitial):
+        * fast/css-grid-layout/resources/non-grid-columns-rows-get-set.js:
+        (testInherit):
+        (testInitial):
+        * fast/css-grid-layout/should-not-collapse-anonymous-blocks.html:
+        * fast/css-grid-layout/swap-lines-if-start-is-further-endward-than-end-line-expected.html:
+        * fast/css-grid-layout/swap-lines-if-start-is-further-endward-than-end-line.html:
+        * fast/css-grid-layout/tracks-number-greatly-exceeding-available-size-crash.html:
+        * fast/css/auto-min-size.html:
+        * fast/css/first-letter-ignores-display-property.html:
+        * fast/css/getComputedStyle/computed-style-expected.txt:
+        * fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * fast/css/getComputedStyle/resources/property-names.js:
+        * fast/css/parse-justify-items.html:
+        * fast/events/key-events-in-editable-gridbox.html:
+        * fast/repaint/align-items-overflow-change.html:
+        * fast/repaint/align-self-change.html:
+        * fast/repaint/align-self-overflow-change.html:
+        * fast/repaint/justify-items-change.html:
+        * fast/repaint/justify-items-legacy-change.html:
+        * fast/repaint/justify-items-overflow-change.html:
+        * fast/repaint/justify-self-change.html:
+        * fast/repaint/justify-self-overflow-change.html:
+        * fast/text-autosizing/cluster-inline-grid-flex-box-expected.html:
+        * fast/text-autosizing/cluster-inline-grid-flex-box.html:
+        * ietestcenter/css3/grid/display-grid-001-expected.htm:
+        * ietestcenter/css3/grid/display-grid-001.htm:
+        * ietestcenter/css3/grid/display-grid-002-expected.htm:
+        * ietestcenter/css3/grid/display-grid-002.htm:
+        * ietestcenter/css3/grid/grid-column-001-expected.htm:
+        * ietestcenter/css3/grid/grid-column-001.htm:
+        * ietestcenter/css3/grid/grid-column-002-expected.htm:
+        * ietestcenter/css3/grid/grid-column-002.htm:
+        * ietestcenter/css3/grid/grid-column-003-expected.htm:
+        * ietestcenter/css3/grid/grid-column-003.htm:
+        * ietestcenter/css3/grid/grid-columns-001-expected.htm:
+        * ietestcenter/css3/grid/grid-columns-001.htm:
+        * ietestcenter/css3/grid/grid-items-001-expected.htm:
+        * ietestcenter/css3/grid/grid-items-001.htm:
+        * ietestcenter/css3/grid/grid-items-002-expected.htm:
+        * ietestcenter/css3/grid/grid-items-002.htm:
+        * ietestcenter/css3/grid/grid-items-003-expected.htm:
+        * ietestcenter/css3/grid/grid-items-003.htm:
+        * ietestcenter/css3/grid/grid-items-004-expected.htm:
+        * ietestcenter/css3/grid/grid-items-004.htm:
+        * ietestcenter/css3/grid/grid-items-005-expected.htm:
+        * ietestcenter/css3/grid/grid-items-005.htm:
+        * svg/css/getComputedStyle-basic-expected.txt:
+
+2016-05-06  Nan Wang  <n_wang@apple.com>
+
+        AX: <attachment> element should have a replacement character
+        https://bugs.webkit.org/show_bug.cgi?id=157406
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/attachment-element-expected.txt:
+        * accessibility/mac/attachment-element-replacement-character-expected.txt: Added.
+        * accessibility/mac/attachment-element-replacement-character.html: Added.
+        * editing/pasteboard/drag-and-drop-attachment-contenteditable-expected.txt:
+
+2016-05-06  Nan Wang  <n_wang@apple.com>
+
+        AX: String for document range is empty if end visible position anchors to a ignored replaced node
+        https://bugs.webkit.org/show_bug.cgi?id=157403
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/text-marker-string-for-document-end-replaced-node-expected.txt: Added.
+        * accessibility/mac/text-marker-string-for-document-end-replaced-node.html: Added.
+
+2016-05-05  Dean Jackson  <dino@apple.com>
+
+        4 and 8 digit color attributes should use the crazypants algorithm, not the CSS one.
+        https://bugs.webkit.org/show_bug.cgi?id=157402
+        <rdar://problem/26131142>
+
+        Reviewed by Simon Fraser.
+
+        Restore the version that was there before I added support for
+        4 and 8 digit hex colors in CSS.
+
+        * fast/dom/attribute-legacy-colors-expected.txt:
+        * fast/dom/script-tests/attribute-legacy-colors.js:
+
+2016-05-05  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION(r200422): Web Inspector: Make new Array Iterator objects play nice with Web Inspector
+        https://bugs.webkit.org/show_bug.cgi?id=157361
+        <rdar://problem/26099793>
+
+        Reviewed by Timothy Hatcher.
+
+        * platform/mac/inspector/model/remote-object-expected.txt:
+
+2016-05-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200479.
+        https://bugs.webkit.org/show_bug.cgi?id=157397
+
+        A LayoutTest added with this change is crashing on Mac WK1
+        test runs. (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "For keyboard users, activating a fragment URL should transfer
+        focus and caret to the destination"
+        https://bugs.webkit.org/show_bug.cgi?id=116046
+        http://trac.webkit.org/changeset/200479
+
+2016-05-05  Chris Dumez  <cdumez@apple.com>
+
+        CORS check is sometimes incorrectly failing for media loads
+        https://bugs.webkit.org/show_bug.cgi?id=157370
+        <rdar://problem/26071607>
+
+        Reviewed by Alex Christensen.
+
+        Add a regression test for <rdar://problem/26071607>.
+
+        * http/tests/media/resources/reference.mov: Added.
+        * http/tests/security/resources/reference-movie-cross-origin-allow.php: Added.
+        * http/tests/security/video-cross-origin-caching-expected.txt: Added.
+        * http/tests/security/video-cross-origin-caching.html: Added.
+
+2016-05-05  Zalan Bujtas  <zalan@apple.com>
+
+        Stop traversing at the container block when computing RTL inline static distance.
+        https://bugs.webkit.org/show_bug.cgi?id=157349
+        <rdar://problem/25994087>
+
+        Reviewed by David Hyatt.
+
+        When computing the inline static distance for a child renderer, we start at its enclosing box
+        and traverse up all the way to the container block.
+        However when the enclosing box is the ancestor of the container block, we
+        should just bail out right away since there's no container to use to adjust the position.
+
+        * fast/multicol/positioned-rtl-column-crash-expected.txt: Added.
+        * fast/multicol/positioned-rtl-column-crash.html: Added.
+
+2016-05-05  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unskip 9 compositing tests on ios-simulator, mark 2 as failures on ios-simulator-wk1
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-05-05  Ryan Haddad  <ryanhaddad@apple.com>
+
+        TestExpectations gardening for ios-simulator
+
+        Unreviewed test gardening.
+
+        Remove failure expectation for passing tests, move some to more specific ports, and remove expectations
+		for tests that are no longer in the tree.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-05-05  Zalan Bujtas  <zalan@apple.com>
+
+        Do not attempt to compute min/max width.
+        https://bugs.webkit.org/show_bug.cgi?id=157320
+
+        Reviewed by David Hyatt.
+
+        Replaced elements with no intrinsic size (only with ratio) should not call the containing
+        block to compute the min/max width when the containing block's min/max width
+        depends on the children's intrinsic size. It could lead to infinite recursion.
+
+        * fast/replaced/before-content-intrinsic-crash-expected.txt: Added.
+        * fast/replaced/before-content-intrinsic-crash.html: Added.
+
+2016-05-05  Nan Wang  <n_wang@apple.com>
+
+        For keyboard users, activating a fragment URL should transfer focus and caret to the destination
+        https://bugs.webkit.org/show_bug.cgi?id=116046
+
+        Reviewed by Ryosuke Niwa.
+
+        Updated fast/dom/fragment-activation-focuses-target.html, now that navigating to a unfocusable
+        fragment will unset the focused element.
+
+        * fast/dom/fragment-activation-focuses-target-expected.txt:
+        * fast/dom/fragment-activation-focuses-target.html:
+        * fast/events/sequential-focus-navigation-starting-point-expected.txt: Added.
+        * fast/events/sequential-focus-navigation-starting-point.html: Added.
+        * platform/ios-simulator/TestExpectations:
+
+2016-05-05  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] Unreviewed gardening.
+
+        * platform/gtk/TestExpectations: Add more HiDPI tests failing.
+
+2016-05-05  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Crash if you type "debugger" in the console and continue
+        https://bugs.webkit.org/show_bug.cgi?id=156924
+        <rdar://problem/25884189>
+
+        Reviewed by Mark Lam.
+
+        * inspector/debugger/evaluateOnCallFrame-errors-expected.txt: Added.
+        * inspector/debugger/evaluateOnCallFrame-errors.html: Added.
+        * inspector/protocol/backend-dispatcher-argument-errors-expected.txt:
+
+2016-05-04  Simon Fraser  <simon.fraser@apple.com>
+
+        Comments on wired.com are blurry
+        https://bugs.webkit.org/show_bug.cgi?id=148630
+
+        Reviewed by Tim Horton.
+
+        This testcase does not fail without the patch because of how WTR does snapshotting,
+        but some future improvement may fix that.
+
+        * compositing/contents-scale/rasterization-scale-expected.html: Added.
+        * compositing/contents-scale/rasterization-scale.html: Added.
+
+2016-05-05  Ryosuke Niwa  <rniwa@webkit.org>
+
+        event.target shouldn't be retargeted as the event bubbles into a slot
+        https://bugs.webkit.org/show_bug.cgi?id=157369
+
+        Reviewed by Antti Koivisto.
+
+        Updated test cases to expect the target to be not adjusted to a slot element when the event path
+        enters one as this didn't match the spec or the behavior of Google Chrome Canary. Both WebKit and
+        Chrome passes the test with this change.
+
+        * fast/shadow-dom/event-inside-slotted-node.html:
+
+2016-05-04  Alex Christensen  <achristensen@webkit.org>
+
+        Blocked redirected main resource requests need descriptive errors
+        https://bugs.webkit.org/show_bug.cgi?id=156828
+        rdar://problem/25711316
+
+        Reviewed by Daniel Bates.
+
+        * http/tests/contentextensions/block-everything-if-domain-expected.txt:
+        Updated because the page no longer loads because the main resource was blocked.
+        * http/tests/contentextensions/block-everything-unless-domain-expected.txt:
+        * http/tests/contentextensions/block-everything-unless-domain.html:
+        Updated test because about:blank is no longer loaded when the main resource fails to load.
+        * http/tests/contentextensions/main-resource-expected.txt:
+        Update to reflect new behavior of calling didFailProvisionalLoadWithError instead of just didFailLoadingWithError.
+        * http/tests/contentextensions/main-resource-redirect-error-expected.txt: Added.
+        * http/tests/contentextensions/main-resource-redirect-error.html: Added.
+        * http/tests/contentextensions/main-resource-redirect-error.html.json: Added.
+        * http/tests/contentextensions/main-resource.html:
+
 2016-05-04  Daniel Bates  <dabates@apple.com>
 
         CSP: Perform case sensitive match against path portion of source expression URL that ends in '/'

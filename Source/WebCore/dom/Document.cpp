@@ -1110,16 +1110,6 @@ Ref<Element> Document::createElement(const QualifiedName& name, bool createdByPa
     return element.releaseNonNull();
 }
 
-bool Document::cssRegionsEnabled() const
-{
-    return RuntimeEnabledFeatures::sharedFeatures().cssRegionsEnabled(); 
-}
-
-bool Document::cssCompositingEnabled() const
-{
-    return RuntimeEnabledFeatures::sharedFeatures().cssCompositingEnabled();
-}
-
 #if ENABLE(CSS_GRID_LAYOUT)
 bool Document::isCSSGridLayoutEnabled() const
 {
@@ -1128,17 +1118,15 @@ bool Document::isCSSGridLayoutEnabled() const
 #endif
 
 #if ENABLE(CSS_REGIONS)
-
 RefPtr<DOMNamedFlowCollection> Document::webkitGetNamedFlows()
 {
-    if (!cssRegionsEnabled() || !renderView())
+    if (!renderView())
         return nullptr;
 
     updateStyleIfNeeded();
 
     return namedFlows().createCSSOMSnapshot();
 }
-
 #endif
 
 NamedFlowCollection& Document::namedFlows()
@@ -5297,8 +5285,11 @@ HTMLCanvasElement* Document::getCSSCanvasElement(const String& name)
 }
 
 #if ENABLE(IOS_TEXT_AUTOSIZING)
+
 void Document::addAutoSizingNode(Node* node, float candidateSize)
 {
+    LOG(TextAutosizing, " addAutoSizingNode %p candidateSize=%f", node, candidateSize);
+
     TextAutoSizingKey key(&node->renderer()->style());
     auto addResult = m_textAutoSizedNodes.ensure(WTFMove(key), [] {
         return TextAutoSizingValue::create();

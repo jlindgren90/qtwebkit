@@ -1,3 +1,442 @@
+2016-05-07  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC][32bit] stress/tagged-templates-template-object.js fails in debug
+        https://bugs.webkit.org/show_bug.cgi?id=157436
+
+        Reviewed by Filip Pizlo.
+
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        The node OverridesHasInstance had a speculation after a jump.
+
+2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Misc CommandLineAPI cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=157450
+
+        Reviewed by Ryosuke Niwa.
+
+        * inspector/InjectedScriptSource.js:
+        (BasicCommandLineAPI):
+        Fix mistake in r200533, and modernize related code.
+
+2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Improve console.count()
+        https://bugs.webkit.org/show_bug.cgi?id=157439
+        <rdar://problem/26152654>
+
+        Reviewed by Timothy Hatcher.
+
+          - make console.count() increment an unnamed global counter.
+          - make console.count(label) increment a counter with that label name.
+
+        * inspector/agents/InspectorConsoleAgent.cpp:
+        (Inspector::InspectorConsoleAgent::count):
+
+2016-05-06  Simon Fraser  <simon.fraser@apple.com>
+
+        Enable IOS_TEXT_AUTOSIZING on Mac and make it testable
+        https://bugs.webkit.org/show_bug.cgi?id=157432
+        rdar://problem/16406720
+
+        Reviewed by Dean Jackson.
+
+        Enable IOS_TEXT_AUTOSIZING on Mac so it can be tested.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Console: Variables defined with let/const aren't accessible outside of console's scope
+        https://bugs.webkit.org/show_bug.cgi?id=150752
+        <rdar://problem/23343385>
+
+        Reviewed by Mark Lam.
+
+        This approach allows Web Inspector to hang a "Scope Extension", a
+        WithObjectScope, off the GlobalObject. When resolving identifiers
+        in fails to resolve anything in the normal scope chain, consult
+        the scope extension.
+
+        This allows us to eliminate the `with (commandLineAPI) { ... }`
+        block in global console evaluations, and instead makes it a full
+        program evaluation, with the commandLineAPI available and safely
+        shadowed by actual variables as expected.
+
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.prototype._evaluateOn):
+        Use the new evaluateWithScopeExtension and provide the CommandLineAPI
+        object as the scope extension object.
+
+        (BasicCommandLineAPI):
+        (BasicCommandLineAPI.inScopeVariables): Deleted.
+        Simplify now that we don't need to check for variable shadowing ourselves.
+
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::evaluateWithScopeExtension):
+        * inspector/JSInjectedScriptHost.h:
+        * inspector/JSInjectedScriptHostPrototype.cpp:
+        (Inspector::JSInjectedScriptHostPrototype::finishCreation):
+        (Inspector::jsInjectedScriptHostPrototypeFunctionEvaluateWithScopeExtension):
+        Provide a new InjectedScriptHost method to evaluate a program
+        with a scope extension.
+
+        * runtime/Completion.cpp:
+        (JSC::evaluateWithScopeExtension):
+        * runtime/Completion.h:
+        General JSC::evaluate function to evaluate a program with a scope extension.
+
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::setGlobalScopeExtension):
+        (JSC::JSGlobalObject::clearGlobalScopeExtension):
+        (JSC::JSGlobalObject::visitChildren):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::globalScopeExtension):
+        Hang a scope extension off the global object.
+
+        * runtime/JSScope.cpp:
+        (JSC::JSScope::resolve):
+        Consult the scope extension when resolve fails to find anything normally.
+
+2016-05-06  Mark Lam  <mark.lam@apple.com>
+
+        Add JSC options reportBaselineCompileTimes and reportDFGCompileTimes.
+        https://bugs.webkit.org/show_bug.cgi?id=157427
+
+        Reviewed by Filip Pizlo and Keith Miller.
+
+        The compile times reporting options are now:
+            reportCompileTimes         -> report compile times in all tiers.
+            reportBaselineCompileTimes -> report compile times in baseline JIT.
+            reportDFGCompileTimes      -> report compile times in DFG and FTL.
+            reportFTLCompileTimes      -> report compile times in FTL.
+
+        Also updated reportTotalCompileTimes() to collect stats that include the baseline
+        JIT.  compileTimeStats() is now moved into JIT.cpp (from DFGPlan.cpp). 
+
+        * dfg/DFGPlan.cpp:
+        (JSC::DFG::Plan::reportCompileTimes):
+        (JSC::DFG::Plan::compileInThread):
+        (JSC::DFG::Plan::compileInThreadImpl):
+        (JSC::DFG::Plan::cancel):
+        (JSC::DFG::Plan::compileTimeStats): Deleted.
+        * dfg/DFGPlan.h:
+        (JSC::DFG::Plan::compileTimeStats): Deleted.
+        * jit/JIT.cpp:
+        (JSC::ctiPatchCallByReturnAddress):
+        (JSC::JIT::privateCompile):
+        (JSC::JIT::stackPointerOffsetFor):
+        (JSC::JIT::reportCompileTimes):
+        (JSC::JIT::computeCompileTimes):
+        (JSC::JIT::compileTimeStats):
+        * jit/JIT.h:
+        (JSC::JIT::shouldEmitProfiling):
+        * jsc.cpp:
+        (runJSC):
+        * runtime/Options.h:
+
+2016-05-05  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Get rid of NonNegZeroDouble, it is broken
+        https://bugs.webkit.org/show_bug.cgi?id=157399
+        rdar://problem/25339647
+
+        Reviewed by Mark Lam.
+
+        The profile "NonNegZeroDouble" is fundamentally broken.
+
+        It is used by DFG to predict the result of ArithMul as being a Double
+        or Int32.
+        The problem is you are likely to mispredict, and when you do, you are
+        guaranteed to end up in a recompile loop.
+
+        The compile loops usually happen like this:
+        -We speculate you have Int32 despite producing doubles.
+        -We OSR exit on another node (ValueToInt32 for example) from the result of this ArithMul.
+        -When we compile this block again, ArithMul will do the same misprediction
+         because it unconditionally predicts Int32.
+
+        The flag NonNegZeroDouble was very unlikely to be set correctly
+        in the first place.
+
+        In LLINT, the flag is only set on the slow path.
+        Since double*double is on the fast path, those cases are ignored.
+
+        In Baseline, the flag is set for any case that falls back on double
+        multiplication. BUT, the DFG flag was only set for nodes that spend
+        many iteration in slow path, which obviously does not apply to double*double.
+
+        Given the perf drawbacks and the recompile loops, I removed
+        the whole flag for now.
+
+        * bytecode/ValueProfile.cpp:
+        (WTF::printInternal):
+        * bytecode/ValueProfile.h:
+        (JSC::ResultProfile::didObserveNonInt32): Deleted.
+        (JSC::ResultProfile::didObserveDouble): Deleted.
+        (JSC::ResultProfile::didObserveNonNegZeroDouble): Deleted.
+        (JSC::ResultProfile::setObservedNonNegZeroDouble): Deleted.
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::makeSafe): Deleted.
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::mayHaveNonIntResult): Deleted.
+        * dfg/DFGNodeFlags.cpp:
+        (JSC::DFG::dumpNodeFlags): Deleted.
+        * dfg/DFGNodeFlags.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * jit/JITMulGenerator.cpp:
+        (JSC::JITMulGenerator::generateFastPath): Deleted.
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::updateResultProfileForBinaryArithOp): Deleted.
+
+2016-05-05  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION(r200422): Web Inspector: Make new Array Iterator objects play nice with Web Inspector
+        https://bugs.webkit.org/show_bug.cgi?id=157361
+        <rdar://problem/26099793>
+
+        Reviewed by Timothy Hatcher.
+
+        * builtins/ArrayPrototype.js:
+        (createArrayIterator):
+        (values):
+        (keys):
+        (entries):
+        * builtins/TypedArrayPrototype.js:
+        (values):
+        (keys):
+        (entries):
+        * runtime/CommonIdentifiers.h:
+        Set the kind on the iterator object, that can be shown
+        to the inspector if the object is shown in the console.
+
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.prototype._describe):
+        Get a better name for the new Array Iterator which is just an Object.
+
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::subtype):
+        (Inspector::JSInjectedScriptHost::getInternalProperties):
+        Detect and handle ArrayIterator object instances. Porting the code
+        from the JSArrayIterator code path.
+
+2016-05-05  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] In DFG, an OSR Exit on SetLocal can trash its child node
+        https://bugs.webkit.org/show_bug.cgi?id=157358
+        rdar://problem/25339647
+
+        Reviewed by Filip Pizlo.
+
+        When we OSR Exit on SetLocal, the child is never restored if its representation
+        was changed since the MovHint.
+
+        For example, say we have:
+            @1 = SomethingProducingDouble()
+            @2 = MovHint(@1)
+            @3 = ValueRep(@1)
+            @4 = SetLocal(@3, FlushedInt32)
+
+        When we lower SetLocal(), we start by speculating that @3 is an Int32.
+        Now this can fail if @1 was really a double.
+        When that happens, we go over the VariableEventStream to find where values
+        are, and @1 died at @3. Since the speculation failure happens before
+        the SetLocal event, we don't do anything with @3.
+
+        In this patch, I extend the PhantomInsertion phase to keep the MovHint
+        alive past the SetLocal.
+
+        * dfg/DFGPhantomInsertionPhase.cpp:
+        * tests/stress/multiply-typed-double-and-object.js: Added.
+        (otherObject.valueOf):
+        (targetDFG.multiply):
+        (targetFTL.multiply):
+
+2016-05-05  Oliver Hunt  <oliver@apple.com>
+
+        Enable separated heap by default on ios
+        https://bugs.webkit.org/show_bug.cgi?id=156720
+
+        Reviewed by Geoffrey Garen.
+
+        We've fixed the xnu side of things, so we can reland this.
+
+        * runtime/Options.cpp:
+        (JSC::recomputeDependentOptions):
+
+2016-05-05  Joseph Pecoraro  <pecoraro@apple.com>
+
+        JSContext Inspector: Better CommandLineAPI in JSContext inspection
+        https://bugs.webkit.org/show_bug.cgi?id=157387
+        <rdar://problem/22630583>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.prototype._evaluateOn):
+        (BasicCommandLineAPI.inScopeVariables):
+        (BasicCommandLineAPI):
+        When creating a BasicCommandLineAPI, pass the call frame so
+        that we don't shadow variables in the callstack.
+
+        (BasicCommandLineAPI.methods):
+        (clear):
+        (table):
+        (profile):
+        (profileEnd):
+        (keys):
+        (values):
+        Some just pass through to console, others are tiny methods.
+        Implement them, and give them the expected toString string.
+
+2016-05-05  Filip Pizlo  <fpizlo@apple.com>
+
+        Reduce maximum JIT pool size on X86_64.
+
+        Rubber stamped by Geoffrey Garen.
+        
+        This changes our maximum pool size to 100MB. The problem with letting a page allocate much
+        more than this is that we will sometimes call deleteAllCode() or one of its friends. Deleting
+        a huge amount of memory is expensive in our allocator.
+        
+        So long as we allow for such large-scale code death to happen, and so long as it's expensive,
+        we should bound the amount of code we end up with in the first place.
+        
+        In the long run, we should fix our executable allocator so that it's not so expensive to kill
+        all code.
+        
+        * jit/ExecutableAllocator.h:
+
+2016-05-05  Filip Pizlo  <fpizlo@apple.com>
+
+        Reduce thresholds that control the maximum IC stub size.
+
+        Rubber stamped by Chris Dumez and Benjamin Poulain.
+        
+        This reduces the thresholds to before the megamorphic load optimizations to see if that
+        recovers a PLT regression.
+
+        * runtime/Options.h:
+
+2016-05-05  Filip Pizlo  <fpizlo@apple.com>
+
+        We shouldn't crash if DFG AI proved that something was unreachable on one run but then decided not to prove it on another run
+        https://bugs.webkit.org/show_bug.cgi?id=157379
+
+        Reviewed by Mark Lam.
+        
+        Any run of DFG AI is a fixpoint that loosens the proof until it can't find any more
+        counterexamples to the proof.  It errs on the side of loosening proofs, i.e., on the side of
+        proving fewer things.
+
+        We run this fixpoint multiple times since there are multiple points in the DFG optimization
+        pipeline when we run DFG AI.  Each of those runs completes a fixpoint and produces the
+        tightest proof it can that did not result in counterexamples being found.
+
+        It's possible that on run K of DFG AI, we prove some property, but on run K+1, we don't prove
+        that property. The code could have changed between the two runs due to other phases. Other
+        phases may modify the code in such a way that it's less amenable to AI's analysis. Our design
+        allows this because DFG AI is not 100% precise. It defends itself from making unsound choices
+        or running forever by sometimes punting on proving some property. It must be able to do this,
+        and so therefore, it might sometimes prove fewer things on a later run.
+
+        Currently in trunk if the property that AI proves on run K but fails to prove on run K+1 is
+        the reachability of a piece of code, then run K+1 will crash on an assertion at the
+        Unreachable node. It will complain that it reached an Unreachable. But it might be reaching
+        that Unreachable because it failed to prove that something earlier was always exiting. That's
+        OK, see above.
+
+        So, we should remove the assertion that AI doesn't see Unreachable.
+        
+        No new tests because I don't know how to make this happen. I believe that this happens in the
+        wild based on crash logs.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+
+2016-05-05  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Crash if you type "debugger" in the console and continue
+        https://bugs.webkit.org/show_bug.cgi?id=156924
+        <rdar://problem/25884189>
+
+        Reviewed by Mark Lam.
+
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::InspectorDebuggerAgent::evaluateOnCallFrame):
+        Bail with an error when we are not paused.
+
+        * inspector/agents/InspectorRuntimeAgent.cpp:
+        (Inspector::InspectorRuntimeAgent::callFunctionOn):
+        (Inspector::InspectorRuntimeAgent::getProperties):
+        (Inspector::InspectorRuntimeAgent::getDisplayableProperties):
+        (Inspector::InspectorRuntimeAgent::getCollectionEntries):
+        (Inspector::InspectorRuntimeAgent::saveResult):
+        Update poor error message.
+
+2016-05-05  Keith Miller  <keith_miller@apple.com>
+
+        Add support for delete by value to the DFG
+        https://bugs.webkit.org/show_bug.cgi?id=157372
+
+        Reviewed by Filip Pizlo.
+
+        This patch adds basic support for delete by value to the DFG. delete by value
+        just calls out to a C++ operation on each execution. Additionally, this patch
+        fixes an issue with delete by id where we would crash if the base was null
+        or undefined.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileDeleteById):
+        (JSC::DFG::SpeculativeJIT::compileDeleteByVal):
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::callOperation):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        * jit/JIT.h:
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::emit_op_del_by_val):
+        * jit/JITPropertyAccess32_64.cpp:
+        (JSC::JIT::emit_op_del_by_val):
+        * tests/stress/delete-by-val.js: Added.
+        (assert):
+        (test):
+        * tests/stress/delete-to-object-exception.js: Added.
+        (assert):
+        (test):
+
+2016-05-05  Michael Saboff  <msaboff@apple.com>
+
+        Unreviewed build fix after change set r200447.
+
+        Made the detection of clang version XCode build specific.
+        Now shouldEnableDebugAnnotations() should return false for all other build types.
+
+        * offlineasm/config.rb:
+
 2016-05-05  Joseph Pecoraro  <pecoraro@apple.com>
 
         Create console object lazily

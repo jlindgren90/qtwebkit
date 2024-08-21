@@ -1,3 +1,133 @@
+2016-05-06  Simon Fraser  <simon.fraser@apple.com>
+
+        Enable IOS_TEXT_AUTOSIZING on Mac and make it testable
+        https://bugs.webkit.org/show_bug.cgi?id=157432
+        rdar://problem/16406720
+
+        Reviewed by Dean Jackson.
+
+        Enable IOS_TEXT_AUTOSIZING on Mac so it can be tested.
+
+        Make the setTextAutosizingEnabled() Setting work, and plumb it through WK1 and WK2
+        preferences for WTR and DRT. Make textAutosizingWindowSizeOverride() work, for layout tests.
+        These two settings are shared with TEXT_AUTOSIZING.
+
+        Add a TextAutosizing log channel, which is useful for generated -expected.html results.
+
+        Move adjustComputedFontSizesOnBlocks() and related code from RenderObject to RenderElement
+        without changes.
+
+        An implication of this set of changes is that the way clients enable text autosizing
+        has changed. Previously, they set the "MinimumZoomFontSize" preference to 0.
+        Settings::defaultMinimumZoomFontSize() used to do this in order to enable text autosizing
+        on iPhone only, not iPad.
+
+        Now the preferred technique is to leave minimumZoomFontSize alone, and to use textAutosizingEnabled()
+        instead. Settings::defaultTextAutosizingEnabled() now does the check for iPhone.
+
+        UIWebView calls WebKitGetMinimumZoomFontSize() to setup the default minimum font zoom size,
+        which will now always return 15, but had no other code that toggled this. So it's safe to just rely
+        on Settings::defaultTextAutosizingEnabled() doing the right thing for iPhone/iPad.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (resetWebPreferencesToConsistentValues):
+        * DumpRenderTree/mac/TestRunnerMac.mm:
+        (TestRunner::setTextAutosizingEnabled):
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+        * WebKitTestRunner/ios/TestControllerIOS.mm:
+        (WTR::TestController::platformResetPreferencesToConsistentValues):
+
+2016-05-06  Dean Jackson  <dino@apple.com>
+
+        Regions, Shapes and Tracks don't need runtime features
+        https://bugs.webkit.org/show_bug.cgi?id=157426
+        <rdar://problem/26146262>
+
+        Reviewed by Simon Fraser.
+
+        The following RuntimeEnabledFeatures can be removed since
+        we have no need to disable them (they are stable and have
+        shipped for a while):
+        - CSS Regions
+        - CSS Shapes
+        - Media tracks
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (resetWebPreferencesToConsistentValues): Deleted.
+
+2016-05-06  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Increase delay when launching multiple ios-simulators in parallel
+        https://bugs.webkit.org/show_bug.cgi?id=157422
+
+        Reviewed by Alexey Proskuryakov.
+
+        Tests are intermittently failing when launching multiple simulators in parallel due to "You are opening
+        this application for the first time" confirmation dialogs. Increasing the delay to alleviate this issue.
+
+        * Scripts/webkitpy/port/ios.py:
+        (IOSSimulatorPort.setup_test_run):
+
+2016-05-06  Per Arne Vollan  <peavo@outlook.com>
+
+        [Win] Remove WinXP support.
+        https://bugs.webkit.org/show_bug.cgi?id=157416
+
+        Reviewed by Brent Fulgham.
+
+        * win/DLLLauncher/DLLLauncherMain.cpp:
+        (enableTerminationOnHeapCorruption):
+
+2016-05-06  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Unprefix CSS Grid Layout properties
+        https://bugs.webkit.org/show_bug.cgi?id=157137
+
+        Reviewed by Simon Fraser.
+
+        Remove "-webkit" prefix from all the grid layout properties,
+        including the display value.
+        Update the source code to remove the prefix where it was used too.
+
+        * TestWebKitAPI/Tests/WebCore/CSSParser.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-05-05  Alexey Proskuryakov  <ap@apple.com>
+
+        Partially revert http://trac.webkit.org/r200504
+        Improve HTTP test names in WebKitTestRunner's crash report information
+        https://bugs.webkit.org/show_bug.cgi?id=157389
+
+        * WebKitTestRunner/cocoa/CrashReporterInfo.mm: Turns out that we can't have URLs
+        in crash reporter information.
+
+2016-05-05  Alexey Proskuryakov  <ap@apple.com>
+
+        Improve HTTP test names in WebKitTestRunner's crash report information
+        https://bugs.webkit.org/show_bug.cgi?id=157389
+
+        Reviewed by Alex Christensen.
+
+        * WebKitTestRunner/InjectedBundle/cocoa/InjectedBundlePageCocoa.mm:
+        (WTR::InjectedBundlePage::platformDidStartProvisionalLoadForFrame): Added a FIXME.
+
+        * WebKitTestRunner/cocoa/CrashReporterInfo.mm:
+        (WTR::testDescription): Don't bail out if the port is neither 8000 nor 8443; we
+        use other port numbers too. For http tests, return the complete URL string, not
+        just the path.
+
+2016-05-04  Alex Christensen  <achristensen@webkit.org>
+
+        Blocked redirected main resource requests need descriptive errors
+        https://bugs.webkit.org/show_bug.cgi?id=156828
+        rdar://problem/25711316
+
+        Reviewed by Daniel Bates.
+
+        * WebKitTestRunner/InjectedBundle/InjectedBundlePage.cpp:
+        (WTR::InjectedBundlePage::didFailProvisionalLoadWithErrorForFrame):
+        Print out the error type to make sure we have the most descriptive error type.
+
 2016-05-05  Enrique Ocaña González  <eocanha@igalia.com>
 
         [GStreamer] Bump internal jhbuild versions to 1.8.0 and patches to support MSE

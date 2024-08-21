@@ -167,7 +167,7 @@ public:
     String preload() const;    
     void setPreload(const String&);
 
-    PassRefPtr<TimeRanges> buffered() const override;
+    Ref<TimeRanges> buffered() const override;
     void load();
     String canPlayType(const String& mimeType, const String& keySystem = String(), const URL& = URL()) const;
 
@@ -197,8 +197,8 @@ public:
     void updatePlaybackRate();
     bool webkitPreservesPitch() const;
     void setWebkitPreservesPitch(bool);
-    PassRefPtr<TimeRanges> played() override;
-    PassRefPtr<TimeRanges> seekable() const override;
+    Ref<TimeRanges> played() override;
+    Ref<TimeRanges> seekable() const override;
     WEBCORE_EXPORT bool ended() const;
     bool autoplay() const;
     bool isAutoplaying() const { return m_autoplaying; }
@@ -483,6 +483,7 @@ protected:
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
     bool mediaControlsDependOnPageScaleFactor() const { return m_mediaControlsDependOnPageScaleFactor; }
     void setMediaControlsDependOnPageScaleFactor(bool);
+    void updateMediaControlsAfterPresentationModeChange();
 #endif
 
     void scheduleEvent(const AtomicString& eventName);
@@ -495,7 +496,6 @@ private:
     // FIXME: Shadow DOM spec says we should be able to create shadow root on audio and video elements
     bool canHaveUserAgentShadowRoot() const final { return true; }
 
-    bool hasCustomFocusLogic() const override;
     bool supportsFocus() const override;
     bool isMouseFocusable() const override;
     bool rendererIsNeeded(const RenderStyle&) override;
