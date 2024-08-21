@@ -1,3 +1,85 @@
+2016-05-23  Brady Eidson  <beidson@apple.com>
+
+        check-webkit-style gets flags std::literals::chrono_literals as bad naming.
+        https://bugs.webkit.org/show_bug.cgi?id=157969
+
+        Reviewed by Alex Christensen.
+
+        * Scripts/webkitpy/style/checkers/cpp.py:
+        (check_identifier_name_in_declaration):
+        * Scripts/webkitpy/style/checkers/cpp_unittest.py:
+        (WebKitStyleTest.test_names):
+
+2016-05-22  Alexey Proskuryakov  <ap@apple.com>
+
+        RELEASE_ASSERT(TestController::singleton().isCurrentInvocation(testInvocation)) is sometimes hit when running tests
+        https://bugs.webkit.org/show_bug.cgi?id=157977
+        rdar://problem/20874156
+
+        Reviewed by David Kilzer.
+
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::invoke): Be more certain to launch a new process when there was
+        a timeout detected. If we don't, there is a chance that the process is not quite frozen,
+        and will still send a response that we no longer expect.
+        (WTR::TestInvocation::dumpWebProcessUnresponsiveness): Print timeout details to stderr
+        too, as stdout is not available, at least not in the case that I was observing.
+
+2016-05-22  Brady Eidson  <beidson@apple.com>
+
+        Move to C++14.
+        https://bugs.webkit.org/show_bug.cgi?id=157948
+
+        Reviewed by Michael Catanzaro.
+
+        * DumpRenderTree/mac/Configurations/Base.xcconfig:
+        * MiniBrowser/Configurations/Base.xcconfig:
+        * TestWebKitAPI/Configurations/Base.xcconfig:
+        * WebKitTestRunner/Configurations/Base.xcconfig:
+
+2016-05-21  Aakash Jain  <aakash_jain@apple.com>
+
+        Simulator launch fails intermittently due to failure in checking simulator boot status
+        https://bugs.webkit.org/show_bug.cgi?id=157965
+        rdar://problem/26402404
+
+        Reviewed by Alexey Proskuryakov.
+
+        * Scripts/webkitpy/xcode/simulator.py:
+        (Simulator.wait_until_device_is_booted): Ignore CalledProcessError exception while checking
+        whether simulator has finished booting.
+
+2016-05-21  Dan Bernstein  <mitz@apple.com>
+
+        Silence warnings from svn propget when using newer versions of Subversion.
+        https://bugs.webkit.org/show_bug.cgi?id=157879
+
+        Reviewed by Daniel Bates.
+
+        * Scripts/prepare-ChangeLog:
+        (attributeCommand): Redirect svn propget stderr to /dev/null.
+        * Scripts/svn-create-patch:
+        (findMimeType): Ditto.
+
+2016-05-20  Ryosuke Niwa  <rniwa@webkit.org>
+
+        run-benchmark's results should contain Animometer's debug output
+        https://bugs.webkit.org/show_bug.cgi?id=157941
+
+        Reviewed by Stephanie Lewis.
+
+        Modified the Animometer patch to store debug output and made benchmark_runner extract them together as a single array.
+        The result can be dragged and dropped into Animometer's developer.html page.
+
+        * Scripts/webkitpy/benchmark_runner/benchmark_runner.py:
+        (BenchmarkRunner._run_one_test): Parse JSON here instead of doing it in multiple call sites.
+        (BenchmarkRunner._run_benchmark): Strip debugOutput from individual test result, and merge them together separately.
+        * Scripts/webkitpy/benchmark_runner/data/patches/Animometer.patch:
+        Modified the patch to store the debug output.
+        * Scripts/webkitpy/benchmark_runner/http_server_driver/http_server/twisted_http_server.py:
+        (ServerControl.render_POST): Fixed a bug that POST to /report results in 500 because getvalue is not defined
+        when the request body is larger than a certain size on twisted.
+
 2016-05-20  Srinivasan Vijayaraghavan  <svijayaraghavan@apple.com>
 
         Use clearer names for JSON output of javascriptcore test results

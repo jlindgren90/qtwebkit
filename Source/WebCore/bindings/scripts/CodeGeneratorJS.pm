@@ -264,12 +264,6 @@ sub AddClassForwardIfNeeded
 {
     my $interfaceName = shift;
 
-    if ($interfaceName eq "ScriptProfileNode") {
-        $headerIncludes{"<profiler/ProfileNode.h>"} = 1;
-        push(@headerContent, "typedef JSC::ProfileNode ScriptProfileNode;\n\n");
-        return;
-    }
-
     # SVGAnimatedLength/Number/etc. are typedefs and should not be forward-declared as classes.
     return if $codeGenerator->IsSVGAnimatedType($interfaceName);
 
@@ -4313,8 +4307,8 @@ sub GetNativeTypeForCallbacks
 {
     my ($interface, $type) = @_;
 
-    return "PassRefPtr<SerializedScriptValue>" if $type eq "SerializedScriptValue";
-    return "PassRefPtr<DOMStringList>" if $type eq "DOMStringList";
+    return "RefPtr<SerializedScriptValue>&&" if $type eq "SerializedScriptValue";
+    return "RefPtr<PassRefPtr<DOMStringList>>&&" if $type eq "DOMStringList";
     return "const String&" if $type eq "DOMString";
     return GetNativeType($interface, $type);
 }

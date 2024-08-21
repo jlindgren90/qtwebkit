@@ -1,3 +1,109 @@
+2016-05-23  Miguel Gomez  <magomez@igalia.com>
+
+        [ThreadedCompositor] Ensure that the BitmapTexture used by CoordinatedBackingStoreTile matches the opacity of the painted surface
+        https://bugs.webkit.org/show_bug.cgi?id=157942
+
+        Reviewed by Žan Doberšek.
+
+        * Shared/CoordinatedGraphics/CoordinatedBackingStore.cpp:
+        (WebKit::CoordinatedBackingStoreTile::swapBuffers):
+        Reset the BitmapTexture if it doesn't match the opacity required by the surface
+        that's being painted.
+
+2016-05-22  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Disk cache: enable speculative revalidation
+        https://bugs.webkit.org/show_bug.cgi?id=157125
+
+        Reviewed by Sergio Villar Senin.
+
+        * NetworkProcess/soup/NetworkProcessSoup.cpp:
+        (WebKit::NetworkProcess::platformInitializeNetworkProcess):
+        * UIProcess/API/gtk/WebKitWebContext.cpp:
+        (webkitWebContextConstructed):
+        * UIProcess/Cocoa/WebProcessPoolCocoa.mm:
+        (WebKit::WebProcessPool::platformInitializeNetworkProcess):
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::ensureNetworkProcess):
+        * config.h:
+
+2016-05-22  Brady Eidson  <beidson@apple.com>
+
+        Move to C++14.
+        https://bugs.webkit.org/show_bug.cgi?id=157948
+
+        Reviewed by Michael Catanzaro.
+
+        * Configurations/Base.xcconfig:
+
+        Replace time literal suffixes that have underscores to the forms without
+        (e.g. 0_ms becomes 0ms):
+        * NetworkProcess/NetworkResourceLoadParameters.cpp:
+        (WebKit::NetworkResourceLoadParameters::NetworkResourceLoadParameters):
+
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::startNetworkLoad):
+
+        * NetworkProcess/cache/NetworkCache.cpp:
+        (WebKit::NetworkCache::responseHasExpired):
+        (WebKit::NetworkCache::responseNeedsRevalidation):
+        (WebKit::NetworkCache::makeStoreDecision):
+
+        * NetworkProcess/cache/NetworkCacheSpeculativeLoadManager.cpp:
+        (WebKit::NetworkCache::responseNeedsRevalidation):
+
+        * NetworkProcess/cache/NetworkCacheStorage.cpp:
+        (WebKit::NetworkCache::Storage::dispatchReadOperation):
+        (WebKit::NetworkCache::Storage::store):
+        (WebKit::NetworkCache::computeRecordWorth):
+
+        * Shared/mac/RemoteLayerBackingStoreCollection.mm:
+
+        * UIProcess/ViewGestureController.cpp:
+
+        * WebProcess/Network/WebLoaderStrategy.cpp:
+        (WebKit::maximumBufferingTime):
+
+        * WebProcess/WebPage/mac/RemoteLayerTreeDrawingArea.mm:
+        (WebKit::RemoteLayerTreeDrawingArea::scheduleCompositingLayerFlushImmediately):
+        (WebKit::RemoteLayerTreeDrawingArea::scheduleCompositingLayerFlush):
+
+2016-05-21  Andy Estes  <aestes@apple.com>
+
+        REGRESSION (r188642): All pages are blank when printing a webpage in iOS Safari
+        https://bugs.webkit.org/show_bug.cgi?id=157924
+        rdar://problem/22524550
+
+        Reviewed by Sam Weinig.
+
+        When UIPrintInteractionController asks WKWebView to print a webpage, it does so in several phases. First we're
+        asked to compute the page count, followed later by a series of messages asking us to draw each page into a
+        provided CGContext.
+
+        When asked for the page count, we send a message to the Web process instructing it to compute and
+        return the page count synchronously and then immediately start drawing the page for printing. If the drawing has
+        finished by the time we're asked to print the first page, then we can do so without waiting. But if it hasn't
+        then we block by calling Connection::waitForMessage(), passing std::chromo::milliseconds::max() as the relative
+        timeout.
+        
+        Prior to r188642, Connection::waitForMessage() called std::condition_variable::wait_for(), which takes a
+        relative timeout value. r188642 replaced this with WTF::Condition::waitUntil(), which takes an absolute timeout
+        instead. To convert from relative to absolute, this line was added to Connection::waitForMessage():
+
+            Condition::Clock::time_point absoluteTimeout = Condition::Clock::now() + timeout;
+
+        std::chrono will convert both operands to a common duration type before performing the addition. When timeout
+        equals something very large, like milliseconds::max(), this conversion results in signed integer overflow,
+        giving absoluteTimeout a value less than Clock::now() and making waitForMessage time out immediately.
+        
+        To fix this, compute how many milliseconds remain on our clock, and add the smaller of that and the timeout
+        value to Clock::now() to arrive at an absolute timeout.
+
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::waitForMessage):
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _printedDocument]): Removed an unnecessary nanoseconds-to-milliseconds conversion.
+
 2016-05-20  Enrica Casucci  <enrica@apple.com>
 
         Drag cannot start if no drag data or custom data is available in the Pasteboard.

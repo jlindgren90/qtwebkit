@@ -1,3 +1,207 @@
+2016-05-22  Saam barati  <sbarati@apple.com>
+
+        Unreviewed. Fixed debug assertion failures from r201235.
+
+        * runtime/JSScope.cpp:
+        (JSC::abstractAccess):
+
+2016-05-22  Brady Eidson  <beidson@apple.com>
+
+        Attempted Yosemite build fix after http://trac.webkit.org/changeset/201255
+
+        Suggested by and reviewed by Anders Carlsson.
+
+        * b3/B3CCallValue.h: Initialize the effects member more conventionally.
+
+2016-05-22  Brady Eidson  <beidson@apple.com>
+
+        Move to C++14.
+        https://bugs.webkit.org/show_bug.cgi?id=157948
+
+        Reviewed by Michael Catanzaro.
+
+        * Configurations/Base.xcconfig:
+
+2016-05-22  Saam barati  <sbarati@apple.com>
+
+        REGRESSION(r199075): String.prototype.replace fails after being used many times with different replace values
+        https://bugs.webkit.org/show_bug.cgi?id=157968
+        <rdar://problem/26404735>
+
+        Reviewed by Ryosuke Niwa and Filip Pizlo.
+
+        There was a bug in the DFG where we were checking a condition
+        on the wrong variable.
+
+        * dfg/DFGStrengthReductionPhase.cpp:
+        (JSC::DFG::StrengthReductionPhase::handleNode):
+
+2016-05-22  Chris Dumez  <cdumez@apple.com>
+
+        Remove uses of PassRefPtr in JS bindings code
+        https://bugs.webkit.org/show_bug.cgi?id=157949
+
+        Reviewed by Andreas Kling.
+
+        Remove uses of PassRefPtr in JS bindings code.
+
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::queueMicrotask):
+        * runtime/JSGlobalObject.h:
+
+2016-05-20  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove LegacyProfiler
+        https://bugs.webkit.org/show_bug.cgi?id=153565
+
+        Reviewed by Mark Lam.
+
+        JavaScriptCore now provides a sampling profiler and it is enabled
+        by all ports. Web Inspector switched months ago to using the
+        sampling profiler and displaying its data. Remove the legacy
+        profiler, as it is no longer being used by anything other then
+        console.profile and tests. We will update console.profile's
+        behavior soon to have new behavior and use the sampling data.
+
+        * API/JSProfilerPrivate.cpp: Removed.
+        * API/JSProfilerPrivate.h: Removed.
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset): Deleted.
+        (JSC::computeDefsForBytecodeOffset): Deleted.
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode): Deleted.
+        * bytecode/UnlinkedFunctionExecutable.cpp:
+        (JSC::generateUnlinkedFunctionCodeBlock):
+        (JSC::UnlinkedFunctionExecutable::unlinkedCodeBlockFor):
+        * bytecode/UnlinkedFunctionExecutable.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::emitCall):
+        (JSC::BytecodeGenerator::emitCallVarargs):
+        (JSC::BytecodeGenerator::emitCallVarargsInTailPosition):
+        (JSC::BytecodeGenerator::emitConstructVarargs):
+        (JSC::BytecodeGenerator::emitConstruct):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::CallArguments::profileHookRegister): Deleted.
+        (JSC::BytecodeGenerator::shouldEmitProfileHooks): Deleted.
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::CallFunctionCallDotNode::emitBytecode):
+        (JSC::ApplyFunctionCallDotNode::emitBytecode):
+        (JSC::CallArguments::CallArguments): Deleted.
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects): Deleted.
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock): Deleted.
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel): Deleted.
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize): Deleted.
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC): Deleted.
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode): Deleted.
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute): Deleted.
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile): Deleted.
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile): Deleted.
+        * inspector/InjectedScriptBase.cpp:
+        (Inspector::InjectedScriptBase::callFunctionWithEvalEnabled):
+        * interpreter/Interpreter.cpp:
+        (JSC::UnwindFunctor::operator()): Deleted.
+        (JSC::Interpreter::execute): Deleted.
+        (JSC::Interpreter::executeCall): Deleted.
+        (JSC::Interpreter::executeConstruct): Deleted.
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass): Deleted.
+        * jit/JIT.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_profile_will_call): Deleted.
+        (JSC::JIT::emit_op_profile_did_call): Deleted.
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_profile_will_call): Deleted.
+        (JSC::JIT::emit_op_profile_did_call): Deleted.
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL): Deleted.
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter.asm:
+        * parser/ParserModes.h:
+        * profiler/CallIdentifier.h: Removed.
+        * profiler/LegacyProfiler.cpp: Removed.
+        * profiler/LegacyProfiler.h: Removed.
+        * profiler/Profile.cpp: Removed.
+        * profiler/Profile.h: Removed.
+        * profiler/ProfileGenerator.cpp: Removed.
+        * profiler/ProfileGenerator.h: Removed.
+        * profiler/ProfileNode.cpp: Removed.
+        * profiler/ProfileNode.h: Removed.
+        * profiler/ProfilerJettisonReason.cpp:
+        (WTF::printInternal): Deleted.
+        * profiler/ProfilerJettisonReason.h:
+        * runtime/CodeCache.cpp:
+        (JSC::CodeCache::getGlobalCodeBlock):
+        (JSC::CodeCache::getProgramCodeBlock):
+        (JSC::CodeCache::getEvalCodeBlock):
+        (JSC::CodeCache::getModuleProgramCodeBlock):
+        * runtime/CodeCache.h:
+        * runtime/Executable.cpp:
+        (JSC::ScriptExecutable::newCodeBlockFor):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::createProgramCodeBlock):
+        (JSC::JSGlobalObject::createEvalCodeBlock):
+        (JSC::JSGlobalObject::createModuleProgramCodeBlock):
+        (JSC::JSGlobalObject::~JSGlobalObject): Deleted.
+        (JSC::JSGlobalObject::hasLegacyProfiler): Deleted.
+        * runtime/JSGlobalObject.h:
+        * runtime/Options.h:
+        * runtime/VM.cpp:
+        (JSC::VM::VM): Deleted.
+        (JSC::SetEnabledProfilerFunctor::operator()): Deleted.
+        (JSC::VM::setEnabledProfiler): Deleted.
+        * runtime/VM.h:
+        (JSC::VM::enabledProfiler): Deleted.
+        (JSC::VM::enabledProfilerAddress): Deleted.
+
+2016-05-20  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove LegacyProfiler
+        https://bugs.webkit.org/show_bug.cgi?id=153565
+
+        Reviewed by Saam Barati.
+
+        * inspector/protocol/Timeline.json:
+        * jsc.cpp:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::hasLegacyProfiler):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::supportsLegacyProfiling): Deleted.
+
+2016-05-20  Saam barati  <sbarati@apple.com>
+
+        JSScope::abstractAccess doesn't need to copy the SymbolTableEntry, it can use it by reference
+        https://bugs.webkit.org/show_bug.cgi?id=157956
+
+        Reviewed by Geoffrey Garen.
+
+        A SymbolTableEntry may be a FatEntry. Copying a FatEntry is slow because we have to
+        malloc memory for it, then free the malloced memory once the entry goes out of
+        scope. abstractAccess uses a SymbolTableEntry temporarily when performing scope
+        accesses during bytecode linking. It copies out the SymbolTableEntry every time
+        it does a SymbolTable lookup. This is not cheap when the entry happens to be a
+        FatEntry. We should really just be using a reference to the entry because
+        there is no need to copy it in such a scenario.
+
+        * runtime/JSScope.cpp:
+        (JSC::abstractAccess):
+
 2016-05-20  Joseph Pecoraro  <pecoraro@apple.com>
 
         Web Inspector: retained size for typed arrays does not count native backing store
