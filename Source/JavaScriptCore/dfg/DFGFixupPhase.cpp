@@ -1501,6 +1501,16 @@ private:
             break;
         }
 
+        case LogShadowChickenPrologue: {
+            fixEdge<KnownCellUse>(node->child1());
+            break;
+        }
+        case LogShadowChickenTail: {
+            fixEdge<UntypedUse>(node->child1());
+            fixEdge<KnownCellUse>(node->child2());
+            break;
+        }
+
 #if !ASSERT_DISABLED
         // Have these no-op cases here to ensure that nobody forgets to add handlers for new opcodes.
         case SetArgument:
@@ -1534,6 +1544,8 @@ private:
         case NewObject:
         case NewArrayBuffer:
         case NewRegexp:
+        case ProfileWillCall:
+        case ProfileDidCall:
         case DeleteById:
         case DeleteByVal:
         case IsArrayObject:
@@ -1559,8 +1571,6 @@ private:
         case CheckBadCell:
         case CheckNotEmpty:
         case CheckWatchdogTimer:
-        case LogShadowChickenPrologue:
-        case LogShadowChickenTail:
         case Unreachable:
         case ExtractOSREntryLocal:
         case LoopHint:

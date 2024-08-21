@@ -131,12 +131,13 @@ typedef const char* optionString;
     v(bool, dumpBytecodeLivenessResults, false, Normal, nullptr) \
     v(bool, validateBytecode, false, Normal, nullptr) \
     v(bool, forceDebuggerBytecodeGeneration, false, Normal, nullptr) \
+    v(bool, forceProfilerBytecodeGeneration, false, Normal, nullptr) \
     \
     v(bool, useFunctionDotArguments, true, Normal, nullptr) \
     v(bool, useTailCalls, true, Normal, nullptr) \
     v(bool, alwaysUseShadowChicken, false, Normal, nullptr) \
     v(unsigned, shadowChickenLogSize, 1000, Normal, nullptr) \
-    v(unsigned, shadowChickenStackSizeLimit, 100000, Normal, nullptr) \
+    v(unsigned, shadowChickenMaxTailDeletedFramesSize, 128, Normal, nullptr) \
     \
     /* dumpDisassembly implies dumpDFGDisassembly. */ \
     v(bool, dumpDisassembly, false, Normal, "dumps disassembly of all JIT compiled code upon compilation") \

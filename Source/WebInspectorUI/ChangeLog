@@ -1,3 +1,109 @@
+2016-05-17  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: breakpoints in sourceURL named scripts are not persisted
+        https://bugs.webkit.org/show_bug.cgi?id=157714
+        <rdar://problem/26287099>
+
+        Reviewed by Joseph Pecoraro.
+
+        The Inspector frontend doesn't try to persist a breakpoint that
+        lacks a URL, even if the breakpoint has a sourceURL. Similarly, for
+        breakpoints without a URL, the frontend asks the backend to create
+        the breakpoint for a specific script identifier rather than a
+        URL-based breakpoint. This prevents breakpoints in injected scripts
+        from being resolved if the page is reloaded.
+
+        The Inspector backend knows how to resolve URL-based breakpoints
+        by matching against the script's URL or sourceURL, so we just need
+        to teach the frontend when either is appropriate to use.
+
+        This patch adds SourceCode.contentIdentifier, which is roughly
+        `url || sourceURL` for content that is not emphemeral, such as
+        console evaluations. Change breakpoint and debugger code to use
+        `contentIdentifier` rather than `url`, and pass contentIdentifier
+        to the backend when setting a breakpoint by URL.
+
+        * UserInterface/Controllers/DebuggerManager.js:
+        (WebInspector.DebuggerManager.prototype.breakpointsForSourceCode):
+        (WebInspector.DebuggerManager.prototype.scriptsForURL):
+        (WebInspector.DebuggerManager.prototype.get searchableScripts):
+        (WebInspector.DebuggerManager.prototype.removeBreakpoint):
+        (WebInspector.DebuggerManager.prototype.reset):
+        (WebInspector.DebuggerManager.prototype.scriptDidParse):
+        (WebInspector.DebuggerManager.prototype._setBreakpoint):
+        (WebInspector.DebuggerManager.prototype._saveBreakpoints):
+        (WebInspector.DebuggerManager.prototype._associateBreakpointsWithSourceCode):
+
+        * UserInterface/Models/Breakpoint.js:
+        (WebInspector.Breakpoint):
+        (WebInspector.Breakpoint.prototype.get contentIdentifier):
+        (WebInspector.Breakpoint.prototype.get info):
+        (WebInspector.Breakpoint.prototype.saveIdentityToCookie):
+        (WebInspector.Breakpoint.prototype.get url): Deleted.
+        Replace uses of Breakpoint.prototype.get url with
+        contentIdentifier inside the class and at all callsites.
+
+        * UserInterface/Models/Script.js:
+        (WebInspector.Script.prototype.get contentIdentifier):
+        Added. Use the URL, or the sourceURL unless the script is
+        ephemeral and only run once, like as a console evaluation.
+
+        * UserInterface/Models/SourceCode.js:
+        (WebInspector.SourceCode.prototype.get url): Added.
+        All subclasses already override this getter. Add it here so that
+        the default implementation of contentIdentifier can use it.
+
+        (WebInspector.SourceCode.prototype.get contentIdentifier): Added.
+
+        * UserInterface/Views/BreakpointTreeElement.js:
+        (WebInspector.BreakpointTreeElement.prototype.get filterableData):
+        * UserInterface/Views/ProbeSetDetailsSection.js:
+        (WebInspector.ProbeSetDetailsSection.prototype._updateLinkElement):
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype._matchesBreakpoint):
+        * UserInterface/Views/TextResourceContentView.js:
+        (WebInspector.TextResourceContentView.prototype.get supplementalRepresentedObjects):
+
+2016-05-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Uncaught Exception: TypeError: null is not an object (evaluating 'event.data.pathComponent.domTreeElement')
+        https://bugs.webkit.org/show_bug.cgi?id=157759
+        <rdar://problem/26309427>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/DOMTreeContentView.js:
+        (WebInspector.DOMTreeContentView.prototype._pathComponentSelected):
+        Handle possible null path components.
+
+        * UserInterface/Views/HierarchicalPathComponent.js:
+        (WebInspector.HierarchicalPathComponent.prototype.get selectedPathComponent):
+        When there is a list of just one that is triggered, the Clicked
+        event should produce that one, to be consistent with clicking
+        on a list of multiple elements and selecting the same value.
+
+2016-05-16  Saam barati  <sbarati@apple.com>
+
+        Hook up ShadowChicken to the debugger to show tail deleted frames
+        https://bugs.webkit.org/show_bug.cgi?id=156685
+        <rdar://problem/25770521>
+
+        Reviewed by Filip Pizlo and Mark Lam and Joseph Pecoraro.
+
+        This patch makes the WebInspector display tail deleted frames.
+        We show tail deleted frames with a gray [f] instead of a green
+        [f]. We also put text in the tooltip to indicate that the frame
+        is tail deleted. Other than that, tail deleted frames behave like
+        normal frames. You can evaluate in them, inspect their scope, etc.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        * UserInterface/Images/TailDeletedFunction.svg: Added.
+        * UserInterface/Images/gtk/TailDeletedFunction.svg: Added.
+        * UserInterface/Models/CallFrame.js:
+        * UserInterface/Views/CallFrameIcons.css:
+        * UserInterface/Views/CallFrameTreeElement.js:
+        * UserInterface/Views/CallFrameView.js:
+
 2016-05-16  Nikita Vasilyev  <nvasilyev@apple.com>
 
         Web Inspector: Contents of Duration column are covered by always on (legacy) scroll bars

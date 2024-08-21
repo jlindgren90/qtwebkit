@@ -1,3 +1,569 @@
+2016-05-17  Joseph Pecoraro  <pecoraro@apple.com>
+
+        console namespace breaks putting properties on console.__proto__
+        https://bugs.webkit.org/show_bug.cgi?id=157782
+        <rdar://problem/26250526>
+
+        Reviewed by Geoffrey Garen.
+
+        Some websites currently depend on console.__proto__ existing and being
+        a separate object from Object.prototype. This patch adds back a basic
+        console.__proto__ object, but all the console functions are left on
+        the ConsoleObject itself.
+
+        * runtime/JSGlobalObject.cpp:
+        (JSC::createConsoleProperty):
+
+2016-05-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, dump more information when math-pow-stable-results.js failed
+        https://bugs.webkit.org/show_bug.cgi?id=157168
+
+        * tests/stress/math-pow-stable-results.js:
+
+2016-05-16  Saam barati  <sbarati@apple.com>
+
+        ShadowChicken crashes when reading a scope from the frame during a stack overflow exception
+        https://bugs.webkit.org/show_bug.cgi?id=157770
+
+        Reviewed by Filip Pizlo.
+
+        ShadowChicken was reading the scope from a half formed
+        frame as it threw a stack overflow exception. The frame had
+        a valid CodeBlock pointer, but it did not have a valid scope.
+        The code in ShadowChicken's throw packet logging mechanism didn't
+        account for this. The fix is to respect whether genericUnwind wants
+        to unwind from the current frame or the caller's frame. For stack
+        overflow errors, we always unwind the caller's frame.
+
+        * jit/JITExceptions.cpp:
+        (JSC::genericUnwind):
+
+2016-05-16  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        REGRESSION(r200208): It made 2 JSC stress tests fail on x86
+        https://bugs.webkit.org/show_bug.cgi?id=157168
+
+        Reviewed by Benjamin Poulain.
+
+        The fast path in operationMathPow produces different results between x87 and the other environments.
+        This is because x87 calculates the double value in 80bit precision.
+        The situation is the following: in x86 32bit environment, floating point operations are compiled to
+        x87 operations by default even if we can use SSE2. But in DFG environment, we aggressively use SSE2
+        if the cpuid reports SSE2 is available. As a result, the implementations differ between C runtime
+        and DFG JIT code. The C runtime uses x87 while DFG JIT code uses SSE2. This causes a precision
+        problem since x87 has 80bit precision while SSE2 has 64bit precision.
+
+        In this patch, in x86 32bit environment, we use `volatile double` if the `-mfpmath=sse and -msse2 (or later)`
+        is not specified. This will round the x87 value into 64bit per multiplying. Note that this problem does not
+        occur in OS X clang 32bit environment. This is because `-mfpmath=sse` is enabled by default in OS X clang 32bit.
+
+        * b3/B3MathExtras.cpp:
+        (JSC::B3::powDoubleInt32):
+        * runtime/MathCommon.cpp:
+        (JSC::operationMathPow):
+
+2016-05-16  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] "return this" in a constructor does not need a branch on isObject(this)
+        https://bugs.webkit.org/show_bug.cgi?id=157775
+
+        Reviewed by Saam Barati and Ryosuke Niwa.
+
+        When returning "this" in a constructor, the bytecode generator was generating:
+            is_object         locX, this
+            jtrue             locX, 5(->second ret)
+            ret               this
+            ret               this
+
+        That code is eliminated in DFG but it is pretty costly lower tiers.
+
+        This patch changes bytecode generation to avoid the is_object test
+        when possible and not generate two ret if they encode the same thing.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitReturn):
+
+2016-05-16  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Remove the index check from op_get_by_val/op_put_by_val when the index is constant
+        https://bugs.webkit.org/show_bug.cgi?id=157766
+
+        Reviewed by Geoffrey Garen.
+
+        If the index is an integer constant, do not generate the index check.
+
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::emit_op_get_by_val):
+        (JSC::JIT::emitSlow_op_get_by_val):
+        (JSC::JIT::emit_op_put_by_val):
+        (JSC::JIT::emitSlow_op_put_by_val):
+
+2016-05-16  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC][DFG] Fill spilled Int32 as Int32 instead of JSInt32
+        https://bugs.webkit.org/show_bug.cgi?id=157700
+
+        Reviewed by Michael Saboff.
+
+        In general, fillSpeculateInt32() originate from SpeculateInt32
+        and the user does not care about the tag.
+
+        This is particularily obvious on Sunspider's math-spectral-norm.js.
+        In that test, registers are frequently spilled because of x86's DIV.
+
+        When they are re-filled, they were always tagged.
+        Since the loops are small, all the tagging adds up.
+
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::fillSpeculateInt32Internal):
+
+2016-05-16  Saam barati  <sbarati@apple.com>
+
+        Unreviewed Cloop build fix.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::bytecodeOffsetFromCallSiteIndex):
+
+2016-05-16  Saam barati  <sbarati@apple.com>
+
+        Hook up ShadowChicken to the debugger to show tail deleted frames
+        https://bugs.webkit.org/show_bug.cgi?id=156685
+        <rdar://problem/25770521>
+
+        Reviewed by Filip Pizlo and Mark Lam and Joseph Pecoraro.
+
+        The heart of this patch hooks up ShadowChicken to DebuggerCallFrame to
+        allow the Web Inspector to display the ShadowChicken's shadow stack.
+        This means the Web Inspector can now display tail deleted frames.
+        To make this work, I made the necessary changes to ShadowChicken and
+        DebuggerCallFrame to allow DebuggerCallFrame to keep the same API
+        when representing both machine frames and tail deleted frames.
+
+        - ShadowChicken prologue packets now log the current scope. Tail packets
+          log the current scope, the 'this' value, the CodeBlock, and the
+          CallSiteIndex. This allows the inspector to not only show the
+          tail deleted frame, but also show exactly where the tail call happened (line and column numbers),
+          with which scope it executed, and with which 'this' value. This
+          patch also allows DebuggerCallFrame to execute console statements
+          in a tail deleted frame.
+
+        - I changed ShadowChicken's stack resizing algorithm. ShadowChicken
+          now only keeps a maximum number of tail deleted frames in its shadow stack.
+          It will happily represent all machine frames without limit. Right now, the
+          maximum number of tail deleted frames I chose to keep alive is 128.
+          We will keep frames alive starting from the top of the stack. This
+          allows us to have a strong defense against runaway memory usage. We will only
+          keep around at most 128 "shadow" frames that wouldn't have naturally been kept
+          alive by the executing program. We can play around with this number
+          if we find that 128 is either too many or too few frames.
+
+        - DebuggerCallFrame is no longer a cheap class to create. When it is created,
+          we will eagerly create the entire virtual debugger stack. So I modified the
+          existing code to lazily create DebuggerCallFrames only when necessary. We
+          used to eagerly create them at each op_debug statement even though we would
+          just throw them away if we didn't hit a breakpoint.
+
+        - A valid DebuggerCallFrame will always have a valid CallFrame* pointer
+          into the stack. This pointer won't always refer to the logical frame
+          that the DebuggerCallFrame represents because a DebuggerCallFrame can
+          now represent a tail deleted frame. To do this, DebuggerCallFrame now
+          has a ShadowChicken::Frame member variable. This allows DebuggerCallFrame
+          to know when it represents a tail deleted frame and gives DebuggerCallFrame
+          a mechanism to ask the tail deleted frame for interesting information
+          (like its 'this' value, scope, CodeBlock, etc). A tail deleted frame's
+          machine frame pointer will be the machine caller of the tail deleted frame
+          (or the machine caller of the first of a series of consecutive tail calls).
+
+        - I added a new flag to UnlinkedCodeBlock to indicate when it is compiled
+          with debugging opcodes. I did this because ShadowChicken may read a JSScope
+          from the machine stack. This is only safe if the machine CodeBlock was
+          compiled with debugging opcodes. This is safer than asking if the
+          CodeBlock's global object has an interactive debugger enabled because
+          it's theoretically possible for the debugger to be enabled while code
+          compiled without a debugger is still live on the stack. This field is
+          also now used to indicate to the DFGGraph that the interactive debugger
+          is enabled.
+
+        - Finally, this patch adds a new field to the Inspector's CallFrame protocol
+          object called 'isTailDeleted' to allow the Inspector to know when a
+          CallFrame represents a tail deleted frame.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        (JSC::CodeBlock::findPC):
+        (JSC::CodeBlock::bytecodeOffsetFromCallSiteIndex):
+        * bytecode/CodeBlock.h:
+        (JSC::CodeBlock::clearDebuggerRequests):
+        (JSC::CodeBlock::wasCompiledWithDebuggingOpcodes):
+        * bytecode/UnlinkedCodeBlock.cpp:
+        (JSC::UnlinkedCodeBlock::UnlinkedCodeBlock):
+        * bytecode/UnlinkedCodeBlock.h:
+        (JSC::UnlinkedCodeBlock::wasCompiledWithDebuggingOpcodes):
+        (JSC::UnlinkedCodeBlock::finishCreation):
+        (JSC::UnlinkedGlobalCodeBlock::UnlinkedGlobalCodeBlock):
+        * bytecode/UnlinkedFunctionExecutable.cpp:
+        (JSC::generateUnlinkedFunctionCodeBlock):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::generate):
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::emitEnter):
+        (JSC::BytecodeGenerator::emitLogShadowChickenPrologueIfNecessary):
+        (JSC::BytecodeGenerator::emitLogShadowChickenTailIfNecessary):
+        (JSC::BytecodeGenerator::emitCallDefineProperty):
+        * debugger/Debugger.cpp:
+        (JSC::DebuggerPausedScope::DebuggerPausedScope):
+        (JSC::DebuggerPausedScope::~DebuggerPausedScope):
+        (JSC::Debugger::didReachBreakpoint):
+        (JSC::Debugger::currentDebuggerCallFrame):
+        * debugger/Debugger.h:
+        * debugger/DebuggerCallFrame.cpp:
+        (JSC::LineAndColumnFunctor::operator()):
+        (JSC::DebuggerCallFrame::create):
+        (JSC::DebuggerCallFrame::DebuggerCallFrame):
+        (JSC::DebuggerCallFrame::callerFrame):
+        (JSC::DebuggerCallFrame::globalExec):
+        (JSC::DebuggerCallFrame::vmEntryGlobalObject):
+        (JSC::DebuggerCallFrame::sourceID):
+        (JSC::DebuggerCallFrame::functionName):
+        (JSC::DebuggerCallFrame::scope):
+        (JSC::DebuggerCallFrame::type):
+        (JSC::DebuggerCallFrame::thisValue):
+        (JSC::DebuggerCallFrame::evaluateWithScopeExtension):
+        (JSC::DebuggerCallFrame::invalidate):
+        (JSC::DebuggerCallFrame::currentPosition):
+        (JSC::DebuggerCallFrame::positionForCallFrame):
+        (JSC::DebuggerCallFrame::sourceIDForCallFrame):
+        (JSC::FindCallerMidStackFunctor::FindCallerMidStackFunctor): Deleted.
+        (JSC::FindCallerMidStackFunctor::operator()): Deleted.
+        (JSC::FindCallerMidStackFunctor::getCallerFrame): Deleted.
+        (JSC::DebuggerCallFrame::thisValueForCallFrame): Deleted.
+        * debugger/DebuggerCallFrame.h:
+        (JSC::DebuggerCallFrame::isValid):
+        (JSC::DebuggerCallFrame::isTailDeleted):
+        (JSC::DebuggerCallFrame::create): Deleted.
+        (JSC::DebuggerCallFrame::exec): Deleted.
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::Graph):
+        (JSC::DFG::Graph::~Graph):
+        * dfg/DFGJITCompiler.h:
+        (JSC::DFG::JITCompiler::addCallSite):
+        (JSC::DFG::JITCompiler::emitStoreCodeOrigin):
+        (JSC::DFG::JITCompiler::emitStoreCallSiteIndex):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLAbstractHeapRepository.h:
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileLogShadowChickenPrologue):
+        (JSC::FTL::DFG::LowerDFGToB3::compileLogShadowChickenTail):
+        (JSC::FTL::DFG::LowerDFGToB3::compileRecordRegExpCachedResult):
+        (JSC::FTL::DFG::LowerDFGToB3::allocateJSArray):
+        (JSC::FTL::DFG::LowerDFGToB3::ensureShadowChickenPacket):
+        (JSC::FTL::DFG::LowerDFGToB3::setupShadowChickenPacket): Deleted.
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.CallFrameProxy):
+        * inspector/JSJavaScriptCallFrame.cpp:
+        (Inspector::JSJavaScriptCallFrame::thisObject):
+        (Inspector::JSJavaScriptCallFrame::isTailDeleted):
+        (Inspector::JSJavaScriptCallFrame::type):
+        * inspector/JSJavaScriptCallFrame.h:
+        * inspector/JSJavaScriptCallFramePrototype.cpp:
+        (Inspector::JSJavaScriptCallFramePrototype::finishCreation):
+        (Inspector::jsJavaScriptCallFramePrototypeFunctionEvaluateWithScopeExtension):
+        (Inspector::jsJavaScriptCallFrameAttributeType):
+        (Inspector::jsJavaScriptCallFrameIsTailDeleted):
+        * inspector/JavaScriptCallFrame.h:
+        (Inspector::JavaScriptCallFrame::type):
+        (Inspector::JavaScriptCallFrame::scopeChain):
+        (Inspector::JavaScriptCallFrame::vmEntryGlobalObject):
+        (Inspector::JavaScriptCallFrame::isTailDeleted):
+        (Inspector::JavaScriptCallFrame::thisValue):
+        (Inspector::JavaScriptCallFrame::evaluateWithScopeExtension):
+        * inspector/ScriptDebugServer.cpp:
+        (Inspector::ScriptDebugServer::evaluateBreakpointAction):
+        * inspector/protocol/Debugger.json:
+        * interpreter/ShadowChicken.cpp:
+        (JSC::ShadowChicken::update):
+        (JSC::ShadowChicken::visitChildren):
+        (JSC::ShadowChicken::reset):
+        * interpreter/ShadowChicken.h:
+        (JSC::ShadowChicken::Packet::throwMarker):
+        (JSC::ShadowChicken::Packet::prologue):
+        (JSC::ShadowChicken::Packet::tail):
+        (JSC::ShadowChicken::Frame::Frame):
+        (JSC::ShadowChicken::Frame::operator==):
+        * jit/CCallHelpers.cpp:
+        (JSC::CCallHelpers::logShadowChickenProloguePacket):
+        (JSC::CCallHelpers::logShadowChickenTailPacket):
+        (JSC::CCallHelpers::ensureShadowChickenPacket):
+        (JSC::CCallHelpers::setupShadowChickenPacket): Deleted.
+        * jit/CCallHelpers.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_profile_type):
+        (JSC::JIT::emit_op_log_shadow_chicken_prologue):
+        (JSC::JIT::emit_op_log_shadow_chicken_tail):
+        (JSC::JIT::emit_op_get_enumerable_length):
+        (JSC::JIT::emit_op_resume):
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_profile_type):
+        (JSC::JIT::emit_op_log_shadow_chicken_prologue):
+        (JSC::JIT::emit_op_log_shadow_chicken_tail):
+        * jit/RegisterSet.cpp:
+        (JSC::RegisterSet::webAssemblyCalleeSaveRegisters):
+        (JSC::RegisterSet::argumentGPRS):
+        (JSC::RegisterSet::registersToNotSaveForJSCall):
+        * jit/RegisterSet.h:
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::Data::performAssertions):
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * llint/LowLevelInterpreter.asm:
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+        * runtime/CodeCache.cpp:
+        (JSC::CodeCache::getGlobalCodeBlock):
+        * runtime/Options.h:
+        * tests/stress/shadow-chicken-enabled.js:
+        (test5a.foo):
+        (test5a):
+        (test5b.foo):
+        (test5b):
+        (test6.foo):
+        (test6):
+
+2016-05-16  Saam barati  <sbarati@apple.com>
+
+        TypeSet/StructureShape have a flawed sense of JS prototype chains
+        https://bugs.webkit.org/show_bug.cgi?id=157760
+
+        Reviewed by Joseph Pecoraro.
+
+        There was an assumption that we would bottom out in "Object". This is
+        not true for many reasons. JS objects may not end in Object.prototype.
+        Also, our mechanism of grabbing an Object's class name may also not
+        bottom out in "Object". We were seeing this in the JS objects we use
+        in the InjectedScriptSource.js inspector script.
+
+        * runtime/TypeSet.cpp:
+        (JSC::StructureShape::leastCommonAncestor):
+        * tests/typeProfiler/weird-prototype-chain.js: Added.
+        (wrapper.foo):
+        (wrapper.let.o2):
+        (wrapper):
+
+2016-05-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Unreviewed rollout r200924. Caused js/regress/string-replace-generic.html to fail.
+
+        * API/JSProfilerPrivate.cpp: Copied from Source/JavaScriptCore/profiler/ProfilerJettisonReason.h.
+        (JSStartProfiling):
+        (JSEndProfiling):
+        * API/JSProfilerPrivate.h: Copied from Source/JavaScriptCore/profiler/ProfilerJettisonReason.h.
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        * bytecode/UnlinkedFunctionExecutable.cpp:
+        (JSC::generateUnlinkedFunctionCodeBlock):
+        (JSC::UnlinkedFunctionExecutable::unlinkedCodeBlockFor):
+        * bytecode/UnlinkedFunctionExecutable.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::emitCall):
+        (JSC::BytecodeGenerator::emitCallVarargs):
+        (JSC::BytecodeGenerator::emitCallVarargsInTailPosition):
+        (JSC::BytecodeGenerator::emitConstructVarargs):
+        (JSC::BytecodeGenerator::emitConstruct):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::CallArguments::profileHookRegister):
+        (JSC::BytecodeGenerator::shouldEmitProfileHooks):
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::CallArguments::CallArguments):
+        (JSC::CallFunctionCallDotNode::emitBytecode):
+        (JSC::ApplyFunctionCallDotNode::emitBytecode):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * inspector/InjectedScriptBase.cpp:
+        (Inspector::InjectedScriptBase::callFunctionWithEvalEnabled):
+        * inspector/protocol/Timeline.json:
+        * interpreter/Interpreter.cpp:
+        (JSC::UnwindFunctor::operator()):
+        (JSC::Interpreter::execute):
+        (JSC::Interpreter::executeCall):
+        (JSC::Interpreter::executeConstruct):
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        * jit/JIT.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_profile_will_call):
+        (JSC::JIT::emit_op_profile_did_call):
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_profile_will_call):
+        (JSC::JIT::emit_op_profile_did_call):
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * jsc.cpp:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter.asm:
+        * parser/ParserModes.h:
+        * profiler/CallIdentifier.h: Added.
+        (JSC::CallIdentifier::CallIdentifier):
+        (JSC::CallIdentifier::functionName):
+        (JSC::CallIdentifier::url):
+        (JSC::CallIdentifier::lineNumber):
+        (JSC::CallIdentifier::columnNumber):
+        (JSC::CallIdentifier::operator==):
+        (JSC::CallIdentifier::operator!=):
+        (JSC::CallIdentifier::Hash::hash):
+        (JSC::CallIdentifier::Hash::equal):
+        (JSC::CallIdentifier::hash):
+        (JSC::CallIdentifier::operator const char*):
+        (JSC::CallIdentifier::c_str):
+        (WTF::HashTraits<JSC::CallIdentifier>::constructDeletedValue):
+        (WTF::HashTraits<JSC::CallIdentifier>::isDeletedValue):
+        * profiler/LegacyProfiler.cpp: Added.
+        (JSC::LegacyProfiler::profiler):
+        (JSC::LegacyProfiler::startProfiling):
+        (JSC::LegacyProfiler::stopProfiling):
+        (JSC::callFunctionForProfilesWithGroup):
+        (JSC::LegacyProfiler::suspendProfiling):
+        (JSC::LegacyProfiler::unsuspendProfiling):
+        (JSC::LegacyProfiler::willExecute):
+        (JSC::LegacyProfiler::didExecute):
+        (JSC::LegacyProfiler::exceptionUnwind):
+        (JSC::LegacyProfiler::createCallIdentifier):
+        (JSC::createCallIdentifierFromFunctionImp):
+        * profiler/LegacyProfiler.h: Added.
+        (JSC::LegacyProfiler::currentProfiles):
+        * profiler/Profile.cpp: Added.
+        (JSC::Profile::create):
+        (JSC::Profile::Profile):
+        (JSC::Profile::~Profile):
+        (JSC::Profile::debugPrint):
+        (JSC::functionNameCountPairComparator):
+        (JSC::Profile::debugPrintSampleStyle):
+        * profiler/Profile.h: Copied from Source/JavaScriptCore/profiler/ProfilerJettisonReason.h.
+        * profiler/ProfileGenerator.cpp: Added.
+        (JSC::ProfileGenerator::create):
+        (JSC::ProfileGenerator::ProfileGenerator):
+        (JSC::AddParentForConsoleStartFunctor::AddParentForConsoleStartFunctor):
+        (JSC::AddParentForConsoleStartFunctor::foundParent):
+        (JSC::AddParentForConsoleStartFunctor::operator()):
+        (JSC::ProfileGenerator::addParentForConsoleStart):
+        (JSC::ProfileGenerator::title):
+        (JSC::ProfileGenerator::beginCallEntry):
+        (JSC::ProfileGenerator::endCallEntry):
+        (JSC::ProfileGenerator::willExecute):
+        (JSC::ProfileGenerator::didExecute):
+        (JSC::ProfileGenerator::exceptionUnwind):
+        (JSC::ProfileGenerator::stopProfiling):
+        (JSC::ProfileGenerator::removeProfileStart):
+        (JSC::ProfileGenerator::removeProfileEnd):
+        * profiler/ProfileGenerator.h: Added.
+        (JSC::ProfileGenerator::profile):
+        (JSC::ProfileGenerator::origin):
+        (JSC::ProfileGenerator::profileGroup):
+        (JSC::ProfileGenerator::setIsSuspended):
+        * profiler/ProfileNode.cpp: Added.
+        (JSC::ProfileNode::ProfileNode):
+        (JSC::ProfileNode::addChild):
+        (JSC::ProfileNode::removeChild):
+        (JSC::ProfileNode::spliceNode):
+        (JSC::ProfileNode::traverseNextNodePostOrder):
+        (JSC::ProfileNode::debugPrint):
+        (JSC::ProfileNode::debugPrintSampleStyle):
+        (JSC::ProfileNode::debugPrintRecursively):
+        (JSC::ProfileNode::debugPrintSampleStyleRecursively):
+        * profiler/ProfileNode.h: Added.
+        (JSC::ProfileNode::create):
+        (JSC::ProfileNode::Call::Call):
+        (JSC::ProfileNode::Call::startTime):
+        (JSC::ProfileNode::Call::setStartTime):
+        (JSC::ProfileNode::Call::elapsedTime):
+        (JSC::ProfileNode::Call::setElapsedTime):
+        (JSC::ProfileNode::operator==):
+        (JSC::ProfileNode::callerCallFrame):
+        (JSC::ProfileNode::callIdentifier):
+        (JSC::ProfileNode::id):
+        (JSC::ProfileNode::functionName):
+        (JSC::ProfileNode::url):
+        (JSC::ProfileNode::lineNumber):
+        (JSC::ProfileNode::columnNumber):
+        (JSC::ProfileNode::parent):
+        (JSC::ProfileNode::setParent):
+        (JSC::ProfileNode::calls):
+        (JSC::ProfileNode::lastCall):
+        (JSC::ProfileNode::appendCall):
+        (JSC::ProfileNode::children):
+        (JSC::ProfileNode::firstChild):
+        (JSC::ProfileNode::lastChild):
+        (JSC::ProfileNode::nextSibling):
+        (JSC::ProfileNode::setNextSibling):
+        (JSC::ProfileNode::forEachNodePostorder):
+        (JSC::CalculateProfileSubtreeDataFunctor::operator()):
+        (JSC::CalculateProfileSubtreeDataFunctor::returnValue):
+        * profiler/ProfilerJettisonReason.cpp:
+        (WTF::printInternal):
+        * profiler/ProfilerJettisonReason.h:
+        * runtime/CodeCache.cpp:
+        (JSC::CodeCache::getGlobalCodeBlock):
+        (JSC::CodeCache::getProgramCodeBlock):
+        (JSC::CodeCache::getEvalCodeBlock):
+        (JSC::CodeCache::getModuleProgramCodeBlock):
+        * runtime/CodeCache.h:
+        * runtime/Executable.cpp:
+        (JSC::ScriptExecutable::newCodeBlockFor):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::~JSGlobalObject):
+        (JSC::JSGlobalObject::hasLegacyProfiler):
+        (JSC::JSGlobalObject::createProgramCodeBlock):
+        (JSC::JSGlobalObject::createEvalCodeBlock):
+        (JSC::JSGlobalObject::createModuleProgramCodeBlock):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::supportsLegacyProfiling):
+        * runtime/Options.h:
+        * runtime/VM.cpp:
+        (JSC::VM::VM):
+        (JSC::SetEnabledProfilerFunctor::operator()):
+        (JSC::VM::setEnabledProfiler):
+        * runtime/VM.h:
+        (JSC::VM::enabledProfiler):
+        (JSC::VM::enabledProfilerAddress):
+
 2016-05-16  Konstantin Tokarev  <annulen@yandex.ru>
 
         Unreviewed, fixed typo in a comment.

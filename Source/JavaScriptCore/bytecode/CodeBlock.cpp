@@ -1360,11 +1360,16 @@ void CodeBlock::dumpBytecode(
             break;
         }
         case op_log_shadow_chicken_prologue: {
+            int r0 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "log_shadow_chicken_prologue");
+            out.printf("%s", registerName(r0).data());
             break;
         }
         case op_log_shadow_chicken_tail: {
+            int r0 = (++it)->u.operand;
+            int r1 = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "log_shadow_chicken_tail");
+            out.printf("%s, %s", registerName(r0).data(), registerName(r1).data());
             break;
         }
         case op_switch_imm: {
@@ -1652,6 +1657,16 @@ void CodeBlock::dumpBytecode(
             int line = (++it)->u.operand;
             printLocationAndOp(out, exec, location, it, "assert");
             out.printf("%s, %d", registerName(condition).data(), line);
+            break;
+        }
+        case op_profile_will_call: {
+            int function = (++it)->u.operand;
+            printLocationOpAndRegisterOperand(out, exec, location, it, "profile_will_call", function);
+            break;
+        }
+        case op_profile_did_call: {
+            int function = (++it)->u.operand;
+            printLocationOpAndRegisterOperand(out, exec, location, it, "profile_did_call", function);
             break;
         }
         case op_end: {
@@ -4376,5 +4391,29 @@ Optional<CodeOrigin> CodeBlock::findPC(void* pc)
     return Nullopt;
 }
 #endif // ENABLE(JIT)
+
+Optional<unsigned> CodeBlock::bytecodeOffsetFromCallSiteIndex(CallSiteIndex callSiteIndex)
+{
+    Optional<unsigned> bytecodeOffset;
+    JITCode::JITType jitType = this->jitType();
+    if (jitType == JITCode::InterpreterThunk || jitType == JITCode::BaselineJIT) {
+#if USE(JSVALUE64)
+        bytecodeOffset = callSiteIndex.bits();
+#else
+        Instruction* instruction = bitwise_cast<Instruction*>(callSiteIndex.bits());
+        bytecodeOffset = instruction - instructions().begin();
+#endif
+    } else if (jitType == JITCode::DFGJIT || jitType == JITCode::FTLJIT) {
+#if ENABLE(DFG_JIT)
+        RELEASE_ASSERT(canGetCodeOrigin(callSiteIndex));
+        CodeOrigin origin = codeOrigin(callSiteIndex);
+        bytecodeOffset = origin.bytecodeIndex;
+#else
+        RELEASE_ASSERT_NOT_REACHED();
+#endif
+    }
+
+    return bytecodeOffset;
+}
 
 } // namespace JSC

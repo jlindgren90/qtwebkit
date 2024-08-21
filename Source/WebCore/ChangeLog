@@ -1,3 +1,460 @@
+2016-05-17  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r177786): GlyphMetricsMap<T>::locatePageSlowCase() fills existing pages with unknown metrics
+        https://bugs.webkit.org/show_bug.cgi?id=157749
+
+        Reviewed by Antti Koivisto.
+
+        After r177786, GlyphMetricsMap<T>::locatePageSlowCase() would unconditionally fill
+        pages with unknown metrics. This patch updates the code to do so only if the page
+        is new, thus restoring the pre-r177786 behavior.
+
+        * platform/graphics/GlyphMetricsMap.h:
+        (WebCore::GlyphMetricsMap::metricsForGlyph):
+        (WebCore::GlyphMetricsMap::setMetricsForGlyph):
+        (WebCore::GlyphMetricsMap::GlyphMetricsPage::GlyphMetricsPage):
+        (WebCore::GlyphMetricsMap::GlyphMetricsPage::fill):
+        (WebCore::GlyphMetricsMap::locatePage):
+        (WebCore::GlyphMetricsMap<T>::locatePageSlowCase):
+        (WebCore::GlyphMetricsMap::GlyphMetricsPage::metricsForGlyph): Deleted.
+        (WebCore::GlyphMetricsMap::GlyphMetricsPage::setMetricsForGlyph): Deleted.
+        (WebCore::GlyphMetricsMap::GlyphMetricsPage::setMetricsForIndex): Deleted.
+        (WebCore::GlyphMetricsMap<float>::unknownMetrics): Deleted.
+        (WebCore::GlyphMetricsMap<FloatRect>::unknownMetrics): Deleted.
+
+2016-05-17  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(WEB_TIMING) build after r200887
+        https://bugs.webkit.org/show_bug.cgi?id=157796
+
+        Reviewed by Chris Dumez.
+
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::didFinishLoading):
+        (WebCore::DocumentThreadableLoader::loadRequest):
+        * loader/DocumentThreadableLoader.h:
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::requestResource):
+        (WebCore::CachedResourceLoader::revalidateResource):
+        (WebCore::CachedResourceLoader::loadResource):
+        * loader/cache/CachedResourceLoader.h:
+
+2016-05-17  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        REGRESSION(r54729): Line breaking in complex mixed-direction text is inconsistent across page refreshes
+        https://bugs.webkit.org/show_bug.cgi?id=157783
+        <rdar://problem/22908924>
+
+        Reviewed by Zalan Bujtas.
+
+        mappedIndices is uninitialized.
+
+        Test: fast/text/complex-mixed-direction-line-breaking.html
+
+        * platform/graphics/mac/ComplexTextController.cpp:
+        (WebCore::ComplexTextController::ComplexTextRun::setIsNonMonotonic):
+
+2016-05-17  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        DOMPromise should only restrict the resolution type
+        https://bugs.webkit.org/show_bug.cgi?id=157307
+
+        Reviewed by Darin Adler.
+
+        Removing from DOMPromise the rejection template parameter.
+        Supported rejection types are integers (Exception codes) and DOM objects (DOMError typically).
+
+        Updated DeferredWrapper to accept Ref<>&& and RefPtr<>&&.
+        Relanding without touching JSDOMBinding.h as this seemed to be impacting performances.
+
+        Changes also allow in most cases to remove the need for explictly declaring the
+        rejection/resolution type.
+
+        Minor refactoring of FontFaceSet promise handling to use DOMPromise in lieu of DeferredWrapper.
+
+        Covered by existing tests.
+        Changes should not be visible from user scripts.
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::consume):
+        (WebCore::FetchBody::consumeText):
+        (WebCore::blobFromArrayBuffer):
+        (WebCore::FetchBody::loadingFailed):
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::formData):
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::arrayBuffer):
+        (WebCore::FetchBodyOwner::blob):
+        (WebCore::FetchBodyOwner::formData):
+        (WebCore::FetchBodyOwner::json):
+        (WebCore::FetchBodyOwner::text):
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::BodyLoader::didReceiveResponse):
+        * Modules/fetch/FetchResponse.h:
+        * Modules/mediastream/MediaDevices.h:
+        * Modules/mediastream/PeerConnectionBackend.h:
+        * Modules/mediastream/UserMediaRequest.cpp:
+        (WebCore::UserMediaRequest::didCreateStream):
+        * Modules/streams/ReadableStreamSource.h:
+        * Modules/webaudio/AudioContext.h:
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::fulfillPromiseWithJSON):
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::TypeInspector::decltype):
+        (WebCore::TypeInspector::testIsVector):
+        (WebCore::TypeInspector::testIsRefOrRefPtr):
+        (WebCore::DeferredWrapper::resolve):
+        (WebCore::DeferredWrapper::reject):
+        (WebCore::DOMPromise::resolve):
+        (WebCore::DOMPromise::reject):
+        (WebCore::DeferredWrapper::resolveWithValue):
+        (WebCore::DeferredWrapper::rejectWithValue):
+        (WebCore::callPromiseFunction):
+        * bindings/js/JSSubtleCryptoCustom.cpp:
+        (WebCore::JSSubtleCrypto::importKey):
+        (WebCore::JSSubtleCrypto::unwrapKey):
+        * css/FontFace.h:
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::PendingPromise::PendingPromise):
+        (WebCore::FontFaceSet::load):
+        (WebCore::FontFaceSet::registerReady):
+        * css/FontFaceSet.h:
+        * html/HTMLMediaElement.h:
+
+2016-05-16  Alex Christensen  <achristensen@webkit.org>
+
+        Modernize CSS Parser
+        https://bugs.webkit.org/show_bug.cgi?id=157772
+
+        Reviewed by Brady Eidson.
+
+        No new tests.  This patch just replaces PassRefPtr with RefPtr&&.
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseDeclaration):
+        (WebCore::CSSParser::SourceSize::SourceSize):
+        (WebCore::CSSParser::createStyleProperties):
+        (WebCore::CSSParser::addProperty):
+        (WebCore::CSSParser::parseValidPrimitive):
+        (WebCore::CSSParser::addExpandedPropertyForValue):
+        (WebCore::CSSParser::parseVariableDependentValue):
+        (WebCore::CSSParser::parseValue):
+        (WebCore::CSSParser::parseColumnsShorthand):
+        (WebCore::CSSParser::parseGridItemPositionShorthand):
+        (WebCore::CSSParser::parseGridAreaShorthand):
+        (WebCore::CSSParser::parseInsetRoundedCorners):
+        (WebCore::CSSParser::parseBasicShapeInset):
+        (WebCore::ShadowParseContext::commitLength):
+        (WebCore::ShadowParseContext::commitColor):
+        (WebCore::BorderImageParseContext::requireWidth):
+        (WebCore::BorderImageParseContext::requireOutset):
+        (WebCore::BorderImageParseContext::commitImage):
+        (WebCore::BorderImageParseContext::commitImageSlice):
+        (WebCore::BorderImageParseContext::commitForwardSlashOperator):
+        (WebCore::BorderImageParseContext::commitBorderWidth):
+        (WebCore::BorderImageParseContext::commitBorderOutset):
+        (WebCore::BorderImageParseContext::commitRepeat):
+        (WebCore::BorderImageParseContext::commitWebKitBorderImage):
+        (WebCore::BorderImageParseContext::commitBorderImage):
+        (WebCore::BorderImageParseContext::commitBorderImageProperty):
+        (WebCore::BorderImageSliceParseContext::commitFill):
+        (WebCore::BorderImageSliceParseContext::commitBorderImageSlice):
+        (WebCore::BorderImageQuadParseContext::commitNumber):
+        (WebCore::BorderImageQuadParseContext::setAllowFinalCommit):
+        (WebCore::BorderImageQuadParseContext::setTop):
+        (WebCore::BorderImageQuadParseContext::commitBorderImageQuad):
+        (WebCore::CSSParser::parseCounter):
+        (WebCore::parseDeprecatedGradientPoint):
+        (WebCore::CSSParser::parseDeprecatedGradient):
+        (WebCore::valueFromSideKeyword):
+        (WebCore::parseGradientColorOrKeyword):
+        (WebCore::CSSParser::parsePerspectiveOrigin):
+        (WebCore::CSSParser::addTextDecorationProperty):
+        (WebCore::CSSParser::parseTextDecoration):
+        (WebCore::CSSParser::realLex):
+        (WebCore::CSSParser::createImportRule):
+        (WebCore::CSSParser::createMediaRule):
+        (WebCore::CSSParser::processAndAddNewRuleToSourceTreeIfNeeded):
+        (WebCore::CSSParser::addNewRuleToSourceTree):
+        * css/CSSParser.h:
+        (WebCore::CSSParser::hasProperties):
+        (WebCore::CSSParser::resetPropertyRange):
+        (WebCore::CSSParser::isExtractingSourceData):
+
+2016-05-16  Chris Dumez  <cdumez@apple.com>
+
+        Add RenderDescendantIterator to traverse a RenderObject's descendants
+        https://bugs.webkit.org/show_bug.cgi?id=157785
+
+        Reviewed by Zalan Bujtas.
+
+        Add RenderDescendantIterator to traverse a RenderObject's descendants. I
+        am planning to use it in the iOS Text Autosizing code (See Bug 157784).
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * rendering/RenderDescendantIterator.h: Added.
+        (WebCore::RenderDescendantIterator<T>::RenderDescendantIterator):
+        (WebCore::RenderDescendantIterator<T>::operator):
+        (WebCore::RenderDescendantConstIterator<T>::RenderDescendantConstIterator):
+        (WebCore::RenderDescendantConstIterator<T>::operator):
+        (WebCore::RenderDescendantIteratorAdapter<T>::RenderDescendantIteratorAdapter):
+        (WebCore::RenderDescendantIteratorAdapter<T>::begin):
+        (WebCore::RenderDescendantIteratorAdapter<T>::end):
+        (WebCore::RenderDescendantConstIteratorAdapter<T>::RenderDescendantConstIteratorAdapter):
+        (WebCore::RenderDescendantConstIteratorAdapter<T>::begin):
+        (WebCore::RenderDescendantConstIteratorAdapter<T>::end):
+        (WebCore::descendantsOfType):
+        * rendering/RenderIterator.h:
+        (WebCore::RenderObjectTraversal::firstChild):
+        (WebCore::RenderObjectTraversal::nextAncestorSibling):
+        (WebCore::RenderObjectTraversal::next):
+        (WebCore::RenderTraversal::firstChild):
+        (WebCore::RenderTraversal::lastChild):
+        (WebCore::RenderTraversal::nextSibling):
+        (WebCore::RenderTraversal::previousSibling):
+        (WebCore::RenderTraversal::findAncestorOfType):
+        (WebCore::RenderTraversal::firstWithin):
+        (WebCore::RenderTraversal::next):
+        (WebCore::RenderIterator<T>::traverseNext):
+        (WebCore::RenderConstIterator<T>::traverseNext):
+
+2016-05-16  Alex Christensen  <achristensen@webkit.org>
+
+        Remove YouTube site-specific hack
+        https://bugs.webkit.org/show_bug.cgi?id=157776
+
+        Reviewed by Eric Carlson.
+
+        No new tests.  Youtube fullscreen seems to work without
+        http://trac.webkit.org/changeset/173533 now.
+
+        * dom/Document.cpp:
+        (WebCore::unwrapFullScreenRenderer):
+        (WebCore::Document::webkitWillEnterFullScreenForElement):
+        (WebCore::Document::webkitDidEnterFullScreenForElement):
+        (WebCore::Document::webkitWillExitFullScreenForElement):
+        (WebCore::Document::webkitDidExitFullScreenForElement):
+        (WebCore::Document::setFullScreenRenderer):
+        (WebCore::hostIsYouTube): Deleted.
+
+2016-05-16  Brent Fulgham  <bfulgham@apple.com>
+
+        heap use-after-free at WebCore::TimerBase::heapPopMin()
+        https://bugs.webkit.org/show_bug.cgi?id=157742
+        <rdar://problem/26236778>
+
+        Reviewed by David Kilzer.
+
+        Tested by fast/frames/resources/crash-during-iframe-load-stop.html.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::stopForUserCancel): Protect m_frame from destruction while it is still
+        being used by the current stack frame.
+        (WebCore::FrameLoader::frameDetached): Ditto.
+        (WebCore::FrameLoader::continueFragmentScrollAfterNavigationPolicy): Ditto.
+
+2016-05-16  Dean Jackson  <dino@apple.com>
+
+        WebCoreJSBuiltinInternals won't compile if some build flags are off
+        https://bugs.webkit.org/show_bug.cgi?id=157777
+        <rdar://problem/26312967>
+
+        Reviewed by Simon Fraser.
+
+        Allow this file to compile when some build flags are disabled.
+
+        * bindings/js/WebCoreJSBuiltinInternals.cpp:
+        (WebCore::JSBuiltinInternalFunctions::JSBuiltinInternalFunctions):
+
+2016-05-16  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Give each UniqueIDBDatabase its own task queues.
+        https://bugs.webkit.org/show_bug.cgi?id=157757
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Refactor, no behavior change).
+
+        Each UniqueIDBDatabase now maintains its own databaseTask and databaseTaskReply queues.
+        
+        Instead of posting the specific task(reply) with the IDBServer, it merely posts a task(reply) that says
+        "Handle your next task(reply)".
+
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::performCurrentOpenOperation):
+        (WebCore::IDBServer::UniqueIDBDatabase::performCurrentDeleteOperation):
+        (WebCore::IDBServer::UniqueIDBDatabase::deleteBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::startVersionChangeTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::openBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::createObjectStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::performCreateObjectStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::deleteObjectStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::performDeleteObjectStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::clearObjectStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::performClearObjectStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::createIndex):
+        (WebCore::IDBServer::UniqueIDBDatabase::performCreateIndex):
+        (WebCore::IDBServer::UniqueIDBDatabase::deleteIndex):
+        (WebCore::IDBServer::UniqueIDBDatabase::performDeleteIndex):
+        (WebCore::IDBServer::UniqueIDBDatabase::putOrAdd):
+        (WebCore::IDBServer::UniqueIDBDatabase::performPutOrAdd):
+        (WebCore::IDBServer::UniqueIDBDatabase::getRecord):
+        (WebCore::IDBServer::UniqueIDBDatabase::performGetRecord):
+        (WebCore::IDBServer::UniqueIDBDatabase::performGetIndexRecord):
+        (WebCore::IDBServer::UniqueIDBDatabase::getCount):
+        (WebCore::IDBServer::UniqueIDBDatabase::performGetCount):
+        (WebCore::IDBServer::UniqueIDBDatabase::deleteRecord):
+        (WebCore::IDBServer::UniqueIDBDatabase::performDeleteRecord):
+        (WebCore::IDBServer::UniqueIDBDatabase::openCursor):
+        (WebCore::IDBServer::UniqueIDBDatabase::performOpenCursor):
+        (WebCore::IDBServer::UniqueIDBDatabase::iterateCursor):
+        (WebCore::IDBServer::UniqueIDBDatabase::performIterateCursor):
+        (WebCore::IDBServer::UniqueIDBDatabase::commitTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::performCommitTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::abortTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::performAbortTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::activateTransactionInBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::performActivateTransactionInBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::postDatabaseTask):
+        (WebCore::IDBServer::UniqueIDBDatabase::postDatabaseTaskReply):
+        (WebCore::IDBServer::UniqueIDBDatabase::executeNextDatabaseTask):
+        (WebCore::IDBServer::UniqueIDBDatabase::executeNextDatabaseTaskReply):
+        * Modules/indexeddb/server/UniqueIDBDatabase.h:
+
+2016-05-16  Saam barati  <sbarati@apple.com>
+
+        Hook up ShadowChicken to the debugger to show tail deleted frames
+        https://bugs.webkit.org/show_bug.cgi?id=156685
+        <rdar://problem/25770521>
+
+        Reviewed by Filip Pizlo and Mark Lam and Joseph Pecoraro.
+
+        Tests: inspector/debugger/tail-deleted-frames-this-value.html
+               inspector/debugger/tail-deleted-frames.html
+               inspector/debugger/tail-recursion.html
+
+        * ForwardingHeaders/interpreter/ShadowChicken.h: Added.
+
+2016-05-16  Alex Christensen  <achristensen@webkit.org>
+
+        Don't include CSSParser.h from other headers
+        https://bugs.webkit.org/show_bug.cgi?id=157765
+
+        Reviewed by Zalan Bujtas.
+
+        No change in behavior.  This just makes it so touching CSSParser.h doesn't rebuild as many files.
+
+        * css/CSSCalculationValue.cpp:
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::sourceSize):
+        (WebCore::filterProperties):
+        * css/CSSParser.h:
+        (WebCore::CSSParser::ValueWithCalculation::ValueWithCalculation):
+        * css/CSSProperty.h:
+        (WebCore::prefixingVariantForPropertyId):
+        * css/FontFace.cpp:
+        * css/StyleProperties.cpp:
+        (WebCore::MutableStyleProperties::parseDeclaration):
+        (WebCore::MutableStyleProperties::addParsedProperties):
+        * css/StyleProperties.h:
+        * css/StyleResolver.h:
+        * rendering/style/RenderStyle.cpp:
+
+2016-05-16  Aaron Chu  <aaron_chu@apple.com>
+
+        REGRESSION (r200441): Yahoo sports, finance and news pages automatically scroll
+        https://bugs.webkit.org/show_bug.cgi?id=157692
+        <rdar://problem/26231897>
+
+        Reviewed by Eric Carlson.
+
+        Test: media/video-controls-to-not-scroll-page-on-load.html
+
+        This bug was due to the fact that showControls button was shown and focused
+        when the video controls are hidden. The showControls button is used by FKA or 
+        screen readers to make the video controls reappear after they have faded out. 
+        When the showControls button is shown, a focus() is called on it to ensure that
+        the screen reader is focusing on the button instead of <body> or the video chrome.
+        To fix this bug, I added the shouldHaveControls() check before calling focus() on
+        the showControls button.
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.showShowControlsButton):
+
+2016-05-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Unreviewed rollout r200924. Caused js/regress/string-replace-generic.html to fail.
+
+        Tests: fast/profiler/*
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * ForwardingHeaders/profiler/LegacyProfiler.h: Added.
+        * ForwardingHeaders/profiler/Profile.h: Added.
+        * ForwardingHeaders/profiler/ProfileNode.h: Added.
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSCustomXPathNSResolver.cpp:
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::JSDOMWindowBase::supportsLegacyProfiling):
+        (WebCore::JSDOMWindowBase::supportsRichSourceInfo):
+        * bindings/js/JSDOMWindowBase.h:
+        * bindings/js/JSWorkerGlobalScopeBase.cpp:
+        (WebCore::JSWorkerGlobalScopeBase::supportsLegacyProfiling):
+        * bindings/js/JSWorkerGlobalScopeBase.h:
+        * bindings/js/ScriptCachedFrameData.cpp:
+        * bindings/js/ScriptController.cpp:
+        (WebCore::ScriptController::clearWindowShell):
+        * bindings/js/ScriptProfile.h: Copied from Source/JavaScriptCore/profiler/ProfilerJettisonReason.h.
+        * bindings/js/ScriptProfileNode.h: Copied from Source/JavaScriptCore/profiler/ProfilerJettisonReason.h.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AddClassForwardIfNeeded):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionMethodWithSequenceArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodReturningSequence):
+        * bindings/scripts/test/TestObj.idl:
+        * css/CSSParser.cpp:
+        * dom/Document.cpp:
+        * inspector/InspectorConsoleInstrumentation.h:
+        (WebCore::InspectorInstrumentation::stopProfiling):
+        * inspector/InspectorController.cpp:
+        (WebCore::InspectorController::InspectorController):
+        (WebCore::InspectorController::legacyProfilerEnabled):
+        (WebCore::InspectorController::setLegacyProfilerEnabled):
+        * inspector/InspectorController.h:
+        * inspector/InspectorInstrumentation.cpp:
+        (WebCore::InspectorInstrumentation::stopProfilingImpl):
+        * inspector/InspectorInstrumentation.h:
+        * inspector/InspectorTimelineAgent.cpp:
+        (WebCore::InspectorTimelineAgent::startFromConsole):
+        (WebCore::InspectorTimelineAgent::stopFromConsole):
+        * inspector/InspectorTimelineAgent.h:
+        * inspector/PageDebuggerAgent.cpp:
+        * inspector/PageRuntimeAgent.cpp:
+        * inspector/ScriptProfile.idl: Copied from Source/JavaScriptCore/profiler/ProfilerJettisonReason.h.
+        * inspector/ScriptProfileNode.idl: Copied from Source/JavaScriptCore/profiler/ProfilerJettisonReason.h.
+        * inspector/TimelineRecordFactory.cpp:
+        (WebCore::buildAggregateCallInfoInspectorObject):
+        (WebCore::buildInspectorObject):
+        (WebCore::buildProfileInspectorObject):
+        (WebCore::TimelineRecordFactory::appendProfile):
+        * inspector/TimelineRecordFactory.h:
+        * page/DOMWindow.cpp:
+        * page/Page.cpp:
+        * page/PageConsoleClient.cpp:
+        (WebCore::PageConsoleClient::profileEnd):
+        (WebCore::PageConsoleClient::clearProfiles):
+        * page/PageConsoleClient.h:
+        * testing/Internals.cpp:
+        (WebCore::Internals::resetToConsistentState):
+        (WebCore::Internals::consoleProfiles):
+        (WebCore::Internals::setLegacyJavaScriptProfilingEnabled):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+        * testing/js/WebCoreTestSupport.cpp:
+        * xml/XSLStyleSheetLibxslt.cpp:
+        * xml/XSLTProcessorLibxslt.cpp:
+
 2016-05-16  Zalan Bujtas  <zalan@apple.com>
 
         RenderLayer::hitTestList could mutate the list of candidate layers.

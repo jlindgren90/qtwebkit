@@ -55,13 +55,13 @@ void computeUsesForBytecodeOffset(
     case op_create_cloned_arguments:
     case op_get_rest_length:
     case op_watchdog:
-    case op_log_shadow_chicken_prologue:
-    case op_log_shadow_chicken_tail:
         return;
     case op_assert:
     case op_get_scope:
     case op_to_this:
     case op_check_tdz:
+    case op_profile_will_call:
+    case op_profile_did_call:
     case op_profile_type:
     case op_throw:
     case op_end:
@@ -72,6 +72,7 @@ void computeUsesForBytecodeOffset(
     case op_jneq_null:
     case op_dec:
     case op_inc:
+    case op_log_shadow_chicken_prologue:
     case op_resume: {
         ASSERT(opcodeLengths[opcodeID] > 1);
         functor(codeBlock, instruction, opcodeID, instruction[1].u.operand);
@@ -86,6 +87,7 @@ void computeUsesForBytecodeOffset(
     case op_jngreatereq:
     case op_jless:
     case op_set_function_name:
+    case op_log_shadow_chicken_tail:
     case op_copy_rest: {
         ASSERT(opcodeLengths[opcodeID] > 2);
         functor(codeBlock, instruction, opcodeID, instruction[1].u.operand);
@@ -310,6 +312,8 @@ void computeDefsForBytecodeOffset(CodeBlock* codeBlock, BytecodeBasicBlock* bloc
     case op_copy_rest:
     case op_put_to_scope:
     case op_end:
+    case op_profile_will_call:
+    case op_profile_did_call:
     case op_throw:
     case op_throw_static_error:
     case op_save:

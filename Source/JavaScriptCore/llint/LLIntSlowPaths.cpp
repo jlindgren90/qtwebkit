@@ -50,6 +50,7 @@
 #include "JSWithScope.h"
 #include "LLIntCommon.h"
 #include "LLIntExceptions.h"
+#include "LegacyProfiler.h"
 #include "LowLevelInterpreter.h"
 #include "ObjectConstructor.h"
 #include "ProtoCallFrame.h"
@@ -1425,6 +1426,22 @@ LLINT_SLOW_PATH_DECL(slow_path_debug)
     LLINT_END();
 }
 
+LLINT_SLOW_PATH_DECL(slow_path_profile_will_call)
+{
+    LLINT_BEGIN();
+    if (LegacyProfiler* profiler = vm.enabledProfiler())
+        profiler->willExecute(exec, LLINT_OP(1).jsValue());
+    LLINT_END();
+}
+
+LLINT_SLOW_PATH_DECL(slow_path_profile_did_call)
+{
+    LLINT_BEGIN();
+    if (LegacyProfiler* profiler = vm.enabledProfiler())
+        profiler->didExecute(exec, LLINT_OP(1).jsValue());
+    LLINT_END();
+}
+
 LLINT_SLOW_PATH_DECL(slow_path_handle_exception)
 {
     LLINT_BEGIN_NO_SET_PC();
@@ -1513,6 +1530,9 @@ LLINT_SLOW_PATH_DECL(slow_path_check_if_exception_is_uncatchable_and_notify_prof
     LLINT_BEGIN();
     RELEASE_ASSERT(!!vm.exception());
 
+    if (LegacyProfiler* profiler = vm.enabledProfiler())
+        profiler->exceptionUnwind(exec);
+
     if (isTerminatedExecutionException(vm.exception()))
         LLINT_RETURN_TWO(pc, bitwise_cast<void*>(static_cast<uintptr_t>(1)));
     LLINT_RETURN_TWO(pc, 0);
@@ -1522,8 +1542,8 @@ LLINT_SLOW_PATH_DECL(slow_path_log_shadow_chicken_prologue)
 {
     LLINT_BEGIN();
     
-    vm.shadowChicken().log(
-        vm, exec, ShadowChicken::Packet::prologue(exec->callee(), exec, exec->callerFrame()));
+    JSScope* scope = exec->uncheckedR(pc[1].u.operand).Register::scope();
+    vm.shadowChicken().log(vm, exec, ShadowChicken::Packet::prologue(exec->callee(), exec, exec->callerFrame(), scope));
     
     LLINT_END();
 }
@@ -1531,8 +1551,16 @@ LLINT_SLOW_PATH_DECL(slow_path_log_shadow_chicken_prologue)
 LLINT_SLOW_PATH_DECL(slow_path_log_shadow_chicken_tail)
 {
     LLINT_BEGIN();
+
+    JSValue thisValue = LLINT_OP(1).jsValue();
+    JSScope* scope = exec->uncheckedR(pc[2].u.operand).Register::scope();
     
-    vm.shadowChicken().log(vm, exec, ShadowChicken::Packet::tail(exec));
+#if USE(JSVALUE64)
+    CallSiteIndex callSiteIndex(exec->codeBlock()->bytecodeOffset(pc));
+#else
+    CallSiteIndex callSiteIndex(pc);
+#endif
+    vm.shadowChicken().log(vm, exec, ShadowChicken::Packet::tail(exec, thisValue, scope, exec->codeBlock(), callSiteIndex));
     
     LLINT_END();
 }
