@@ -369,7 +369,7 @@ Ref<Element> Element::cloneElementWithoutAttributesAndChildren(Document& targetD
     return targetDocument.createElement(tagQName(), false);
 }
 
-RefPtr<Attr> Element::detachAttribute(unsigned index)
+Ref<Attr> Element::detachAttribute(unsigned index)
 {
     ASSERT(elementData());
 
@@ -382,7 +382,7 @@ RefPtr<Attr> Element::detachAttribute(unsigned index)
         attrNode = Attr::create(document(), attribute.name(), attribute.value());
 
     removeAttributeInternal(index, NotInSynchronizationOfLazyAttribute);
-    return attrNode.release();
+    return attrNode.releaseNonNull();
 }
 
 bool Element::removeAttribute(const QualifiedName& name)
@@ -1524,10 +1524,12 @@ Node::InsertionNotificationRequest Element::insertedInto(ContainerNode& insertio
         setContainsFullScreenElementOnAncestorsCrossingFrameBoundaries(true);
 #endif
 
+#if ENABLE(SHADOW_DOM) || ENABLE(DETAILS_ELEMENT)
     if (parentNode() == &insertionPoint) {
         if (auto* shadowRoot = parentNode()->shadowRoot())
             shadowRoot->hostChildElementDidChange(*this);
     }
+#endif
 
     if (!insertionPoint.isInTreeScope())
         return InsertionDone;
@@ -1608,10 +1610,12 @@ void Element::removedFrom(ContainerNode& insertionPoint)
         }
     }
 
+#if ENABLE(SHADOW_DOM) || ENABLE(DETAILS_ELEMENT)
     if (!parentNode()) {
         if (auto* shadowRoot = insertionPoint.shadowRoot())
             shadowRoot->hostChildElementDidChange(*this);
     }
+#endif
 
     ContainerNode::removedFrom(insertionPoint);
 
@@ -2011,7 +2015,7 @@ RefPtr<Attr> Element::setAttributeNodeNS(Attr& attrNode, ExceptionCode& ec)
     treeScope().adoptIfNeeded(&attrNode);
     ensureAttrNodeListForElement(*this).append(&attrNode);
 
-    return oldAttrNode.release();
+    return oldAttrNode;
 }
 
 RefPtr<Attr> Element::removeAttributeNode(Attr& attr, ExceptionCode& ec)
@@ -3180,7 +3184,7 @@ RefPtr<Attr> Element::attrIfExists(const QualifiedName& name)
     return nullptr;
 }
 
-RefPtr<Attr> Element::ensureAttr(const QualifiedName& name)
+Ref<Attr> Element::ensureAttr(const QualifiedName& name)
 {
     auto& attrNodeList = ensureAttrNodeListForElement(*this);
     RefPtr<Attr> attrNode = findAttrNodeInList(attrNodeList, name);
@@ -3189,7 +3193,7 @@ RefPtr<Attr> Element::ensureAttr(const QualifiedName& name)
         treeScope().adoptIfNeeded(attrNode.get());
         attrNodeList.append(attrNode);
     }
-    return attrNode.release();
+    return attrNode.releaseNonNull();
 }
 
 void Element::detachAttrNodeFromElementWithValue(Attr* attrNode, const AtomicString& value)

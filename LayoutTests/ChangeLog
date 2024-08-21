@@ -1,3 +1,165 @@
+2016-05-10  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Test gardening after r200646
+
+        Unreviewed.
+
+        * TestExpectations:
+        * fast/text/unicode-range-download.html:
+
+2016-05-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Horizontally-scrollable items with a 3d transform are rendered incorrectly in RTL when container has -webkit-overflow-scroll: touch
+        https://bugs.webkit.org/show_bug.cgi?id=157482
+        rdar://problem/26204794
+
+        Reviewed by Zalan Bujtas.
+        
+        This can't be a ref test because on iOS ref test snapshots are doing by drawing, not by snapshotting layers.
+
+        * compositing/rtl/rtl-with-transformed-descendants-expected.txt: Added.
+        * compositing/rtl/rtl-with-transformed-descendants.html: Added.
+
+2016-05-10  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        Unreviewed EFL Gardening on 10th May.
+
+        Rebaseline missing results.
+
+        * platform/efl/TestExpectations: Removed non existing tests.
+        * platform/efl/accessibility/content-editable-as-textarea-expected.txt: Added.
+        * platform/efl/accessibility/generated-content-with-display-table-crash-expected.txt: Added.
+        * platform/efl/accessibility/w3c-svg-content-language-attribute-expected.txt: Added.
+        * platform/efl/fast/text/hyphenate-avoid-orphaned-word-expected.txt: Added.
+        * platform/efl/mathml/presentation/menclose-notation-values-expected.txt: Added.
+
+2016-05-10  Ryosuke Niwa  <rniwa@webkit.org>
+
+        iOS rebaseline after r200464.
+
+        * fast/shadow-dom/touch-event-ios-expected.txt:
+
+2016-05-10  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Backend should initiate timeline recordings on page navigations to ensure nothing is missed
+        https://bugs.webkit.org/show_bug.cgi?id=157504
+        <rdar://problem/26188642>
+
+        Reviewed by Brian Burg.
+
+        * inspector/timeline/setAutoCaptureInstruments-errors-expected.txt: Added.
+        * inspector/timeline/setAutoCaptureInstruments-errors.html: Added.
+
+2016-05-10  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/text/unicode-range-download.html as flaky
+        https://bugs.webkit.org/show_bug.cgi?id=42154
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-05-05  Jer Noble  <jer.noble@apple.com>
+
+        Return a Promise from HTMLMediaElement.play()
+        https://bugs.webkit.org/show_bug.cgi?id=157400
+
+        Reviewed by Eric Carlson.
+
+        * media/media-play-promise-reject-error-notsupported-expected.txt: Added.
+        * media/media-play-promise-reject-error-notsupported.html: Added.
+        * media/media-play-promise-reject-load-abort-expected.txt: Added.
+        * media/media-play-promise-reject-load-abort.html: Added.
+        * media/media-play-promise-reject-pause-abort-expected.txt: Added.
+        * media/media-play-promise-reject-pause-abort.html: Added.
+        * media/media-play-promise-reject-play-notallowed-expected.txt: Added.
+        * media/media-play-promise-reject-play-notallowed.html: Added.
+        * media/media-play-promise-reject-play-notsupported-expected.txt: Added.
+        * media/media-play-promise-reject-play-notsupported.html: Added.
+        * media/media-play-promise-resolve-expected.txt: Added.
+        * media/media-play-promise-resolve-when-playing-expected.txt: Added.
+        * media/media-play-promise-resolve-when-playing.html: Added.
+        * media/media-play-promise-resolve.html: Added.
+
+2016-05-10  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200627.
+        https://bugs.webkit.org/show_bug.cgi?id=157531
+
+        This change has caused crashes in existing LayoutTests
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "Return a Promise from HTMLMediaElement.play()"
+        https://bugs.webkit.org/show_bug.cgi?id=157400
+        http://trac.webkit.org/changeset/200627
+
+2016-05-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix scrolling tree dumping
+        https://bugs.webkit.org/show_bug.cgi?id=157529
+
+        Reviewed by Tim Horton.
+
+        * fast/scrolling/ios/remove-scrolling-role-expected.txt: Renamed from LayoutTests/platform/ios-simulator-wk2/scrolling/remove-scrolling-role-expected.txt.
+        * fast/scrolling/ios/remove-scrolling-role.html: Renamed from LayoutTests/platform/ios-simulator-wk2/scrolling/remove-scrolling-role.html.
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-05-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Mark fast/scrolling/ios/scroll-events-back-forward-after-pageshow.html as flakey.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-05-10  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Eliminate the crazy code for evaluateOnCallFrame
+        https://bugs.webkit.org/show_bug.cgi?id=157510
+        <rdar://problem/26191332>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/debugger/evaluateOnCallFrame-CommandLineAPI-expected.txt: Added.
+        * inspector/debugger/evaluateOnCallFrame-CommandLineAPI.html: Added.
+
+2016-05-05  Jer Noble  <jer.noble@apple.com>
+
+        Return a Promise from HTMLMediaElement.play()
+        https://bugs.webkit.org/show_bug.cgi?id=157400
+
+        Reviewed by Eric Carlson.
+
+        * media/media-play-promise-reject-error-notsupported-expected.txt: Added.
+        * media/media-play-promise-reject-error-notsupported.html: Added.
+        * media/media-play-promise-reject-load-abort-expected.txt: Added.
+        * media/media-play-promise-reject-load-abort.html: Added.
+        * media/media-play-promise-reject-pause-abort-expected.txt: Added.
+        * media/media-play-promise-reject-pause-abort.html: Added.
+        * media/media-play-promise-reject-play-notallowed-expected.txt: Added.
+        * media/media-play-promise-reject-play-notallowed.html: Added.
+        * media/media-play-promise-reject-play-notsupported-expected.txt: Added.
+        * media/media-play-promise-reject-play-notsupported.html: Added.
+        * media/media-play-promise-resolve-expected.txt: Added.
+        * media/media-play-promise-resolve-when-playing-expected.txt: Added.
+        * media/media-play-promise-resolve-when-playing.html: Added.
+        * media/media-play-promise-resolve.html: Added.
+
+2016-05-10  Zalan Bujtas  <zalan@apple.com>
+
+        REGRESSION (r193610): Drop down menu doesn’t expand at allofbach.com
+        https://bugs.webkit.org/show_bug.cgi?id=157445
+
+        Reviewed by Simon Fraser.
+
+        When we don't run transitions (becasuse of to/from 'auto' values) we should also not
+        report the 'from' value and behave as if we finished the transition already.
+
+        * fast/animation/height-auto-transition-computed-value-expected.html: Added.
+        * fast/animation/height-auto-transition-computed-value.html: Added.
+        * imported/blink/transitions/transition-not-interpolable-expected.txt:
+
 2016-05-09  Dean Jackson  <dino@apple.com>
 
         [iOS] <select> elements should render right-aligned when in RTL mode

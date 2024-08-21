@@ -123,7 +123,7 @@ struct CSSParserValue {
 
     void setFromValueList(std::unique_ptr<CSSParserValueList>);
 
-    PassRefPtr<CSSValue> createCSSValue();
+    RefPtr<CSSValue> createCSSValue();
 };
 
 void destroy(const CSSParserValue&);

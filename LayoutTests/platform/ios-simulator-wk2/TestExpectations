@@ -1663,7 +1663,7 @@ fast/text/simple-line-layout-text-stroke-width.html [ Failure ]
 http/tests/loading/preload-img-srcset-sizes.html [ Failure ]
 http/tests/navigation/postredirect-basic.html [ Failure ]
 http/tests/navigation/postredirect-goback1.html [ Failure ]
-platform/ios-simulator-wk2/scrolling/remove-scrolling-role.html [ Failure ]
+
 platform/ios-simulator/ios/fast/text/underline-scaling.html [ Failure ]
 compositing/masks/compositing-clip-path-on-subpixel-position.html [ ImageOnlyFailure ]
 fast/borders/dashed-border-on-subpixel-position.html [ ImageOnlyFailure ]
@@ -1889,3 +1889,5 @@ webkit.org/b/82762 fast/animation/request-animation-frame-during-modal.html [ Pa
 webkit.org/b/156620 fast/animation/request-animation-frame-iframe2.html [ Pass Failure ]
 
 webkit.org/b/153049 perf/array-binary-search.html [ Pass Failure Timeout ]
+
+fast/scrolling/ios/scroll-events-back-forward-after-pageshow.html [ Pass Failure ]

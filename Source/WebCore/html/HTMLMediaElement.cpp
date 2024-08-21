@@ -51,6 +51,7 @@
 #include "FrameView.h"
 #include "HTMLSourceElement.h"
 #include "HTMLVideoElement.h"
+#include "JSDOMError.h"
 #include "JSHTMLMediaElement.h"
 #include "Language.h"
 #include "Logging.h"
@@ -348,10 +349,6 @@ HTMLMediaElement::HTMLMediaElement(const QualifiedName& tagName, Document& docum
     , m_progressEventTimer(*this, &HTMLMediaElement::progressEventTimerFired)
     , m_playbackProgressTimer(*this, &HTMLMediaElement::playbackProgressTimerFired)
     , m_scanTimer(*this, &HTMLMediaElement::scanTimerFired)
-    , m_pauseAfterDetachedTimer(*this, &HTMLMediaElement::pauseAfterDetachedTimerFired)
-    , m_seekTaskQueue(document)
-    , m_resizeTaskQueue(document)
-    , m_shadowDOMTaskQueue(document)
     , m_playedTimeRanges()
     , m_asyncEventQueue(*this)
     , m_requestedPlaybackRate(1)
@@ -560,6 +557,8 @@ HTMLMediaElement::~HTMLMediaElement()
 #endif
 
     m_seekTaskQueue.close();
+    m_promiseTaskQueue.close();
+    m_pauseAfterDetachedTaskQueue.close();
 
     m_completelyLoaded = true;
 }
@@ -779,7 +778,7 @@ Node::InsertionNotificationRequest HTMLMediaElement::insertedInto(ContainerNode&
     return InsertionDone;
 }
 
-void HTMLMediaElement::pauseAfterDetachedTimerFired()
+void HTMLMediaElement::pauseAfterDetachedTask()
 {
     // If we were re-inserted into an active document, no need to pause.
     if (m_inActiveDocument)
@@ -815,7 +814,7 @@ void HTMLMediaElement::removedFrom(ContainerNode& insertionPoint)
     m_inActiveDocument = false;
     if (insertionPoint.inDocument()) {
         // Pause asynchronously to let the operation that removed us finish, in case we get inserted back into a document.
-        m_pauseAfterDetachedTimer.startOneShot(0);
+        m_pauseAfterDetachedTaskQueue.enqueueTask(std::bind(&HTMLMediaElement::pauseAfterDetachedTask, this));
     }
 
     HTMLElement::removedFrom(insertionPoint);
@@ -900,7 +899,39 @@ void HTMLMediaElement::scheduleEvent(const AtomicString& eventName)
     // Don't set the event target, the event queue will set it in GenericEventQueue::timerFired and setting it here
     // will trigger an ASSERT if this element has been marked for deletion.
 
-    m_asyncEventQueue.enqueueEvent(event.release());
+    m_asyncEventQueue.enqueueEvent(WTFMove(event));
+}
+
+void HTMLMediaElement::scheduleResolvePendingPlayPromises()
+{
+    m_promiseTaskQueue.enqueueTask(std::bind(&HTMLMediaElement::resolvePendingPlayPromises, this));
+}
+
+void HTMLMediaElement::rejectPendingPlayPromises(DOMError& error)
+{
+    Vector<PlayPromise> pendingPlayPromises = WTFMove(m_pendingPlayPromises);
+
+    for (auto& promise : pendingPlayPromises)
+        promise.reject(error);
+}
+
+void HTMLMediaElement::resolvePendingPlayPromises()
+{
+    Vector<PlayPromise> pendingPlayPromises = WTFMove(m_pendingPlayPromises);
+
+    for (auto& promise : pendingPlayPromises)
+        promise.resolve(nullptr);
+}
+
+void HTMLMediaElement::scheduleNotifyAboutPlaying()
+{
+    m_promiseTaskQueue.enqueueTask(std::bind(&HTMLMediaElement::notifyAboutPlaying, this));
+}
+
+void HTMLMediaElement::notifyAboutPlaying()
+{
+    dispatchEvent(Event::create(eventNames().playingEvent, false, true));
+    resolvePendingPlayPromises();
 }
 
 void HTMLMediaElement::pendingActionTimerFired()
@@ -1619,11 +1650,11 @@ void HTMLMediaElement::updateActiveTextTrackCues(const MediaTime& movieTime)
         if (eventTasks[i].second->startTime() >= eventTasks[i].second->endTime()) {
             event = Event::create(eventNames().enterEvent, false, false);
             event->setTarget(eventTasks[i].second);
-            m_asyncEventQueue.enqueueEvent(event.release());
+            m_asyncEventQueue.enqueueEvent(WTFMove(event));
 
             event = Event::create(eventNames().exitEvent, false, false);
             event->setTarget(eventTasks[i].second);
-            m_asyncEventQueue.enqueueEvent(event.release());
+            m_asyncEventQueue.enqueueEvent(WTFMove(event));
         } else {
             if (eventTasks[i].first == eventTasks[i].second->startMediaTime())
                 event = Event::create(eventNames().enterEvent, false, false);
@@ -1631,7 +1662,7 @@ void HTMLMediaElement::updateActiveTextTrackCues(const MediaTime& movieTime)
                 event = Event::create(eventNames().exitEvent, false, false);
 
             event->setTarget(eventTasks[i].second);
-            m_asyncEventQueue.enqueueEvent(event.release());
+            m_asyncEventQueue.enqueueEvent(WTFMove(event));
         }
     }
 
@@ -1645,7 +1676,7 @@ void HTMLMediaElement::updateActiveTextTrackCues(const MediaTime& movieTime)
         RefPtr<Event> event = Event::create(eventNames().cuechangeEvent, false, false);
         event->setTarget(affectedTracks[i]);
 
-        m_asyncEventQueue.enqueueEvent(event.release());
+        m_asyncEventQueue.enqueueEvent(WTFMove(event));
 
         // ... if the text track has a corresponding track element, to then fire a
         // simple event named cuechange at the track element as well.
@@ -1655,7 +1686,7 @@ void HTMLMediaElement::updateActiveTextTrackCues(const MediaTime& movieTime)
             ASSERT(trackElement);
             event->setTarget(trackElement);
             
-            m_asyncEventQueue.enqueueEvent(event.release());
+            m_asyncEventQueue.enqueueEvent(WTFMove(event));
         }
     }
 
@@ -1915,6 +1946,8 @@ void HTMLMediaElement::noneSupported()
     // 7 - Queue a task to fire a simple event named error at the media element.
     scheduleEvent(eventNames().errorEvent);
 
+    rejectPendingPlayPromises(DOMError::create("NotSupportedError", "The operation is not supported."));
+
 #if ENABLE(MEDIA_SOURCE)
     closeMediaSource();
 #endif
@@ -1979,6 +2012,8 @@ void HTMLMediaElement::cancelPendingEventsAndCallbacks()
 
     for (auto& source : childrenOfType<HTMLSourceElement>(*this))
         source.cancelPendingErrorEvent();
+
+    rejectPendingPlayPromises(DOMError::create("AbortError", "The operation was aborted."));
 }
 
 Document* HTMLMediaElement::mediaPlayerOwningDocument()
@@ -2247,7 +2282,7 @@ void HTMLMediaElement::setReadyState(MediaPlayer::ReadyState state)
     if (m_readyState == HAVE_FUTURE_DATA && oldState <= HAVE_CURRENT_DATA && tracksAreReady) {
         scheduleEvent(eventNames().canplayEvent);
         if (isPotentiallyPlaying)
-            scheduleEvent(eventNames().playingEvent);
+            scheduleNotifyAboutPlaying();
         shouldUpdateDisplayState = true;
     }
 
@@ -2258,13 +2293,13 @@ void HTMLMediaElement::setReadyState(MediaPlayer::ReadyState state)
         scheduleEvent(eventNames().canplaythroughEvent);
 
         if (isPotentiallyPlaying && oldState <= HAVE_CURRENT_DATA)
-            scheduleEvent(eventNames().playingEvent);
+            scheduleNotifyAboutPlaying();
 
         if (canTransitionFromAutoplayToPlay()) {
             m_paused = false;
             invalidateCachedTime();
             scheduleEvent(eventNames().playEvent);
-            scheduleEvent(eventNames().playingEvent);
+            scheduleNotifyAboutPlaying();
         }
 
         shouldUpdateDisplayState = true;
@@ -2358,9 +2393,9 @@ bool HTMLMediaElement::mediaPlayerKeyNeeded(MediaPlayer*, Uint8Array* initData)
         return false;
     }
 
-    RefPtr<Event> event = MediaKeyNeededEvent::create(eventNames().webkitneedkeyEvent, initData);
+    auto event = MediaKeyNeededEvent::create(eventNames().webkitneedkeyEvent, initData);
     event->setTarget(this);
-    m_asyncEventQueue.enqueueEvent(event.release());
+    m_asyncEventQueue.enqueueEvent(WTFMove(event));
 
     return true;
 }
@@ -2991,6 +3026,29 @@ void HTMLMediaElement::setPreload(const String& preload)
     setAttribute(preloadAttr, preload);
 }
 
+void HTMLMediaElement::play(PlayPromise&& promise)
+{
+    LOG(Media, "HTMLMediaElement::play(%p)", this);
+
+    if (!m_mediaSession->playbackPermitted(*this)) {
+        promise.reject(DOMError::create("NotAllowedError", "The request is not allowed by the user agent or the platform in the current context."));
+        return;
+    }
+
+    if (m_error && m_error->code() == MediaError::MEDIA_ERR_SRC_NOT_SUPPORTED) {
+        promise.reject(DOMError::create("NotSupportedError", "The operation is not supported.."));
+        return;
+    }
+
+    if (ScriptController::processingUserGestureForMedia())
+        removeBehaviorsRestrictionsAfterFirstUserGesture();
+
+    if (!playInternal())
+        promise.reject(DOMError::create("NotAllowedError", "The request is not allowed by the user agent or the platform in the current context."));
+
+    m_pendingPlayPromises.append(WTFMove(promise));
+}
+
 void HTMLMediaElement::play()
 {
     LOG(Media, "HTMLMediaElement::play(%p)", this);
@@ -3003,13 +3061,13 @@ void HTMLMediaElement::play()
     playInternal();
 }
 
-void HTMLMediaElement::playInternal()
+bool HTMLMediaElement::playInternal()
 {
     LOG(Media, "HTMLMediaElement::playInternal(%p)", this);
     
     if (!m_mediaSession->clientWillBeginPlayback()) {
         LOG(Media, "  returning because of interruption");
-        return;
+        return false;
     }
 
     // 4.8.10.9. Playing the media resource
@@ -3030,7 +3088,7 @@ void HTMLMediaElement::playInternal()
         if (m_readyState <= HAVE_CURRENT_DATA)
             scheduleEvent(eventNames().waitingEvent);
         else if (m_readyState >= HAVE_FUTURE_DATA)
-            scheduleEvent(eventNames().playingEvent);
+            scheduleNotifyAboutPlaying();
 
 #if ENABLE(MEDIA_SESSION)
         // 6.3 Activating a media session from a media element
@@ -3052,15 +3110,18 @@ void HTMLMediaElement::playInternal()
 
                 if (!m_session->invoke()) {
                     pause();
-                    return;
+                    return false;
                 }
             }
         }
 #endif
-    }
+    } else if (m_readyState >= HAVE_FUTURE_DATA)
+        scheduleResolvePendingPlayPromises();
+
     m_autoplaying = false;
     updatePlayState();
     updateMediaController();
+    return true;
 }
 
 void HTMLMediaElement::pause()
@@ -3098,6 +3159,7 @@ void HTMLMediaElement::pauseInternal()
         m_paused = true;
         scheduleTimeupdateEvent(false);
         scheduleEvent(eventNames().pauseEvent);
+        rejectPendingPlayPromises(DOMError::create("AbortError", "The operation was aborted."));
 
         if (MemoryPressureHandler::singleton().isUnderMemoryPressure())
             purgeBufferedDataIfPossible();
@@ -3612,7 +3674,7 @@ void HTMLMediaElement::forgetResourceSpecificTracks()
         removeVideoTrack(m_videoTracks->lastItem());
 }
 
-PassRefPtr<TextTrack> HTMLMediaElement::addTextTrack(const String& kind, const String& label, const String& language, ExceptionCode& ec)
+RefPtr<TextTrack> HTMLMediaElement::addTextTrack(const String& kind, const String& label, const String& language, ExceptionCode& ec)
 {
     // 4.8.10.12.4 Text track API
     // The addTextTrack(kind, label, language) method of media elements, when invoked, must run the following steps:
@@ -3620,7 +3682,7 @@ PassRefPtr<TextTrack> HTMLMediaElement::addTextTrack(const String& kind, const S
     // 1. If kind is not one of the following strings, then throw a SyntaxError exception and abort these steps
     if (!TextTrack::isValidKindKeyword(kind)) {
         ec = TypeError;
-        return 0;
+        return nullptr;
     }
 
     // 2. If the label argument was omitted, let label be the empty string.
@@ -3629,13 +3691,13 @@ PassRefPtr<TextTrack> HTMLMediaElement::addTextTrack(const String& kind, const S
 
     // 5. Create a new text track corresponding to the new object, and set its text track kind to kind, its text 
     // track label to label, its text track language to language...
-    RefPtr<TextTrack> textTrack = TextTrack::create(ActiveDOMObject::scriptExecutionContext(), this, kind, emptyString(), label, language);
+    auto textTrack = TextTrack::create(ActiveDOMObject::scriptExecutionContext(), this, kind, emptyString(), label, language);
 
     // Note, due to side effects when changing track parameters, we have to
     // first append the track to the text track list.
 
     // 6. Add the new text track to the media element's list of text tracks.
-    addTextTrack(textTrack);
+    addTextTrack(textTrack.ptr());
 
     // ... its text track readiness state to the text track loaded state ...
     textTrack->setReadinessState(TextTrack::Loaded);
@@ -3643,7 +3705,7 @@ PassRefPtr<TextTrack> HTMLMediaElement::addTextTrack(const String& kind, const S
     // ... its text track mode to the text track hidden mode, and its text track list of cues to an empty list ...
     textTrack->setMode(TextTrack::Mode::Hidden);
 
-    return textTrack.release();
+    return WTFMove(textTrack);
 }
 
 AudioTrackList* HTMLMediaElement::audioTracks()
@@ -5012,6 +5074,8 @@ void HTMLMediaElement::contextDestroyed()
     m_seekTaskQueue.close();
     m_resizeTaskQueue.close();
     m_shadowDOMTaskQueue.close();
+    m_promiseTaskQueue.close();
+    m_pauseAfterDetachedTaskQueue.close();
 
     ActiveDOMObject::contextDestroyed();
 }
@@ -5023,6 +5087,7 @@ void HTMLMediaElement::stop()
     stopWithoutDestroyingMediaPlayer();
 
     m_asyncEventQueue.close();
+    m_promiseTaskQueue.close();
 
     // Once an active DOM object has been stopped it can not be restarted, so we can deallocate
     // the media player now. Note that userCancelledLoad will already called clearMediaPlayer
@@ -5200,9 +5265,9 @@ void HTMLMediaElement::enqueuePlaybackTargetAvailabilityChangedEvent()
 {
     bool hasTargets = m_mediaSession->hasWirelessPlaybackTargets(*this);
     LOG(Media, "HTMLMediaElement::enqueuePlaybackTargetAvailabilityChangedEvent(%p) - hasTargets = %s", this, boolString(hasTargets));
-    RefPtr<Event> event = WebKitPlaybackTargetAvailabilityEvent::create(eventNames().webkitplaybacktargetavailabilitychangedEvent, hasTargets);
+    auto event = WebKitPlaybackTargetAvailabilityEvent::create(eventNames().webkitplaybacktargetavailabilitychangedEvent, hasTargets);
     event->setTarget(this);
-    m_asyncEventQueue.enqueueEvent(event.release());
+    m_asyncEventQueue.enqueueEvent(WTFMove(event));
     updateMediaState(UpdateMediaState::Asynchronously);
 }
 

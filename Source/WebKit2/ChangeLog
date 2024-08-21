@@ -1,3 +1,151 @@
+2016-05-10  Sam Weinig  <sam@webkit.org>
+
+        Only expose WKDataDetectorTypes and -[WKWebViewConfiguration dataDetectorTypes] on iOS
+        for now, since we don't have it fully implemented on Mac.
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (fromWKDataDetectorTypes):
+        (-[WKWebView _initializeWithConfiguration:]):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.h:
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration encodeWithCoder:]):
+        (-[WKWebViewConfiguration initWithCoder:]):
+        (-[WKWebViewConfiguration copyWithZone:]):
+
+2016-05-10  Sam Weinig  <sam@webkit.org>
+
+        Add SPI for Data Detectors to get ranges of text around an existing range.
+        <rdar://problem/26009749>
+
+        Reviewed by Enrica Casucci.
+
+        * WebProcess/InjectedBundle/API/mac/WKDOMRange.h:
+        * WebProcess/InjectedBundle/API/mac/WKDOMRange.mm:
+        (-[WKDOMRange rangeByExpandingToWordBoundaryByCharacters:inDirection:]):
+
+2016-05-10  Enrica Casucci  <enrica@apple.com>
+
+        Numerous block selection issues on iOS.
+        https://bugs.webkit.org/show_bug.cgi?id=157490
+        rdar://problem/25717977
+        rdar://problem/23042215
+
+        Reviewed by Tim Horton.
+
+        This patch fixes a number of issues with block selection on iOS.
+        We no longer eagerly choose block selection vs text selection and we
+        make sure we are capable of switching back to text selection from block
+        under every circumstance. The patch also fixes the logic used to decide
+        when to switch to block selection. It now computes the rectangle for the
+        paragraph containing the initial text selection to decide when we are
+        actually dragging outside the boundaries of the paragraph block.
+
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/WebPageProxy.messages.in:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (selectionChangedWithGesture):
+        (selectionChangedWithTouch):
+        (-[WKContentView changeSelectionWithTouchAt:withSelectionTouch:baseIsStart:]):
+        * UIProcess/ios/WebPageProxyIOS.mm:
+        (WebKit::WebPageProxy::gestureCallback):
+        (WebKit::WebPageProxy::touchesCallback):
+        (WebKit::WebPageProxy::autocorrectionDataCallback):
+        (WebKit::WebPageProxy::selectWithGesture):
+        (WebKit::WebPageProxy::updateSelectionWithTouches):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::selectionBoxForRange):
+        (WebKit::canShrinkToTextSelection):
+        (WebKit::hasCustomLineHeight):
+        (WebKit::WebPage::rangeForWebSelectionAtPosition):
+        (WebKit::WebPage::contractedRangeFromHandle):
+        (WebKit::WebPage::updateBlockSelectionWithTouch):
+        (WebKit::WebPage::clearSelection):
+        (WebKit::WebPage::switchToBlockSelectionAtPoint):
+        (WebKit::WebPage::shouldSwitchToBlockModeForHandle):
+        (WebKit::WebPage::updateSelectionWithTouches):
+        (WebKit::WebPage::selectWithTwoTouches):
+
+2016-05-10  Alex Christensen  <achristensen@webkit.org>
+
+        Handle _schemeUpgraded delegate callbacks in NSURLSessionDataDelegate
+        https://bugs.webkit.org/show_bug.cgi?id=157354
+        rdar://problem/25842107
+
+        Reviewed by Darin Adler.
+
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:task:_schemeUpgraded:completionHandler:]):
+        When we make a request to a http url and CFNetwork determines that that url would have redirected to an HSTS site
+        and it is going to change the request to an https request, this delegate callback is called.  We need to call the
+        redirection code to have the same behavior as the NSURLConnection-based loader.
+
+2016-05-10  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(VIDEO) build
+        https://bugs.webkit.org/show_bug.cgi?id=157518
+
+        Reviewed by Alex Christensen.
+
+        * UIProcess/WebsiteData/WebsiteDataStore.cpp:
+        (WebKit::WebsiteDataStore::fetchData):
+        (WebKit::WebsiteDataStore::removeData):
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess):
+
+2016-05-10  Anders Carlsson  <andersca@apple.com>
+
+        Fix more deprecation warnings.
+
+        * NetworkProcess/EntryPoint/mac/XPCService/NetworkServiceEntryPoint.mm:
+        (NetworkServiceInitializer):
+        * PluginProcess/EntryPoint/mac/XPCService/PluginServiceEntryPoint.mm:
+        (PluginServiceInitializer):
+        * WebProcess/EntryPoint/mac/XPCService/WebContentServiceEntryPoint.mm:
+        (WebContentServiceInitializer):
+
+2016-05-10  Chris Dumez  <cdumez@apple.com>
+
+        [SpeculativeValidation] Do not start a preload if there is already one pending
+        https://bugs.webkit.org/show_bug.cgi?id=157522
+        <rdar://problem/26156083>
+
+        Reviewed by Alex Christensen.
+
+        Do not start a preload if there is already one pending. We failed to check in
+        SpeculativeLoadManager::preloadEntry() if there was already a pending preload.
+        As a result, we would sometimes cancel an already pending preload and start
+        one from scratch which is inefficient. It would also sometimes lead to hitting
+        an assertion in the SpeculativeLoad destructor because we could destroy the
+        SpeculativeLoad without finishing or cancelling the load.
+
+        * NetworkProcess/cache/NetworkCacheSpeculativeLoadManager.cpp:
+        (WebKit::NetworkCache::SpeculativeLoadManager::preloadEntry):
+
+2016-05-10  Anders Carlsson  <andersca@apple.com>
+
+        Fix a deprecation warning.
+
+        * DatabaseProcess/EntryPoint/mac/XPCService/DatabaseServiceEntryPoint.mm:
+        (DatabaseServiceInitializer):
+
+2016-05-10  Tim Horton  <timothy_horton@apple.com>
+
+        Clicks do not work in Safari after pressing the Track package button in Gmail
+        https://bugs.webkit.org/show_bug.cgi?id=157508
+        <rdar://problem/22646404>
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::viewDidMoveToWindow):
+        Explicitly cancel the force-click animation when we're removing the gesture
+        recognizer due to the WK*View being unparented. This works around a bug
+        where we don't get the cancellation callback in this situation, causing
+        Safari to be left in an inconsistent and unexpected state.
+
 2016-05-10  Michael Catanzaro  <mcatanzaro@igalia.com>
 
         [Linux] Remove seccomp filters support

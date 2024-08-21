@@ -1,3 +1,157 @@
+2016-05-10  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Avoid unnecessary timeout identifier churn in TimelineManager
+        https://bugs.webkit.org/show_bug.cgi?id=157535
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Controllers/TimelineManager.js:
+        (WebInspector.TimelineManager):
+        (WebInspector.TimelineManager.prototype.capturingStarted):
+        (WebInspector.TimelineManager.prototype._resetAutoRecordingDeadTimeTimeout):
+        Don't re-tickle if we tickled in the last 10ms.
+
+2016-05-10  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Can't select record bar in Frames timeline
+        https://bugs.webkit.org/show_bug.cgi?id=156963
+        <rdar://problem/25898256>
+
+        Reviewed by Timothy Hatcher.
+
+        Sync record selection between the Rendering Frames grid and overview graph.
+
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGridNode.prototype.hasAncestor):
+        Add helper function needed by TimelineView.
+
+        * UserInterface/Views/RenderingFrameTimelineOverviewGraph.js:
+        (WebInspector.RenderingFrameTimelineOverviewGraph.prototype._mouseClicked):
+        Don't deselect the selected record when clicked. Initially this seemed
+        like a good idea but it complicates the UI for no added value.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView.prototype._contentViewSelectionPathComponentDidChange):
+        Get path components from the current TimelineView instead of the
+        TimelineRecordingContentView, now that the selected record appears
+        in the bottom ContentBrowser's navigation bar.
+
+2016-05-10  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Backend should initiate timeline recordings on page navigations to ensure nothing is missed
+        https://bugs.webkit.org/show_bug.cgi?id=157504
+        <rdar://problem/26188642>
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Controllers/TimelineManager.js:
+        (WebInspector.TimelineManager):
+        (WebInspector.TimelineManager.prototype.set autoCaptureOnPageLoad):
+        (WebInspector.TimelineManager.prototype.set enabledTimelineTypes):
+        (WebInspector.TimelineManager.prototype._updateAutoCaptureInstruments):
+        For backends that support it, enable/disable auto capture and the instruments to use.
+
+        (WebInspector.TimelineManager.prototype.autoCaptureStarted):
+        New event, stop and start a new recording. Set a flag that we should
+        detect the auto capturing resource so we know when the stop the
+        auto capture.
+
+        (WebInspector.TimelineManager.prototype._loadNewRecording):
+        (WebInspector.TimelineManager.prototype._addRecord):
+        (WebInspector.TimelineManager.prototype._startAutoCapturing): Renamed.
+        (WebInspector.TimelineManager.prototype._attemptAutoCapturingForFrame):
+        (WebInspector.TimelineManager.prototype._legacyAttemptStartAutoCapturingForFrame):
+        (WebInspector.TimelineManager.prototype._stopAutoRecordingSoon):
+        (WebInspector.TimelineManager.prototype._resetAutoRecordingMaxTimeTimeout):
+        (WebInspector.TimelineManager.prototype._resetAutoRecordingDeadTimeTimeout):
+        (WebInspector.TimelineManager.prototype._mainResourceDidChange):
+        (WebInspector.TimelineManager.prototype._mergeScriptProfileRecords):
+        Factor out the new path, old path, and shared code for auto capturing.
+        Renamed _startAutoCapturing to _attemptAutoCapturingForFrame which
+        better matches what it tries to do.
+
+        * UserInterface/Protocol/TimelineObserver.js:
+        (WebInspector.TimelineObserver.prototype.autoCaptureStarted):
+        Inform TimelineManager.
+
+2016-05-10  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Debugger sidebar should refresh when Debug UI enabled/disabled
+        https://bugs.webkit.org/show_bug.cgi?id=157540
+        <rdar://problem/26207064>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/DebuggerSidebarPanel.js:
+        (WebInspector.DebuggerSidebarPanel.prototype._scriptRemoved.removeScript):
+        (WebInspector.DebuggerSidebarPanel.prototype._scriptRemoved):
+        Remove element from both tree outlines, if it exists.
+
+2016-05-10  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: TimelineOverview assertion failed: Missing overview graph for timeline type undefined
+        https://bugs.webkit.org/show_bug.cgi?id=157533
+        <rdar://problem/26204033>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView.prototype._recordWasFiltered):
+        The OverviewTimelineView's represented object is the entire recording,
+        and TimelineOverview.recordWasFiltered expects a timeline. Return early
+        since no graph in the overview needs updating.
+
+2016-05-10  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Call Trees and Memory view blank
+        https://bugs.webkit.org/show_bug.cgi?id=157486
+        <rdar://problem/26178404>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView.prototype._currentContentViewDidChange):
+        (WebInspector.TimelineRecordingContentView.prototype._updateTimes):
+        Setting current time now handled by _updateTimelineViewTimes.
+        (WebInspector.TimelineRecordingContentView.prototype._capturingStopped):
+        Update times for the current TimelineView when the recording ends.
+        This ensures that views that don't call TimelineView.setupDataGrid are
+        able to update state that depends on the ruler selection.
+
+        (WebInspector.TimelineRecordingContentView.prototype._timeRangeSelectionChanged):
+        (WebInspector.TimelineRecordingContentView.prototype._updateTimelineViewTimes):
+        Renamed from _updateTimelineViewSelection. Sets start, end, and current times.
+
+2016-05-10  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Cleanup super getter/setter now that underlying issue is fixed
+        https://bugs.webkit.org/show_bug.cgi?id=157488
+        <rdar://problem/26179120>
+
+        Reviewed by Brian Burg.
+
+        Addressed FIXMEs for bug 147064:
+        <https://webkit.org/b/147064> Getter and setter on super are called with wrong "this" object
+
+        * UserInterface/Views/VisualStyleKeywordPicker.js:
+        (WebInspector.VisualStyleKeywordPicker.prototype.get value):
+        (WebInspector.VisualStyleKeywordPicker.prototype.set value):
+        (WebInspector.VisualStyleKeywordPicker.prototype.get synthesizedValue):
+        (WebInspector.VisualStyleKeywordPicker.prototype._getValue): Deleted.
+        (WebInspector.VisualStyleKeywordPicker.prototype._setValue): Deleted.
+        (WebInspector.VisualStyleKeywordPicker.prototype._generateSynthesizedValue): Deleted.
+
+        * UserInterface/Views/VisualStyleNumberInputBox.js:
+        (WebInspector.VisualStyleNumberInputBox.prototype.set specialPropertyPlaceholderElementText):
+
+        * UserInterface/Views/VisualStyleTimingEditor.js:
+        (WebInspector.VisualStyleTimingEditor.prototype.get value):
+        (WebInspector.VisualStyleTimingEditor.prototype.set value):
+        (WebInspector.VisualStyleTimingEditor.prototype.get synthesizedValue):
+        (WebInspector.VisualStyleTimingEditor.prototype._getValue): Deleted.
+        (WebInspector.VisualStyleTimingEditor.prototype._setValue): Deleted.
+        (WebInspector.VisualStyleTimingEditor.prototype._generateSynthesizedValue): Deleted.
+
 2016-05-09  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: Filtering by Errors/Warnings should not filter Breakpoints list

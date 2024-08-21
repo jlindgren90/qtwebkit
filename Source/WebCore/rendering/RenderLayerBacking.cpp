@@ -815,16 +815,15 @@ void RenderLayerBacking::updateGeometry()
             renderBox.width() - renderBox.borderLeft() - renderBox.borderRight(),
             renderBox.height() - renderBox.borderTop() - renderBox.borderBottom());
 
-        IntSize scrollOffset = compAncestor->scrolledContentOffset();
+        ScrollOffset scrollOffset = compAncestor->scrollOffset();
         // FIXME: pixel snap the padding box.
-        graphicsLayerParentLocation = paddingBox.location() - scrollOffset;
+        graphicsLayerParentLocation = paddingBox.location() - toLayoutSize(scrollOffset);
     }
 #else
     if (compAncestor && compAncestor->needsCompositedScrolling()) {
         auto& renderBox = downcast<RenderBox>(compAncestor->renderer());
-        LayoutSize scrollOffset = compAncestor->scrolledContentOffset();
         LayoutPoint scrollOrigin(renderBox.borderLeft(), renderBox.borderTop());
-        graphicsLayerParentLocation = scrollOrigin - scrollOffset;
+        graphicsLayerParentLocation = scrollOrigin - toLayoutSize(compAncestor->scrollOffset());
     }
 #endif
 

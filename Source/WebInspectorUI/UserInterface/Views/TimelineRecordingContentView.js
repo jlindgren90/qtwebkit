@@ -277,8 +277,7 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         this._updateProgressView();
 
         if (timelineView) {
-            this._updateTimelineViewSelection(timelineView);
-            timelineView.currentTime = this._currentTime;
+            this._updateTimelineViewTimes(timelineView);
 
             let timeline = null;
             if (timelineView.representedObject instanceof WebInspector.Timeline)
@@ -323,8 +322,12 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         if (this.currentTimelineView === this._overviewTimelineView)
             return;
 
-        var recordPathComponent = this.selectionPathComponents.find(function(element) { return element.representedObject instanceof WebInspector.TimelineRecord; });
-        var record = recordPathComponent ? recordPathComponent.representedObject : null;
+        let record = null;
+        if (this.currentTimelineView.selectionPathComponents) {
+            let recordPathComponent = this.currentTimelineView.selectionPathComponents.find((element) => element.representedObject instanceof WebInspector.TimelineRecord);
+            record = recordPathComponent ? recordPathComponent.representedObject : null;
+        }
+
         this._timelineOverview.selectRecord(event.target.representedObject, record);
     }
 
@@ -383,11 +386,9 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
 
         this._currentTime = currentTime;
         this._timelineOverview.currentTime = currentTime;
-        if (this.currentTimelineView)
-            this.currentTimelineView.currentTime = currentTime;
 
-        if (this._timelineOverview.timelineRuler.entireRangeSelected)
-            this._updateTimelineViewSelection(this._overviewTimelineView);
+        if (this.currentTimelineView)
+            this._updateTimelineViewTimes(this.currentTimelineView);
 
         // Force a layout now since we are already in an animation frame and don't need to delay it until the next.
         this._timelineOverview.updateLayoutIfNeeded();
@@ -448,6 +449,9 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
 
         if (this._updating)
             this._stopUpdatingCurrentTime();
+
+        if (this.currentTimelineView)
+            this._updateTimelineViewTimes(this.currentTimelineView);
     }
 
     _debuggerPaused(event)
@@ -601,7 +605,7 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         if (!this.currentTimelineView)
             return;
 
-        this._updateTimelineViewSelection(this.currentTimelineView);
+        this._updateTimelineViewTimes(this.currentTimelineView);
 
         let selectedPathComponent;
         if (this._timelineOverview.timelineRuler.entireRangeSelected)
@@ -678,7 +682,7 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         return pathComponent;
     }
 
-    _updateTimelineViewSelection(timelineView)
+    _updateTimelineViewTimes(timelineView)
     {
         let timelineRuler = this._timelineOverview.timelineRuler;
         let entireRangeSelected = timelineRuler.entireRangeSelected;
@@ -694,6 +698,7 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         }
 
         timelineView.startTime = this._timelineOverview.selectionStartTime;
+        timelineView.currentTime = this._currentTime;
         timelineView.endTime = endTime;
     }
 
@@ -718,9 +723,15 @@ WebInspector.TimelineRecordingContentView = class TimelineRecordingContentView e
         if (event.target !== this.currentTimelineView)
             return;
 
+        console.assert(this.currentTimelineView);
+
+        let timeline = this.currentTimelineView.representedObject;
+        if (!(timeline instanceof WebInspector.Timeline))
+            return;
+
         let record = event.data.record;
         let filtered = event.data.filtered;
-        this._timelineOverview.recordWasFiltered(this.currentTimelineView.representedObject, record, filtered);
+        this._timelineOverview.recordWasFiltered(timeline, record, filtered);
     }
 
     _updateProgressView()
