@@ -5392,7 +5392,7 @@ SecurityOrigin* Document::topOrigin() const
     return topDocument().securityOrigin();
 }
 
-void Document::postTask(Task task)
+void Document::postTask(Task&& task)
 {
     callOnMainThread([documentReference = m_weakFactory.createWeakPtr(), task = WTFMove(task)]() mutable {
         ASSERT(isMainThread());

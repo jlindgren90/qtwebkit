@@ -1,3 +1,155 @@
+2016-05-29  Saam barati  <sbarati@apple.com>
+
+        Stack overflow crashes with deep or cyclic proxy prototype chains
+        https://bugs.webkit.org/show_bug.cgi?id=157087
+
+        Reviewed by Filip Pizlo and Mark Lam.
+
+        Because a Proxy can call back into the JS runtime in arbitrary
+        ways, we may have effectively cyclic prototype chains and property lookups
+        by using a Proxy. We may also have arbitrarily long Proxy chains
+        where we call into a C frame for each link in the Proxy chain.
+        This means that every Proxy hook must be aware that it can stack overflow.
+        Before, only certain hooks were aware of this fact. That was a bug,
+        all hooks must assume they can stack overflow.
+
+        Also, because we may have effectively cyclic prototype chains, we
+        compile ProxyObject.cpp with -fno-optimize-sibling-calls. This prevents
+        tail call optimization from happening on any of the calls from
+        ProxyObject.cpp. We do this because we rely on the machine stack
+        growing for throwing a stack overflow error. It's better for developers
+        to be able to see a stack overflow error than to have their program
+        infinite loop because the compiler performed TCO.
+
+        This patch also fixes a couple call sites of various methods
+        where we didn't check for an exception.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * interpreter/Interpreter.cpp:
+        (JSC::sizeOfVarargs):
+        * runtime/InternalFunction.cpp:
+        (JSC::InternalFunction::createSubclassStructure):
+        * runtime/JSArray.h:
+        (JSC::getLength):
+        * runtime/ObjectPrototype.cpp:
+        (JSC::objectProtoFuncToString):
+        * runtime/ProxyObject.cpp:
+        (JSC::performProxyGet):
+        (JSC::ProxyObject::performInternalMethodGetOwnProperty):
+        (JSC::ProxyObject::performHasProperty):
+        (JSC::ProxyObject::getOwnPropertySlotCommon):
+        (JSC::ProxyObject::performPut):
+        (JSC::performProxyCall):
+        (JSC::performProxyConstruct):
+        (JSC::ProxyObject::performDelete):
+        (JSC::ProxyObject::performPreventExtensions):
+        (JSC::ProxyObject::performIsExtensible):
+        (JSC::ProxyObject::performDefineOwnProperty):
+        (JSC::ProxyObject::performGetOwnPropertyNames):
+        (JSC::ProxyObject::getOwnPropertyNames):
+        (JSC::ProxyObject::getPropertyNames):
+        (JSC::ProxyObject::getOwnNonIndexPropertyNames):
+        (JSC::ProxyObject::performSetPrototype):
+        (JSC::ProxyObject::performGetPrototype):
+        * runtime/ProxyObject.h:
+        (JSC::ProxyObject::create):
+        * tests/stress/proxy-stack-overflow-exceptions.js: Added.
+        (shouldThrowStackOverflow):
+        (const.emptyFunction):
+        (makeLongProxyChain):
+        (shouldThrowStackOverflow.longProxyChain):
+        (shouldThrowStackOverflow.effecivelyCyclicProxyProtoChain1):
+        (shouldThrowStackOverflow.effecivelyCyclicProxyProtoChain2):
+        (shouldThrowStackOverflow.effecivelyCyclicProxyProtoChain3):
+        (shouldThrowStackOverflow.longProxyChainBind):
+        (shouldThrowStackOverflow.longProxyChainPropertyAccess):
+        (shouldThrowStackOverflow.longProxyChainReflectConstruct):
+        (shouldThrowStackOverflow.longProxyChainReflectSet):
+        (shouldThrowStackOverflow.longProxyChainReflectOwnKeys):
+        (shouldThrowStackOverflow.longProxyChainGetPrototypeOf):
+        (shouldThrowStackOverflow.longProxyChainSetPrototypeOf):
+        (shouldThrowStackOverflow.longProxyChainGetOwnPropertyDescriptor):
+        (shouldThrowStackOverflow.longProxyChainDefineProperty):
+        (shouldThrowStackOverflow.longProxyChainIsExtensible):
+        (shouldThrowStackOverflow.longProxyChainPreventExtensions):
+        (shouldThrowStackOverflow.longProxyChainDeleteProperty):
+        (shouldThrowStackOverflow.longProxyChainWithScope):
+        (shouldThrowStackOverflow.longProxyChainWithScope2):
+        (shouldThrowStackOverflow.longProxyChainWithScope3):
+        (shouldThrowStackOverflow.longProxyChainArrayPrototypePush):
+        (shouldThrowStackOverflow.longProxyChainWithScope4):
+        (shouldThrowStackOverflow.longProxyChainCall):
+        (shouldThrowStackOverflow.longProxyChainConstruct):
+        (shouldThrowStackOverflow.longProxyChainHas):
+
+2016-05-28  Andreas Kling  <akling@apple.com>
+
+        JSGlobalLexicalEnvironment leaks SegmentedVector due to lack of destructor.
+        <https://webkit.org/b/158186>
+
+        Reviewed by Saam Barati.
+
+        Give JSGlobalLexicalEnvironment a destroy() and set up a finalizer for it
+        like we do with JSGlobalObject. (This is needed because they don't inherit
+        from JSDestructibleObjects and thus can't use JSCell::needsDestruction to
+        ask for allocation in destructor space.)
+
+        This stops us from leaking all the SegmentedVector backing stores.
+
+        * runtime/JSGlobalLexicalEnvironment.cpp:
+        (JSC::JSGlobalLexicalEnvironment::destroy):
+        * runtime/JSGlobalLexicalEnvironment.h:
+        (JSC::JSGlobalLexicalEnvironment::create):
+
+2016-05-28  Skachkov Oleksandr  <gskachkov@gmail.com>
+        [ESNext] Trailing commas in function parameters.
+        https://bugs.webkit.org/show_bug.cgi?id=158020
+
+        Reviewed by Keith Miller.
+
+        ESNext allow to add trailing commas in function parameters and function arguments.
+        Link to spec - https://jeffmo.github.io/es-trailing-function-commas 
+        Example of using - (function (a, b,) { return a + b; })(1,2,);
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseFormalParameters):
+        (JSC::Parser<LexerType>::parseArguments):
+        * tests/stress/trailing-comma-in-function-paramters.js: Added.
+
+2016-05-28  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] op_new_arrow_func_exp is no longer necessary
+        https://bugs.webkit.org/show_bug.cgi?id=158180
+
+        Reviewed by Saam Barati.
+
+        This patch removes op_new_arrow_func_exp bytecode since
+        what op_new_arrow_func_exp is doing is completely the same to op_new_func_exp.
+
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset): Deleted.
+        (JSC::computeDefsForBytecodeOffset): Deleted.
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode): Deleted.
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitNewFunctionExpressionCommon):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel): Deleted.
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass): Deleted.
+        * jit/JIT.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emitNewFuncExprCommon):
+        (JSC::JIT::emit_op_new_arrow_func_exp): Deleted.
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL): Deleted.
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter.asm:
+
 2016-05-27  Caitlin Potter  <caitp@igalia.com>
 
         [JSC] implement async functions proposal

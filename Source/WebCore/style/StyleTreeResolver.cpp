@@ -531,15 +531,15 @@ std::unique_ptr<Update> TreeResolver::resolve(Change change)
     return WTFMove(m_update);
 }
 
-static Vector<std::function<void ()>>& postResolutionCallbackQueue()
+static Vector<NoncopyableFunction<void ()>>& postResolutionCallbackQueue()
 {
-    static NeverDestroyed<Vector<std::function<void ()>>> vector;
+    static NeverDestroyed<Vector<NoncopyableFunction<void ()>>> vector;
     return vector;
 }
 
-void queuePostResolutionCallback(std::function<void ()> callback)
+void queuePostResolutionCallback(NoncopyableFunction<void ()>&& callback)
 {
-    postResolutionCallbackQueue().append(callback);
+    postResolutionCallbackQueue().append(WTFMove(callback));
 }
 
 static void suspendMemoryCacheClientCalls(Document& document)
@@ -550,8 +550,7 @@ static void suspendMemoryCacheClientCalls(Document& document)
 
     page->setMemoryCacheClientCallsEnabled(false);
 
-    RefPtr<MainFrame> protectedMainFrame = &page->mainFrame();
-    postResolutionCallbackQueue().append([protectedMainFrame]{
+    postResolutionCallbackQueue().append([protectedMainFrame = Ref<MainFrame>(page->mainFrame())] {
         if (Page* page = protectedMainFrame->page())
             page->setMemoryCacheClientCallsEnabled(true);
     });

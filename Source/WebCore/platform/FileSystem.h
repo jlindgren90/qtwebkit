@@ -147,12 +147,6 @@ enum FileLockMode {
     LockNonBlocking = 4
 };
 
-#if OS(WINDOWS)
-static const char PlatformFilePathSeparator = '\\';
-#else
-static const char PlatformFilePathSeparator = '/';
-#endif
-
 struct FileMetadata;
 
 WEBCORE_EXPORT bool fileExists(const String&);

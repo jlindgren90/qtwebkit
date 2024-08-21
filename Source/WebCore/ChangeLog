@@ -1,3 +1,270 @@
+2016-05-30  Per Arne Vollan  <pvollan@apple.com>
+
+        http/tests/websocket/tests/hybi/stop-on-resume-in-error-handler.html crashes on Windows almost all the time
+        https://bugs.webkit.org/show_bug.cgi?id=144057
+
+        Reviewed by Brent Fulgham.
+
+        Protect SocketStreamHandle object before trying to access it on the main thread, and make sure
+        CFWriteStreamRef parameter is valid before calling CFWriteStreamCanAcceptBytes. 
+
+        * platform/network/cf/SocketStreamHandleCFNet.cpp:
+        (WebCore::SocketStreamHandle::readStreamCallback):
+        (WebCore::SocketStreamHandle::writeStreamCallback):
+
+2016-05-30  Javier Fernandez  <jfernandez@igalia.com>
+
+        [CSS Box Alignment] New CSS Value 'normal' for Self Alignment
+        https://bugs.webkit.org/show_bug.cgi?id=156254
+
+        Reviewed by Darin Adler.
+
+        The Box Alignment specification defines a new value 'normal' to be used
+        as default for the different layout models, which will define the
+        specific behavior for each case. This patch adds a new CSS value in the
+        parsing logic and adapts the Self Alignment properties to the new
+        value.
+
+        The 'auto' value is no longer valid for the 'align-items' property and
+        the Computed Value will be always the specified value. Hence, I removed
+        the StyleResolver logic because is not required now; the specific
+        behavior of the 'normal' value will be resolved at layout time.
+
+        Additionally, this patch updates the layout logic as well, for both
+        Flexbox and Grid layout models.
+
+        Test: css3/parse-alignment-of-root-elements.html
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::resolveLegacyJustifyItems): Added.
+        (WebCore::resolveJustifyItemsAuto): Added.
+        (WebCore::resolveJustifySelfAuto): Added.
+        (WebCore::resolveAlignSelfAuto): Added.
+        (WebCore::valueForItemPositionWithOverflowAlignment): Using a StyleSelfAlignmentData argument.
+        (WebCore::ComputedStyleExtractor::propertyValue): Using the new resolving functions.
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseItemPositionOverflowPosition): A new value 'normal' is now valid.
+        * css/CSSPrimitiveValueMappings.h:
+        (WebCore::CSSPrimitiveValue::CSSPrimitiveValue): Mappings for the new value 'normal'.
+        (WebCore::CSSPrimitiveValue::operator ItemPosition): Mappings for the new value 'normal'.
+        * css/CSSPropertyNames.in:
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::adjustRenderStyle): We don't need to resolve 'legacy" keyword.
+        * rendering/RenderBox.cpp:
+        (WebCore::flexItemHasStretchAlignment):
+        (WebCore::RenderBox::hasStretchedLogicalWidth):
+        * rendering/RenderFlexibleBox.cpp:
+        (WebCore::RenderFlexibleBox::styleDidChange):
+        (WebCore::RenderFlexibleBox::alignmentForChild):
+        (WebCore::contentAlignmentNormalBehaviorFlexibleBox):
+        (WebCore::RenderFlexibleBox::layoutAndPlaceChildren):
+        (WebCore::RenderFlexibleBox::layoutColumnReverse):
+        (WebCore::RenderFlexibleBox::alignFlexLines):
+        (WebCore::RenderFlexibleBox::alignChildren):
+        * rendering/RenderGrid.cpp:
+        (WebCore::defaultAlignmentChangedToStretchInRowAxis):
+        (WebCore::defaultAlignmentChangedFromStretchInRowAxis):
+        (WebCore::defaultAlignmentChangedFromStretchInColumnAxis):
+        (WebCore::selfAlignmentChangedToStretchInRowAxis):
+        (WebCore::selfAlignmentChangedFromStretchInRowAxis):
+        (WebCore::selfAlignmentChangedFromStretchInColumnAxis):
+        (WebCore::contentAlignmentNormalBehaviorGrid):
+        (WebCore::RenderGrid::applyStretchAlignmentToTracksIfNeeded):
+        (WebCore::RenderGrid::needToStretchChildLogicalHeight):
+        (WebCore::RenderGrid::applyStretchAlignmentToChildIfNeeded):
+        (WebCore::RenderGrid::columnAxisPositionForChild):
+        (WebCore::RenderGrid::rowAxisPositionForChild):
+        (WebCore::RenderGrid::columnAxisOffsetForChild):
+        (WebCore::RenderGrid::rowAxisOffsetForChild):
+        (WebCore::RenderGrid::computeContentPositionAndDistributionOffset):
+        * rendering/style/RenderStyle.cpp:
+        (WebCore::resolvedSelfAlignment):
+        (WebCore::RenderStyle::resolvedAlignItems):
+        (WebCore::RenderStyle::resolvedAlignSelf):
+        (WebCore::RenderStyle::resolvedJustifyItems):
+        (WebCore::RenderStyle::resolvedJustifySelf):
+        * rendering/style/RenderStyle.h:
+        * rendering/style/RenderStyleConstants.h:
+        * rendering/style/StyleRareNonInheritedData.cpp:
+        (WebCore::StyleRareNonInheritedData::StyleRareNonInheritedData): align-items uses now a different initial function.
+
+2016-05-29  Brady Eidson  <beidson@apple.com>
+
+        Transition various Task/Function queues from std::function to NoncopyableFunction.
+        https://bugs.webkit.org/show_bug.cgi?id=158196
+
+        Reviewed by Chris Dumez.
+
+        No new tests (Refactor, no behavior change).
+
+        * dom/ActiveDOMCallbackMicrotask.cpp:
+        (WebCore::ActiveDOMCallbackMicrotask::ActiveDOMCallbackMicrotask):
+        * dom/ActiveDOMCallbackMicrotask.h:
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::layoutSizeChanged):
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::queuePostLayoutCallback):
+        (WebCore::FrameView::flushPostLayoutTasksQueue):
+        * page/FrameView.h:
+
+        * platform/GenericTaskQueue.cpp:
+        (WebCore::TaskDispatcher<Timer>::postTask):
+        (WebCore::TaskDispatcher<Timer>::dispatchOneTask):
+        * platform/GenericTaskQueue.h:
+        (WebCore::TaskDispatcher::postTask):
+        (WebCore::GenericTaskQueue::enqueueTask):
+
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::postResolutionCallbackQueue):
+        (WebCore::Style::queuePostResolutionCallback):
+        (WebCore::Style::suspendMemoryCacheClientCalls):
+        * style/StyleTreeResolver.h:
+
+2016-05-29  Brady Eidson  <beidson@apple.com>
+
+        Make ScriptExecutionContext::Task work in terms of wtf::NoncopyableFunction instead of std::function.
+        https://bugs.webkit.org/show_bug.cgi?id=158187
+
+        Reviewed by Chris Dumez.
+
+        No new tests (Refactor, no behavior change).
+
+        Also make postTask take an rvalue reference.
+
+        * bindings/js/JSDOMGlobalObjectTask.cpp:
+        (WebCore::JSGlobalObjectTask::JSGlobalObjectTask):
+        
+        * dom/Document.cpp:
+        (WebCore::Document::postTask):
+        * dom/Document.h:
+        
+        * dom/ScriptExecutionContext.h:
+        (WebCore::ScriptExecutionContext::Task::Task):
+        
+        * workers/WorkerGlobalScope.cpp:
+        (WebCore::WorkerGlobalScope::postTask):
+        * workers/WorkerGlobalScope.h:
+
+2016-05-28  Chris Dumez  <cdumez@apple.com>
+
+        Templatize NoncopyableFunction class similarly to std::function
+        https://bugs.webkit.org/show_bug.cgi?id=158185
+
+        Reviewed by Darin Adler.
+
+        Templatize NoncopyableFunction class similarly to std::function, so
+        that it can be used as a std::function replacement in more places.
+
+        Previously, NoncopyableFunction could only support "void()" lambdas.
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::runTask):
+        * Modules/mediastream/MediaEndpointPeerConnection.h:
+        * fileapi/AsyncFileStream.cpp:
+        (WebCore::callOnFileThread):
+        (WebCore::AsyncFileStream::perform):
+        (WebCore::AsyncFileStream::getSize):
+        (WebCore::AsyncFileStream::openForRead):
+        (WebCore::AsyncFileStream::openForWrite):
+        (WebCore::AsyncFileStream::write):
+        * fileapi/AsyncFileStream.h:
+        * page/scrolling/ScrollingThread.cpp:
+        (WebCore::ScrollingThread::dispatch):
+        (WebCore::ScrollingThread::dispatchBarrier):
+        (WebCore::ScrollingThread::dispatchFunctionsFromScrollingThread):
+        * page/scrolling/ScrollingThread.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::scheduleDeferredTask):
+        * platform/mediastream/MediaStreamPrivate.cpp:
+        (WebCore::MediaStreamPrivate::scheduleDeferredTask):
+        * platform/mediastream/MediaStreamPrivate.h:
+        * platform/mediastream/mac/AVMediaCaptureSource.h:
+        * platform/mediastream/mac/AVMediaCaptureSource.mm:
+        (WebCore::AVMediaCaptureSource::scheduleDeferredTask):
+
+2016-05-28  Alexey Proskuryakov  <ap@apple.com>
+
+        Fix the build with newer clang and other custom configuration options
+        https://bugs.webkit.org/show_bug.cgi?id=158161
+
+        Reviewed by Dan Bernstein.
+
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (WebCore::WebVideoFullscreenInterfaceMac::rateChanged): Added UNUSED_PARAMs for the
+        case where this function is unimplemented.
+        (WebCore::WebVideoFullscreenInterfaceMac::setExternalPlayback): Added a non-additions
+        version of this function.
+        * platform/spi/cf/CFNetworkSPI.h: Silence nullability-completeness (and other) warnings.
+        I doubt that it's practical to get these right for every SDK version at this time. Added
+        functions for overriding HTTPS certicate behavior that we used to declare in .m files.
+        * platform/spi/mac/AVFoundationSPI.h: Define AVAssetCache conditionally.
+
+2016-05-28  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Autocorrection makes it hard to type "doesn't" and to type @ in email addresses
+        https://bugs.webkit.org/show_bug.cgi?id=158177
+        <rdar://problem/20490862>
+        <rdar://problem/24707954>
+
+        Reviewed by Darin Adler.
+
+        When the user had typed "doesn'", some unified spellchecker may try to autocorrect it to "doesn't" or "does"
+        but we should ignore this for a moment until the next character is typed by the user. The code to deal with
+        this situation which checks the existence of an "ambiguous boundary character" was not robust when the
+        replacement text was longer than the corrected text.
+
+        Fixed this bug by fixing the logic to detect this case. Also added '@' as an ambiguous boundary character
+        since autocorrecting letters that appear right before '@' would not be useful in many cases.
+
+        Tests: ManualTests/autocorrection/autocorrection-at-mark.html
+               ManualTests/autocorrection/autocorrection-contraction-2.html
+
+        * editing/AlternativeTextController.cpp:
+        (WebCore::AlternativeTextController::timerFired): Fixed a bug that we can show an empty reversion panel.
+        * editing/Editor.cpp:
+        (WebCore::Editor::markAndReplaceFor): When the user had typed "doesn'" and our autocorrection result is
+        "doesn't", resultEndLocation (the end of "doesn't") is larger than selectionOffset (the end of "doesn'").
+        When the correction is "does", resultEndLocation (the end of "does") is one less than selectionOffset.
+        Updated the condition to deal with both of these conditions as well as cases where the correction result
+        contains more than one letter after '.
+        * editing/htmlediting.cpp:
+        (WebCore::isAmbiguousBoundaryCharacter): Moved from the header file since this is not a hot function and
+        doesn't need to be inlined everywhere. Added '@' as an ambiguous boundary character.
+        * editing/htmlediting.h:
+        (WebCore::isAmbiguousBoundaryCharacter): Moved to the cpp file.
+
+2016-05-28  Konstantin Tokarev  <annulen@yandex.ru>
+
+        FileSystem: use OS(WINDOWS) instead of PLATFORM(WIN).
+        https://bugs.webkit.org/show_bug.cgi?id=158168
+
+        Reviewed by Darin Adler.
+
+        No new tests needed.
+
+        * platform/FileSystem.cpp:
+        (WebCore::lastComponentOfPathIgnoringTrailingSlash):
+        (WebCore::MappedFileData::~MappedFileData):
+        (WebCore::MappedFileData::MappedFileData):
+        * platform/FileSystem.h: Removed unused PlatformFilePathSeparator
+        constant.
+
+2016-05-28  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Use COMPILER(MSVC) instead of PLATFORM(WIN) for MSVC-specific workaround
+        https://bugs.webkit.org/show_bug.cgi?id=158169
+
+        Reviewed by Darin Adler.
+
+        No new tests needed.
+
+        * platform/PlatformMouseEvent.h:
+        * platform/win/PlatformMouseEventWin.cpp: Moved operators'
+        implementations to PlatformMouseEvent.h
+
 2016-05-27  Chris Dumez  <cdumez@apple.com>
 
         callOnMainThread() should not copy captured lambda variables
