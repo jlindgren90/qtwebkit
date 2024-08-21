@@ -264,3 +264,6 @@ userInterfaceDirectionPolicy type=UserInterfaceDirectionPolicy, initial=UserInte
 systemLayoutDirection type=TextDirection, initial=LTR
 
 allowContentSecurityPolicySourceStarToMatchAnyProtocol initial=false
+
+selectionPaintingWithoutSelectionGapsEnabled initial=false
+
