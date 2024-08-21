@@ -696,6 +696,7 @@
 		1A22464C0CC98DDB00C05240 /* SQLiteStatement.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A2246460CC98DDB00C05240 /* SQLiteStatement.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1A22464D0CC98DDB00C05240 /* SQLiteTransaction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A2246470CC98DDB00C05240 /* SQLiteTransaction.cpp */; };
 		1A22464E0CC98DDB00C05240 /* SQLiteTransaction.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A2246480CC98DDB00C05240 /* SQLiteTransaction.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		1A250E0D1CDD632000D0BE63 /* LinkIconType.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A250E0C1CDD632000D0BE63 /* LinkIconType.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1A2A68230B5BEDE70002A480 /* ProgressTracker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A2A68210B5BEDE70002A480 /* ProgressTracker.cpp */; };
 		1A2A68240B5BEDE70002A480 /* ProgressTracker.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A2A68220B5BEDE70002A480 /* ProgressTracker.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1A2AAC580DC2A3B100A20D9A /* ApplicationCacheStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A2AAC560DC2A3B100A20D9A /* ApplicationCacheStorage.cpp */; };
@@ -723,6 +724,8 @@
 		1A4A954D0B4EDCCB002D8C3C /* SharedBuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A4A954B0B4EDCCB002D8C3C /* SharedBuffer.cpp */; };
 		1A4A954E0B4EDCCB002D8C3C /* SharedBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A4A954C0B4EDCCB002D8C3C /* SharedBuffer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1A4A95520B4EDCFF002D8C3C /* SharedBufferMac.mm in Sources */ = {isa = PBXBuildFile; fileRef = 1A4A95510B4EDCFF002D8C3C /* SharedBufferMac.mm */; };
+		1A4DA4211CDD3A8300F4473C /* LinkIconCollector.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A4DA41F1CDD3A8300F4473C /* LinkIconCollector.cpp */; };
+		1A4DA4221CDD3A8300F4473C /* LinkIconCollector.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A4DA4201CDD3A8300F4473C /* LinkIconCollector.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		1A569CF70D7E2B82007C3983 /* c_class.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A569CC60D7E2B82007C3983 /* c_class.cpp */; };
 		1A569CF80D7E2B82007C3983 /* c_class.h in Headers */ = {isa = PBXBuildFile; fileRef = 1A569CC70D7E2B82007C3983 /* c_class.h */; };
 		1A569CF90D7E2B82007C3983 /* c_instance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 1A569CC80D7E2B82007C3983 /* c_instance.cpp */; };
@@ -1162,6 +1165,8 @@
 		2D5002FB1B56D7990020AAF7 /* PathUtilities.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D5002F91B56D7990020AAF7 /* PathUtilities.cpp */; };
 		2D5002FC1B56D7990020AAF7 /* PathUtilities.h in Headers */ = {isa = PBXBuildFile; fileRef = 2D5002FA1B56D7990020AAF7 /* PathUtilities.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		2D5036681BCDDDC400E20BB3 /* GestureEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D5036671BCDDDC400E20BB3 /* GestureEvents.cpp */; };
+		2D50A4B71CE10E0000198049 /* AttachmentPlaceholder.png in Resources */ = {isa = PBXBuildFile; fileRef = 2D50A4B51CE10E0000198049 /* AttachmentPlaceholder.png */; };
+		2D50A4B81CE10E0000198049 /* AttachmentPlaceholder@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 2D50A4B61CE10E0000198049 /* AttachmentPlaceholder@2x.png */; };
 		2D5646B01B8F8493003C4994 /* DictionaryPopupInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = 2D5646AF1B8F8493003C4994 /* DictionaryPopupInfo.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		2D59F1BF1A0044C6001F3D29 /* DataDetectorsSPI.h in Headers */ = {isa = PBXBuildFile; fileRef = 2D59F1BE1A0044C6001F3D29 /* DataDetectorsSPI.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		2D5A592F152525230036EE51 /* ImageOrientation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A8748D7412CC3F89001FBA41 /* ImageOrientation.cpp */; };
@@ -8136,6 +8141,7 @@
 		1A2246460CC98DDB00C05240 /* SQLiteStatement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SQLiteStatement.h; sourceTree = "<group>"; };
 		1A2246470CC98DDB00C05240 /* SQLiteTransaction.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SQLiteTransaction.cpp; sourceTree = "<group>"; };
 		1A2246480CC98DDB00C05240 /* SQLiteTransaction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SQLiteTransaction.h; sourceTree = "<group>"; };
+		1A250E0C1CDD632000D0BE63 /* LinkIconType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LinkIconType.h; sourceTree = "<group>"; };
 		1A2A68210B5BEDE70002A480 /* ProgressTracker.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = ProgressTracker.cpp; sourceTree = "<group>"; };
 		1A2A68220B5BEDE70002A480 /* ProgressTracker.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = ProgressTracker.h; sourceTree = "<group>"; };
 		1A2AAC560DC2A3B100A20D9A /* ApplicationCacheStorage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ApplicationCacheStorage.cpp; sourceTree = "<group>"; };
@@ -8166,6 +8172,8 @@
 		1A4A954B0B4EDCCB002D8C3C /* SharedBuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = SharedBuffer.cpp; sourceTree = "<group>"; };
 		1A4A954C0B4EDCCB002D8C3C /* SharedBuffer.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = SharedBuffer.h; sourceTree = "<group>"; };
 		1A4A95510B4EDCFF002D8C3C /* SharedBufferMac.mm */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.objcpp; path = SharedBufferMac.mm; sourceTree = "<group>"; };
+		1A4DA41F1CDD3A8300F4473C /* LinkIconCollector.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = LinkIconCollector.cpp; sourceTree = "<group>"; };
+		1A4DA4201CDD3A8300F4473C /* LinkIconCollector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LinkIconCollector.h; sourceTree = "<group>"; };
 		1A569CC60D7E2B82007C3983 /* c_class.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = c_class.cpp; sourceTree = "<group>"; };
 		1A569CC70D7E2B82007C3983 /* c_class.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = c_class.h; sourceTree = "<group>"; };
 		1A569CC80D7E2B82007C3983 /* c_instance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = c_instance.cpp; sourceTree = "<group>"; };
@@ -8648,6 +8656,8 @@
 		2D5002F91B56D7990020AAF7 /* PathUtilities.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PathUtilities.cpp; sourceTree = "<group>"; };
 		2D5002FA1B56D7990020AAF7 /* PathUtilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PathUtilities.h; sourceTree = "<group>"; };
 		2D5036671BCDDDC400E20BB3 /* GestureEvents.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = GestureEvents.cpp; sourceTree = "<group>"; };
+		2D50A4B51CE10E0000198049 /* AttachmentPlaceholder.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = AttachmentPlaceholder.png; sourceTree = "<group>"; };
+		2D50A4B61CE10E0000198049 /* AttachmentPlaceholder@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "AttachmentPlaceholder@2x.png"; sourceTree = "<group>"; };
 		2D5646AF1B8F8493003C4994 /* DictionaryPopupInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DictionaryPopupInfo.h; sourceTree = "<group>"; };
 		2D59F1BE1A0044C6001F3D29 /* DataDetectorsSPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DataDetectorsSPI.h; sourceTree = "<group>"; };
 		2D5BC42516F882BE007048D0 /* SecurityPolicyViolationEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SecurityPolicyViolationEvent.h; sourceTree = "<group>"; };
@@ -17942,6 +17952,8 @@
 		65998A650E5F5FD3004E097A /* images */ = {
 			isa = PBXGroup;
 			children = (
+				2D50A4B51CE10E0000198049 /* AttachmentPlaceholder.png */,
+				2D50A4B61CE10E0000198049 /* AttachmentPlaceholder@2x.png */,
 				D02B64B014089E56006EFA21 /* DictationPhraseWithAlternativesDot.png */,
 				D02B64B114089E56006EFA21 /* DictationPhraseWithAlternativesDot@2x.png */,
 				BE8C753010681324001E93F5 /* SpellingDot.png */,
@@ -19430,6 +19442,9 @@
 				450CEBEF15073BBE002BB149 /* LabelableElement.h */,
 				A456FA2411AD4A830020B420 /* LabelsNodeList.cpp */,
 				A456FA2511AD4A830020B420 /* LabelsNodeList.h */,
+				1A4DA41F1CDD3A8300F4473C /* LinkIconCollector.cpp */,
+				1A4DA4201CDD3A8300F4473C /* LinkIconCollector.h */,
+				1A250E0C1CDD632000D0BE63 /* LinkIconType.h */,
 				985BB96B13A94058007A0B69 /* LinkRelAttribute.cpp */,
 				985BB96C13A94058007A0B69 /* LinkRelAttribute.h */,
 				CD27F6E6145770D30078207D /* MediaController.cpp */,
@@ -26210,6 +26225,7 @@
 				A8CFF7AB0A156978000A4234 /* HTMLAnchorElement.h in Headers */,
 				A871D45D0A127CBC00B12A68 /* HTMLAppletElement.h in Headers */,
 				A8EA7D2E0A19385500A8EF5F /* HTMLAreaElement.h in Headers */,
+				1A4DA4221CDD3A8300F4473C /* LinkIconCollector.h in Headers */,
 				7C5F28FC1A827D8400C0F31F /* HTMLAttachmentElement.h in Headers */,
 				E44613A20CD6331000FADA75 /* HTMLAudioElement.h in Headers */,
 				A871DC1F0A15205700B12A68 /* HTMLBaseElement.h in Headers */,
@@ -28131,6 +28147,7 @@
 				B22279D40D00BF220071B782 /* SVGFEDiffuseLightingElement.h in Headers */,
 				B22279D70D00BF220071B782 /* SVGFEDisplacementMapElement.h in Headers */,
 				B22279DA0D00BF220071B782 /* SVGFEDistantLightElement.h in Headers */,
+				1A250E0D1CDD632000D0BE63 /* LinkIconType.h in Headers */,
 				4358E8861360A33B00E4748C /* SVGFEDropShadowElement.h in Headers */,
 				B22279DD0D00BF220071B782 /* SVGFEFloodElement.h in Headers */,
 				B22279E00D00BF220071B782 /* SVGFEFuncAElement.h in Headers */,
@@ -28861,6 +28878,7 @@
 				BCAD180A131C7A0D00990406 /* Localizable.strings in Resources */,
 				311C08BD18EB7CAF00B65615 /* mediaControlsApple.css in Resources */,
 				311C08BE18EB7CAF00B65615 /* mediaControlsApple.js in Resources */,
+				2D50A4B71CE10E0000198049 /* AttachmentPlaceholder.png in Resources */,
 				311C08BF18EB7CAF00B65615 /* mediaControlsiOS.css in Resources */,
 				311C08C018EB7CAF00B65615 /* mediaControlsiOS.js in Resources */,
 				7A1D7FCB18F85F0F00C385AD /* mediaControlsLocalizedStrings.js in Resources */,
@@ -28872,6 +28890,7 @@
 				A11E8C081B1E29020003A7C7 /* northSouthResizeCursor.png in Resources */,
 				A11E8C091B1E29070003A7C7 /* northWestSouthEastResizeCursor.png in Resources */,
 				BE8C753110681324001E93F5 /* SpellingDot.png in Resources */,
+				2D50A4B81CE10E0000198049 /* AttachmentPlaceholder@2x.png in Resources */,
 				01E6C2E41194B2820050821C /* SpellingDot@2x.png in Resources */,
 				1C2417BA1992C04100EF9938 /* SpellingDot@3x.png in Resources */,
 				93153BDC141959BC00FCF5BE /* textAreaResizeCorner.png in Resources */,
@@ -31680,6 +31699,7 @@
 				4331AC7813B6870000A9E5AE /* SVGAnimatedNumberList.cpp in Sources */,
 				431A2F9D13B6F2B0007791E4 /* SVGAnimatedNumberOptionalNumber.cpp in Sources */,
 				08B5F25513B5FFF2002959EC /* SVGAnimatedPath.cpp in Sources */,
+				1A4DA4211CDD3A8300F4473C /* LinkIconCollector.cpp in Sources */,
 				43B9336A13B261B1004584BF /* SVGAnimatedPointList.cpp in Sources */,
 				431A302113B89DCC007791E4 /* SVGAnimatedPreserveAspectRatio.cpp in Sources */,
 				836FBCEC178C117F00B21A15 /* SVGAnimatedProperty.cpp in Sources */,

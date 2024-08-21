@@ -1,3 +1,209 @@
+2016-05-10  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [Linux] Remove seccomp filters support
+        https://bugs.webkit.org/show_bug.cgi?id=157380
+
+        Reviewed by Darin Adler.
+
+        * NetworkProcess/NetworkProcessCreationParameters.cpp:
+        (WebKit::NetworkProcessCreationParameters::encode): Deleted.
+        (WebKit::NetworkProcessCreationParameters::decode): Deleted.
+        * NetworkProcess/NetworkProcessCreationParameters.h:
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * Shared/WebProcessCreationParameters.cpp:
+        (WebKit::WebProcessCreationParameters::encode): Deleted.
+        (WebKit::WebProcessCreationParameters::decode): Deleted.
+        * Shared/WebProcessCreationParameters.h:
+        * Shared/linux/SeccompFilters/OpenSyscall.cpp: Removed.
+        * Shared/linux/SeccompFilters/OpenSyscall.h: Removed.
+        * Shared/linux/SeccompFilters/SeccompBroker.cpp: Removed.
+        * Shared/linux/SeccompFilters/SeccompBroker.h: Removed.
+        * Shared/linux/SeccompFilters/SeccompFilters.cpp: Removed.
+        * Shared/linux/SeccompFilters/SeccompFilters.h: Removed.
+        * Shared/linux/SeccompFilters/SigactionSyscall.cpp: Removed.
+        * Shared/linux/SeccompFilters/SigactionSyscall.h: Removed.
+        * Shared/linux/SeccompFilters/SigprocmaskSyscall.cpp: Removed.
+        * Shared/linux/SeccompFilters/SigprocmaskSyscall.h: Removed.
+        * Shared/linux/SeccompFilters/Syscall.cpp: Removed.
+        * Shared/linux/SeccompFilters/Syscall.h: Removed.
+        * Shared/linux/SeccompFilters/SyscallPolicy.cpp: Removed.
+        * Shared/linux/SeccompFilters/SyscallPolicy.h: Removed.
+        * Shared/linux/SeccompFilters/XDGBaseDirectory.h: Removed.
+        * Shared/linux/SeccompFilters/XDGBaseDirectoryGLib.cpp: Removed.
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::ensureNetworkProcess): Deleted.
+        (WebKit::WebProcessPool::createNewWebProcess): Deleted.
+        (WebKit::WebProcessPool::cookieStorageDirectory): Deleted.
+        * UIProcess/WebProcessPool.h:
+        * WebProcess/efl/SeccompFiltersWebProcessEfl.cpp: Removed.
+        * WebProcess/efl/SeccompFiltersWebProcessEfl.h: Removed.
+        * WebProcess/gtk/SeccompFiltersWebProcessGtk.cpp: Removed.
+        * WebProcess/gtk/SeccompFiltersWebProcessGtk.h: Removed.
+        * WebProcess/soup/WebProcessSoup.cpp:
+        (WebKit::WebProcess::platformInitializeWebProcess): Deleted.
+
+2016-05-09  Tim Horton  <timothy_horton@apple.com>
+
+        REGRESSION (r191922): Zoom in/Zoom Out is not working for PDFs
+        https://bugs.webkit.org/show_bug.cgi?id=157503
+        <rdar://problem/23736297>
+
+        Reviewed by Anders Carlsson.
+
+        * WebProcess/Plugins/PDF/DeprecatedPDFPlugin.h:
+        Restore a requiresUnifiedScaleFactor that was lost in r191922.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::didCommitLoadForFrame):
+        (WebKit::WebPageProxy::mainFramePluginHandlesPageScaleGestureDidChange):
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/WebPageProxy.messages.in:        
+        * WebProcess/Plugins/PluginView.cpp:
+        (WebKit::PluginView::didInitializePlugin):
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::dispatchDidCommitLoad):
+        Separate mainFramePluginHandlesPageScaleGesture changes out from didCommitLoadForFrame,
+        because the PluginView doesn't exist at this point, so it can't answer
+        the handlesPageScaleGesture question correctly (or at all).
+        Instead, we'll send the message when the main-frame PluginView is initialized.
+
+2016-05-09  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS] visibility:hidden -webkit-overflow-scrolling: touch divs can interfere with page scrolling
+        https://bugs.webkit.org/show_bug.cgi?id=157496
+        rdar://problem/22963278
+
+        Reviewed by Tim Horton.
+
+        UIScrollViews are constructed in the UI process for visibility:hidden scrollable elements
+        with -webkit-overflow-scrolling: touch, and these intercept user events when they should not.
+
+        Fix by propagating a "contentsHidden" flag from the web process which is used to turn off
+        user interaction on these views.
+
+        * Shared/mac/RemoteLayerTreePropertyApplier.mm:
+        (WebKit::RemoteLayerTreePropertyApplier::applyProperties):
+        * Shared/mac/RemoteLayerTreeTransaction.h:
+        * Shared/mac/RemoteLayerTreeTransaction.mm:
+        (WebKit::RemoteLayerTreeTransaction::LayerProperties::LayerProperties):
+        (WebKit::RemoteLayerTreeTransaction::LayerProperties::encode):
+        (WebKit::RemoteLayerTreeTransaction::LayerProperties::decode):
+        (WebKit::dumpChangedLayers):
+        * UIProcess/ios/RemoteLayerTreeHostIOS.mm:
+        (-[UIView _recursiveFindDescendantScrollViewAtPoint:withEvent:]): Our custom hit
+        test needs to take view.isUserInteractionEnabled into account.
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.cpp:
+        (WebKit::PlatformCALayerRemote::setHidden):
+        (WebKit::PlatformCALayerRemote::contentsHidden):
+        (WebKit::PlatformCALayerRemote::setContentsHidden):
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.h:
+
+2016-05-09  Ada Chan  <adachan@apple.com>
+
+        Introduce WebVideoFullscreenInterfaceMac::isPlayingVideoInEnhancedFullscreen() and use it in WebVideoFullscreenManagerProxy::isPlayingVideoInEnhancedFullscreen()
+        https://bugs.webkit.org/show_bug.cgi?id=157493
+
+        Reviewed by Dan Bernstein.
+
+        * UIProcess/Cocoa/WebVideoFullscreenManagerProxy.mm:
+        (WebKit::WebVideoFullscreenManagerProxy::isPlayingVideoInEnhancedFullscreen):
+
+2016-05-06  Ada Chan  <adachan@apple.com>
+
+        Add WKPageRef SPI to tell whether there's a video playing in enhanced fullscreen
+        https://bugs.webkit.org/show_bug.cgi?id=157434
+
+        Reviewed by Darin Adler.
+
+        * UIProcess/API/C/mac/WKPagePrivateMac.h:
+        * UIProcess/API/C/mac/WKPagePrivateMac.mm:
+        (WKPageIsPlayingVideoInEnhancedFullscreen):
+        * UIProcess/Cocoa/WebVideoFullscreenManagerProxy.h:
+        * UIProcess/Cocoa/WebVideoFullscreenManagerProxy.mm:
+        (WebKit::WebVideoFullscreenManagerProxy::isPlayingVideoInEnhancedFullscreen):
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::isPlayingVideoInEnhancedFullscreen):
+        * UIProcess/WebPageProxy.h:
+
+2016-05-09  Anders Carlsson  <andersca@apple.com>
+
+        Add injected bundle SPI for getting favicon and touch icon URLs
+        https://bugs.webkit.org/show_bug.cgi?id=157435
+
+        Reviewed by Darin Adler.
+
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInFrame.h:
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInFrame.mm:
+        (collectIcons):
+        New helper function that calls into the WebCore LinkCollector.
+
+        (-[WKWebProcessPlugInFrame appleTouchIconURLs]):
+        Call collectIcons.
+
+        (-[WKWebProcessPlugInFrame faviconURLs]):
+        Ditto.
+
+2016-05-06  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Font size increases on some pages after navigating then going back
+        https://bugs.webkit.org/show_bug.cgi?id=157441
+        rdar://problem/22873240
+
+        Reviewed by Darin Adler.
+
+        There's an ordering dependency between setting the viewport configuration and doing
+        layouts when going back to a page from the page cache that is incorrectly handled.
+
+        In FrameLoader::commitProvisionalLoad(), CachedPage::restore() triggers a layout under
+        updateContentsSize(), but this happens before dispatchDidCommitLoad() which updates
+        the viewport arguments via ViewportConfiguration::setViewportArguments().
+
+        This issue is not addressed by the current commit. But a second problem is:
+        if the inputs to text autosizing change, we need to invalidate the autosizing state.
+        The relevant input here is the fixed layout width (which is determined from the viewport
+        configuration).
+
+        The current code invalidated text autosizing when m_viewportConfiguration.minimumLayoutSize()
+        changed, but the correct behavior is to invalidate based on fixed layout size changing.
+
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::sendViewportAttributesChanged):
+        (WebKit::WebPage::setFixedLayoutSize):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::resetTextAutosizing):
+        (WebKit::WebPage::dynamicViewportSizeUpdate):
+        (WebKit::WebPage::viewportConfigurationChanged):
+        (WebKit::WebPage::setViewportConfigurationMinimumLayoutSize): Deleted.
+        (WebKit::WebPage::resetTextAutosizingBeforeLayoutIfNeeded): Deleted.
+
+2016-05-09  Alex Christensen  <achristensen@webkit.org>
+
+        Don't use DiskCache for media resource loads
+        https://bugs.webkit.org/show_bug.cgi?id=157405
+
+        Reviewed by Darin Adler.
+
+        * NetworkProcess/cache/NetworkCache.cpp:
+        (WebKit::NetworkCache::makeRetrieveDecision):
+        (WebKit::NetworkCache::makeStoreDecision):
+        * NetworkProcess/cache/NetworkCache.h:
+        * NetworkProcess/cache/NetworkCacheStatistics.cpp:
+        (WebKit::NetworkCache::retrieveDecisionToDiagnosticKey):
+
+2016-05-08  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] Migrate our Font classes entirely off of NSFont
+        https://bugs.webkit.org/show_bug.cgi?id=157464
+
+        Reviewed by Darin Adler.
+
+        * WebProcess/WebCoreSupport/mac/WebPopupMenuMac.mm:
+        (WebKit::WebPopupMenu::setUpPlatformData):
+        * WebProcess/WebPage/mac/WebPageMac.mm:
+        (WebKit::WebPage::fontAtSelection):
+
 2016-05-06  Joseph Pecoraro  <pecoraro@apple.com>
 
         Rename HitTestRequest DisallowShadowContent to DisallowUserAgentShadowContent

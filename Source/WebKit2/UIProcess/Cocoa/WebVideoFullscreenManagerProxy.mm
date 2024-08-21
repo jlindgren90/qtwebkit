@@ -247,6 +247,18 @@ bool WebVideoFullscreenManagerProxy::mayAutomaticallyShowVideoPictureInPicture()
     return false;
 }
 
+#if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
+bool WebVideoFullscreenManagerProxy::isPlayingVideoInEnhancedFullscreen() const
+{
+    for (auto& tuple : m_contextMap.values()) {
+        if (std::get<1>(tuple)->isPlayingVideoInEnhancedFullscreen())
+            return true;
+    }
+    
+    return false;
+}
+#endif
+
 void WebVideoFullscreenManagerProxy::applicationDidBecomeActive()
 {
     for (auto& tuple : m_contextMap.values())

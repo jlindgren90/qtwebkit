@@ -1,3 +1,397 @@
+2016-05-09  Dean Jackson  <dino@apple.com>
+
+        [iOS] <select> elements should render right-aligned when in RTL mode
+        https://bugs.webkit.org/show_bug.cgi?id=157501
+        <rdar://problem/26187870>
+
+        Reviewed by Antoine Quint.
+
+        Rebaseline now that iOS is doing the right thing.
+
+        * platform/ios-simulator/fast/forms/select-non-native-rendering-direction-expected.txt:
+        * platform/ios-simulator/fast/forms/listbox-bidi-align-expected.txt:
+        * platform/ios-simulator/fast/forms/select-writing-direction-natural-expected.txt:
+        * platform/ios-simulator/fast/text/international/bidi-listbox-atsui-expected.txt:
+        * platform/ios-simulator/fast/text/international/bidi-listbox-expected.txt:
+        * platform/ios-simulator/fast/text/international/bidi-menulist-expected.txt:
+        * platform/ios-simulator/fast/text/international/pop-up-button-text-alignment-and-direction-expected.txt:
+
+2016-05-10  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        NodeList should be iterable
+        https://bugs.webkit.org/show_bug.cgi?id=131443
+        <rdar://problem/25731519>
+
+        Reviewed by Darin Adler.
+
+        * fast/dom/domListEnumeration-expected.txt:
+        * fast/dom/nodeListIterator-expected.txt: Added.
+        * fast/dom/nodeListIterator.html: Added.
+        * fast/dom/script-tests/domListEnumeration.js:
+        * fast/text/font-face-set-javascript-expected.txt:
+        * fast/text/font-face-set-javascript.html:
+
+2016-05-09  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Implement auto-repeat computation
+        https://bugs.webkit.org/show_bug.cgi?id=157473
+
+        Reviewed by Darin Adler.
+
+        Apart from some home made tests I'm importing 5 patches from Mozilla's test suite as they
+        perfectly test the behavior of auto-repeat with positioned items. I've commented auto-fit
+        tests as that feature isn't implemented yet.
+
+        * fast/css-grid-layout/grid-auto-fill-columns-expected.txt: Added.
+        * fast/css-grid-layout/grid-auto-fill-columns.html: Added.
+        * fast/css-grid-layout/grid-auto-fill-rows-expected.txt: Added.
+        * fast/css-grid-layout/grid-auto-fill-rows.html: Added.
+        * fast/css-grid-layout/grid-change-auto-repeat-tracks-expected.txt: Added.
+        * fast/css-grid-layout/grid-change-auto-repeat-tracks.html: Added.
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set-expected.txt:
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set.html:
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-001-expected.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-001.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-002-expected.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-002.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-003-expected.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-003.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-004-expected.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-004.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-005-expected.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-005.html: Added.
+
+2016-05-09  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: CRASH under JSC::DebuggerCallFrame::thisValue when hitting breakpoint
+        https://bugs.webkit.org/show_bug.cgi?id=157442
+        <rdar://problem/24172015>
+
+        Reviewed by Saam Barati.
+
+        * inspector/debugger/break-in-constructor-before-super-expected.txt: Added.
+        * inspector/debugger/break-in-constructor-before-super.html: Added.
+
+2016-05-09  Simon Fraser  <simon.fraser@apple.com>
+
+        iOS-scrolling test cleanup.
+        
+        Move iOS scrolling tests from platform/ios-simulator/fast/scrolling/ios to fast/scrolling/ios/.
+        Rebaseline those that need it. Enable some in iOS WK1 if they pass.
+        
+        Try to make fast/scrolling/ios/touch-scroll-visibility-hidden.html not flakey
+
+        * fast/scrolling/ios/clipping-ancestor-with-accelerated-scrolling-ancestor-expected.txt: Copied from LayoutTests/platform/ios-simulator/ios/scrolling/clipping-ancestor-with-accelerated-scrolling-ancestor-expected.txt.
+        * fast/scrolling/ios/clipping-ancestor-with-accelerated-scrolling-ancestor.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/clipping-ancestor-with-accelerated-scrolling-ancestor.html.
+        * fast/scrolling/ios/iframe-inside-overflow-clipping-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/iframe-inside-overflow-clipping-expected.txt.
+        * fast/scrolling/ios/iframe-inside-overflow-clipping.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/iframe-inside-overflow-clipping.html.
+        * fast/scrolling/ios/overflow-clip-with-accelerated-scrolling-ancestor-expected.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-clip-with-accelerated-scrolling-ancestor-expected.html.
+        * fast/scrolling/ios/overflow-clip-with-accelerated-scrolling-ancestor.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-clip-with-accelerated-scrolling-ancestor.html.
+        * fast/scrolling/ios/overflow-div-scrolling-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-div-scrolling-expected.txt.
+        * fast/scrolling/ios/overflow-div-scrolling.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-div-scrolling.html.
+        * fast/scrolling/ios/overflow-scroll-inherited-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scroll-inherited-expected.txt.
+        * fast/scrolling/ios/overflow-scroll-inherited.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scroll-inherited.html.
+        * fast/scrolling/ios/overflow-scroll-touch-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scroll-touch-expected.txt.
+        * fast/scrolling/ios/overflow-scroll-touch.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scroll-touch.html.
+        * fast/scrolling/ios/overflow-scrolling-ancestor-clip-expected.txt: Copied from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scrolling-ancestor-clip-expected.txt.
+        * fast/scrolling/ios/overflow-scrolling-ancestor-clip-size-expected.txt: Copied from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scrolling-ancestor-clip-size-expected.txt.
+        * fast/scrolling/ios/overflow-scrolling-ancestor-clip-size.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scrolling-ancestor-clip-size.html.
+        * fast/scrolling/ios/overflow-scrolling-ancestor-clip.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scrolling-ancestor-clip.html.
+        * fast/scrolling/ios/remove-overflow-crash-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/remove-overflow-crash-expected.txt.
+        * fast/scrolling/ios/remove-overflow-crash.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/remove-overflow-crash.html.
+        * fast/scrolling/ios/resources/jump-back.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/resources/jump-back.html.
+        * fast/scrolling/ios/script-tests/TEMPLATE.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/script-tests/TEMPLATE.html.
+        * fast/scrolling/ios/script-tests/overflow-div-scrolling.js: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/script-tests/overflow-div-scrolling.js.
+        (verifyScrollOffset):
+        * fast/scrolling/ios/scroll-event-from-scrollTo-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scroll-event-from-scrollTo-expected.txt.
+        * fast/scrolling/ios/scroll-event-from-scrollTo.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scroll-event-from-scrollTo.html.
+        * fast/scrolling/ios/scroll-events-back-forward-after-pageshow-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scroll-events-back-forward-after-pageshow-expected.txt.
+        * fast/scrolling/ios/scroll-events-back-forward-after-pageshow.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scroll-events-back-forward-after-pageshow.html.
+        * fast/scrolling/ios/scroll-events-back-forward-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scroll-events-back-forward-expected.txt.
+        * fast/scrolling/ios/scroll-events-back-forward.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scroll-events-back-forward.html.
+        * fast/scrolling/ios/scrollTo-at-page-load-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scrollTo-at-page-load-expected.txt.
+        * fast/scrolling/ios/scrollTo-at-page-load.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scrollTo-at-page-load.html.
+        * fast/scrolling/ios/scrollbar-hiding-expected.txt: Copied from LayoutTests/platform/ios-simulator/ios/scrolling/scrollbar-hiding-expected.txt.
+        * fast/scrolling/ios/scrollbar-hiding.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scrollbar-hiding.html.
+        * fast/scrolling/ios/scrolling-content-clip-to-viewport-expected.txt: Copied from LayoutTests/platform/ios-simulator/ios/scrolling/scrolling-content-clip-to-viewport-expected.txt.
+        * fast/scrolling/ios/scrolling-content-clip-to-viewport.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scrolling-content-clip-to-viewport.html.
+        * fast/scrolling/ios/table-cell-touch-scrolling-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/table-cell-touch-scrolling-expected.txt.
+        * fast/scrolling/ios/table-cell-touch-scrolling.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/table-cell-touch-scrolling.html.
+        * fast/scrolling/ios/textarea-scroll-touch-expected.txt: Copied from LayoutTests/platform/ios-simulator/ios/scrolling/textarea-scroll-touch-expected.txt.
+        * fast/scrolling/ios/textarea-scroll-touch.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/textarea-scroll-touch.html.
+        * fast/scrolling/ios/touch-scroll-back-forward-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/touch-scroll-back-forward-expected.txt.
+        * fast/scrolling/ios/touch-scroll-back-forward.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/touch-scroll-back-forward.html.
+        * fast/scrolling/ios/touch-scroll-visibility-hidden-expected.txt:
+        * fast/scrolling/ios/touch-scroll-visibility-hidden.html:
+        * fast/scrolling/ios/touch-stacking-expected.txt: Copied from LayoutTests/platform/ios-simulator/ios/scrolling/touch-stacking-expected.txt.
+        * fast/scrolling/ios/touch-stacking.html: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/touch-stacking.html.
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/fast/scrolling/ios/clipping-ancestor-with-accelerated-scrolling-ancestor-expected.png: Added.
+        * platform/ios-simulator/fast/scrolling/ios/clipping-ancestor-with-accelerated-scrolling-ancestor-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/clipping-ancestor-with-accelerated-scrolling-ancestor-expected.txt.
+        * platform/ios-simulator/fast/scrolling/ios/overflow-scrolling-ancestor-clip-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scrolling-ancestor-clip-expected.txt.
+        * platform/ios-simulator/fast/scrolling/ios/overflow-scrolling-ancestor-clip-size-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/overflow-scrolling-ancestor-clip-size-expected.txt.
+        * platform/ios-simulator/fast/scrolling/ios/scrollbar-hiding-expected.png: Added.
+        * platform/ios-simulator/fast/scrolling/ios/scrollbar-hiding-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scrollbar-hiding-expected.txt.
+        * platform/ios-simulator/fast/scrolling/ios/scrolling-content-clip-to-viewport-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/scrolling-content-clip-to-viewport-expected.txt.
+        * platform/ios-simulator/fast/scrolling/ios/textarea-scroll-touch-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/textarea-scroll-touch-expected.txt.
+        * platform/ios-simulator/fast/scrolling/ios/touch-stacking-expected.png: Added.
+        * platform/ios-simulator/fast/scrolling/ios/touch-stacking-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/scrolling/touch-stacking-expected.txt.
+
+2016-05-09  Filip Pizlo  <fpizlo@apple.com>
+
+        Polymorphic operands in operators coerces downstream values to double.
+        https://bugs.webkit.org/show_bug.cgi?id=151793
+
+        Reviewed by Mark Lam.
+
+        * js/regress/object-int-add-array-expected.txt: Added.
+        * js/regress/object-int-add-array.html: Added.
+        * js/regress/object-int-add-expected.txt: Added.
+        * js/regress/object-int-add.html: Added.
+        * js/regress/object-int-mul-array-expected.txt: Added.
+        * js/regress/object-int-mul-array.html: Added.
+        * js/regress/object-int-sub-array-expected.txt: Added.
+        * js/regress/object-int-sub-array.html: Added.
+        * js/regress/object-int-sub-expected.txt: Added.
+        * js/regress/object-int-sub.html: Added.
+        * js/regress/script-tests/object-int-add-array.js: Added.
+        (i.o.valueOf):
+        * js/regress/script-tests/object-int-add.js: Added.
+        (i.o.valueOf):
+        * js/regress/script-tests/object-int-mul-array.js: Added.
+        (i.o.valueOf):
+        * js/regress/script-tests/object-int-sub-array.js: Added.
+        (i.o.valueOf):
+        * js/regress/script-tests/object-int-sub.js: Added.
+        (i.o.valueOf):
+
+2016-05-09  Simon Fraser  <simon.fraser@apple.com>
+
+        Land correct result for a recently added test.
+
+        * fast/scrolling/ios/touch-scroll-visibility-hidden-expected.txt:
+
+2016-05-09  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS] visibility:hidden -webkit-overflow-scrolling: touch divs can interfere with page scrolling
+        https://bugs.webkit.org/show_bug.cgi?id=157496
+        rdar://problem/22963278
+
+        Reviewed by Tim Horton.
+        
+        Add a fast/scrolling/ios directory, disable it everywhere except on iOS.
+
+        * TestExpectations:
+        * fast/scrolling/ios/touch-scroll-visibility-hidden-expected.txt: Added.
+        * fast/scrolling/ios/touch-scroll-visibility-hidden.html: Added.
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-05-09  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Web Font is downloaded even when all the characters in the document are outside its unicode-range
+        https://bugs.webkit.org/show_bug.cgi?id=42154
+        <rdar://problem/17779042>
+
+        Reviewed by Darin Adler.
+
+        * fast/text/unicode-range-download-expected.txt: Added.
+        * fast/text/unicode-range-download.html: Added.
+        * fast/text/resources/unicode-range-download-Ahem.otf: Added.
+        * fast/text/resources/unicode-range-download-Ahem.ttf: Added.
+        * fast/text/resources/unicode-range-download-Ahem.woff: Added.
+        * imported/blink/svg/custom/resources/graffiti.svg: Added.
+        imported/blink/svg/custom/svg-fonts-unloaded-segment.html requires this font.
+
+2016-05-09  Simon Fraser  <simon.fraser@apple.com>
+
+        Remove testRunner.setTextAutosizingEnabled and migrate the one test that uses it
+        https://bugs.webkit.org/show_bug.cgi?id=157480
+
+        Reviewed by Zalan Bujtas.
+
+        Migrate the one test that used testRunner.setTextAutosizingEnabled() to window.internals.settings.setTextAutosizingEnabled()
+        and move it next to the other iOS text autosizing tests.
+
+        * fast/text-autosizing/ios/textarea-auto-sizing-disable-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/fast/html/textarea-auto-sizing-disable-expected.txt.
+        * fast/text-autosizing/ios/textarea-auto-sizing-disable.html: Renamed from LayoutTests/platform/ios-simulator/ios/fast/html/textarea-auto-sizing-disable.html.
+        * platform/ios-simulator/TestExpectations:
+
+2016-05-09  Simon Fraser  <simon.fraser@apple.com>
+
+        Upstream some iOS text autosizing tests.
+
+        * fast/text-autosizing/ios/anonymous-block.html: Added.
+        * fast/text-autosizing/ios/contenteditable.html: Added.
+        * fast/text-autosizing/ios/first-letter.html: Added.
+        * fast/text-autosizing/ios/font-family-case-insensitive-expected.txt: Added.
+        * fast/text-autosizing/ios/font-family-case-insensitive.html: Added.
+        * fast/text-autosizing/ios/lists.html: Added.
+        * fast/text-autosizing/ios/overflow.html: Added.
+        * fast/text-autosizing/ios/percent-adjust-length-line-height-expected.txt: Added.
+        * fast/text-autosizing/ios/percent-adjust-length-line-height.html: Added.
+        * fast/text-autosizing/ios/percent-adjust-number-line-height-expected.txt: Added.
+        * fast/text-autosizing/ios/percent-adjust-number-line-height.html: Added.
+        * fast/text-autosizing/ios/percent-adjust-percent-line-height-expected.txt: Added.
+        * fast/text-autosizing/ios/percent-adjust-percent-line-height.html: Added.
+        * platform/ios-simulator/fast/text-autosizing/ios/anonymous-block-expected.txt: Added.
+        * platform/ios-simulator/fast/text-autosizing/ios/contenteditable-expected.txt: Added.
+        * platform/ios-simulator/fast/text-autosizing/ios/first-letter-expected.txt: Added.
+        * platform/ios-simulator/fast/text-autosizing/ios/lists-expected.txt: Added.
+        * platform/ios-simulator/fast/text-autosizing/ios/overflow-expected.txt: Added.
+        * platform/mac/fast/text-autosizing/ios/anonymous-block-expected.txt: Added.
+        * platform/mac/fast/text-autosizing/ios/contenteditable-expected.txt: Added.
+        * platform/mac/fast/text-autosizing/ios/first-letter-expected.txt: Added.
+        * platform/mac/fast/text-autosizing/ios/lists-expected.txt: Added.
+        * platform/mac/fast/text-autosizing/ios/overflow-expected.txt: Added.
+
+2016-05-06  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Font size increases on some pages after navigating then going back
+        https://bugs.webkit.org/show_bug.cgi?id=157441
+        rdar://problem/22873240
+
+        Reviewed by Darin Adler.
+
+        * fast/text-autosizing/ios/text-autosizing-after-back-expected.html: Added.
+        * fast/text-autosizing/ios/text-autosizing-after-back.html: Added.
+
+2016-05-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline failing LayoutTests after r200580
+
+        Unreviewed test gardening.
+
+        * fast/xmlhttprequest/xmlhttprequest-get-expected.txt:
+        * http/tests/workers/worker-importScriptsOnError-expected.txt:
+        * inspector/model/remote-object-get-properties-expected.txt:
+
+2016-05-09  Chris Dumez  <cdumez@apple.com>
+
+        Optimize [StrictTypeChecking] on IDL operations
+        https://bugs.webkit.org/show_bug.cgi?id=157467
+
+        Reviewed by Darin Adler.
+
+        Rebaseline existing tests now that we provide a more useful exception
+        message when passing null for a non-nullable parameter and assigning
+        null to a non-nullable attribute.
+
+        * editing/selection/extend-expected.txt:
+        * fast/dom/Document/adoptNode-null-expected.txt:
+        * fast/dom/Document/adoptNode-null.html:
+        * fast/dom/Document/importNode-null-expected.txt:
+        * fast/dom/Document/importNode-null.html:
+        * fast/dom/Element/attr-param-typechecking-expected.txt:
+        * fast/dom/MutationObserver/observe-exceptions-expected.txt:
+        * fast/dom/NamedNodeMap-setNamedItem-crash-expected.txt:
+        * fast/dom/Range/range-intersectsNode-expected.txt:
+        * fast/dom/createNodeIterator-parameters-expected.txt:
+        * fast/dom/createNodeIterator-parameters.html:
+        * fast/dom/createTreeWalker-parameters-expected.txt:
+        * fast/dom/createTreeWalker-parameters.html:
+        * fast/dom/xmlserializer-serialize-to-string-exception-expected.txt:
+        * fast/dynamic/insertAdjacentElement-expected.txt:
+        * fast/mediastream/MediaStream-add-remove-null-undefined-tracks-expected.txt:
+        * fast/speechsynthesis/speech-synthesis-crash-on-bad-utterance-expected.txt:
+        * fast/text/font-face-set-javascript-expected.txt:
+        * fast/text/text-combine-crash-expected.txt:
+        * media/encrypted-media/encrypted-media-v2-syntax-expected.txt:
+        * media/encrypted-media/encrypted-media-v2-syntax.html:
+        * webaudio/createMediaStreamSource-null-expected.txt:
+        * webaudio/createMediaStreamSource-null.html:
+        * webaudio/decode-audio-data-basic-expected.txt:
+        * webaudio/decode-audio-data-basic.html:
+        * webaudio/mediaelementaudiosourcenode-expected.txt:
+        * webaudio/mediaelementaudiosourcenode.html:
+
+2016-05-09  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Focusing a shadow host places the slot content after the shadow DOM content
+        https://bugs.webkit.org/show_bug.cgi?id=154770
+        <rdar://problem/24873102>
+
+        Reviewed by Antti Koivisto.
+
+        Add a regression test now that the bug has been fixed.
+
+        * fast/shadow-dom/shadow-layout-after-focus-expected.html: Added.
+        * fast/shadow-dom/shadow-layout-after-focus.html: Added.
+
+2016-05-09  Ryosuke Niwa  <rniwa@webkit.org>
+
+        REGRESSION (198056): Unable to use edit buttons on WordPress
+        https://bugs.webkit.org/show_bug.cgi?id=157475
+
+        Reviewed by Antti Koivisto.
+
+        Updated the tests.
+
+        * fast/shadow-dom/Extensions-to-Event-Interface-expected.txt:
+        * fast/shadow-dom/Extensions-to-Event-Interface.html:
+        * fast/shadow-dom/resources/event-path-test-helpers.js:
+        (dispatchEventWithLog):
+
+2016-05-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Removing timeout and adding failure expectation for storage/indexeddb/intversion-open-in-upgradeneeded.html
+        https://bugs.webkit.org/show_bug.cgi?id=155050
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-05-09  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Fix static position for positioned grid items
+        https://bugs.webkit.org/show_bug.cgi?id=157417
+
+        Reviewed by Darin Adler.
+
+        Updated several tests to follow the new expected behavior.
+
+        * fast/css-grid-layout/absolute-positioning-grid-container-containing-block.html:
+        * fast/css-grid-layout/absolute-positioning-grid-container-parent.html:
+        * fast/css-grid-layout/grid-positioned-items-gaps-rtl.html:
+        * fast/css-grid-layout/grid-positioned-items-gaps.html:
+        * fast/css-grid-layout/grid-positioned-items-implicit-grid-line.html:
+        * fast/css-grid-layout/grid-positioned-items-implicit-grid.html:
+        * fast/css-grid-layout/grid-positioned-items-unknown-named-grid-line.html:
+        * fast/css-grid-layout/grid-sizing-positioned-items.html:
+
+2016-05-09  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Fix wrong gardening in r200570
+
+        Unreviewed EFL gardening.
+
+        * TestExpectations: Move selection gap tests to EFL's one.
+        * platform/efl/TestExpectations:
+
+2016-05-09  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Skip tests of selection gap because EFL port disabled to paint the selection gap
+
+        Unreviewed EFL gardening.
+
+        * TestExpectations:
+
+2016-05-08  Zalan Bujtas  <zalan@apple.com>
+
+        iOS selection: Use inflow containing block for positioned <br>.
+        https://bugs.webkit.org/show_bug.cgi?id=157115
+        <rdar://problem/25969295>
+
+        Reviewed by Ryosuke Niwa.
+
+        Similarly to RenderText, we should just use the inflow containing block for
+        selected <br> even when it is positioned out of flow. This visually matches Mac OS X
+        behaviour (selection painting does not get extended to the positioned <br>).
+
+        * fast/text/fixed-positioned-br-crash-expected.txt: Added.
+        * fast/text/fixed-positioned-br-crash.html: Added.
+
 2016-05-08  Darin Adler  <darin@apple.com>
 
         Correct dictionary bindings handling of optional, null, and undefined

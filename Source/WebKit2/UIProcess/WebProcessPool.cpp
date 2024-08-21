@@ -370,10 +370,6 @@ NetworkProcessProxy& WebProcessPool::ensureNetworkProcess()
     if (!parameters.diskCacheDirectory.isEmpty())
         SandboxExtension::createHandleForReadWriteDirectory(parameters.diskCacheDirectory, parameters.diskCacheDirectoryExtensionHandle);
 
-#if ENABLE(SECCOMP_FILTERS)
-    parameters.cookieStorageDirectory = this->cookieStorageDirectory();
-#endif
-
 #if PLATFORM(IOS)
     String cookieStorageDirectory = this->cookieStorageDirectory();
     if (!cookieStorageDirectory.isEmpty())
@@ -568,10 +564,6 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
     parameters.mediaCacheDirectory = m_configuration->mediaCacheDirectory();
     if (!parameters.mediaCacheDirectory.isEmpty())
         SandboxExtension::createHandleForReadWriteDirectory(parameters.mediaCacheDirectory, parameters.mediaCacheDirectoryExtensionHandle);
-    
-#if ENABLE(SECCOMP_FILTERS)
-    parameters.cookieStorageDirectory = this->cookieStorageDirectory();
-#endif
 
 #if PLATFORM(IOS)
     String cookieStorageDirectory = this->cookieStorageDirectory();
@@ -1107,17 +1099,6 @@ String WebProcessPool::iconDatabasePath() const
 
     return platformDefaultIconDatabasePath();
 }
-
-#if ENABLE(SECCOMP_FILTERS)
-String WebProcessPool::cookieStorageDirectory() const
-{
-    if (!m_overrideCookieStorageDirectory.isEmpty())
-        return m_overrideCookieStorageDirectory;
-
-    // FIXME: This doesn't make much sense. Is this function used at all? We used to call platform code, but no existing platforms implemented that function.
-    return emptyString();
-}
-#endif
 
 void WebProcessPool::useTestingNetworkSession()
 {

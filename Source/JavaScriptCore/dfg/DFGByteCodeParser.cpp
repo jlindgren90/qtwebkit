@@ -941,40 +941,58 @@ private:
         if (!isX86() && node->op() == ArithMod)
             return node;
 
-        if (!m_inlineStackTop->m_profiledBlock->likelyToTakeSlowCase(m_currentIndex))
-            return node;
-        
-        switch (node->op()) {
-        case UInt32ToNumber:
-        case ArithAdd:
-        case ArithSub:
-        case ValueAdd:
-        case ArithMod: // for ArithMod "MayOverflow" means we tried to divide by zero, or we saw double.
-            node->mergeFlags(NodeMayOverflowInt32InBaseline);
-            break;
-            
-        case ArithNegate:
-            // Currently we can't tell the difference between a negation overflowing
-            // (i.e. -(1 << 31)) or generating negative zero (i.e. -0). If it took slow
-            // path then we assume that it did both of those things.
-            node->mergeFlags(NodeMayOverflowInt32InBaseline);
-            node->mergeFlags(NodeMayNegZeroInBaseline);
-            break;
-
-        case ArithMul: {
-            ResultProfile& resultProfile = *m_inlineStackTop->m_profiledBlock->resultProfileForBytecodeOffset(m_currentIndex);
-            if (resultProfile.didObserveInt52Overflow())
-                node->mergeFlags(NodeMayOverflowInt52);
-            if (resultProfile.didObserveInt32Overflow() || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, Overflow))
-                node->mergeFlags(NodeMayOverflowInt32InBaseline);
-            if (resultProfile.didObserveNegZeroDouble() || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, NegativeZero))
-                node->mergeFlags(NodeMayNegZeroInBaseline);
-            break;
+        ResultProfile* resultProfile = m_inlineStackTop->m_profiledBlock->resultProfileForBytecodeOffset(m_currentIndex);
+        if (resultProfile) {
+            switch (node->op()) {
+            case ArithAdd:
+            case ArithSub:
+            case ValueAdd:
+                if (resultProfile->didObserveDouble())
+                    node->mergeFlags(NodeMayHaveDoubleResult);
+                if (resultProfile->didObserveNonNumber())
+                    node->mergeFlags(NodeMayHaveNonNumberResult);
+                break;
+                
+            case ArithMul: {
+                if (resultProfile->didObserveInt52Overflow())
+                    node->mergeFlags(NodeMayOverflowInt52);
+                if (resultProfile->didObserveInt32Overflow() || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, Overflow))
+                    node->mergeFlags(NodeMayOverflowInt32InBaseline);
+                if (resultProfile->didObserveNegZeroDouble() || m_inlineStackTop->m_exitProfile.hasExitSite(m_currentIndex, NegativeZero))
+                    node->mergeFlags(NodeMayNegZeroInBaseline);
+                if (resultProfile->didObserveDouble())
+                    node->mergeFlags(NodeMayHaveDoubleResult);
+                if (resultProfile->didObserveNonNumber())
+                    node->mergeFlags(NodeMayHaveNonNumberResult);
+                break;
+            }
+                
+            default:
+                break;
+            }
         }
-
-        default:
-            RELEASE_ASSERT_NOT_REACHED();
-            break;
+        
+        if (m_inlineStackTop->m_profiledBlock->likelyToTakeSlowCase(m_currentIndex)) {
+            switch (node->op()) {
+            case UInt32ToNumber:
+            case ArithAdd:
+            case ArithSub:
+            case ValueAdd:
+            case ArithMod: // for ArithMod "MayOverflow" means we tried to divide by zero, or we saw double.
+                node->mergeFlags(NodeMayOverflowInt32InBaseline);
+                break;
+                
+            case ArithNegate:
+                // Currently we can't tell the difference between a negation overflowing
+                // (i.e. -(1 << 31)) or generating negative zero (i.e. -0). If it took slow
+                // path then we assume that it did both of those things.
+                node->mergeFlags(NodeMayOverflowInt32InBaseline);
+                node->mergeFlags(NodeMayNegZeroInBaseline);
+                break;
+                
+            default:
+                break;
+            }
         }
         
         return node;
@@ -4064,6 +4082,16 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             NEXT_OPCODE(op_get_by_val);
         }
 
+        case op_get_by_val_with_this: {
+            Node* base = get(VirtualRegister(currentInstruction[2].u.operand));
+            Node* thisValue = get(VirtualRegister(currentInstruction[3].u.operand));
+            Node* property = get(VirtualRegister(currentInstruction[4].u.operand));
+            Node* getByValWithThis = addToGraph(GetByValWithThis, base, thisValue, property);
+            set(VirtualRegister(currentInstruction[1].u.operand), getByValWithThis);
+
+            NEXT_OPCODE(op_get_by_val_with_this);
+        }
+
         case op_put_by_val_direct:
         case op_put_by_val: {
             Node* base = get(VirtualRegister(currentInstruction[1].u.operand));
@@ -4105,6 +4133,21 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             NEXT_OPCODE(op_put_by_val);
         }
 
+        case op_put_by_val_with_this: {
+            Node* base = get(VirtualRegister(currentInstruction[1].u.operand));
+            Node* thisValue = get(VirtualRegister(currentInstruction[2].u.operand));
+            Node* property = get(VirtualRegister(currentInstruction[3].u.operand));
+            Node* value = get(VirtualRegister(currentInstruction[4].u.operand));
+
+            addVarArgChild(base);
+            addVarArgChild(thisValue);
+            addVarArgChild(property);
+            addVarArgChild(value);
+            addToGraph(Node::VarArg, PutByValWithThis, OpInfo(0), OpInfo(0));
+
+            NEXT_OPCODE(op_put_by_val_with_this);
+        }
+
         case op_try_get_by_id: {
             Node* base = get(VirtualRegister(currentInstruction[2].u.operand));
             unsigned identifierNumber = m_inlineStackTop->m_identifierRemap[currentInstruction[3].u.operand];
@@ -4138,6 +4181,16 @@ bool ByteCodeParser::parseBlock(unsigned limit)
 
             NEXT_OPCODE(op_get_by_id);
         }
+        case op_get_by_id_with_this: {
+            Node* base = get(VirtualRegister(currentInstruction[2].u.operand));
+            Node* thisValue = get(VirtualRegister(currentInstruction[3].u.operand));
+            unsigned identifierNumber = m_inlineStackTop->m_identifierRemap[currentInstruction[4].u.operand];
+
+            set(VirtualRegister(currentInstruction[1].u.operand),
+                addToGraph(GetByIdWithThis, OpInfo(identifierNumber), base, thisValue));
+
+            NEXT_OPCODE(op_get_by_id_with_this);
+        }
         case op_put_by_id: {
             Node* value = get(VirtualRegister(currentInstruction[3].u.operand));
             Node* base = get(VirtualRegister(currentInstruction[1].u.operand));
@@ -4151,6 +4204,16 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             
             handlePutById(base, identifierNumber, value, putByIdStatus, direct);
             NEXT_OPCODE(op_put_by_id);
+        }
+
+        case op_put_by_id_with_this: {
+            Node* base = get(VirtualRegister(currentInstruction[1].u.operand));
+            Node* thisValue = get(VirtualRegister(currentInstruction[2].u.operand));
+            Node* value = get(VirtualRegister(currentInstruction[4].u.operand));
+            unsigned identifierNumber = m_inlineStackTop->m_identifierRemap[currentInstruction[3].u.operand];
+
+            addToGraph(PutByIdWithThis, OpInfo(identifierNumber), base, thisValue, value);
+            NEXT_OPCODE(op_put_by_id_with_this);
         }
 
         case op_put_getter_by_id:

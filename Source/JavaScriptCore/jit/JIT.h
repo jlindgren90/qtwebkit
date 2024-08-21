@@ -507,6 +507,8 @@ namespace JSC {
         void emit_op_eq_null(Instruction*);
         void emit_op_try_get_by_id(Instruction*);
         void emit_op_get_by_id(Instruction*);
+        void emit_op_get_by_id_with_this(Instruction*);
+        void emit_op_get_by_val_with_this(Instruction*);
         void emit_op_get_arguments_length(Instruction*);
         void emit_op_get_by_val(Instruction*);
         void emit_op_get_argument_by_val(Instruction*);
@@ -565,8 +567,10 @@ namespace JSC {
         void emit_op_create_lexical_environment(Instruction*);
         void emit_op_get_parent_scope(Instruction*);
         void emit_op_put_by_id(Instruction*);
+        void emit_op_put_by_id_with_this(Instruction*);
         void emit_op_put_by_index(Instruction*);
         void emit_op_put_by_val(Instruction*);
+        void emit_op_put_by_val_with_this(Instruction*);
         void emit_op_put_getter_by_id(Instruction*);
         void emit_op_put_setter_by_id(Instruction*);
         void emit_op_put_getter_setter_by_id(Instruction*);
@@ -752,6 +756,7 @@ namespace JSC {
 #endif
         MacroAssembler::Call callOperation(J_JITOperation_EJI, int, GPRReg, UniquedStringImpl*);
         MacroAssembler::Call callOperation(J_JITOperation_EJJ, int, GPRReg, GPRReg);
+        MacroAssembler::Call callOperation(J_JITOperation_EJJRp, JSValueRegs, JSValueRegs, JSValueRegs, ResultProfile*);
         MacroAssembler::Call callOperation(J_JITOperation_EJJAp, int, GPRReg, GPRReg, ArrayProfile*);
         MacroAssembler::Call callOperation(J_JITOperation_EJJBy, int, GPRReg, GPRReg, ByValInfo*);
         MacroAssembler::Call callOperation(Z_JITOperation_EJOJ, GPRReg, GPRReg, GPRReg);

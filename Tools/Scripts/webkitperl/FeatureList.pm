@@ -126,7 +126,6 @@ my (
     $resourceTimingSupport,
     $samplingProfilerSupport,
     $scriptedSpeechSupport,
-    $seccompFiltersSupport,
     $shadowDOMSupport,
     $streamsAPISupport,
     $styleScopedSupport,
@@ -391,9 +390,6 @@ my @features = (
 
     { option => "sampling-profiler", desc => "Toggle JSC Sampling Profiler",
       define => "ENABLE_SAMPLING_PROFILER", default => 1, value => \$samplingProfilerSupport },
-
-    { option => "seccomp-filters", desc => "Toggle Seccomp Filter sandbox",
-      define => "ENABLE_SECCOMP_FILTERS", default => 0, value => \$seccompFiltersSupport },
 
     { option => "scripted-speech", desc => "Toggle Scripted Speech support",
       define => "ENABLE_SCRIPTED_SPEECH", default => 0, value => \$scriptedSpeechSupport },

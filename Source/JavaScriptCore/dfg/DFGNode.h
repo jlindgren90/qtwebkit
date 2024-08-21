@@ -862,9 +862,11 @@ struct Node {
         case TryGetById:
         case GetById:
         case GetByIdFlush:
+        case GetByIdWithThis:
         case PutById:
         case PutByIdFlush:
         case PutByIdDirect:
+        case PutByIdWithThis:
         case PutGetterById:
         case PutSetterById:
         case PutGetterSetterById:
@@ -948,6 +950,21 @@ struct Node {
         if (op() == ArithMul || op() == ArithDiv || op() == ArithMod || op() == ArithNegate || op() == ArithPow || op() == ArithRound || op() == ArithFloor || op() == ArithCeil || op() == ArithTrunc || op() == DoubleAsInt32)
             return result;
         return result & ~NodeBytecodeNeedsNegZero;
+    }
+
+    bool mayHaveNonIntResult()
+    {
+        return m_flags & NodeMayHaveNonIntResult;
+    }
+    
+    bool mayHaveDoubleResult()
+    {
+        return m_flags & NodeMayHaveDoubleResult;
+    }
+    
+    bool mayHaveNonNumberResult()
+    {
+        return m_flags & NodeMayHaveNonNumberResult;
     }
 
     bool hasConstantBuffer()
