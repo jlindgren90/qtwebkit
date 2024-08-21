@@ -1,3 +1,862 @@
+2016-05-12  Zan Dobersek  <zdobersek@igalia.com>
+
+        VideoSinkGStreamer: plug a GstBuffer leak in webkitVideoSinkRequestRender()
+        https://bugs.webkit.org/show_bug.cgi?id=157617
+
+        Reviewed by Darin Adler.
+
+        Unref the newly-created GstBuffer object after creating the new GstSample
+        that's based on it. gst_sample_new() doesn't take the ownership of it.
+
+        Also, don't unref the GstBuffer object that's passed in to the
+        webkitVideoSinkRequestRender() function in case the allocation of the
+        replacement buffer fails. We don't have any ownership over that buffer
+        and it's not unreffed anywhere else in this function.
+
+        * platform/graphics/gstreamer/VideoSinkGStreamer.cpp:
+        (webkitVideoSinkRequestRender):
+
+2016-05-12  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Text shadow sometimes clipped unexpectedly
+        https://bugs.webkit.org/show_bug.cgi?id=108929
+
+        Reviewed by Dean Jackson.
+
+        CoreGraphics can only draw one text shadow at a time. We work around that by drawing
+        the text multiple times, one for each shadow. However, we want to make sure that the
+        original text isn't also drawn multiple times, so we bump up the shadow offsets so
+        the text and the shadow don't intersect, and then we clip out the original text (so
+        only the shadow remains).
+
+        Unfortunately, this clipping requires knowing where the visual extent of the text is,
+        which WebKit currently has trouble with. In particular, we often use layout extents
+        in lieu of visual extents, which is a problem when the glyphs draw outside of their
+        layout boxes. In this case, it causes us to think the text shadow is much smaller
+        than it really is, so our clipping operation clips to an area which is too small.
+
+        A quick solution to this is to inflate the clip rect by an amount proportional to the
+        font size, and offset the text shadow accordingly. If this amount is large enough,
+        this bug will occur on few enough sites that it is reasonable to consider this bug
+        fixed without the real solution of educating WebKit properly about the difference
+        between text layout rects and text visual extent rects.
+
+        Test: fast/text/multiple-text-shadow-overflow-layout-rect.html
+
+        * rendering/TextPainter.cpp:
+        (WebCore::ShadowApplier::ShadowApplier):
+
+2016-05-12  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        REGRESSION(r200601): Crash when using local() and unicode-range in @font-face blocks
+        https://bugs.webkit.org/show_bug.cgi?id=157646
+
+        Reviewed by Geoffrey Garen.
+
+        I simply forgot a null check.
+
+        Test: fast/text/isLoading-crash-failed-font.html
+
+        * css/CSSSegmentedFontFace.cpp:
+
+2016-05-12  Jiewen Tan  <jiewen_tan@apple.com>
+
+        REGRESSION (r199313): ICBC app: text field In the webview is not tappable
+        https://bugs.webkit.org/show_bug.cgi?id=157396
+        <rdar://problem/25931513>
+
+        Reviewed by David Kilzer.
+
+        Add a quirk for WebKit1 apps.
+
+        * loader/SubframeLoader.cpp:
+        (WebCore::SubframeLoader::requestFrame):
+        Even though the HTML spec suggests that we should navigate to about:blank
+        for subframes/iframes, of which the src cannot be resolved to an valid URL,
+        many existing WebKit1 apps are relying on invalid URLs to bridge their WebView
+        codes and their native Objective-C codes. Therefore, a quirk is added to
+        escape the URL validation for existing WebKit1 apps.
+        (WebCore::SubframeLoader::shouldConvertInvalidURLsToBlank):
+        * loader/SubframeLoader.h:
+        * page/Settings.in:
+
+2016-05-12  Ada Chan  <adachan@apple.com>
+
+        Prevent clicks in the placeholder from playing or pausing the video in a MediaDocument.
+        https://bugs.webkit.org/show_bug.cgi?id=157625
+
+        Reviewed by Jer Noble.
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.createControls):
+        (Controller.prototype.handlePlaceholderClick):
+
+2016-05-12  Chris Dumez  <cdumez@apple.com>
+
+        Drop toJS() overload taking a PassRefPtr<> parameter
+        https://bugs.webkit.org/show_bug.cgi?id=157627
+
+        Reviewed by Alex Christensen.
+
+        Update our implementation stop stop returning PassRefPtrs to the
+        JS bindings and drop the toJS() overload taking a PassRefPtr<>
+        parameter
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::buffered):
+        * Modules/mediasource/SourceBuffer.h:
+        * Modules/webaudio/AudioBuffer.cpp:
+        (WebCore::AudioBuffer::getChannelData):
+        * Modules/webaudio/AudioBuffer.h:
+        * animation/DocumentTimeline.cpp:
+        (WebCore::DocumentTimeline::create):
+        * animation/DocumentTimeline.h:
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::toJS): Deleted.
+        (WebCore::toJSNewlyCreated): Deleted.
+        * css/CSSPrimitiveValue.cpp:
+        (WebCore::CSSPrimitiveValue::getRGBColorValue):
+        * css/CSSPrimitiveValue.h:
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::error):
+        * html/HTMLMediaElement.h:
+        * html/LabelableElement.cpp:
+        (WebCore::LabelableElement::labels):
+        * html/LabelableElement.h:
+        * html/canvas/WebGLGetInfo.cpp:
+        (WebCore::WebGLGetInfo::getWebGLBuffer):
+        (WebCore::WebGLGetInfo::getWebGLFloatArray):
+        (WebCore::WebGLGetInfo::getWebGLFramebuffer):
+        (WebCore::WebGLGetInfo::getWebGLIntArray):
+        (WebCore::WebGLGetInfo::getWebGLProgram):
+        (WebCore::WebGLGetInfo::getWebGLRenderbuffer):
+        (WebCore::WebGLGetInfo::getWebGLTexture):
+        (WebCore::WebGLGetInfo::getWebGLUnsignedByteArray):
+        (WebCore::WebGLGetInfo::getWebGLUnsignedIntArray):
+        (WebCore::WebGLGetInfo::getWebGLVertexArrayObjectOES):
+        (WebCore::WebGLGetInfo::getWebGLVertexArrayObject):
+        * html/canvas/WebGLGetInfo.h:
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::paintRenderingResultsToImageData):
+        (WebCore::WebGLRenderingContextBase::createBuffer):
+        (WebCore::WebGLRenderingContextBase::createFramebuffer):
+        (WebCore::WebGLRenderingContextBase::createTexture):
+        (WebCore::WebGLRenderingContextBase::createProgram):
+        (WebCore::WebGLRenderingContextBase::createRenderbuffer):
+        (WebCore::WebGLRenderingContextBase::createShader):
+        (WebCore::WebGLRenderingContextBase::getActiveAttrib):
+        (WebCore::WebGLRenderingContextBase::getActiveUniform):
+        (WebCore::WebGLRenderingContextBase::getShaderPrecisionFormat):
+        (WebCore::WebGLRenderingContextBase::getUniformLocation):
+        (WebCore::WebGLRenderingContextBase::drawImageIntoBuffer):
+        (WebCore::WebGLRenderingContextBase::videoFrameToImage):
+        * html/canvas/WebGLRenderingContextBase.h:
+        * html/track/TextTrackCue.cpp:
+        (WebCore::TextTrackCue::create):
+        * html/track/TextTrackCue.h:
+        * html/track/VTTCue.cpp:
+        (WebCore::VTTCueBox::create):
+        * html/track/VTTCue.h:
+        * page/DOMSelection.cpp:
+        (WebCore::DOMSelection::getRangeAt):
+        * page/DOMSelection.h:
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::matchMedia):
+        (WebCore::DOMWindow::styleMedia):
+        (WebCore::DOMWindow::getComputedStyle):
+        (WebCore::DOMWindow::getMatchedCSSRules):
+        (WebCore::DOMWindow::webkitConvertPointFromNodeToPage):
+        (WebCore::DOMWindow::webkitConvertPointFromPageToNode):
+        (WebCore::DOMWindow::open):
+        * page/DOMWindow.h:
+        * page/Location.cpp:
+        (WebCore::Location::ancestorOrigins):
+        * page/Location.h:
+
+2016-05-12  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Touch.prototype is undefined on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=157560
+        <rdar://problem/26143008>
+
+        Reviewed by Chris Dumez.
+
+        Remove Touch and TouchList attributes from DOMWindow.
+        These attributes should be exposed via generated binding code (JSDOMWindow.cpp).
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::touch): Deleted.
+        (WebCore::JSDOMWindow::touchList): Deleted.
+        * bindings/js/ios/TouchConstructors.cpp:
+        * page/DOMWindow.idl:
+
+2016-05-12  Ryosuke Niwa  <rniwa@webkit.org>
+
+        indexForVisiblePosition should use the root editable element as the scope
+        https://bugs.webkit.org/show_bug.cgi?id=157611
+
+        Reviewed by Darin Adler.
+
+        Use the highest editing host instead of the document node as the scope in indexForVisiblePosition
+        when it's called inside an editable region. This refactoring is necessary to unblock the work to support
+        undo/redo in VoiceOver after r199030.
+
+        We have to workaround a bug in indexForVisiblePosition that it could return a slightly higher index than
+        the expected value because TextIterator emits an extra new line after a block element with a large margin
+        at the bottom. Unfortunately, fixing this requires a lot of code changes since the rest of the editing
+        code assumes this behavior and/or happens to cancel it out with some other quirks.
+
+        * editing/ApplyBlockElementCommand.cpp:
+        (WebCore::ApplyBlockElementCommand::doApply):
+        * editing/htmlediting.cpp:
+        (WebCore::indexForVisiblePosition):
+
+2016-05-12  Zalan Bujtas  <zalan@apple.com>
+
+        Cleanup RenderObject::containingBlock.
+        https://bugs.webkit.org/show_bug.cgi?id=157628
+
+        Reviewed by Chris Dumez.
+
+        No change in functionality.
+
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::containingBlock):
+
+2016-05-12  Eric Carlson  <eric.carlson@apple.com>
+
+        Adjust "main content" video heuristic
+        https://bugs.webkit.org/show_bug.cgi?id=157532
+        <rdar://problem/25840861>
+
+        Reviewed by Darin Adler.
+
+        Test: media/video-main-content-autoplay.html, plus existing tests updated.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canControlControlsManager): Use isElementLargeEnoughForMainContent.
+        (WebCore::isMainContent): Ditto.
+        (WebCore::isElementLargeEnoughForMainContent): Check video area and aspect ratio.
+        (WebCore::MediaElementSession::mainContentCheckTimerFired): Call result.setToNonUserAgentShadowAncestor 
+          so it doesn't hit test the video controls in the shadow DOM.
+
+2016-05-12  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [curl] ASSERTION FAILED: isLocalFile() || url == m_string in fast/dom/34176.html
+        https://bugs.webkit.org/show_bug.cgi?id=157059
+
+        Reviewed by Darin Adler.
+
+        Fix incorrect usage of URL constructor. CURLINFO_EFFECTIVE_URL
+        does not conform to URL's ParsedURLString.  Created a new utility
+        function to convert CURLINFO_EFFECTIVE_URL to a URL, and replaced
+        all codes converting CURLINFO_EFFECTIVE_URL with it.
+
+        Test: fast/dom/34176.html
+
+        * platform/network/curl/CurlDownload.cpp:
+        (WebCore::CurlDownload::didReceiveHeader): Use getCurlEffectiveURL
+        * platform/network/curl/ResourceHandleManager.cpp:
+        (WebCore::getCurlEffectiveURL): Added.
+        (WebCore::handleLocalReceiveResponse): Use getCurlEffectiveURL
+        (WebCore::getProtectionSpace): Ditto.
+        (WebCore::headerCallback): Ditto.
+        (WebCore::ResourceHandleManager::downloadTimerCallback): Ditto.
+        * platform/network/curl/ResourceHandleManager.h: Add a declaration
+        of getCurlEffectiveURL.
+
+2016-05-12  Chris Dumez  <cdumez@apple.com>
+
+        Avoid unnecessary null checks in toJS() when the implementation returns a reference or Ref<>
+        https://bugs.webkit.org/show_bug.cgi?id=157604
+
+        Reviewed by Darin Adler.
+
+        Avoid unnecessary null checks in toJS() when the implementation returns
+        a C++ reference or Ref<>. To achieve this, the following changes were
+        made:
+        1. Have toJS() overload that takes a raw pointer call the one that
+           takes in a C++ reference, instead of the other way around. This way,
+           we only do the null check when passing a raw pointer in.
+        2. Stop calling WTF::getPtr() on the value returned by the
+           implementation because this causes us to call toJS() with a raw
+           pointer every time.
+        3. Add an toJS() overload in JSDOMBinding.h that takes a Ref<T> in and
+           that calls toJS() with a C++ reference internally. This way, we
+           bypass the null check if the implementation returns a Ref<T>.
+
+        Further refactoring could be done but I try to keep the size of this
+        patch as small as possible. toJS() should probably take the ExecState
+        and the globalObject by reference, for e.g.
+
+        * bindings/js/JSAnimationTimelineCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSBlobCustom.cpp:
+        (WebCore::toJS):
+        (WebCore::constructJSBlob): Deleted.
+        * bindings/js/JSCSSRuleCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSCSSStyleDeclarationCustom.cpp:
+        (WebCore::JSCSSStyleDeclaration::getPropertyCSSValue):
+        * bindings/js/JSCSSValueCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSCanvasRenderingContextCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::attributeChanged):
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSDOMFormDataCustom.cpp:
+        (WebCore::constructJSDOMFormData):
+        * bindings/js/JSDOMMimeTypeArrayCustom.cpp:
+        (WebCore::JSDOMMimeTypeArray::nameGetter):
+        * bindings/js/JSDOMNamedFlowCollectionCustom.cpp:
+        (WebCore::JSDOMNamedFlowCollection::nameGetter):
+        * bindings/js/JSDOMPluginArrayCustom.cpp:
+        (WebCore::JSDOMPluginArray::nameGetter):
+        * bindings/js/JSDOMPluginCustom.cpp:
+        (WebCore::JSDOMPlugin::nameGetter):
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSDOMWindowBase.h:
+        (WebCore::toJS):
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::jsDOMWindowGetOwnPropertySlotNamedItemGetter):
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::JSDocument::createTouchList):
+        (WebCore::JSDocument::prepend): Deleted.
+        * bindings/js/JSDocumentFragmentCustom.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        * bindings/js/JSEventCustom.cpp:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSEventTargetCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSFileReaderCustom.cpp:
+        (WebCore::JSFileReader::result):
+        * bindings/js/JSHTMLAllCollectionCustom.cpp:
+        (WebCore::namedItems):
+        (WebCore::callHTMLAllCollection):
+        * bindings/js/JSHTMLCanvasElementCustom.cpp:
+        (WebCore::JSHTMLCanvasElement::getContext):
+        * bindings/js/JSHTMLCollectionCustom.cpp:
+        (WebCore::JSHTMLCollection::nameGetter):
+        (WebCore::toJS):
+        * bindings/js/JSHTMLDocumentCustom.cpp:
+        (WebCore::JSHTMLDocument::nameGetter):
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement):
+        (WebCore::JSHTMLElement::pushEventHandlerScope):
+        * bindings/js/JSHTMLFormControlsCollectionCustom.cpp:
+        (WebCore::namedItems):
+        * bindings/js/JSHTMLFormElementCustom.cpp:
+        (WebCore::JSHTMLFormElement::nameGetter):
+        * bindings/js/JSHTMLOptionsCollectionCustom.cpp:
+        (WebCore::JSHTMLOptionsCollection::nameGetter):
+        * bindings/js/JSIDBCursorCustom.cpp:
+        (WebCore::JSIDBCursor::source):
+        (WebCore::toJS):
+        * bindings/js/JSIDBDatabaseCustom.cpp:
+        (WebCore::JSIDBDatabase::createObjectStore):
+        (WebCore::JSIDBDatabase::transaction):
+        * bindings/js/JSIDBRequestCustom.cpp:
+        (WebCore::JSIDBRequest::result):
+        (WebCore::JSIDBRequest::source):
+        * bindings/js/JSImageConstructor.cpp:
+        (WebCore::JSImageConstructor::construct):
+        * bindings/js/JSImageDataCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSLazyEventListener.cpp:
+        (WebCore::JSLazyEventListener::initializeJSFunction):
+        * bindings/js/JSMediaSessionCustom.cpp:
+        (WebCore::constructJSMediaSession):
+        * bindings/js/JSMediaStreamCapabilitiesCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSNamedNodeMapCustom.cpp:
+        (WebCore::JSNamedNodeMap::nameGetter):
+        * bindings/js/JSNodeCustom.cpp:
+        (WebCore::createWrapperInline):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::willCreatePossiblyOrphanedTreeByRemovalSlowCase):
+        (WebCore::getOutOfLineCachedWrapper): Deleted.
+        * bindings/js/JSNodeCustom.h:
+        (WebCore::toJS):
+        * bindings/js/JSNodeListCustom.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSNodeListCustom.h:
+        (WebCore::toJS):
+        * bindings/js/JSPerformanceEntryCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSPopStateEventCustom.cpp:
+        (WebCore::JSPopStateEvent::state):
+        * bindings/js/JSRTCStatsResponseCustom.cpp:
+        (WebCore::JSRTCStatsResponse::nameGetter):
+        * bindings/js/JSSVGPathSegCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSStyleSheetCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSTextTrackCueCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSTrackCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSTrackCustom.h:
+        * bindings/js/JSTrackEventCustom.cpp:
+        (WebCore::JSTrackEvent::track):
+        * bindings/js/JSUserMessageHandlersNamespaceCustom.cpp:
+        (WebCore::JSUserMessageHandlersNamespace::getOwnPropertySlotDelegate):
+        * bindings/js/JSWorkerCustom.cpp:
+        (WebCore::constructJSWorker):
+        * bindings/js/ReadableStreamController.cpp:
+        (WebCore::createReadableStream):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        (GenerateImplementation):
+        (GenerateCallbackHeader):
+        (GenerateCallbackImplementation):
+        (NativeToJSValue):
+        (GenerateConstructorDefinition):
+        (ceilingToPowerOf2): Deleted.
+        (ConstructorHasProperties): Deleted.
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestActiveDOMObject::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestCallback.cpp:
+        (WebCore::JSTestCallback::callbackWithArrayParam):
+        (WebCore::JSTestCallback::callbackWithStringList):
+        (WebCore::JSTestCallback::callbackRequiresThisToPass):
+        (WebCore::toJS):
+        * bindings/scripts/test/JS/JSTestCallback.h:
+        (WebCore::toJS):
+        * bindings/scripts/test/JS/JSTestCallbackFunction.cpp:
+        (WebCore::JSTestCallbackFunction::callbackWithArrayParam):
+        (WebCore::JSTestCallbackFunction::callbackWithStringList):
+        (WebCore::JSTestCallbackFunction::callbackRequiresThisToPass):
+        (WebCore::toJS):
+        * bindings/scripts/test/JS/JSTestCallbackFunction.h:
+        (WebCore::toJS):
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestClassWithJSBuiltinConstructor::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestCustomConstructorWithNoInterfaceObject::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestCustomNamedGetter::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        (WebCore::JSTestEventConstructorConstructor::construct):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestEventConstructor::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestEventConstructor.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestEventTarget.cpp:
+        (WebCore::jsTestEventTargetPrototypeFunctionItem):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestEventTarget::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestEventTarget.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestException::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestException.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestGenerateIsReachable::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestGlobalObject::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestGlobalObject.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::JSTestInterfaceConstructor::construct):
+        (WebCore::jsTestInterfaceImplementsNode):
+        (WebCore::jsTestInterfaceSupplementalNode):
+        (WebCore::jsTestInterfacePrototypeFunctionImplementsMethod2):
+        (WebCore::jsTestInterfacePrototypeFunctionSupplementalMethod2):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestInterface::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestInterface.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestMediaQueryListListener::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::JSTestNamedConstructorNamedConstructor::construct):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestNamedConstructor::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestNamedConstructor.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::JSTestNodeConstructor::construct):
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestNondeterministic::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestNondeterministic.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjConstructor::construct):
+        (WebCore::jsTestObjReadOnlyTestObjAttr):
+        (WebCore::jsTestObjTestObjAttr):
+        (WebCore::jsTestObjTestNullableObjAttr):
+        (WebCore::jsTestObjLenientTestObjAttr):
+        (WebCore::jsTestObjXMLObjAttr):
+        (WebCore::jsTestObjTypedArrayAttr):
+        (WebCore::jsTestObjStrictTypeCheckingAttribute):
+        (WebCore::jsTestObjWithScriptExecutionContextAttribute):
+        (WebCore::jsTestObjWithScriptStateAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateAttribute):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute):
+        (WebCore::jsTestObjWithScriptArgumentsAndCallStackAttribute):
+        (WebCore::jsTestObjContentDocument):
+        (WebCore::jsTestObjMutablePoint):
+        (WebCore::jsTestObjImmutablePoint):
+        (WebCore::jsTestObjPutForwardsAttribute):
+        (WebCore::jsTestObjPutForwardsNullableAttribute):
+        (WebCore::jsTestObjPrototypeFunctionObjMethod):
+        (WebCore::jsTestObjPrototypeFunctionObjMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionMethodThatRequiresAllArgsAndThrows):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptStateObj):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptStateObjException):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContextAndScriptStateObjException):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContextAndScriptStateWithSpaces):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod):
+        (WebCore::jsTestObjPrototypeFunctionDomStringListFunction):
+        (WebCore::jsTestObjPrototypeFunctionGetElementById):
+        (WebCore::jsTestObjPrototypeFunctionGetSVGDocument):
+        (WebCore::jsTestObjPrototypeFunctionMutablePointFunction):
+        (WebCore::jsTestObjPrototypeFunctionImmutablePointFunction):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestObj::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestObj.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::constructJSTestOverloadedConstructors1):
+        (WebCore::constructJSTestOverloadedConstructors2):
+        (WebCore::constructJSTestOverloadedConstructors3):
+        (WebCore::constructJSTestOverloadedConstructors4):
+        (WebCore::constructJSTestOverloadedConstructors5):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestOverloadedConstructors::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        (WebCore::jsTestOverrideBuiltinsPrototypeFunctionNamedItem):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestOverrideBuiltins::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestSerializedScriptValueInterface::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::JSTestTypedefsConstructor::construct):
+        (WebCore::jsTestTypedefsPrototypeFunctionImmutablePointFunction):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestTypedefs::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSTestTypedefs.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSattribute::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSattribute.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSreadonly.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSreadonly::toWrapped): Deleted.
+        * bindings/scripts/test/JS/JSreadonly.h:
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::controllerJSValue):
+        (WebCore::HTMLMediaElement::didAddUserAgentShadowRoot):
+
+2016-05-12  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Use reference instead of pointer in FrameLoaderClient::saveViewStateToItem.
+        https://bugs.webkit.org/show_bug.cgi?id=157624
+
+        Reviewed by Darin Adler.
+
+        No new tests needed.
+
+        * loader/EmptyClients.h:
+        * loader/FrameLoaderClient.h:
+        * loader/HistoryController.cpp:
+        (WebCore::HistoryController::saveScrollPositionAndViewStateToItem):
+
+2016-05-12  Antoine Quint  <graouts@apple.com>
+
+        Correctly handle prefixed and unprefixed variants in CSSStyleDeclaration
+        https://bugs.webkit.org/show_bug.cgi?id=157569
+        <rdar://problem/26223115>
+
+        Reviewed by Dean Jackson.
+
+        Tests: fast/css/prefixed-unprefixed-variant-style-declaration.html
+               fast/css/shorthand-omitted-initial-value-overrides-shorthand.html
+
+        We essentially revert the code added with https://bugs.webkit.org/show_bug.cgi?id=110011
+        which duplicated properties that had a prefixed or unprefixed variant. What we do now is
+        to return the value of the prefixed or unprefixed variant through a CSSStyleDeclaration,
+        but only return the properties specified by the author when reading from the `cssText` property.
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseValue):
+        (WebCore::CSSParser::parseTransitionShorthand):
+        (WebCore::CSSParser::addPropertyWithPrefixingVariant): Deleted.
+        * css/CSSParser.h:
+        Remove all code adding duplicated properties for the prefixed or unprefixed
+        variant of properties that exist in both forms.
+
+        * css/CSSPropertyNames.in:
+        Treat transition properties as we do animation properties. 
+
+        * css/PropertySetCSSStyleDeclaration.cpp:
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyCSSValue):
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyValue):
+        Make these two methods call into the matching getXXXInternal() variant instead
+        of going through the property set directly so that they would correctly pick up
+        on the prefixed or unprefixed variant should there be one when the specified property
+        is not specified directly.
+
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyCSSValueInternal):
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyValueInternal):
+        We used to simply return the value for the given property from the property set, which
+        we still do but now also check if there is prefixed or unprefixed variant for the provided
+        property in case it was absent.
+
+        * css/StyleProperties.cpp:
+        (WebCore::MutableStyleProperties::removeShorthandProperty):
+        Remove all code adding duplicated properties for the prefixed or unprefixed
+        variant of properties that exist in both forms.
+
+        (WebCore::StyleProperties::asText):
+        Drive-by fix to also handle the animation-play-state and -webkit-animation-play-state properties
+        when serializing to the shorthand.
+
+        (WebCore::MutableStyleProperties::removeProperty): Deleted.
+        (WebCore::MutableStyleProperties::removePrefixedOrUnprefixedProperty): Deleted.
+        (WebCore::MutableStyleProperties::setProperty): Deleted.
+        (WebCore::getIndexInShorthandVectorForPrefixingVariant): Deleted.
+        (WebCore::MutableStyleProperties::appendPrefixingVariantProperty): Deleted.
+        (WebCore::MutableStyleProperties::setPrefixingVariantProperty): Deleted.
+        * css/StyleProperties.h:
+        Remove all code adding duplicated properties for the prefixed or unprefixed
+        variant of properties that exist in both forms.
+
+2016-05-12  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200766.
+        https://bugs.webkit.org/show_bug.cgi?id=157623
+
+        it is breaking yosemite builds (Requested by youenn on
+        #webkit).
+
+        Reverted changeset:
+
+        "DOMPromise should only restrict the resolution type"
+        https://bugs.webkit.org/show_bug.cgi?id=157307
+        http://trac.webkit.org/changeset/200766
+
+2016-05-12  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        DOMPromise should only restrict the resolution type
+        https://bugs.webkit.org/show_bug.cgi?id=157307
+
+        Reviewed by Darin Adler.
+
+        Removing from DOMPromise the rejection template parameter.
+        Supported rejection types are integers (Exception codes) and DOM objects (DOMError typically).
+
+        Updated toJS and DeferredWrapper to accept Ref<>&& and RefPtr<>&&.
+        Previously Ref<>&& were not accepted and only "const RefPtr<>&" was accepted.
+        This in turn created an unecessary churn count when calling toJS.
+
+        Changes also allow in most cases to remove the need for explictly declaring the
+        rejection/resolution type.
+
+        Minor refactoring of FontFaceSet promise handling to use DOMPromise in lieu of DeferredWrapper.
+
+        Covered by existing tests.
+        Changes should not be visible from user scripts.
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::consume):
+        (WebCore::FetchBody::consumeText):
+        (WebCore::blobFromArrayBuffer):
+        (WebCore::FetchBody::loadingFailed):
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::formData):
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::arrayBuffer):
+        (WebCore::FetchBodyOwner::blob):
+        (WebCore::FetchBodyOwner::formData):
+        (WebCore::FetchBodyOwner::json):
+        (WebCore::FetchBodyOwner::text):
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::BodyLoader::didReceiveResponse):
+        * Modules/fetch/FetchResponse.h:
+        * Modules/mediastream/MediaDevices.h:
+        * Modules/mediastream/PeerConnectionBackend.h:
+        * Modules/mediastream/UserMediaRequest.cpp:
+        (WebCore::UserMediaRequest::didCreateStream):
+        * Modules/streams/ReadableStreamSource.h:
+        * Modules/webaudio/AudioContext.h:
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::toJS):
+        (WebCore::jsPair):
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::fulfillPromiseWithJSON):
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::TypeInspector::decltype):
+        (WebCore::TypeInspector::testIsVector):
+        (WebCore::TypeInspector::testIsRefOrRefPtr):
+        (WebCore::DeferredWrapper::resolve):
+        (WebCore::DeferredWrapper::reject):
+        (WebCore::DOMPromise::resolve):
+        (WebCore::DOMPromise::reject):
+        (WebCore::DeferredWrapper::resolveWithValue):
+        (WebCore::DeferredWrapper::rejectWithValue):
+        (WebCore::callPromiseFunction):
+        * bindings/js/JSSubtleCryptoCustom.cpp:
+        (WebCore::JSSubtleCrypto::importKey):
+        (WebCore::JSSubtleCrypto::unwrapKey):
+        * css/FontFace.h:
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::PendingPromise::PendingPromise):
+        (WebCore::FontFaceSet::load):
+        (WebCore::FontFaceSet::registerReady):
+        * css/FontFaceSet.h:
+        * html/HTMLMediaElement.h:
+
+2016-05-12  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Incorrect parsing when using just 'span" as grid-line value
+        https://bugs.webkit.org/show_bug.cgi?id=157615
+
+        Reviewed by Sergio Villar Senin.
+
+        The spec is pretty clear about this:
+        https://drafts.csswg.org/css-grid/#typedef-grid-row-start-grid-line
+
+        The possible options when using "span" to reference a grid line are:
+          [ span && [ <integer> || <custom-ident> ] ]
+
+        Thus, "span" keyword alone produces an invalid declaration.
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseGridPosition):
+
+2016-05-12  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Remove ENABLE(ES6_ARROWFUNCTION_SYNTAX) guards
+        https://bugs.webkit.org/show_bug.cgi?id=157564
+
+        Reviewed by Darin Adler.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-05-11  Ryosuke Niwa  <rniwa@webkit.org>
+
+        TextIteratorStopsOnFormControls is never used
+        https://bugs.webkit.org/show_bug.cgi?id=157609
+
+        Reviewed by Alex Christensen.
+
+        Removed SurroundingText.cpp and TextIteratorStopsOnFormControls from TextIterator as they're no longer used.
+
+        * editing/SurroundingText.cpp: Removed.
+        * editing/TextIterator.cpp:
+        (WebCore::TextIterator::advance):
+        (WebCore::TextIterator::exitNode):
+        (WebCore::SimplifiedBackwardsTextIterator::SimplifiedBackwardsTextIterator):
+        (WebCore::SimplifiedBackwardsTextIterator::advance):
+        (WebCore::characterSubrange):
+        (WebCore::BackwardsCharacterIterator::BackwardsCharacterIterator):
+        * editing/TextIterator.h:
+        (WebCore::SimplifiedBackwardsTextIterator::atEnd):
+        * editing/TextIteratorBehavior.h:
+
+2016-05-11  Chris Dumez  <cdumez@apple.com>
+
+        Kill Node::ancestorElement()
+        https://bugs.webkit.org/show_bug.cgi?id=157599
+
+        Reviewed by Darin Adler.
+
+        Kill Node::ancestorElement() and use Node::parentElement() instead. If
+        our parent is not an Element then none of our ancestors will be.
+
+        * dom/Node.cpp:
+        (WebCore::Node::isDefaultNamespace):
+        (WebCore::Node::lookupPrefix):
+        (WebCore::Node::lookupNamespaceURI):
+        (WebCore::Node::lookupNamespacePrefix):
+        (WebCore::Node::convertToPage):
+        (WebCore::Node::convertFromPage):
+        (WebCore::Node::ancestorElement): Deleted.
+        * dom/Node.h:
+
 2016-05-11  Zalan Bujtas  <zalan@apple.com>
 
         Absolute positioned element is not placed properly when parent becomes the containing block.

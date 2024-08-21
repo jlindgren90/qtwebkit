@@ -273,3 +273,4 @@ allowContentSecurityPolicySourceStarToMatchAnyProtocol initial=false
 
 selectionPaintingWithoutSelectionGapsEnabled initial=false
 
+shouldConvertInvalidURLsToBlank initial=true

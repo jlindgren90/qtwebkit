@@ -967,9 +967,9 @@ void HTMLMediaElement::pendingActionTimerFired()
         mediaEngineWasUpdated();
 }
 
-PassRefPtr<MediaError> HTMLMediaElement::error() const 
+MediaError* HTMLMediaElement::error() const
 {
-    return m_error;
+    return m_error.get();
 }
 
 void HTMLMediaElement::setSrc(const String& url)
@@ -3903,7 +3903,7 @@ void HTMLMediaElement::configureTextTrackGroup(const TrackGroup& group)
 
 static JSC::JSValue controllerJSValue(JSC::ExecState& exec, JSDOMGlobalObject& globalObject, HTMLMediaElement& media)
 {
-    auto mediaJSWrapper = toJS(&exec, &globalObject, &media);
+    auto mediaJSWrapper = toJS(&exec, &globalObject, media);
     
     // Retrieve the controller through the JS object graph
     JSC::JSObject* mediaJSWrapperObject = JSC::jsDynamicCast<JSC::JSObject*>(mediaJSWrapper);
@@ -6483,8 +6483,8 @@ void HTMLMediaElement::didAddUserAgentShadowRoot(ShadowRoot* root)
     if (!m_mediaControlsHost)
         m_mediaControlsHost = MediaControlsHost::create(this);
 
-    auto mediaJSWrapper = toJS(exec, globalObject, this);
-    auto mediaControlsHostJSWrapper = toJS(exec, globalObject, m_mediaControlsHost.get());
+    auto mediaJSWrapper = toJS(exec, globalObject, *this);
+    auto mediaControlsHostJSWrapper = toJS(exec, globalObject, m_mediaControlsHost);
     
     JSC::MarkedArgumentBuffer argList;
     argList.append(toJS(exec, globalObject, root));

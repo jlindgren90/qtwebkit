@@ -1,3 +1,85 @@
+2016-05-12  Mark Lam  <mark.lam@apple.com>
+
+        Baseline and DFG's JSC_report...CompileTimes needs CodeBlock hashes.
+        https://bugs.webkit.org/show_bug.cgi?id=157643
+
+        Reviewed by Keith Miller.
+
+        * runtime/Options.cpp:
+        (JSC::recomputeDependentOptions):
+
+2016-05-12  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Remove ENABLE(ES6_ARROWFUNCTION_SYNTAX) guards
+        https://bugs.webkit.org/show_bug.cgi?id=157564
+
+        Reviewed by Darin Adler.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * parser/Parser.cpp:
+
+2016-05-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: CRASH getting internal properties of function with no bound arguments causes
+        https://bugs.webkit.org/show_bug.cgi?id=157613
+        <rdar://problem/26238754>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::getInternalProperties):
+        Gracefully handle a JSBoundFunction with no bound arguments.
+        In this case boundArgs is JSValue() which we don't want to
+        expose as the value of the internal property.
+
+2016-05-11  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Make sure StringRange is passed to Vector by register
+        https://bugs.webkit.org/show_bug.cgi?id=157603
+
+        Reviewed by Darin Adler.
+
+        This is bizarre, but on my SDK, Vector::append(StringRange)
+        is passing the values on the stack.
+        The two integers are written to the stack, the address given
+        to append(), then append() reads it back and store it.
+
+        This patch changes the code to use constructAndAppend(), ensuring
+        the values are used directly.
+
+        On my machine, this helps Sunspider and Octane.
+        This might be something wrong with my SDK but the fix is so easy
+        that we might as well do this.
+
+        * runtime/StringPrototype.cpp:
+        (JSC::removeUsingRegExpSearch):
+        (JSC::replaceUsingRegExpSearch):
+
+2016-05-11  Zan Dobersek  <zdobersek@igalia.com>
+
+        ARMv7Assembler: suppress a -Wnarrowing warning when compiling with GCC
+        https://bugs.webkit.org/show_bug.cgi?id=157576
+
+        Reviewed by Csaba Osztrogonác.
+
+        * assembler/ARMv7Assembler.h:
+        (JSC::ARMv7Assembler::revertJumpTo_movT3movtcmpT2): Explicitly cast the
+        `OP_CMP_reg_T2 | left` value to uint16_t, avoiding a narrowing conversion
+        warning that's being reported when compiling with GCC. The warning is sprung
+        due to RegisterID (which is the type of `left`) being an enum based on int,
+        even when the enum itself only declares 23 values.
+
+2016-05-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: `this` in Scope Chain Sidebar does not have preview, looks poor
+        https://bugs.webkit.org/show_bug.cgi?id=157602
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.CallFrameProxy):
+        Include a preview when creating the RemoteObject for `this`.
+
 2016-05-11  Keith Miller  <keith_miller@apple.com>
 
         Unreviewed, correct the title of the ChangeLog for r200667.

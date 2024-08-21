@@ -1336,8 +1336,8 @@ bool Node::isDefaultNamespace(const AtomicString& namespaceURIMaybeEmpty) const
                 }
             }
 
-            if (Element* ancestor = ancestorElement())
-                return ancestor->isDefaultNamespace(namespaceURI);
+            if (auto* parent = parentElement())
+                return parent->isDefaultNamespace(namespaceURI);
 
             return false;
         }
@@ -1355,8 +1355,8 @@ bool Node::isDefaultNamespace(const AtomicString& namespaceURIMaybeEmpty) const
             return false;
         }
         default:
-            if (Element* ancestor = ancestorElement())
-                return ancestor->isDefaultNamespace(namespaceURI);
+            if (auto* parent = parentElement())
+                return parent->isDefaultNamespace(namespaceURI);
             return false;
     }
 }
@@ -1386,8 +1386,8 @@ String Node::lookupPrefix(const AtomicString &namespaceURI) const
             return String();
         }
         default:
-            if (Element* ancestor = ancestorElement())
-                return ancestor->lookupPrefix(namespaceURI);
+            if (auto* parent = parentElement())
+                return parent->lookupPrefix(namespaceURI);
             return String();
     }
 }
@@ -1424,8 +1424,8 @@ String Node::lookupNamespaceURI(const String &prefix) const
                     }
                 }
             }
-            if (Element* ancestor = ancestorElement())
-                return ancestor->lookupNamespaceURI(prefix);
+            if (auto* parent = parentElement())
+                return parent->lookupNamespaceURI(prefix);
             return String();
         }
         case DOCUMENT_NODE:
@@ -1444,8 +1444,8 @@ String Node::lookupNamespaceURI(const String &prefix) const
                 return String();
         }
         default:
-            if (Element* ancestor = ancestorElement())
-                return ancestor->lookupNamespaceURI(prefix);
+            if (auto* parent = parentElement())
+                return parent->lookupNamespaceURI(prefix);
             return String();
     }
 }
@@ -1468,8 +1468,8 @@ String Node::lookupNamespacePrefix(const AtomicString &_namespaceURI, const Elem
         }
     }
     
-    if (Element* ancestor = ancestorElement())
-        return ancestor->lookupNamespacePrefix(_namespaceURI, originalElement);
+    if (auto* parent = parentElement())
+        return parent->lookupNamespacePrefix(_namespaceURI, originalElement);
     return String();
 }
 
@@ -1544,15 +1544,6 @@ void Node::setTextContent(const String& text, ExceptionCode& ec)
             return;
     }
     ASSERT_NOT_REACHED();
-}
-
-Element* Node::ancestorElement() const
-{
-    for (ContainerNode* ancestor = parentNode(); ancestor; ancestor = ancestor->parentNode()) {
-        if (is<Element>(*ancestor))
-            return downcast<Element>(ancestor);
-    }
-    return nullptr;
 }
 
 bool Node::offsetInCharacters() const
@@ -1691,8 +1682,7 @@ FloatPoint Node::convertToPage(const FloatPoint& p) const
         return renderer()->localToAbsolute(p, UseTransforms);
     
     // Otherwise go up the tree looking for a renderer
-    Element *parent = ancestorElement();
-    if (parent)
+    if (auto* parent = parentElement())
         return parent->convertToPage(p);
 
     // No parent - no conversion needed
@@ -1706,8 +1696,7 @@ FloatPoint Node::convertFromPage(const FloatPoint& p) const
         return renderer()->absoluteToLocal(p, UseTransforms);
 
     // Otherwise go up the tree looking for a renderer
-    Element *parent = ancestorElement();
-    if (parent)
+    if (auto* parent = parentElement())
         return parent->convertFromPage(p);
 
     // No parent - no conversion needed
