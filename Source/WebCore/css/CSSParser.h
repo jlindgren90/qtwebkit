@@ -20,8 +20,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef CSSParser_h
-#define CSSParser_h
+#pragma once
 
 #include "CSSCalculationValue.h"
 #include "CSSGradientValue.h"
@@ -203,6 +202,10 @@ public:
     RefPtr<CSSValue> parseColumnWidth();
     RefPtr<CSSValue> parseColumnCount();
     bool parseColumnsShorthand(bool important);
+
+#if ENABLE(IOS_TEXT_AUTOSIZING)
+    bool isTextAutosizingEnabled() const;
+#endif
 
 #if ENABLE(CSS_GRID_LAYOUT)
     bool isCSSGridLayoutEnabled() const;
@@ -774,5 +777,3 @@ inline int cssyylex(void* yylval, CSSParser* parser)
 }
 
 } // namespace WebCore
-
-#endif // CSSParser_h

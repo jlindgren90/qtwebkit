@@ -1,3 +1,89 @@
+2016-05-18  Antti Koivisto  <antti@apple.com>
+
+        Style resolution for explicitly inherited properties is inefficient
+        https://bugs.webkit.org/show_bug.cgi?id=157860
+
+        Reviewed by Andreas Kling.
+
+        * platform/ios-simulator/fast/dom/HTMLProgressElement/progress-bar-value-pseudo-element-expected.txt:
+        * platform/mac/fast/dom/HTMLProgressElement/progress-bar-value-pseudo-element-expected.txt:
+
+        This is a progression.
+
+2016-05-19  Yoav Weiss  <yoav@yoav.ws>
+
+        REGRESSION (r200887): LayoutTest http/tests/performance/performance-resource-timing-cached-entries.html is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=157816
+
+        Reviewed by Alexey Proskuryakov.
+
+        Mark the test as flaky, and add console logs to try to figure out the cause for flakiness.
+
+        * TestExpectations: Mark the test as flaky.
+        * http/tests/performance/performance-resource-timing-cached-entries.html: Add prints to better identify the flakiness root cause.
+
+2016-05-18  Jer Noble  <jer.noble@apple.com>
+
+        webkitEnterFullscreen() does not require a user gesture when RequireUserGestureForAudioRateChange is set.
+        https://bugs.webkit.org/show_bug.cgi?id=157803
+
+        Reviewed by Eric Carlson.
+
+        * media/video-play-audio-require-user-gesture-expected.txt: Added.
+        * media/video-play-audio-require-user-gesture.html: Added.
+
+2016-05-18  Ryosuke Niwa  <rniwa@webkit.org>
+
+        REGRESSION (r186569): media/restore-from-page-cache.html is very flaky
+        https://bugs.webkit.org/show_bug.cgi?id=147254
+
+        Unreviewed. Removing the flaky test expectation since the test is almost always passing now.
+
+        * platform/mac/TestExpectations:
+
+2016-05-18  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Add support for server side closing of open database connections.
+        https://bugs.webkit.org/show_bug.cgi?id=157843
+
+        Reviewed by Alex Christensen.
+
+        * storage/indexeddb/modern/handle-user-delete-expected.txt: Added.
+        * storage/indexeddb/modern/handle-user-delete.html: Added.
+        * storage/indexeddb/modern/resources/handle-user-delete.js: Added.
+
+2016-05-18  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] Update platform/mac/fast/text/sticky-typesetting-features.html
+        https://bugs.webkit.org/show_bug.cgi?id=157851
+
+        Reviewed by Simon Fraser.
+
+        Kerning and ligatures are enabled by default now.
+
+        * platform/mac/fast/text/sticky-typesetting-features-expected.png:
+        * platform/mac/fast/text/sticky-typesetting-features-expected.txt:
+        * platform/mac/fast/text/sticky-typesetting-features.html:
+
+2016-05-18  Simon Fraser  <simon.fraser@apple.com>
+
+        REGRESSION (r200534) Command-+ no longer zooms pages 
+        https://bugs.webkit.org/show_bug.cgi?id=157826
+        rdar://problem/26334636
+
+        Reviewed by Dean Jackson.
+
+        Need to call internals.settings.setTextAutosizingEnabled(true) earlier in some tests.
+
+        * fast/text-autosizing/ios/line-height-text-autosizing.html:
+        * fast/text-autosizing/ios/percent-adjust-length-line-height.html:
+        * fast/text-autosizing/ios/percent-adjust-number-line-height.html:
+        * fast/text-autosizing/ios/percent-adjust-percent-line-height.html:
+        * fast/text-autosizing/mac/text-size-adjust-text-zoom-expected.html: Added.
+        * fast/text-autosizing/mac/text-size-adjust-text-zoom.html: Added.
+        * platform/mac-wk2/TestExpectations:
+        * platform/mac/TestExpectations:
+
 2016-05-18  Joanmarie Diggs  <jdiggs@igalia.com>
 
         [GTK] accessibility/meter-element.html is failing
@@ -2615,7 +2701,7 @@
         Unreviewed test gardening.
 
         Remove failure expectation for passing tests, move some to more specific ports, and remove expectations
-		for tests that are no longer in the tree.
+        for tests that are no longer in the tree.
 
         * platform/ios-simulator-wk1/TestExpectations:
         * platform/ios-simulator-wk2/TestExpectations:
@@ -4153,9 +4239,9 @@
 
         Unreviewed test gardening.
 
-		I evaluated all of the unexpected passes from ios-simulator-wk2 and removed failure
-		expectations where appropriate. Some of the tests only pass on wk2, so some expectations
-		were moved to the ios-simulator-wk1 file.
+        I evaluated all of the unexpected passes from ios-simulator-wk2 and removed failure
+        expectations where appropriate. Some of the tests only pass on wk2, so some expectations
+        were moved to the ios-simulator-wk1 file.
 
         * platform/ios-simulator-wk1/TestExpectations:
         * platform/ios-simulator-wk2/TestExpectations:

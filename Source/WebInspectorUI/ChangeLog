@@ -1,3 +1,141 @@
+2016-05-18  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Classes toggle wraps in some localizations
+        https://bugs.webkit.org/show_bug.cgi?id=157878
+        rdar://problem/26108859
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/CSSStyleDetailsSidebarPanel.css:
+        (.sidebar > .panel.details.css-style > .content ~ .options-container > .toggle-class-toggle):
+        Add white-space: nowrap.
+
+2016-05-18  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: unable to switch between navigation tree outlines using up/down arrow keys
+        https://bugs.webkit.org/show_bug.cgi?id=157713
+        <rdar://problem/26287086>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/NavigationSidebarPanel.js:
+        (WebInspector.NavigationSidebarPanel.prototype.createContentTreeOutline):
+        Listen for TreeOutline focus changes, and associate trees and their DOM
+        elements for quick lookup when handling focus events.
+
+        (WebInspector.NavigationSidebarPanel.prototype._contentTreeOutlineDidFocus):
+        (WebInspector.NavigationSidebarPanel.prototype._contentTreeOutlineTreeSelectionDidChange):
+        When selecting a tree element causes an element in a different tree outline
+        to be deselected, remember the old selection so that it can be restored
+        the next time the tree outline get the focus.
+
+2016-05-18  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Checkbox disappears when unchecking CSS property with value containing a semicolon
+        https://bugs.webkit.org/show_bug.cgi?id=157862
+        <rdar://problem/16214480>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/CSSStyleDeclarationTextEditor.js:
+        (WebInspector.CSSStyleDeclarationTextEditor.prototype._createCommentedCheckboxMarker):
+        Modify regex to match CSS properties with url() and quoted values,
+        which can contain semicolons.
+
+2016-05-18  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: ugly gaps in Call Trees data grid when expanding more than one level
+        https://bugs.webkit.org/show_bug.cgi?id=157829
+        <rdar://problem/26339922>
+
+        Reviewed by Timothy Hatcher.
+
+        Make a more specific CSS selector to avoid style conflicts.
+
+        * UserInterface/Views/DataGrid.css:
+        (.data-grid:not(.variable-height-rows) > .data-container > table.data > tbody > tr > td > div): Deleted.
+        (.data-grid:not(.variable-height-rows) > .data-container > table.data > tbody > tr > td > .cell-content):
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGridNode.prototype.createCell):
+
+2016-05-18  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: InspectorFrontendAPI.setTimelineProfilingEnabled should not implicitly show Timelines tab
+        https://bugs.webkit.org/show_bug.cgi?id=157846
+
+        Reviewed by Timothy Hatcher.
+
+        Currently, if the Web Inspector opens for an in-progress or finished automation session,
+        it will always show the Timelines tab, disregarding any previous user view state. This
+        is annoying and is a bad user experience when trying to debug the same test repeatedly.
+
+        * UserInterface/Protocol/InspectorFrontendAPI.js:
+        (InspectorFrontendAPI.setTimelineProfilingEnabled): Don't implicitly show Timelines tab.
+        (InspectorFrontendAPI.showTimelines): Added. This is called explicitly when desired.
+
+2016-05-18  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: DebuggerSidebarPanel doesn't need to help manage temporarily disabling breakpoints while capturing
+        https://bugs.webkit.org/show_bug.cgi?id=157854
+
+        Reviewed by Timothy Hatcher.
+
+        Duplicate the event listeners in DebuggerManager and move non-view-related
+        state updates out of DebuggerSidebarPanel's listeners into DebuggerManager's listeners.
+        This allows a test to exercise the temporary-disablement code paths during capturing.
+
+        * UserInterface/Controllers/DebuggerManager.js:
+        (WebInspector.DebuggerManager.prototype.get breakpointsDisabledTemporarily):
+        Use this to make the code a bit more readable.
+
+        (WebInspector.DebuggerManager.prototype._startDisablingBreakpointsTemporarily):
+        (WebInspector.DebuggerManager.prototype._stopDisablingBreakpointsTemporarily):
+        (WebInspector.DebuggerManager.prototype.startDisablingBreakpointsTemporarily): Deleted.
+        (WebInspector.DebuggerManager.prototype.stopDisablingBreakpointsTemporarily): Deleted.
+        Make this private since it's not used by other classes anymore.
+
+        (WebInspector.DebuggerManager.prototype._timelineCapturingWillStart): Added.
+        (WebInspector.DebuggerManager.prototype._timelineCapturingStopped): Added.
+
+        * UserInterface/Views/DebuggerSidebarPanel.js:
+        (WebInspector.DebuggerSidebarPanel.prototype._timelineRecordingWillStart): Deleted.
+        (WebInspector.DebuggerSidebarPanel.prototype._timelineRecordingStopped): Deleted.
+        (WebInspector.DebuggerSidebarPanel.prototype._timelineCapturingWillStart): Added.
+        (WebInspector.DebuggerSidebarPanel.prototype._timelineCapturingStopped): Added.
+        Make the listener names consistent with TimelineManager: timelineCapturing{WillStart,Stopped}.
+
+2016-05-18  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Improve console.takeHeapSnapshot documentation in console
+        https://bugs.webkit.org/show_bug.cgi?id=157853
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Models/NativeFunctionParameters.js:
+        Mention optional label argument.
+
+2016-05-18  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: race between frontend and backend both starting timeline recordings causes console assert
+        https://bugs.webkit.org/show_bug.cgi?id=157850
+        <rdar://problem/26349229>
+
+        Reviewed by Joseph Pecoraro.
+
+        If TimelineManager has created a fresh recording and the Timeline.autoCaptureStarted
+        event comes before Timeline.recordingStarted, then the manager will try to start the
+        same recording twice. In this scenario, the manager should just wait until the
+        Timeline.recordingStarted event comes, since it causes TimelineMangare to set up
+        the isCapturing flag and other state.
+
+        * UserInterface/Controllers/TimelineManager.js:
+        (WebInspector.TimelineManager):
+        (WebInspector.TimelineManager.prototype.startCapturing):
+        (WebInspector.TimelineManager.prototype.capturingStarted):
+        (WebInspector.TimelineManager.prototype.autoCaptureStarted):
+        Add a new flag, this._waitingForCapturingStartedEvent. If true, don't start the
+        recording in response to this event.
+
 2016-05-18  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: REGRESSION(r197488): Incorrect start time in Rendering Frames timeline grid

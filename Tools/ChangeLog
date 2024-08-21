@@ -1,3 +1,49 @@
+2016-05-19  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Slow JSC stress tests times out in 32 bit debug mode
+        https://bugs.webkit.org/show_bug.cgi?id=154964
+
+        Reviewed by Michael Catanzaro.
+
+        * Scripts/run-javascriptcore-tests:
+        (runJSCStressTests): Pass through the --debug option.
+        * Scripts/run-jsc-stress-tests: Increase the timeout for debug builds.
+
+2016-05-18  Aakash Jain  <aakash_jain@apple.com>
+
+        Remove underline from Status Bubbles on dashboard
+        https://bugs.webkit.org/show_bug.cgi?id=157870
+        rdar://problem/26332321
+
+        Reviewed by Alexey Proskuryakov.
+
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Styles/Main.css: Reverted style 
+        change made in http://trac.webkit.org/r200880
+
+2016-05-18  Michael Saboff  <msaboff@apple.com>
+
+        r199812 broke test262
+        https://bugs.webkit.org/show_bug.cgi?id=157595
+
+        Reviewed by Filip Pizlo.
+
+        Added a new run type, runOneLargeHeap, for tests that use a large amount of memory.
+        This run type will not run with the --memory-limited option.  Without that option,
+        we'll only the default test variant.
+
+        * Scripts/run-jsc-stress-tests:
+
+2016-05-18  Simon Fraser  <simon.fraser@apple.com>
+
+        REGRESSION (r200534) Command-+ no longer zooms pages 
+        https://bugs.webkit.org/show_bug.cgi?id=157826
+        rdar://problem/26334636
+
+        Reviewed by Dean Jackson.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (resetWebPreferencesToConsistentValues): Remove ENABLE() #ifdefs that do nothing (see http://webkit.org/b/157828).
+
 2016-05-18  Joanmarie Diggs  <jdiggs@igalia.com>
 
         [GTK] accessibility/meter-element.html is failing
