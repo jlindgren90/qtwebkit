@@ -1,3 +1,238 @@
+2016-05-15  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG::Plan shouldn't read from its VM once it's been cancelled
+        https://bugs.webkit.org/show_bug.cgi?id=157726
+
+        Reviewed by Saam Barati.
+        
+        Plan::vm was a reference, not a pointer, and so wasn't nulled by Plan::cancel(). So, a
+        cancelled plan may have a dangling pointer to a VM: we could delete the VM after cancelling
+        the plan.
+        
+        Prior to http://trac.webkit.org/changeset/200705, this was probably fine because nobody
+        would read Plan::vm if the plan was cancelled. But r200705 changed that. It was a hard
+        regression to spot because usually a cancelled plan will still refer to a valid VM.
+        
+        This change fixes the regression and makes it a lot easier to spot the regression in the
+        future. Plan::vm is now a pointer and we null it in Plan::cancel(). Now if you make this
+        mistake, you will get a crash anytime the Plan is cancelled, not just anytime the plan is
+        cancelled and the VM gets deleted. Also, it's now very clear what to do when you want to
+        use Plan::vm on the cancel path: you can null-check vm; if it's null, assume the worst.
+        
+        Because we null the VM of a cancelled plan, we cannot have Safepoint::vm() return the
+        plan's VM anymore. That's because when we cancel a plan that is at a safepoint, we use the
+        safepoint's VM to determine whether this is one of our safepoints *after* the plan is
+        already cancelled. So, Safepoint now has its own copy of m_vm, and that copy gets nulled
+        when the Safepoint is cancelled. The Safepoint's m_vm will be nulled moments after Plan's
+        vm gets nulled (see Worklist::removeDeadPlans(), which has a cancel path for Plans in one
+        loop and a cancel path for Safepoints in the loop after it).
+
+        * dfg/DFGJITFinalizer.cpp:
+        (JSC::DFG::JITFinalizer::finalizeCommon):
+        * dfg/DFGPlan.cpp:
+        (JSC::DFG::Plan::Plan):
+        (JSC::DFG::Plan::computeCompileTimes):
+        (JSC::DFG::Plan::reportCompileTimes):
+        (JSC::DFG::Plan::compileInThreadImpl):
+        (JSC::DFG::Plan::reallyAdd):
+        (JSC::DFG::Plan::notifyCompiling):
+        (JSC::DFG::Plan::finalizeWithoutNotifyingCallback):
+        (JSC::DFG::Plan::cancel):
+        * dfg/DFGPlan.h:
+        (JSC::DFG::Plan::canTierUpAndOSREnter):
+        * dfg/DFGSafepoint.cpp:
+        (JSC::DFG::Safepoint::cancel):
+        (JSC::DFG::Safepoint::vm):
+        * dfg/DFGSafepoint.h:
+        * dfg/DFGWorklist.cpp:
+        (JSC::DFG::Worklist::isActiveForVM):
+        (JSC::DFG::Worklist::waitUntilAllPlansForVMAreReady):
+        (JSC::DFG::Worklist::removeAllReadyPlansForVM):
+        (JSC::DFG::Worklist::rememberCodeBlocks):
+        (JSC::DFG::Worklist::visitWeakReferences):
+        (JSC::DFG::Worklist::removeDeadPlans):
+        (JSC::DFG::Worklist::runThread):
+        * ftl/FTLJITFinalizer.cpp:
+        (JSC::FTL::JITFinalizer::finalizeFunction):
+
+2016-05-15  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Modernize Intl constructors; using InternalFunction::createSubclassStructure
+        https://bugs.webkit.org/show_bug.cgi?id=157082
+
+        Reviewed by Darin Adler.
+
+        Previously, Intl constructors retrieve "prototype" to inherit the "new.target".
+        At that time, this mis-assumed that getDirect() always returns meaningful JS value.
+        Actually, it returns an empty value if a property does not exist.
+
+        Instead of fixing this assertion, we now use InternalFunction::createSubclassStructure
+        in Intl constructors. It is modern and preferable way since it can cache the derived
+        structures in InternalFunction.
+
+        This patch also cleans up the workaround in Intl.NumberFormat and Intl.DateTimeFormat.
+        Those code are largely duplicate. This is now extracted into
+        constructIntlInstanceWithWorkaroundForLegacyIntlConstructor. This clean up does not
+        have any behavior changes. They are already tested in LayoutTests/js/intl-datetimeformat
+        and LayoutTests/js/intl-numberformat.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * runtime/IntlCollator.cpp:
+        (JSC::IntlCollator::create):
+        * runtime/IntlCollator.h:
+        * runtime/IntlCollatorConstructor.cpp:
+        (JSC::constructIntlCollator):
+        (JSC::callIntlCollator):
+        * runtime/IntlDateTimeFormat.cpp:
+        (JSC::IntlDateTimeFormat::create):
+        * runtime/IntlDateTimeFormat.h:
+        * runtime/IntlDateTimeFormatConstructor.cpp:
+        (JSC::constructIntlDateTimeFormat):
+        (JSC::callIntlDateTimeFormat):
+        * runtime/IntlDateTimeFormatPrototype.cpp:
+        (JSC::IntlDateTimeFormatPrototypeGetterFormat):
+        (JSC::IntlDateTimeFormatPrototypeFuncResolvedOptions):
+        * runtime/IntlNumberFormat.cpp:
+        (JSC::IntlNumberFormat::create):
+        * runtime/IntlNumberFormat.h:
+        * runtime/IntlNumberFormatConstructor.cpp:
+        (JSC::constructIntlNumberFormat):
+        (JSC::callIntlNumberFormat):
+        * runtime/IntlNumberFormatPrototype.cpp:
+        (JSC::IntlNumberFormatPrototypeGetterFormat):
+        (JSC::IntlNumberFormatPrototypeFuncResolvedOptions):
+        * runtime/IntlObjectInlines.h: Added.
+        (JSC::constructIntlInstanceWithWorkaroundForLegacyIntlConstructor):
+        * tests/stress/intl-constructors-with-proxy.js: Added.
+        (shouldBe):
+        (throw.new.Error.Empty):
+        (throw.new.Error):
+        (shouldBe.Empty):
+
+2016-05-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove LegacyProfiler
+        https://bugs.webkit.org/show_bug.cgi?id=153565
+
+        Reviewed by Mark Lam.
+
+        JavaScriptCore now provides a sampling profiler and it is enabled
+        by all ports. Web Inspector switched months ago to using the
+        sampling profiler and displaying its data. Remove the legacy
+        profiler, as it is no longer being used by anything other then
+        console.profile and tests. We will update console.profile's
+        behavior soon to have new behavior and use the sampling data.
+
+        * API/JSProfilerPrivate.cpp: Removed.
+        * API/JSProfilerPrivate.h: Removed.
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset): Deleted.
+        (JSC::computeDefsForBytecodeOffset): Deleted.
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode): Deleted.
+        * bytecode/UnlinkedFunctionExecutable.cpp:
+        (JSC::generateUnlinkedFunctionCodeBlock):
+        (JSC::UnlinkedFunctionExecutable::unlinkedCodeBlockFor):
+        * bytecode/UnlinkedFunctionExecutable.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::emitCall):
+        (JSC::BytecodeGenerator::emitCallVarargs):
+        (JSC::BytecodeGenerator::emitCallVarargsInTailPosition):
+        (JSC::BytecodeGenerator::emitConstructVarargs):
+        (JSC::BytecodeGenerator::emitConstruct):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::CallArguments::profileHookRegister): Deleted.
+        (JSC::BytecodeGenerator::shouldEmitProfileHooks): Deleted.
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::CallFunctionCallDotNode::emitBytecode):
+        (JSC::ApplyFunctionCallDotNode::emitBytecode):
+        (JSC::CallArguments::CallArguments): Deleted.
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects): Deleted.
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock): Deleted.
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel): Deleted.
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize): Deleted.
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC): Deleted.
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode): Deleted.
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute): Deleted.
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile): Deleted.
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile): Deleted.
+        * inspector/InjectedScriptBase.cpp:
+        (Inspector::InjectedScriptBase::callFunctionWithEvalEnabled):
+        * inspector/protocol/Timeline.json:
+        * interpreter/Interpreter.cpp:
+        (JSC::UnwindFunctor::operator()): Deleted.
+        (JSC::Interpreter::execute): Deleted.
+        (JSC::Interpreter::executeCall): Deleted.
+        (JSC::Interpreter::executeConstruct): Deleted.
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass): Deleted.
+        * jit/JIT.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_profile_will_call): Deleted.
+        (JSC::JIT::emit_op_profile_did_call): Deleted.
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_profile_will_call): Deleted.
+        (JSC::JIT::emit_op_profile_did_call): Deleted.
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * jsc.cpp:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL): Deleted.
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter.asm:
+        * parser/ParserModes.h:
+        * profiler/CallIdentifier.h: Removed.
+        * profiler/LegacyProfiler.cpp: Removed.
+        * profiler/LegacyProfiler.h: Removed.
+        * profiler/Profile.cpp: Removed.
+        * profiler/Profile.h: Removed.
+        * profiler/ProfileGenerator.cpp: Removed.
+        * profiler/ProfileGenerator.h: Removed.
+        * profiler/ProfileNode.cpp: Removed.
+        * profiler/ProfileNode.h: Removed.
+        * profiler/ProfilerJettisonReason.cpp:
+        (WTF::printInternal): Deleted.
+        * profiler/ProfilerJettisonReason.h:
+        * runtime/CodeCache.cpp:
+        (JSC::CodeCache::getGlobalCodeBlock):
+        (JSC::CodeCache::getProgramCodeBlock):
+        (JSC::CodeCache::getEvalCodeBlock):
+        (JSC::CodeCache::getModuleProgramCodeBlock):
+        * runtime/CodeCache.h:
+        * runtime/Executable.cpp:
+        (JSC::ScriptExecutable::newCodeBlockFor):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::createProgramCodeBlock):
+        (JSC::JSGlobalObject::createEvalCodeBlock):
+        (JSC::JSGlobalObject::createModuleProgramCodeBlock):
+        (JSC::JSGlobalObject::~JSGlobalObject): Deleted.
+        (JSC::JSGlobalObject::hasLegacyProfiler): Deleted.
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::supportsLegacyProfiling): Deleted.
+        * runtime/Options.h:
+        * runtime/VM.cpp:
+        (JSC::VM::VM): Deleted.
+        (JSC::SetEnabledProfilerFunctor::operator()): Deleted.
+        (JSC::VM::setEnabledProfiler): Deleted.
+        * runtime/VM.h:
+        (JSC::VM::enabledProfiler): Deleted.
+        (JSC::VM::enabledProfilerAddress): Deleted.
+
 2016-05-13  Joseph Pecoraro  <pecoraro@apple.com>
 
         jsc: samplingProfilerStackTraces() without starting sampling should not cause jsc to crash

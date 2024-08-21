@@ -1,3 +1,488 @@
+2016-05-16  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        REGRESSION (r199821): Large animated GIFs with slow network do not animate till the last frame
+        https://bugs.webkit.org/show_bug.cgi?id=157500
+
+        Reviewed by Darin Adler.
+
+        r199821 relies on the assumption that the image frameCount can be retrieved
+        only once when the image size is available and it is not going to change. It
+        turned out this assumption is wrong for some animated GIFs. The frameCount
+        can change every time a new data block is decoded.
+
+        The fix is to invalidate the image cached metadata every time a new data
+        block is decoded.
+
+        Test: http/tests/misc/slow-loading-animated-image.html
+
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::BitmapImage): Move the "fromImage" BitmapImage constructor
+        to BitmapImage.cpp. The ImageSource needs to be initialized differently for
+        this case from the decoder image case. Also get rid of the template constructor.
+        Most of the flags of the BitmapImage will be deleted with the asynchronous image
+        decoding work.
+        
+        (WebCore::BitmapImage::cacheFrame): Delete unused flag m_hasUniformFrameSize.
+        It was added in r35761 and was mainly used by BitmapImage::currentFrameSize().
+        But this function itself was deleted in r172348.
+        
+        (WebCore::BitmapImage::dataChanged): Invalidate the image metadata cache.
+        
+        * platform/graphics/BitmapImage.h:
+        (WebCore::BitmapImage::BitmapImage): Deleted.
+        Delete unused flag m_hasUniformFrameSize. Also define new static functions in
+        FrameData to calculate platform dependent properties of an image.
+        
+        * platform/graphics/ImageSource.cpp:
+        (WebCore::ImageSource::ImageSource): Add a new constructor for the "fromImage"
+        BitmapImage case. The purpose of this constructor is to keep m_needsUpdateMetadata
+        and m_maximumSubsamplingLevel be initialized as they are in the class definition.
+        This constructor will be used with the asynchronous image decoding work where the
+        ImageSource needs to cache the FrameData.
+        
+        (WebCore::ImageSource::updateMetadata): If needsUpdateMetaData() is true, cache new metadata.
+        
+        (WebCore::ImageSource::subsamplingLevelForScale): Call updateMetadata() with its new name.
+        (WebCore::ImageSource::frameCount): Ditto
+        (WebCore::ImageSource::cacheMetadata): Deleted.
+        
+        * platform/graphics/ImageSource.h:
+        (WebCore::ImageSource::setNeedsUpdateMetadata): Invalidate the image cached metadata.
+        
+        * platform/graphics/cairo/BitmapImageCairo.cpp:
+        (WebCore::NativeImage::size):
+        (WebCore::NativeImage::hasAlpha):
+        (WebCore::BitmapImage::BitmapImage): Deleted.
+        Delete the "fromImage" BitmapImage constructor from this file since it is now platform
+        independent and has been moved to BitmapImage.cpp. Also add the new NativeImage platform
+        dependent functions which are used by the new "fromImage" BitmapImage constructor.
+        
+        * platform/graphics/cg/BitmapImageCG.cpp:
+        (WebCore::NativeImage::size):
+        (WebCore::NativeImage::hasAlpha):
+        (WebCore::BitmapImage::BitmapImage): Deleted.
+        Ditto.
+
+2016-05-15  Frederic Wang  <fwang@igalia.com>
+
+        Small removal of useless code for MathML token elements
+        https://bugs.webkit.org/show_bug.cgi?id=157568
+
+        Reviewed by Darin Adler.
+
+        We remove two pieces of code for MathML token elements with unclear purposes and that do not
+        have any effect on math rendering.
+
+        No new tests, behavior is unchanged.
+
+        * css/mathml.css:
+        (mtext): Deleted. This was probably a hack that is no longer needed with the latest math font
+        ascent/descent management.
+        * mathml/MathMLTextElement.cpp:
+        (WebCore::MathMLTextElement::createElementRenderer): Deleted. Removing this does not break
+        the mentioned test.
+
+2016-05-15  Chris Dumez  <cdumez@apple.com>
+
+        Use more references in JS wrappers related code
+        https://bugs.webkit.org/show_bug.cgi?id=157721
+
+        Reviewed by Darin Adler.
+
+        - Use more references in JS wrappers related code.
+        - Avoid some refcounting churn when using toJSNewlyCreated() and in
+          HTML/SVG elements factories by moving the Ref<> around.
+        - Add toJS() / toJSNewlyCreated() implementations for Text, XMLDocument
+          and HTMLDocument. Now that toJSNewlyCreated() takes a Ref<>&& /
+          RefPtr<>&& in, the compiler is no longer able to implicitly use the
+          toJSNewlyCreated() implementation of a parent class for a subclass
+          type (complains about calls being ambiguous). I thought about updating
+          the bindings generator to always generate a toJSNewlyCreated() for
+          all wrapper types (that would call the one on the parent class if the
+          subclass does not have a proper implementation). However this would
+          add some complexity to the bindings generator and it did not seem
+          worth it because [NewObject] and therefore toJSNewlyCreated() is only
+          used for a very limited set of subtypes. I have therefore decided to
+          add the toJS() / toJSNewlyCreated() implementations for the subtypes
+          in question. This also has the benefit of avoiding calling the more
+          complex implementations on Node / Document.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSAnimationTimelineCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSAudioContextCustom.cpp:
+        (WebCore::constructJSAudioContext):
+        * bindings/js/JSBindingsAllInOne.cpp:
+        * bindings/js/JSBlobCustom.cpp:
+        (WebCore::constructJSBlob):
+        * bindings/js/JSCSSRuleCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSCSSValueCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::getCachedWrapper):
+        (WebCore::createWrapper):
+        (WebCore::wrap):
+        (WebCore::getExistingWrapper):
+        (WebCore::createNewWrapper):
+        (WebCore::toJS):
+        (WebCore::finiteInt32Value): Deleted.
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::createNewDocumentWrapper):
+        (WebCore::toJS):
+        (WebCore::cachedDocumentWrapper):
+        (WebCore::reportMemoryForFramelessDocument):
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSDocumentCustom.h:
+        * bindings/js/JSDocumentFragmentCustom.cpp:
+        (WebCore::createNewDocumentFragmentWrapper):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        * bindings/js/JSElementCustom.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSElementCustom.h:
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSEventCustom.cpp:
+        (WebCore::createNewEventWrapper):
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSFileCustom.cpp:
+        (WebCore::constructJSFile):
+        * bindings/js/JSHTMLCollectionCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSHTMLDocumentCustom.cpp:
+        (WebCore::createNewHTMLDocumentWrapper):
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSHTMLTemplateElementCustom.cpp:
+        (WebCore::JSHTMLTemplateElement::content):
+        * bindings/js/JSImageDataCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSNodeCustom.cpp:
+        (WebCore::createWrapperInline):
+        (WebCore::createWrapper):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::getOutOfLineCachedWrapper):
+        * bindings/js/JSNodeCustom.h:
+        (WebCore::toJS):
+        * bindings/js/JSNodeListCustom.cpp:
+        (WebCore::createWrapper):
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSNodeListCustom.h:
+        (WebCore::toJS):
+        * bindings/js/JSRTCPeerConnectionCustom.cpp:
+        (WebCore::constructJSRTCPeerConnection):
+        * bindings/js/JSRTCSessionDescriptionCustom.cpp:
+        (WebCore::constructJSRTCSessionDescription):
+        * bindings/js/JSSVGPathSegCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSStyleSheetCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSTextCustom.cpp: Copied from Source/WebCore/dom/XMLDocument.idl.
+        (WebCore::createNewTextWrapper):
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSTextTrackCueCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSTrackCustom.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSXMLDocumentCustom.cpp: Copied from Source/WebCore/bindings/js/JSDocumentFragmentCustom.cpp.
+        (WebCore::createNewXMLDocumentWrapper):
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        (GenerateImplementation):
+        * bindings/scripts/test/JS/*: Rebaseline bindings tests.
+        * dom/Element.cpp:
+        (WebCore::Element::setInnerHTML):
+        * dom/Text.idl:
+        * dom/XMLDocument.idl:
+        * dom/make_names.pl:
+        (printWrapperFunctions):
+        (printWrapperFactoryCppFile):
+        (printWrapperFactoryHeaderFile):
+        * editing/MarkupAccumulator.cpp:
+        (WebCore::MarkupAccumulator::serializeNodesWithNamespaces):
+        * html/HTMLDocument.idl:
+        * html/HTMLTemplateElement.cpp:
+        (WebCore::HTMLTemplateElement::content):
+        (WebCore::HTMLTemplateElement::cloneNodeInternal):
+        * html/HTMLTemplateElement.h:
+        * html/parser/HTMLConstructionSite.cpp:
+        (WebCore::insert):
+        (WebCore::HTMLConstructionSite::insertTextNode):
+        (WebCore::HTMLConstructionSite::ownerDocumentForCurrentNode):
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::buildObjectForNode):
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+        (WebCore::XMLDocumentParser::startElementNs):
+
+2016-05-15  Darin Adler  <darin@apple.com>
+
+        Something tiny left out of the last patch.
+
+        * WebCore.xcodeproj/project.pbxproj: Allow Xcode to update this file.
+        * editing/ApplyStyleCommand.cpp:
+        (WebCore::ApplyStyleCommand::applyInlineStyleChange): Removed unneeded null check; all
+        code paths already have null checks.
+
+2016-05-15  Darin Adler  <darin@apple.com>
+
+        More CTTE and other cleanups for HTML editing header
+        https://bugs.webkit.org/show_bug.cgi?id=157722
+
+        Reviewed by Chris Dumez.
+
+        These changes are mostly things Chris asked for in his review of my last patch
+        or other related style and small efficiency improvements.
+
+        - using nullptr instead of 0
+        - using is<Text> instead of isTextNode and is<> instead of hasTagName
+        - changing argument type of functions like editingIgnoresContent to a reference
+        - using { } instead of constructor calls for classes like Position
+        - using words like position intead of abbreviations like pos
+        - using auto rather than explicit types
+        - rename functions that return true for HTMLElement to express that in the function names
+
+        * dom/Position.cpp:
+        (WebCore::nextRenderedEditable): nullptr
+        (WebCore::previousRenderedEditable): nullptr
+        (WebCore::Position::Position): is<>, reference
+        (WebCore::Position::moveToPosition): reference
+        (WebCore::Position::offsetForPositionAfterAnchor): Added a null assertion and
+        null check that replaces the one that used to be in lastOffsetForEditing.
+        (WebCore::Position::parentAnchoredEquivalent): { }, reference
+        (WebCore::Position::computeNodeBeforePosition): nullptr
+        (WebCore::Position::computeNodeAfterPosition): nullptr
+        (WebCore::Position::anchorTypeForLegacyEditingPosition): reference
+        (WebCore::Position::previous): reference
+        (WebCore::Position::next): reference
+        (WebCore::Position::parentEditingBoundary): nullptr
+        (WebCore::Position::previousCharacterPosition): { }, pos -> position
+        (WebCore::Position::nextCharacterPosition): { }, pos -> position
+        (WebCore::endsOfNodeAreVisuallyDistinctPositions): reference
+        (WebCore::Position::upstream): { }, pos -> position
+        (WebCore::Position::downstream): { }, pos -> position
+        (WebCore::Position::rootUserSelectAllForNode): nullptr
+        (WebCore::Position::isCandidate): auto, reference, is<>
+        (WebCore::Position::rendersInDifferentPosition): pos -> position, auto, is<>
+        (WebCore::Position::leadingWhitespacePosition): { }, is<>
+        (WebCore::Position::trailingWhitespacePosition): { }
+        (WebCore::Position::getInlineBoxAndOffset): reference
+        (WebCore::Position::equals): reference, is<>
+
+        * dom/PositionIterator.cpp:
+        (WebCore::PositionIterator::operator Position): reference
+        (WebCore::PositionIterator::isCandidate): reference
+
+        * editing/ApplyStyleCommand.cpp:
+        (WebCore::ApplyStyleCommand::applyRelativeFontStyleChange): is<>
+        (WebCore::ApplyStyleCommand::applyInlineStyleToNodeRange): is<>, reference
+        (WebCore::ApplyStyleCommand::removeConflictingInlineStyleFromRun): reference
+        (WebCore::ApplyStyleCommand::removeInlineStyle): auto, is<>, reference
+        (WebCore::ApplyStyleCommand::nodeFullySelected): is<>
+        (WebCore::ApplyStyleCommand::nodeFullyUnselected): is<>
+        (WebCore::ApplyStyleCommand::splitTextAtStart): is<>
+        (WebCore::ApplyStyleCommand::splitTextElementAtStart): is<>
+        (WebCore::ApplyStyleCommand::splitTextElementAtEnd): is<>
+        (WebCore::ApplyStyleCommand::isValidCaretPositionInTextNode): is<>
+        (WebCore::ApplyStyleCommand::surroundNodeRangeWithElement): Removed unneeded
+        is<Element> calls before calling areIdenticalElements.
+        (WebCore::ApplyStyleCommand::positionToComputeInlineStyleChange): Tightened
+        up logic for the loop to avoid redundant checks.
+        (WebCore::ApplyStyleCommand::applyInlineStyleChange): auto
+
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::CompositeEditCommand::insertNodeAt): reference
+        (WebCore::CompositeEditCommand::appendNode): reference
+        (WebCore::CompositeEditCommand::moveParagraphs): isListHTMLElement
+
+        * editing/DeleteSelectionCommand.cpp:
+        (WebCore::DeleteSelectionCommand::handleGeneralDelete): reference
+
+        * editing/FormatBlockCommand.cpp: Fixed order of includes.
+        (WebCore::enclosingBlockToSplitTreeTo): isListHTMLElement
+
+        * editing/InsertParagraphSeparatorCommand.cpp:
+        (WebCore::InsertParagraphSeparatorCommand::doApply): reference
+
+        * editing/ModifySelectionListLevel.cpp:
+        (WebCore::getStartEndListChildren): isListHTMLElement
+        (WebCore::IncreaseSelectionListLevelCommand::doApply):isListHTMLElement
+        (WebCore::canDecreaseListLevel):isListHTMLElement
+
+        * editing/RemoveNodeCommand.cpp: Removed unneeded include.
+
+        * editing/ReplaceNodeWithSpanCommand.cpp:
+        (WebCore::ReplaceNodeWithSpanCommand::doApply): Use HTMLSpanElement::create.
+
+        * editing/ReplaceSelectionCommand.cpp:
+        (WebCore::isInterchangeNewlineNode): is<>, downcast<>
+        (WebCore::isInterchangeConvertedSpaceSpan): is<>, downcast<>
+        (WebCore::positionAvoidingPrecedingNodes): pos -> position, reference
+        (WebCore::ReplaceSelectionCommand::doApply): isListHTMLElement
+        (WebCore::ReplaceSelectionCommand::insertAsListItems): isListHTMLElement
+
+        * editing/SpellChecker.cpp: Removed unneeded include.
+
+        * editing/TextIterator.cpp:
+        (WebCore::SimplifiedBackwardsTextIterator::advance): reference
+
+        * editing/VisibleSelection.cpp:
+        (WebCore::VisibleSelection::selectionFromContentsOfNode): reference
+
+        * editing/VisibleUnits.cpp:
+        (WebCore::previousLinePosition): reference
+        (WebCore::nextLinePosition): reference
+        (WebCore::findStartOfParagraph): reference
+        (WebCore::findEndOfParagraph): reference
+
+        * editing/htmlediting.cpp:
+        (WebCore::canHaveChildrenForEditing): Moved here from header file so we don't
+        have to include "Text.h". Not critical to inline this.
+        (WebCore::isAtomicNode): reference
+        (WebCore::lastOffsetForEditing): reference
+        (WebCore::stringWithRebalancedWhitespace): Changed to use StringBuilder instead
+        of Vector<UChar> so this won't turn 8-bit strings into 16-bit strings. Changed
+        to not use the StringBuilder at all until we encounter a character that needs
+        to be changed.
+        (WebCore::isSpecialHTMLElement): Renamed to make it clear that it only can return
+        true for a Node that is an HTMLElement.
+        (WebCore::firstInSpecialElement): isSpecialHTMLElement
+        (WebCore::lastInSpecialElement): isSpecialHTMLElement
+        (WebCore::isListHTMLElement): Renamed to make it clear that it can only return
+        true for a Node that is an HTMLElement.
+        (WebCore::isListItem): isListHTMLElement, is<>
+        (WebCore::enclosingNodeOfType): p -> position, nullptr
+        (WebCore::highestEnclosingNodeOfType): p -> position
+        (WebCore::enclosingListChild): isListHTMLElement, is<>
+        (WebCore::embeddedSublist): isListHTMLElement
+        (WebCore::appendedSublist):isListHTMLElement
+        (WebCore::caretMaxOffset): is<>
+        (WebCore::caretRendersInsideNode): changed to take a reference
+        (WebCore::rendererForCaretPainting): reference
+
+        * editing/htmlediting.h: Updated for name changes and type changes above.
+
+        * editing/markup.cpp:
+        (WebCore::StyledMarkupAccumulator::traverseNodesForSerialization): reference
+        (WebCore::highestAncestorToWrapMarkup): auto, reference, isListHTMLElement
+
+        * html/HTMLSpanElement.cpp:
+        (WebCore::HTMLSpanElement::create): Added overload that does not require a tag name.
+        * html/HTMLSpanElement.h: Ditto.
+
+        * page/DOMSelection.cpp: Removed unneeded includes.
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::localCaretRect): reference
+
+2016-05-15  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200925.
+        https://bugs.webkit.org/show_bug.cgi?id=157725
+
+        Does not build if MEDIA_SESSION is enabled (Requested by
+        cdumez_ on #webkit).
+
+        Reverted changeset:
+
+        "Use new Web IDL dictionary support for
+        MediaSession.setMetadata()"
+        https://bugs.webkit.org/show_bug.cgi?id=157711
+        http://trac.webkit.org/changeset/200925
+
+2016-05-14  Chris Dumez  <cdumez@apple.com>
+
+        Use new Web IDL dictionary support for MediaSession.setMetadata()
+        https://bugs.webkit.org/show_bug.cgi?id=157711
+
+        Reviewed by Eric Carlson.
+
+        Use new Web IDL dictionary support for MediaSession.setMetadata().
+
+        No new tests, no intended Web-exposed behavior change.
+
+        * Modules/mediasession/MediaSession.cpp:
+        (WebCore::MediaSession::setMetadata):
+        (WebCore::MediaSession::deactivate): Deleted.
+        * Modules/mediasession/MediaSession.h:
+        * Modules/mediasession/MediaSession.idl:
+
+2016-05-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove LegacyProfiler
+        https://bugs.webkit.org/show_bug.cgi?id=153565
+
+        Reviewed by Mark Lam.
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * ForwardingHeaders/profiler/LegacyProfiler.h: Removed.
+        * ForwardingHeaders/profiler/Profile.h: Removed.
+        * ForwardingHeaders/profiler/ProfileNode.h: Removed.
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSCustomXPathNSResolver.cpp:
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::JSDOMWindowBase::supportsLegacyProfiling): Deleted.
+        (WebCore::JSDOMWindowBase::supportsRichSourceInfo): Deleted.
+        * bindings/js/JSDOMWindowBase.h:
+        * bindings/js/JSWorkerGlobalScopeBase.cpp:
+        (WebCore::JSWorkerGlobalScopeBase::supportsLegacyProfiling): Deleted.
+        * bindings/js/JSWorkerGlobalScopeBase.h:
+        * bindings/js/ScriptCachedFrameData.cpp:
+        * bindings/js/ScriptController.cpp:
+        (WebCore::ScriptController::clearWindowShell): Deleted.
+        * bindings/js/ScriptProfile.h: Removed.
+        * bindings/js/ScriptProfileNode.h: Removed.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AddClassForwardIfNeeded): Deleted.
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/TestObj.idl:
+        * css/CSSParser.cpp:
+        * dom/Document.cpp:
+        * inspector/InspectorConsoleInstrumentation.h:
+        (WebCore::InspectorInstrumentation::stopProfiling):
+        * inspector/InspectorController.cpp:
+        (WebCore::InspectorController::InspectorController):
+        (WebCore::InspectorController::legacyProfilerEnabled): Deleted.
+        (WebCore::InspectorController::setLegacyProfilerEnabled): Deleted.
+        * inspector/InspectorController.h:
+        * inspector/InspectorInstrumentation.cpp:
+        (WebCore::InspectorInstrumentation::stopProfilingImpl):
+        * inspector/InspectorInstrumentation.h:
+        * inspector/InspectorTimelineAgent.cpp:
+        (WebCore::InspectorTimelineAgent::startFromConsole):
+        (WebCore::InspectorTimelineAgent::stopFromConsole):
+        * inspector/InspectorTimelineAgent.h:
+        * inspector/PageDebuggerAgent.cpp:
+        * inspector/PageRuntimeAgent.cpp:
+        * inspector/ScriptProfile.idl: Removed.
+        * inspector/ScriptProfileNode.idl: Removed.
+        * inspector/TimelineRecordFactory.cpp:
+        (WebCore::buildAggregateCallInfoInspectorObject): Deleted.
+        (WebCore::buildInspectorObject): Deleted.
+        (WebCore::buildProfileInspectorObject): Deleted.
+        (WebCore::TimelineRecordFactory::appendProfile): Deleted.
+        * page/DOMWindow.cpp:
+        * page/Page.cpp:
+        * page/PageConsoleClient.cpp:
+        (WebCore::PageConsoleClient::profileEnd):
+        (WebCore::PageConsoleClient::clearProfiles): Deleted.
+        * page/PageConsoleClient.h:
+        * testing/Internals.cpp:
+        (WebCore::Internals::resetToConsistentState): Deleted.
+        (WebCore::Internals::consoleProfiles): Deleted.
+        (WebCore::Internals::setLegacyJavaScriptProfilingEnabled): Deleted.
+        * testing/Internals.h:
+        * testing/Internals.idl:
+        * testing/js/WebCoreTestSupport.cpp:
+        * xml/XSLStyleSheetLibxslt.cpp:
+        * xml/XSLTProcessorLibxslt.cpp:
+
 2016-05-13  Ryosuke Niwa  <rniwa@webkit.org>
 
         ToT WebKit doesn't show tooltip on perf dashboard's summary page

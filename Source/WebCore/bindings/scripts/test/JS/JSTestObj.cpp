@@ -42,7 +42,6 @@
 #include "JSNode.h"
 #include "JSSVGDocument.h"
 #include "JSSVGPoint.h"
-#include "JSScriptProfile.h"
 #include "JSTestCallback.h"
 #include "JSTestCallbackFunction.h"
 #include "JSTestNode.h"
@@ -54,7 +53,6 @@
 #include "SVGDocument.h"
 #include "SVGPoint.h"
 #include "SVGStaticPropertyTearOff.h"
-#include "ScriptProfile.h"
 #include "SerializedScriptValue.h"
 #include "Settings.h"
 #include "TestObj.h"
@@ -597,8 +595,6 @@ JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithXPathNSRes
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionNullableStringMethod(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjConstructorFunctionNullableStringStaticMethod(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionNullableStringSpecialMethod(JSC::ExecState*);
-JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithSequenceArg(JSC::ExecState*);
-JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodReturningSequence(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithEnumArg(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalEnumArg(JSC::ExecState*);
 JSC::EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithOptionalEnumArgAndDefaultValue(JSC::ExecState*);
@@ -1169,8 +1165,6 @@ static const HashTableValue JSTestObjPrototypeTableValues[] =
     { "methodWithXPathNSResolverParameter", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithXPathNSResolverParameter), (intptr_t) (1) } },
     { "nullableStringMethod", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionNullableStringMethod), (intptr_t) (0) } },
     { "nullableStringSpecialMethod", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionNullableStringSpecialMethod), (intptr_t) (1) } },
-    { "methodWithSequenceArg", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithSequenceArg), (intptr_t) (1) } },
-    { "methodReturningSequence", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodReturningSequence), (intptr_t) (1) } },
     { "methodWithEnumArg", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithEnumArg), (intptr_t) (1) } },
     { "methodWithOptionalEnumArg", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithOptionalEnumArg), (intptr_t) (0) } },
     { "methodWithOptionalEnumArgAndDefaultValue", JSC::Function, NoIntrinsic, { (intptr_t)static_cast<NativeFunction>(jsTestObjPrototypeFunctionMethodWithOptionalEnumArgAndDefaultValue), (intptr_t) (0) } },
@@ -4200,40 +4194,6 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionNullableStringSpecialMeth
     return JSValue::encode(result);
 }
 
-EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithSequenceArg(ExecState* state)
-{
-    JSValue thisValue = state->thisValue();
-    auto castedThis = jsDynamicCast<JSTestObj*>(thisValue);
-    if (UNLIKELY(!castedThis))
-        return throwThisTypeError(*state, "TestObj", "methodWithSequenceArg");
-    ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
-    auto& impl = castedThis->wrapped();
-    if (UNLIKELY(state->argumentCount() < 1))
-        return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto sequenceArg = (toRefPtrNativeArray<ScriptProfile, JSScriptProfile>(state, state->argument(0), &JSScriptProfile::toWrapped));
-    if (UNLIKELY(state->hadException()))
-        return JSValue::encode(jsUndefined());
-    impl.methodWithSequenceArg(WTFMove(sequenceArg));
-    return JSValue::encode(jsUndefined());
-}
-
-EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodReturningSequence(ExecState* state)
-{
-    JSValue thisValue = state->thisValue();
-    auto castedThis = jsDynamicCast<JSTestObj*>(thisValue);
-    if (UNLIKELY(!castedThis))
-        return throwThisTypeError(*state, "TestObj", "methodReturningSequence");
-    ASSERT_GC_OBJECT_INHERITS(castedThis, JSTestObj::info());
-    auto& impl = castedThis->wrapped();
-    if (UNLIKELY(state->argumentCount() < 1))
-        return throwVMError(state, createNotEnoughArgumentsError(state));
-    auto longArg = convert<int32_t>(*state, state->argument(0), NormalConversion);
-    if (UNLIKELY(state->hadException()))
-        return JSValue::encode(jsUndefined());
-    JSValue result = jsArray(state, castedThis->globalObject(), impl.methodReturningSequence(WTFMove(longArg)));
-    return JSValue::encode(result);
-}
-
 EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionMethodWithEnumArg(ExecState* state)
 {
     JSValue thisValue = state->thisValue();
@@ -6267,14 +6227,14 @@ extern "C" { extern void* _ZTVN7WebCore7TestObjE[]; }
 #endif
 #endif
 
-JSC::JSValue toJSNewlyCreated(JSC::ExecState*, JSDOMGlobalObject* globalObject, TestObj& impl)
+JSC::JSValue toJSNewlyCreated(JSC::ExecState*, JSDOMGlobalObject* globalObject, Ref<TestObj>&& impl)
 {
-    return createNewWrapper<JSTestObj>(globalObject, &impl);
+    return createNewWrapper<JSTestObj>(globalObject, WTFMove(impl));
 }
 
 JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject* globalObject, TestObj& impl)
 {
-    if (JSValue result = getExistingWrapper<JSTestObj>(globalObject, &impl))
+    if (JSValue result = getExistingWrapper<JSTestObj>(globalObject, impl))
         return result;
 
 #if ENABLE(BINDING_INTEGRITY)
@@ -6295,7 +6255,7 @@ JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject* globalObject, TestObj& imp
     // by adding the SkipVTableValidation attribute to the interface IDL definition
     RELEASE_ASSERT(actualVTablePointer == expectedVTablePointer);
 #endif
-    return createNewWrapper<JSTestObj>(globalObject, &impl);
+    return createNewWrapper<JSTestObj, TestObj>(globalObject, impl);
 }
 
 TestObj* JSTestObj::toWrapped(JSC::JSValue value)
