@@ -27,8 +27,13 @@
         var group = accessibilityController.accessibleElementById("group");
         var button = accessibilityController.accessibleElementById("button");
 
-        shouldBeEqualToString("platformValueForW3CName(group)", "TEST2");
-        shouldBeEqualToString("platformValueForW3CName(button)", "TEST3");
+        if (accessibilityController.platformName == "atk") {
+            shouldBe("group.title", "'AXTitle: TEST2'");
+            shouldBe("button.title", "'AXTitle: TEST3'");
+        } else {
+            shouldBe("group.description", "'AXDescription: TEST2'");
+            shouldBe("button.description", "'AXDescription: TEST3'");
+        }
     }
 
 </script>

@@ -53,8 +53,10 @@ if (window.testRunner && window.accessibilityController) {
     div3.focus();
     shouldBe("document.activeElement == div3", "true");
     window.axDiv3 = accessibilityController.focusedElement;
-    var accNameForDiv3 = platformValueForW3CName(axDiv3);
-    shouldBe("lastChar(accNameForDiv3)", "\"D\"");
+    if (accessibilityController.platformName == "atk")
+        shouldBe("lastChar(axDiv3.title)", "\"D\"");
+    else
+        shouldBe("lastChar(axDiv3.description)", "\"D\"");
 
     var div4 = document.getElementById('div4');
     div4.focus();

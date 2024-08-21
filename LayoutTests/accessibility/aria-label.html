@@ -20,14 +20,20 @@
 
           var body = document.getElementById("body");
           body.focus();
+          var obj = accessibilityController.focusedElement.childAtIndex(0).childAtIndex(0);
+          var succeeded;
+          if (accessibilityController.platformName == "atk")
+              succeeded = obj.title == "AXTitle: aria label";
+          else
+              succeeded = obj.description == "AXDescription: aria label";
+          shouldBe("succeeded", "true");
 
-          var axInput = accessibilityController.focusedElement.childAtIndex(0).childAtIndex(0);
-          shouldBeEqualToString("platformValueForW3CName(axInput)", "aria label");
-
-          var axLink = accessibilityController.focusedElement.childAtIndex(0).childAtIndex(1);
-          shouldBeEqualToString("platformValueForW3CName(axLink)", "aria link");
-
-          document.getElementById("content").style.visibility = "hidden";
+          obj = accessibilityController.focusedElement.childAtIndex(0).childAtIndex(1);
+          if (accessibilityController.platformName == "atk")
+              succeeded = obj.title == "AXTitle: aria link";
+          else
+              succeeded = obj.description == "AXDescription: aria link";
+          shouldBe("succeeded", "true");
     }
 </script>
 
