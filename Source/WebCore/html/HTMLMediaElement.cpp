@@ -152,6 +152,10 @@
 #include <bindings/ScriptObject.h>
 #endif
 
+#if USE(APPLE_INTERNAL_SDK)
+#include <WebKitAdditions/HTMLMediaElementAdditions.cpp>
+#endif
+
 namespace WebCore {
 
 static const double SeekRepeatDelay = 0.1;
@@ -4183,13 +4187,12 @@ URL HTMLMediaElement::selectNextSourceChild(ContentType* contentType, String* ke
             goto check_again;
         
         if (source->fastHasAttribute(mediaAttr)) {
-            MediaQueryEvaluator screenEval("screen", document().frame(), renderer() ? &renderer()->style() : nullptr);
-            RefPtr<MediaQuerySet> media = source->mediaQuerySet();
+            auto media = source->mediaQuerySet();
 #if !LOG_DISABLED
             if (shouldLog)
                 LOG(Media, "HTMLMediaElement::selectNextSourceChild(%p) - 'media' is %s", this, source->media().utf8().data());
 #endif
-            if (!screenEval.eval(media.get())) 
+            if (media && !MediaQueryEvaluator { "screen", document(), renderer() ? &renderer()->style() : nullptr }.evaluate(*media))
                 goto check_again;
         }
 
@@ -7030,6 +7033,23 @@ void HTMLMediaElement::updatePlaybackControlsManager()
     else
         page->chrome().client().clearPlaybackControlsManager(*this);
 }
+
+#if !USE(APPLE_INTERNAL_SDK)
+bool HTMLMediaElement::shouldOverrideBackgroundLoadingRestriction() const
+{
+#if ENABLE(WIRELESS_PLAYBACK_TARGET)
+    if (isPlayingToWirelessPlaybackTarget())
+        return true;
+#endif
+
+    return false;
+}
+
+void HTMLMediaElement::fullscreenModeChanged(VideoFullscreenMode mode)
+{
+    m_videoFullscreenMode = mode;
+}
+#endif
 
 }
 

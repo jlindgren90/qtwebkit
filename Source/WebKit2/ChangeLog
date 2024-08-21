@@ -1,3 +1,107 @@
+2016-05-27  Alex Christensen  <achristensen@webkit.org>
+
+        Expose content extension failure error codes in SPI
+        https://bugs.webkit.org/show_bug.cgi?id=158095
+        rdar://problem/26475651
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/API/APIUserContentExtensionStore.cpp:
+        (API::UserContentExtensionStore::synchronousRemoveAllContentExtensions):
+        (API::UserContentExtensionStore::invalidateContentExtensionVersion):
+        Added for testing.
+        (API::userContentExtensionStoreErrorCategory):
+        * UIProcess/API/APIUserContentExtensionStore.h:
+        * UIProcess/API/Cocoa/_WKUserContentExtensionStore.h:
+        Added the new enum, _WKUserContentExtensionStoreErrorCode.
+        * UIProcess/API/Cocoa/_WKUserContentExtensionStore.mm:
+        (-[_WKUserContentExtensionStore compileContentExtensionForIdentifier:encodedContentExtension:completionHandler:]):
+        Sometimes the error code returned by UserContentExtensionStore::compileContentExtension has the error code from compileRuleList.
+        When this happens, we want to get the message from the internal compiler error, but we want the NSError's code to always be CompileFailed.
+        (-[_WKUserContentExtensionStore lookupContentExtensionForIdentifier:completionHandler:]):
+        (-[_WKUserContentExtensionStore removeContentExtensionForIdentifier:completionHandler:]):
+        (-[_WKUserContentExtensionStore _removeAllContentExtensions]):
+        (-[_WKUserContentExtensionStore _invalidateContentExtensionVersionForIdentifier:]):
+        * UIProcess/API/Cocoa/_WKUserContentExtensionStorePrivate.h:
+        Added new invalidator for testing.
+
+2016-05-27  Zalan Bujtas  <zalan@apple.com>
+
+        Regression(r200972): Webcore::Range::collectSelectionsRects() asserts in startContainer() while selecting text.
+        https://bugs.webkit.org/show_bug.cgi?id=158155
+        <rdar://problem/26502712>
+
+        Reviewed by Chris Dumez.
+
+        This patch ensures that we still have a valid paragraphRange after returning from enclosingTextUnitOfGranularity().
+
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::selectTextWithGranularityAtPoint):
+
+2016-05-26  Brady Eidson  <beidson@apple.com>
+
+        Certain NetworkResourceLoader callbacks can deref a null m_networkLoad.
+        https://bugs.webkit.org/show_bug.cgi?id=158134
+
+        Reviewed by Alex Christensen.
+
+        It's legit for m_networkLoad to be null in these callbacks.
+        
+        We need null checks, just like we have in many other callbacks in this class.
+        
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::continueWillSendRequest):
+        (WebKit::NetworkResourceLoader::continueCanAuthenticateAgainstProtectionSpace):
+
+2016-05-26  Darin Adler  <darin@apple.com>
+
+        Media queries and platform screen modernization and streamlining
+        https://bugs.webkit.org/show_bug.cgi?id=158067
+
+        Reviewed by Alex Christensen.
+
+        * Shared/mac/WebEventFactory.mm:
+        (WebKit::screenForWindow): Deleted.
+        (WebKit::flipScreenPoint): Deleted.
+        (WebKit::globalPoint): Deleted.
+        (WebKit::globalPointForEvent): Use globalPoint function from WebCore so we don't need
+        copies of everything in here.
+
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::windowDidChangeScreen): Removed unneeded type cast.
+        (WebKit::WebViewImpl::draggedImage): Added type cast since globalPoint now returns an
+        NSPoint rather than an IntPoint.
+
+        * UIProcess/WebPageProxy.h: Use pragma once. Add a WebCore prefix to a use of
+        PlatformDisplayID, since that is now inside the WebCore namespace.
+        * WebProcess/WebCoreSupport/WebChromeClient.h: Ditto.
+        * WebProcess/WebPage/Cocoa/RemoteLayerTreeDisplayRefreshMonitor.h: Ditto.
+        * WebProcess/WebPage/DrawingArea.h: Ditto.
+        * WebProcess/WebPage/mac/RemoteLayerTreeDrawingArea.h: Ditto.
+
+2016-05-26  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Purge PassRefPtr in Modules/battery
+        https://bugs.webkit.org/show_bug.cgi?id=157062
+
+        Reviewed by Darin Adler.
+
+        Use RefPtr<>& to reduce uses of PassRefPtr in WebKit.
+
+        * WebProcess/Battery/WebBatteryManager.cpp:
+        (WebKit::WebBatteryManager::didChangeBatteryStatus):
+        (WebKit::WebBatteryManager::updateBatteryStatus):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::m_shouldDispatchFakeMouseMoveEvents):
+
+2016-05-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Build fix
+
+        Rubber stamped by Lucas Forschler.
+
+        * Configurations/DebugRelease.xcconfig:
+
 2016-05-25  Jer Noble  <jer.noble@apple.com>
 
         Flashiness and jumpiness when entering fullscreen
