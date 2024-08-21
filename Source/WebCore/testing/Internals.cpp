@@ -119,6 +119,7 @@
 #include "TextIterator.h"
 #include "TreeScope.h"
 #include "TypeConversions.h"
+#include "UserGestureIndicator.h"
 #include "UserMediaController.h"
 #include "ViewportArguments.h"
 #include "WebCoreJSClientData.h"
@@ -3446,6 +3447,11 @@ void Internals::setWebGL2Enabled(bool enable)
 void Internals::setResourceTimingSupport(bool enable)
 {
     RuntimeEnabledFeatures::sharedFeatures().setResourceTimingEnabled(enable);
+}
+
+bool Internals::isProcessingUserGesture()
+{
+    return UserGestureIndicator::processingUserGesture();
 }
 
 }

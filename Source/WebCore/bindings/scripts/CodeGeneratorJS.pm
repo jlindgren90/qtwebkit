@@ -958,6 +958,25 @@ sub GenerateDefaultValue
     return $value;
 }
 
+sub ShouldAllowNonFiniteForFloatingPointType
+{
+    my $type = shift;
+
+    die "Can only be called with floating point types" unless $codeGenerator->IsFloatingPointType($type);
+    return $type eq "unrestricted double" || $type eq "unrestricted float";
+}
+
+sub GenerateConversionRuleWithLeadingComma
+{
+    my ($interface, $member) = @_;
+
+    if ($codeGenerator->IsFloatingPointType($member->type)) {
+        return ", " . (ShouldAllowNonFiniteForFloatingPointType($member->type) ? "ShouldAllowNonFinite::Yes" : "ShouldAllowNonFinite::No");
+    }
+    return ", " . GetIntegerConversionConfiguration($member) if $codeGenerator->IsIntegerType($member->type);
+    return "";
+}
+
 sub GenerateDefaultValueWithLeadingComma
 {
     my ($interface, $member) = @_;
@@ -1011,9 +1030,9 @@ sub GenerateDictionaryImplementationContent
             }
             # FIXME: Eventually we will want this to share a lot more code with JSValueToNative.
             my $function = $member->isOptional ? "convertOptional" : "convert";
-            my $defaultValueWithLeadingComma = $member->isOptional && defined $member->default ? ", " . $member->default : "";
             $result .= "    auto " . $member->name . " = " . $function . "<" . GetNativeTypeFromSignature($interface, $member) . ">"
                 . "(state, object->get(&state, Identifier::fromString(&state, \"" . $member->name . "\"))"
+                . GenerateConversionRuleWithLeadingComma($interface, $member)
                 . GenerateDefaultValueWithLeadingComma($interface, $member) . ");\n";
             $needExceptionCheck = 1;
         }
@@ -4046,7 +4065,7 @@ sub GenerateCallbackImplementation
             push(@implContent, @argsCheck) if @argsCheck;
             push(@implContent, "    if (!canInvokeCallback())\n");
             push(@implContent, "        return true;\n\n");
-            push(@implContent, "    Ref<$className> protect(*this);\n\n");
+            push(@implContent, "    Ref<$className> protectedThis(*this);\n\n");
             push(@implContent, "    JSLockHolder lock(m_data->globalObject()->vm());\n\n");
             push(@implContent, "    ExecState* state = m_data->globalObject()->globalExec();\n");
             push(@implContent, "    MarkedArgumentBuffer args;\n");
@@ -4365,7 +4384,7 @@ sub IsNativeType
     return exists $nativeType{$type};
 }
 
-sub GetIntegerConversionType
+sub GetIntegerConversionConfiguration
 {
     my $signature = shift;
 
@@ -4383,7 +4402,7 @@ sub JSValueToNative
 
     if ($codeGenerator->IsIntegerType($type)) {
         my $nativeType = GetNativeType($interface, $type);
-        my $conversionType = GetIntegerConversionType($signature);
+        my $conversionType = GetIntegerConversionConfiguration($signature);
         AddToImplIncludes("JSDOMConvert.h");
         return ("convert<$nativeType>(*state, $value, $conversionType)", 1);
     }
@@ -4425,11 +4444,9 @@ sub JSValueToNative
 
     if ($codeGenerator->IsFloatingPointType($type)) {
         AddToImplIncludes("JSDOMConvert.h");
-        return ("convert<double>(*state, $value, ShouldAllowNonFinite::No)", 1) if $type eq "double";
-        return ("convert<double>(*state, $value, ShouldAllowNonFinite::Yes)", 1) if $type eq "unrestricted double";
-        return ("convert<float>(*state, $value, ShouldAllowNonFinite::No)", 1) if $type eq "float";
-        return ("convert<float>(*state, $value, ShouldAllowNonFinite::Yes)", 1) if $type eq "unrestricted float";
-        die "Unhandled floating point type: " . $type;
+        my $allowNonFinite = ShouldAllowNonFiniteForFloatingPointType($type) ? "ShouldAllowNonFinite::Yes" : "ShouldAllowNonFinite::No";
+        my $nativeType = GetNativeType($interface, $type);
+        return ("convert<$nativeType>(*state, $value, $allowNonFinite)", 1);
     }
 
     return ("valueToDate(state, $value)", 1) if $type eq "Date";

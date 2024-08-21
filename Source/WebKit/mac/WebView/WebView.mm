@@ -128,7 +128,6 @@
 #import <WebCore/DocumentLoader.h>
 #import <WebCore/DragController.h>
 #import <WebCore/DragData.h>
-#import <WebCore/DynamicLinkerSPI.h>
 #import <WebCore/Editor.h>
 #import <WebCore/EventHandler.h>
 #import <WebCore/ExceptionHandlers.h>
@@ -209,6 +208,7 @@
 #import <wtf/RefPtr.h>
 #import <wtf/RunLoop.h>
 #import <wtf/StdLibExtras.h>
+#import <wtf/spi/darwin/dyldSPI.h>
 
 #if !PLATFORM(IOS)
 #import "WebContextMenuClient.h"

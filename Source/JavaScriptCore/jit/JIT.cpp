@@ -96,7 +96,7 @@ void JIT::emitEnterOptimizationCheck()
     skipOptimize.append(branchAdd32(Signed, TrustedImm32(Options::executionCounterIncrementForEntry()), AbsoluteAddress(m_codeBlock->addressOfJITExecuteCounter())));
     ASSERT(!m_bytecodeOffset);
 
-    copyCalleeSavesFromFrameOrRegisterToVMCalleeSavesBuffer();
+    copyCalleeSavesFromFrameOrRegisterToVMEntryFrameCalleeSavesBuffer();
 
     callOperation(operationOptimize, m_bytecodeOffset);
     skipOptimize.append(branchTestPtr(Zero, returnValueGPR));
@@ -791,7 +791,7 @@ void JIT::privateCompileExceptionHandlers()
     if (!m_exceptionChecksWithCallFrameRollback.empty()) {
         m_exceptionChecksWithCallFrameRollback.link(this);
 
-        copyCalleeSavesToVMCalleeSavesBuffer();
+        copyCalleeSavesToVMEntryFrameCalleeSavesBuffer();
 
         // lookupExceptionHandlerFromCallerFrame is passed two arguments, the VM and the exec (the CallFrame*).
 
@@ -811,7 +811,7 @@ void JIT::privateCompileExceptionHandlers()
         m_exceptionHandler = label();
         m_exceptionChecks.link(this);
 
-        copyCalleeSavesToVMCalleeSavesBuffer();
+        copyCalleeSavesToVMEntryFrameCalleeSavesBuffer();
 
         // lookupExceptionHandler is passed two arguments, the VM and the exec (the CallFrame*).
         move(TrustedImmPtr(vm()), GPRInfo::argumentGPR0);

@@ -278,6 +278,8 @@ WebInspector.DataGrid = class DataGrid extends WebInspector.View
         this._updateScrollListeners();
     }
 
+    get filterText() { return this._filterText; }
+
     set filterText(x)
     {
         if (this._filterText === x)
@@ -1892,6 +1894,9 @@ WebInspector.DataGridNode = class DataGridNode extends WebInspector.Object
         this._cachedFilterableData = [];
 
         for (let column of this.dataGrid.columns.values()) {
+            if (column.hidden)
+                continue;
+
             let value = this.filterableDataForColumn(column.columnIdentifier);
             if (!value)
                 continue;

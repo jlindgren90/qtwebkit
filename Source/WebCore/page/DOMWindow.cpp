@@ -97,6 +97,7 @@
 #include "StyleResolver.h"
 #include "SuddenTermination.h"
 #include "URL.h"
+#include "UserGestureIndicator.h"
 #include "WebKitPoint.h"
 #include "WindowFeatures.h"
 #include "WindowFocusAllowedIndicator.h"
@@ -152,6 +153,7 @@ public:
         , m_channels(WTFMove(channels))
         , m_targetOrigin(WTFMove(targetOrigin))
         , m_stackTrace(stackTrace)
+        , m_wasProcessingUserGesture(UserGestureIndicator::processingUserGesture())
     {
     }
 
@@ -159,6 +161,7 @@ public:
     {
         return MessageEvent::create(MessagePort::entanglePorts(context, WTFMove(m_channels)), WTFMove(m_message), m_origin, { }, m_source.ptr());
     }
+
     SecurityOrigin* targetOrigin() const { return m_targetOrigin.get(); }
     ScriptCallStack* stackTrace() const { return m_stackTrace.get(); }
 
@@ -167,6 +170,8 @@ private:
     {
         // This object gets deleted when std::unique_ptr falls out of scope..
         std::unique_ptr<PostMessageTimer> timer(this);
+        
+        UserGestureIndicator userGestureIndicator(m_wasProcessingUserGesture ? DefinitelyProcessingUserGesture : DefinitelyNotProcessingUserGesture);
         m_window->postMessageTimerFired(*timer);
     }
 
@@ -177,6 +182,7 @@ private:
     std::unique_ptr<MessagePortChannelArray> m_channels;
     RefPtr<SecurityOrigin> m_targetOrigin;
     RefPtr<ScriptCallStack> m_stackTrace;
+    bool m_wasProcessingUserGesture;
 };
 
 typedef HashCountedSet<DOMWindow*> DOMWindowSet;
@@ -1495,7 +1501,12 @@ double DOMWindow::devicePixelRatio() const
     return page->deviceScaleFactor();
 }
 
-void DOMWindow::scrollBy(int x, int y) const
+void DOMWindow::scrollBy(const ScrollToOptions& options) const
+{
+    return scrollBy(options.left.valueOr(0), options.top.valueOr(0));
+}
+
+void DOMWindow::scrollBy(double x, double y) const
 {
     if (!isCurrentlyDisplayedInFrame())
         return;
@@ -1506,11 +1517,26 @@ void DOMWindow::scrollBy(int x, int y) const
     if (!view)
         return;
 
+    // Normalize non-finite values (https://drafts.csswg.org/cssom-view/#normalize-non-finite-values).
+    x = std::isfinite(x) ? x : 0;
+    y = std::isfinite(y) ? y : 0;
+
     IntSize scaledOffset(view->mapFromCSSToLayoutUnits(x), view->mapFromCSSToLayoutUnits(y));
     view->setContentsScrollPosition(view->contentsScrollPosition() + scaledOffset);
 }
 
-void DOMWindow::scrollTo(int x, int y) const
+void DOMWindow::scrollTo(const ScrollToOptions& options) const
+{
+    RefPtr<FrameView> view = m_frame->view();
+    if (!view)
+        return;
+
+    double x = options.left ? options.left.value() : view->contentsScrollPosition().x();
+    double y = options.top ? options.top.value() : view->contentsScrollPosition().y();
+    return scrollTo(x, y);
+}
+
+void DOMWindow::scrollTo(double x, double y) const
 {
     if (!isCurrentlyDisplayedInFrame())
         return;
@@ -1518,6 +1544,10 @@ void DOMWindow::scrollTo(int x, int y) const
     RefPtr<FrameView> view = m_frame->view();
     if (!view)
         return;
+
+    // Normalize non-finite values (https://drafts.csswg.org/cssom-view/#normalize-non-finite-values).
+    x = std::isfinite(x) ? x : 0;
+    y = std::isfinite(y) ? y : 0;
 
     if (!x && !y && view->contentsScrollPosition() == IntPoint(0, 0))
         return;
@@ -1887,7 +1917,7 @@ void DOMWindow::dispatchLoadEvent()
 
 bool DOMWindow::dispatchEvent(Event& event, EventTarget* target)
 {
-    Ref<EventTarget> protect(*this);
+    Ref<EventTarget> protectedThis(*this);
 
     // Pausing a page may trigger pagehide and pageshow events. WebCore also implicitly fires these
     // events when closing a WebView. Here we keep track of the state of the page to prevent duplicate,

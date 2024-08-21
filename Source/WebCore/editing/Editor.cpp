@@ -550,7 +550,7 @@ void Editor::replaceSelectionWithFragment(PassRefPtr<DocumentFragment> fragment,
     if (AXObjectCache::accessibilityEnabled() && editingAction == EditActionPaste) {
         String text = AccessibilityObject::stringForVisiblePositionRange(command->visibleSelectionForInsertedText());
         replacedText.postTextStateChangeNotification(document().existingAXObjectCache(), AXTextEditTypePaste, text, m_frame.selection().selection());
-        command->composition()->setTextInsertedByUnapplyRange(replacedText.replacedRange());
+        command->composition()->setRangeDeletedByUnapply(replacedText.replacedRange());
     }
 
     if (!isContinuousSpellCheckingEnabled())
@@ -1959,10 +1959,10 @@ void Editor::advanceToNextMisspelling(bool startBeforeSelection)
     }
     
     // topNode defines the whole range we want to operate on 
-    Node* topNode = highestEditableRoot(position);
+    auto* topNode = highestEditableRoot(position);
     // FIXME: lastOffsetForEditing() is wrong here if editingIgnoresContent(highestEditableRoot()) returns true (e.g. a <table>)
     if (topNode)
-        spellingSearchRange->setEnd(*topNode, lastOffsetForEditing(topNode), IGNORE_EXCEPTION);
+        spellingSearchRange->setEnd(*topNode, lastOffsetForEditing(*topNode), IGNORE_EXCEPTION);
 
     // If spellingSearchRange starts in the middle of a word, advance to the next word so we start checking
     // at a word boundary. Going back by one char and then forward by a word does the trick.

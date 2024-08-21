@@ -1,3 +1,186 @@
+2016-05-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Support ArrayBufferViews in the CSS Font Loading API
+        https://bugs.webkit.org/show_bug.cgi?id=157694
+        <rdar://problem/25554267>
+
+        Reviewed by Darin Adler.
+
+        * fast/text/css-font-loading-arraybuffer-expected.txt: Added.
+        * fast/text/css-font-loading-arraybuffer.html: Added.
+
+2016-05-13  Zalan Bujtas  <zalan@apple.com>
+
+        All scrolling height/width values should be integral rounded.
+        https://bugs.webkit.org/show_bug.cgi?id=157687
+
+        Reviewed by Simon Fraser.
+
+        Both clientHeight(Width) and scrollHeight(width) need to be explicitly integral
+        rounded in order to ensure that scrollable content is computed properly.
+        This will evolve into subpixel snapping once we apply subpixel arithmetics on scrolling.
+
+        * platform/mac/fast/css/text-overflow-ellipsis-text-align-center-expected.txt:
+        * platform/mac/fast/css/text-overflow-ellipsis-text-align-justify-expected.txt:
+        * platform/mac/fast/css/text-overflow-ellipsis-text-align-left-expected.txt:
+        * platform/mac/fast/css/text-overflow-ellipsis-text-align-right-expected.txt:
+        * platform/mac/fast/css/text-overflow-input-expected.txt:
+        * platform/mac/fast/css/vertical-text-overflow-ellipsis-text-align-center-expected.txt:
+        * platform/mac/fast/css/vertical-text-overflow-ellipsis-text-align-justify-expected.txt:
+        * platform/mac/fast/css/vertical-text-overflow-ellipsis-text-align-left-expected.txt:
+        * platform/mac/fast/css/vertical-text-overflow-ellipsis-text-align-right-expected.txt:
+
+2016-05-13  Sam Weinig  <sam@webkit.org>
+
+        ScriptController::processingUserGesture should propagate across postMessage boundaries
+        <rdar://problem/26273173>
+        https://bugs.webkit.org/show_bug.cgi?id=157686
+
+        Reviewed by Anders Carlsson.
+
+        * fast/dom/Window/post-message-user-action-expected.txt: Added.
+        * fast/dom/Window/post-message-user-action.html: Added.
+
+2016-05-13  Chris Dumez  <cdumez@apple.com>
+
+        Align window.scroll() / scrollTo() / scrollBy() with the CSSOM specification
+        https://bugs.webkit.org/show_bug.cgi?id=157666
+
+        Reviewed by Darin Adler.
+
+        Update / improve testing coverage for the API.
+
+        * fast/dom/Window/window-scroll-arguments-expected.txt:
+        * fast/dom/Window/window-scroll-arguments.html:
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+
+2016-05-13  Simon Fraser  <simon.fraser@apple.com>
+
+        cross-fade() rendering doesn't match expectation
+        https://bugs.webkit.org/show_bug.cgi?id=157665
+        rdar://problem/17917708
+
+        Reviewed by Dean Jackson.
+
+        Make css3/images/cross-fade-blending.html a ref test.
+
+        * css3/images/cross-fade-blending-expected.html: Added.
+        * css3/images/cross-fade-blending-expected.png: Removed.
+        * css3/images/cross-fade-blending-expected.txt: Removed.
+        * css3/images/cross-fade-blending.html:
+        * platform/mac/css3/images/cross-fade-blending-expected.png: Removed.
+
+2016-05-13  Simon Fraser  <simon.fraser@apple.com>
+
+        Unprefix -webkit-cross-fade()
+        https://bugs.webkit.org/show_bug.cgi?id=157632
+
+        Reviewed by Darin Adler.
+        
+        * animations/cross-fade-background-image-expected.html:
+        * animations/cross-fade-background-image.html:
+        * animations/cross-fade-border-image-source.html:
+        * animations/cross-fade-list-style-image.html:
+        * animations/cross-fade-webkit-mask-box-image.html:
+        * animations/cross-fade-webkit-mask-image.html:
+        * animations/resources/animation-test-helpers.js:
+        (parseCSSImage):
+        (parseCrossFade):
+        (compareCSSImages):
+        * fast/css/getComputedStyle/computed-style-cross-fade-expected.txt:
+        * fast/css/getComputedStyle/computed-style-cross-fade.html:
+        * transitions/resources/transition-test-helpers.js:
+        (parseCrossFade):
+
+2016-05-13  Yoav Weiss  <yoav@yoav.ws>
+
+        ResourceTiming entries for cached resources and XHR
+        https://bugs.webkit.org/show_bug.cgi?id=157669
+
+        Reviewed by Alex Christensen.
+
+        These tests make sure that cacheable resources as well as XHR based resources
+        have ResourceTiming entries.
+
+        * http/tests/performance/performance-resource-timing-cached-entries-expected.txt: Added.
+        * http/tests/performance/performance-resource-timing-cached-entries.html: Added.
+
+2016-05-13  Mark Lam  <mark.lam@apple.com>
+
+        We should have one calleeSaveRegistersBuffer per VMEntryFrame, not one per VM.
+        https://bugs.webkit.org/show_bug.cgi?id=157537
+        <rdar://problem/24794845>
+
+        Reviewed by Michael Saboff.
+
+        * inspector/debugger/regress-133182-expected.txt:
+        - Rebased test results to update line numbers.
+        * platform/mac/TestExpectations:
+        - Unskip the test.
+
+2016-05-13  Doug Russell  <d_russell@apple.com>
+
+        AX: Regressions in undo/redo accessibility from Bug 153361
+        https://bugs.webkit.org/show_bug.cgi?id=157652
+
+        Reviewed by Darin Adler.
+        
+        Use indexForVisiblePosition & visiblePositionForIndex to store selection data
+        so that AccessibilityUndoReplacedText can build valid selection ranges and
+        retrieve strings for AT notifications.
+
+        * accessibility/mac/value-change/value-change-user-info-contenteditable-expected.txt:
+        * accessibility/mac/value-change/value-change-user-info-contenteditable.html:
+        * accessibility/mac/value-change/value-change-user-info-textarea-expected.txt:
+        * accessibility/mac/value-change/value-change-user-info-textarea.html:
+        * accessibility/mac/value-change/value-change-user-info-textfield-expected.txt:
+        * accessibility/mac/value-change/value-change-user-info-textfield.html:
+
+2016-05-13  Nan Wang  <n_wang@apple.com>
+
+        AX: Wrong CharacterOffset from an upstream VisiblePosition
+        https://bugs.webkit.org/show_bug.cgi?id=157644
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/character-offset-from-upstream-position-expected.txt: Added.
+        * accessibility/mac/character-offset-from-upstream-position.html: Added.
+
+2016-05-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/text-autosizing/ios/text-autosizing-after-back.html as a flaky timeout
+        https://bugs.webkit.org/show_bug.cgi?id=157589
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-05-13  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        Assertion failure for super() call in arrow function default parameters
+        https://bugs.webkit.org/show_bug.cgi?id=157079
+
+        Reviewed by Saam Barati.
+
+        * js/arrowfunction-lexical-bind-arguments-non-strict-expected.txt:
+        * js/arrowfunction-lexical-bind-this-expected.txt:
+        * js/arrowfunction-supercall-expected.txt:
+        * js/arrowfunction-superproperty-expected.txt:
+        * js/script-tests/arrowfunction-lexical-bind-arguments-non-strict.js:
+        * js/script-tests/arrowfunction-lexical-bind-this.js:
+        * js/script-tests/arrowfunction-supercall.js:
+        * js/script-tests/arrowfunction-superproperty.js:
+
+2016-05-12  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Show auto-repeat line names in ComputedStyle
+        https://bugs.webkit.org/show_bug.cgi?id=157622
+
+        Reviewed by Darin Adler.
+
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set-expected.txt:
+
 2016-05-12  Myles C. Maxfield  <mmaxfield@apple.com>
 
         Text shadow sometimes clipped unexpectedly

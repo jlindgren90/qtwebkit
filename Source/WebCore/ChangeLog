@@ -1,3 +1,940 @@
+2016-05-14  Darin Adler  <darin@apple.com>
+
+        CTTE for the HTML editing header
+        https://bugs.webkit.org/show_bug.cgi?id=157676
+
+        Reviewed by Chris Dumez.
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::AccessibilityReplacedText::postTextStateChangeNotification): Use auto so we have a
+        change to compile more efficient code using the more specific types returned, rather than
+        explicitly using a less specific type like Node.
+        (WebCore::AXObjectCache::startCharacterOffsetOfParagraph): Ditto.
+        * accessibility/atk/WebKitAccessibleInterfaceText.cpp: Update for deprecatedIsEditingWhitespace name.
+        * dom/Position.cpp:
+        (WebCore::Position::offsetForPositionAfterAnchor): Update to use a reference instead of a pointer.
+        (WebCore::Position::next): Ditto.
+        (WebCore::Position::atFirstEditingPositionForNode): Ditto.
+        (WebCore::Position::atLastEditingPositionForNode): Ditto.
+        (WebCore::Position::atStartOfTree): Ditto.
+        (WebCore::Position::atEndOfTree): Ditto.
+        (WebCore::Position::upstream): Ditto.
+        (WebCore::Position::downstream): Ditto.
+        (WebCore::Position::rendersInDifferentPosition): Ditto.
+        * dom/PositionIterator.cpp:
+        (WebCore::PositionIterator::increment): Ditto.
+        (WebCore::PositionIterator::decrement): Ditto.
+        (WebCore::PositionIterator::atEnd): Ditto.
+        (WebCore::PositionIterator::atEndOfNode): Ditto.
+        * editing/AlternativeTextController.cpp:
+        (WebCore::AlternativeTextController::markPrecedingWhitespaceForDeletedAutocorrectionAfterCommand):
+        Use new name, deprecatedIsEditingWhitespace.
+        * editing/ApplyBlockElementCommand.cpp:
+        (WebCore::ApplyBlockElementCommand::formatSelection): Use auto (see rationale above).
+        * editing/ApplyStyleCommand.cpp:
+        (WebCore::ApplyStyleCommand::applyBlockStyle): More of the same.
+        (WebCore::ApplyStyleCommand::applyRelativeFontStyleChange): Ditto.
+        (WebCore::ApplyStyleCommand::fixRangeAndApplyInlineStyle): Ditto.
+        (WebCore::ApplyStyleCommand::isValidCaretPositionInTextNode): Ditto.
+        (WebCore::ApplyStyleCommand::mergeStartWithPreviousIfIdentical): Ditto.
+        (WebCore::ApplyStyleCommand::mergeEndWithNextIfIdentical): Ditto.
+        (WebCore::ApplyStyleCommand::surroundNodeRangeWithElement): Ditto.
+        * editing/BreakBlockquoteCommand.cpp:
+        (WebCore::BreakBlockquoteCommand::doApply): Ditto.
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::postTextStateChangeNotification): Ditto.
+        (WebCore::CompositeEditCommand::insertNodeAt): Ditto.
+        (WebCore::CompositeEditCommand::positionOutsideTabSpan): Ditto.
+        (WebCore::containsOnlyDeprecatedEditingWhitespace): Ditto.
+        (WebCore::CompositeEditCommand::shouldRebalanceLeadingWhitespaceFor): Ditto.
+        (WebCore::CompositeEditCommand::rebalanceWhitespaceAt): Ditto.
+        (WebCore::CompositeEditCommand::rebalanceWhitespaceOnTextSubstring): Ditto.
+        (WebCore::CompositeEditCommand::insertNewDefaultParagraphElementAt): Ditto.
+        (WebCore::CompositeEditCommand::moveParagraphWithClones): Ditto.
+        (WebCore::CompositeEditCommand::moveParagraphs): Ditto.
+        * editing/DeleteSelectionCommand.cpp:
+        (WebCore::DeleteSelectionCommand::initializeStartEnd): Ditto.
+        (WebCore::DeleteSelectionCommand::handleGeneralDelete): Ditto.
+        (WebCore::DeleteSelectionCommand::mergeParagraphs): Ditto.
+        (WebCore::DeleteSelectionCommand::doApply): Ditto.
+        * editing/EditCommand.cpp:
+        (WebCore::EditCommand::postTextStateChangeNotification): Ditto.
+        * editing/EditingStyle.cpp: Ditto.
+        * editing/Editor.cpp:
+        (WebCore::Editor::advanceToNextMisspelling): Ditto.
+        * editing/FormatBlockCommand.cpp:
+        (WebCore::FormatBlockCommand::formatRange): Ditto.
+        * editing/IndentOutdentCommand.cpp:
+        (WebCore::IndentOutdentCommand::outdentParagraph): Ditto.
+        * editing/InsertLineBreakCommand.cpp:
+        (WebCore::InsertLineBreakCommand::doApply): Ditto.
+        * editing/InsertListCommand.cpp:
+        (WebCore::InsertListCommand::fixOrphanedListChild): Ditto.
+        (WebCore::InsertListCommand::doApplyForSingleParagraph): Ditto.
+        (WebCore::InsertListCommand::unlistifyParagraph): Ditto.
+        (WebCore::InsertListCommand::listifyParagraph): Ditto.
+        * editing/InsertParagraphSeparatorCommand.cpp:
+        (WebCore::InsertParagraphSeparatorCommand::doApply): Ditto.
+        * editing/InsertTextCommand.cpp:
+        (WebCore::InsertTextCommand::insertTab): Ditto.
+        * editing/ModifySelectionListLevel.cpp:
+        (WebCore::IncreaseSelectionListLevelCommand::doApply): Ditto.
+        * editing/ReplaceSelectionCommand.cpp:
+        (WebCore::ReplacementFragment::removeUnrenderedNodes): Ditto.
+        (WebCore::ReplaceSelectionCommand::shouldMerge): Ditto.
+        (WebCore::ReplaceSelectionCommand::removeRedundantStylesAndKeepStyleSpanInline): Ditto.
+        (WebCore::ReplaceSelectionCommand::mergeEndIfNeeded): Ditto.
+        (WebCore::enclosingInline): Ditto.
+        (WebCore::ReplaceSelectionCommand::doApply): Ditto.
+        * editing/TextIterator.cpp:
+        (WebCore::maxOffsetIncludingCollapsedSpaces): Ditto.
+        * editing/TypingCommand.cpp:
+        (WebCore::TypingCommand::forwardDeleteKeyPressed): Ditto.
+        * editing/VisiblePosition.cpp:
+        (WebCore::VisiblePosition::honorEditingBoundaryAtOrBefore): Ditto.
+        (WebCore::VisiblePosition::honorEditingBoundaryAtOrAfter): Ditto.
+        * editing/VisibleSelection.cpp:
+        (WebCore::VisibleSelection::setStartAndEndFromBaseAndExtentRespectingGranularity): Ditto.
+        (WebCore::VisibleSelection::adjustSelectionToAvoidCrossingEditingBoundaries): Ditto.
+        * editing/VisibleUnits.cpp:
+        (WebCore::previousRootInlineBoxCandidatePosition): Ditto.
+        (WebCore::nextRootInlineBoxCandidatePosition): Ditto.
+        (WebCore::startOfParagraph): Ditto.
+        (WebCore::endOfParagraph): Ditto.
+        (WebCore::startOfEditableContent): Ditto.
+        (WebCore::endOfEditableContent): Ditto.
+
+        * editing/htmlediting.cpp:
+        (WebCore::highestEditableRoot): Changed return type to ContainerNode. Maybe later could
+        change it to Element.
+        (WebCore::lowestEditableAncestor): Changed return type to Element.
+        (WebCore::isEditableToAccessibility): Use auto.
+        (WebCore::isRichlyEditablePosition): Ditto.
+        (WebCore::editableRootForPosition): Ditto.
+        (WebCore::unsplittableElementForPosition):Ditto.
+        (WebCore::nextCandidate): Streamline.
+        (WebCore::nextVisuallyDistinctCandidate): Ditto.
+        (WebCore::previousCandidate): Ditto.
+        (WebCore::previousVisuallyDistinctCandidate): Ditto.
+        (WebCore::firstEditablePositionAfterPositionInRoot): Changed arugment type to
+        ContainerNode.
+        (WebCore::lastEditablePositionBeforePositionInRoot): Ditto.
+        (WebCore::lastOffsetForEditing): Changed argument type to reference.
+        (WebCore::stringWithRebalancedWhitespace): Optimized the case where the function does
+        not need to change the string, so it just returns the passed string rather than a copy.
+        (WebCore::isTableStructureNode): Use auto.
+        (WebCore::isSpecialElement): Made this function private to the file. Use auto.
+        (WebCore::firstInSpecialElement): Return an HTMLElement.
+        (WebCore::lastInSpecialElement): Ditto.
+        (WebCore::isFirstVisiblePositionInSpecialElement): Made this function private to the file.
+        (WebCore::positionBeforeContainingSpecialElement): Changed out argument to HTMLElement.
+        (WebCore::isLastVisiblePositionInSpecialElement): Ditto.
+        (WebCore::positionAfterContainingSpecialElement): Ditto.
+        (WebCore::positionOutsideContainingSpecialElement): Ditto.
+        (WebCore::isFirstPositionAfterTable): Changed return type to Element.
+        (WebCore::isLastPositionBeforeTable): Ditto.
+        (WebCore::visiblePositionBeforeNode): Changed argument type to reference.
+        (WebCore::visiblePositionAfterNode): Ditto.
+        (WebCore::enclosingElementWithTag): Use auto. Removed special case for null since the
+        algorithm already handles null correctly.
+        (WebCore::enclosingNodeOfType): Use auto.
+        (WebCore::highestEnclosingNodeOfType): Ditto.
+        (WebCore::highestNodeToRemoveInPruning): Ditto.
+        (WebCore::enclosingTableCell): Changed return type to Element.
+        (WebCore::enclosingAnchorElement): Removed special case for null since the algorithm
+        already handles null correctly.
+        (WebCore::enclosingList): Use auto.
+        (WebCore::enclosingListChild): Use auto.
+        (WebCore::enclosingEmptyListItem): Use auto.
+        (WebCore::outermostEnclosingList): Use auto.
+        (WebCore::canMergeLists): Use references and more specific type. Since both elements are
+        known to be HTMLElement, compare local names instead of using hasTagName.
+        (WebCore::isRenderedTable): Use auto.
+        (WebCore::isTableCell): Ditto.
+        (WebCore::isEmptyTableCell): Ditto.
+        (WebCore::createBreakElement): Deleted. Callers can use HTMLBRElement directly.
+        (WebCore::createOrderedListElement): Deleted. Callers can use HTMLOListElement directly.
+        (WebCore::createUnorderedListElement): Deleted. Callers can use HTMLUListElement directly.
+        (WebCore::createListItemElement): Deleted. Callers can use HTMLLIElement directly.
+        (WebCore::isTabSpanNode): Remove redundant checks and did more specific typecast.
+        (WebCore::isTabSpanTextNode): Removed redundant null checks.
+        (WebCore::tabSpanNode): Changed return type to HTMLSpanElement.
+        (WebCore::positionOutsideTabSpan): Deleted. Unused function.
+        (WebCore::createTabSpanElement): Made one of the overloads private to this file. Use auto.
+        Changed argument type since we don't need to support null. Moved createEditingTextNode code,
+        specific to the version without a string into that function rather than the helper function.
+        (WebCore::isNodeRendered): Changed argument type to a reference.
+        (WebCore::numEnclosingMailBlockquotes): Streamlined.
+        (WebCore::isMailBlockquote): Use downcast instead of static_cast.
+        (WebCore::caretMinOffset): Take a reference instead of a pointer.
+        (WebCore::caretMaxOffset): Ditto.
+        (WebCore::selectionForParagraphIteration): Use auto.
+        (WebCore::indexForVisiblePosition): Ditto.
+        (WebCore::visiblePositionForIndex): Ditto.
+        (WebCore::visiblePositionForIndexUsingCharacterIterator): Ditto.
+        (WebCore::isVisiblyAdjacent): Made this private to this file.
+        (WebCore::isNodeVisiblyContainedWithin): Changed argument type to a reference.
+        (WebCore::areIdenticalElements): Changed argument types to references.
+        (WebCore::adjustedSelectionStartForStyleComputation): Use auto.
+        (WebCore::isBlockFlowElement): Changed argument type to a reference. Use auto.
+        (WebCore::deprecatedEnclosingBlockFlowElement): Updated for reference changes.
+        (WebCore::rendererForCaretPainting): Use auto.
+
+        * editing/htmlediting.h: Use pragma once. Removed unneeded includes and forward declarations.
+        Removed various non-helpful comments (the sections still don't make sense; not really good to
+        group functions by their return types). Moved inline functoin bodies to the bottom of the file.
+        Renamed isWhitespace to deprecatedIsEditingWhitespace.
+
+        * editing/markup.cpp:
+        (WebCore::createFragmentFromText): Use HTMLBRElement.
+        * page/DOMSelection.cpp:
+        (WebCore::DOMSelection::extend): Updated since caretMaxOffset takes a reference.
+
+2016-05-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Support ArrayBufferViews in the CSS Font Loading API
+        https://bugs.webkit.org/show_bug.cgi?id=157694
+        <rdar://problem/25554267>
+
+        This patch adds a new mode to CSSFontFaceSource for immediate (ArrayBuffer) data.
+        Then, FontFace can simply be hooked up to this new mode.
+
+        Reviewed by Darin Adler.
+
+        Test: fast/text/css-font-loading-arraybuffer.html
+
+        * css/CSSFontFaceSource.cpp:
+        (WebCore::CSSFontFaceSource::CSSFontFaceSource):
+        (WebCore::CSSFontFaceSource::font):
+        * css/CSSFontFaceSource.h:
+        * css/FontFace.cpp:
+        (WebCore::FontFace::create):
+        * loader/cache/CachedFont.cpp:
+        (WebCore::CachedFont::ensureCustomFontData):
+        (WebCore::CachedFont::createCustomFontData):
+        (WebCore::CachedFont::createFont):
+        (WebCore::CachedFont::platformDataFromCustomData):
+        * loader/cache/CachedFont.h:
+
+2016-05-14  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Add support for dictionary members of integer types
+        https://bugs.webkit.org/show_bug.cgi?id=157703
+
+        Reviewed by Darin Adler.
+
+        Add support for dictionary members of integer types, including support
+        for the [Clamp] and [EnforceRange] IDL extended attributes on such
+        members.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::convert):
+        (WebCore::convertOptional):
+        - Add the needed template specializations so we can use convertOptional()
+          with integral types.
+        - Use std::enable_if so the template specializations meants to be used
+          for floating point types or integral types can only be instantiated
+          for such types.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateConversionRuleWithLeadingComma):
+        (GetIntegerConversionConfiguration):
+        (JSValueToNative):
+        Generate the right IntegerConversionConfiguration parameter for convert()
+        and convertOptional() when converting dictionary members of integral
+        types
+
+        * bindings/scripts/IDLParser.pm:
+        (parseDictionaryMember):
+        Fix bug in the IDL parser where we weren't initializing the extended
+        attributes for dictionary members.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/TestObj.idl:
+        Add bindings tests coverage.
+
+2016-05-14  Chris Dumez  <cdumez@apple.com>
+
+        Allocate MacGlyphToPathTranslator / CairoGlyphToPathTranslator on the stack
+        https://bugs.webkit.org/show_bug.cgi?id=157690
+
+        Reviewed by Myles C. Maxfield.
+
+        Allocate MacGlyphToPathTranslator / CairoGlyphToPathTranslator on the
+        stack. We also now use the subclass type for the local variable so it
+        will bypass the vtable for various virtual function calls (if the compiler
+        was not already smart enough to figure this out).
+
+        * platform/graphics/cairo/FontCairo.cpp:
+        (WebCore::FontCascade::dashesForIntersectionsWithRect):
+        * platform/graphics/cocoa/FontCascadeCocoa.mm:
+        (WebCore::FontCascade::dashesForIntersectionsWithRect):
+
+2016-05-13  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed attempt to fix the iOS build after the protector variables renaming.
+
+        * platform/network/cf/ResourceHandleCFURLConnectionDelegateWithOperationQueue.cpp:
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::willSendRequest):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::didReceiveResponse):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::didReceiveData):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::didFinishLoading):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::didFail):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::willCacheResponse):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::didReceiveChallenge):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::didSendBodyData):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::canRespondToProtectionSpace):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::didReceiveDataArray):
+
+2016-05-13  Zalan Bujtas  <zalan@apple.com>
+
+        All scrolling height/width values should be integral rounded.
+        https://bugs.webkit.org/show_bug.cgi?id=157687
+
+        Reviewed by Simon Fraser.
+
+        Both clientHeight(Width) and scrollHeight(width) need to be explicitly integral
+        rounded in order to ensure that scrollable content is computed properly.
+        This will evolve into subpixel snapping once we apply subpixel arithmetics on scrolling.
+
+        Not testable.
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::scrollWidth):
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::scrollTo):
+        (WebCore::RenderLayer::horizontalScrollbarStart):
+        (WebCore::RenderLayer::scrollWidth):
+        (WebCore::RenderLayer::scrollHeight):
+        (WebCore::RenderLayer::computeScrollDimensions):
+        (WebCore::RenderLayer::updateScrollbarsAfterLayout):
+        * rendering/RenderLayer.h:
+
+2016-05-13  Chris Dumez  <cdumez@apple.com>
+
+        [NetworkCache] Avoid having to re-parse URLs after deserializing them
+        https://bugs.webkit.org/show_bug.cgi?id=157660
+
+        Reviewed by Darin Adler.
+
+        Avoid having to re-parse URLs after deserializing them in the WebKit2
+        network cache storage implementation.
+
+        We previously serialized URLs as Strings, which meant that we had the
+        re-parse them upon deserialization. We now serialize all of the URL
+        data members to avoid having to parse the String again.
+
+        * platform/URL.h:
+        (WebCore::URL::encode):
+        (WebCore::URL::decode):
+        * platform/network/ResourceRequestBase.h:
+        (WebCore::ResourceRequestBase::encodeWithoutPlatformData):
+        (WebCore::ResourceRequestBase::decodeWithoutPlatformData):
+        * platform/network/ResourceResponseBase.h:
+        (WebCore::ResourceResponseBase::encode):
+        (WebCore::ResourceResponseBase::decode):
+
+2016-05-13  Sam Weinig  <sam@webkit.org>
+
+        ScriptController::processingUserGesture should propagate across postMessage boundaries
+        <rdar://problem/26273173>
+        https://bugs.webkit.org/show_bug.cgi?id=157686
+
+        Reviewed by Anders Carlsson.
+
+        Test: fast/dom/Window/post-message-user-action.html
+
+        * dom/UserGestureIndicator.h:
+        Export processingUserGesture() for testing.
+
+        * page/DOMWindow.cpp:
+        (WebCore::PostMessageTimer::PostMessageTimer):
+        (WebCore::PostMessageTimer::event):
+        Maintain the processingUserGesture bit through postMessage.
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::setResourceTimingSupport):
+        (WebCore::Internals::isProcessingUserGesture):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+        Add new internals function to get the current state of the UseGestureIndicator for testing.
+
+2016-05-13  Chris Dumez  <cdumez@apple.com>
+
+        Align window.scroll() / scrollTo() / scrollBy() with the CSSOM specification
+        https://bugs.webkit.org/show_bug.cgi?id=157666
+
+        Reviewed by Darin Adler.
+
+        Align window.scroll() / scrollTo() / scrollBy() with Firefox and the CSSOM
+        specification:
+        https://drafts.csswg.org/cssom-view/#extensions-to-the-window-interface
+
+        In particular, the following changes were made:
+        1. Make parameters to scroll() / scrollTo() / scrollBy() mandatory.
+        2. Add overloads for scroll() / scrollTo() / scrollBy() that take an
+           optional ScrollToOptions dictionary.
+        3. Update API to use "unrestricted double" typing for x/y instead of
+           "long". This matches the specification but it does not really change
+           our behavior at this point because the values are still casted to
+           int in our implementation.
+
+        Web-Exposed behavior changes:
+        1. JS can now pass a dictionary to scroll() / scrollTo() / scrollBy().
+           This a new feature that Firefox already supports (Chrome does not).
+        2. Passing only 1 parameter to scroll() / scrollTo() / scrollBy() that
+           is not a dictionary will now throw a TypeError. The compatibility
+           risky should be low because Firefox and Chrome already throw in this
+           case (Chrome has been throwing for 2 years and a half).
+        3. Calling scrollTo() / scroll() without any parameter no longer
+           scrolls to 0. Instead we use the current viewport's x/y which means
+           we don't scroll at all. The new behavior matches Firefox, Chrome and
+           IE 11. This fixes scrolling on the following Website:
+           https://members.chosun.com/cms_subscribe/application/index.jsp
+
+        No new tests, extended existing testing.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::convert):
+        (WebCore::convertOptional):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (ShouldAllowNonFiniteForFloatingPointType):
+        (GenerateConversionRuleWithLeadingComma):
+        (GenerateDictionaryImplementationContent):
+        (JSValueToNative):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convert<TestObj::Dictionary>):
+        * bindings/scripts/test/TestObj.idl:
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::scrollBy):
+        (WebCore::DOMWindow::scrollTo):
+        * page/DOMWindow.h:
+        * page/DOMWindow.idl:
+
+2016-05-13  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200894.
+        https://bugs.webkit.org/show_bug.cgi?id=157695
+
+        This change broke the iOS build (Requested by ryanhaddad on
+        #webkit).
+
+        Reverted changeset:
+
+        "Remove unused initializer for WebEvent on iOS."
+        https://bugs.webkit.org/show_bug.cgi?id=157689
+        http://trac.webkit.org/changeset/200894
+
+2016-05-13  Brady Eidson  <beidson@apple.com>
+
+        Rename all protector variables that should be called `protectedThis`
+        https://bugs.webkit.org/show_bug.cgi?id=157610
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Renaming, no behavior change).
+        
+        WebCore has so many instances of these protectors as well as so much variance in naming them,
+        that I think it deserved a new style pass.
+
+        * Modules/fetch/FetchResponse.cpp:
+        * Modules/geolocation/GeoNotifier.cpp:
+        * Modules/geolocation/Geolocation.cpp:
+        * Modules/indexeddb/IDBTransaction.cpp:
+        * Modules/indexeddb/client/TransactionOperation.h:
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        * Modules/indexeddb/server/UniqueIDBDatabaseConnection.cpp:
+        * Modules/indexeddb/server/UniqueIDBDatabaseTransaction.cpp:
+        * Modules/indexeddb/shared/InProcessIDBServer.cpp:
+        * Modules/mediastream/UserMediaRequest.cpp:
+        * Modules/notifications/NotificationCenter.cpp:
+        * Modules/webaudio/AudioContext.cpp:
+        * Modules/webdatabase/Database.cpp:
+        * Modules/websockets/WebSocket.cpp:
+        * Modules/websockets/WebSocketChannel.cpp:
+        * Modules/websockets/WorkerThreadableWebSocketChannel.cpp:
+        * accessibility/AccessibilityObject.cpp:
+        * accessibility/AccessibilityRenderObject.cpp:
+        * bindings/gobject/GObjectEventListener.cpp:
+        * bindings/js/JSCustomElementInterface.cpp:
+        * bindings/js/JSCustomSQLStatementErrorCallback.cpp:
+        * bindings/js/JSCustomXPathNSResolver.cpp:
+        * bindings/js/JSDOMGlobalObjectTask.cpp:
+        * bindings/js/JSDOMWindowBase.cpp:
+        * bindings/js/JSErrorHandler.cpp:
+        * bindings/js/JSEventListener.cpp:
+        * bindings/js/JSMutationCallback.cpp:
+        * bindings/js/JSNodeFilterCustom.cpp:
+        * bindings/js/SerializedScriptValue.cpp:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        * bindings/scripts/test/JS/JSTestCallback.cpp:
+        * bindings/scripts/test/JS/JSTestCallbackFunction.cpp:
+        * bridge/runtime_root.cpp:
+        * css/CSSFontSelector.cpp:
+        * css/StyleSheetContents.cpp:
+        * dom/CharacterData.cpp:
+        * dom/ContainerNode.cpp:
+        * dom/Document.cpp:
+        * dom/EventTarget.cpp:
+        * dom/Node.cpp:
+        * dom/ScriptExecutionContext.cpp:
+        * dom/ScriptedAnimationController.cpp:
+        * dom/StringCallback.cpp:
+        * html/HTMLEmbedElement.cpp:
+        * html/HTMLFormControlElement.cpp:
+        * html/HTMLFormElement.cpp:
+        * html/HTMLInputElement.cpp:
+        * html/HTMLLinkElement.cpp:
+        * html/HTMLMediaElement.cpp:
+        * html/HTMLObjectElement.cpp:
+        * html/HTMLOptionElement.cpp:
+        * html/HTMLScriptElement.cpp:
+        * html/HTMLTableElement.cpp:
+        * html/HTMLTextAreaElement.cpp:
+        * html/HTMLTitleElement.cpp:
+        * html/parser/HTMLDocumentParser.cpp:
+        * html/shadow/SliderThumbElement.cpp:
+        * html/shadow/SpinButtonElement.cpp:
+        * inspector/InspectorFrontendClientLocal.cpp:
+        * loader/DocumentLoader.cpp:
+        * loader/DocumentThreadableLoader.cpp:
+        * loader/MediaResourceLoader.cpp:
+        * loader/NetscapePlugInStreamLoader.cpp:
+        * loader/ResourceLoader.cpp:
+        * loader/SubresourceLoader.cpp:
+        * loader/cache/CachedRawResource.cpp:
+        * loader/cf/SubresourceLoaderCF.cpp:
+        * loader/mac/ResourceLoaderMac.mm:
+        * page/DOMWindow.cpp:
+        * page/DOMWindowExtension.cpp:
+        * page/FrameView.cpp:
+        * page/animation/AnimationBase.cpp:
+        * page/scrolling/ThreadedScrollingTree.cpp:
+        * platform/ScrollView.cpp:
+        * platform/graphics/DisplayRefreshMonitor.cpp:
+        * platform/graphics/ca/win/CACFLayerTreeHost.cpp:
+        * platform/graphics/gstreamer/InbandTextTrackPrivateGStreamer.cpp:
+        * platform/ios/WebVideoFullscreenControllerAVKit.mm:
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        * platform/mac/WidgetMac.mm:
+        * platform/network/BlobResourceHandle.cpp:
+        * platform/network/cf/ResourceHandleCFNet.cpp:
+        * platform/network/cf/ResourceHandleCFURLConnectionDelegateWithOperationQueue.cpp:
+        * platform/network/curl/CurlDownload.cpp:
+        * platform/network/mac/ResourceHandleMac.mm:
+        * platform/network/soup/SocketStreamHandleSoup.cpp:
+        * platform/win/PopupMenuWin.cpp:
+        * workers/WorkerScriptLoader.cpp:
+        * xml/XMLHttpRequest.cpp:
+        * xml/parser/XMLDocumentParser.cpp:
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+
+2016-05-13  Enrica Casucci  <enrica@apple.com>
+
+        Remove unused initializer for WebEvent on iOS.
+        https://bugs.webkit.org/show_bug.cgi?id=157689
+
+        Reviewed by Anders Carlsson.
+
+        This is no longer used and can be removed.
+        The logic tied to isPopupVariant has been incorporated
+        in keyboard flags. The characterSet property is no longer needed too.
+
+        * platform/ios/WebEvent.h:
+        * platform/ios/WebEvent.mm:
+        (-[WebEvent initWithKeyEventType:timeStamp:characters:charactersIgnoringModifiers:modifiers:isRepeating:withFlags:keyCode:isTabKey:characterSet:]):
+        (-[WebEvent initWithKeyEventType:timeStamp:characters:charactersIgnoringModifiers:modifiers:isRepeating:isPopupVariant:keyCode:isTabKey:characterSet:]): Deleted.
+        (-[WebEvent _characterSetDescription]): Deleted.
+        (-[WebEvent isPopupVariant]): Deleted.
+        (-[WebEvent characterSet]): Deleted.
+
+2016-05-13  Simon Fraser  <simon.fraser@apple.com>
+
+        cross-fade() rendering doesn't match expectation
+        https://bugs.webkit.org/show_bug.cgi?id=157665
+        rdar://problem/17917708
+
+        Reviewed by Dean Jackson.
+
+        Cross-fading two opaque images would result in a non-opaque result in between the endpoints,
+        probably because r157045 caused both images to be drawn with srcOver, since drawImage()
+        clobbers the composite operation in the context.
+
+        Fix by passing the composite operation to the drawImage() calls for the non-transparency layer
+        code path.
+
+        Converted css3/images/cross-fade-blending.html into a ref test to test this.
+
+        * platform/graphics/CrossfadeGeneratedImage.cpp:
+        (WebCore::drawCrossfadeSubimage):
+
+2016-05-13  Simon Fraser  <simon.fraser@apple.com>
+
+        Unprefix -webkit-cross-fade()
+        https://bugs.webkit.org/show_bug.cgi?id=157632
+
+        Reviewed by Darin Adler.
+
+        Support unprefixed cross-fade() in addition to the prefixed value when parsing,
+        and have computed style round-trip the correct one.
+
+        If computed style is queried during an image transition, return an unprefixed
+        cross-fade(). If blending cross-fade values, only return the prefixed function if
+        both inputs are prefixed.
+
+        Tested by modified and existing tests.
+
+        * css/CSSCrossfadeValue.cpp:
+        (WebCore::CSSCrossfadeValue::customCSSText):
+        (WebCore::CSSCrossfadeValue::blend):
+        * css/CSSCrossfadeValue.h:
+        (WebCore::CSSCrossfadeValue::create):
+        (WebCore::CSSCrossfadeValue::isPrefixed):
+        (WebCore::CSSCrossfadeValue::CSSCrossfadeValue):
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::isGeneratedImageValue):
+        (WebCore::CSSParser::parseGeneratedImage):
+        (WebCore::CSSParser::parseCrossfade):
+        * css/CSSParser.h:
+
+2016-05-13  Yoav Weiss  <yoav@yoav.ws>
+
+        ResourceTiming entries for cached resources and XHR
+        https://bugs.webkit.org/show_bug.cgi?id=157669
+
+        Reviewed by Alex Christensen.
+
+         - Moves the ResourceTiming storage and addition logic into its own class, so that it
+           can be accessed by both CachedResourceLoader and DocumentThreadableLoader.
+         - Using the above, adds ResourceTiming collection into DocumentThreadableLoader,
+           in order to support ResourceTiming entries for XHR based requests.
+         - Adds ResourceTiming entries for resources that are reused from the memory cache.
+
+        Test: http/tests/performance/performance-resource-timing-cached-entries.html
+
+        * CMakeLists.txt: Add ResourceTimingInformation.
+        * WebCore.xcodeproj/project.pbxproj: Add ResourceTimingInformation.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::didFinishLoading): Add a call to addResourceTiming.
+        (WebCore::DocumentThreadableLoader::loadRequest): Store the initiator information.
+        * loader/DocumentThreadableLoader.h:
+        * loader/ResourceTimingInformation.cpp: Added.
+        (WebCore::ResourceTimingInformation::addResourceTiming): Moved addResourceTiming logic from CachedResourceLoader.
+        (WebCore::ResourceTimingInformation::storeResourceTimingInitiatorInformation): Moved addResourceTiming logic from
+        CachedResourceLoader. Removed reliance on the committingFirstRealLoad bool when storing initiator info, as I don't
+        see why it is required, and it made no sense in the context of DocumentThreadableLoader.
+        * loader/ResourceTimingInformation.h: Added.
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::requestResource): Add a ResourceTiming entry when a resource is reused from MemoryCache.
+        (WebCore::CachedResourceLoader::revalidateResource): Use ResourceTimingInformation::storeResourceTimingInitiatorInformation.
+        (WebCore::CachedResourceLoader::loadResource): Use ResourceTimingInformation::storeResourceTimingInitiatorInformation.
+        (WebCore::CachedResourceLoader::loadDone): Use ResourceTimingInformation::addResourceTiming.
+        (WebCore::CachedResourceLoader::storeResourceTimingInitiatorInformation): Deleted.
+        * loader/cache/CachedResourceLoader.h:
+
+2016-05-13  Doug Russell  <d_russell@apple.com>
+
+        AX: Regressions in undo/redo accessibility from Bug 153361
+        https://bugs.webkit.org/show_bug.cgi?id=157652
+
+        Reviewed by Darin Adler.
+        
+        Use indexForVisiblePosition & visiblePositionForIndex to store selection data
+        so that AccessibilityUndoReplacedText can build valid selection ranges and
+        retrieve strings for AT notifications.
+
+        Tests: accessibility/mac/value-change/value-change-user-info-contenteditable-expected.txt:
+               accessibility/mac/value-change/value-change-user-info-contenteditable.html:
+               accessibility/mac/value-change/value-change-user-info-textarea-expected.txt:
+               accessibility/mac/value-change/value-change-user-info-textarea.html:
+               accessibility/mac/value-change/value-change-user-info-textfield-expected.txt:
+               accessibility/mac/value-change/value-change-user-info-textfield.html:
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::AccessibilityReplacedText::AccessibilityReplacedText):
+        (WebCore::AXObjectCache::postTextStateChangeNotification):
+        (WebCore::AXObjectCache::postTextReplacementNotification):
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::AccessibilityUndoReplacedText::configureRangeDeletedByReapplyWithEndingSelection):
+        (WebCore::AccessibilityUndoReplacedText::configureRangeDeletedByReapplyWithStartingSelection):
+        (WebCore::AccessibilityUndoReplacedText::setRangeDeletedByUnapply):
+        (WebCore::AccessibilityUndoReplacedText::captureTextForUnapply):
+        (WebCore::AccessibilityUndoReplacedText::captureTextForReapply):
+        (WebCore::AccessibilityUndoReplacedText::textDeletedByUnapply):
+        (WebCore::AccessibilityUndoReplacedText::textDeletedByReapply):
+        (WebCore::AccessibilityUndoReplacedText::postTextStateChangeNotificationForUnapply):
+        (WebCore::AccessibilityUndoReplacedText::postTextStateChangeNotificationForReapply):
+        (WebCore::EditCommandComposition::EditCommandComposition):
+        (WebCore::EditCommandComposition::unapply):
+        (WebCore::EditCommandComposition::reapply):
+        (WebCore::EditCommandComposition::setStartingSelection):
+        (WebCore::EditCommandComposition::setEndingSelection):
+        (WebCore::EditCommandComposition::setRangeDeletedByUnapply):
+        (WebCore::AccessibilityUndoReplacedText::confgureTextToBeDeletedByUnapplyIndexesWithEditCommandEndingSelection): Deleted.
+        (WebCore::AccessibilityUndoReplacedText::confgureTextToBeDeletedByUnapplyStartIndexWithEditCommandStartingSelection): Deleted.
+        (WebCore::AccessibilityUndoReplacedText::setTextInsertedByUnapplyRange): Deleted.
+        (WebCore::AccessibilityUndoReplacedText::captureTextToBeDeletedByUnapply): Deleted.
+        (WebCore::AccessibilityUndoReplacedText::captureTextToBeDeletedByReapply): Deleted.
+        (WebCore::AccessibilityUndoReplacedText::textInsertedByUnapply): Deleted.
+        (WebCore::AccessibilityUndoReplacedText::textInsertedByReapply): Deleted.
+        (WebCore::EditCommandComposition::setTextInsertedByUnapplyRange): Deleted.
+        * editing/CompositeEditCommand.h:
+        * editing/Editor.cpp:
+        (WebCore::Editor::replaceSelectionWithFragment):
+        * editing/TypingCommand.cpp:
+        (WebCore::TypingCommand::postTextStateChangeNotificationForDeletion):
+        (WebCore::TypingCommand::insertTextAndNotifyAccessibility):
+        (WebCore::TypingCommand::insertLineBreakAndNotifyAccessibility):
+        (WebCore::TypingCommand::insertParagraphSeparatorAndNotifyAccessibility):
+        (WebCore::TypingCommand::insertParagraphSeparatorInQuotedContentAndNotifyAccessibility):
+
+2016-05-13  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r200837.
+
+        Seems to have regressed Speedometer and JetStream on iOS
+
+        Reverted changeset:
+
+        "DOMPromise should only restrict the resolution type"
+        https://bugs.webkit.org/show_bug.cgi?id=157307
+        http://trac.webkit.org/changeset/200837
+
+2016-05-13  Sam Weinig  <sam@webkit.org>
+
+        Rename WKDataDetectorTypeSpotlightSuggestion to WKDataDetectorTypeLookupSuggestion
+        <rdar://problem/26269611>
+
+        Reviewed by Dan Bernstein and Enrica Casucci. 
+
+        * editing/cocoa/DataDetection.h:
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::constructURLStringForResult):
+        (WebCore::DataDetection::detectContentInRange):
+
+2016-05-13  Nan Wang  <n_wang@apple.com>
+
+        AX: Wrong CharacterOffset from an upstream VisiblePosition
+        https://bugs.webkit.org/show_bug.cgi?id=157644
+
+        Reviewed by Chris Fleizach.
+
+        We should adjust the text marker's CharacterOffset if its corresponding
+        VisiblePosition has upstream affinity.
+
+        Test: accessibility/mac/character-offset-from-upstream-position.html
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::AXObjectCache::characterOffsetForTextMarkerData):
+        (WebCore::AXObjectCache::traverseToOffsetInRange):
+        (WebCore::AXObjectCache::localCaretRectForCharacterOffset):
+
+2016-05-13  Beth Dakin  <bdakin@apple.com>
+
+        Add dyldSPI.h for linked on or after checks, and add one for link preview
+        https://bugs.webkit.org/show_bug.cgi?id=157401
+        -and corresponding-
+        rdar://problem/26253396
+
+        Reviewed by Darin Adler.
+
+        This patch removes DynamicLinkerSPI.h and replaces it with 
+        wtf/spi/darwin/dyldSPI.h
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * html/HTMLObjectElement.cpp:
+        * platform/graphics/ios/FontServicesIOS.mm:
+        * platform/spi/cocoa/DynamicLinkerSPI.h: Removed.
+
+2016-05-13  Brady Eidson  <beidson@apple.com>
+
+        Give CrossThreadCopier a default specialization for Vectors of objects.
+        https://bugs.webkit.org/show_bug.cgi?id=157675
+
+        Reviewed by Darin Adler.
+
+        No new tests (Refactor, no change in behavior).
+
+        * platform/CrossThreadCopier.cpp:
+        (WebCore::Vector<String>>::copy): Deleted.
+        * platform/CrossThreadCopier.h: Add a default specialization for Vector<T> where T is a type
+          that is CrossThreadCopyable itself.
+
+2016-05-13  Chris Dumez  <cdumez@apple.com>
+
+        Have the WorkerGlobalScope API return more references
+        https://bugs.webkit.org/show_bug.cgi?id=157663
+
+        Reviewed by Alexey Proskuryakov.
+
+        Have the WorkerGlobalScope API return more references instead of
+        pointers.
+
+        * workers/WorkerGlobalScope.cpp:
+        (WebCore::WorkerGlobalScope::location):
+        (WebCore::WorkerGlobalScope::navigator):
+        * workers/WorkerGlobalScope.h:
+        (WebCore::WorkerGlobalScope::self):
+
+2016-05-13  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        DOMPromise should only restrict the resolution type
+        https://bugs.webkit.org/show_bug.cgi?id=157307
+
+        Reviewed by Darin Adler.
+
+        Removing from DOMPromise the rejection template parameter.
+        Supported rejection types are integers (Exception codes) and DOM objects (DOMError typically).
+
+        Updated toJS and DeferredWrapper to accept Ref<>&& and RefPtr<>&&.
+        Previously Ref<>&& were not accepted and only "const RefPtr<>&" was accepted.
+        This in turn created an unecessary churn count when calling toJS.
+
+        Changes also allow in most cases to remove the need for explictly declaring the
+        rejection/resolution type.
+
+        Minor refactoring of FontFaceSet promise handling to use DOMPromise in lieu of DeferredWrapper.
+
+        Covered by existing tests.
+        Changes should not be visible from user scripts.
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::consume):
+        (WebCore::FetchBody::consumeText):
+        (WebCore::blobFromArrayBuffer):
+        (WebCore::FetchBody::loadingFailed):
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::formData):
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::arrayBuffer):
+        (WebCore::FetchBodyOwner::blob):
+        (WebCore::FetchBodyOwner::formData):
+        (WebCore::FetchBodyOwner::json):
+        (WebCore::FetchBodyOwner::text):
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::BodyLoader::didReceiveResponse):
+        * Modules/fetch/FetchResponse.h:
+        * Modules/mediastream/MediaDevices.h:
+        * Modules/mediastream/PeerConnectionBackend.h:
+        * Modules/mediastream/UserMediaRequest.cpp:
+        (WebCore::UserMediaRequest::didCreateStream):
+        * Modules/streams/ReadableStreamSource.h:
+        * Modules/webaudio/AudioContext.h:
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::toJS):
+        (WebCore::jsPair):
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::fulfillPromiseWithJSON):
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::TypeInspector::decltype):
+        (WebCore::TypeInspector::testIsVector):
+        (WebCore::TypeInspector::testIsRefOrRefPtr):
+        (WebCore::DeferredWrapper::resolve):
+        (WebCore::DeferredWrapper::reject):
+        (WebCore::DOMPromise::resolve):
+        (WebCore::DOMPromise::reject):
+        (WebCore::DeferredWrapper::resolveWithValue):
+        (WebCore::DeferredWrapper::rejectWithValue):
+        (WebCore::callPromiseFunction):
+        * bindings/js/JSSubtleCryptoCustom.cpp:
+        (WebCore::JSSubtleCrypto::importKey):
+        (WebCore::JSSubtleCrypto::unwrapKey):
+        * css/FontFace.h:
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::PendingPromise::PendingPromise):
+        (WebCore::FontFaceSet::load):
+        (WebCore::FontFaceSet::registerReady):
+        * css/FontFaceSet.h:
+        * html/HTMLMediaElement.h:
+
+2016-05-12  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Show auto-repeat line names in ComputedStyle
+        https://bugs.webkit.org/show_bug.cgi?id=157622
+
+        Reviewed by Darin Adler.
+
+        Add the necessary machinery to show the named lines from auto-repeat tracks in
+        getComputedStyle(). A new class OrderedNamedLinesCollector was added to abstract the
+        retrieval of line names no matter where they come from (explicit or auto-repeat tracks).
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::OrderedNamedLinesCollector::OrderedNamedLinesCollector):
+        (WebCore::OrderedNamedLinesCollector::isEmpty): TRUE if we don't have named lines neither on
+        explicit nor auto-repeat tracks.
+        (WebCore::OrderedNamedLinesCollector::appendLines): Add the named lines found for a given
+        index to the CSSGridLineNamesValue.
+        (WebCore::OrderedNamedLinesCollector::collectLineNamesForIndex): Collects named lines found
+        for a given index.
+        (WebCore::addValuesForNamedGridLinesAtIndex): Use the collector to gather named lines.
+        (WebCore::valueForGridTrackList): Ditto.
+
+2016-05-13  Tina Liu  <iting_liu@apple.com>
+
+        Revert r199691.
+        https://bugs.webkit.org/show_bug.cgi?id=157645
+        <rdar://problem/26235373>
+
+        Reviewed by Darin Adler.
+
+        * plugins/PluginStrategy.h:
+
+2016-05-12  Chris Dumez  <cdumez@apple.com>
+
+        Drop WorkerGlobalScope's custom GetOwnPropertySlot() implementation
+        https://bugs.webkit.org/show_bug.cgi?id=157662
+
+        Reviewed by Darin Adler.
+
+        Drop WorkerGlobalScope's custom GetOwnPropertySlot() implementation as
+        it is no longer needed after <http://trac.webkit.org/changeset/196678>.
+
+        JSC::getStaticPropertySlot() now properly checks for overrides *before*
+        checking the static table.
+
+        No new tests, no web-exposed behavior change.
+
+        * bindings/js/JSWorkerGlobalScopeCustom.cpp:
+        (WebCore::JSWorkerGlobalScope::getOwnPropertySlotDelegate): Deleted.
+        * workers/WorkerGlobalScope.idl:
+
+2016-05-12  Zan Dobersek  <zdobersek@igalia.com>
+
+        CoordinatedGraphicsLayer::syncLayerState() should set the m_layerState.contentsOpaque flag
+        https://bugs.webkit.org/show_bug.cgi?id=157575
+
+        Reviewed by Darin Adler.
+
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp:
+        (WebCore::CoordinatedGraphicsLayer::syncLayerState): The contentsOpaque flag in the
+        layer's CoordinatedGraphicsLayerState object should also be set to the current value
+        of the layer. This is the only flag in the union of 9 members that's not being updated
+        in this method.
+
+2016-05-12  Zan Dobersek  <zdobersek@igalia.com>
+
+        [TexMap] Handle TextureMapperShaderProgram objects through references
+        https://bugs.webkit.org/show_bug.cgi?id=157619
+
+        Reviewed by Antonio Gomes.
+
+        TextureMapper code always expects valid TextureMapperShaderProgram
+        objects to be created, so it doesn't make sense to access these
+        objects through raw pointers or RefPtr<>s.
+
+        * platform/graphics/texmap/TextureMapperGL.cpp:
+        (WebCore::TextureMapperGL::drawBorder):
+        (WebCore::prepareFilterProgram):
+        (WebCore::TextureMapperGL::drawTexture):
+        (WebCore::TextureMapperGL::drawSolidColor):
+        (WebCore::TextureMapperGL::drawEdgeTriangles):
+        (WebCore::TextureMapperGL::drawUnitRect):
+        (WebCore::TextureMapperGL::draw):
+        (WebCore::TextureMapperGL::drawTexturedQuadWithProgram):
+        (WebCore::TextureMapperGL::drawFiltered):
+        (WebCore::TextureMapperGL::beginClip):
+        * platform/graphics/texmap/TextureMapperGL.h:
+
 2016-05-12  Zan Dobersek  <zdobersek@igalia.com>
 
         VideoSinkGStreamer: plug a GstBuffer leak in webkitVideoSinkRequestRender()

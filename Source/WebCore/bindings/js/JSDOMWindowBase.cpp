@@ -210,7 +210,7 @@ public:
 
     void call()
     {
-        Ref<JSDOMWindowMicrotaskCallback> protect(*this);
+        Ref<JSDOMWindowMicrotaskCallback> protectedThis(*this);
         JSLockHolder lock(m_globalObject->vm());
 
         ExecState* exec = m_globalObject->globalExec();
