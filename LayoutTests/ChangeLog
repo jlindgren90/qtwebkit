@@ -1,3 +1,67 @@
+2016-05-20  Zalan Bujtas  <zalan@apple.com>
+
+        `width: 1%` on nested table cell causes its table to hog horizontal space
+        https://bugs.webkit.org/show_bug.cgi?id=144696
+        <rdar://problem/20839572>
+
+        Reviewed by David Hyatt and Tim Horton.
+        
+        This patch is based on https://chromium.googlesource.com/chromium/src/+/9428cfb16993a2329e87c65da096ca295132ef0f
+
+        * fast/table/inner-percent-width-affects-outer-floated-div-expected.html: Added.
+        * fast/table/inner-percent-width-affects-outer-floated-div.html: Added.
+        * fast/table/inner-percent-width-doesnt-affect-ancestor-columns-expected.html: Added.
+        * fast/table/inner-percent-width-doesnt-affect-ancestor-columns.html: Added.
+        * platform/mac/fast/table/border-collapsing/cached-change-row-border-width-expected.txt:
+        * platform/mac/fast/table/border-collapsing/cached-change-tbody-border-width-expected.txt:
+        * platform/mac/fast/table/max-width-integer-overflow-expected.txt:
+
+2016-05-20  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Properly handle blobs in Workers.
+        https://bugs.webkit.org/show_bug.cgi?id=157947
+
+        Reviewed by Alex Christensen.
+
+        * storage/indexeddb/modern/blob-simple-workers-expected.txt: Added.
+        * storage/indexeddb/modern/blob-simple-workers.html: Added.
+        * storage/indexeddb/modern/resources/blob-simple-workers.js: Added.
+        
+2016-05-20  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] REGRESSION(r184899): Ascent adjustments are applied to web fonts
+        https://bugs.webkit.org/show_bug.cgi?id=157954
+        <rdar://problem/24204349>
+
+        Reviewed by Dean Jackson.
+
+        * fast/text/ascent-adjustment-webfont-expected-mismatch.html: Added.
+        * fast/text/ascent-adjustment-webfont.html: Added.
+        * fast/text/resources/Helvetica-light.svg: Added.
+
+2016-05-20  Enrica Casucci  <enrica@apple.com>
+
+        Drag cannot start if no drag data or custom data is available in the Pasteboard.
+        https://bugs.webkit.org/show_bug.cgi?id=157911
+        rdar://problem/24577706
+
+        Reviewed by Tim Horton.
+
+        * fast/events/draggable-div-customdata-expected.txt: Added.
+        * fast/events/draggable-div-customdata.html: Added.
+        * platform/ios-simulator/TestExpectations
+        * platform/mac-wk2/TestExpectations
+
+2016-05-20  Alex Christensen  <achristensen@webkit.org>
+
+        Fix null dereferencing in CSSAnimationTriggerScrollValue::equals
+        https://bugs.webkit.org/show_bug.cgi?id=157930
+
+        Reviewed by Dean Jackson.
+
+        * fast/css/compare-animation-trigger-expected.txt: Added.
+        * fast/css/compare-animation-trigger.html: Added.
+
 2016-05-20  Dave Hyatt  <hyatt@apple.com>
 
         Scrolling broken in iTunes connect pages

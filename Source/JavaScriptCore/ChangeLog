@@ -1,3 +1,61 @@
+2016-05-20  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: retained size for typed arrays does not count native backing store
+        https://bugs.webkit.org/show_bug.cgi?id=157945
+        <rdar://problem/26392238>
+
+        Reviewed by Geoffrey Garen.
+
+        * runtime/JSArrayBuffer.h:
+        * runtime/JSArrayBuffer.cpp:
+        (JSC::JSArrayBuffer::estimatedSize):
+        Include an estimatedSize implementation for JSArrayBuffer.
+        ArrayBuffer has a unique path, different from other data
+        stored in the Heap.
+
+        * tests/heapProfiler/typed-array-sizes.js: Added.
+        Test sizes of TypedArray with and without an ArrayBuffer.
+        When the TypedArray is a view wrapping an ArrayBuffer, the
+        ArrayBuffer has the size.
+
+2016-05-20  Geoffrey Garen  <ggaren@apple.com>
+
+        reifyAllStaticProperties makes two copies of every string
+        https://bugs.webkit.org/show_bug.cgi?id=157953
+
+        Reviewed by Mark Lam.
+
+        Let's not do that.
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::reifyAllStaticProperties): Pass our Identifier to
+        reifyStaticProperty so it doesn't have to make its own.
+
+        * runtime/Lookup.h:
+        (JSC::reifyStaticProperty): No need to null check because callers never
+        pass null anymore. No need to make an identifier because callers pass
+        us one.
+
+        (JSC::reifyStaticProperties): Honor new interface.
+
+2016-05-20  Geoffrey Garen  <ggaren@apple.com>
+
+        JSBench regression: CodeBlock linking always copies the symbol table
+        https://bugs.webkit.org/show_bug.cgi?id=157951
+
+        Reviewed by Saam Barati.
+
+        We always put a SymbolTable into the constant pool, even in simple
+        functions in which it won't be used -- i.e., there's on eval and there
+        are no captured variables and so on.
+
+        This is costly because linking must copy any provided symbol tables.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::emitProfileType): Only add the symbol table
+        as a constant if we will use it at runtime.
+
 2016-05-19  Benjamin Poulain  <bpoulain@apple.com>
 
         [JSC] Improve int->float conversion in FTL
