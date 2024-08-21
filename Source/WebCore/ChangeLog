@@ -1,3 +1,204 @@
+2016-05-17  Zalan Bujtas  <zalan@apple.com>
+
+        Add LayerListMutationDetector to hittesting.
+        https://bugs.webkit.org/show_bug.cgi?id=157758
+
+        Reviewed by Simon Fraser.
+
+        Hittesting is supposed to be readonly.
+
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::hitTestLayer):
+        * rendering/RenderLayer.h:
+        (WebCore::RenderLayer::clearZOrderLists):
+
+2016-05-17  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Remove toJS template methods taking const Ref and const RefPtr
+        https://bugs.webkit.org/show_bug.cgi?id=157791
+
+        Reviewed by Chris Dumez.
+
+        Updating toJS template method taking a const Ref<T>& to take a Ref<T>&&.
+        Updating toJS template method taking a const RefPtr<T>& to take a RefPtr<T>&&.
+        Updating binding generator to generate rvalue references.
+
+        Covered by existing tests.
+
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::toJS):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateConstructorDefinition):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::JSTestInterfaceConstructor::construct):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::JSTestNamedConstructorNamedConstructor::construct):
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::JSTestNodeConstructor::construct):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjConstructor::construct):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::constructJSTestOverloadedConstructors1):
+        (WebCore::constructJSTestOverloadedConstructors2):
+        (WebCore::constructJSTestOverloadedConstructors3):
+        (WebCore::constructJSTestOverloadedConstructors4):
+        (WebCore::constructJSTestOverloadedConstructors5):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::JSTestTypedefsConstructor::construct):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::didAddUserAgentShadowRoot):
+
+2016-05-17  Nan Wang  <n_wang@apple.com>
+
+        AX: Adding children incorrectly when there are nested inline continuations
+        https://bugs.webkit.org/show_bug.cgi?id=157818
+
+        Reviewed by Chris Fleizach.
+
+        When getting the inline element continuation's next sibling, if we fall back on to the parent
+        case, we might end up adding the same node repeatedly. Fixed it by skipping this case.
+
+        Test: accessibility/mac/nested-inline-elements-children.html
+
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::nextSibling):
+
+2016-05-17  Dean Jackson  <dino@apple.com>
+
+        Add media query support for wide gamut displays on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=157824
+        <rdar://problem/26333137>
+
+        Reviewed by Simon Fraser.
+
+        Implement the Mac version of the color-gamut media query
+        by filling out the screenSupportsExtendedColor function.
+
+        On Yosemite, we always return false. On El Capitan, we
+        can check the ColorProfile via ColorSync to see if the
+        screen is wide gamut.
+
+        There is already a test in fast/media/mq-color-gamut.html
+
+        * css/MediaQueryEvaluator.cpp:
+        (WebCore::color_gamutMediaFeatureEval): Pass the mainFrame's view
+        to screenSupportsExtendedColor, so that it can fetch the NSScreen.
+        * platform/PlatformScreen.h: screenSupportsExtendedColor now takes
+        an optional Widget parameter.
+        * platform/ios/PlatformScreenIOS.mm:
+        (WebCore::screenSupportsExtendedColor): Add empty parameter.
+        * platform/mac/PlatformScreenMac.mm:
+        (WebCore::screenSupportsExtendedColor): Get the NSWindow, then the
+        NSScreen, then the ColorSpace, then the ColorSyncProfile, and
+        check if it is a wide gamut profile.
+        * platform/spi/cg/CoreGraphicsSPI.h: Add the SPI declarations.
+
+2016-05-17  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, fix Darin's post-mortem review comments for r201052.
+
+        * rendering/RenderFieldset.cpp:
+        (WebCore::RenderFieldset::findLegend):
+        * rendering/svg/SVGRenderSupport.cpp:
+        (WebCore::SVGRenderSupport::layoutChildren):
+
+2016-05-17  Beth Dakin  <bdakin@apple.com>
+
+        Make handleAcceptedCandidate a public function
+        https://bugs.webkit.org/show_bug.cgi?id=157763
+        -and corresponding-
+        rdar://problem/26206397
+
+        Reviewed by Tim Horton.
+
+        Define handleAcceptedCandidateWithSoftSpaces on EditorClient so that it can 
+        be invoked on any EditorClient. 
+        * loader/EmptyClients.h:
+        * page/EditorClient.h:
+        (WebCore::EditorClient::handleAcceptedCandidateWithSoftSpaces):
+
+2016-05-17  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed debug build fix after r201052.
+
+        * rendering/svg/RenderSVGText.cpp:
+        (WebCore::findPreviousAndNextAttributes): Deleted.
+
+2016-05-17  Chris Dumez  <cdumez@apple.com>
+
+        Use RenderChildIterator more for traversing a renderer's children
+        https://bugs.webkit.org/show_bug.cgi?id=157811
+
+        Reviewed by Antti Koivisto.
+
+        Use RenderChildIterator more for traversing a renderer's children.
+
+        * inspector/InspectorLayerTreeAgent.cpp:
+        (WebCore::InspectorLayerTreeAgent::layersForNode):
+        (WebCore::InspectorLayerTreeAgent::gatherLayersUsingRenderObjectHierarchy):
+        * inspector/InspectorLayerTreeAgent.h:
+        * rendering/AutoTableLayout.cpp:
+        (WebCore::AutoTableLayout::recalcColumn):
+        * rendering/InlineIterator.h:
+        (WebCore::isEmptyInline):
+        * rendering/RenderBlock.cpp:
+        (WebCore::RenderBlock::addFocusRingRects):
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::positionForPoint):
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::updateOutlineAutoAncestor):
+        * rendering/RenderElement.h:
+        * rendering/RenderFieldset.cpp:
+        (WebCore::RenderFieldset::findLegend):
+        * rendering/RenderFieldset.h:
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::generateCulledLineBoxRects):
+        (WebCore::RenderInline::culledInlineFirstLineBox):
+        (WebCore::RenderInline::culledInlineVisualOverflowBoundingBox):
+        (WebCore::RenderInline::dirtyLineBoxes):
+        * rendering/RenderListItem.cpp:
+        (WebCore::getParentOfFirstLineBox):
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::setFlowThreadStateIncludingDescendants):
+        (WebCore::RenderObject::addAbsoluteRectForLayer):
+        (WebCore::RenderObject::paintingRootRect):
+        (WebCore::RenderObject::removeFromRenderFlowThreadIncludingDescendants):
+        (WebCore::RenderObject::invalidateFlowThreadContainingBlockIncludingDescendants):
+        (WebCore::RenderObject::updateDragState):
+        * rendering/RenderTable.cpp:
+        (WebCore::RenderTable::firstColumn):
+        * rendering/RenderTableCol.cpp:
+        (WebCore::RenderTableCol::clearPreferredLogicalWidthsDirtyBits):
+        * rendering/RenderTableSection.cpp:
+        (WebCore::RenderTableSection::layoutRows):
+        * rendering/RenderTreeAsText.cpp:
+        (WebCore::write):
+        * rendering/svg/RenderSVGText.cpp:
+        (WebCore::findPreviousAndNextAttributes):
+        (WebCore::RenderSVGText::subtreeChildWasAdded):
+        (WebCore::RenderSVGText::subtreeChildWillBeRemoved):
+        * rendering/svg/SVGRenderSupport.cpp:
+        (WebCore::updateObjectBoundingBox):
+        (WebCore::SVGRenderSupport::computeContainerBoundingBoxes):
+        (WebCore::SVGRenderSupport::layoutChildren):
+        * rendering/svg/SVGTextLayoutAttributesBuilder.cpp:
+        (WebCore::SVGTextLayoutAttributesBuilder::collectTextPositioningElements):
+        * rendering/svg/SVGTextMetricsBuilder.cpp:
+        (WebCore::SVGTextMetricsBuilder::walkTree):
+
+2016-05-17  Dean Jackson  <dino@apple.com>
+
+        Remove ES6_GENERATORS flag
+        https://bugs.webkit.org/show_bug.cgi?id=157815
+        <rdar://problem/26332894>
+
+        Reviewed by Geoffrey Garen.
+
+        This flag isn't needed. Generators are enabled everywhere and
+        part of a stable specification.
+
+        * Configurations/FeatureDefines.xcconfig:
+
 2016-05-16  Simon Fraser  <simon.fraser@apple.com>
 
         BitmapImage::destroyDecodedDataIfNecessary() should only count frames with image data
