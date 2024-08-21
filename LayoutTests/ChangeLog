@@ -1,3 +1,134 @@
+2016-05-25  Chris Dumez  <cdumez@apple.com>
+
+        Update dom/Window/messageevent-source-postmessage-reified.html after r201315
+        https://bugs.webkit.org/show_bug.cgi?id=158048
+
+        Reviewed by Darin Adler.
+
+        We need to delete a property that is part of the Window's static table
+        now in order to force the reification.
+
+        * fast/dom/Window/messageevent-source-postmessage-reified.html:
+
+2016-05-25  Antoine Quint  <graouts@apple.com>
+
+        Elements with backdrop-filter cannot be clipped with clip-path or mask
+        https://bugs.webkit.org/show_bug.cgi?id=142662
+        <rdar://problem/20150192>
+
+        Reviewed by Dean Jackson.
+
+        New test that checks that applying a backdrop-filter and a clip-path on a single
+        element has the same effect as applying a clip-path on a parent of a child with
+        a backdrop-filter.
+
+        * css3/filters/backdrop/backdrop-filter-with-clip-path-expected.txt: Added.
+        * css3/filters/backdrop/backdrop-filter-with-clip-path.html: Added.
+        * platform/ios-simulator/css3/filters/backdrop/backdrop-filter-with-clip-path-expected.html: Added.
+        * platform/mac/css3/filters/backdrop/backdrop-filter-with-clip-path-expected.png: Added.
+
+2016-05-24  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Font Loading] Crash during font download failure after garbage collection
+        https://bugs.webkit.org/show_bug.cgi?id=158013
+        <rdar://problem/25148032>
+
+        Reviewed by Darin Adler.
+
+        * fast/text/font-face-crash-expected.txt: Added.
+        * fast/text/font-face-crash.html: Added.
+
+201-05-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r201349.
+
+        This change caused compositing tests to assert on iOS
+        simulator
+
+        Reverted changeset:
+
+        "Elements with backdrop-filter cannot be clipped with clip-
+        path or mask"
+        https://bugs.webkit.org/show_bug.cgi?id=142662
+        http://trac.webkit.org/changeset/201349
+
+2016-05-24  Ada Chan  <adachan@apple.com>
+
+        Only set overflow:hidden on -webkit-media-controls when the placeholder is showing.
+        https://bugs.webkit.org/show_bug.cgi?id=157975
+
+        Reviewed by Eric Carlson.
+
+        This is a Mac only test. The media controls panel should still be visible
+        even if the media element's height is very short.
+
+        * TestExpectations:
+        * media/mac/controls-panel-not-clipped-out-expected.html: Added.
+        * media/mac/controls-panel-not-clipped-out.html: Added.
+        * platform/mac/TestExpectations:
+
+        * platform/mac/media/media-document-audio-repaint-expected.txt:
+        * platform/mac/media/video-zoom-controls-expected.txt:
+        Rebaseline tests.
+
+2016-05-24  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: RTCIceCandidate: Make attributes readonly (and update constructor arg)
+        https://bugs.webkit.org/show_bug.cgi?id=157859
+
+        Reviewed by Eric Carlson.
+
+        * fast/mediastream/RTCIceCandidate-expected.txt:
+        Small unrelated fix: s/a argument/an argument/ (test was previously broken).
+        * fast/mediastream/RTCIceCandidate.html:
+        Test without constructor arguments and writing to the read-only attributes.
+
+2016-05-24  Antoine Quint  <graouts@apple.com>
+
+        Elements with backdrop-filter cannot be clipped with clip-path or mask
+        https://bugs.webkit.org/show_bug.cgi?id=142662
+        <rdar://problem/20150192>
+
+        Reviewed by Dean Jackson.
+
+        New test that checks that applying a backdrop-filter and a clip-path on a single
+        element has the same effect as applying a clip-path on a parent of a child with
+        a backdrop-filter.
+
+        * css3/filters/backdrop/backdrop-filter-with-clip-path-expected.txt: Added.
+        * css3/filters/backdrop/backdrop-filter-with-clip-path.html: Added.
+        * platform/ios-simulator/css3/filters/backdrop/backdrop-filter-with-clip-path-expected.html: Added.
+        * platform/mac/css3/filters/backdrop/backdrop-filter-with-clip-path-expected.png: Added.
+
+2016-05-24  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Update failing RTCPeerConnection and RTCRtpSender tests
+        https://bugs.webkit.org/show_bug.cgi?id=158023
+
+        Reviewed by Eric Carlson.
+
+        * fast/mediastream/RTCPeerConnection-add-removeTrack-expected.txt:
+        Update results with more specific TypeError.
+        * fast/mediastream/RTCRtpSender-replaceTrack-expected.txt:
+        Update test to match Promise rejections introduce in r201080.
+
+2016-05-24  Zalan Bujtas  <zalan@apple.com>
+
+        fast/table/neighboring-cells-when-collapsed-border-changes.html is flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=158009
+
+        Reviewed by David Hyatt.
+
+        RenderTable::invalidateCollapsedBorders() early returns on m_collapsedEmptyBorderIsPresent
+        which prevents us from marking neighboring cells dirty when style changes.
+        Decouple the "invalidate the collapsed borders" and the "mark the neighboring cells dirty" logic.
+
+        * fast/table/border-collapsing/cached-change-cell-border-width-expected.txt: Progression. FF agrees.
+        * fast/table/neighboring-cells-when-collapsed-border-changes.html:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-cell-border-width-expected.txt:
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/fast/table/border-collapsing/cached-change-cell-border-width-expected.txt:
+
 2016-05-24  Ryan Haddad  <ryanhaddad@apple.com>
 
         Marking mathml/wbr-in-mroot-crash.html as flaky on ios-simulator-wk2

@@ -1,3 +1,137 @@
+2016-05-25  Chris Dumez  <cdumez@apple.com>
+
+        Update constructRevalidationRequest() to stop returning a unique_ptr<ResourceRequest>
+        https://bugs.webkit.org/show_bug.cgi?id=158046
+
+        Reviewed by Darin Adler.
+
+        Update constructRevalidationRequest() to stop returning a unique_ptr<ResourceRequest>
+        and to return a ResourceRequest instead. There is no reason for it to return a
+        pointer.
+
+        * NetworkProcess/cache/NetworkCacheSpeculativeLoadManager.cpp:
+        (WebKit::NetworkCache::constructRevalidationRequest):
+        (WebKit::NetworkCache::SpeculativeLoadManager::PreloadedEntry::PreloadedEntry):
+        (WebKit::NetworkCache::SpeculativeLoadManager::PreloadedEntry::revalidationRequest):
+        (WebKit::NetworkCache::SpeculativeLoadManager::addPreloadedEntry):
+        (WebKit::NetworkCache::SpeculativeLoadManager::revalidateEntry):
+        * NetworkProcess/cache/NetworkCacheSpeculativeLoadManager.h:
+
+2016-05-25  Antoine Quint  <graouts@apple.com>
+
+        Elements with backdrop-filter cannot be clipped with clip-path or mask
+        https://bugs.webkit.org/show_bug.cgi?id=142662
+        <rdar://problem/20150192>
+
+        Reviewed by Dean Jackson.
+
+        Ensure layer clones are set up with the same shape path as their original layer.
+
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.cpp:
+        (WebKit::PlatformCALayerRemote::updateClonedLayerProperties):
+
+2016-05-24  Chris Dumez  <cdumez@apple.com>
+
+        Simplify a couple of lambda captures in the network cache code
+        https://bugs.webkit.org/show_bug.cgi?id=158053
+
+        Reviewed by Brady Eidson.
+
+        * NetworkProcess/cache/NetworkCacheSpeculativeLoadManager.cpp:
+        (WebKit::NetworkCache::SpeculativeLoadManager::preloadEntry):
+        Just capture subResourceInfo instead of allocating a new copy
+        on the heap. There is no reason we cannot simply capture
+        subResourceInfo here.
+
+        * NetworkProcess/cache/NetworkCacheStorage.cpp:
+        (WebKit::NetworkCache::Storage::clear):
+        Use new C++14 capture with initialization to make the code a
+        bit nicer.
+
+2016-05-24  Conrad Shultz  <conrad_shultz@apple.com>
+
+        _WKThumbnailView should expose its snapshot size
+        https://bugs.webkit.org/show_bug.cgi?id=158049
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/API/Cocoa/_WKThumbnailView.h:
+        * UIProcess/API/Cocoa/_WKThumbnailView.mm:
+        (-[_WKThumbnailView _didTakeSnapshot:]):
+        Update the new snapshotSize property in a KVO-compliant manner.
+
+2016-05-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r201349.
+
+        This change caused compositing tests to assert on iOS
+        simulator
+
+        Reverted changeset:
+
+        "Elements with backdrop-filter cannot be clipped with clip-
+        path or mask"
+        https://bugs.webkit.org/show_bug.cgi?id=142662
+        http://trac.webkit.org/changeset/201349
+
+2016-05-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r201341.
+
+        This change may have caused LayoutTests to crash on Mac and
+        iOS
+
+        Reverted changeset:
+
+        "Use lambda capture with initializer instead of StringCapture"
+        https://bugs.webkit.org/show_bug.cgi?id=158010
+        http://trac.webkit.org/changeset/201341
+
+2016-05-24  Alex Christensen  <achristensen@webkit.org>
+
+        Fix null pointer dereferencing in WebViewImpl::inputContext
+        https://bugs.webkit.org/show_bug.cgi?id=158026
+        rdar://problem/25994093
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView inputContext]):
+        this was null sometimes in WebViewImpl::inputContext.
+
+2016-05-24  Antoine Quint  <graouts@apple.com>
+
+        Elements with backdrop-filter cannot be clipped with clip-path or mask
+        https://bugs.webkit.org/show_bug.cgi?id=142662
+        <rdar://problem/20150192>
+
+        Reviewed by Dean Jackson.
+
+        Ensure layer clones are set up with the same shape path as their original layer.
+
+        * WebProcess/WebPage/mac/PlatformCALayerRemote.cpp:
+        (WebKit::PlatformCALayerRemote::updateClonedLayerProperties):
+
+2016-05-24  Chelsea Pugh  <cpugh@apple.com>
+
+        [iOS] Allow clients to override the type of an input field
+        https://bugs.webkit.org/show_bug.cgi?id=157995
+
+        Reviewed by Dan Bernstein.
+
+        * UIProcess/API/Cocoa/_WKFormInputSession.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKFormInputSession textContentType]): Getter for textContentType.
+        (-[WKFormInputSession setTextContentType:]): Set the textContentType and reload
+        input views.
+        (contentTypeFromFieldName): Factor out switch statement to get text content type
+        from autofill field name into its own function.
+        (-[WKContentView textInputTraits]): If the client has set a text content type,
+        set the traits' content type to that. Otherwise, set the text content type if
+        there is one based on the assisted node information's autofill field name. If
+        neither the form input session nor the assisted node info yields a text content
+        type, set the text content type to nil, its default value.
+
 2016-05-24  Chris Dumez  <cdumez@apple.com>
 
         Use lambda capture with initializer instead of StringCapture

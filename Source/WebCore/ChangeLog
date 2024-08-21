@@ -1,3 +1,363 @@
+2016-05-25  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Refactor populateGridPositions()
+        https://bugs.webkit.org/show_bug.cgi?id=158065
+
+        Reviewed by Carlos Garcia Campos.
+
+        RenderGrid::populateGridPositions() was doing exactly the same thing for columns and rows
+        but using different data structures. That lead to a lot of duplicated code. It's easy to
+        refactor it in a new function that properly select the data structures to operate on based
+        on the direction.
+
+        No new tests as there is no change in behaviour.
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::layoutGridItems):
+        (WebCore::RenderGrid::populateGridPositionsForDirection): Refactored from
+        populateGridPositions().
+        (WebCore::RenderGrid::populateGridPositions): Deleted.
+        * rendering/RenderGrid.h:
+
+2016-05-25  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r201373.
+        https://bugs.webkit.org/show_bug.cgi?id=158064
+
+        Several tests are hitting the ASSERT (Requested by rego on
+        #webkit).
+
+        Reverted changeset:
+
+        "[css-grid] Simplify grid track sizes parsing"
+        https://bugs.webkit.org/show_bug.cgi?id=158021
+        http://trac.webkit.org/changeset/201373
+
+2016-05-25  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        Purge PassRefPtr from TouchList
+        https://bugs.webkit.org/show_bug.cgi?id=157985
+
+        Reviewed by Darin Adler.
+
+        Use RefPtr&& argument instead of PassRefPtr in append()
+
+        * dom/TouchList.h:
+        (WebCore::TouchList::append):
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::handleTouchEvent):
+
+2016-05-25  Antoine Quint  <graouts@apple.com>
+
+        Elements with backdrop-filter cannot be clipped with clip-path or mask
+        https://bugs.webkit.org/show_bug.cgi?id=142662
+        <rdar://problem/20150192>
+
+        Reviewed by Dean Jackson.
+
+        We used to only apply the mask to the layer contents but did not account
+        for the fact that a layer backdrop may exist. We now correctly mask the
+        backdrop layer as well as the layer contents.
+
+        Test: css3/filters/backdrop/backdrop-filter-with-clip-path.html
+
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayerCA::updateShape):
+        Ensure clones of a layer use the same shape path.
+
+        (WebCore::GraphicsLayerCA::updateMaskLayer):
+        If we have a backdrop layer, ensure that we apply a clone of the mask layer applied to
+        the layer contents.
+
+2016-05-25  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Simplify grid track sizes parsing
+        https://bugs.webkit.org/show_bug.cgi?id=158021
+
+        Reviewed by Sergio Villar Senin.
+
+        Previously once we saw an auto-repeat function,
+        we passed the "FixedSizeOnly" restriction to the rest of methods.
+        That way we were sure that all the tracks after the auto-repeat
+        had fixed sizes.
+        But we needed to call allTracksAreFixedSized() to be sure that
+        the tracks before the auto-repeat had fixed sizes too.
+
+        Now we're introducing a new boolean |allTracksAreFixedSized|,
+        to check in advance if the declaration contains any track not fixed.
+        If that's the case and we found an auto-repeat method,
+        we consider it invalid.
+        With this approach we avoid the loop to verify
+        that all the tracks (before and after the auto-repeat) are fixed.
+        It also allows us to simplify the code and avoid passing
+        the restriction to all the methods parsing the track size.
+
+        No new tests, no change of behavior.
+
+        * css/CSSParser.cpp:
+        (WebCore::isGridTrackFixedSized): New method to check if a grid track
+        size is fixed or not (based on old allTracksAreFixedSized()).
+        (WebCore::CSSParser::parseGridTrackList): Add new boolean to detect
+        if any track has not a fixed size.
+        (WebCore::CSSParser::parseGridTrackRepeatFunction): Ditto.
+        (WebCore::CSSParser::parseGridTrackSize): Remove usage of
+        TrackSizeRestriction enum.
+        Check here if |minTrackBreadth| is a flexible size.
+        (WebCore::CSSParser::parseGridBreadth): Remove usage of
+        TrackSizeRestriction enum.
+        (WebCore::allTracksAreFixedSized): Deleted.
+        * css/CSSParser.h: Remove TrackSizeRestriction enum and update headers.
+
+2016-05-24  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Font Loading] Crash during font download failure after garbage collection
+        https://bugs.webkit.org/show_bug.cgi?id=158013
+        <rdar://problem/25148032>
+
+        Reviewed by Darin Adler.
+
+        Usually, ownership during font loading is top-down - JavaScript owns a JSFontFace,
+        which owns a FontFace, which owns a CSSFontFace. However, when we receive the
+        asynchronous callback that a font finished loading, the call comes in from the
+        bottom - it is delivered from the CSSFontFaceSource to the CSSFontFace, and then
+        to the FontFace. If a garbage collection had previously run, we might remove
+        the last reference to ourself during this asynchronous callback. A simple guard
+        makes sure this doesn't happen.
+
+        Test: fast/text/font-face-crash.html
+
+        * css/CSSFontFace.cpp:
+        (WebCore::CSSFontFace::fontLoaded):
+
+2016-05-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r201349.
+
+        This change caused compositing tests to assert on iOS
+        simulator
+
+        Reverted changeset:
+
+        "Elements with backdrop-filter cannot be clipped with clip-
+        path or mask"
+        https://bugs.webkit.org/show_bug.cgi?id=142662
+        http://trac.webkit.org/changeset/201349
+
+2016-05-24  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: (Workers) Eliminate race in getting the ScriptExecutionContext and using it.
+        https://bugs.webkit.org/show_bug.cgi?id=158038
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Resolves potential flakes in existing tests).
+        
+        When the main thread is trying to post a task to a worker thread's ScriptExecutionContext, there is a race
+        between checking that the context still exists and actually using it.
+        
+        The solution is to add a new class - IDBActiveDOMObject - which does a few things things:
+        1 - Remembers its origin thread.
+        2 - Guards clearing its ScriptExecutionContext with a Lock.
+        3 - Adds a templated "performCallbackOnOriginThread" that uses the same Lock to make sure posting the task to
+            the ScriptExecutionContext's RunLoop is safe.
+
+        Also, tons of ASSERTions are updated because each object with an originThread no longer keeps its idea in an
+        accessible member variable.
+        
+        * Modules/indexeddb/IDBActiveDOMObject.h:
+        (WebCore::IDBActiveDOMObject::originThreadID):
+        (WebCore::IDBActiveDOMObject::performCallbackOnOriginThread):
+        (WebCore::IDBActiveDOMObject::IDBActiveDOMObject):
+        
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::IDBDatabase):
+        (WebCore::IDBDatabase::~IDBDatabase):
+        (WebCore::IDBDatabase::hasPendingActivity):
+        (WebCore::IDBDatabase::name):
+        (WebCore::IDBDatabase::version):
+        (WebCore::IDBDatabase::objectStoreNames):
+        (WebCore::IDBDatabase::createObjectStore):
+        (WebCore::IDBDatabase::transaction):
+        (WebCore::IDBDatabase::deleteObjectStore):
+        (WebCore::IDBDatabase::close):
+        (WebCore::IDBDatabase::didCloseFromServer):
+        (WebCore::IDBDatabase::maybeCloseInServer):
+        (WebCore::IDBDatabase::activeDOMObjectName):
+        (WebCore::IDBDatabase::canSuspendForDocumentSuspension):
+        (WebCore::IDBDatabase::stop):
+        (WebCore::IDBDatabase::startVersionChangeTransaction):
+        (WebCore::IDBDatabase::didStartTransaction):
+        (WebCore::IDBDatabase::willCommitTransaction):
+        (WebCore::IDBDatabase::didCommitTransaction):
+        (WebCore::IDBDatabase::willAbortTransaction):
+        (WebCore::IDBDatabase::didAbortTransaction):
+        (WebCore::IDBDatabase::didCommitOrAbortTransaction):
+        (WebCore::IDBDatabase::fireVersionChangeEvent):
+        (WebCore::IDBDatabase::dispatchEvent):
+        (WebCore::IDBDatabase::didCreateIndexInfo):
+        (WebCore::IDBDatabase::didDeleteIndexInfo):
+        * Modules/indexeddb/IDBDatabase.h:
+        (WebCore::IDBDatabase::originThreadID): Deleted.
+        
+        * Modules/indexeddb/IDBRequest.cpp:
+        (WebCore::IDBRequest::IDBRequest):
+        (WebCore::IDBRequest::~IDBRequest):
+        (WebCore::IDBRequest::errorCode):
+        (WebCore::IDBRequest::error):
+        (WebCore::IDBRequest::setSource):
+        (WebCore::IDBRequest::setVersionChangeTransaction):
+        (WebCore::IDBRequest::transaction):
+        (WebCore::IDBRequest::readyState):
+        (WebCore::IDBRequest::sourceObjectStoreIdentifier):
+        (WebCore::IDBRequest::sourceIndexIdentifier):
+        (WebCore::IDBRequest::requestedIndexRecordType):
+        (WebCore::IDBRequest::eventTargetInterface):
+        (WebCore::IDBRequest::activeDOMObjectName):
+        (WebCore::IDBRequest::canSuspendForDocumentSuspension):
+        (WebCore::IDBRequest::hasPendingActivity):
+        (WebCore::IDBRequest::stop):
+        (WebCore::IDBRequest::enqueueEvent):
+        (WebCore::IDBRequest::dispatchEvent):
+        (WebCore::IDBRequest::uncaughtExceptionInEventHandler):
+        (WebCore::IDBRequest::setResult):
+        (WebCore::IDBRequest::setResultToStructuredClone):
+        (WebCore::IDBRequest::clearResult):
+        (WebCore::IDBRequest::setResultToUndefined):
+        (WebCore::IDBRequest::resultCursor):
+        (WebCore::IDBRequest::willIterateCursor):
+        (WebCore::IDBRequest::didOpenOrIterateCursor):
+        (WebCore::IDBRequest::requestCompleted):
+        (WebCore::IDBRequest::onError):
+        (WebCore::IDBRequest::onSuccess):
+        * Modules/indexeddb/IDBRequest.h:
+        (WebCore::IDBRequest::originThreadID): Deleted.
+        
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::IDBTransaction):
+        (WebCore::IDBTransaction::originThreadID): Deleted.
+        * Modules/indexeddb/IDBTransaction.h:
+        
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::completeOpenDBRequest):
+        (WebCore::IDBClient::IDBConnectionProxy::completeOperation):
+        (WebCore::IDBClient::IDBConnectionProxy::fireVersionChangeEvent):
+        (WebCore::IDBClient::IDBConnectionProxy::notifyOpenDBRequestBlocked):
+        (WebCore::IDBClient::IDBConnectionProxy::didStartTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didCommitTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didAbortTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didCloseFromServer):
+        (WebCore::IDBClient::performCallbackOnCorrectThread): Deleted.
+        
+        * Modules/indexeddb/client/TransactionOperation.cpp:
+        (WebCore::IDBClient::TransactionOperation::scriptExecutionContext): Deleted.
+        * Modules/indexeddb/client/TransactionOperation.h:
+        (WebCore::IDBClient::TransactionOperation::performCompleteOnOriginThread):
+        
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-05-23  Ada Chan  <adachan@apple.com>
+
+        Only set overflow:hidden on -webkit-media-controls when the placeholder is showing.
+        https://bugs.webkit.org/show_bug.cgi?id=157975
+
+        Reviewed by Eric Carlson.
+
+        Test: media/mac/controls-panel-not-clipped-out.html
+
+        overflow:hidden was added to clip out content contained in -webkit-media-controls
+        that sticks out of the bounds of that container when the inlinePlaybackPlaceholder
+        is showing. However, that style also clips out things that we want to show when the
+        inlinePlaybackPlaceholder is not showing. For example, the volume slider or the
+        controls panel when the video element's height is too short.
+
+        To fix that, we only set overflow:hidden on -webkit-media-controls when the
+        inlinePlaybackPlaceholder is visible.
+
+        * Modules/mediacontrols/mediaControlsApple.css:
+        (::-webkit-media-controls):
+        (::-webkit-media-controls.placeholder-showing):
+        Set overflow:hidden only when the placeholder is showing.
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.handlePresentationModeChange):
+        Add the placeholderShowing class to -webkit-media-controls only when the
+        inlinePlaybackPlaceholder is not hidden.
+
+2016-05-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r201341.
+
+        This change may have caused LayoutTests to crash on Mac and
+        iOS
+
+        Reverted changeset:
+
+        "Use lambda capture with initializer instead of StringCapture"
+        https://bugs.webkit.org/show_bug.cgi?id=158010
+        http://trac.webkit.org/changeset/201341
+
+2016-05-24  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: RTCIceCandidate: Make attributes readonly (and update constructor arg)
+        https://bugs.webkit.org/show_bug.cgi?id=157859
+
+        Reviewed by Eric Carlson.
+
+        Make the RTCIceCandidate constructor argument mandatory and the attributes
+        read-only (in accordance with the WebRTC 1.0 specification [1]).
+
+        [1] https://w3c.github.io/webrtc-pc/archives/20160513/webrtc.html#rtcicecandidate-interface
+
+        Updated existing test.
+
+        * Modules/mediastream/RTCIceCandidate.h:
+        (WebCore::RTCIceCandidate::setCandidate): Deleted.
+        (WebCore::RTCIceCandidate::setSdpMid): Deleted.
+        (WebCore::RTCIceCandidate::setSdpMLineIndex): Deleted.
+        * Modules/mediastream/RTCIceCandidate.idl:
+
+2016-05-24  Antoine Quint  <graouts@apple.com>
+
+        Elements with backdrop-filter cannot be clipped with clip-path or mask
+        https://bugs.webkit.org/show_bug.cgi?id=142662
+        <rdar://problem/20150192>
+
+        Reviewed by Dean Jackson.
+
+        We used to only apply the mask to the layer contents but did not account
+        for the fact that a layer backdrop may exist. We now correctly mask the
+        backdrop layer as well as the layer contents.
+
+        Test: css3/filters/backdrop/backdrop-filter-with-clip-path.html
+
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayerCA::updateShape):
+        Ensure clones of a layer use the same shape path.
+
+        (WebCore::GraphicsLayerCA::updateMaskLayer):
+        If we have a backdrop layer, ensure that we apply a clone of the mask layer applied to
+        the layer contents.
+
+2016-05-24  Zalan Bujtas  <zalan@apple.com>
+
+        fast/table/neighboring-cells-when-collapsed-border-changes.html is flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=158009
+
+        Reviewed by David Hyatt.
+
+        RenderTable::invalidateCollapsedBorders() early returns on m_collapsedEmptyBorderIsPresent
+        which prevents us from marking neighboring cells dirty when style changes.
+        Decouple the "invalidate the collapsed borders" and the "mark the neighboring cells dirty" logic.
+
+        Covered by existing tests. (and now we agree with FF on cached-change-cell-border-width.html)
+
+        * rendering/RenderTable.cpp:
+        (WebCore::RenderTable::invalidateCollapsedBorders):
+        (WebCore::markCellDirtyWhenCollapsedBorderChanges): Deleted.
+        * rendering/RenderTableCell.cpp:
+        (WebCore::markCellDirtyWhenCollapsedBorderChanges):
+        (WebCore::RenderTableCell::styleDidChange):
+
 2016-05-24  Alex Christensen  <achristensen@webkit.org>
 
         Fix use-after-free after r201318
