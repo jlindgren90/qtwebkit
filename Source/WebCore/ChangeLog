@@ -1,3 +1,124 @@
+2016-05-24  Alex Christensen  <achristensen@webkit.org>
+
+        Fix use-after-free after r201318
+        https://bugs.webkit.org/show_bug.cgi?id=158037
+        rdar://problem/26446729
+
+        Reviewed by Brady Eidson.
+
+        This fixes a crash when running fast/dom/navigation-with-sideeffects.html with GuardMalloc.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::setJSTestObjPutForwardsNullableAttribute):
+        Changing RefPtr<${type}> to auto caused the type to sometimes be a raw pointer, which does not keep the object alive.
+        In the case of JSDocument.cpp, forwardedImpl was what Document::location returned, which is a Location* and not a RefPtr<Location>.
+
+2016-05-24  Chris Dumez  <cdumez@apple.com>
+
+        Use lambda capture with initializer instead of StringCapture
+        https://bugs.webkit.org/show_bug.cgi?id=158010
+
+        Reviewed by Antti Koivisto.
+
+        Use lambda capture with initializer instead of StringCapture now that
+        we support C++14.
+
+        * fileapi/AsyncFileStream.cpp:
+        (WebCore::AsyncFileStream::getSize):
+        (WebCore::AsyncFileStream::openForRead):
+        (WebCore::AsyncFileStream::openForWrite):
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::installContentFilterUnblockHandler):
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::MainThreadBridge):
+        * platform/ios/WebVideoFullscreenControllerAVKit.mm:
+        (WebVideoFullscreenControllerContext::setExternalPlayback):
+        * platform/network/curl/CurlDownload.cpp:
+        (WebCore::CurlDownload::didReceiveHeader):
+        * workers/WorkerMessagingProxy.cpp:
+        (WebCore::WorkerMessagingProxy::postExceptionToWorkerObject):
+        (WebCore::WorkerMessagingProxy::postConsoleMessageToWorkerObject):
+
+2016-05-24  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        In accelerated drawing mode, ImageBuffer::putByteArray() should copy the bytes directly to the IOSurface backing store
+        https://bugs.webkit.org/show_bug.cgi?id=157966
+
+        Reviewed by Dean Jackson.
+        
+        Roll out the the change of r106836 in ImageBuffer::putByteArray(). r106836
+        was using CG to draw the image data as a native image in the accelerated
+        drawing mode just to force invalidating the IOSurface cached image. Instead
+        of doing that, we can use a light-weight fix, for now, to force recreating
+        the IOSurface image if it is requested through CGIOSurfaceContextCreateImage().
+
+        * platform/graphics/cg/ImageBufferCG.cpp:
+        (WebCore::ImageBuffer::putByteArray):
+
+2016-05-24  Chris Dumez  <cdumez@apple.com>
+
+        Use auto for some of our lambda function parameters
+        https://bugs.webkit.org/show_bug.cgi?id=158001
+
+        Reviewed by Darin Adler.
+
+        Use auto for some of our lambda function parameters now that we build with c++14.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::buffered):
+        (WebCore::MediaSource::monitorSourceBuffers):
+        (WebCore::MediaSource::endOfStream):
+        * Modules/mediasource/SampleMap.cpp:
+        (WebCore::PresentationOrderSampleMap::findSamplesWithinPresentationRangeFromEnd):
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::ariaSelectedRows):
+        * bindings/js/SerializedScriptValue.cpp:
+        (WebCore::SerializedScriptValue::writeBlobsToDiskForIndexedDB):
+        * css/CSSValueList.cpp:
+        (WebCore::CSSValueList::removeAll):
+        * css/MediaList.cpp:
+        (WebCore::MediaQuerySet::remove):
+        * css/MediaQuery.cpp:
+        (WebCore::MediaQuery::MediaQuery):
+        * css/MediaQueryMatcher.cpp:
+        (WebCore::MediaQueryMatcher::removeListener):
+        * dom/Document.cpp:
+        (WebCore::Document::validateAutoSizingNodes):
+        * dom/Element.cpp:
+        (WebCore::Element::detachAttrNodeFromElementWithValue):
+        * dom/MutationObserver.cpp:
+        (WebCore::MutationObserver::deliverAllMutations):
+        * dom/Node.cpp:
+        (WebCore::Node::unregisterMutationObserver):
+        * html/LinkIconCollector.cpp:
+        * inspector/InspectorIndexedDBAgent.cpp:
+        (WebCore::InspectorIndexedDBAgent::requestDatabaseNames):
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::loadDataURL):
+        * page/CaptionUserPreferences.cpp:
+        (WebCore::CaptionUserPreferences::sortedTrackListForMenu):
+        * page/CaptionUserPreferencesMediaAF.cpp:
+        (WebCore::CaptionUserPreferencesMediaAF::sortedTrackListForMenu):
+        * page/animation/AnimationController.cpp:
+        (WebCore::AnimationControllerPrivate::clear):
+        * platform/graphics/FontCascade.cpp:
+        (WebCore::pruneUnreferencedEntriesFromFontCascadeCache):
+        * platform/graphics/FontCascadeFonts.cpp:
+        (WebCore::FontCascadeFonts::pruneSystemFallbacks):
+        * platform/graphics/PathUtilities.cpp:
+        (WebCore::addIntersectionPoints):
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updateTracks):
+        * platform/graphics/texmap/TextureMapperGL.cpp:
+        (WebCore::TextureMapperGLData::SharedGLData::~SharedGLData):
+        * platform/mac/HIDGamepad.cpp:
+        (WebCore::HIDGamepad::initElements):
+        * svg/SVGToOTFFontConversion.cpp:
+        (WebCore::SVGToOTFFontConverter::appendLigatureSubtable):
+        (WebCore::SVGToOTFFontConverter::finishAppendingKERNSubtable):
+
 2016-05-24  Antti Koivisto  <antti@apple.com>
 
         REGRESSION (r196629): Safari can get into a state where switching Reader theme doesn't apply to the webpage

@@ -1,3 +1,45 @@
+2016-05-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking mathml/wbr-in-mroot-crash.html as flaky on ios-simulator-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=157990
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-05-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r201323.
+
+        One of the LayoutTests added with this change fails on all
+        platforms. Rolling out until ResourceTiming flakiness fix is
+        landed
+
+        Reverted changeset:
+
+        "Add a few initiator tests to resource timing."
+        https://bugs.webkit.org/show_bug.cgi?id=157986
+        http://trac.webkit.org/changeset/201323
+
+2016-05-24  Alex Christensen  <achristensen@webkit.org>
+
+        Unskip passing test after r201336
+        https://bugs.webkit.org/show_bug.cgi?id=156812
+
+        * platform/ios-simulator/TestExpectations:
+        compositing/webgl/webgl-reflection.html passes now.
+
+2016-05-24  Filip Pizlo  <fpizlo@apple.com>
+
+        LLInt64 should have typed array fast paths for get_by_val
+        https://bugs.webkit.org/show_bug.cgi?id=157931
+
+        Reviewed by Keith Miller.
+
+        * js/regress/get_by_val-Int32Array-expected.txt: Added.
+        * js/regress/get_by_val-Int32Array.html: Added.
+        * js/regress/script-tests/get_by_val-Int32Array.js: Added.
+
 2016-05-24  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         Unreviewed GTK+ gardening. Rebaseline several tests after r200116.
