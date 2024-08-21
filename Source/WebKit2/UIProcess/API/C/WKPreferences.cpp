@@ -62,6 +62,11 @@ WKPreferencesRef WKPreferencesCreateCopy(WKPreferencesRef preferencesRef)
     return toAPI(preferences.release().leakRef());
 }
 
+void WKPreferencesEnableAllExperimentalFeatures(WKPreferencesRef preferencesRef)
+{
+    toImpl(preferencesRef)->enableAllExperimentalFeatures();
+}
+
 void WKPreferencesSetJavaScriptEnabled(WKPreferencesRef preferencesRef, bool javaScriptEnabled)
 {
     toImpl(preferencesRef)->setJavaScriptEnabled(javaScriptEnabled);
@@ -461,16 +466,6 @@ void WKPreferencesSetWebGLEnabled(WKPreferencesRef preferencesRef, bool flag)
 bool WKPreferencesGetWebGLEnabled(WKPreferencesRef preferencesRef)
 {
     return toImpl(preferencesRef)->webGLEnabled();
-}
-
-void WKPreferencesSetWebGL2Enabled(WKPreferencesRef preferencesRef, bool flag)
-{
-    toImpl(preferencesRef)->setWebGL2Enabled(flag);
-}
-
-bool WKPreferencesGetWebGL2Enabled(WKPreferencesRef preferencesRef)
-{
-    return toImpl(preferencesRef)->webGL2Enabled();
 }
 
 void WKPreferencesSetForceSoftwareWebGLRendering(WKPreferencesRef preferencesRef, bool flag)
@@ -1499,26 +1494,6 @@ void WKPreferencesSetMockCaptureDevicesEnabled(WKPreferencesRef preferencesRef, 
 bool WKPreferencesGetMockCaptureDevicesEnabled(WKPreferencesRef preferencesRef)
 {
     return toImpl(preferencesRef)->mockCaptureDevicesEnabled();
-}
-
-void WKPreferencesSetShadowDOMEnabled(WKPreferencesRef preferencesRef, bool flag)
-{
-    toImpl(preferencesRef)->setShadowDOMEnabled(flag);
-}
-
-bool WKPreferencesGetShadowDOMEnabled(WKPreferencesRef preferencesRef)
-{
-    return toImpl(preferencesRef)->shadowDOMEnabled();
-}
-
-void WKPreferencesSetCustomElementsEnabled(WKPreferencesRef preferencesRef, bool flag)
-{
-    toImpl(preferencesRef)->setCustomElementsEnabled(flag);
-}
-
-bool WKPreferencesGetCustomElementsEnabled(WKPreferencesRef preferencesRef)
-{
-    return toImpl(preferencesRef)->customElementsEnabled();
 }
 
 void WKPreferencesSetFetchAPIEnabled(WKPreferencesRef preferencesRef, bool flag)

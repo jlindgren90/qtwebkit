@@ -53,7 +53,11 @@ public:
         OwnerType* owner;
         LazyProperty& property;
     };
-    
+
+private:
+    typedef ElementType* (*FuncType)(const Initializer&);
+
+public:
     LazyProperty()
     {
     }
@@ -77,8 +81,8 @@ public:
     {
         ASSERT(!isCompilationThread());
         if (UNLIKELY(m_pointer & lazyTag)) {
-            auto callFunc = bitwise_cast<ElementType* (*)(const Initializer&)>(m_pointer & ~lazyTag);
-            return callFunc(Initializer(const_cast<OwnerType*>(owner), *const_cast<LazyProperty*>(this)));
+            FuncType func = *bitwise_cast<FuncType*>(m_pointer & ~(lazyTag | initializingTag));
+            return func(Initializer(const_cast<OwnerType*>(owner), *const_cast<LazyProperty*>(this)));
         }
         return bitwise_cast<ElementType*>(m_pointer);
     }

@@ -1,3 +1,36 @@
+2016-05-04  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        REGRESSION (r200401): Web Inspector: TypeError: undefined is not an object (evaluating 'messageElement.classList')
+        https://bugs.webkit.org/show_bug.cgi?id=157356
+        <rdar://problem/26097424>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/LogContentView.js:
+        (WebInspector.LogContentView.prototype._reappendProvisionalMessages):
+        Don't filter messages since we already do that in didAppendConsoleMessageView.
+
+2016-05-04  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: GC Root Path sometimes does not go up to Window
+        https://bugs.webkit.org/show_bug.cgi?id=156768
+        <rdar://problem/25816131>
+
+        Reviewed by Geoffrey Garen.
+
+        * UserInterface/Proxies/HeapSnapshotNodeProxy.js:
+        (WebInspector.HeapSnapshotNodeProxy.prototype.retainers):
+        Include paths for debugging.
+
+        * UserInterface/Workers/HeapSnapshot/HeapSnapshot.js:
+        (HeapSnapshot.prototype.shortestGCRootPath):
+        (HeapSnapshot.prototype._isNodeGlobalObject):
+        Prefer the shortest GC Root Path that contains a known
+        global object, otherwise fallback to the shortest.
+
+        (HeapSnapshot.prototype.retainers):
+        Include paths for debugging.
+
 2016-05-03  Nikita Vasilyev  <nvasilyev@apple.com>
 
         Web Inspector: Adding a new console message shouldn't modify DOM when the console log is hidden

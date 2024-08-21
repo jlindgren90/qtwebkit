@@ -42,7 +42,13 @@ template<typename Func>
 void LazyProperty<OwnerType, ElementType>::initLater(const Func&)
 {
     RELEASE_ASSERT(isStatelessLambda<Func>());
-    m_pointer = lazyTag | bitwise_cast<uintptr_t>(reinterpret_cast<void*>(callFunc<Func>));
+    // Logically we just want to stuff the function pointer into m_pointer, but then we'd be sad
+    // because a function pointer is not guaranteed to be a multiple of anything. The tag bits
+    // may be used for things. We address this problem by indirecting through a global const
+    // variable. The "theFunc" variable is guaranteed to be native-aligned, i.e. at least a
+    // multiple of 4.
+    static const FuncType theFunc = callFunc<Func>;
+    m_pointer = lazyTag | bitwise_cast<uintptr_t>(&theFunc);
 }
 
 template<typename OwnerType, typename ElementType>

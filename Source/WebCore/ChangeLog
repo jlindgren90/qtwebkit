@@ -1,3 +1,277 @@
+2016-05-04  Aaron Chu  <aaron_chu@apple.com>
+
+        AX: Nonfunctional controls appear before every HTML5 video when using VoiceOver
+        https://bugs.webkit.org/show_bug.cgi?id=153089
+        <rdar://problem/24050668>
+
+        Reviewed by Dean Jackson.
+
+        Test: media/video-controls-show-on-kb-or-ax-event.html
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller):
+        (Controller.prototype.createControls):
+        (Controller.prototype.updateControls):
+        (Controller.prototype.handlePlayButtonClicked):
+        (Controller.prototype.setPlaying):
+        (Controller.prototype.showShowControlsButton):
+        (Controller.prototype.showControls):
+        (Controller.prototype.hideControls):
+        * Modules/mediacontrols/mediaControlsiOS.js:
+        (ControllerIOS.prototype.addStartPlaybackControls):
+        (ControllerIOS.prototype.handleStartPlaybackButtonTouchEnd):
+        (ControllerIOS.prototype.showControls):
+
+        Fix to make sure the showControls button in a media player behaves correctly.
+
+2016-05-04  Dean Jackson  <dino@apple.com>
+
+        Disabling WebGL2 should mean no context is created
+        https://bugs.webkit.org/show_bug.cgi?id=157352
+        <rdar://problem/26096346>
+
+        Reviewed by Eric Carlson.
+
+        If WebGL2 is disabled by the runtime flag, we should
+        not create a context.
+
+        Test: fast/canvas/webgl/webgl2-runtime-flag.html
+
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::create):
+        * testing/Internals.cpp: Added some helpers to toggle the runtime setting.
+        (WebCore::Internals::webGL2Enabled):
+        (WebCore::Internals::setWebGL2Enabled):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-05-04  Anders Carlsson  <andersca@apple.com>
+
+        Add an override point for drawing named images in ThemeCocoa
+        https://bugs.webkit.org/show_bug.cgi?id=157357
+        rdar://problem/25878445
+
+        Reviewed by Dean Jackson.
+
+        Rename ThemeCocoa.cpp to ThemeCocoa.mm and rearrange the code that draws the wireless-playback image
+        so we can import ThemeCocoaDrawNamedImage.mm below.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/cocoa/ThemeCocoa.cpp:
+        (WebCore::fitContextToBox): Deleted.
+        (WebCore::ThemeCocoa::drawNamedImage): Deleted.
+        * platform/cocoa/ThemeCocoa.mm: Renamed from Source/WebCore/platform/cocoa/ThemeCocoa.cpp.
+        (WebCore::fitContextToBox):
+        (WebCore::ThemeCocoa::drawNamedImage):
+
+2016-05-04  Jeremy Jones  <jeremyj@apple.com>
+
+        Don't disconnect WebAVPlayerController from its delegate since there is no way to reconnect it.
+        https://bugs.webkit.org/show_bug.cgi?id=157337
+
+        Reviewed by Jer Noble.
+
+        WebAVPlayerController used to be deleted and recreated each time we begin fullscreen video mode.
+        Since it is now preserved, we shouldn't paritally tear it down in cleanupFullscreen by disconnecting it
+        from its delegate, especially since we have no way to reconnect it.
+
+        The side effect of leaving it connected is that it can continue to make callbacks during cleanup.
+        Of importance is that it sets the audio and legible media selctions to nil. We don't want to change 
+        the selection as a result of teardown. Nil selection is unsupported by WebVideoFullscreenModelVideoElement
+        and causes an assert. This transition to nil selection is now ignored.
+
+        * platform/ios/WebAVPlayerController.mm:
+        (-[WebAVPlayerController setCurrentAudioMediaSelectionOption:]):
+        (-[WebAVPlayerController setCurrentLegibleMediaSelectionOption:]):
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (WebVideoFullscreenInterfaceAVKit::cleanupFullscreen):
+
+2016-05-04  Chris Dumez  <cdumez@apple.com>
+
+        Media elements should not be paused right away when removed from the document
+        https://bugs.webkit.org/show_bug.cgi?id=157347
+        <rdar://problem/25888758>
+
+        Reviewed by Alex Christensen.
+
+        Media elements should not be paused right away when removed from the document.
+        Instead we should allow the task that removed the media element from the
+        document to finish because considering pausing.
+
+        This avoid inadvertently pausing media elements when the JS merely moves them
+        on the page (e.g. using Node.replaceChild()).
+
+        Text from the HTML specification:
+        """
+        When a media element is removed from a Document, the user agent must run the
+        following steps:
+        1.  Await a stable state, allowing the task that removed the media element
+            from the Document to continue. The synchronous section consists of all the
+            remaining steps of this algorithm. (Steps in the synchronous section are
+            marked with ⌛.)
+        2. ⌛ If the media element is in a Document, abort these steps.
+        3. ⌛ Run the internal pause steps for the media element.
+        """
+
+        c.f. https://html.spec.whatwg.org/multipage/embedded-content.html#htmlmediaelement
+
+        Test: media/replaceChild-should-not-pause-video.html
+
+        * dom/GenericEventQueue.cpp:
+        (WebCore::GenericEventQueue::sharedTimerFired):
+        Copy the queue of events before processing it so that we don't fire events that
+        get scheduled by the event handlers as a result of us firing the pending events.
+        Otherwise, we end up firing events synchronously right after they've been queued,
+        which is wrong. This was causing several W3C tests to fail.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::HTMLMediaElement):
+        (WebCore::HTMLMediaElement::pauseAfterDetachedTimerFired):
+        (WebCore::HTMLMediaElement::removedFrom):
+        * html/HTMLMediaElement.h:
+        After the media element gets removed from the document, schedule a 0 timer before
+        pausing the media element, to give the task that removed us a chance to finish.
+        When the timer fires, we check if we were added back into an active document and
+        avoid pausing in such case.
+
+2016-05-04  Filip Pizlo  <fpizlo@apple.com>
+
+        Speed up JSGlobalObject initialization by making some properties lazy
+        https://bugs.webkit.org/show_bug.cgi?id=157045
+
+        Reviewed by Keith Miller.
+
+        No new tests because no change in behavior.
+        
+        This adapts JSHTMLElementCustom.cpp to the new JSWithScope API. Note that this revealed
+        that this was using a curious choice of global object, which may not be right. I decided
+        to do a very literal refactoring that exactly preserves what this code got before, but I
+        added a FIXME to reconsider this later.
+
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::JSHTMLElement::pushEventHandlerScope):
+
+2016-05-04  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Refactor information stored related to column positions
+        https://bugs.webkit.org/show_bug.cgi?id=157342
+
+        Reviewed by Darin Adler.
+
+        In m_columnPositions we were storing position of each column
+        including the alignment offset, always from the logical left,
+        and the border and padding, depending on the direction.
+
+        This was really confusing as in the case of RTL direction
+        we were adding the offset from the left and
+        the right border and padding.
+
+        This patches changes it to store always the info from the left,
+        so even in RTL direction we use the left border and padding.
+
+        This allows us to simplify translateRTLCoordinate() as
+        it doesn't need to care about border and padding anymore.
+        And also to refactor offsetAndBreadthForPositionedChild()
+        which became really complex after adding RTL support.
+
+        No new tests, no change of behavior.
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+        (WebCore::RenderGrid::populateGridPositions):
+        (WebCore::RenderGrid::translateRTLCoordinate):
+
+2016-05-04  Mark Lam  <mark.lam@apple.com>
+
+        ES6 Function.name inferred from property names of literal objects can break some websites.
+        https://bugs.webkit.org/show_bug.cgi?id=157246
+
+        Reviewed by Geoffrey Garen.
+
+        Test: js/dom/regress-157246.html
+
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::JSDOMWindowBase::finishCreation):
+        - Set the needsSiteSpecificQuirks flag in the JSGlobalObject if needed.
+
+2016-05-04  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Deduplicated initializer lists of BitmapImage constructors.
+        https://bugs.webkit.org/show_bug.cgi?id=157249
+
+        Reviewed by Darin Adler.
+
+        No new tests needed.
+
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::BitmapImage): Added new private constructor of
+        BitmapImage for delegation purpose only.
+        * platform/graphics/BitmapImage.h: Use inline initialization for some
+        BitmapImage fields.
+        * platform/graphics/cairo/BitmapImageCairo.cpp:
+        (WebCore::BitmapImage::BitmapImage): Delegate field initialization to
+        new private constructor.
+        * platform/graphics/cg/BitmapImageCG.cpp:
+        (WebCore::BitmapImage::BitmapImage): Ditto.
+
+2016-05-04  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r200383 and r200406.
+
+        Seems to have caused crashes on iOS / ARMv7s
+
+        Reverted changesets:
+
+        "Speed up JSGlobalObject initialization by making some
+        properties lazy"
+        https://bugs.webkit.org/show_bug.cgi?id=157045
+        http://trac.webkit.org/changeset/200383
+
+        "REGRESSION(r200383): Setting lazily initialized properties
+        across frame boundaries crashes"
+        https://bugs.webkit.org/show_bug.cgi?id=157333
+        http://trac.webkit.org/changeset/200406
+
+2016-05-04  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: ARIA 'region' role is now a landmark; HTML 'section' element should be a landmark only if named
+        https://bugs.webkit.org/show_bug.cgi?id=157331
+
+        Reviewed by Chris Fleizach.
+
+        The 'region' role is now mapped as a landmark: The WebCore DocumentRegionRole
+        AccessibilityRole has been renamed to LandmarkRegionRole. The AXDocumentRegion
+        subrole has been renamed to AXLandmarkRegion. A 'section' element is mapped to
+        the LandmarkRegionRole if it has an author-provided accessible name via either
+        the aria-label or aria-labelledby attribute. Otherwise, it is mapped as GroupRole
+        with no subrole.
+
+        Our existing test coverage for exposure of the 'region' role and the 'section'
+        element is sufficient. These tests were updated to reflect the new behavior.
+        Several new test cases were added to cover both sections with accessible names
+        and those without.
+
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::accessibleNameDerivesFromContent):
+        (WebCore::AccessibilityObject::isLandmark):
+        (WebCore::initializeRoleMap):
+        * accessibility/AccessibilityObject.h:
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::computeAccessibilityIsIgnored):
+        (WebCore::AccessibilityRenderObject::determineAccessibilityRole):
+        * accessibility/atk/WebKitAccessibleWrapperAtk.cpp:
+        (atkRole):
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper _accessibilityIsLandmarkRole:]):
+        (-[WebAccessibilityObjectWrapper determineIsAccessibilityElement]):
+        * accessibility/mac/WebAccessibilityObjectWrapperBase.mm:
+        (-[WebAccessibilityObjectWrapperBase ariaLandmarkRoleDescription]):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (createAccessibilityRoleMap):
+        (-[WebAccessibilityObjectWrapper subrole]):
+        * platform/LocalizedStrings.cpp:
+        (WebCore::AXARIAContentGroupText):
+
 2016-05-04  Youenn Fablet  <youenn.fablet@crf.canon.fr>
 
         Clicks inside button elements are sometimes discarded when the mouse moves

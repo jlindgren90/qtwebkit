@@ -110,7 +110,6 @@ struct HashTable;
     macro(JSArrayBuffer, arrayBuffer, arrayBuffer, JSArrayBuffer, ArrayBuffer) \
 
 #define FOR_EACH_BUILTIN_DERIVED_ITERATOR_TYPE(macro) \
-    DEFINE_STANDARD_BUILTIN(macro, ArrayIterator, arrayIterator) \
     DEFINE_STANDARD_BUILTIN(macro, MapIterator, mapIterator) \
     DEFINE_STANDARD_BUILTIN(macro, SetIterator, setIterator) \
     DEFINE_STANDARD_BUILTIN(macro, StringIterator, stringIterator) \
@@ -271,6 +270,8 @@ public:
     WriteBarrier<Structure> m_directArgumentsStructure;
     WriteBarrier<Structure> m_scopedArgumentsStructure;
     WriteBarrier<Structure> m_clonedArgumentsStructure;
+
+    WriteBarrier<Structure> m_objectStructureForObjectConstructor;
         
     // Lists the actual structures used for having these particular indexing shapes.
     WriteBarrier<Structure> m_originalArrayStructureForIndexingShape[NumberOfIndexingShapes];
@@ -521,6 +522,7 @@ public:
     Structure* directArgumentsStructure() const { return m_directArgumentsStructure.get(); }
     Structure* scopedArgumentsStructure() const { return m_scopedArgumentsStructure.get(); }
     Structure* clonedArgumentsStructure() const { return m_clonedArgumentsStructure.get(); }
+    Structure* objectStructureForObjectConstructor() const { return m_objectStructureForObjectConstructor.get(); }
     Structure* originalArrayStructureForIndexingType(IndexingType indexingType) const
     {
         ASSERT(indexingType & IsArray);
@@ -771,6 +773,8 @@ public:
     UnlinkedEvalCodeBlock* createEvalCodeBlock(CallFrame*, EvalExecutable*, ThisTDZMode, const VariableEnvironment*);
     UnlinkedModuleProgramCodeBlock* createModuleProgramCodeBlock(CallFrame*, ModuleProgramExecutable*);
 
+    bool needsSiteSpecificQuirks() const { return m_needsSiteSpecificQuirks; }
+
 protected:
     struct GlobalPropertyInfo {
         GlobalPropertyInfo(const Identifier& i, JSValue v, unsigned a)
@@ -788,6 +792,8 @@ protected:
 
     JS_EXPORT_PRIVATE static JSC::JSValue toThis(JSC::JSCell*, JSC::ExecState*, ECMAMode);
 
+    void setNeedsSiteSpecificQuirks(bool needQuirks) { m_needsSiteSpecificQuirks = needQuirks; }
+
 private:
     friend class LLIntOffsetsExtractor;
 
@@ -796,6 +802,8 @@ private:
     JS_EXPORT_PRIVATE void init(VM&);
 
     JS_EXPORT_PRIVATE static void clearRareData(JSCell*);
+
+    bool m_needsSiteSpecificQuirks { false };
 };
 
 JSGlobalObject* asGlobalObject(JSValue);

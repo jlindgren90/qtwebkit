@@ -1,3 +1,288 @@
+2016-05-04  Aaron Chu  <aaron_chu@apple.com>
+
+        AX: Nonfunctional controls appear before every HTML5 video when using VoiceOver
+        https://bugs.webkit.org/show_bug.cgi?id=153089
+        <rdar://problem/24050668>
+
+        Reviewed by Dean Jackson.
+
+        * media/video-controls-show-on-kb-or-ax-event-expected.txt:
+        * media/video-controls-show-on-kb-or-ax-event.html:
+
+        A Layout Test to make sure showControls Button in media player is hidden by default.
+
+2016-05-04  Dean Jackson  <dino@apple.com>
+
+        Disabling WebGL2 should mean no context is created
+        https://bugs.webkit.org/show_bug.cgi?id=157352
+        <rdar://problem/26096346>
+
+        Reviewed by Eric Carlson.
+
+        Check that toggling the runtime flag enables/disables WebGL 2.0.
+
+        * fast/canvas/webgl/webgl2-runtime-flag-expected.txt: Added.
+        * fast/canvas/webgl/webgl2-runtime-flag.html: Added.
+
+2016-05-04  Chris Dumez  <cdumez@apple.com>
+
+        Media elements should not be paused right away when removed from the document
+        https://bugs.webkit.org/show_bug.cgi?id=157347
+        <rdar://problem/25888758>
+
+        Reviewed by Alex Christensen.
+
+        * media/remove-from-document-expected.txt:
+        * media/remove-from-document.html:
+        Check asynchronously if the video has been paused after removing it from
+        the document instead of synchronously as we no longer pause the video
+        synchronously in this case.
+
+        * media/replaceChild-should-not-pause-video-expected.txt: Added.
+        * media/replaceChild-should-not-pause-video.html: Added.
+        Add test case to make sure that calling replaceChild() on with a video
+        element as newChild does not pause the video if it is already playing.
+        This is a regression test for <rdar://problem/25888758>.
+
+        * webaudio/audiocontext-state-interrupted-expected.txt:
+        * webaudio/audiocontext-state-interrupted.html:
+        Add a missing call to
+        internals.setMediaSessionRestrictions("WebAudio", "InterruptedPlaybackNotPermitted")
+        before the fourth test. The fourth test was previously passing by
+        chance, due to a bug in GenericEventQueue sometimes firing events
+        synchronously after they are scheduled.
+
+2016-05-04  Filip Pizlo  <fpizlo@apple.com>
+
+        Speed up JSGlobalObject initialization by making some properties lazy
+        https://bugs.webkit.org/show_bug.cgi?id=157045
+
+        Reviewed by Mark Lam.
+
+        * js/dom/cross-window-put-math-expected.txt: Added.
+        * js/dom/cross-window-put-math.html: Added.
+
+2016-05-04  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Improve the grammar of some error messages 'a argument list' => 'an argument list'
+        https://bugs.webkit.org/show_bug.cgi?id=157350
+        <rdar://problem/26082108>
+
+        Reviewed by Mark Lam.
+
+        * fast/css/css-selector-text-expected.txt:
+        * inspector/runtime/parse-expected.txt:
+        * js/object-literal-computed-methods-expected.txt:
+        * js/object-literal-methods-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.5_Tokens/7.5.2_Keywords/S7.5.2_A1.12-expected.txt:
+        * sputnik/Conformance/12_Statement/12.5_The_if_Statement/S12.5_A6_T1-expected.txt:
+        * sputnik/Conformance/12_Statement/12.5_The_if_Statement/S12.5_A6_T2-expected.txt:
+
+2016-05-04  Keith Miller  <keith_miller@apple.com>
+
+        Corrections to r200422
+        https://bugs.webkit.org/show_bug.cgi?id=157351
+
+        Reviewed by Joseph Pecoraro.
+
+        Test case had some code changed that was not intended.
+
+        * js/regress/script-tests/deltablue-for-of.js:
+        (deltaBlue):
+
+2016-05-04  Keith Miller  <keith_miller@apple.com>
+
+        Unreviewed, reland r200149 since the rollout had inconclusive PLT AB testing results.
+
+2016-05-04  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: GC Root Path sometimes does not go up to Window
+        https://bugs.webkit.org/show_bug.cgi?id=156768
+        <rdar://problem/25816131>
+
+        Reviewed by Geoffrey Garen.
+
+        * inspector/unit-tests/heap-snapshot-expected.txt:
+        * inspector/unit-tests/heap-snapshot.html:
+
+2016-05-04  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline inspector/model/remote-object.html after r200422
+
+        Unreviewed test gardening.
+
+        * platform/mac/inspector/model/remote-object-expected.txt:
+
+2016-05-04  Mark Lam  <mark.lam@apple.com>
+
+        ES6 Function.name inferred from property names of literal objects can break some websites.
+        https://bugs.webkit.org/show_bug.cgi?id=157246
+
+        Reviewed by Geoffrey Garen.
+
+        * js/dom/regress-157246-expected.txt: Added.
+        * js/dom/regress-157246.html: Added.
+        * js/dom/script-tests/regress-157246.js: Added.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/mac-wk1/TestExpectations:
+        - Skip js/dom/regress-157246.html for wk1 because it relies on a WKTR feature to
+          enable the needsSiteSpecificQuirks settings before running the test.
+
+2016-05-04  Keith Miller  <keith_miller@apple.com>
+
+        Speedup array iterators
+        https://bugs.webkit.org/show_bug.cgi?id=157315
+
+        Reviewed by Michael Saboff.
+
+        Add a new regression test for for-of iterators in ES6. The test is a
+        modification of the deltablue benchmark that converts all the
+        loops on Arrays into for-of loops.
+
+        * js/regress/deltablue-for-of-expected.txt: Added.
+        * js/regress/deltablue-for-of.html: Added.
+        * js/regress/script-tests/deltablue-for-of.js: Added.
+        (Object.prototype.inheritsFrom):
+        (OrderedCollection):
+        (OrderedCollection.prototype.add):
+        (OrderedCollection.prototype.at):
+        (OrderedCollection.prototype.size):
+        (OrderedCollection.prototype.removeFirst):
+        (OrderedCollection.prototype.remove):
+        (Strength):
+        (Strength.stronger):
+        (Strength.weaker):
+        (Strength.weakestOf):
+        (Strength.strongest):
+        (Strength.prototype.nextWeaker):
+        (Constraint):
+        (Constraint.prototype.addConstraint):
+        (Constraint.prototype.satisfy):
+        (Constraint.prototype.destroyConstraint):
+        (Constraint.prototype.isInput):
+        (UnaryConstraint):
+        (UnaryConstraint.prototype.addToGraph):
+        (UnaryConstraint.prototype.chooseMethod):
+        (UnaryConstraint.prototype.isSatisfied):
+        (UnaryConstraint.prototype.markInputs):
+        (UnaryConstraint.prototype.output):
+        (UnaryConstraint.prototype.recalculate):
+        (UnaryConstraint.prototype.markUnsatisfied):
+        (UnaryConstraint.prototype.inputsKnown):
+        (UnaryConstraint.prototype.removeFromGraph):
+        (StayConstraint):
+        (StayConstraint.prototype.execute):
+        (EditConstraint.prototype.isInput):
+        (EditConstraint.prototype.execute):
+        (BinaryConstraint):
+        (BinaryConstraint.prototype.chooseMethod):
+        (BinaryConstraint.prototype.addToGraph):
+        (BinaryConstraint.prototype.isSatisfied):
+        (BinaryConstraint.prototype.markInputs):
+        (BinaryConstraint.prototype.input):
+        (BinaryConstraint.prototype.output):
+        (BinaryConstraint.prototype.recalculate):
+        (BinaryConstraint.prototype.markUnsatisfied):
+        (BinaryConstraint.prototype.inputsKnown):
+        (BinaryConstraint.prototype.removeFromGraph):
+        (ScaleConstraint):
+        (ScaleConstraint.prototype.addToGraph):
+        (ScaleConstraint.prototype.removeFromGraph):
+        (ScaleConstraint.prototype.markInputs):
+        (ScaleConstraint.prototype.execute):
+        (ScaleConstraint.prototype.recalculate):
+        (EqualityConstraint):
+        (EqualityConstraint.prototype.execute):
+        (Variable):
+        (Variable.prototype.addConstraint):
+        (Variable.prototype.removeConstraint):
+        (Planner):
+        (Planner.prototype.incrementalAdd):
+        (Planner.prototype.incrementalRemove):
+        (Planner.prototype.newMark):
+        (Planner.prototype.makePlan):
+        (Planner.prototype.extractPlanFromConstraints):
+        (Planner.prototype.addPropagate):
+        (Planner.prototype.removePropagateFrom):
+        (Planner.prototype.addConstraintsConsumingTo):
+        (Plan):
+        (Plan.prototype.addConstraint):
+        (Plan.prototype.size):
+        (Plan.prototype.constraintAt):
+        (Plan.prototype.execute):
+        (chainTest):
+        (projectionTest):
+        (change):
+        (deltaBlue):
+
+2016-05-04  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/html/dom/interfaces.html as failing on ios-simulator release builds
+        https://bugs.webkit.org/show_bug.cgi?id=157344
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-05-04  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Remove failure expectation for imported/w3c/web-platform-tests/html/dom/interfaces.html on ios-simulator
+        https://bugs.webkit.org/show_bug.cgi?id=157344
+
+        Unreviewed test gardening.
+
+        This failure expectation was overriding the global skip on debug builds.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-05-04  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r200383 and r200406.
+
+        Seems to have caused crashes on iOS / ARMv7s
+
+        Reverted changesets:
+
+        "Speed up JSGlobalObject initialization by making some
+        properties lazy"
+        https://bugs.webkit.org/show_bug.cgi?id=157045
+        http://trac.webkit.org/changeset/200383
+
+        "REGRESSION(r200383): Setting lazily initialized properties
+        across frame boundaries crashes"
+        https://bugs.webkit.org/show_bug.cgi?id=157333
+        http://trac.webkit.org/changeset/200406
+
+2016-05-04  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: ARIA 'region' role is now a landmark; HTML 'section' element should be a landmark only if named
+        https://bugs.webkit.org/show_bug.cgi?id=157331
+
+        Reviewed by Chris Fleizach.
+
+        Our existing test coverage for exposure of the 'region' role and the 'section'
+        element is sufficient. These tests were updated to reflect the new behavior.
+        Several new test cases were added to cover both sections with accessible names
+        and those without.
+
+        * accessibility/gtk/xml-roles-exposed-expected.txt: Updated.
+        * accessibility/mac/aria-grouping-roles-expected.txt: Updated.
+        * accessibility/mac/aria-grouping-roles.html: Updated.
+        * accessibility/mac/html-section-elements-expected.txt: Updated.
+        * accessibility/mac/html-section-elements.html: Updated.
+        * accessibility/mac/landmark-not-ignored-expected.txt: Updated.
+        * accessibility/mac/landmark-not-ignored.html: Updated.
+        * accessibility/roles-computedRoleString-expected.txt: Updated.
+        * accessibility/roles-computedRoleString.html: New test cases added.
+        * accessibility/roles-exposed.html: New test cases added.
+        * platform/efl/accessibility/roles-exposed-expected.txt: Updated.
+        * platform/gtk/accessibility/roles-computedRoleString-expected.txt: Updated.
+        * platform/gtk/accessibility/roles-exposed-expected.txt: Updated.
+        * platform/mac-mavericks/accessibility/roles-exposed-expected.txt: Updated.
+        * platform/mac/accessibility/roles-exposed-expected.txt: Updated.
+        * platform/win/accessibility/roles-exposed-expected.txt: Updated.
+
 2016-05-04  Youenn Fablet  <youenn.fablet@crf.canon.fr>
 
         Clicks inside button elements are sometimes discarded when the mouse moves
