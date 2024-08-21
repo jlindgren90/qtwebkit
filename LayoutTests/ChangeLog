@@ -1,3 +1,118 @@
+2016-05-25  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] RegExp with deeply nested subexpressions overflow the stack in Yarr
+        https://bugs.webkit.org/show_bug.cgi?id=158011
+        rdar://problem/25946592
+
+        Reviewed by Saam Barati.
+
+        * js/script-tests/stack-overflow-arrity-catch.js:
+        With the new failure, this test can fail on allocating
+        the RegExp for a valid reason.
+
+        The new expression should not have this issue.
+        * js/script-tests/stack-overflow-regexp.js: Added.
+        (shouldThrow.recursiveCall):
+        (shouldThrow):
+        (recursiveCall):
+        * js/stack-overflow-regexp-expected.txt: Added.
+        * js/stack-overflow-regexp.html: Added.
+
+2016-05-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/blink/http/tests/plugins/get-url-notify-on-removal.html as a flaky timeout
+        https://bugs.webkit.org/show_bug.cgi?id=158101
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-05-25  Zalan Bujtas  <zalan@apple.com>
+
+        Setting overflow:hidden does not always repaint clipped content.
+        https://bugs.webkit.org/show_bug.cgi?id=116994
+        rdar://problem/26476697
+
+        Issue repaint for both layout and visual overflow rects when the container starts
+        clipping overflow content.
+
+        Reviewed by David Hyatt.
+
+        * fast/repaint/overflow-hidden-repaint-expected.html: Added.
+        * fast/repaint/overflow-hidden-repaint.html: Added.
+
+2016-05-25  Daniel Bates  <dabates@apple.com> and Brent Fulgham  <bfulgham@apple.com>
+
+        [WebSockets] No infrastructure for testing secure web sockets (wss)
+        https://bugs.webkit.org/show_bug.cgi?id=157884
+        <rdar://problem/26477197>
+
+        Reviewed by Andy Estes.
+
+        * http/tests/websocket/tests/hybi/simple-wss-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/simple-wss.html: Added.
+
+2016-05-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/css/shared-stylesheet-mutation.html as flaky
+        https://bugs.webkit.org/show_bug.cgi?id=158085
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-05-25  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Update <fixed-size> syntax
+        https://bugs.webkit.org/show_bug.cgi?id=158063
+
+        Reviewed by Darin Adler.
+
+        Updated test to check the new expected behavior.
+
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set-expected.txt:
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set.html:
+
+2016-05-25  Zalan Bujtas  <zalan@apple.com>
+
+        Swap search field's cancel and result button for RTL content.
+        https://bugs.webkit.org/show_bug.cgi?id=158007
+
+        Reviewed by Dean Jackson.
+
+        * fast/forms/resources/common.js:
+        (searchCancelButtonPositionRTL):
+        (searchCancelButtonPosition):
+        * fast/forms/search-input-rtl.html: Added.
+        * fast/forms/search-rtl.html:
+        * platform/ios-simulator-wk2/fast/forms/search-rtl-expected.txt:
+        * platform/ios-simulator/fast/css/text-overflow-input-expected.txt:
+        * platform/ios-simulator/fast/forms/search-input-rtl-expected.txt: Added.
+        * platform/mac/fast/css/text-overflow-input-expected.txt:
+        * platform/mac/fast/forms/placeholder-position-expected.txt:
+        * platform/mac/fast/forms/search-input-rtl-expected.png: Added.
+        * platform/mac/fast/forms/search-input-rtl-expected.txt: Added.
+        * platform/mac/fast/forms/search-rtl-expected.txt:
+
+2016-05-25  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Font Loading] ASSERT if calling FontFace.loaded twice with a garbage collection between them
+        https://bugs.webkit.org/show_bug.cgi?id=158015
+
+        Reviewed by Darin Adler.
+
+        * fast/text/font-face-crash-2-expected.txt: Added.
+        * fast/text/font-face-crash-2.html: Added.
+
+2016-05-25  Antti Koivisto  <antti@apple.com>
+
+        Shadow DOM: RenderTreePosition should determine if element has display:contents from new style
+        https://bugs.webkit.org/show_bug.cgi?id=158072
+
+        Reviewed by Darin Adler.
+
+        * fast/shadow-dom/slot-crash.html: Added.
+
 2016-05-25  Chris Dumez  <cdumez@apple.com>
 
         Update dom/Window/messageevent-source-postmessage-reified.html after r201315

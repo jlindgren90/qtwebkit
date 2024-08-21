@@ -1,3 +1,364 @@
+2016-05-25  Chris Dumez  <cdumez@apple.com>
+
+        Use HashMap::add() instead of HashMap::set() in Node::ensureEventTargetData()
+        https://bugs.webkit.org/show_bug.cgi?id=158092
+
+        Reviewed by Ryosuke Niwa.
+
+        Use HashMap::add() instead of HashMap::set() in Node::ensureEventTargetData()
+        as we already checked that the key is not present in the HashMap.
+
+        * dom/Node.cpp:
+        (WebCore::Node::ensureEventTargetData):
+
+2016-05-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION (r191531): Web Inspector: WebSQL databases are no longer shown when first opening Web Inspector
+        https://bugs.webkit.org/show_bug.cgi?id=158096
+        <rdar://problem/26454671>
+
+        Reviewed by Brian Burg.
+
+        * inspector/InspectorInstrumentation.h:
+        (WebCore::InspectorInstrumentation::didOpenDatabase):
+        Remove the fast return errantly added in r191531. InspectorDatabaseAgent
+        wants to track databases, even before a frontend may be open, so that
+        on first open it can inform the frontend about open databases.
+
+2016-05-25  Zalan Bujtas  <zalan@apple.com>
+
+        Setting overflow:hidden does not always repaint clipped content.
+        https://bugs.webkit.org/show_bug.cgi?id=116994
+        rdar://problem/26476697
+
+        Issue repaint for both layout and visual overflow rects when the container starts
+        clipping overflow content.
+
+        Reviewed by David Hyatt.
+
+        Test: fast/repaint/overflow-hidden-repaint.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::updateFromStyle):
+
+2016-05-25  Anders Carlsson  <andersca@apple.com>
+
+        Get rid of WTF/Functional.h
+        https://bugs.webkit.org/show_bug.cgi?id=158081
+
+        Reviewed by Chris Dumez.
+
+        * Modules/mediastream/MediaStreamTrack.cpp:
+
+2016-05-25  Brent Fulgham  <bfulgham@apple.com>
+
+        [WebSockets] No infrastructure for testing secure web sockets (wss)
+        https://bugs.webkit.org/show_bug.cgi?id=157884
+        <rdar://problem/26477197>
+
+        Reviewed by Andy Estes.
+
+        Add a new test-only flag used to tell CFNetwork that we do not wish to
+        validate the SLL certificate chain. This allows us to use self-signed
+        certificates in test cases.
+
+        Tests: http/tests/websocket/tests/hybi/simple-wss.html
+
+        * page/Settings.cpp:
+        (WebCore::Settings::setAllowsAnySSLCertificate): Added.
+        (WebCore::Settings::allowsAnySSLCertificate): Added. This defaults
+        to False.
+        * page/Settings.h:
+        * platform/network/cf/SocketStreamHandleCFNet.cpp:
+        (WebCore::SocketStreamHandle::createStreams): When running under our
+        testing infrastructure, do not require full certificate validation.
+        * testing/js/WebCoreTestSupport.cpp:
+        (WebCoreTestSupport::setAllowsAnySSLCertificate): Added.
+        * testing/js/WebCoreTestSupport.h:
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::setAllowsAnySSLCertificate): Added.
+        * testing/InternalSettings.h:
+
+2016-05-25  Jer Noble  <jer.noble@apple.com>
+
+        CRASH at WebCore::WebPlaybackSessionModelMediaElement::selectAudioMediaOption() + 104
+        https://bugs.webkit.org/show_bug.cgi?id=158090
+        <rdar://problem/26388936>
+
+        Reviewed by Eric Carlson.
+
+        Null-check m_mediaElement before using.
+
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.mm:
+        (WebPlaybackSessionModelMediaElement::selectAudioMediaOption):
+        (WebPlaybackSessionModelMediaElement::selectLegibleMediaOption):
+
+2016-05-25  Brady Eidson  <beidson@apple.com>
+
+        Race condition calling back to an IDBOpenDBRequest during WorkerThread shutdown.
+        https://bugs.webkit.org/show_bug.cgi?id=158089
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Only seen randomly under GuardMalloc).
+
+        Crash was seen once running under GuardMalloc. The error is obvious.
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::completeOpenDBRequest): Don't get a raw pointer out of the map.
+          Instead store off as a RefPtr, as the map might be cleared out from the worker thread.
+
+2016-05-25  Chris Dumez  <cdumez@apple.com>
+
+        Simplify and inline minimumValueForLength()
+        https://bugs.webkit.org/show_bug.cgi?id=158084
+
+        Reviewed by Zalan Bujtas.
+
+        Simplify and inline minimumValueForLength(). Based on iOS PLT profiles,
+        we spend up to 0.7% of CPU time during page loads in this function.
+
+        The roundPercentages parameter has been dropped because it was false
+        for all call sites.
+
+        * css/LengthFunctions.cpp:
+        (WebCore::minimumIntValueForLength): Deleted.
+        (WebCore::minimumValueForLength): Deleted.
+        * css/LengthFunctions.h:
+        (WebCore::minimumValueForLength):
+        (WebCore::minimumIntValueForLength):
+        * rendering/RenderBoxModelObject.cpp:
+        (WebCore::resolveEdgeRelativeLength):
+        (WebCore::RenderBoxModelObject::calculateBackgroundImageGeometry):
+        * rendering/RenderElement.h:
+        (WebCore::RenderElement::minimumValueForLength):
+
+2016-05-25  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Update <fixed-size> syntax
+        https://bugs.webkit.org/show_bug.cgi?id=158063
+
+        Reviewed by Darin Adler.
+
+        The syntax for <fixed-size> has been updated on the spec:
+        https://drafts.csswg.org/css-grid/#typedef-fixed-size
+
+        New syntax is:
+          <fixed-size> =
+            <fixed-breadth> |
+            minmax( <fixed-breadth> , <track-breadth> ) |
+            minmax( <inflexible-breadth> , <fixed-breadth> )
+
+        This means that it's enough to have one <fixed-breadth>,
+        it doesn't matter if it's as minimum or maximum.
+        Before it was required that the minimum was fixed.
+
+        * css/CSSParser.cpp:
+        (WebCore::isGridTrackFixedSized):
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::computeAutoRepeatTracksCount):
+
+2016-05-25  Alex Christensen  <achristensen@webkit.org>
+
+        Fix CMake build.
+
+        * PlatformMac.cmake:
+        c++14 is needed since r201255.
+        ColorSync (in ApplicationServices) is needed since r201065.
+
+2016-05-25  Zalan Bujtas  <zalan@apple.com>
+
+        Swap search field's cancel and result button for RTL content.
+        https://bugs.webkit.org/show_bug.cgi?id=158007
+
+        Reviewed by Dean Jackson.
+
+        Test: fast/forms/search-input-rtl.html
+
+        * css/html.css:
+        (input[type="search"]::-webkit-textfield-decoration-container): Deleted.
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::paintSearchFieldCancelButton):
+        (WebCore::RenderThemeMac::paintSearchFieldResultsButton):
+
+2016-05-25  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Font Loading] ASSERT if calling FontFace.loaded twice with a garbage collection between them
+        https://bugs.webkit.org/show_bug.cgi?id=158015
+
+        Reviewed by Darin Adler.
+
+        The following scenario may occur:
+
+        1. We create a FontFace object
+        2. We create an associated JSFontFace object
+        3. We start loading the FontFace, which causes an extra ref to hang around until loading finishes
+        4. Javascript calls the "loaded" attribute on the FontFace, which saves a promise inside the FontFace
+        5. The FontFace goes out of scope in Javascript
+        6. A garbage collection occurs, causing us to delete the JSFontFace object
+        7. Javascript then encounters the FontFace object without first going through a reference to a JSFontFace.
+        It can do this via iterating through a FontFaceSet. We respond to this situation by creating a new
+        JSFontFace object and associating it with the existing FontFace.
+        8. Javascript calls the "loaded" attribute
+
+        In this situation, the newer JSFontFace object is out of sync with the older FontFace object. In
+        particular, the FontFace has a saved promise, but the JSFontFace doesn't know about it. Therefore,
+        the JSFontFace should be flexible to the presence of this member.
+
+        Test: fast/text/font-face-crash-2.html
+
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::DOMPromise::deferredWrapper):
+        * bindings/js/JSFontFaceCustom.cpp:
+        (WebCore::JSFontFace::loaded):
+        * css/FontFace.h:
+
+2016-05-25  Antti Koivisto  <antti@apple.com>
+
+        Shadow DOM: RenderTreePosition miscomputed when display:contents value changes
+        https://bugs.webkit.org/show_bug.cgi?id=158072
+        rdar://problem/25766333
+
+        Reviewed by Darin Adler.
+
+        Test: fast/shadow-dom/slot-crash.html
+
+        * style/RenderTreePosition.h:
+        (WebCore::RenderTreePosition::invalidateNextSibling):
+
+            Add unconditional invalidation function.
+
+        * style/RenderTreeUpdater.cpp:
+        (WebCore::RenderTreeUpdater::updateElementRenderer):
+
+            With display:contents rendering siblings may be found from the subtree and the existing cached
+            position may become invalid.
+            If the display:contents value changes invalidate the current render tree position.
+
+2016-05-25  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: IDB objects from a worker thread might be destroyed on the main thread.
+        https://bugs.webkit.org/show_bug.cgi?id=158004
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Spuriously reproduces on the bots, but I've been unable to construct a reliable test).
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::completeOpenDBRequest):
+        (WebCore::IDBClient::IDBConnectionProxy::notifyOpenDBRequestBlocked):
+        (WebCore::IDBClient::IDBConnectionProxy::didCommitTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::didAbortTransaction):
+        (WebCore::IDBClient::IDBConnectionProxy::unregisterDatabaseConnection):
+        (WebCore::IDBClient::removeItemsMatchingCurrentThread):
+        (WebCore::IDBClient::IDBConnectionProxy::forgetActivityForCurrentThread): Clear out all objects that originated on this thread.
+        (WebCore::IDBClient::IDBConnectionProxy::takeIDBOpenDBRequest): Deleted.
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+
+        * workers/WorkerGlobalScope.cpp:
+        (WebCore::WorkerGlobalScope::stopIndexedDatabase):
+        * workers/WorkerGlobalScope.h:
+
+        * workers/WorkerThread.cpp:
+        (WebCore::WorkerThread::stop):
+
+2016-05-25  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        Remove unused slotBase parameter in bindings generator
+        https://bugs.webkit.org/show_bug.cgi?id=158068
+
+        Reviewed by Darin Adler.
+
+        Remove unused slotBase parameter from attribute Getter functions.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        * bindings/scripts/test/JS/JSTestJSBuiltinConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        * bindings/scripts/test/JS/JSattribute.cpp:
+
+2016-05-25  Alex Christensen  <achristensen@webkit.org>
+
+        Include fewer headers from headers
+        https://bugs.webkit.org/show_bug.cgi?id=158043
+
+        Reviewed by Brady Eidson.
+
+        * platform/graphics/GraphicsContext.h:
+        * rendering/svg/RenderSVGResourceClipper.h:
+        (isType):
+        * rendering/svg/RenderSVGResourceMasker.h:
+
+2016-05-25  Eric Carlson  <eric.carlson@apple.com>
+
+        ASSERT in WebCore::TextTrackList::remove when running media/track/track-remove-track.html
+        https://bugs.webkit.org/show_bug.cgi?id=158071
+        <rdar://problem/26432041>
+
+        Reviewed by Chris Dumez.
+
+        No new tests, this prevents media/track/track-remove-track.html from crashing.
+
+        * html/track/TextTrackList.cpp:
+        (TextTrackList::remove): Don't assert when the media element has  been set to null.
+
+2016-05-25  Zalan Bujtas  <zalan@apple.com>
+
+        Addressing post-review comments on r200971.
+
+        Reviewed by Darin Adler.
+
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::hitTestResultAtPoint):
+
+2016-05-25  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Simplify grid track sizes parsing
+        https://bugs.webkit.org/show_bug.cgi?id=158021
+
+        Reviewed by Sergio Villar Senin.
+
+        Previously once we saw an auto-repeat function,
+        we passed the "FixedSizeOnly" restriction to the rest of methods.
+        That way we were sure that all the tracks after the auto-repeat
+        had fixed sizes.
+        But we needed to call allTracksAreFixedSized() to be sure that
+        the tracks before the auto-repeat had fixed sizes too.
+
+        Now we're introducing a new boolean |allTracksAreFixedSized|,
+        to check in advance if the declaration contains any track not fixed.
+        If that's the case and we found an auto-repeat method,
+        we consider it invalid.
+        With this approach we avoid the loop to verify
+        that all the tracks (before and after the auto-repeat) are fixed.
+        It also allows us to simplify the code and avoid passing
+        the restriction to all the methods parsing the track size.
+
+        No new tests, no change of behavior.
+
+        * css/CSSParser.cpp:
+        (WebCore::isGridTrackFixedSized): New method to check if a grid track
+        size is fixed or not (based on old allTracksAreFixedSized()).
+        (WebCore::CSSParser::parseGridTrackList): Add new boolean to detect
+        if any track has not a fixed size.
+        (WebCore::CSSParser::parseGridTrackRepeatFunction): Ditto.
+        (WebCore::CSSParser::parseGridTrackSize): Remove usage of
+        TrackSizeRestriction enum.
+        Check here if |minTrackBreadth| is a flexible size.
+        (WebCore::CSSParser::parseGridBreadth): Remove usage of
+        TrackSizeRestriction enum.
+        (WebCore::allTracksAreFixedSized): Deleted.
+        * css/CSSParser.h: Remove TrackSizeRestriction enum and update headers.
+
 2016-05-25  Sergio Villar Senin  <svillar@igalia.com>
 
         [css-grid] Refactor populateGridPositions()

@@ -24,8 +24,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GraphicsContext_h
-#define GraphicsContext_h
+#pragma once
 
 #include "DashArray.h"
 #include "FloatRect.h"
@@ -34,7 +33,6 @@
 #include "GraphicsTypes.h"
 #include "Image.h"
 #include "ImageOrientation.h"
-#include "Path.h"
 #include "Pattern.h"
 #include <wtf/Noncopyable.h>
 
@@ -88,6 +86,7 @@ class IntRect;
 class RoundedRect;
 class URL;
 class GraphicsContext3D;
+class Path;
 class TextRun;
 class TransformationMatrix;
 
@@ -688,5 +687,3 @@ private:
 };
 
 } // namespace WebCore
-
-#endif // GraphicsContext_h
