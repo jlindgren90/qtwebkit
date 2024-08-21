@@ -1,3 +1,140 @@
+2016-05-25  Geoffrey Garen  <ggaren@apple.com>
+
+        replaceable own properties seem to ignore replacement after property caching
+        https://bugs.webkit.org/show_bug.cgi?id=158091
+
+        Reviewed by Darin Adler.
+
+        * js/cached-window-properties.html: Augmneted this test to enter cacheable
+        dictionary mode in order to demonstrate a bug that is not visible otherwise.
+
+        Factored out a helper test function.
+
+2016-05-26  Pranjal Jumde  <pjumde@apple.com>
+
+        Sites served over insecure connections should not be allowed to use geolocation.
+        https://bugs.webkit.org/show_bug.cgi?id=157423
+        <rdar://problem/23751632>
+
+        Reviewed by Brent Fulgham.
+
+        Add missing test content from r201423.
+
+        * http/tests/security/resources/geolocation-over-insecure-content.html: Added.
+        * http/tests/security/resources/geolocation-over-mixed-content-block.html: Added.
+        * http/tests/security/resources/geolocation-over-mixed-content.html: Added.
+
+2016-05-26  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Update test expectation for imported blink test.
+        https://bugs.webkit.org/show_bug.cgi?id=158122
+
+        Reviewed by Alex Christensen.
+
+        The crash on imported/blink/compositing/perspective-origin-overflow-hidden.html
+        was fixed in https://trac.webkit.org/changeset/192166.
+
+        * platform/win/TestExpectations:
+
+2016-05-26  Brady Eidson  <beidson@apple.com>
+
+        Release JSC test test-observegc.js.layout failing.
+        https://bugs.webkit.org/show_bug.cgi?id=158126
+
+        Unreviewed.
+
+        Move this test to a directory that is less... "special"
+        
+        * fast/misc/resources/test-observegc.js: Renamed from LayoutTests/js/script-tests/test-observegc.js.
+        * fast/misc/test-observegc-expected.txt: Renamed from LayoutTests/js/test-observegc-expected.txt.
+        * fast/misc/test-observegc.html: Added.
+        * js/test-observegc.html: Removed.
+
+2016-05-26  Pranjal Jumde  <pjumde@apple.com>
+
+        Sites served over insecure connections should not be allowed to use geolocation.
+        https://bugs.webkit.org/show_bug.cgi?id=157423
+        <rdar://problem/23751632>
+
+        Reviewed by Brent Fulgham.
+
+        * http/tests/security/geolocation-over-insecure-content.html: Added.
+        * http/tests/security/geolocation-over-mixed-content-block.html: Added.
+        * http/tests/security/geolocation-over-mixed-content.html: Added.
+        * http/tests/security/insecure-geolocation-expected.txt: Added.
+        * http/tests/security/insecure-geolocation.html: Added.
+        * http/tests/security/mixedcontent-geolocation-block-insecure-content-expected.txt: Added.
+        * http/tests/security/mixedcontent-geolocation-block-insecure-content.html: Added.
+        * http/tests/security/mixedcontent-geolocation-expected.txt: Added.
+        * http/tests/security/mixedcontent-geolocation.html: Added.
+        * http/tests/security/sandboxed-iframe-geolocation-watchPosition.html:
+          iframe is loaded over secure connection to avoid geolocation failures
+        * http/tests/security/sandboxed-iframe-geolocation-getCurrentPosition.html: 
+          iframe is loaded over secure connection to avoid geolocation failures
+
+2016-05-26  Brady Eidson  <beidson@apple.com>
+
+        Implement internals.observeGC to get called back when a Javascript object is GC'ed.
+        https://bugs.webkit.org/show_bug.cgi?id=158093
+
+        Reviewed by Geoffrey Garen.
+
+        * js/script-tests/test-observegc.js: Added.
+        * js/test-observegc-expected.txt: Added.
+        * js/test-observegc.html: Added.
+
+2016-05-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Font Loading] Allow empty strings in FontFace constructor
+        https://bugs.webkit.org/show_bug.cgi?id=158112
+
+        Reviewed by Darin Adler.
+
+        * fast/text/font-face-empty-string-expected.txt: Added.
+        * fast/text/font-face-empty-string.html: Added.
+
+2016-05-26  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: RTCSessionDescription: Make attributes readonly (and remove custom binding)
+        https://bugs.webkit.org/show_bug.cgi?id=157858
+
+        Reviewed by Eric Carlson.
+
+        * fast/mediastream/RTCSessionDescription-expected.txt:
+        * fast/mediastream/RTCSessionDescription.html:
+        Add tests for mandatory constructor dictionary argument and required 'type' member (also
+        check its value). Verify that attributes are read-only.
+
+2016-05-25  Yoav Weiss  <yoav@yoav.ws>
+
+        Fix ResourceTiming multiple entries per resource and test initiator
+        https://bugs.webkit.org/show_bug.cgi?id=158094
+
+        Reviewed by Alex Christensen.
+
+        Make sure that CachedResource that was needed by two different elements only adds one entry, with the right (first) initiatorType.
+
+        * http/tests/performance/performance-resource-timing-initiator-css.html: Added. Makes sure css has the right initiator type.
+        * http/tests/performance/performance-resource-timing-initiator-css-expected.txt: Added.
+        * http/tests/performance/performance-resource-timing-initiator-no-override.html: Added. Makes sure that only one entry is added and
+        that its initiator info doesn't get overriden.
+        * http/tests/performance/performance-resource-timing-initiator-no-override-expected.txt: Added.
+
+2016-05-25  Yoav Weiss  <yoav@yoav.ws>
+
+        Fix ResourceTiming XHR flakiness
+        https://bugs.webkit.org/show_bug.cgi?id=158019
+
+        Reviewed by Alex Christensen.
+
+        Test fixes and additions that make sure XHR tests are not run as part of XHR's onload event, as ResourceTiming entries are added
+        after it.
+
+        * TestExpectations:
+        * http/tests/performance/performance-resource-timing-cached-entries.html: Avoid running the tests as part of the XHR's load event.
+        * http/tests/performance/performance-resource-timing-xhr-single-entry-expected.txt: Added.
+        * http/tests/performance/performance-resource-timing-xhr-single-entry.html: Test that XHR fetch adds a single entry with correct initiatorType.
+
 2016-05-25  Benjamin Poulain  <benjamin@webkit.org>
 
         [JSC] RegExp with deeply nested subexpressions overflow the stack in Yarr

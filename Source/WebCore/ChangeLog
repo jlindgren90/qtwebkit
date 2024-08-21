@@ -1,3 +1,314 @@
+2016-05-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline bindings tests after r201428
+
+        Unreviewed test gardening.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::setJSTestObjReplaceableAttribute):
+
+2016-05-25  Geoffrey Garen  <ggaren@apple.com>
+
+        replaceable own properties seem to ignore replacement after property caching
+        https://bugs.webkit.org/show_bug.cgi?id=158091
+
+        Reviewed by Darin Adler.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Use our new replacement helper if we're replacing
+        an own static property with an own direct property. Because we advertise
+        that our own static properties are cacheable, we need to do a structure
+        transition to indicate when they change. (Only own properties need this 
+        special treatment because JSC considers it normal to shadow a prototype
+        property with an own property.)
+
+2016-05-26  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        BitmapImage::checkForSolidColor() cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=157750
+
+        Reviewed by Darin Adler.
+
+        Have a single implementation for BitmapImage::checkForSolidColor(). Create
+        a new function named NativeImage::solidColor() and call it from the former
+        one. The goal is to have the platform files contain only the platform dependent
+        code rather than repeating the platform independent code multiple times.
+
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::destroyMetadataAndNotify): Invalidate m_solidColor.
+        (WebCore::BitmapImage::singlePixelSolidColor): Combine mayFillWithSolidColor(),
+        checkForSolidColor() and solidColor() in one function to guarantee the validity
+        of the returned value. Before, if solidColor() is called without calling
+        mayFillWithSolidColor() or checkForSolidColor(), the returned value would be
+        incorrect.
+        
+        (WebCore::BitmapImage::dump): Use the m_solidColor Optional and Color states.
+        (WebCore::BitmapImage::mayFillWithSolidColor): Deleted.
+        (WebCore::BitmapImage::solidColor): Deleted.
+        
+        * platform/graphics/BitmapImage.h: Delete m_checkedForSolidColor and
+        m_isSolidColor and change m_solidColor to be Optional<Color>.
+        
+        * platform/graphics/Image.cpp:
+        (WebCore::Image::drawTiled): Use singlePixelSolidColor() and check the returned
+        value to know whether the singe pixel solid color optimization applies or not.
+        
+        * platform/graphics/Image.h:
+        (WebCore::Image::singlePixelSolidColor):
+        (WebCore::Image::mayFillWithSolidColor): Deleted.
+        (WebCore::Image::solidColor): Deleted.
+        Replace mayFillWithSolidColor() and solidColor() with a single function named
+        singlePixelSolidColor(). isValid() of the returned Color can be used to tell
+        whether the singe pixel solid color optimization applies or not.
+        
+        * platform/graphics/cairo/BitmapImageCairo.cpp:
+        (WebCore::NativeImage::singlePixelSolidColor):
+        (WebCore::BitmapImage::draw):
+        (WebCore::BitmapImage::checkForSolidColor): Deleted.
+        Delete the platform dependent BitmapImage::checkForSolidColor() and add
+        the new platform dependent function NativeImage::singlePixelSolidColor() and
+        use to know whether the singe pixel solid color optimization applies or not.
+        
+        * platform/graphics/cg/BitmapImageCG.cpp:
+        (WebCore::NativeImage::singlePixelSolidColor):
+        (WebCore::BitmapImage::draw):
+        (WebCore::BitmapImage::checkForSolidColor): Deleted.
+        Ditto.
+
+2016-05-26  Pranjal Jumde  <pjumde@apple.com>
+
+        Sites served over insecure connections should not be allowed to use geolocation.
+        https://bugs.webkit.org/show_bug.cgi?id=157423
+        <rdar://problem/23751632>
+
+        Reviewed by Brent Fulgham.
+
+        Tests: http/tests/security/insecure-geolocation.html
+               http/tests/security/mixedcontent-geolocation-block-insecure-content.html
+               http/tests/security/mixedcontent-geolocation.html
+
+        * Modules/geolocation/Geolocation.cpp:
+        (WebCore::logError):
+        Logs an error to the console if geolocation is blocked.
+        (WebCore::Geolocation::startRequest):
+        Access to Geolocation will be blocked if site is not secure. An error will be logged when access to Geolocation is blocked.
+        (WebCore::Geolocation::shouldBlockGeolocationRequests)
+        Returns true if the access to geolocation should be blocked.
+        * Modules/geolocation/Geolocation.h:
+        * dom/SecurityContext.h:
+        (WebCore::SecurityContext::foundMixedContent):
+        Returns true if insecure content was accessed over secure connection.
+        (WebCore::SecurityContext::setFoundMixedContent):
+        Sets m_foundMixedContent to true if insecure content is accessed over secure connection.
+        (WebCore::SecurityContext::geolocationAccessed):
+        Returns true if geolocation was accessed
+        (WebCore::SecurityContext::setGeolocationAccessed):
+        Sets m_geolocationAccessed to true if geolocation was accessed.
+        * loader/MixedContentChecker.cpp:
+        (WebCore::MixedContentChecker::canDisplayInsecureContent):
+        Insecure content will be blocked if geolocation was accessed by the page. Updates document to keep track of mixed content.
+        (WebCore::MixedContentChecker::canRunInsecureContent):
+        Insecure content will be blocked if geolocation was accessed by the page. Updates document to keep track of mixed content.
+
+2016-05-26  Brady Eidson  <beidson@apple.com>
+
+        Implement internals.observeGC to get called back when a Javascript object is GC'ed.
+        https://bugs.webkit.org/show_bug.cgi?id=158093
+
+        Reviewed by Geoffrey Garen.
+
+        Test: js/test-observegc.html
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+
+        * testing/GCObservation.cpp: Added.
+        (WebCore::GCObservation::GCObservation):
+        * testing/GCObservation.h: Added.
+        * testing/GCObservation.idl: Added.
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::observeGC):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-05-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Font Loading] Allow empty strings in FontFace constructor
+        https://bugs.webkit.org/show_bug.cgi?id=158112
+
+        Reviewed by Darin Adler.
+
+        Other browsers accept empty strings and parse them as if they are omitted.
+        We should do the same. However, this is only true for the constructor. Setting
+        an attribute to an empty string should still throw an exception.
+
+        Test: fast/text/font-face-empty-string.html
+
+        * css/FontFace.cpp:
+        (WebCore::FontFace::create):
+        (WebCore::FontFace::setFamily):
+        (WebCore::FontFace::setStyle):
+        (WebCore::FontFace::setWeight):
+        (WebCore::FontFace::setUnicodeRange):
+        (WebCore::FontFace::setVariant):
+        (WebCore::FontFace::setFeatureSettings):
+
+2016-05-26  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: RTCSessionDescription: Make attributes readonly (and remove custom binding)
+        https://bugs.webkit.org/show_bug.cgi?id=157858
+
+        Reviewed by Eric Carlson.
+
+        Align RTCSessionDescription type with WebRTC 1.0 specification [1].
+        - Make constructor dictionary member mandatory
+        - Align constructor dictionary argument (RTCSessionDescriptionInit) with [1]
+        - Use RTCSdpType enum for the type attribute
+        - Remove custom binding
+
+        [1] https://w3c.github.io/webrtc-pc/archives/20160513/webrtc.html
+
+        Updated existing test.
+
+        * CMakeLists.txt:
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::createOfferTask):
+        * Modules/mediastream/RTCSessionDescription.cpp:
+        (WebCore::parseTypeString):
+        (WebCore::RTCSessionDescription::create):
+        (WebCore::RTCSessionDescription::RTCSessionDescription):
+        (WebCore::verifyType): Deleted.
+        (WebCore::RTCSessionDescription::setType): Deleted.
+        * Modules/mediastream/RTCSessionDescription.h:
+        (WebCore::RTCSessionDescription::type):
+        * Modules/mediastream/RTCSessionDescription.idl:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSRTCSessionDescriptionCustom.cpp: Removed.
+        (WebCore::constructJSRTCSessionDescription): Deleted.
+
+2016-05-26  Alejandro G. Castro  <alex@igalia.com>
+
+        NativeToJSValue is harcoding the $thisValue in some strings
+        https://bugs.webkit.org/show_bug.cgi?id=158113
+
+        Reviewed by Darin Adler.
+
+        Replaced the string with the variable value.
+
+        Updated the tests results in the bindings.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (NativeToJSValue): Replaced the hardcoded string with the variable
+        value.
+        * bindings/scripts/test/JS/JSTestCallback.cpp:
+        (WebCore::JSTestCallback::callbackWithSerializedScriptValueParam):
+        * bindings/scripts/test/JS/JSTestCallbackFunction.cpp:
+        (WebCore::JSTestCallbackFunction::callbackWithSerializedScriptValueParam):
+
+2016-05-26  Frederic Wang  <fwang@igalia.com>
+
+        Small improvements to RenderBox/LayoutUnit casting in MathML
+        https://bugs.webkit.org/show_bug.cgi?id=157943
+
+        Reviewed by Darin Adler.
+
+        This is a small follow-up of the RenderMathMLRow/RenderMathMLUnderOver/RenderMathMLFraction
+        refactoring. Since these MathML renderers can only contain other MathML renderers, we can
+        just considerer RenderBox children and avoid unnecessary casts. Similarly, when the two
+        arguments of std::max are LayoutUnit's, we do not need to specialize to std::max<LayoutUnit>.
+
+        No new tests, behavior is not changed.
+
+        * rendering/mathml/RenderMathMLFraction.cpp:
+        (WebCore::RenderMathMLFraction::layoutBlock): Do not to specialize to std::max<LayoutUnit>.
+        * rendering/mathml/RenderMathMLRow.cpp:
+        (WebCore::RenderMathMLRow::updateOperatorProperties): Browse the list of RenderBox children
+        and use auto*.
+        (WebCore::RenderMathMLRow::computeLineVerticalStretch): Do not to specialize to std::max<LayoutUnit>.
+        * rendering/mathml/RenderMathMLUnderOver.cpp:
+        (WebCore::RenderMathMLUnderOver::unembellishedOperator): Get the RenderBox child and use auto*.
+        (WebCore::RenderMathMLUnderOver::computeOperatorsHorizontalStretch): Browse the list of
+        RenderBox children, use auto* and remove unnecessary casts. Do not to specialize to
+        std::max<LayoutUnit>.
+
+2016-05-26  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: crash at AccessibilityRenderObject::remoteSVGRootElement const
+        https://bugs.webkit.org/show_bug.cgi?id=158098
+
+        Reviewed by Joanmarie Diggs.
+
+        What looks like happens here is that when a document is torn down and we try to detach, we end up creating an accessibility element during detachment phase.
+        So instead of just clearing the callback pointer on an existing AXObject, we make a new object and access properties of an object being deallocated.
+
+        I tried very hard to make a test but it looks like this can really only be triggered during document tear down which also tears down the AXObjectCache. I didn't
+        have luck reproducing because of that.
+
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::remoteSVGElementHitTest):
+        (WebCore::AccessibilityRenderObject::isSVGImage):
+        (WebCore::AccessibilityRenderObject::detachRemoteSVGRoot):
+        (WebCore::AccessibilityRenderObject::remoteSVGRootElement):
+        (WebCore::AccessibilityRenderObject::addRemoteSVGChildren):
+        * accessibility/AccessibilityRenderObject.h:
+
+2016-05-25  Antti Koivisto  <antti@apple.com>
+
+        Invalidate style for newly added nodes in Node::insertedInto
+        https://bugs.webkit.org/show_bug.cgi?id=158088
+
+        Reviewed by Darin Adler.
+
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::parserInsertBefore):
+        (WebCore::ContainerNode::replaceChild):
+        (WebCore::ContainerNode::parserAppendChild):
+        (WebCore::ContainerNode::childrenChanged):
+        (WebCore::ContainerNode::updateTreeAfterInsertion):
+        * dom/Node.cpp:
+        (WebCore::Node::insertedInto):
+
+        Consolidate setNeedsStyleRecalc(ReconstructRenderTree) here.
+
+        This also now happens earliest possible time, right after inserting the node and can avoid
+        some unneeded style invalidation work in subclass insertion handlers.
+
+2016-05-25  Yoav Weiss  <yoav@yoav.ws>
+
+        Fix ResourceTiming multiple entries per resource and test initiator
+        https://bugs.webkit.org/show_bug.cgi?id=158094
+
+        Reviewed by Alex Christensen.
+
+        Make sure that CachedResource that was needed by two different elements only adds one entry, with the right (first) initiatorType.
+
+        Tests: http/tests/performance/performance-resource-timing-initiator-css.html
+               http/tests/performance/performance-resource-timing-initiator-no-override.html
+
+        * loader/ResourceTimingInformation.cpp:
+        (WebCore::ResourceTimingInformation::addResourceTiming): Don't remove CachedResource when entry is added, but
+        mark it as added. Only add new entries for non-added resources.
+        (WebCore::ResourceTimingInformation::storeResourceTimingInitiatorInformation): Initialize initiator info as NotYetAdded.
+        * loader/ResourceTimingInformation.h:
+
+2016-05-25  Yoav Weiss  <yoav@yoav.ws>
+
+        Fix ResourceTiming XHR flakiness
+        https://bugs.webkit.org/show_bug.cgi?id=158019
+
+        Reviewed by Alex Christensen.
+
+        Remove XHR specific ResourceTiming information store and addition as it is not needed.
+
+        Test: http/tests/performance/performance-resource-timing-xhr-single-entry.html
+
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::loadRequest): Removed XHR-specific initiator info storage.
+        (WebCore::DocumentThreadableLoader::didFinishLoading): Removed XHR-specific RT entry addition.
+        * loader/DocumentThreadableLoader.h:
+
 2016-05-25  Konstantin Tokarev  <annulen@yandex.ru>
 
         [cmake] Deduplicate make-js-file-arrays usage and make it work on Windows.
