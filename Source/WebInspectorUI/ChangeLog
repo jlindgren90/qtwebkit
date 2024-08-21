@@ -1,3 +1,132 @@
+2016-05-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Unexpected unread notification icon next to Log after clearing via clear()
+        https://bugs.webkit.org/show_bug.cgi?id=157598
+
+        Reviewed by Timothy Hatcher.
+
+        We always show ConsoleCommand and ConsoleCommandResult messages no matter
+        what the filter is. So it doesn't make sense to mark the "log" filter
+        as having an unread notification for a ConsoleCommandResult when we can
+        see the result.
+
+        * UserInterface/Views/LogContentView.js:
+        (WebInspector.LogContentView.prototype.didAppendConsoleMessageView):
+        (WebInspector.LogContentView.prototype._markScopeBarItemUnread):
+
+2016-05-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Console unread indicators should be cleared however the console clears
+        https://bugs.webkit.org/show_bug.cgi?id=157594
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/LogContentView.js:
+        (WebInspector.LogContentView.prototype._logCleared):
+        (WebInspector.LogContentView.prototype._clearLog):
+        Move code that clears unread indicators from clearLog to logCleared
+        to handle all possible clear cases.
+
+2016-05-11  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Contents of Duration column are covered by always on (legacy) scroll bars
+        https://bugs.webkit.org/show_bug.cgi?id=157590
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/DataGrid.css:
+        (.data-grid .data-container):
+        Always show vertical scrollbars.
+
+        (.data-grid > .header-wrapper):
+        (.data-grid > .header-wrapper::-webkit-scrollbar):
+        Show invisible scrollbar for DataGrid's header to align the header table with the content.
+
+        (.data-grid.no-header > .header-wrapper > table.header):
+        (.data-grid.no-header > table.header): Deleted.
+        (.data-grid th): Deleted.
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid):
+        `overflow-y: scroll` doesn't work on a table element. Wrap table in a div.
+
+2016-05-11  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Make it possible to do special styling on selected TimelineOverviewGraphs
+        https://bugs.webkit.org/show_bug.cgi?id=157593
+        <rdar://problem/26232886>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TimelineOverview.js:
+        (WebInspector.TimelineOverview.prototype._timelinesTreeSelectionDidChange.updateGraphSelectedState):
+        (WebInspector.TimelineOverview.prototype._timelinesTreeSelectionDidChange):
+        Select the new overview graph and deselect the old one.
+
+        * UserInterface/Views/TimelineOverviewGraph.js:
+        (WebInspector.TimelineOverviewGraph):
+        (WebInspector.TimelineOverviewGraph.prototype.get selected):
+        (WebInspector.TimelineOverviewGraph.prototype.set selected):
+        New property, toggles "selected" class on the graph element.
+
+2016-05-11  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: "Selected Element" is hard to read when searching for "Element"
+        https://bugs.webkit.org/show_bug.cgi?id=157542
+        <rdar://problem/26207464>
+
+        Reviewed by Timothy Hatcher.
+
+        Change the style of highlighted text to match Xcode.
+
+        * UserInterface/Views/LogContentView.css:
+        (.search-in-progress .console-item:not(.filtered-out-by-search).special-user-log .console-message-text .highlighted):
+        * UserInterface/Views/OpenResourceDialog.css:
+        (.open-resource-dialog > .tree-outline .item.selected .highlighted):
+        * UserInterface/Views/Variables.css:
+        (:root):
+
+2016-05-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Hide filter bar in TimelineViews where it is not needed or not yet working
+        https://bugs.webkit.org/show_bug.cgi?id=157583
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/HeapAllocationsTimelineView.js:
+        (WebInspector.HeapAllocationsTimelineView.prototype.get showsFilterBar):
+        (WebInspector.HeapAllocationsTimelineView.prototype.layout):
+        (WebInspector.HeapAllocationsTimelineView.prototype.updateFilter):
+        Filter bar not yet hooked up for HeapSnapshot views.
+        Make filtering work for the main timeline grid.
+        It doesn't use the normal TimelineView filter based on selected range.
+        This is intentional because it may be the case that a snapshot happens
+        outside the selected time range (via the navigation bar button) and
+        we want to show it. Otherwise a user might be confused why it is not
+        showing up in the list.
+
+        * UserInterface/Views/MemoryTimelineView.js:
+        (WebInspector.MemoryTimelineView.prototype.get showsFilterBar):
+        Filter bar not needed in the Memory timeline view.
+
+        * UserInterface/Views/ScriptClusterTimelineView.js:
+        (WebInspector.ScriptClusterTimelineView.prototype.get showsFilterBar):
+        Filter bar works for the Events timeline view.
+
+        * UserInterface/Views/ScriptProfileTimelineView.js:
+        (WebInspector.ScriptProfileTimelineView.prototype.get showsFilterBar):
+        Filter bar not yet hooked up for Profile views.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView.prototype._currentContentViewDidChange):
+        (WebInspector.TimelineRecordingContentView.prototype._contentViewSelectionPathComponentDidChange):
+        (WebInspector.TimelineRecordingContentView.prototype._updateFilterBar):
+        Update the filter bar when the selection path components change, since
+        that triggers when arbitrarily deep sub-content-views change.
+
+        * UserInterface/Views/TimelineView.js:
+        (WebInspector.TimelineView.prototype.get showsFilterBar):
+        Default is yes.
+
 2016-05-10  Joseph Pecoraro  <pecoraro@apple.com>
 
         Web Inspector: Avoid unnecessary timeout identifier churn in TimelineManager

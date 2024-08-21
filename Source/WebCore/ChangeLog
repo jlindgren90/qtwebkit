@@ -1,3 +1,570 @@
+2016-05-11  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200700, r200703, and r200713.
+        https://bugs.webkit.org/show_bug.cgi?id=157601
+
+        Broke iOS builds (Requested by rniwa on #webkit).
+
+        Reverted changesets:
+
+        "Touch.prototype is undefined on iOS"
+        https://bugs.webkit.org/show_bug.cgi?id=157560
+        http://trac.webkit.org/changeset/200700
+
+        "iOS build fix attempt after r200700."
+        http://trac.webkit.org/changeset/200703
+
+        "iOS clean build fix after r200700."
+        http://trac.webkit.org/changeset/200713
+
+2016-05-11  Ryosuke Niwa  <rniwa@webkit.org>
+
+        iOS clean build fix after r200700.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+
+2016-05-11  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Moving focus by tab could erroneously focus a non-focusable shadow host
+        https://bugs.webkit.org/show_bug.cgi?id=157585
+
+        Reviewed by Antti Koivisto.
+
+        The bug was caused by findFocusableElementDescendingDownIntoFrameDocument erroneously returning a shadow host
+        that contains a focusable element instead of traversing it through to find a focusable element within. Fixed
+        the bug calling findFocusableElementWithinScope which traverses shadow trees to find a focusable element unlike
+        findFocusableElementOrScopeOwner which returns a focusable element or a shadow host.
+
+        Also done some refactoring for clarity.
+
+        Test: fast/shadow-dom/focus-on-iframe.html
+
+        * page/FocusController.cpp:
+        (WebCore::FocusController::findFocusableElementDescendingDownIntoFrameDocument): See above.
+
+        (WebCore::FocusController::findFocusableElementAcrossFocusScope): Declare outerScope as late as possible.
+        (WebCore::nextElementWithGreaterTabIndex): Merged if conditions for clarity.
+        (WebCore::previousElementWithLowerTabIndex): Removed the check for isNonFocusableShadowHost since
+        isFocusableOrHasShadowTreeWithoutCustomFocusLogic returns true whenever isNonFocusableShadowHost returns true.
+
+2016-05-11  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Updating bindings tests results after r200699
+
+        Unreviewed test gardening.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod):
+
+2016-05-11  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed attempt to fix the Windows build after r200699.
+
+        * bindings/js/JSIDBObjectStoreCustom.cpp:
+
+2016-05-11  Ryosuke Niwa  <rniwa@webkit.org>
+
+        iOS build fix attempt after r200700.
+
+        * bindings/js/ios/TouchConstructors.cpp:
+
+2016-05-10  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Touch.prototype is undefined on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=157560
+        <rdar://problem/26143008>
+
+        Reviewed by Chris Dumez.
+
+        Remove Touch and TouchList attributes from DOMWindow.
+        These attributes should be exposed via generated binding code (JSDOMWindow.cpp).
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::touch): Deleted.
+        (WebCore::JSDOMWindow::touchList): Deleted.
+        * page/DOMWindow.idl:
+
+2016-05-11  Darin Adler  <darin@apple.com>
+
+        Change IDBObjectStore.createIndex to take an IDL dictionary
+        https://bugs.webkit.org/show_bug.cgi?id=157520
+
+        Reviewed by Chris Dumez.
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::createObjectStore): Use IDBKeyPath::Type instead of
+        IndexedDB::KeyPathType.
+        * Modules/indexeddb/IDBKeyPath.cpp:
+        (WebCore::IDBKeyPath::IDBKeyPath): Ditto.
+        (WebCore::IDBKeyPath::isValid): Ditto.
+        (WebCore::IDBKeyPath::operator==): Ditto.
+        (WebCore::IDBKeyPath::encode): Ditto.
+        (WebCore::IDBKeyPath::decode): Ditto.
+
+        * Modules/indexeddb/IDBKeyPath.h: Use pragma once. Make constructors non-explicit so
+        we can just pass a string or vector and have it turn into an IDBKeyPath. Added an enum
+        class named Type here and use it instead of IndexedDB::KeyPathType.
+
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::openCursor): Remove unneeded local variable.
+        (WebCore::IDBObjectStore::get): Ditto.
+        (WebCore::IDBObjectStore::doDelete): Ditto.
+        (WebCore::IDBObjectStore::createIndex): Changed argument type to take IndexParameters
+        instead of two seaparate booleans. Also updated to use IDBKeyPath::Type.
+
+        * Modules/indexeddb/IDBObjectStore.h: Removed include of IndexedDB, using a forward
+        decalration instead. Marked the class final. Added an IndexParameters struct and used
+        it for the argument to createIndex.
+
+        * Modules/indexeddb/IDBObjectStore.idl: Stopped using Custom for put, add, and
+        createIndex functions. Stopped using Dictionary for createIndex, using IDBIndexParameters
+        instead as in the specification. Added IDBIndexParameters dictionary definition.
+
+        * Modules/indexeddb/IndexedDB.h: Use pragma once. Removed KeyPathType.
+
+        * bindings/js/IDBBindingUtilities.cpp:
+        (WebCore::injectIDBKeyIntoScriptValue): Use IDBKeyPath::Type instead of
+        IndexedDB::KeyPathType.
+        (WebCore::maybeCreateIDBKeyFromScriptValueAndKeyPath): Ditto.
+        (WebCore::canInjectIDBKeyIntoScriptValue): Ditto.
+        (WebCore::createKeyPathArray): Ditto.
+        (WebCore::toJS): Ditto.
+        * bindings/js/JSIDBObjectStoreCustom.cpp:
+        (WebCore::putOrAdd): Deleted.
+        (WebCore::JSIDBObjectStore::putFunction): Deleted.
+        (WebCore::JSIDBObjectStore::add): Deleted.
+        (WebCore::JSIDBObjectStore::createIndex): Deleted.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheckExpression): Fixed code that generates a type check for
+        wrappers to only check types is knows how to check: wrappers and arrays, including
+        typed arrays. This prevents it from trying to check dictionaries.
+
+        * inspector/InspectorIndexedDBAgent.cpp: Use IDBKeyPath::Type instead of
+        IndexedDB::KeyPathType.
+
+2016-05-11  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: WebWorker support.
+        https://bugs.webkit.org/show_bug.cgi?id=149953
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Covered by changes to existing tests).
+
+        * bindings/generic/RuntimeEnabledFeatures.cpp:
+        (WebCore::RuntimeEnabledFeatures::RuntimeEnabledFeatures):
+
+2016-05-11  Chris Dumez  <cdumez@apple.com>
+
+        Update Node::appendChild() / replaceChild() / removeChild() / insertBefore() to take references instead of pointers
+        https://bugs.webkit.org/show_bug.cgi?id=157556
+
+        Reviewed by Darin Adler.
+
+        Update Node::appendChild() / replaceChild() / removeChild() / insertBefore()
+        to take references instead of pointers. Do the parameter null checks in the
+        bindings instead of doing it in the implementation on Node.
+
+        Also update the ContainerNode::appendChild() / replaceChild() /
+        insertBefore() to take C++ references instead of Ref<>&& to avoid
+        unnecessarily causing ref counting churns at some call sites (including
+        in the bindings since they are a raw pointer to the nodes). The
+        implementation on ContainerNode was not actually using WTFMove() on the
+        Ref<>&& anyway.
+
+        * Modules/plugins/YouTubePluginReplacement.cpp:
+        (WebCore::YouTubePluginReplacement::installReplacement):
+        * bindings/js/JSNodeCustom.cpp:
+        (WebCore::JSNode::insertBefore):
+        (WebCore::JSNode::replaceChild):
+        (WebCore::JSNode::removeChild):
+        (WebCore::JSNode::appendChild):
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::insertBefore):
+        (WebCore::ContainerNode::parserInsertBefore):
+        (WebCore::ContainerNode::replaceChild):
+        (WebCore::ContainerNode::appendChild):
+        (WebCore::ContainerNode::parserAppendChild):
+        (WebCore::ContainerNode::cloneChildNodes):
+        (WebCore::ContainerNode::append):
+        (WebCore::ContainerNode::prepend):
+        * dom/ContainerNode.h:
+        * dom/DOMImplementation.cpp:
+        (WebCore::DOMImplementation::createDocument):
+        (WebCore::DOMImplementation::createHTMLDocument):
+        * dom/Document.cpp:
+        (WebCore::Document::setBodyOrFrameset):
+        * dom/Element.cpp:
+        (WebCore::Element::setOuterHTML):
+        * dom/Node.cpp:
+        (WebCore::Node::insertBefore):
+        (WebCore::Node::replaceChild):
+        (WebCore::Node::removeChild):
+        (WebCore::Node::appendChild):
+        (WebCore::Node::before):
+        (WebCore::Node::after):
+        (WebCore::Node::replaceWith):
+        (WebCore::nodeSetPreTransformedFromNodeOrStringVector): Deleted.
+        (WebCore::Node::normalize): Deleted.
+        * dom/Node.h:
+        * dom/Node.idl:
+        * dom/NodeOrString.cpp:
+        (WebCore::convertNodesOrStringsIntoNode):
+        * dom/Range.cpp:
+        (WebCore::Range::processContents):
+        (WebCore::Range::processContentsBetweenOffsets):
+        (WebCore::Range::processNodes):
+        (WebCore::Range::processAncestorsAndTheirSiblings):
+        (WebCore::Range::insertNode):
+        (WebCore::Range::surroundContents):
+        * dom/Range.h:
+        * dom/Text.cpp:
+        (WebCore::Text::splitText):
+        * editing/AppendNodeCommand.cpp:
+        (WebCore::AppendNodeCommand::doApply):
+        * editing/Editor.cpp:
+        (WebCore::Editor::setTextAsChildOfElement):
+        * editing/EditorCommand.cpp:
+        (WebCore::executeInsertNode):
+        * editing/MergeIdenticalElementsCommand.cpp:
+        (WebCore::MergeIdenticalElementsCommand::doApply):
+        (WebCore::MergeIdenticalElementsCommand::doUnapply):
+        * editing/RemoveNodeCommand.cpp:
+        (WebCore::RemoveNodeCommand::doUnapply):
+        * editing/ReplaceNodeWithSpanCommand.cpp:
+        (WebCore::swapInNodePreservingAttributesAndChildren):
+        * editing/ReplaceSelectionCommand.cpp:
+        (WebCore::ReplacementFragment::insertFragmentForTestRendering):
+        * editing/SplitElementCommand.cpp:
+        (WebCore::SplitElementCommand::executeApply):
+        (WebCore::SplitElementCommand::doUnapply):
+        * editing/WrapContentsInDummySpanCommand.cpp:
+        (WebCore::WrapContentsInDummySpanCommand::executeApply):
+        (WebCore::WrapContentsInDummySpanCommand::doUnapply):
+        * editing/cocoa/EditorCocoa.mm:
+        (WebCore::Editor::styleForSelectionStart):
+        * editing/htmlediting.cpp:
+        (WebCore::createTabSpanElement):
+        * editing/ios/EditorIOS.mm:
+        (WebCore::Editor::WebContentReader::readURL):
+        (WebCore::Editor::createFragmentForImageResourceAndAddResource):
+        * editing/mac/EditorMac.mm:
+        (WebCore::Editor::WebContentReader::readFilenames):
+        (WebCore::Editor::WebContentReader::readURL):
+        (WebCore::Editor::createFragmentForImageResourceAndAddResource):
+        * editing/markup.cpp:
+        (WebCore::fillContainerFromString):
+        (WebCore::createFragmentFromText):
+        (WebCore::replaceChildrenWithFragment):
+        (WebCore::replaceChildrenWithText):
+        * html/BaseChooserOnlyDateAndTimeInputType.cpp:
+        (WebCore::BaseChooserOnlyDateAndTimeInputType::createShadowSubtree):
+        * html/ColorInputType.cpp:
+        (WebCore::ColorInputType::createShadowSubtree):
+        * html/FTPDirectoryDocument.cpp:
+        (WebCore::FTPDirectoryDocumentParser::appendEntry):
+        (WebCore::FTPDirectoryDocumentParser::createTDForFilename):
+        (WebCore::FTPDirectoryDocumentParser::createBasicDocument):
+        * html/HTMLDetailsElement.cpp:
+        (WebCore::HTMLDetailsElement::didAddUserAgentShadowRoot):
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::setOuterText):
+        (WebCore::HTMLElement::insertAdjacent):
+        * html/HTMLImageElement.cpp:
+        (WebCore::HTMLImageElement::tryCreateImageControls):
+        * html/HTMLKeygenElement.cpp:
+        (WebCore::HTMLKeygenElement::HTMLKeygenElement):
+        * html/HTMLMeterElement.cpp:
+        (WebCore::HTMLMeterElement::didAddUserAgentShadowRoot):
+        * html/HTMLOptionElement.cpp:
+        (WebCore::HTMLOptionElement::createForJSConstructor):
+        * html/HTMLProgressElement.cpp:
+        (WebCore::HTMLProgressElement::didAddUserAgentShadowRoot):
+        * html/HTMLTableElement.cpp:
+        (WebCore::HTMLTableElement::createTBody):
+        (WebCore::HTMLTableElement::insertRow):
+        * html/HTMLTableRowElement.cpp:
+        (WebCore::HTMLTableRowElement::insertCell):
+        * html/ImageDocument.cpp:
+        (WebCore::ImageDocument::createDocumentStructure):
+        * html/MediaDocument.cpp:
+        (WebCore::MediaDocumentParser::createDocumentStructure):
+        * html/PluginDocument.cpp:
+        (WebCore::PluginDocumentParser::createDocumentStructure):
+        * html/RangeInputType.cpp:
+        (WebCore::RangeInputType::createShadowSubtree):
+        * html/SearchInputType.cpp:
+        (WebCore::SearchInputType::createShadowSubtree):
+        * html/ValidationMessage.cpp:
+        (WebCore::ValidationMessage::buildBubbleTree):
+        * html/shadow/MediaControlElements.cpp:
+        (WebCore::MediaControlClosedCaptionsTrackListElement::rebuildTrackListMenu):
+        * html/shadow/MediaControls.cpp:
+        (WebCore::MediaControls::createTextTrackDisplay):
+        * html/shadow/MediaControlsApple.cpp:
+        (WebCore::MediaControlsApple::tryCreateControls):
+        * html/shadow/mac/ImageControlsRootElementMac.cpp:
+        (WebCore::ImageControlsRootElement::tryCreate):
+        * html/track/VTTCue.cpp:
+        (WebCore::VTTCue::updateDisplayTree):
+        * html/track/WebVTTParser.cpp:
+        (WebCore::WebVTTTreeBuilder::constructTreeFromToken):
+        * inspector/DOMEditor.cpp:
+        (WebCore::DOMEditor::RemoveChildAction::RemoveChildAction):
+        (WebCore::DOMEditor::InsertBeforeAction::InsertBeforeAction):
+        (WebCore::DOMEditor::ReplaceChildNodeAction::ReplaceChildNodeAction):
+        (WebCore::DOMEditor::insertBefore):
+        (WebCore::DOMEditor::removeChild):
+        (WebCore::DOMEditor::replaceChild):
+        * inspector/DOMEditor.h:
+        * inspector/DOMPatchSupport.cpp:
+        (WebCore::DOMPatchSupport::patchNode):
+        (WebCore::DOMPatchSupport::innerPatchNode):
+        (WebCore::DOMPatchSupport::innerPatchChildren):
+        (WebCore::DOMPatchSupport::insertBeforeAndMarkAsUsed):
+        (WebCore::DOMPatchSupport::removeChildAndMoveToNew):
+        * inspector/DOMPatchSupport.h:
+        * inspector/InspectorCSSAgent.cpp:
+        (WebCore::InspectorCSSAgent::createInspectorStyleSheetForDocument):
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::removeNode):
+        (WebCore::InspectorDOMAgent::setNodeName):
+        (WebCore::InspectorDOMAgent::moveTo):
+        * page/DragController.cpp:
+        (WebCore::documentFragmentFromDragData):
+        * page/ios/FrameIOS.mm:
+        (WebCore::Frame::initWithSimpleHTMLDocument):
+        * svg/SVGUseElement.cpp:
+        (WebCore::SVGUseElement::cloneTarget):
+        (WebCore::SVGUseElement::expandUseElementsInShadowTree):
+        (WebCore::SVGUseElement::expandSymbolElementsInShadowTree):
+        * xml/XMLErrors.cpp:
+        (WebCore::createXHTMLParserErrorHeader):
+        (WebCore::XMLErrors::insertErrorMessageBlock):
+        * xml/XMLTreeViewer.cpp:
+        (WebCore::XMLTreeViewer::transformDocumentToTreeView):
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+        (WebCore::XMLDocumentParser::startElementNs):
+        (WebCore::XMLDocumentParser::processingInstruction):
+        (WebCore::XMLDocumentParser::cdataBlock):
+        (WebCore::XMLDocumentParser::comment):
+
+2016-05-11  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: IDBOpenDBRequests that are stop()'ed don't notify the IDBServer of that fact.
+        https://bugs.webkit.org/show_bug.cgi?id=157448
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Previously skipped tests cover new behavior, and are now unskipped).
+
+        There's two main parts to this patch:
+        
+        1 - When an IDBOpenDBRequest is stop()'ed due to page navigation or worker termination,
+            we now notify the IDBServer of that.
+        2 - Lot's of little tweaks to UniqueIDBDatabase to handle shutting down version change
+            transactions and/or connections related to the cancelled openDB request.
+            
+        Fortunately the changes to UniqueIDBDatabase were all well covered by existing tests.
+        
+        * Modules/indexeddb/IDBOpenDBRequest.cpp:
+        (WebCore::IDBOpenDBRequest::fireSuccessAfterVersionChangeCommit):
+        (WebCore::IDBOpenDBRequest::fireErrorAfterVersionChangeCompletion):
+        (WebCore::IDBOpenDBRequest::cancelForStop):
+        (WebCore::IDBOpenDBRequest::dispatchEvent):
+        * Modules/indexeddb/IDBOpenDBRequest.h:
+
+        * Modules/indexeddb/IDBRequest.cpp:
+        (WebCore::IDBRequest::stop):
+        (WebCore::IDBRequest::cancelForStop):
+        * Modules/indexeddb/IDBRequest.h:
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::openDBRequestCancelled):
+        (WebCore::IDBClient::IDBConnectionProxy::didFinishHandlingVersionChangeTransaction):
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::didFinishHandlingVersionChangeTransaction):
+        (WebCore::IDBClient::IDBConnectionToServer::openDBRequestCancelled):
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+
+        * Modules/indexeddb/client/IDBConnectionToServerDelegate.h:
+
+        * Modules/indexeddb/server/IDBServer.cpp:
+        (WebCore::IDBServer::IDBServer::didFinishHandlingVersionChangeTransaction):
+        (WebCore::IDBServer::IDBServer::databaseConnectionClosed):
+        (WebCore::IDBServer::IDBServer::openDBRequestCancelled):
+        * Modules/indexeddb/server/IDBServer.h:
+
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::didDeleteBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::handleCurrentOperation):
+        (WebCore::IDBServer::UniqueIDBDatabase::openDBRequestCancelled):
+        (WebCore::IDBServer::UniqueIDBDatabase::commitTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::performCommitTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::didPerformCommitTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::abortTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::didFinishHandlingVersionChange):
+        (WebCore::IDBServer::UniqueIDBDatabase::performAbortTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::didPerformAbortTransaction):
+        (WebCore::IDBServer::UniqueIDBDatabase::connectionClosedFromClient):
+        (WebCore::IDBServer::UniqueIDBDatabase::transactionCompleted):
+        (WebCore::IDBServer::UniqueIDBDatabase::forgetErrorCallback):
+        * Modules/indexeddb/server/UniqueIDBDatabase.h:
+
+        * Modules/indexeddb/server/UniqueIDBDatabaseConnection.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabaseConnection::abortTransactionWithoutCallback):
+        (WebCore::IDBServer::UniqueIDBDatabaseConnection::didFinishHandlingVersionChange):
+        * Modules/indexeddb/server/UniqueIDBDatabaseConnection.h:
+
+        * Modules/indexeddb/server/UniqueIDBDatabaseTransaction.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabaseTransaction::didFinishHandlingVersionChange): Deleted.
+        * Modules/indexeddb/server/UniqueIDBDatabaseTransaction.h:
+
+        * Modules/indexeddb/shared/InProcessIDBServer.cpp:
+        (WebCore::InProcessIDBServer::didFinishHandlingVersionChangeTransaction):
+        (WebCore::InProcessIDBServer::openDBRequestCancelled):
+        * Modules/indexeddb/shared/InProcessIDBServer.h:
+
+2016-05-11  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r200686.
+
+        Caused a lot of layout test failures
+
+        Reverted changeset:
+
+        "Sites served over insecure connections should not be allowed
+        to use geolocation."
+        https://bugs.webkit.org/show_bug.cgi?id=157423
+        http://trac.webkit.org/changeset/200686
+
+2016-05-11  Chris Dumez  <cdumez@apple.com>
+
+        Optimize DataDetection's searchForLinkRemovingExistingDDLinks()
+        https://bugs.webkit.org/show_bug.cgi?id=157561
+
+        Reviewed by Ryosuke Niwa.
+
+        Optimize DataDetection's searchForLinkRemovingExistingDDLinks():
+        1. The first loop was using Node::childNodes() to iterate over the child
+           elements. Because of the recursive call, we may end up prepending
+           children as we iterate over them. This is an issue because the
+           childCount was cached before the loop and vector it would blow away
+           the cache inside the NodeList. Switch to using ElementTraversal which
+           should be both safer and more efficient. I don't believe we can use
+           our nice ElementChildIterator here unfortunately as we would hit
+           assertions due the the DOM mutations while iterating.
+        2. The second loop was using again Node::childNodes() and kept calling
+           item(0) to get the first child and move it to make it the previous
+           sibling of its old parent. Again, using childNodes() here is super
+           inefficient because we keep modifying the children and childNodes()
+           returns a live NodeList. The call to NodeList::length() would cache
+           all the children in a Vector, only to blow that cache away after
+          removing the first child. Switch to using ContainerNode::firstChild().
+        3. Drop the parentElement parameter as we can just get it from the child.
+        4. Use tighter typing so we don't end up calling the implementations of
+           insertBefore() / removeChild() that are on Node, thus unnecessarily
+           doing a is<ContainerNode>() check every time.
+        5. Pass element by reference instead of pointer as it cannot be null.
+
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::removeResultLinksFromAnchor):
+        (WebCore::searchForLinkRemovingExistingDDLinks):
+
+2016-05-11  Rawinder Singh  <rawinder.singh-webkit@cisra.canon.com.au>
+
+        preprocess-idls.pl not ignoring comments during processing
+        https://bugs.webkit.org/show_bug.cgi?id=157559
+
+        Reviewed by Darin Adler.
+
+        Remove comments from IDL file before processing.
+
+        * bindings/scripts/preprocess-idls.pl:
+        (getInterfaceExtendedAttributesFromIDL):
+
+2016-05-11  Jer Noble  <jer.noble@apple.com>
+
+        Videos allowed to play through the Main Content restriction should not pause when scrolled off-screen.
+        https://bugs.webkit.org/show_bug.cgi?id=157555
+
+        Reviewed by Eric Carlson.
+
+        Test: media/video-main-content-allow-then-scroll.html
+
+        * html/MediaElementSession.cpp:
+        (WebCore::isMainContent):
+
+2016-05-11  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [curl] curl_easy_setopt(CURLOPT_CONNECT_ONLY) should take a long parameter
+        https://bugs.webkit.org/show_bug.cgi?id=157562
+
+        Reviewed by Darin Adler.
+
+        The third argument of a calling curl_easy_setopt is missing.
+
+        * platform/network/curl/SocketStreamHandleCurl.cpp:
+        (WebCore::SocketStreamHandle::startThread): Give the third
+        argument of curl_easy_setopt.
+
+2016-05-11  Pranjal Jumde  <pjumde@apple.com>
+
+        Sites served over insecure connections should not be allowed to use geolocation.
+        https://bugs.webkit.org/show_bug.cgi?id=157423
+        <rdar://problem/23751632>
+
+        Reviewed by Brent Fulgham.
+
+        Tests: http/tests/security/insecure-geolocation.html
+               http/tests/security/mixedcontent-geolocation-block-insecure-content.html
+               http/tests/security/mixedcontent-geolocation.html
+
+        * Modules/geolocation/Geolocation.cpp:
+        (WebCore::Geolocation::logError):
+        (WebCore::Geolocation::startRequest):
+        Access to Geolocation will be blocked if site is not secure. An error will be logged when access to Geolocation is blocked.
+        (WebCore::Geolocation::shouldBlockGeolocationRequests)
+        Returns true if the access to the geolocation should be blocked.
+        * Modules/geolocation/Geolocation.h:
+        * dom/SecurityContext.h:
+        (WebCore::SecurityContext::foundMixedContent):
+        Returns true if insecure content was accessed over secure connection.
+        (WebCore::SecurityContext::setFoundMixedContent):
+        Sets m_foundMixedContent to true if insecure content is accessed over secure connection.
+        (WebCore::SecurityContext::geolocationAccessed):
+        Returns true if geolocation was accessed
+        (WebCore::SecurityContext::setGeolocationAccessed):
+        Sets m_geolocationAccessed to true if geolocation was accessed.
+        * loader/MixedContentChecker.cpp:
+        (WebCore::MixedContentChecker::canDisplayInsecureContent):
+        Insecure content will be blocked if geolocation was accessed by the page. Updates document to keep track of mixed content.
+        (WebCore::MixedContentChecker::canRunInsecureContent):
+        Insecure content will be blocked if geolocation was accessed by the page. Updates document to keep track of mixed content.
+
+2016-05-11  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        Ensure DOM iterators remain done
+        https://bugs.webkit.org/show_bug.cgi?id=157453
+
+        Reviewed by Darin Adler.
+
+        Covered by updated test.
+
+        Making DOMWrapped::Iterator an Optional.
+        Setting it to Nullopt on the first time Iterator is returning null.
+
+        For set iterators, incrementing a counter which value is used in forEach callbacks and entries iterators.
+
+        * bindings/js/JSDOMIterator.h:
+        (WebCore::JSDOMIterator<JSWrapper>::asJS):
+        (WebCore::appendForEachArguments):
+        (WebCore::iteratorForEach):
+        (WebCore::JSDOMIterator<JSWrapper>::next):
+
 2016-05-11  Joanmarie Diggs  <jdiggs@igalia.com>
 
         [GTK] accessibility/aria-readonly.html is failing

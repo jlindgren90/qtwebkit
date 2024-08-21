@@ -1,6 +1,149 @@
+2016-05-11  Keith Miller  <keith_miller@apple.com>
+
+        Unreviewed, correct the title of the ChangeLog for r200667.
+
+2016-05-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        JSC test stress/reflect-set.js failing after 200694
+        https://bugs.webkit.org/show_bug.cgi?id=157586
+
+        Unreviewed test rebaseline.
+
+        * tests/stress/reflect-set.js:
+        Update the expected error message. We are in strict mode, so the
+        improved error message makes sense.
+
+2016-05-11  Filip Pizlo  <fpizlo@apple.com>
+
+        Beef up JSC profiler event log
+        https://bugs.webkit.org/show_bug.cgi?id=157584
+
+        Reviewed by Saam Barati.
+        
+        Also log more about compilation.
+
+        * bytecode/ExecutionCounter.cpp: Changed the meaning of codeBlock to be the codeBlock that is doing the profiling. This will now get the baseline version if it needs it. This is needed for logging the threshold checking event.
+        (JSC::applyMemoryUsageHeuristics):
+        (JSC::ExecutionCounter<countingVariant>::hasCrossedThreshold):
+        * dfg/DFGJITCode.cpp: Pass the right codeBlock.
+        (JSC::DFG::JITCode::checkIfOptimizationThresholdReached):
+        (JSC::DFG::JITCode::optimizeNextInvocation):
+        (JSC::DFG::JITCode::dontOptimizeAnytimeSoon):
+        (JSC::DFG::JITCode::optimizeSoon):
+        (JSC::DFG::JITCode::forceOptimizationSlowPathConcurrently):
+        * dfg/DFGPlan.cpp: Log things about compile times and whether the compiler succeeded or failed.
+        (JSC::DFG::Plan::computeCompileTimes):
+        (JSC::DFG::Plan::reportCompileTimes):
+        (JSC::DFG::Plan::compileInThread):
+        (JSC::DFG::Plan::finalizeWithoutNotifyingCallback):
+        * jit/ExecutableAllocatorFixedVMPool.cpp: Make it possible to look at memory usage, though separately from the log, for now.
+        (JSC::ExecutableAllocator::allocate):
+        * runtime/Options.h:
+
+2016-05-11  Saam barati  <sbarati@apple.com>
+
+        Air may decide to put the result register of an arithmetic snippet in the tag register
+        https://bugs.webkit.org/show_bug.cgi?id=157548
+
+        Reviewed by Filip Pizlo.
+
+        This patch adds a new ValueRep to B3 called LateRegister. The semantics
+        are similar to Register in that it can be used to pin an argument to
+        a particular register. It differs from ValueRep::Register in that the semantics of
+        LateRegister are that it is used after the result of the node its an argument to
+        is computed. This means that a LateRegister argument will interfere with the result
+        of a node. LateRegister is not a valid result ValueRep.
+
+        This was needed because there was a bug where B3/Air would assign the
+        result of a patchpoint to the TagTypeNumber register. This broke our
+        code when we would box a double into a JSValue in a snippet when the
+        result is the same as the TagTypeNumber register. To fix the issue,
+        we pass TagMaskRegister and TagTypeNumberRegister as ValueRep::LateRegister
+        arguments to various patchpoints.
+
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::fillStackmap):
+        * b3/B3PatchpointSpecial.cpp:
+        (JSC::B3::PatchpointSpecial::admitsStack):
+        * b3/B3StackmapSpecial.cpp:
+        (JSC::B3::StackmapSpecial::forEachArgImpl):
+        (JSC::B3::StackmapSpecial::isArgValidForRep):
+        * b3/B3Validate.cpp:
+        * b3/B3ValueRep.cpp:
+        (JSC::B3::ValueRep::addUsedRegistersTo):
+        (JSC::B3::ValueRep::dump):
+        (JSC::B3::ValueRep::emitRestore):
+        (JSC::B3::ValueRep::recoveryForJSValue):
+        (WTF::printInternal):
+        * b3/B3ValueRep.h:
+        (JSC::B3::ValueRep::reg):
+        (JSC::B3::ValueRep::lateReg):
+        (JSC::B3::ValueRep::stack):
+        (JSC::B3::ValueRep::operator==):
+        (JSC::B3::ValueRep::isSomeRegister):
+        (JSC::B3::ValueRep::isReg):
+        * b3/testb3.cpp:
+        (JSC::B3::testSpillUseLargerThanDef):
+        (JSC::B3::testLateRegister):
+        (JSC::B3::zero):
+        (JSC::B3::run):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::lower):
+        (JSC::FTL::DFG::LowerDFGToB3::compileIn):
+        (JSC::FTL::DFG::LowerDFGToB3::getById):
+        (JSC::FTL::DFG::LowerDFGToB3::emitBinarySnippet):
+        (JSC::FTL::DFG::LowerDFGToB3::emitBinaryBitOpSnippet):
+        (JSC::FTL::DFG::LowerDFGToB3::emitRightShiftSnippet):
+
+2016-05-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Improve error messages for accessing arguments.callee and similar getters in strict mode
+        https://bugs.webkit.org/show_bug.cgi?id=157545
+
+        Reviewed by Mark Lam.
+
+        * runtime/ClonedArguments.cpp:
+        (JSC::ClonedArguments::getOwnPropertySlot):
+        (JSC::ClonedArguments::materializeSpecials):
+        Provide better error GetterSetter in strict mode.
+
+        * runtime/JSFunction.cpp:
+        (JSC::getThrowTypeErrorGetterSetter):
+        (JSC::JSFunction::defineOwnProperty):
+        Provide better error GetterSetter in strict mode.
+
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        (JSC::JSGlobalObject::visitChildren):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::throwTypeErrorGetterSetter):
+        (JSC::JSGlobalObject::throwTypeErrorCalleeAndCallerGetterSetter):
+        (JSC::JSGlobalObject::throwTypeErrorArgumentsAndCallerInStrictModeGetterSetter):
+        (JSC::JSGlobalObject::throwTypeErrorArgumentsAndCallerInClassContextGetterSetter):
+        (JSC::JSGlobalObject::throwTypeErrorArgumentsAndCallerGetterSetter): Deleted.
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncThrowTypeErrorCalleeAndCaller):
+        (JSC::globalFuncThrowTypeErrorArgumentsAndCallerInStrictMode):
+        (JSC::globalFuncThrowTypeErrorArgumentsAndCallerInClassContext):
+        (JSC::globalFuncThrowTypeErrorArgumentsAndCaller): Deleted.
+        * runtime/JSGlobalObjectFunctions.h:
+        Rename and expose new handles for new error getter setter native functions.
+
+2016-05-11  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200481.
+        https://bugs.webkit.org/show_bug.cgi?id=157573
+
+        it's bad news for asm.js (Requested by pizlo on #webkit).
+
+        Reverted changeset:
+
+        "Reduce maximum JIT pool size on X86_64."
+        http://trac.webkit.org/changeset/200481
+
 2016-05-10  Keith Miller  <keith_miller@apple.com>
 
-        TypedArray.prototype.slice should use the byteLength of passed array for memmove
+        TypedArray.prototype.slice should not use the byteLength of the passed array for memmove
         https://bugs.webkit.org/show_bug.cgi?id=157551
         <rdar://problem/26179914>
 
