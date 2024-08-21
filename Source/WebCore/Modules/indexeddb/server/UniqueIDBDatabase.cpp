@@ -65,6 +65,7 @@ UniqueIDBDatabase::~UniqueIDBDatabase()
     ASSERT(m_openDatabaseConnections.isEmpty());
     ASSERT(m_clientClosePendingDatabaseConnections.isEmpty());
     ASSERT(m_serverClosePendingDatabaseConnections.isEmpty());
+    ASSERT(!m_queuedTaskCount);
 }
 
 const IDBDatabaseInfo& UniqueIDBDatabase::info() const
@@ -243,6 +244,20 @@ void UniqueIDBDatabase::deleteBackingStore(const IDBDatabaseIdentifier& identifi
     }
 
     postDatabaseTaskReply(createCrossThreadTask(*this, &UniqueIDBDatabase::didDeleteBackingStore, deletedVersion));
+}
+
+void UniqueIDBDatabase::performUnconditionalDeleteBackingStore()
+{
+    ASSERT(!isMainThread());
+    LOG(IndexedDB, "(db) UniqueIDBDatabase::performUnconditionalDeleteBackingStore");
+
+    if (!m_backingStore)
+        return;
+
+    m_backingStore->deleteBackingStore();
+    m_backingStore = nullptr;
+    m_backingStoreSupportsSimultaneousTransactions = false;
+    m_backingStoreIsEphemeral = false;
 }
 
 void UniqueIDBDatabase::didDeleteBackingStore(uint64_t deletedVersion)
@@ -1515,18 +1530,21 @@ void UniqueIDBDatabase::executeNextDatabaseTaskReply()
     auto task = m_databaseReplyQueue.tryGetMessage();
     ASSERT(task);
 
+    // Performing the task might end up removing the last reference to this.
+    RefPtr<UniqueIDBDatabase> protectedThis(this);
+
     task->performTask();
     --m_queuedTaskCount;
 
     // If this database was force closed (e.g. for a user delete) and there are no more
-    // queued tasks left, delete this.
+    // cleanup tasks left, delete this.
     if (m_hardCloseProtector && doneWithHardClose())
         m_hardCloseProtector = nullptr;
 }
 
 bool UniqueIDBDatabase::doneWithHardClose()
 {
-    return (!m_queuedTaskCount && m_serverClosePendingDatabaseConnections.isEmpty());
+    return !m_queuedTaskCount && m_clientClosePendingDatabaseConnections.isEmpty() && m_serverClosePendingDatabaseConnections.isEmpty();
 }
 
 static void errorOpenDBRequestForUserDelete(ServerOpenDBRequest& request)
@@ -1601,8 +1619,10 @@ void UniqueIDBDatabase::immediateCloseForUserDelete()
     // Set up the database to remain alive-but-inert until all of its background activity finishes and all
     // database connections confirm that they have closed.
     m_hardClosedForUserDelete = true;
-    if (!doneWithHardClose())
-        m_hardCloseProtector = this;
+    m_hardCloseProtector = this;
+
+    // Have the database unconditionally delete itself on the database task queue.
+    postDatabaseTask(createCrossThreadTask(*this, &UniqueIDBDatabase::performUnconditionalDeleteBackingStore));
 
     // Remove the database from the IDBServer's set of open databases.
     // If there is no in-progress background thread activity for this database, it will be deleted here.

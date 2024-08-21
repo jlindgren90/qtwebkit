@@ -73,6 +73,7 @@
 #include "Document.h"
 #include "FloatConversion.h"
 #include "GridArea.h"
+#include "HTMLOptGroupElement.h"
 #include "HTMLParserIdioms.h"
 #include "HashTools.h"
 #include "MediaList.h"
@@ -13456,7 +13457,7 @@ void CSSParser::markPropertyEnd(bool isImportantFound, bool isPropertyParsed)
 }
 
 #if ENABLE(CSS_DEVICE_ADAPTATION)
-Ref<StyleRuleBase> CSSParser::createViewportRule()
+Ref<StyleRuleViewport> CSSParser::createViewportRule()
 {
     m_allowImportRules = m_allowNamespaceDeclarations = false;
 

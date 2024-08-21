@@ -19,12 +19,9 @@ button
 
     if (window.accessibilityController) {
         document.getElementById("button").focus();
-        var button = accessibilityController.focusedElement;
-        if (accessibilityController.platformName == "atk")
-            shouldBe("button.description", "'AXDescription: click here'");
-        else
-            shouldBe("button.helpText", "'AXHelp: click here'");
-    }
+        var axButton = accessibilityController.focusedElement;
+        shouldBeEqualToString("platformValueForW3CName(axButton)", "title");
+        shouldBeEqualToString("platformValueForW3CDescription(axButton)", "click here");
 
         document.getElementById("content").style.visibility = "hidden";
     }

@@ -1,3 +1,372 @@
+2016-05-20  Rawinder Singh  <rawinder.singh-webkit@cisra.canon.com.au>
+
+        Implement operator== for WeakPtr
+        https://bugs.webkit.org/show_bug.cgi?id=157883
+
+        Reviewed by Chris Dumez.
+
+        Implement operator== and operator!= for WeakPtr and update code to use the operators.
+
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::handleMousePressEvent):
+        (WebCore::EventHandler::updateLastScrollbarUnderMouse):
+        * page/mac/EventHandlerMac.mm:
+        (WebCore::EventHandler::platformCompleteWheelEvent):
+
+2016-05-19  Tim Horton  <timothy_horton@apple.com>
+
+        REGRESSION (r200638): -[DOMHTMLVideoElement play] disappeared from ObjC bindings
+        https://bugs.webkit.org/show_bug.cgi?id=157940
+        <rdar://problem/26385907>
+
+        Reviewed by Dan Bernstein.
+
+        * html/HTMLMediaElement.idl:
+        Drop the return value of play from the ObjC bindings, because the bindings
+        generator doesn't seem to know what to do with a Promise.
+
+2016-05-19  Chris Dumez  <cdumez@apple.com>
+
+        Improve compile-time assertions in is<>() / downcast<>()
+        https://bugs.webkit.org/show_bug.cgi?id=157817
+
+        Reviewed by Darin Adler.
+
+        Add missing includes and drop unnecessary is<WebVTTElement>() check
+        in SharingResolver::canShareStyleWithElement() that was identified
+        by the new assertions. WebVTTElement inherits Element but the check
+        was done on a StyledElement.
+
+        * accessibility/AccessibilityRenderObject.cpp:
+        * accessibility/AccessibilitySVGElement.cpp:
+        * css/CSSDefaultStyleSheets.cpp:
+        * css/CSSParser.cpp:
+        * css/CSSStyleSheet.cpp:
+        * css/StyleResolver.cpp:
+        * cssjit/SelectorCompiler.cpp:
+        * dom/Document.cpp:
+        * dom/Element.cpp:
+        * dom/Node.cpp:
+        * dom/Position.cpp:
+        * editing/ApplyStyleCommand.cpp:
+        * editing/FrameSelection.cpp:
+        * editing/ReplaceSelectionCommand.cpp:
+        * editing/TextIterator.cpp:
+        * editing/VisiblePosition.cpp:
+        * editing/VisibleUnits.cpp:
+        * editing/cocoa/HTMLConverter.mm:
+        * editing/htmlediting.cpp:
+        * editing/markup.cpp:
+        * html/GenericCachedHTMLCollection.cpp:
+        * html/HTMLBodyElement.cpp:
+        * html/HTMLFormElement.cpp:
+        * html/HTMLLIElement.cpp:
+        * html/HTMLNameCollection.cpp:
+        * html/HTMLSelectElement.cpp:
+        * html/parser/HTMLTreeBuilder.cpp:
+        * inspector/InspectorDOMAgent.cpp:
+        * inspector/InspectorStyleSheet.cpp:
+        * loader/SubframeLoader.cpp:
+        * loader/archive/cf/LegacyWebArchive.cpp:
+        * mathml/MathMLElement.cpp:
+        * page/EventHandler.cpp:
+        * page/FrameView.cpp:
+        * page/PageSerializer.cpp:
+        * page/SpatialNavigation.cpp:
+        * page/mac/EventHandlerMac.mm:
+        * rendering/HitTestResult.cpp:
+        * rendering/RenderBlockFlow.cpp:
+        * rendering/RenderBox.cpp:
+        * rendering/RenderBoxModelObject.cpp:
+        * rendering/RenderElement.cpp:
+        * rendering/RenderFieldset.cpp:
+        * rendering/RenderLayer.cpp:
+        * rendering/svg/RenderSVGTransformableContainer.cpp:
+        * style/StyleSharingResolver.cpp:
+        (WebCore::Style::SharingResolver::canShareStyleWithElement):
+        * svg/SVGAnimationElement.cpp:
+        * svg/SVGFELightElement.cpp:
+        * svg/SVGTextPositioningElement.cpp:
+
+2016-05-19  Zalan Bujtas  <zalan@apple.com>
+
+        Cleanup RenderObject::container()
+        https://bugs.webkit.org/show_bug.cgi?id=157914
+
+        Reviewed by David Hyatt.
+
+        1. Now we have a dedicated method for the optional, repaintContainerSkipped branch. The container finding
+        logic is moved to a static inline function so the compiler can optimize out the repaintContainerSkipped branches, when
+        container() is called instead of container(repaintContainer, isRepaintContainerSkipped).
+        2. Use helper functions like canContainAbsolutelyPositionedObjects()
+        3. Remove stale comments.
+
+        No behaviour change.
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::mapLocalToContainer):
+        (WebCore::RenderBox::pushMappingToContainer):
+        (WebCore::RenderBox::computeRectForRepaint):
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::computeRectForRepaint):
+        (WebCore::RenderInline::mapLocalToContainer):
+        (WebCore::RenderInline::pushMappingToContainer):
+        * rendering/RenderObject.cpp:
+        (WebCore::containerForElement):
+        (WebCore::RenderObject::container):
+        * rendering/RenderObject.h:
+        * rendering/RenderText.h:
+
+2016-05-16  Enrica Casucci  <enrica@apple.com>
+
+        No candidate punctuation when typing punctuation in WK2 text field.
+        https://bugs.webkit.org/show_bug.cgi?id=157773
+        rdar://problem/23084603
+
+        Reviewed by Sam Weinig.
+
+        We need to keep the inputManagerHint as part of the platform key event
+        information. Adding a new initializer for the task and a property to retrieve
+        the stored hint.
+
+        * platform/ios/WebEvent.h:
+        * platform/ios/WebEvent.mm:
+        (-[WebEvent initWithKeyEventType:timeStamp:characters:charactersIgnoringModifiers:modifiers:isRepeating:withFlags:keyCode:isTabKey:characterSet:]):
+        (-[WebEvent initWithKeyEventType:timeStamp:characters:charactersIgnoringModifiers:modifiers:isRepeating:withFlags:withInputManagerHint:keyCode:isTabKey:]):
+        (-[WebEvent dealloc]):
+        (-[WebEvent inputManagerHint]):
+
+2016-05-19  Brady Eidson  <beidson@apple.com>
+
+        Finishing off: Modern IDB: Website data store management.
+        https://bugs.webkit.org/show_bug.cgi?id=157626
+
+        Reviewed by Alex Christensen.
+
+        Test: storage/indexeddb/modern/new-database-after-user-delete.html
+
+        This patch does two primary things:
+        1 - Implements the actual "delete files on disk" code for unopened databases,
+            taken from existing WK2 code.
+
+        2 - When a UniqueIBDDatabase is told to close immediately for user delete, it also
+            queues up a "delete backing store unconditionally" operation in the database task queue.
+
+            That way, all of the open databases are deleted before the primary "delete all files"
+            pass, and they are also deleted before any future openDB requests are handled that might
+            recreate the files.
+
+        * Modules/indexeddb/server/IDBServer.cpp:
+        (WebCore::IDBServer::IDBServer::getOrCreateUniqueIDBDatabase):
+        (WebCore::IDBServer::IDBServer::deleteDatabase):
+        (WebCore::IDBServer::IDBServer::closeUniqueIDBDatabase):
+        (WebCore::IDBServer::IDBServer::openDBRequestCancelled):
+        (WebCore::IDBServer::removeAllDatabasesForOriginPath):
+        (WebCore::IDBServer::IDBServer::performCloseAndDeleteDatabasesModifiedSince):
+        (WebCore::IDBServer::IDBServer::performCloseAndDeleteDatabasesForOrigins):
+
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::performUnconditionalDeleteBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::doneWithHardClose):
+        (WebCore::IDBServer::UniqueIDBDatabase::immediateCloseForUserDelete):
+        * Modules/indexeddb/server/UniqueIDBDatabase.h:
+
+2016-05-19  Brady Eidson  <beidson@apple.com>
+
+        REGRESSION(201098) GuardMalloc / ASan crashes in WebCore::IDBServer::UniqueIDBDatabase::executeNextDatabaseTaskReply
+        https://bugs.webkit.org/show_bug.cgi?id=157917
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Covered by all existing tests in Gmalloc/ASAN configs).
+
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::~UniqueIDBDatabase):
+        (WebCore::IDBServer::UniqueIDBDatabase::executeNextDatabaseTaskReply): Protect this from deletion before executing the task.
+
+2016-05-19  Jer Noble  <jer.noble@apple.com>
+
+        [IOS] Add setting to allow playback to continue inline after exiting fullscreen.
+        https://bugs.webkit.org/show_bug.cgi?id=157912
+
+        Reviewed by Eric Carlson.
+
+        Test: media/media-fullscreen-return-to-inline.html
+
+        Allow playback to continue when exiting fullscreen via settings.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::exitFullscreen):
+        * page/Settings.in:
+
+2016-05-19  Dave Hyatt  <hyatt@apple.com>
+
+        Fix childrenInline() check in markAllDescendantsWithFloatsForLayout()
+        https://bugs.webkit.org/show_bug.cgi?id=157866
+
+        Reviewed by Zalan Bujtas.
+
+        * rendering/RenderBlockFlow.cpp:
+        (WebCore::RenderBlockFlow::markAllDescendantsWithFloatsForLayout):
+
+2016-05-19  Chris Dumez  <cdumez@apple.com>
+
+        Update RenderBlockFlow::adjustComputedFontSizes() to use RenderObjectTraversal
+        https://bugs.webkit.org/show_bug.cgi?id=157784
+
+        Reviewed by Zalan Bujtas.
+
+        Update RenderBlockFlow::adjustComputedFontSizes() to use RenderObjectTraversal
+        instead of having its own Renderer tree traversal API, specifically for iOS
+        text autosizing.
+
+        * rendering/RenderBlockFlow.cpp:
+        (WebCore::isVisibleRenderText):
+        (WebCore::resizeTextPermitted):
+        (WebCore::isNonBlocksOrNonFixedHeightListItems):
+        (WebCore::RenderBlockFlow::adjustComputedFontSizes):
+        * rendering/RenderIterator.h:
+        (WebCore::RenderObjectTraversal::nextSkippingChildren):
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::traverseNext): Deleted.
+        (WebCore::RenderObject::enclosingBox): Deleted.
+        (WebCore::RenderObject::enclosingBoxModelObject): Deleted.
+        (WebCore::RenderObject::fixedPositionedWithNamedFlowContainingBlock): Deleted.
+        (WebCore::hasFixedPosInNamedFlowContainingBlock): Deleted.
+        (WebCore::RenderObject::firstLineBlock): Deleted.
+        (WebCore::objectIsRelayoutBoundary): Deleted.
+        * rendering/RenderObject.h:
+
+2016-05-19  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the build with GCC 4.9 in CSSParser.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=157887
+
+        Reviewed by Chris Dumez.
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::createViewportRule):
+        * css/CSSParser.h:
+
+2016-05-18  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: use a consistent prefix for injected scripts
+        https://bugs.webkit.org/show_bug.cgi?id=157715
+        <rdar://problem/26287188>
+
+        Reviewed by Timothy Hatcher.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * inspector/CommandLineAPIModuleSource.js:
+
+2016-05-18  Jer Noble  <jer.noble@apple.com>
+
+        Playback controls should not be active for muted media elements.
+        https://bugs.webkit.org/show_bug.cgi?id=157876
+        <rdar://problem/26007525>
+
+        Reviewed by Eric Carlson.
+
+        Consolidate calls to setUpPlaybackControlsManager() and clearUpPlaybackControlsManager()
+        into a new method, updatePlaybackControlsManager(), which checks with the MediaElementSession
+        whether the media element can currently control the playback controls manager, and call
+        one or the other method conditionally.
+
+        That means more logic needs to be moved into MediaElementSession::canControlControlsManager(),
+        such as whether the element is muted(), has ended(), or whether the element's document has
+        been suspended.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::~HTMLMediaElement):
+        (WebCore::HTMLMediaElement::setMuted):
+        (WebCore::HTMLMediaElement::updatePlayState):
+        (WebCore::HTMLMediaElement::clearMediaPlayer):
+        (WebCore::HTMLMediaElement::stopWithoutDestroyingMediaPlayer):
+        (WebCore::HTMLMediaElement::createMediaPlayer):
+        (WebCore::HTMLMediaElement::updatePlaybackControlsManager):
+        * html/HTMLMediaElement.h:
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canControlControlsManager):
+
+2016-05-19  Chris Dumez  <cdumez@apple.com>
+
+        Kill JSDOMBindings' createNewWrapper()
+        https://bugs.webkit.org/show_bug.cgi?id=157842
+
+        Reviewed by Youenn Fablet.
+
+        Kill JSDOMBindings' createNewWrapper() as it is identical to createWrapper().
+
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::createNewWrapper): Deleted.
+        * bindings/js/JSDocumentFragmentCustom.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/js/JSNodeListCustom.cpp:
+        (WebCore::createWrapper):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestEventTarget.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSreadonly.cpp:
+        (WebCore::toJSNewlyCreated):
+
+2016-05-18  Jer Noble  <jer.noble@apple.com>
+
+        Playback controls still valid after navigating back after watching YouTube video.
+        https://bugs.webkit.org/show_bug.cgi?id=157874
+        <rdar://problem/25993063>
+
+        Reviewed by Eric Carlson.
+
+        YouTube uses window.onpopstate to "navigate" backwards from a video page to the main page
+        (or other video page). This causes the playback controls to not be cleared (since no
+        navigation actually occured). Instead, clear the playback controls when we clear our
+        MediaPlayer due to load() being called, when the src= attribute is changed, or when a
+        <source> element is added to the <video>.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::clearMediaPlayer):
+        (WebCore::HTMLMediaElement::createMediaPlayer):
+
 2016-05-19  Philippe Normand  <pnormand@igalia.com>
 
         [GStreamer] unrelated codecs required to play videos

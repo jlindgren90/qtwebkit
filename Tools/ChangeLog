@@ -1,3 +1,76 @@
+2016-05-20  Srinivasan Vijayaraghavan  <svijayaraghavan@apple.com>
+
+        Use clearer names for JSON output of javascriptcore test results
+        https://bugs.webkit.org/show_bug.cgi?id=157921
+
+        Reviewed by Alexey Proskuryakov.
+
+        "failures" and "apiTestResult" were somewhat ambiguous names. 
+        
+        * Scripts/run-javascriptcore-tests:
+        (runJSCStressTests): "failures" -> "stressFailures", "apiTestResult" -> "allApiTestsPassed".
+
+2016-05-20  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, fix API test introduced in r201213.
+
+        * TestWebKitAPI/Tests/WTF/WeakPtr.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-05-20  Rawinder Singh  <rawinder.singh-webkit@cisra.canon.com.au>
+
+        Implement operator== for WeakPtr
+        https://bugs.webkit.org/show_bug.cgi?id=157883
+
+        Reviewed by Chris Dumez.
+
+        Implement operator== and operator!= for WeakPtr and update code to use the operators.
+
+        * TestWebKitAPI/Tests/WTF/WeakPtr.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-05-19  Srinivasan Vijayaraghavan  <svijayaraghavan@apple.com>
+
+        Add JSON results to 32-bit and CLoop JSC tests
+        https://bugs.webkit.org/show_bug.cgi?id=157929
+
+        Reviewed by Alexey Proskuryakov.
+
+        * BuildSlaveSupport/build.webkit.org-config/master.cfg:
+        (RunLLINTCLoopTests): Change command-line parameters to run-javascriptcore-tests in order to get JSON output.
+        (Run32bitJSCTests): Change command-line parameters to run-javascriptcore-tests in order to get JSON output.
+
+2016-05-19  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Typo fix in import-test262-tests
+        https://bugs.webkit.org/show_bug.cgi?id=157902
+
+        Reviewed by Keith Miller.
+
+        * Scripts/import-test262-tests:
+
+2016-05-19  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [EFL] Fix the gst-libav build on ARM Thumb2 after r199649
+        https://bugs.webkit.org/show_bug.cgi?id=157893
+
+        Reviewed by Antonio Gomes.
+
+        * efl/patches/gst-libav.patch:
+
+2016-05-19  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION(r200951): VideoControlsManager API tests time out
+        https://bugs.webkit.org/show_bug.cgi?id=157896
+        <rdar://problem/26326293>
+
+        Reviewed by Eric Carlson.
+
+        Explicitly disable user gesture requirements for playback.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        (TestWebKitAPI::TEST):
+
 2016-05-19  Csaba Osztrogonác  <ossy@webkit.org>
 
         Slow JSC stress tests times out in 32 bit debug mode

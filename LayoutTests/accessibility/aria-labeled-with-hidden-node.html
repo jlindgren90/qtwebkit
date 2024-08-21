@@ -18,10 +18,9 @@
     
     if (window.accessibilityController) {
        var button = accessibilityController.accessibleElementById("button");
-       if (accessibilityController.platformName == "atk")
-           shouldBe("button.title", "'AXTitle: TITLE'");
-       else
-           shouldBe("button.description", "'AXDescription: TITLE'");
+       shouldBeEqualToString("platformValueForW3CName(button)", "TITLE");
+
+       document.getElementById("content").style.visibility = "hidden";
     }
 </script>
 

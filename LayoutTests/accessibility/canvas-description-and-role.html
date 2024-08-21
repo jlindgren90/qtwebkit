@@ -22,17 +22,11 @@ if (window.testRunner && window.accessibilityController) {
     shouldBe("axContainer.childrenCount", "2");
 
     var axCanvas1 = axContainer.childAtIndex(0);
-    if (accessibilityController.platformName == "atk")
-        debug('Canvas 1 title: ' + axCanvas1.title);
-    else
-        debug('Canvas 1 description: ' + axCanvas1.description);
+    shouldBeEqualToString("platformValueForW3CName(axCanvas1)", "Canvas label");
     debug('Canvas 1 role: ' + axCanvas1.role);
 
     var axCanvas2 = axContainer.childAtIndex(1);
-    if (accessibilityController.platformName == "atk")
-        debug('Canvas 2 title: ' + axCanvas2.title);
-    else
-        debug('Canvas 2 description: ' + axCanvas2.description);
+    shouldBeEqualToString("platformValueForW3CName(axCanvas2)", "");
     debug('Canvas 2 role: ' + axCanvas2.role);
 }
 

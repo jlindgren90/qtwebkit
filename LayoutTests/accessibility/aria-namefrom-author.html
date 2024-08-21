@@ -68,10 +68,11 @@
     document.getElementById("button").setAttribute("aria-labelledby", labelledby);
 
     if (window.accessibilityController) {
-        if (accessibilityController.platformName == "atk")
-            debug("Button title: " + accessibilityController.accessibleElementById("button").title);
-        else
-            debug("Button description: " + accessibilityController.accessibleElementById("button").description);
+        var buttonAccName = platformValueForW3CName(accessibilityController.accessibleElementById("button"));
+        var button = document.getElementById("button");
+        shouldBeTrue("buttonAccName == button.getAttribute('aria-label')");
+        shouldBeTrue("buttonAccName != button.innerText");
+
         document.getElementById("content").style.visibility = "hidden";
     }
 

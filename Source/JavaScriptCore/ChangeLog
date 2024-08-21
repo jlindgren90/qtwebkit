@@ -1,3 +1,288 @@
+2016-05-19  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Improve int->float conversion in FTL
+        https://bugs.webkit.org/show_bug.cgi?id=157936
+
+        Reviewed by Filip Pizlo.
+
+        The integer -> floating point lowering was very barebone.
+
+        For example, converting a constant integer to double
+        was doing:
+            mov #const, %eax
+            xor %xmm0, %xmm0
+            cvtsi2sd %eax, %xmm0
+
+        Conversion from integer to float was also missing.
+        We were always converting to double then rounding the double
+        to float.
+
+        This patch adds the basics:
+        -Constant folding.
+        -Integer to Float opcode.
+        -Reducing int->double to int->float when used by DoubleToFloat.
+
+        * assembler/MacroAssemblerX86Common.h:
+        (JSC::MacroAssemblerX86Common::convertInt32ToFloat):
+        * assembler/MacroAssemblerX86_64.h:
+        (JSC::MacroAssemblerX86_64::convertInt64ToDouble):
+        (JSC::MacroAssemblerX86_64::convertInt64ToFloat):
+        * assembler/X86Assembler.h:
+        (JSC::X86Assembler::cvtsi2ss_rr):
+        (JSC::X86Assembler::cvtsi2ssq_rr):
+        (JSC::X86Assembler::cvtsi2sdq_mr):
+        (JSC::X86Assembler::cvtsi2ssq_mr):
+        (JSC::X86Assembler::cvtsi2ss_mr):
+        * assembler/MacroAssemblerARM64.h:
+        * b3/B3Const32Value.cpp:
+        (JSC::B3::Const32Value::iToDConstant):
+        (JSC::B3::Const32Value::iToFConstant):
+        * b3/B3Const32Value.h:
+        * b3/B3Const64Value.cpp:
+        (JSC::B3::Const64Value::iToDConstant):
+        (JSC::B3::Const64Value::iToFConstant):
+        * b3/B3Const64Value.h:
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::lower):
+        * b3/B3Opcode.cpp:
+        (WTF::printInternal):
+        * b3/B3Opcode.h:
+        * b3/B3ReduceDoubleToFloat.cpp:
+        * b3/B3ReduceStrength.cpp:
+        * b3/B3Validate.cpp:
+        * b3/B3Value.cpp:
+        (JSC::B3::Value::iToDConstant):
+        (JSC::B3::Value::iToFConstant):
+        (JSC::B3::Value::isRounded):
+        (JSC::B3::Value::effects):
+        (JSC::B3::Value::key):
+        (JSC::B3::Value::typeFor):
+        * b3/B3Value.h:
+        * b3/B3ValueKey.cpp:
+        (JSC::B3::ValueKey::materialize):
+        * b3/air/AirFixPartialRegisterStalls.cpp:
+        * b3/air/AirOpcode.opcodes:
+        * b3/testb3.cpp:
+        (JSC::B3::int64Operands):
+        (JSC::B3::testIToD64Arg):
+        (JSC::B3::testIToF64Arg):
+        (JSC::B3::testIToD32Arg):
+        (JSC::B3::testIToF32Arg):
+        (JSC::B3::testIToD64Mem):
+        (JSC::B3::testIToF64Mem):
+        (JSC::B3::testIToD32Mem):
+        (JSC::B3::testIToF32Mem):
+        (JSC::B3::testIToD64Imm):
+        (JSC::B3::testIToF64Imm):
+        (JSC::B3::testIToD32Imm):
+        (JSC::B3::testIToF32Imm):
+        (JSC::B3::testIToDReducedToIToF64Arg):
+        (JSC::B3::testIToDReducedToIToF32Arg):
+        (JSC::B3::run):
+
+2016-05-19  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] FTL can crash on stack overflow
+        https://bugs.webkit.org/show_bug.cgi?id=157881
+        rdar://problem/24665964
+
+        Reviewed by Michael Saboff.
+
+        The VM's m_largestFTLStackSize was never set anywhere (updateFTLLargestStackSize()
+        was never called). We forgot to change that when implementing B3.
+
+        Even when it is set, we still have a problem on OSR Exit.
+        If the last frame is a FTL frame and it OSR Exits, the space required for
+        that frame becomes significantly larger. What happens is we crash in the OSR Exit
+        instead of the FTL frame (this is what happens in rdar://problem/24665964).
+
+        This patch changes the stack boundary checks in FTL to be the same as DFG:
+        we verify that we have enough space for the current optimized function but
+        also for the baseline version (including inlining) in case of exit.
+
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::lower):
+        (JSC::FTL::DFG::LowerDFGToB3::didOverflowStack): Deleted.
+        * runtime/VM.cpp:
+        (JSC::VM::VM): Deleted.
+        (JSC::VM::updateStackLimit): Deleted.
+        (JSC::VM::updateFTLLargestStackSize): Deleted.
+        * runtime/VM.h:
+        (JSC::VM::addressOfFTLStackLimit): Deleted.
+
+2016-05-18  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG::LICMPhase shouldn't hoist type checks unless it knows that the check will succeed at the loop pre-header
+        https://bugs.webkit.org/show_bug.cgi?id=144527
+
+        Reviewed by Saam Barati.
+        
+        This adds a control flow equivalence analysis (called ControlEquivalenceAnalysis) based on
+        dominator analysis over the backwards CFG. Two basic blocks are control flow equivalent if
+        the execution of one implies that the other one must also execute. It means that the two
+        blocks' forward and backward dominance are reciprocated: (A dom B and B backdom A) or (B dom
+        A and A backdom B). LICM now uses it to become more conservative about hoisting checks, if
+        this has caused problems in the past. If we hoist something that may exit from a block that
+        was not control equivalent to the pre-header then it's possible that the node's speculation
+        will fail even though it wouldn't have if it wasn't hoisted. So, we flag these nodes'
+        origins as being "wasHoisted" and we track all of their exits as "HoistingFailed". LICM will
+        turn off such speculative hoisting if the CodeBlock from which we are hoisting had the
+        HoistingFailed exit kind.
+        
+        Note that this deliberately still allows us to hoist things that may exit even if they are
+        not control equivalent to the pre-header. This is necessary because the profitability of
+        hoisting is so huge in all of the cases that we're aware of that it's worth giving it a
+        shot.
+        
+        This is neutral on macrobenchmarks since none of the benchmarks we track have a hoistable
+        operation that would exit only if hoisted. I added microbenchmarks to illustrate the problem
+        and two of them speed up by ~40% while one of them is neutral (Int52 saves us from having
+        problems on that program even though LICM previously did the wrong thing).
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/ExitKind.cpp:
+        (JSC::exitKindToString):
+        * bytecode/ExitKind.h:
+        * dfg/DFGAtTailAbstractState.h:
+        (JSC::DFG::AtTailAbstractState::operator bool):
+        (JSC::DFG::AtTailAbstractState::initializeTo):
+        * dfg/DFGBackwardsCFG.h: Added.
+        (JSC::DFG::BackwardsCFG::BackwardsCFG):
+        * dfg/DFGBackwardsDominators.h: Added.
+        (JSC::DFG::BackwardsDominators::BackwardsDominators):
+        * dfg/DFGCommon.h:
+        (JSC::DFG::checkAndSet): Deleted.
+        * dfg/DFGControlEquivalenceAnalysis.h: Added.
+        (JSC::DFG::ControlEquivalenceAnalysis::ControlEquivalenceAnalysis):
+        (JSC::DFG::ControlEquivalenceAnalysis::dominatesEquivalently):
+        (JSC::DFG::ControlEquivalenceAnalysis::areEquivalent):
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::dump):
+        (JSC::DFG::Graph::dumpBlockHeader):
+        (JSC::DFG::Graph::invalidateCFG):
+        (JSC::DFG::Graph::substituteGetLocal):
+        (JSC::DFG::Graph::handleAssertionFailure):
+        (JSC::DFG::Graph::ensureDominators):
+        (JSC::DFG::Graph::ensurePrePostNumbering):
+        (JSC::DFG::Graph::ensureNaturalLoops):
+        (JSC::DFG::Graph::ensureBackwardsCFG):
+        (JSC::DFG::Graph::ensureBackwardsDominators):
+        (JSC::DFG::Graph::ensureControlEquivalenceAnalysis):
+        (JSC::DFG::Graph::methodOfGettingAValueProfileFor):
+        * dfg/DFGGraph.h:
+        (JSC::DFG::Graph::hasDebuggerEnabled):
+        * dfg/DFGInPlaceAbstractState.h:
+        (JSC::DFG::InPlaceAbstractState::operator bool):
+        (JSC::DFG::InPlaceAbstractState::createValueForNode):
+        (JSC::DFG::InPlaceAbstractState::forNode):
+        * dfg/DFGLICMPhase.cpp:
+        (JSC::DFG::LICMPhase::run):
+        (JSC::DFG::LICMPhase::attemptHoist):
+        * dfg/DFGMayExit.cpp:
+        (JSC::DFG::mayExit):
+        * dfg/DFGMayExit.h:
+        * dfg/DFGNode.h:
+        * dfg/DFGNodeOrigin.cpp:
+        (JSC::DFG::NodeOrigin::dump):
+        * dfg/DFGNodeOrigin.h:
+        (JSC::DFG::NodeOrigin::takeValidExit):
+        (JSC::DFG::NodeOrigin::withWasHoisted):
+        (JSC::DFG::NodeOrigin::forInsertingAfter):
+        * dfg/DFGNullAbstractState.h: Added.
+        (JSC::DFG::NullAbstractState::NullAbstractState):
+        (JSC::DFG::NullAbstractState::operator bool):
+        (JSC::DFG::NullAbstractState::forNode):
+        * dfg/DFGOSRExit.cpp:
+        (JSC::DFG::OSRExit::OSRExit):
+        * dfg/DFGOSRExitBase.cpp:
+        (JSC::DFG::OSRExitBase::considerAddingAsFrequentExitSiteSlow):
+        * dfg/DFGOSRExitBase.h:
+        (JSC::DFG::OSRExitBase::OSRExitBase):
+        * dfg/DFGTypeCheckHoistingPhase.cpp:
+        (JSC::DFG::TypeCheckHoistingPhase::run):
+        * ftl/FTLOSRExit.cpp:
+        (JSC::FTL::OSRExitDescriptor::prepareOSRExitHandle):
+        (JSC::FTL::OSRExit::OSRExit):
+        * ftl/FTLOSRExit.h:
+
+2016-05-19  Mark Lam  <mark.lam@apple.com>
+
+        Code that null checks the VM pointer before any use should ref the VM.
+        https://bugs.webkit.org/show_bug.cgi?id=157864
+
+        Reviewed by Filip Pizlo and Keith Miller.
+
+        JSLock::willReleaseLock() and HeapTimer::timerDidFire() need to reference the VM
+        through a RefPtr.  Otherwise, there's no guarantee that the VM won't be deleted
+        after their null checks.
+
+        * bytecode/CodeBlock.h:
+        (JSC::CodeBlock::vm):
+        (JSC::CodeBlock::setVM): Deleted.
+        - Not used, and suggests that it can be changed during the lifetime of the
+          CodeBlock (which should not be).
+
+        * heap/HeapTimer.cpp:
+        (JSC::HeapTimer::timerDidFire):
+        * runtime/JSLock.cpp:
+        (JSC::JSLock::willReleaseLock):
+        - Store the VM pointer in a RefPtr first, and null check the RefPtr instead of
+          the raw VM pointer.  This makes the null check a strong guarantee that the
+          VM pointer is valid while these functions are using it.
+
+2016-05-19  Saam barati  <sbarati@apple.com>
+
+        arrow function lexical environment should reuse the same environment as the function's lexical environment where possible
+        https://bugs.webkit.org/show_bug.cgi?id=157908
+
+        Reviewed by Filip Pizlo.
+
+        We can safely combine these two environment when we have
+        a simple parameter list (no default parameters, no destructring parameters).
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::initializeDefaultParameterValuesAndSetupFunctionScopeStack):
+        (JSC::BytecodeGenerator::initializeArrowFunctionContextScopeIfNeeded):
+        * bytecompiler/BytecodeGenerator.h:
+
+2016-05-19  Michael Saboff  <msaboff@apple.com>
+
+        Unreviewed build fix.
+
+        Skipping this new test as it times out on the bots.
+
+        Issue tracked in https://bugs.webkit.org/show_bug.cgi?id=157903
+
+        * tests/stress/regress-157595.js:
+        (MyRegExp):
+
+2016-05-19  Guillaume Emont  <guijemont@igalia.com>
+
+        JSC: DFG::SpeculativeJIT::compile special case for MIPS for PutByValWithThis
+        https://bugs.webkit.org/show_bug.cgi?id=157741
+
+        Reviewed by Saam Barati.
+
+        The PutByValWithThis case needs a special case for MIPS because we
+        don't have enough registers. The special case needs to be different
+        from the x86 one because we have a different ABI.
+
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+
+2016-05-19  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: use a consistent prefix for injected scripts
+        https://bugs.webkit.org/show_bug.cgi?id=157715
+        <rdar://problem/26287188>
+
+        Reviewed by Timothy Hatcher.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * inspector/InjectedScriptSource.js:
+
 2016-05-19  Csaba Osztrogonác  <ossy@webkit.org>
 
         [ARM] Remove redefined macro after r200606

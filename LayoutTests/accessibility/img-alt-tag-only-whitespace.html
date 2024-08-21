@@ -24,10 +24,7 @@
         document.getElementById("images").focus();
         var imagesGroup = accessibilityController.focusedElement;
         shouldBe("imagesGroup.childrenCount", "1");
-        if (accessibilityController.platformName != "atk")
-            console.log("Image description: " + imagesGroup.childAtIndex(0).description);
-        else
-            console.log("Image title: " + imagesGroup.childAtIndex(0).title);
+        shouldBeEqualToString("platformValueForW3CName(imagesGroup.childAtIndex(0))", "   Image ");
     }
 
 </script>

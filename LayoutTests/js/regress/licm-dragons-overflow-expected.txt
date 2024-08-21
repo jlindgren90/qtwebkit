@@ -1,9 +1,9 @@
-This tests that aria-labelledby overrides aria-labeledby correctly.
+JSRegress/licm-dragons-overflow
 
 On success, you will see a series of "PASS" messages, followed by "TEST COMPLETE".
 
 
-PASS linkTitle is 'AXTitle: Y Z'
+PASS no exception thrown
 PASS successfullyParsed is true
 
 TEST COMPLETE

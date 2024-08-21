@@ -30,20 +30,11 @@
         description("This tests that aria-labelledby does not append all sibling to an ARIA name");
 
         if (window.accessibilityController) {
-            var labeledItem = document.getElementById("rep");
-            labeledItem.focus();
-            var result = document.getElementById("result");
-            var resultValue;
-            if (accessibilityController.platformName == "atk")
-                resultValue = accessibilityController.focusedElement.title;
-            else
-                resultValue = accessibilityController.focusedElement.description;
-            if (resultValue.endsWith("Reply Item Five")) {
-               result.innerText = "Passed";
-            }
-            else { 
-               result.innerText = "Failed. Result ==" + resultValue + "==";
-            }
+            var labeledItem = document.getElementById("rep").focus();
+            var axButton = accessibilityController.focusedElement;
+            shouldBeEqualToString("platformValueForW3CName(axButton)", "Reply Item Five");
+
+            document.getElementById("content").style.visibility = "hidden";
         }
 </script>
 <script src="../resources/js-test-post.js"></script>

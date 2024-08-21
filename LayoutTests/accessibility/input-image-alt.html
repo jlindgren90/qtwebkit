@@ -17,11 +17,7 @@
 
             var image1 = document.getElementById("image1").focus();
             var img = accessibilityController.focusedElement;
-
-            if (accessibilityController.platformName == "atk")
-                debug("img.title is " + img.title);
-            else
-                debug("img.description is " + img.description);
+            shouldBeEqualToString("platformValueForW3CName(img)", "Submit");
         }
     </script>
 

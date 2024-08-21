@@ -205,6 +205,7 @@ fast/events/drag-outside-window.html
 fast/events/drag-parent-node.html
 fast/events/drag-selects-image.html
 fast/events/drag-to-navigate.html
+fast/events/draggable-div-nodata.html
 fast/events/drop-handler-should-not-stop-navigate.html
 fast/events/drop-with-file-paths.html
 fast/events/dropzone-001.html
@@ -2938,6 +2939,7 @@ fast/table/collapsed-border-with-odd-pixel-width.html [ ImageOnlyFailure ]
 # Uncategorized reftest failures, uncovered once we made reftests work. Needs triage.
 css3/font-variant-petite-caps-synthesis-coverage.html [ ImageOnlyFailure ]
 css3/font-variant-small-caps-synthesis-coverage.html [ ImageOnlyFailure ]
+css3/font-variant-synthesis-jdaggett.html [ ImageOnlyFailure ]
 fast/backgrounds/background-image-large-float-intrinsic-ratio.html [ ImageOnlyFailure ]
 fast/block/positioning/fixed-container-with-relative-parent.html [ ImageOnlyFailure ]
 fast/borders/border-image-fill-inline-no-border.html [ ImageOnlyFailure ]
