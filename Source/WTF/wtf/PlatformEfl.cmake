@@ -1,4 +1,5 @@
 list(APPEND WTF_SOURCES
+    PlatformUserPreferredLanguagesUnix.cpp
     UniStdExtras.cpp
 
     efl/DispatchQueueEfl.cpp

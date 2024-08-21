@@ -696,7 +696,7 @@ void RenderTable::paint(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
 void RenderTable::paintObject(PaintInfo& paintInfo, const LayoutPoint& paintOffset)
 {
     PaintPhase paintPhase = paintInfo.phase;
-    if ((paintPhase == PaintPhaseBlockBackground || paintPhase == PaintPhaseChildBlockBackground) && hasBoxDecorations() && style().visibility() == VISIBLE)
+    if ((paintPhase == PaintPhaseBlockBackground || paintPhase == PaintPhaseChildBlockBackground) && hasVisibleBoxDecorations() && style().visibility() == VISIBLE)
         paintBoxDecorations(paintInfo, paintOffset);
 
     if (paintPhase == PaintPhaseMask) {
@@ -775,7 +775,7 @@ void RenderTable::paintBoxDecorations(PaintInfo& paintInfo, const LayoutPoint& p
     paintBackground(paintInfo, rect, bleedAvoidance);
     paintBoxShadow(paintInfo, rect, style(), Inset);
 
-    if (style().hasBorderDecoration() && !collapseBorders())
+    if (style().hasVisibleBorderDecoration() && !collapseBorders())
         paintBorder(paintInfo, rect, style());
 }
 
