@@ -1,3 +1,64 @@
+2016-05-03  Filip Pizlo  <fpizlo@apple.com>
+
+        Speed up JSGlobalObject initialization by making some properties lazy
+        https://bugs.webkit.org/show_bug.cgi?id=157045
+
+        Reviewed by Keith Miller.
+
+        No new tests because no change in behavior.
+        
+        This adapts JSHTMLElementCustom.cpp to the new JSWithScope API. Note that this revealed
+        that this was using a curious choice of global object, which may not be right. I decided
+        to do a very literal refactoring that exactly preserves what this code got before, but I
+        added a FIXME to reconsider this later.
+
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::JSHTMLElement::pushEventHandlerScope):
+
+2016-05-03  Per Arne Vollan  <peavo@outlook.com>
+
+        [Win] Remove Windows XP Compatibility Requirements
+        https://bugs.webkit.org/show_bug.cgi?id=152899
+
+        Reviewed by Brent Fulgham.
+
+        Windows XP is not supported anymore, we can remove compatibility workarounds.
+
+        * platform/text/win/LocaleWin.cpp:
+        (WebCore::extractLanguageCode):
+        (WebCore::LCIDFromLocaleInternal):
+        (WebCore::LCIDFromLocale):
+        (WebCore::removeLastComponent): Deleted.
+        (WebCore::ensureNameToLCIDMap): Deleted.
+        (WebCore::convertLocaleNameToLCID): Deleted.
+
+2016-05-02  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r198943): Transitions don't work if they animate display property
+        https://bugs.webkit.org/show_bug.cgi?id=157244
+        <rdar://problem/26042189>
+
+        Reviewed by Simon Fraser.
+
+        Test: transitions/transition-display-property.html
+
+        * style/RenderTreeUpdater.cpp:
+        (WebCore::RenderTreeUpdater::updateBeforeOrAfterPseudoElement):
+
+            Call the common function for ::before/::after updates.
+
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::TreeResolver::resolveElement):
+        (WebCore::Style::TreeResolver::createAnimatedElementUpdate):
+
+            If animation forces render tree reconstruction use the original rather than animated style for update.
+            Because animations are tied to renderers we start them during renderer construction in this case.
+
+            Factor to a function.
+
+        (WebCore::Style::elementImplicitVisibility):
+        * style/StyleTreeResolver.h:
+
 2016-05-03  Pranjal Jumde  <pjumde@apple.com>
 
         WorkerGlobalScope's self, location and navigator attributes should not be replaceable
