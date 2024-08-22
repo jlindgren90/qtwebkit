@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009 Apple Inc. All rights reserved.
+ * Copyright (C) 2006 Samuel Weinig <sam.weinig@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,32 +21,11 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef LLIntPrototypeLoadAdaptiveStructureWatchpoint_h
-#define LLIntPrototypeLoadAdaptiveStructureWatchpoint_h
+#import <WebCore/DOMObject.h>
 
-#include "Instruction.h"
-#include "ObjectPropertyCondition.h"
-#include "Watchpoint.h"
-
-namespace JSC {
-
-class LLIntPrototypeLoadAdaptiveStructureWatchpoint : public Watchpoint {
-public:
-    LLIntPrototypeLoadAdaptiveStructureWatchpoint(const ObjectPropertyCondition&, Instruction*);
-
-    void install();
-
-protected:
-    void fireInternal(const FireDetail&) override;
-
-private:
-    ObjectPropertyCondition m_key;
-    Instruction* m_getByIdInstruction;
-};
-
-} // namespace JSC
-
-#endif /* LLIntPrototypeLoadAdaptiveStructureWatchpoint_h */
+WEBKIT_CLASS_AVAILABLE_MAC(9876_5)
+WEBCORE_EXPORT @interface DOMInterfaceName : DOMObject
+@end

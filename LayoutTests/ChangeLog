@@ -1,3 +1,118 @@
+2016-06-01  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Some setters for components of Date do not timeClip() their result
+        https://bugs.webkit.org/show_bug.cgi?id=158278
+        rdar://problem/25131426
+
+        Reviewed by Geoffrey Garen.
+
+        New test coverage for large values.
+
+        Note that some of those tests are still failing with this patch.
+
+        The reason is our code handling month and years is unable to deal
+        with values outside int32.
+        Changing that is a bit more complicated due to the number of users
+        of DateMath. I leave that for the future.
+
+        * js/date-timeClip-large-values-expected.txt: Added.
+        * js/date-timeClip-large-values.html: Added.
+        * js/script-tests/date-timeClip-large-values.js: Added.
+
+2016-06-01  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: iOS: VoiceOver can't access attachments in mail messages
+        https://bugs.webkit.org/show_bug.cgi?id=158198
+
+        Reviewed by Joanmarie Diggs.
+
+        * accessibility/ios-simulator/attributed-string-for-range.html: Added.
+
+2016-06-01  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r201488.
+        https://bugs.webkit.org/show_bug.cgi?id=158268
+
+        Caused 23% regression on JetStream's crypto-md5 (Requested by
+        rniwa on #webkit).
+
+        Reverted changeset:
+
+        "[ESNext] Support trailing commas in function param lists"
+        https://bugs.webkit.org/show_bug.cgi?id=158020
+        http://trac.webkit.org/changeset/201488
+
+2016-06-01  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        POST request on a blob resource should return a "network error" instead of HTTP 500 response
+        https://bugs.webkit.org/show_bug.cgi?id=158022
+
+        Reviewed by Alex Christensen.
+
+        Make sure response to XHR request on blob is correct.
+
+        * fast/files/xhr-blob-request-expected.txt: Added.
+        * fast/files/xhr-blob-request.html: Added.
+
+2016-06-01  Javier Fernandez  <jfernandez@igalia.com>
+
+        Unreviewed GTK+ gardening. Rebaseline several tests after r201397.
+
+        We correctly render search field's cancel and result button for RTL content.
+
+        * fast/forms/search-input-rtl-expected.txt: Added.
+        * platform/gtk/fast/css/text-overflow-input-expected.txt:
+        * platform/gtk/fast/forms/placeholder-position-expected.txt:
+        * platform/gtk/fast/forms/search-rtl-expected.txt:
+
+2016-06-01  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Add RTCRtpTransceiver interface and RTCPeerConnection.addTransceiver()
+        https://bugs.webkit.org/show_bug.cgi?id=158189
+
+        Reviewed by Darin Adler.
+
+        Added test for RTCPeerConnection.addTransceiver().
+
+        * fast/mediastream/RTCPeerConnection-addTransceiver-expected.txt: Added.
+        * fast/mediastream/RTCPeerConnection-addTransceiver.html: Added.
+        Test creating several RTCRtpTransceivers with various configurations and inspect the result.
+        * platform/mac/TestExpectations:
+        Skip the new test since the Mac port currently doesn't build with WebRTC support.
+
+2016-06-01  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Positioned items can be placed on the implicit grid
+        https://bugs.webkit.org/show_bug.cgi?id=158197
+
+        Reviewed by Sergio Villar Senin.
+
+        Updated the test to follow the expected behavior.
+
+        * fast/css-grid-layout/grid-positioned-items-within-grid-implicit-track-expected.txt:
+        * fast/css-grid-layout/grid-positioned-items-within-grid-implicit-track.html:
+
+2016-05-31  Dave Hyatt  <hyatt@apple.com>
+
+        REGRESSION(r201040): Repainting of moving overflow:hidden objects is broken.
+        https://bugs.webkit.org/show_bug.cgi?id=158079
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/repaint/overflow-hidden-movement-expected.txt: Added.
+        * fast/repaint/overflow-hidden-movement.html: Added.
+
+2016-05-31  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac] AirPlay route is sometimes reset when changing video.src
+        https://bugs.webkit.org/show_bug.cgi?id=158226
+        <rdar://problem/24197592>
+
+        Reviewed by Jer Noble.
+
+        * media/airplay-autoplay-expected.txt: Added.
+        * media/airplay-autoplay.html: Added.
+
 2016-05-31  Dave Hyatt  <hyatt@apple.com>
 
         REGRESSION (r189567): Elements with aspect ratios not handled correctly inside flexbox.

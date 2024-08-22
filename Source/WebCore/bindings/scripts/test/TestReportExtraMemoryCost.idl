@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,43 +23,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-#include "LLIntPrototypeLoadAdaptiveStructureWatchpoint.h"
+[
+    ReportExtraMemoryCost,
+] interface InterfaceName {
+};
 
-#include "CodeBlock.h"
-#include "Instruction.h"
-#include "StructureInlines.h"
-
-namespace JSC {
-
-LLIntPrototypeLoadAdaptiveStructureWatchpoint::LLIntPrototypeLoadAdaptiveStructureWatchpoint(const ObjectPropertyCondition& key, Instruction* getByIdInstruction)
-    : m_key(key)
-    , m_getByIdInstruction(getByIdInstruction)
-{
-    RELEASE_ASSERT(key.watchingRequiresStructureTransitionWatchpoint());
-    RELEASE_ASSERT(!key.watchingRequiresReplacementWatchpoint());
-}
-
-void LLIntPrototypeLoadAdaptiveStructureWatchpoint::install()
-{
-    RELEASE_ASSERT(m_key.isWatchable());
-
-    m_key.object()->structure()->addTransitionWatchpoint(this);
-}
-
-void LLIntPrototypeLoadAdaptiveStructureWatchpoint::fireInternal(const FireDetail& detail)
-{
-    if (m_key.isWatchable(PropertyCondition::EnsureWatchability)) {
-        install();
-        return;
-    }
-
-    StringPrintStream out;
-    out.print("ObjectToStringValue Adaptation of ", m_key, " failed: ", detail);
-
-    StringFireDetail stringDetail(out.toCString().data());
-
-    clearLLIntGetByIdCache(m_getByIdInstruction);
-}
-
-} // namespace JSC

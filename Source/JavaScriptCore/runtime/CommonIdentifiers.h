@@ -106,7 +106,6 @@
     macro(arguments) \
     macro(as) \
     macro(assign) \
-    macro(async) \
     macro(back) \
     macro(bind) \
     macro(blur) \
@@ -267,7 +266,6 @@
     macro(year)
 
 #define JSC_COMMON_IDENTIFIERS_EACH_KEYWORD(macro) \
-    macro(await) \
     macro(break) \
     macro(case) \
     macro(catch) \
@@ -317,7 +315,6 @@
 
 #define JSC_COMMON_PRIVATE_IDENTIFIERS_EACH_WELL_KNOWN_SYMBOL_NOT_IMPLEMENTED_YET(macro)\
     macro(isConcatSpreadable) \
-    macro(replace) \
 
 #define JSC_COMMON_PRIVATE_IDENTIFIERS_EACH_WELL_KNOWN_SYMBOL(macro) \
     macro(hasInstance) \

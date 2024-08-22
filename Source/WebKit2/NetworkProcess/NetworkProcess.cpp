@@ -338,7 +338,7 @@ static void fetchDiskCacheEntries(SessionID sessionID, OptionSet<WebsiteDataFetc
 
                 delete originsAndSizes;
 
-                RunLoop::main().dispatch([completionHandler, entries] {
+                RunLoop::main().dispatch([completionHandler, entries = WTFMove(entries)] {
                     completionHandler(entries);
                 });
 
@@ -362,7 +362,7 @@ static void fetchDiskCacheEntries(SessionID sessionID, OptionSet<WebsiteDataFetc
         entries.append(WebsiteData::Entry { WTFMove(origin), WebsiteDataType::DiskCache, 0 });
 #endif
 
-    RunLoop::main().dispatch([completionHandler, entries] {
+    RunLoop::main().dispatch([completionHandler, entries = WTFMove(entries)] {
         completionHandler(entries);
     });
 }
@@ -379,10 +379,7 @@ void NetworkProcess::fetchWebsiteData(SessionID sessionID, OptionSet<WebsiteData
         {
             ASSERT(RunLoop::isMain());
 
-            auto completionHandler = WTFMove(m_completionHandler);
-            auto websiteData = WTFMove(m_websiteData);
-
-            RunLoop::main().dispatch([completionHandler, websiteData] {
+            RunLoop::main().dispatch([completionHandler = WTFMove(m_completionHandler), websiteData = WTFMove(m_websiteData)] {
                 completionHandler(websiteData);
             });
         }

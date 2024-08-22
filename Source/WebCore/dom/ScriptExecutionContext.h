@@ -172,11 +172,8 @@ public:
     template<typename... Arguments>
     void postCrossThreadTask(Arguments&&... arguments)
     {
-        auto crossThreadTask = createCrossThreadTask(arguments...);
-        auto* rawTask = crossThreadTask.release();
-        postTask([=](ScriptExecutionContext&) {
-            std::unique_ptr<CrossThreadTask> task(rawTask);
-            task->performTask();
+        postTask([crossThreadTask = createCrossThreadTask(arguments...)](ScriptExecutionContext&) mutable {
+            crossThreadTask.performTask();
         });
     }
 
@@ -213,9 +210,9 @@ public:
 protected:
     class AddConsoleMessageTask : public Task {
     public:
-        AddConsoleMessageTask(MessageSource source, MessageLevel level, const StringCapture& message)
-            : Task([source, level, message](ScriptExecutionContext& context) {
-                context.addConsoleMessage(source, level, message.string());
+        AddConsoleMessageTask(MessageSource source, MessageLevel level, const String& message)
+            : Task([source, level, message = message.isolatedCopy()](ScriptExecutionContext& context) {
+                context.addConsoleMessage(source, level, message);
             })
         {
         }

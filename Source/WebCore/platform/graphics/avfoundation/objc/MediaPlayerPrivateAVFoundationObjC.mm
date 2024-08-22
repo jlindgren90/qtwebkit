@@ -1218,7 +1218,9 @@ void MediaPlayerPrivateAVFoundationObjC::setVideoFullscreenFrame(FloatRect frame
 void MediaPlayerPrivateAVFoundationObjC::setVideoFullscreenGravity(MediaPlayer::VideoGravity gravity)
 {
     m_videoFullscreenGravity = gravity;
-    if (!m_videoLayer)
+
+    auto activeLayer = m_secondaryVideoLayer.get() ?: m_videoLayer.get();
+    if (!activeLayer)
         return;
 
     NSString *videoGravity = AVLayerVideoGravityResizeAspect;
@@ -1231,10 +1233,10 @@ void MediaPlayerPrivateAVFoundationObjC::setVideoFullscreenGravity(MediaPlayer::
     else
         ASSERT_NOT_REACHED();
     
-    if ([m_videoLayer videoGravity] == videoGravity)
+    if ([activeLayer videoGravity] == videoGravity)
         return;
 
-    [m_videoLayer setVideoGravity:videoGravity];
+    [activeLayer setVideoGravity:videoGravity];
     syncTextTrackBounds();
 }
 
@@ -2585,12 +2587,25 @@ void MediaPlayerPrivateAVFoundationObjC::keyAdded()
         m_keyURIToRequestMap.remove(keyId);
 }
 
+void MediaPlayerPrivateAVFoundationObjC::removeSession(CDMSession& session)
+{
+    ASSERT_UNUSED(session, &session == m_session);
+    m_session = nullptr;
+}
+
 std::unique_ptr<CDMSession> MediaPlayerPrivateAVFoundationObjC::createSession(const String& keySystem, CDMSessionClient* client)
 {
     if (!keySystemIsSupported(keySystem))
         return nullptr;
+    auto session = std::make_unique<CDMSessionAVFoundationObjC>(this, client);
+    m_session = session->createWeakPtr();
+    return WTFMove(session);
+}
 
-    return std::make_unique<CDMSessionAVFoundationObjC>(this, client);
+void MediaPlayerPrivateAVFoundationObjC::outputObscuredDueToInsufficientExternalProtectionChanged(bool newValue)
+{
+    if (m_session && newValue)
+        m_session->playerDidReceiveError([NSError errorWithDomain:@"com.apple.WebKit" code:'HDCP' userInfo:nil]);
 }
 #endif
 
@@ -3294,6 +3309,9 @@ NSArray* playerKVOProperties()
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
                             @"externalPlaybackActive", @"allowsExternalPlayback",
 #endif
+#if ENABLE(ENCRYPTED_MEDIA_V2)
+                            @"outputObscuredDueToInsufficientExternalProtection",
+#endif
                             nil];
     return keys;
 }
@@ -3415,6 +3433,10 @@ NSArray* playerKVOProperties()
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
         else if ([keyPath isEqualToString:@"externalPlaybackActive"] || [keyPath isEqualToString:@"allowsExternalPlayback"])
             function = std::bind(&MediaPlayerPrivateAVFoundationObjC::playbackTargetIsWirelessDidChange, m_callback);
+#endif
+#if ENABLE(ENCRYPTED_MEDIA_V2)
+        else if ([keyPath isEqualToString:@"outputObscuredDueToInsufficientExternalProtection"])
+            function = std::bind(&MediaPlayerPrivateAVFoundationObjC::outputObscuredDueToInsufficientExternalProtectionChanged, m_callback, [newValue boolValue]);
 #endif
     }
     

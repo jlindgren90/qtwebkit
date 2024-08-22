@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Caitlin Potter <caitp@igalia.com>.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,38 +23,43 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef AsyncFunctionPrototype_h
-#define AsyncFunctionPrototype_h
+#import "config.h"
 
-#include "JSObject.h"
+#if WK_API_ENABLED
+#if PLATFORM(MAC)
 
-namespace JSC {
+#import <WebKit/WKFoundation.h>
+#import "PlatformUtilities.h"
+#import "Test.h"
+#import <WebKit/WKWebView.h>
+#import <wtf/RetainPtr.h>
 
-class AsyncFunctionPrototype : public JSNonFinalObject {
-public:
-    typedef JSNonFinalObject Base;
+static bool isDone;
 
-    static AsyncFunctionPrototype* create(VM& vm, Structure* structure)
-    {
-        AsyncFunctionPrototype* prototype = new (NotNull, allocateCell<AsyncFunctionPrototype>(vm.heap)) AsyncFunctionPrototype(vm, structure);
-        prototype->finishCreation(vm);
-        return prototype;
-    }
+@interface DummyNavigationDelegate : NSObject <WKNavigationDelegate>
+@end
 
-    static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue proto)
-    {
-        return Structure::create(vm, globalObject, proto, TypeInfo(ObjectType, StructureFlags), info());
-    }
+@implementation DummyNavigationDelegate
 
-    DECLARE_INFO;
+- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation
+{
+    isDone = true;
+}
 
-protected:
-    void finishCreation(VM&);
+@end
 
-private:
-    AsyncFunctionPrototype(VM&, Structure*);
-};
+TEST(WKWebView, ShouldHaveInputContextForEditableContent)
+{
+    RetainPtr<WKWebView> webView = adoptNS([[WKWebView alloc] initWithFrame:NSMakeRect(0, 0, 800, 600)]);
+    RetainPtr<DummyNavigationDelegate> delegate = adoptNS([[DummyNavigationDelegate alloc] init]);
+    [webView setNavigationDelegate:delegate.get()];
 
-} // namespace JSC
+    NSURLRequest *request = [NSURLRequest requestWithURL:[[NSBundle mainBundle] URLForResource:@"editable-body" withExtension:@"html" subdirectory:@"TestWebKitAPI.resources"]];
+    [webView loadRequest:request];
+    TestWebKitAPI::Util::run(&isDone);
 
-#endif // AsyncFunctionPrototype_h
+    EXPECT_NOT_NULL([webView inputContext]);
+}
+
+#endif
+#endif

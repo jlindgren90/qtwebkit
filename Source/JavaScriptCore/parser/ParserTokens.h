@@ -113,8 +113,6 @@ enum JSTokenType {
     OREQUAL,
     DOTDOTDOT,
     ARROWFUNCTION,
-    // Untagged conditional keywords
-    AWAIT,
     LastUntaggedToken,
 
     // Begin tagged tokens
