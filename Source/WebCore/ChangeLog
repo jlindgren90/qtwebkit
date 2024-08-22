@@ -1,3 +1,391 @@
+2016-06-05  Andreas Kling  <akling@apple.com>
+
+        Give RuleFeatures::classesMatchingAncestors some inline capacity.
+        <https://webkit.org/b/158356>
+
+        Reviewed by Darin Adler.
+
+        Avoid 362'000 heap allocations on PLUM (1.3% of all transient fastMallocs) by giving
+        RuleFeatures::classesMatchingAncestors some inline capacity (32).
+        This class is only ever allocated on the stack anyway.
+
+        * css/RuleFeature.h:
+
+2016-06-05  Brady Eidson  <beidson@apple.com>
+
+        Unreviewed, rolling out r201693.
+
+        Can't fix right now
+
+        Reverted changeset:
+
+        "Modern IDB: Crash seen in IDBConnectionProxy::putOrAdd on
+        GuardMalloc bot"
+        https://bugs.webkit.org/show_bug.cgi?id=158124
+        http://trac.webkit.org/changeset/201693
+
+2016-06-04  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Crash seen in IDBConnectionProxy::putOrAdd on GuardMalloc bot
+        https://bugs.webkit.org/show_bug.cgi?id=158124
+
+        Reviewed by Darin Adler.
+
+        No new tests (Covered by existing test configurations).
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::putOrAddOnServer):
+        
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::putOrAdd):
+        
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+        (WebCore::IDBClient::IDBConnectionProxy::callConnectionOnMainThread):
+        
+        * bindings/js/SerializedScriptValue.cpp:
+        (WebCore::SerializedScriptValue::writeBlobsToDiskForIndexedDB):
+        * bindings/js/SerializedScriptValue.h:
+        
+        * platform/network/BlobRegistry.h:
+        * platform/network/BlobRegistryImpl.cpp:
+        (WebCore::BlobRegistryImpl::writeBlobsToTemporaryFiles):
+        * platform/network/BlobRegistryImpl.h:
+
+2016-06-03  Ada Chan  <adachan@apple.com>
+
+        REGRESSION (r201474): Should set overflow: hidden on -webkit-media-controls when placeholder is showing
+        https://bugs.webkit.org/show_bug.cgi?id=158377
+
+        Reviewed by Darin Adler.
+
+        In r201474, we defer removing the hidden class from inlinePlaybackPlaceholder until
+        showInlinePlaybackPlaceholderWhenSafe(). We also need to move the code that adds the
+        placeholder-showing class to -webkit-media-controls to that method.
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.showInlinePlaybackPlaceholderWhenSafe):
+        Add the "placeholder-showing" class to -webkit-media-controls when we show the placeholder.
+        (Controller.prototype.handlePresentationModeChange):
+        Remove the "placeholder-showing" class from -webkit-media-controls when we hide the
+        placeholder. Remove the old code that adds and removes that class.
+
+2016-06-04  Darin Adler  <darin@apple.com>
+
+        leaks seen in fast/css/variables tests
+        https://bugs.webkit.org/show_bug.cgi?id=150728
+
+        Reviewed by Anders Carlsson.
+
+        Fixes leaks seen running fast/css/variables tests with leak checking turned on.
+
+        * css/CSSPrimitiveValue.cpp:
+        (WebCore::isStringType): Added. For debugging purposes so we catch cases where we
+        are not treating strings consistently between construction and destruction.
+        (WebCore::CSSPrimitiveValue::CSSPrimitiveValue): Assert isStringType returns true.
+        (WebCore::CSSPrimitiveValue::cleanup): Added CSS_DIMENSION and CSS_PARSER_IDENTIFIER
+        to the list of types that have to decrement the reference count of the string we own.
+        Both types are passed to the string constructor above.
+
+        * css/CSSValueList.cpp:
+        (WebCore::CSSValueList::buildParserValueListSubstitutingVariables): Restructured the
+        code so we destroy any CSSParserValue that we don't use. This is needed because of the
+        peculiar requirements of CSSParserValue: it has a be a struct without a destructor so
+        it can be used in the CSS grammar, so we have to destroy it explicitly. Ideally we would
+        minimize any use of it outside the CSSParser itself, but as long as we are using it, we
+        need to do this explicit destruction.
+
+2016-06-04  Anders Carlsson  <andersca@apple.com>
+
+        32-bit build fix
+        https://bugs.webkit.org/show_bug.cgi?id=158383
+        rdar://problem/26628125
+
+        Reviewed by Dan Bernstein.
+
+        Synthesize the webPlaybackSessionInterfaceMac property.
+
+        * platform/mac/WebPlaybackControlsManager.mm:
+
+2016-06-04  Chris Dumez  <cdumez@apple.com>
+
+        Avoid redundant isUndefined() check for parameters that are both optional and nullable in overloads
+        https://bugs.webkit.org/show_bug.cgi?id=158380
+
+        Reviewed by Brady Eidson.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheckExpression):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter):
+
+2016-06-04  Brent Fulgham  <bfulgham@apple.com>
+
+        CSP: Content Security Policy directive, upgrade-insecure-requests (UIR)
+        https://bugs.webkit.org/show_bug.cgi?id=143653
+        <rdar://problem/23032067>
+
+        Reviewed by Andy Estes.
+
+        Modify our loading logic so that we recognize and upgrade insecure requests to secure
+        requests if the Content Security Policy directive 'upgrade-insecure-requests' is
+        present.
+        
+        Add a static helper function to ContentSecurityPolicy to upgrade insecure URLs so
+        that we don't have to sprinkle the same code all over the loader system.
+
+        Tests: http/tests/security/contentSecurityPolicy/report-only-upgrade-insecure.php
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/basic-upgrade-cors.https.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/basic-upgrade.https.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/form-upgrade.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/https-header-auxiliary.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/https-header-nested.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/https-header-subresource.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/https-header-top-level.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/iframe-upgrade.https.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/proper-nested-upgrades.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/proper-open-window-upgrades.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-audio-video-in-main-frame.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-css-in-iframe.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-image-in-main-frame.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-simple-ws.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-xhr-in-main-frame.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-redirect-http-to-https-script-in-iframe.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-redirect-https-to-http-script-in-iframe.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrades-mixed-content.html
+               http/tests/ssl/iframe-upgrade.https.html
+               http/tests/ssl/upgrade-origin-usage.html
+               http/tests/websocket/tests/hybi/upgrade-simple-ws.html
+
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::WebSocket::connect): Upgrade insecure requests if the CSP
+        indicates we should.
+        * dom/Document.cpp:
+        (WebCore::Document::initSecurityContext): Populate new document CSP with sets of upgrade host and port combinations.
+        * dom/ScriptElement.cpp:
+        (WebCore::ScriptElement::requestScript): Upgrade insecure requests if
+        the CSP indicates we should.
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::loadResource): Ditto.
+        * loader/DocumentWriter.cpp:
+        (WebCore::DocumentWriter::begin): Ditto.
+        * loader/FormSubmission.cpp:
+        (WebCore::FormSubmission::create): Ditto.
+        (WebCore::FormSubmission::populateFrameLoadRequest): Add "Upgrade-Insecure-Requests"
+        header to frame load requests.
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::addExtraFieldsToMainResourceRequest): Add the
+        'Update-Insecure-Requests' header field if necessary.
+        (WebCore::FrameLoader::addHTTPUpgradeInsecureRequestsIfNeeded): Added helper function.
+        (WebCore::FrameLoader::loadPostRequest): Upgrade insecure requests if the CSP
+        indicates we should.
+        (WebCore::FrameLoader::loadResourceSynchronously): Ditto.
+        (WebCore::FrameLoader::loadDifferentDocumentItem): If loading a form, add the
+        'Update-Insecure-Requests' header field if necessary.
+        (WebCore::createWindow): Upgrade insecure requests if the CSP
+        indicates we should.
+        * loader/FrameLoader.h:
+        * loader/PingLoader.cpp:
+        (WebCore::PingLoader::loadImage): Upgrade insecure requests if the CSP
+        indicates we should.
+        (WebCore::PingLoader::sendPing): Ditto.
+        (WebCore::PingLoader::sendViolationReport): Ditto.
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::willSendRequestInternal): Ditto.
+        * loader/SubframeLoader.cpp:
+        (WebCore::SubframeLoader::requestFrame): Ditto.
+        (WebCore::SubframeLoader::requestObject): Ditto.
+        * loader/appcache/ApplicationCacheHost.cpp:
+        (WebCore::ApplicationCacheHost::shouldLoadResourceFromApplicationCache): Ditto.
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::requestImage): Ditto.
+        (WebCore::CachedResourceLoader::requestResource): Ditto.
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::createWindow): Add the 'Update-Insecure-Requests' header
+        field if necessary.
+        * page/csp/ContentSecurityPolicy.cpp:
+        (WebCore::ContentSecurityPolicy::copyStateFrom): Populate upgraded resource set
+        from other context.
+        (WebCore::ContentSecurityPolicy::upgradeInsecureRequestIfNeeded): Added helper function
+        to upgrade requests when the upgrade-insecure-requests CSP policy is present, or if
+        the host and port combination have previously been upgraded.
+        (WebCore::ContentSecurityPolicy::upgradeInsecureNavigationRequestIfNeeded): Added
+        helper function to upgrade requests that have been previously upgraded. Cross-site
+        navigations only get upgraded when they have been previously upgraded.
+        (WebCore::ContentSecurityPolicy::addInsecureNavigationRequestsToUpgrade): Added.
+        (WebCore::ContentSecurityPolicy::populateInsecureNavigationRequestsToUpgradeFromOther): Added.
+        * page/csp/ContentSecurityPolicy.h:
+        (WebCore::ContentSecurityPolicy::setUpgradeInsecureRequests): Added.
+        (WebCore::ContentSecurityPolicy::upgradeInsecureRequests): Added.
+        * page/csp/ContentSecurityPolicyDirectiveList.cpp:
+        (WebCore::ContentSecurityPolicyDirectiveList::ContentSecurityPolicyDirectiveList): Use
+        more C++11 initializations.
+        (WebCore::ContentSecurityPolicyDirectiveList::setUpgradeInsecureRequests): Added.
+        (WebCore::ContentSecurityPolicyDirectiveList::addDirective): Teach this function to
+        recognize the new directive.
+        * page/csp/ContentSecurityPolicyDirectiveList.h:
+        * page/csp/ContentSecurityPolicyDirectiveNames.cpp:
+        * page/csp/ContentSecurityPolicyDirectiveNames.h:
+        * platform/network/HTTPHeaderNames.in: Add new 'Upgrade-Insecure-Requests' header field.
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::open): Upgrade insecure requests if the CSP if needed.
+
+2016-06-03  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Bopomofo ruby in Dictionary.app is written horizontally (when it should be written vertically)
+        https://bugs.webkit.org/show_bug.cgi?id=158245
+        <rdar://problem/25675318>
+
+        Reviewed by Darin Adler.
+
+        With orthogonal flows, the inner element gets a logical width that is computed from two values:
+        - The containing block's available logical height
+        - The FrameView's visibleHeight
+
+        In Dictionary.app, the FrameView's height changes, but this element doesn't get relaid out.
+        This is because of our optimization where normal-flow elements don't get relaid out if their
+        parent's width doesn't change (which is the case here).
+
+        Therefore, this orthogonal writing mode element should be relaid out when the FrameView changes
+        size. Luckily, we already have machinery for doing this: percentage heights. In quirks mode, a
+        div with a percentage height may walk arbitrarily far up the DOM tree in order to determine which
+        element the percentage should be resolved against. Therefore, we have a map of percentage-sizing-
+        ancestors to percentage-sizing-descendants which speeds up this search. If a percentage-sizing-
+        ancestor gets relaid out, all the relevant percentage-sizing-descendants get relaid out too.
+
+        Therefore, we can simply mark the FrameView as a percentage-sizing-ancestor and the orthogonal
+        flow element as a percentage-sizing-descendant. The lifetime of this relationship is already
+        managed correctly - it gets reset when style changes and when the renderer is destroyed, and
+        is created during layout.
+
+        Unfortunately, this same treatment should also be done to the element which dictates the
+        containing block's logical height (which caused https://bugs.webkit.org/show_bug.cgi?id=158286).
+        Implementing this would require giving RenderBox::availableLogicalHeight() a second result
+        of the necessary element which dictates the return. In an effort to keep this patch small and
+        focused, I'll do this secondary (much larger) work in a patch on that bug. This patch,
+        therefore, is kept small and focused.
+
+        Test: fast/text/orthogonal-writing-mode-containing-block-frameView-resize-relayout.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::perpendicularContainingBlockLogicalHeight):
+
+2016-06-03  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Text not visible while external font downloading
+        https://bugs.webkit.org/show_bug.cgi?id=25207
+        <rdar://problem/15167413>
+
+        Reviewed by Dean Jackson.
+
+        I already laid the groundwork for this when implementing the CSS Font Loading API.
+        We only have to create a timer and correctly respond to it timing out (by setting
+        state).
+
+        This patch also adds a new internal setting which puts us in a mode where font
+        loads never complete and the timeout occurs immediately. This is so we can test
+        the fallback behavior.
+
+        Test: fast/text/web-font-load-fallback-during-loading.html
+
+        * css/CSSFontFace.cpp:
+        (WebCore::CSSFontFace::CSSFontFace):
+        (WebCore::CSSFontFace::fontLoadEventOccurred):
+        (WebCore::CSSFontFace::timeoutFired):
+        (WebCore::CSSFontFace::setStatus):
+        (WebCore::CSSFontFace::fontLoaded):
+        (WebCore::CSSFontFace::webFontsShouldAlwaysFallBack):
+        (WebCore::CSSFontFace::pump):
+        (WebCore::CSSFontFace::font):
+        * css/CSSFontFace.h:
+        * css/CSSFontFaceSource.cpp:
+        (WebCore::CSSFontFaceSource::fontLoaded):
+        * css/FontFace.cpp:
+        (WebCore::FontFace::fontStateChanged):
+        * page/Settings.cpp:
+        (WebCore::Settings::Settings):
+        (WebCore::Settings::setWebFontsAlwaysFallBack):
+        * page/Settings.h:
+        (WebCore::Settings::webFontsAlwaysFallBack):
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo):
+        (WebCore::InternalSettings::setWebFontsAlwaysFallBack):
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+
+2016-06-03  Chris Dumez  <cdumez@apple.com>
+
+        Modernize a few more lambda captures
+        https://bugs.webkit.org/show_bug.cgi?id=158370
+
+        Reviewed by Brady Eidson.
+
+        * workers/DedicatedWorkerGlobalScope.cpp:
+        (WebCore::DedicatedWorkerGlobalScope::postMessage):
+        * workers/DedicatedWorkerGlobalScope.h:
+        * workers/Worker.cpp:
+        (WebCore::Worker::postMessage):
+        * workers/Worker.h:
+        * workers/WorkerEventQueue.cpp:
+        (WebCore::WorkerEventQueue::enqueueEvent):
+        * workers/WorkerGlobalScopeProxy.h:
+        * workers/WorkerMessagingProxy.cpp:
+        (WebCore::WorkerMessagingProxy::postMessageToWorkerObject):
+        (WebCore::WorkerMessagingProxy::postMessageToWorkerGlobalScope):
+        * workers/WorkerMessagingProxy.h:
+        * workers/WorkerObjectProxy.h:
+
+2016-06-03  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r201663.
+        https://bugs.webkit.org/show_bug.cgi?id=158374
+
+        Broke the Windows build (Requested by andersca on #webkit).
+
+        Reverted changeset:
+
+        "Rename NoncopyableFunction to Function"
+        https://bugs.webkit.org/show_bug.cgi?id=158354
+        http://trac.webkit.org/changeset/201663
+
+2016-06-03  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Crash under VisibleSelection::firstRange()
+        https://bugs.webkit.org/show_bug.cgi?id=158241
+
+        Reviewed by Enrica Casucci.
+
+        The crash was commonly caused by parentAnchoredEquivalent returning null when the anchored node was a shadow root.
+        Fixed it by returning a shadow root in parentAnchoredEquivalent.
+
+        Also guard against other kinds of crashes by adding a null check in VisibleSelection::firstRange() since we've seen
+        a crash in the same code path outside of a shadow tree.
+
+        This patch also fixes other Position methods to stop using nonShadowBoundaryParentNode in place of parentNode as
+        that would cause a similar crash and/or a bug elsewhere.
+
+        Test: fast/shadow-dom/selection-at-shadow-root-crash.html
+
+        * accessibility/AXObjectCache.cpp:
+        (AXObjectCache::startCharacterOffsetOfParagraph): Fixed a bug uncovered by the assertion fix in Position::Position.
+        This code was sometimes creating a position inside a BR, which is wrong.
+        (AXObjectCache::endCharacterOffsetOfParagraph): Ditto.
+        * dom/Position.cpp:
+        (WebCore::Position::Position): Fixed an assertion which was checking that this constructor wasn't being called
+        with m_anchorNode set to an element editing ignores content of. ||ing it with isShadowRoot() made this assertion
+        useless because it's true whenever m_anchorNode is not a shadow root.
+        (WebCore::Position::containerNode): Use parentNode() instead of findParent() which calls nonShadowBoundaryParentNode
+        since Position should
+        (WebCore::Position::parentAnchoredEquivalent): Fixed the bug by letting this function return a shadow root.
+        (WebCore::Position::previous): Use parentNode() instead of findParent().
+        (WebCore::Position::next): Ditto.
+        (WebCore::Position::atStartOfTree): Ditto.
+        (WebCore::Position::atEndOfTree): Ditto.
+        (WebCore::Position::findParent): Deleted.
+        * dom/Position.h:
+        * editing/VisibleSelection.cpp:
+        (VisibleSelection::firstRange): Added a null check. 
+
 2016-06-03  Zalan Bujtas  <zalan@apple.com>
 
         Incorrect rendering on boostmobile FAQ page

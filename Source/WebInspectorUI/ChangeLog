@@ -1,3 +1,120 @@
+2016-06-05  Matt Baker  <mattbaker@apple.com>
+
+        REGRESSION (r201686): Web Inspector: Fix typo causing an internal error
+        https://bugs.webkit.org/show_bug.cgi?id=158392
+        <rdar://problem/26640467>
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/HeapAllocationsTimelineOverviewGraph.js:
+        Fixed typo.
+
+2016-06-04  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: add a keyboard shortcut to open the new tab tab
+        https://bugs.webkit.org/show_bug.cgi?id=158365
+        <rdar://problem/26631897>
+
+        Reviewed by Timothy Hatcher.
+
+        Make Cmd-t show the new tab tab if it's not already open and
+        there is at least one tab type that's not currently in the tab bar.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector.contentLoaded):
+        (WebInspector._updateNewTabButtonState):
+        (WebInspector.showNewTabTab):
+        (WebInspector.isNewTabWithTypeAllowed):
+        Clean up the code that decides whether we can show the new tab tab.
+        It is now a special case inside WebInspector.isNewTabWithTypeAllowed.
+
+        * UserInterface/Views/NewTabContentView.js:
+        (WebInspector.NewTabContentView.prototype._updateShownTabs):
+        Use Array.from.
+
+2016-06-04  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: discontinuous recordings should have discontinuities in the timeline memory graph
+        https://bugs.webkit.org/show_bug.cgi?id=158052
+        <rdar://problem/26516695>
+
+        Reviewed by Joseph Pecoraro.
+
+        Add gaps to the overview and category line charts where discontinuities
+        exist in the timeline recording.
+
+        * UserInterface/Models/Timeline.js:
+        (WebInspector.Timeline.prototype.recordsInTimeRange):
+        Replaces `_visibleRecords` methods found in various views.
+
+        * UserInterface/Models/TimelineRecording.js:
+        (WebInspector.TimelineRecording.prototype.reset):
+        (WebInspector.TimelineRecording.prototype.addDiscontinuity):
+        (WebInspector.TimelineRecording.prototype.discontinuitiesInTimeRange):
+        Allow discontinuities to be added to the recording, and have a means to
+        look up gaps within a time range.
+
+        * UserInterface/Views/HeapAllocationsTimelineOverviewGraph.js:
+        (WebInspector.HeapAllocationsTimelineOverviewGraph.prototype._visibleRecords): Deleted.
+        Replaced by Timeline helper method.
+
+        * UserInterface/Views/MemoryTimelineOverviewGraph.js:
+        (WebInspector.MemoryTimelineOverviewGraph.prototype.layout.insertDiscontinuity):
+        (WebInspector.MemoryTimelineOverviewGraph.prototype.layout):
+        Insert zero-points into the chart at discontinuity boundaries to create
+        gaps. Data points for records immediately before or after a gap are extended
+        to the edge of the discontinuity.
+
+        (WebInspector.MemoryTimelineOverviewGraph.prototype._visibleRecords): Deleted.
+        Replaced by Timeline helper method.
+
+        * UserInterface/Views/MemoryTimelineView.js:
+        (WebInspector.MemoryTimelineView.prototype.layout):
+        Insert zero-points into each category chart at discontinuity boundaries
+        to create gaps.
+
+        Insert zero-points into the chart to create gaps.
+        (WebInspector.MemoryTimelineView.prototype._visibleRecords): Deleted.
+        Replaced by Timeline helper method.
+
+        * UserInterface/Views/TimelineOverview.js:
+        (WebInspector.TimelineOverview.prototype.discontinuitiesInTimeRange):
+        Forward to the TimelineRecording, which isn't exposed to clients.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView):
+        (WebInspector.TimelineRecordingContentView.prototype._capturingStarted):
+        (WebInspector.TimelineRecordingContentView.prototype._capturingStopped):
+        (WebInspector.TimelineRecordingContentView.prototype._recordingReset):
+        Track discontinuities (recording stop followed by a start) and add them
+        to the current recording.
+
+2016-06-03  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: add a keyboard shortcut to close the current tab bar item
+        https://bugs.webkit.org/show_bug.cgi?id=158363
+        <rdar://problem/22677254>
+
+        Reviewed by Timothy Hatcher.
+
+        Make Cmd-w close the current tab. This matches Safari's keyboard shortcut.
+
+        * UserInterface/Views/TabBrowser.js:
+        (WebInspector.TabBrowser):
+        Don't do anything if the New Tab tab is the only tab bar item besides the
+        pinned "new tab" button.
+
+2016-06-03  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: setter for debugging flag InspectorBackend.dumpInspectorTimeStats does not work
+        https://bugs.webkit.org/show_bug.cgi?id=158366
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Protocol/InspectorBackend.js:
+        (InspectorBackendClass.prototype.set dumpInspectorTimeStats):
+        Actually update the backing member when the setter is called.
+
 2016-06-03  Nikita Vasilyev  <nvasilyev@apple.com>
 
         Web Inspector: Remove unused WebInspector.CSSCompletions methods

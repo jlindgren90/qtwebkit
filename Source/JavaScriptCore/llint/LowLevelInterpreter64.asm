@@ -584,6 +584,16 @@ _llint_op_enter:
     dispatch(1)
 
 
+_llint_op_argument_count:
+    traceExecution()
+    loadisFromInstruction(1, t1)
+    loadi PayloadOffset + ArgumentCount[cfr], t0
+    subi 1, t0
+    orq TagTypeNumber, t0
+    storeq t0, [cfr, t1, 8]
+    dispatch(2)
+
+
 _llint_op_get_scope:
     traceExecution()
     loadp Callee[cfr], t0
@@ -2434,7 +2444,7 @@ _llint_op_log_shadow_chicken_prologue:
     storep cfr, ShadowChicken::Packet::frame[t0]
     loadp CallerFrame[cfr], t1
     storep t1, ShadowChicken::Packet::callerFrame[t0]
-    loadp Callee + PayloadOffset[cfr], t1
+    loadp Callee[cfr], t1
     storep t1, ShadowChicken::Packet::callee[t0]
     loadVariable(1, t1)
     storep t1, ShadowChicken::Packet::scope[t0]
