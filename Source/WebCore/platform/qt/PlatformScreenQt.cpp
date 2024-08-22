@@ -106,9 +106,4 @@ bool screenSupportsExtendedColor(Widget*)
     return false;
 }
 
-void screenColorProfile(ColorProfile&)
-{
-    notImplemented();
-}
-
 } // namespace WebCore
