@@ -514,6 +514,10 @@ NON_SVG_BINDING_IDLS = \
     $(WebCore)/page/History.idl \
     $(WebCore)/page/Location.idl \
     $(WebCore)/page/Navigator.idl \
+    $(WebCore)/page/NavigatorConcurrentHardware.idl \
+    $(WebCore)/page/NavigatorID.idl \
+    $(WebCore)/page/NavigatorLanguage.idl \
+    $(WebCore)/page/NavigatorOnLine.idl \
     $(WebCore)/page/Performance.idl \
     $(WebCore)/page/PerformanceEntry.idl \
     $(WebCore)/page/PerformanceEntryList.idl \
@@ -525,10 +529,9 @@ NON_SVG_BINDING_IDLS = \
     $(WebCore)/page/WebKitNamespace.idl \
     $(WebCore)/page/UserMessageHandlersNamespace.idl \
     $(WebCore)/page/UserMessageHandler.idl \
-    $(WebCore)/page/WindowBase64.idl \
     $(WebCore)/page/WindowEventHandlers.idl \
-    $(WebCore)/page/WindowTimers.idl \
     $(WebCore)/page/WorkerNavigator.idl \
+    $(WebCore)/page/WindowOrWorkerGlobalScope.idl \
     $(WebCore)/plugins/DOMMimeType.idl \
     $(WebCore)/plugins/DOMMimeTypeArray.idl \
     $(WebCore)/plugins/DOMPlugin.idl \

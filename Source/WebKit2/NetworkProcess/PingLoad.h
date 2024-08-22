@@ -48,7 +48,7 @@ public:
     }
     
 private:
-    void willPerformHTTPRedirection(const WebCore::ResourceResponse&, const WebCore::ResourceRequest&, RedirectCompletionHandler completionHandler) override
+    void willPerformHTTPRedirection(WebCore::ResourceResponse&&, WebCore::ResourceRequest&&, RedirectCompletionHandler completionHandler) override
     {
         completionHandler({ });
         delete this;
@@ -58,12 +58,12 @@ private:
         completionHandler(AuthenticationChallengeDisposition::Cancel, { });
         delete this;
     }
-    void didReceiveResponseNetworkSession(const WebCore::ResourceResponse&, ResponseCompletionHandler completionHandler) override
+    void didReceiveResponseNetworkSession(WebCore::ResourceResponse&&, ResponseCompletionHandler completionHandler) override
     {
         completionHandler(WebCore::PolicyAction::PolicyIgnore);
         delete this;
     }
-    void didReceiveData(RefPtr<WebCore::SharedBuffer>&&)  override { ASSERT_NOT_REACHED(); }
+    void didReceiveData(Ref<WebCore::SharedBuffer>&&)  override { ASSERT_NOT_REACHED(); }
     void didCompleteWithError(const WebCore::ResourceError&) override { delete this; }
     void didBecomeDownload() override { ASSERT_NOT_REACHED(); }
     void didSendData(uint64_t totalBytesSent, uint64_t totalBytesExpectedToSend) override { }

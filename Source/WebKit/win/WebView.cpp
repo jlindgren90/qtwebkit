@@ -164,6 +164,7 @@
 #include <bindings/ScriptValue.h>
 #include <wtf/MainThread.h>
 #include <wtf/RAMSize.h>
+#include <wtf/UniqueRef.h>
 
 #if USE(CG)
 #include <CoreGraphics/CGContext.h>
@@ -402,6 +403,7 @@ WebView::WebView()
 {
     JSC::initializeThreading();
     WTF::initializeMainThread();
+    RunLoop::initializeMainRunLoop();
 
     m_backingStoreSize.cx = m_backingStoreSize.cy = 0;
 
@@ -2907,10 +2909,9 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
 
     m_inspectorClient = new WebInspectorClient(this);
 
-    PageConfiguration configuration;
+    PageConfiguration configuration(makeUniqueRef<WebEditorClient>(this));
     configuration.chromeClient = new WebChromeClient(this);
     configuration.contextMenuClient = new WebContextMenuClient(this);
-    configuration.editorClient = new WebEditorClient(this);
     configuration.dragClient = new WebDragClient(this);
     configuration.inspectorClient = m_inspectorClient;
     configuration.loaderClientForMainFrame = new WebFrameLoaderClient;
@@ -2921,7 +2922,7 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
     configuration.userContentProvider = &m_webViewGroup->userContentController();
     configuration.visitedLinkStore = &m_webViewGroup->visitedLinkStore();
 
-    m_page = new Page(configuration);
+    m_page = new Page(WTFMove(configuration));
     provideGeolocationTo(m_page, new WebGeolocationClient(this));
 
     unsigned layoutMilestones = DidFirstLayout | DidFirstVisuallyNonEmptyLayout;
@@ -5043,6 +5044,13 @@ HRESULT WebView::notifyPreferencesChanged(IWebNotification* notification)
     if (FAILED(hr))
         return hr;
     RuntimeEnabledFeatures::sharedFeatures().setFetchAPIEnabled(!!enabled);
+#endif
+
+#if ENABLE(SHADOW_DOM)
+    hr = prefsPrivate->shadowDOMEnabled(&enabled);
+    if (FAILED(hr))
+        return hr;
+    RuntimeEnabledFeatures::sharedFeatures().setShadowDOMEnabled(!!enabled);
 #endif
 
     hr = preferences->privateBrowsingEnabled(&enabled);

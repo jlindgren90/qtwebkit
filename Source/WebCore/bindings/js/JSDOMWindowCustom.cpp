@@ -64,7 +64,7 @@ void JSDOMWindow::visitAdditionalChildren(SlotVisitor& visitor)
 }
 
 #if ENABLE(USER_MESSAGE_HANDLERS)
-static EncodedJSValue jsDOMWindowWebKit(ExecState* exec, EncodedJSValue thisValue, PropertyName, JSObject*)
+static EncodedJSValue jsDOMWindowWebKit(ExecState* exec, EncodedJSValue thisValue, PropertyName)
 {
     JSDOMWindow* castedThis = toJSDOMWindow(JSValue::decode(thisValue));
     if (!BindingSecurity::shouldAllowAccessToDOMWindow(exec, castedThis->wrapped()))
@@ -236,7 +236,7 @@ bool JSDOMWindow::getOwnPropertySlot(JSObject* object, ExecState* exec, Property
 
     // (2) Regular own properties.
     PropertySlot slotCopy = slot;
-    if (getStaticPropertySlot<JSDOMWindow, Base>(exec, *JSDOMWindow::info()->staticPropHashTable, thisObject, propertyName, slot)) {
+    if (Base::getOwnPropertySlot(thisObject, exec, propertyName, slot)) {
         // Detect when we're getting the property 'showModalDialog', this is disabled, and has its original value.
         bool isShowModalDialogAndShouldHide = propertyName == exec->propertyNames().showModalDialog
             && !DOMWindow::canShowModalDialog(frame)

@@ -97,10 +97,10 @@ class ResourceHandleStreamingClient : public ResourceHandleClient, public Stream
 #if USE(SOUP)
         char* getOrCreateReadBuffer(size_t requestedSize, size_t& actualSize) override;
 #endif
-        void willSendRequest(ResourceHandle*, ResourceRequest&, const ResourceResponse&) override;
-        void didReceiveResponse(ResourceHandle*, const ResourceResponse&) override;
+        ResourceRequest willSendRequest(ResourceHandle*, ResourceRequest&&, ResourceResponse&&) override;
+        void didReceiveResponse(ResourceHandle*, ResourceResponse&&) override;
         void didReceiveData(ResourceHandle*, const char*, unsigned, int) override;
-        void didReceiveBuffer(ResourceHandle*, PassRefPtr<SharedBuffer>, int encodedLength) override;
+        void didReceiveBuffer(ResourceHandle*, Ref<SharedBuffer>&&, int encodedLength) override;
         void didFinishLoading(ResourceHandle*, double /*finishTime*/) override;
         void didFail(ResourceHandle*, const ResourceError&) override;
         void wasBlocked(ResourceHandle*) override;
@@ -1131,11 +1131,12 @@ char* ResourceHandleStreamingClient::getOrCreateReadBuffer(size_t requestedSize,
 }
 #endif
 
-void ResourceHandleStreamingClient::willSendRequest(ResourceHandle*, ResourceRequest&, const ResourceResponse&)
+ResourceRequest ResourceHandleStreamingClient::willSendRequest(ResourceHandle*, ResourceRequest&& request, ResourceResponse&&)
 {
+    return WTFMove(request);
 }
 
-void ResourceHandleStreamingClient::didReceiveResponse(ResourceHandle*, const ResourceResponse& response)
+void ResourceHandleStreamingClient::didReceiveResponse(ResourceHandle*, ResourceResponse&& response)
 {
     handleResponseReceived(response);
 }
@@ -1145,7 +1146,7 @@ void ResourceHandleStreamingClient::didReceiveData(ResourceHandle*, const char* 
     ASSERT_NOT_REACHED();
 }
 
-void ResourceHandleStreamingClient::didReceiveBuffer(ResourceHandle*, PassRefPtr<SharedBuffer> buffer, int /* encodedLength */)
+void ResourceHandleStreamingClient::didReceiveBuffer(ResourceHandle*, Ref<SharedBuffer>&& buffer, int /* encodedLength */)
 {
     // This pattern is suggested by SharedBuffer.h.
     const char* segment;

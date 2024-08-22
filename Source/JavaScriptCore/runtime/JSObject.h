@@ -151,6 +151,8 @@ public:
 
     bool getPropertySlot(ExecState*, PropertyName, PropertySlot&);
     bool getPropertySlot(ExecState*, unsigned propertyName, PropertySlot&);
+    template<typename CallbackWhenNoException> typename std::result_of<CallbackWhenNoException(bool, PropertySlot&)>::type getPropertySlot(ExecState*, PropertyName, CallbackWhenNoException) const;
+    template<typename CallbackWhenNoException> typename std::result_of<CallbackWhenNoException(bool, PropertySlot&)>::type getPropertySlot(ExecState*, PropertyName, PropertySlot&, CallbackWhenNoException) const;
 
     static bool getOwnPropertySlot(JSObject*, ExecState*, PropertyName, PropertySlot&);
     JS_EXPORT_PRIVATE static bool getOwnPropertySlotByIndex(JSObject*, ExecState*, unsigned propertyName, PropertySlot&);
@@ -620,7 +622,6 @@ public:
 
     void transitionTo(VM&, Structure*);
 
-    JS_EXPORT_PRIVATE bool removeDirect(VM&, PropertyName); // Return true if anything is removed.
     bool hasCustomProperties() { return structure()->didTransition(); }
     bool hasGetterSetterProperties() { return structure()->hasGetterSetterProperties(); }
     bool hasCustomGetterSetterProperties() { return structure()->hasCustomGetterSetterProperties(); }
@@ -677,7 +678,7 @@ public:
             || structure()->typeInfo().interceptsGetOwnPropertySlotByIndexEvenWhenLengthIsNotZero();
     }
 
-    bool staticFunctionsReified() { return structure()->staticFunctionsReified(); }
+    bool staticPropertiesReified() { return structure()->staticPropertiesReified(); }
     void reifyAllStaticProperties(ExecState*);
 
     JS_EXPORT_PRIVATE Butterfly* growOutOfLineStorage(VM&, size_t oldSize, size_t newSize);
@@ -1361,6 +1362,22 @@ inline JSValue JSObject::get(ExecState* exec, unsigned propertyName) const
     return jsUndefined();
 }
 
+template<typename CallbackWhenNoException>
+ALWAYS_INLINE typename std::result_of<CallbackWhenNoException(bool, PropertySlot&)>::type JSObject::getPropertySlot(ExecState* exec, PropertyName propertyName, CallbackWhenNoException callback) const
+{
+    PropertySlot slot(this, PropertySlot::InternalMethodType::Get);
+    return getPropertySlot(exec, propertyName, slot, callback);
+}
+
+template<typename CallbackWhenNoException>
+ALWAYS_INLINE typename std::result_of<CallbackWhenNoException(bool, PropertySlot&)>::type JSObject::getPropertySlot(ExecState* exec, PropertyName propertyName, PropertySlot& slot, CallbackWhenNoException callback) const
+{
+    bool found = const_cast<JSObject*>(this)->getPropertySlot(exec, propertyName, slot);
+    if (UNLIKELY(exec->hadException()))
+        return { };
+    return callback(found, slot);
+}
+
 template<JSObject::PutMode mode>
 ALWAYS_INLINE bool JSObject::putDirectInternal(VM& vm, PropertyName propertyName, JSValue value, unsigned attributes, PutPropertySlot& slot)
 {
@@ -1448,7 +1465,7 @@ ALWAYS_INLINE bool JSObject::putDirectInternal(VM& vm, PropertyName propertyName
         slot.setExistingProperty(this, offset);
         putDirect(vm, offset, value);
 
-        if ((attributes & Accessor) != (currentAttributes & Accessor)) {
+        if ((attributes & Accessor) != (currentAttributes & Accessor) || (attributes & CustomAccessor) != (currentAttributes & CustomAccessor)) {
             ASSERT(!(attributes & ReadOnly));
             setStructure(vm, Structure::attributeChangeTransition(vm, structure, propertyName, attributes));
         }

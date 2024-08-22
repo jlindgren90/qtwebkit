@@ -1793,9 +1793,6 @@ void FrameLoader::commitProvisionalLoad()
         // For top-level navigations, have JSC throw away linked code. The immediate memory savings far
         // outweigh the cost of recompiling in the case of a future backwards navigation.
         GCController::singleton().deleteAllLinkedCode();
-
-        // Same thing with RegExp bytecode and JIT code.
-        GCController::singleton().deleteAllRegExpCode();
 #endif
     }
 
@@ -3431,7 +3428,7 @@ void FrameLoader::retryAfterFailedCacheOnlyMainResourceLoad()
 ResourceError FrameLoader::cancelledError(const ResourceRequest& request) const
 {
     ResourceError error = m_client.cancelledError(request);
-    error.setIsCancellation(true);
+    error.setType(ResourceError::Type::Cancellation);
     return error;
 }
 
@@ -3443,7 +3440,7 @@ ResourceError FrameLoader::blockedByContentBlockerError(const ResourceRequest& r
 ResourceError FrameLoader::blockedError(const ResourceRequest& request) const
 {
     ResourceError error = m_client.blockedError(request);
-    error.setIsCancellation(true);
+    error.setType(ResourceError::Type::Cancellation);
     return error;
 }
 

@@ -38,7 +38,7 @@ public:
     CrossThreadTask(NoncopyableFunction<void ()>&& taskFunction)
         : m_taskFunction(WTFMove(taskFunction))
     {
-        ASSERT(taskFunction);
+        ASSERT(m_taskFunction);
     }
 
     void performTask()
@@ -50,201 +50,50 @@ protected:
     NoncopyableFunction<void ()> m_taskFunction;
 };
 
-template <typename T, typename... Arguments>
-class CrossThreadTaskImpl final : public CrossThreadTask {
-public:
-    CrossThreadTaskImpl(T* callee, void (T::*method)(Arguments...), Arguments&&... arguments)
-    {
-        m_taskFunction = [callee, method, arguments...] {
-            (callee->*method)(arguments...);
-        };
-    }
-};
-
-template <typename... Arguments>
-class CrossThreadTaskStaticImpl final : public CrossThreadTask {
-public:
-    CrossThreadTaskStaticImpl(void (*method)(Arguments...), Arguments&&... arguments)
-    {
-        m_taskFunction = [method, arguments...] {
-            method(arguments...);
-        };
-    }
-};
-
-template<typename T>
-CrossThreadTask createCrossThreadTask(
-    T& callee,
-    void (T::*method)())
+template <typename T>
+T crossThreadCopy(const T& t)
 {
-    return CrossThreadTaskImpl<T>(&callee, method);
+    return CrossThreadCopier<T>::copy(t);
 }
 
-template<typename T, typename P1, typename MP1>
-CrossThreadTask createCrossThreadTask(
-    T& callee,
-    void (T::*method)(MP1),
-    const P1& parameter1)
+template <typename F, typename ArgsTuple, size_t... ArgsIndex>
+void callFunctionForCrossThreadTaskImpl(F function, ArgsTuple&& args, std::index_sequence<ArgsIndex...>)
 {
-    return CrossThreadTaskImpl<T, MP1>(
-        &callee,
-        method,
-        WTF::CrossThreadCopier<P1>::copy(parameter1));
+    function(std::get<ArgsIndex>(std::forward<ArgsTuple>(args))...);
 }
 
-template<typename T, typename P1, typename MP1, typename P2, typename MP2>
-CrossThreadTask createCrossThreadTask(
-    T& callee,
-    void (T::*method)(MP1, MP2),
-    const P1& parameter1,
-    const P2& parameter2)
+template <typename F, typename ArgsTuple, typename ArgsIndices = std::make_index_sequence<std::tuple_size<ArgsTuple>::value>>
+void callFunctionForCrossThreadTask(F function, ArgsTuple&& args)
 {
-    return CrossThreadTaskImpl<T, MP1, MP2>(
-        &callee,
-        method,
-        WTF::CrossThreadCopier<P1>::copy(parameter1),
-        WTF::CrossThreadCopier<P2>::copy(parameter2));
-
+    callFunctionForCrossThreadTaskImpl(function, std::forward<ArgsTuple>(args), ArgsIndices());
 }
 
-template<typename T, typename P1, typename MP1, typename P2, typename MP2, typename P3, typename MP3>
-CrossThreadTask createCrossThreadTask(
-    T& callee,
-    void (T::*method)(MP1, MP2, MP3),
-    const P1& parameter1,
-    const P2& parameter2,
-    const P3& parameter3)
+template<typename... Parameters, typename... Arguments>
+CrossThreadTask createCrossThreadTask(void (*method)(Parameters...), const Arguments&... arguments)
 {
-    return CrossThreadTaskImpl<T, MP1, MP2, MP3>(
-        &callee,
-        method,
-        WTF::CrossThreadCopier<P1>::copy(parameter1),
-        WTF::CrossThreadCopier<P2>::copy(parameter2),
-        WTF::CrossThreadCopier<P3>::copy(parameter3));
+    return CrossThreadTask([method, arguments = std::make_tuple(crossThreadCopy<Arguments>(arguments)...)]() mutable {
+        callFunctionForCrossThreadTask(method, WTFMove(arguments));
+    });
 }
 
-template<typename P1, typename MP1, typename P2, typename MP2, typename P3, typename MP3>
-CrossThreadTask createCrossThreadTask(
-    void (*method)(MP1, MP2, MP3),
-    const P1& parameter1,
-    const P2& parameter2,
-    const P3& parameter3)
+template <typename C, typename MF, typename ArgsTuple, size_t... ArgsIndex>
+void callMemberFunctionForCrossThreadTaskImpl(C* object, MF function, ArgsTuple&& args, std::index_sequence<ArgsIndex...>)
 {
-    return CrossThreadTaskStaticImpl<MP1, MP2, MP3>(
-        method,
-        WTF::CrossThreadCopier<P1>::copy(parameter1),
-        WTF::CrossThreadCopier<P2>::copy(parameter2),
-        WTF::CrossThreadCopier<P3>::copy(parameter3));
+    (object->*function)(std::get<ArgsIndex>(std::forward<ArgsTuple>(args))...);
 }
 
-template<typename T, typename P1, typename MP1, typename P2, typename MP2, typename P3, typename MP3, typename P4, typename MP4>
-CrossThreadTask createCrossThreadTask(
-    T& callee,
-    void (T::*method)(MP1, MP2, MP3, MP4),
-    const P1& parameter1,
-    const P2& parameter2,
-    const P3& parameter3,
-    const P4& parameter4)
+template <typename C, typename MF, typename ArgsTuple, typename ArgsIndicies = std::make_index_sequence<std::tuple_size<ArgsTuple>::value>>
+void callMemberFunctionForCrossThreadTask(C* object, MF function, ArgsTuple&& args)
 {
-    return CrossThreadTaskImpl<T, MP1, MP2, MP3, MP4>(
-        &callee,
-        method,
-        WTF::CrossThreadCopier<P1>::copy(parameter1),
-        WTF::CrossThreadCopier<P2>::copy(parameter2),
-        WTF::CrossThreadCopier<P3>::copy(parameter3),
-        WTF::CrossThreadCopier<P4>::copy(parameter4));
+    callMemberFunctionForCrossThreadTaskImpl(object, function, std::forward<ArgsTuple>(args), ArgsIndicies());
 }
 
-template<typename T, typename P1, typename MP1, typename P2, typename MP2, typename P3, typename MP3, typename P4, typename MP4, typename P5, typename MP5>
-CrossThreadTask createCrossThreadTask(
-    T& callee,
-    void (T::*method)(MP1, MP2, MP3, MP4, MP5),
-    const P1& parameter1,
-    const P2& parameter2,
-    const P3& parameter3,
-    const P4& parameter4,
-    const P5& parameter5)
+template<typename T, typename... Parameters, typename... Arguments>
+CrossThreadTask createCrossThreadTask(T& callee, void (T::*method)(Parameters...), const Arguments&... arguments)
 {
-    return CrossThreadTaskImpl<T, MP1, MP2, MP3, MP4, MP5>(
-        &callee,
-        method,
-        WTF::CrossThreadCopier<P1>::copy(parameter1),
-        WTF::CrossThreadCopier<P2>::copy(parameter2),
-        WTF::CrossThreadCopier<P3>::copy(parameter3),
-        WTF::CrossThreadCopier<P4>::copy(parameter4),
-        WTF::CrossThreadCopier<P5>::copy(parameter5));
-}
-
-template<typename T, typename P1, typename MP1, typename P2, typename MP2, typename P3, typename MP3, typename P4, typename MP4, typename P5, typename MP5, typename P6, typename MP6>
-CrossThreadTask createCrossThreadTask(
-    T& callee,
-    void (T::*method)(MP1, MP2, MP3, MP4, MP5, MP6),
-    const P1& parameter1,
-    const P2& parameter2,
-    const P3& parameter3,
-    const P4& parameter4,
-    const P5& parameter5,
-    const P6& parameter6)
-{
-    return CrossThreadTaskImpl<T, MP1, MP2, MP3, MP4, MP5, MP6>(
-        &callee,
-        method,
-        WTF::CrossThreadCopier<P1>::copy(parameter1),
-        WTF::CrossThreadCopier<P2>::copy(parameter2),
-        WTF::CrossThreadCopier<P3>::copy(parameter3),
-        WTF::CrossThreadCopier<P4>::copy(parameter4),
-        WTF::CrossThreadCopier<P5>::copy(parameter5),
-        WTF::CrossThreadCopier<P6>::copy(parameter6));
-}
-
-template<typename T, typename P1, typename MP1, typename P2, typename MP2, typename P3, typename MP3, typename P4, typename MP4, typename P5, typename MP5, typename P6, typename MP6, typename P7, typename MP7>
-CrossThreadTask createCrossThreadTask(
-    T& callee,
-    void (T::*method)(MP1, MP2, MP3, MP4, MP5, MP6, MP7),
-    const P1& parameter1,
-    const P2& parameter2,
-    const P3& parameter3,
-    const P4& parameter4,
-    const P5& parameter5,
-    const P6& parameter6,
-    const P7& parameter7)
-{
-    return CrossThreadTaskImpl<T, MP1, MP2, MP3, MP4, MP5, MP6, MP7>(
-        &callee,
-        method,
-        WTF::CrossThreadCopier<P1>::copy(parameter1),
-        WTF::CrossThreadCopier<P2>::copy(parameter2),
-        WTF::CrossThreadCopier<P3>::copy(parameter3),
-        WTF::CrossThreadCopier<P4>::copy(parameter4),
-        WTF::CrossThreadCopier<P5>::copy(parameter5),
-        WTF::CrossThreadCopier<P6>::copy(parameter6),
-        WTF::CrossThreadCopier<P7>::copy(parameter7));
-}
-
-template<typename T, typename P1, typename MP1, typename P2, typename MP2, typename P3, typename MP3, typename P4, typename MP4, typename P5, typename MP5, typename P6, typename MP6, typename P7, typename MP7, typename P8, typename MP8>
-CrossThreadTask createCrossThreadTask(
-    T& callee,
-    void (T::*method)(MP1, MP2, MP3, MP4, MP5, MP6, MP7, MP8),
-    const P1& parameter1,
-    const P2& parameter2,
-    const P3& parameter3,
-    const P4& parameter4,
-    const P5& parameter5,
-    const P6& parameter6,
-    const P7& parameter7,
-    const P8& parameter8)
-{
-    return CrossThreadTaskImpl<T, MP1, MP2, MP3, MP4, MP5, MP6, MP7, MP8>(
-        &callee,
-        method,
-        WTF::CrossThreadCopier<P1>::copy(parameter1),
-        WTF::CrossThreadCopier<P2>::copy(parameter2),
-        WTF::CrossThreadCopier<P3>::copy(parameter3),
-        WTF::CrossThreadCopier<P4>::copy(parameter4),
-        WTF::CrossThreadCopier<P5>::copy(parameter5),
-        WTF::CrossThreadCopier<P6>::copy(parameter6),
-        WTF::CrossThreadCopier<P7>::copy(parameter7),
-        WTF::CrossThreadCopier<P8>::copy(parameter8));
+    return CrossThreadTask([callee = &callee, method, arguments = std::make_tuple(crossThreadCopy<Arguments>(arguments)...)]() mutable {
+        callMemberFunctionForCrossThreadTask(callee, method, WTFMove(arguments));
+    });
 }
 
 } // namespace WTF

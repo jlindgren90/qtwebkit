@@ -178,9 +178,9 @@ String JSFunction::name()
     return jsExecutable()->name().string();
 }
 
-String JSFunction::displayName(ExecState* exec)
+String JSFunction::displayName(VM& vm)
 {
-    JSValue displayName = getDirect(exec->vm(), exec->vm().propertyNames->displayName);
+    JSValue displayName = getDirect(vm, vm.propertyNames->displayName);
     
     if (displayName && isJSString(displayName))
         return asString(displayName)->tryGetValue();
@@ -188,9 +188,9 @@ String JSFunction::displayName(ExecState* exec)
     return String();
 }
 
-const String JSFunction::calculatedDisplayName(ExecState* exec)
+const String JSFunction::calculatedDisplayName(VM& vm)
 {
-    const String explicitName = displayName(exec);
+    const String explicitName = displayName(vm);
     
     if (!explicitName.isEmpty())
         return explicitName;
@@ -264,7 +264,7 @@ static JSValue retrieveArguments(ExecState* exec, JSFunction* functionObj)
     return functor.result();
 }
 
-EncodedJSValue JSFunction::argumentsGetter(ExecState* exec, EncodedJSValue thisValue, PropertyName, JSObject*)
+EncodedJSValue JSFunction::argumentsGetter(ExecState* exec, EncodedJSValue thisValue, PropertyName)
 {
     JSFunction* thisObj = jsCast<JSFunction*>(JSValue::decode(thisValue));
     ASSERT(!thisObj->isHostFunction());
@@ -319,7 +319,7 @@ static JSValue retrieveCallerFunction(ExecState* exec, JSFunction* functionObj)
     return functor.result();
 }
 
-EncodedJSValue JSFunction::callerGetter(ExecState* exec, EncodedJSValue thisValue, PropertyName, JSObject*)
+EncodedJSValue JSFunction::callerGetter(ExecState* exec, EncodedJSValue thisValue, PropertyName)
 {
     JSFunction* thisObj = jsCast<JSFunction*>(JSValue::decode(thisValue));
     ASSERT(!thisObj->isHostFunction());
@@ -556,12 +556,12 @@ ConstructType JSFunction::getConstructData(JSCell* cell, ConstructData& construc
     return ConstructType::JS;
 }
 
-String getCalculatedDisplayName(CallFrame* callFrame, JSObject* object)
+String getCalculatedDisplayName(VM& vm, JSObject* object)
 {
     if (JSFunction* function = jsDynamicCast<JSFunction*>(object))
-        return function->calculatedDisplayName(callFrame);
+        return function->calculatedDisplayName(vm);
     if (InternalFunction* function = jsDynamicCast<InternalFunction*>(object))
-        return function->calculatedDisplayName(callFrame);
+        return function->calculatedDisplayName(vm);
     return emptyString();
 }
 

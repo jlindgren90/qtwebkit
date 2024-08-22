@@ -59,7 +59,9 @@
 
 #if ENABLE(WEB_RTC)
 #include "JSRTCRtpReceiver.h"
+#include "JSRTCRtpTransceiver.h"
 #endif
+
 
 #if ENABLE(GAMEPAD)
 #include "JSGamepad.h"
@@ -73,19 +75,15 @@ JSDictionary::GetPropertyResult JSDictionary::tryGetProperty(const char* propert
 {
     ASSERT(isValid());
     Identifier identifier = Identifier::fromString(m_exec, propertyName);
-    PropertySlot slot(m_initializerObject.get(), PropertySlot::InternalMethodType::Get);
-
-    if (!m_initializerObject.get()->getPropertySlot(m_exec, identifier, slot))
-        return NoPropertyFound;
-
+    bool propertyFound = m_initializerObject.get()->getPropertySlot(m_exec, identifier, [&] (bool propertyFound, PropertySlot& slot) -> bool {
+        if (!propertyFound)
+            return false;
+        finalResult = slot.getValue(m_exec, identifier);
+        return true;
+    });
     if (m_exec->hadException())
         return ExceptionThrown;
-
-    finalResult = slot.getValue(m_exec, identifier);
-    if (m_exec->hadException())
-        return ExceptionThrown;
-
-    return PropertyFound;
+    return propertyFound ? PropertyFound : NoPropertyFound;
 }
 
 void JSDictionary::convertValue(ExecState* exec, JSValue value, bool& result)
@@ -269,6 +267,35 @@ void JSDictionary::convertValue(JSC::ExecState*, JSC::JSValue value, RefPtr<Medi
 void JSDictionary::convertValue(JSC::ExecState*, JSC::JSValue value, RefPtr<RTCRtpReceiver>& result)
 {
     result = JSRTCRtpReceiver::toWrapped(value);
+}
+
+void JSDictionary::convertValue(JSC::ExecState*, JSC::JSValue value, RefPtr<RTCRtpTransceiver>& result)
+{
+    result = JSRTCRtpTransceiver::toWrapped(value);
+}
+
+void JSDictionary::convertValue(ExecState* exec, JSValue value, Vector<RefPtr<MediaStream>>& result)
+{
+    if (value.isUndefinedOrNull())
+        return;
+
+    unsigned length = 0;
+    JSObject* object = toJSSequence(exec, value, length);
+    if (exec->hadException())
+        return;
+
+    for (unsigned i = 0 ; i < length; ++i) {
+        JSValue itemValue = object->get(exec, i);
+        if (exec->hadException())
+            return;
+
+        auto stream = JSMediaStream::toWrapped(itemValue);
+        if (!stream) {
+            setDOMException(exec, TypeError);
+            return;
+        }
+        result.append(stream);
+    }
 }
 #endif
 

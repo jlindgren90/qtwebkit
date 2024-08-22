@@ -410,9 +410,6 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, uin
     , m_syncNavigationActionPolicyAction(PolicyUse)
     , m_syncNavigationActionPolicyDownloadID(0)
     , m_processingMouseMoveEvent(false)
-#if ENABLE(TOUCH_EVENTS)
-    , m_isTrackingTouchEvents(false)
-#endif
     , m_pageID(pageID)
     , m_sessionID(m_configuration->sessionID())
     , m_isPageSuspended(false)
@@ -1982,19 +1979,24 @@ void WebPageProxy::handleGestureEvent(const WebGestureEvent& event)
 
 #if ENABLE(TOUCH_EVENTS)
 
-bool WebPageProxy::shouldStartTrackingTouchEvents(const WebTouchEvent& touchStartEvent) const
+TrackingType WebPageProxy::touchEventTrackingType(const WebTouchEvent& touchStartEvent) const
 {
 #if ENABLE(ASYNC_SCROLLING)
+    TrackingType trackingType = TrackingType::NotTracking;
     for (auto& touchPoint : touchStartEvent.touchPoints()) {
-        if (m_scrollingCoordinatorProxy->isPointInNonFastScrollableRegion(touchPoint.location()))
-            return true;
+        TrackingType touchPointTrackingType = m_scrollingCoordinatorProxy->eventTrackingTypeForPoint(touchPoint.location());
+        if (touchPointTrackingType == TrackingType::Synchronous)
+            return TrackingType::Synchronous;
+
+        if (touchPointTrackingType == TrackingType::Asynchronous)
+            trackingType = touchPointTrackingType;
     }
 
-    return false;
+    return trackingType;
 #else
     UNUSED_PARAM(touchStartEvent);
 #endif // ENABLE(ASYNC_SCROLLING)
-    return true;
+    return TrackingType::Synchronous;
 }
 
 #endif
@@ -2014,18 +2016,31 @@ void WebPageProxy::handleGestureEvent(const NativeWebGestureEvent& event)
 #endif
 
 #if ENABLE(IOS_TOUCH_EVENTS)
-void WebPageProxy::handleTouchEventSynchronously(const NativeWebTouchEvent& event)
+void WebPageProxy::handleTouchEventSynchronously(NativeWebTouchEvent& event)
 {
     if (!isValid())
         return;
 
     if (event.type() == WebEvent::TouchStart) {
-        m_isTrackingTouchEvents = shouldStartTrackingTouchEvents(event);
+        m_touchEventsTrackingType = touchEventTrackingType(event);
         m_layerTreeTransactionIdAtLastTouchStart = downcast<RemoteLayerTreeDrawingAreaProxy>(*drawingArea()).lastCommittedLayerTreeTransactionID();
     }
 
-    if (!m_isTrackingTouchEvents)
+    if (m_touchEventsTrackingType == TrackingType::NotTracking)
         return;
+
+    if (m_touchEventsTrackingType == TrackingType::Asynchronous) {
+        // We can end up here if a native gesture has not started but the event handlers are passive.
+        //
+        // The client of WebPageProxy asks the event to be sent synchronously since the touch event
+        // can prevent a native gesture.
+        // But, here we know that all events handlers that can handle this events are passive.
+        // We can use asynchronous dispatch and pretend to the client that the page does nothing with the events.
+        event.setCanPreventNativeGestures(false);
+        handleTouchEventAsynchronously(event);
+        didReceiveEvent(event.type(), false);
+        return;
+    }
 
     m_process->responsivenessTimer().start();
     bool handled = false;
@@ -2035,7 +2050,7 @@ void WebPageProxy::handleTouchEventSynchronously(const NativeWebTouchEvent& even
     m_process->responsivenessTimer().stop();
 
     if (event.allTouchPointsAreReleased())
-        m_isTrackingTouchEvents = false;
+        m_touchEventsTrackingType = TrackingType::NotTracking;
 }
 
 void WebPageProxy::handleTouchEventAsynchronously(const NativeWebTouchEvent& event)
@@ -2043,13 +2058,13 @@ void WebPageProxy::handleTouchEventAsynchronously(const NativeWebTouchEvent& eve
     if (!isValid())
         return;
 
-    if (!m_isTrackingTouchEvents)
+    if (m_touchEventsTrackingType == TrackingType::NotTracking)
         return;
 
     m_process->send(Messages::EventDispatcher::TouchEvent(m_pageID, event), 0);
 
     if (event.allTouchPointsAreReleased())
-        m_isTrackingTouchEvents = false;
+        m_touchEventsTrackingType = TrackingType::NotTracking;
 }
 
 #elif ENABLE(TOUCH_EVENTS)
@@ -2067,9 +2082,9 @@ void WebPageProxy::handleTouchEvent(const NativeWebTouchEvent& event)
         return;
 
     if (event.type() == WebEvent::TouchStart)
-        m_isTrackingTouchEvents = shouldStartTrackingTouchEvents(event);
+        m_touchEventsTrackingType = touchEventTrackingType(event);
 
-    if (!m_isTrackingTouchEvents)
+    if (m_touchEventsTrackingType == TrackingType::NotTracking)
         return;
 
     // If the page is suspended, which should be the case during panning, pinching
@@ -2092,7 +2107,7 @@ void WebPageProxy::handleTouchEvent(const NativeWebTouchEvent& event)
     }
 
     if (event.allTouchPointsAreReleased())
-        m_isTrackingTouchEvents = false;
+        m_touchEventsTrackingType = TrackingType::NotTracking;
 }
 #endif // ENABLE(TOUCH_EVENTS)
 
@@ -5124,7 +5139,7 @@ void WebPageProxy::resetState(ResetStateReason resetStateReason)
     }
 
 #if ENABLE(TOUCH_EVENTS)
-    m_isTrackingTouchEvents = false;
+    m_touchEventsTrackingType = TrackingType::NotTracking;
 #endif
 
 #if ENABLE(INPUT_TYPE_COLOR)

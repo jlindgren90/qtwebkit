@@ -178,7 +178,7 @@ void NetworkResourceLoader::retrieveCacheEntry(const ResourceRequest& request)
             loader->dispatchWillSendRequestForCacheEntry(WTFMove(entry));
             return;
         }
-        if (loader->m_parameters.needsCertificateInfo && !entry->response().containsCertificateInfo()) {
+        if (loader->m_parameters.needsCertificateInfo && !entry->response().certificateInfo()) {
             loader->startNetworkLoad(request);
             return;
         }
@@ -274,7 +274,7 @@ void NetworkResourceLoader::abort()
     cleanup();
 }
 
-auto NetworkResourceLoader::didReceiveResponse(const ResourceResponse& receivedResponse) -> ShouldContinueDidReceiveResponse
+auto NetworkResourceLoader::didReceiveResponse(ResourceResponse&& receivedResponse) -> ShouldContinueDidReceiveResponse
 {
     NETWORKRESOURCELOADER_LOG_ALWAYS("Received network resource response: loader = %p, pageID = %llu, frameID = %llu, isMainResource = %d, isSynchronous = %d, httpStatusCode = %d", this, m_parameters.webPageID, m_parameters.webFrameID, isMainResource(), isSynchronous(), receivedResponse.httpStatusCode());
 
@@ -331,7 +331,7 @@ auto NetworkResourceLoader::didReceiveResponse(const ResourceResponse& receivedR
     return ShouldContinueDidReceiveResponse::No;
 }
 
-void NetworkResourceLoader::didReceiveBuffer(RefPtr<SharedBuffer>&& buffer, int reportedEncodedDataLength)
+void NetworkResourceLoader::didReceiveBuffer(Ref<SharedBuffer>&& buffer, int reportedEncodedDataLength)
 {
 #if ENABLE(NETWORK_CACHE)
     ASSERT(!m_cacheEntryForValidation);
@@ -355,7 +355,7 @@ void NetworkResourceLoader::didReceiveBuffer(RefPtr<SharedBuffer>&& buffer, int 
         startBufferingTimerIfNeeded();
         return;
     }
-    sendBufferMaybeAborting(*buffer, encodedDataLength);
+    sendBufferMaybeAborting(buffer, encodedDataLength);
 }
 
 void NetworkResourceLoader::didFinishLoading(double finishTime)
@@ -410,7 +410,7 @@ void NetworkResourceLoader::didFailLoading(const ResourceError& error)
     cleanup();
 }
 
-void NetworkResourceLoader::willSendRedirectedRequest(const ResourceRequest& request, const WebCore::ResourceRequest& redirectRequest, const ResourceResponse& redirectResponse)
+void NetworkResourceLoader::willSendRedirectedRequest(ResourceRequest&& request, WebCore::ResourceRequest&& redirectRequest, ResourceResponse&& redirectResponse)
 {
     ++m_redirectCount;
 
@@ -424,7 +424,7 @@ void NetworkResourceLoader::willSendRedirectedRequest(const ResourceRequest& req
             m_networkLoad->clearCurrentRequest();
             overridenRequest = ResourceRequest();
         }
-        continueWillSendRequest(overridenRequest);
+        continueWillSendRequest(WTFMove(overridenRequest));
         return;
     }
     sendAbortingOnFailure(Messages::WebResourceLoader::WillSendRequest(redirectRequest, redirectResponse));
@@ -437,7 +437,7 @@ void NetworkResourceLoader::willSendRedirectedRequest(const ResourceRequest& req
 #endif
 }
 
-void NetworkResourceLoader::continueWillSendRequest(const ResourceRequest& newRequest)
+void NetworkResourceLoader::continueWillSendRequest(ResourceRequest&& newRequest)
 {
     NETWORKRESOURCELOADER_LOG_ALWAYS("Following redirect of network resource: loader = %p, pageID = %llu, frameID = %llu, isMainResource = %d, isSynchronous = %d", this, static_cast<unsigned long long>(m_parameters.webPageID), static_cast<unsigned long long>(m_parameters.webFrameID), isMainResource(), isSynchronous());
 
@@ -456,7 +456,7 @@ void NetworkResourceLoader::continueWillSendRequest(const ResourceRequest& newRe
 #endif
 
     if (m_networkLoad)
-        m_networkLoad->continueWillSendRequest(newRequest);
+        m_networkLoad->continueWillSendRequest(WTFMove(newRequest));
 }
 
 void NetworkResourceLoader::continueDidReceiveResponse()

@@ -321,9 +321,8 @@ String Parser<LexerType>::parseInner(const Identifier& calleeName, SourceParseMo
     if (m_parsingBuiltin && isProgramParseMode(parseMode)) {
         VariableEnvironment& lexicalVariables = scope->lexicalVariables();
         const HashSet<UniquedStringImpl*>& closedVariableCandidates = scope->closedVariableCandidates();
-        const BuiltinNames& builtinNames = m_vm->propertyNames->builtinNames();
         for (UniquedStringImpl* candidate : closedVariableCandidates) {
-            if (!lexicalVariables.contains(candidate) && !varDeclarations.contains(candidate) && !builtinNames.isPrivateName(*candidate)) {
+            if (!lexicalVariables.contains(candidate) && !varDeclarations.contains(candidate) && !candidate->isSymbol()) {
                 dataLog("Bad global capture in builtin: '", candidate, "'\n");
                 dataLog(m_source->view());
                 CRASH();
@@ -1746,6 +1745,9 @@ template <class TreeBuilder> bool Parser<LexerType>::parseFormalParameters(TreeB
         TreeDestructuringPattern parameter = 0;
         TreeExpression defaultValue = 0;
 
+        if (UNLIKELY(match(CLOSEPAREN)))
+            break;
+        
         if (match(DOTDOTDOT)) {
             next();
             failIfFalse(matchSpecIdentifier(), "Rest parameter '...' should be followed by a variable identifier");
@@ -3826,6 +3828,9 @@ template <class TreeBuilder> TreeArguments Parser<LexerType>::parseArguments(Tre
         JSTokenLocation argumentLocation(tokenLocation());
         next(TreeBuilder::DontBuildStrings);
 
+        if (UNLIKELY(match(CLOSEPAREN)))
+            break;
+        
         TreeExpression arg = parseArgument(context, argType);
         propagateError();
         semanticFailIfTrue(match(DOTDOTDOT), "The '...' operator should come before the target expression");

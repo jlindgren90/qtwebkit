@@ -462,7 +462,7 @@ void ApplicationCacheGroup::abort(Frame* frame)
     cacheUpdateFailed();
 }
 
-PassRefPtr<ResourceHandle> ApplicationCacheGroup::createResourceHandle(const URL& url, ApplicationCacheResource* newestCachedResource)
+RefPtr<ResourceHandle> ApplicationCacheGroup::createResourceHandle(const URL& url, ApplicationCacheResource* newestCachedResource)
 {
     ResourceRequest request(url);
     m_frame->loader().applyUserAgent(request);
@@ -489,7 +489,7 @@ PassRefPtr<ResourceHandle> ApplicationCacheGroup::createResourceHandle(const URL
     return handle;
 }
 
-void ApplicationCacheGroup::didReceiveResponse(ResourceHandle* handle, const ResourceResponse& response)
+void ApplicationCacheGroup::didReceiveResponse(ResourceHandle* handle, ResourceResponse&& response)
 {
     ASSERT(m_frame);
     InspectorInstrumentationCookie cookie = InspectorInstrumentation::willReceiveResourceResponse(m_frame);

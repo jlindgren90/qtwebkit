@@ -1002,6 +1002,9 @@ private:
         case PutDynamicVar:
             compilePutDynamicVar();
             break;
+        case Unreachable:
+            compileUnreachable();
+            break;
 
         case PhantomLocal:
         case LoopHint:
@@ -7686,6 +7689,18 @@ private:
             m_callFrame, lowCell(m_node->child1()), lowJSValue(m_node->child2()), m_out.constIntPtr(uid), m_out.constInt32(m_node->getPutInfo())));
     }
     
+    void compileUnreachable()
+    {
+        // It's so tempting to assert that AI has proved that this is unreachable. But that's
+        // simply not a requirement of the Unreachable opcode at all. If you emit an opcode that
+        // *you* know will not return, then it's fine to end the basic block with Unreachable
+        // after that opcode. You don't have to also prove to AI that your opcode does not return.
+        // Hence, there is nothing to do here but emit code that will crash, so that we catch
+        // cases where you said Unreachable but you lied.
+        
+        crash();
+    }
+    
     void compareEqObjectOrOtherToObject(Edge leftChild, Edge rightChild)
     {
         LValue rightCell = lowCell(rightChild);
@@ -9093,7 +9108,7 @@ private:
         m_out.jump(continuation);
         
         m_out.appendTo(slowPath, continuation);
-        results.append(m_out.anchor(m_out.call(m_out.int32, m_out.operation(toInt32), doubleValue)));
+        results.append(m_out.anchor(m_out.call(m_out.int32, m_out.operation(operationToInt32), doubleValue)));
         m_out.jump(continuation);
         
         m_out.appendTo(continuation, lastNext);
@@ -9122,7 +9137,7 @@ private:
         
         LBasicBlock lastNext = m_out.appendTo(slowPath, continuation);
         ValueFromBlock slowResult = m_out.anchor(
-            m_out.call(m_out.int32, m_out.operation(toInt32), doubleValue));
+            m_out.call(m_out.int32, m_out.operation(operationToInt32), doubleValue));
         m_out.jump(continuation);
         
         m_out.appendTo(continuation, lastNext);

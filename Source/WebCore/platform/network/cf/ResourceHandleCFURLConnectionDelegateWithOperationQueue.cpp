@@ -118,7 +118,7 @@ CFURLRequestRef ResourceHandleCFURLConnectionDelegateWithOperationQueue::willSen
         ASSERT(redirectResponse);
 
         ResourceRequest request = createResourceRequest(cfRequest, redirectResponse.get());
-        m_handle->willSendRequest(request, redirectResponse.get());
+        m_handle->willSendRequest(WTFMove(request), redirectResponse.get());
     });
 
     dispatch_semaphore_wait(m_semaphore, DISPATCH_TIME_FOREVER);
@@ -161,7 +161,7 @@ void ResourceHandleCFURLConnectionDelegateWithOperationQueue::didReceiveResponse
         UNUSED_PARAM(connection);
 #endif
         
-        m_handle->client()->didReceiveResponseAsync(m_handle, resourceResponse);
+        m_handle->client()->didReceiveResponseAsync(m_handle, WTFMove(resourceResponse));
     });
     dispatch_semaphore_wait(m_semaphore, DISPATCH_TIME_FOREVER);
 }

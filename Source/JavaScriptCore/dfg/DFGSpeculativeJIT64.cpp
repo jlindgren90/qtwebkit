@@ -4799,7 +4799,7 @@ void SpeculativeJIT::compile(Node* node)
         break;
 
     case Unreachable:
-        DFG_CRASH(m_jit.graph(), node, "Unexpected Unreachable node");
+        unreachable(node);
         break;
 
     case StoreBarrier: {

@@ -1,3 +1,225 @@
+2016-06-11  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Addressing post-review comments after r201978.
+        https://bugs.webkit.org/show_bug.cgi?id=158649
+        <rdar://problem/13258122>
+
+        Unreviewed.
+
+        * wtf/text/StringCommon.h:
+        (WTF::equal):
+        (WTF::naiveEqualWithoutPerformingUnicodeNormalization): Deleted.
+
+2016-06-11  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Map commonly used Chinese Windows font names to names present on Cocoa operating systems
+        https://bugs.webkit.org/show_bug.cgi?id=158649
+        <rdar://problem/13258122>
+
+        Reviewed by Darin Adler.
+
+        * wtf/text/StringCommon.h:
+        (WTF::naiveEqualWithoutPerformingUnicodeNormalization): Added.
+
+2016-06-11  Chris Dumez  <cdumez@apple.com>
+
+        WorkerNavigator is missing some attributes
+        https://bugs.webkit.org/show_bug.cgi?id=158593
+        <rdar://problem/26731334>
+
+        Reviewed by Darin Adler.
+
+        * wtf/PlatformUserPreferredLanguages.h:
+        * wtf/PlatformUserPreferredLanguagesWin.cpp:
+        (WTF::platformLanguage):
+        (WTF::platformUserPreferredLanguages):
+
+        Make platformUserPreferredLanguages() thread safe on Windows. The
+        Mac and Unix implementations are already thread-safe.
+
+2016-06-10  Alex Christensen  <achristensen@webkit.org>
+
+        Introduce WTF::UniqueRef
+        https://bugs.webkit.org/show_bug.cgi?id=158596
+
+        Reviewed by Brady Eidson.
+
+        WTF::UniqueRef is like a std::unique_ptr that is guaranteed to be non-null.
+        std::make_unique returns a non-null value that is put into a std::unique_ptr, a type
+        that could contain null values.  To be able to pass such values around and store them
+        without wondering if they are null, we now have WTF::UniqueRef which cannot be null.
+
+        * WTF.xcodeproj/project.pbxproj:
+        * wtf/CMakeLists.txt:
+        * wtf/UniqueRef.h: Added.
+        (WTF::makeUniqueRef):
+        (WTF::UniqueRef::UniqueRef):
+        (WTF::UniqueRef::get):
+        (WTF::UniqueRef::operator&):
+        (WTF::UniqueRef::operator->):
+
+2016-06-09  Brady Eidson  <beidson@apple.com>
+
+        Unaddressed review feedback from r201872
+
+        * wtf/CrossThreadTask.h:
+        (WTF::callFunctionForCrossThreadTask): Fix typo.
+
+2016-06-09  Brady Eidson  <beidson@apple.com>
+
+        Greatly simplify CrossThreadTask.h.
+        https://bugs.webkit.org/show_bug.cgi?id=158542
+
+        Reviewed by Darin Adler.
+
+        * wtf/CrossThreadTask.h:
+        (WTF::crossThreadCopy):
+        (WTF::callFunctionForCrossThreadTaskImpl):
+        (WTF::callFunctionForCrossThreadTask):
+        (WTF::createCrossThreadTask):
+        (WTF::callMemberFunctionForCrossThreadTaskImpl):
+        (WTF::callMemberFunctionForCrossThreadTask):
+
+2016-06-08  Brady Eidson  <beidson@apple.com>
+
+        Make CrossThreadCopier more efficient (fewer copies!).
+        https://bugs.webkit.org/show_bug.cgi?id=158456
+
+        Reviewed by Alex Christensen.
+
+        Previously, we'd run all arguments through CrossThreadCopier, then immediately make
+        an unnecessary copy of the result during lambda capture.
+
+        Instead, we should just put the CrossThreadCopier generated objects directly in lambdas,
+        which are then captured by NoncopyableFunctions.
+
+        This reduces the number of constructor calls per argument from 2 copies to 1 move.
+
+        * wtf/CrossThreadTask.h:
+        (WTF::CrossThreadTask::CrossThreadTask):
+        (WTF::createCrossThreadTask):
+
+2016-06-07  Filip Pizlo  <fpizlo@apple.com>
+
+        Implement Air::allocateStack() in ES6 to see how much of a bad idea that is
+        https://bugs.webkit.org/show_bug.cgi?id=158318
+
+        Reviewed by Saam Barati.
+
+        * wtf/Insertion.h:
+        (WTF::executeInsertions): I found a bug while rewriting this code in JS.
+        * wtf/PrintStream.h:
+        (WTF::PrintStream::print):
+        (WTF::PrintStream::println): This is useful to have.
+
+2016-06-07  Keith Rollin  <krollin@apple.com>
+
+        Remove all uses of PassRefPtr in WTF
+        https://bugs.webkit.org/show_bug.cgi?id=157596
+        <rdar://problem/26234391>
+
+        Reviewed by Chris Dumez.
+
+        Remove/update most interfaces that take or return PassRefPtrs.
+        Remaining references include those in non-Cocoa implementations and
+        those required for continued compatibility with modules that still use
+        PassRefPtrs (specifically: Forward.h, RefPtr interoperability,
+        SizeLimits.h, WorkQueue (Windows) DispatchQueueEfl,
+        DispatchWorkItemEfl, and PassRefPtr itself).
+
+        Update calls to interfaces that no longer take or return PassRefPtrs.
+
+        Update adoptRef(T*) to return a RefPtr instead of a PassRefPtr and
+        move it to RefPtr.h from PassRefPtr.h.
+
+        * wtf/MetaAllocator.cpp:
+        (WTF::MetaAllocator::allocate):
+        * wtf/MetaAllocator.h:
+        * wtf/ParallelJobsGeneric.h:
+        (WTF::ParallelEnvironment::ThreadPrivate::create):
+        * wtf/text/AtomicStringImpl.cpp:
+        (WTF::HashAndUTF8CharactersTranslator::translate):
+        (WTF::SubstringTranslator::translate):
+        * wtf/text/CString.cpp:
+        (WTF::CStringBuffer::createUninitialized):
+        * wtf/text/CString.h:
+        * wtf/text/StringBuilder.cpp:
+        (WTF::StringBuilder::reifyString):
+        (WTF::StringBuilder::resize):
+        (WTF::StringBuilder::reallocateBuffer<LChar>):
+        (WTF::StringBuilder::reallocateBuffer<UChar>):
+        * wtf/text/StringImpl.cpp:
+        (WTF::StringImpl::reallocateInternal):
+        (WTF::StringImpl::reallocate):
+        (WTF::StringImpl::create8BitIfPossible):
+        (WTF::StringImpl::createSymbol):
+        (WTF::StringImpl::createNullSymbol):
+        (WTF::StringImpl::convertToLowercaseWithoutLocale):
+        (WTF::StringImpl::convertToUppercaseWithoutLocale):
+        (WTF::StringImpl::convertToLowercaseWithLocale):
+        (WTF::StringImpl::convertToUppercaseWithLocale):
+        (WTF::StringImpl::convertASCIICase):
+        * wtf/text/StringImpl.h:
+        (WTF::StringImpl::StringImpl):
+        (WTF::StringImpl::createSubstringSharingImpl):
+        (WTF::StringImpl::tryCreateUninitialized):
+        (WTF::StringImpl::extractFoldedStringInSymbol):
+        * wtf/text/SymbolRegistry.cpp:
+        (WTF::SymbolRegistry::symbolForKey):
+        * wtf/text/WTFString.cpp:
+        (WTF::String::substringSharingImpl):
+        * wtf/text/WTFString.h:
+        (WTF::String::String): Deleted.
+        * wtf/text/cf/StringImplCF.cpp:
+
+2016-06-07  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Do not allocate unnecessary UTF-8 string for encodeXXX functions
+        https://bugs.webkit.org/show_bug.cgi?id=158416
+
+        Reviewed by Darin Adler and Geoffrey Garen.
+
+        * wtf/Bitmap.h:
+        (WTF::Bitmap::size):
+        (WTF::WordType>::Bitmap):
+        (WTF::WordType>::get):
+        (WTF::WordType>::set):
+        (WTF::WordType>::testAndSet):
+        (WTF::WordType>::testAndClear):
+        (WTF::WordType>::concurrentTestAndSet):
+        (WTF::WordType>::concurrentTestAndClear):
+        (WTF::WordType>::clear):
+        (WTF::WordType>::clearAll):
+        (WTF::WordType>::nextPossiblyUnset):
+        (WTF::WordType>::findRunOfZeros):
+        (WTF::WordType>::count):
+        (WTF::WordType>::isEmpty):
+        (WTF::WordType>::isFull):
+
+2016-06-06  Saam Barati  <sbarati@apple.com>
+
+        equal(StringView, StringView) for strings should have a fast path for pointer equality
+        https://bugs.webkit.org/show_bug.cgi?id=158452
+
+        Reviewed by Andreas Kling.
+
+        JSBench does a lot of StringView::operator== on StringViews that have
+        the same underlying characters pointer. This becomes hot inside JSBench
+        because JSBench heavily stresses JSC's UnlinkedCodeCache with a high
+        hit rate. This means that when we get a hit in the cache, we used to
+        do the long form of string compare. However, we were often comparing
+        two StringViews that had the same underlying buffer and length.
+        This patch speeds this case up to run in constant time instead of
+        linear time.
+
+        * wtf/text/StringCommon.h:
+        (WTF::equalCommon):
+        * wtf/text/StringImpl.h:
+        (WTF::StringImpl::StringImpl):
+        (WTF::StringImpl::data):
+        * wtf/text/StringView.h:
+        (WTF::StringView::data):
+
 2016-06-04  Anders Carlsson  <andersca@apple.com>
 
         Get rid of WorkItemWin

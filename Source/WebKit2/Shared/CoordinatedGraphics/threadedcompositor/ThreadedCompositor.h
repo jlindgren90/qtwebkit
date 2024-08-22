@@ -64,8 +64,6 @@ public:
     static Ref<ThreadedCompositor> create(Client*);
     virtual ~ThreadedCompositor();
 
-    void setNeedsDisplay();
-
     void setNativeSurfaceHandleForCompositing(uint64_t);
     void setDeviceScaleFactor(float);
 
@@ -94,7 +92,6 @@ private:
     WebCore::GLContext* glContext();
     SimpleViewportController* viewportController() { return m_viewportController.get(); }
 
-    void callOnCompositingThread(std::function<void()>&&);
     void createCompositingThread();
     void runCompositingThread();
     void terminateCompositingThread();

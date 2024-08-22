@@ -1,3 +1,423 @@
+2016-06-10  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: <template> content should not be hidden as Shadow Content
+        https://bugs.webkit.org/show_bug.cgi?id=158654
+
+        Reviewed by Ryosuke Niwa.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        New "Template Content" string.
+
+        * UserInterface/Models/DOMNode.js:
+        (WebInspector.DOMNode):
+        Don't treat template content as shadow content.
+
+        * UserInterface/Views/DOMTreeElement.js:
+        (WebInspector.DOMTreeElement.prototype._nodeTitleInfo):
+        Custom string for template content fragment.
+
+2016-06-10  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: heap snapshot comparison view shows nothing if later snapshot is chosen first
+        https://bugs.webkit.org/show_bug.cgi?id=158584
+        <rdar://problem/26727849>
+
+        Reviewed by Timothy Hatcher.
+
+        ALways compare the the later snapshot to the earlier snapshot,
+        regardless of selection order.
+
+        * UserInterface/Views/HeapAllocationsTimelineView.js:
+        (WebInspector.HeapAllocationsTimelineView):
+        (WebInspector.HeapAllocationsTimelineView.prototype._dataGridNodeSelected):
+        Swap shapshots if the first has a greater identifier than the second.
+        Drive-by cleanup: null out `_baselineDataGridNode` since it isn't used
+        after the comparison completes.
+
+2016-06-10  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: rendering frames timeline "60fps" horizontal guide is mispositioned after switching timeline modes
+        https://bugs.webkit.org/show_bug.cgi?id=158587
+        <rdar://problem/26728174>
+
+        Reviewed by Timothy Hatcher.
+
+        When the view mode changes we iterate over all overview graphs, updating
+        their visibility as needed. Graphs being shown perform layout, even though
+        the overview's state is in transition: its offset height may still change.
+
+        A simple fix is to use TimelineOverviewGraph.height instead of the graph
+        element's offset height when performing layout.
+
+        * UserInterface/Views/RenderingFrameTimelineOverviewGraph.js:
+        (WebInspector.RenderingFrameTimelineOverviewGraph.prototype.layout):
+
+2016-06-10  Matt Baker  <mattbaker@apple.com>
+
+        REGRESSION (r201538): Web Inspector: 1px gap above timeline progress view
+        https://bugs.webkit.org/show_bug.cgi?id=158626
+
+        Reviewed by Joseph Pecoraro.
+
+        Adjust progress view top position to account for grid border changes.
+
+        * UserInterface/Views/TimelineRecordingContentView.css:
+        (.content-view.timeline-recording > .content-browser .recording-progress):
+
+2016-06-10  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: REGRESSION (r201538): Web Inspector: Border under JS Call Trees content view is too thick
+        https://bugs.webkit.org/show_bug.cgi?id=158624
+        <rdar://problem/26743633>
+
+        Reviewed by Joseph Pecoraro.
+
+        Remove top border from <th> elements.
+
+        * UserInterface/Views/ProfileView.css:
+        (.profile > .data-grid th): Deleted.
+
+2016-06-09  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION: Web Inspector: IndexedDB does not show ObjectStore data
+        https://bugs.webkit.org/show_bug.cgi?id=158592
+        <rdar://problem/26730696>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid.prototype._noteRowRemoved):
+        (WebInspector.DataGridNode.prototype._detach):
+        When rows are removed in the non-Virtual DataGrids, we should
+        actually remove the row.
+
+        * UserInterface/Views/IndexedDatabaseObjectStoreContentView.js:
+        (WebInspector.IndexedDatabaseObjectStoreContentView):
+        (WebInspector.IndexedDatabaseObjectStoreContentView.prototype._fetchMoreData.processEntries):
+        (WebInspector.IndexedDatabaseObjectStoreContentView.prototype._fetchMoreData):
+        Don't use the delete operator. Use a boolean.
+
+2016-06-09  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Support Command-P for quick open
+        https://bugs.webkit.org/show_bug.cgi?id=158579
+        <rdar://problem/26726751>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector.contentLoaded):
+
+2016-06-09  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        REGRESSION (r194717): Web Inspector: Elements tab: an element loses focus when selected by Up/Down key
+        https://bugs.webkit.org/show_bug.cgi?id=157768
+        <rdar://problem/26311155>
+
+        Reviewed by Timothy Hatcher.
+
+        Remove _previousFocusedSection and _newInspectorRuleSelector since it was used only
+        to focus on a newly created section (added by clicking on "+" button).
+
+        Introduce _inspectorSection and _isInspectorSectionPendingFocus.
+
+        * UserInterface/Views/CSSStyleDeclarationSection.js:
+        (WebInspector.CSSStyleDeclarationSection.prototype.cssStyleDeclarationTextEditorBlurActiveEditor): Deleted.
+        (WebInspector.CSSStyleDeclarationSection.prototype._handleSelectorPaste): Deleted.
+        No longer needed, it was only used by _previousFocusedSection and _newInspectorRuleSelector.
+
+        * UserInterface/Views/CSSStyleDeclarationTextEditor.js:
+        (WebInspector.CSSStyleDeclarationTextEditor.): Deleted.
+        No londer needed, it was only used by _previousFocusedSection.
+
+        * UserInterface/Views/RulesStyleDetailsPanel.js:
+        (WebInspector.RulesStyleDetailsPanel):
+        (WebInspector.RulesStyleDetailsPanel.prototype.refresh.appendStyleSection):
+        (WebInspector.RulesStyleDetailsPanel.prototype.newRuleButtonClicked):
+        (WebInspector.RulesStyleDetailsPanel.prototype.nodeStylesRefreshed):
+        (WebInspector.RulesStyleDetailsPanel.prototype.cssStyleDeclarationSectionEditorFocused): Deleted.
+        (WebInspector.RulesStyleDetailsPanel.prototype.cssStyleDeclarationSectionBlurActiveEditor): Deleted.
+        (WebInspector.RulesStyleDetailsPanel.prototype.cssStyleDeclarationSectionFocusNewInspectorRuleWithSelector): Deleted.
+
+2016-06-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION: Web Inspector: Should be able to evaluate "{a:1, b:2}" in the console
+        https://bugs.webkit.org/show_bug.cgi?id=158548
+        <rdar://problem/26708513>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Controllers/RuntimeManager.js:
+        (WebInspector.RuntimeManager.prototype.evaluateInInspectedWindow):
+        Switch the many parameters to an options dictionary.
+        Include a new option for sourceURL appender, so that
+        Console evaluations can have its own append.
+
+        * UserInterface/Controllers/JavaScriptLogViewController.js:
+        (WebInspector.JavaScriptLogViewController.prototype.consolePromptTextCommitted):
+        Use the appendWebInspectorConsoleEvaluationSourceURL appender.
+
+        * UserInterface/Controllers/JavaScriptRuntimeCompletionProvider.js:
+        (WebInspector.JavaScriptRuntimeCompletionProvider.prototype.completionControllerCompletionsNeeded.evaluated):
+        * UserInterface/Views/ScopeChainDetailsSidebarPanel.js:
+        (WebInspector.ScopeChainDetailsSidebarPanel.prototype._generateWatchExpressionsSection.):
+        (WebInspector.ScopeChainDetailsSidebarPanel.prototype._generateWatchExpressionsSection):
+        Use the new options dictionary.
+
+2016-06-08  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: an error is encountered when trying to delete nodes that have children
+        https://bugs.webkit.org/show_bug.cgi?id=158541
+        <rdar://problem/26705901>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/DOMTreeElement.js:
+        (WebInspector.DOMTreeElement.prototype.adjustCollapsedRange):
+        Offset into the array variable instead of a variable holding its length.
+
+2016-06-08  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: DOMTreeOutline selection areas should be created and updated lazily
+        https://bugs.webkit.org/show_bug.cgi?id=158513
+        <rdar://problem/26689646>
+
+        Reviewed by Timothy Hatcher.
+
+        Selection areas for DOMTreeElements are used for several things: drag markers,
+        element hover styles, element selection styles, and showing forced pseudo states
+        for an element. Fortunately it's easy to tell when any of these things is necessary.
+
+        Change DOMTreeOutline and DOMTreeElement so they don't create selection areas
+        unless they are needed for one of these tasks. This significantly reduces
+        forced layouts that are required to update the selection area height in case the
+        element has new attributes that cause the tag to become more or less wrapped.
+
+        * UserInterface/Views/DOMTreeElement.js:
+        (WebInspector.DOMTreeElement.prototype.set hovered):
+        Modernize this method a bit.
+
+        (WebInspector.DOMTreeElement.prototype.updateSelectionArea):
+        If a selection area is not necessary, don't create one.
+        If one exists and it's not needed, then remove it.
+
+        (WebInspector.DOMTreeElement.prototype.onattach):
+        Remove redundant calls to updateSelection(). This is already called in
+        updateTitle().
+
+        (WebInspector.DOMTreeElement.prototype.onselect):
+        Ask the DOMTreeOutline to update the selection rather than forcing the
+        element to do it. This is consistent with other updates to user selection.
+
+        (WebInspector.DOMTreeElement.prototype._insertInLastAttributePosition):
+        (WebInspector.DOMTreeElement.prototype._startEditingAsHTML.dispose):
+        (WebInspector.DOMTreeElement.prototype._startEditingAsHTML):
+        Use renamed method.
+
+        (WebInspector.DOMTreeElement.prototype.updateTitle):
+        Add a comment to explain why the selection area is nulled out here.
+
+        (WebInspector.DOMTreeElement.prototype.get pseudoClassesEnabled):
+        (WebInspector.DOMTreeElement.prototype._nodePseudoClassesDidChange):
+        Update the selection area in case one does not exist for this tree element.
+        The indicator for forced pseudo classes is a pseudo element of the selection area.
+
+        (WebInspector.DOMTreeElement.prototype.updateSelection): Renamed.
+        (WebInspector.DOMTreeElement.prototype.onexpand):
+        (WebInspector.DOMTreeElement.prototype.oncollapse):
+        Remove redundant calls to updateSelection(). This is already called in
+        updateTitle().
+
+        * UserInterface/Views/DOMTreeOutline.css:
+        (.tree-outline.dom):
+        (.tree-outline.dom li.hovered:not(.selected) .selection-area):
+        (.tree-outline.dom li .selection-area):
+        (.tree-outline.dom li.selected .selection-area):
+        (.tree-outline.dom li.elements-drag-over .selection-area):
+        (.tree-outline.dom:focus li.selected .selection-area):
+        (.tree-outline.dom li.pseudo-class-enabled > .selection-area::before):
+        (.tree-outline.dom:focus li.selected.pseudo-class-enabled > .selection-area::before):
+        (.tree-outline.dom li.hovered:not(.selected) .selection): Deleted.
+        (.tree-outline.dom li .selection): Deleted.
+        (.tree-outline.dom li.selected .selection): Deleted.
+        (.tree-outline.dom li.elements-drag-over .selection): Deleted.
+        (.tree-outline.dom:focus li.selected .selection): Deleted.
+        (.tree-outline.dom li.pseudo-class-enabled > .selection::before): Deleted.
+        (.tree-outline.dom:focus li.selected.pseudo-class-enabled > .selection::before): Deleted.
+        Rename the selector to be less ambiguous.
+
+        * UserInterface/Views/DOMTreeOutline.js:
+        (WebInspector.DOMTreeOutline.prototype.updateSelection): Simplify. The call
+        to update the selection area will bail out if there is nothing to be done.
+
+        (WebInspector.DOMTreeOutline.prototype.findTreeElement):
+        (WebInspector.DOMTreeOutline.prototype._onmousemove):
+        (WebInspector.DOMTreeOutline.prototype._onmouseout):
+        Clean up and use let and arrow functions.
+
+        (WebInspector.DOMTreeOutline.prototype._ondragover):
+        (WebInspector.DOMTreeOutline.prototype._clearDragOverTreeElementMarker):
+        Clear the dragging element before updating the selection area since it looks at
+        the dragging element to determine whether anything needs to be done.
+
+        * UserInterface/Views/FormattedValue.css:
+        (.formatted-node > .tree-outline.dom li.hovered:not(.selected) .selection-area):
+        (.formatted-node > .tree-outline.dom li.hovered:not(.selected) .selection): Deleted.
+        Rename the selector to be less ambiguous.
+
+2016-06-08  Brian Burg  <bburg@apple.com>
+
+        Uncaught Exception in TimelineDataGrid._updatePopoverForSelectedNode()
+        https://bugs.webkit.org/show_bug.cgi?id=158502
+        <rdar://problem/26687038>
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/TimelineDataGrid.js:
+        (WebInspector.TimelineDataGrid.prototype._updatePopoverForSelectedNode):
+        It appears that this expression was moved around since it accesses
+        targetFrame before it's initialized. Check rect.size.height directly.
+
+2016-06-08  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: reduce redundant attribute modification updates in DOMTreeUpdater and DOMTreeElement
+        https://bugs.webkit.org/show_bug.cgi?id=158504
+        <rdar://problem/25561452>
+
+        Reviewed by Timothy Hatcher.
+
+        When the frontend gets lots of DOM.attributeModified events, it forwards these on to
+        DOMTreeUpdater, which pushes a record for every single modification. It then updates
+        the DOM elements with the attibute changes on an animation frame. However, since it
+        doesn't do any deduplication of the modification records, a lot of time is wasted
+        on updating DOMTreeElements with intermediate (non-final) attribute values.
+
+        This patch rewrites DOMTreeUpdater to precisely track which nodes and attributes
+        of each node need to be updated on the next animation frame. This is done using
+        Sets and Maps that only hold onto the most recent attribute values rather than
+        pushing a record object for every single mutation.
+
+        This improves the performance of the Elements tab on an SVG particle simulator
+        dramatically so that the Inspector will not immediately hang. It still only achieves
+        a few updates per second in this case, so there is still optimization to be done on
+        the frontend and throttling to be done on the backend.
+
+        * UserInterface/Views/DOMTreeElement.js:
+        (WebInspector.DOMTreeElement):
+        (WebInspector.DOMTreeElement.prototype.attributeDidChange):
+        (WebInspector.DOMTreeElement.prototype._buildAttributeDOM):
+        (WebInspector.DOMTreeElement.prototype._markNodeChanged):
+        (WebInspector.DOMTreeElement.prototype._nodeChangedAnimationEnd):
+        (WebInspector.DOMTreeElement.prototype._fireDidChange):
+        (WebInspector.DOMTreeElement.prototype.nodeStateChanged): Deleted.
+        Simplify the list of modified attributes a little bit. This still uses a worklist
+        approach, so it's possible that duplicate updates for the same attribute could accumulate
+        if DOMTreeUpdater pushes updates faster than DOMTreeElement can render them.
+
+        * UserInterface/Views/DOMTreeUpdater.js:
+        (WebInspector.DOMTreeUpdater):
+        (WebInspector.DOMTreeUpdater.prototype._attributesUpdated):
+        (WebInspector.DOMTreeUpdater.prototype._characterDataModified):
+        (WebInspector.DOMTreeUpdater.prototype._nodeAttributeModified):
+        (WebInspector.DOMTreeUpdater.prototype._nodeInserted):
+        (WebInspector.DOMTreeUpdater.prototype._nodeRemoved):
+        (WebInspector.DOMTreeUpdater.prototype._childNodeCountUpdated):
+        (WebInspector.DOMTreeUpdater.prototype._updateModifiedNodes):
+        (WebInspector.DOMTreeUpdater.prototype._reset):
+        Rewrite this class to separately track insertions, deletions, and modifications. Use
+        Sets and Maps so redundant entries are not kept around. Split the main work loop
+        and use fewer enum-like properties to control how each DOM element change is handled.
+
+        Attempt to update all inserted children before modifying their attributes. This
+        wasn't done previously, but enough duplicate attribute modifications occurred that
+        usually some of them would be processed after being added to the tree. There is only
+        one chance to do this now.
+
+2016-06-08  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        REGRESSION (r158219): Web Inspector: Border under the default Timeline content view is too thick
+        https://bugs.webkit.org/show_bug.cgi?id=158533
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/OverviewTimelineView.css:
+        (.timeline-view.overview > .data-grid th): Deleted.
+
+2016-06-08  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Command-W should not close Web Inspector tabs; it should close the window
+        https://bugs.webkit.org/show_bug.cgi?id=158538
+        rdar://problem/26699215
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/TabBrowser.js:
+        (WebInspector.TabBrowser): Change shortcut to Command-Shift-W.
+
+2016-06-07  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: reduce timer churn when processing many DOM.attributeModified messages
+        https://bugs.webkit.org/show_bug.cgi?id=158491
+        <rdar://problem/25561452>
+
+        Reviewed by Timothy Hatcher.
+
+        When the backend sends thousands of DOM.attributeModified events to the frontend, it
+        slows to a crawl. This is partly because redundant messages are being sent, and
+        because the frontend is taking too long to render attribute updates in the elements tab.
+
+        This patch is a first step to improve performance by reducing unnecessary work. It
+        coalesces all attribute state updates to only happen once per animation frame. This
+        reduces timer churn because we previously used a debouncing timer with interval of 0ms,
+        and that had to be cleared and restarted on every call. This change also eliminates
+        forced layouts when updating the selection highlights, since the DOM tree outline has
+        been reflowed by the time we start updating selections in a requestAnimationFrame callback.
+
+        There is still a lot of optimization to be done here, but this reduces the problem
+        considerably by keeping the event loop clear and making it obvious which selection
+        update operations are still too expensive.
+
+        * UserInterface/Base/Utilities.js:
+        Add a 'onNextFrame' proxy to Object. It works like debounce, except it coalesces calls
+        up until the next animation frame rather than a fixed timeout. It also does not extend
+        the timeout interval for each call.
+
+        * UserInterface/Views/DOMTreeUpdater.js:
+        (WebInspector.DOMTreeUpdater.prototype._attributesUpdated):
+        (WebInspector.DOMTreeUpdater.prototype._characterDataModified):
+        (WebInspector.DOMTreeUpdater.prototype._nodeInserted):
+        (WebInspector.DOMTreeUpdater.prototype._nodeRemoved):
+        (WebInspector.DOMTreeUpdater.prototype._updateModifiedNodes):
+        Update on the next frame rather than on a zero delay timeout.
+
+        * UserInterface/Views/TreeOutline.js:
+        (WebInspector.TreeOutline.WebInspector.TreeElement.prototype.didChange):
+        (WebInspector.TreeOutline.WebInspector.TreeElement.prototype._fireDidChange):
+        Update on the next frame rather than on a zero delay timeout.
+
+2016-06-07  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        REGRESSION (r158219): Web Inspector: Border under Memory content view is too thick
+        https://bugs.webkit.org/show_bug.cgi?id=158495
+        <rdar://problem/26683428>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/MemoryTimelineView.css:
+        (.timeline-view.memory): Deleted.
+
+2016-06-07  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: add a keyboard shortcut to open the new tab tab
+        https://bugs.webkit.org/show_bug.cgi?id=158365
+        <rdar://problem/26631897>
+
+        Unreviewed, fix a typo introduced in r201692.
+        This caused the new tab button to stop working.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector._updateNewTabButtonState):
+
 2016-06-05  Matt Baker  <mattbaker@apple.com>
 
         REGRESSION (r201686): Web Inspector: Fix typo causing an internal error

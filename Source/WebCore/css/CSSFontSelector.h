@@ -65,6 +65,8 @@ public:
     RefPtr<Font> fallbackFontAt(const FontDescription&, size_t) override;
 
     void clearDocument();
+    void buildStarted();
+    void buildCompleted();
 
     void addFontFaceRule(StyleRuleFontFace&, bool isInitiatingElementInUserAgentShadowTree);
 
@@ -91,17 +93,26 @@ private:
 
     void beginLoadTimerFired();
 
+    struct PendingFontFaceRule {
+        StyleRuleFontFace& styleRuleFontFace;
+        bool isInitiatingElementInUserAgentShadowTree;
+    };
+    Vector<PendingFontFaceRule> m_stagingArea;
+
     Document* m_document;
     RefPtr<FontFaceSet> m_fontFaceSet;
     Ref<CSSFontFaceSet> m_cssFontFaceSet;
     HashSet<FontSelectorClient*> m_clients;
 
     Vector<CachedResourceHandle<CachedFont>> m_fontsToBeginLoading;
+    HashSet<RefPtr<CSSFontFace>> m_cssConnectionsPossiblyToRemove;
+    HashSet<RefPtr<StyleRuleFontFace>> m_cssConnectionsEncounteredDuringBuild;
     Timer m_beginLoadingTimer;
 
     unsigned m_uniqueId;
     unsigned m_version;
     bool m_creatingFont { false };
+    bool m_buildIsUnderway { false };
 };
 
 } // namespace WebCore

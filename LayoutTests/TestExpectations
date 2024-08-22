@@ -780,7 +780,7 @@ webkit.org/b/148922 svg/as-object/svg-in-object-dynamic-attribute-change.html [ 
 webkit.org/b/148925 svg/dom/svg-root-lengths.html [ Pass Failure ]
 
 webkit.org/b/150225 fast/custom-elements [ Failure ]
-webkit.org/b/148695 fast/shadow-dom [ Failure ImageOnlyFailure ]
+webkit.org/b/148695 fast/shadow-dom [ Failure ImageOnlyFailure Timeout ]
 
 # Known failures on CSS Variables Test Suite
 webkit.org/b/150183 fast/css/variables/test-suite/failures/024.html [ ImageOnlyFailure ]
@@ -860,6 +860,7 @@ webkit.org/b/154203 http/tests/security/contentSecurityPolicy/1.1/frame-ancestor
 webkit.org/b/154522 http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-base-uri-deny.html
 webkit.org/b/155132 http/tests/security/contentSecurityPolicy/video-with-https-url-allowed-by-csp-media-src-star.html [ Failure ]
 http/tests/security/contentSecurityPolicy/script-src-blocked-error-event.html [ Pass Failure ]
+webkit.org/b/158480 http/tests/websocket/tests/hybi/upgrade-simple-ws.html [ Skip ]
 
 # These state object tests purposefully stress a resource limit, and take multiple seconds to run.
 loader/stateobjects/pushstate-size-iframe.html [ Slow ]

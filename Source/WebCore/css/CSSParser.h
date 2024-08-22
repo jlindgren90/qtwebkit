@@ -214,10 +214,13 @@ public:
     static Vector<double> parseKeyframeSelector(const String&);
 
     bool parseTransformOriginShorthand(RefPtr<CSSPrimitiveValue>&, RefPtr<CSSPrimitiveValue>&, RefPtr<CSSValue>&);
-    bool parseCubicBezierTimingFunctionValue(CSSParserValueList& args, double& result);
+    Optional<double> parseCubicBezierTimingFunctionValue(CSSParserValueList&);
+    Optional<double> parseSpringTimingFunctionValue(CSSParserValueList&);
     bool parseAnimationProperty(CSSPropertyID, RefPtr<CSSValue>&, AnimationParseContext&);
     bool parseTransitionShorthand(CSSPropertyID, bool important);
     bool parseAnimationShorthand(CSSPropertyID, bool important);
+
+    bool isSpringTimingFunctionEnabled() const;
 
     RefPtr<CSSPrimitiveValue> parseColumnWidth();
     RefPtr<CSSPrimitiveValue> parseColumnCount();
@@ -496,7 +499,7 @@ public:
 
     void setCustomPropertyName(const AtomicString& propertyName) { m_customPropertyName = propertyName; }
 
-    RefPtr<CSSValue> parseVariableDependentValue(CSSPropertyID, const CSSVariableDependentValue&, const CustomPropertyValueMap& customProperties);
+    RefPtr<CSSValue> parseVariableDependentValue(CSSPropertyID, const CSSVariableDependentValue&, const CustomPropertyValueMap& customProperties, TextDirection, WritingMode);
 
 private:
     bool is8BitSource() { return m_is8BitSource; }

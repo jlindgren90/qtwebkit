@@ -987,7 +987,7 @@ static void WebKitInitializeGamepadProviderIfNecessary()
     _private->group = WebViewGroup::getOrCreate(groupName, _private->preferences._localStorageDatabasePath);
     _private->group->addWebView(self);
 
-    PageConfiguration pageConfiguration;
+    PageConfiguration pageConfiguration(makeUniqueRef<WebEditorClient>(self));
 #if !PLATFORM(IOS)
     pageConfiguration.chromeClient = new WebChromeClient(self);
     pageConfiguration.contextMenuClient = new WebContextMenuClient(self);
@@ -1004,7 +1004,6 @@ static void WebKitInitializeGamepadProviderIfNecessary()
 #import <WebKitAdditions/WebViewInitialization.mm>
 #endif
 
-    pageConfiguration.editorClient = new WebEditorClient(self);
     pageConfiguration.alternativeTextClient = new WebAlternativeTextClient(self);
     pageConfiguration.loaderClientForMainFrame = new WebFrameLoaderClient;
     pageConfiguration.progressTrackerClient = new WebProgressTrackerClient(self);
@@ -1013,7 +1012,7 @@ static void WebKitInitializeGamepadProviderIfNecessary()
     pageConfiguration.storageNamespaceProvider = &_private->group->storageNamespaceProvider();
     pageConfiguration.userContentProvider = &_private->group->userContentController();
     pageConfiguration.visitedLinkStore = &_private->group->visitedLinkStore();
-    _private->page = new Page(pageConfiguration);
+    _private->page = new Page(WTFMove(pageConfiguration));
 
     _private->page->setGroupName(groupName);
 
@@ -1238,7 +1237,7 @@ static void WebKitInitializeGamepadProviderIfNecessary()
     _private->group = WebViewGroup::getOrCreate(groupName, _private->preferences._localStorageDatabasePath);
     _private->group->addWebView(self);
 
-    PageConfiguration pageConfiguration;
+    PageConfiguration pageConfiguration(makeUniqueRef<WebEditorClient>(self));
     pageConfiguration.chromeClient = new WebChromeClientIOS(self);
 #if ENABLE(DRAG_SUPPORT)
     pageConfiguration.dragClient = new WebDragClient(self);
@@ -1248,7 +1247,6 @@ static void WebKitInitializeGamepadProviderIfNecessary()
 #import <WebKitAdditions/WebViewInitialization.mm>
 #endif
 
-    pageConfiguration.editorClient = new WebEditorClient(self);
     pageConfiguration.inspectorClient = new WebInspectorClient(self);
     pageConfiguration.loaderClientForMainFrame = new WebFrameLoaderClient;
     pageConfiguration.progressTrackerClient = new WebProgressTrackerClient(self);
@@ -1258,7 +1256,7 @@ static void WebKitInitializeGamepadProviderIfNecessary()
     pageConfiguration.userContentProvider = &_private->group->userContentController();
     pageConfiguration.visitedLinkStore = &_private->group->visitedLinkStore();
 
-    _private->page = new Page(pageConfiguration);
+    _private->page = new Page(WTFMove(pageConfiguration));
     
     [self setSmartInsertDeleteEnabled:YES];
     

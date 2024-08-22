@@ -60,6 +60,7 @@ class ResourceError;
 class ResourceRequest;
 class ResourceResponse;
 class SessionID;
+class SpringTimingFunction;
 class StepsTimingFunction;
 class StickyPositionViewportConstraints;
 class TextCheckingRequestData;
@@ -71,6 +72,7 @@ struct CompositionUnderline;
 struct Cookie;
 struct DictationAlternative;
 struct DictionaryPopupInfo;
+struct EventTrackingRegions;
 struct ExceptionDetails;
 struct FileChooserSettings;
 struct Length;
@@ -131,6 +133,11 @@ template<> struct ArgumentCoder<WebCore::AffineTransform> {
     static bool decode(ArgumentDecoder&, WebCore::AffineTransform&);
 };
 
+template<> struct ArgumentCoder<WebCore::EventTrackingRegions> {
+    static void encode(ArgumentEncoder&, const WebCore::EventTrackingRegions&);
+    static bool decode(ArgumentDecoder&, WebCore::EventTrackingRegions&);
+};
+
 template<> struct ArgumentCoder<WebCore::TransformationMatrix> {
     static void encode(ArgumentEncoder&, const WebCore::TransformationMatrix&);
     static bool decode(ArgumentDecoder&, WebCore::TransformationMatrix&);
@@ -149,6 +156,11 @@ template<> struct ArgumentCoder<WebCore::CubicBezierTimingFunction> {
 template<> struct ArgumentCoder<WebCore::StepsTimingFunction> {
     static void encode(ArgumentEncoder&, const WebCore::StepsTimingFunction&);
     static bool decode(ArgumentDecoder&, WebCore::StepsTimingFunction&);
+};
+
+template<> struct ArgumentCoder<WebCore::SpringTimingFunction> {
+    static void encode(ArgumentEncoder&, const WebCore::SpringTimingFunction&);
+    static bool decode(ArgumentDecoder&, WebCore::SpringTimingFunction&);
 };
 
 template<> struct ArgumentCoder<WebCore::CertificateInfo> {

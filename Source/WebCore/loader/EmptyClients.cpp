@@ -129,9 +129,6 @@ void fillWithEmptyClients(PageConfiguration& pageConfiguration)
     pageConfiguration.dragClient = &dummyDragClient.get();
 #endif
 
-    static NeverDestroyed<EmptyEditorClient> dummyEditorClient;
-    pageConfiguration.editorClient = &dummyEditorClient.get();
-
     static NeverDestroyed<EmptyInspectorClient> dummyInspectorClient;
     pageConfiguration.inspectorClient = &dummyInspectorClient.get();
 

@@ -87,49 +87,44 @@ using namespace std;
 
 namespace JSC {
 
-String StackFrame::friendlySourceURL() const
+intptr_t StackFrame::sourceID() const
 {
-    String traceLine;
-    
-    switch (codeType) {
-    case StackFrameEvalCode:
-    case StackFrameModuleCode:
-    case StackFrameFunctionCode:
-    case StackFrameGlobalCode:
-        if (!sourceURL.isEmpty())
-            traceLine = sourceURL.impl();
-        break;
-    case StackFrameNativeCode:
-        traceLine = "[native code]";
-        break;
-    }
-    return traceLine.isNull() ? emptyString() : traceLine;
+    if (!codeBlock)
+        return noSourceID;
+    return codeBlock->ownerScriptExecutable()->sourceID();
 }
 
-String StackFrame::friendlyFunctionName(CallFrame* callFrame) const
+String StackFrame::sourceURL() const
 {
-    String traceLine;
-    JSObject* stackFrameCallee = callee.get();
+    if (!codeBlock)
+        return ASCIILiteral("[native code]");
 
-    switch (codeType) {
-    case StackFrameEvalCode:
-        traceLine = "eval code";
-        break;
-    case StackFrameModuleCode:
-        traceLine = "module code";
-        break;
-    case StackFrameNativeCode:
-        if (callee)
-            traceLine = getCalculatedDisplayName(callFrame, stackFrameCallee).impl();
-        break;
-    case StackFrameFunctionCode:
-        traceLine = getCalculatedDisplayName(callFrame, stackFrameCallee).impl();
-        break;
-    case StackFrameGlobalCode:
-        traceLine = "global code";
-        break;
+    String sourceURL = codeBlock->ownerScriptExecutable()->sourceURL();
+    if (!sourceURL.isNull())
+        return sourceURL;
+    return emptyString();
+}
+
+String StackFrame::functionName(VM& vm) const
+{
+    if (codeBlock) {
+        switch (codeBlock->codeType()) {
+        case EvalCode:
+            return ASCIILiteral("eval code");
+        case ModuleCode:
+            return ASCIILiteral("module code");
+        case FunctionCode:
+            break;
+        case GlobalCode:
+            return ASCIILiteral("global code");
+        default:
+            ASSERT_NOT_REACHED();
+        }
     }
-    return traceLine.isNull() ? emptyString() : traceLine;
+    String name;
+    if (callee)
+        name = getCalculatedDisplayName(vm, callee.get()).impl();
+    return name.isNull() ? emptyString() : name;
 }
 
 JSValue eval(CallFrame* callFrame)
@@ -449,26 +444,7 @@ bool Interpreter::isOpcode(Opcode opcode)
 #endif
 }
 
-static StackFrameCodeType getStackFrameCodeType(StackVisitor& visitor)
-{
-    switch (visitor->codeType()) {
-    case StackVisitor::Frame::Eval:
-        return StackFrameEvalCode;
-    case StackVisitor::Frame::Module:
-        return StackFrameModuleCode;
-    case StackVisitor::Frame::Function:
-        return StackFrameFunctionCode;
-    case StackVisitor::Frame::Global:
-        return StackFrameGlobalCode;
-    case StackVisitor::Frame::Native:
-        ASSERT_NOT_REACHED();
-        return StackFrameNativeCode;
-    }
-    RELEASE_ASSERT_NOT_REACHED();
-    return StackFrameGlobalCode;
-}
-
-void StackFrame::computeLineAndColumn(unsigned& line, unsigned& column)
+void StackFrame::computeLineAndColumn(unsigned& line, unsigned& column) const
 {
     if (!codeBlock) {
         line = 0;
@@ -479,34 +455,24 @@ void StackFrame::computeLineAndColumn(unsigned& line, unsigned& column)
     int divot = 0;
     int unusedStartOffset = 0;
     int unusedEndOffset = 0;
-    unsigned divotLine = 0;
-    unsigned divotColumn = 0;
-    expressionInfo(divot, unusedStartOffset, unusedEndOffset, divotLine, divotColumn);
+    codeBlock->expressionRangeForBytecodeOffset(bytecodeOffset, divot, unusedStartOffset, unusedEndOffset, line, column);
 
-    line = divotLine + lineOffset;
-    column = divotColumn + (divotLine ? 1 : firstLineColumnOffset);
-
+    ScriptExecutable* executable = codeBlock->ownerScriptExecutable();
     if (executable->hasOverrideLineNumber())
         line = executable->overrideLineNumber();
 }
 
-void StackFrame::expressionInfo(int& divot, int& startOffset, int& endOffset, unsigned& line, unsigned& column)
-{
-    codeBlock->expressionRangeForBytecodeOffset(bytecodeOffset, divot, startOffset, endOffset, line, column);
-    divot += characterOffset;
-}
-
-String StackFrame::toString(CallFrame* callFrame)
+String StackFrame::toString(VM& vm) const
 {
     StringBuilder traceBuild;
-    String functionName = friendlyFunctionName(callFrame);
-    String sourceURL = friendlySourceURL();
+    String functionName = this->functionName(vm);
+    String sourceURL = this->sourceURL();
     traceBuild.append(functionName);
     if (!sourceURL.isEmpty()) {
         if (!functionName.isEmpty())
             traceBuild.append('@');
         traceBuild.append(sourceURL);
-        if (codeType != StackFrameNativeCode) {
+        if (codeBlock) {
             unsigned line;
             unsigned column;
             computeLineAndColumn(line, column);
@@ -532,37 +498,38 @@ static inline bool isWebAssemblyExecutable(ExecutableBase* executable)
 
 class GetStackTraceFunctor {
 public:
-    GetStackTraceFunctor(VM& vm, Vector<StackFrame>& results, size_t remainingCapacity)
+    GetStackTraceFunctor(VM& vm, Vector<StackFrame>& results, size_t framesToSkip, size_t capacity)
         : m_vm(vm)
         , m_results(results)
-        , m_remainingCapacityForFrameCapture(remainingCapacity)
+        , m_framesToSkip(framesToSkip)
+        , m_remainingCapacityForFrameCapture(capacity)
     {
+        m_results.reserveInitialCapacity(capacity);
     }
 
     StackVisitor::Status operator()(StackVisitor& visitor) const
     {
-        VM& vm = m_vm;
+        if (m_framesToSkip > 0) {
+            m_framesToSkip--;
+            return StackVisitor::Continue;
+        }
+
         if (m_remainingCapacityForFrameCapture) {
             if (visitor->isJSFrame()
                 && !isWebAssemblyExecutable(visitor->codeBlock()->ownerExecutable())
                 && !visitor->codeBlock()->unlinkedCodeBlock()->isBuiltinFunction()) {
-                CodeBlock* codeBlock = visitor->codeBlock();
                 StackFrame s = {
-                    Strong<JSObject>(vm, visitor->callee()),
-                    getStackFrameCodeType(visitor),
-                    Strong<ScriptExecutable>(vm, codeBlock->ownerScriptExecutable()),
-                    Strong<UnlinkedCodeBlock>(vm, codeBlock->unlinkedCodeBlock()),
-                    codeBlock->source(),
-                    codeBlock->ownerScriptExecutable()->firstLine(),
-                    codeBlock->firstLineColumnOffset(),
-                    codeBlock->sourceOffset(),
-                    visitor->bytecodeOffset(),
-                    visitor->sourceURL(),
-                    visitor->sourceID(),
+                    Strong<JSObject>(m_vm, visitor->callee()),
+                    Strong<CodeBlock>(m_vm, visitor->codeBlock()),
+                    visitor->bytecodeOffset()
                 };
                 m_results.append(s);
             } else {
-                StackFrame s = { Strong<JSObject>(vm, visitor->callee()), StackFrameNativeCode, Strong<ScriptExecutable>(), Strong<UnlinkedCodeBlock>(), 0, 0, 0, 0, 0, String(), noSourceID};
+                StackFrame s = {
+                    Strong<JSObject>(m_vm, visitor->callee()),
+                    Strong<CodeBlock>(),
+                    0 // unused value because codeBlock is null.
+                };
                 m_results.append(s);
             }
     
@@ -575,30 +542,43 @@ public:
 private:
     VM& m_vm;
     Vector<StackFrame>& m_results;
+    mutable size_t m_framesToSkip;
     mutable size_t m_remainingCapacityForFrameCapture;
 };
 
-void Interpreter::getStackTrace(Vector<StackFrame>& results, size_t maxStackSize)
+void Interpreter::getStackTrace(Vector<StackFrame>& results, size_t framesToSkip, size_t maxStackSize)
 {
     VM& vm = m_vm;
     CallFrame* callFrame = vm.topCallFrame;
     if (!callFrame)
         return;
 
-    GetStackTraceFunctor functor(vm, results, maxStackSize);
+    size_t framesCount = 0;
+    callFrame->iterate([&] (StackVisitor&) -> StackVisitor::Status {
+        framesCount++;
+        return StackVisitor::Continue;
+    });
+    if (framesCount <= framesToSkip)
+        return;
+
+    framesCount -= framesToSkip;
+    framesCount = std::min(maxStackSize, framesCount);
+
+    GetStackTraceFunctor functor(vm, results, framesToSkip, framesCount);
     callFrame->iterate(functor);
+    ASSERT(results.size() == results.capacity());
 }
 
-JSString* Interpreter::stackTraceAsString(ExecState* exec, Vector<StackFrame> stackTrace)
+JSString* Interpreter::stackTraceAsString(VM& vm, const Vector<StackFrame>& stackTrace)
 {
     // FIXME: JSStringJoiner could be more efficient than StringBuilder here.
     StringBuilder builder;
     for (unsigned i = 0; i < stackTrace.size(); i++) {
-        builder.append(String(stackTrace[i].toString(exec)));
+        builder.append(String(stackTrace[i].toString(vm)));
         if (i != stackTrace.size() - 1)
             builder.append('\n');
     }
-    return jsString(&exec->vm(), builder.toString());
+    return jsString(&vm, builder.toString());
 }
 
 ALWAYS_INLINE static HandlerInfo* findExceptionHandler(StackVisitor& visitor, CodeBlock* codeBlock, CodeBlock::RequiredHandler requiredHandler)
@@ -863,6 +843,8 @@ JSValue Interpreter::execute(ProgramExecutable* program, CallFrame* callFrame, J
                     if (i == 0) {
                         PropertySlot slot(globalObject, PropertySlot::InternalMethodType::Get);
                         if (!globalObject->getPropertySlot(callFrame, JSONPPath[i].m_pathEntryName, slot)) {
+                            if (callFrame->hadException())
+                                return jsUndefined();
                             if (entry)
                                 return callFrame->vm().throwException(callFrame, createUndefinedVariableError(callFrame, JSONPPath[i].m_pathEntryName));
                             goto failedJSONP;

@@ -151,8 +151,10 @@ void CoordinatedDrawingArea::updatePreferences(const WebPreferencesStore& store)
     m_webPage.corePage()->settings().setForceCompositingMode(store.getBoolValueForKey(WebPreferencesKey::forceCompositingModeKey()));
 }
 
-void CoordinatedDrawingArea::mainFrameContentSizeChanged(const WebCore::IntSize&)
+void CoordinatedDrawingArea::mainFrameContentSizeChanged(const WebCore::IntSize& size)
 {
+    if (m_webPage.useFixedLayout())
+        m_layerTreeHost->sizeDidChange(size);
     m_webPage.mainFrame()->pageOverlayController().didChangeDocumentSize();
 }
 
@@ -306,7 +308,7 @@ void CoordinatedDrawingArea::enterAcceleratedCompositingMode(GraphicsLayer* grap
     m_exitCompositingTimer.stop();
     m_wantsToExitAcceleratedCompositingMode = false;
 
-    m_layerTreeHost = LayerTreeHost::create(&m_webPage);
+    m_layerTreeHost = LayerTreeHost::create(m_webPage);
     if (!m_inUpdateBackingStoreState)
         m_layerTreeHost->setShouldNotifyAfterNextScheduledLayerFlush(true);
 

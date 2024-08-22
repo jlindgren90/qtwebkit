@@ -18,8 +18,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef Page_h
-#define Page_h
+#pragma once
 
 #include "FindOptions.h"
 #include "FrameLoaderTypes.h"
@@ -45,6 +44,7 @@
 #include <wtf/Optional.h>
 #include <wtf/Ref.h>
 #include <wtf/RefCounted.h>
+#include <wtf/UniqueRef.h>
 #include <wtf/text/WTFString.h>
 
 #if OS(SOLARIS)
@@ -141,7 +141,7 @@ public:
     WEBCORE_EXPORT static void updateStyleForAllPagesAfterGlobalChangeInEnvironment();
     WEBCORE_EXPORT static void clearPreviousItemFromAllPages(HistoryItem*);
 
-    WEBCORE_EXPORT explicit Page(PageConfiguration&);
+    WEBCORE_EXPORT explicit Page(PageConfiguration&&);
     WEBCORE_EXPORT ~Page();
 
     WEBCORE_EXPORT uint64_t renderTreeSize() const;
@@ -158,11 +158,11 @@ public:
     WEBCORE_EXPORT void setCanStartMedia(bool);
     bool canStartMedia() const { return m_canStartMedia; }
 
-    EditorClient& editorClient() { return m_editorClient; }
+    EditorClient& editorClient() { return m_editorClient.get(); }
     PlugInClient* plugInClient() const { return m_plugInClient; }
 
-    MainFrame& mainFrame() { ASSERT(m_mainFrame); return *m_mainFrame; }
-    const MainFrame& mainFrame() const { ASSERT(m_mainFrame); return *m_mainFrame; }
+    MainFrame& mainFrame() { return m_mainFrame.get(); }
+    const MainFrame& mainFrame() const { return m_mainFrame.get(); }
 
     bool inPageCache() const;
 
@@ -175,7 +175,6 @@ public:
     WEBCORE_EXPORT const String& groupName() const;
 
     PageGroup& group();
-    PageGroup* groupPtr() { return m_group; } // can return 0
 
     static void forEachPage(std::function<void(Page&)>);
 
@@ -582,13 +581,13 @@ private:
     const std::unique_ptr<ProgressTracker> m_progress;
 
     const std::unique_ptr<BackForwardController> m_backForwardController;
-    const RefPtr<MainFrame> m_mainFrame;
+    Ref<MainFrame> m_mainFrame;
 
     mutable RefPtr<PluginData> m_pluginData;
 
     RefPtr<RenderTheme> m_theme;
 
-    EditorClient& m_editorClient;
+    UniqueRef<EditorClient> m_editorClient;
     PlugInClient* m_plugInClient;
     ValidationMessageClient* m_validationMessageClient;
     std::unique_ptr<DiagnosticLoggingClient> m_diagnosticLoggingClient;
@@ -728,5 +727,3 @@ inline PageGroup& Page::group()
 }
 
 } // namespace WebCore
-    
-#endif // Page_h

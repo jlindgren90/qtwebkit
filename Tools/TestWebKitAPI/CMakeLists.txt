@@ -42,6 +42,7 @@ set(TestWTF_SOURCES
     ${TESTWEBKITAPI_DIR}/TestsController.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/AtomicString.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/BloomFilter.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WTF/CrossThreadTask.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/CString.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/CheckedArithmeticOperations.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Condition.cpp
@@ -74,6 +75,7 @@ set(TestWTF_SOURCES
     ${TESTWEBKITAPI_DIR}/Tests/WTF/StringOperators.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/StringView.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/TemporaryChange.cpp
+    ${TESTWEBKITAPI_DIR}/Tests/WTF/UniqueRef.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/Vector.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/WTFString.cpp
     ${TESTWEBKITAPI_DIR}/Tests/WTF/WeakPtr.cpp
@@ -99,6 +101,7 @@ include_directories(
     ${WEBCORE_DIR}/dom
     ${WEBCORE_DIR}/editing
     ${WEBCORE_DIR}/loader/cache
+    ${WEBCORE_DIR}/page
     ${WEBCORE_DIR}/platform
     ${WEBCORE_DIR}/platform/animation
     ${WEBCORE_DIR}/platform/graphics

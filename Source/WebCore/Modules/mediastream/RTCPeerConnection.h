@@ -63,7 +63,7 @@ public:
     static RefPtr<RTCPeerConnection> create(ScriptExecutionContext&, const Dictionary& rtcConfiguration, ExceptionCode&);
     ~RTCPeerConnection();
 
-    const Vector<RefPtr<RTCRtpSender>>& getSenders() const override { return m_transceiverSet->getSenders(); }
+    const Vector<RefPtr<RTCRtpSender>>& getSenders() const { return m_transceiverSet->getSenders(); }
     const Vector<RefPtr<RTCRtpReceiver>>& getReceivers() const { return m_transceiverSet->getReceivers(); }
     const Vector<RefPtr<RTCRtpTransceiver>>& getTransceivers() const override { return m_transceiverSet->list(); }
 
@@ -131,12 +131,14 @@ private:
     bool canSuspendForDocumentSuspension() const override;
 
     // PeerConnectionBackendClient
+    void addTransceiver(RefPtr<RTCRtpTransceiver>&&) override;
     void setSignalingState(PeerConnectionStates::SignalingState) override;
     void updateIceGatheringState(PeerConnectionStates::IceGatheringState) override;
     void updateIceConnectionState(PeerConnectionStates::IceConnectionState) override;
 
     void scheduleNegotiationNeededEvent() override;
 
+    RTCRtpSenderClient& senderClient() { return *this; }
     void fireEvent(Event&) override;
     PeerConnectionStates::SignalingState internalSignalingState() const override { return m_signalingState; }
     PeerConnectionStates::IceGatheringState internalIceGatheringState() const override { return m_iceGatheringState; }

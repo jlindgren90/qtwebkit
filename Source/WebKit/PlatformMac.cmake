@@ -23,6 +23,7 @@ list(APPEND WebKit_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/loader/mac"
     "${WEBCORE_DIR}/page/cocoa"
     "${WEBCORE_DIR}/page/mac"
+    "${WEBCORE_DIR}/platform"
     "${WEBCORE_DIR}/platform/cf"
     "${WEBCORE_DIR}/platform/cocoa"
     "${WEBCORE_DIR}/platform/graphics/avfoundation"
@@ -121,8 +122,6 @@ list(APPEND WebKit_SOURCES
 
     mac/Plugins/WebBaseNetscapePluginView.mm
     mac/Plugins/WebBasePluginPackage.mm
-    mac/Plugins/WebNetscapeContainerCheckContextInfo.mm
-    mac/Plugins/WebNetscapeContainerCheckPrivate.mm
     mac/Plugins/WebNetscapePluginEventHandler.mm
     mac/Plugins/WebNetscapePluginEventHandlerCarbon.mm
     mac/Plugins/WebNetscapePluginEventHandlerCocoa.mm

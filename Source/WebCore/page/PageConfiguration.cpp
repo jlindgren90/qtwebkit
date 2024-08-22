@@ -30,13 +30,15 @@
 #include "BackForwardClient.h"
 #include "DatabaseProvider.h"
 #include "DiagnosticLoggingClient.h"
+#include "EditorClient.h"
 #include "StorageNamespaceProvider.h"
 #include "UserContentController.h"
 #include "VisitedLinkStore.h"
 
 namespace WebCore {
 
-PageConfiguration::PageConfiguration()
+PageConfiguration::PageConfiguration(UniqueRef<EditorClient>&& editorClient)
+    : editorClient(WTFMove(editorClient))
 {
 }
 

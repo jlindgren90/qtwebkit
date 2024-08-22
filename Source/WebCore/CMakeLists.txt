@@ -603,6 +603,10 @@ set(WebCore_NON_SVG_IDL_FILES
     page/History.idl
     page/Location.idl
     page/Navigator.idl
+    page/NavigatorConcurrentHardware.idl
+    page/NavigatorID.idl
+    page/NavigatorLanguage.idl
+    page/NavigatorOnLine.idl
     page/Performance.idl
     page/PerformanceEntry.idl
     page/PerformanceEntryList.idl
@@ -616,9 +620,8 @@ set(WebCore_NON_SVG_IDL_FILES
     page/UserMessageHandlersNamespace.idl
     page/WebKitNamespace.idl
     page/WebKitPoint.idl
-    page/WindowBase64.idl
     page/WindowEventHandlers.idl
-    page/WindowTimers.idl
+    page/WindowOrWorkerGlobalScope.idl
     page/WorkerNavigator.idl
 
     plugins/DOMMimeType.idl
@@ -910,6 +913,7 @@ set(WebCore_SOURCES
     Modules/mediastream/MediaDevices.cpp
     Modules/mediastream/MediaDevicesRequest.cpp
     Modules/mediastream/MediaEndpointPeerConnection.cpp
+    Modules/mediastream/MediaEndpointSessionDescription.cpp
     Modules/mediastream/MediaSourceSettings.cpp
     Modules/mediastream/MediaStream.cpp
     Modules/mediastream/MediaStreamEvent.cpp
@@ -1900,6 +1904,7 @@ set(WebCore_SOURCES
     loader/ContentFilter.cpp
     loader/CookieJar.cpp
     loader/CrossOriginAccessControl.cpp
+    loader/CrossOriginPreflightChecker.cpp
     loader/CrossOriginPreflightResultCache.cpp
     loader/DocumentLoadTiming.cpp
     loader/DocumentLoader.cpp
@@ -1987,6 +1992,7 @@ set(WebCore_SOURCES
 
     page/AutoscrollController.cpp
     page/BarProp.cpp
+    page/Base64Utilities.cpp
     page/CaptionUserPreferences.cpp
     page/Chrome.cpp
     page/ContextMenuContext.cpp
@@ -2329,7 +2335,6 @@ set(WebCore_SOURCES
     platform/network/CredentialBase.cpp
     platform/network/CredentialStorage.cpp
     platform/network/DNSResolveQueue.cpp
-    platform/network/DataURL.cpp
     platform/network/DataURLDecoder.cpp
     platform/network/FormData.cpp
     platform/network/FormDataBuilder.cpp
@@ -2516,6 +2521,7 @@ set(WebCore_SOURCES
     rendering/line/TrailingObjects.cpp
 
     rendering/mathml/MathMLOperatorDictionary.cpp
+    rendering/mathml/MathOperator.cpp
     rendering/mathml/RenderMathMLBlock.cpp
     rendering/mathml/RenderMathMLFenced.cpp
     rendering/mathml/RenderMathMLFraction.cpp

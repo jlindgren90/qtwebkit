@@ -898,6 +898,8 @@ media/encrypted-media/encrypted-media-syntax.html [ Skip ] # [ WontFix ]
 webkit.org/b/103442 media/W3C/video/networkState/networkState_during_progress.html [ Skip ]
 
 # No CORS support for media elements is implemented yet.
+http/tests/security/canvas-remote-read-remote-video-allowed-anonymous.html [ Failure ]
+http/tests/security/canvas-remote-read-remote-video-allowed-with-credentials.html [ Failure ]
 http/tests/security/video-cross-origin-readback.html [ Skip ]
 
 # Requires ENABLE(MEDIA_CAPTURE)
@@ -2211,7 +2213,6 @@ webkit.org/b/140703 http/tests/security/XFrameOptions/x-frame-options-parent-sam
 webkit.org/b/140703 http/tests/xmlhttprequest/remember-bad-password.html [ Failure ]
 webkit.org/b/140703 http/tests/xmlhttprequest/failed-auth.html [ Failure ]
 
-[ Release ] http/tests/websocket/tests/hybi/workers/close-code-and-reason.html [ Pass Crash ] # Flaky!
 [ Debug ] http/tests/websocket/tests/hybi/workers/close-code-and-reason.html [ Skip ] # Crashing
 
 # CSP Stuff
@@ -2301,9 +2302,6 @@ webkit.org/b/25189 http/tests/incremental/slow-utf8-text.pl [ Pass Timeout ]
 webkit.org/b/25483 http/tests/navigation/redirect-cycle.html [ Pass Timeout ]
 webkit.org/b/28467 [ Release ] http/tests/loading/preload-img-test.html [ Pass Timeout ]
 webkit.org/b/28467 [ Debug ] http/tests/loading/preload-img-test.html [ Skip ] # Crashing
-
-# Different tests sometimes time out on apple-windows-5
-#webkit.org/b/55579 http/tests/websocket [ Skip ]
 
 # Times out <rdar://problem/9304941>
 http/tests/multipart/invalid-image-data-standalone.html [ Skip ] # Timeout
@@ -3356,7 +3354,10 @@ webkit.org/b/152411 http/tests/contentdispositionattachmentsandbox/referer-heade
 webkit.org/b/152411 http/tests/contentdispositionattachmentsandbox/referer-header-stripped-with-meta-referer-unsafe-url.html [ Failure ]
 webkit.org/b/152411 http/tests/contentdispositionattachmentsandbox/referer-header-stripped.html [ Failure ]
 
-webkit.org/b/153772 fast/shadow-dom/slot-removal-crash-2.html [ Timeout ]
+webkit.org/b/148695 fast/shadow-dom [ Pass ]
+
+# Touch events is not enabled on Windows
+webkit.org/b/149592 fast/shadow-dom/touch-event-ios.html [ Failure ]
 
 # The SVG -> OTF Font converter outputs 'kern' tables instead of 'GPOS' tables.
 webkit.org/b/137204 fast/text/svg-font-face-with-kerning.html [ Failure ]
@@ -3386,3 +3387,7 @@ fast/text/arabic-blacklisted-expected.html [ Pass ImageOnlyFailure ]
 
 # dumpPolicyDelegateCallbacks is not supported in DumpRenderTree
 fast/loader/iframe-src-invalid-url.html [ Skip ]
+
+# These tests hardcode platform-specific font aliases.
+webkit.org/b/158649 fast/text/chinese-font-name-aliases.html [ ImageOnlyFailure ]
+webkit.org/b/158649 fast/text/chinese-font-name-aliases-2.html [ ImageOnlyFailure ]

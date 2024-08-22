@@ -2472,6 +2472,8 @@ DeserializationResult CloneDeserializer::deserialize()
                 goto error;
             }
             JSArray* outArray = constructEmptyArray(m_exec, 0, m_globalObject, length);
+            if (UNLIKELY(m_exec->hadException()))
+                goto error;
             m_gcBuffer.append(outArray);
             outputObjectStack.append(outArray);
         }
@@ -2805,7 +2807,7 @@ Vector<String> SerializedScriptValue::blobURLsIsolatedCopy() const
     return result;
 }
 
-void SerializedScriptValue::writeBlobsToDiskForIndexedDB(std::function<void (const IDBValue&)> completionHandler)
+void SerializedScriptValue::writeBlobsToDiskForIndexedDB(NoncopyableFunction<void (const IDBValue&)>&& completionHandler)
 {
     ASSERT(isMainThread());
     ASSERT(hasBlobURLs());

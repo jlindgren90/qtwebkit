@@ -394,12 +394,11 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     Settings::setShouldManageAudioSessionCategory(true);
 #endif
 
-    PageConfiguration pageConfiguration;
+    PageConfiguration pageConfiguration(makeUniqueRef<WebEditorClient>(this));
     pageConfiguration.chromeClient = new WebChromeClient(this);
 #if ENABLE(CONTEXT_MENUS)
     pageConfiguration.contextMenuClient = new WebContextMenuClient(this);
 #endif
-    pageConfiguration.editorClient = new WebEditorClient(this);
 #if ENABLE(DRAG_SUPPORT)
     pageConfiguration.dragClient = new WebDragClient(this);
 #endif
@@ -424,7 +423,7 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
 #include <WebKitAdditions/WebPageInitialization.h>
 #endif
 
-    m_page = std::make_unique<Page>(pageConfiguration);
+    m_page = std::make_unique<Page>(WTFMove(pageConfiguration));
     updatePreferences(parameters.store);
 
     m_drawingArea = DrawingArea::create(*this, parameters);
@@ -3293,6 +3292,8 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 #if ENABLE(WEBGL2)
     RuntimeEnabledFeatures::sharedFeatures().setWebGL2Enabled(store.getBoolValueForKey(WebPreferencesKey::webGL2EnabledKey()));
 #endif
+
+    settings.setSpringTimingFunctionEnabled(store.getBoolValueForKey(WebPreferencesKey::springTimingFunctionEnabledKey()));
 
     bool processSuppressionEnabled = store.getBoolValueForKey(WebPreferencesKey::pageVisibilityBasedProcessSuppressionEnabledKey());
     if (m_processSuppressionEnabled != processSuppressionEnabled) {

@@ -32,6 +32,7 @@
 #include "ContainerNode.h"
 #include "DocumentEventQueue.h"
 #include "DocumentTiming.h"
+#include "EventTrackingRegions.h"
 #include "FocusDirection.h"
 #include "FontSelectorClient.h"
 #include "MediaProducer.h"
@@ -281,6 +282,8 @@ enum class HttpEquivPolicy {
     DisabledByContentDispositionAttachmentSandbox
 };
 
+enum class CustomElementNameValidationStatus { Valid, ConflictsWithBuiltinNames, NoHyphen, ContainsUpperCase };
+
 class Document
     : public ContainerNode
     , public TreeScope
@@ -386,6 +389,10 @@ public:
     RefPtr<Node> importNode(Node& nodeToImport, bool deep, ExceptionCode&);
     WEBCORE_EXPORT RefPtr<Element> createElementNS(const String& namespaceURI, const String& qualifiedName, ExceptionCode&);
     WEBCORE_EXPORT Ref<Element> createElement(const QualifiedName&, bool createdByParser);
+
+#if ENABLE(CUSTOM_ELEMENTS) || ENABLE(SHADOW_DOM)
+    static CustomElementNameValidationStatus validateCustomElementName(const AtomicString&);
+#endif
 
 #if ENABLE(CSS_GRID_LAYOUT)
     bool isCSSGridLayoutEnabled() const;
@@ -498,7 +505,7 @@ public:
     }
     StyleResolver& userAgentShadowTreeStyleResolver();
 
-    CSSFontSelector& fontSelector();
+    CSSFontSelector& fontSelector() { return m_fontSelector; }
 
     void notifyRemovePendingSheetIfNeeded();
 
@@ -724,6 +731,9 @@ public:
     UserActionElementSet& userActionElements()  { return m_userActionElements; }
     const UserActionElementSet& userActionElements() const { return m_userActionElements; }
 
+    void setFocusNavigationStartingNode(Node*);
+    Element* focusNavigationStartingNode(FocusDirection) const;
+
     void removeFocusedNodeOfSubtree(Node*, bool amongChildrenOnly = false);
     void hoveredElementDidDetach(Element*);
     void elementInActiveChainDidDetach(Element*);
@@ -763,6 +773,7 @@ public:
     void nodeChildrenWillBeRemoved(ContainerNode&);
     // nodeWillBeRemoved is only safe when removing one node at a time.
     void nodeWillBeRemoved(Node&);
+    void removeFocusNavigationNodeOfSubtree(Node&, bool amongChildrenOnly = false);
     enum class AcceptChildOperation { Replace, InsertOrAdd };
     bool canAcceptChild(const Node& newChild, const Node* refChild, AcceptChildOperation) const;
 
@@ -1084,7 +1095,6 @@ public:
     void enqueueWindowEvent(Ref<Event>&&);
     void enqueueDocumentEvent(Ref<Event>&&);
     void enqueueOverflowEvent(Ref<Event>&&);
-    void enqueueSlotchangeEvent(Ref<Event>&&);
     void enqueuePageshowEvent(PageshowEventPersistence);
     void enqueueHashchangeEvent(const String& oldURL, const String& newURL);
     void enqueuePopstateEvent(RefPtr<SerializedScriptValue>&& stateObject);
@@ -1464,6 +1474,8 @@ private:
 
     Color m_textColor;
 
+    bool m_focusNavigationStartingNodeIsRemoved;
+    RefPtr<Node> m_focusNavigationStartingNode;
     RefPtr<Element> m_focusedElement;
     RefPtr<Element> m_hoveredElement;
     RefPtr<Element> m_activeElement;
@@ -1731,7 +1743,7 @@ private:
     std::unique_ptr<CustomElementDefinitions> m_customElementDefinitions;
 #endif
 
-    RefPtr<CSSFontSelector> m_fontSelector;
+    Ref<CSSFontSelector> m_fontSelector;
 
 #if ENABLE(WEB_REPLAY)
     RefPtr<JSC::InputCursor> m_inputCursor;
