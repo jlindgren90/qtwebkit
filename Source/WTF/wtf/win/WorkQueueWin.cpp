@@ -130,7 +130,7 @@ void WorkQueue::platformInvalidate()
     ::DeleteTimerQueueEx(m_timerQueue, 0);
 }
 
-void WorkQueue::dispatch(NoncopyableFunction<void ()>&& function)
+void WorkQueue::dispatch(Function<void ()>&& function)
 {
     MutexLocker locker(m_workItemQueueLock);
     ref();
@@ -150,7 +150,7 @@ struct TimerContext : public ThreadSafeRefCounted<TimerContext> {
     static RefPtr<TimerContext> create() { return adoptRef(new TimerContext); }
 
     WorkQueue* queue;
-    NoncopyableFunction<void ()> function;
+    Function<void ()> function;
     Mutex timerMutex;
     HANDLE timer;
 
@@ -181,7 +181,7 @@ void WorkQueue::timerCallback(void* context, BOOLEAN timerOrWaitFired)
     }
 }
 
-void WorkQueue::dispatchAfter(std::chrono::nanoseconds duration, NoncopyableFunction<void ()>&& function)
+void WorkQueue::dispatchAfter(std::chrono::nanoseconds duration, Function<void ()>&& function)
 {
     ASSERT(m_timerQueue);
     ref();

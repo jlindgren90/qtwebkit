@@ -3137,7 +3137,7 @@ void FrameView::flushAnyPendingPostLayoutTasks()
         updateEmbeddedObjectsTimerFired();
 }
 
-void FrameView::queuePostLayoutCallback(NoncopyableFunction<void()>&& callback)
+void FrameView::queuePostLayoutCallback(Function<void()>&& callback)
 {
     m_postLayoutCallbackQueue.append(WTFMove(callback));
 }
@@ -3150,7 +3150,7 @@ void FrameView::flushPostLayoutTasksQueue()
     if (!m_postLayoutCallbackQueue.size())
         return;
 
-    Vector<NoncopyableFunction<void()>> queue = WTFMove(m_postLayoutCallbackQueue);
+    Vector<Function<void()>> queue = WTFMove(m_postLayoutCallbackQueue);
     for (auto& task : queue)
         task();
 }

@@ -1,3 +1,383 @@
+2016-06-03  Geoffrey Garen  <ggaren@apple.com>
+
+        Clients of PolymorphicAccess::addCases shouldn't have to malloc
+        https://bugs.webkit.org/show_bug.cgi?id=158357
+
+        Reviewed by Keith Miller.
+
+        We only ever have 1 or 2 cases, so we can use inline Vector capacity.
+
+        This shows up a little in the JSBench profile.
+
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::PolymorphicAccess::addCases):
+        (JSC::PolymorphicAccess::addCase):
+        * bytecode/PolymorphicAccess.h:
+        * bytecode/StructureStubInfo.cpp:
+        (JSC::StructureStubInfo::addAccessCase):
+
+2016-06-03  Benjamin Poulain  <bpoulain@apple.com>
+
+        Fix some more INFINITI->INFINITY typos
+
+        Unreviewed.
+
+        The tests were not covering the edge cases they were supposed to test.
+
+        * tests/stress/math-ceil-basics.js:
+        (testMathCeilOnConstants):
+        * tests/stress/math-clz32-basics.js:
+        (testMathClz32OnDoubles):
+        (testMathClz32OnConstants):
+        * tests/stress/math-floor-basics.js:
+        (testMathFloorOnConstants):
+        * tests/stress/math-round-basics.js:
+        (testMathRoundOnConstants):
+        * tests/stress/math-trunc-basics.js:
+        (testMathTruncOnConstants):
+
+2016-06-02  Gavin & Ellie Barraclough  <barraclough@apple.com>
+
+        JSGlobalObject::addFunction should call deleteProperty rather than removeDirect
+        https://bugs.webkit.org/show_bug.cgi?id=158295
+
+        Reviewed by Saam Barati.
+
+        When a function in declared in program code, this replaces any previosly existing
+        property from the global object. JSGlobalObject::addFunction is currently calling
+        removeDirect rather than deleteProperty to remove the existing property. This fails
+        to remove any properties from static tables.
+
+        We currently get away with this because (a) JSObject & JSGlobalObject don't currently
+        have any properties in static tables, and (b) the current quirky property precedence
+        means that the symbol table properties end up taking precedence over JSDOMWindow's
+        static table, so window object properties end up being shadowed.
+
+        As a part of bug #158178 the precedence of static tables will change, requiring this
+        to be fixed.
+
+        The deleteProperty function does what we want (has the ability to remove properties,
+        including those from the static tables). Normally deleteProperty will not remove
+        properties that are non-configurable (DontDelete) - we need to do so. The function
+        does already support this, through a flag on VM named 'isInDefineOwnProperty', which
+        causes configurability to be ignored. Generalize this mechanism for use outside of
+        defineOwnProperty, renaming & moving DefineOwnPropertyScope helper class out to VM.
+
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::deleteProperty):
+            - isInDefineOwnProperty -> deletePropertyMode.
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::addFunction):
+            - removeDirect -> deleteProperty.
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::deleteProperty):
+            - isInDefineOwnProperty -> deletePropertyMode.
+        (JSC::JSObject::defineOwnNonIndexProperty):
+            - DefineOwnPropertyScope -> VM::DeletePropertyModeScope.
+        (JSC::DefineOwnPropertyScope::DefineOwnPropertyScope): Deleted.
+        (JSC::DefineOwnPropertyScope::~DefineOwnPropertyScope): Deleted.
+            - DefineOwnPropertyScope -> VM::DeletePropertyModeScope.
+        * runtime/VM.cpp:
+        (JSC::VM::VM):
+            - removed m_inDefineOwnProperty.
+        * runtime/VM.h:
+        (JSC::VM::deletePropertyMode):
+            - isInDefineOwnProperty -> deletePropertyMode.
+        (JSC::VM::DeletePropertyModeScope::DeletePropertyModeScope):
+        (JSC::VM::DeletePropertyModeScope::~DeletePropertyModeScope):
+            - DefineOwnPropertyScope -> VM::DeletePropertyModeScope.
+        (JSC::VM::setInDefineOwnProperty): Deleted.
+            - Replaced with deletePropertyMode, can now only be set via VM::DeletePropertyModeScope.
+        (JSC::VM::isInDefineOwnProperty): Deleted.
+            - isInDefineOwnProperty -> deletePropertyMode.
+
+2016-06-03  Mark Lam  <mark.lam@apple.com>
+
+        ARMv7 vstm and vldm instructions can only operate on a maximum of 16 registers.
+        https://bugs.webkit.org/show_bug.cgi?id=158349
+
+        Reviewed by Filip Pizlo.
+
+        According to the ARM Assembler Reference, the vstm and vldm instructions can only
+        operate on a maximum of 16 registers.  See
+        http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dht0002a/ch01s03s02.html
+        and http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.dht0002a/ch01s03s02.html.
+
+        The ARMv7 probe code was wrongly using these instructions to store and load all
+        32 'd' registers.  This is now fixed.
+
+        * assembler/MacroAssemblerARMv7.cpp:
+
+2016-06-03  Mark Lam  <mark.lam@apple.com>
+
+        Gardening: CLOOP build fix (needs a #include).
+
+        Not reviewed.
+
+        * interpreter/StackVisitor.h:
+
+2016-06-03  Andreas Kling  <akling@apple.com>
+
+        Eliminate two large sources of temporary StringImpl objects.
+        <https://webkit.org/b/158336>
+
+        Reviewed by Anders Carlsson.
+
+        We were jumping through some inefficient hoops when creating Identifiers due to the
+        convenience of our String(const char*) constructor.
+
+        This patch avoids just over 1 million temporary StringImpl objects on the PLUM benchmark.
+
+        * runtime/JSObject.h:
+        (JSC::makeIdentifier): Add an overload for string literals so we can stop creating a temporary
+        String just for passing to Identifier::fromString().
+
+        * runtime/Lookup.h:
+        (JSC::reifyStaticProperties): Use the Identifier::fromString() that takes an LChar* and a length
+        instead of creating a temporary String.
+
+2016-06-03  Mark Lam  <mark.lam@apple.com>
+
+        Clean up how StackVisitor dumps its frames.
+        https://bugs.webkit.org/show_bug.cgi?id=158316
+
+        Reviewed by Keith Miller.
+
+        1. Updated to do dumping to a PrintStream.
+        2. Added support for printing a prefix for each frame.
+           This is currently used by JSDollarVMPrototype to print frame numbers.
+        3. Fix the incrementing of the frame index in StackVisitor.
+           It was initialized but never incremented before when iterating the frames.
+
+        * interpreter/StackVisitor.cpp:
+        (JSC::StackVisitor::gotoNextFrame):
+        (JSC::StackVisitor::Frame::codeType):
+        (JSC::StackVisitor::Frame::functionName):
+        (JSC::StackVisitor::Frame::sourceURL):
+        (JSC::StackVisitor::Frame::toString):
+        (JSC::StackVisitor::Frame::createArguments):
+        (JSC::StackVisitor::Frame::computeLineAndColumn):
+        (JSC::StackVisitor::Frame::retrieveExpressionInfo):
+        (JSC::StackVisitor::Frame::setToEnd):
+        (JSC::StackVisitor::Frame::dump):
+        (JSC::StackVisitor::Indent::dump):
+        (JSC::printIndents): Deleted.
+        (JSC::log): Deleted.
+        (JSC::logF): Deleted.
+        (JSC::StackVisitor::Frame::print): Deleted.
+        * interpreter/StackVisitor.h:
+        (JSC::StackVisitor::Indent::Indent):
+        (JSC::StackVisitor::Indent::operator++):
+        (JSC::StackVisitor::Indent::operator--):
+        (JSC::StackVisitor::Frame::isJSFrame):
+        (JSC::StackVisitor::Frame::isInlinedFrame):
+        (JSC::StackVisitor::Frame::vmEntryFrame):
+        (JSC::StackVisitor::Frame::callFrame):
+        (JSC::StackVisitor::Frame::Frame):
+        (JSC::StackVisitor::Frame::~Frame):
+        * tools/JSDollarVMPrototype.cpp:
+        (JSC::PrintFrameFunctor::operator()):
+
+2016-06-02  Saam Barati  <sbarati@apple.com>
+
+        global lexical environment variables are not accessible through functions created using the function constructor
+        https://bugs.webkit.org/show_bug.cgi?id=158319
+
+        Reviewed by Filip Pizlo.
+
+        When creating a function using the Function constructor, we were
+        using the global object instead of the global lexical environment
+        as the function's scope. We should be using the global lexical environment.
+
+        * runtime/FunctionConstructor.cpp:
+        (JSC::constructFunctionSkippingEvalEnabledCheck):
+        * tests/stress/function-constructor-reading-from-global-lexical-environment.js: Added.
+        (assert):
+        (test):
+        (ClassTDZ):
+
+2016-06-02  Oliver Hunt  <oliver@apple.com>
+
+        JS parser incorrectly handles invalid utf8 in error messages.
+        https://bugs.webkit.org/show_bug.cgi?id=158128
+
+        Reviewed by Saam Barati.
+
+        The bug here was caused by us using PrintStream's toString method
+        to produce the error message for a parse error, even though toString
+        may produce a null string in the event of invalid utf8 that causes
+        the error in first case. So when we try to create an error message
+        containing the invalid character code, we set m_errorMessage to the
+        null string, as that signals "no error" we don't stop parsing, and
+        everything goes down hill from there.
+
+        Now we use the new toStringWithLatin1Fallback so that we can always
+        produce an error message, even if it contains invalid unicode. We
+        also add an additional fallback so that we can guarantee an error
+        message is set even if we're given a null string. There's a debug
+        mode assertion to prevent anyone accidentally attempting to clear
+        the message via setErrorMessage.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::logError):
+        * parser/Parser.h:
+        (JSC::Parser::setErrorMessage):
+
+2016-06-02  Saam Barati  <sbarati@apple.com>
+
+        Teach bytecode liveness about the debugger
+        https://bugs.webkit.org/show_bug.cgi?id=158288
+
+        Reviewed by Filip Pizlo.
+
+        There was a bug where we wouldn't always keep the scope register
+        on the stack when the debugger is enabled. The debugger always assumes
+        it can read from the scope. The bug happened in OSR exit from the FTL.
+        The FTL uses bytecode liveness for OSR exit. Bytecode liveness proved
+        that the scope register was dead, so the FTL OSR exit wrote `undefined`
+        into the scope's stack slot when OSR exiting to the baseline.
+
+        To fix this, I taught bytecode liveness' computeUsesForBytecodeOffset() that the
+        scope is used by every instruction except op_enter. This causes the
+        scope to be live-in at every instruction except op_enter.
+
+        * bytecode/BytecodeLivenessAnalysis.cpp:
+        (JSC::blockContainsBytecodeOffset):
+        (JSC::addAlwaysLiveLocals):
+        (JSC::findBasicBlockForBytecodeOffset):
+        (JSC::stepOverInstruction):
+        (JSC::computeLocalLivenessForBytecodeOffset):
+        (JSC::BytecodeLivenessAnalysis::runLivenessFixpoint):
+        * bytecode/UnlinkedCodeBlock.cpp:
+        (JSC::UnlinkedCodeBlock::UnlinkedCodeBlock):
+        * tests/stress/shadow-chicken-reading-from-scope-after-ftl-osr-exit-bytecode-liveness.js: Added.
+        (foo):
+        (catch):
+
+2016-06-02  Michael Saboff  <msaboff@apple.com>
+
+        REGRESSION(r200694): %ThrowTypeError% is not unique
+        https://bugs.webkit.org/show_bug.cgi?id=158231
+
+        Reviewed by Joseph Pecoraro.
+
+        The ES6 standard in section 9.2.7.1 states that %ThrowTypeError% is unique.  This
+        change reverts the handling of TypeError before r200694 and then rolls in
+        throwTypeErrorGetterSetter() with the renamed throwTypeErrorArgumentsCalleeAndCallerGetterSetter().
+
+        * runtime/ClonedArguments.cpp:
+        (JSC::ClonedArguments::getOwnPropertySlot):
+        (JSC::ClonedArguments::materializeSpecials):
+        * runtime/JSBoundFunction.cpp:
+        (JSC::JSBoundFunction::finishCreation):
+        (JSC::JSBoundFunction::visitChildren):
+        * runtime/JSFunction.cpp:
+        (JSC::getThrowTypeErrorGetterSetter):
+        (JSC::JSFunction::callerGetter):
+        (JSC::JSFunction::defineOwnProperty):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        (JSC::JSGlobalObject::visitChildren):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::regExpProtoSymbolReplaceFunction):
+        (JSC::JSGlobalObject::regExpProtoGlobalGetter):
+        (JSC::JSGlobalObject::regExpProtoUnicodeGetter):
+        (JSC::JSGlobalObject::throwTypeErrorArgumentsCalleeAndCallerGetterSetter):
+        (JSC::JSGlobalObject::moduleLoader):
+        (JSC::JSGlobalObject::throwTypeErrorGetterSetter): Deleted.
+        (JSC::JSGlobalObject::throwTypeErrorCalleeAndCallerGetterSetter): Deleted.
+        (JSC::JSGlobalObject::throwTypeErrorArgumentsAndCallerInStrictModeGetterSetter): Deleted.
+        (JSC::JSGlobalObject::throwTypeErrorArgumentsAndCallerInClassContextGetterSetter): Deleted.
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncThrowTypeError):
+        (JSC::globalFuncThrowTypeErrorArgumentsCalleeAndCaller):
+        (JSC::globalFuncThrowTypeErrorCalleeAndCaller): Deleted.
+        (JSC::globalFuncThrowTypeErrorArgumentsAndCallerInStrictMode): Deleted.
+        (JSC::globalFuncThrowTypeErrorArgumentsAndCallerInClassContext): Deleted.
+        * runtime/JSGlobalObjectFunctions.h:
+        * tests/stress/reflect-set.js:
+
+2016-06-02  Michael Saboff  <msaboff@apple.com>
+
+        [iOS]: Some JSC stress tests fail running out of executable memory when the LLInt is disabled
+        https://bugs.webkit.org/show_bug.cgi?id=158317
+
+        Reviewed by Saam Barati.
+
+        Updated these test to not run the "no-llint" variant when running on ARM machines.
+
+        * tests/stress/arrowfunction-lexical-bind-superproperty.js: Skip no-llint for ARM
+        (testCase):
+        * tests/stress/proxy-revoke.js: Skipp no-lint for ARM and ARM64
+        (assert):
+
+2016-06-02  Keith Miller  <keith_miller@apple.com>
+
+        Unreviewed, reland r201532. The associated regressions have been fixed
+        by r201584.
+
+2016-06-02  Filip Pizlo  <fpizlo@apple.com>
+
+        Use "= delete" for Locker(int) 
+
+        Rubber stamped by Saam Barati.
+
+        * runtime/ConcurrentJITLock.h:
+        (JSC::ConcurrentJITLocker::ConcurrentJITLocker):
+
+2016-06-02  Keith Miller  <keith_miller@apple.com>
+
+        ObjectPropertyCondition should have a isStillValidAssumingImpurePropertyWatchpoint function
+        https://bugs.webkit.org/show_bug.cgi?id=158308
+
+        Reviewed by Filip Pizlo.
+
+        Recently, structureEnsuresValidityAssumingImpurePropertyWatchpoint was converted to check
+        what should be isStillValidAssumingImpurePropertyWatchpoint. This patch fixes the API so
+        it should work as expected. This patch also changes generateConditions in
+        ObjectPropertyConditionSet to use isStillValidAssumingImpurePropertyWatchpoint.
+
+        * bytecode/ObjectPropertyCondition.cpp:
+        (JSC::ObjectPropertyCondition::structureEnsuresValidityAssumingImpurePropertyWatchpoint):
+        (JSC::ObjectPropertyCondition::isStillValidAssumingImpurePropertyWatchpoint):
+        * bytecode/ObjectPropertyCondition.h:
+        * bytecode/ObjectPropertyConditionSet.cpp:
+
+2016-06-02  Filip Pizlo  <fpizlo@apple.com>
+
+        Make it harder to accidentally pass an integer to a locker.
+
+        Rubber stamped by Keith Miller.
+
+        * runtime/ConcurrentJITLock.h:
+        (JSC::ConcurrentJITLocker::ConcurrentJITLocker):
+
+2016-06-02  Filip Pizlo  <fpizlo@apple.com>
+
+        Make it easier to use NoLockingNecessary
+        https://bugs.webkit.org/show_bug.cgi?id=158306
+
+        Reviewed by Keith Miller.
+        
+        Adapt to the new NoLockingNecessary API. More details in the WTF ChangeLog.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::initializeArrowFunctionContextScopeIfNeeded):
+        (JSC::BytecodeGenerator::instantiateLexicalVariables):
+        (JSC::BytecodeGenerator::emitPrefillStackTDZVariables):
+        (JSC::BytecodeGenerator::initializeBlockScopedFunctions):
+        (JSC::BytecodeGenerator::hoistSloppyModeFunctionIfNecessary):
+        (JSC::BytecodeGenerator::popLexicalScopeInternal):
+        (JSC::BytecodeGenerator::prepareLexicalScopeForNextForLoopIteration):
+        (JSC::BytecodeGenerator::variable):
+        (JSC::BytecodeGenerator::createVariable):
+        (JSC::BytecodeGenerator::emitResolveScope):
+        (JSC::BytecodeGenerator::emitPushFunctionNameScope):
+        * runtime/ConcurrentJITLock.h:
+        (JSC::ConcurrentJITLockerBase::ConcurrentJITLockerBase):
+        (JSC::ConcurrentJITLocker::ConcurrentJITLocker):
+
 2016-06-01  Filip Pizlo  <fpizlo@apple.com>
 
         Structure::previousID() races with Structure::allocateRareData()

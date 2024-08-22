@@ -1,3 +1,239 @@
+2016-06-03  Zalan Bujtas  <zalan@apple.com>
+
+        Incorrect rendering on boostmobile FAQ page
+        https://bugs.webkit.org/show_bug.cgi?id=158303
+        <rdar://problem/26603462>
+
+        Reviewed by Chris Dumez.
+
+        Initial value for background-color is 'transparent'. see https://drafts.csswg.org/css-backgrounds-3/#background-color
+
+        * fast/selectors/non-visited-link-backround-color-expected.html: Added.
+        * fast/selectors/non-visited-link-backround-color.html: Added.
+
+2016-06-03  Chris Dumez  <cdumez@apple.com>
+
+        CanvasRenderingContext2D.createPattern() / putImageData() throw wrong exception type
+        https://bugs.webkit.org/show_bug.cgi?id=158322
+
+        Reviewed by Ryosuke Niwa.
+
+        Update several outdated layout tests.
+
+        * canvas/philip/tests/2d.imageData.put.null.html:
+        * canvas/philip/tests/2d.pattern.image.null.html:
+        * canvas/philip/tests/2d.pattern.image.undefined.html:
+
+2016-06-03  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/scrolling/scroll-container-horizontally.html as flaky on mac-wk2 and ios-simulator-wk1
+        https://bugs.webkit.org/show_bug.cgi?id=158237
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/mac-wk2/TestExpectations:
+
+2016-06-03  Brady Eidson  <beidson@apple.com>
+
+        LayoutTest imported/w3c/indexeddb/idbcursor-advance-continue-async.htm is flaky on Yosemite WK2
+        https://bugs.webkit.org/show_bug.cgi?id=154606
+
+        Reviewed by Alex Christensen.
+
+        * platform/mac-wk2/TestExpectations: Remove expectations. Test has been working great for quite awhile.
+
+2016-06-03  Brady Eidson  <beidson@apple.com>
+
+        storage/indexeddb/intversion-open-in-upgradeneeded.html is flaky on mac.
+        https://bugs.webkit.org/show_bug.cgi?id=155050
+
+        Reviewed by Alex Christensen.
+
+        The test no longer crashes/times out, but it does have text failures.
+        Resolve them by removing a race in the test itself.
+        
+        * platform/mac-wk2/TestExpectations:
+        * storage/indexeddb/intversion-open-in-upgradeneeded-expected.txt:
+        * storage/indexeddb/intversion-open-in-upgradeneeded-private-expected.txt:
+        * storage/indexeddb/resources/intversion-open-in-upgradeneeded.js:
+
+2016-06-03  Antoine Quint  <graouts@apple.com>
+
+        Reflection of element does not respect backdrop-filter property
+        https://bugs.webkit.org/show_bug.cgi?id=158201
+
+        Reviewed by Dean Jackson.
+
+        * css3/filters/backdrop/backdrop-filter-with-reflection-add-backdrop-expected.html: Added.
+        * css3/filters/backdrop/backdrop-filter-with-reflection-add-backdrop.html: Added.
+
+        Covers the case where a reflected element without a backdrop-filter initially has one added later.
+
+        * css3/filters/backdrop/backdrop-filter-with-reflection-expected.html: Added.
+        * css3/filters/backdrop/backdrop-filter-with-reflection-remove-backdrop-expected.html: Added.
+
+        Covers the case where a reflected element with a backdrop-filter initially has it removed later.
+
+        * css3/filters/backdrop/backdrop-filter-with-reflection-remove-backdrop.html: Added.
+        * css3/filters/backdrop/backdrop-filter-with-reflection-value-change-expected.html: Added.
+
+        Covers the case where a reflected element with a backdrop-filter has its backdrop-filter property changed later.
+
+        * css3/filters/backdrop/backdrop-filter-with-reflection-value-change.html: Added.
+        * css3/filters/backdrop/backdrop-filter-with-reflection.html: Added.
+
+        Covers the basic case of a reflected element with a backdrop-filter.
+
+2016-06-03  Antoine Quint  <graouts@apple.com>
+
+        REGRESSION: WebGL doesn't show up in CSS reflections
+        https://bugs.webkit.org/show_bug.cgi?id=76489
+
+        Reviewed by Dean Jackson.
+
+        Update the expected rendering to contain the reflected WebGL <canvas>.
+
+        * platform/mac/compositing/webgl/webgl-reflection-expected.png:
+
+2016-06-02  Zalan Bujtas  <zalan@apple.com>
+
+        Repaint issue with vertical text in an out of flow container.
+        https://bugs.webkit.org/show_bug.cgi?id=102665
+        <rdar://problem/26605298>
+
+        Reviewed by David Hyatt.
+
+        Since the renderer’s offset for positioned objects is always physical, we only
+        need to flip the repaint rect(always logical) for writing root, when we see the first positioned object.
+        All subsequent writing root changes for positioned objects are okay and they don't need flipping.
+
+        * fast/repaint/vertical-text-repaint-expected.txt: Added.
+        * fast/repaint/vertical-text-repaint.html: Added.
+
+2016-06-02  Benjamin Poulain  <bpoulain@apple.com>
+
+        Fix a typo in the clz32() tests
+
+        Rubber-stamped by Joseph Pecoraro.
+
+        Joe found a bug in math-clz32.js: I typed INFINITI instead of INFINITY.
+        The tests was effectively checking "undefined" instead of infinity.
+
+        * js/math-clz32-expected.txt:
+        * js/script-tests/math-clz32.js:
+        (objectRecordConversionCalls.valueOf):
+
+2016-06-02  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] 'undefined' should be an acceptable value for nullable parameters
+        https://bugs.webkit.org/show_bug.cgi?id=158321
+
+        Reviewed by Ryosuke Niwa.
+
+        Rebaseline existing test that is now passing.
+
+        * canvas/philip/tests/2d.pattern.image.undefined-expected.txt:
+
+2016-06-02  Oliver Hunt  <oliver@apple.com>
+
+        JS parser incorrectly handles invalid utf8 in error messages.
+        https://bugs.webkit.org/show_bug.cgi?id=158128
+
+        Reviewed by Saam Barati.
+
+        Add a testcase.
+
+        * js/invalid-utf8-in-syntax-error-expected.txt: Added.
+        * js/script-tests/invalid-utf8-in-syntax-error.js: Added.
+
+2016-06-02  Michael Saboff  <msaboff@apple.com>
+
+        REGRESSION(r200694): %ThrowTypeError% is not unique
+        https://bugs.webkit.org/show_bug.cgi?id=158231
+
+        Reviewed by Joseph Pecoraro.
+
+        Rebased tests for the new TypeError messages.
+        Added a new test, throw-type-error-is-unique.html.
+
+        * inspector/runtime/getProperties-expected.txt:
+        * js/basic-strict-mode-expected.txt:
+        * js/caller-property-expected.txt:
+        * js/class-method-and-constructor-properties-expected.txt:
+        * js/script-tests/caller-property.js:
+        (strictCaller):
+        (strictTailCaller):
+        * js/script-tests/class-method-and-constructor-properties.js:
+        (F.prototype.getElement):
+        (F):
+        (G.prototype.get item):
+        (G):
+        (H.prototype.arguments):
+        (H):
+        * js/script-tests/throw-type-error-is-unique.js: Added.
+        (ThrowTypeErrorSource):
+        (ThrowTypeErrorSource.prototype.checkTypeErrorFunctions):
+        (A):
+        (strictArguments):
+        (test):
+        * js/throw-type-error-is-unique-expected.txt: Added.
+        * js/throw-type-error-is-unique.html: Added.
+
+2016-06-02  Daniel Bates  <dabates@apple.com>
+
+        Fix a couple of mistakes in CSSParserValue memory management
+        https://bugs.webkit.org/show_bug.cgi?id=158307
+        <rdar://problem/26127225>
+
+        Reviewed by Darin Adler.
+
+        * fast/css/calc-with-two-variables-crash-expected.txt: Added.
+        * fast/css/calc-with-two-variables-crash.html: Added.
+
+2016-06-02  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        SVG content renders in incorrect vertical position when padding-left is not specified
+        https://bugs.webkit.org/show_bug.cgi?id=158234
+
+        Reviewed by Darin Adler.
+
+        Make sure the SVG root element is positioned correctly when either the sum
+        of its (leftPadding + rightPadding) or the sum of its (topPadding + bottomPadding)
+        is equal to zero.
+
+        * svg/custom/svg-root-padding-individual-expected.html: Added.
+        * svg/custom/svg-root-padding-individual.html: Added.
+
+2016-06-02  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Update RTCPeerConnection.addTrack() to create (or reuse) an RTCRtpTransceiver
+        https://bugs.webkit.org/show_bug.cgi?id=158191
+
+        Reviewed by Eric Carlson.
+
+        Extend existing test to verify the created RTCRtpTransceiver object.
+
+        * fast/mediastream/RTCPeerConnection-add-removeTrack-expected.txt:
+        * fast/mediastream/RTCPeerConnection-add-removeTrack.html:
+        Add checks for bad argument lists and verify the created RTCRtpTransceiver.
+
+2016-06-02  Per Arne Vollan  <pvollan@apple.com>
+
+        Unreviewed test gardening.
+        
+        Unskip websocket tests passing after r201500.
+
+        * platform/win/TestExpectations:
+
+2016-06-02  Per Arne Vollan  <pvollan@apple.com>
+
+        Unreviewed test gardening.
+        
+        The test storage/indexeddb/modern/blob-simple.html is passing.
+
+        * platform/win/TestExpectations:
+
 2016-06-02  Javier Fernandez  <jfernandez@igalia.com>
 
         Unreviewed GTK+ gardening Additional rebaseline after r201397.

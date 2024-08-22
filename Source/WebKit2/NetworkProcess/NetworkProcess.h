@@ -35,6 +35,7 @@
 #include <WebCore/SessionID.h>
 #include <memory>
 #include <wtf/Forward.h>
+#include <wtf/Function.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/RetainPtr.h>
 

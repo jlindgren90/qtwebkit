@@ -4597,8 +4597,6 @@ void Document::setPageCacheState(PageCacheState state)
         }
         m_styleRecalcTimer.stop();
 
-        clearStyleResolver();
-        clearSelectorQueryCache();
         clearSharedObjectPool();
         break;
     case NotInPageCache:

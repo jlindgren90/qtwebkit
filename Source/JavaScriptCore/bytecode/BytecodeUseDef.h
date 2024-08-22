@@ -38,6 +38,10 @@ void computeUsesForBytecodeOffset(
     Instruction* instructionsBegin = codeBlock->instructions().begin();
     Instruction* instruction = &instructionsBegin[bytecodeOffset];
     OpcodeID opcodeID = interpreter->getOpcodeID(instruction->u.opcode);
+
+    if (opcodeID != op_enter && codeBlock->wasCompiledWithDebuggingOpcodes() && codeBlock->scopeRegister().isValid())
+        functor(codeBlock, instruction, opcodeID, codeBlock->scopeRegister().offset());
+
     switch (opcodeID) {
     // No uses.
     case op_new_regexp:
@@ -157,6 +161,8 @@ void computeUsesForBytecodeOffset(
     case op_to_primitive:
     case op_try_get_by_id:
     case op_get_by_id:
+    case op_get_by_id_proto_load:
+    case op_get_by_id_unset:
     case op_get_array_length:
     case op_typeof:
     case op_is_empty:
@@ -390,6 +396,8 @@ void computeDefsForBytecodeOffset(CodeBlock* codeBlock, BytecodeBasicBlock* bloc
     case op_construct:
     case op_try_get_by_id:
     case op_get_by_id:
+    case op_get_by_id_proto_load:
+    case op_get_by_id_unset:
     case op_get_by_id_with_this:
     case op_get_by_val_with_this:
     case op_get_array_length:

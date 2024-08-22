@@ -1,3 +1,920 @@
+2016-06-03  Zalan Bujtas  <zalan@apple.com>
+
+        Incorrect rendering on boostmobile FAQ page
+        https://bugs.webkit.org/show_bug.cgi?id=158303
+        <rdar://problem/26603462>
+
+        Reviewed by Chris Dumez.
+
+        Initial value for background-color is 'transparent'. see https://drafts.csswg.org/css-backgrounds-3/#background-color
+
+        Test: fast/selectors/non-visited-link-backround-color.html
+
+        * css/CSSPropertyNames.in:
+
+2016-06-03  Brady Eidson  <beidson@apple.com>
+
+        More miscellaneous IDBBindingUtilities cleanup.
+        https://bugs.webkit.org/show_bug.cgi?id=158359
+
+        Reviewed by Tim Horton.
+
+        No new tests (Straight refactor, yo).
+
+        Replace more ScriptExecutionContext&s with ExecState&s.
+        Combine more unnecessarily separate functions.
+        Remove some cruft.
+        
+        * Modules/indexeddb/IDBCursor.cpp:
+        (WebCore::IDBCursor::setGetResult):
+        
+        * Modules/indexeddb/IDBRequest.cpp:
+        (WebCore::IDBRequest::setResult):
+        (WebCore::IDBRequest::setResultToStructuredClone):
+        
+        * Modules/indexeddb/server/MemoryObjectStore.cpp:
+        (WebCore::IDBServer::MemoryObjectStore::updateIndexesForPutRecord):
+        (WebCore::IDBServer::MemoryObjectStore::populateIndexWithExistingRecords):
+        
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::SQLiteIDBBackingStore::updateOneIndexForAddRecord):
+        (WebCore::IDBServer::SQLiteIDBBackingStore::updateAllIndexesForAddRecord):
+        
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::performPutOrAdd):
+        
+        * bindings/js/IDBBindingUtilities.cpp:
+        (WebCore::deserializeIDBValueToJSValue):
+        (WebCore::idbKeyDataToScriptValue):
+        (WebCore::deserializeIDBValueDataToJSValue): Deleted.
+        * bindings/js/IDBBindingUtilities.h:
+
+2016-06-03  Chris Dumez  <cdumez@apple.com>
+
+        CanvasRenderingContext2D.createPattern() / putImageData() throw wrong exception type
+        https://bugs.webkit.org/show_bug.cgi?id=158322
+
+        Reviewed by Ryosuke Niwa.
+
+        CanvasRenderingContext2D.createPattern() / putImageData() were throwing the wrong
+        exception type when the first parameter was null. It should throw a TypeError
+        but it was throwing a legacy TYPE_MISMATCH_ERR:
+        - http://www.w3.org/TR/2dcontext/#canvasrenderingcontext2d
+        - http://www.w3.org/TR/2dcontext/#canvasimagesource
+
+        This patch aligns our behavior with the specification.
+
+        No new tests, covered by existing tests.
+
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::createPattern):
+        (WebCore::CanvasRenderingContext2D::putImageData):
+        (WebCore::CanvasRenderingContext2D::webkitPutImageDataHD):
+        (WebCore::CanvasRenderingContext2D::didDraw): Deleted.
+        (WebCore::CanvasRenderingContext2D::drawFocusIfNeeded): Deleted.
+        (WebCore::CanvasRenderingContext2D::drawFocusIfNeededInternal): Deleted.
+        (WebCore::CanvasRenderingContext2D::font): Deleted.
+        * html/canvas/CanvasRenderingContext2D.h:
+        * html/canvas/CanvasRenderingContext2D.idl:
+
+2016-06-03  Anders Carlsson  <andersca@apple.com>
+
+        Rename NoncopyableFunction to Function
+        https://bugs.webkit.org/show_bug.cgi?id=158354
+
+        Reviewed by Chris Dumez.
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::runTask):
+        * Modules/mediastream/MediaEndpointPeerConnection.h:
+        * Modules/webaudio/AudioDestinationNode.h:
+        (WebCore::AudioDestinationNode::resume):
+        (WebCore::AudioDestinationNode::suspend):
+        (WebCore::AudioDestinationNode::close):
+        * Modules/webaudio/DefaultAudioDestinationNode.cpp:
+        (WebCore::DefaultAudioDestinationNode::resume):
+        (WebCore::DefaultAudioDestinationNode::suspend):
+        (WebCore::DefaultAudioDestinationNode::close):
+        * Modules/webaudio/DefaultAudioDestinationNode.h:
+        * dom/ActiveDOMCallbackMicrotask.cpp:
+        (WebCore::ActiveDOMCallbackMicrotask::ActiveDOMCallbackMicrotask):
+        * dom/ActiveDOMCallbackMicrotask.h:
+        * dom/ScriptExecutionContext.h:
+        (WebCore::ScriptExecutionContext::Task::Task):
+        * fileapi/AsyncFileStream.cpp:
+        (WebCore::callOnFileThread):
+        (WebCore::AsyncFileStream::perform):
+        * fileapi/AsyncFileStream.h:
+        * page/FrameView.cpp:
+        (WebCore::FrameView::queuePostLayoutCallback):
+        (WebCore::FrameView::flushPostLayoutTasksQueue):
+        * page/FrameView.h:
+        * page/scrolling/ScrollingThread.cpp:
+        (WebCore::ScrollingThread::dispatch):
+        (WebCore::ScrollingThread::dispatchBarrier):
+        (WebCore::ScrollingThread::dispatchFunctionsFromScrollingThread):
+        * page/scrolling/ScrollingThread.h:
+        * platform/GenericTaskQueue.cpp:
+        (WebCore::TaskDispatcher<Timer>::postTask):
+        * platform/GenericTaskQueue.h:
+        (WebCore::TaskDispatcher::postTask):
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::scheduleDeferredTask):
+        * platform/mediastream/MediaStreamPrivate.cpp:
+        (WebCore::MediaStreamPrivate::scheduleDeferredTask):
+        * platform/mediastream/MediaStreamPrivate.h:
+        * platform/mediastream/mac/AVMediaCaptureSource.h:
+        * platform/mediastream/mac/AVMediaCaptureSource.mm:
+        (WebCore::AVMediaCaptureSource::scheduleDeferredTask):
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::postResolutionCallbackQueue):
+        (WebCore::Style::queuePostResolutionCallback):
+        * style/StyleTreeResolver.h:
+
+2016-06-03  Ada Chan  <adachan@apple.com>
+
+        REGRESSION(r201474): Subtitles are not resizing in other fullscreen modes
+        https://bugs.webkit.org/show_bug.cgi?id=158355
+
+        Reviewed by Eric Carlson.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::syncTextTrackBounds):
+        Set the text track representation layer's frame based on the active video layer.
+
+2016-06-03  Brady Eidson  <beidson@apple.com>
+
+        Miscellaneous IDBBindingUtilities cleanup.
+        https://bugs.webkit.org/show_bug.cgi?id=158353
+
+        Reviewed by Tim Horton.
+
+        No new tests (Straight refactor, yo).
+
+        Starting with removing a single form of scriptValueToIDBKey(), and making the return value be
+        Ref<IDBKey> instead of RefPtr<IDBKey>, update a whole bunch of code to understand that the ExecState
+        is non-null and the resulting key is non-null.
+        
+        * Modules/indexeddb/IDBCursor.cpp:
+        (WebCore::IDBCursor::continueFunction):
+        
+        * Modules/indexeddb/IDBFactory.cpp:
+        (WebCore::IDBFactory::cmp):
+        
+        * Modules/indexeddb/IDBIndex.cpp:
+        (WebCore::IDBIndex::count):
+        (WebCore::IDBIndex::get):
+        (WebCore::IDBIndex::getKey):
+        
+        * Modules/indexeddb/IDBKey.cpp:
+        (WebCore::IDBKey::compare):
+        (WebCore::IDBKey::isLessThan):
+        (WebCore::IDBKey::isEqual):
+        * Modules/indexeddb/IDBKey.h:
+        (WebCore::IDBKey::createMultiEntryArray):
+        
+        * Modules/indexeddb/IDBKeyRange.cpp:
+        (WebCore::IDBKeyRange::only):
+        (WebCore::IDBKeyRange::lowerBound):
+        (WebCore::IDBKeyRange::upperBound):
+        (WebCore::IDBKeyRange::bound):
+        (WebCore::IDBKeyRange::isOnlyKey):
+        
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::get):
+        (WebCore::IDBObjectStore::modernDelete):
+        (WebCore::IDBObjectStore::count):
+        
+        * bindings/js/IDBBindingUtilities.cpp:
+        (WebCore::get):
+        (WebCore::set):
+        (WebCore::createIDBKeyFromValue):
+        (WebCore::getNthValueOnKeyPath):
+        (WebCore::internalCreateIDBKeyFromScriptValueAndKeyPath):
+        (WebCore::ensureNthValueOnKeyPath):
+        (WebCore::canInjectNthValueOnKeyPath):
+        (WebCore::injectIDBKeyIntoScriptValue):
+        (WebCore::maybeCreateIDBKeyFromScriptValueAndKeyPath):
+        (WebCore::canInjectIDBKeyIntoScriptValue):
+        (WebCore::deserializeIDBValueToJSValue):
+        (WebCore::scriptValueToIDBKey):
+        (WebCore::createKeyPathArray):
+        * bindings/js/IDBBindingUtilities.h:
+
+2016-06-03  Benjamin Poulain  <benjamin@webkit.org>
+
+        Rename CheckedRadioButtons into RadioButtonGroups
+        https://bugs.webkit.org/show_bug.cgi?id=158326
+
+        Reviewed by Alex Christensen.
+
+        CheckedRadioButtons handles the set of all the Radio Button Groups
+        for a particular form or document.
+        The name is wrong and apparently comes from former uses of this class
+        (see the comment above the class declaration).
+
+        This patch renames "CheckedRadioButtons" to "RadioButtonGroups" to reflect that it handles
+        all the Radio Button Group from a given context (form or document).
+        Internally it has a set of RadioButtonGroup but that is never explicitely
+        exposed.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/CheckedRadioButtons.cpp:
+        (WebCore::RadioButtonGroup::isEmpty): Deleted.
+        (WebCore::RadioButtonGroup::isRequired): Deleted.
+        (WebCore::RadioButtonGroup::checkedButton): Deleted.
+        (WebCore::RadioButtonGroup::RadioButtonGroup): Deleted.
+        (WebCore::RadioButtonGroup::isValid): Deleted.
+        (WebCore::RadioButtonGroup::members): Deleted.
+        (WebCore::RadioButtonGroup::setCheckedButton): Deleted.
+        (WebCore::RadioButtonGroup::add): Deleted.
+        (WebCore::RadioButtonGroup::updateCheckedState): Deleted.
+        (WebCore::RadioButtonGroup::requiredAttributeChanged): Deleted.
+        (WebCore::RadioButtonGroup::remove): Deleted.
+        (WebCore::RadioButtonGroup::updateValidityForAllButtons): Deleted.
+        (WebCore::RadioButtonGroup::contains): Deleted.
+        (WebCore::CheckedRadioButtons::CheckedRadioButtons): Deleted.
+        (WebCore::CheckedRadioButtons::~CheckedRadioButtons): Deleted.
+        (WebCore::CheckedRadioButtons::addButton): Deleted.
+        (WebCore::CheckedRadioButtons::groupMembers): Deleted.
+        (WebCore::CheckedRadioButtons::updateCheckedState): Deleted.
+        (WebCore::CheckedRadioButtons::requiredAttributeChanged): Deleted.
+        (WebCore::CheckedRadioButtons::checkedButtonForGroup): Deleted.
+        (WebCore::CheckedRadioButtons::isInRequiredGroup): Deleted.
+        (WebCore::CheckedRadioButtons::removeButton): Deleted.
+        * dom/RadioButtonGroups.cpp: Renamed from Source/WebCore/dom/CheckedRadioButtons.cpp.
+        (WebCore::RadioButtonGroup::isEmpty):
+        (WebCore::RadioButtonGroup::isRequired):
+        (WebCore::RadioButtonGroup::checkedButton):
+        (WebCore::RadioButtonGroup::RadioButtonGroup):
+        (WebCore::RadioButtonGroup::isValid):
+        (WebCore::RadioButtonGroup::members):
+        (WebCore::RadioButtonGroup::setCheckedButton):
+        (WebCore::RadioButtonGroup::add):
+        (WebCore::RadioButtonGroup::updateCheckedState):
+        (WebCore::RadioButtonGroup::requiredAttributeChanged):
+        (WebCore::RadioButtonGroup::remove):
+        (WebCore::RadioButtonGroup::updateValidityForAllButtons):
+        (WebCore::RadioButtonGroup::contains):
+        (WebCore::RadioButtonGroups::RadioButtonGroups):
+        (WebCore::RadioButtonGroups::~RadioButtonGroups):
+        (WebCore::RadioButtonGroups::addButton):
+        (WebCore::RadioButtonGroups::groupMembers):
+        (WebCore::RadioButtonGroups::updateCheckedState):
+        (WebCore::RadioButtonGroups::requiredAttributeChanged):
+        (WebCore::RadioButtonGroups::checkedButtonForGroup):
+        (WebCore::RadioButtonGroups::isInRequiredGroup):
+        (WebCore::RadioButtonGroups::removeButton):
+        * dom/RadioButtonGroups.h: Renamed from Source/WebCore/dom/CheckedRadioButtons.h.
+        * html/FormController.h:
+        (WebCore::FormController::radioButtonGroups):
+        (WebCore::FormController::checkedRadioButtons): Deleted.
+        * html/HTMLFormElement.h:
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::~HTMLInputElement):
+        (WebCore::HTMLInputElement::setChecked):
+        (WebCore::HTMLInputElement::didMoveToNewDocument):
+        (WebCore::HTMLInputElement::requiredAttributeChanged):
+        (WebCore::HTMLInputElement::isInRequiredRadioButtonGroup):
+        (WebCore::HTMLInputElement::radioButtonGroup):
+        (WebCore::HTMLInputElement::checkedRadioButtonForGroup):
+        (WebCore::HTMLInputElement::radioButtonGroups):
+        (WebCore::HTMLInputElement::addToRadioButtonGroup):
+        (WebCore::HTMLInputElement::removeFromRadioButtonGroup):
+        (WebCore::HTMLInputElement::checkedRadioButtons): Deleted.
+        * html/HTMLInputElement.h:
+
+2016-06-03  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, roll out r196633 as it broke PageCache on iOS for WebKit.org
+        <rdar://problem/26521101>
+
+        * dom/Document.cpp:
+        (WebCore::Document::setInPageCache): Deleted.
+        * history/CachedPage.cpp:
+        (WebCore::CachedPage::restore):
+        (WebCore::CachedPage::clear):
+        * history/CachedPage.h:
+        (WebCore::CachedPage::markForVisitedLinkStyleRecalc):
+        (WebCore::CachedPage::markForFullStyleRecalc):
+        * history/PageCache.cpp:
+        (WebCore::PageCache::markPagesForVisitedLinkStyleRecalc):
+        (WebCore::PageCache::markPagesForFullStyleRecalc):
+        * history/PageCache.h:
+        * page/Frame.cpp:
+        (WebCore::Frame::setPageAndTextZoomFactors):
+        * page/Page.cpp:
+        (WebCore::Page::setViewScaleFactor):
+        (WebCore::Page::setDeviceScaleFactor):
+        (WebCore::Page::setPagination):
+        (WebCore::Page::setPaginationLineGridEnabled):
+        (WebCore::Page::setVisitedLinkStore):
+
+2016-06-03  Antoine Quint  <graouts@apple.com>
+
+        Reflection of element does not respect backdrop-filter property
+        https://bugs.webkit.org/show_bug.cgi?id=158201
+
+        Reviewed by Dean Jackson.
+
+        We weren't cloning the PlatformCALayer for the backdrop so reflections would simply
+        not show their backdrops. We now follow the same pattern as other PlatformCALayers
+        owned by a GraphicsLayerCA and keep a list of backdrop layer clones that we add
+        to the structural layer when cloning to match the layer order of the original
+        and update the backdrop layer clone properties to match the original when the
+        backdrop filters or rectangle changes.
+
+        Tests: css3/filters/backdrop/backdrop-filter-with-reflection-add-backdrop.html
+               css3/filters/backdrop/backdrop-filter-with-reflection-remove-backdrop.html
+               css3/filters/backdrop/backdrop-filter-with-reflection-value-change.html
+               css3/filters/backdrop/backdrop-filter-with-reflection.html
+
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayerCA::updateBackdropFilters):
+        (WebCore::GraphicsLayerCA::updateBackdropFiltersRect):
+        Update backdrop layer clones to match new values set when the backdrop filter
+        configuration changes.
+
+        (WebCore::GraphicsLayerCA::ensureCloneLayers):
+        Create the backdrop layer clones map if needed and clone the existing backdrop layer.
+
+        (WebCore::GraphicsLayerCA::clearClones):
+        Clear the backdrop layer clones map.
+
+        (WebCore::GraphicsLayerCA::fetchCloneLayers):
+        Obtain a clone for the backdrop layer, and if we have a valid clone, add it to the
+        structural layer clone as its first child to match the operation in updateSublayerList().
+
+        * platform/graphics/ca/GraphicsLayerCA.h:
+        Modify the signature for ensureCloneLayers() to account for the new backdrop layer clone and
+        declare the backdrop layer clone map.
+
+        * platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm:
+        (PlatformCALayerCocoa::clone):
+        Reflect the backdrop layer type when cloning a PlatformCALayer.
+
+2016-06-03  Brady Eidson  <beidson@apple.com>
+
+        ResourceResponseBase cleanup.
+        https://bugs.webkit.org/show_bug.cgi?id=158348
+
+        Reviewed by Chris Dumez.
+
+        No new tests (Refactor, no behavior change).
+
+        CrossThreadData can be noncopyable and WTFMove()'ed around, instead of 
+        being in a unique_ptr.
+        
+        * platform/network/ResourceResponseBase.cpp:
+        (WebCore::ResourceResponseBase::crossThreadData):
+        (WebCore::ResourceResponseBase::fromCrossThreadData):
+        * platform/network/ResourceResponseBase.h:
+
+2016-06-03  Antoine Quint  <graouts@apple.com>
+
+        REGRESSION: WebGL doesn't show up in CSS reflections
+        https://bugs.webkit.org/show_bug.cgi?id=76489
+
+        Reviewed by Dean Jackson.
+
+        The WebGLLayer needs to notify its owning GraphicsLayer that it was displayed
+        such that its clones, in GraphicsLayerCA::layerDidDisplay, may have their contents
+        updated to match that layer's contents. The test at compositing/webgl/webgl-reflection.html
+        already covers this test and its expectation on Mac has been updated.
+
+        * platform/graphics/mac/WebGLLayer.mm:
+        (-[WebGLLayer display]):
+
+2016-06-02  Gavin Barraclough  <barraclough@apple.com>
+
+        Refactor showModalDialog handling in JSDOMWindowCustom
+        https://bugs.webkit.org/show_bug.cgi?id=158294
+
+        Reviewed by Ryosuke Niwa.
+
+        The showModalDialog property is currently implemented in a way that  effectively
+        results in duplication of the tail of the function, but modified to call
+        Base::getOwnPropertySlot instead of getStaticPropertySlot. It does so based on the
+        assumption that Base::getOwnPropertySlot is not going to search the static tables
+        (containing the property we wish to omit).
+
+        However as a part of bug #158178 I plan to change it such that Base::getOwnPropertySlot
+        does also search the static tables. So, refactoring this code to no longer depend on
+        using a function that bypasses the static tables. Always perform a lookup that will
+        check both property storage & static tables. If the object does contain the property,
+        then check explicitly for the value we're intending to suppress.
+
+        Covered by exsiting tests.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::getOwnPropertySlot):
+            - Check result of getStaticPropertySlot for showModalDialog function.
+
+2016-06-02  Brady Eidson  <beidson@apple.com>
+
+        Fix AtomicString regression caused by r201603.
+        https://bugs.webkit.org/show_bug.cgi?id=158338
+
+        Reviewed by Chris Dumez.
+
+        No new tests (Refactor, plus already caught by existing test configs).
+
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didReceiveResponse):
+        
+        * platform/network/ResourceResponseBase.cpp:
+        (WebCore::ResourceResponseBase::crossThreadData): Re-introduce the cross thread data concept,
+          but more modern and clean this time.
+        (WebCore::ResourceResponseBase::fromCrossThreadData):
+        (WebCore::ResourceResponseBase::isolatedCopy): Deleted.
+        * platform/network/ResourceResponseBase.h:
+
+2016-06-02  Chris Dumez  <cdumez@apple.com>
+
+        Drop BlobRegistryContext class as it is no longer needed
+        https://bugs.webkit.org/show_bug.cgi?id=158328
+
+        Reviewed by Brady Eidson.
+
+        Drop BlobRegistryContext class as it is no longer needed. We can now
+        call isolatedCopy() as we capture in the lambda.
+
+        * fileapi/ThreadableBlobRegistry.cpp:
+        (WebCore::ThreadableBlobRegistry::registerFileBlobURL):
+        (WebCore::ThreadableBlobRegistry::registerBlobURL):
+        (WebCore::ThreadableBlobRegistry::registerBlobURLForSlice):
+        (WebCore::ThreadableBlobRegistry::blobSize):
+        (WebCore::ThreadableBlobRegistry::unregisterBlobURL):
+        (WebCore::BlobRegistryContext::BlobRegistryContext): Deleted.
+
+2016-06-02  Zalan Bujtas  <zalan@apple.com>
+
+        Repaint issue with vertical text in an out of flow container.
+        https://bugs.webkit.org/show_bug.cgi?id=102665
+        <rdar://problem/26605298>
+
+        Reviewed by David Hyatt.
+
+        Since the renderer’s offset for positioned objects is always physical, we only
+        need to flip the repaint rect(always logical) for writing root, when we see the first positioned object.
+        All subsequent writing root changes for positioned objects are okay and they don't need flipping.
+
+        Test: fast/repaint/vertical-text-repaint.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::computeRectForRepaint):
+        * rendering/RenderBox.h:
+        (WebCore::RenderBox::computeRectForRepaint):
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::computeRectForRepaint):
+        * rendering/RenderInline.h:
+        (WebCore::RenderInline::computeRectForRepaint):
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::computeRectForRepaint):
+        * rendering/RenderObject.h:
+        (WebCore::RenderObject::computeAbsoluteRepaintRect):
+        (WebCore::RenderObject::computeRectForRepaint):
+        * rendering/RenderTableCell.cpp:
+        (WebCore::RenderTableCell::computeRectForRepaint):
+        * rendering/RenderTableCell.h:
+        * rendering/RenderView.cpp:
+        (WebCore::RenderView::computeRectForRepaint):
+        * rendering/RenderView.h:
+        * rendering/svg/RenderSVGForeignObject.cpp:
+        (WebCore::RenderSVGForeignObject::computeRectForRepaint):
+        * rendering/svg/RenderSVGForeignObject.h:
+        * rendering/svg/RenderSVGRoot.cpp:
+        (WebCore::RenderSVGRoot::computeFloatRectForRepaint):
+        * rendering/svg/RenderSVGText.cpp:
+        (WebCore::RenderSVGText::computeRectForRepaint):
+        * rendering/svg/RenderSVGText.h:
+
+2016-06-02  Anders Carlsson  <andersca@apple.com>
+
+        Fix build
+        https://bugs.webkit.org/show_bug.cgi?id=158337
+        rdar://problem/26429419
+
+        Reviewed by Dan Bernstein.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Add QTKitSPI.h header.
+
+        * platform/graphics/mac/MediaPlayerPrivateQTKit.h:
+        * platform/graphics/mac/MediaPlayerPrivateQTKit.mm:
+        * platform/graphics/mac/MediaTimeQTKit.h:
+        * platform/graphics/mac/MediaTimeQTKit.mm:
+        * platform/mac/WebVideoFullscreenController.mm:
+        Include QTKitSPI.h.
+
+        * platform/spi/cocoa/QuartzCoreSPI.h:
+        * platform/spi/mac/AVFoundationSPI.h:
+        Use MAX_ALLOWED instead of MIN_REQUIRED.
+
+        * platform/spi/mac/QTKitSPI.h:
+        Add new QTKit header.
+
+2016-06-02  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        [iOS] PDFDocumentImage should not create a cached image larger than 4M pixels
+        https://bugs.webkit.org/show_bug.cgi?id=157857
+
+        Reviewed by Darin Adler.
+
+        On iOS, if the scaled size of the PDFDocumentImage cached image will exceed
+        the 4M pixels limit and the system physical memory is 1GB or less, do not
+        create it. PDFDocumentImage::draw() falls back peacefully if the cached image
+        couldn't be created for any reason. The PDF will be drawn directly to the
+        GraphicsContext without having to go through the cached image. This means
+        the whole PDF will be drawn multiple times; one time for each tile. I think
+        this is okay for zooming a large PDFDocumentImage on a low end device.
+        
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::drawTextInternal): Call the static function
+        ImageBuffer::createCompatibleBuffer() without having to go through the GraphicsContext.
+        
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::drawPattern): Ditto.
+        
+        * platform/graphics/FloatSize.h:
+        (WebCore::FloatSize::area): A helper function similar to IntSize::area().
+        (WebCore::operator*): Scale a FloatSize by another FloatSize and return the result.
+        
+        * platform/graphics/GradientImage.cpp:
+        (WebCore::GradientImage::drawPattern): Call ImageBuffer::createCompatibleBuffer().
+        
+        * platform/graphics/GraphicsContext.cpp:
+        (WebCore::GraphicsContext::scaleFactor):: Return the scaling part of the current CTM.
+        (WebCore::scalesMatch): Deleted.
+        (WebCore::GraphicsContext::createCompatibleBuffer): Deleted.
+        (WebCore::GraphicsContext::isCompatibleWithBuffer): Deleted.
+        * platform/graphics/GraphicsContext.h:
+        Move these image buffer functions to ImageBuffer.
+        
+        * platform/graphics/ImageBuffer.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer): Make createCompatibleBuffer
+        a static function of the ImageBuffer. There is no need to go through the
+        GraphicsContext just to get the GraphicsContext scaleFactor.
+        
+        (WebCore::ImageBuffer::compatibleBufferSize):  Scale the size of the cachedImage
+        by the scaleFactor of the context.
+        
+        (WebCore::ImageBuffer::isCompatibleWithContext): Returns true if the drawing
+        context and the ImageBuffer context have the same scaleFactor.
+        
+        * platform/graphics/ImageBuffer.h:
+        
+        * platform/graphics/NamedImageGeneratedImage.cpp:
+        (WebCore::NamedImageGeneratedImage::drawPattern): Call ImageBuffer::createCompatibleBuffer().
+        
+        * platform/graphics/cg/PDFDocumentImage.cpp:
+        (WebCore::PDFDocumentImage::updateCachedImageIfNeeded): On iOS, if the
+        physical memory is less than 1GB, do not allocate more than 16MB for the
+        PDF cachedImage.
+        
+        * rendering/RenderBoxModelObject.cpp:
+        (WebCore::RenderBoxModelObject::paintFillLayerExtended): Call ImageBuffer::createCompatibleBuffer().
+        * rendering/svg/SVGRenderingContext.cpp:
+        (WebCore::SVGRenderingContext::bufferForeground): Ditto.
+
+2016-06-02  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] 'undefined' should be an acceptable value for nullable parameters
+        https://bugs.webkit.org/show_bug.cgi?id=158321
+
+        Reviewed by Ryosuke Niwa.
+
+        'undefined' should be an acceptable value for nullable parameters (and
+        should be converted to null):
+        - https://heycam.github.io/webidl/#es-nullable-type
+
+        Our bindings got most of the cases right but there was a bug in our
+        overload resolution code. This patch fixes it.
+
+        No new tests, already covered by existing tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheckExpression):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter):
+
+2016-06-02  Brady Eidson  <beidson@apple.com>
+
+        Modernize how many platform/network classes do isolatedCopy().
+        https://bugs.webkit.org/show_bug.cgi?id=158313
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Refactor, no behavior change).
+
+        * loader/WorkerThreadableLoader.h:
+        
+        * platform/network/FormData.cpp:
+        (WebCore::FormData::isolatedCopy):
+        (WebCore::FormDataElement::isolatedCopy):
+        (WebCore::FormData::FormData): Deleted.
+        (WebCore::FormData::deepCopy): Deleted.
+        * platform/network/FormData.h:
+        
+        * platform/network/HTTPHeaderMap.cpp:
+        (WebCore::HTTPHeaderMap::isolatedCopy):
+        (WebCore::HTTPHeaderMap::copyData): Deleted.
+        (WebCore::HTTPHeaderMap::adopt): Deleted.
+        * platform/network/HTTPHeaderMap.h:
+        
+        * platform/network/ResourceErrorBase.cpp:
+        (WebCore::ResourceErrorBase::asResourceError):
+        (WebCore::ResourceErrorBase::isolatedCopy):
+        * platform/network/ResourceErrorBase.h:
+        (WebCore::ResourceErrorBase::platformCopy): Deleted.
+
+        * platform/network/ResourceLoadTiming.h:
+        (WebCore::ResourceLoadTiming::isolatedCopy): Not strictly needed for now, but makes it obvious
+          that changes will be needed if new members are added later.
+
+        * platform/network/ResourceRequestBase.cpp:
+        (WebCore::ResourceRequestBase::isolatedCopy):
+        (WebCore::ResourceRequestBase::setAsIsolatedCopy):
+        (WebCore::ResourceRequestBase::copyData): Deleted.
+        * platform/network/ResourceRequestBase.h:
+        
+        * platform/network/ResourceResponseBase.cpp:
+        (WebCore::ResourceResponseBase::isolatedCopy):
+        (WebCore::ResourceResponseBase::copyData): Deleted.
+        * platform/network/ResourceResponseBase.h:
+        (WebCore::CrossThreadResourceResponseDataBase::CrossThreadResourceResponseDataBase): Deleted.
+        
+        * platform/network/cf/ResourceError.h:
+        * platform/network/cf/ResourceErrorCF.cpp:
+        (WebCore::ResourceError::doPlatformIsolatedCopy):
+        (WebCore::ResourceError::platformCopy): Deleted.
+        
+        * platform/network/cf/ResourceRequest.h:
+        * platform/network/cf/ResourceRequestCFNet.cpp:
+        (WebCore::ResourceRequest::doPlatformSetAsIsolatedCopy):
+        (WebCore::ResourceRequest::doPlatformCopyData): Deleted.
+        (WebCore::ResourceRequest::doPlatformAdopt): Deleted.
+        
+        * platform/network/cf/ResourceResponse.h:
+        (WebCore::ResourceResponse::doPlatformCopyData): Deleted.
+        (WebCore::ResourceResponse::doPlatformAdopt): Deleted.
+        
+        * platform/network/curl/ResourceError.h:
+        (WebCore::ResourceError::doPlatformIsolatedCopy):
+        
+        * platform/network/curl/ResourceRequest.h:
+        (WebCore::ResourceRequest::doPlatformSetAsIsolatedCopy):
+        (WebCore::ResourceRequest::doPlatformCopyData): Deleted.
+        (WebCore::ResourceRequest::doPlatformAdopt): Deleted.
+        
+        * platform/network/curl/ResourceResponse.h:
+        (WebCore::ResourceResponse::doPlatformCopyData): Deleted.
+        (WebCore::ResourceResponse::doPlatformAdopt): Deleted.
+        
+        * platform/network/mac/ResourceErrorMac.mm:
+        (WebCore::ResourceError::doPlatformIsolatedCopy):
+        
+        * platform/network/soup/ResourceError.h:
+        * platform/network/soup/ResourceErrorSoup.cpp:
+        (WebCore::ResourceError::doPlatformIsolatedCopy):
+        (WebCore::ResourceError::platformCopy): Deleted.
+        
+        * platform/network/soup/ResourceRequest.h:
+        (WebCore::ResourceRequest::doPlatformSetAsIsolatedCopy):
+        (WebCore::ResourceRequest::doPlatformCopyData): Deleted.
+        (WebCore::ResourceRequest::doPlatformAdopt): Deleted.
+        
+        * platform/network/soup/ResourceResponse.h:
+        (WebCore::ResourceResponse::doPlatformCopyData): Deleted.
+        (WebCore::ResourceResponse::doPlatformAdopt): Deleted.
+
+2016-06-02  Chris Dumez  <cdumez@apple.com>
+
+        Crash under CachedResource::addClientToSet()
+        https://bugs.webkit.org/show_bug.cgi?id=158310
+        <rdar://problem/23643359>
+
+        Reviewed by Eric Carlson.
+
+        Only call CachedResource::addClient() on the resource returned
+        by CachedResourceLoader::requestMedia() if the resource is
+        non-null. CachedResourceLoader::requestMedia() can return null
+        in some cases so we need to handle this properly.
+
+        No new tests, no known reproduction case.
+
+        * platform/graphics/avfoundation/objc/WebCoreAVFResourceLoader.mm:
+        (WebCore::WebCoreAVFResourceLoader::startLoading):
+
+2016-06-02  Chris Dumez  <cdumez@apple.com>
+
+        ScriptExecutionContext::Task constructor should take a NoncopyableFunction<void ()> as parameter
+        https://bugs.webkit.org/show_bug.cgi?id=158309
+
+        Reviewed by Brady Eidson.
+
+        ScriptExecutionContext::Task constructor should take a NoncopyableFunction<void ()>
+        as parameter for consistency with the other constructor and because this can be
+        called cross-thread.
+
+        * Modules/webaudio/AudioContext.cpp:
+        (WebCore::AudioContext::suspend):
+        (WebCore::AudioContext::resume):
+        (WebCore::AudioContext::close):
+        (WebCore::AudioContext::suspendPlayback):
+        (WebCore::AudioContext::mayResumePlayback):
+        * Modules/webaudio/AudioDestinationNode.h:
+        (WebCore::AudioDestinationNode::resume):
+        (WebCore::AudioDestinationNode::suspend):
+        (WebCore::AudioDestinationNode::close):
+        * Modules/webaudio/DefaultAudioDestinationNode.cpp:
+        (WebCore::DefaultAudioDestinationNode::resume):
+        (WebCore::DefaultAudioDestinationNode::suspend):
+        (WebCore::DefaultAudioDestinationNode::close):
+        * Modules/webaudio/DefaultAudioDestinationNode.h:
+        * dom/ScriptExecutionContext.h:
+        (WebCore::ScriptExecutionContext::Task::Task):
+
+2016-06-02  Darin Adler  <darin@apple.com>
+
+        Fix a couple of mistakes in CSSParserValue memory management
+        https://bugs.webkit.org/show_bug.cgi?id=158307
+        <rdar://problem/26127225>
+
+        Reviewed by Daniel Bates.
+
+        * css/CSSGrammar.y.in: Added a destructor for calc_func_term. This presumably
+        fixes some memory leaks in error cases. Removed an assertion about not needing
+        a call to destroy that was far too limited. Tweaked formatting of the percentage
+        ase in the key production. Indented calc_func_term to make it consistent with
+        other productions nearby.
+
+        * css/CSSParserValues.cpp:
+        (WebCore::CSSParserValueList::~CSSParserValueList): Use a modern for loop.
+        (WebCore::CSSParserValueList::deleteValueAt): Deleted. Unused function, and also
+        would have resulted in a memory leak unless the code already extracted the value
+        from the list.
+        (WebCore::CSSParserValueList::extend): Properly transfer ownership from one value
+        list to the other by setting the unit to 0 in the donor.
+
+        * css/CSSParserValues.h: Removed unused deleteValueAt function.
+
+2016-06-02  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        SVG content renders in incorrect vertical position when padding-left is not specified
+        https://bugs.webkit.org/show_bug.cgi?id=158234
+
+        Reviewed by Darin Adler.
+
+        Fix the optimization in RenderSVGRoot::buildLocalToBorderBoxTransform().
+        Use LayoutSize::isZero() instead of LayoutSize::isEmpty() to decide whether
+        there is borderAndPadding applied or not.
+
+        Test: svg/custom/svg-root-padding-individual.html
+
+        * rendering/svg/RenderSVGRoot.cpp:
+        (WebCore::RenderSVGRoot::buildLocalToBorderBoxTransform):
+
+2016-06-02  Brady Eidson  <beidson@apple.com>
+
+        Overhaul cross-thread use of ResourceRequest, ResourceResponse, and ResourceError.
+        https://bugs.webkit.org/show_bug.cgi?id=158293
+
+        Reviewed by Darin Adler.
+
+        No new tests (Refactor, no behavior change).
+
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::MainThreadBridge):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didReceiveResponse):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFail):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFailAccessControlCheck):
+
+        * loader/cache/MemoryCache.cpp:
+        (WebCore::MemoryCache::removeRequestFromSessionCaches):
+
+        * platform/network/ResourceErrorBase.cpp:
+        (WebCore::ResourceErrorBase::isolatedCopy):
+        (WebCore::ResourceErrorBase::copy): Deleted.
+        * platform/network/ResourceErrorBase.h:
+
+        * platform/network/ResourceRequestBase.cpp:
+        (WebCore::ResourceRequestBase::isolatedCopy):
+        (WebCore::ResourceRequestBase::setAsIsolatedCopy):
+        (WebCore::ResourceRequestBase::adopt): Deleted.
+        
+        Made copyData private, and made "adopt" be "isolatedCopy".
+        Rest of the changes are all re-indenting the file.
+        * platform/network/ResourceRequestBase.h:
+        (WebCore::ResourceRequestBase::responseContentDispositionEncodingFallbackArray):
+        (WebCore::ResourceRequestBase::reportUploadProgress):
+        (WebCore::ResourceRequestBase::setReportUploadProgress):
+        (WebCore::ResourceRequestBase::reportLoadTiming):
+        (WebCore::ResourceRequestBase::setReportLoadTiming):
+        (WebCore::ResourceRequestBase::reportRawHeaders):
+        (WebCore::ResourceRequestBase::setReportRawHeaders):
+        (WebCore::ResourceRequestBase::hiddenFromInspector):
+        (WebCore::ResourceRequestBase::setHiddenFromInspector):
+        (WebCore::ResourceRequestBase::requester):
+        (WebCore::ResourceRequestBase::setRequester):
+        (WebCore::ResourceRequestBase::encodingRequiresPlatformData):
+        (WebCore::ResourceRequestBase::ResourceRequestBase):
+        (WebCore::ResourceRequestBase::platformCompare):
+        (WebCore::operator==):
+        (WebCore::operator!=):
+
+        * platform/network/ResourceResponseBase.cpp:
+        (WebCore::ResourceResponseBase::isolatedCopy):
+        (WebCore::ResourceResponseBase::adopt): Deleted.
+        * platform/network/ResourceResponseBase.h:
+
+        * platform/network/cf/ResourceError.h:
+        (WebCore::ResourceError::isolatedCopy): Deleted.
+
+        Removed platform-specific isolatedCopy, and re-indented the header:
+        * platform/network/cf/ResourceRequest.h:
+        (WebCore::ResourceRequest::ResourceRequest):
+        (WebCore::ResourceRequest::encodingRequiresPlatformData):
+        (WebCore::ResourceRequest::cachePartition):
+        (WebCore::ResourceRequest::setCachePartition):
+        (WebCore::ResourceRequest::setDomainForCachePartition):
+        (WebCore::ResourceRequest::resourcePrioritiesEnabled):
+        (WebCore::ResourceRequest::isolatedCopy): Deleted.
+
+        * platform/network/cf/ResourceResponse.h:
+        (WebCore::ResourceResponse::isolatedCopy): Deleted.
+
+2016-06-02  Chris Dumez  <cdumez@apple.com>
+
+        Modernize various lambda captures
+        https://bugs.webkit.org/show_bug.cgi?id=158292
+
+        Reviewed by Brady Eidson.
+
+        Modernize various lambda captures, especially the ones unnecessarily
+        allocating objects on the heap and destroying them in the lambda.
+
+        * Modules/websockets/ThreadableWebSocketChannelClientWrapper.cpp:
+        (WebCore::ThreadableWebSocketChannelClientWrapper::didConnect):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::didReceiveMessage):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::didReceiveBinaryData):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::didUpdateBufferedAmount):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::didStartClosingHandshake):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::didClose):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::didReceiveMessageError):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::processPendingTasks):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::resume): Deleted.
+        * Modules/websockets/WorkerThreadableWebSocketChannel.cpp:
+        (WebCore::WorkerThreadableWebSocketChannel::Bridge::disconnect):
+        * bindings/js/JSCallbackData.h:
+        (WebCore::DeleteCallbackDataTask::DeleteCallbackDataTask):
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::MainThreadBridge):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::destroy):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didSendData):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didReceiveResponse):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didReceiveData):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFinishLoading):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFail):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFailAccessControlCheck):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::didFailRedirectCheck):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::cancel): Deleted.
+
+2016-06-02  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Update RTCPeerConnection.addTrack() to create (or reuse) an RTCRtpTransceiver
+        https://bugs.webkit.org/show_bug.cgi?id=158191
+
+        Reviewed by Eric Carlson.
+
+        Update RTCPeerConnection.addTrack to create an RTCRtpTranscevier, or reuse an existing
+        transceiver that has not been used to send [1].
+
+        A new RtpTransceiverSet type is added that wraps a vector of RTCRtpTransceiver objects
+        and internally maintains two lists for efficient access to RTCRtpSender and RTCRtpReceiver
+        objects.
+
+        [1] https://w3c.github.io/webrtc-pc/archives/20160513/webrtc.html#dom-rtcpeerconnection-addtrack
+
+        Updated existing test: fast/mediastream/RTCPeerConnection-add-removeTrack.html
+
+        * Modules/mediastream/PeerConnectionBackend.h:
+        * Modules/mediastream/RTCPeerConnection.cpp:
+        (WebCore::RTCPeerConnection::addTrack):
+        (WebCore::RTCPeerConnection::removeTrack):
+        (WebCore::RTCPeerConnection::completeAddTransceiver):
+        (WebCore::RTCPeerConnection::close):
+        * Modules/mediastream/RTCPeerConnection.h:
+        * Modules/mediastream/RTCRtpTransceiver.cpp:
+        (WebCore::RtpTransceiverSet::append):
+        * Modules/mediastream/RTCRtpTransceiver.h:
+        (WebCore::RtpTransceiverSet::list):
+        (WebCore::RtpTransceiverSet::getSenders):
+        (WebCore::RtpTransceiverSet::getReceivers):
+
 2016-06-02  Youenn Fablet  <youenn.fablet@crf.canon.fr>
 
         Use more references in ResourceLoader related code

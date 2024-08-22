@@ -95,7 +95,7 @@ MediaEndpointPeerConnection::MediaEndpointPeerConnection(PeerConnectionBackendCl
     m_mediaEndpoint->generateDtlsInfo();
 }
 
-void MediaEndpointPeerConnection::runTask(NoncopyableFunction<void ()>&& task)
+void MediaEndpointPeerConnection::runTask(Function<void ()>&& task)
 {
     if (m_dtlsFingerprint.isNull()) {
         // Only one task needs to be deferred since it will hold off any others until completed.
@@ -132,7 +132,7 @@ void MediaEndpointPeerConnection::createOfferTask(RTCOfferOptions&, SessionDescr
 
     configurationSnapshot->setSessionVersion(m_sdpSessionVersion++);
 
-    RtpSenderVector senders = m_client->getSenders();
+    RtpSenderVector senders = RtpSenderVector(m_client->getSenders());
 
     // Add media descriptions for senders.
     for (auto& sender : senders) {

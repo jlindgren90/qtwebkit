@@ -358,7 +358,8 @@ void Cache::retrieve(const WebCore::ResourceRequest& request, const GlobalFrameI
     Key storageKey = makeCacheKey(request);
 
 #if ENABLE(NETWORK_CACHE_SPECULATIVE_REVALIDATION)
-    if (m_speculativeLoadManager)
+    bool canUseSpeculativeRevalidation = m_speculativeLoadManager && !request.isConditional();
+    if (canUseSpeculativeRevalidation)
         m_speculativeLoadManager->registerLoad(frameID, request, storageKey);
 #endif
 
@@ -372,7 +373,7 @@ void Cache::retrieve(const WebCore::ResourceRequest& request, const GlobalFrameI
     }
 
 #if ENABLE(NETWORK_CACHE_SPECULATIVE_REVALIDATION)
-    if (m_speculativeLoadManager && m_speculativeLoadManager->retrieve(frameID, storageKey, request, [request, completionHandler](std::unique_ptr<Entry> entry) {
+    if (canUseSpeculativeRevalidation && m_speculativeLoadManager->retrieve(frameID, storageKey, request, [request, completionHandler](std::unique_ptr<Entry> entry) {
         if (entry && verifyVaryingRequestHeaders(entry->varyingRequestHeaders(), request))
             completionHandler(WTFMove(entry));
         else
@@ -520,7 +521,7 @@ void Cache::remove(const WebCore::ResourceRequest& request)
     remove(makeCacheKey(request));
 }
 
-void Cache::traverse(std::function<void (const TraversalEntry*)>&& traverseHandler)
+void Cache::traverse(Function<void (const TraversalEntry*)>&& traverseHandler)
 {
     ASSERT(isEnabled());
 
