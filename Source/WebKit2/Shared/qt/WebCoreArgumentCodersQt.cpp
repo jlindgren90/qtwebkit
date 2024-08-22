@@ -175,8 +175,11 @@ bool ArgumentCoder<ResourceError>::decodePlatformData(ArgumentDecoder& decoder, 
         return false;
 
     resourceError = ResourceError(domain, errorCode, URL(URL(), failingURL), localizedDescription);
-    resourceError.setIsCancellation(isCancellation);
-    resourceError.setIsTimeout(isTimeout);
+    if (isCancellation) {
+        resourceError.setType(ResourceError::Type::Cancellation);
+    } else if (isTimeout) {
+        resourceError.setType(ResourceError::Type::Timeout);
+    }
 
     return true;
 }

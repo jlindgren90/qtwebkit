@@ -139,7 +139,7 @@ void WebLoaderStrategy::scheduleLoad(ResourceLoader& resourceLoader, CachedResou
     // FIXME: Some entities in WebCore use WebCore's "EmptyFrameLoaderClient" instead of having a proper WebFrameLoaderClient.
     // EmptyFrameLoaderClient shouldn't exist and everything should be using a WebFrameLoaderClient,
     // but in the meantime we have to make sure not to mis-cast.
-    WebFrameLoaderClient* webFrameLoaderClient = toWebFrameLoaderClient(resourceLoader->frameLoader()->client());
+    WebFrameLoaderClient* webFrameLoaderClient = toWebFrameLoaderClient(resourceLoader.frameLoader()->client());
     WebFrame* webFrame = webFrameLoaderClient ? webFrameLoaderClient->webFrame() : nullptr;
     WebPage* webPage = webFrame ? webFrame->page() : nullptr;
 
@@ -184,11 +184,11 @@ void WebLoaderStrategy::scheduleLoad(ResourceLoader& resourceLoader, CachedResou
 #endif
 
     if (webPage) {
-        if (auto* handler = webPage->urlSchemeHandlerForScheme(resourceLoader->request().url().protocol())) {
-            LOG(NetworkScheduling, "(WebProcess) WebLoaderStrategy::scheduleLoad, URL '%s' will be handled by a UIProcess URL scheme handler.", resourceLoader->url().string().utf8().data());
+        if (auto* handler = webPage->urlSchemeHandlerForScheme(resourceLoader.request().url().protocol())) {
+            LOG(NetworkScheduling, "(WebProcess) WebLoaderStrategy::scheduleLoad, URL '%s' will be handled by a UIProcess URL scheme handler.", resourceLoader.url().string().utf8().data());
             //RELEASE_LOG_IF_ALLOWED(resourceLoader, "scheduleLoad: URL will be handled by a UIProcess URL scheme handler (frame = %p, resourceID = %" PRIu64 ")", resourceLoader->frame(), identifier);
 
-            handler->startNewTask(*resourceLoader);
+            handler->startNewTask(resourceLoader);
             return;
         }
     }

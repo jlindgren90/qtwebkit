@@ -310,11 +310,6 @@ bool EditorClientQt::shouldInsertNode(Node* node, Range* range, EditorInsertActi
     return acceptsEditing;
 }
 
-void EditorClientQt::pageDestroyed()
-{
-    delete this;
-}
-
 bool EditorClientQt::smartInsertDeleteEnabled()
 {
     Page* page = m_page->page;

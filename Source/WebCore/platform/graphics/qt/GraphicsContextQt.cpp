@@ -1026,7 +1026,7 @@ void GraphicsContext::drawFocusRing(const Vector<FloatRect>& rects, float width,
     drawFocusRingForPath(m_data->p(), path, color, m_data->antiAliasingForRectsAndLines);
 }
 
-void GraphicsContext::drawLineForText(const FloatPoint& origin, float width, bool printing, bool doubleLines)
+void GraphicsContext::drawLineForText(const FloatPoint& origin, float width, bool printing, bool doubleLines, StrokeStyle)
 {
     if (paintingDisabled())
         return;
@@ -1082,7 +1082,7 @@ void GraphicsContext::drawLineForText(const FloatPoint& origin, float width, boo
 }
 
 // NOTE: this code is based on GraphicsContextCG implementation
-void GraphicsContext::drawLinesForText(const FloatPoint& origin, const DashArray& widths, bool printing, bool doubleLines)
+void GraphicsContext::drawLinesForText(const FloatPoint& origin, const DashArray& widths, bool printing, bool doubleLines, StrokeStyle)
 {
     if (paintingDisabled())
         return;

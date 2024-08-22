@@ -53,10 +53,10 @@ public:
         , m_data(data)
     {}
 
-    void willSendRequest(ResourceHandle*, ResourceRequest&, const ResourceResponse&) override;
-    void didReceiveResponse(ResourceHandle*, const ResourceResponse& response) override { m_response = response; }
+    ResourceRequest willSendRequest(ResourceHandle*, ResourceRequest&&, ResourceResponse&&) override;
+    void didReceiveResponse(ResourceHandle*, ResourceResponse&& response) override { m_response = response; }
     void didReceiveData(ResourceHandle*, const char*, unsigned, int) override;
-    void didReceiveBuffer(ResourceHandle*, PassRefPtr<SharedBuffer>, int /*encodedDataLength*/) override;
+    void didReceiveBuffer(ResourceHandle*, Ref<SharedBuffer>&&, int /*encodedDataLength*/) override;
     void didFinishLoading(ResourceHandle*, double /*finishTime*/) override {}
     void didFail(ResourceHandle*, const ResourceError& error) override { m_error = error; }
 private:
@@ -65,15 +65,15 @@ private:
     Vector<char>& m_data;
 };
 
-void WebCoreSynchronousLoader::willSendRequest(ResourceHandle* handle, ResourceRequest& request, const ResourceResponse& /*redirectResponse*/)
+ResourceRequest WebCoreSynchronousLoader::willSendRequest(ResourceHandle* handle, ResourceRequest&& request, ResourceResponse&& /*redirectResponse*/)
 {
     // FIXME: This needs to be fixed to follow the redirect correctly even for cross-domain requests.
     if (!protocolHostAndPortAreEqual(handle->firstRequest().url(), request.url())) {
         ASSERT(m_error.isNull());
-        m_error.setIsCancellation(true);
-        request = ResourceRequest();
-        return;
+        m_error.setType(ResourceError::Type::Cancellation);
+        return ResourceRequest();
     }
+    return request;
 }
 
 void WebCoreSynchronousLoader::didReceiveData(ResourceHandle*, const char*, unsigned, int)
@@ -81,7 +81,7 @@ void WebCoreSynchronousLoader::didReceiveData(ResourceHandle*, const char*, unsi
     ASSERT_NOT_REACHED();
 }
 
-void WebCoreSynchronousLoader::didReceiveBuffer(ResourceHandle*, PassRefPtr<SharedBuffer> buffer, int)
+void WebCoreSynchronousLoader::didReceiveBuffer(ResourceHandle*, Ref<SharedBuffer>&& buffer, int)
 {
     // This pattern is suggested by SharedBuffer.h.
     const char* segment;
@@ -131,7 +131,7 @@ void ResourceHandle::cancel()
     }
 }
 
-void ResourceHandle::continueWillSendRequest(const ResourceRequest& request)
+void ResourceHandle::continueWillSendRequest(ResourceRequest&& request)
 {
     ASSERT(!client() || client()->usesAsyncCallbacks());
     ASSERT(d->m_job);

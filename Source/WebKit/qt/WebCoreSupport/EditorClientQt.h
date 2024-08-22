@@ -44,8 +44,6 @@ class EditorClientQt : public EditorClient {
 public:
     EditorClientQt(QWebPageAdapter*);
     
-    void pageDestroyed() override;
-    
     bool shouldDeleteRange(Range*) override;
     bool smartInsertDeleteEnabled() override;
 #if USE(AUTOMATIC_TEXT_REPLACEMENT)

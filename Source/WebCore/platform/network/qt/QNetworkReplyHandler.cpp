@@ -572,8 +572,7 @@ void QNetworkReplyHandler::timeout()
 
     ASSERT(m_replyWrapper->reply());
 
-    ResourceError timeoutError("QtNetwork", QNetworkReply::TimeoutError, m_replyWrapper->reply()->url(), "Request timed out");
-    timeoutError.setIsTimeout(true);
+    ResourceError timeoutError("QtNetwork", QNetworkReply::TimeoutError, m_replyWrapper->reply()->url(), "Request timed out", ResourceError::Type::Timeout);
     client->didFail(m_resourceHandle, timeoutError);
 
     m_replyWrapper = nullptr;
@@ -632,9 +631,9 @@ void QNetworkReplyHandler::sendResponseIfNeeded()
 
     if (client->usesAsyncCallbacks()) {
         setLoadingDeferred(true);
-        client->didReceiveResponseAsync(m_resourceHandle, response);
+        client->didReceiveResponseAsync(m_resourceHandle, std::move(response));
     } else
-        client->didReceiveResponse(m_resourceHandle, response);
+        client->didReceiveResponse(m_resourceHandle, std::move(response));
 }
 
 void QNetworkReplyHandler::continueAfterWillSendRequest(const ResourceRequest& newRequest)
@@ -704,9 +703,9 @@ void QNetworkReplyHandler::redirect(ResourceResponse& response, const QUrl& redi
 
     if (client->usesAsyncCallbacks()) {
         setLoadingDeferred(true);
-        client->willSendRequestAsync(m_resourceHandle, newRequest, response);
+        client->willSendRequestAsync(m_resourceHandle, std::move(newRequest), std::move(response));
     } else {
-        client->willSendRequest(m_resourceHandle, newRequest, response);
+        newRequest = client->willSendRequest(m_resourceHandle, std::move(newRequest), std::move(response));
         continueAfterWillSendRequest(newRequest);
     }
 }
