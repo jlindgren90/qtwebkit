@@ -89,8 +89,8 @@ public:
     void registerSocketEventHandler(int, std::function<void ()>);
     void unregisterSocketEventHandler(int);
 #elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-    QSocketNotifier* registerSocketEventHandler(int, QSocketNotifier::Type, std::function<void()>);
-    void dispatchOnTermination(QProcess*, std::function<void()>);
+    QSocketNotifier* registerSocketEventHandler(int, QSocketNotifier::Type, NoncopyableFunction<void ()>&&);
+    void dispatchOnTermination(QProcess*, NoncopyableFunction<void ()>&&);
 #elif PLATFORM(QT) && OS(WINDOWS)
     void registerHandle(HANDLE, const std::function<void()>&);
     void unregisterAndCloseHandle(HANDLE);
