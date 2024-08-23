@@ -36,7 +36,7 @@ namespace WTF {
 class WorkQueue::WorkItemQt : public QObject {
     Q_OBJECT
 public:
-    WorkItemQt(WorkQueue* workQueue, NoncopyableFunction<void()>&& function)
+    WorkItemQt(WorkQueue* workQueue, Function<void()>&& function)
         : m_queue(workQueue)
         , m_source(0)
         , m_signal(0)
@@ -44,7 +44,7 @@ public:
     {
     }
 
-    WorkItemQt(WorkQueue* workQueue, QObject* source, const char* signal, NoncopyableFunction<void()>&& function)
+    WorkItemQt(WorkQueue* workQueue, QObject* source, const char* signal, Function<void()>&& function)
         : m_queue(workQueue)
         , m_source(source)
         , m_signal(signal)
@@ -77,10 +77,10 @@ public:
     WorkQueue* m_queue;
     QObject* m_source;
     const char* m_signal;
-    NoncopyableFunction<void()> m_function;
+    Function<void()> m_function;
 };
 
-QSocketNotifier* WorkQueue::registerSocketEventHandler(int socketDescriptor, QSocketNotifier::Type type, NoncopyableFunction<void()>&& function)
+QSocketNotifier* WorkQueue::registerSocketEventHandler(int socketDescriptor, QSocketNotifier::Type type, Function<void()>&& function)
 {
     ASSERT(m_workThread);
 
@@ -106,7 +106,7 @@ void WorkQueue::platformInvalidate()
     delete m_workThread;
 }
 
-void WorkQueue::dispatch(NoncopyableFunction<void()>&& function)
+void WorkQueue::dispatch(Function<void()>&& function)
 {
     ref();
     WorkQueue::WorkItemQt* itemQt = new WorkQueue::WorkItemQt(this, std::move(function));
@@ -114,7 +114,7 @@ void WorkQueue::dispatch(NoncopyableFunction<void()>&& function)
     QMetaObject::invokeMethod(itemQt, "executeAndDelete", Qt::QueuedConnection);
 }
 
-void WorkQueue::dispatchAfter(std::chrono::nanoseconds duration, NoncopyableFunction<void()>&& function)
+void WorkQueue::dispatchAfter(std::chrono::nanoseconds duration, Function<void()>&& function)
 {
     ref();
     WorkQueue::WorkItemQt* itemQt = new WorkQueue::WorkItemQt(this, std::move(function));
@@ -122,7 +122,7 @@ void WorkQueue::dispatchAfter(std::chrono::nanoseconds duration, NoncopyableFunc
     itemQt->moveToThread(m_workThread);
 }
 
-void WorkQueue::dispatchOnTermination(QProcess* process, NoncopyableFunction<void()>&& function)
+void WorkQueue::dispatchOnTermination(QProcess* process, Function<void()>&& function)
 {
     WorkQueue::WorkItemQt* itemQt = new WorkQueue::WorkItemQt(this, process, SIGNAL(finished(int, QProcess::ExitStatus)), std::move(function));
     itemQt->moveToThread(m_workThread);

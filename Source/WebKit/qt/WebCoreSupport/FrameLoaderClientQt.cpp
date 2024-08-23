@@ -1011,11 +1011,6 @@ void FrameLoaderClientQt::dispatchDidReceiveAuthenticationChallenge(DocumentLoad
     notImplemented();
 }
 
-void FrameLoaderClientQt::dispatchDidCancelAuthenticationChallenge(DocumentLoader*, unsigned long, const AuthenticationChallenge&)
-{
-    notImplemented();
-}
-
 void FrameLoaderClientQt::dispatchDidReceiveResponse(WebCore::DocumentLoader*, unsigned long identifier, const WebCore::ResourceResponse& response)
 {
 

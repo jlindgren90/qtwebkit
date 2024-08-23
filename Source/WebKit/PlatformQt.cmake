@@ -235,6 +235,8 @@ list(APPEND WebKit_SOURCES
     win/Plugins/PluginPackage.cpp
     win/Plugins/PluginStream.cpp
     win/Plugins/PluginView.cpp
+
+    win/WebSocketProvider.cpp
 )
 
 # Note: Qt5Network_INCLUDE_DIRS includes Qt5Core_INCLUDE_DIRS
