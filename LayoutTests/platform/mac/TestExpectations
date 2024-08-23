@@ -184,6 +184,7 @@ fast/mediastream/RTCPeerConnection-stable.html
 fast/mediastream/RTCPeerConnection.html
 fast/mediastream/RTCPeerConnection-inspect-offer.html
 fast/mediastream/RTCPeerConnection-add-removeTrack.html
+fast/mediastream/RTCPeerConnection-addTrack-reuse-sender.html
 fast/mediastream/RTCPeerConnection-closed-state.html
 fast/mediastream/RTCPeerConnection-overloaded-operations-params.html
 fast/mediastream/RTCPeerConnection-overloaded-operations.html
@@ -194,6 +195,7 @@ fast/mediastream/RTCPeerConnection-setLocalDescription-offer.html
 fast/mediastream/RTCPeerConnection-setRemoteDescription-offer.html
 fast/mediastream/RTCTrackEvent-constructor.html
 fast/mediastream/RTCPeerConnection-inspect-answer.html
+fast/mediastream/RTCPeerConnection-media-setup-single-dialog.html
 
 # Asserts in debug.
 [ Debug ] fast/images/large-size-image-crash.html [ Skip ]

@@ -1,3 +1,462 @@
+2016-06-13  Saam Barati  <sbarati@apple.com>
+
+        The sampling profiler should further protect itself against certain forms of sampling bias that arise due to the sampling interval being in sync with some other system process
+        https://bugs.webkit.org/show_bug.cgi?id=158678
+
+        Reviewed by Benjamin Poulain.
+
+        I first became aware of this problem when I read this paper:
+        http://plv.colorado.edu/papers/mytkowicz-pldi10.pdf
+
+        To provide background for this change, I'll quote a paragraph
+        from section 6.2:
+        "One statically sound method for collecting random samples is to collect a
+        sample at every t + r milliseconds, where t is the desired sampling interval
+        and r is a random number between −t and t. One might think that sampling every
+        t seconds is enough (i.e., drop the r component) but it is not: specifically,
+        if a profiler samples every t seconds, the sampling rate would be synchronized
+        with any program or system activity that occurs at regular time intervals [17].
+        For example, if the thread scheduler switches between threads every 10ms and our
+        sampling interval was also 10ms, then we may always take samples immediately after
+        a thread switch. Because performance is often different immediately after a thread
+        switch than at other points (e.g., due to cache and TLB warm-up effects) we would
+        get biased data. The random component, r, guards against such situations."
+
+        * runtime/SamplingProfiler.cpp:
+        (JSC::SamplingProfiler::timerLoop):
+
+2016-06-13  Oliver Hunt  <oliver@apple.com>
+
+        DFG Validation fails when performing a concatenation with only a single entry
+        https://bugs.webkit.org/show_bug.cgi?id=158699
+
+        Reviewed by Saam Barati.
+
+        Fairly simple short circuiting of a single replacement template string
+        without any padding to be planted as a simple to string rather than
+        op_strcat.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::TemplateLiteralNode::emitBytecode):
+        * tests/stress/template-literal.js:
+        (testSingleNode):
+
+2016-06-13  Filip Pizlo  <fpizlo@apple.com>
+
+        FTL::Output methods should be out-of-line whenever possible
+        https://bugs.webkit.org/show_bug.cgi?id=158704
+
+        Reviewed by Benjamin Poulain.
+        
+        These methods turn into a non-trivial amount of code because of the template-based B3 API.
+        Inlining them didn't achieve any performance advantages for the FTL, but it did make the
+        code larger. This outlines most methods in FTL::Output. It makes FTL::LowerDFGToB3 smaller
+        and it doesn't change performance.
+
+        * ftl/FTLOutput.cpp:
+        (JSC::FTL::Output::appendTo):
+        (JSC::FTL::Output::framePointer):
+        (JSC::FTL::Output::lockedStackSlot):
+        (JSC::FTL::Output::constBool):
+        (JSC::FTL::Output::constInt32):
+        (JSC::FTL::Output::constInt64):
+        (JSC::FTL::Output::constDouble):
+        (JSC::FTL::Output::phi):
+        (JSC::FTL::Output::add):
+        (JSC::FTL::Output::sub):
+        (JSC::FTL::Output::mul):
+        (JSC::FTL::Output::div):
+        (JSC::FTL::Output::chillDiv):
+        (JSC::FTL::Output::mod):
+        (JSC::FTL::Output::chillMod):
+        (JSC::FTL::Output::neg):
+        (JSC::FTL::Output::doubleAdd):
+        (JSC::FTL::Output::doubleSub):
+        (JSC::FTL::Output::doubleMul):
+        (JSC::FTL::Output::doubleDiv):
+        (JSC::FTL::Output::doubleMod):
+        (JSC::FTL::Output::bitAnd):
+        (JSC::FTL::Output::bitOr):
+        (JSC::FTL::Output::bitXor):
+        (JSC::FTL::Output::shl):
+        (JSC::FTL::Output::aShr):
+        (JSC::FTL::Output::lShr):
+        (JSC::FTL::Output::bitNot):
+        (JSC::FTL::Output::logicalNot):
+        (JSC::FTL::Output::ctlz32):
+        (JSC::FTL::Output::doubleAbs):
+        (JSC::FTL::Output::doubleCeil):
+        (JSC::FTL::Output::doubleFloor):
+        (JSC::FTL::Output::doubleTrunc):
+        (JSC::FTL::Output::doubleSin):
+        (JSC::FTL::Output::doubleCos):
+        (JSC::FTL::Output::doublePow):
+        (JSC::FTL::Output::doublePowi):
+        (JSC::FTL::Output::doubleSqrt):
+        (JSC::FTL::Output::doubleLog):
+        (JSC::FTL::Output::hasSensibleDoubleToInt):
+        (JSC::FTL::Output::doubleToUInt):
+        (JSC::FTL::Output::signExt32To64):
+        (JSC::FTL::Output::zeroExt):
+        (JSC::FTL::Output::intToDouble):
+        (JSC::FTL::Output::unsignedToDouble):
+        (JSC::FTL::Output::castToInt32):
+        (JSC::FTL::Output::doubleToFloat):
+        (JSC::FTL::Output::floatToDouble):
+        (JSC::FTL::Output::load):
+        (JSC::FTL::Output::load8SignExt32):
+        (JSC::FTL::Output::baseIndex):
+        (JSC::FTL::Output::equal):
+        (JSC::FTL::Output::notEqual):
+        (JSC::FTL::Output::above):
+        (JSC::FTL::Output::aboveOrEqual):
+        (JSC::FTL::Output::below):
+        (JSC::FTL::Output::belowOrEqual):
+        (JSC::FTL::Output::greaterThan):
+        (JSC::FTL::Output::greaterThanOrEqual):
+        (JSC::FTL::Output::lessThan):
+        (JSC::FTL::Output::lessThanOrEqual):
+        (JSC::FTL::Output::doubleEqual):
+        (JSC::FTL::Output::doubleEqualOrUnordered):
+        (JSC::FTL::Output::doubleNotEqualOrUnordered):
+        (JSC::FTL::Output::doubleLessThan):
+        (JSC::FTL::Output::doubleLessThanOrEqual):
+        (JSC::FTL::Output::doubleGreaterThan):
+        (JSC::FTL::Output::doubleGreaterThanOrEqual):
+        (JSC::FTL::Output::doubleNotEqualAndOrdered):
+        (JSC::FTL::Output::doubleLessThanOrUnordered):
+        (JSC::FTL::Output::doubleLessThanOrEqualOrUnordered):
+        (JSC::FTL::Output::doubleGreaterThanOrUnordered):
+        (JSC::FTL::Output::doubleGreaterThanOrEqualOrUnordered):
+        (JSC::FTL::Output::isZero32):
+        (JSC::FTL::Output::notZero32):
+        (JSC::FTL::Output::isZero64):
+        (JSC::FTL::Output::notZero64):
+        (JSC::FTL::Output::select):
+        (JSC::FTL::Output::jump):
+        (JSC::FTL::Output::branch):
+        (JSC::FTL::Output::check):
+        (JSC::FTL::Output::ret):
+        (JSC::FTL::Output::unreachable):
+        (JSC::FTL::Output::speculate):
+        (JSC::FTL::Output::speculateAdd):
+        (JSC::FTL::Output::speculateSub):
+        (JSC::FTL::Output::speculateMul):
+        (JSC::FTL::Output::patchpoint):
+        (JSC::FTL::Output::trap):
+        (JSC::FTL::Output::anchor):
+        (JSC::FTL::Output::bitCast):
+        (JSC::FTL::Output::fround):
+        * ftl/FTLOutput.h:
+        (JSC::FTL::Output::setOrigin):
+        (JSC::FTL::Output::origin):
+        (JSC::FTL::Output::constIntPtr):
+        (JSC::FTL::Output::doubleNeg):
+        (JSC::FTL::Output::zeroExtPtr):
+        (JSC::FTL::Output::load32NonNegative):
+        (JSC::FTL::Output::isNull):
+        (JSC::FTL::Output::notNull):
+        (JSC::FTL::Output::testIsZeroPtr):
+        (JSC::FTL::Output::testNonZeroPtr):
+        (JSC::FTL::Output::call):
+        (JSC::FTL::Output::operation):
+        (JSC::FTL::Output::branch):
+        (JSC::FTL::Output::switchInstruction):
+        (JSC::FTL::Output::addIncomingToPhi):
+        (JSC::FTL::Output::framePointer): Deleted.
+        (JSC::FTL::Output::constBool): Deleted.
+        (JSC::FTL::Output::constInt32): Deleted.
+        (JSC::FTL::Output::constInt64): Deleted.
+        (JSC::FTL::Output::constDouble): Deleted.
+        (JSC::FTL::Output::phi): Deleted.
+        (JSC::FTL::Output::add): Deleted.
+        (JSC::FTL::Output::sub): Deleted.
+        (JSC::FTL::Output::mul): Deleted.
+        (JSC::FTL::Output::div): Deleted.
+        (JSC::FTL::Output::chillDiv): Deleted.
+        (JSC::FTL::Output::mod): Deleted.
+        (JSC::FTL::Output::chillMod): Deleted.
+        (JSC::FTL::Output::doubleAdd): Deleted.
+        (JSC::FTL::Output::doubleSub): Deleted.
+        (JSC::FTL::Output::doubleMul): Deleted.
+        (JSC::FTL::Output::doubleDiv): Deleted.
+        (JSC::FTL::Output::doubleMod): Deleted.
+        (JSC::FTL::Output::bitAnd): Deleted.
+        (JSC::FTL::Output::bitOr): Deleted.
+        (JSC::FTL::Output::bitXor): Deleted.
+        (JSC::FTL::Output::shl): Deleted.
+        (JSC::FTL::Output::aShr): Deleted.
+        (JSC::FTL::Output::lShr): Deleted.
+        (JSC::FTL::Output::ctlz32): Deleted.
+        (JSC::FTL::Output::addWithOverflow32): Deleted.
+        (JSC::FTL::Output::subWithOverflow32): Deleted.
+        (JSC::FTL::Output::mulWithOverflow32): Deleted.
+        (JSC::FTL::Output::addWithOverflow64): Deleted.
+        (JSC::FTL::Output::subWithOverflow64): Deleted.
+        (JSC::FTL::Output::mulWithOverflow64): Deleted.
+        (JSC::FTL::Output::doubleAbs): Deleted.
+        (JSC::FTL::Output::doubleCeil): Deleted.
+        (JSC::FTL::Output::doubleFloor): Deleted.
+        (JSC::FTL::Output::doubleSin): Deleted.
+        (JSC::FTL::Output::doubleCos): Deleted.
+        (JSC::FTL::Output::doublePow): Deleted.
+        (JSC::FTL::Output::doubleSqrt): Deleted.
+        (JSC::FTL::Output::doubleLog): Deleted.
+        (JSC::FTL::Output::signExt32To64): Deleted.
+        (JSC::FTL::Output::zeroExt): Deleted.
+        (JSC::FTL::Output::intToDouble): Deleted.
+        (JSC::FTL::Output::castToInt32): Deleted.
+        (JSC::FTL::Output::doubleToFloat): Deleted.
+        (JSC::FTL::Output::floatToDouble): Deleted.
+        (JSC::FTL::Output::equal): Deleted.
+        (JSC::FTL::Output::notEqual): Deleted.
+        (JSC::FTL::Output::above): Deleted.
+        (JSC::FTL::Output::aboveOrEqual): Deleted.
+        (JSC::FTL::Output::below): Deleted.
+        (JSC::FTL::Output::belowOrEqual): Deleted.
+        (JSC::FTL::Output::greaterThan): Deleted.
+        (JSC::FTL::Output::greaterThanOrEqual): Deleted.
+        (JSC::FTL::Output::lessThan): Deleted.
+        (JSC::FTL::Output::lessThanOrEqual): Deleted.
+        (JSC::FTL::Output::doubleEqual): Deleted.
+        (JSC::FTL::Output::doubleEqualOrUnordered): Deleted.
+        (JSC::FTL::Output::doubleNotEqualOrUnordered): Deleted.
+        (JSC::FTL::Output::doubleLessThan): Deleted.
+        (JSC::FTL::Output::doubleLessThanOrEqual): Deleted.
+        (JSC::FTL::Output::doubleGreaterThan): Deleted.
+        (JSC::FTL::Output::doubleGreaterThanOrEqual): Deleted.
+        (JSC::FTL::Output::doubleNotEqualAndOrdered): Deleted.
+        (JSC::FTL::Output::doubleLessThanOrUnordered): Deleted.
+        (JSC::FTL::Output::doubleLessThanOrEqualOrUnordered): Deleted.
+        (JSC::FTL::Output::doubleGreaterThanOrUnordered): Deleted.
+        (JSC::FTL::Output::doubleGreaterThanOrEqualOrUnordered): Deleted.
+        (JSC::FTL::Output::isZero32): Deleted.
+        (JSC::FTL::Output::notZero32): Deleted.
+        (JSC::FTL::Output::isZero64): Deleted.
+        (JSC::FTL::Output::notZero64): Deleted.
+        (JSC::FTL::Output::select): Deleted.
+        (JSC::FTL::Output::extractValue): Deleted.
+        (JSC::FTL::Output::jump): Deleted.
+        (JSC::FTL::Output::ret): Deleted.
+        (JSC::FTL::Output::unreachable): Deleted.
+        (JSC::FTL::Output::speculate): Deleted.
+        (JSC::FTL::Output::speculateAdd): Deleted.
+        (JSC::FTL::Output::speculateSub): Deleted.
+        (JSC::FTL::Output::speculateMul): Deleted.
+        (JSC::FTL::Output::patchpoint): Deleted.
+        (JSC::FTL::Output::trap): Deleted.
+        (JSC::FTL::Output::anchor): Deleted.
+        (JSC::FTL::Output::bitCast): Deleted.
+        (JSC::FTL::Output::fround): Deleted.
+
+2016-06-13  Keith Miller  <keith_miller@apple.com>
+
+        Unreviewed, Cloop build fix.
+
+        * bytecode/BytecodeList.json:
+
+2016-06-12  Keith Miller  <keith_miller@apple.com>
+
+        Add new builtin opcode tailCallForwardArguments
+        https://bugs.webkit.org/show_bug.cgi?id=158666
+
+        Reviewed by Filip Pizlo.
+
+        We should support the ability to have a builtin forward its
+        arguments to a helper without allocating an arguments object. This
+        patch adds a new bytecode intrinsic @tailCallForwardArguments that
+        takes two values. The first is the target of the call and the
+        second is the new this value. This opcode will tail call to the
+        passed function without triggering an allocation of an arguments
+        object for the caller function.
+
+        In the LLInt and Baseline this function acts the same way a normal
+        tail call does.  The bytecode will allocate a new stack frame
+        copying all the arguments of the caller function into the new
+        frame, along with the new this. Then when the actual call happens
+        the new frame is copied over the caller frame. While this is not
+        necessary, it allows the target function to have more arguments
+        than the caller function via arity fixup.
+
+        Once we get to the DFG we reuse existing DFG Nodes for forwarding
+        arguments, although there were some minor changes. This patch
+        swaps the meaning of the second and third children for each DFG
+        varargs node, exchanging the argmuments and this child,
+        respectively. It also makes the arguments child for each varargs
+        node, as well as the ForwardVarargs node optional. If the optional
+        child is missing, then forwarding node assumes that the arguments
+        for the node's inlineCallFrame should be used instead. Finally,
+        when inlining the target of an inlined
+        op_tail_call_forward_arguments we make sure the arguments of the
+        forwarding function are marked as non-unboxable since this would
+        normally be done by the caller's create arguments object node,
+        which does not exist in this case.
+
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CallLinkInfo.h:
+        (JSC::CallLinkInfo::callTypeFor):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        (JSC::CodeBlock::finishCreation):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitCallForwardArgumentsInTailPosition):
+        (JSC::BytecodeGenerator::emitCallVarargs):
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_tailCallForwardArguments):
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_tryGetById):
+        * dfg/DFGArgumentsEliminationPhase.cpp:
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::getPredictionWithoutOSRExit):
+        (JSC::DFG::ByteCodeParser::handleCall):
+        (JSC::DFG::ByteCodeParser::handleVarargsCall):
+        (JSC::DFG::ByteCodeParser::handleInlining):
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::hasArgumentsChild):
+        (JSC::DFG::Node::argumentsChild):
+        * dfg/DFGPreciseLocalClobberize.h:
+        (JSC::DFG::PreciseLocalClobberizeAdaptor::readTop):
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileForwardVarargs):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::emitCall):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::emitCall):
+        * dfg/DFGVarargsForwardingPhase.cpp:
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallOrConstructVarargs):
+        (JSC::FTL::DFG::LowerDFGToB3::compileForwardVarargs):
+        * interpreter/Interpreter.cpp:
+        (JSC::sizeFrameForForwardArguments):
+        (JSC::setupForwardArgumentsFrame):
+        (JSC::setupForwardArgumentsFrameAndSetThis):
+        * interpreter/Interpreter.h:
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        (JSC::JIT::privateCompileSlowCases):
+        * jit/JIT.h:
+        * jit/JITCall.cpp:
+        (JSC::JIT::compileSetupVarargsFrame):
+        (JSC::JIT::compileOpCall):
+        (JSC::JIT::compileOpCallSlowCase):
+        (JSC::JIT::emit_op_tail_call_forward_arguments):
+        (JSC::JIT::emitSlow_op_tail_call_forward_arguments):
+        * jit/JITCall32_64.cpp:
+        (JSC::JIT::emitSlow_op_tail_call_forward_arguments):
+        (JSC::JIT::emit_op_tail_call_forward_arguments):
+        (JSC::JIT::compileSetupVarargsFrame):
+        (JSC::JIT::compileOpCall):
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        (JSC::LLInt::varargsSetup):
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter.asm:
+        * tests/stress/tailCallForwardArguments.js: Added.
+        (putFuncToPrivateName.createBuiltin):
+        (putFuncToPrivateName):
+        (createTailCallForwardingFuncWith):
+        (baz):
+        (baz2):
+        (baz3):
+        (let.bodyText):
+        (baz4):
+        (baz5):
+        (arrayEq):
+
+2016-06-13  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, follow up patch for r201964
+        https://bugs.webkit.org/show_bug.cgi?id=158619
+
+        Fix typo in the comment.
+
+        * runtime/MathCommon.h:
+        (JSC::toInt32):
+
+2016-06-13  Mark Lam  <mark.lam@apple.com>
+
+        Add a mechanism for collecting LLINT stats.
+        https://bugs.webkit.org/show_bug.cgi?id=158668
+
+        Reviewed by Filip Pizlo.
+
+        This patch will add a mechanism for collecting the stats on LLINT opcode
+        execution counts.  The changes made to enable this are:
+
+        1. Refactored how Options availability work so that we can add a new category:
+           Configurable (in addition to the pre-existing Normal and Restricted
+           availability).
+               Normal options - always available.
+               Restricted options - only available on debug builds.
+               Configurable options - depends on #define flag options.
+
+           This change is necessary so that:
+           a. we won't have to rebuild the world when we want to enable that #define flag
+              to make that Configurable option available.
+           b. when the #define flag is disabled, the option will be invisible to the user.
+
+           With this, we add our first configurable option, JSC_reportLLIntStats, which
+           is dependent on the ENABLE_LLINT_STATS flag.  See next.
+
+        2. Added the ENABLE_LLINT_STATS flag in LLIntCommon.h.  To enable LLINT stats
+           collection, we'll need to set this flag to a non-zero value, and rebuilding
+           the project.  By design, this will only require a minimal set of files to
+           be rebuilt.
+
+           ENABLE_LLINT_STATS is 0 (i.e. disabled) by default.
+
+        3. Added a slow path callback to the LLINT's traceExecution() macro, to call
+           _llint_count_opcode(), which in turns counts the opcode.  This callback will
+           only be built into the LLINT if ENABLE_LLINT_STATS is non-zero.
+
+        4. Added s_opcodeStatsArray to LLInt::Data.  This is where the stats are
+           recorded and stored.
+
+        5. Added calls to LLInt::Data::dumpStats() in jsc.cpp and DumpRenderTree.mm
+           to dump the LLINT stats if enabled.  If enabled, the LLINT stats will be
+           sorted and dumped (via dataLog) before the programs terminate.
+
+        * interpreter/Interpreter.h:
+        * jsc.cpp:
+        (main):
+        * llint/LLIntCommon.h:
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::initialize):
+        (JSC::LLInt::Data::dumpStats):
+        * llint/LLIntData.h:
+        (JSC::LLInt::Data::opcodeStats):
+        * llint/LLIntOfflineAsmConfig.h:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::llint_crash):
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter.asm:
+        * runtime/Options.cpp:
+        (JSC::parse):
+        (JSC::Options::isAvailable):
+        (JSC::overrideOptionWithHeuristic):
+        (JSC::scaleJITPolicy):
+        (JSC::Options::initialize):
+        (JSC::Options::setOptionWithoutAlias):
+        (JSC::Options::dumpAllOptions):
+        (JSC::Options::dumpOption):
+        * runtime/Options.h:
+        (JSC::Option::Option):
+        (JSC::Option::operator!=):
+        (JSC::Option::id):
+
 2016-06-11  Mark Lam  <mark.lam@apple.com>
 
         Minimize the amount of memcpy done for allocating Error stacks.

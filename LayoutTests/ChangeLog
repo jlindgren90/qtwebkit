@@ -1,3 +1,56 @@
+2016-06-13  Brady Eidson  <beidson@apple.com>
+
+        storage/indexeddb/modern/leaks-1.html leaks the database connection handle.
+        https://bugs.webkit.org/show_bug.cgi?id=158643
+
+        Reviewed by Alex Christensen.
+
+        * storage/indexeddb/modern/leak-1-expected.txt:
+        * storage/indexeddb/modern/resources/leak-1.js:
+
+2016-06-13  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Add test that verifies that RTCPeerConnection.addTrack can reuse an existing RTCRtpSender
+        https://bugs.webkit.org/show_bug.cgi?id=158621
+
+        Reviewed by Eric Carlson.
+
+        Add test to verify that RTCPeerConnection.addTrack reuses an existing RTCRtpSender
+        under the right circumstances.
+
+        * fast/mediastream/RTCPeerConnection-addTrack-reuse-sender-expected.txt: Added.
+        * fast/mediastream/RTCPeerConnection-addTrack-reuse-sender.html: Added.
+        * platform/mac/TestExpectations:
+        The mac port is not building with WEB_RTC yet.
+
+2016-06-13  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Add media setup test with complete offer/answer dialog
+        https://bugs.webkit.org/show_bug.cgi?id=158620
+
+        Reviewed by Eric Carlson.
+
+        Test a complete SDP offer/answer dialog between two RTCPeerConnection instances in the same
+        page. Media is set up in both direction with a single dialog. Check the local- and
+        remoteDescription attributes and the RTCPeerConnection states.
+
+        * fast/mediastream/RTCPeerConnection-media-setup-single-dialog-expected.txt: Added.
+        * fast/mediastream/RTCPeerConnection-media-setup-single-dialog.html: Added.
+        * platform/mac/TestExpectations:
+        The mac port is not building with WEB_RTC yet.
+
+2016-06-13  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [GTK] Enabling Shadow DOM by default
+        https://bugs.webkit.org/show_bug.cgi?id=158686
+
+        Reviewed by Carlos Garcia Campos.
+
+        Changed GTK test expectations for fast/shadow-dom tests (most tests
+        pass).
+
+        * platform/gtk/TestExpectations:
+
 2016-06-13  Per Arne Vollan  <pvollan@apple.com>
 
         Unreviewed test gardening.

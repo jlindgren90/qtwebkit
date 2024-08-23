@@ -1,3 +1,239 @@
+2016-06-13  Brady Eidson  <beidson@apple.com>
+
+        storage/indexeddb/modern/leaks-1.html leaks the database connection handle.
+        https://bugs.webkit.org/show_bug.cgi?id=158643
+
+        Reviewed by Alex Christensen.
+
+        Tested by changes to existing test.
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::hasPendingActivity):
+        
+        * dom/EventTarget.h:
+        (WebCore::EventTarget::eventTargetData):
+        (WebCore::EventTarget::hasEventListeners):
+
+
+2016-06-13  Enrica Casucci  <enrica@apple.com>
+
+        REGRESSION(r201956): Failure to initialize new internal settings produced random test failures in release.
+        https://bugs.webkit.org/show_bug.cgi?id=158713
+        rdar://26769957
+
+        Reviewed by Simon Fraser.
+
+        Failed to initialize the new member variable in both Settings and InternalSettings classes.
+
+        * page/Settings.cpp:
+        (WebCore::Settings::Settings):
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+
+2016-06-13  Chris Dumez  <cdumez@apple.com>
+
+        Drop HipChat hack introduced in r197548
+        https://bugs.webkit.org/show_bug.cgi?id=158711
+
+        Reviewed by Geoffrey Garen.
+
+        Drop HipChat hack introduced in r197548. This hack is no longer needed
+        as the bug was fixed in HipChat since then:
+        https://support.atlassian.com/servicedesk/customer/portal/32/HCP-7532
+
+        I have confirmed locally that the latest version (4.0.12.665) is able
+        to connect without the hack.
+
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::putDelegate): Deleted.
+        * platform/RuntimeApplicationChecks.h:
+        * platform/RuntimeApplicationChecks.mm:
+        (WebCore::MacApplication::isHipChat): Deleted.
+
+2016-06-13  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: CrashTracer: com.apple.WebKit.WebContent at WebCore::AccessibilityRenderObject::remoteSVGRootElement const + 227
+        https://bugs.webkit.org/show_bug.cgi?id=158685
+
+        Reviewed by David Kilzer.
+
+        Crash reports show a null access at a line that tries to dereference a pointer. 
+        I still don't have a way to layout test this, as it seems tied to tear down of the main document.
+
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::remoteSVGRootElement):
+
+2016-06-13  Jeremy Jones  <jeremyj@apple.com>
+
+        Use two video layer solution only on mac.
+        https://bugs.webkit.org/show_bug.cgi?id=158705
+        rdar://problem/26776360
+
+        Reviewed by Jer Noble.
+
+        Two video layer solution is only useful on the mac to prevent flicker, so don't do it elsewhere.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createAVPlayerLayer):
+
+2016-06-13  Jeremy Jones  <jeremyj@apple.com>
+
+        Decrease PiP flicker by not removing window prematurely.
+        https://bugs.webkit.org/show_bug.cgi?id=158436
+        <rdar://problem/19052639>
+
+        Reviewed by Darin Adler.
+
+        UIWindow shouldn't be removed until cleanupFullscreen, so the video layer has a chance
+        to be reparented in the DOM first.
+
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (WebVideoFullscreenInterfaceAVKit::didStopPictureInPicture):
+
+2016-06-13  Alex Christensen  <achristensen@webkit.org>
+
+        Add WebSocketProvider stub
+        https://bugs.webkit.org/show_bug.cgi?id=158702
+
+        Reviewed by Brady Eidson.
+
+        No new tests.  No change in behavior.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/DocumentMarkerController.cpp:
+        * dom/ScriptedAnimationController.cpp:
+        * html/HTMLMediaElement.cpp:
+        * html/MediaDocument.cpp:
+        * html/shadow/MediaControlElements.cpp:
+        * html/shadow/MediaControls.cpp:
+        * html/shadow/MediaControls.h:
+        * html/shadow/MediaControlsApple.cpp:
+        * inspector/InspectorInstrumentation.cpp:
+        * inspector/InspectorInstrumentation.h:
+        * inspector/InspectorOverlay.cpp:
+        (WebCore::InspectorOverlay::overlayPage):
+        * loader/EmptyClients.h:
+        * loader/FrameLoader.cpp:
+        * loader/FrameLoader.h:
+        * loader/appcache/ApplicationCacheHost.cpp:
+        * loader/cache/CachedResource.cpp:
+        * page/FrameView.cpp:
+        * page/Page.cpp:
+        (WebCore::Page::Page):
+        * page/Page.h:
+        (WebCore::Page::applicationCacheStorage):
+        (WebCore::Page::databaseProvider):
+        (WebCore::Page::socketProvider):
+        (WebCore::Page::storageNamespaceProvider):
+        * page/PageConfiguration.cpp:
+        (WebCore::PageConfiguration::PageConfiguration):
+        * page/PageConfiguration.h:
+        * page/ResourceUsageOverlay.cpp:
+        * page/SocketProvider.h: Added.
+        (WebCore::SocketProvider::~SocketProvider):
+        * page/cocoa/ResourceUsageOverlayCocoa.mm:
+        * rendering/RenderElement.cpp:
+        * rendering/RenderLayerBacking.cpp:
+        * style/StyleResolveForDocument.cpp:
+        * style/StyleTreeResolver.cpp:
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::dataChanged):
+        * testing/MockPageOverlayClient.cpp:
+
+2016-06-13  Brady Eidson  <beidson@apple.com>
+
+        Crashes in WebCore::IDBServer::UniqueIDBDatabase::executeNextDatabaseTask.
+        <rdar://problem/26768449> and https://bugs.webkit.org/show_bug.cgi?id=158696
+
+        Reviewed by David Kilzer.
+
+        No new tests (Covered by all existing tests in Gmalloc/ASAN configs).
+
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::executeNextDatabaseTask):
+        (WebCore::IDBServer::UniqueIDBDatabase::executeNextDatabaseTaskReply):
+
+2016-06-13  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: IDBOpenDBRequest objects leak.
+        https://bugs.webkit.org/show_bug.cgi?id=158694
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Currently have no testing strategy for guaranteeing lifetime of WebCore DOM objects)
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::completeOpenDBRequest): At this point we never need the
+            request again, so remove it from the map.
+
+2016-06-13  Chris Dumez  <cdumez@apple.com>
+
+        Make sure HTTPHeaderMap gets a move constructor / assignment operator
+        https://bugs.webkit.org/show_bug.cgi?id=158695
+        <rdar://problem/26729511>
+
+        Reviewed by Alex Christensen.
+
+        Make sure HTTPHeaderMap gets a move constructor / assignment operator.
+        It was not getting an implicit one because of its user-declared
+        destructor. This patch drops the user-declared destructor so that
+        HTTPHeaderMap now gets an implicit move constructor / assignment
+        operator.
+
+        Not having a move constructor / assignment operator is an issue because
+        we rely on HTTPHeaderMap::isolatedCopy() / WTFMove() since r201623 to
+        pass HTTPHeaderMap across thread.
+
+        * platform/network/HTTPHeaderMap.cpp:
+        (WebCore::HTTPHeaderMap::~HTTPHeaderMap): Deleted.
+        * platform/network/HTTPHeaderMap.h:
+
+2016-06-13  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        Remove useless parameter from GenerateParametersCheck signature
+        https://bugs.webkit.org/show_bug.cgi?id=158692
+
+        Reviewed by Chris Dumez.
+
+        Remove one parameter which is passed to GenerateParametersCheck
+        but never used in the caller code.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        (GenerateParametersCheck):
+        (GenerateConstructorDefinition):
+
+2016-06-13  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        Improve code generator for functions with variadic parameters
+        https://bugs.webkit.org/show_bug.cgi?id=158529
+
+        Reviewed by Darin Adler.
+
+        JS bindings code of functions with variadic parameters is improved.
+
+        Functions with variadic parameters are skipped for ObjC and GObject code generators.
+
+        * bindings/scripts/CodeGeneratorGObject.pm:
+        (SkipFunction): Skip functions with variadic parameters.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        * bindings/scripts/CodeGeneratorObjC.pm:
+        (SkipFunction): Skip functions with variadic parameters.
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.cpp:
+        (webkit_dom_test_obj_any): Deleted.
+        (webkit_dom_test_obj_attach_shadow_root): Deleted.
+        (webkit_dom_test_obj_get_read_only_long_attr): Deleted.
+        (webkit_dom_test_obj_get_read_only_string_attr): Deleted.
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.h:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod12):
+        (WebCore::jsTestObjPrototypeFunctionVariadicStringMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicDoubleMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicNodeMethod):
+        * bindings/scripts/test/ObjC/DOMTestObj.h:
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+
 2016-06-12  Zalan Bujtas  <zalan@apple.com>
 
         Cleanup RenderBlock::removePositionedObjects

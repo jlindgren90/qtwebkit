@@ -56,6 +56,9 @@ public:
 
     T* operator->() { ASSERT(m_ref); return m_ref.get(); }
     const T* operator->() const { ASSERT(m_ref); return m_ref.get(); }
+    
+    operator T&() { ASSERT(m_ref); return *m_ref; }
+    operator const T&() const { ASSERT(m_ref); return *m_ref; }
 
 private:
     template<class U, class... Args> friend UniqueRef<U> makeUniqueRef(Args&&...);

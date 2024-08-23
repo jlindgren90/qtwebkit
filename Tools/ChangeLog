@@ -1,3 +1,56 @@
+2016-06-13  David Kilzer  <ddkilzer@apple.com>
+
+        False-positive over-release of WebView in destroyWebViewAndOffscreenWindow() in DumpRenderTree.mm
+        <https://webkit.org/b/158716>
+
+        Reviewed by Andy Estes.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (destroyWebViewAndOffscreenWindow): Change this function to take
+        a WebView, and assert that it's the same as [mainFrame webView].
+        (dumpRenderTree): Pass 'webView' into
+        destroyWebViewAndOffscreenWindow().
+        * DumpRenderTree/mac/DumpRenderTreeMac.h:
+        (createWebViewAndOffscreenWindow): Add NS_RETURNS_RETAINED since
+        this function returns a +1 WebView.  Declare this method only for
+        Objective-C[++] source.
+
+2016-06-13  Sam Weinig  <sam@webkit.org>
+
+        Make HashMap and HashSet work with Refs
+        https://bugs.webkit.org/show_bug.cgi?id=158638
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Tests/WTF/HashMap.cpp:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WTF/HashSet.cpp:
+        (TestWebKitAPI::TEST):
+        Add tests for using Refs in HashMaps (both as key and value) and HashSets.
+
+2016-06-13  Mark Lam  <mark.lam@apple.com>
+
+        Add a mechanism for collecting LLINT stats.
+        https://bugs.webkit.org/show_bug.cgi?id=158668
+
+        Reviewed by Filip Pizlo.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (DumpRenderTreeMain):
+
+2016-06-13  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [GTK] Enabling Shadow DOM by default
+        https://bugs.webkit.org/show_bug.cgi?id=158686
+
+        Reviewed by Carlos Garcia Campos.
+
+        Added support for enabling Shadow DOM by default for GTK.
+        Changed GTK test expectations for fast/shadow-dom tests (most tests
+        pass).
+
+        * Scripts/webkitperl/FeatureList.pm:
+
 2016-06-12  Aakash Jain  <aakash_jain@apple.com>
 
         run-safari/run-webkit-app fail to quit iOS simulator after Xcode installation

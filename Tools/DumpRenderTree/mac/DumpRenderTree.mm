@@ -57,6 +57,7 @@
 #import "WorkQueueItem.h"
 #import <CoreFoundation/CoreFoundation.h>
 #import <JavaScriptCore/HeapStatistics.h>
+#import <JavaScriptCore/LLIntData.h>
 #import <JavaScriptCore/Options.h>
 #import <WebCore/Logging.h>
 #import <WebKit/DOMElement.h>
@@ -854,9 +855,9 @@ WebView *createWebViewAndOffscreenWindow()
     return webView;
 }
 
-static void destroyWebViewAndOffscreenWindow()
+static void destroyWebViewAndOffscreenWindow(WebView *webView)
 {
-    WebView *webView = [mainFrame webView];
+    ASSERT(webView == [mainFrame webView]);
 #if !PLATFORM(IOS)
     NSWindow *window = [webView window];
 #endif
@@ -1312,7 +1313,7 @@ void dumpRenderTree(int argc, const char *argv[])
     if (threaded)
         stopJavaScriptThreads();
 
-    destroyWebViewAndOffscreenWindow();
+    destroyWebViewAndOffscreenWindow(webView);
     
     releaseGlobalControllers();
     
@@ -1442,6 +1443,8 @@ int DumpRenderTreeMain(int argc, const char *argv[])
     [WebCoreStatistics emptyCache]; // Otherwise SVGImages trigger false positives for Frame/Node counts
     if (JSC::Options::logHeapStatisticsAtExit())
         JSC::HeapStatistics::reportSuccess();
+    if (JSC::Options::reportLLIntStats())
+        JSC::LLInt::Data::dumpStats();
     [pool release];
     returningFromMain = true;
     return 0;
