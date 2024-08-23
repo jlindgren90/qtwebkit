@@ -33,6 +33,7 @@
 
 #include "Document.h"
 #include "Editor.h"
+#include "EventNames.h"
 #include "FocusController.h"
 #include "Frame.h"
 #include "HTMLElement.h"

@@ -77,6 +77,7 @@
 #include "Scrollbar.h"
 #include "ScrollbarTheme.h"
 #include "Settings.h"
+#include "SocketProvider.h"
 #include "TextIterator.h"
 #include "UndoStepQt.h"
 #include "UserAgentQt.h"
@@ -223,7 +224,8 @@ void QWebPageAdapter::initializeWebCorePage()
 #if ENABLE(GEOLOCATION) || ENABLE(DEVICE_ORIENTATION)
     const bool useMock = QWebPageAdapter::drtRun;
 #endif
-    PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this));
+    PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this),
+                                        WTF::makeUniqueRef<SocketProvider>());
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
     pageConfiguration.dragClient = new DragClientQt(pageConfiguration.chromeClient);

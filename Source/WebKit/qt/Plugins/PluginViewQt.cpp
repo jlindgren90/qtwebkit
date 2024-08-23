@@ -34,6 +34,7 @@
 #include "Document.h"
 #include "DocumentLoader.h"
 #include "Element.h"
+#include "EventNames.h"
 #include "FloatPoint.h"
 #include "FocusController.h"
 #include "Frame.h"

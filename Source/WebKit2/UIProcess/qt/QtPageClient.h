@@ -118,7 +118,7 @@ public:
 
     // TODO
     void wheelEventWasNotHandledByWebCore(const NativeWebWheelEvent&) override { }
-    UserInterfaceLayoutDirection userInterfaceLayoutDirection() override { return UserInterfaceLayoutDirection::LTR; }
+    WebCore::UserInterfaceLayoutDirection userInterfaceLayoutDirection() override { return WebCore::UserInterfaceLayoutDirection::LTR; }
 
 private:
     QQuickWebView* m_webView;
