@@ -1949,20 +1949,18 @@ http/tests/security/webgl-remote-read-remote-image-blocked-no-crossorigin.html [
 ################################################################################
 ##################          MathML Issues                   ####################
 ################################################################################
-webkit.org/b/119002 mathml/presentation/bug97990.html [ ImageOnlyFailure ]
 mathml/presentation/mo-stacked-glyphs.html [ ImageOnlyFailure ]
 mathml/presentation/tokenElements-background-color.html [ ImageOnlyFailure ]
-webkit.org/b/130322 mathml/opentype/large-operators.html [ Failure ]
-webkit.org/b/130322 mathml/opentype/opentype-stretchy.html [ Failure ]
-webkit.org/b/130322 mathml/opentype/vertical.html [ Failure ]
-webkit.org/b/72828 mathml/opentype/horizontal.html [ Failure ]
-webkit.org/b/72828 mathml/opentype/horizontal-munderover.html [ Failure ]
-mathml/presentation/mo-invisible.html [ Skip ]  # Crashing
-webkit.org/b/119038 mathml/presentation/mo-stretch.html [ Failure ]
-webkit.org/b/119038 mathml/presentation/roots.xhtml [ Failure ]
-mathml/opentype/opentype-stretchy-horizontal.html [ Skip ]  # Crashing
 mathml/presentation/style-changed.html [ Crash Pass ]
-webkit.org/b/140522 mathml/opentype/munderover-layout-resize.html [ Skip ]  # Crashing
+mathml/opentype/large-operators-munderover.html [ Failure ]
+mathml/presentation/attributes-mathvariant.html [ ImageOnlyFailure ]
+webkit.org/b/159202 mathml/presentation/scripts-subsup.html [ ImageOnlyFailure ]
+mathml/presentation/tokenElements-mathvariant.html [ ImageOnlyFailure ]
+
+# These tests require the Latin Modern Math font.
+mathml/opentype/fraction-line.html [ Skip ]
+mathml/opentype/large-operators-italic-correction.html [ Skip ]
+mathml/presentation/fractions-linethickness.html [ Skip ]
 ################################################################################
 #################          End MathML Issues                ####################
 ################################################################################
@@ -2668,7 +2666,6 @@ webkit.org/b/162668 fast/text/woff2-totalsfntsize.html [ Skip ]
 [ Debug ] http/tests/security/mixedContent/data-url-script-in-iframe.html [ Skip ]
 [ Debug ] http/tests/security/listener/xss-window-onclick-addEventListener.html [ Skip ] # Causes later tests to fail
 [ Debug ] ietestcenter/css3/valuesandunits/units-000.htm [ ImageOnlyFailure ]
-[ Debug ] mathml/roots-removeChild.html [ ImageOnlyFailure ]
 [ Debug ] platform/win/fast/events/panScroll-no-iframe-jump.html [ Skip ] # Causes later tests to fail
 [ Debug ] sputnik/Unicode/Unicode_320/S7.6_A3.1.html [ Skip ] # Debug Assertion
 [ Debug ] sputnik/Unicode/Unicode_320/S7.6_A3.2.html [ Skip ] # Debug Assertion

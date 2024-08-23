@@ -1,3 +1,242 @@
+2016-07-01  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] MacroAssemblerX86::branch8 should accept unsigned 8bit value
+        https://bugs.webkit.org/show_bug.cgi?id=159334
+
+        Reviewed by Benjamin Poulain.
+
+        * TestExpectations:
+        * js/regress/misc-bugs-847389-jpeg2000-expected.txt: Added.
+        * js/regress/misc-bugs-847389-jpeg2000.html: Added.
+        * js/regress/script-tests/misc-bugs-847389-jpeg2000.js: Added.
+        (error):
+        (warn):
+        (JpxImage.JpxImageClosure.JpxImage):
+        (JpxImage.JpxImageClosure.JpxImage.prototype.load.JpxImage_load.xhr.onload):
+        (JpxImage.JpxImageClosure.JpxImage.prototype.load):
+        (JpxImage.JpxImageClosure.JpxImage.prototype.parse.JpxImage_parse.readUint):
+        (JpxImage.JpxImageClosure.JpxImage.prototype.parse):
+        (JpxImage.JpxImageClosure.JpxImage.prototype.parseCodestream):
+        (JpxImage.JpxImageClosure.readUint32):
+        (JpxImage.JpxImageClosure.readUint16):
+        (JpxImage.JpxImageClosure.log2):
+        (JpxImage.JpxImageClosure.calculateComponentDimensions):
+        (JpxImage.JpxImageClosure.calculateTileGrids):
+        (JpxImage.JpxImageClosure.getBlocksDimensions):
+        (JpxImage.JpxImageClosure.buildPrecincts):
+        (JpxImage.JpxImageClosure.buildCodeblocks):
+        (JpxImage.JpxImageClosure.createPacket):
+        (JpxImage.JpxImageClosure.LayerResolutionComponentPositionIterator.this.nextPacket):
+        (JpxImage.JpxImageClosure.LayerResolutionComponentPositionIterator):
+        (JpxImage.JpxImageClosure.ResolutionLayerComponentPositionIterator.this.nextPacket):
+        (JpxImage.JpxImageClosure.ResolutionLayerComponentPositionIterator):
+        (JpxImage.JpxImageClosure.buildPackets):
+        (JpxImage.JpxImageClosure.readBits):
+        (JpxImage.JpxImageClosure.alignToByte):
+        (JpxImage.JpxImageClosure.readCodingpasses):
+        (JpxImage.JpxImageClosure.parseTilePackets):
+        (JpxImage.JpxImageClosure.copyCoefficients):
+        (JpxImage.JpxImageClosure.transformTile):
+        (JpxImage.JpxImageClosure.transformComponents):
+        (JpxImage.JpxImageClosure.initializeTile):
+        (JpxImage.JpxImageClosure.):
+        (JpxImage.JpxImageClosure.TagTree):
+        (JpxImage.JpxImageClosure.InclusionTree):
+        (JpxImage.JpxImageClosure.ArithmeticDecoder):
+        (JpxImage.JpxImageClosure.BitModel):
+        (JpxImage.JpxImageClosure.Transform):
+        (JpxImage.JpxImageClosure.IrreversibleTransform):
+        (JpxImage.JpxImageClosure.ReversibleTransform):
+        (JpxImage):
+        (atob):
+
+2016-07-03  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] __lookupGetter__ and __lookupSetter__ should not ignore exceptions
+        https://bugs.webkit.org/show_bug.cgi?id=159390
+
+        Reviewed by Mark Lam.
+
+        * js/property-getters-and-setters-expected.txt:
+        * js/script-tests/property-getters-and-setters.js:
+        (getter17):
+        (get getter17):
+        (getOwnPropertyDescriptor):
+        (setter18):
+        (set setter18):
+
+2016-07-03  Frederic Wang  <fred.wang@free.fr>
+
+        Update windows test expectations for some MathML tests.
+
+        Unreviewed test gardening.
+
+        * platform/win/TestExpectations:
+        * platform/win/mathml/opentype/opentype-stretchy-horizontal-expected.txt: Added.
+
+2016-07-03  Frederic Wang  <fred.wang@free.fr>
+
+        [win] Update TestExpectations after the MathML refactoring
+        https://bugs.webkit.org/show_bug.cgi?id=159386
+
+        Reviewed by Alex Christensen.
+
+        * platform/win/TestExpectations:
+
+2016-07-03  Frederic Wang  <fred.wang@free.fr>
+
+        Update windows test expectations for some MathML tests.
+
+        Unreviewed test gardening.
+
+        * platform/win/TestExpectations:
+        * platform/win/mathml/opentype/horizontal-expected.txt:
+        * platform/win/mathml/opentype/horizontal-munderover-expected.txt:
+
+2016-07-03  David Kilzer  <ddkilzer@apple.com>
+
+        fast/css/image-set-unprefixed.html fails on iOS Simulator
+
+        Follow-up fix for:
+
+        "image-src" support is missing. We only support "-webkit-image-src"
+        https://bugs.webkit.org/show_bug.cgi?id=159373
+        <rdar://problem/27140443>
+
+        * platform/ios-simulator/fast/css/image-set-unprefixed-expected.txt: Added.
+        Cursor tests are expected to fail on iOS Simulator.
+
+2016-07-02  Joseph Pecoraro  <pecoraro@apple.com>
+
+        inspector/debugger/command-line-api-exception.html flakily times out on mac
+        https://bugs.webkit.org/show_bug.cgi?id=152029
+        <rdar://problem/23813812>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/debugger/command-line-api-exception-expected.txt:
+        * inspector/debugger/command-line-api-exception-nested-catch-expected.txt:
+        * inspector/debugger/command-line-api-exception-nested-catch.html:
+        * inspector/debugger/command-line-api-exception.html:
+        * platform/mac/TestExpectations:
+        Rewrite these tests to use the new test harness.
+        This also is more careful about Pause/Resume timing differences
+        between Release and Debug builds.
+
+2016-07-02  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Fix inspector/debugger/pause-reason.html
+        https://bugs.webkit.org/show_bug.cgi?id=159325
+
+        Reviewed by Timothy Hatcher.
+
+        * platform/mac/TestExpectations:
+        * inspector/debugger/pause-reason.html:
+        This test was pausing on inspector code (evaluateInPage) and
+        auto-resuming. Instead change the test to pause on the page
+        doing the setTimeout, so we get the expected pause on next
+        statement evaluation.
+
+2016-07-02  Frederic Wang  <fred.wang@free.fr>
+
+        Update EFL expectations for some MathML tests.
+
+        Unreviewed test gardening.
+
+        * platform/efl/TestExpectations: Mark mathml/presentation/radical-bar-visibility.html as failing.
+        * platform/efl/mathml/opentype/horizontal-munderover-expected.txt: Update expectation using latest buildbot results.
+        * platform/efl/mathml/presentation/menclose-notation-values-expected.txt: Ditto.
+        * platform/efl/mathml/presentation/mspace-children-expected.txt: Ditto.
+
+2016-07-02  Frederic Wang  <fred.wang@free.fr>
+
+        Update windows expectations for some MathML tests.
+
+        Unreviewed test gardening.
+
+        * platform/win/TestExpectations:
+        * platform/win/mathml/opentype/large-operators-expected.txt: Added.
+        * platform/win/mathml/opentype/opentype-stretchy-expected.txt: Added.
+        * platform/win/mathml/opentype/opentype-stretchy-horizontal-expected.txt: Removed.
+        * platform/win/mathml/opentype/vertical-expected.txt: Added.
+        * platform/win/mathml/presentation/menclose-notation-default-longdiv-expected.txt:
+        * platform/win/mathml/presentation/mo-stretch-expected.txt: Added.
+        * platform/win/mathml/presentation/roots-expected.txt: Added.
+        * platform/win/mathml/radical-fallback-expected.png: Added.
+        * platform/win/mathml/radical-fallback-expected.txt: Added.
+        * platform/efl/mathml/radical-fallback-expected.txt:
+
+2016-07-02  Frederic Wang  <fred.wang@free.fr>
+
+        Update EFL expectations for some MathML tests.
+
+        Unreviewed test gardening.
+
+        * platform/efl/accessibility/math-mo-fences-and-separators-expected.txt: Added.
+        * platform/efl/mathml/opentype/horizontal-expected.txt:
+        * platform/efl/mathml/opentype/horizontal-munderover-expected.txt:
+        * platform/efl/mathml/opentype/large-operators-expected.png: Removed.
+        * platform/efl/mathml/opentype/large-operators-expected.txt:
+        * platform/efl/mathml/opentype/opentype-stretchy-expected.png: Removed.
+        * platform/efl/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/efl/mathml/opentype/vertical-expected.png: Removed.
+        * platform/efl/mathml/opentype/vertical-expected.txt:
+        * platform/efl/mathml/presentation/menclose-notation-default-longdiv-expected.png: Removed.
+        * platform/efl/mathml/presentation/menclose-notation-default-longdiv-expected.txt:
+        * platform/efl/mathml/presentation/menclose-notation-values-expected.txt:
+        * platform/efl/mathml/presentation/mo-stretch-expected.png: Removed.
+        * platform/efl/mathml/presentation/mo-stretch-expected.txt:
+        * platform/efl/mathml/presentation/mspace-children-expected.txt:
+        * platform/efl/mathml/presentation/roots-expected.png: Removed.
+        * platform/efl/mathml/presentation/roots-expected.txt:
+        * platform/efl/mathml/radical-fallback-expected.txt: Added.
+
+2016-07-02  Frederic Wang  <fred.wang@free.fr>
+
+        Update iOS expectations for some MathML tests.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/mathml/mathml-in-dashboard-actual.txt: Added.
+
+2016-07-01  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        REGRESSION(r189668): Notification tests are flakey
+        https://bugs.webkit.org/show_bug.cgi?id=159375
+        <rdar://problem/22760990>
+
+        Reviewed by Alexey Proskuryakov.
+
+        * platform/mac/TestExpectations:
+        * platform/mac-wk2/TestExpectations:
+
+2016-07-01  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202766.
+        https://bugs.webkit.org/show_bug.cgi?id=159382
+
+        The new test asserts every time (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "Web Inspector: Sending XHR with UTF8 encoded data shows
+        garbled data in Resource sidebar"
+        https://bugs.webkit.org/show_bug.cgi?id=159358
+        http://trac.webkit.org/changeset/202766
+
+2016-07-01  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] RegExp.compile is not returning the regexp when it succeed
+        https://bugs.webkit.org/show_bug.cgi?id=159381
+
+        Reviewed by Mark Lam.
+
+        * js/regexp-compile-expected.txt:
+        * js/script-tests/regexp-compile.js:
+
 2016-07-01  Zalan Bujtas  <zalan@apple.com>
 
         prepareForDestruction() always needs to be called before destroying the Document object.
