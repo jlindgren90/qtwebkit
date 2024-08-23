@@ -14,6 +14,8 @@
 }
 
 math {
+    display: inline;
+
     /*
     We use the exact bounding boxes of glyphs to avoid excessive gaps in mathematical formulas.
     FIXME: Should we replace this with a more general handling of ink/logical ascent/descent?
@@ -107,21 +109,13 @@ math {
     /* FIXME: Should we reset more CSS properties (http://webkit.org/b/156839)? */
 }
 
-math {
-    display: inline !important;
-    padding-left: 1px;
-    padding-right: 1px;
-}
-
 math[display="block"] {
-    display: block !important;
+    display: block;
     page-break-inside: avoid;
-    /* -webkit-margin-before: 1em; -- FIXME: Ask www-math for a default MathML stylesheet, including this (or margin-top). */
-    -webkit-margin-after: 1em;
 }
 
 ms, mspace, mtext, mi, mn, mo, mrow, mfenced, mfrac, msub, msup, msubsup, mmultiscripts, mprescripts, none, munder, mover, munderover, msqrt, mroot, merror, mphantom, mstyle, menclose, semantics, mpadded, maction {
-    display: block !important;
+    display: block;
 }
 
 ms, mtext, mi, mn, mo, annotation, mtd {
@@ -184,7 +178,7 @@ mtd {
 }
 /* Use inline-block for children so that the text-align property is taken into account */
 mtd > * {
-    display: inline-block !important;
+    display: inline-block;
 }
 
 mtable[columnalign="left"], mtr[columnalign="left"], mtd[columnalign="left"] {

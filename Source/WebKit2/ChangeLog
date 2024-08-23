@@ -1,3 +1,209 @@
+2016-07-14  Hyunjun Ko  <zzoon@igalia.com>
+
+        [ThreadedCompositor] Build fails in debug mode after r202040
+        https://bugs.webkit.org/show_bug.cgi?id=159757
+
+        Reviewed by Michael Catanzaro.
+
+        Debug mode build failed due to call getter method, which is
+        removed, in ASSERT().
+
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::glContext): Deleted.
+        (WebKit::ThreadedCompositor::didChangeVisibleRect): Deleted.
+        (WebKit::ThreadedCompositor::renderLayerTree): Deleted.
+
+2016-07-13  Alex Christensen  <achristensen@webkit.org>
+
+        Modernize WebSocket handle
+        https://bugs.webkit.org/show_bug.cgi?id=159750
+
+        Reviewed by Brady Eidson.
+
+        * UIProcess/InspectorServer/soup/WebSocketServerSoup.cpp:
+        (WebKit::connectionCallback):
+
+2016-07-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r202273): [GTK] Redirected X window is resized to the previous size on size allocate
+        https://bugs.webkit.org/show_bug.cgi?id=159551
+
+        Reviewed by Michael Catanzaro.
+
+        In r202273 I added webkitWebViewBaseResizeRedirectedWindow() helper to remove duplicated code in all places
+        where we were resizing the redirected window to the current drawing area size. But on size allocate, we were
+        updating the redirected window first, and then the drawing area, to ensure that when the drawing area notifies
+        the web process the redirected window is already at the new size. This regression doesn't have any visual
+        effect, because we are ensure the right size always before rendering, but there's a small extra resize in this case.
+
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseSizeAllocate): Resize the redirected window before updating the drawing area size.
+
+2016-07-13  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] Use more references for connections
+        https://bugs.webkit.org/show_bug.cgi?id=159739
+
+        Reviewed by Alex Christensen.
+
+        Use more references for connections to make it more obvious they cannot
+        be null.
+
+        * DatabaseProcess/DatabaseToWebProcessConnection.cpp:
+        (WebKit::DatabaseToWebProcessConnection::DatabaseToWebProcessConnection):
+        * DatabaseProcess/DatabaseToWebProcessConnection.h:
+        (WebKit::DatabaseToWebProcessConnection::connection):
+        * DatabaseProcess/IndexedDB/WebIDBConnectionToClient.cpp:
+        (WebKit::WebIDBConnectionToClient::messageSenderConnection):
+        * NetworkProcess/NetworkConnectionToWebProcess.cpp:
+        (WebKit::NetworkConnectionToWebProcess::NetworkConnectionToWebProcess):
+        (WebKit::NetworkConnectionToWebProcess::writeBlobsToTemporaryFiles):
+        * NetworkProcess/NetworkConnectionToWebProcess.h:
+        (WebKit::NetworkConnectionToWebProcess::connection):
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::messageSenderConnection):
+        * Shared/mac/CookieStorageShim.mm:
+        (WebKit::webKitCookieStorageCopyRequestHeaderFieldsForURL):
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.cpp:
+        (WebKit::WebIDBConnectionToServer::messageSenderConnection):
+        (WebKit::preregisterSandboxExtensionsIfNecessary):
+        * WebProcess/Databases/WebToDatabaseProcessConnection.cpp:
+        (WebKit::WebToDatabaseProcessConnection::WebToDatabaseProcessConnection):
+        * WebProcess/Databases/WebToDatabaseProcessConnection.h:
+        (WebKit::WebToDatabaseProcessConnection::connection):
+        * WebProcess/FileAPI/BlobRegistryProxy.cpp:
+        (WebKit::BlobRegistryProxy::registerFileBlobURL):
+        (WebKit::BlobRegistryProxy::registerBlobURL):
+        (WebKit::BlobRegistryProxy::registerBlobURLOptionallyFileBacked):
+        (WebKit::BlobRegistryProxy::unregisterBlobURL):
+        (WebKit::BlobRegistryProxy::registerBlobURLForSlice):
+        (WebKit::BlobRegistryProxy::blobSize):
+        (WebKit::BlobRegistryProxy::writeBlobsToTemporaryFiles):
+        * WebProcess/Network/NetworkProcessConnection.cpp:
+        (WebKit::NetworkProcessConnection::NetworkProcessConnection):
+        (WebKit::NetworkProcessConnection::writeBlobsToTemporaryFiles):
+        * WebProcess/Network/NetworkProcessConnection.h:
+        (WebKit::NetworkProcessConnection::connection):
+        * WebProcess/Network/WebLoaderStrategy.cpp:
+        (WebKit::WebLoaderStrategy::scheduleLoad):
+        (WebKit::WebLoaderStrategy::remove):
+        (WebKit::WebLoaderStrategy::setDefersLoading):
+        (WebKit::WebLoaderStrategy::loadResourceSynchronously):
+        (WebKit::WebLoaderStrategy::createPingHandle):
+        * WebProcess/Network/WebResourceLoader.cpp:
+        (WebKit::WebResourceLoader::messageSenderConnection):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebKit::WebPlatformStrategies::cookiesForDOM):
+        (WebKit::WebPlatformStrategies::setCookiesFromDOM):
+        (WebKit::WebPlatformStrategies::cookiesEnabled):
+        (WebKit::WebPlatformStrategies::cookieRequestHeaderFieldValue):
+        (WebKit::WebPlatformStrategies::getRawCookies):
+        (WebKit::WebPlatformStrategies::deleteCookie):
+        (WebKit::WebPlatformStrategies::addCookie):
+        * WebProcess/WebPage/WebFrame.cpp:
+        (WebKit::WebFrame::startDownload):
+        (WebKit::WebFrame::convertMainResourceLoadToDownload):
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::ensureLegacyPrivateBrowsingSessionInNetworkProcess):
+        (WebKit::WebProcess::networkConnection):
+        (WebKit::WebProcess::prefetchDNS):
+        * WebProcess/WebProcess.h:
+
+2016-07-13  Anders Carlsson  <andersca@apple.com>
+
+        Move WKPreferencesRef functions to the correct file
+        https://bugs.webkit.org/show_bug.cgi?id=159741
+
+        Reviewed by Sam Weinig.
+
+        Also, get rid of WKPreferencesGetPaymentsEnabled and WKPreferencesSetPaymentsEnabled.
+
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesGetApplePayEnabled):
+        (WKPreferencesSetApplePayEnabled):
+        (WKPreferencesGetApplePayCapabilityDisclosureAllowed):
+        (WKPreferencesSetApplePayCapabilityDisclosureAllowed):
+        * UIProcess/API/C/WKPreferencesRef.h:
+        * UIProcess/ApplePay/mac/WebPaymentCoordinatorProxyMac.mm:
+        (WKPreferencesGetApplePayEnabled): Deleted.
+        (WKPreferencesSetApplePayEnabled): Deleted.
+        (WKPreferencesGetApplePayCapabilityDisclosureAllowed): Deleted.
+        (WKPreferencesSetApplePayCapabilityDisclosureAllowed): Deleted.
+        (WKPreferencesGetPaymentsEnabled): Deleted.
+        (WKPreferencesSetPaymentsEnabled): Deleted.
+
+2016-07-13  Anders Carlsson  <andersca@apple.com>
+
+        Add _applePayCapabilityDisclosureAllowed SPI declaration
+        https://bugs.webkit.org/show_bug.cgi?id=159740
+
+        Reviewed by Dan Bernstein.
+
+        Also, delete an old method that is no longer used.
+
+        * UIProcess/API/Cocoa/WKPreferencesPrivate.h:
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration _paymentsEnabled]): Deleted.
+        (-[WKWebViewConfiguration _setPaymentsEnabled:]): Deleted.
+
+2016-07-13  Zalan Bujtas  <zalan@apple.com>
+
+        Blank news article on kottke.org
+        https://bugs.webkit.org/show_bug.cgi?id=159733
+        <rdar://problem/26743065>
+
+        Reviewed by Simon Fraser.
+
+        This patch ensures that we update the visible content rect, when Auto Layout moves the WKWebView around.
+        We normally expect setFrameRect to be called to position WKWebView. However Auto Layout relies on layoutSubviews,
+        and in order to always have up-to-date visible content rect, we need to override layoutSubviews in WKWebView. 
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView layoutSubviews]):
+
+2016-07-13  Chris Dumez  <cdumez@apple.com>
+
+        WebKit2 shouldn't signal custom protocol clients from the NSURLConnection loader thread.
+        https://bugs.webkit.org/show_bug.cgi?id=159725
+        <rdar://problem/27323131>
+
+        Reviewed by Andy Estes.
+
+        WebKit2 shouldn't signal custom protocol clients from the NSURLConnection
+        loader thread. Instead, use the RunLoop the WKCustomProtocol was initialized
+        on.
+
+        * NetworkProcess/CustomProtocols/Cocoa/CustomProtocolManagerCocoa.mm:
+        (-[WKCustomProtocol initWithRequest:cachedResponse:client:]):
+        (WebKit::dispatchOnInitializationRunLoop):
+        (WebKit::CustomProtocolManager::didFailWithError):
+        (WebKit::CustomProtocolManager::didLoadData):
+        (WebKit::CustomProtocolManager::didReceiveResponse):
+        (WebKit::CustomProtocolManager::didFinishLoading):
+        (WebKit::CustomProtocolManager::wasRedirectedToRequest):
+        (WebKit::dispatchOnResourceLoaderRunLoop): Deleted.
+
+2016-07-13  Enrica Casucci  <enrica@apple.com>
+
+        Update supported platforms in xcconfig files to match the sdk names.
+        https://bugs.webkit.org/show_bug.cgi?id=159728
+
+        Reviewed by Tim Horton.
+
+        * Configurations/Base.xcconfig:
+
+2016-07-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Remove toCoordinatedGraphicsLayer and use downcast instead
+        https://bugs.webkit.org/show_bug.cgi?id=159469
+
+        Reviewed by Michael Catanzaro.
+
+        * WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.cpp:
+        (WebKit::CompositingCoordinator::flushPendingLayerChanges):
+        (WebKit::CompositingCoordinator::initializeRootCompositingLayerIfNeeded):
+        (WebKit::CompositingCoordinator::mainContentsLayer):
+
 2016-07-13  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GTK] WebKitGtk+ uses too many file descriptors

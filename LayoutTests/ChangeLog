@@ -1,3 +1,328 @@
+2016-07-14  Youenn Fablet  <youenn@apple.com>
+
+        DOM value iterable interfaces should use Array prototype methods
+        https://bugs.webkit.org/show_bug.cgi?id=159296
+
+        Reviewed by Chris Dumez and Mark Lam.
+
+        * fast/dom/nodeListIterator-expected.txt:
+        * fast/dom/nodeListIterator.html:
+        * fast/dom/NodeList/nodelist-iterable-expected.txt: Added.
+        * fast/dom/NodeList/nodelist-iterable.html: Added.
+
+2016-07-14  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Request and Response url getter should use URL serialization
+        https://bugs.webkit.org/show_bug.cgi?id=159705
+
+        Reviewed by Alex Christensen.
+
+        * fetch/fetch-url-serialization-expected.txt: Added.
+        * fetch/fetch-url-serialization.html: Added.
+        * fetch/fetch-urls.json: Added.
+
+2016-07-14  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION (r202918): LayoutTest media/video-main-content-allow-then-deny.html is flaky, failing almost every time on El Capitan
+        https://bugs.webkit.org/show_bug.cgi?id=159533
+
+        Reviewed by Eric Carlson.
+
+        * platform/mac/TestExpectations:
+
+2016-07-14  Alex Christensen  <achristensen@webkit.org>
+
+        Rebaseline test after r203204 and r203207.
+
+        * js/typed-array-mutated-during-set-expected.txt:
+
+2016-07-13  Frederic Wang  <fwang@igalia.com>
+
+        Rebaseline EFL and Windows MathML tests after r203171
+
+        Unreviewed test gardening.
+
+        * platform/efl/mathml/opentype/horizontal-expected.txt:
+        * platform/efl/mathml/opentype/horizontal-munderover-expected.txt:
+        * platform/efl/mathml/opentype/large-operators-expected.txt:
+        * platform/efl/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/efl/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+        * platform/efl/mathml/opentype/vertical-expected.txt:
+        * platform/efl/mathml/presentation/menclose-notation-default-longdiv-expected.txt:
+        * platform/efl/mathml/presentation/menclose-notation-values-expected.txt:
+        * platform/efl/mathml/presentation/mo-stretch-expected.txt:
+        * platform/efl/mathml/presentation/mspace-children-expected.txt:
+        * platform/efl/mathml/presentation/roots-expected.txt:
+        * platform/efl/mathml/radical-fallback-expected.txt:
+        * platform/win/mathml/mathml-in-dashboard-expected.txt:
+        * platform/win/mathml/opentype/horizontal-expected.txt:
+        * platform/win/mathml/opentype/horizontal-munderover-expected.txt:
+        * platform/win/mathml/opentype/large-operators-expected.txt:
+        * platform/win/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/win/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+        * platform/win/mathml/opentype/vertical-expected.txt:
+        * platform/win/mathml/presentation/menclose-notation-default-longdiv-expected.txt:
+        * platform/win/mathml/presentation/mo-stretch-expected.txt:
+        * platform/win/mathml/presentation/mspace-children-expected.txt:
+        * platform/win/mathml/presentation/roots-expected.txt:
+        * platform/win/mathml/radical-fallback-expected.txt:
+
+2016-07-13  Keith Miller  <keith_miller@apple.com>
+
+        Unreviewed, rebaseline tests for ES6 TypedArray behavior.
+
+        * js/typed-array-mutated-during-set-expected.txt:
+        * js/typed-array-mutated-during-set.html:
+
+2016-07-13  Michael Saboff  <msaboff@apple.com>
+
+        Some bad unicode regex escapes aren't flagged as errors
+        https://bugs.webkit.org/show_bug.cgi?id=158080
+
+        Reviewed by Saam Barati.
+
+        New tests.
+
+        * js/regress-158080.html: Added.
+        * js/script-tests/regress-158080.js: Added.
+
+2016-07-13  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Import W3C WebCryptoAPI tests
+        https://bugs.webkit.org/show_bug.cgi?id=159636
+
+        Reviewed by Alex Christensen.
+
+        * TestExpectations:
+        Skip test cases for unimplemented features.
+
+2016-07-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Remove duplicated TestExpectation for perf/rel-list-remove.html on ios-simulator
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-07-13  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Test gardening for fast/text/font-face-javascript.html
+        https://bugs.webkit.org/show_bug.cgi?id=156631
+
+        Unreviewed.
+
+        * TestExpectations:
+        * fast/text/font-face-javascript-expected.txt:
+        * fast/text/font-face-javascript.html:
+
+2016-07-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/blink/storage/indexeddb/blob-valid-after-deletion.html as flaky on Mac and ios-simulator
+        https://bugs.webkit.org/show_bug.cgi?id=158640
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-07-13  Alex Christensen  <achristensen@webkit.org>
+
+        Add test verifying detached iframes cannot set IDB values
+        https://bugs.webkit.org/show_bug.cgi?id=159736
+
+        Reviewed by Brady Eidson.
+        
+        We match Chrome but not Firefox in this case.
+
+        * storage/indexeddb/detached-iframe-expected.txt: Added.
+        * storage/indexeddb/detached-iframe.html: Added.
+        * storage/indexeddb/resources/detached-iframe.html: Added.
+        * storage/indexeddb/resources/detached-iframe.js: Added.
+        (done):
+        (unexpectedErrorCallback):
+        (getRequestCallback):
+        (dbOpenedSecondTime):
+        (getValueFromIDB):
+        (makeDetachedFrame):
+        (prepareDatabase):
+
+2016-07-12  Ryosuke Niwa  <rniwa@webkit.org>
+
+        REGRESSION(r202953): Clicking on input[type=file] doesn't open a file picker
+        https://bugs.webkit.org/show_bug.cgi?id=159686
+        <rdar://problem/27263589>
+
+        Reviewed by Chris Dumez.
+
+        Added a regression test for opening a file picker on a type=file input element.
+
+        The test currently only works on WebKit2 since the support for logging "OPEN FILE PANEL"
+        was only added to WebKitTestRunner.
+
+        Also added WebKit2 specific expected results for some tests that tries to open file panel.
+
+        * fast/forms/file/open-file-panel-expected.txt: Added.
+        * fast/forms/file/open-file-panel.html: Added.
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/mac-wk1/TestExpectations:
+        * platform/win/TestExpectations:
+        * platform/wk2/accessibility: Added.
+        * platform/wk2/accessibility/axpress-on-aria-button-expected.txt: Copied from LayoutTests/accessibility/axpress-on-aria-button-expected.txt.
+        * platform/wk2/accessibility/file-upload-button-with-axpress-expected.txt: Copied from LayoutTests/accessibility/file-upload-button-with-axpress-expected.txt.
+        * platform/wk2/fast: Added.
+        * platform/wk2/fast/events: Added.
+        * platform/wk2/fast/events/domactivate-sets-underlying-click-event-as-handled-expected.txt: Copied from LayoutTests/fast/events/domactivate-sets-underlying-click-event-as-handled-expected.txt.
+
+2016-07-13  Frederic Wang  <fwang@igalia.com>
+
+        Remove padding and margin around the <math> element
+        https://bugs.webkit.org/show_bug.cgi?id=157989
+
+        Reviewed by Brent Fulgham.
+
+        * imported/mathml-in-html5/mathml/relations/html5-tree/href-click-1.html: Remove spacing hack.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/href-click-2.html: Ditto.
+        * mathml/presentation/fractions-box-expected.html: Ditto.
+        * mathml/presentation/fractions-box.html: Ditto.
+        * mathml/presentation/href-enter.html: Ditto.
+        * mathml/presentation/maction-toggle-href.html: Ditto.
+        * mathml/presentation/mpadded-1-2.html: Ditto.
+        * mathml/presentation/mpadded-1.html: Ditto.
+        * mathml/presentation/mpadded-2.html: Ditto.
+        * mathml/presentation/mpadded-3.html: Ditto.
+        * mathml/presentation/mpadded-4-expected.html: Ditto.
+        * mathml/presentation/mpadded-4.html: Ditto.
+        * mathml/presentation/mspace-prefered-width.html: Ditto.
+        * mathml/presentation/mspace-units-expected.html: Ditto.
+        * mathml/presentation/mspace-units.html: Ditto.
+        * mathml/presentation/mspace.html: Ditto.
+        * mathml/presentation/scripts-height-expected.html: Ditto.
+        * mathml/presentation/scripts-subsup-expected.html: Ditto.
+        * mathml/presentation/scripts-subsup.html: Ditto.
+        * mathml/presentation/scripts-underover-expected.html: Ditto.
+        * mathml/presentation/scripts-underover.html: Ditto.
+        * mathml/presentation/semantics-2.html: Ditto.
+        * mathml/presentation/semantics-3.html: Ditto.
+        * mathml/presentation/semantics-4.html: Ditto.
+        * mathml/presentation/semantics-href.html: Ditto.
+        * mathml/presentation/style-border-padding-background.html: Ditto.
+        * platform/gtk/mathml/opentype/horizontal-expected.png: Rebaseline due to spacing change around the math tag.
+        * platform/gtk/mathml/opentype/horizontal-expected.txt: Ditto.
+        * platform/gtk/mathml/opentype/horizontal-munderover-expected.png: Ditto.
+        * platform/gtk/mathml/opentype/horizontal-munderover-expected.txt: Ditto.
+        * platform/gtk/mathml/opentype/large-operators-expected.txt: Ditto.
+        * platform/gtk/mathml/opentype/opentype-stretchy-expected.png: Ditto.
+        * platform/gtk/mathml/opentype/opentype-stretchy-expected.txt: Ditto.
+        * platform/gtk/mathml/opentype/opentype-stretchy-horizontal-expected.png: Ditto.
+        * platform/gtk/mathml/opentype/opentype-stretchy-horizontal-expected.txt: Ditto.
+        * platform/gtk/mathml/opentype/vertical-expected.png: Ditto.
+        * platform/gtk/mathml/opentype/vertical-expected.txt: Ditto.
+        * platform/gtk/mathml/presentation/menclose-notation-default-longdiv-expected.png: Ditto.
+        * platform/gtk/mathml/presentation/menclose-notation-default-longdiv-expected.txt: Ditto.
+        * platform/gtk/mathml/presentation/menclose-notation-values-expected.png: Ditto.
+        * platform/gtk/mathml/presentation/menclose-notation-values-expected.txt: Ditto.
+        * platform/gtk/mathml/presentation/mo-stretch-expected.png: Ditto.
+        * platform/gtk/mathml/presentation/mo-stretch-expected.txt: Ditto.
+        * platform/gtk/mathml/presentation/mspace-children-expected.txt: Ditto.
+        * platform/gtk/mathml/presentation/roots-expected.png: Ditto.
+        * platform/gtk/mathml/presentation/roots-expected.txt: Ditto.
+        * platform/gtk/mathml/radical-fallback-expected.png: Ditto.
+        * platform/gtk/mathml/radical-fallback-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/opentype/opentype-stretchy-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/opentype/opentype-stretchy-horizontal-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/presentation/menclose-notation-default-longdiv-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/presentation/menclose-notation-values-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/presentation/mo-stretch-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/presentation/mspace-children-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/presentation/roots-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/radical-fallback-expected.txt: Ditto.
+        * platform/mac/mathml/opentype/opentype-stretchy-expected.txt: Ditto.
+        * platform/mac/mathml/opentype/opentype-stretchy-horizontal-expected.txt: Ditto.
+        * platform/mac/mathml/presentation/menclose-notation-default-longdiv-expected.txt: Ditto.
+        * platform/mac/mathml/presentation/menclose-notation-values-expected.txt: Ditto.
+        * platform/mac/mathml/presentation/mo-stretch-expected.txt: Ditto.
+        * platform/mac/mathml/presentation/mspace-children-expected.txt: Ditto.
+        * platform/mac/mathml/presentation/roots-expected.txt: Ditto.
+        * platform/mac/mathml/radical-fallback-expected.txt: Ditto.
+        * mathml/mathml-in-dashboard-expected.txt: Ditto
+
+2016-07-13  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        AX: [ATK] spinbutton-crash.html fails
+        https://bugs.webkit.org/show_bug.cgi?id=159723
+
+        Reviewed by Chris Fleizach.
+
+        In ATK, the accessible object for an input element has no children for
+        the text component. As a result, the spinner is the first and only child.
+        In AXAPI, the input element has an AXGroup child for the text component.
+        As a result, the spinner is the second of two children. Therefore, add a
+        helper method to accessibility-helper.js to retrieve the correct child
+        for the current platform use it in spinbutton-crash.html.
+
+        * accessibility/spinbutton-crash.html: Modified.
+        * resources/accessibility-helper.js:
+        (spinnerForTextInput): Added.
+
+2016-07-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/XMLHttpRequest/send-redirect-post-upload.htm as failing on Mac and ios-sim Release WK2
+        https://bugs.webkit.org/show_bug.cgi?id=159724
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/mac-wk2/TestExpectations:
+
+2016-07-13  Brent Fulgham  <bfulgham@apple.com>
+
+        [WK1][iOS] Crash when WebSocket attempts to dispatch a mixed content blocker event
+        https://bugs.webkit.org/show_bug.cgi?id=159680
+        <rdar://problem/22102028>
+
+        Reviewed by Zalan Bujtas.
+
+        * http/tests/ssl/mixedContent: Added.
+        * http/tests/ssl/mixedContent/insecure-websocket-expected.txt: Added.
+        * http/tests/ssl/mixedContent/insecure-websocket.html: Added.
+
+2016-07-13  Youenn Fablet  <youennf@gmail.com>
+
+        Refresh WPT tests up to c875b42
+        https://bugs.webkit.org/show_bug.cgi?id=159712
+
+        Reviewed by Alex Christensen.
+
+        * TestExpectations: Adding some test expectations and skipping some resource files.
+
+2016-07-13  Frederic Wang  <fwang@igalia.com>
+
+        The display property of many MathML elements can not be overriden by page authors
+        https://bugs.webkit.org/show_bug.cgi?id=139403
+
+        Reviewed by Brent Fulgham.
+
+        * imported/mathml-in-html5/mathml/relations/css-styling/display-1-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/css-styling/display-1.html: Added.
+
+2016-07-13  Frederic Wang  <fwang@igalia.com>
+
+        Update Windows expectations for two MathML tests.
+
+        Unreviewed test gardening.
+
+        * platform/win/TestExpectations:
+
+2016-07-13  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [EFL] [GTK] Enable back crypto subtle on development builds.
+        https://bugs.webkit.org/show_bug.cgi?id=159260
+
+        Reviewed by Carlos Garcia Campos.
+
+        * platform/gtk/TestExpectations: Enable back the tests that were
+        passing on GTK.
+
 2016-07-13  Frederic Wang  <fwang@igalia.com>
 
         Update MathML expectations on EFL and Windows ports.

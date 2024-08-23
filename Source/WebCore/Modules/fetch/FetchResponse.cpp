@@ -151,6 +151,13 @@ void FetchResponse::fetch(ScriptExecutionContext& context, FetchRequest& input, 
     startFetching(context, *fetchRequest, WTFMove(promise));
 }
 
+const String& FetchResponse::url() const
+{
+    if (m_responseURL.isNull())
+        m_responseURL = m_response.url().serialize(true);
+    return m_responseURL;
+}
+
 void FetchResponse::fetch(ScriptExecutionContext& context, const String& url, const Dictionary& dictionary, FetchPromise&& promise)
 {
     ExceptionCode ec = 0;
@@ -287,6 +294,13 @@ RefPtr<SharedBuffer> FetchResponse::BodyLoader::startStreaming()
     ASSERT(m_loader);
     return m_loader->startStreaming();
 }
+
+void FetchResponse::cancel()
+{
+    m_isDisturbed = true;
+    stop();
+}
+
 #endif
 
 void FetchResponse::stop()

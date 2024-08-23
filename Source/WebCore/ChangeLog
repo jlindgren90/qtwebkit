@@ -1,3 +1,498 @@
+2016-07-14  Alex Christensen  <achristensen@webkit.org>
+
+        Pass SessionID to WebSocketHandle constructor
+        https://bugs.webkit.org/show_bug.cgi?id=159772
+
+        Reviewed by Brady Eidson.
+
+        No new tests.  No change in behavior.
+
+        * Modules/websockets/WebSocketChannel.cpp:
+        (WebCore::WebSocketChannel::connect):
+        * platform/network/cf/SocketStreamHandle.h:
+        (WebCore::SocketStreamHandle::create):
+        * platform/network/cf/SocketStreamHandleCFNet.cpp:
+        (WebCore::SocketStreamHandle::SocketStreamHandle):
+        * platform/network/curl/SocketStreamHandle.h:
+        (WebCore::SocketStreamHandle::create):
+        * platform/network/soup/SocketStreamHandle.h:
+
+2016-07-14  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GLib] Use a GSource instead of a thread to poll memory pressure eventFD in linux implementation
+        https://bugs.webkit.org/show_bug.cgi?id=159346
+
+        Reviewed by Antonio Gomes.
+
+        This is a follow up of r203216 to fix wrong use of Optional values.
+
+        * platform/linux/MemoryPressureHandlerLinux.cpp:
+
+2016-07-14  Youenn Fablet  <youenn@apple.com>
+
+        DOM value iterable interfaces should use Array prototype methods
+        https://bugs.webkit.org/show_bug.cgi?id=159296
+
+        Reviewed by Chris Dumez and Mark Lam.
+
+        Test: fast/dom/NodeList/nodelist-iterable.html
+        Also covered by updated layout test and binding tests.
+
+        For value iterators, copy the iterator methods from Array prototype: as per https://heycam.github.io/webidl/#es-iterable,
+        [re: entries] If the interface has a value iterator, then the Function object is the initial value of the "entries" data property of %ArrayPrototype% ([ECMA-262], section 6.1.7.4).
+        [re: keys] If the interface has a value iterator, then the Function object is the initial value of the "keys" data property of %ArrayPrototype% ([ECMA-262], section 6.1.7.4).
+        [re: forEach] If the interface defines an indexed property getter, then the Function object is the initial value of the "forEach" data property of %ArrayPrototype% ([ECMA-262], section 6.1.7.4).
+        [re: Symbol.iterator] If the interface defines an indexed property getter, then the Function object is %ArrayProto_values% ([ECMA-262], section 6.1.7.4).
+        [re: values] If the interface has a value iterator, then the Function object is the value of the @@iterator property.
+
+        This change applies only to NodeList at the moment.
+        Copy of Array prototype iterator methods is disabled if the interface has no indexed getter.
+
+        * CMakeLists.txt:
+        * ForwardingHeaders/builtins/BuiltinNames.h: Added.
+        * ForwardingHeaders/builtins/JSCBuiltins.h: Added.
+        * ForwardingHeaders/runtime/CommonIdentifiers.h: Added.
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSDOMIterator.cpp: Added.
+        (WebCore::addValueIterableMethods): Copy iterator methods from array prototype.
+        * bindings/js/JSDOMIterator.h:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GeneratePropertiesHashTable):
+        (GenerateImplementation):
+        (IsValueIterableInterface): Introduced to only copy iterator methods if the interface has an indexed getter.
+        (IsKeyValueIterableInterface): Introduced to detect whether generating iterator methods.
+        (GenerateImplementationIterableFunctions):
+        * bindings/scripts/test/GObject/WebKitDOMTestIterable.cpp: Added.
+        * bindings/scripts/test/GObject/WebKitDOMTestIterable.h: Added.
+        * bindings/scripts/test/GObject/WebKitDOMTestIterablePrivate.h: Added.
+        * bindings/scripts/test/JS/JSTestIterable.cpp: Added.
+        * bindings/scripts/test/JS/JSTestIterable.h: Added.
+        * bindings/scripts/test/JS/JSTestObj.cpp: Updated as TestObj defines both iterable<> and indexed getter.
+        * bindings/scripts/test/ObjC/DOMTestIterable.h: Added.
+        * bindings/scripts/test/ObjC/DOMTestIterable.mm: Added.
+        * bindings/scripts/test/ObjC/DOMTestIterableInternal.h: Added.
+        * bindings/scripts/test/TestIterable.idl: Added to handle the case of value iterator without indexed getter defined.
+        Array prototype methods should not be copied.
+        * bindings/scripts/test/TestObj.idl: Changing to be a value iterator (with indexed getter already defined).
+        Array prototype methods should be copied.
+
+2016-07-14  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Request and Response url getter should use URL serialization
+        https://bugs.webkit.org/show_bug.cgi?id=159705
+
+        Reviewed by Alex Christensen.
+
+        Tests: fetch/fetch-url-serialization.html
+               imported/w3c/web-platform-tests/fetch/api/basic/response-url-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/response-url.html
+
+        Implementing https://url.spec.whatwg.org/#concept-url-serializer and applying it to Request and Response getter.
+        Adding a temporary routine to compute url cannot-be-a-base-url flag. The parsing routine should store that
+        information in the URL itself.
+
+        Added tests to cover serialization routine. Failing tests are mostly due to limitations of the URL parser.
+        Tests do not check for URLs with username and password as Request constructor throws with such URLs.
+
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::url): Adding request url serialization, fragment included.
+        * Modules/fetch/FetchRequest.h:
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::url): Adding response url serialization, fragment excluded.
+        * Modules/fetch/FetchResponse.h:
+        * platform/URL.cpp:
+        (WebCore::cannotBeABaseURL): Temporary helper function to have a coarse evaluation of url cannot-be-a-base-url flag.
+        (WebCore::URL::serialize): Implementation of https://url.spec.whatwg.org/#concept-url-serializer.
+        * platform/URL.h:
+        (WebCore::URL::hasUser): Helper getter.
+        (WebCore::URL::hasPassword): Ditto.
+        (WebCore::URL::hasQuery): Ditto.
+        (WebCore::URL::hasFragment): Ditto.
+
+2016-07-14  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Const-ify track sizing algorithm
+        https://bugs.webkit.org/show_bug.cgi?id=159716
+
+        Reviewed by Carlos Garcia Campos.
+
+        All the methods used to run the track sizing algorithm should not
+        modify the state of LayoutGrid. We can safely const-ify all of them
+        and remove the ugly const_cast in computeIntrinsicLogicalWidths().
+
+        No new tests needed as there is no change in behavior.
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::logicalHeightForChild):
+        (WebCore::RenderGrid::minSizeForChild):
+        (WebCore::RenderGrid::updateOverrideContainingBlockContentLogicalWidthForChild):
+        (WebCore::RenderGrid::minContentForChild):
+        (WebCore::RenderGrid::maxContentForChild):
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctions):
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctionsForNonSpanningItems):
+        (WebCore::RenderGrid::currentItemSizeForTrackSizeComputationPhase):
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctionsForItems):
+        (WebCore::RenderGrid::distributeSpaceToTracks):
+        * rendering/RenderGrid.h:
+
+2016-07-14  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION (r202918): LayoutTest media/video-main-content-allow-then-deny.html is flaky, failing almost every time on El Capitan
+        https://bugs.webkit.org/show_bug.cgi?id=159533
+
+        Reviewed by Eric Carlson.
+
+        Move the contents of mainContentCheckTimerFired() into updateIsMainContent() so that the
+        results of changing the m_isMainContent ivar are acted upon no matter why m_isMainContent
+        changes.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::mainContentCheckTimerFired):
+        (WebCore::MediaElementSession::updateIsMainContent):
+
+2016-07-13  Alex Christensen  <achristensen@webkit.org>
+
+        Modernize WebSocket handle
+        https://bugs.webkit.org/show_bug.cgi?id=159750
+
+        Reviewed by Brady Eidson.
+
+        No new tests.  No change in behavior.
+        This patch just removes ThreadableWebSocketChannel::InvalidMessage which is never used
+        and makes our use of SocketStreamHandleClient a reference instead of a pointer.
+
+        * Modules/websockets/ThreadableWebSocketChannel.h:
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::WebSocket::send):
+        * Modules/websockets/WebSocketChannel.cpp:
+        (WebCore::WebSocketChannel::connect):
+        * platform/network/SocketStreamHandleBase.cpp:
+        (WebCore::SocketStreamHandleBase::SocketStreamHandleBase):
+        (WebCore::SocketStreamHandleBase::send):
+        (WebCore::SocketStreamHandleBase::disconnect):
+        (WebCore::SocketStreamHandleBase::sendPendingData):
+        (WebCore::SocketStreamHandleBase::setClient): Deleted.
+        * platform/network/SocketStreamHandleBase.h:
+        (WebCore::SocketStreamHandleBase::~SocketStreamHandleBase):
+        (WebCore::SocketStreamHandleBase::bufferedAmount):
+        (WebCore::SocketStreamHandleBase::client):
+        * platform/network/cf/SocketStreamHandle.h:
+        (WebCore::SocketStreamHandle::create):
+        * platform/network/cf/SocketStreamHandleCFNet.cpp:
+        (WebCore::SocketStreamHandle::SocketStreamHandle):
+        (WebCore::SocketStreamHandle::addCONNECTCredentials):
+        (WebCore::SocketStreamHandle::copyCFStreamDescription):
+        (WebCore::SocketStreamHandle::readStreamCallback):
+        (WebCore::SocketStreamHandle::writeStreamCallback):
+        (WebCore::SocketStreamHandle::reportErrorToClient):
+        (WebCore::SocketStreamHandle::~SocketStreamHandle):
+        (WebCore::SocketStreamHandle::platformClose):
+        (WebCore::SocketStreamHandle::port):
+        * platform/network/curl/SocketStreamHandle.h:
+        (WebCore::SocketStreamHandle::create):
+        * platform/network/curl/SocketStreamHandleCurl.cpp:
+        (WebCore::SocketStreamHandle::SocketStreamHandle):
+        (WebCore::SocketStreamHandle::platformClose):
+        (WebCore::SocketStreamHandle::readData):
+        (WebCore::SocketStreamHandle::didReceiveData):
+        (WebCore::SocketStreamHandle::didOpenSocket):
+        (WebCore::SocketStreamHandle::createCopy):
+        * platform/network/soup/SocketStreamHandle.h:
+        * platform/network/soup/SocketStreamHandleSoup.cpp:
+        (WebCore::SocketStreamHandle::SocketStreamHandle):
+        (WebCore::SocketStreamHandle::~SocketStreamHandle):
+        (WebCore::SocketStreamHandle::connected):
+        (WebCore::SocketStreamHandle::connectedCallback):
+        (WebCore::SocketStreamHandle::readBytes):
+        (WebCore::SocketStreamHandle::didFail):
+        (WebCore::SocketStreamHandle::writeReady):
+        (WebCore::SocketStreamHandle::platformClose):
+        (WebCore::SocketStreamHandle::beginWaitingForSocketWritability):
+
+2016-07-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GLib] Use a GSource instead of a thread to poll memory pressure eventFD in linux implementation
+        https://bugs.webkit.org/show_bug.cgi?id=159346
+
+        Reviewed by Antonio Gomes.
+
+        The eventFD file descriptor is pollable, so it would be much better to use a poll instead of a blocking read in
+        a secondary thread and then communicate back to the main thread. This is very easy to do with GSource in GLib,
+        so we could use that when GLib is available and keep the current implementation as a fallback.
+
+        * platform/MemoryPressureHandler.cpp:
+        (WebCore::m_holdOffTimer): Use a RunLoop timer.
+        * platform/MemoryPressureHandler.h:
+        * platform/linux/MemoryPressureHandlerLinux.cpp:
+        (WebCore::MemoryPressureHandler::EventFDPoller::EventFDPoller): Helper class do the eventFD polling.
+        (WebCore::MemoryPressureHandler::logErrorAndCloseFDs): Check if file descriptors are -1 not 0.
+        (WebCore::MemoryPressureHandler::install): Return early also if the hold off timer is active. Use EventFDPoller
+        to do the polling.
+        (WebCore::MemoryPressureHandler::uninstall): Stop the hold off timer and clear the EventFDPoller.
+
+2016-07-13  Benjamin Poulain  <benjamin@webkit.org>
+
+        [CSS][ARMv7] :nth-child() do not reserve enough registers if it is in backtracking chain
+        https://bugs.webkit.org/show_bug.cgi?id=159746
+        rdar://problem/26156169
+
+        Reviewed by Andreas Kling.
+
+        The generator generateElementIsNthChild() requires 6 registers in style resolution
+        to mark previous siblings with generateAddStyleRelationIfResolvingStyle() in the loop.
+
+        We were only reserving 5, which is a problem is the sixth is taken by the backtracking
+        register. x86_64 was already requiring 6 for unrelated reasons and ARM64 has so many registers
+        that you cannot possibly run out of them in CSS JIT.
+
+        I generalized the x86_64 path to all architectures.
+        I did not limit this case to style resolution because the extra register is irrelevant
+        in most cases. The only difference is one extra push/pop on ARMv7 if you use querySelector
+        with :nth-child in a backtracking chain.
+
+        This problem is covered by the existing test fast/selectors/nth-child-with-backtracking.html
+
+        * cssjit/SelectorCompiler.cpp:
+        (WebCore::SelectorCompiler::minimumRegisterRequirements): Deleted.
+
+2016-07-13  Chris Dumez  <cdumez@apple.com>
+
+        Drop unnecessary check from ContainerNode::removeChild()
+        https://bugs.webkit.org/show_bug.cgi?id=159747
+
+        Reviewed by Andreas Kling.
+
+        Drop unnecessary check from ContainerNode::removeChild() to make sure that
+        the parent of the node being removed is |this|. We already do this check
+        a few lines above. The only thing that happens in between is the ref'ing
+        of the node, which does not cause any JS execution.
+
+        This check was introduced in r55783 because there used to be a call to
+        document()->removeFocusedNodeOfSubtree(child.get());
+        between the two checks. However, this call has been removed since then
+        and the extra parentNode() check was left in.
+
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::removeChild): Deleted.
+
+2016-07-12  Ryosuke Niwa  <rniwa@webkit.org>
+
+        REGRESSION(r202953): Clicking on input[type=file] doesn't open a file picker
+        https://bugs.webkit.org/show_bug.cgi?id=159686
+
+        Reviewed by Chris Dumez.
+
+        The bug was caused by DOMActivate event not propagating out of the user-agent shadow tree
+        of a file input, and FileInputType not receiving the event to open the file picker.
+
+        Made DOMActivate "composed" event which cross shadow boundaries to fix the bug. The feedback
+        was given back to W3C on https://github.com/w3c/webcomponents/issues/513#issuecomment-231851617
+
+        Test: fast/forms/file/open-file-panel.html
+
+        * dom/Event.cpp:
+        (WebCore::Event::composed):
+
+2016-07-13  Antti Koivisto  <antti@apple.com>
+
+        v2: WebContent crash due to RELEASE_ASSERT(!m_inLoadPendingImages) in StyleResolver::~StyleResolver()
+        https://bugs.webkit.org/show_bug.cgi?id=159722
+
+        Reviewed by Andreas Kling.
+
+        We have crashes where a StyleResolver is deleted underneath pseudoStyleForElement (key parts of the stack):
+
+        0   WebCore::StyleResolver::~StyleResolver
+        3   WebCore::AuthorStyleSheets::updateActiveStyleSheets
+        4   WebCore::Document::styleResolverChanged
+        5   WebKit::WebPage::viewportConfigurationChanged()
+        6   WebKit::WebPage::mainFrameDidLayout()
+        9   WebCore::FrameLoader::checkCompleted
+        13  WebCore::ResourceLoader::cancel
+        19  WebKit::WebLoaderStrategy::loadResource
+        24  WebCore::Style::loadPendingImage
+        27  WebCore::StyleResolver::pseudoStyleForElement
+        29  WebCore::RenderTreeUpdater::updateBeforeOrAfterPseudoElement
+        33  WebCore::Document::recalcStyle
+
+        This appears to be happening when a content blocker blocks a resource load for an image referenced from a stylesheet
+        and triggers synchronous cancellation of the load. With engine in suitable state this can clear style resolver.
+
+        No test, don't know how to make one. This is very timing and engine state dependent.
+
+        * dom/AuthorStyleSheets.cpp:
+        (WebCore::AuthorStyleSheets::updateActiveStyleSheets):
+
+        We have an existing check here that prevents destruction of the style resolver when we are in the middle of
+        a style resolution. However the old inStyleRecalc() bit no longer covers the render tree update phase. Pseudo
+        elements are resolved during render tree update.
+
+        Fix by adding a check for inRenderTreeUpdate() bit too.
+
+        This just fixes a regression. A proper fix would be to gather all resources during style resolution
+        and trigger the loads afterwards.
+
+2016-07-13  Frederic Wang  <fred.wang@free.fr>
+
+        Remove padding and margin around the <math> element
+        https://bugs.webkit.org/show_bug.cgi?id=157989
+
+        Reviewed by Brent Fulgham.
+
+        No new tests, already covered by existing tests.
+
+        * css/mathml.css:
+        (math): Remove padding.
+        (math[display="block"]): Remove margin.
+
+2016-07-13  Enrica Casucci  <enrica@apple.com>
+
+        Update supported platforms in xcconfig files to match the sdk names.
+        https://bugs.webkit.org/show_bug.cgi?id=159728
+
+        Reviewed by Tim Horton.
+
+        * Configurations/Base.xcconfig:
+
+2016-07-13  Anders Carlsson  <andersca@apple.com>
+
+        "requiredShippingAddressFields" has been deprecated error thrown when using "requiredBillingAddressFields"
+        https://bugs.webkit.org/show_bug.cgi?id=159729
+        rdar://problem/27314974
+
+        Reviewed by Tim Horton.
+
+        Fix a paste-o.
+
+        * Modules/applepay/ApplePaySession.cpp:
+        (WebCore::createPaymentRequest):
+
+2016-07-13  Brent Fulgham  <bfulgham@apple.com>
+
+        [WK1][iOS] Crash when WebSocket attempts to dispatch a mixed content blocker event
+        https://bugs.webkit.org/show_bug.cgi?id=159680
+        <rdar://problem/22102028>
+
+        Reviewed by Zalan Bujtas.
+
+        WK1 on iOS should not use RunLoop::main(). Instead, it should be dispatching events
+        on the WebThread.
+
+        Test: http/tests/ssl/mixedContent/insecure-websocket.html
+
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::WebSocket::connect): Do not use RunLoop::main() when we should be using
+        the WebThread.
+
+2016-07-13  Frederic Wang  <fwang@igalia.com>
+
+        The display property of many MathML elements can not be overriden by page authors
+        https://bugs.webkit.org/show_bug.cgi?id=139403
+
+        The mathml.css user agent stylesheet currently forces most MathML elements to render with
+        'display: block'. We remove the !important keyword so that users can override the display
+        property, for example to hide elements with 'display: none'. This is consistent with the
+        behavior for SVG or HTML elements.
+
+        Reviewed by Brent Fulgham.
+
+        Test: imported/mathml-in-html5/mathml/relations/css-styling/display-1.html
+
+        * css/mathml.css:
+        (math):
+        (math[display="block"]):
+        (ms, mspace, mtext, mi, mn, mo, mrow, mfenced, mfrac, msub, msup, msubsup, mmultiscripts, mprescripts, none, munder, mover, munderover, msqrt, mroot, merror, mphantom, mstyle, menclose, semantics, mpadded, maction):
+        (mtd > *):
+
+2016-07-13  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response should not become disturbed on the ReadableStream creation
+        https://bugs.webkit.org/show_bug.cgi?id=159714
+
+        Reviewed by Alex Christensen.
+
+        Covered by rebased test and existing tests.
+
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::stop): Making the response disturbed if cancelled.
+        * Modules/fetch/FetchResponseSource.cpp:
+        (WebCore::FetchResponseSource::firstReadCallback): Start enqueueing as soon as first read is made.
+        (WebCore::FetchResponseSource::doStart): Keep the start promise unresolved so that pull is not called.
+        FetchResponse is a push source.
+        * Modules/fetch/FetchResponseSource.h:
+        * Modules/streams/ReadableStreamInternals.js:
+        (readFromReadableStreamReader): Calling @firstReadCallback.
+        * Modules/streams/ReadableStreamSource.h:
+        (WebCore::ReadableStreamSource::firstReadCallback): Default implementation (does nothing).
+        * Modules/streams/ReadableStreamSource.idl: Adding firstReadCallback private method.
+        * bindings/js/WebCoreBuiltinNames.h: Adding @firstReadCallback.
+
+2016-07-13  Philippe Normand  <pnormand@igalia.com>
+
+        [GStreamer][GL] crash within triggerRepaint
+        https://bugs.webkit.org/show_bug.cgi?id=159552
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Revert the un-needed changes introduced in r203056 and use the
+        MainThreadNotifier without redundant checks.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp:
+        (WebCore::MediaPlayerPrivateGStreamer::MediaPlayerPrivateGStreamer):
+        (WebCore::MediaPlayerPrivateGStreamer::createGSTPlayBin):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.h:
+        (WebCore::MediaPlayerPrivateGStreamer::createWeakPtr):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::MediaPlayerPrivateGStreamerBase):
+        (WebCore::MediaPlayerPrivateGStreamerBase::triggerRepaint):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h:
+        (WebCore::MediaPlayerPrivateGStreamerBase::createWeakPtr): Deleted.
+
+2016-07-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GObject DOM bindings API breaks after r203047-
+
+        webkit_dom_document_set_title() and webkit_dom_html_title_element_set_text() now can raise exceptions. 
+
+        * bindings/gobject/WebKitDOMDeprecated.cpp:
+        (webkit_dom_document_set_title):
+        (webkit_dom_html_title_element_set_text):
+        * bindings/gobject/WebKitDOMDeprecated.h:
+        * bindings/gobject/WebKitDOMDeprecated.symbols:
+        * bindings/gobject/webkitdom.symbols:
+        * bindings/scripts/CodeGeneratorGObject.pm:
+        (GenerateProperty):
+        (FunctionUsedToNotRaiseException):
+
+2016-07-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Remove toCoordinatedGraphicsLayer and use downcast instead
+        https://bugs.webkit.org/show_bug.cgi?id=159469
+
+        Reviewed by Michael Catanzaro.
+
+        * page/scrolling/coordinatedgraphics/ScrollingCoordinatorCoordinatedGraphics.cpp:
+        (WebCore::ScrollingCoordinatorCoordinatedGraphics::detachFromStateTree):
+        (WebCore::ScrollingCoordinatorCoordinatedGraphics::updateViewportConstrainedNode):
+        (WebCore::ScrollingCoordinatorCoordinatedGraphics::scrollableAreaScrollLayerDidChange):
+        (WebCore::ScrollingCoordinatorCoordinatedGraphics::willDestroyScrollableArea):
+        * platform/graphics/GraphicsLayer.h:
+        (WebCore::GraphicsLayer::isCoordinatedGraphicsLayer):
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp:
+        (WebCore::toCoordinatedLayerID):
+        (WebCore::CoordinatedGraphicsLayer::setShouldUpdateVisibleRect):
+        (WebCore::CoordinatedGraphicsLayer::removeFromParent):
+        (WebCore::CoordinatedGraphicsLayer::setMaskLayer):
+        (WebCore::CoordinatedGraphicsLayer::flushCompositingState):
+        (WebCore::CoordinatedGraphicsLayer::syncPendingStateChangesIncludingSubLayers):
+        (WebCore::CoordinatedGraphicsLayer::findFirstDescendantWithContentsRecursively):
+        (WebCore::CoordinatedGraphicsLayer::updateContentBuffersIncludingSubLayers):
+        (WebCore::CoordinatedGraphicsLayer::computeTransformedVisibleRect):
+        (WebCore::CoordinatedGraphicsLayer::selfOrAncestorHasActiveTransformAnimation):
+        (WebCore::CoordinatedGraphicsLayer::selfOrAncestorHaveNonAffineTransforms):
+        (WebCore::toCoordinatedGraphicsLayer): Deleted.
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.h:
+
 2016-07-12  Youenn Fablet  <youenn@apple.com>
 
         [Fetch API] isRedirected should be conveyed in workers

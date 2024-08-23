@@ -1,3 +1,242 @@
+2016-07-14  Youenn Fablet  <youenn@apple.com>
+
+        DOM value iterable interfaces should use Array prototype methods
+        https://bugs.webkit.org/show_bug.cgi?id=159296
+
+        Reviewed by Chris Dumez and Mark Lam.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj: Marking some header files as private so that they can be included in
+        WebCore.
+        * runtime/ArrayPrototype.cpp:
+        (JSC::ArrayPrototype::finishCreation): copying iterable methods (entries, forEach, keys and values) to private slots.
+
+2016-07-13  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the magic numbers for ARM traditional in InlineAccess.h
+        https://bugs.webkit.org/show_bug.cgi?id=159708
+
+        Reviewed by Saam Barati.
+
+        * bytecode/InlineAccess.h:
+        (JSC::InlineAccess::sizeForPropertyAccess):
+        (JSC::InlineAccess::sizeForPropertyReplace):
+        (JSC::InlineAccess::sizeForLengthAccess):
+
+2016-07-13  Michael Saboff  <msaboff@apple.com>
+
+        YARR uses mixture of int and unsigned values to index into subject string
+        https://bugs.webkit.org/show_bug.cgi?id=159744
+
+        Reviewed by Benjamin Poulain.
+
+        In most cases, we refer to characters in subject strings using a negative index from the number of
+        "checked" characters in a subject string.  The required length is compared against the actual length
+        and then we use that required length as the checked amount.  For example, when matching the string of
+        4 digits in the RegExp /abc \d{4}/, we know that need 8 characters in the subject string.  We refer
+        to the digits part of the expression from an already checked index of 8 and use negative offsets of
+        -4 through -1.  In many cases we used a signed int for the negative offsets.  There are other cases
+        where we used unsigned values as the amount of negative offset to use when accessing subject characters.
+
+        Changed all occurrances of character offsets to unsigned or Checked Arithmetic unsigned values.  Note
+        that the pre-existing Checked class is used in other places to check for under/overflow with arithmetic
+        operations.  Those unsigned offsets are always the number of characters before (negative) from the
+        current checked character offset.  Also added some asserts for cases where arithmetic is not protected
+        by other checks or with Checked<> wrapped values.
+
+        In the case of the JIT, subject characters are accessed using base with scaled index and offset
+        addressing.  The MacroAssembler provides this addressing using the BaseIndex struct.  The offset for
+        this struct is a 32 bit signed quantity.  Since we only care about negative offsets, we really only
+        have 31 bits.  Changed the generation of a BaseOffset address to handle the case when the offset and
+        scaled combination will exceed the 31 bits of negative offset.  This is done by moving the base value
+        into a temp register and biasing the temp base and offset to smaller values so that we can emit
+        instructions that can reference characters without exceeding the 31 bits of negative offset.
+
+        To abstract the character address generation, put the base with scaled index and offset into
+        one function and used that function everywhere the YARR JIT wants to access subject characters.
+        Also consilidated a few cases where we were generating inline what readCharacter() does.  Usually
+        this was due to using a different index register.
+
+        Added a new regression test.
+
+        * tests/stress/regress-159744.js: Added regression test.
+        (testRegExp):
+        * yarr/YarrInterpreter.cpp:
+        (JSC::Yarr::Interpreter::recordParenthesesMatch):
+        (JSC::Yarr::Interpreter::resetMatches):
+        (JSC::Yarr::Interpreter::matchParenthesesOnceEnd):
+        (JSC::Yarr::Interpreter::backtrackParenthesesOnceEnd):
+        (JSC::Yarr::ByteCompiler::closeBodyAlternative):
+        (JSC::Yarr::ByteCompiler::atomParenthesesSubpatternEnd):
+        (JSC::Yarr::ByteCompiler::atomParenthesesOnceEnd):
+        (JSC::Yarr::ByteCompiler::atomParenthesesTerminalEnd):
+        (JSC::Yarr::ByteCompiler::emitDisjunction):
+        * yarr/YarrInterpreter.h:
+        (JSC::Yarr::ByteTerm::ByteTerm):
+        (JSC::Yarr::ByteTerm::BOL):
+        (JSC::Yarr::ByteTerm::UncheckInput):
+        (JSC::Yarr::ByteTerm::EOL):
+        (JSC::Yarr::ByteTerm::WordBoundary):
+        (JSC::Yarr::ByteTerm::BackReference):
+        * yarr/YarrJIT.cpp:
+        (JSC::Yarr::YarrGenerator::notAtEndOfInput):
+        (JSC::Yarr::YarrGenerator::negativeOffsetIndexedAddress):
+        (JSC::Yarr::YarrGenerator::readCharacter):
+        (JSC::Yarr::YarrGenerator::jumpIfCharNotEquals):
+        (JSC::Yarr::YarrGenerator::storeToFrame):
+        (JSC::Yarr::YarrGenerator::generateAssertionBOL):
+        (JSC::Yarr::YarrGenerator::backtrackAssertionBOL):
+        (JSC::Yarr::YarrGenerator::generateAssertionEOL):
+        (JSC::Yarr::YarrGenerator::matchAssertionWordchar):
+        (JSC::Yarr::YarrGenerator::generateAssertionWordBoundary):
+        (JSC::Yarr::YarrGenerator::generatePatternCharacterOnce):
+        (JSC::Yarr::YarrGenerator::generatePatternCharacterFixed):
+        (JSC::Yarr::YarrGenerator::generatePatternCharacterGreedy):
+        (JSC::Yarr::YarrGenerator::backtrackPatternCharacterNonGreedy):
+        (JSC::Yarr::YarrGenerator::generateCharacterClassOnce):
+        (JSC::Yarr::YarrGenerator::generateCharacterClassFixed):
+        (JSC::Yarr::YarrGenerator::generateCharacterClassGreedy):
+        (JSC::Yarr::YarrGenerator::backtrackCharacterClassNonGreedy):
+        (JSC::Yarr::YarrGenerator::generate):
+        (JSC::Yarr::YarrGenerator::backtrack):
+        (JSC::Yarr::YarrGenerator::YarrGenerator):
+        * yarr/YarrPattern.h:
+        (JSC::Yarr::PatternTerm::PatternTerm):
+
+2016-07-13  Keith Miller  <keith_miller@apple.com>
+
+        Crashes with detached ArrayBuffers
+        https://bugs.webkit.org/show_bug.cgi?id=157088
+        <rdar://problem/27327362>
+
+        Reviewed by Filip Pizlo.
+
+        TypedArray.prototype.fill was incorrect because it should perform
+        ToNumber coercion each time it tries to store the
+        object. Currently, we only perform the coercion once at the
+        beginning of the loop. If we find that we need to improve the
+        performance of this function, we can add a faster C++ path back
+        that only handles the primitive case.
+
+        This patch also moves the isNeutered() checks from put and
+        putByIndex into setIndex. This fixes an issue where setIndex might
+        store to a no longer valid offset.
+
+        * builtins/TypedArrayPrototype.js:
+        (globalPrivate.typedArrayClampArgumentToStartOrEnd):
+        (fill):
+        * runtime/JSGenericTypedArrayView.h:
+        (JSC::JSGenericTypedArrayView::setIndexQuickly):
+        (JSC::JSGenericTypedArrayView::setIndex):
+        (JSC::JSGenericTypedArrayView::setRangeToValue): Deleted.
+        * runtime/JSGenericTypedArrayViewInlines.h:
+        (JSC::JSGenericTypedArrayView<Adaptor>::put): Deleted.
+        (JSC::JSGenericTypedArrayView<Adaptor>::putByIndex): Deleted.
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        (JSC::genericTypedArrayViewProtoFuncFill): Deleted.
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        (JSC::JSTypedArrayViewPrototype::finishCreation):
+        (JSC::typedArrayViewProtoFuncFill): Deleted.
+        * tests/stress/typedarray-fill.js:
+        * tests/stress/typedarray-functions-with-neutered.js:
+        (defaultForArg):
+        (test2):
+        (checkArgumentsForType): Deleted.
+        (checkArguments): Deleted.
+
+2016-07-13  Michael Saboff  <msaboff@apple.com>
+
+        Some bad unicode regex escapes aren't flagged as errors
+        https://bugs.webkit.org/show_bug.cgi?id=158080
+
+        Reviewed by Saam Barati.
+
+        If we have a partial unicode escape, eg /\u{1/u or /\u12|abc/u, we
+        didn't check for the closing '}' and processed the unicode escape with
+        the hex value provided.  
+
+        Added a check that we properly terminated a \u{} unicode escape.
+        If we fail that check and there isn't a prior error, we record that we
+        have an invalid unicode escape.  The next existing line in the code will
+        terminate parsing and bubble up the error.
+
+        * yarr/YarrParser.h:
+        (JSC::Yarr::Parser::parseEscape):
+
+2016-07-13  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r203199.
+
+        Broke the build
+
+        Reverted changeset:
+
+        "Crashes with detached ArrayBuffers"
+        https://bugs.webkit.org/show_bug.cgi?id=157088
+        http://trac.webkit.org/changeset/203199
+
+2016-07-13  Keith Miller  <keith_miller@apple.com>
+
+        Crashes with detached ArrayBuffers
+        https://bugs.webkit.org/show_bug.cgi?id=157088
+        <rdar://problem/27327362>
+
+        Reviewed by Filip Pizlo.
+
+        TypedArray.prototype.fill was incorrect because it should perform
+        ToNumber coercion each time it tries to store the
+        object. Currently, we only perform the coercion once at the
+        beginning of the loop. If we find that we need to improve the
+        performance of this function, we can add a faster C++ path back
+        that only handles the primitive case.
+
+        This patch also moves the isNeutered() checks from put and
+        putByIndex into setIndex. This fixes an issue where setIndex might
+        store to a no longer valid offset.
+
+        * builtins/TypedArrayPrototype.js:
+        (globalPrivate.typedArrayClampArgumentToStartOrEnd):
+        (fill):
+        * runtime/JSGenericTypedArrayView.h:
+        (JSC::JSGenericTypedArrayView::setIndexQuickly):
+        (JSC::JSGenericTypedArrayView::setIndex):
+        (JSC::JSGenericTypedArrayView::setRangeToValue): Deleted.
+        * runtime/JSGenericTypedArrayViewInlines.h:
+        (JSC::JSGenericTypedArrayView<Adaptor>::put): Deleted.
+        (JSC::JSGenericTypedArrayView<Adaptor>::putByIndex): Deleted.
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        (JSC::genericTypedArrayViewProtoFuncFill): Deleted.
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        (JSC::JSTypedArrayViewPrototype::finishCreation):
+        (JSC::typedArrayViewProtoFuncFill): Deleted.
+        * tests/stress/typedarray-fill.js:
+        * tests/stress/typedarray-functions-with-neutered.js:
+        (defaultForArg):
+        (test2):
+        (checkArgumentsForType): Deleted.
+        (checkArguments): Deleted.
+
+2016-07-13  Enrica Casucci  <enrica@apple.com>
+
+        Update supported platforms in xcconfig files to match the sdk names.
+        https://bugs.webkit.org/show_bug.cgi?id=159728
+
+        Reviewed by Tim Horton.
+
+        * Configurations/Base.xcconfig:
+
+2016-07-13  Csaba Osztrogonác  <ossy@webkit.org>
+
+        CLoop buildfix after r203142
+        https://bugs.webkit.org/show_bug.cgi?id=159706
+
+        Unreviewed buildfix.
+
+        * interpreter/CLoopStack.cpp:
+        (JSC::CLoopStack::isSafeToRecurse):
+        * interpreter/CLoopStack.h:
+        * interpreter/CLoopStackInlines.h:
+        (JSC::CLoopStack::isSafeToRecurse): Deleted.
+
 2016-07-12  Benjamin Poulain  <bpoulain@apple.com>
 
         [JSC] Array.prototype.join() fails some conformance tests

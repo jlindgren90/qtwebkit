@@ -317,6 +317,9 @@ webkit.org/b/29359 fast/forms/month [ Skip ]
 webkit.org/b/29359 fast/forms/time [ Skip ]
 webkit.org/b/29359 fast/forms/week [ Skip ]
 
+# DumpRenderTree doesn't support logging calls to runOpenPanel.
+fast/forms/file/open-file-panel.html [ Skip ]
+
 # ENABLE_GAMEPAD not enabled.
 gamepad/ [ Skip ]
 
@@ -1946,8 +1949,8 @@ webkit.org/b/159702 mathml/presentation/style-changed.html [ Crash Pass ]
 imported/mathml-in-html5/mathml/presentation-markup/fractions/frac-1.html [ Failure ]
 imported/mathml-in-html5/mathml/presentation-markup/operators/mo-axis-height-1.html [ Failure ]
 imported/mathml-in-html5/mathml/relations/css-styling/displaystyle-1.html [ Failure ]
-imported/mathml-in-html5/mathml/relations/css-styling/mathvariant-transforms-1.html [ Failure ]
-imported/mathml-in-html5/mathml/relations/css-styling/mathvariant-transforms-2.html [ Failure ]
+imported/mathml-in-html5/mathml/relations/css-styling/mathvariant-transforms-1.html [ ImageOnlyFailure ]
+imported/mathml-in-html5/mathml/relations/css-styling/mathvariant-transforms-2.html [ ImageOnlyFailure ]
 mathml/opentype/large-operators-munderover.html [ Failure ]
 mathml/presentation/attributes-mathvariant.html [ ImageOnlyFailure ]
 mathml/presentation/href-enter.html [ ImageOnlyFailure ]

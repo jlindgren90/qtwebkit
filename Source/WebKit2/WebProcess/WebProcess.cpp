@@ -517,7 +517,7 @@ void WebProcess::destroyPrivateBrowsingSession(SessionID sessionID)
 
 void WebProcess::ensureLegacyPrivateBrowsingSessionInNetworkProcess()
 {
-    networkConnection()->connection()->send(Messages::NetworkConnectionToWebProcess::EnsureLegacyPrivateBrowsingSession(), 0);
+    networkConnection().connection().send(Messages::NetworkConnectionToWebProcess::EnsureLegacyPrivateBrowsingSession(), 0);
 }
 
 #if ENABLE(NETSCAPE_PLUGIN_API)
@@ -1019,7 +1019,7 @@ void WebProcess::setInjectedBundleParameters(const IPC::DataReference& value)
     injectedBundle->setBundleParameters(value);
 }
 
-NetworkProcessConnection* WebProcess::networkConnection()
+NetworkProcessConnection& WebProcess::networkConnection()
 {
     // If we've lost our connection to the network process (e.g. it crashed) try to re-establish it.
     if (!m_networkProcessConnection)
@@ -1029,7 +1029,7 @@ NetworkProcessConnection* WebProcess::networkConnection()
     if (!m_networkProcessConnection)
         CRASH();
     
-    return m_networkProcessConnection.get();
+    return *m_networkProcessConnection;
 }
 
 void WebProcess::networkProcessConnectionClosed(NetworkProcessConnection* connection)
@@ -1481,7 +1481,7 @@ void WebProcess::prefetchDNS(const String& hostname)
         return;
 
     if (m_dnsPrefetchedHosts.add(hostname).isNewEntry)
-        networkConnection()->connection()->send(Messages::NetworkConnectionToWebProcess::PrefetchDNS(hostname), 0);
+        networkConnection().connection().send(Messages::NetworkConnectionToWebProcess::PrefetchDNS(hostname), 0);
     // The DNS prefetched hosts cache is only to avoid asking for the same hosts too many times
     // in a very short period of time, producing a lot of IPC traffic. So we clear this cache after
     // some time of no DNS requests.
