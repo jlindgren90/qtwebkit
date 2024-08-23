@@ -596,12 +596,14 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
     storage
     style
     svg
+    workers
 
     Modules/applepay
     Modules/geolocation
     Modules/indexeddb
     Modules/notifications
     Modules/webdatabase
+    Modules/websockets
 
     Modules/indexeddb/client
     Modules/indexeddb/shared

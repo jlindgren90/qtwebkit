@@ -43,6 +43,7 @@
 #include "CachedResourceLoader.h"
 #include "Chrome.h"
 #include "ChromeClient.h"
+#include "ContentFilter.h"
 #include "ContentSecurityPolicy.h"
 #include "DOMImplementation.h"
 #include "DOMWindow.h"
@@ -1342,6 +1343,8 @@ void FrameLoader::load(DocumentLoader* newDocumentLoader)
         type = FrameLoadType::Same;
     } else if (shouldTreatURLAsSameAsCurrent(newDocumentLoader->unreachableURL()) && m_loadType == FrameLoadType::Reload)
         type = FrameLoadType::Reload;
+    else if (m_loadType == FrameLoadType::RedirectWithLockedBackForwardList && !newDocumentLoader->unreachableURL().isEmpty() && newDocumentLoader->substituteData().isValid())
+        type = FrameLoadType::RedirectWithLockedBackForwardList;
     else
         type = FrameLoadType::Standard;
 
@@ -2244,6 +2247,10 @@ void FrameLoader::checkLoadCompleteForThisFrame()
             if (!pdl->isLoadingInAPISense() || pdl->isStopping()) {
                 m_provisionalLoadErrorBeingHandledURL = m_provisionalDocumentLoader->url();
                 m_client.dispatchDidFailProvisionalLoad(error);
+#if ENABLE(CONTENT_FILTERING)
+                if (auto contentFilter = pdl->contentFilter())
+                    contentFilter->handleProvisionalLoadFailure(error);
+#endif
                 m_provisionalLoadErrorBeingHandledURL = { };
 
                 ASSERT(!pdl->isLoading());
@@ -3445,6 +3452,15 @@ ResourceError FrameLoader::blockedError(const ResourceRequest& request) const
     error.setType(ResourceError::Type::Cancellation);
     return error;
 }
+
+#if ENABLE(CONTENT_FILTERING)
+ResourceError FrameLoader::blockedByContentFilterError(const ResourceRequest& request) const
+{
+    ResourceError error = m_client.blockedByContentFilterError(request);
+    error.setType(ResourceError::Type::General);
+    return error;
+}
+#endif
 
 #if PLATFORM(IOS)
 RetainPtr<CFDictionaryRef> FrameLoader::connectionProperties(ResourceLoader* loader)

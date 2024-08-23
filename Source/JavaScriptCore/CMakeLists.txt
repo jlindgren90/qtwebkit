@@ -1208,6 +1208,10 @@ set(BUILTINS_GENERATOR_SCRIPTS
     ${JavaScriptCore_SCRIPTS_DIR}/builtins_generate_combined_implementation.py
     ${JavaScriptCore_SCRIPTS_DIR}/builtins_generate_separate_header.py
     ${JavaScriptCore_SCRIPTS_DIR}/builtins_generate_separate_implementation.py
+    ${JavaScriptCore_SCRIPTS_DIR}/builtins_generate_wrapper_header.py
+    ${JavaScriptCore_SCRIPTS_DIR}/builtins_generate_wrapper_implementation.py
+    ${JavaScriptCore_SCRIPTS_DIR}/builtins_generate_internals_wrapper_header.py
+    ${JavaScriptCore_SCRIPTS_DIR}/builtins_generate_internals_wrapper_implementation.py
     ${JavaScriptCore_SCRIPTS_DIR}/generate-js-builtins.py
     ${JavaScriptCore_SCRIPTS_DIR}/lazywriter.py
 )
@@ -1355,12 +1359,3 @@ QT_ADD_EXTRA_WEBKIT_TARGET_EXPORT(JavaScriptCore)
 
 add_custom_target(stageSharedScripts DEPENDS ${JavaScriptCore_SCRIPTS})
 add_dependencies(JavaScriptCore stageSharedScripts)
-
-if (MSVC)
-    add_custom_command(
-        TARGET JavaScriptCore
-        POST_BUILD
-        COMMAND ${PERL_EXECUTABLE} ${WEBKIT_LIBRARIES_DIR}/tools/scripts/version-stamp.pl ${DERIVED_SOURCES_WEBKIT_DIR} $<TARGET_FILE:JavaScriptCore>
-        VERBATIM)
-endif ()
-

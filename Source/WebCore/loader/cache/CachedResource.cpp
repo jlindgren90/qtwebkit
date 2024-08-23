@@ -185,12 +185,18 @@ void CachedResource::failBeforeStarting()
     error(CachedResource::LoadError);
 }
 
-static void addAdditionalRequestHeadersToRequest(ResourceRequest& request, const CachedResourceLoader& cachedResourceLoader)
+static void addAdditionalRequestHeadersToRequest(ResourceRequest& request, const CachedResourceLoader& cachedResourceLoader, CachedResource::Type type)
 {
+    if (type == CachedResource::MainResource)
+        return;
+    // In some cases we may try to load resources in frameless documents. Such loads always fail.
+    // FIXME: We shouldn't get this far.
+    if (!cachedResourceLoader.frame())
+        return;
+
     // Note: We skip the Content-Security-Policy check here because we check
     // the Content-Security-Policy at the CachedResourceLoader layer so we can
     // handle different resource types differently.
-
     FrameLoader& frameLoader = cachedResourceLoader.frame()->loader();
     String outgoingReferrer;
     String outgoingOrigin;
@@ -215,7 +221,7 @@ static void addAdditionalRequestHeadersToRequest(ResourceRequest& request, const
 
 void CachedResource::addAdditionalRequestHeaders(CachedResourceLoader& cachedResourceLoader)
 {
-    addAdditionalRequestHeadersToRequest(m_resourceRequest, cachedResourceLoader);
+    addAdditionalRequestHeadersToRequest(m_resourceRequest, cachedResourceLoader, type());
 }
 
 void CachedResource::load(CachedResourceLoader& cachedResourceLoader, const ResourceLoaderOptions& options)
@@ -277,8 +283,7 @@ void CachedResource::load(CachedResourceLoader& cachedResourceLoader, const Reso
 #endif
     m_resourceRequest.setPriority(loadPriority());
 
-    if (type() != MainResource)
-        addAdditionalRequestHeaders(cachedResourceLoader);
+    addAdditionalRequestHeaders(cachedResourceLoader);
 
     // FIXME: It's unfortunate that the cache layer and below get to know anything about fragment identifiers.
     // We should look into removing the expectation of that knowledge from the platform network stacks.
@@ -782,7 +787,7 @@ bool CachedResource::varyHeaderValuesMatch(const ResourceRequest& request, const
         return true;
 
     ResourceRequest requestWithFullHeaders(request);
-    addAdditionalRequestHeadersToRequest(requestWithFullHeaders, cachedResourceLoader);
+    addAdditionalRequestHeadersToRequest(requestWithFullHeaders, cachedResourceLoader, type());
 
     return verifyVaryingRequestHeaders(m_varyingHeaderValues, requestWithFullHeaders, m_sessionID);
 }

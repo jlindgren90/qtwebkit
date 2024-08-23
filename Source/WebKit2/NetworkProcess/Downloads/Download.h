@@ -30,6 +30,7 @@
 #include "MessageSender.h"
 #include "SandboxExtension.h"
 #include <WebCore/ResourceRequest.h>
+#include <WebCore/SessionID.h>
 #include <wtf/Noncopyable.h>
 
 #if PLATFORM(COCOA)
@@ -80,7 +81,7 @@ class Download : public IPC::MessageSender {
     WTF_MAKE_NONCOPYABLE(Download); WTF_MAKE_FAST_ALLOCATED;
 public:
 #if USE(NETWORK_SESSION) && PLATFORM(COCOA)
-    Download(DownloadManager&, DownloadID, NSURLSessionDownloadTask*, const String& suggestedFilename = { });
+    Download(DownloadManager&, DownloadID, NSURLSessionDownloadTask*, const WebCore::SessionID& sessionID, const String& suggestedFilename = { });
 #else
     Download(DownloadManager&, DownloadID, const WebCore::ResourceRequest&, const String& suggestedFilename = { });
 #endif
@@ -128,6 +129,8 @@ private:
 
     void platformInvalidate();
 
+    bool isAlwaysOnLoggingAllowed() const;
+
     DownloadManager& m_downloadManager;
     DownloadID m_downloadID;
 #if !USE(NETWORK_SESSION)
@@ -139,6 +142,7 @@ private:
 #if PLATFORM(COCOA)
 #if USE(NETWORK_SESSION)
     RetainPtr<NSURLSessionDownloadTask> m_download;
+    WebCore::SessionID m_sessionID;
 #else
     RetainPtr<NSURLDownload> m_nsURLDownload;
     RetainPtr<WKDownloadAsDelegate> m_delegate;
@@ -156,6 +160,7 @@ private:
     RefPtr<WebCore::ResourceHandle> m_resourceHandle;
 #endif
     String m_suggestedName;
+    bool m_hasReceivedData { false };
 };
 
 } // namespace WebKit

@@ -1,3 +1,154 @@
+2016-07-08  Tim Horton  <timothy_horton@apple.com>
+
+        Mail messages don't start loading until scrolling completes
+        https://bugs.webkit.org/show_bug.cgi?id=159585
+        <rdar://problem/27088405>
+
+        Reviewed by Andy Estes.
+
+        * UIProcess/Network/CustomProtocols/mac/CustomProtocolManagerProxyMac.mm:
+        (-[WKCustomProtocolLoader initWithCustomProtocolManagerProxy:customProtocolID:request:connection:]):
+        When scrolling, NSDefaultRunLoopMode isn't run, but NSRunLoopCommonModes are.
+        CFNetwork uses NSDefaultRunLoopMode if we tell NSURLConnection to "start immediately",
+        but we can instead schedule our NSURLConnection into NSRunLoopCommonModes
+        and start it ourselves, ensuring that it will be able to do work while scrolling is happening.
+
+2016-07-08  Andy Estes  <aestes@apple.com>
+
+        [Content Filtering] Load blocked pages more like other error pages are loaded
+        https://bugs.webkit.org/show_bug.cgi?id=159485
+        <rdar://problem/26014076>
+
+        Reviewed by Brady Eidson.
+
+        * Shared/API/c/WKErrorRef.h: Defined kWKErrorCodeFrameLoadBlockedByContentFilter.
+        * UIProcess/Cocoa/WebProcessProxyCocoa.mm:
+        (WebKit::WebProcessProxy::platformPathsWithAssumedReadAccess): Added the resource directories
+        of WebCore.framework and WebKit.framework as paths with assumed read access.
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::hasAssumedReadAccessToURL): Checked platformPathsWithAssumedReadAccess()
+        as well as m_localPathsWithAssumedReadAccess.
+        (WebKit::WebProcessProxy::platformPathsWithAssumedReadAccess): Added a non-Cocoa implementation.
+        * UIProcess/WebProcessProxy.h:
+        * WebProcess/WebCoreSupport/WebErrors.h:
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::blockedByContentFilterError): Called WebKit::blockedByContentFilterError().
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.h:
+        * WebProcess/WebCoreSupport/mac/WebErrorsMac.mm:
+        (WebKit::blockedByContentFilterError): Returned a ResourceError for kWKErrorCodeFrameLoadBlockedByContentFilter.
+
+2016-07-08  Anders Carlsson  <andersca@apple.com>
+
+        Fix 32-bit build.
+
+        * PluginProcess/mac/PluginProcessShim.mm:
+
+2016-07-07  Anders Carlsson  <andersca@apple.com>
+
+        REGRESSION (r196321): Adobe Reader DC + Safari : Zoom level pulldown is not displayed at the correct position
+        https://bugs.webkit.org/show_bug.cgi?id=159531
+        rdar://problem/26382579
+
+        Reviewed by Tim Horton.
+
+        There's code in the Adobe Acrobat framework that checks if the main bundle identifier is "com.apple.WebKit.PluginProcess"
+        and assumes that it's running inside the Adobe Reader app if it's something else. Since we're now using the XPC service
+        for all plug-ins, the bundle identifier is "com.apple.WebKit.Plugin.64", so the Acrobat framework assumes it's running in the app
+        and doesn't use any special tricks to show the popup menu.
+        
+        Work around this by shimming CFStringCompare, and looking for the exact conditions when this can happen and return kCFCompareEqualTo
+        when all conditions are true.
+        
+        * PluginProcess/mac/PluginProcessMac.mm:
+        (WebKit::isAdobeAcrobatAddress):
+        (WebKit::stringCompare):
+        (WebKit::initializeShim):
+        (WebKit::PluginProcess::platformInitializeProcess):
+        * PluginProcess/mac/PluginProcessShim.h:
+        * PluginProcess/mac/PluginProcessShim.mm:
+        (WebKit::shimCFStringCompare):
+
+2016-07-08  Brady Eidson  <beidson@apple.com>
+
+        Unreviewed: Fix case-sensitive filesystem build.
+
+        * UIProcess/Storage/LocalStorageDatabaseTracker.cpp:
+
+2016-07-08  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202944.
+        https://bugs.webkit.org/show_bug.cgi?id=159570
+
+        caused some tests to crash under GuardMalloc (Requested by
+        estes on #webkit).
+
+        Reverted changeset:
+
+        "[Content Filtering] Load blocked pages more like other error
+        pages are loaded"
+        https://bugs.webkit.org/show_bug.cgi?id=159485
+        http://trac.webkit.org/changeset/202944
+
+2016-07-08  Keith Rollin  <krollin@apple.com>
+
+        Add always-on logging for downloads
+        https://bugs.webkit.org/show_bug.cgi?id=159521
+        <rdar://problem/26630645>
+
+        Reviewed by Alex Christensen.
+
+        Add logging statements that track when a download starts, when it
+        first receives data, and when the download is done (due to completion,
+        cancelation, or failure).
+
+        * NetworkProcess/Downloads/Download.cpp:
+        (WebKit::Download::Download):
+        (WebKit::Download::didReceiveResponse):
+        (WebKit::Download::didReceiveData):
+        (WebKit::Download::didFinish):
+        (WebKit::Download::didFail):
+        (WebKit::Download::didCancel):
+        (WebKit::Download::isAlwaysOnLoggingAllowed):
+        * NetworkProcess/Downloads/Download.h:
+        (WebKit::Download::Download):
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:dataTask:didBecomeDownloadTask:]):
+
+2016-07-08  Brady Eidson  <beidson@apple.com>
+
+        Clearing LocalStorage doesn't also delete -wal and -shm files.
+        <rdar://problem/27206772> and https://bugs.webkit.org/show_bug.cgi?id=159566
+
+        Reviewed by Brent Fulgham.
+        Also helpfully picked over by Andy "Never Forgets" Estes.
+
+        * UIProcess/Storage/LocalStorageDatabaseTracker.cpp:
+        (WebKit::LocalStorageDatabaseTracker::removeDatabaseWithOriginIdentifier):
+
+2016-07-07  Andy Estes  <aestes@apple.com>
+
+        [Content Filtering] Load blocked pages more like other error pages are loaded
+        https://bugs.webkit.org/show_bug.cgi?id=159485
+        <rdar://problem/26014076>
+
+        Reviewed by Brady Eidson.
+
+        * Shared/API/c/WKErrorRef.h: Defined kWKErrorCodeFrameLoadBlockedByContentFilter.
+        * UIProcess/Cocoa/WebProcessProxyCocoa.mm:
+        (WebKit::WebProcessProxy::platformPathsWithAssumedReadAccess): Added the resource directories
+        of WebCore.framework and WebKit.framework as paths with assumed read access.
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::hasAssumedReadAccessToURL): Checked platformPathsWithAssumedReadAccess()
+        as well as m_localPathsWithAssumedReadAccess.
+        (WebKit::WebProcessProxy::platformPathsWithAssumedReadAccess): Added a non-Cocoa implementation.
+        * UIProcess/WebProcessProxy.h:
+        * WebProcess/WebCoreSupport/WebErrors.h:
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::blockedByContentFilterError): Called WebKit::blockedByContentFilterError().
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.h:
+        * WebProcess/WebCoreSupport/mac/WebErrorsMac.mm:
+        (WebKit::blockedByContentFilterError): Returned a ResourceError for kWKErrorCodeFrameLoadBlockedByContentFilter.
+
 2016-07-07  Alex Christensen  <achristensen@webkit.org>
 
         Followup to r202939.

@@ -1,3 +1,997 @@
+2016-07-08  Daniel Bates  <dabates@apple.com>
+
+        Setting table.tFoot or calling table.createTFoot() should append HTML tfont element to the end of the table
+        https://bugs.webkit.org/show_bug.cgi?id=159583
+        <rdar://problem/27255292>
+
+        In HTMLTableElement::createTFoot() I inadvertently made use of WTFMove() to move the instantiated
+        HTMLTableSectionElement into the argument passed to setTFoot(). We should use Ref::copyRef() instead
+        because we want this function to return the instantiated table section.
+
+        * html/HTMLTableElement.cpp:
+        (WebCore::HTMLTableElement::createTFoot):
+
+2016-07-08  Daniel Bates  <dabates@apple.com>
+
+        Setting table.tFoot or calling table.createTFoot() should append HTML tfont element to the end of the table
+        https://bugs.webkit.org/show_bug.cgi?id=159583
+        <rdar://problem/27255292>
+
+        Reviewed by Chris Dumez.
+
+        he HTML standard has long since been revised to describe that assignment to property table.tFoot
+        or invoking table.createTFoot() will append the HTML tfoot element to the end of the table. This
+        behavior is defined in <https://html.spec.whatwg.org/multipage/tables.html#dom-table-tfoot> (8 July 2016)
+        and <https://html.spec.whatwg.org/multipage/tables.html#dom-table-createtfoot> for the property
+        table.tFoot and table.createTFoot(), respectively. This change makes our behavior match the
+        behavior in Mozilla Firefox, Microsoft Edge, Microsoft Internet Explorer 8 and later.
+
+        * html/HTMLTableElement.cpp:
+        (WebCore::HTMLTableElement::setTFoot): Append <tfoot> to the end of the table. Use RefPtr<>&& instead of PassRefPtr.
+        (WebCore::HTMLTableElement::createTFoot): Use RefPtr<>&& instead of PassRefPtr.
+        * html/HTMLTableElement.h:
+
+2016-07-08  Jer Noble  <jer.noble@apple.com>
+
+        Crash in layout test /media/video-buffered-range-contains-currentTime.html
+        https://bugs.webkit.org/show_bug.cgi?id=159109
+        <rdar://problem/26535750>
+
+        Reviewed by Alex Christensen.
+
+        Protect against _dataTasks being mutated and accessed on multiple simultaneous threads with a Lock.
+
+        * platform/network/cocoa/WebCoreNSURLSession.h:
+        * platform/network/cocoa/WebCoreNSURLSession.mm:
+        (-[WebCoreNSURLSession dealloc]):
+        (-[WebCoreNSURLSession taskCompleted:]):
+        (-[WebCoreNSURLSession finishTasksAndInvalidate]):
+        (-[WebCoreNSURLSession invalidateAndCancel]):
+        (-[WebCoreNSURLSession getTasksWithCompletionHandler:]):
+        (-[WebCoreNSURLSession getAllTasksWithCompletionHandler:]):
+        (-[WebCoreNSURLSession dataTaskWithRequest:]):
+        (-[WebCoreNSURLSession dataTaskWithURL:]):
+
+2016-07-08  Jeremy Jones  <jeremyj@apple.com>
+
+        Prevent fullscreen video dimension state from being reset after configuring.
+        https://bugs.webkit.org/show_bug.cgi?id=159578
+
+        Reviewed by Jer Noble.
+
+        This change moves setVideoElement() to after setMediaElement(), since setMediaElement() resets the
+        mediaState, undoing the configuration done by setVideoElement().
+
+        This change is fragile, but minimal. The proper, more comprehinsive fix will come later from
+        https://bugs.webkit.org/show_bug.cgi?id=159580.
+
+        * platform/ios/WebVideoFullscreenControllerAVKit.mm:
+        (WebVideoFullscreenControllerContext::setUpFullscreen):
+
+2016-07-08  Andy Estes  <aestes@apple.com>
+
+        [Content Filtering] Load blocked pages more like other error pages are loaded
+        https://bugs.webkit.org/show_bug.cgi?id=159485
+        <rdar://problem/26014076>
+
+        Reviewed by Brady Eidson.
+
+        Content filter blocked pages were being loaded by cancelling the provisional load of the
+        page that was blocked and then scheduling a navigation to the content filter error page.
+        Some clients would not expect a new, Web process-initiated provisional navigation to start
+        after a cancellation, though, and this would put them in a bad state.
+        
+        This patch changes blocked page loading to behave more like loading other error pages.
+        Specifically:
+        1. didFailProvisionalLoad is dispatched with a new, non-cancellation error code.
+        2. The blocked page is loaded immediately after dispatching didFailProvisionalLoad, which
+           prevents FrameLoader from creating a new back-forward list item for the substitute data load.
+        3. A substitute data load initiated by the client for the blocked URL is ignored if
+           ContentFilter will display its own error page.
+        4. A file: URL is used instead of a custom scheme for the base URL of the blocked page,
+           since some clients expect this.
+
+        Updated existing tests to capture frame load delegate callbacks and the back forward list.
+        Added new API tests: ContentFiltering.LoadAlternate*.
+
+        * English.lproj/Localizable.strings: Added a WebKitErrorFrameLoadBlockedByContentFilter description.
+        * Resources/ContentFilterBlockedPage.html: Added.
+        * WebCore.xcodeproj/project.pbxproj: Added ContentFilterBlockedPage.html as a frameowrk resource.
+        * loader/ContentFilter.cpp:
+        (WebCore::ContentFilter::continueAfterWillSendRequest): Protected m_documentLoader,
+        since it might otherwise be deallocated inside ContentFilter::didDecide() if the load is blocked.
+        (WebCore::ContentFilter::stopFilteringMainResource): Only set m_state to Stopped if not
+        already Blocked, so that we don't forget this ContentFilter was blocked when calling
+        cancelMailResourceLoad() in didDecide().
+        (WebCore::ContentFilter::continueAfterResponseReceived): Protected m_documentLoader,
+        since it might otherwise be deallocated inside ContentFilter::didDecide() if the load is blocked.
+        (WebCore::ContentFilter::continueAfterDataReceived): Ditto.
+        (WebCore::ContentFilter::continueAfterNotifyFinished): Ditto.
+        (WebCore::ContentFilter::didDecide): Moved code from DocumentLoader::contentFilterDidBlock() to here.
+        Created a blockedByContentFilterError() and called cancelMainResourceLoad().
+        (WebCore::blockedPageURL): Returned a file: URL to ContentFilterBlockedPage.html in WebCore.framework.
+        (WebCore::ContentFilter::continueAfterSubstituteDataRequest): If the substitute data load
+        is for the same failingURL as the currently-displayed blocked page, ignore it.
+        (WebCore::ContentFilter::handleProvisionalLoadFailure): Load the blocked page if m_state is Blocked
+        and the ResourceError matches the error we used when previously calling cancelMainResourceLoad().
+        (WebCore::ContentFilter::unblockHandler): Deleted.
+        (WebCore::ContentFilter::replacementData): Deleted.
+        (WebCore::ContentFilter::unblockRequestDeniedScript): Deleted.
+        * loader/ContentFilter.h:
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::contentFilter): Returned m_contentFilter.
+        (WebCore::DocumentLoader::installContentFilterUnblockHandler): Deleted.
+        (WebCore::DocumentLoader::contentFilterDidBlock): Deleted.
+        * loader/DocumentLoader.h:
+        * loader/EmptyClients.h: Added a default implementation of blockedByContentFilterError().
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::load): If m_loadType was already RedirectWithLockedBackForwardList
+        and we are loading subsitute data for a failing URL, continue to use RedirectWithLockedBackForwardList.
+        This prevents a new back-forward list item from being created when loading a blocked page in a subframe.
+        (WebCore::FrameLoader::checkLoadCompleteForThisFrame):
+        Called ContentFilter::handleProvisionalLoadFailure() after dispatchDidFailProvisionalLoad().
+        (WebCore::FrameLoader::blockedByContentFilterError): Called FrameLoaderClient::blockedByContentFilterError().
+        * loader/FrameLoader.h:
+        * loader/FrameLoaderClient.h:
+        * loader/NavigationScheduler.cpp:
+        (WebCore::ScheduledSubstituteDataLoad::ScheduledSubstituteDataLoad): Deleted.
+        (WebCore::NavigationScheduler::scheduleSubstituteDataLoad): Deleted.
+        * loader/NavigationScheduler.h:
+        * loader/PolicyChecker.cpp:
+        (WebCore::PolicyChecker::checkNavigationPolicy): Ignored a substitute data load for a
+        failing URL if ContentFilter::continueAfterSubstituteDataRequest() returns false.
+
+2016-07-08  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Font Loading] The callback passed to document.fonts.ready should always be called
+        https://bugs.webkit.org/show_bug.cgi?id=158884
+
+        Reviewed by Dean Jackson.
+
+        The boolean was simply not being reset when loads start.
+
+        Test: fast/text/font-face-set-ready-fire.html
+
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::startedLoading):
+        * css/FontFaceSet.h:
+
+2016-07-08  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202944.
+        https://bugs.webkit.org/show_bug.cgi?id=159570
+
+        caused some tests to crash under GuardMalloc (Requested by
+        estes on #webkit).
+
+        Reverted changeset:
+
+        "[Content Filtering] Load blocked pages more like other error
+        pages are loaded"
+        https://bugs.webkit.org/show_bug.cgi?id=159485
+        http://trac.webkit.org/changeset/202944
+
+2016-07-08  Antti Koivisto  <antti@apple.com>
+
+        Regression(r201805): Crash with <use> resource that has Vary header
+        https://bugs.webkit.org/show_bug.cgi?id=159560
+        <rdar://problem/27034208>
+
+        Reviewed by Chris Dumez.
+
+        In some situations (SVG <use> element for example) we may try to load resources from frameless documents.
+        Such loads always fail. The new vary header verification code path tried to access the frame earlier without
+        null check.
+
+        Test: http/tests/cache/vary-frameless-document.html
+
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::failBeforeStarting):
+        (WebCore::addAdditionalRequestHeadersToRequest):
+
+            Null check frame.
+            Also move the resource type check here so all callers get the same behavior.
+
+        (WebCore::CachedResource::addAdditionalRequestHeaders):
+        (WebCore::CachedResource::load):
+        (WebCore::CachedResource::varyHeaderValuesMatch):
+
+2016-07-08  Brady Eidson  <beidson@apple.com>
+
+        Clearing LocalStorage doesn't also delete -wal and -shm files.
+        <rdar://problem/27206772> and https://bugs.webkit.org/show_bug.cgi?id=159566
+
+        Reviewed by Brent Fulgham.
+        Also helpfully picked over by Andy "Never Forgets" Estes.
+
+        Covered by new API test.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+        * platform/sql/SQLiteFileSystem.h:
+
+2016-07-08  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202945.
+        https://bugs.webkit.org/show_bug.cgi?id=159565
+
+        The test for this change is failing on all platforms.
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "[Font Loading] The callback passed to document.fonts.ready
+        should always be called"
+        https://bugs.webkit.org/show_bug.cgi?id=158884
+        http://trac.webkit.org/changeset/202945
+
+2016-07-08  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        ExecState should be passed by reference in JS bindings generator for custom constructors
+        https://bugs.webkit.org/show_bug.cgi?id=159357
+
+        Reviewed by Youenn Fablet.
+
+        Pass ExecState as a reference instead of pointer in JS bindings
+        code for custom constructors.
+
+        * bindings/js/JSAudioContextCustom.cpp:
+        (WebCore::constructJSAudioContext):
+        * bindings/js/JSBlobCustom.cpp:
+        (WebCore::constructJSBlob):
+        * bindings/js/JSDOMFormDataCustom.cpp:
+        (WebCore::constructJSDOMFormData):
+        (WebCore::JSDOMFormData::append):
+        * bindings/js/JSDataCueCustom.cpp:
+        (WebCore::constructJSDataCue):
+        * bindings/js/JSFileCustom.cpp:
+        (WebCore::constructJSFile):
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement):
+        * bindings/js/JSMediaSessionCustom.cpp:
+        (WebCore::constructJSMediaSession):
+        * bindings/js/JSMutationObserverCustom.cpp:
+        (WebCore::constructJSMutationObserver):
+        * bindings/js/JSReadableStreamPrivateConstructors.cpp:
+        (WebCore::constructJSReadableStreamController):
+        (WebCore::constructJSReadableStreamReader):
+        * bindings/js/JSWebKitPointCustom.cpp:
+        (WebCore::constructJSWebKitPoint):
+        * bindings/js/JSWorkerCustom.cpp:
+        (WebCore::constructJSWorker):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        (GenerateConstructorDefinition):
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.cpp:
+        (WebCore::JSTestCustomConstructorWithNoInterfaceObjectConstructor::construct):
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.h:
+
+2016-07-08  Olivier Blin  <olivier.blin@softathome.com>
+
+        Expose crossOrigin attribute as a static property in HTMLMediaElement
+        https://bugs.webkit.org/show_bug.cgi?id=159459
+
+        Reviewed by Chris Dumez.
+
+        The crossOrigin attribute is already used for MediaResourceLoader
+        (r119742 and r175050), but it was not exposed as a static property.
+
+        This fixes VR360 support in Dailymotion, since it uses the "in"
+        operator to detect if crossOrigin is supported by the
+        HTMLVideoElement, in order to enable VR360.
+
+        No new tests, rebaselined existing tests, 150 WPT tests are fixed.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::setCrossOrigin):
+        (WebCore::HTMLMediaElement::crossOrigin):
+        * html/HTMLMediaElement.h:
+        * html/HTMLMediaElement.idl:
+
+2016-03-20  Frederic Wang  <fwang@igalia.com>
+
+        Use Fraction* parameters from the OpenType MATH table
+        https://bugs.webkit.org/show_bug.cgi?id=155639
+
+        Reviewed by Brent Fulgham.
+
+        We improve the RenderMathMLFraction so minimal vertical shifts and gaps
+        from the MATH table (or arbitrary fallback) are used for fractions.
+        We also change the interpretation of "thick" and "thin" linethickness values
+        to match Gecko's behavior and the one suggested in the MathML in HTML5 implementation note.
+
+        Test: imported/mathml-in-html5/mathml/presentation-markup/fractions/frac-parameters-1.html
+
+        * rendering/mathml/MathMLStyle.cpp:
+        (WebCore::MathMLStyle::updateStyleIfNeeded): set NeedsLayout after displaystyle change
+        so that dynamic MathML tests still work.
+        * rendering/mathml/RenderMathMLFraction.cpp:
+        (WebCore::RenderMathMLFraction::RenderMathMLFraction): Init LayoutUnit members to zero.
+        (WebCore::RenderMathMLFraction::updateFromElement):
+        Set new members for fraction gaps and shifts using Fraction* constants or some fallback
+        values. Change the interpretation of "thick" and "thin".
+        (WebCore::RenderMathMLFraction::layoutBlock): Use new constants affecting vertical
+        positions of numerator and denominator.
+        (WebCore::RenderMathMLFraction::paint): Use m_ascent to set the vertical position
+        of the fraction bar.
+        (WebCore::RenderMathMLFraction::firstLineBaseline): We just return m_ascent.
+        * rendering/mathml/RenderMathMLFraction.h: Make updateFromElement public so that
+        it can be used in MathMLStyle. Add LayoutUnit members for the ascent of the fraction
+        and for minimal shifts/gaps values.
+
+2016-07-08  Frederic Wang  <fwang@igalia.com>
+
+        Use Radical* constants from the OpenType MATH table.
+        https://bugs.webkit.org/show_bug.cgi?id=155638
+
+        Reviewed by Brent Fulgham.
+
+        Test: mathml/mathml-in-html5/root-parameters-1.html
+
+        We make the radical vertical gap depends on displaystyle.
+        This is the only remaining step to use all the Radical* constants from the MATH table.
+        We also introduce a ruleThicknessFallback function for future use.
+
+        * rendering/mathml/RenderMathMLBlock.h:
+        (WebCore::RenderMathMLBlock::ruleThicknessFallback): Add this helper function since that
+        calculation is used in several places.
+        * rendering/mathml/RenderMathMLRoot.cpp:
+        (WebCore::RenderMathMLRoot::updateStyle): Reorganize the way we set constant parameters,
+        add more comments and take into account the displaystyle for the vertical gap.
+
+2016-07-08  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202967.
+        https://bugs.webkit.org/show_bug.cgi?id=159556
+
+        This patch caused crashes in https tests on Windows (Requested
+        by perarne on #webkit).
+
+        Reverted changeset:
+
+        "[Win] The test http/tests/security/contentSecurityPolicy
+        /upgrade-insecure-requests/basic-upgrade.https.html is
+        failing."
+        https://bugs.webkit.org/show_bug.cgi?id=159510
+        http://trac.webkit.org/changeset/202967
+
+2016-07-08  Youenn Fablet  <youenn@apple.com>
+
+        Generate WebCore builtin wrapper files
+        https://bugs.webkit.org/show_bug.cgi?id=159461
+
+        Reviewed by Brian Burg.
+
+        No change of behavior.
+
+        Updating build system to handle new built-in generators without modifying WebCoreJSBuiltins* files.
+        The generator is now passed all built-ins at once so that wrapper files can be generated.
+        Removing WebCoreJSBuiltins* checked-in wrapper files.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSDOMGlobalObject.cpp:
+        (WebCore::JSDOMGlobalObject::addBuiltinGlobals):
+        * bindings/js/JSDOMGlobalObject.h:
+        * bindings/js/WebCoreJSBuiltinInternals.cpp: Removed.
+        * bindings/js/WebCoreJSBuiltinInternals.h: Removed.
+        * bindings/js/WebCoreJSBuiltins.cpp: Removed.
+        * bindings/js/WebCoreJSBuiltins.h: Removed.
+
+2016-07-08  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Inline size is never indefinite during layout
+        https://bugs.webkit.org/show_bug.cgi?id=159253
+
+        Reviewed by Sergio Villar Senin.
+
+        The issue is that the inline size of the grid container
+        is only indefinite while we're computing the intrinsic sizes.
+        During layout we should be able to resolve the percentage tracks
+        against that size. This makes Grid Layout compatible with regular blocks
+        regarding how inline percentages are resolved.
+
+        The patch passes the SizingOperation enum to RenderGrid::gridTrackSize().
+        That way we can know if we're computing the intrinsic sizes or not.
+
+        Test: fast/css-grid-layout/grid-container-percentage-columns.html
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::computeTrackSizesForDirection):
+        (WebCore::RenderGrid::computeIntrinsicLogicalWidths):
+        (WebCore::RenderGrid::computeIntrinsicLogicalHeight):
+        (WebCore::RenderGrid::computeUsedBreadthOfGridTracks):
+        (WebCore::RenderGrid::gridTrackSize):
+        (WebCore::RenderGrid::minSizeForChild):
+        (WebCore::RenderGrid::spanningItemCrossesFlexibleSizedTracks):
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctions):
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctionsForNonSpanningItems):
+        (WebCore::RenderGrid::tracksAreWiderThanMinTrackBreadth):
+        (WebCore::RenderGrid::rawGridTrackSize): Deleted.
+        * rendering/RenderGrid.h:
+
+2016-07-08  Frederic Wang  <fwang@igalia.com>
+
+        Use OpenType MATH constant AxisHeight.
+        https://bugs.webkit.org/show_bug.cgi?id=133567
+
+        Reviewed by Brent Fulgham.
+
+        We make RenderMathMLOperator and RenderMathMLTable use the OpenType MATH constant AxisHeight.
+        These are the only remaining cases to handle since RenderMathMLFraction already uses that constant.
+
+        Tests: imported/mathml-in-html5/mathml/presentation-markup/operators/mo-axis-height-1.html
+              imported/mathml-in-html5/mathml/presentation-markup/tables/table-axis-height.html
+
+        * rendering/mathml/RenderMathMLBlock.cpp: Make RenderMathMLTable use the math axis
+        for its vertical alignment and update a bit the comments.
+        (WebCore::axisHeight): Move the code in a static function that can be called by
+        RenderMathMLBlock and RenderMathMLTable.
+        (WebCore::RenderMathMLBlock::mathAxisHeight): Use axisHeight.
+        (WebCore::RenderMathMLTable::firstLineBaseline): Ditto.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::stretchTo):
+
+2016-07-08  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Disallow repeat() in grid-template shorthand
+        https://bugs.webkit.org/show_bug.cgi?id=159200
+
+        Reviewed by Sergio Villar Senin.
+
+        As discussed on www-style, "repeat()" notation shouldn't be allowed
+        in the ASCII branch of the grid-template shorthand.
+        https://lists.w3.org/Archives/Public/www-style/2016May/0193.html
+
+        The patch uses an enum to invalidate "repeat()" when parsing
+        the grid-template shorthand.
+
+        Test: fast/css-grid-layout/grid-template-shorthand-get-set.html
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseGridTemplateColumns): Add enum.
+        (WebCore::CSSParser::parseGridTemplateRowsAndAreasAndColumns): Pass "DisallowRepeat"
+        when calling parseGridTemplateColumns().
+        (WebCore::CSSParser::parseGridTrackList): Use enum to allow/disallow repeat.
+        * css/CSSParser.h: Define the new enum and modify method signatures to use it,
+        setting it to "AllowRepeat" by default.
+
+2016-07-08  Frederic Wang  <fwang@igalia.com>
+
+        Add support for movablelimits.
+        https://bugs.webkit.org/show_bug.cgi?id=155542
+
+        Reviewed by Brent Fulgham.
+
+        Tests: mathml/presentation/displaystyle-1.html
+               mathml/presentation/displaystyle-2.html
+               mathml/presentation/displaystyle-3.html
+               mathml/presentation/mo-movablelimits-default.html
+               mathml/presentation/mo-movablelimits-dynamic.html
+               mathml/presentation/mo-movablelimits.html
+
+        * mathml/MathMLTextElement.cpp:
+        (WebCore::MathMLTextElement::parseAttribute): Take into account change of movablelimits.
+        * rendering/mathml/MathMLOperatorDictionary.h: Remove FIXME comment.
+        * rendering/mathml/MathMLStyle.cpp:
+        (WebCore::MathMLStyle::updateStyleIfNeeded): Force relayout and width computation when a
+        displaystyle value change.
+        * rendering/mathml/RenderMathMLOperator.h:
+        (WebCore::RenderMathMLOperator::shouldMoveLimits): Helper function to test if the operator
+        should have his limits moved when used as a base of munder/mover/munderover.
+        * rendering/mathml/RenderMathMLScripts.cpp: Allow munderover/munder/mover elements to use
+        this class and take the same behavior as the corresponding msubsup/msub/sup except for
+        the *scriptshift attributes.
+        (WebCore::RenderMathMLScripts::RenderMathMLScripts):
+        (WebCore::RenderMathMLScripts::getBaseAndScripts):
+        (WebCore::RenderMathMLScripts::computePreferredLogicalWidths):
+        (WebCore::RenderMathMLScripts::getScriptMetricsAndLayoutIfNeeded):
+        (WebCore::RenderMathMLScripts::layoutBlock):
+        * rendering/mathml/RenderMathMLScripts.h: Allow some members to be accessible/overridden
+        by RenderMathMLUnderOver and add munderover/munder/mover in the kind.
+        * rendering/mathml/RenderMathMLUnderOver.cpp:
+        (WebCore::RenderMathMLUnderOver::RenderMathMLUnderOver): We use the code from
+        RenderMathMLScripts to initialize m_kind.
+        (WebCore::RenderMathMLUnderOver::shouldMoveLimits): New function to determine if the base
+        should move its limits.
+        (WebCore::RenderMathMLUnderOver::computePreferredLogicalWidths): We use the code from
+        RenderMathMLScripts when the base should move its limits.
+        (WebCore::RenderMathMLUnderOver::layoutBlock): We use the code from RenderMathMLScripts when
+        the base should move its limits. Also improve the early return for invalid markup.
+        (WebCore::RenderMathMLUnderOver::unembellishedOperator): Deleted. We use the code from RenderMathMLScripts.
+        (WebCore::RenderMathMLUnderOver::firstLineBaseline): Deleted. We use the code from RenderMathMLScripts.
+        * rendering/mathml/RenderMathMLUnderOver.h: We now inherit from RenderMathMLScripts and can
+        just remove members that exist in the parent. We define shouldMoveLimits() to determine
+        when the layout should be done the same as RenderMathMLScripts. For now, we try and be
+        safe with the rest of the code by continuing to claim that we are not a RenderMathMLScripts.
+
+2016-07-07  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Clean up PassRefPtr in Modules/webaudio
+        https://bugs.webkit.org/show_bug.cgi?id=159540
+
+        Reviewed by Alex Christensen.
+
+        Purge PassRefPtr in webaudio directory.
+
+        No new tests, no behavior changes.
+
+        * Modules/webaudio/AsyncAudioDecoder.h:
+        * Modules/webaudio/AudioBasicProcessorNode.h:
+        * Modules/webaudio/AudioBuffer.h:
+        * Modules/webaudio/AudioBufferSourceNode.h:
+        * Modules/webaudio/AudioListener.h:
+        * Modules/webaudio/AudioParam.h:
+        * Modules/webaudio/AudioParamTimeline.h:
+        (WebCore::AudioParamTimeline::ParamEvent::ParamEvent):
+        * Modules/webaudio/AudioProcessingEvent.cpp:
+        (WebCore::AudioProcessingEvent::AudioProcessingEvent):
+        * Modules/webaudio/AudioProcessingEvent.h:
+        (WebCore::AudioProcessingEvent::create):
+        * Modules/webaudio/ChannelMergerNode.h:
+        * Modules/webaudio/ChannelSplitterNode.h:
+        * Modules/webaudio/GainNode.h:
+        * Modules/webaudio/MediaElementAudioSourceNode.h:
+        * Modules/webaudio/MediaStreamAudioDestinationNode.h:
+        * Modules/webaudio/MediaStreamAudioSource.cpp:
+        (WebCore::MediaStreamAudioSource::addAudioConsumer):
+        * Modules/webaudio/MediaStreamAudioSource.h:
+        * Modules/webaudio/OfflineAudioCompletionEvent.cpp:
+        (WebCore::OfflineAudioCompletionEvent::create):
+        (WebCore::OfflineAudioCompletionEvent::OfflineAudioCompletionEvent):
+        * Modules/webaudio/OfflineAudioCompletionEvent.h:
+        * Modules/webaudio/OfflineAudioDestinationNode.h:
+        * Modules/webaudio/OscillatorNode.h:
+        * Modules/webaudio/PeriodicWave.h:
+        * Modules/webaudio/ScriptProcessorNode.h:
+
+2016-07-07  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] The test http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/basic-upgrade.https.html is failing.
+        https://bugs.webkit.org/show_bug.cgi?id=159510
+
+        Reviewed by Brent Fulgham.
+
+        On Windows, validate certificate chain even when any https certificate is allowed.
+
+        * platform/network/cf/ResourceHandleCFNet.cpp:
+        (WebCore::ResourceHandle::createCFURLConnection):
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Bug 155792 - Basic implementation of mpadded
+        https://bugs.webkit.org/show_bug.cgi?id=155792
+
+        Reviewed by Brent Fulgham.
+
+        We implement a basic support for the mpadded element.
+        We support most of the attribute values except pseudo-units or negative values.
+
+        Tests: mathml/presentation/mpadded-1-2.html
+               mathml/presentation/mpadded-1.html
+               mathml/presentation/mpadded-2.html
+               mathml/presentation/mpadded-3.html
+               mathml/presentation/mpadded-unsupported-values.html
+               mathml/presentation/mpadded-dynamic.html
+
+        * CMakeLists.txt: Add RenderMathMLPadded to the build system.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::createElementRenderer): Create the renderer
+        for mpadded.
+        * mathml/mathattrs.in: Add voffset attribute.
+        * mathml/mathtags.in: Make mpadded use MathMLInlineContainerElement.
+        * rendering/RenderObject.h:
+        (WebCore::RenderObject::isRenderMathMLPadded): Define isRenderMathMLPadded.
+        * rendering/mathml/RenderMathMLPadded.cpp: Added.
+        We do a simple implementation by overriding the behavior of RenderMathMLRow and forcing
+        relayout after attribute or style change.
+        (WebCore::RenderMathMLPadded::RenderMathMLPadded):
+        (WebCore::RenderMathMLPadded::computePreferredLogicalWidths):
+        (WebCore::RenderMathMLPadded::layoutBlock):
+        (WebCore::RenderMathMLPadded::updateFromElement):
+        (WebCore::RenderMathMLPadded::styleDidChange):
+        (WebCore::RenderMathMLPadded::firstLineBaseline):
+        * rendering/mathml/RenderMathMLPadded.h: Added.
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Move MathML-specific code into a separate accessibility class
+        https://bugs.webkit.org/show_bug.cgi?id=159213
+
+        Reviewed by Chris Fleizach.
+
+        Currently, MathML accessibility is completely handled in the generic AccessibilityRenderObject
+        and it's sometimes messy and unconvenient. Hence we move most of the MathML-specific code
+        into a separate AccessibilityMathMLElement class to facilitate future work and maintenance.
+
+        No new tests, already covered by existing tests.
+
+        * CMakeLists.txt: Add new AccessibilityMathMLElement module.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * accessibility/AccessibilityAllInOne.cpp: Ditto.
+        * accessibility/AXObjectCache.cpp: Add MathML headers and create AccessibilityMathMLElement.
+        (WebCore::createFromRenderer): Create AccessibilityMathMLElement for MathML elements and
+        anonymous operators created by the mfenced element.
+        * accessibility/AccessibilityMathMLElement.cpp: Added. This class handles all the MathML
+        elements as well as the anonymous operators created by the mfenced element. A boolean is
+        passed to the constructor to indicate whether we are in the latter case.
+        (WebCore::AccessibilityMathMLElement::AccessibilityMathMLElement):
+        (WebCore::AccessibilityMathMLElement::~AccessibilityMathMLElement):
+        (WebCore::AccessibilityMathMLElement::create):
+        (WebCore::AccessibilityMathMLElement::determineAccessibilityRole): Move handling of specific
+        MathElementRole and DocumentMathRole here.
+        (WebCore::AccessibilityMathMLElement::textUnderElement): Move retrieval of text from the
+        anonymous operators here.
+        (WebCore::AccessibilityMathMLElement::stringValue): Ditto.
+        (WebCore::AccessibilityMathMLElement::isIgnoredElementWithinMathTree): Move the determination
+        of ignored math elements here.
+        (WebCore::AccessibilityMathMLElement::isMathFraction): Moved from AccessibilityRenderObject.
+        (WebCore::AccessibilityMathMLElement::isMathFenced): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathSubscriptSuperscript): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathRow): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathUnderOver): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathSquareRoot): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathToken): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathRoot): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathOperator): Ditto.
+        (WebCore::AccessibilityMathMLElement::isAnonymousMathOperator): Move the determination of
+        anonymous operators here. We now just return the boolean passed at creation time.
+        (WebCore::AccessibilityMathMLElement::isMathFenceOperator): Moved from
+        AccessibilityRenderObject.
+        (WebCore::AccessibilityMathMLElement::isMathSeparatorOperator): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathText): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathNumber): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathIdentifier): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathMultiscript): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathTable): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathTableRow): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathTableCell): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathScriptObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::isMathMultiscriptObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathRadicandObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathRootIndexObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathNumeratorObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathDenominatorObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathUnderObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathOverObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathBaseObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathSubscriptObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathSuperscriptObject): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathFencedOpenString): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathFencedCloseString): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathPrescripts): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathPostscripts): Ditto.
+        (WebCore::AccessibilityMathMLElement::mathLineThickness): Ditto.
+        * accessibility/AccessibilityMathMLElement.h: Added.
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::isIgnoredElementWithinMathTree): The cases of
+        AccessibilityMathMLElement objects are now handled in the derived class. We remove the case
+        of text node since the MathML code no longer creates anonymous text nodes after r202420.
+        Anonymous block inserted into RenderMathMLBlocks to honor CSS rules are not AccessibilityMathMLElements
+        and it does not seem safe to modify AXObjectCache::createFromRenderer to force that. Hence
+        we still need to be handle them here.
+        (WebCore::AccessibilityRenderObject::textUnderElement): This code is moved into AccessibilityMathMLElement.
+        (WebCore::AccessibilityRenderObject::stringValue): Ditto.
+        (WebCore::AccessibilityRenderObject::determineAccessibilityRole): Ditto.
+        (WebCore::AccessibilityRenderObject::isMathElement): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathFraction): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathFenced): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathSubscriptSuperscript): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathRow): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathUnderOver): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathSquareRoot): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathToken): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathRoot): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathOperator): Deleted.
+        (WebCore::AccessibilityRenderObject::isAnonymousMathOperator): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathFenceOperator): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathSeparatorOperator): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathText): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathNumber): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathIdentifier): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathMultiscript): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathTable): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathTableRow): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathTableCell): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathScriptObject): Deleted.
+        (WebCore::AccessibilityRenderObject::isMathMultiscriptObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathRadicandObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathRootIndexObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathNumeratorObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathDenominatorObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathUnderObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathOverObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathBaseObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathSubscriptObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathSuperscriptObject): Deleted.
+        (WebCore::AccessibilityRenderObject::mathFencedOpenString): Deleted.
+        (WebCore::AccessibilityRenderObject::mathFencedCloseString): Deleted.
+        (WebCore::AccessibilityRenderObject::mathPrescripts): Deleted.
+        (WebCore::AccessibilityRenderObject::mathPostscripts): Deleted.
+        (WebCore::AccessibilityRenderObject::mathLineThickness): Deleted.
+        * accessibility/AccessibilityRenderObject.h: Remove declarations of functions that are now
+        overridden in AccessibilityMathMLElement. Make isIgnoredElementWithinMathTree virtual so that
+        it can be reimplemented in AccessibilityMathMLElement.
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Implement an internal style property for displaystyle.
+        https://bugs.webkit.org/show_bug.cgi?id=133845
+
+        Reviewed by Brent Fulgham.
+
+        Tests: mathml/opentype/large-operators-displaystyle-dynamic.html
+               mathml/opentype/large-operators-displaystyle.html
+
+        This is based on a patch by Alejandro G. Castro <alex@igalia.com>
+
+        * CMakeLists.txt: Add MathMLStyle to the build system.
+        * WebCore.xcodeproj/project.pbxproj: ditto.
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::parseAttribute): Resolve the mathml style when the
+        displaystyle attribute changes on the mtable or mstyle elements.
+        * mathml/MathMLInlineContainerElement.h: Define parseAttribute.
+        * mathml/MathMLMathElement.cpp:
+        (WebCore::MathMLMathElement::MathMLMathElement): Indicate that we have custom style.
+        (WebCore::MathMLMathElement::parseAttribute): Resolve the mathml style when the display or
+        displaystyle attributes change on the math element.
+        (WebCore::MathMLMathElement::didAttachRenderers): Resolve the mathml style when one
+        renderer is attached.
+        * mathml/MathMLMathElement.h: Declare parseAttribute and didAttachRenderers.
+        * mathml/mathattrs.in: Declare the display and displaystyle attributes.
+        * rendering/mathml/MathMLStyle.cpp: Added.
+        (WebCore::MathMLStyle::MathMLStyle): New class to handle custom MathML style.
+        (WebCore::MathMLStyle::create):
+        (WebCore::MathMLStyle::setDisplayStyle): Helper function to take the displaystyle from
+        the specified rendered.
+        (WebCore::MathMLStyle::resolveMathMLStyleTree): Helper function to resolve the custom
+        MathML style in renderer subtree.
+        (WebCore::MathMLStyle::getMathMLParentNode): Helper function to get a MathML ancestor of
+        the specified renderer.
+        (WebCore::MathMLStyle::updateStyleIfNeeded): Helper function to update the style of the
+        specified renderer if needed.
+        (WebCore::MathMLStyle::resolveMathMLStyle): Resolve the MathML style of a given renderer.
+        For displaystyle, we inherit the value of the parent except for the cases mentioned in the
+        MathML recommendation.
+        * rendering/mathml/MathMLStyle.h: New class header for custom MathML style.
+        Only displaystyle is supported for now.
+        * rendering/mathml/RenderMathMLBlock.cpp: Add a member and getter for custom MathML style.
+        (WebCore::RenderMathMLBlock::RenderMathMLBlock):
+        * rendering/mathml/RenderMathMLBlock.h: ditto.
+        (WebCore::RenderMathMLBlock::mathMLStyle):
+        * rendering/mathml/RenderMathMLMath.h: Add definition to use the syntax is<RenderMathMLMath>.
+        * rendering/mathml/RenderMathMLOperator.h:
+        (WebCore::RenderMathMLOperator::isLargeOperatorInDisplayStyle): Do not rerturn true when
+        the operator is not in displaystyle.
+        * rendering/mathml/RenderMathMLRoot.h: Make updateStyle public, so that it can be called
+        by MathMLStyle::updateStyleIfNeeded.
+        * rendering/mathml/RenderMathMLUnderOver.h: Add definition to use the syntax
+        is<RenderMathMLUnderOver>.
+
+2016-07-07  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Replace scoped flag in Event by composed flag
+        https://bugs.webkit.org/show_bug.cgi?id=158415
+
+        Reviewed by Chris Dumez.
+
+        Replace `scoped` flag with `composed` flag and negate its meaning per the latest spec:
+        https://dom.spec.whatwg.org/#dom-event-composed
+        https://github.com/w3c/webcomponents/issues/513
+
+        In the old spec, every event was assumed to be "composed" (crosses shadow boundaries)
+        by default and there was `scoped` flag which prevented the event from crossing bondaries,
+        and there was a handful of events for which `scoped` was set true when dispatched by UA.
+
+        In the new spec, every event is assumed to be "scoped" and a handful of user-initiated
+        events set `composed` flag to true, which is also exposed in EventInit dictionary.
+        `relatedTargetScoped` flag has been removed. New behavior is identical to when this flag
+        was set to true.
+
+        No new tests since existing tests are updated to test the new flag and behavior.
+
+        * dom/CompositionEvent.cpp:
+        (WebCore::CompositionEvent::isCompositionEvent): Added.
+        * dom/CompositionEvent.h:
+        * dom/Event.cpp:
+        (WebCore::Event::Event): Initialize m_composed. Also re-ordered m_type and m_isInitialized
+        for better packing.
+        (WebCore::Event::composed): Renamed from Event::composed. We return true whenever composed
+        is set to true in EventInit, or the engine is dispatching an user-initiated event listed in:
+        https://github.com/w3c/webcomponents/issues/513#issuecomment-224183937
+        as well as keypress, cut, paste, and, copy as discussed in:
+        https://github.com/w3c/webcomponents/issues/513#issuecomment-230988170
+        (WebCore::Event::isCompositionEvent): Added.
+        * dom/Event.h:
+        (WebCore::Event::composed): Added.
+        (WebCore::Event::scoped): Deleted.
+        (WebCore::Event::relatedTargetScoped): Deleted.
+        (WebCore::Event): Reordered m_type and m_isInitialized for better packing. Added m_composed
+        and removed m_scoped and m_relatedTargetScoped.
+        * dom/Event.idl:
+        * dom/EventPath.cpp:
+        (WebCore::shouldEventCrossShadowBoundary): Returns true if the event did not originate from
+        a shadow tree (this event entered the current shadow tree via a slot so we need to proceed with
+        the normal bubble path outside the shadow tree) or composed flag is set true.
+        (WebCore::EventPath::EventPath): m_event no longer exists, which was only used to get the value
+        of relatedTargetScoped which has been removed.
+        (WebCore::EventPath::setRelatedTarget): Behave as if relatedTargetScoped is always set true
+        since the flag has been removed.
+        * dom/EventPath.h:
+        * dom/FocusEvent.cpp:
+        (WebCore::FocusEvent::relatedTargetScoped): Deleted.
+        * dom/FocusEvent.h:
+        * dom/MouseEvent.cpp:
+        (WebCore::MouseEvent::relatedTargetScoped): Deleted.
+        * dom/MouseEvent.h:
+
+2016-07-07  Chris Dumez  <cdumez@apple.com>
+
+        tdody.deleteRow(-1) and tr.deleteCell(-1) should not throw when there are no rows / cells
+        https://bugs.webkit.org/show_bug.cgi?id=159527
+        <rdar://problem/27232261>
+
+        Reviewed by Alex Christensen.
+
+        tdody.deleteRow(-1) and tr.deleteCell(-1) should not throw when there
+        are no rows / cells:
+        - https://html.spec.whatwg.org/multipage/tables.html#dom-tbody-deleterow
+        - https://html.spec.whatwg.org/multipage/tables.html#dom-tr-deletecell
+
+        Firefox and Chrome do not throw but WebKit was throwing.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLTableRowElement.cpp:
+        (WebCore::HTMLTableRowElement::deleteCell):
+        * html/HTMLTableSectionElement.cpp:
+        (WebCore::HTMLTableSectionElement::deleteRow):
+
+2016-07-07  Chris Dumez  <cdumez@apple.com>
+
+        HTMLTitleElement.text should only account for direct children Text nodes
+        https://bugs.webkit.org/show_bug.cgi?id=159536
+
+        Reviewed by Ryosuke Niwa.
+
+        HTMLTitleElement.text should only account for direct children Text nodes:
+        - https://html.spec.whatwg.org/multipage/semantics.html#dom-title-text
+        - https://html.spec.whatwg.org/multipage/infrastructure.html#child-text-content
+
+        Firefox and Chrome match the specification. However, WebKit accounted for all
+        Text nodes that are descendants, not just children. This patch aligns our
+        behavior with the specification and other browsers.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLTitleElement.cpp:
+        (WebCore::HTMLTitleElement::text):
+
+2016-07-07  Dean Jackson  <dino@apple.com>
+
+        REGRESSION(r200769): animations are no longer overridden
+        https://bugs.webkit.org/show_bug.cgi?id=159450
+        <rdar://problem/27120570>
+
+        Reviewed by Zalan Bujtas.
+
+        The change in r200769 removed a lot of the prefixing variant
+        handling, but unfortunately we can't be completely rid
+        of it until we alias the prefixed transitions and animations
+        to the non-prefixed form. For example, setting the prefixed
+        shorthand has to reset the non-prefixed longhands.
+
+        The fix was to explicitly call the variant forms when
+        parsing such longhands, and make sure that MutableStyleProperties
+        removes all prefixed variants when removing shorthands.
+
+        The existing test was amended to cover this case:
+        fast/css/shorthand-omitted-initial-value-overrides-shorthand.html
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseAnimationShorthand):
+        (WebCore::CSSParser::addPropertyWithPrefixingVariant):
+        (WebCore::CSSParser::parseTransitionShorthand):
+        * css/CSSParser.h:
+        * css/StyleProperties.cpp:
+        (WebCore::MutableStyleProperties::removeShorthandProperty):
+
+2016-07-07  Alex Christensen  <achristensen@webkit.org>
+
+        Fix CMake build.
+
+        * PlatformMac.cmake:
+
+2016-07-07  Alex Christensen  <achristensen@webkit.org>
+
+        Fix CMake build.
+
+        * PlatformMac.cmake:
+
+2016-07-07  Myles C. Maxfield  <mmaxfield@apple.com> and Frédéric Wang  <fred.wang@free.fr>
+
+        [Font Loading] The callback passed to document.fonts.ready should always be called
+        https://bugs.webkit.org/show_bug.cgi?id=158884
+
+        Reviewed by Dean Jackson.
+
+        The boolean was simply not being reset when loads start.
+
+        Test: fast/text/font-face-set-ready-fire.html
+
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::startedLoading):
+        * css/FontFaceSet.h:
+
+2016-07-07  Andy Estes  <aestes@apple.com>
+
+        [Content Filtering] Load blocked pages more like other error pages are loaded
+        https://bugs.webkit.org/show_bug.cgi?id=159485
+        <rdar://problem/26014076>
+
+        Reviewed by Brady Eidson.
+
+        Content filter blocked pages were being loaded by cancelling the provisional load of the
+        page that was blocked and then scheduling a navigation to the content filter error page.
+        Some clients would not expect a new, Web process-initiated provisional navigation to start
+        after a cancellation, though, and this would put them in a bad state.
+        
+        This patch changes blocked page loading to behave more like loading other error pages.
+        Specifically:
+        1. didFailProvisionalLoad is dispatched with a new, non-cancellation error code.
+        2. The blocked page is loaded immediately after dispatching didFailProvisionalLoad, which
+           prevents FrameLoader from creating a new back-forward list item for the substitute data load.
+        3. A substitute data load initiated by the client for the blocked URL is ignored if
+           ContentFilter will display its own error page.
+        4. A file: URL is used instead of a custom scheme for the base URL of the blocked page,
+           since some clients expect this.
+
+        Updated existing tests to capture frame load delegate callbacks and the back forward list.
+        Added new API tests: ContentFiltering.LoadAlternate*.
+
+        * English.lproj/Localizable.strings: Added a WebKitErrorFrameLoadBlockedByContentFilter description.
+        * Resources/ContentFilterBlockedPage.html: Added.
+        * WebCore.xcodeproj/project.pbxproj: Added ContentFilterBlockedPage.html as a frameowrk resource.
+        * loader/ContentFilter.cpp:
+        (WebCore::ContentFilter::stopFilteringMainResource): Only set m_state to Stopped if not
+        already Blocked, so that we don't forget this ContentFilter was blocked when calling
+        cancelMailResourceLoad() in didDecide().
+        (WebCore::ContentFilter::didDecide): Moved code from DocumentLoader::contentFilterDidBlock() to here.
+        Created a blockedByContentFilterError() and called cancelMainResourceLoad().
+        (WebCore::blockedPageURL): Returned a file: URL to ContentFilterBlockedPage.html in WebCore.framework.
+        (WebCore::ContentFilter::continueAfterSubstituteDataRequest): If the substitute data load
+        is for the same failingURL as the currently-displayed blocked page, ignore it.
+        (WebCore::ContentFilter::handleProvisionalLoadFailure): Load the blocked page if m_state is Blocked
+        and the ResourceError matches the error we used when previously calling cancelMainResourceLoad().
+        (WebCore::ContentFilter::unblockHandler): Deleted.
+        (WebCore::ContentFilter::replacementData): Deleted.
+        (WebCore::ContentFilter::unblockRequestDeniedScript): Deleted.
+        * loader/ContentFilter.h:
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::contentFilter): Returned m_contentFilter.
+        (WebCore::DocumentLoader::installContentFilterUnblockHandler): Deleted.
+        (WebCore::DocumentLoader::contentFilterDidBlock): Deleted.
+        * loader/DocumentLoader.h:
+        * loader/EmptyClients.h: Added a default implementation of blockedByContentFilterError().
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::load): If m_loadType was already RedirectWithLockedBackForwardList
+        and we are loading subsitute data for a failing URL, continue to use RedirectWithLockedBackForwardList.
+        This prevents a new back-forward list item from being created when loading a blocked page in a subframe.
+        (WebCore::FrameLoader::checkLoadCompleteForThisFrame):
+        Called ContentFilter::handleProvisionalLoadFailure() after dispatchDidFailProvisionalLoad().
+        (WebCore::FrameLoader::blockedByContentFilterError): Called FrameLoaderClient::blockedByContentFilterError().
+        * loader/FrameLoader.h:
+        * loader/FrameLoaderClient.h:
+        * loader/NavigationScheduler.cpp:
+        (WebCore::ScheduledSubstituteDataLoad::ScheduledSubstituteDataLoad): Deleted.
+        (WebCore::NavigationScheduler::scheduleSubstituteDataLoad): Deleted.
+        * loader/NavigationScheduler.h:
+        * loader/PolicyChecker.cpp:
+        (WebCore::PolicyChecker::checkNavigationPolicy): Ignored a substitute data load for a
+        failing URL if ContentFilter::continueAfterSubstituteDataRequest() returns false.
+
 2016-07-07  Chris Dumez  <cdumez@apple.com>
 
         td / th should be exposed as HTMLTableCellElement objects
