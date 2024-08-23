@@ -1,3 +1,113 @@
+2016-06-20  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        A composition underline is placed to wrong position in RTL
+        https://bugs.webkit.org/show_bug.cgi?id=158602
+
+        Reviewed by Myles C. Maxfield.
+
+        * editing/input/composition-underline-rtl-expected.html: Added.
+        * editing/input/composition-underline-rtl.html: Added.
+
+2016-06-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectations gardening for
+        https://bugs.webkit.org/show_bug.cgi?id=155196
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-06-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Test result gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-06-20  Benjamin Poulain  <benjamin@webkit.org>
+
+        :default CSS pseudo-class should match checkboxes+radios with a `checked` attribute
+        https://bugs.webkit.org/show_bug.cgi?id=156230
+
+        Reviewed by Alex Christensen.
+
+        * fast/css/pseudo-default-basics-expected.html: Added.
+        * fast/css/pseudo-default-basics.html: Added.
+        * fast/selectors/default-style-update-expected.txt: Added.
+        * fast/selectors/default-style-update.html: Added.
+
+2016-06-20  Simon Fraser  <simon.fraser@apple.com>
+
+        Focus event dispatched in iframe causes parent document to scroll incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=158629
+        rdar://problem/26521616
+
+        Reviewed by Tim Horton.
+
+        * fast/forms/ios/focus-input-in-iframe-expected.txt: Added.
+        * fast/forms/ios/focus-input-in-iframe.html: Added.
+        * fast/forms/ios/programmatic-focus-input-in-iframe-expected.txt: Added.
+        * fast/forms/ios/programmatic-focus-input-in-iframe.html: Added.
+
+2016-06-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202179.
+        https://bugs.webkit.org/show_bug.cgi?id=158946
+
+        The test either fails or times out 100% of the time (Requested
+        by ap on #webkit).
+
+        Reverted changeset:
+
+        "REGRESSION: Double tap to zoom does not work on yahoo
+        finance"
+        https://bugs.webkit.org/show_bug.cgi?id=158886
+        http://trac.webkit.org/changeset/202179
+
+2016-06-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Fix a run-webkit-tests --lint warning.
+
+        * platform/mac/TestExpectations:
+
+2016-06-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectations gardening for
+        https://bugs.webkit.org/show_bug.cgi?id=155196
+
+        Marked the tests as flaky instead of skipping, to make the results visible on the
+        flakiness dashboard. Also added video-with-data-url-allowed-by-media-src-star.html,
+        which is very flaky too.
+
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-06-20  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: console.profile should use the new Sampling Profiler
+        https://bugs.webkit.org/show_bug.cgi?id=153499
+        <rdar://problem/24352431>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/timeline/setInstruments-programmatic-capture-expected.txt: Added.
+        * inspector/timeline/setInstruments-programmatic-capture.html: Added.
+        New test that the backend auto-starts instruments during programmatic capture.
+
+2016-06-20  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rebaseline test now that TouchEvent has a constructor.
+
+        * fast/events/touch/document-create-touch-list-ios-expected.txt:
+
+2016-06-19  Antti Koivisto  <antti@apple.com>
+
+        Updating class name of a shadow host does not update the style applied by :host()
+        https://bugs.webkit.org/show_bug.cgi?id=158900
+        <rdar://problem/26883707>
+
+        Reviewed by Simon Fraser.
+
+        * fast/shadow-dom/shadow-host-style-update-expected.html: Added.
+        * fast/shadow-dom/shadow-host-style-update.html: Added.
+
 2016-06-19  Alexey Proskuryakov  <ap@apple.com>
 
         Test expectation gardening.

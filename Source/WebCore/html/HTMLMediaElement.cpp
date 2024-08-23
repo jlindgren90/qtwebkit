@@ -5099,6 +5099,7 @@ void HTMLMediaElement::stop()
 {
     LOG(Media, "HTMLMediaElement::stop(%p)", this);
 
+    Ref<HTMLMediaElement> protectedThis(*this);
     stopWithoutDestroyingMediaPlayer();
 
     m_asyncEventQueue.close();
@@ -5116,6 +5117,7 @@ void HTMLMediaElement::stop()
 void HTMLMediaElement::suspend(ReasonForSuspension why)
 {
     LOG(Media, "HTMLMediaElement::suspend(%p)", this);
+    Ref<HTMLMediaElement> protectedThis(*this);
 
     switch (why)
     {

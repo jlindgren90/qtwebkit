@@ -334,9 +334,9 @@ inline void CachedImage::createImage()
         m_image = PDFDocumentImage::create(this);
 #endif
     else if (m_response.mimeType() == "image/svg+xml") {
-        RefPtr<SVGImage> svgImage = SVGImage::create(*this, url());
-        m_svgImageCache = std::make_unique<SVGImageCache>(svgImage.get());
-        m_image = svgImage.release();
+        auto svgImage = SVGImage::create(*this, url());
+        m_svgImageCache = std::make_unique<SVGImageCache>(svgImage.ptr());
+        m_image = WTFMove(svgImage);
     } else {
         m_image = BitmapImage::create(this);
         downcast<BitmapImage>(*m_image).setAllowSubsampling(m_loader && m_loader->frameLoader()->frame().settings().imageSubsamplingEnabled());
@@ -525,6 +525,18 @@ CachedResource::RevalidationDecision CachedImage::makeRevalidationDecision(Cache
         return RevalidationDecision::No;
     }
     return CachedResource::makeRevalidationDecision(cachePolicy);
+}
+
+bool CachedImage::areAllClientsInPageCache() const
+{
+    for (auto& entry : m_clients) {
+        auto& client = *entry.key;
+        if (client.resourceClientType() != CachedImageClient::expectedType())
+            continue;
+        if (!static_cast<CachedImageClient&>(client).inPageCache())
+            return false;
+    }
+    return true;
 }
 
 } // namespace WebCore

@@ -136,9 +136,9 @@ void ClearTextCommand::CreateAndApply(const RefPtr<Frame> frame)
     
     const VisibleSelection oldSelection = frame->selection().selection();
     frame->selection().selectAll();
-    RefPtr<ClearTextCommand> clearCommand = adoptRef(new ClearTextCommand(*frame->document()));
+    auto clearCommand = adoptRef(*new ClearTextCommand(*frame->document()));
     clearCommand->setStartingSelection(oldSelection);
-    applyCommand(clearCommand.release());
+    applyCommand(WTFMove(clearCommand));
 }
 
 using namespace HTMLNames;
@@ -1204,7 +1204,7 @@ bool Editor::insertTextWithoutSendingTextEvent(const String& text, bool selectIn
             // Reveal the current selection
             if (Frame* editedFrame = document->frame())
                 if (Page* page = editedFrame->page())
-                    page->focusController().focusedOrMainFrame().selection().revealSelection(ScrollAlignment::alignCenterIfNeeded);
+                    page->focusController().focusedOrMainFrame().selection().revealSelection(SelectionRevealMode::Reveal, ScrollAlignment::alignCenterIfNeeded);
         }
     }
 
@@ -2439,16 +2439,16 @@ void Editor::markAllMisspellingsAndBadGrammarInRanges(TextCheckingTypeMask textC
     bool asynchronous = m_frame.settings().asynchronousSpellCheckingEnabled() && !shouldShowCorrectionPanel;
 
     // In asynchronous mode, we intentionally check paragraph-wide sentence.
-    RefPtr<SpellCheckRequest> request = SpellCheckRequest::create(resolveTextCheckingTypeMask(textCheckingOptions), TextCheckingProcessIncremental, asynchronous ? paragraphRange : rangeToCheck, paragraphRange);
+    auto request = SpellCheckRequest::create(resolveTextCheckingTypeMask(textCheckingOptions), TextCheckingProcessIncremental, asynchronous ? paragraphRange : rangeToCheck, paragraphRange);
 
     if (asynchronous) {
-        m_spellChecker->requestCheckingFor(request.release());
+        m_spellChecker->requestCheckingFor(WTFMove(request));
         return;
     }
 
     Vector<TextCheckingResult> results;
     checkTextOfParagraph(*textChecker(), paragraphToCheck.text(), resolveTextCheckingTypeMask(textCheckingOptions), results, m_frame.selection().selection());
-    markAndReplaceFor(request.release(), results);
+    markAndReplaceFor(WTFMove(request), results);
 }
 
 static bool isAutomaticTextReplacementType(TextCheckingType type)
@@ -2806,7 +2806,7 @@ void Editor::revealSelectionAfterEditingOperation(const ScrollAlignment& alignme
     if (m_ignoreCompositionSelectionChange)
         return;
 
-    m_frame.selection().revealSelection(alignment, revealExtentOption);
+    m_frame.selection().revealSelection(SelectionRevealMode::Reveal, alignment, revealExtentOption);
 }
 
 void Editor::setIgnoreCompositionSelectionChange(bool ignore, RevealSelection shouldRevealExistingSelection)
@@ -3158,7 +3158,7 @@ RefPtr<Range> Editor::findStringAndScrollToVisible(const String& target, Range* 
     if (!nextMatch)
         return nullptr;
 
-    nextMatch->firstNode()->renderer()->scrollRectToVisible(nextMatch->absoluteBoundingBox(),
+    nextMatch->firstNode()->renderer()->scrollRectToVisible(SelectionRevealMode::Reveal, nextMatch->absoluteBoundingBox(),
         ScrollAlignment::alignCenterIfNeeded, ScrollAlignment::alignCenterIfNeeded);
 
     return nextMatch;

@@ -1,3 +1,52 @@
+2016-06-20  Keith Rollin  <krollin@apple.com>
+
+        Remove RefPtr::release() and change calls sites to use WTFMove()
+        https://bugs.webkit.org/show_bug.cgi?id=158369
+
+        Reviewed by Chris Dumez.
+
+        RefPtr::release() releases its managed pointer awkwardly. It's more
+        direct and clearer to use WTFMove to transfer ownership of the managed
+        pointer.
+
+        As part of this cleanup, also change a lot of explicit data types to
+        'auto'.
+
+        * DumpRenderTree/mac/PixelDumpSupportMac.mm:
+        (createBitmapContextFromWebView):
+        (createPagedBitmapContext):
+        * DumpRenderTree/mac/TestRunnerMac.mm:
+        (TestRunner::setMockGeolocationPosition):
+        * TestWebKitAPI/Tests/WTF/HashCountedSet.cpp:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WTF/HashMap.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-06-20  Tim Horton  <timothy_horton@apple.com>
+
+        Add a API test for *DeferringViewInWindowChanges as fixed in r202230
+        https://bugs.webkit.org/show_bug.cgi?id=158947
+
+        Reviewed by Simon Fraser.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2/DeferredViewInWindowStateChange.mm: Added.
+        (TestWebKitAPI::didFinishLoadForFrame):
+        (TestWebKitAPI::setPageLoaderClient):
+        (TestWebKitAPI::TEST):
+        Add a test ensuring that in-window state changes are deferred when using
+        the SPI for deferring them, as fixed in r202230.
+
+2016-06-20  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        WebKitTestRunner: Missing \n at the line of "#PROCESS UNRESPONSIVE"
+        https://bugs.webkit.org/show_bug.cgi?id=158931
+
+        Reviewed by Alexey Proskuryakov.
+
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::dumpWebProcessUnresponsiveness): Appended missing \n at the end of line.
+
 2016-06-17  Alexey Proskuryakov  <ap@apple.com>
 
         Add test expectations for macOS Sierra

@@ -1,3 +1,250 @@
+2016-06-20  Keith Miller  <keith_miller@apple.com>
+
+        It should be easy to add a private global helper function for builtins
+        https://bugs.webkit.org/show_bug.cgi?id=158893
+
+        Reviewed by Mark Lam.
+
+        This patch does two things. First it moves all the builtin names
+        out of CommonIdentifiers and into BuiltinNames. This means that
+        adding a new function to the Builtins does not require rebuilding
+        all of JavaScriptCore. This patch also adds a new decorator to our
+        builtins @privateGlobal that will automatically put the function
+        on the global object. The name of the property will be the same as
+        the private name of the function.
+
+        This patch, also, removes the JSArrayIterator.h/.cpp files
+        as they no longer appear to be used in any real way. Finally,
+        the builtins tests have been rebaselined. It appears this has
+        not been done for a while so the expected files contain other
+        changes.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * Scripts/builtins/builtins_generate_combined_header.py:
+        (BuiltinsCombinedHeaderGenerator.generate_output):
+        (generate_section_for_code_name_macro):
+        (generate_section_for_global_private_code_name_macro):
+        * Scripts/builtins/builtins_model.py:
+        (BuiltinFunction.__init__):
+        (BuiltinFunction.fromString):
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Combined.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Separate.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Combined.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Separate.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Combined.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Separate.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-InternalClashingNames-Combined.js-result:
+        * Scripts/tests/builtins/expected/WebCore-ArbitraryConditionalGuard-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-GuardedBuiltin-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-GuardedInternalBuiltin-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-UnguardedBuiltin-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-xmlCasingTest-Separate.js-result:
+        * builtins/ArrayIteratorPrototype.js:
+        * builtins/ArrayPrototype.js:
+        * builtins/BuiltinNames.h:
+        * builtins/GeneratorPrototype.js:
+        * builtins/GlobalObject.js:
+        * builtins/PromiseOperations.js:
+        * builtins/RegExpPrototype.js:
+        * builtins/StringPrototype.js:
+        * bytecode/BytecodeIntrinsicRegistry.cpp:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::initializeArrowFunctionContextScopeIfNeeded):
+        (JSC::BytecodeGenerator::expectedFunctionForIdentifier):
+        (JSC::BytecodeGenerator::emitGetTemplateObject):
+        (JSC::BytecodeGenerator::emitLoadNewTargetFromArrowFunctionLexicalEnvironment):
+        (JSC::BytecodeGenerator::emitLoadDerivedConstructorFromArrowFunctionLexicalEnvironment):
+        (JSC::BytecodeGenerator::emitPutNewTargetToArrowFunctionContextScope):
+        (JSC::BytecodeGenerator::emitPutDerivedConstructorToArrowFunctionContextScope):
+        (JSC::BytecodeGenerator::emitGeneratorStateChange):
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::emitHomeObjectForCallee):
+        (JSC::emitPutHomeObject):
+        (JSC::FunctionNode::emitBytecode):
+        * dfg/DFGOperations.cpp:
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::subtype):
+        (Inspector::JSInjectedScriptHost::getInternalProperties): Deleted.
+        * parser/Lexer.cpp:
+        (JSC::Lexer<LChar>::parseIdentifier):
+        (JSC::Lexer<UChar>::parseIdentifier):
+        * parser/Nodes.h:
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::createGeneratorParameters):
+        (JSC::Parser<LexerType>::parseExportDeclaration):
+        * runtime/ArrayIteratorPrototype.cpp:
+        * runtime/ArrayIteratorPrototype.h:
+        * runtime/ArrayPrototype.cpp:
+        * runtime/CommonIdentifiers.cpp:
+        (JSC::CommonIdentifiers::CommonIdentifiers): Deleted.
+        * runtime/CommonIdentifiers.h:
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::SLOW_PATH_DECL):
+        * runtime/IntlDateTimeFormat.cpp:
+        * runtime/IntlDateTimeFormatPrototype.cpp:
+        (JSC::IntlDateTimeFormatPrototypeGetterFormat):
+        (JSC::IntlDateTimeFormatPrototypeFuncResolvedOptions):
+        * runtime/IntlNumberFormatPrototype.cpp:
+        (JSC::IntlNumberFormatPrototypeGetterFormat):
+        (JSC::IntlNumberFormatPrototypeFuncResolvedOptions):
+        * runtime/IntlObjectInlines.h:
+        (JSC::constructIntlInstanceWithWorkaroundForLegacyIntlConstructor):
+        * runtime/JSArrayIterator.cpp: Removed.
+        (JSC::JSArrayIterator::finishCreation): Deleted.
+        (JSC::JSArrayIterator::kind): Deleted.
+        (JSC::JSArrayIterator::iteratedValue): Deleted.
+        * runtime/JSArrayIterator.h: Removed.
+        (JSC::JSArrayIterator::createStructure): Deleted.
+        (JSC::JSArrayIterator::create): Deleted.
+        (JSC::JSArrayIterator::JSArrayIterator): Deleted.
+        * runtime/JSGenericTypedArrayViewConstructorInlines.h:
+        (JSC::JSGenericTypedArrayViewConstructor<ViewClass>::finishCreation):
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/JSInternalPromise.cpp:
+        * runtime/JSInternalPromiseDeferred.cpp:
+        (JSC::JSInternalPromiseDeferred::create):
+        * runtime/JSPromise.cpp:
+        (JSC::JSPromise::finishCreation):
+        (JSC::JSPromise::result):
+        * runtime/JSPromiseDeferred.cpp:
+        (JSC::JSPromiseDeferred::create):
+        * runtime/JSStringIterator.cpp:
+        (JSC::JSStringIterator::finishCreation):
+        (JSC::JSStringIterator::iteratedValue):
+        (JSC::JSStringIterator::clone):
+        * runtime/MapPrototype.cpp:
+        (JSC::MapPrototype::finishCreation):
+        * runtime/ObjectConstructor.cpp:
+        (JSC::ObjectConstructor::finishCreation):
+        * runtime/ReflectObject.cpp:
+        (JSC::ReflectObject::finishCreation):
+        * runtime/StringPrototype.cpp:
+        (JSC::StringPrototype::finishCreation):
+        * runtime/TypedArrayInlines.h:
+
+2016-06-20  Filip Pizlo  <fpizlo@apple.com>
+
+        LLInt64 Float64 get_by_val doesn't purify NaN
+        https://bugs.webkit.org/show_bug.cgi?id=158956
+
+        Reviewed by Michael Saboff.
+
+        * llint/LowLevelInterpreter64.asm: Fix the bug.
+        * tests/stress/float64-array-nan-inlined.js: Make this test also run in LLInt-only mode to catch this bug.
+
+2016-06-20  Keith Rollin  <krollin@apple.com>
+
+        Remove RefPtr::release() and change calls sites to use WTFMove()
+        https://bugs.webkit.org/show_bug.cgi?id=158369
+
+        Reviewed by Chris Dumez.
+
+        RefPtr::release() releases its managed pointer awkwardly. It's more
+        direct and clearer to use WTFMove to transfer ownership of the managed
+        pointer.
+
+        As part of this cleanup, also change a lot of explicit data types to
+        'auto'.
+
+        * API/JSObjectRef.cpp:
+        (JSClassCreate):
+        * API/JSScriptRef.cpp:
+        * API/JSValueRef.cpp:
+        (JSValueToStringCopy):
+        * bytecompiler/StaticPropertyAnalyzer.h:
+        (JSC::StaticPropertyAnalyzer::newObject):
+        (JSC::StaticPropertyAnalyzer::mov):
+        * debugger/DebuggerCallFrame.cpp:
+        (JSC::DebuggerCallFrame::invalidate):
+        * dfg/DFGJITCompiler.cpp:
+        (JSC::DFG::JITCompiler::compile):
+        (JSC::DFG::JITCompiler::compileFunction):
+        * inspector/InspectorValues.cpp:
+        (Inspector::InspectorValue::parseJSON):
+        * inspector/agents/InspectorAgent.cpp:
+        (Inspector::InspectorAgent::activateExtraDomain):
+        (Inspector::InspectorAgent::activateExtraDomains):
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::InspectorDebuggerAgent::breakpointActionProbe):
+        * inspector/remote/RemoteInspector.mm:
+        (Inspector::RemoteInspector::receivedSetupMessage):
+        * jit/Repatch.cpp:
+        (JSC::linkPolymorphicCall):
+        * runtime/GenericTypedArrayViewInlines.h:
+        (JSC::GenericTypedArrayView<Adaptor>::create):
+        (JSC::GenericTypedArrayView<Adaptor>::createUninitialized):
+        * runtime/JSArrayBufferConstructor.cpp:
+        (JSC::constructArrayBuffer):
+        * runtime/PropertyNameArray.h:
+        (JSC::PropertyNameArray::releaseData):
+        * runtime/Structure.cpp:
+        (JSC::Structure::toStructureShape):
+        * runtime/TypeSet.cpp:
+        (JSC::StructureShape::merge):
+        * tools/FunctionOverrides.cpp:
+        (JSC::initializeOverrideInfo):
+
+2016-06-20  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: console.profile should use the new Sampling Profiler
+        https://bugs.webkit.org/show_bug.cgi?id=153499
+        <rdar://problem/24352431>
+
+        Reviewed by Timothy Hatcher.
+
+        Currently console.profile/profileEnd behave slightly differently
+        between JSContext and Web inspection. Unifying will be part of:
+        <https://webkit.org/b/158753> Generalize the concept of Instruments on the backend
+
+        Both JSContext and Web inspection keep track of active
+        profiles started and stopped via console.profile/profileEnd.
+
+        JSContext inspection sends its programmatic start/stop
+        via the ScriptProfiler domain.
+
+        Web inspection sends its programmatic start/stop
+        via the Timeline domain, and also will start/stop backend
+        list of Instruments.
+
+        The functional differences between these is that for JSContext
+        inspection, console.profile only starts/stops the ScriptProfiler
+        domain, and does not auto-start other instruments. This isn't really
+        a problem right now given the instruments available for JSContext
+        inspection; but it will be nice to unify as we add more instruments.
+        Also, JSContext inspection won't have "Profile (name)" records in
+        its Events view, since those are currently generated only by the
+        Web's Timeline domain.
+
+        * inspector/protocol/ScriptProfiler.json:
+        * inspector/protocol/Timeline.json:
+        Events to inform the frontend of programmatic start/stop.
+
+        * debugger/Debugger.h:
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::InspectorDebuggerAgent::breakpointsActive):
+        (Inspector::InspectorDebuggerAgent::isPaused):
+        * inspector/agents/InspectorDebuggerAgent.h:
+        Expose breakpoints active state, since programmatic recording
+        will temporarily disabled breakpoints if needed.
+
+        * inspector/JSGlobalObjectConsoleClient.cpp:
+        (Inspector::JSGlobalObjectConsoleClient::JSGlobalObjectConsoleClient):
+        (Inspector::JSGlobalObjectConsoleClient::profile):
+        (Inspector::JSGlobalObjectConsoleClient::profileEnd):
+        (Inspector::JSGlobalObjectConsoleClient::startConsoleProfile):
+        (Inspector::JSGlobalObjectConsoleClient::stopConsoleProfile):
+        * inspector/JSGlobalObjectConsoleClient.h:
+        * inspector/JSGlobalObjectInspectorController.cpp:
+        (Inspector::JSGlobalObjectInspectorController::JSGlobalObjectInspectorController):
+        * inspector/agents/InspectorScriptProfilerAgent.cpp:
+        (Inspector::InspectorScriptProfilerAgent::programmaticCaptureStarted):
+        (Inspector::InspectorScriptProfilerAgent::programmaticCaptureStopped):
+        * inspector/agents/InspectorScriptProfilerAgent.h:
+        JSContext implementation of console.profile/profileEnd.
+
 2016-06-19  Saam Barati  <sbarati@apple.com>
 
         We should be able to generate more types of ICs inline
