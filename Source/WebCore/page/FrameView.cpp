@@ -2833,19 +2833,23 @@ void FrameView::unscheduleRelayout()
 }
 
 #if ENABLE(REQUEST_ANIMATION_FRAME)
-void FrameView::serviceScriptedAnimations(double monotonicAnimationStartTime)
+void FrameView::serviceScriptedAnimations()
 {
     for (auto* frame = m_frame.ptr(); frame; frame = frame->tree().traverseNext()) {
         frame->view()->serviceScrollAnimations();
         frame->animation().serviceAnimations();
     }
 
+    if (!frame().document() || !frame().document()->domWindow())
+        return;
+
     Vector<RefPtr<Document>> documents;
     for (auto* frame = m_frame.ptr(); frame; frame = frame->tree().traverseNext())
         documents.append(frame->document());
 
+    double timestamp = frame().document()->domWindow()->nowTimestamp();
     for (auto& document : documents)
-        document->serviceScriptedAnimations(monotonicAnimationStartTime);
+        document->serviceScriptedAnimations(timestamp);
 }
 #endif
 
@@ -3145,7 +3149,7 @@ void FrameView::flushAnyPendingPostLayoutTasks()
         updateEmbeddedObjectsTimerFired();
 }
 
-void FrameView::queuePostLayoutCallback(NoncopyableFunction<void()>&& callback)
+void FrameView::queuePostLayoutCallback(Function<void()>&& callback)
 {
     m_postLayoutCallbackQueue.append(WTFMove(callback));
 }
@@ -3158,7 +3162,7 @@ void FrameView::flushPostLayoutTasksQueue()
     if (!m_postLayoutCallbackQueue.size())
         return;
 
-    Vector<NoncopyableFunction<void()>> queue = WTFMove(m_postLayoutCallbackQueue);
+    Vector<Function<void()>> queue = WTFMove(m_postLayoutCallbackQueue);
     for (auto& task : queue)
         task();
 }

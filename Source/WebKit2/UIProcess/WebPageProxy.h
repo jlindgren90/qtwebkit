@@ -56,6 +56,7 @@
 #include "WebPageCreationParameters.h"
 #include "WebPageDiagnosticLoggingClient.h"
 #include "WebPageInjectedBundleClient.h"
+#include "WebPaymentCoordinatorProxy.h"
 #include "WebPreferences.h"
 #include <WebCore/AlternativeTextClient.h> // FIXME: Needed by WebPageProxyMessages.h for DICTATION_ALTERNATIVES.
 #include "WebPageProxyMessages.h"
@@ -120,10 +121,6 @@ OBJC_CLASS _WKRemoteObjectRegistry;
 #if ENABLE(WIRELESS_PLAYBACK_TARGET) && !PLATFORM(IOS)
 #include <WebCore/MediaPlaybackTargetPicker.h>
 #include <WebCore/WebMediaSessionManagerClient.h>
-#endif
-
-#if USE(APPLE_INTERNAL_SDK)
-#include <WebKitAdditions/WebPageProxyIncludes.h>
 #endif
 
 #if ENABLE(MEDIA_SESSION)
@@ -1507,6 +1504,7 @@ private:
     void sendWheelEvent(const WebWheelEvent&);
 
 #if ENABLE(TOUCH_EVENTS)
+    void updateTouchEventTracking(const WebTouchEvent&);
     WebCore::TrackingType touchEventTrackingType(const WebTouchEvent&) const;
 #endif
 
@@ -1628,8 +1626,8 @@ private:
     RefPtr<WebVibrationProxy> m_vibration;
 #endif
 
-#if USE(APPLE_INTERNAL_SDK)
-#include <WebKitAdditions/WebPageProxyMembers.h>
+#if ENABLE(APPLE_PAY)
+    std::unique_ptr<WebPaymentCoordinatorProxy> m_paymentCoordinator;
 #endif
 
     CallbackMap m_callbacks;
@@ -1742,7 +1740,29 @@ private:
     std::unique_ptr<NativeWebMouseEvent> m_currentlyProcessedMouseDownEvent;
 
 #if ENABLE(TOUCH_EVENTS)
-    WebCore::TrackingType m_touchEventsTrackingType { WebCore::TrackingType::NotTracking };
+    struct TouchEventTracking {
+        WebCore::TrackingType touchForceChangedTracking { WebCore::TrackingType::NotTracking };
+        WebCore::TrackingType touchStartTracking { WebCore::TrackingType::NotTracking };
+        WebCore::TrackingType touchMoveTracking { WebCore::TrackingType::NotTracking };
+        WebCore::TrackingType touchEndTracking { WebCore::TrackingType::NotTracking };
+
+        bool isTrackingAnything() const
+        {
+            return touchForceChangedTracking != WebCore::TrackingType::NotTracking
+                || touchStartTracking != WebCore::TrackingType::NotTracking
+                || touchMoveTracking != WebCore::TrackingType::NotTracking
+                || touchEndTracking != WebCore::TrackingType::NotTracking;
+        }
+
+        void reset()
+        {
+            touchForceChangedTracking = WebCore::TrackingType::NotTracking;
+            touchStartTracking = WebCore::TrackingType::NotTracking;
+            touchMoveTracking = WebCore::TrackingType::NotTracking;
+            touchEndTracking = WebCore::TrackingType::NotTracking;
+        }
+    };
+    TouchEventTracking m_touchEventTracking;
 #endif
 #if ENABLE(TOUCH_EVENTS) && !ENABLE(IOS_TOUCH_EVENTS)
     Deque<QueuedTouchEvents> m_touchEventQueue;

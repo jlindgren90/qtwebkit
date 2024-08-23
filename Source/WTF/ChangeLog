@@ -1,3 +1,83 @@
+2016-06-21  Anders Carlsson  <andersca@apple.com>
+
+        Rename NoncopyableFunction to Function
+        https://bugs.webkit.org/show_bug.cgi?id=158354
+
+        Reviewed by Chris Dumez.
+
+        * WTF.xcodeproj/project.pbxproj:
+        * wtf/CrossThreadTask.h:
+        (WTF::CrossThreadTask::CrossThreadTask):
+        * wtf/Function.h: Renamed from Source/WTF/wtf/NoncopyableFunction.h.
+        * wtf/FunctionDispatcher.h:
+        * wtf/MainThread.cpp:
+        (WTF::functionQueue):
+        (WTF::dispatchFunctionsFromMainThread):
+        (WTF::callOnMainThread):
+        * wtf/MainThread.h:
+        * wtf/RunLoop.cpp:
+        (WTF::RunLoop::performWork):
+        (WTF::RunLoop::dispatch):
+        * wtf/RunLoop.h:
+        * wtf/WorkQueue.h:
+        * wtf/cocoa/WorkQueueCocoa.cpp:
+        (WTF::WorkQueue::dispatch):
+        (WTF::WorkQueue::dispatchAfter):
+        * wtf/efl/DispatchQueueWorkItemEfl.h:
+        (WorkItem::WorkItem):
+        (TimerWorkItem::create):
+        (TimerWorkItem::TimerWorkItem):
+        * wtf/efl/WorkQueueEfl.cpp:
+        (WTF::WorkQueue::dispatch):
+        (WTF::WorkQueue::dispatchAfter):
+        * wtf/generic/RunLoopGeneric.cpp:
+        (WTF::RunLoop::TimerBase::ScheduledTask::create):
+        (WTF::RunLoop::TimerBase::ScheduledTask::ScheduledTask):
+        (WTF::RunLoop::dispatchAfter):
+        * wtf/generic/WorkQueueGeneric.cpp:
+        (WorkQueue::dispatch):
+        (WorkQueue::dispatchAfter):
+        * wtf/glib/RunLoopGLib.cpp:
+        (WTF::DispatchAfterContext::DispatchAfterContext):
+        (WTF::RunLoop::dispatchAfter):
+        * wtf/win/WorkItemWin.cpp:
+        (WTF::WorkItemWin::WorkItemWin):
+        (WTF::WorkItemWin::create):
+        (WTF::HandleWorkItem::HandleWorkItem):
+        (WTF::HandleWorkItem::createByAdoptingHandle):
+        * wtf/win/WorkItemWin.h:
+        (WTF::WorkItemWin::function):
+        * wtf/win/WorkQueueWin.cpp:
+        (WTF::WorkQueue::dispatch):
+        (WTF::WorkQueue::dispatchAfter):
+
+2016-06-23  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r202380): iOS 9.x internal builds are broken
+
+        Follow-up fix for: Enable window.open() for existing versions of Secret Society
+        <https://webkit.org/b/159049>
+        <rdar://problem/26528349>
+
+        * wtf/spi/darwin/dyldSPI.h: Define DYLD_IOS_VERSION_10_0 when
+        building on internal SDKs older than iOS 10.
+
+2016-06-23  John Wilander  <wilander@apple.com>
+
+        Enable window.open() for existing versions of Secret Society
+        https://bugs.webkit.org/show_bug.cgi?id=159049
+        <rdar://problem/26528349>
+        
+        Reviewed by Andy Estes.
+
+        The Secret Society Hidden Mystery app has a broken version check treating iOS 10
+        as iOS 1 on iPads. Therefore it believes it can use window.open() in a tap
+        handler. We should allow the existing versions of the app to do this to not break
+        them.
+
+        * wtf/spi/darwin/dyldSPI.h:
+            Added DYLD_IOS_VERSION_10_0.
+
 2016-06-21  Said Abou-Hallawa  <sabouhallawa@apple,com>
 
         Add system tracing points for requestAnimationFrame() workflow

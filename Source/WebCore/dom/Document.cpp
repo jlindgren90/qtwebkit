@@ -3778,9 +3778,6 @@ bool Document::setFocusedElement(Element* element, FocusDirection direction, Foc
 
     // Remove focus from the existing focus node (if any)
     if (oldFocusedElement) {
-        if (oldFocusedElement->active())
-            oldFocusedElement->setActive(false);
-
         oldFocusedElement->setFocus(false);
         setFocusNavigationStartingNode(nullptr);
 
@@ -6185,6 +6182,12 @@ void Document::loadEventDelayTimerFired()
         frame()->loader().checkCompleted();
 }
 
+double Document::monotonicTimestamp() const
+{
+    auto* loader = this->loader();
+    return loader ? loader->timing().monotonicTimeToZeroBasedDocumentTime(monotonicallyIncreasingTime()) : 0;
+}
+
 #if ENABLE(REQUEST_ANIMATION_FRAME)
 int Document::requestAnimationFrame(PassRefPtr<RequestAnimationFrameCallback> callback)
 {
@@ -6211,11 +6214,11 @@ void Document::cancelAnimationFrame(int id)
     m_scriptedAnimationController->cancelCallback(id);
 }
 
-void Document::serviceScriptedAnimations(double monotonicAnimationStartTime)
+void Document::serviceScriptedAnimations(double timestamp)
 {
     if (!m_scriptedAnimationController)
         return;
-    m_scriptedAnimationController->serviceScriptedAnimations(monotonicAnimationStartTime);
+    m_scriptedAnimationController->serviceScriptedAnimations(timestamp);
 }
 
 void Document::clearScriptedAnimationController()

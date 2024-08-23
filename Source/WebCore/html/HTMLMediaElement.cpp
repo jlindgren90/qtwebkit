@@ -5226,6 +5226,8 @@ void HTMLMediaElement::mediaPlayerCurrentPlaybackTargetIsWirelessChanged(MediaPl
     configureMediaControls();
     scheduleEvent(eventNames().webkitcurrentplaybacktargetiswirelesschangedEvent);
     m_mediaSession->isPlayingToWirelessPlaybackTargetChanged(m_isPlayingToWirelessTarget);
+    if (m_isPlayingToWirelessTarget)
+        m_mediaSession->setCanProduceAudio(true);
     updateMediaState(UpdateMediaState::Asynchronously);
 }
 
@@ -6431,19 +6433,13 @@ void HTMLMediaElement::removeBehaviorsRestrictionsAfterFirstUserGesture(MediaEle
 #if ENABLE(MEDIA_SOURCE)
 RefPtr<VideoPlaybackQuality> HTMLMediaElement::getVideoPlaybackQuality()
 {
-#if ENABLE(WEB_TIMING)
     DOMWindow* domWindow = document().domWindow();
-    Performance* performance = domWindow ? domWindow->performance() : nullptr;
-    double now = performance ? performance->now() : 0;
-#else
-    DocumentLoader* loader = document().loader();
-    double now = loader ? 1000.0 * loader->timing().monotonicTimeToZeroBasedDocumentTime(monotonicallyIncreasingTime()) : 0;
-#endif
+    double timestamp = domWindow ? 1000 * domWindow->nowTimestamp() : 0;
 
     if (!m_player)
-        return VideoPlaybackQuality::create(now, 0, 0, 0, 0);
+        return VideoPlaybackQuality::create(timestamp, 0, 0, 0, 0);
 
-    return VideoPlaybackQuality::create(now,
+    return VideoPlaybackQuality::create(timestamp,
         m_droppedVideoFrames + m_player->totalVideoFrames(),
         m_droppedVideoFrames + m_player->droppedVideoFrames(),
         m_player->corruptedVideoFrames(),
@@ -7103,10 +7099,14 @@ void HTMLMediaElement::updatePlaybackControlsManager()
     if (!page)
         return;
 
-    if (m_mediaSession->canControlControlsManager(*this))
-        page->chrome().client().setUpPlaybackControlsManager(*this);
+    PlatformMediaSession* session = PlatformMediaSessionManager::sharedManager().currentSessionMatching([] (const PlatformMediaSession& session) {
+        return session.canControlControlsManager();
+    });
+
+    if (!is<MediaElementSession>(session))
+        page->chrome().client().clearPlaybackControlsManager();
     else
-        page->chrome().client().clearPlaybackControlsManager(*this);
+        page->chrome().client().setUpPlaybackControlsManager(downcast<MediaElementSession>(session)->element());
 }
 
 bool HTMLMediaElement::shouldOverrideBackgroundLoadingRestriction() const

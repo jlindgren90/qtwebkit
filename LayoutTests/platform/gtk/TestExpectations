@@ -423,9 +423,6 @@ webkit.org/b/133320 crypto/subtle/hmac-sign-verify.html [ Pass ]
 # QuickTime plug-in not relevant to this port
 Bug(GTK) plugins/quicktime-plugin-replacement.html [ Skip ]
 
-# Style scoped support unimplemented
-Bug(GTK) fast/css/style-scoped [ Skip ]
-
 # ENABLE(CSS_SCROLL_SNAP) is disabled.
 css3/scroll-snap [ Skip ]
 
@@ -603,11 +600,6 @@ webkit.org/b/146724 fast/text/word-break-keep-all.html [ ImageOnlyFailure ]
 
 # This tests fail since the upgrade of GTK to 3.16 and Cairo to 1.14 on the JHBuild
 webkit.org/b/146731 fast/backgrounds/hidpi-background-image-contain-cover-scale-needs-more-precision.html [ ImageOnlyFailure Timeout ]
-webkit.org/b/146731 fast/hidpi/filters-blur.html [ ImageOnlyFailure ]
-webkit.org/b/146731 fast/hidpi/filters-hue-rotate.html [ ImageOnlyFailure ]
-webkit.org/b/146731 fast/hidpi/filters-invert.html [ ImageOnlyFailure ]
-webkit.org/b/146731 fast/hidpi/filters-multiple.html [ ImageOnlyFailure ]
-webkit.org/b/146731 fast/hidpi/filters-reference.html [ ImageOnlyFailure ]
 
 webkit.org/b/149016 accessibility/aria-current.html [ Skip ]
 

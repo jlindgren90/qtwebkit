@@ -1,3 +1,160 @@
+2016-06-27  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] The test fast/events/wheel-event-outside-body.html is timing out.
+        https://bugs.webkit.org/show_bug.cgi?id=159129
+
+        Reviewed by Alex Christensen.
+
+        Implement the function mouseScrollBy in the Windows event sender.
+
+        * DumpRenderTree/win/EventSender.cpp:
+        (mouseScrollBy):
+        (mouseScrollByWithWheelAndMomentumPhasesCallback):
+
+2016-06-25  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION: Weak symbol warning when linking TestWebKitAPI
+        https://bugs.webkit.org/show_bug.cgi?id=159104
+
+        Reviewed by Dan Bernstein.
+        
+        This uses a better approach to turn on -fvisility=hidden. All of the other projects set
+        this flag in xcconfig, using "GCC_SYMBOLS_PRIVATE_EXTERN = YES;".
+
+        * TestWebKitAPI/Configurations/TestWTFLibrary.xcconfig: Use GCC_SYMBOLS_PRIVATE_EXTERN here.
+        * TestWebKitAPI/Configurations/TestWebKitAPILibrary.xcconfig: Use GCC_SYMBOLS_PRIVATE_EXTERN here.
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj: Revert r202461.
+
+2016-06-25  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] The test fast/events/wheel-event-destroys-frame.html is timing out.
+        https://bugs.webkit.org/show_bug.cgi?id=159086
+
+        Reviewed by Alex Christensen.
+
+        Implement required wheel event function in event sender.
+ 
+        * DumpRenderTree/win/EventSender.cpp:
+        (mouseScrollByWithWheelAndMomentumPhasesCallback):
+
+2016-06-24  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION: Weak symbol warning when linking TestWebKitAPI
+        https://bugs.webkit.org/show_bug.cgi?id=159104
+
+        Reviewed by Mark Lam.
+        
+        The problem is that the tests were not compiled with -fvisibility=hidden like the rest of
+        WK.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+
+2016-06-24  David Kilzer  <ddkilzer@apple.com>
+
+        parser_unittests.pl should not hardcode list of tests
+        <https://webkit.org/b/159074>
+
+        Reviewed by Daniel Bates.
+
+        * Scripts/webkitperl/prepare-ChangeLog_unittest/parser_unittests.pl:
+        Update to read the list of tests from the 'resources' directory,
+        and instead map file extensions to subroutine names.  Switch to
+        use File::Basename::fileparse() to get basename and file
+        extension for each test.
+        (readTestFiles): Added.  Reads files from the directory passed
+        in and ignores: hidden files, anything that isn't a plain file,
+        and expected test results files.
+
+2016-06-23  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix Windows build.
+
+        * DumpRenderTree/cg/PixelDumpSupportCG.cpp:
+        * DumpRenderTree/cg/PixelDumpSupportCG.h:
+
+2016-06-23  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Change download path of libxslt
+
+        Unreviewed EFL build fix.
+
+        In Korea current download path can't be accessed. Change it.
+
+        * efl/jhbuild.modules:
+
+2016-06-23  Simon Fraser  <simon.fraser@apple.com>
+
+        https://bugs.webkit.org/show_bug.cgi?id=159077
+
+        Turn off CARenderServer snapshotting in WTR for now, because it doesn't reliably
+        snapshot the final state of the test in release builds. 
+
+        * WebKitTestRunner/InjectedBundle/InjectedBundlePage.cpp:
+        (WTR::InjectedBundlePage::dump):
+
+2016-06-23  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix hardware builds, where USE(IOSURFACE) is true by #ifdeffing.
+
+        * DumpRenderTree/ios/PixelDumpSupportIOS.mm:
+        (createBitmapContextFromWebView):
+        * WebKitTestRunner/ios/PlatformWebViewIOS.mm:
+        (WTR::PlatformWebView::windowSnapshotImage):
+
+2016-06-23  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS] Make DumpRenderTree and WebKitTestRunner in the simulator use render server snapshotting
+        https://bugs.webkit.org/show_bug.cgi?id=159077
+
+        Reviewed by Tim Horton.
+
+        Fix both DRT and WTR for iOS to use CARenderServerRenderLayerWithTransform() on the view's layer.
+        This allows them to capture compositing layers in snapshots, rather than doing a software paint,
+        thus enabling testing of more things.
+
+        * DumpRenderTree/cg/PixelDumpSupportCG.cpp:
+        (createBitmapContext): Moved to this file to share it.
+        * DumpRenderTree/cg/PixelDumpSupportCG.h:
+        * DumpRenderTree/ios/PixelDumpSupportIOS.mm:
+        (createBitmapContextFromWebView):
+        (BitmapContext::createFromUIImage): Deleted.
+        (BitmapContext::pixelData): Deleted.
+        (BitmapContext::BitmapContext): Deleted.
+        (computeMD5HashStringForBitmapContext): Deleted.
+        (dumpBitmap): Deleted.
+        * DumpRenderTree/mac/Configurations/DumpRenderTreeLibrary.xcconfig: Don't exclude PixelDumpSupportCG.cpp.
+        * DumpRenderTree/mac/PixelDumpSupportMac.mm:
+        (createPagedBitmapContext):
+        (createBitmapContext): Deleted.
+        * WebKitTestRunner/Configurations/WebKitTestRunnerApp.xcconfig: link with QuartzCore.
+        * WebKitTestRunner/InjectedBundle/InjectedBundlePage.cpp:
+        (WTR::InjectedBundlePage::dump): Deleted.
+        * WebKitTestRunner/ios/PlatformWebViewIOS.mm:
+        (WTR::PlatformWebView::windowSnapshotImage):
+
+2016-06-23  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [jhbuild] Added libxslt module.
+        https://bugs.webkit.org/show_bug.cgi?id=159034
+
+        Unreviewed, followup for r202373.
+
+        * efl/install-dependencies: Removed libxslt 
+        * gtk/install-dependencies: Ditto.
+
+2016-06-23  Gyuyoung Kim  <gyuyoung.kim@samsung.com>
+
+        [EFL] Bump gstreamer version from 1.6.3 to 1.8.0
+        https://bugs.webkit.org/show_bug.cgi?id=159050
+
+        Reviewed by Antonio Gomes.
+
+        To be sync with GTK port, this patch bumps gstreamer version for EFL port.
+
+        * efl/jhbuild.modules:
+        * efl/patches/gst-plugins-good-Revert-qtdemux-expose-streams-with-first-moof-for-fr.patch: Added.
+        * efl/patches/gst-plugins-good-use-the-tfdt-decode-time.patch: Added.
+
 2016-06-23  Konstantin Tokarev  <annulen@yandex.ru>
 
         [jhbuild] Added libxslt module.

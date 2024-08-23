@@ -1,3 +1,327 @@
+2016-06-24  Brian Burg  <bburg@apple.com>
+
+        REGRESSION(r201171): CRASH at WebKit::WebInspectorProxy::open() + 31 when running inspector layout tests
+        https://bugs.webkit.org/show_bug.cgi?id=159070
+        <rdar://problem/26768628>
+
+        Reviewed by Joseph Pecoraro.
+
+        We have been seeing a few crashes underneath WebInspectorProxy::bringToFront() on the bots.
+        Previously, this code didn't use m_inspectorPage so there was nothing to null-dereference.
+
+        However, it doesn't make sense that we would hit the null dereference here:
+
+         - The only caller of bringToFront() on the WebProcess side is InspectorController::show().
+           It only tries to bring to front if there is already a local frontend connection, which
+           shouldn't be the case if m_inspectorPage is null.
+
+         - It's guarded by m_underTest, which should have been set to true in createInspectorPage().
+
+        These clues lead me to believe that we may be improperly tearing down the inspector between tests.
+        For example, it seems possible that a local frontend connection is not being torn down, so
+        InspectorController never asks to create a inspector page when the next test calls showWebInspector.
+
+        Since this crash is not easy to reproduce, we don't have much to go on. For now, this patch
+        adds an early return in the case where m_inspectorPage is null when calling open().
+
+        * UIProcess/WebInspectorProxy.cpp:
+        (WebKit::WebInspectorProxy::open):
+
+2016-06-24  Jer Noble  <jer.noble@apple.com>
+
+        Vimeo.com videos do not get playback controls
+        https://bugs.webkit.org/show_bug.cgi?id=159082
+        <rdar://problem/26586630>
+
+        Reviewed by Eric Carlson.
+
+        When the HasAudioOrVideo media state changes, let the video controls recalculate
+        by calling videoControlsManagerDidChange().
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::isPlayingMediaDidChange):
+
+2016-06-24  Beth Dakin  <bdakin@apple.com>
+
+        Include enclosingListType in EditorState
+        https://bugs.webkit.org/show_bug.cgi?id=159102
+        -and corresponding-
+        rdar://problem/26932490
+
+        Reviewed by Enrica Casucci.
+
+        * Shared/EditorState.cpp:
+        (WebKit::EditorState::PostLayoutData::encode):
+        (WebKit::EditorState::PostLayoutData::decode):
+        * Shared/EditorState.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::editorState):
+
+2016-06-24  Anders Carlsson  <andersca@apple.com>
+
+        Inline more of the Apple Pay source code
+        https://bugs.webkit.org/show_bug.cgi?id=159099
+
+        Reviewed by Andreas Kling.
+
+        * Shared/Cocoa/WebCoreArgumentCodersCocoa.h: Removed.
+        * Shared/WebCoreArgumentCoders.h:
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/Cocoa/WKPreferences.mm:
+        (-[WKPreferences _applePayCapabilityDisclosureAllowed]):
+        (-[WKPreferences _setApplePayCapabilityDisclosureAllowed:]):
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration copyWithZone:]):
+        (-[WKWebViewConfiguration _applePayEnabled]):
+        (-[WKWebViewConfiguration _setApplePayEnabled:]):
+        (-[WKWebViewConfiguration _paymentsEnabled]):
+        (-[WKWebViewConfiguration _setPaymentsEnabled:]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::WebPageProxy):
+        (WebKit::WebPageProxy::reattachToWebProcess):
+        (WebKit::WebPageProxy::resetState):
+        * UIProcess/WebPageProxy.h:
+        * WebKit2.xcodeproj/project.pbxproj:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::m_userInterfaceLayoutDirection):
+        (WebKit::WebPage::updatePreferences):
+
+2016-06-21  Anders Carlsson  <andersca@apple.com>
+
+        Rename NoncopyableFunction to Function
+        https://bugs.webkit.org/show_bug.cgi?id=158354
+
+        Reviewed by Chris Dumez.
+
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::fetchDiskCacheEntries):
+        (WebKit::NetworkProcess::fetchWebsiteData):
+        (WebKit::clearDiskCacheEntries):
+        * NetworkProcess/NetworkProcess.h:
+        * NetworkProcess/cache/NetworkCache.cpp:
+        (WebKit::NetworkCache::Cache::traverse):
+        * NetworkProcess/cache/NetworkCache.h:
+        * NetworkProcess/cache/NetworkCacheIOChannelSoup.cpp:
+        (WebKit::NetworkCache::runTaskInQueue):
+        * NetworkProcess/cache/NetworkCacheStorage.h:
+
+2016-06-22  Anders Carlsson  <andersca@apple.com>
+
+        Move WebKit2 Apple Pay code to the open source repository
+        https://bugs.webkit.org/show_bug.cgi?id=159041
+
+        Reviewed by Sam Weinig.
+
+        * DerivedSources.make:
+        * Shared/Cocoa/WebCoreArgumentCodersCocoa.h: Added.
+        * Shared/Cocoa/WebCoreArgumentCodersCocoa.mm: Added.
+        * UIProcess/ApplePay/WebPaymentCoordinatorProxy.cpp: Added.
+        * UIProcess/ApplePay/WebPaymentCoordinatorProxy.h: Added.
+        * UIProcess/ApplePay/WebPaymentCoordinatorProxy.messages.in: Added.
+        * UIProcess/ApplePay/cocoa/WebPaymentCoordinatorProxyCocoa.h: Added.
+        * UIProcess/ApplePay/cocoa/WebPaymentCoordinatorProxyCocoa.mm: Added.
+        * UIProcess/ApplePay/ios/WebPaymentCoordinatorProxyIOS.mm: Added.
+        * UIProcess/ApplePay/mac/WebPaymentCoordinatorProxyMac.mm: Added.
+        * UIProcess/WebPageProxy.cpp:
+        * UIProcess/WebPageProxy.h:
+        * WebKit2.xcodeproj/project.pbxproj:
+        * WebProcess/ApplePay/WebPaymentCoordinator.cpp: Added.
+        * WebProcess/ApplePay/WebPaymentCoordinator.h: Added.
+        * WebProcess/ApplePay/WebPaymentCoordinator.messages.in: Added.
+
+2016-06-24  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] PageConfiguration.m_relatedPage keeps WebPageProxy alive after its WebView has been destroyed
+        https://bugs.webkit.org/show_bug.cgi?id=159080
+        <rdar://problem/26982642>
+
+        Reviewed by Anders Carlsson.
+
+        PageConfiguration.m_relatedPage keeps WebPageProxy alive after its WebView has been destroyed.
+        This leads to WebPageProxy object leaks when the client keeps chaining related views.
+
+        In this patch, we null our the PageConfiguration's relatedPage in WebPageProxy::close()
+        to break the chain and make sure we only keep alive 1 relatedPage rather than a chain of
+        them.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::close):
+
+2016-06-24  Jer Noble  <jer.noble@apple.com>
+
+        Playback controls refer to wrong element when playing multiple items in a page.
+        https://bugs.webkit.org/show_bug.cgi?id=159076
+        <rdar://problem/26953532>
+
+        Reviewed by Beth Dakin.
+
+        clearPlaybackControlsManager() no longer takes a parameter.
+
+        * WebProcess/WebCoreSupport/WebChromeClient.cpp:
+        (WebKit::WebChromeClient::clearPlaybackControlsManager):
+        * WebProcess/WebCoreSupport/WebChromeClient.h:
+        * WebProcess/cocoa/WebPlaybackSessionManager.h:
+        * WebProcess/cocoa/WebPlaybackSessionManager.mm:
+        (WebKit::WebPlaybackSessionManager::setUpPlaybackControlsManager): Make sure to removeClientForContext()
+            if the old context refers to a live media element.
+        (WebKit::WebPlaybackSessionManager::clearPlaybackControlsManager):
+
+2016-06-24  Brady Eidson  <beidson@apple.com>
+
+        IDB tests crashing attempting to register sandbox extensions for blob files.
+        https://bugs.webkit.org/show_bug.cgi?id=159094.
+
+        Reviewed by Sam Weinig.
+        
+        Already tested by storage/indexeddb/modern/handle-user-delete.html
+
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.cpp:
+        (WebKit::preregisterSandboxExtensionsIfNecessary): Check whether the IDBResultData actually contains
+          a getResult before trying to access it.
+
+2016-06-23  Brady Eidson  <beidson@apple.com>
+
+        Retrieving Blobs from IndexedDB using cursors fails in WK2 (Sandboxing)
+        https://bugs.webkit.org/show_bug.cgi?id=158991
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt:
+        * WebKit2.xcodeproj/project.pbxproj:
+
+        * DatabaseProcess/DatabaseProcess.cpp:
+        (WebKit::DatabaseProcess::getSandboxExtensionsForBlobFiles):
+        (WebKit::DatabaseProcess::didGetSandboxExtensionsForBlobFiles):
+        * DatabaseProcess/DatabaseProcess.h:
+        
+        * DatabaseProcess/IndexedDB/WebIDBConnectionToClient.cpp:
+        (WebKit::WebIDBConnectionToClient::handleGetResult): Handle creation of sandbox extensions
+          for any result that might contain blob values.
+        (WebKit::WebIDBConnectionToClient::didGetRecord):
+        (WebKit::WebIDBConnectionToClient::didOpenCursor):
+        (WebKit::WebIDBConnectionToClient::didIterateCursor):
+        * DatabaseProcess/IndexedDB/WebIDBConnectionToClient.h:
+        
+        * Shared/Databases/IndexedDB/WebIDBResult.cpp: Added.
+        (WebKit::WebIDBResult::encode):
+        (WebKit::WebIDBResult::decode):
+        * Shared/Databases/IndexedDB/WebIDBResult.h: Added.
+        (WebKit::WebIDBResult::WebIDBResult):
+        (WebKit::WebIDBResult::resultData):
+        (WebKit::WebIDBResult::handles):
+        
+        * Shared/SandboxExtension.h: Make SandboxExtension handles moveable.
+                
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.cpp:
+        (WebKit::preregisterSandboxExtensionsIfNecessary): Register sandbox extensions with the
+          Networking process for any result that might contain blob values.
+        (WebKit::WebIDBConnectionToServer::didGetRecord):
+        (WebKit::WebIDBConnectionToServer::didOpenCursor):
+        (WebKit::WebIDBConnectionToServer::didIterateCursor):
+        (WebKit::WebIDBConnectionToServer::didGetRecordWithSandboxExtensions): Deleted.
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.h:
+        * WebProcess/Databases/IndexedDB/WebIDBConnectionToServer.messages.in:
+
+2016-06-23  Alex Christensen  <achristensen@webkit.org>
+
+        Remove unused didCancelAuthenticationChallenge
+        https://bugs.webkit.org/show_bug.cgi?id=158819
+
+        Reviewed by David Kilzer.
+
+        * NetworkProcess/Downloads/mac/DownloadMac.mm:
+        (-[WKDownloadAsDelegate download:didCancelAuthenticationChallenge:]): Deleted.
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::didCancelAuthenticationChallenge): Deleted.
+        * NetworkProcess/NetworkLoad.h:
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::dispatchDidCancelAuthenticationChallenge): Deleted.
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.h:
+
+2016-06-23  Benjamin Poulain  <benjamin@webkit.org>
+
+        Specialize synchronous event tracking per event type
+        https://bugs.webkit.org/show_bug.cgi?id=158826
+
+        Reviewed by Simon Fraser.
+
+        * Shared/WebCoreArgumentCoders.cpp:
+        (IPC::ArgumentCoder<EventTrackingRegions>::encode):
+        (IPC::ArgumentCoder<EventTrackingRegions>::decode):
+        * UIProcess/Scrolling/RemoteScrollingCoordinatorProxy.cpp:
+        (WebKit::RemoteScrollingCoordinatorProxy::eventTrackingTypeForPoint):
+        * UIProcess/Scrolling/RemoteScrollingCoordinatorProxy.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::mergeTrackingTypes):
+        (WebKit::WebPageProxy::updateTouchEventTracking):
+        (WebKit::WebPageProxy::touchEventTrackingType):
+        (WebKit::WebPageProxy::handleTouchEventSynchronously):
+        (WebKit::WebPageProxy::handleTouchEventAsynchronously):
+        (WebKit::WebPageProxy::handleTouchEvent):
+        (WebKit::WebPageProxy::resetState):
+        * UIProcess/WebPageProxy.h:
+        (WebKit::WebPageProxy::TouchEventTracking::isTrackingAnything):
+        (WebKit::WebPageProxy::TouchEventTracking::reset):
+
+2016-06-23  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        requestFrameAnimation() callback timestamp should be very close to Performance.now() 
+        https://bugs.webkit.org/show_bug.cgi?id=159038
+
+        Reviewed by Simon Fraser.
+
+        * WebProcess/WebPage/Cocoa/RemoteLayerTreeDisplayRefreshMonitor.mm:
+        (WebKit::RemoteLayerTreeDisplayRefreshMonitor::didUpdateLayers):
+
+2016-06-23  Chris Dumez  <cdumez@apple.com>
+
+        [iOS] A WebPageProxy in closed state should not be allowed to hold a process assertion
+        https://bugs.webkit.org/show_bug.cgi?id=159068
+        <rdar://problem/17665473>
+
+        Reviewed by Tim Horton.
+
+        A WebPageProxy in closed state should not be allowed to hold a process assertion. It
+        currently happens that WebPageProxy::close() gets called but that the WebPageProxy is
+        kept alive by Safari (e.g. In case of top-hit preloading). In such cases, we fail to
+        release the foreground process assertion that the WebPageProxy holds.
+
+        We should clear the foreground process assertion that the WebPageProxy holds as soon
+        as WebPageProxy::close() is called.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::close):
+
+2016-06-23  Brent Fulgham  <bfulgham@apple.com>
+
+        [OS X][WK2] Expand sandbox for new mach endpoints
+        https://bugs.webkit.org/show_bug.cgi?id=159040
+        <rdar://problem/25238336>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Grant the WebContent and Networking processes the mach lookup capability for
+        various Security-related mach endpoints..
+
+        * NetworkProcess/mac/com.apple.WebKit.NetworkProcess.sb.in:
+        * WebProcess/com.apple.WebProcess.sb.in:
+
+2016-06-23  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r201194.
+        https://bugs.webkit.org/show_bug.cgi?id=159059
+
+        Not needed for iOS (Requested by bfulgham on #webkit).
+
+        Reverted changeset:
+
+        "[OS X][WK2] Expand sandbox for new mach endpoints"
+        https://bugs.webkit.org/show_bug.cgi?id=157919
+        http://trac.webkit.org/changeset/201194
+
 2016-06-23  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         Unreviewed. Update OptionsGTK.cmake and NEWS for 2.13.2 release.
