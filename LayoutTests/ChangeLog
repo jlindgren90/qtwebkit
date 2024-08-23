@@ -1,3 +1,207 @@
+2016-07-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking storage/indexeddb/modern/handle-user-delete.html as flaky on mac-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=159896
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-07-18  Filip Pizlo  <fpizlo@apple.com>
+
+        Repeatedly creating and destroying workers that enqueue DFG plans can outpace the DFG worklist, which then causes VM shutdown to stall, which then causes a memory growth
+        https://bugs.webkit.org/show_bug.cgi?id=159754
+
+        Reviewed by Geoffrey Garen.
+        
+        Adds two tests that create a lot of workers that do sophisticated things. These are
+        long-running tests so we may want to skip them. It's OK if we end up only running them
+        manually occasionally.
+
+        * workers: Added.
+        * workers/bomb.html: Added.
+        * workers/bomb-expected.txt: Added.
+        * workers/bomb-with-v8.html: Added.
+        * workers/tests: Added.
+        * workers/tests/3d-cube.js: Added.
+        * workers/tests/3d-morph.js: Added.
+        * workers/tests/3d-raytrace.js: Added.
+        * workers/tests/access-binary-trees.js: Added.
+        * workers/tests/access-fannkuch.js: Added.
+        * workers/tests/access-nbody.js: Added.
+        * workers/tests/access-nsieve.js: Added.
+        * workers/tests/bitops-3bit-bits-in-byte.js: Added.
+        * workers/tests/bitops-bits-in-byte.js: Added.
+        * workers/tests/bitops-bitwise-and.js: Added.
+        * workers/tests/bitops-nsieve-bits.js: Added.
+        * workers/tests/controlflow-recursive.js: Added.
+        * workers/tests/crypto-aes.js: Added.
+        * workers/tests/crypto-md5.js: Added.
+        * workers/tests/crypto-sha1.js: Added.
+        * workers/tests/date-format-tofte.js: Added.
+        * workers/tests/date-format-xparb.js: Added.
+        * workers/tests/math-cordic.js: Added.
+        * workers/tests/math-partial-sums.js: Added.
+        * workers/tests/math-spectral-norm.js: Added.
+        * workers/tests/regexp-dna.js: Added.
+        * workers/tests/string-base64.js: Added.
+        * workers/tests/string-fasta.js: Added.
+        * workers/tests/string-tagcloud.js: Added.
+        * workers/tests/string-unpack-code.js: Added.
+        * workers/tests/string-validate-input.js: Added.
+        * workers/tests/v8-crypto.js: Added.
+        * workers/tests/v8-deltablue.js: Added.
+        * workers/tests/v8-earley-boyer.js: Added.
+        * workers/tests/v8-raytrace.js: Added.
+        * workers/tests/v8-regexp.js: Added.
+        * workers/tests/v8-richards.js: Added.
+        * workers/tests/v8-splay.js: Added.
+
+2016-07-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking storage/indexeddb/modern/abort-requests-cancelled.html as flaky on mac-wk1
+        https://bugs.webkit.org/show_bug.cgi?id=156070
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-17  Filip Pizlo  <fpizlo@apple.com>
+
+        Object.preventExtensions/seal/freeze makes code much slower
+        https://bugs.webkit.org/show_bug.cgi?id=143247
+
+        Reviewed by Michael Saboff.
+        
+        These tests now run ~25x faster.
+
+        * js/regress/freeze-and-do-work-expected.txt: Added.
+        * js/regress/freeze-and-do-work.html: Added.
+        * js/regress/prevent-extensions-and-do-work-expected.txt: Added.
+        * js/regress/prevent-extensions-and-do-work.html: Added.
+        * js/regress/script-tests/freeze-and-do-work.js: Added.
+        (Foo):
+        * js/regress/script-tests/prevent-extensions-and-do-work.js: Added.
+        (Foo):
+        * js/regress/script-tests/seal-and-do-work.js: Added.
+        (Foo):
+        * js/regress/seal-and-do-work-expected.txt: Added.
+        * js/regress/seal-and-do-work.html: Added.
+
+2016-07-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/XMLHttpRequest/event-readystatechange-loaded.htm as flaky on mac-debug WK1
+        https://bugs.webkit.org/show_bug.cgi?id=159893
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/video-load-preload-metadata.html as flaky on Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=128312
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-15  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG and FTL should support op_call_eval
+        https://bugs.webkit.org/show_bug.cgi?id=159786
+
+        Reviewed by Saam Barati.
+
+        * js/regress/eval-compute-expected.txt: Added.
+        * js/regress/eval-compute.html: Added.
+        * js/regress/eval-not-eval-compute-args-expected.txt: Added.
+        * js/regress/eval-not-eval-compute-args.html: Added.
+        * js/regress/eval-not-eval-compute-expected.txt: Added.
+        * js/regress/eval-not-eval-compute.html: Added.
+        * js/regress/script-tests/eval-compute.js: Added.
+        (foo):
+        * js/regress/script-tests/eval-not-eval-compute-args.js: Added.
+        (foo):
+        (i.result.foo):
+        * js/regress/script-tests/eval-not-eval-compute.js: Added.
+        (foo):
+        (i.result.foo):
+
+2016-07-12  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG should really support jneq_ptr
+        https://bugs.webkit.org/show_bug.cgi?id=159700
+
+        Reviewed by Keith Miller.
+        
+        These tests now run super fast.
+
+        * js/regress/apply-not-apply-expected.txt: Added.
+        * js/regress/apply-not-apply.html: Added.
+        * js/regress/call-or-not-call-expected.txt: Added.
+        * js/regress/call-or-not-call.html: Added.
+        * js/regress/script-tests/apply-not-apply.js: Added.
+        (let.o.apply):
+        (foo):
+        * js/regress/script-tests/call-or-not-call.js: Added.
+        (let.o.call):
+        (foo):
+
+2016-07-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/shapes/shape-outside-floats/shape-outside-big-box-border-radius-002.html as flaky on ios-sim
+        https://bugs.webkit.org/show_bug.cgi?id=159881
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-07-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/loading/basic-auth-resend-wrong-credentials.html as flaky on Mac and iOS WK2
+        https://bugs.webkit.org/show_bug.cgi?id=159884
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/mac-wk2/TestExpectations:
+
+2016-07-12  Filip Pizlo  <fpizlo@apple.com>
+
+        OSR entry into DFG has problems with lexical scoping
+        https://bugs.webkit.org/show_bug.cgi?id=159687
+
+        Reviewed by Saam Barati.
+
+        * js/regress/script-tests/strict-osr-entry.js: Added.
+        (let.o.apply_):
+        * js/regress/strict-osr-entry-expected.txt: Added.
+        * js/regress/strict-osr-entry.html: Added.
+
+2016-07-18  Youenn Fablet  <youenn@apple.com>
+
+        [Streams API] ReadableStream should throw a RangeError in case of NaN highWaterMark
+        https://bugs.webkit.org/show_bug.cgi?id=159870
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        * streams/reference-implementation/bad-strategies.html: Reflecting isNaN change in WritableStream test.
+
+2016-07-17  Frederic Wang  <fwang@igalia.com>
+
+        Rebaseline Windows and EFL MathML pixel tests after r203289.
+        https://bugs.webkit.org/show_bug.cgi?id=158866
+
+        Unreviewed test gardening.
+
+        * platform/efl/mathml/opentype/vertical-expected.txt:
+        * platform/efl/mathml/presentation/mo-stretch-expected.txt:
+        * platform/win/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/win/mathml/opentype/vertical-expected.txt:
+        * platform/win/mathml/presentation/mo-stretch-expected.txt:
+
 2016-07-17  Brady Eidson  <beidson@apple.com>
 
         Update DOMCoreException to use the description in toString().

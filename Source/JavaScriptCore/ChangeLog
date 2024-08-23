@@ -1,3 +1,427 @@
+2016-07-18  Filip Pizlo  <fpizlo@apple.com>
+
+        Repeatedly creating and destroying workers that enqueue DFG plans can outpace the DFG worklist, which then causes VM shutdown to stall, which then causes memory growth
+        https://bugs.webkit.org/show_bug.cgi?id=159754
+
+        Reviewed by Geoffrey Garen.
+        
+        If you create and destroy workers at a high rate and those workers enqueue some DFG plans
+        that are still not compiled at the time that the worker is closed, then the closed workers
+        end up stalling in VM::~VM waiting for the DFG worklist thread to finish those plans. Since
+        we don't actually cancel the plans, it's easy to create a situation where the workers
+        outpace the DFG worklist, especially if you create many workers at a time and each one
+        finishes just after enqueueing those plans.
+        
+        The solution is to allow VM::~VM to remove plans from the DFG worklist that are related to
+        that VM but aren't currently being worked on. That turns out to be an easy change.
+        
+        I have a test that repros this, but it's quite long-running. I call it workers/bomb.html. We
+        may want to exclude it from test runs because of how long it takes.
+
+        * dfg/DFGWorklist.cpp:
+        (JSC::DFG::Worklist::removeDeadPlans):
+        (JSC::DFG::Worklist::removeNonCompilingPlansForVM):
+        (JSC::DFG::Worklist::queueLength):
+        (JSC::DFG::Worklist::runThread):
+        * dfg/DFGWorklist.h:
+        * runtime/VM.cpp:
+        (JSC::VM::~VM):
+
+2016-07-17  Filip Pizlo  <fpizlo@apple.com>
+
+        Object.preventExtensions/seal/freeze makes code much slower
+        https://bugs.webkit.org/show_bug.cgi?id=143247
+
+        Reviewed by Michael Saboff.
+        
+        This has been a huge pet peeve of mine for a long time, but I was always afraid of fixing
+        it because I thought that it would be hard. Well, it looks like it's not hard at all.
+        
+        The problem is that you cannot mutate a structure that participates in transition caching.
+        You can only clone the structure and mutate that one. But if you do this, you have to make
+        a hard choice:
+        
+        1) Clone the structure without caching the transition. This is what the code did before
+           this change. It's the most obvious choice, but it introduces an uncacheable transition
+           that leads to an explosion of structures, which then breaks all inline caches.
+        
+        2) Perform one of the existing cacheable transitions. Cacheable transitions can either add
+           properties or they can do one of the NonPropertyTransitions, which until now have been
+           restricted to just IndexingType transitions. So, only adding transitions or making
+           certain prescribed changes to the indexing type count as cacheable transitions.
+        
+        This change decouples NonPropertyTransition from IndexingType and adds three new kinds of
+        transitions: PreventExtensions, Seal, and Freeze. We have to give any cacheable transition
+        a name that fully disambiguates this transition from any other, so that the transition can
+        be cached. Since we're already giving them names in an enum, I figured that the most
+        pragmatic way to implement them is to have Structure::nonPropertyTransition() case on the
+        NonPropertyTransition and implement all of the mutations associated with that transition.
+        The alternative would have been to allow callers of nonPropertyTransition() to supply
+        something like a lambda that describes the mutation, but this seemed awkward since each
+        set of mutations has to anyway be tied to one of the NonPropertyTransition members.
+        
+        This is an enormous speed-up on microbenchmarks that use Object.preventExtensions(),
+        Object.seal(), or Object.freeze(). I don't know if "real" benchmarks use these features
+        and I don't really care. This should be fast.
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::notifyPresenceOfIndexedAccessors):
+        (JSC::JSObject::createInitialUndecided):
+        (JSC::JSObject::createInitialInt32):
+        (JSC::JSObject::createInitialDouble):
+        (JSC::JSObject::createInitialContiguous):
+        (JSC::JSObject::convertUndecidedToInt32):
+        (JSC::JSObject::convertUndecidedToDouble):
+        (JSC::JSObject::convertUndecidedToContiguous):
+        (JSC::JSObject::convertInt32ToDouble):
+        (JSC::JSObject::convertInt32ToContiguous):
+        (JSC::JSObject::convertDoubleToContiguous):
+        (JSC::JSObject::switchToSlowPutArrayStorage):
+        * runtime/Structure.cpp:
+        (JSC::Structure::suggestedArrayStorageTransition):
+        (JSC::Structure::addPropertyTransition):
+        (JSC::Structure::toUncacheableDictionaryTransition):
+        (JSC::Structure::sealTransition):
+        (JSC::Structure::freezeTransition):
+        (JSC::Structure::preventExtensionsTransition):
+        (JSC::Structure::takePropertyTableOrCloneIfPinned):
+        (JSC::Structure::nonPropertyTransition):
+        (JSC::Structure::pin):
+        (JSC::Structure::pinForCaching):
+        (JSC::Structure::allocateRareData):
+        * runtime/Structure.h:
+        * runtime/StructureTransitionTable.h:
+        (JSC::toAttributes):
+        (JSC::changesIndexingType):
+        (JSC::newIndexingType):
+        (JSC::preventsExtensions):
+        (JSC::setsDontDeleteOnAllProperties):
+        (JSC::setsReadOnlyOnAllProperties):
+
+2016-07-17  Filip Pizlo  <fpizlo@apple.com>
+
+        RegisterSet should use a Bitmap instead of a BitVector so that it never allocates memory and is trivial to copy
+        https://bugs.webkit.org/show_bug.cgi?id=159863
+
+        Reviewed by Saam Barati.
+        
+        Switch RegisterSet set to Bitmap because Bitmap doesn't ever allocate memory and can be
+        assigned by memcpy. This should be a performance improvement for compiler code that does a
+        lot of things with RegisterSet. For example, it's one of the fundamental data structures in
+        Air. The previous use of BitVector meant that almost every operation on RegisterSet would
+        have a slow path call. On ARM64, it would mean memory allocation for any RegisterSet that
+        used all available registers.
+        
+        This meant adding even more GPR/FPR reflection to the MacroAssembler API: we now have consts
+        called numGPRs and numFPRs. This is necessary to statically size the Bitmap in RegisterSet.
+        
+        Here's the breakdown of sizes of RegisterSet on different CPUs:
+        
+        x86-32: 8 bits (GPRs) + 8 bits (FPRs) + 1 bit (is deleted) = 1x uint32_t.
+        x86-64: 16 bits + 16 bits + 1 bit = 2x uint32_t.
+        ARMv7: 16 bits + 16 bits + 1 bit = 2x uint32_t.
+        ARM64: 32 bits + 32 bits + 1 bit = 3x uint32_t.
+
+        * assembler/MacroAssemblerARM.h:
+        * assembler/MacroAssemblerARM64.h:
+        * assembler/MacroAssemblerARMv7.h:
+        * assembler/MacroAssemblerX86.h:
+        * assembler/MacroAssemblerX86Common.h:
+        (JSC::MacroAssemblerX86Common::scratchRegister):
+        * assembler/MacroAssemblerX86_64.h:
+        * jit/RegisterSet.h:
+        (JSC::RegisterSet::set):
+        (JSC::RegisterSet::get):
+        (JSC::RegisterSet::setAll):
+        (JSC::RegisterSet::merge):
+        (JSC::RegisterSet::filter):
+        (JSC::RegisterSet::exclude):
+        (JSC::RegisterSet::numberOfSetRegisters):
+        (JSC::RegisterSet::RegisterSet):
+        (JSC::RegisterSet::isEmptyValue):
+        (JSC::RegisterSet::isDeletedValue):
+        (JSC::RegisterSet::operator==):
+        (JSC::RegisterSet::operator!=):
+        (JSC::RegisterSet::hash):
+        (JSC::RegisterSet::forEach):
+        (JSC::RegisterSet::setMany):
+
+2016-07-15  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG and FTL should support op_call_eval
+        https://bugs.webkit.org/show_bug.cgi?id=159786
+
+        Reviewed by Saam Barati.
+        
+        This adds support for op_call_eval in DFG and FTL by brute force:
+        
+        - There is now a CallEval() node type, which compiles exactly the same way that we do in
+          baseline.
+        
+        - We teach the DFG and bytecode liveness that the scope register and 'this' are read by
+          CallEval()/op_call_eval.
+        
+        We can compile eval quite well, except that right now we cannot inline functions that use
+        eval. It would be nice to do that, but the payoff is probably smaller. "Don't inline users
+        of eval" may even be an OK inlining heuristic. Not inlining users of eval allows me to
+        reuse the baseline implementation, which is really great. Otherwise, I'd have to get rid
+        of things like the rogue reads of scope register and 'this'.
+        
+        The goal here is to produce speed-ups for code that has functions that do both eval and
+        some computational stuff. Obviously, we're not producing any benefit for the eval itself.
+        But now the other stuff in a function that uses eval will get to participate in
+        optimization.
+        
+        This is a huge speed-up on microbenchmarks.
+
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::printCallOp):
+        (JSC::CodeBlock::dumpBytecode):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::setLocal):
+        (JSC::DFG::ByteCodeParser::setArgument):
+        (JSC::DFG::ByteCodeParser::flush):
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGGraph.h:
+        (JSC::DFG::Graph::needsScopeRegister):
+        (JSC::DFG::Graph::needsFlushedThis):
+        * dfg/DFGHeapLocation.cpp:
+        (WTF::printInternal):
+        * dfg/DFGHeapLocation.h:
+        * dfg/DFGMayExit.cpp:
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::hasHeapPrediction):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGOSRExitCompiler.cpp:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::emitCall):
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::emitCall):
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGStackLayoutPhase.cpp:
+        (JSC::DFG::StackLayoutPhase::run):
+        * dfg/DFGWatchpointCollectionPhase.cpp:
+        (JSC::DFG::WatchpointCollectionPhase::handle):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLCompile.cpp:
+        (JSC::FTL::compile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallOrConstructVarargs):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallEval):
+        (JSC::FTL::DFG::LowerDFGToB3::compileLoadVarargs):
+        * jit/AssemblyHelpers.cpp:
+        (JSC::AssemblyHelpers::restoreCalleeSavesFromVMEntryFrameCalleeSavesBuffer):
+        (JSC::AssemblyHelpers::emitDumbVirtualCall):
+        * jit/AssemblyHelpers.h:
+        (JSC::AssemblyHelpers::emitTypeOf):
+        * jit/JITCall.cpp:
+        (JSC::JIT::compileCallEvalSlowCase):
+        * jit/JITCall32_64.cpp:
+        (JSC::JIT::compileCallEvalSlowCase):
+        * jit/JITOperations.cpp:
+        * tests/stress/exit-then-eval.js: Added.
+        (foo):
+        * tests/stress/force-exit-then-eval-dfg.js: Added.
+        (foo):
+        * tests/stress/force-exit-then-eval.js: Added.
+        (foo):
+
+2016-07-12  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG should really support jneq_ptr
+        https://bugs.webkit.org/show_bug.cgi?id=159700
+
+        Reviewed by Keith Miller.
+        
+        Prior to this change, DFG statically speculated that jneq_ptr would always fall through. This
+        meant that programs that called o.apply() or o.call() where apply or call weren't the
+        expected ones (i.e. the function.prototype.apply/call) would rage-recompile forever.
+        
+        This adds profiling to jneq_ptr. We now know if it always falls through or sometimes doesn't.
+        If it sometimes doesn't, we now emit an actual control flow diamond. I decided to add a new
+        NodeType for "equal pointer", since none of the existing ones really captured that. For
+        example, there was no way to express "equal pointer" for strings or symbols. We don't use it
+        for that right now, but we might, and if we did, then it would be hugely surprising that the
+        DFG interpreted this as value equality. So, the DFG now has CompareEqPtr, which means exactly
+        what jneq_ptr means by "equal pointer".
+        
+        This is an enormous speed-up on microbenchmarks. I would assume that it's a speed-up on some
+        real things, too, but I don't know that for a fact.
+
+        * bytecode/BytecodeList.json:
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitJumpIfNotFunctionCall):
+        (JSC::BytecodeGenerator::emitJumpIfNotFunctionApply):
+        (JSC::BytecodeGenerator::emitExpectedFunctionSnippet):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::hasCellOperand):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileRecordRegExpCachedResult):
+        (JSC::DFG::SpeculativeJIT::compileCompareEqPtr):
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGValidate.cpp:
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareStrictEq):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareEqPtr):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareLess):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareStrictEqConstant): Deleted.
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_jneq_ptr):
+        (JSC::JIT::emit_op_eq):
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_jneq_ptr):
+        (JSC::JIT::emit_op_eq):
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+
+2016-07-12  Filip Pizlo  <fpizlo@apple.com>
+
+        OSR entry into DFG has problems with lexical scoping
+        https://bugs.webkit.org/show_bug.cgi?id=159687
+
+        Reviewed by Saam Barati.
+        
+        What a fun bug! It turns out that uses of lexical scoping, like "let", may sometimes cause us
+        to not be able to OSR enter into a loop from baseline to DFG. The bug is in a mitigation for
+        a different bug, which in turn had a mitigation for yet another bug, so the story here is a
+        long one.
+        
+        DFG OSR entry has long had a mitigation for the following bug: the DFG bytecode parser may
+        choose to make us always OSR exit at some instruction if it thinks that it doesn't have
+        enough profiling for that instruction. We will do this if some kinds of put_by_id only
+        execute once, for example. This causes problems for loopy benchmarks like this:
+        
+            put_by_id(something crazy);
+            for (var i = 0; i < bigNumber; ++i) simpleMath;
+        
+        In this case, the put_by_id will have only executed once, and since it did something crazy
+        that one time, the bytecode parser will replace it with ForceOSRExit.
+        
+        This creates an OSR entry bug: DFG CFA will then prove that the loop is unreachable, and will
+        tell OSR entry that it's impossible to enter into that loop.
+        
+        We mitigated this bug a long time ago by recording mustHandleValues for loops at which we
+        want to enter. We inject these values into DFG CFA and we force CFA to recognize that the
+        loop is reachable even if CFA wanted to prove that it wasn't.
+        
+        But this leads to another bug: we need to scrape the values from the stack inside
+        operationOptimize() and then we need to reason about them in the compiler. Some of those
+        values may be garbage, which would cause pandemonium inside the compiler. We also mitigated
+        this bug, by only recording the "vars", since those are guaranteed to be reset by op_enter.
+        
+        And that's where the lexical scoping bug happens: "let" bound variables aren't part of the
+        "vars". DFG will see that they are live, but mustHandleValues will not have anything for
+        those variables, so CFA will prove that the values are Bottom. Then OSR entry will always
+        fail because no value is ever a subset of Bottom.
+        
+        The first part of the fix is to ensure that mustHandleValues record all of the values on the
+        stack (i.e. within m_numCalleeLocals, rather than just m_numVars). But this creates a second
+        problem: we may record garbage. This patch includes a better fix for the garbage: before
+        touching mustHandleValues we run the bytecode liveness analysis and clear any values that are
+        not live. This ensures that we clear the garbage.
+        
+        This is an enormous speed-up on microbenchmarks that use lexical scoping and have some crazy
+        put_by_id in the lead-up to the hot loop.
+
+        * dfg/DFGCFAPhase.cpp:
+        (JSC::DFG::CFAPhase::run):
+        * dfg/DFGOSREntry.cpp:
+        (JSC::DFG::prepareOSREntry):
+        * dfg/DFGPlan.cpp:
+        (JSC::DFG::Plan::compileInThreadImpl):
+        (JSC::DFG::Plan::checkLivenessAndVisitChildren):
+        (JSC::DFG::Plan::cancel):
+        (JSC::DFG::Plan::cleanMustHandleValuesIfNecessary):
+        * dfg/DFGPlan.h:
+        (JSC::DFG::Plan::canTierUpAndOSREnter):
+        * jit/JITOperations.cpp:
+
+2016-07-18  Youenn Fablet  <youenn@apple.com>
+
+        REGRESSION(r202975): --minimal build is broken
+        https://bugs.webkit.org/show_bug.cgi?id=159765
+
+        Reviewed by Chris Dumez.
+
+        Covered partially by builtin generated test code.
+
+        Updating generator to add a global compilation guard around the code that generates all global internal properties.
+        Split the generate_methods function in two, one dedicated to the visit method and the second one dedicated to
+        the initialize method.
+
+        * Scripts/builtins/builtins_generate_internals_wrapper_implementation.py:
+        (BuiltinsInternalsWrapperImplementationGenerator.generate_section_for_object): Use splitted generation functions.
+        (BuiltinsInternalsWrapperImplementationGenerator.generate_visit_method): Response to generate the visit method.
+        (BuiltinsInternalsWrapperImplementationGenerator._generate_initialize_static_globals): Responsible to generate
+        the code to initialize the internal globals. This code is put in a global compilation guard in case all
+        internals are compiled out by specific builds.
+        (BuiltinsInternalsWrapperImplementationGenerator):
+        (BuiltinsInternalsWrapperImplementationGenerator.generate_initialize_method): Responsible to generate the
+        initialize method.
+        (BuiltinsInternalsWrapperImplementationGenerator.generate_methods): Deleted.
+        * Scripts/tests/builtins/expected/WebCore-ArbitraryConditionalGuard-Separate.js-result: Copyright change.
+        * Scripts/tests/builtins/expected/WebCore-GuardedBuiltin-Separate.js-result: Ditto.
+        * Scripts/tests/builtins/expected/WebCore-GuardedInternalBuiltin-Separate.js-result: Ditto.
+        * Scripts/tests/builtins/expected/WebCore-UnguardedBuiltin-Separate.js-result: Ditto.
+        * Scripts/tests/builtins/expected/WebCore-xmlCasingTest-Separate.js-result: Reflects partially the built-in
+        generator change.
+
+2016-07-18  Keith Miller  <keith_miller@apple.com>
+
+        Fix bad assertions in genericTypedArrayViewPrivateFuncSubarrayCreate
+        https://bugs.webkit.org/show_bug.cgi?id=159882
+        <rdar://problem/27327111>
+
+        Reviewed by Mark Lam.
+
+        According the spec toInteger can return values we don't consider ints.
+        Such as, -0 and +/-Infinity. This broke some assertions in
+        genericTypedArrayViewPrivateFuncSubarrayCreate.
+
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        (JSC::genericTypedArrayViewPrivateFuncSubarrayCreate):
+        * tests/stress/typedarray-subarray.js:
+
 2016-07-16  Filip Pizlo  <fpizlo@apple.com>
 
         DFG CSE is broken for MultiGetByOffset

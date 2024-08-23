@@ -920,7 +920,7 @@ bool AccessibilityObject::press()
     if (hitTestElement && hitTestElement->isDescendantOf(pressElement))
         pressElement = hitTestElement;
     
-    UserGestureIndicator gestureIndicator(DefinitelyProcessingUserGesture, document);
+    UserGestureIndicator gestureIndicator(ProcessingUserGesture, document);
     
     bool dispatchedTouchEvent = dispatchTouchEvent();
     if (!dispatchedTouchEvent)
@@ -1995,7 +1995,7 @@ bool AccessibilityObject::hasAttribute(const QualifiedName& attribute) const
     if (!is<Element>(node))
         return false;
     
-    return downcast<Element>(*node).fastHasAttribute(attribute);
+    return downcast<Element>(*node).hasAttributeWithoutSynchronization(attribute);
 }
     
 const AtomicString& AccessibilityObject::getAttribute(const QualifiedName& attribute) const

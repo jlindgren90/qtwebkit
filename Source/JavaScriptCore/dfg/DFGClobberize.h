@@ -164,6 +164,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case GetGlobalObject:
     case StringCharCodeAt:
     case CompareStrictEq:
+    case CompareEqPtr:
     case IsJSArray:
     case IsEmpty:
     case IsUndefined:
@@ -434,11 +435,6 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         write(HeapObjectCount);
         return;
 
-    case VarInjectionWatchpoint:
-        read(MiscFields);
-        def(HeapLocation(VarInjectionWatchpointLoc, MiscFields), LazyNode(node));
-        return;
-
     case IsObjectOrNull:
         read(MiscFields);
         def(HeapLocation(IsObjectOrNullLoc, MiscFields, node->child1()), LazyNode(node));
@@ -483,6 +479,14 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case GetDynamicVar:
     case PutDynamicVar:
     case ResolveScope:
+        read(World);
+        write(Heap);
+        return;
+
+    case CallEval:
+        ASSERT(!node->origin.semantic.inlineCallFrame);
+        read(AbstractHeap(Stack, graph.m_codeBlock->scopeRegister()));
+        read(AbstractHeap(Stack, virtualRegisterForArgument(0)));
         read(World);
         write(Heap);
         return;

@@ -1,3 +1,413 @@
+2016-07-18  George Ruan  <gruan@apple.com>
+
+        Move MediaSampleAVFObjC into its own file
+        https://bugs.webkit.org/show_bug.cgi?id=159796
+        <rdar://problem/27362488>
+
+        In preparation for a feature that uses MediaSampleAVFObjC, but does
+        not need SourceBufferPrivateAVFObjC, it is beneficial to move
+        MediaSampleAVFObjC to its own file.
+
+        Reviewed by Eric Carlson.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/MediaSample.h: Allow setting trackID to associate
+        MediaSample id with MediaStreamTrackPrivate id.
+        * platform/graphics/avfoundation/MediaSampleAVFObjC.h: Added.
+        * platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm: Moved
+        from MediaSampleAVFObjC
+        (WebCore::MediaSampleAVFObjC::presentationTime):
+        (WebCore::MediaSampleAVFObjC::decodeTime):
+        (WebCore::MediaSampleAVFObjC::duration):
+        (WebCore::MediaSampleAVFObjC::sizeInBytes):
+        (WebCore::MediaSampleAVFObjC::platformSample):
+        (WebCore::CMSampleBufferIsRandomAccess):
+        (WebCore::MediaSampleAVFObjC::flags):
+        (WebCore::MediaSampleAVFObjC::presentationSize):
+        (WebCore::MediaSampleAVFObjC::dump):
+        (WebCore::MediaSampleAVFObjC::offsetTimestampsBy):
+        (WebCore::MediaSampleAVFObjC::setTimestamps):
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+        Moved MediaSampleAVFObjC to its own file.
+        (WebCore::MediaSampleAVFObjC::platformSample): Deleted.
+        (WebCore::CMSampleBufferIsRandomAccess): Deleted.
+        (WebCore::MediaSampleAVFObjC::flags): Deleted.
+        (WebCore::MediaSampleAVFObjC::presentationSize): Deleted.
+        (WebCore::MediaSampleAVFObjC::dump): Deleted.
+        (WebCore::MediaSampleAVFObjC::offsetTimestampsBy): Deleted.
+        (WebCore::MediaSampleAVFObjC::setTimestamps): Deleted.
+        * platform/mock/mediasource/MockSourceBufferPrivate.cpp:
+
+2016-07-18  Eric Carlson  <eric.carlson@apple.com>
+
+        [MSE][Mac] Pass AVSampleBufferDisplayLayer HDCP status to a newly created key session
+        https://bugs.webkit.org/show_bug.cgi?id=159812
+        <rdar://problem/27371624>
+
+        Reviewed by Jon Lee.
+
+        No new tests, it isn't possible to test this with our current testing infrastructure.
+
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.h:
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+        (WebCore::SourceBufferPrivateAVFObjC::setCDMSession): Call layerDidReceiveError if there has
+        been an HDCP error.
+        (WebCore::SourceBufferPrivateAVFObjC::rendererDidReceiveError): Remember an HDCP error.
+
+2016-07-18  Yoav Weiss  <yoav@yoav.ws>
+
+        Add preload to features.json
+        https://bugs.webkit.org/show_bug.cgi?id=159872
+
+        Reviewed by Darin Adler.
+
+        No new tests but no functional change.
+
+        * features.json:
+
+2016-07-18  Youenn Fablet  <youenn@apple.com>
+
+        [Streams API] ReadableStream should throw a RangeError in case of NaN highWaterMark
+        https://bugs.webkit.org/show_bug.cgi?id=159870
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Covered by rebased test.
+
+        * Modules/streams/StreamInternals.js:
+        (validateAndNormalizeQueuingStrategy): Throwing a RangeError in lieu of a TypeError in case of NaN highWaterMark.
+
+2016-07-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Windows buildfix after r203338
+        https://bugs.webkit.org/show_bug.cgi?id=159875
+
+        Unreviewed buildfix.
+
+        * dom/UserGestureIndicator.h:
+        (WebCore::UserGestureToken::addDestructionObserver):
+
+2016-07-18  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        MemoryPressureHandler doesn't work if cgroups aren't present in Linux
+        https://bugs.webkit.org/show_bug.cgi?id=155255
+
+        Reviewed by Sergio Villar Senin.
+
+        Allow to pass an eventFD file descriptor to the MemoryPressureHandler to be monitorized in case cgroups are not
+        available.
+
+        * platform/MemoryPressureHandler.h:
+        * platform/linux/MemoryPressureHandlerLinux.cpp:
+
+2016-07-17  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Clean up PassRefPtr uses in Modules/encryptedmedia, Modules/speech, and Modules/quota
+        https://bugs.webkit.org/show_bug.cgi?id=159701
+
+        Reviewed by Alex Christensen.
+
+        No new tests, no behavior changes.
+
+        * Modules/encryptedmedia/CDM.h:
+        * Modules/encryptedmedia/MediaKeySession.h:
+        * Modules/encryptedmedia/MediaKeys.h:
+        * Modules/quota/DOMWindowQuota.cpp:
+        * Modules/quota/StorageErrorCallback.cpp:
+        (WebCore::StorageErrorCallback::CallbackTask::CallbackTask):
+        * Modules/quota/StorageErrorCallback.h:
+        * Modules/quota/StorageInfo.h:
+        * Modules/quota/StorageQuota.h:
+        * Modules/speech/DOMWindowSpeechSynthesis.cpp:
+        * Modules/speech/SpeechSynthesis.cpp:
+        (WebCore::SpeechSynthesis::getVoices):
+        (WebCore::SpeechSynthesis::startSpeakingImmediately):
+        (WebCore::SpeechSynthesis::speak):
+        (WebCore::SpeechSynthesis::cancel):
+        (WebCore::SpeechSynthesis::handleSpeakingCompleted):
+        (WebCore::SpeechSynthesis::boundaryEventOccurred):
+        (WebCore::SpeechSynthesis::didStartSpeaking):
+        (WebCore::SpeechSynthesis::didPauseSpeaking):
+        (WebCore::SpeechSynthesis::didResumeSpeaking):
+        (WebCore::SpeechSynthesis::didFinishSpeaking):
+        (WebCore::SpeechSynthesis::speakingErrorOccurred):
+        * Modules/speech/SpeechSynthesis.h:
+        * Modules/speech/SpeechSynthesisEvent.h:
+        * Modules/speech/SpeechSynthesisUtterance.h:
+        * Modules/speech/SpeechSynthesisVoice.cpp:
+        (WebCore::SpeechSynthesisVoice::create):
+        (WebCore::SpeechSynthesisVoice::SpeechSynthesisVoice):
+        * Modules/speech/SpeechSynthesisVoice.h:
+        * platform/PlatformSpeechSynthesizer.h:
+        * platform/efl/PlatformSpeechSynthesisProviderEfl.cpp:
+        (WebCore::PlatformSpeechSynthesisProviderEfl::fireSpeechEvent):
+        * platform/mock/PlatformSpeechSynthesizerMock.cpp:
+        (WebCore::PlatformSpeechSynthesizerMock::speakingFinished):
+        (WebCore::PlatformSpeechSynthesizerMock::speak):
+        (WebCore::PlatformSpeechSynthesizerMock::cancel):
+        (WebCore::PlatformSpeechSynthesizerMock::pause):
+        (WebCore::PlatformSpeechSynthesizerMock::resume):
+
+2016-07-16  Sam Weinig  <sam@webkit.org>
+
+        [WebKit API] Add SPI to track multiple navigations caused by a single user gesture
+        <rdar://problem/26554137>
+        https://bugs.webkit.org/show_bug.cgi?id=159856
+
+        Reviewed by Dan Bernstein.
+
+        - Adds a new RefCounted object to represent a unique user gesture, called UserGestureToken.
+        - Makes UserGestureIndicator track UserGestureToken.
+        - Refines UserGestureIndicator's interface to use Optional and a smaller enum set
+          to represent the different initial states.
+        - Stores UserGestureTokens on objects that want to forward user gesture state (DOMTimer, 
+          postMessage, and ScheduledNavigation) rather than just a boolean.
+
+        * accessibility/AccessibilityNodeObject.cpp:
+        (WebCore::AccessibilityNodeObject::increment):
+        (WebCore::AccessibilityNodeObject::decrement):
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::press):
+        * bindings/js/ScriptController.cpp:
+        (WebCore::ScriptController::executeScriptInWorld):
+        (WebCore::ScriptController::executeScript):
+        Update for new UserGestureIndicator interface.
+
+        * dom/UserGestureIndicator.cpp:
+        (WebCore::currentToken):
+        (WebCore::UserGestureToken::~UserGestureToken):
+        (WebCore::UserGestureIndicator::UserGestureIndicator):
+        (WebCore::UserGestureIndicator::~UserGestureIndicator):
+        (WebCore::UserGestureIndicator::currentUserGesture):
+        (WebCore::UserGestureIndicator::processingUserGesture):
+        (WebCore::UserGestureIndicator::processingUserGestureForMedia):
+        (WebCore::isDefinite): Deleted.
+        * dom/UserGestureIndicator.h:
+        (WebCore::UserGestureToken::create):
+        (WebCore::UserGestureToken::state):
+        (WebCore::UserGestureToken::processingUserGesture):
+        (WebCore::UserGestureToken::processingUserGestureForMedia):
+        (WebCore::UserGestureToken::addDestructionObserver):
+        (WebCore::UserGestureToken::UserGestureToken):
+        Add UserGestureToken and track the current one explicitly.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::didReceiveRemoteControlCommand):
+        * inspector/InspectorFrontendClientLocal.cpp:
+        (WebCore::InspectorFrontendClientLocal::openInNewTab):
+        * inspector/InspectorFrontendHost.cpp:
+        * inspector/InspectorPageAgent.cpp:
+        (WebCore::InspectorPageAgent::navigate):
+        Update for new UserGestureIndicator interface.
+
+        * loader/NavigationAction.cpp:
+        (WebCore::NavigationAction::NavigationAction):
+        * loader/NavigationAction.h:
+        (WebCore::NavigationAction::userGestureToken):
+        (WebCore::NavigationAction::processingUserGesture):
+        * loader/NavigationScheduler.cpp:
+        (WebCore::ScheduledNavigation::ScheduledNavigation):
+        (WebCore::ScheduledNavigation::~ScheduledNavigation):
+        (WebCore::ScheduledNavigation::lockBackForwardList):
+        (WebCore::ScheduledNavigation::wasDuringLoad):
+        (WebCore::ScheduledNavigation::isLocationChange):
+        (WebCore::ScheduledNavigation::userGestureToForward):
+        (WebCore::ScheduledNavigation::clearUserGesture):
+        (WebCore::NavigationScheduler::mustLockBackForwardList):
+        (WebCore::NavigationScheduler::scheduleFormSubmission):
+        (WebCore::ScheduledNavigation::wasUserGesture): Deleted.
+        * page/DOMTimer.cpp:
+        (WebCore::shouldForwardUserGesture):
+        (WebCore::userGestureTokenToForward):
+        (WebCore::DOMTimer::DOMTimer):
+        (WebCore::DOMTimer::fired):
+        * page/DOMTimer.h:
+        * page/DOMWindow.cpp:
+        (WebCore::PostMessageTimer::PostMessageTimer):
+        Store the active UserGestureToken rather than just a bit.
+
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::handleMousePressEvent):
+        (WebCore::EventHandler::handleMouseDoubleClickEvent):
+        (WebCore::EventHandler::handleMouseReleaseEvent):
+        (WebCore::EventHandler::keyEvent):
+        (WebCore::EventHandler::handleTouchEvent):
+        * rendering/HitTestResult.cpp:
+        (WebCore::HitTestResult::toggleMediaFullscreenState):
+        (WebCore::HitTestResult::enterFullscreenForVideo):
+        (WebCore::HitTestResult::toggleEnhancedFullscreenForVideo):
+        Update for new UserGestureIndicator interface.
+
+2016-07-17  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Rename fastHasAttribute to hasAttributeWithoutSynchronization
+        https://bugs.webkit.org/show_bug.cgi?id=159864
+
+        Reviewed by Chris Dumez.
+
+        Renamed Rename fastHasAttribute to hasAttributeWithoutSynchronization for clarity.
+
+        * accessibility/AccessibilityListBoxOption.cpp:
+        (WebCore::AccessibilityListBoxOption::isEnabled):
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::hasAttribute):
+        (WebCore::AccessibilityObject::getAttribute):
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::determineAccessibilityRole):
+        * bindings/scripts/CodeGenerator.pm:
+        (GetterExpression):
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjReflectedBooleanAttr):
+        (WebCore::jsTestObjReflectedCustomBooleanAttr):
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+        (-[DOMTestObj reflectedBooleanAttr]):
+        (-[DOMTestObj setReflectedBooleanAttr:]):
+        (-[DOMTestObj reflectedCustomBooleanAttr]):
+        (-[DOMTestObj setReflectedCustomBooleanAttr:]):
+        * dom/Document.cpp:
+        (WebCore::Document::hasManifest):
+        (WebCore::Document::doctype):
+        * dom/Element.h:
+        (WebCore::Node::parentElement):
+        (WebCore::Element::hasAttributeWithoutSynchronization):
+        (WebCore::Element::fastHasAttribute): Deleted.
+        * editing/ApplyStyleCommand.cpp:
+        (WebCore::ApplyStyleCommand::removeEmbeddingUpToEnclosingBlock):
+        * editing/DeleteSelectionCommand.cpp:
+        (WebCore::DeleteSelectionCommand::makeStylingElementsDirectChildrenOfEditableRootToPreventStyleLoss):
+        * editing/markup.cpp:
+        (WebCore::createMarkupInternal):
+        * html/ColorInputType.cpp:
+        (WebCore::ColorInputType::shouldShowSuggestions):
+        * html/FileInputType.cpp:
+        (WebCore::FileInputType::handleDOMActivateEvent):
+        (WebCore::FileInputType::receiveDroppedFiles):
+        * html/FormAssociatedElement.cpp:
+        (WebCore::FormAssociatedElement::didMoveToNewDocument):
+        (WebCore::FormAssociatedElement::insertedInto):
+        (WebCore::FormAssociatedElement::removedFrom):
+        (WebCore::FormAssociatedElement::formAttributeChanged):
+        * html/FormController.cpp:
+        (WebCore::ownerFormForState):
+        * html/GenericCachedHTMLCollection.cpp:
+        (WebCore::GenericCachedHTMLCollection<traversalType>::elementMatches):
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::draggable):
+        (WebCore::HTMLAnchorElement::href):
+        (WebCore::HTMLAnchorElement::sendPings):
+        * html/HTMLAppletElement.cpp:
+        (WebCore::HTMLAppletElement::rendererIsNeeded):
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::collectStyleForPresentationAttribute):
+        (WebCore::elementAffectsDirectionality):
+        (WebCore::setHasDirAutoFlagRecursively):
+        * html/HTMLEmbedElement.cpp:
+        (WebCore::HTMLEmbedElement::rendererIsNeeded):
+        * html/HTMLFieldSetElement.cpp:
+        (WebCore::updateFromControlElementsAncestorDisabledStateUnder):
+        (WebCore::HTMLFieldSetElement::disabledAttributeChanged):
+        (WebCore::HTMLFieldSetElement::disabledStateChanged):
+        (WebCore::HTMLFieldSetElement::childrenChanged):
+        * html/HTMLFormControlElement.cpp:
+        (WebCore::HTMLFormControlElement::formNoValidate):
+        (WebCore::HTMLFormControlElement::formAction):
+        (WebCore::HTMLFormControlElement::computeIsDisabledByFieldsetAncestor):
+        (WebCore::shouldAutofocus):
+        * html/HTMLFormElement.cpp:
+        (WebCore::HTMLFormElement::formElementIndex):
+        (WebCore::HTMLFormElement::noValidate):
+        * html/HTMLFrameElement.cpp:
+        (WebCore::HTMLFrameElement::noResize):
+        (WebCore::HTMLFrameElement::didAttachRenderers):
+        * html/HTMLFrameElementBase.cpp:
+        (WebCore::HTMLFrameElementBase::parseAttribute):
+        (WebCore::HTMLFrameElementBase::location):
+        * html/HTMLHRElement.cpp:
+        (WebCore::HTMLHRElement::collectStyleForPresentationAttribute):
+        * html/HTMLImageElement.cpp:
+        (WebCore::HTMLImageElement::isServerMap):
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::finishParsingChildren):
+        (WebCore::HTMLInputElement::matchesDefaultPseudoClass):
+        (WebCore::HTMLInputElement::isActivatedSubmit):
+        (WebCore::HTMLInputElement::reset):
+        (WebCore::HTMLInputElement::multiple):
+        (WebCore::HTMLInputElement::setSize):
+        (WebCore::HTMLInputElement::shouldUseMediaCapture):
+        * html/HTMLMarqueeElement.cpp:
+        (WebCore::HTMLMarqueeElement::minimumDelay):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::insertedInto):
+        (WebCore::HTMLMediaElement::selectMediaResource):
+        (WebCore::HTMLMediaElement::loadResource):
+        (WebCore::HTMLMediaElement::autoplay):
+        (WebCore::HTMLMediaElement::preload):
+        (WebCore::HTMLMediaElement::loop):
+        (WebCore::HTMLMediaElement::setLoop):
+        (WebCore::HTMLMediaElement::controls):
+        (WebCore::HTMLMediaElement::setControls):
+        (WebCore::HTMLMediaElement::muted):
+        (WebCore::HTMLMediaElement::setMuted):
+        (WebCore::HTMLMediaElement::selectNextSourceChild):
+        (WebCore::HTMLMediaElement::sourceWasAdded):
+        (WebCore::HTMLMediaElement::mediaSessionTitle):
+        * html/HTMLObjectElement.cpp:
+        (WebCore::HTMLObjectElement::parseAttribute):
+        * html/HTMLOptGroupElement.cpp:
+        (WebCore::HTMLOptGroupElement::isDisabledFormControl):
+        (WebCore::HTMLOptGroupElement::isFocusable):
+        * html/HTMLOptionElement.cpp:
+        (WebCore::HTMLOptionElement::matchesDefaultPseudoClass):
+        (WebCore::HTMLOptionElement::text):
+        * html/HTMLProgressElement.cpp:
+        (WebCore::HTMLProgressElement::isDeterminate):
+        (WebCore::HTMLProgressElement::didElementStateChange):
+        * html/HTMLScriptElement.cpp:
+        (WebCore::HTMLScriptElement::async):
+        (WebCore::HTMLScriptElement::setCrossOrigin):
+        (WebCore::HTMLScriptElement::asyncAttributeValue):
+        (WebCore::HTMLScriptElement::deferAttributeValue):
+        (WebCore::HTMLScriptElement::hasSourceAttribute):
+        (WebCore::HTMLScriptElement::dispatchLoadEvent):
+        * html/HTMLSelectElement.cpp:
+        (WebCore::HTMLSelectElement::reset):
+        * html/HTMLTrackElement.cpp:
+        (WebCore::HTMLTrackElement::isDefault):
+        (WebCore::HTMLTrackElement::ensureTrack):
+        (WebCore::HTMLTrackElement::loadTimerFired):
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::wirelessVideoPlaybackDisabled):
+        (WebCore::MediaElementSession::requiresFullscreenForVideoPlayback):
+        (WebCore::MediaElementSession::allowsAutomaticMediaDataLoading):
+        * html/SearchInputType.cpp:
+        (WebCore::SearchInputType::searchEventsShouldBeDispatched):
+        (WebCore::SearchInputType::didSetValueByUserEdit):
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::buildObjectForNode):
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::shouldTreatURLAsSrcdocDocument):
+        (WebCore::FrameLoader::findFrameForNavigation):
+        * loader/ImageLoader.cpp:
+        (WebCore::ImageLoader::notifyFinished):
+        * mathml/MathMLSelectElement.cpp:
+        (WebCore::MathMLSelectElement::getSelectedSemanticsChild):
+        * rendering/RenderTableCell.cpp:
+        (WebCore::RenderTableCell::computePreferredLogicalWidths):
+        * rendering/RenderThemeIOS.mm:
+        (WebCore::RenderThemeIOS::adjustMenuListButtonStyle):
+        * rendering/SimpleLineLayout.cpp:
+        (WebCore::SimpleLineLayout::canUseForWithReason):
+        * rendering/svg/RenderSVGResourceClipper.cpp:
+        (WebCore::RenderSVGResourceClipper::drawContentIntoMaskImage):
+        * svg/SVGAnimateMotionElement.cpp:
+        (WebCore::SVGAnimateMotionElement::updateAnimationPath):
+        * svg/SVGAnimationElement.cpp:
+        (WebCore::SVGAnimationElement::startedActiveInterval):
+        (WebCore::SVGAnimationElement::updateAnimation):
+        * svg/animation/SVGSMILElement.cpp:
+        (WebCore::SVGSMILElement::insertedInto):
+
 2016-07-17  Brady Eidson  <beidson@apple.com>
 
         Exceptions logged to the JS console should use toString().

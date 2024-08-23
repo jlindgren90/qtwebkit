@@ -151,6 +151,7 @@ public:
         UserContentExtension,
         UserContentExtensionStore,
         UserContentWorld,
+        UserInitiatedAction,
         UserMediaPermissionCheck,
         UserMediaPermissionRequest,
         Vibration,
