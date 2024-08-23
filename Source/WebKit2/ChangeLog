@@ -1,3 +1,379 @@
+2016-06-30  Brian Burg  <bburg@apple.com>
+
+        REGRESSION(r202329): WebInspectorProxy's WKPagePolicyClient callbacks are not being called
+        https://bugs.webkit.org/show_bug.cgi?id=159308
+        <rdar://problem/27111764>
+
+        Reviewed by Tim Horton.
+
+        Adopt WKPageNavigationClient and ditch WKPolicyClient and WKPageLoaderClient.
+        After r202329, it's not possible to set a WKPolicyClient for a WKPage/WebPageProxy that backs a WKWebView.
+
+        * UIProcess/WebInspectorProxy.cpp:
+        (WebKit::isMainOrTestInspectorPage): Take a WebCore::ResourceRequest.
+        (WebKit::processDidCrash): Deleted.
+        (WebKit::webProcessDidCrash): Rename to match new client callback name.
+        (WebKit::decidePolicyForNavigationAction): Rework this to take new argument types.
+        (WebKit::WebInspectorProxy::eagerlyCreateInspectorPage):
+        Install a WKPageNavigationClient. 
+
+2016-06-30  Chris Dumez  <cdumez@apple.com>
+
+        [iOS] Process suspension is prevented for 30 seconds after closing a tab
+        https://bugs.webkit.org/show_bug.cgi?id=159280
+        <rdar://problem/27014867>
+
+        Reviewed by Gavin Barraclough.
+
+        When closing a tab, ConnectionTerminationWatchdog takes a background
+        assertion on behalf of the WebContent process and only releases it
+        after 30 seconds, allowing for the WebContent process to exit cleanly
+        without worrying about getting suspended too early.
+
+        However, the child process normally exits much sooner than this and
+        we end up holding a process assertion for no reason for a full 30
+        seconds anyway. This patch addresses the issue by registering an
+        invalidation handler with the BKSProcessAssertion and releasing our
+        our assertion in such case. The invalidation handler gets called
+        as soon as the child process exits.
+
+        * Platform/spi/ios/AssertionServicesSPI.h:
+        * UIProcess/ProcessAssertion.cpp:
+        (WebKit::ProcessAssertion::ProcessAssertion):
+        * UIProcess/ProcessAssertion.h:
+        (WebKit::ProcessAssertion::ProcessAssertion):
+        (WebKit::ProcessAssertion::validity):
+        * UIProcess/ios/ProcessAssertionIOS.mm:
+        (WebKit::ProcessAssertion::ProcessAssertion):
+        (WebKit::ProcessAssertion::~ProcessAssertion):
+        (WebKit::ProcessAndUIAssertion::updateRunInBackgroundCount):
+        (WebKit::ProcessAndUIAssertion::ProcessAndUIAssertion):
+        (WebKit::ProcessAssertion::setState): Deleted.
+
+2016-06-30  Tim Horton  <timothy_horton@apple.com>
+
+        Keep track of when a WKWebView is blank before the initial non-empty layout
+        https://bugs.webkit.org/show_bug.cgi?id=159217
+        <rdar://problem/26071766>
+
+        Reviewed by Beth Dakin.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        (-[WKWebView _setIsBlankBeforeFirstNonEmptyLayout:]):
+        (-[WKWebView _didFirstVisuallyNonEmptyLayoutForMainFrame]):
+        * UIProcess/API/Cocoa/WKWebViewInternal.h:
+        * UIProcess/ios/PageClientImplIOS.mm:
+        (WebKit::PageClientImpl::didFirstVisuallyNonEmptyLayoutForMainFrame):
+
+2016-06-29  Gavin Barraclough  <barraclough@apple.com>
+
+        Cleanup ProcessAssertion RunInBackground management
+        https://bugs.webkit.org/show_bug.cgi?id=159284
+
+        Reviewed by Chris Dumez.
+
+        Factor out code that handles taking a background assertion on the UI app into
+        ProcessAndUIAssertion::updateRunInBackgroundCount helper.
+
+        This patch just cleanup to enable a futher fix.
+
+        * UIProcess/ProcessAssertion.h:
+        (WebKit::ProcessAssertion::state):
+            - Added ProcessAndUIAssertion::updateRunInBackgroundCount
+            - Added ProcessAndUIAssertion::m_isHoldingBackgroundAssertionOnApp
+        * UIProcess/ios/ProcessAssertionIOS.mm:
+        (WebKit::ProcessAndUIAssertion::updateRunInBackgroundCount):
+            - helper to manage calls to incrementNeedsToRunInBackgroundCount/decrementNeedsToRunInBackgroundCount
+        (WebKit::ProcessAndUIAssertion::ProcessAndUIAssertion):
+            - call updateRunInBackgroundCount
+        (WebKit::ProcessAndUIAssertion::~ProcessAndUIAssertion):
+            changed to use m_isHoldingBackgroundAssertionOnApp
+        (WebKit::ProcessAndUIAssertion::setState):
+            - call updateRunInBackgroundCount
+
+2016-06-30  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Move CompositingCoordinator from platform to WebKit2 layer
+        https://bugs.webkit.org/show_bug.cgi?id=159209
+
+        Reviewed by Žan Doberšek.
+
+        Move CompositingCoordinator and its helper classes to the WebKit2 layer.
+
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * WebProcess/WebPage/CoordinatedGraphics/AreaAllocator.cpp: Renamed from Source/WebCore/platform/graphics/texmap/coordinated/AreaAllocator.cpp.
+        (WebKit::AreaAllocator::AreaAllocator):
+        (WebKit::AreaAllocator::~AreaAllocator):
+        (WebKit::AreaAllocator::expand):
+        (WebKit::AreaAllocator::expandBy):
+        (WebKit::AreaAllocator::release):
+        (WebKit::AreaAllocator::overhead):
+        (WebKit::AreaAllocator::roundAllocation):
+        (WebKit::GeneralAreaAllocator::GeneralAreaAllocator):
+        (WebKit::GeneralAreaAllocator::~GeneralAreaAllocator):
+        (WebKit::GeneralAreaAllocator::freeNode):
+        (WebKit::GeneralAreaAllocator::expand):
+        (WebKit::fitsWithin):
+        (WebKit::GeneralAreaAllocator::allocate):
+        (WebKit::GeneralAreaAllocator::allocateFromNode):
+        (WebKit::GeneralAreaAllocator::splitNode):
+        (WebKit::GeneralAreaAllocator::updateLargestFree):
+        (WebKit::GeneralAreaAllocator::release):
+        (WebKit::GeneralAreaAllocator::overhead):
+        * WebProcess/WebPage/CoordinatedGraphics/AreaAllocator.h: Renamed from Source/WebCore/platform/graphics/texmap/coordinated/AreaAllocator.h.
+        (WebKit::nextPowerOfTwo):
+        (WebKit::AreaAllocator::size):
+        (WebKit::AreaAllocator::minimumAllocation):
+        (WebKit::AreaAllocator::setMinimumAllocation):
+        (WebKit::AreaAllocator::margin):
+        (WebKit::AreaAllocator::setMargin):
+        * WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.cpp: Renamed from Source/WebCore/platform/graphics/texmap/coordinated/CompositingCoordinator.cpp.
+        (WebKit::CompositingCoordinator::CompositingCoordinator):
+        (WebKit::CompositingCoordinator::~CompositingCoordinator):
+        (WebKit::CompositingCoordinator::setRootCompositingLayer):
+        (WebKit::CompositingCoordinator::setViewOverlayRootLayer):
+        (WebKit::CompositingCoordinator::sizeDidChange):
+        (WebKit::CompositingCoordinator::flushPendingLayerChanges):
+        (WebKit::CompositingCoordinator::timestamp):
+        (WebKit::CompositingCoordinator::syncDisplayState):
+        (WebKit::CompositingCoordinator::nextAnimationServiceTime):
+        (WebKit::CompositingCoordinator::clearPendingStateChanges):
+        (WebKit::CompositingCoordinator::initializeRootCompositingLayerIfNeeded):
+        (WebKit::CompositingCoordinator::createRootLayer):
+        (WebKit::CompositingCoordinator::syncLayerState):
+        (WebKit::CompositingCoordinator::createImageBackingIfNeeded):
+        (WebKit::CompositingCoordinator::createImageBacking):
+        (WebKit::CompositingCoordinator::updateImageBacking):
+        (WebKit::CompositingCoordinator::clearImageBackingContents):
+        (WebKit::CompositingCoordinator::removeImageBacking):
+        (WebKit::CompositingCoordinator::flushPendingImageBackingChanges):
+        (WebKit::CompositingCoordinator::notifyAnimationStarted):
+        (WebKit::CompositingCoordinator::notifyFlushRequired):
+        (WebKit::CompositingCoordinator::paintContents):
+        (WebKit::CompositingCoordinator::createGraphicsLayer):
+        (WebKit::CompositingCoordinator::deviceScaleFactor):
+        (WebKit::CompositingCoordinator::pageScaleFactor):
+        (WebKit::CompositingCoordinator::createUpdateAtlas):
+        (WebKit::CompositingCoordinator::removeUpdateAtlas):
+        (WebKit::CompositingCoordinator::visibleContentsRect):
+        (WebKit::CompositingCoordinator::mainContentsLayer):
+        (WebKit::CompositingCoordinator::setVisibleContentsRect):
+        (WebKit::CompositingCoordinator::deviceOrPageScaleFactorChanged):
+        (WebKit::CompositingCoordinator::detachLayer):
+        (WebKit::CompositingCoordinator::commitScrollOffset):
+        (WebKit::CompositingCoordinator::renderNextFrame):
+        (WebKit::CompositingCoordinator::purgeBackingStores):
+        (WebKit::CompositingCoordinator::paintToSurface):
+        (WebKit::CompositingCoordinator::scheduleReleaseInactiveAtlases):
+        (WebKit::CompositingCoordinator::releaseInactiveAtlasesTimerFired):
+        * WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.h: Renamed from Source/WebCore/platform/graphics/texmap/coordinated/CompositingCoordinator.h.
+        (WebKit::CompositingCoordinator::clearRootLayer):
+        (WebKit::CompositingCoordinator::rootLayer):
+        (WebKit::CompositingCoordinator::state):
+        * WebProcess/WebPage/CoordinatedGraphics/CoordinatedLayerTreeHost.h:
+        * WebProcess/WebPage/CoordinatedGraphics/UpdateAtlas.cpp: Renamed from Source/WebCore/platform/graphics/texmap/coordinated/UpdateAtlas.cpp.
+        (WebKit::UpdateAtlasSurfaceClient::UpdateAtlasSurfaceClient):
+        (WebKit::UpdateAtlas::UpdateAtlas):
+        (WebKit::UpdateAtlas::~UpdateAtlas):
+        (WebKit::UpdateAtlas::buildLayoutIfNeeded):
+        (WebKit::UpdateAtlas::didSwapBuffers):
+        (WebKit::UpdateAtlas::paintOnAvailableBuffer):
+        * WebProcess/WebPage/CoordinatedGraphics/UpdateAtlas.h: Renamed from Source/WebCore/platform/graphics/texmap/coordinated/UpdateAtlas.h.
+        (WebKit::UpdateAtlas::size):
+        (WebKit::UpdateAtlas::supportsAlpha):
+        (WebKit::UpdateAtlas::addTimeInactive):
+        (WebKit::UpdateAtlas::isInactive):
+        (WebKit::UpdateAtlas::isInUse):
+
+2016-06-29  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        Unreviewed, CMake build fix.
+
+        * PlatformMac.cmake:
+
+2016-06-29  Beth Dakin  <bdakin@apple.com>
+
+        Add media_icon to WebKit2
+        https://bugs.webkit.org/show_bug.cgi?id=159273
+        -and corresponding-
+        rdar://problem/27087714
+
+        Reviewed by Dean Jackson.
+
+        * Resources/mediaIcon.pdf: Added.
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-06-29  Anders Carlsson  <andersca@apple.com>
+
+        Rename addressFields to contactFields
+        https://bugs.webkit.org/show_bug.cgi?id=159271
+        rdar://problem/27086955
+
+        Reviewed by Beth Dakin.
+
+        * Shared/Cocoa/WebCoreArgumentCodersCocoa.mm:
+        (IPC::ArgumentCoder<PaymentRequest>::encode):
+        (IPC::ArgumentCoder<PaymentRequest>::decode):
+        (IPC::ArgumentCoder<PaymentRequest::ContactFields>::encode):
+        (IPC::ArgumentCoder<PaymentRequest::ContactFields>::decode):
+        (IPC::ArgumentCoder<PaymentRequest::AddressFields>::encode): Deleted.
+        (IPC::ArgumentCoder<PaymentRequest::AddressFields>::decode): Deleted.
+        * Shared/WebCoreArgumentCoders.h:
+        * UIProcess/ApplePay/cocoa/WebPaymentCoordinatorProxyCocoa.mm:
+        (WebKit::toPKAddressField):
+        (WebKit::toPKPaymentRequest):
+
+2016-06-29  Jer Noble  <jer.noble@apple.com>
+
+        Adopt MediaRemote.
+        https://bugs.webkit.org/show_bug.cgi?id=159250
+
+        Reviewed by Eric Carlson.
+
+        Add a sandbox exception allowing access to the mediaremoted XPC service.
+
+        * WebProcess/com.apple.WebProcess.sb.in:
+
+2016-06-29  Alex Christensen  <achristensen@webkit.org>
+
+        WKWebView should ask WKNavigationDelegate about bad ssl certificates
+        https://bugs.webkit.org/show_bug.cgi?id=159176
+        rdar://problem/26864882
+
+        Reviewed by Sam Weinig.
+
+        This can be tested manually by visiting a site in MiniBrowser that has invalid ssl certificates, but we don't have proper ssl testing yet.
+        Before this change, we would just open the site as if nothing were invalid, now we call the WKNavigationDelegate's didReceiveAuthenticationChallenge
+        like we did before using NSURLSession, and we do not open the page, also like we did before using NSURLSession.
+
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::continueCanAuthenticateAgainstProtectionSpace):
+        When using NSURLConnection and responding to canAuthenticateAgainstProtectionSpace with YES,
+        we get an NSURLAuthenticationChallenge when a bad ssl certificate is encountered in the handshake.
+        When using NSURLSession, we want to call webView:didReceiveAuthenticationChallenge:completionHandler: in this case.
+        The default implementation of NavigationState::NavigationClient::canAuthenticateAgainstProtectionSpace returns true
+        if there is an implementation of webView:didReceiveAuthenticationChallenge:completionHandler: in its WKNavigationDelegate.
+        Internal clients can implement _webView:canAuthenticateAgainstProtectionSpace: 
+        and Safari uses canHandleHTTPSServerTrustEvaluation, so it will be unaffected.
+
+2016-06-29  Beth Dakin  <bdakin@apple.com>
+
+        Delete WKElementInfo since it's not used
+        https://bugs.webkit.org/show_bug.cgi?id=159265
+
+        Reviewed by Sam Weinig.
+
+        * Shared/API/Cocoa/WebKit.h:
+        * UIProcess/API/Cocoa/WKElementInfo.h: Removed.
+        * UIProcess/API/Cocoa/WKElementInfo.mm: Removed.
+        * UIProcess/API/Cocoa/WKElementInfoInternal.h: Removed.
+        * UIProcess/API/Cocoa/WKPreviewElementInfo.h:
+        * UIProcess/API/Cocoa/WKPreviewElementInfo.mm:
+        (-[WKPreviewElementInfo _initWithLinkURL:]):
+        (-[WKPreviewElementInfo copyWithZone:]):
+        (-[WKPreviewElementInfo linkURL]):
+        * UIProcess/API/Cocoa/WKPreviewElementInfoInternal.h:
+        * UIProcess/API/Cocoa/_WKContextMenuElementInfo.h:
+        * UIProcess/API/Cocoa/_WKContextMenuElementInfo.mm:
+        (-[_WKContextMenuElementInfo copyWithZone:]):
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-06-29  Jeremy Jones  <jeremyj@apple.com>
+
+        Replace MPAudioVideoRoutingActionSheet with MPAVRoutingSheet.
+        https://bugs.webkit.org/show_bug.cgi?id=159161
+        <rdar://problem/26017691>
+
+        Reviewed by Sam Weinig.
+
+        MPAudioVideoRoutingActionSheet is being replaced by MPAVRoutingSheet,
+        with only minor changes to the interface.
+
+        * UIProcess/ios/forms/WKAirPlayRoutePicker.mm:
+        (-[WKAirPlayRoutePicker dealloc]):
+        (-[WKAirPlayRoutePicker showAirPlayPickerIPhone:]):
+
+2016-06-29  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Too much duplicated code in LayerTreeHosts implementations
+        https://bugs.webkit.org/show_bug.cgi?id=159144
+
+        Reviewed by Žan Doberšek.
+
+        There's some code common and duplicated in all current LayerTreeHosts implementations (Gtk, Coordinated, and
+        ThreadedCoordinated). The thing is even worse in the case of ThreadedCoordinated and Coordinated, where the
+        former is actually a special case of the later, and it seems like code was copy pasted and then modified to add
+        ThreadedCoordinated specific code. The problem of that approach, apart from the code duplication, is that common
+        parts end up diverging too. This patch moves the common parts to the base class LayerTreeHost and makes
+        ThreadedCoordinatedLayerTreeHost inherit from CoordinatedLayerTreeHost, to share the common code and simply add
+        the specific one.
+
+        * PlatformGTK.cmake:
+        * WebProcess/WebPage/CoordinatedGraphics/CoordinatedDrawingArea.h:
+        * WebProcess/WebPage/CoordinatedGraphics/CoordinatedLayerTreeHost.cpp:
+        (WebKit::CoordinatedLayerTreeHost::CoordinatedLayerTreeHost):
+        (WebKit::CoordinatedLayerTreeHost::scheduleLayerFlush):
+        (WebKit::CoordinatedLayerTreeHost::setViewOverlayRootLayer):
+        (WebKit::CoordinatedLayerTreeHost::setRootCompositingLayer):
+        (WebKit::CoordinatedLayerTreeHost::invalidate):
+        (WebKit::CoordinatedLayerTreeHost::sizeDidChange):
+        (WebKit::CoordinatedLayerTreeHost::layerFlushTimerFired):
+        (WebKit::CoordinatedLayerTreeHost::commitSceneState):
+        (WebKit::CoordinatedLayerTreeHost::createCoordinatedSurface):
+        (WebKit::CoordinatedLayerTreeHost::cancelPendingLayerFlush): Deleted.
+        (WebKit::CoordinatedLayerTreeHost::forceRepaint): Deleted.
+        (WebKit::CoordinatedLayerTreeHost::forceRepaintAsync): Deleted.
+        (WebKit::CoordinatedLayerTreeHost::didFlushRootLayer): Deleted.
+        (WebKit::CoordinatedLayerTreeHost::deviceOrPageScaleFactorChanged): Deleted.
+        (WebKit::CoordinatedLayerTreeHost::pageBackgroundTransparencyChanged): Deleted.
+        (WebKit::CoordinatedLayerTreeHost::graphicsLayerFactory): Deleted.
+        * WebProcess/WebPage/CoordinatedGraphics/CoordinatedLayerTreeHost.h:
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        (WebKit::ThreadedCoordinatedLayerTreeHost::ThreadedCoordinatedLayerTreeHost):
+        (WebKit::ThreadedCoordinatedLayerTreeHost::deviceOrPageScaleFactorChanged):
+        (WebKit::ThreadedCoordinatedLayerTreeHost::sizeDidChange):
+        (WebKit::ThreadedCoordinatedLayerTreeHost::setVisibleContentsRect):
+        (WebKit::ThreadedCoordinatedLayerTreeHost::commitSceneState):
+        (WebKit::ThreadedCoordinatedLayerTreeHost::create): Deleted.
+        (WebKit::ThreadedCoordinatedLayerTreeHost::scrollNonCompositedContents): Deleted.
+        (WebKit::ThreadedCoordinatedLayerTreeHost::contentsSizeChanged): Deleted.
+        (WebKit::ThreadedCoordinatedLayerTreeHost::didChangeViewportProperties): Deleted.
+        (WebKit::ThreadedCoordinatedLayerTreeHost::didScaleFactorChanged): Deleted.
+        (WebKit::ThreadedCoordinatedLayerTreeHost::setNativeSurfaceHandleForCompositing): Deleted.
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.h:
+        * WebProcess/WebPage/DrawingArea.h:
+        (WebKit::DrawingArea::layerHostDidFlushLayers):
+        * WebProcess/WebPage/DrawingAreaImpl.h:
+        * WebProcess/WebPage/LayerTreeHost.cpp:
+        (WebKit::LayerTreeHost::~LayerTreeHost):
+        (WebKit::LayerTreeHost::setLayerFlushSchedulingEnabled):
+        (WebKit::LayerTreeHost::pauseRendering):
+        (WebKit::LayerTreeHost::resumeRendering):
+        (WebKit::LayerTreeHost::invalidate):
+        * WebProcess/WebPage/LayerTreeHost.h:
+        (WebKit::LayerTreeHost::layerTreeContext):
+        (WebKit::LayerTreeHost::setShouldNotifyAfterNextScheduledLayerFlush):
+        (WebKit::LayerTreeHost::setNonCompositedContentsNeedDisplay):
+        (WebKit::LayerTreeHost::setNonCompositedContentsNeedDisplayInRect):
+        (WebKit::LayerTreeHost::scrollNonCompositedContents):
+        (WebKit::LayerTreeHost::graphicsLayerFactory):
+        (WebKit::LayerTreeHost::contentsSizeChanged):
+        (WebKit::LayerTreeHost::didChangeViewportProperties):
+        (WebKit::LayerTreeHost::setNativeSurfaceHandleForCompositing):
+        (WebKit::LayerTreeHost::setViewOverlayRootLayer):
+        (WebKit::LayerTreeHost::forceRepaintAsync): Deleted.
+        * WebProcess/WebPage/gtk/LayerTreeHostGtk.cpp:
+        (WebKit::LayerTreeHostGtk::invalidate):
+        (WebKit::LayerTreeHostGtk::setViewOverlayRootLayer):
+        (WebKit::LayerTreeHostGtk::LayerTreeHostGtk): Deleted.
+        (WebKit::LayerTreeHostGtk::setRootCompositingLayer): Deleted.
+        (WebKit::LayerTreeHostGtk::setNonCompositedContentsNeedDisplay): Deleted.
+        (WebKit::LayerTreeHostGtk::scrollNonCompositedContents): Deleted.
+        (WebKit::LayerTreeHostGtk::setNativeSurfaceHandleForCompositing): Deleted.
+        * WebProcess/WebPage/gtk/LayerTreeHostGtk.h:
+
 2016-06-28  Commit Queue  <commit-queue@webkit.org>
 
         Unreviewed, rolling out r202586 and r202595.

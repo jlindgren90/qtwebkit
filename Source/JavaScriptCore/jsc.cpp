@@ -1992,7 +1992,7 @@ int main(int argc, char** argv)
     if (Options::logHeapStatisticsAtExit())
         HeapStatistics::reportSuccess();
     if (Options::reportLLIntStats())
-        LLInt::Data::dumpStats();
+        LLInt::Data::finalizeStats();
 
 #if PLATFORM(EFL)
     ecore_shutdown();

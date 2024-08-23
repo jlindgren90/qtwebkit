@@ -992,6 +992,7 @@ void CodeBlock::dumpBytecode(
         }
         case op_to_number: {
             printUnaryOp(out, exec, location, it, "to_number");
+            dumpValueProfiling(out, it, hasPrintedProfiling);
             break;
         }
         case op_to_string: {
@@ -1665,7 +1666,9 @@ void CodeBlock::dumpBytecode(
             int generator = (++it)->u.operand;
             unsigned liveCalleeLocalsIndex = (++it)->u.unsignedValue;
             int offset = (++it)->u.operand;
-            const FastBitVector& liveness = m_rareData->m_liveCalleeLocalsAtYield[liveCalleeLocalsIndex];
+            FastBitVector liveness;
+            if (liveCalleeLocalsIndex < m_rareData->m_liveCalleeLocalsAtYield.size())
+                liveness = m_rareData->m_liveCalleeLocalsAtYield[liveCalleeLocalsIndex];
             printLocationAndOp(out, exec, location, it, "save");
             out.printf("%s, ", registerName(generator).data());
             liveness.dump(out);
@@ -1675,7 +1678,9 @@ void CodeBlock::dumpBytecode(
         case op_resume: {
             int generator = (++it)->u.operand;
             unsigned liveCalleeLocalsIndex = (++it)->u.unsignedValue;
-            const FastBitVector& liveness = m_rareData->m_liveCalleeLocalsAtYield[liveCalleeLocalsIndex];
+            FastBitVector liveness;
+            if (liveCalleeLocalsIndex < m_rareData->m_liveCalleeLocalsAtYield.size())
+                liveness = m_rareData->m_liveCalleeLocalsAtYield[liveCalleeLocalsIndex];
             printLocationAndOp(out, exec, location, it, "resume");
             out.printf("%s, ", registerName(generator).data());
             liveness.dump(out);
@@ -2093,7 +2098,8 @@ void CodeBlock::finishCreation(VM& vm, ScriptExecutable* ownerExecutable, Unlink
         }
         case op_get_direct_pname:
         case op_get_by_id:
-        case op_get_from_arguments: {
+        case op_get_from_arguments:
+        case op_to_number: {
             ValueProfile* profile = &m_valueProfiles[pc[opLength - 1].u.operand];
             ASSERT(profile->m_bytecodeOffset == -1);
             profile->m_bytecodeOffset = i;

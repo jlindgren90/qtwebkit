@@ -30,7 +30,7 @@
 
 namespace WebKit {
 
-ProcessAssertion::ProcessAssertion(PlatformProcessIdentifier, AssertionState assertionState)
+ProcessAssertion::ProcessAssertion(PlatformProcessIdentifier, AssertionState assertionState, std::function<void()>)
     : m_assertionState(assertionState)
 {
 }

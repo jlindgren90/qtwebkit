@@ -1,3 +1,687 @@
+2016-06-30  Saam Barati  <sbarati@apple.com>
+
+        get_by_id_with_this does not trigger a to_this in caller.
+        https://bugs.webkit.org/show_bug.cgi?id=159226
+
+        Reviewed by Keith Miller.
+
+        This is a bug if the caller is in sloppy mode and the callee is in strict
+        mode. This can't happen with ES6 classes because they're all in strict mode,
+        but it can happen with method syntax on an object literal. The caller must
+        to_this on |this| when it knows that it performs super property accesses.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        * tests/stress/super-property-access-object-literal-to-this-2.js: Added.
+        (assert):
+        (test):
+        (let.o1.get foo):
+        (let.o2.a):
+        (let.o2.aa):
+        * tests/stress/super-property-access-object-literal-to-this.js: Added.
+        (assert):
+        (test):
+        (let.o1.get foo):
+        (let.o2.a):
+        (let.o2.aa):
+        (let.o2.b):
+        (let.o2.bb):
+        * tests/stress/super-property-access-to-this.js: Added.
+        (assert):
+        (test):
+        (Base.prototype.get foo):
+        (Base):
+        (Child.prototype.a):
+        (Child.prototype.b):
+        (Child):
+
+2016-06-30  Saam Barati  <sbarati@apple.com>
+
+        We need to to_this when an inner arrow function uses 'this'
+        https://bugs.webkit.org/show_bug.cgi?id=159290
+        <rdar://problem/27058322>
+
+        Reviewed by Geoffrey Garen.
+
+        We put the |this| value into the closure object when there
+        is an arrow function that uses |this|. However, an arrow function
+        using |this| wasn't causing the creator of the closure that
+        holds |this| to to_this its value before putting it in the
+        closure. That's a huge bug because it means some arrow functions
+        can capture the raw |this| value, which might be a JSLexicalEnvironment.
+        This patch fixes this by adding an easy to check to see if any
+        inner arrow functions use |this|, and if any do, it will to_this
+        the |this| value.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        * tests/stress/to-this-before-arrow-function-closes-over-this-that-starts-as-lexical-environment.js: Added.
+        (assert):
+        (obj):
+        (foo.capture):
+        (foo.wrapper.let.x.):
+        (foo2.capture):
+        (foo2.wrapper.let.x.):
+        (foo2.wrapper.bar):
+
+2016-06-29  Filip Pizlo  <fpizlo@apple.com>
+
+        Generators violate bytecode liveness validation
+        https://bugs.webkit.org/show_bug.cgi?id=159279
+
+        Reviewed by Yusuke Suzuki.
+        
+        Fix a liveness bug found by Basic. The problem is that resume's intended liveness rule is:
+        "live-in is just the token argument", but the liveness analysis thought that the rule was
+        "live-in is live-out minus defs plus live-at-catch". Clearly these two rules are quite
+        different. The way this sort of worked before is that we would define the defs of resume
+        as being equal to our prediction of what the live-outs would be. We did this in the hope
+        that we would subtract all live-outs. But, this misses the live-at-catch part. So, this
+        change adds another hack to neutralize live-at-catch.
+        
+        This would make a lot more sense if we wrote a new liveness analysis that was just for
+        generator conversion. It could reuse BytecodeUseDef but otherwise it would be a new thing.
+        It would be easy to write crazy rules for save/resume in such an analysis, especially if
+        that analysis rewrote the bytecode. We could then just have an op_yield that is a no-op.
+        We would just record the live-outs of op_yield and use that for rewriting the code in terms
+        of a switch statement.
+
+        * bytecode/BytecodeLivenessAnalysis.cpp:
+        (JSC::stepOverInstruction):
+        (JSC::BytecodeLivenessAnalysis::dumpResults):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+
+2016-06-30  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202659.
+        https://bugs.webkit.org/show_bug.cgi?id=159305
+
+        The test for this change times out on mac-wk2 debug and caused
+        an existing test to crash. (Requested by ryanhaddad on
+        #webkit).
+
+        Reverted changeset:
+
+        "Web Inspector: Wrong function name next to scope"
+        https://bugs.webkit.org/show_bug.cgi?id=158210
+        http://trac.webkit.org/changeset/202659
+
+2016-06-30  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Date.setYear() misses timeClip()
+        https://bugs.webkit.org/show_bug.cgi?id=159289
+
+        Reviewed by Geoffrey Garen.
+
+        * runtime/DatePrototype.cpp:
+        (JSC::dateProtoFuncSetYear):
+
+2016-06-30  Joseph Pecoraro  <pecoraro@apple.com> and Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Implement isFinite / isNaN in JS and make DFG ToNumber accept non number values
+        https://bugs.webkit.org/show_bug.cgi?id=154022
+
+        Reviewed by Filip Pizlo.
+
+        We aim at optimizing @toInteger operation.
+        While it still has an unoptimized part[1], this patch should be a first step.
+
+        We introduce the @toNumber builtin intrinsic operation.
+        This converts the given value to the JS number by emitting op_to_number bytecode.
+        Previously @toInteger called C++ @Number constructor for that purpose.
+
+        And in DFG, op_to_number is converted to DFG ToNumber node.
+        During DFG, we attempt to convert this to edge filtering and Identity, but if we fail,
+        we just fall back to calling the C++ function.
+
+        To utilize ToNumber in user-land side, we add a path attempting to convert Number constructor calls
+        to ToNumber DFG nodes. This conversion is useful because `Number(value)` is used to convert a value to a number in JS.
+
+        Before this patch, we emit simple edge filtering (NumberUse) instead of emitting DFG node like ToNumber for op_to_number.
+        But emitting ToNumber is useful, because in the case of `Number(value)`, considering `value` may not be a number is reasonable.
+
+        By leveraging @toNumber operation, we rewrite Number.{isFinite, isNaN}, global.{isFinite, isNaN} and @toInteger.
+
+        ToNumber DFG node has a value profiling. This profiling is leveraged to determine the result number type of the ToNumber operation.
+        This value profiling is provided from either NumberConstructor's call operation or op_to_number.
+
+        The results (with the added performance tests) show that, while existing cases are performance neutral, the newly added cases gain the performance benefit.
+        And ASMBench/n-body.c also shows stable ~2% progression.
+
+        [1]: https://bugs.webkit.org/show_bug.cgi?id=153738
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * builtins/BuiltinNames.h:
+        * builtins/GlobalObject.js:
+        (globalPrivate.isFinite):
+        (globalPrivate.isNaN):
+        (globalPrivate.toInteger): Deleted.
+        (globalPrivate.toLength): Deleted.
+        (globalPrivate.isDictionary): Deleted.
+        (globalPrivate.speciesGetter): Deleted.
+        (globalPrivate.speciesConstructor): Deleted.
+        * builtins/GlobalOperations.js: Copied from Source/JavaScriptCore/builtins/GlobalObject.js.
+        (globalPrivate.toInteger):
+        (globalPrivate.toLength):
+        (globalPrivate.isDictionary):
+        (globalPrivate.speciesGetter):
+        (globalPrivate.speciesConstructor):
+        * builtins/NumberConstructor.js: Added.
+        (isFinite):
+        (isNaN):
+        * bytecode/BytecodeIntrinsicRegistry.cpp:
+        (JSC::BytecodeIntrinsicRegistry::BytecodeIntrinsicRegistry):
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * bytecode/BytecodeList.json:
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        (JSC::CodeBlock::finishCreation):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitUnaryOp):
+        (JSC::BytecodeGenerator::emitUnaryOpProfiled):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::emitToNumber):
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_toNumber):
+        (JSC::UnaryPlusNode::emitBytecode):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGBackwardsPropagationPhase.cpp:
+        (JSC::DFG::BackwardsPropagationPhase::propagate):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::attemptToInlineCall):
+        (JSC::DFG::ByteCodeParser::handleConstantInternalFunction):
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        We use `getPrediction()` to retrieve the heap prediction from the to_number bytecode.
+        According to the benchmark results, choosing `getPredictionWithoutOSRExit()` causes performance regression (1.5%) in kraken stanford-crypto-aes.
+
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGConstantFoldingPhase.cpp:
+        (JSC::DFG::ConstantFoldingPhase::foldConstants):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        (JSC::DFG::FixupPhase::fixupToNumber):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::hasHeapPrediction):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        Always on the heap prediction.
+
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        As of 64bit version, we carefully manage the register reuse. The largest difference between 32bit and 64bit is
+        `branchIfNotNumber()` requires the temporary register. We should not use the result registers for that since
+        it may be reuse the argument registers and it can break the argument registers before using them to call the operation.
+        Currently, we allocate the additional temporary register for that scratch register.
+
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        Reuse the argument register for the result if possible. And manually decrement the use count in the middle of the node.
+        This is similar technique used in ToPrimitive. Typically, the child of ToNumber is only used by this ToNumber node since
+        we would like to perform the type conversion onto this child node here. So this careful register reuse effectively removes
+        the spills to call the operation. The example of the actually emitted code is the following.
+
+        76:<!2:loc11>     ToNumber(Untyped:@68, JS|MustGen|UseAsOther, DoubleimpurenanTopEmpty, R:World, W:Heap, Exits, ClobbersExit, bc#48)  predicting DoubleimpurenanTopEmpty
+            0x7f986d5fe693: test %rax, %r14
+            0x7f986d5fe696: jz 0x7f986d5fe6a1
+            0x7f986d5fe69c: jmp 0x7f986d5fe6d1
+            0x7f986d5fe6a1: mov %rax, %rsi
+            0x7f986d5fe6a4: mov %rbp, %rdi
+            0x7f986d5fe6a7: mov $0x2, 0x24(%rbp)
+            0x7f986d5fe6ae: mov $0x7f98711ea5f0, %r11
+            0x7f986d5fe6b8: call *%r11
+            0x7f986d5fe6bb: mov $0x7f982d3f72d0, %r11
+            0x7f986d5fe6c5: mov (%r11), %r11
+            0x7f986d5fe6c8: test %r11, %r11
+            0x7f986d5fe6cb: jnz 0x7f986d5fe88c
+
+        It effectively removes the unnecessary spill to call the operation!
+
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileToNumber):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareStrictEq):
+        * jit/AssemblyHelpers.h:
+        (JSC::AssemblyHelpers::branchIfNumber):
+        (JSC::AssemblyHelpers::branchIfNotNumber):
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_to_number):
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_to_number):
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+        * parser/Nodes.h:
+        (JSC::UnaryOpNode::opcodeID):
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::SLOW_PATH_DECL):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncIsNaN): Deleted.
+        (JSC::globalFuncIsFinite): Deleted.
+        * runtime/JSGlobalObjectFunctions.h:
+        * runtime/MathCommon.h:
+        (JSC::maxSafeInteger):
+        (JSC::minSafeInteger):
+        * runtime/NumberConstructor.cpp:
+        (JSC::NumberConstructor::finishCreation):
+        (JSC::numberConstructorFuncIsFinite): Deleted.
+        (JSC::numberConstructorFuncIsNaN): Deleted.
+        * runtime/NumberConstructor.h:
+        * tests/stress/Number-isNaN-basics.js: Added.
+        (numberIsNaNOnInteger):
+        (testNumberIsNaNOnIntegers):
+        (verifyNumberIsNaNOnIntegerWithOtherTypes):
+        (numberIsNaNOnDouble):
+        (testNumberIsNaNOnDoubles):
+        (verifyNumberIsNaNOnDoublesWithOtherTypes):
+        (numberIsNaNNoArguments):
+        (numberIsNaNTooManyArguments):
+        (testNumberIsNaNOnConstants):
+        (numberIsNaNStructTransition):
+        (Number.isNaN):
+        * tests/stress/global-is-finite.js: Added.
+        (shouldBe):
+        * tests/stress/global-is-nan.js: Added.
+        (shouldBe):
+        * tests/stress/global-isNaN-basics.js: Added.
+        (isNaNOnInteger):
+        (testIsNaNOnIntegers):
+        (verifyIsNaNOnIntegerWithOtherTypes):
+        (isNaNOnDouble):
+        (testIsNaNOnDoubles):
+        (verifyIsNaNOnDoublesWithOtherTypes):
+        (verifyIsNaNOnCoercedTypes):
+        (isNaNNoArguments):
+        (isNaNTooManyArguments):
+        (testIsNaNOnConstants):
+        (isNaNTypeCoercionSideEffects):
+        (i.value.isNaNTypeCoercionSideEffects.valueOf):
+        (isNaNStructTransition):
+        (isNaN):
+        * tests/stress/number-is-finite.js: Added.
+        (shouldBe):
+        (test2):
+        (test3):
+        * tests/stress/number-is-nan.js: Added.
+        (shouldBe):
+        (test2):
+        (test3):
+        * tests/stress/to-number-basics.js: Added.
+        (shouldBe):
+        * tests/stress/to-number-convert-identity-without-execution.js: Added.
+        (shouldBe):
+        (object.valueOf):
+        (valueOf):
+        * tests/stress/to-number-int52.js: Added.
+        (shouldBe):
+        (object.valueOf):
+        * tests/stress/to-number-intrinsic-convert-to-identity-without-execution.js: Added.
+        (shouldBe):
+        (object.valueOf):
+        (valueOf):
+        * tests/stress/to-number-intrinsic-int52.js: Added.
+        (shouldBe):
+        (object.valueOf):
+        * tests/stress/to-number-intrinsic-object-without-execution.js: Added.
+        (shouldBe):
+        (object.valueOf):
+        * tests/stress/to-number-intrinsic-value-profiling.js: Added.
+        (shouldBe):
+        (object.valueOf):
+        * tests/stress/to-number-object-without-execution.js: Added.
+        (shouldBe):
+        (object.valueOf):
+        * tests/stress/to-number-object.js: Added.
+        (shouldBe):
+        (test12):
+        (object1.valueOf):
+        (test2):
+        (test22):
+        (object2.valueOf):
+        (test3):
+        (test32):
+        (object3.valueOf):
+        * tests/stress/to-number-value-profiling.js: Added.
+        (shouldBe):
+        (object.valueOf):
+
+2016-06-29  Benjamin Poulain  <benjamin@webkit.org>
+
+        Fix the debug build after r202667
+
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        (JSC::JSTypedArrayViewPrototype::finishCreation):
+        The putDirect was missing the Accessor flag for the GetterSetter.
+
+2016-06-29  Michael Saboff  <msaboff@apple.com>
+
+        REGRESSION(200114): Netflix app does not see ChromeCast
+        https://bugs.webkit.org/show_bug.cgi?id=159287
+
+        Reviewed by Benjamin Poulain.
+
+        Change set 200114 changed the behavior of how we check for whether or not we
+        wrap Objective C init methods in JavaScript constructors.  The prior method
+        checked the version of JavaScriptCore that was linked with the application.
+        If the application was not directly linked with JavaScriptCore the prior
+        method indicated that we shouldn't create constructors.  The new method uses
+        the SDK the application was compiled with.  Using the new method, an
+        application compiled with iOS SDK 8.0 or greater would create constructors
+        and not export init methods to JavaScript.  The problem is that an existing
+        application that hasn't been recompiled will get a different answer using
+        the new method.  We need to come up with a method that works in a compatible
+        way with existing programs, but provides a newly compiled program with the
+        "is built with SDK N or greater" check.
+        
+        Added back the prior check of the version of JavaScriptCore the program was
+        directly linked against.  However we only use this check if we directly linked
+        with JavaScriptCore.  Otherwise we fall through to check against the SDK the
+        program was built with.  Changed the iOS SDK version we check
+        against to be the new version of iOS, iOS 10.
+
+        This provides compatible behavior for existing programs.  It may be the case
+        that some of those programs may require changes when they are rebuilt with the
+        iOS 10 SDK or later.
+
+        * API/JSWrapperMap.mm:
+        (supportsInitMethodConstructors):
+
+2016-06-29  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Minor TypedArray fixes
+        https://bugs.webkit.org/show_bug.cgi?id=159286
+
+        Reviewed by Keith Miller.
+
+        * runtime/JSGenericTypedArrayViewConstructorInlines.h:
+        (JSC::JSGenericTypedArrayViewConstructor<ViewClass>::finishCreation):
+        See https://tc39.github.io/ecma262/#sec-%typedarray%
+
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        (JSC::typedArrayViewPrivateFuncLength):
+        See https://tc39.github.io/ecma262/#sec-get-%typedarray%.prototype.length
+
+        (JSC::typedArrayViewProtoGetterFuncToStringTag):
+        Yep, that's odd.
+        See https://tc39.github.io/ecma262/#sec-get-%typedarray%.prototype-@@tostringtag
+
+        (JSC::JSTypedArrayViewPrototype::finishCreation):
+        See the last paragraph of https://tc39.github.io/ecma262/#sec-ecmascript-standard-built-in-objects
+
+2016-06-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: API View of Native DOM APIs looks poor (TypeErrors for native getters)
+        https://bugs.webkit.org/show_bug.cgi?id=158334
+        <rdar://problem/26615366>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.prototype._getProperties):
+        (InjectedScript.prototype._propertyDescriptors):
+        Do not create fake value property descriptors for native accessors
+        unless requested. This means, getProperties for a native prototype
+        should return  accessors for native accessors just like it does
+        for normal non-native accessors (getters/setters).
+
+        (InjectedScript.prototype.getProperties):
+        Do not produce fake value accessors for native accessors.
+
+        (InjectedScript.prototype.getDisplayableProperties):
+        (InjectedScript.RemoteObject.prototype._generatePreview):
+        Do produce fake value accessors for native accessors.
+
+2016-06-29  Saam barati  <sbarati@apple.com>
+
+        JSGlobalLexicalEnvironment needs a toThis implementation
+        https://bugs.webkit.org/show_bug.cgi?id=159285
+
+        Reviewed by Mark Lam.
+
+        This was a huge oversight of my original implementation. It gave users
+        of the language direct access to the JSGlobalLexicalEnvironment object.
+
+        * runtime/JSGlobalLexicalEnvironment.cpp:
+        (JSC::JSGlobalLexicalEnvironment::isConstVariable):
+        (JSC::JSGlobalLexicalEnvironment::toThis):
+        * runtime/JSGlobalLexicalEnvironment.h:
+        (JSC::JSGlobalLexicalEnvironment::isEmpty):
+        * tests/stress/global-lexical-environment-to-this.js: Added.
+        (assert):
+        (let.f):
+        (let.fStrict):
+
+2016-06-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Wrong function name next to scope
+        https://bugs.webkit.org/show_bug.cgi?id=158210
+        <rdar://problem/26543093>
+
+        Reviewed by Brian Burg.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        Add DebuggerLocation. A helper for describing a unique location.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::setConstantRegisters):
+        When compiled with debug info, add a SymbolTable rare data pointer
+        back to the CodeBlock. This will be used later to get JSScope debug
+        info if Web Inspector pauses.
+
+        * runtime/SymbolTable.h:
+        * runtime/SymbolTable.cpp:
+        (JSC::SymbolTable::cloneScopePart):
+        (JSC::SymbolTable::prepareForTypeProfiling):
+        (JSC::SymbolTable::uniqueIDForVariable):
+        (JSC::SymbolTable::uniqueIDForOffset):
+        (JSC::SymbolTable::globalTypeSetForOffset):
+        (JSC::SymbolTable::globalTypeSetForVariable):
+        Rename rareData and include a CodeBlock pointer.
+
+        (JSC::SymbolTable::rareDataCodeBlock):
+        (JSC::SymbolTable::setRareDataCodeBlock):
+        Setter and getter for the rare data. It should only be set once.
+
+        (JSC::SymbolTable::visitChildren):
+        Visit the rare data code block if we have one.
+
+        * debugger/DebuggerLocation.cpp: Added.
+        (JSC::DebuggerLocation::DebuggerLocation):
+        * debugger/DebuggerLocation.h: Added.
+        (JSC::DebuggerLocation::DebuggerLocation):
+        Construction from a ScriptExecutable.
+
+        * runtime/JSScope.cpp:
+        (JSC::JSScope::symbolTable):
+        * runtime/JSScope.h:
+        * debugger/DebuggerScope.h:
+        * debugger/DebuggerScope.cpp:
+        (JSC::DebuggerScope::name):
+        (JSC::DebuggerScope::location):
+        Name and location for a scope. This uses:
+        JSScope -> SymbolTable -> CodeBlock -> Executable
+
+        * inspector/protocol/Debugger.json:
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.CallFrameProxy.prototype._wrapScopeChain):
+        (InjectedScript.CallFrameProxy._createScopeJson):
+        * inspector/JSJavaScriptCallFrame.cpp:
+        (Inspector::valueForScopeType):
+        (Inspector::valueForScopeLocation):
+        (Inspector::JSJavaScriptCallFrame::scopeDescriptions):
+        (Inspector::JSJavaScriptCallFrame::scopeType): Deleted.
+        * inspector/JSJavaScriptCallFrame.h:
+        * inspector/JSJavaScriptCallFramePrototype.cpp:
+        (Inspector::JSJavaScriptCallFramePrototype::finishCreation):
+        (Inspector::jsJavaScriptCallFramePrototypeFunctionScopeDescriptions):
+        (Inspector::jsJavaScriptCallFramePrototypeFunctionScopeType): Deleted.
+        Simplify this code to build the objects we will send across the protocol
+        to descript a Scope.
+
+2016-06-29  Saam barati  <sbarati@apple.com>
+
+        We don't emit TDZ checks for call_eval
+        https://bugs.webkit.org/show_bug.cgi?id=159277
+        <rdar://problem/27018801>
+
+        Reviewed by Benjamin Poulain.
+
+        This is a problem if you're trying to call a TDZ variable
+        that is named 'eval'.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::EvalFunctionCallNode::emitBytecode):
+        * tests/stress/variable-named-eval-under-tdz.js: Added.
+        (shouldThrowTDZ):
+        (test):
+        (test.foo):
+        (throw.new.Error):
+
+2016-06-29  Mark Lam  <mark.lam@apple.com>
+
+        Add support for collecting cumulative LLINT stats via a JSC_llintStatsFile option.
+        https://bugs.webkit.org/show_bug.cgi?id=159274
+
+        Reviewed by Keith Miller.
+
+        * jsc.cpp:
+        (main):
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::initialize):
+        (JSC::LLInt::Data::finalizeStats):
+        (JSC::LLInt::compareStats):
+        (JSC::LLInt::Data::dumpStats):
+        (JSC::LLInt::Data::ensureStats):
+        (JSC::LLInt::Data::loadStats):
+        (JSC::LLInt::Data::resetStats):
+        (JSC::LLInt::Data::saveStats):
+        * llint/LLIntData.h:
+        (JSC::LLInt::Data::opcodeStats):
+        * runtime/Options.cpp:
+        (JSC::Options::isAvailable):
+        (JSC::recomputeDependentOptions):
+        (JSC::Options::initialize):
+        * runtime/Options.h:
+
+2016-06-29  Saam barati  <sbarati@apple.com>
+
+        Destructuring variable declaration is missing a validation of the syntax of a sub production when there is a rhs
+        https://bugs.webkit.org/show_bug.cgi?id=159267
+
+        Reviewed by Mark Lam.
+
+        We were parsing something without checking if it had a syntax error.
+        This is wrong for many reasons, but it could actually cause a crash
+        in a debug build if you parsed particular programs.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseVariableDeclarationList):
+
+2016-06-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Show Shadow Root type in DOM Tree
+        https://bugs.webkit.org/show_bug.cgi?id=159236
+        <rdar://problem/27068521>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/protocol/DOM.json:
+        Include optional shadowRootType property for DOMNodes.
+
+2016-06-29  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202627.
+        https://bugs.webkit.org/show_bug.cgi?id=159266
+
+        patch is broken on arm (Requested by keith_miller on #webkit).
+
+        Reverted changeset:
+
+        "LLInt should support other types of prototype GetById
+        caching."
+        https://bugs.webkit.org/show_bug.cgi?id=158083
+        http://trac.webkit.org/changeset/202627
+
+2016-06-29  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Fix small issues of TypedArray prototype
+        https://bugs.webkit.org/show_bug.cgi?id=159248
+
+        Reviewed by Saam Barati.
+
+        First, TypedArray's toString and Array's toString
+        should be the same function.
+        I moved the function to GlobalObject and each array type
+        gets it as needed.
+
+        Then TypedArray length was supposed to be configurable.
+        I removed the "DontDelete" flag accordingly.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::ArrayPrototype::finishCreation):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        (JSC::JSGlobalObject::visitChildren):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::arrayProtoToStringFunction):
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        (JSC::JSTypedArrayViewPrototype::finishCreation):
+
+2016-06-29  Caio Lima  <ticaiolima@gmail.com>
+
+        LLInt should support other types of prototype GetById caching.
+        https://bugs.webkit.org/show_bug.cgi?id=158083
+
+        Recently, we started supporting prototype load caching for get_by_id
+        in the LLInt. This patch is expading the caching strategy to enable
+        cache the prototype accessor and custom acessors.
+
+        Similarly to the get_by_id_proto_load bytecode, we are adding new
+        bytecodes called get_by_id_proto_accessor that uses the calculated
+        offset of a object to call a getter function and get_by_id_proto_custom
+        that stores the pointer to the custom function and call them directly
+        from LowLevelInterpreter.
+
+        Reviewed by Keith Miller
+
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::printGetByIdOp):
+        (JSC::CodeBlock::dumpBytecode):
+        (JSC::CodeBlock::finalizeLLIntInlineCaches):
+        * bytecode/GetByIdStatus.cpp:
+        (JSC::GetByIdStatus::computeFromLLInt):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel):
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        (JSC::JIT::privateCompileSlowCases):
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::setupGetByIdPrototypeCache):
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * llint/LLIntSlowPaths.h:
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+
 2016-06-28  Commit Queue  <commit-queue@webkit.org>
 
         Unreviewed, rolling out r202580.
@@ -783,6 +1467,10 @@
         * dfg/DFGFixupPhase.cpp:
         (JSC::DFG::FixupPhase::fixupNode):
         (JSC::DFG::FixupPhase::fixupToNumber):
+        ToNumber tells its predicted type by its heap prediction. So the fixup phase need to consider about it.
+        If the heap prediction is Int32, we should attempt to convert the child value to Int32.
+        Without this, misc-bugs-847389-jpeg2000 in assorted tests poses 53% regression.
+
         * dfg/DFGNode.h:
         (JSC::DFG::Node::hasHeapPrediction):
         * dfg/DFGNodeType.h:

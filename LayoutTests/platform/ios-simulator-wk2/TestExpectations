@@ -1895,6 +1895,7 @@ fast/scrolling/ios/scroll-events-back-forward-after-pageshow.html [ Pass Failure
 webkit.org/b/157589 fast/text-autosizing/ios/text-autosizing-after-back.html [ Pass Timeout ]
 
 # started to fail after new snapshotting in r202532
+webkit.org/b/150942 animations/multiple-backgrounds.html [ Pass ImageOnlyFailure ]
 compositing/contents-scale/rasterization-scale.html [ ImageOnlyFailure ]
 compositing/overlap-blending/reflection-opacity-huge.html [ ImageOnlyFailure ]
 compositing/regions/propagate-region-box-shadow-border-padding.html [ ImageOnlyFailure ]
@@ -1907,6 +1908,7 @@ css3/filters/backdrop/backdrop-filter-with-border-radius-and-reflection.html [ I
 css3/filters/backdrop/backdrop-filter-with-clip-path.html [ ImageOnlyFailure ]
 css3/filters/null-effect-check.html [ ImageOnlyFailure ]
 fast/regions/auto-size/autosize-region-window-resize.html [ ImageOnlyFailure ]
+webkit.org/b/159275 fast/shrink-wrap/rect-shrink-wrap.html [ Pass ImageOnlyFailure  ]
 svg/animations/animate-linear-discrete-additive-b.svg [ ImageOnlyFailure ]
 svg/animations/animate-linear-discrete-additive-c.svg [ ImageOnlyFailure ]
 svg/animations/animate-linear-discrete-additive.svg [ ImageOnlyFailure ]

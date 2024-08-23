@@ -1,3 +1,764 @@
+2016-06-30  Eric Carlson  <eric.carlson@apple.com>
+
+        getUserMedia() exposed, but not functional
+        https://bugs.webkit.org/show_bug.cgi?id=158393
+        <rdar://problem/26642259>
+
+        Reviewed by Dean Jackson.
+        
+        Set default value of the Media Stream runtime flag to false on Mac OS X and iOS until the
+        browser support is in place.
+
+        * bindings/generic/RuntimeEnabledFeatures.cpp:
+        (WebCore::RuntimeEnabledFeatures::RuntimeEnabledFeatures): Disable media stream by default
+        on Mac OS X and iOS.
+        * bindings/generic/RuntimeEnabledFeatures.h:
+
+2016-06-30  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202676.
+        https://bugs.webkit.org/show_bug.cgi?id=159314
+
+        This change caused storage/websql tests to crash on Mac and
+        iOS WK1 (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "Purge PassRefPtr in Modules/webdatabase"
+        https://bugs.webkit.org/show_bug.cgi?id=159255
+        http://trac.webkit.org/changeset/202676
+
+2016-06-30  Antoine Quint  <graouts@apple.com>
+
+        [iOS] Media controls are too cramped with small video
+        https://bugs.webkit.org/show_bug.cgi?id=158815
+        <rdar://problem/26824238>
+
+        Reviewed by Eric Carlson.
+
+        In updateLayoutForDisplayedWidth(), we try to ensure a minimum width is guaranteed
+        for the progress indicator. However, we were not accounting for the width used by
+        the current and remaining time labels on either side of it, so we would incorrectly
+        conclude that we were guaranteeing the minimum time and yield incorrect layouts since
+        we were trying to fit more buttons than we had room for.
+
+        In order to correctly compute the available width for the progress indicator, we now
+        have clones of the current and remaining time labels, hidden from video and VoiceOver,
+        that we update along with the originals. The same styles apply to both clones and
+        originals, so we may measure the clones to determine the space used by the time labels.
+        The reason we need to use clones is that if the time labels had previously been hidden
+        from view, precisely because there was not enough space to display them along with the
+        progress indicator, then trying to obtain metrics from them would yield 0 since they had
+        "display: none" styles applied. In order to avoid extra layouts and possible flashing, we
+        use the clones so that we never have to toggle the "display" property of the originals
+        just to obtain their measurements.
+
+        As a result of this change, we adjust the constant used to set the minimum required
+        width available to display the progress indicator after all other essential controls
+        and labels have been measured. That constant used to account for the width of the
+        time labels, and this is no longer correct.
+
+        Test: media/video-controls-drop-and-restore-timeline.html
+
+        * Modules/mediacontrols/mediaControlsApple.css:
+        (::-webkit-media-controls-time-remaining-display.clone):
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller):
+        (Controller.prototype.createTimeClones):
+        (Controller.prototype.removeTimeClass):
+        (Controller.prototype.addTimeClass):
+        (Controller.prototype.updateDuration):
+        (Controller.prototype.updateLayoutForDisplayedWidth):
+        (Controller.prototype.updateTime):
+        (Controller.prototype.updateControlsWhileScrubbing):
+        * Modules/mediacontrols/mediaControlsiOS.css:
+        (::-webkit-media-controls-time-remaining-display.clone):
+        * Modules/mediacontrols/mediaControlsiOS.js:
+
+2016-06-30  Brian Burg  <bburg@apple.com>
+
+        Unreviewed, fix the macOS Sierra Release configuration after r202642.
+
+        * platform/audio/mac/MediaSessionManagerMac.mm:
+        (WebCore::MediaSessionManagerMac::updateNowPlayingInfo):
+        Add missing UNUSED_PARAM for when logging is not enabled.
+
+2016-06-30  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202679.
+        https://bugs.webkit.org/show_bug.cgi?id=159302
+
+        Still causing timeouts on media/controls-drag-timebar.html
+        (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "[iOS] Media controls are too cramped with small video"
+        https://bugs.webkit.org/show_bug.cgi?id=158815
+        http://trac.webkit.org/changeset/202679
+
+2016-06-30  Antoine Quint  <graouts@apple.com>
+
+        [iOS] Media controls are too cramped with small video
+        https://bugs.webkit.org/show_bug.cgi?id=158815
+        <rdar://problem/26824238>
+
+        Reviewed by Eric Carlson.
+
+        In updateLayoutForDisplayedWidth(), we try to ensure a minimum width is guaranteed
+        for the progress indicator. However, we were not accounting for the width used by
+        the current and remaining time labels on either side of it, so we would incorrectly
+        conclude that we were guaranteeing the minimum time and yield incorrect layouts since
+        we were trying to fit more buttons than we had room for.
+
+        In order to correctly compute the available width for the progress indicator, we now
+        have clones of the current and remaining time labels, hidden from video and VoiceOver,
+        that we update along with the originals. The same styles apply to both clones and
+        originals, so we may measure the clones to determine the space used by the time labels.
+        The reason we need to use clones is that if the time labels had previously been hidden
+        from view, precisely because there was not enough space to display them along with the
+        progress indicator, then trying to obtain metrics from them would yield 0 since they had
+        "display: none" styles applied. In order to avoid extra layouts and possible flashing, we
+        use the clones so that we never have to toggle the "display" property of the originals
+        just to obtain their measurements.
+
+        As a result of this change, we adjust the constant used to set the minimum required
+        width available to display the progress indicator after all other essential controls
+        and labels have been measured. That constant used to account for the width of the
+        time labels, and this is no longer correct.
+
+        Test: media/video-controls-drop-and-restore-timeline.html
+
+        * Modules/mediacontrols/mediaControlsApple.css:
+        (::-webkit-media-controls-time-remaining-display.clone):
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller):
+        (Controller.prototype.createTimeClones):
+        (Controller.prototype.removeTimeClass):
+        (Controller.prototype.addTimeClass):
+        (Controller.prototype.updateDuration):
+        (Controller.prototype.updateLayoutForDisplayedWidth):
+        (Controller.prototype.updateTime):
+        (Controller.prototype.updateControlsWhileScrubbing):
+        * Modules/mediacontrols/mediaControlsiOS.css:
+        (::-webkit-media-controls-time-remaining-display.clone):
+        * Modules/mediacontrols/mediaControlsiOS.js:
+
+2016-06-30  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac] Crash registering AVFoundation media engine
+        https://bugs.webkit.org/show_bug.cgi?id=159269
+        <rdar://problem/27017656>
+
+        Reviewed by Brent Fulgham.
+
+        * platform/graphics/MediaPlayer.cpp:
+        (WebCore::mediaEngineVectorLock): New, return the static Lock.
+        (WebCore::haveMediaEnginesVector): Wrap the naked bool.
+        (WebCore::buildMediaEnginesVector): Assert that the lock is locked.
+        (WebCore::installedMediaEngines): Hold the lock while checking/rebuilding the vector.
+        (WebCore::MediaPlayer::resetMediaEngines): Hold the lock while clearing the vector.
+
+        Use SOFT_LINK_CLASS_FOR_SOURCE instead of SOFT_LINK_CLASS because the former uses dispatch_once
+        to ensure that class loading is thread safe.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::registerMediaEngine):
+        (WebCore::assetCacheForPath):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::originsInMediaCache):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::clearMediaCache):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::clearMediaCacheForOrigins):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createAVPlayerLayer):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createAVAssetForURL):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createAVPlayer):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createAVPlayerItem):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createVideoOutput):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::createOpenGLVideoOutput):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::waitForVideoOutputMediaDataWillChange):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::outputMediaDataWillChange):
+        (-[WebCoreAVFPullDelegate setCallback:]):
+        (-[WebCoreAVFPullDelegate outputMediaDataWillChange:]):
+        (-[WebCoreAVFPullDelegate outputSequenceWasFlushed:]):
+
+2016-06-30  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [image-decoders] Use final and override in ImageDecoder subclasses
+        https://bugs.webkit.org/show_bug.cgi?id=159291
+
+        Reviewed by Antonio Gomes.
+
+        * platform/image-decoders/bmp/BMPImageDecoder.h:
+        * platform/image-decoders/gif/GIFImageDecoder.h:
+        * platform/image-decoders/ico/ICOImageDecoder.cpp:
+        (WebCore::ICOImageDecoder::frameSizeAtIndex):
+        * platform/image-decoders/ico/ICOImageDecoder.h:
+        * platform/image-decoders/jpeg/JPEGImageDecoder.h:
+        * platform/image-decoders/png/PNGImageDecoder.h:
+        * platform/image-decoders/webp/WEBPImageDecoder.h:
+
+2016-06-30  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Purge PassRefPtr in Modules/webdatabase
+        https://bugs.webkit.org/show_bug.cgi?id=159255
+
+        Reviewed by Benjamin Poulain.
+
+        As a step to remove PassRefPtr use, this patch cleans it up in Modules/webdatabase.
+
+        Additionally unnecessary spaces and tabs are removed too.
+
+        * Modules/webdatabase/ChangeVersionWrapper.cpp:
+        * Modules/webdatabase/DOMWindowWebDatabase.h:
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::Database):
+        (WebCore::Database::~Database):
+        (WebCore::Database::scheduleTransaction):
+        (WebCore::Database::runTransaction):
+        * Modules/webdatabase/Database.h:
+        * Modules/webdatabase/DatabaseAuthorizer.cpp:
+        (WebCore::DatabaseAuthorizer::allowRead):
+        * Modules/webdatabase/DatabaseManager.cpp:
+        (WebCore::DatabaseManager::openDatabase):
+        (WebCore::DatabaseManager::fullPathForDatabase):
+        (WebCore::DatabaseManager::detailsForNameAndOrigin):
+        * Modules/webdatabase/DatabaseManager.h:
+        * Modules/webdatabase/DatabaseTask.cpp:
+        (WebCore::DatabaseTransactionTask::DatabaseTransactionTask):
+        * Modules/webdatabase/DatabaseTask.h:
+        * Modules/webdatabase/SQLCallbackWrapper.h:
+        (WebCore::SQLCallbackWrapper::SQLCallbackWrapper):
+        * Modules/webdatabase/SQLResultSetRowList.h:
+        * Modules/webdatabase/SQLStatement.cpp:
+        (WebCore::SQLStatement::SQLStatement):
+        (WebCore::SQLStatement::sqlError):
+        (WebCore::SQLStatement::sqlResultSet):
+        * Modules/webdatabase/SQLStatement.h:
+        * Modules/webdatabase/SQLTransaction.h:
+        * Modules/webdatabase/SQLTransactionBackend.cpp:
+        (WebCore::SQLTransactionBackend::create):
+        (WebCore::SQLTransactionBackend::SQLTransactionBackend):
+        (WebCore::SQLTransactionBackend::transactionError):
+        * Modules/webdatabase/SQLTransactionBackend.h:
+
+2016-06-30  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Move CompositingCoordinator from platform to WebKit2 layer
+        https://bugs.webkit.org/show_bug.cgi?id=159209
+
+        Reviewed by Žan Doberšek.
+
+        Remove CompositingCoordinator and its helper classes from the platform layer.
+
+        * platform/TextureMapper.cmake:
+
+2016-06-29  Youenn Fablet  <youenn@apple.com>
+
+        Pass SecurityOrigin as references in CORS check code
+        https://bugs.webkit.org/show_bug.cgi?id=159263
+
+        Reviewed by Alex Christensen.
+
+        No change of behavior.
+
+        * css/CSSImageSetValue.cpp:
+        (WebCore::CSSImageSetValue::cachedImageSet):
+        * css/CSSImageValue.cpp:
+        (WebCore::CSSImageValue::cachedImage):
+        * dom/ScriptElement.cpp:
+        (WebCore::ScriptElement::requestScript):
+        * loader/CrossOriginAccessControl.cpp:
+        (WebCore::updateRequestForAccessControl):
+        (WebCore::createAccessControlPreflightRequest):
+        (WebCore::passesAccessControlCheck):
+        * loader/CrossOriginAccessControl.h:
+        * loader/CrossOriginPreflightChecker.cpp:
+        (WebCore::CrossOriginPreflightChecker::validatePreflightResponse):
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::DocumentThreadableLoader):
+        (WebCore::DocumentThreadableLoader::makeCrossOriginAccessRequest):
+        (WebCore::DocumentThreadableLoader::preflightSuccess):
+        (WebCore::DocumentThreadableLoader::isAllowedRedirect):
+        (WebCore::DocumentThreadableLoader::securityOrigin):
+        * loader/DocumentThreadableLoader.h:
+        * loader/ImageLoader.cpp:
+        (WebCore::ImageLoader::updateFromElement):
+        * loader/LinkLoader.cpp:
+        (WebCore::preloadIfNeeded):
+        * loader/MediaResourceLoader.cpp:
+        (WebCore::MediaResourceLoader::requestResource):
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::checkCrossOriginAccessControl):
+        * loader/TextTrackLoader.cpp:
+        (WebCore::TextTrackLoader::load):
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::passesAccessControlCheck):
+        * loader/cache/CachedResourceRequest.cpp:
+        (WebCore::CachedResourceRequest::setAsPotentiallyCrossOrigin):
+
+2016-06-29  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Implement MediaEndpointPeerConnection::setConfiguration()
+        https://bugs.webkit.org/show_bug.cgi?id=159254
+
+        Reviewed by Eric Carlson.
+
+        Implement MediaEndpointPeerConnection::setConfiguration() which is the
+        MediaEndpointPeerConnection implementation of RTCPeerConnection.setConfiguration() [1].
+
+        [1] https://w3c.github.io/webrtc-pc/archives/20160513/webrtc.html#dom-rtcpeerconnection-setconfiguration
+
+        Testing: Updated existing test.
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::setConfiguration):
+        Implemented.
+        * Modules/mediastream/RTCConfiguration.cpp:
+        (WebCore::RTCConfiguration::initialize):
+        * Modules/mediastream/RTCConfiguration.h:
+        Use shared enums.
+        * Modules/mediastream/RTCConfiguration.idl:
+        Remove 'None'/'Public' IceTransportPolicy enum value (removed from WebRTC 1.0).
+        * platform/mediastream/MediaEndpointConfiguration.cpp:
+        (WebCore::MediaEndpointConfiguration::MediaEndpointConfiguration):
+        * platform/mediastream/MediaEndpointConfiguration.h:
+        Use shared enums.
+        (WebCore::MediaEndpointConfiguration::create):
+        * platform/mediastream/PeerConnectionStates.h: Renamed from Source/WebCore/Modules/mediastream/PeerConnectionStates.h.
+        Make shared enums accessible to platform objects (currently MediaEndpointConfiguration).
+
+2016-06-29  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        Unreviewed, CMake build fix - 2.
+
+        * PlatformMac.cmake:
+
+2016-06-29  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        Unreviewed, CMake build fix. 
+
+        * PlatformMac.cmake:
+
+2016-06-29  Jer Noble  <jer.noble@apple.com>
+
+        Unprefix webkit-playsinline.
+        https://bugs.webkit.org/show_bug.cgi?id=159283
+
+        Reviewed by Eric Carlson.
+
+        Tests: media/video-playsinline.html
+               media/video-webkit-playsinline.html
+
+        Unprefix the webkit-playsinline content attribute, as an unprefixed version
+        was added to the HTML spec by <https://github.com/whatwg/html/pull/1444>.
+        The new 'playsinline' content attribute reflects to a new DOM property of
+        the same name.
+
+        * html/HTMLAttributeNames.in:
+        * html/HTMLVideoElement.idl:
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::requiresFullscreenForVideoPlayback):
+
+2016-06-29  Alex Christensen  <achristensen@webkit.org>
+
+        Fix null dereferencing after r201441
+        https://bugs.webkit.org/show_bug.cgi?id=159282
+        rdar://problem/27082559
+
+        Reviewed by Andreas Kling.
+
+        No new tests.  This is reproducible when dragging from regular to high-DPI displays, 
+        and we don't have testing infrastructure for simulating that.
+
+        * css/MediaQueryMatcher.cpp:
+        (WebCore::MediaQueryMatcher::styleResolverChanged):
+        MediaQueryListListener::queryChanged can mutate the Vector of listeners while we are iterating it.
+        Copy the Vector of listeners and iterate the copy so we don't go out of bounds.
+
+2016-06-29  Antti Koivisto  <antti@apple.com>
+
+        Factor pending CSS resources into a struct
+        https://bugs.webkit.org/show_bug.cgi?id=159268
+
+        Reviewed by Andreas Kling.
+
+        To fix resource loading related re-entrancy issues in StyleResolver we should move the triggering of
+        resource loads outside the style resolver. The first step for that is to capture pending resources to a struct.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/CSSCursorImageValue.cpp:
+        (WebCore::CSSCursorImageValue::cachedImage):
+        (WebCore::CSSCursorImageValue::cachedOrPendingImage):
+        * css/CSSCursorImageValue.h:
+        * css/CSSGradientValue.cpp:
+        (WebCore::GradientStop::GradientStop):
+        (WebCore::CSSGradientValue::gradientWithStylesResolved):
+        * css/CSSGradientValue.h:
+        (WebCore::CSSGradientValue::loadSubimages):
+        (WebCore::CSSGradientValue::CSSGradientValue):
+        * css/CSSImageSetValue.cpp:
+        (WebCore::CSSImageSetValue::cachedImageSet):
+        (WebCore::CSSImageSetValue::cachedOrPendingImageSet):
+        * css/CSSImageSetValue.h:
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::State::clear):
+        (WebCore::StyleResolver::State::setParentStyle):
+        (WebCore::StyleResolver::State::ensurePendingResources):
+        (WebCore::isAtShadowBoundary):
+        (WebCore::StyleResolver::cachedOrPendingFromValue):
+        (WebCore::StyleResolver::generatedOrPendingFromValue):
+        (WebCore::StyleResolver::setOrPendingFromValue):
+        (WebCore::StyleResolver::cursorOrPendingFromValue):
+        (WebCore::filterOperationForType):
+        (WebCore::StyleResolver::createFilterOperations):
+        (WebCore::StyleResolver::loadPendingResources):
+        (WebCore::StyleResolver::MatchedProperties::MatchedProperties):
+        (WebCore::StyleResolver::loadPendingSVGDocuments): Deleted.
+        (WebCore::StyleResolver::loadPendingImage): Deleted.
+        (WebCore::StyleResolver::loadPendingShapeImage): Deleted.
+        (WebCore::StyleResolver::loadPendingImages): Deleted.
+        * css/StyleResolver.h:
+        (WebCore::StyleResolver::rootElementStyle):
+        (WebCore::StyleResolver::element):
+        (WebCore::StyleResolver::document):
+        (WebCore::StyleResolver::documentSettings):
+        (WebCore::StyleResolver::State::setApplyPropertyToVisitedLinkStyle):
+        (WebCore::StyleResolver::State::applyPropertyToRegularStyle):
+        (WebCore::StyleResolver::State::applyPropertyToVisitedLinkStyle):
+        (WebCore::StyleResolver::State::setFontDirty):
+        (WebCore::StyleResolver::State::fontDirty):
+        (WebCore::StyleResolver::State::useSVGZoomRules):
+        (WebCore::StyleResolver::State::takePendingResources):
+        (WebCore::StyleResolver::State::cssToLengthConversionData):
+        (WebCore::StyleResolver::State::cascadeLevel):
+        (WebCore::StyleResolver::State::setCascadeLevel):
+        (WebCore::StyleResolver::state):
+        (WebCore::StyleResolver::State::pendingImageProperties): Deleted.
+        (WebCore::StyleResolver::State::filtersWithPendingSVGDocuments): Deleted.
+        * style/StylePendingResources.cpp: Added.
+        (WebCore::Style::loadPendingImage):
+        (WebCore::Style::loadPendingImages):
+        (WebCore::Style::loadPendingSVGFilters):
+        (WebCore::Style::loadPendingResources):
+
+            Move the functions for triggering the resource loads from StyleResolver.
+
+        * style/StylePendingResources.h: Added.
+
+            Add struct for pending resources.
+
+2016-06-29  Anders Carlsson  <andersca@apple.com>
+
+        Add "type" and "paymentPass" properties in PaymentMethod
+        https://bugs.webkit.org/show_bug.cgi?id=159278
+        rdar://problem/26999112
+
+        Reviewed by Dean Jackson.
+
+        * Modules/applepay/cocoa/PaymentMethodCocoa.mm:
+        (WebCore::toString):
+        (WebCore::toDictionary):
+
+2016-06-29  Nan Wang  <n_wang@apple.com>
+
+        AX: Crash in WebCore::Document::focusNavigationStartingNode(WebCore::FocusDirection) const + 128
+        https://bugs.webkit.org/show_bug.cgi?id=159240
+
+        Reviewed by Ryosuke Niwa.
+
+        This crash is caused by passing an empty node to ElementTraversal::previous(Node&). When the
+        focusNavigationStartingNode has been removed and it has no next sibling, we should fallback
+        to itself for calculating the next focused element.
+
+        Test: fast/events/remove-focus-navigation-starting-point-crash.html
+
+        * dom/Document.cpp:
+        (WebCore::Document::focusNavigationStartingNode):
+
+2016-06-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r202617.
+
+        The LayoutTest from this change crashes under GuardMalloc
+
+        Reverted changeset:
+
+        "Throw exceptions for invalid number of channels for
+        ConvolverNode"
+        https://bugs.webkit.org/show_bug.cgi?id=159238
+        http://trac.webkit.org/changeset/202617
+
+2016-06-29  Anders Carlsson  <andersca@apple.com>
+
+        Rename addressFields to contactFields
+        https://bugs.webkit.org/show_bug.cgi?id=159271
+        rdar://problem/27086955
+
+        Reviewed by Beth Dakin.
+
+        * Modules/applepay/ApplePaySession.cpp:
+        (WebCore::createContactFields):
+        (WebCore::isValidPaymentRequestPropertyName):
+        (WebCore::createPaymentRequest):
+        (WebCore::createAddressFields): Deleted.
+        * Modules/applepay/PaymentRequest.h:
+        (WebCore::PaymentRequest::requiredBillingContactFields):
+        (WebCore::PaymentRequest::setRequiredBillingContactFields):
+        (WebCore::PaymentRequest::requiredShippingContactFields):
+        (WebCore::PaymentRequest::setRequiredShippingContactFields):
+        (WebCore::PaymentRequest::requiredBillingAddressFields): Deleted.
+        (WebCore::PaymentRequest::setRequiredBillingAddressFields): Deleted.
+        (WebCore::PaymentRequest::requiredShippingAddressFields): Deleted.
+        (WebCore::PaymentRequest::setRequiredShippingAddressFields): Deleted.
+
+2016-06-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, third attempt to fix ASAN build for r202599
+
+        * platform/text/TextCodecReplacement.cpp:
+        (WebCore::TextCodecReplacement::decode):
+
+2016-06-29  Jer Noble  <jer.noble@apple.com>
+
+        Adopt MediaRemote.
+        https://bugs.webkit.org/show_bug.cgi?id=159250
+
+        Reviewed by Eric Carlson.
+
+        Adopt MediaRemote and use the framework to implement MediaSessionManageMac
+        and RemoteCommandListenerMac.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/RemoteCommandListener.cpp:
+        * platform/audio/PlatformMediaSessionManager.cpp:
+        * platform/audio/cocoa/MediaSessionManagerCocoa.cpp: Renamed from Source/WebCore/platform/audio/mac/MediaSessionManagerMac.cpp.
+        (PlatformMediaSessionManager::updateSessionState):
+        * platform/audio/mac/MediaSessionManagerMac.h: Added.
+        * platform/audio/mac/MediaSessionManagerMac.mm: Added.
+        (WebCore::PlatformMediaSessionManager::sharedManager):
+        (WebCore::PlatformMediaSessionManager::sharedManagerIfExists):
+        (WebCore::MediaSessionManagerMac::MediaSessionManagerMac):
+        (WebCore::MediaSessionManagerMac::~MediaSessionManagerMac):
+        (WebCore::MediaSessionManagerMac::sessionWillBeginPlayback):
+        (WebCore::MediaSessionManagerMac::removeSession):
+        (WebCore::MediaSessionManagerMac::sessionWillEndPlayback):
+        (WebCore::MediaSessionManagerMac::clientCharacteristicsChanged):
+        (WebCore::MediaSessionManagerMac::nowPlayingEligibleSession):
+        (WebCore::MediaSessionManagerMac::updateNowPlayingInfo):
+        * platform/cocoa/SoftLinking.h:
+        * platform/mac/MediaRemoteSoftLink.cpp: Added.
+        * platform/mac/MediaRemoteSoftLink.h: Added.
+        * platform/mac/RemoteCommandListenerMac.h: Added.
+        (WebCore::RemoteCommandListenerMac::createWeakPtr):
+        * platform/mac/RemoteCommandListenerMac.mm: Added.
+        (WebCore::RemoteCommandListener::create):
+        (WebCore::RemoteCommandListenerMac::RemoteCommandListenerMac):
+        (WebCore::RemoteCommandListenerMac::~RemoteCommandListenerMac):
+        * platform/spi/mac/MediaRemoteSPI.h: Added.
+
+2016-06-29  Jer Noble  <jer.noble@apple.com>
+
+        Cannot clear a MediaSource SourceBuffer in Safari 9 and WebKit nightly
+        https://bugs.webkit.org/show_bug.cgi?id=159230
+
+        Reviewed by Eric Carlson.
+
+        Test: media/media-source/media-source-remove.html (modified)
+
+        Move to using a MediaTime directly (rather than as a double) to add
+        and removed buffered ranges. Also, drop the use of the "microsecond"
+        fudge factor when adding buffered ranges.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::removeSamplesFromTrackBuffer):
+        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
+
+2016-06-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, second attempt to fix ASAN build for r202599
+
+        * platform/text/TextCodecReplacement.cpp:
+
+2016-06-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, first attempt to fix ASAN build for r202599
+
+        * platform/text/TextCodecReplacement.cpp:
+
+2016-06-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Show Shadow Root type in DOM Tree
+        https://bugs.webkit.org/show_bug.cgi?id=159236
+        <rdar://problem/27068521>
+
+        Reviewed by Timothy Hatcher.
+
+        Test: inspector/dom/shadowRootType.html
+
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::shadowRootType):
+        (WebCore::InspectorDOMAgent::buildObjectForNode):
+        Set the shadowRootType property when a node is a ShadowRoot.
+
+2016-06-29  Jeremy Jones  <jeremyj@apple.com>
+
+        Replace MPAudioVideoRoutingActionSheet with MPAVRoutingSheet.
+        https://bugs.webkit.org/show_bug.cgi?id=159161
+        <rdar://problem/26017691>
+
+        Reviewed by Sam Weinig.
+
+        Replace MPAudioVideoRoutingActionSheet SPI with MPAVRoutingSheet SPI.
+
+        * platform/spi/ios/MediaPlayerSPI.h:
+
+2016-06-29  Alejandro G. Castro  <alex@igalia.com>
+
+        WebRTC: ice-char can not contain '=' characters for credentials
+        https://bugs.webkit.org/show_bug.cgi?id=159207
+
+        Reviewed by Eric Carlson.
+
+        Avoid a general calculation to get a base64 without padding which
+        was wrong in the randomString function. Because each parameter
+        using the function requires a different setup depending of the
+        specification and this is not a general API, it is a better
+        solution to calculate and store the sizes we want to use, comment
+        them and test them, considering we use base64 to generate the
+        strings we just need to avoid padding.
+
+        Existing test modified to match the correct behavior.
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::randomString): Now the size is the one passed.
+        (WebCore::MediaEndpointPeerConnection::MediaEndpointPeerConnection):
+        Used different valid values following the sdp parser in each case.
+
+2016-06-29  David Kilzer  <ddkilzer@apple.com>
+
+        Crash when 'input' event handler for input[type=color] changes the input type
+        <https://webkit.org/b/159262>
+        <rdar://problem/27020404>
+
+        Reviewed by Daniel Bates.
+
+        Fix based on a Blink change (patch by <tkent@chromium.org>):
+        <https://chromium.googlesource.com/chromium/src.git/+/a17cb3ecef49a078657524cdeaba33ad2083646c>
+
+        Test: fast/forms/color/color-type-change-on-input-crash.html
+
+        * html/ColorInputType.cpp:
+        (WebCore::ColorInputType::didChooseColor): Add EventQueueScope
+        before setValueFromRenderer() to fix the bug.
+        * html/HTMLInputElement.h:
+        (WebCore::HTMLInputElement::setValueFromRenderer): Add comment
+        about how to use this method.
+
+2016-06-29  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Misc MediaStreamEvent fixes: Update build flag and remove PassRefPtr usage
+        https://bugs.webkit.org/show_bug.cgi?id=159132
+
+        Reviewed by Eric Carlson.
+
+        Use the WEB_RTC build flag instead of MEDIA_STREAM since this event is related to
+        RTCPeerConnection. Also remove PassRefPtr usage.
+
+        Updated existing expected results.
+
+        * Modules/mediastream/MediaStreamEvent.cpp:
+        (WebCore::MediaStreamEvent::create):
+        (WebCore::MediaStreamEvent::MediaStreamEvent):
+        * Modules/mediastream/MediaStreamEvent.h:
+        * Modules/mediastream/MediaStreamEvent.idl:
+        * dom/EventNames.in:
+
+2016-06-29  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        REGRESSION(r202337) [WebRTC] Crash when loading html5test.com
+        https://bugs.webkit.org/show_bug.cgi?id=159145
+
+        Reviewed by Eric Carlson.
+
+        MediaEndpointPeerConnection uses an implementation of the MediaEndpoint interface to
+        interact with the port's WebRTC backend. A mock (MockMediaEndpoint) is used for testing.
+        This change adds an "empty" MediaEndpoint implementation that simplifies the case when a
+        port builds and tests with MediaEndpointPeerConnection/MockMediaEndpoint, but doesn't have
+        a "real" MediaEndpoint implementation yet (to use with MiniBrowser).
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::MediaEndpointPeerConnection):
+        * platform/mediastream/MediaEndpoint.cpp:
+        (WebCore::EmptyRealtimeMediaSource::create):
+        (WebCore::EmptyRealtimeMediaSource::EmptyRealtimeMediaSource):
+        (WebCore::EmptyMediaEndpoint::EmptyMediaEndpoint):
+        (WebCore::createMediaEndpoint):
+
+2016-06-29  Alejandro G. Castro  <alex@igalia.com>
+
+        Fix assertion in debug build when creating the SocketStreamHandle object.
+
+        We have to call relaxAdoptionRequirement to avoid the assertion
+        when protecting the non-adopted SocketStreamHandle we are
+        creating. Update to r202370.
+
+        Rubber-stamped by Carlos Garcia Campos.
+
+        * platform/network/soup/SocketStreamHandleSoup.cpp:
+        (WebCore::SocketStreamHandle::SocketStreamHandle):
+
+2016-06-29  David Kilzer  <ddkilzer@apple.com>
+
+        Throw exceptions for invalid number of channels for ConvolverNode
+        <https://webkit.org/b/159238>
+        <rdar://problem/27020410>
+
+        Reviewed by Brent Fulgham.
+
+        Fix based on a Blink change (patch by <rtoy@chromium.org>):
+        <https://chromium.googlesource.com/chromium/src.git/+/0cc26bbb7175aec77910d0b47faf9f8c8a640fe5>
+
+        Test: webaudio/convolver-channels.html
+
+        * Modules/webaudio/ConvolverNode.cpp:
+        (WebCore::ConvolverNode::setBuffer): Throw an exception for
+        anything but 1, 2 or 4 channels.
+
+2016-06-29  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r198782, r201043): [image-decoders] Flickering with some animated gif
+        https://bugs.webkit.org/show_bug.cgi?id=159089
+
+        Reviewed by Antonio Gomes.
+
+        There's some flickering when loading big enough animated gifs running the animation in a loop. The first time it
+        loads everything is fine, but after the first loop iteration there are several flickering effects, once every
+        time the animation finishes and some others happening in the middle of the animation loop. The flickering
+        happens because we fail to render some of the frames, and it has two diferent causes:
+
+         - In r198782, ImageDecoder::createFrameImageAtIndex(), was modified to check first if the image is empty to
+        return early, and then try to get the frame image from the decoder. This is the aone causing the flickering
+        always on the first frame after one iteration. It happens because ImageDecoder::size() is always empty at that
+        point. The first time doesn't happen because the gif is loaded and BitmapImage calls isSizeAvailable() from
+        BitmapImage::dataChanged(). The isSizeAvailable call makes the gif decoder calculate the size. But for the next
+        iterations, frames are cached and BitmapImage already has the decoded data so isSizeAvailable is not called
+        again. When createFrameImageAtIndex() is called again for the first frame, size is empty until the gif decoder
+        creates the reader again, which happens when frameBufferAtIndex() is called, so after that the size is
+        available. So, we could call isSizeAvailable before checking the size, or simply do the check after the
+        frameBufferAtIndex() call as we used to do.
+
+         - In r201043 BitmapImage::destroyDecodedDataIfNecessary() was fixed to use the actual bytes used by the frame
+        in order to decide whether to destroy decoded data or not. This actually revealed a bug, it didn't happen before
+        because we were never destroying frames before. The bug is in the gif decoder that doesn't correctly handle the
+        case of destroying only some of the frames from the buffer cache. The gif decoder is designed to always process the
+        frames in order, the reader keeps an index of the currently processed frame, so when some frames are read from the
+        cache, and then we ask the decoder for a not cached frame, the currently processed frame is not in sync with the
+        actual frame we are asking for, and we end do not processing any frame at all.
+
+        * platform/image-decoders/ImageDecoder.cpp:
+        (WebCore::ImageDecoder::createFrameImageAtIndex): Check the size after calling frameBufferAtIndex().
+        * platform/image-decoders/gif/GIFImageDecoder.cpp:
+        (WebCore::GIFImageDecoder::clearFrameBufferCache): Delete the reader when clearing the cache since it's out of sync.
+
 2016-06-28  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GStreamer] Adaptive streaming issues
