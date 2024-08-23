@@ -1,3 +1,89 @@
+2016-07-18  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (r202950): Image zoom animations are broken at medium.com (159861)
+        https://bugs.webkit.org/show_bug.cgi?id=159906
+        <rdar://problem/27391725>
+
+        Reviewed by Simon Fraser.
+
+        The fix for webkit.org/b/157569 in r200769 broke AMP pages.
+        The followup fix for webkit.org/b/159450 in r202950 broke Medium pages.
+
+        Revert them both until we have better testing.
+
+        * animations/fill-mode-forwards-zero-duration.html:
+        * animations/play-state-start-paused.html:
+        * animations/script-tests/spring-parsing.js:
+        (testSpring):
+        * animations/spring-parsing-expected.txt:
+        * animations/unprefixed-properties-expected.txt:
+        * animations/unprefixed-properties.html:
+        * fast/css/prefixed-unprefixed-variant-style-declaration-expected.txt:
+        * fast/css/shorthand-omitted-initial-value-overrides-shorthand-expected.txt:
+
+2016-07-18  Andreas Kling  <akling@apple.com>
+
+        There should be a way to simulate memory pressure in layout tests
+        <https://webkit.org/b/159743>
+
+        Reviewed by Simon Fraser.
+
+        Add a basic test for the new APIs.
+
+        * memory/memory-pressure-simulation-expected.txt: Added.
+        * memory/memory-pressure-simulation.html: Added.
+
+2016-07-18  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        [iOS] PDFDocumentImage should cache only a sub image of the PDF when caching the whole image is expensive
+        https://bugs.webkit.org/show_bug.cgi?id=158715
+
+        Reviewed by Dean Jackson.
+        
+        Make sure the PDF image will be displayed at the correct position if caching
+        the PDF image is disabled.
+
+        * fast/images/displaced-non-cached-pdf-expected.html: Added.
+        * fast/images/displaced-non-cached-pdf.html: Added.
+
+2016-07-18  Chris Dumez  <cdumez@apple.com>
+
+        The 2 first parameters to addEventListener() / removeEventListener() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=158008
+
+        Reviewed by Darin Adler.
+
+        * fast/dom/Window/window-legacy-event-listener-expected.txt: Removed.
+        * fast/dom/Window/window-legacy-event-listener.html: Removed.
+        * fast/dom/XMLHttpRequest-legacy-event-listener-expected.txt: Removed.
+        * fast/dom/XMLHttpRequest-legacy-event-listener.html: Removed.
+        * fast/dom/node-legacy-event-listener-expected.txt: Removed.
+        * fast/dom/node-legacy-event-listener.html: Removed.
+        Drop legacy tests that expect the addEventListener() / removeEventListener()
+        parameters to be optional.
+
+        * fast/dom/eventtarget-api-parameters-expected.txt: Added.
+        * fast/dom/eventtarget-api-parameters.html: Added.
+        Add layout test to check that the 2 first parameters of addEventListener()
+        and removeEventListener() are now mandatory. It also checks that the
+        second parameter is nullable.
+
+        * media/video-remote-control-playpause.html:
+        Drop useless call to addEventListener() without a listener as it now throws.
+
+2016-07-18  Brent Fulgham  <bfulgham@apple.com>
+
+        Unreviewed, rolling out r203373.
+
+        Unaddressed
+
+        Reverted changeset:
+
+        "Don't associate form-associated elements with forms in other
+        trees."
+        https://bugs.webkit.org/show_bug.cgi?id=119451
+        http://trac.webkit.org/changeset/203373
+
 2016-07-18  Brent Fulgham  <bfulgham@apple.com>
 
         Don't associate form-associated elements with forms in other trees.

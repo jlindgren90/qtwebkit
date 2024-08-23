@@ -1,3 +1,191 @@
+2016-07-18  Anders Carlsson  <andersca@apple.com>
+
+        WebKit nightly fails to build on macOS Sierra
+        https://bugs.webkit.org/show_bug.cgi?id=159902
+        rdar://problem/27365672
+
+        Reviewed by Tim Horton.
+
+        * Modules/applepay/cocoa/PaymentCocoa.mm:
+        * Modules/applepay/cocoa/PaymentContactCocoa.mm:
+        * Modules/applepay/cocoa/PaymentMerchantSessionCocoa.mm:
+        * Modules/applepay/cocoa/PaymentMethodCocoa.mm:
+        Use new PassKitSPI header.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Add new PassKitSPI header.
+
+        * icu/unicode/ucurr.h: Added.
+        Add ucurr.h from ICU.
+
+        * platform/spi/cocoa/PassKitSPI.h: Added.
+        Add new PassKitSPI header.
+
+2016-07-18  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (r202950): Image zoom animations are broken at medium.com (159861)
+        https://bugs.webkit.org/show_bug.cgi?id=159906
+        <rdar://problem/27391725>
+
+        Reviewed by Simon Fraser.
+
+        The fix for webkit.org/b/157569 in r200769 broke AMP pages.
+        The followup fix for webkit.org/b/159450 in r202950 broke Medium pages.
+
+        Revert them both until we have better testing.
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::addPropertyWithPrefixingVariant):
+        (WebCore::CSSParser::parseValue):
+        (WebCore::CSSParser::parseAnimationShorthand):
+        (WebCore::CSSParser::parseTransitionShorthand): Deleted.
+        * css/CSSPropertyNames.in:
+        * css/PropertySetCSSStyleDeclaration.cpp:
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyCSSValue):
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyValue):
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyCSSValueInternal):
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyValueInternal):
+        * css/StyleProperties.cpp:
+        (WebCore::MutableStyleProperties::removeShorthandProperty):
+        (WebCore::MutableStyleProperties::removeProperty):
+        (WebCore::MutableStyleProperties::removePrefixedOrUnprefixedProperty):
+        (WebCore::MutableStyleProperties::setProperty):
+        (WebCore::getIndexInShorthandVectorForPrefixingVariant):
+        (WebCore::MutableStyleProperties::appendPrefixingVariantProperty):
+        (WebCore::MutableStyleProperties::setPrefixingVariantProperty):
+        (WebCore::StyleProperties::asText): Deleted.
+        * css/StyleProperties.h:
+
+2016-07-18  Andreas Kling  <akling@apple.com>
+
+        There should be a way to simulate memory pressure in layout tests
+        <https://webkit.org/b/159743>
+
+        Reviewed by Simon Fraser.
+
+        Add three window.internal APIs:
+
+            - boolean isUnderMemoryPressure (readonly attribute)
+            - void beginSimulatedMemoryPressure()
+            - void endSimulatedMemoryPressure()
+
+        These make it possible to write tests that exercise behaviors that only
+        occur during memory pressure situations.
+
+        I also implemented the "org.WebKit.lowMemory" notification handler using the new API.
+
+        Test: memory/memory-pressure-simulation.html
+
+        * platform/MemoryPressureHandler.cpp:
+        (WebCore::MemoryPressureHandler::beginSimulatedMemoryPressure):
+        (WebCore::MemoryPressureHandler::endSimulatedMemoryPressure):
+        * platform/MemoryPressureHandler.h:
+        (WebCore::MemoryPressureHandler::isUnderMemoryPressure):
+        * platform/cocoa/MemoryPressureHandlerCocoa.mm:
+        (WebCore::MemoryPressureHandler::platformReleaseMemory):
+        (WebCore::MemoryPressureHandler::install):
+        * testing/Internals.cpp:
+        (WebCore::Internals::isUnderMemoryPressure):
+        (WebCore::Internals::beginSimulatedMemoryPressure):
+        (WebCore::Internals::endSimulatedMemoryPressure):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-07-18  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        [iOS] PDFDocumentImage should cache only a sub image of the PDF when caching the whole image is expensive
+        https://bugs.webkit.org/show_bug.cgi?id=158715
+
+        Reviewed by Dean Jackson.
+
+        Test: fast/images/displaced-non-cached-pdf.html
+
+        For iOS, we need to ensure the size of the cached PDF images will not
+        exceed some limit. Also we should be caching only a sub image of the PDF
+        if caching the whole image will exceed the memory limit.
+
+        * page/Settings.cpp:
+        (WebCore::Settings::Settings):
+        (WebCore::Settings::setCachedPDFImageEnabled):
+        * page/Settings.h:
+        (WebCore::Settings::isCachedPDFImageEnabled):
+            Add an option to disable caching the PDF images.
+
+        * platform/graphics/cg/PDFDocumentImage.cpp:
+        (WebCore::PDFDocumentImage::setCachedPDFImageEnabled):
+            Allow the caller of draw() to disable caching the PDF images.
+        
+        (WebCore::PDFDocumentImage::cacheParametersMatch):
+            Match the context dirty rectangle with the cached image rectangle.
+        
+        (WebCore::transformContextForPainting):
+            When preparing the context for drawing the PDF, take the location 
+            of the destination rectangle into account. We do not need to scale
+            the location of the source rectangle because we scale the size of
+            the rectangle but we don't scale the whole coordinate system.
+
+        (WebCore::cachedImageRect):
+            Calculate the rectangle of the cached image such that it does not
+            exceed the limit. Start from the center of the dirty rectangle and
+            then expand around it.
+            
+        (WebCore::PDFDocumentImage::decodedSizeChanged):
+            In addition to notifying the ImageObserver, it keeps track of the size
+            of all the cached PDF images.
+
+        (WebCore::PDFDocumentImage::updateCachedImageIfNeeded):
+            Ensure the size of all the cached images does not exceed the limit
+            
+        (WebCore::PDFDocumentImage::destroyDecodedData):
+        * platform/graphics/cg/PDFDocumentImage.h:
+
+        * rendering/RenderImage.cpp:
+        (WebCore::RenderImage::paintIntoRect):
+            Pass the option to disable caching the PDF images to PDFDocumentImage.
+
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo):
+        (WebCore::InternalSettings::setCachedPDFImageEnabled):
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+            Add an internal option to disable caching the PDF images.
+
+2016-07-18  Chris Dumez  <cdumez@apple.com>
+
+        The 2 first parameters to addEventListener() / removeEventListener() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=158008
+
+        Reviewed by Darin Adler.
+
+        The 2 first parameters to addEventListener() / removeEventListener() should be
+        mandatory:
+        - https://dom.spec.whatwg.org/#interface-eventtarget
+
+        Firefox 46 and Chrome 50 both match the specification and throw an exception when those
+        parameters are omitted. However, those parameters were marked as optional in WebKit and
+        the calls were no-ops if those parameters were omitted. This patch aligns our behavior
+        with the specification and other browsers.
+
+        Test: fast/dom/eventtarget-api-parameters.html
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetFunctionLength): Deleted.
+        * dom/EventTarget.idl:
+
+2016-07-18  Brent Fulgham  <bfulgham@apple.com>
+
+        Unreviewed, rolling out r203373.
+
+        Unaddressed
+
+        Reverted changeset:
+
+        "Don't associate form-associated elements with forms in other
+        trees."
+        https://bugs.webkit.org/show_bug.cgi?id=119451
+        http://trac.webkit.org/changeset/203373
+
 2016-07-18  Brent Fulgham  <bfulgham@apple.com>
 
         Don't associate form-associated elements with forms in other trees.
