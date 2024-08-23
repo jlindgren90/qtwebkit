@@ -1,3 +1,264 @@
+2016-06-19  Saam Barati  <sbarati@apple.com>
+
+        We should be able to generate more types of ICs inline
+        https://bugs.webkit.org/show_bug.cgi?id=158719
+        <rdar://problem/26825641>
+
+        Reviewed by Filip Pizlo.
+
+        This patch changes how we emit code for *byId ICs inline.
+        We no longer keep data labels to patch structure checks, etc.
+        Instead, we just regenerate the entire IC into a designated
+        region of code that the Baseline/DFG/FTL JIT will emit inline.
+        This makes it much simpler to patch inline ICs. All that's
+        needed to patch an inline IC is to memcpy the code from
+        a macro assembler inline using LinkBuffer. This architecture
+        will be easy to extend into other forms of ICs, such as one
+        for add, in the future.
+
+        To support this change, I've reworked the fields inside
+        StructureStubInfo. It now has one field that is the CodeLocationLabel 
+        of the start of the inline IC. Then it has a few ints that track deltas
+        to other locations in the IC such as the slow path start, slow path call, the
+        ICs 'done' location. We used to perform math on these ints in a bunch of different
+        places. I've consolidated that math into methods inside StructureStubInfo.
+
+        To generate inline ICs, I've implemented a new class called InlineAccess.
+        InlineAccess is stateless: it just has a bunch of static methods for
+        generating code into the inline region specified by StructureStubInfo.
+        Repatch will now decide when it wants to generate such an inline
+        IC, and it will ask InlineAccess to do so.
+
+        I've implemented three types of inline ICs to begin with (extending
+        this in the future should be easy):
+        - Self property loads (both inline and out of line offsets).
+        - Self property replace (both inline and out of line offsets).
+        - Array length on specific array types.
+        (An easy extension would be to implement JSString length.)
+
+        To know how much inline space to reserve, I've implemented a
+        method that stubs out the various inline cache shapes and 
+        dumps their size. This is used to determine how much space
+        to save inline. When InlineAccess ends up generating more
+        code than can fit inline, we will fall back to generating
+        code with PolymorphicAccess instead.
+
+        To make generating code into already allocated executable memory
+        efficient, I've made AssemblerData have 128 bytes of inline storage.
+        This saves us a malloc when splatting code into the inline region.
+
+        This patch also tidies up LinkBuffer's API for generating
+        into already allocated executable memory. Now, when generating
+        code that has less size than the already allocated space, LinkBuffer
+        will fill the extra space with nops. Also, if branch compaction shrinks
+        the code, LinkBuffer will add a nop sled at the end of the shrunken
+        code to take up the entire allocated size.
+
+        This looks like it could be a 1% octane progression.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * assembler/ARM64Assembler.h:
+        (JSC::ARM64Assembler::nop):
+        (JSC::ARM64Assembler::fillNops):
+        * assembler/ARMv7Assembler.h:
+        (JSC::ARMv7Assembler::nopw):
+        (JSC::ARMv7Assembler::nopPseudo16):
+        (JSC::ARMv7Assembler::nopPseudo32):
+        (JSC::ARMv7Assembler::fillNops):
+        (JSC::ARMv7Assembler::dmbSY):
+        * assembler/AbstractMacroAssembler.h:
+        (JSC::AbstractMacroAssembler::addLinkTask):
+        (JSC::AbstractMacroAssembler::emitNops):
+        (JSC::AbstractMacroAssembler::AbstractMacroAssembler):
+        * assembler/AssemblerBuffer.h:
+        (JSC::AssemblerData::AssemblerData):
+        (JSC::AssemblerData::operator=):
+        (JSC::AssemblerData::~AssemblerData):
+        (JSC::AssemblerData::buffer):
+        (JSC::AssemblerData::grow):
+        (JSC::AssemblerData::isInlineBuffer):
+        (JSC::AssemblerBuffer::AssemblerBuffer):
+        (JSC::AssemblerBuffer::ensureSpace):
+        (JSC::AssemblerBuffer::codeSize):
+        (JSC::AssemblerBuffer::setCodeSize):
+        (JSC::AssemblerBuffer::label):
+        (JSC::AssemblerBuffer::debugOffset):
+        (JSC::AssemblerBuffer::releaseAssemblerData):
+        * assembler/LinkBuffer.cpp:
+        (JSC::LinkBuffer::copyCompactAndLinkCode):
+        (JSC::LinkBuffer::linkCode):
+        (JSC::LinkBuffer::allocate):
+        (JSC::LinkBuffer::performFinalization):
+        (JSC::LinkBuffer::shrink): Deleted.
+        * assembler/LinkBuffer.h:
+        (JSC::LinkBuffer::LinkBuffer):
+        (JSC::LinkBuffer::debugAddress):
+        (JSC::LinkBuffer::size):
+        (JSC::LinkBuffer::wasAlreadyDisassembled):
+        (JSC::LinkBuffer::didAlreadyDisassemble):
+        (JSC::LinkBuffer::applyOffset):
+        (JSC::LinkBuffer::code):
+        * assembler/MacroAssemblerARM64.h:
+        (JSC::MacroAssemblerARM64::patchableBranch32):
+        (JSC::MacroAssemblerARM64::patchableBranch64):
+        * assembler/MacroAssemblerARMv7.h:
+        (JSC::MacroAssemblerARMv7::patchableBranch32):
+        (JSC::MacroAssemblerARMv7::patchableBranchPtrWithPatch):
+        * assembler/X86Assembler.h:
+        (JSC::X86Assembler::nop):
+        (JSC::X86Assembler::fillNops):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::printGetByIdCacheStatus):
+        * bytecode/InlineAccess.cpp: Added.
+        (JSC::InlineAccess::dumpCacheSizesAndCrash):
+        (JSC::linkCodeInline):
+        (JSC::InlineAccess::generateSelfPropertyAccess):
+        (JSC::getScratchRegister):
+        (JSC::hasFreeRegister):
+        (JSC::InlineAccess::canGenerateSelfPropertyReplace):
+        (JSC::InlineAccess::generateSelfPropertyReplace):
+        (JSC::InlineAccess::isCacheableArrayLength):
+        (JSC::InlineAccess::generateArrayLength):
+        (JSC::InlineAccess::rewireStubAsJump):
+        * bytecode/InlineAccess.h: Added.
+        (JSC::InlineAccess::sizeForPropertyAccess):
+        (JSC::InlineAccess::sizeForPropertyReplace):
+        (JSC::InlineAccess::sizeForLengthAccess):
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::PolymorphicAccess::regenerate):
+        * bytecode/StructureStubInfo.cpp:
+        (JSC::StructureStubInfo::initGetByIdSelf):
+        (JSC::StructureStubInfo::initArrayLength):
+        (JSC::StructureStubInfo::initPutByIdReplace):
+        (JSC::StructureStubInfo::deref):
+        (JSC::StructureStubInfo::aboutToDie):
+        (JSC::StructureStubInfo::propagateTransitions):
+        (JSC::StructureStubInfo::containsPC):
+        * bytecode/StructureStubInfo.h:
+        (JSC::StructureStubInfo::considerCaching):
+        (JSC::StructureStubInfo::slowPathCallLocation):
+        (JSC::StructureStubInfo::doneLocation):
+        (JSC::StructureStubInfo::slowPathStartLocation):
+        (JSC::StructureStubInfo::patchableJumpForIn):
+        (JSC::StructureStubInfo::valueRegs):
+        * dfg/DFGJITCompiler.cpp:
+        (JSC::DFG::JITCompiler::link):
+        * dfg/DFGOSRExitCompilerCommon.cpp:
+        (JSC::DFG::reifyInlinedCallFrames):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::cachedGetById):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::cachedGetById):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileIn):
+        (JSC::FTL::DFG::LowerDFGToB3::getById):
+        * jit/JITInlineCacheGenerator.cpp:
+        (JSC::JITByIdGenerator::finalize):
+        (JSC::JITByIdGenerator::generateFastCommon):
+        (JSC::JITGetByIdGenerator::JITGetByIdGenerator):
+        (JSC::JITGetByIdGenerator::generateFastPath):
+        (JSC::JITPutByIdGenerator::JITPutByIdGenerator):
+        (JSC::JITPutByIdGenerator::generateFastPath):
+        (JSC::JITPutByIdGenerator::slowPathFunction):
+        (JSC::JITByIdGenerator::generateFastPathChecks): Deleted.
+        * jit/JITInlineCacheGenerator.h:
+        (JSC::JITByIdGenerator::reportSlowPathCall):
+        (JSC::JITByIdGenerator::slowPathBegin):
+        (JSC::JITByIdGenerator::slowPathJump):
+        (JSC::JITGetByIdGenerator::JITGetByIdGenerator):
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::emitGetByValWithCachedId):
+        (JSC::JIT::emit_op_try_get_by_id):
+        (JSC::JIT::emit_op_get_by_id):
+        * jit/JITPropertyAccess32_64.cpp:
+        (JSC::JIT::emitGetByValWithCachedId):
+        (JSC::JIT::emit_op_try_get_by_id):
+        (JSC::JIT::emit_op_get_by_id):
+        * jit/Repatch.cpp:
+        (JSC::repatchCall):
+        (JSC::tryCacheGetByID):
+        (JSC::repatchGetByID):
+        (JSC::appropriateGenericPutByIdFunction):
+        (JSC::tryCachePutByID):
+        (JSC::repatchPutByID):
+        (JSC::tryRepatchIn):
+        (JSC::repatchIn):
+        (JSC::linkSlowFor):
+        (JSC::resetGetByID):
+        (JSC::resetPutByID):
+        (JSC::resetIn):
+        (JSC::repatchByIdSelfAccess): Deleted.
+        (JSC::resetGetByIDCheckAndLoad): Deleted.
+        (JSC::resetPutByIDCheckAndLoad): Deleted.
+        (JSC::replaceWithJump): Deleted.
+
+2016-06-19  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION(concurrent baseline JIT): Kraken/ai-astar runs 20% slower
+        https://bugs.webkit.org/show_bug.cgi?id=158906
+
+        Reviewed by Benjamin Poulain.
+        
+        The concurrent baseline JIT was a 2-3% progression on JSBench, possibly a 1% progression
+        on PLT3, but a 2-5% regression on Kraken. This patch fixes the Kraken regression without
+        affecting the other tests.
+        
+        The problem is that Kraken/ai-astar's initialization code had a ginormous piece of init
+        code that took about 16ms to compile in baseline. There's no good way to avoid letting it
+        tier-up into baseline since it has a compute loop. The time it takes to run this code is
+        never measured. The concurrent baseline JIT caused us to schedule the compilation of this
+        huge code rather than doing it eagerly. This meant that after initialization was done and
+        we started actually running real stuff, all of the real stuff's compiles would be convoyed
+        behind this super-expensive baseline compile. Note that DFG and FTL compiles convoy behind
+        baseline compiles, since you can't schedule a DFG compile for a code block until that code
+        block is in baseline.
+        
+        This uses the simplest fix: if we are thinking about scheduling some compile and the
+        thread is busy, do the compile on the main thread instead. This doesn't completely
+        eliminate the ai-astar regression (we still have a 4% regression on that test) but it now
+        results in concurrent baseline JIT being an overall progression on Kraken as a whole (1%
+        on my machine). This is because concurrent baseline appears to help on other tests.
+
+        In the future, we could fix this even better by allowing the JITWorklist to spawn more
+        threads or by being smarter about baseline compilation. I think it's nasty that if a giant
+        piece of initialization code ends in a compute loop, we compile all of the code instead of
+        just the loop. It's also gross that a constant-like object creation expression will result
+        in so much code. It would result in less code if we allowed ourselves to do a bit more
+        static reasoning about object literals.
+        
+        But for now, I think that this is a great way to recover the Kraken regression while still
+        keeping the other progressions from concurrent baseline.
+
+        * jit/JITWorklist.cpp:
+        (JSC::JITWorklist::Plan::Plan):
+        (JSC::JITWorklist::Plan::compileInThread):
+        (JSC::JITWorklist::Plan::finalize):
+        (JSC::JITWorklist::Plan::codeBlock):
+        (JSC::JITWorklist::Plan::isFinishedCompiling):
+        (JSC::JITWorklist::Plan::compileNow):
+        (JSC::JITWorklist::JITWorklist):
+        (JSC::JITWorklist::compileLater):
+        (JSC::JITWorklist::compileNow):
+        (JSC::JITWorklist::runThread):
+        (JSC::JITWorklist::Plan::isFinalized): Deleted.
+        * jit/JITWorklist.h:
+
+2016-06-17  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202152.
+        https://bugs.webkit.org/show_bug.cgi?id=158897
+
+        The new test is very unstable, timing out frequently
+        (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "Web Inspector: console.profile should use the new Sampling
+        Profiler"
+        https://bugs.webkit.org/show_bug.cgi?id=153499
+        http://trac.webkit.org/changeset/202152
+
 2016-06-14  Filip Pizlo  <fpizlo@apple.com>
 
         Baseline JIT should be concurrent

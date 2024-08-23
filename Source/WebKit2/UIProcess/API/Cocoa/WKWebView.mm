@@ -377,11 +377,11 @@ static uint32_t convertSystemLayoutDirection(NSUserInterfaceLayoutDirection dire
 {
     switch (direction) {
     case NSUserInterfaceLayoutDirectionLeftToRight:
-        return static_cast<uint32_t>(WebCore::LTR);
+        return static_cast<uint32_t>(WebCore::UserInterfaceLayoutDirection::LTR);
     case NSUserInterfaceLayoutDirectionRightToLeft:
-        return static_cast<uint32_t>(WebCore::RTL);
+        return static_cast<uint32_t>(WebCore::UserInterfaceLayoutDirection::RTL);
     }
-    return static_cast<uint32_t>(WebCore::LTR);
+    return static_cast<uint32_t>(WebCore::UserInterfaceLayoutDirection::LTR);
 }
 #endif
 
@@ -434,7 +434,8 @@ static uint32_t convertSystemLayoutDirection(NSUserInterfaceLayoutDirection dire
     pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::shouldConvertPositionStyleOnCopyKey(), WebKit::WebPreferencesStore::Value(!![_configuration _convertsPositionStyleOnCopy]));
     pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::httpEquivEnabledKey(), WebKit::WebPreferencesStore::Value(!![_configuration _allowsMetaRefresh]));
     pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::allowUniversalAccessFromFileURLsKey(), WebKit::WebPreferencesStore::Value(!![_configuration _allowUniversalAccessFromFileURLs]));
-    
+    pageConfiguration->setInitialCapitalizationEnabled([_configuration _initialCapitalizationEnabled]);
+
 #if PLATFORM(MAC)
     pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::showsURLsInToolTipsEnabledKey(), WebKit::WebPreferencesStore::Value(!![_configuration _showsURLsInToolTips]));
     pageConfiguration->preferenceValues().set(WebKit::WebPreferencesKey::serviceControlsEnabledKey(), WebKit::WebPreferencesStore::Value(!![_configuration _serviceControlsEnabled]));
@@ -1735,11 +1736,16 @@ static WebCore::FloatPoint constrainContentOffset(WebCore::FloatPoint contentOff
     if (!_viewportMetaTagWidthWasExplicit || _viewportMetaTagCameFromImageDocument)
         return YES;
 
-    // For scalable viewports, only disable double tap gestures if the viewport width is device width.
+    // If the page set a viewport width that wasn't the device width, then it was
+    // scaled and thus will probably need to zoom.
     if (_viewportMetaTagWidth != WebCore::ViewportArguments::ValueDeviceWidth)
         return YES;
 
-    return !areEssentiallyEqualAsFloat(contentZoomScale(self), _initialScaleFactor);
+    // At this point, we have a page that asked for width = device-width. However,
+    // if the content's width and height were large, we might have had to shrink it.
+    // Since we'll enable double tap zoom whenever we're not at the actual
+    // initial scale, this simply becomes a test of the current scale against 1.
+    return !areEssentiallyEqualAsFloat(contentZoomScale(self), 1);
 }
 
 #pragma mark - UIScrollViewDelegate
@@ -4298,18 +4304,18 @@ static inline WebKit::FindOptions toFindOptions(_WKFindOptions wkFindOptions)
     return (_WKWebViewPrintFormatter *)viewPrintFormatter;
 }
 
-static WebKit::UserInterfaceLayoutDirection toUserInterfaceLayoutDirection(UISemanticContentAttribute contentAttribute)
+static WebCore::UserInterfaceLayoutDirection toUserInterfaceLayoutDirection(UISemanticContentAttribute contentAttribute)
 {
     auto direction = [UIView userInterfaceLayoutDirectionForSemanticContentAttribute:contentAttribute];
     switch (direction) {
     case UIUserInterfaceLayoutDirectionLeftToRight:
-        return WebKit::UserInterfaceLayoutDirection::LTR;
+        return WebCore::UserInterfaceLayoutDirection::LTR;
     case UIUserInterfaceLayoutDirectionRightToLeft:
-        return WebKit::UserInterfaceLayoutDirection::RTL;
+        return WebCore::UserInterfaceLayoutDirection::RTL;
     }
 
     ASSERT_NOT_REACHED();
-    return WebKit::UserInterfaceLayoutDirection::LTR;
+    return WebCore::UserInterfaceLayoutDirection::LTR;
 }
 
 - (void)setSemanticContentAttribute:(UISemanticContentAttribute)contentAttribute

@@ -1,3 +1,419 @@
+2016-06-19  Gavin & Ellie Barraclough  <barraclough@apple.com>
+
+        Remove hasStaticPropertyTable (part 5: done!)
+        https://bugs.webkit.org/show_bug.cgi?id=158431
+
+        Reviewed by Chris Dumez.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+            - remove hasStaticPropertyTable.
+        * bindings/scripts/test/JS/JSInterfaceName.h:
+        (WebCore::JSInterfaceName::create):
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.h:
+        (WebCore::JSTestActiveDOMObject::create):
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.h:
+        (WebCore::JSTestClassWithJSBuiltinConstructor::create):
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.h:
+        (WebCore::JSTestCustomConstructorWithNoInterfaceObject::create):
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.h:
+        (WebCore::JSTestCustomNamedGetter::create):
+        * bindings/scripts/test/JS/JSTestEventConstructor.h:
+        (WebCore::JSTestEventConstructor::create):
+        * bindings/scripts/test/JS/JSTestEventTarget.h:
+        (WebCore::JSTestEventTarget::create):
+        * bindings/scripts/test/JS/JSTestException.h:
+        (WebCore::JSTestException::create):
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.h:
+        (WebCore::JSTestGenerateIsReachable::create):
+        * bindings/scripts/test/JS/JSTestGlobalObject.h:
+        * bindings/scripts/test/JS/JSTestInterface.h:
+        * bindings/scripts/test/JS/JSTestJSBuiltinConstructor.h:
+        (WebCore::JSTestJSBuiltinConstructor::create):
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.h:
+        (WebCore::JSTestMediaQueryListListener::create):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.h:
+        (WebCore::JSTestNamedConstructor::create):
+        * bindings/scripts/test/JS/JSTestNode.h:
+        * bindings/scripts/test/JS/JSTestNondeterministic.h:
+        (WebCore::JSTestNondeterministic::create):
+        * bindings/scripts/test/JS/JSTestObj.h:
+        (WebCore::JSTestObj::create):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.h:
+        (WebCore::JSTestOverloadedConstructors::create):
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.h:
+        (WebCore::JSTestOverrideBuiltins::create):
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.h:
+        (WebCore::JSTestSerializedScriptValueInterface::create):
+        * bindings/scripts/test/JS/JSTestTypedefs.h:
+        (WebCore::JSTestTypedefs::create):
+        * bindings/scripts/test/JS/JSattribute.h:
+        (WebCore::JSattribute::create):
+        * bindings/scripts/test/JS/JSreadonly.h:
+        (WebCore::JSreadonly::create):
+
+2016-06-19  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        The JSBuiltinConstructor feature can't handle a JS interface extending an other JS interface
+        https://bugs.webkit.org/show_bug.cgi?id=158834
+
+        Reviewed by Eric Carlson.
+
+        No change of behavior.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader): Explicitly setting DOMWrapped type definition from
+        JSXX class deriving from another JSYY class.
+        * bindings/scripts/test/JS/JSTestEventTarget.h: Rebased.
+        * bindings/scripts/test/JS/JSTestNode.h: Ditto.
+
+2016-06-18  Antti Koivisto  <antti@apple.com>
+
+        Use time literals in WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=158905
+
+        Reviewed by Andreas Kling.
+
+        std::chrono::milliseconds(1) -> 1ms etc.
+
+        * dom/Document.cpp:
+        (WebCore::Document::minimumLayoutDelay):
+        (WebCore::Document::elapsedTime):
+        * fileapi/FileReader.cpp:
+        (WebCore::FileReader::create):
+        * inspector/InspectorOverlay.cpp:
+        (WebCore::InspectorOverlay::showPaintRect):
+        * loader/CrossOriginPreflightResultCache.cpp:
+        (WebCore::CrossOriginPreflightResultCache::CrossOriginPreflightResultCache):
+        * loader/ProgressTracker.cpp:
+        (WebCore::ProgressTracker::progressStarted):
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::freshnessLifetime):
+        * page/ChromeClient.h:
+        * page/DOMTimer.cpp:
+        (WebCore::DOMTimer::intervalClampedToMinimum):
+        (WebCore::DOMTimer::alignedFireTime):
+        * page/DOMTimer.h:
+        * page/FrameView.cpp:
+        (WebCore::FrameView::scrollPositionChanged):
+        * page/ResourceUsageThread.cpp:
+        (WebCore::ResourceUsageThread::threadBody):
+        * page/Settings.cpp:
+        (WebCore::Settings::Settings):
+        * page/mac/ServicesOverlayController.mm:
+        (WebCore::ServicesOverlayController::remainingTimeUntilHighlightShouldBeShown):
+        * platform/graphics/FontCache.cpp:
+        (WebCore::FontCache::fontForFamily):
+        * platform/network/CacheValidation.cpp:
+        (WebCore::computeCurrentAge):
+        (WebCore::computeFreshnessLifetimeForHTTPFamily):
+
+2016-06-17  Benjamin Poulain  <benjamin@webkit.org>
+
+        :indeterminate pseudo-class should match radios whose group has no checked radio
+        https://bugs.webkit.org/show_bug.cgi?id=156270
+
+        Reviewed by Simon Fraser.
+
+        The pseudo-class ":indeterminate" is supposed to match radio buttons
+        for which the entire group has no checked button.
+        Spec: https://html.spec.whatwg.org/#pseudo-classes:selector-indeterminate
+
+        The change is straightforward with one non-obvious choice:
+        I added matchesIndeterminatePseudoClass() in addition to shouldAppearIndeterminate().
+
+        The reason is shouldAppearIndeterminate() is used for styling and AX of elements
+        with an indeterminate states (check boxes and progress element). There is no such
+        UI for radio boxes.
+        I could have extended shouldAppearIndeterminate() to radio box
+        then filter out this case in RenderTheme. The problem is doing that would also requires
+        changes to the repaint logic to match :indeterminate. It seemed overkill to me to
+        change repaint() for a case that is never used in practice.
+
+        Tests: fast/css/pseudo-indeterminate-radio-buttons-basics.html
+               fast/css/pseudo-indeterminate-with-radio-buttons-style-invalidation.html
+               fast/selectors/detached-radio-button-checked-and-indeterminate-states.html
+               fast/selectors/pseudo-indeterminate-with-radio-buttons-style-update.html
+
+        * css/SelectorCheckerTestFunctions.h:
+        (WebCore::shouldAppearIndeterminate):
+        * dom/Element.cpp:
+        (WebCore::Element::matchesIndeterminatePseudoClass):
+        * dom/Element.h:
+        * dom/RadioButtonGroups.cpp:
+        (WebCore::RadioButtonGroup::setCheckedButton):
+        (WebCore::RadioButtonGroup::updateCheckedState):
+        (WebCore::RadioButtonGroup::remove):
+        (WebCore::RadioButtonGroup::setNeedsStyleRecalcForAllButtons):
+        (WebCore::RadioButtonGroups::hasCheckedButton):
+        * dom/RadioButtonGroups.h:
+        * html/CheckboxInputType.cpp:
+        (WebCore::CheckboxInputType::matchesIndeterminatePseudoClass):
+        (WebCore::CheckboxInputType::shouldAppearIndeterminate):
+        (WebCore::CheckboxInputType::supportsIndeterminateAppearance): Deleted.
+        * html/CheckboxInputType.h:
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::setChecked):
+        (WebCore::HTMLInputElement::matchesIndeterminatePseudoClass):
+        (WebCore::HTMLInputElement::shouldAppearIndeterminate):
+        (WebCore::HTMLInputElement::radioButtonGroups):
+        * html/HTMLInputElement.h:
+        * html/InputType.cpp:
+        (WebCore::InputType::matchesIndeterminatePseudoClass):
+        (WebCore::InputType::shouldAppearIndeterminate):
+        (WebCore::InputType::supportsIndeterminateAppearance): Deleted.
+        * html/InputType.h:
+        * html/RadioInputType.cpp:
+        (WebCore::RadioInputType::matchesIndeterminatePseudoClass):
+        (WebCore::RadioInputType::willDispatchClick): Deleted.
+        (WebCore::RadioInputType::didDispatchClick): Deleted.
+        (WebCore::RadioInputType::supportsIndeterminateAppearance): Deleted.
+        The iOS specific code is just plain wrong.
+        It was changing the indeterminate state of the input element.
+        The spec clearly says that state is only used by checkbox:
+        https://html.spec.whatwg.org/#dom-input-indeterminate
+
+        Moreover, the style update would not change the indeterminate state
+        of other buttons in the Button Group, which is just bizarre.
+        RenderThemeIOS does not make use of any of this with the current style.
+
+        * html/RadioInputType.h:
+        * style/StyleSharingResolver.cpp:
+        (WebCore::Style::SharingResolver::canShareStyleWithElement):
+        (WebCore::Style::canShareStyleWithControl): Deleted.
+        (WebCore::Style::SharingResolver::sharingCandidateHasIdenticalStyleAffectingAttributes): Deleted.
+        Style sharing is unified behind the selector matching which is neat.
+
+2016-06-17  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202152.
+        https://bugs.webkit.org/show_bug.cgi?id=158897
+
+        The new test is very unstable, timing out frequently
+        (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "Web Inspector: console.profile should use the new Sampling
+        Profiler"
+        https://bugs.webkit.org/show_bug.cgi?id=153499
+        http://trac.webkit.org/changeset/202152
+
+2016-06-17  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202068, r202115, and r202128.
+        https://bugs.webkit.org/show_bug.cgi?id=158896
+
+        The new test is very unstable, timing out frequently
+        (Requested by ap on #webkit).
+
+        Reverted changesets:
+
+        "decompose4 return value is unchecked, leading to potentially
+        uninitialized data."
+        https://bugs.webkit.org/show_bug.cgi?id=158761
+        http://trac.webkit.org/changeset/202068
+
+        "[mac] LayoutTest transforms/undecomposable.html is a flaky
+        timeout"
+        https://bugs.webkit.org/show_bug.cgi?id=158816
+        http://trac.webkit.org/changeset/202115
+
+        "[mac] LayoutTest transforms/undecomposable.html is a flaky
+        timeout"
+        https://bugs.webkit.org/show_bug.cgi?id=158816
+        http://trac.webkit.org/changeset/202128
+
+2016-06-17  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: HTML indeterminate IDL attribute not mapped to checkbox value=2 for native checkboxes
+        https://bugs.webkit.org/show_bug.cgi?id=158876
+        <rdar://problem/26842619>
+
+        Reviewed by Joanmarie Diggs.
+
+        The indeterminate state was not being reported for native checkboxes. 
+
+        Also the isIndeterminate() method was relying on whether the appearance changed, which does not happen on Mac, so that
+        was not being reported correctly. Changed that to check the actual attribute.
+
+        Test: accessibility/checkbox-mixed-value.html
+
+        * accessibility/AccessibilityNodeObject.cpp:
+        (WebCore::AccessibilityNodeObject::isIndeterminate):
+        (WebCore::AccessibilityNodeObject::isPressed):
+        (WebCore::AccessibilityNodeObject::checkboxOrRadioValue):
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::checkboxOrRadioValue):
+
+2016-06-17  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (r199819): CrashTracer: [GraphicsContext3D::getInternalFramebufferSize
+        https://bugs.webkit.org/show_bug.cgi?id=158895
+        <rdar://problem/26423617>
+
+        Reviewed by Zalan Bujtas.
+
+        In r199819 we started resetting contexts if the page had too
+        many. Unfortunately there were entry points in the WebGL context
+        that didn't check for the validity of the object before trying
+        to access the lower level objects.
+
+        Test: webgl/many-contexts-access-after-loss.html
+
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::drawingBufferWidth): Return 0 if we're lost.
+        (WebCore::WebGLRenderingContextBase::drawingBufferHeight): Ditto.
+
+2016-06-17  Daniel Bates  <dabates@apple.com>
+
+        Unreviewed, rolling out r202186.
+
+        Broke the Apple Windows, Apple Yosemite, GTK, and WinCairo
+        builds.
+
+        Reverted changeset:
+
+        "File scheme should not allow access of a resource on a
+        different volume."
+        https://bugs.webkit.org/show_bug.cgi?id=158552
+        http://trac.webkit.org/changeset/202186
+
+2016-06-17  Daniel Bates  <dabates@apple.com>
+
+        Unreviewed, rolling out r202187.
+
+        202186
+
+        Reverted changeset:
+
+        "Unreviewed clean-up after r202186."
+        http://trac.webkit.org/changeset/202187
+
+2016-06-17  Chris Dumez  <cdumez@apple.com>
+
+        Optimize parseCacheHeader() by using StringView
+        https://bugs.webkit.org/show_bug.cgi?id=158891
+
+        Reviewed by Darin Adler.
+
+        Optimize parseCacheHeader() and avoid some temporary String allocations
+        by using StringView. We now strip the whitespaces in the input string
+        at the beginning of the function, at the same as as we strip the
+        control characters. We are then able to leverage StringView in the
+        rest of the function to get substrings without the need for extra
+        String allocations.
+
+        * platform/network/CacheValidation.cpp:
+        (WebCore::isControlCharacterOrSpace):
+        (WebCore::trimToNextSeparator):
+        (WebCore::parseCacheHeader):
+
+2016-06-17  Brent Fulgham  <bfulgham@apple.com>
+
+        Unreviewed clean-up after r202186.
+
+        * platform/FileSystem.cpp:
+        (WebCore::filesHaveSameVolume): Don't use C-style formatting.
+
+2016-06-17  Pranjal Jumde  <pjumde@apple.com>
+
+        File scheme should not allow access of a resource on a different volume.
+        https://bugs.webkit.org/show_bug.cgi?id=158552
+        <rdar://problem/15307582>
+
+        Reviewed by Brent Fulgham.
+
+        Tests: Tools/TestWebKitAPI/Tests/mac/CrossPartitionFileSchemeAccess.mm
+
+        * page/SecurityOrigin.cpp:
+        (WebCore::SecurityOrigin::canDisplay):
+        * platform/FileSystem.cpp:
+        (WebCore::platformFileStat):
+        (WebCore::filesHaveSameVolume):
+        Returns true if the files are on the same volume
+        * platform/FileSystem.h:
+
+2016-06-17  Antoine Quint  <graouts@apple.com>
+
+        Web video playback controls should have RTL volume slider
+        https://bugs.webkit.org/show_bug.cgi?id=158856
+        <rdar://problem/25971769>
+
+        Reviewed by Tim Horton.
+
+        We reproduce the system used to propagate the page scale factor from the WebPage to the media controls to
+        propagate the user interface layout direction.
+
+        The Page exposes a new setUserInterfaceLayoutDirection() method which is set by the WebPage. The Page
+        then notifies the Document of a change, which propagates down to registered media elements, and finally sets
+        the usesLTRUserInterfaceLayoutDirection property on the media controller object in the injected JavaScript.
+        Based on the value of that property we toggle a new .uses-ltr-user-interface-layout-direction CSS class on the
+        .volume-box which applies a translate to the right and flips the volume controls on the x axis.
+
+        Since we're setting a new JS property from HTMLMediaController, we refactor much of the code out of the existing
+        pageScaleFactorChanged() and setPageScaleFactorProperty() into the new setControllerJSProperty() method so that
+        can easily set a named JS property with a given JSValue.
+
+        For testing purposes, we expose the WebCore::Page::setUserInterfaceLayoutDirection() method through Internals.
+
+        Test: fullscreen/video-controls-rtl.html
+
+        * Modules/mediacontrols/mediaControlsApple.css:
+        (video:-webkit-full-screen::-webkit-media-controls-panel .volume-box:not(.uses-ltr-user-interface-layout-direction)):
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.set usesLTRUserInterfaceLayoutDirection):
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/Document.cpp:
+        (WebCore::Document::registerForUserInterfaceLayoutDirectionChangedCallbacks):
+        (WebCore::Document::unregisterForUserInterfaceLayoutDirectionChangedCallbacks):
+        (WebCore::Document::userInterfaceLayoutDirectionChanged):
+        * dom/Document.h:
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::registerWithDocument):
+        (WebCore::HTMLMediaElement::unregisterWithDocument):
+        (WebCore::HTMLMediaElement::updatePageScaleFactorJSProperty):
+        (WebCore::HTMLMediaElement::updateUsesLTRUserInterfaceLayoutDirectionJSProperty):
+        (WebCore::HTMLMediaElement::setControllerJSProperty):
+        (WebCore::HTMLMediaElement::didAddUserAgentShadowRoot):
+        (WebCore::HTMLMediaElement::pageScaleFactorChanged):
+        (WebCore::HTMLMediaElement::userInterfaceLayoutDirectionChanged):
+        (WebCore::setPageScaleFactorProperty): Deleted.
+        * html/HTMLMediaElement.h:
+        * page/Page.cpp:
+        (WebCore::Page::setUserInterfaceLayoutDirection):
+        * page/Page.h:
+        (WebCore::Page::userInterfaceLayoutDirection):
+        * platform/UserInterfaceLayoutDirection.h: Renamed from Source/WebKit2/UIProcess/UserInterfaceLayoutDirection.h.
+        * testing/Internals.cpp:
+        (WebCore::Internals::setUserInterfaceLayoutDirection):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-06-17  Chris Dumez  <cdumez@apple.com>
+
+        TouchEvent should have a constructor
+        https://bugs.webkit.org/show_bug.cgi?id=158883
+        <rdar://problem/26063585>
+
+        Reviewed by Benjamin Poulain.
+
+        TouchEvent should have a constructor:
+        - https://w3c.github.io/touch-events/#touchevent-interface
+
+        Chrome already ships this:
+        - https://bugs.chromium.org/p/chromium/issues/detail?id=508675
+
+        Test: fast/events/touch/touch-event-constructor.html
+
+        * bindings/js/JSDictionary.cpp:
+        (WebCore::JSDictionary::convertValue):
+        * bindings/js/JSDictionary.h:
+        * dom/TouchEvent.cpp:
+        (WebCore::TouchEvent::TouchEvent):
+        * dom/TouchEvent.h:
+        * dom/TouchEvent.idl:
+
 2016-06-17  Zalan Bujtas  <zalan@apple.com>
 
         Potential null dereferencing on a detached positioned renderer.

@@ -375,6 +375,7 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, uin
 #if PLATFORM(IOS)
     , m_alwaysRunsAtForegroundPriority(m_configuration->alwaysRunsAtForegroundPriority())
 #endif
+    , m_initialCapitalizationEnabled(m_configuration->initialCapitalizationEnabled())
     , m_backForwardList(WebBackForwardList::create(*this))
     , m_maintainsInactiveSelection(false)
     , m_isEditable(false)
@@ -4561,7 +4562,7 @@ int64_t WebPageProxy::spellDocumentTag()
 #if USE(UNIFIED_TEXT_CHECKING)
 void WebPageProxy::checkTextOfParagraph(const String& text, uint64_t checkingTypes, int32_t insertionPoint, Vector<TextCheckingResult>& results)
 {
-    results = TextChecker::checkTextOfParagraph(spellDocumentTag(), text, insertionPoint, checkingTypes);
+    results = TextChecker::checkTextOfParagraph(spellDocumentTag(), text, insertionPoint, checkingTypes, m_initialCapitalizationEnabled);
 }
 #endif
 
@@ -4592,7 +4593,7 @@ void WebPageProxy::updateSpellingUIWithGrammarString(const String& badGrammarPhr
 
 void WebPageProxy::getGuessesForWord(const String& word, const String& context, int32_t insertionPoint, Vector<String>& guesses)
 {
-    TextChecker::getGuessesForWord(spellDocumentTag(), word, context, insertionPoint, guesses);
+    TextChecker::getGuessesForWord(spellDocumentTag(), word, context, insertionPoint, guesses, m_initialCapitalizationEnabled);
 }
 
 void WebPageProxy::learnWord(const String& word)
@@ -6380,12 +6381,12 @@ void WebPageProxy::setResourceCachingDisabled(bool disabled)
     m_process->send(Messages::WebPage::SetResourceCachingDisabled(disabled), m_pageID);
 }
 
-UserInterfaceLayoutDirection WebPageProxy::userInterfaceLayoutDirection()
+WebCore::UserInterfaceLayoutDirection WebPageProxy::userInterfaceLayoutDirection()
 {
     return m_pageClient.userInterfaceLayoutDirection();
 }
 
-void WebPageProxy::setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection userInterfaceLayoutDirection)
+void WebPageProxy::setUserInterfaceLayoutDirection(WebCore::UserInterfaceLayoutDirection userInterfaceLayoutDirection)
 {
     if (!isValid())
         return;

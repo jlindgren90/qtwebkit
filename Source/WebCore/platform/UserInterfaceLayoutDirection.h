@@ -26,10 +26,10 @@
 #ifndef UserInterfaceLayoutDirection_h
 #define UserInterfaceLayoutDirection_h
 
-namespace WebKit {
+namespace WebCore {
 
 enum class UserInterfaceLayoutDirection { LTR, RTL };
 
-} // namespace WebKit
+} // namespace WebCore
 
 #endif // UserInterfaceLayoutDirection_h

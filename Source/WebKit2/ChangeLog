@@ -1,3 +1,157 @@
+2016-06-19  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix erroneously commented line added in r202142.
+
+        * Shared/mac/RemoteLayerBackingStore.mm:
+        (WebKit::RemoteLayerBackingStore::applyBackingStoreToLayer):
+
+2016-06-16  Enrica Casucci  <enrica@apple.com>
+
+        Support configurable autocapitalization.
+        https://bugs.webkit.org/show_bug.cgi?id=158860
+        rdar://problem/26231403
+
+        Reviewed by Tim Horton.
+
+        The behavior of spellchecker should be configurable to avoid
+        unwanted autocapitalization.
+
+        * UIProcess/API/APIPageConfiguration.cpp:
+        (API::PageConfiguration::copy):
+        * UIProcess/API/APIPageConfiguration.h:
+        (API::PageConfiguration::initialCapitalizationEnabled):
+        (API::PageConfiguration::setInitialCapitalizationEnabled):
+        * UIProcess/API/C/WKPageConfigurationRef.cpp:
+        (WKPageConfigurationSetIntialCapitalizationEnabled):
+        * UIProcess/API/C/WKPageConfigurationRef.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration copyWithZone:]):
+        (-[WKWebViewConfiguration _initialCapitalizationEnabled]):
+        (-[WKWebViewConfiguration _setInitialCapitalizationEnabled:]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+        * UIProcess/TextChecker.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::WebPageProxy):
+        (WebKit::WebPageProxy::checkTextOfParagraph):
+        (WebKit::WebPageProxy::getGuessesForWord):
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/efl/TextCheckerEfl.cpp:
+        (WebKit::TextChecker::checkTextOfParagraph):
+        (WebKit::TextChecker::getGuessesForWord):
+        * UIProcess/gtk/TextCheckerGtk.cpp:
+        (WebKit::TextChecker::getGuessesForWord):
+        (WebKit::TextChecker::checkTextOfParagraph):
+        * UIProcess/ios/TextCheckerIOS.mm:
+        (WebKit::TextChecker::checkTextOfParagraph):
+        (WebKit::TextChecker::getGuessesForWord):
+        * UIProcess/mac/TextCheckerMac.mm:
+        (WebKit::TextChecker::checkTextOfParagraph):
+        (WebKit::TextChecker::getGuessesForWord):
+
+2016-06-17  Chris Dumez  <cdumez@apple.com>
+
+        Use WTF::NoncopyableFunction in NetworkDataTaskClient
+        https://bugs.webkit.org/show_bug.cgi?id=158887
+
+        Reviewed by Alex Christensen.
+
+        Use WTF::NoncopyableFunction in NetworkDataTaskClient instead of std::function
+        and consistently move it around. This avoids some unnecessary copying.
+
+        * NetworkProcess/Downloads/DownloadManager.cpp:
+        (WebKit::DownloadManager::willDecidePendingDownloadDestination):
+        (WebKit::DownloadManager::continueDecidePendingDownloadDestination):
+        * NetworkProcess/Downloads/DownloadManager.h:
+        * NetworkProcess/NetworkDataTask.h:
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::willPerformHTTPRedirection):
+        (WebKit::NetworkLoad::didReceiveChallenge):
+        (WebKit::NetworkLoad::didReceiveResponseNetworkSession):
+        (WebKit::NetworkLoad::continueCanAuthenticateAgainstProtectionSpace):
+        * NetworkProcess/NetworkLoad.h:
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::findPendingDownloadLocation):
+        * NetworkProcess/NetworkProcess.h:
+        * NetworkProcess/PingLoad.h:
+        * NetworkProcess/cocoa/NetworkDataTaskCocoa.mm:
+        (WebKit::NetworkDataTask::didReceiveChallenge):
+        (WebKit::NetworkDataTask::didReceiveResponse):
+        (WebKit::NetworkDataTask::willPerformHTTPRedirection):
+        (WebKit::NetworkDataTask::tryPasswordBasedAuthentication):
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:task:didReceiveChallenge:completionHandler:]):
+        * Shared/Authentication/AuthenticationManager.cpp:
+        (WebKit::AuthenticationManager::addChallengeToChallengeMap):
+        (WebKit::AuthenticationManager::coalesceChallengesMatching):
+        (WebKit::AuthenticationManager::didReceiveAuthenticationChallenge):
+        (WebKit::AuthenticationManager::tryUseCertificateInfoForChallenge):
+        (WebKit::AuthenticationManager::useCredentialForSingleChallenge):
+        * Shared/Authentication/AuthenticationManager.h:
+        * Shared/Authentication/mac/AuthenticationManager.mac.mm:
+        (WebKit::AuthenticationManager::tryUseCertificateInfoForChallenge):
+
+2016-06-17  Antoine Quint  <graouts@apple.com>
+
+        Web video playback controls should have RTL volume slider
+        https://bugs.webkit.org/show_bug.cgi?id=158856
+        <rdar://problem/25971769>
+
+        Reviewed by Tim Horton.
+
+        We now call setUserInterfaceLayoutDirection() on WebCore::Page to propagate
+        the user interface layout direction down to the Web content. To facilitate this,
+        the UserInterfaceLayoutDirection enum is now defined in WebCore.
+
+        * Shared/WebPageCreationParameters.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (convertSystemLayoutDirection):
+        (toUserInterfaceLayoutDirection):
+        * UIProcess/API/gtk/PageClientImpl.h:
+        * UIProcess/Cocoa/WebViewImpl.h:
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::toUserInterfaceLayoutDirection):
+        (WebKit::WebViewImpl::userInterfaceLayoutDirection):
+        * UIProcess/PageClient.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::userInterfaceLayoutDirection):
+        (WebKit::WebPageProxy::setUserInterfaceLayoutDirection):
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/efl/WebView.h:
+        * UIProcess/ios/PageClientImplIOS.h:
+        * UIProcess/ios/PageClientImplIOS.mm:
+        (WebKit::PageClientImpl::userInterfaceLayoutDirection):
+        * UIProcess/mac/PageClientImpl.h:
+        * UIProcess/mac/PageClientImpl.mm:
+        (WebKit::PageClientImpl::userInterfaceLayoutDirection):
+        * UIProcess/mac/ViewGestureControllerMac.mm:
+        (WebKit::ViewGestureController::PendingSwipeTracker::scrollEventCanBecomeSwipe):
+        (WebKit::ViewGestureController::isPhysicallySwipingLeft):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::m_userInterfaceLayoutDirection):
+        (WebKit::WebPage::setUserInterfaceLayoutDirection):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/mac/WebPageMac.mm:
+        (WebKit::WebPage::performNonEditingBehaviorForSelector):
+
+2016-06-17  Dean Jackson  <dino@apple.com>
+
+        REGRESSION: Double tap to zoom does not work on yahoo finance
+        https://bugs.webkit.org/show_bug.cgi?id=158886
+        <rdar://problem/24917760>
+
+        Reviewed by Simon Fraser.
+
+        We shouldn't enable fast click on pages that have
+        had to shrink to fit. In other words, we should enable
+        double-tap-to-zoom if the page has already zoomed.
+
+        Test: fast/events/ios/viewport-shrink-to-fit-allows-double-tap.html
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _allowsDoubleTapGestures]):
+
 2016-06-16  Chris Dumez  <cdumez@apple.com>
 
         No need to ref connection in lambda inside NetworkResourceLoader::tryStoreAsCacheEntry()

@@ -2850,13 +2850,13 @@ bool Document::isLayoutTimerActive()
 std::chrono::milliseconds Document::minimumLayoutDelay()
 {
     if (m_overMinimumLayoutThreshold)
-        return std::chrono::milliseconds(0);
+        return 0ms;
     
-    std::chrono::milliseconds elapsed = elapsedTime();
+    auto elapsed = elapsedTime();
     m_overMinimumLayoutThreshold = elapsed > settings()->layoutInterval();
 
     // We'll want to schedule the timer to fire at the minimum layout threshold.
-    return std::max(std::chrono::milliseconds(0), settings()->layoutInterval() - elapsed);
+    return std::max(0ms, settings()->layoutInterval() - elapsed);
 }
 
 std::chrono::milliseconds Document::elapsedTime() const
@@ -4880,6 +4880,22 @@ void Document::pageScaleFactorChangedAndStable()
 {
     for (HTMLMediaElement* mediaElement : m_pageScaleFactorChangedElements)
         mediaElement->pageScaleFactorChanged();
+}
+
+void Document::registerForUserInterfaceLayoutDirectionChangedCallbacks(HTMLMediaElement& element)
+{
+    m_userInterfaceLayoutDirectionChangedElements.add(&element);
+}
+
+void Document::unregisterForUserInterfaceLayoutDirectionChangedCallbacks(HTMLMediaElement& element)
+{
+    m_userInterfaceLayoutDirectionChangedElements.remove(&element);
+}
+
+void Document::userInterfaceLayoutDirectionChanged()
+{
+    for (auto* mediaElement : m_userInterfaceLayoutDirectionChangedElements)
+        mediaElement->userInterfaceLayoutDirectionChanged();
 }
 #endif
 

@@ -1104,6 +1104,8 @@ sub GenerateHeader
     # Static create methods
     push(@headerContent, "public:\n");
     push(@headerContent, "    typedef $parentClassName Base;\n");
+    push(@headerContent, "    typedef $implType DOMWrapped;\n") if $interface->parent;
+
     if ($interfaceName eq "DOMWindow") {
         push(@headerContent, "    static $className* create(JSC::VM& vm, JSC::Structure* structure, Ref<$implType>&& impl, JSDOMWindowShell* windowShell)\n");
         push(@headerContent, "    {\n");
@@ -1152,9 +1154,6 @@ sub GenerateHeader
 
     if (InstancePropertyCount($interface) > 0) {
         $structureFlags{"JSC::HasStaticPropertyTable"} = 1;
-        push(@headerContent, "    static const bool hasStaticPropertyTable = true;\n\n");
-    } else {
-        push(@headerContent, "    static const bool hasStaticPropertyTable = false;\n\n");
     }
 
     # Prototype

@@ -45,7 +45,6 @@
 #include "ProcessThrottler.h"
 #include "SandboxExtension.h"
 #include "ShareableBitmap.h"
-#include "UserInterfaceLayoutDirection.h"
 #include "UserMediaPermissionRequestManagerProxy.h"
 #include "VisibleContentRectUpdateInfo.h"
 #include "WKBase.h"
@@ -74,6 +73,7 @@
 #include <WebCore/SearchPopupMenu.h>
 #include <WebCore/TextChecking.h>
 #include <WebCore/TextGranularity.h>
+#include <WebCore/UserInterfaceLayoutDirection.h>
 #include <WebCore/ViewState.h>
 #include <WebCore/VisibleSelection.h>
 #include <memory>
@@ -1140,8 +1140,8 @@ public:
     bool isResourceCachingDisabled() const { return m_isResourceCachingDisabled; }
     void setResourceCachingDisabled(bool);
 
-    UserInterfaceLayoutDirection userInterfaceLayoutDirection();
-    void setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection);
+    WebCore::UserInterfaceLayoutDirection userInterfaceLayoutDirection();
+    void setUserInterfaceLayoutDirection(WebCore::UserInterfaceLayoutDirection);
 
     bool hasHadSelectionChangesFromUserInteraction() const { return m_hasHadSelectionChangesFromUserInteraction; }
 
@@ -1658,7 +1658,7 @@ private:
     bool m_alwaysRunsAtForegroundPriority;
     ProcessThrottler::ForegroundActivityToken m_activityToken;
 #endif
-        
+    bool m_initialCapitalizationEnabled;
     Ref<WebBackForwardList> m_backForwardList;
         
     bool m_maintainsInactiveSelection;

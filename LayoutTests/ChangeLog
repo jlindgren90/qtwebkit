@@ -1,3 +1,306 @@
+2016-06-19  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectation gardening.
+
+        * platform/mac-wk2/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-06-19  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectation gardening.
+
+        * platform/mac-wk2/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-06-19  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Mark shadow-dom tests to pass because it was enabled by r202091
+        https://bugs.webkit.org/show_bug.cgi?id=158930
+
+        Unreviewed EFL gardening.
+
+        * platform/efl/TestExpectations:
+
+2016-06-19  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Unreviewed test gardening
+
+        * fast/forms/select-non-native-rendering-direction-expected.txt: Added.
+        * fast/text/hyphenate-avoid-orphaned-word-expected.txt: Added.
+        * platform/gtk/TestExpectations:
+
+2016-06-17  Alexey Proskuryakov  <ap@apple.com>
+
+        Add test expectations for macOS Sierra
+        https://bugs.webkit.org/show_bug.cgi?id=158903
+
+        Reviewed by Alex Christensen.
+
+        * TestExpectations:
+        * media/click-placeholder-not-pausing-expected.txt: Added.
+        * media/click-placeholder-not-pausing.html: Added.
+        * media/controls/picture-in-picture-expected.txt: Added.
+        * media/controls/picture-in-picture.html: Added.
+        * media/element-containing-pip-video-going-into-fullscreen-expected.txt: Added.
+        * media/element-containing-pip-video-going-into-fullscreen.html: Added.
+        * media/fullscreen-api-enabled-media-with-presentation-mode-expected.txt: Added.
+        * media/fullscreen-api-enabled-media-with-presentation-mode.html: Added.
+        * media/fullscreen-video-going-into-pip-expected.txt: Added.
+        * media/fullscreen-video-going-into-pip.html: Added.
+        * media/navigate-with-pip-should-not-crash-expected.txt: Added.
+        * media/navigate-with-pip-should-not-crash.html: Added.
+        * media/pip-video-going-into-fullscreen-expected.txt: Added.
+        * media/pip-video-going-into-fullscreen.html: Added.
+        * media/video-contained-in-fullscreen-element-going-into-pip-expected.txt: Added.
+        * media/video-contained-in-fullscreen-element-going-into-pip.html: Added.
+        * platform/mac-elcapitan: Added.
+        * platform/mac-elcapitan/compositing: Added.
+        * platform/mac-elcapitan/compositing/rtl: Added.
+        * platform/mac-elcapitan/compositing/rtl/rtl-overflow-scrolling-expected.txt: Copied from LayoutTests/platform/mac/compositing/rtl/rtl-overflow-scrolling-expected.txt.
+        * platform/mac-elcapitan/fast: Added.
+        * platform/mac-elcapitan/fast/block: Added.
+        * platform/mac-elcapitan/fast/block/float: Added.
+        * platform/mac-elcapitan/fast/block/float/026-expected.png: Copied from LayoutTests/platform/mac/fast/block/float/026-expected.png.
+        * platform/mac-elcapitan/fast/block/float/026-expected.txt: Copied from LayoutTests/platform/mac/fast/block/float/026-expected.txt.
+        * platform/mac-elcapitan/fast/block/float/028-expected.png: Copied from LayoutTests/platform/mac/fast/block/float/028-expected.png.
+        * platform/mac-elcapitan/fast/block/float/028-expected.txt: Copied from LayoutTests/platform/mac/fast/block/float/028-expected.txt.
+        * platform/mac-elcapitan/fast/overflow: Added.
+        * platform/mac-elcapitan/fast/overflow/unreachable-overflow-rtl-bug-expected.png: Copied from LayoutTests/platform/mac/fast/overflow/unreachable-overflow-rtl-bug-expected.png.
+        * platform/mac-elcapitan/fast/overflow/unreachable-overflow-rtl-bug-expected.txt: Copied from LayoutTests/platform/mac/fast/overflow/unreachable-overflow-rtl-bug-expected.txt.
+        * platform/mac-elcapitan/fast/ruby: Added.
+        * platform/mac-elcapitan/fast/ruby/bopomofo-expected.png: Copied from LayoutTests/platform/mac/fast/ruby/bopomofo-expected.png.
+        * platform/mac-elcapitan/fast/ruby/bopomofo-expected.txt: Copied from LayoutTests/platform/mac/fast/ruby/bopomofo-expected.txt.
+        * platform/mac-elcapitan/fast/ruby/bopomofo-letter-spacing-expected.png: Copied from LayoutTests/platform/mac/fast/ruby/bopomofo-letter-spacing-expected.png.
+        * platform/mac-elcapitan/fast/ruby/bopomofo-letter-spacing-expected.txt: Copied from LayoutTests/platform/mac/fast/ruby/bopomofo-letter-spacing-expected.txt.
+        * platform/mac-elcapitan/fast/ruby/bopomofo-rl-expected.png: Copied from LayoutTests/platform/mac/fast/ruby/bopomofo-rl-expected.png.
+        * platform/mac-elcapitan/fast/ruby/bopomofo-rl-expected.txt: Copied from LayoutTests/platform/mac/fast/ruby/bopomofo-rl-expected.txt.
+        * platform/mac-elcapitan/fast/text: Added.
+        * platform/mac-elcapitan/fast/text/crash-complex-text-surrogate-expected.txt: Copied from LayoutTests/platform/mac/fast/text/crash-complex-text-surrogate-expected.txt.
+        * platform/mac-elcapitan/fast/text/justify-ideograph-complex-expected.png: Copied from LayoutTests/platform/mac/fast/text/justify-ideograph-complex-expected.png.
+        * platform/mac-elcapitan/fast/text/justify-ideograph-complex-expected.txt: Copied from LayoutTests/platform/mac/fast/text/justify-ideograph-complex-expected.txt.
+        * platform/mac-elcapitan/fast/text/line-initial-and-final-swashes-expected.png: Copied from LayoutTests/platform/mac/fast/text/line-initial-and-final-swashes-expected.png.
+        * platform/mac-elcapitan/fast/text/line-initial-and-final-swashes-expected.txt: Copied from LayoutTests/platform/mac/fast/text/line-initial-and-final-swashes-expected.txt.
+        * platform/mac-elcapitan/http: Added.
+        * platform/mac-elcapitan/http/tests: Added.
+        * platform/mac-elcapitan/http/tests/cookies: Added.
+        * platform/mac-elcapitan/http/tests/cookies/third-party-cookie-relaxing-expected.txt: Copied from LayoutTests/http/tests/cookies/third-party-cookie-relaxing-expected.txt.
+        * platform/mac-elcapitan/http/tests/security: Added.
+        * platform/mac-elcapitan/http/tests/security/mixedContent: Added.
+        * platform/mac-elcapitan/http/tests/security/mixedContent/insecure-audio-video-in-main-frame-expected.txt: Copied from LayoutTests/platform/mac/http/tests/security/mixedContent/insecure-audio-video-in-main-frame-expected.txt.
+        * platform/mac-elcapitan/media: Added.
+        * platform/mac-elcapitan/media/controls-strict-expected.png: Copied from LayoutTests/platform/mac/media/controls-strict-expected.png.
+        * platform/mac-elcapitan/media/controls-strict-expected.txt: Copied from LayoutTests/platform/mac/media/controls-strict-expected.txt.
+        * platform/mac-elcapitan/media/controls-without-preload-expected.png: Copied from LayoutTests/platform/mac/media/controls-without-preload-expected.png.
+        * platform/mac-elcapitan/media/controls-without-preload-expected.txt: Copied from LayoutTests/platform/mac/media/controls-without-preload-expected.txt.
+        * platform/mac-elcapitan/media/track: Added.
+        * platform/mac-elcapitan/media/track/video-track-alternate-groups-expected.txt: Copied from LayoutTests/platform/mac/media/track/video-track-alternate-groups-expected.txt.
+        * platform/mac-elcapitan/media/video-controls-rendering-expected.txt: Copied from LayoutTests/platform/mac/media/video-controls-rendering-expected.txt.
+        * platform/mac-elcapitan/media/video-display-toggle-expected.png: Copied from LayoutTests/platform/mac/media/video-display-toggle-expected.png.
+        * platform/mac-elcapitan/media/video-display-toggle-expected.txt: Copied from LayoutTests/platform/mac/media/video-display-toggle-expected.txt.
+        * platform/mac-elcapitan/media/video-no-audio-expected.txt: Copied from LayoutTests/platform/mac/media/video-no-audio-expected.txt.
+        * platform/mac-elcapitan/media/video-volume-slider-expected.txt: Copied from LayoutTests/platform/mac/media/video-volume-slider-expected.txt.
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac-wk2/TestExpectations:
+        * platform/mac-wk2/fast/scrolling: Added.
+        * platform/mac-wk2/fast/scrolling/rtl-scrollbars-animation-property-expected.txt: Added.
+        * platform/mac/TestExpectations:
+        * platform/mac/compositing/rtl/rtl-overflow-scrolling-expected.png: Added.
+        * platform/mac/compositing/rtl/rtl-overflow-scrolling-expected.txt:
+        * platform/mac/fast/block/float/026-expected.png:
+        * platform/mac/fast/block/float/026-expected.txt:
+        * platform/mac/fast/block/float/028-expected.png:
+        * platform/mac/fast/block/float/028-expected.txt:
+        * platform/mac/fast/overflow/unreachable-overflow-rtl-bug-expected.png:
+        * platform/mac/fast/overflow/unreachable-overflow-rtl-bug-expected.txt:
+        * platform/mac/fast/ruby/bopomofo-expected.png:
+        * platform/mac/fast/ruby/bopomofo-expected.txt:
+        * platform/mac/fast/ruby/bopomofo-letter-spacing-expected.png:
+        * platform/mac/fast/ruby/bopomofo-letter-spacing-expected.txt:
+        * platform/mac/fast/ruby/bopomofo-rl-expected.png:
+        * platform/mac/fast/ruby/bopomofo-rl-expected.txt:
+        * platform/mac/fast/text/crash-complex-text-surrogate-expected.txt:
+        * platform/mac/fast/text/justify-ideograph-complex-expected.png:
+        * platform/mac/fast/text/justify-ideograph-complex-expected.txt:
+        * platform/mac/fast/text/line-initial-and-final-swashes-expected.png:
+        * platform/mac/fast/text/line-initial-and-final-swashes-expected.txt:
+        * platform/mac/http/tests/cookies/third-party-cookie-relaxing-expected.txt: Added.
+        * platform/mac/http/tests/security/mixedContent/insecure-audio-video-in-main-frame-expected.txt:
+        * platform/mac/media/controls-strict-expected.png: Removed.
+        * platform/mac/media/controls-without-preload-expected.png: Removed.
+        * platform/mac/media/track/video-track-alternate-groups-expected.txt:
+        * platform/mac/media/video-controls-rendering-expected.png: Removed.
+        * platform/mac/media/video-display-toggle-expected.png: Removed.
+        * platform/mac/media/video-no-audio-expected.png: Removed.
+        * platform/mac/media/video-volume-slider-expected.png: Removed.
+
+2016-06-17  Benjamin Poulain  <benjamin@webkit.org>
+
+        :indeterminate pseudo-class should match radios whose group has no checked radio
+        https://bugs.webkit.org/show_bug.cgi?id=156270
+
+        Reviewed by Simon Fraser.
+
+        There are two important aspect to cover for this change:
+        1) The style is updated correctly when a Button Group composition change.
+        2) When the checkness changes for a Button Group, all its elements
+           are invalidated to match :indeterminate.
+
+        * fast/forms/radio/indeterminate-radio.html:
+        This test was verifying that the property "indeterminate" of the input element
+        is not reflected to the style through :indeterminate.
+        I updated the test to still verify that except that we now match :indeterminate
+        before changing the property.
+
+        * fast/css/pseudo-indeterminate-radio-buttons-basics-expected.html: Added.
+        * fast/css/pseudo-indeterminate-radio-buttons-basics.html: Added.
+
+        * fast/css/pseudo-indeterminate-with-radio-buttons-style-invalidation-expected.txt: Added.
+        * fast/css/pseudo-indeterminate-with-radio-buttons-style-invalidation.html: Added.
+        Verify that we don't invalidate everything when the checked button changes.
+        We only need to invalidate everything if the checked state of the whole group changes.
+
+        * fast/selectors/detached-radio-button-checked-and-indeterminate-states-expected.txt: Added.
+        * fast/selectors/detached-radio-button-checked-and-indeterminate-states.html: Added.
+        * fast/selectors/pseudo-indeterminate-with-radio-buttons-style-update-expected.txt: Added.
+        * fast/selectors/pseudo-indeterminate-with-radio-buttons-style-update.html: Added.
+
+2016-06-17  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202152.
+        https://bugs.webkit.org/show_bug.cgi?id=158897
+
+        The new test is very unstable, timing out frequently
+        (Requested by ap on #webkit).
+
+        Reverted changeset:
+
+        "Web Inspector: console.profile should use the new Sampling
+        Profiler"
+        https://bugs.webkit.org/show_bug.cgi?id=153499
+        http://trac.webkit.org/changeset/202152
+
+2016-06-17  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202068, r202115, and r202128.
+        https://bugs.webkit.org/show_bug.cgi?id=158896
+
+        The new test is very unstable, timing out frequently
+        (Requested by ap on #webkit).
+
+        Reverted changesets:
+
+        "decompose4 return value is unchecked, leading to potentially
+        uninitialized data."
+        https://bugs.webkit.org/show_bug.cgi?id=158761
+        http://trac.webkit.org/changeset/202068
+
+        "[mac] LayoutTest transforms/undecomposable.html is a flaky
+        timeout"
+        https://bugs.webkit.org/show_bug.cgi?id=158816
+        http://trac.webkit.org/changeset/202115
+
+        "[mac] LayoutTest transforms/undecomposable.html is a flaky
+        timeout"
+        https://bugs.webkit.org/show_bug.cgi?id=158816
+        http://trac.webkit.org/changeset/202128
+
+2016-06-17  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: HTML indeterminate IDL attribute not mapped to checkbox value=2 for native checkboxes
+        https://bugs.webkit.org/show_bug.cgi?id=158876
+        <rdar://problem/26842619>
+
+        Reviewed by Joanmarie Diggs.
+
+        * accessibility/checkbox-mixed-value-expected.txt: Added.
+        * accessibility/checkbox-mixed-value.html: Added.
+
+2016-06-17  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (r199819): CrashTracer: [GraphicsContext3D::getInternalFramebufferSize
+        https://bugs.webkit.org/show_bug.cgi?id=158895
+        <rdar://problem/26423617>
+
+        Reviewed by Zalan Bujtas.
+
+        New test to access the contexts after loss. Also cleaned
+        up the JavaScript code in the existing test (and made sure
+        it ran outside of the test system).
+
+        * webgl/many-contexts-access-after-loss-expected.txt: Added.
+        * webgl/many-contexts-access-after-loss.html: Added.
+        * webgl/many-contexts.html:
+
+2016-06-17  Antoine Quint  <graouts@apple.com>
+
+        Web video playback controls should have RTL volume slider
+        https://bugs.webkit.org/show_bug.cgi?id=158856
+        <rdar://problem/25971769>
+
+        Reviewed by Tim Horton.
+
+        New test that checks that the volume box has the correct CSS class name and the expected
+        CSS transform value applied to it when the user interface layout direction is right-to-left
+        and that changing the user interface layout direction dynamically update the media element
+        shadow tree as expected.
+
+        * fullscreen/video-controls-rtl-expected.txt: Added.
+        * fullscreen/video-controls-rtl.html: Added.
+
+2016-06-17  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Update LayoutTest fast/canvas/canvas-composite-text-alpha.html
+        https://bugs.webkit.org/show_bug.cgi?id=158710
+
+        Reviewed by Alexey Proskuryakov.
+
+        Though this test passes, opening the test file directly reports multiple failures. Updating the
+        readback locations to get the correct results.
+
+        * fast/canvas/canvas-composite-text-alpha.html:
+
+2016-06-17  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/video-controls-show-on-kb-or-ax-event.html as flaky on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=158889
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-06-17  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip security/contentSecurityPolicy/video-with-file-url-allowed-by-media-src-star.html on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=155196
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-06-17  Dean Jackson  <dino@apple.com>
+
+        REGRESSION: Double tap to zoom does not work on yahoo finance
+        https://bugs.webkit.org/show_bug.cgi?id=158886
+        <rdar://problem/24917760>
+
+        Reviewed by Simon Fraser.
+
+        * fast/events/ios/viewport-shrink-to-fit-allows-double-tap-expected.txt: Added.
+        * fast/events/ios/viewport-shrink-to-fit-allows-double-tap.html: Added.
+
+2016-06-17  Chris Dumez  <cdumez@apple.com>
+
+        TouchEvent should have a constructor
+        https://bugs.webkit.org/show_bug.cgi?id=158883
+        <rdar://problem/26063585>
+
+        Reviewed by Benjamin Poulain.
+
+        Add layout test coverage for the TouchEvent constructor.
+
+        * fast/events/touch/touch-event-constructor-expected.txt: Added.
+        * fast/events/touch/touch-event-constructor.html: Added.
+
 2016-06-17  Chris Dumez  <cdumez@apple.com>
 
         URL hash setter does not remove fragment identifier if argument is an empty string

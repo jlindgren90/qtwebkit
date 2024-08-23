@@ -478,6 +478,7 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
 
     m_page->setGroupName(m_pageGroup->identifier());
     m_page->setDeviceScaleFactor(parameters.deviceScaleFactor);
+    m_page->setUserInterfaceLayoutDirection(m_userInterfaceLayoutDirection);
 #if PLATFORM(IOS)
     m_page->setTextAutosizingWidth(parameters.textAutosizingWidth);
 #endif
@@ -5529,7 +5530,8 @@ void WebPage::setResourceCachingDisabled(bool disabled)
 
 void WebPage::setUserInterfaceLayoutDirection(uint32_t direction)
 {
-    m_userInterfaceLayoutDirection = static_cast<UserInterfaceLayoutDirection>(direction);
+    m_userInterfaceLayoutDirection = static_cast<WebCore::UserInterfaceLayoutDirection>(direction);
+    m_page->setUserInterfaceLayoutDirection(m_userInterfaceLayoutDirection);
 }
 
 WebURLSchemeHandlerProxy* WebPage::urlSchemeHandlerForScheme(const String& scheme)

@@ -110,7 +110,7 @@ public:
 #endif
 
 #if USE(NETWORK_SESSION)
-    void findPendingDownloadLocation(NetworkDataTask&, ResponseCompletionHandler, const WebCore::ResourceRequest&);
+    void findPendingDownloadLocation(NetworkDataTask&, ResponseCompletionHandler&&, const WebCore::ResourceRequest&);
 #endif
     
 #if PLATFORM(QT)
