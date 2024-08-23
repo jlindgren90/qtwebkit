@@ -1,3 +1,52 @@
+2016-07-10  Beth Dakin  <bdakin@apple.com>
+
+        Update mediaIcon.pdf
+        https://bugs.webkit.org/show_bug.cgi?id=159613
+        -and corresponding-
+        rdar://problem/27268111
+
+        Reviewed by Sam Weinig.
+
+        * Resources/mediaIcon.pdf: Replaced.
+
+2016-07-10  Alex Christensen  <achristensen@webkit.org>
+
+        Add self to WebKit2 Owners
+        https://bugs.webkit.org/show_bug.cgi?id=159499
+
+        Reviewed by Sam Weinig.
+
+        * Owners:
+
+2016-07-10  Alex Christensen  <achristensen@webkit.org>
+
+        Fix client certificate authentication after r200463
+        https://bugs.webkit.org/show_bug.cgi?id=159574
+        <rdar://problem/26931006>
+
+        Reviewed by Sam Weinig.
+
+        * Shared/Authentication/mac/AuthenticationManager.mac.mm:
+        (WebKit::leafCertificate):
+        (WebKit::chain):
+        Handle the different types of CertificateInfos.
+
+2016-07-08  Yongjun Zhang  <yongjun_zhang@apple.com>
+
+        When WKWebView prepares the session state blob, we should be able to filter it.
+        https://bugs.webkit.org/show_bug.cgi?id=159410
+
+        Add a SPI to WKWebView so that a client can decide how to filter backforward items
+        when WKWebView perparing session state.
+
+        Reviewed by Brady Eidson.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _sessionStateWithFilter:]): When preparing session state, check each
+        backforward item against the filter block.
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h: Add the SPI _sessionStateWithFilter:
+
+
 2016-07-08  Tim Horton  <timothy_horton@apple.com>
 
         Mail messages don't start loading until scrolling completes

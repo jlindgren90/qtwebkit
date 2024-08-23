@@ -28,10 +28,10 @@
 
 #include <unicode/utext.h>
 
-namespace WebCore {
+namespace WTF {
 
 UText* openUTF16ContextAwareUTextProvider(UText*, const UChar*, unsigned length, const UChar* priorContext, int priorContextLength, UErrorCode*);
 
-} // namespace WebCore
+} // namespace WTF
 
 #endif // UTextProviderUTF16_h

@@ -1,3 +1,116 @@
+2016-07-10  Caio Lima  <ticaiolima@gmail.com>
+
+        ECMAScript 2016: %TypedArray%.prototype.includes implementation
+        https://bugs.webkit.org/show_bug.cgi?id=159385
+
+        Reviewed by Benjamin Poulain.
+
+        This patch implements the ECMAScript 2016:
+        %TypedArray%.prototype.includes
+        following spec 22.2.3.14
+        https://tc39.github.io/ecma262/2016/#sec-%typedarray%.prototype.includes
+
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        (JSC::genericTypedArrayViewProtoFuncIncludes):
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        (JSC::typedArrayViewProtoFuncIncludes):
+        (JSC::JSTypedArrayViewPrototype::finishCreation):
+
+2016-07-09  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION(201900): validation failure for GetByOffset/PutByOffset in VALIDATE((node), node->child1().node() == node->child2().node() || node->child1()->result() == NodeResultStorage)
+        https://bugs.webkit.org/show_bug.cgi?id=159603
+
+        Reviewed by Keith Miller.
+        
+        This removes an incorrect validation rule and replaces it with a FIXME about how to make this
+        aspect of IR easier to validate soundly.
+        
+        It's not valid to assert that two children of a node are the same. It should always be valid
+        to take:
+        
+        Foo(@x, @x)
+        
+        and turn it into:
+        
+        a: ValueRep(@x)
+        b: ValueRep(@x)
+        Foo(@a, @b)
+        
+        or even something like:
+        
+        y: Identity(@y)
+        Foo(@x, @y)
+        
+        That's because it should be possible to rewire any data flow edge something that produces an
+        equivalent value.
+        
+        The validation rule that this patch removes meant that such rewirings were invalid on
+        GetByOffset/PutByOffset. FixupPhase did such a rewiring sometimes.
+
+        * dfg/DFGValidate.cpp:
+        * tests/stress/get-by-offset-double.js: Added.
+
+2016-07-09  Keith Miller  <keith_miller@apple.com>
+
+        appendMemcpy might fail in concatAppendOne
+        https://bugs.webkit.org/show_bug.cgi?id=159601
+        <rdar://problem/27211300>
+
+        Reviewed by Mark Lam.
+
+        There are multiple reasons why we might fail appendMemcpy. One
+        reason, which I suspect was the source of the crashes, is that one
+        of the Array prototypes has an indexed property. This patch
+        consolidates the two old cases by just creating an array then
+        attempting to memcpy append. If that fails, we fall back to
+        moveElements.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::concatAppendOne):
+        * tests/stress/concat-with-holesMustForwardToPrototype.js: Added.
+        (arrayEq):
+
+2016-07-09  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Fix the Template Raw Value of \ (escape) + LineTerminatorSequence
+        https://bugs.webkit.org/show_bug.cgi?id=159595
+
+        Reviewed by Yusuke Suzuki.
+
+        The spec (https://tc39.github.io/ecma262/#sec-static-semantics-tv-and-trv)
+        says:
+        "The TRV of LineContinuation::\LineTerminatorSequence is the sequence
+         consisting of the code unit value 0x005C followed by the code units
+         of TRV of LineTerminatorSequence."
+        
+        We were not normalizing the LineTerminatorSequence in that case, but it should
+        be as it is the TRV of LineTerminatorSequence.
+
+        * parser/Lexer.cpp:
+        (JSC::Lexer<T>::parseTemplateLiteral):
+        * tests/stress/tagged-templates-raw-strings.js:
+
+2016-07-08  Saam Barati  <sbarati@apple.com>
+
+        We may add a ReadOnly property without setting the corresponding bit on Structure
+        https://bugs.webkit.org/show_bug.cgi?id=159542
+        <rdar://problem/27084591>
+
+        Reviewed by Benjamin Poulain.
+
+        The reason this usually is OK is due to happenstance. Often, instances that putDirectWithoutTransition
+        also happen to have a static property table. Having a static property table causes the
+        HasReadOnlyOrGetterSetterPropertiesExcludingProto on the structure to be set. However, 
+        there are times where an object calls putDirectWithoutTransition, and it doesn't have a
+        static property hash table. The fix is simple, putDirectWithTransition needs to set the
+        HasReadOnlyOrGetterSetterPropertiesExcludingProto if it puts a ReadOnly property.
+
+        * runtime/JSObject.h:
+        (JSC::JSObject::putDirectWithoutTransition):
+        * tests/stress/proper-property-store-with-prototype-property-that-is-not-writable.js: Added.
+        (assert):
+
 2016-07-08  Michael Saboff  <msaboff@apple.com>
 
         ASSERTION FAILED: Heap::isMarked(cell) in SlotVisitor::appendToMarkStack(JSC::JSCell *)

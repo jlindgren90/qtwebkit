@@ -1,3 +1,90 @@
+2016-07-10  Chris Dumez  <cdumez@apple.com>
+
+        adoptNode() changes css class to lowercase for document loaded with XHR responseType = "document"
+        https://bugs.webkit.org/show_bug.cgi?id=159555
+        <rdar://problem/27252541>
+
+        Reviewed by Benjamin Poulain.
+
+        Add test coverage.
+
+        * fast/dom/Document/adoptNode-quirks-mismatch2-expected.txt: Added.
+        * fast/dom/Document/adoptNode-quirks-mismatch2.html: Added.
+        * fast/dom/Document/resources/document-noquirks-class.html: Added.
+        * fast/dom/Document/resources/document-noquirks-id.html: Added.
+
+2016-07-10  Caio Lima  <ticaiolima@gmail.com>
+
+        ECMAScript 2016: %TypedArray%.prototype.includes implementation
+        https://bugs.webkit.org/show_bug.cgi?id=159385
+
+        Reviewed by Benjamin Poulain.
+
+        This patch implements test case to ECMAScript 2016:
+        %TypedArray%.prototype.includes implementation
+        following spec 22.2.3.14
+        https://tc39.github.io/ecma262/2016/#sec-%typedarray%.prototype.includes
+
+        * js/regress/script-tests/typed-array-includes.js: Added.
+        (assertProperError):
+        (testIntTypedArray):
+        (testFloatTypedArray):
+        * js/typed-array-includes-expected.txt: Added.
+        * js/typed-array-includes.html: Added.
+
+2016-07-10  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [GTK] Crash on https://diafygi.github.io/webcrypto-examples with ENABLE_SUBTLE_CRYPTO
+        https://bugs.webkit.org/show_bug.cgi?id=159189
+
+        Reviewed by Michael Catanzaro.
+
+        If you execute the added test with subtle-crypto-enabled GTK environment without this patch, this causes the crash.
+
+        * crypto/subtle/unimplemented-unwrap-crash-expected.txt: Added.
+        * crypto/subtle/unimplemented-unwrap-crash.html: Added.
+
+2016-07-09  Keith Miller  <keith_miller@apple.com>
+
+        appendMemcpy might fail in concatAppendOne
+        https://bugs.webkit.org/show_bug.cgi?id=159601
+
+        Reviewed by Mark Lam.
+
+        Add new microbenchmark testing the performance of concat
+        when appending one new element. This patch appears to be
+        about a 13% progression on this test.
+
+        * js/regress/concat-append-one-expected.txt: Added.
+        * js/regress/concat-append-one.html: Added.
+        * js/regress/script-tests/concat-append-one.js: Added.
+        (test):
+
+2016-07-09  Youenn Fablet  <youenn@apple.com>
+
+        Make use of PrivateIdentifier to simplify Fetch Headers built-in checks
+        https://bugs.webkit.org/show_bug.cgi?id=159554
+
+        Reviewed by Alex Christensen.
+
+        * fetch/header-constructor-overriden-expected.txt: Added.
+        * fetch/header-constructor-overriden.html: Added.
+
+2016-07-08  Chris Dumez  <cdumez@apple.com>
+
+        adoptNode() changes css class to lowercase for document loaded with XHR responseType = "document"
+        https://bugs.webkit.org/show_bug.cgi?id=159555
+        <rdar://problem/27252541>
+
+        Reviewed by Ryosuke Niwa.
+
+        Add test coverage for id and class attributes.
+
+        * fast/dom/Document/adoptNode-quirks-mismatch-expected.txt: Added.
+        * fast/dom/Document/adoptNode-quirks-mismatch.html: Added.
+        * fast/dom/Document/resources/document-quirks-class.html: Added.
+        * fast/dom/Document/resources/document-quirks-id.html: Added.
+
 2016-07-08  Daniel Bates  <dabates@apple.com>
 
         Setting table.tFoot or calling table.createTFoot() should append HTML tfont element to the end of the table

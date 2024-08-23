@@ -29,7 +29,7 @@
 #include "UTextProvider.h"
 #include <wtf/text/StringImpl.h>
 
-namespace WebCore {
+namespace WTF {
 
 // Latin1 provider
 
@@ -391,4 +391,4 @@ UText* openLatin1ContextAwareUTextProvider(UTextWithBuffer* utWithBuffer, const 
     return text;
 }
 
-} // namespace WebCore
+} // namespace WTF

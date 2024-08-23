@@ -25,7 +25,7 @@
 #include <wtf/text/AtomicString.h>
 #include <wtf/text/StringView.h>
 
-namespace WebCore {
+namespace WTF {
 
 class TextBreakIterator;
 
@@ -42,29 +42,29 @@ enum LineBreakIteratorMode {
 // platform UI conventions. One notable example where this can be different
 // from character break iterator is Thai prepend characters, see bug 24342.
 // Use this for insertion point and selection manipulations.
-TextBreakIterator* cursorMovementIterator(StringView);
+WTF_EXPORT_PRIVATE TextBreakIterator* cursorMovementIterator(StringView);
 
-TextBreakIterator* wordBreakIterator(StringView);
-TextBreakIterator* sentenceBreakIterator(StringView);
+WTF_EXPORT_PRIVATE TextBreakIterator* wordBreakIterator(StringView);
+WTF_EXPORT_PRIVATE TextBreakIterator* sentenceBreakIterator(StringView);
 
-WEBCORE_EXPORT TextBreakIterator* acquireLineBreakIterator(StringView, const AtomicString& locale, const UChar* priorContext, unsigned priorContextLength, LineBreakIteratorMode, bool isCJK);
-WEBCORE_EXPORT void releaseLineBreakIterator(TextBreakIterator*);
+WTF_EXPORT_PRIVATE TextBreakIterator* acquireLineBreakIterator(StringView, const AtomicString& locale, const UChar* priorContext, unsigned priorContextLength, LineBreakIteratorMode, bool isCJK);
+WTF_EXPORT_PRIVATE void releaseLineBreakIterator(TextBreakIterator*);
 TextBreakIterator* openLineBreakIterator(const AtomicString& locale, LineBreakIteratorMode, bool isCJK);
 void closeLineBreakIterator(TextBreakIterator*&);
 
-int textBreakFirst(TextBreakIterator*);
-int textBreakLast(TextBreakIterator*);
-int textBreakNext(TextBreakIterator*);
-int textBreakPrevious(TextBreakIterator*);
-int textBreakCurrent(TextBreakIterator*);
-int textBreakPreceding(TextBreakIterator*, int);
-WEBCORE_EXPORT int textBreakFollowing(TextBreakIterator*, int);
-bool isTextBreak(TextBreakIterator*, int);
-bool isWordTextBreak(TextBreakIterator*);
+WTF_EXPORT_PRIVATE int textBreakFirst(TextBreakIterator*);
+WTF_EXPORT_PRIVATE int textBreakLast(TextBreakIterator*);
+WTF_EXPORT_PRIVATE int textBreakNext(TextBreakIterator*);
+WTF_EXPORT_PRIVATE int textBreakPrevious(TextBreakIterator*);
+WTF_EXPORT_PRIVATE int textBreakCurrent(TextBreakIterator*);
+WTF_EXPORT_PRIVATE int textBreakPreceding(TextBreakIterator*, int);
+WTF_EXPORT_PRIVATE int textBreakFollowing(TextBreakIterator*, int);
+WTF_EXPORT_PRIVATE bool isTextBreak(TextBreakIterator*, int);
+WTF_EXPORT_PRIVATE bool isWordTextBreak(TextBreakIterator*);
 
 const int TextBreakDone = -1;
 
-WEBCORE_EXPORT bool isCJKLocale(const AtomicString&);
+WTF_EXPORT_PRIVATE bool isCJKLocale(const AtomicString&);
 
 class LazyLineBreakIterator {
 public:
@@ -195,8 +195,8 @@ private:
 class NonSharedCharacterBreakIterator {
     WTF_MAKE_NONCOPYABLE(NonSharedCharacterBreakIterator);
 public:
-    WEBCORE_EXPORT NonSharedCharacterBreakIterator(StringView);
-    WEBCORE_EXPORT ~NonSharedCharacterBreakIterator();
+    WTF_EXPORT_PRIVATE NonSharedCharacterBreakIterator(StringView);
+    WTF_EXPORT_PRIVATE ~NonSharedCharacterBreakIterator();
 
     operator TextBreakIterator*() const { return m_iterator; }
 
@@ -207,11 +207,18 @@ private:
 // Counts the number of grapheme clusters. A surrogate pair or a sequence
 // of a non-combining character and following combining characters is
 // counted as 1 grapheme cluster.
-unsigned numGraphemeClusters(const String&);
+WTF_EXPORT_PRIVATE unsigned numGraphemeClusters(const String&);
 // Returns the number of characters which will be less than or equal to
 // the specified grapheme cluster length.
-unsigned numCharactersInGraphemeClusters(const StringView&, unsigned);
+WTF_EXPORT_PRIVATE unsigned numCharactersInGraphemeClusters(const StringView&, unsigned);
 
 }
+
+using WTF::LineBreakIteratorMode;
+using WTF::LineBreakIteratorModeUAX14;
+using WTF::LazyLineBreakIterator;
+using WTF::NonSharedCharacterBreakIterator;
+using WTF::TextBreakDone;
+using WTF::TextBreakIterator;
 
 #endif

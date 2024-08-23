@@ -36,7 +36,7 @@
 #include <wtf/text/CString.h>
 #include <wtf/text/StringBuilder.h>
 
-namespace WebCore {
+namespace WTF {
 
 class LineBreakIteratorPool {
     WTF_MAKE_NONCOPYABLE(LineBreakIteratorPool);

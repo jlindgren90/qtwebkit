@@ -27,8 +27,9 @@
 #include "UTextProviderUTF16.h"
 
 #include "UTextProvider.h"
+#include <algorithm>
 
-namespace WebCore {
+namespace WTF {
 
 // UTF16ContextAware provider
 
@@ -180,4 +181,4 @@ UText* openUTF16ContextAwareUTextProvider(UText* text, const UChar* string, unsi
     return text;
 }
 
-} // namespace WebCore
+} // namespace WTF

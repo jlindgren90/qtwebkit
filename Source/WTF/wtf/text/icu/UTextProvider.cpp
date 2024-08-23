@@ -26,9 +26,10 @@
 #include "config.h"
 #include "UTextProvider.h"
 
+#include <algorithm>
 #include <string.h>
 
-namespace WebCore {
+namespace WTF {
 
 // Relocate pointer from source into destination as required.
 static inline void fixPointer(const UText* source, UText* destination, const void*& pointer)
@@ -68,4 +69,4 @@ UText* uTextCloneImpl(UText* destination, const UText* source, UBool deep, UErro
     return destination;
 }
 
-} // namespace WebCore
+} // namespace WTF

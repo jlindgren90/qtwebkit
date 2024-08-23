@@ -23,7 +23,7 @@
 
 #include <wtf/RetainPtr.h>
 
-namespace WebCore {
+namespace WTF {
 
 static const int maxLocaleStringLength = 32;
 

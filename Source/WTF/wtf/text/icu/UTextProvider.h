@@ -28,7 +28,7 @@
 
 #include <unicode/utext.h>
 
-namespace WebCore {
+namespace WTF {
 
 enum class UTextProviderContext {
     NoContext,
@@ -106,6 +106,6 @@ inline bool uTextAccessInChunkOrOutOfRange(UText* text, int64_t nativeIndex, int
     return false;
 }
 
-} // namespace WebCore
+} // namespace WTF
 
 #endif // UTextProvider_h

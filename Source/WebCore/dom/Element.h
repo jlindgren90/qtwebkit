@@ -540,6 +540,7 @@ protected:
     void childrenChanged(const ChildChange&) override;
     void removeAllEventListeners() final;
     virtual void parserDidSetAttributes();
+    void didMoveToNewDocument(Document*) override;
 
     void clearTabIndexExplicitlyIfNeeded();
     void setTabIndexExplicitly(int);

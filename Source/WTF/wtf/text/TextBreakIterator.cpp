@@ -32,7 +32,7 @@
 // FIXME: This needs a better name
 #define ADDITIONAL_EMOJI_SUPPORT (PLATFORM(IOS) || (PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100))
 
-namespace WebCore {
+namespace WTF {
 
 // Iterator initialization
 
@@ -177,7 +177,7 @@ TextBreakIterator* cursorMovementIterator(StringView string)
         "$CR      = [\\p{Grapheme_Cluster_Break = CR}];"
         "$LF      = [\\p{Grapheme_Cluster_Break = LF}];"
         "$Control = [\\p{Grapheme_Cluster_Break = Control}];"
-        "$VoiceMarks = [\\uFF9E\\uFF9F];"  // Japanese half-width katakana voiced marks
+        "$VoiceMarks = [\\uFF9E\\uFF9F];" // Japanese half-width katakana voiced marks
         "$Extend  = [\\p{Grapheme_Cluster_Break = Extend} $VoiceMarks - [\\u0E30 \\u0E32 \\u0E45 \\u0EB0 \\u0EB2]];"
         "$SpacingMark = [[\\p{General_Category = Spacing Mark}] - $Extend];"
         "$L       = [\\p{Grapheme_Cluster_Break = L}];"
@@ -185,33 +185,33 @@ TextBreakIterator* cursorMovementIterator(StringView string)
         "$T       = [\\p{Grapheme_Cluster_Break = T}];"
         "$LV      = [\\p{Grapheme_Cluster_Break = LV}];"
         "$LVT     = [\\p{Grapheme_Cluster_Break = LVT}];"
-        "$Hin0    = [\\u0905-\\u0939];"    // Devanagari Letter A,...,Ha
-        "$HinV    = \\u094D;"              // Devanagari Sign Virama
-        "$Hin1    = [\\u0915-\\u0939];"    // Devanagari Letter Ka,...,Ha
-        "$Ben0    = [\\u0985-\\u09B9];"    // Bengali Letter A,...,Ha
-        "$BenV    = \\u09CD;"              // Bengali Sign Virama
-        "$Ben1    = [\\u0995-\\u09B9];"    // Bengali Letter Ka,...,Ha
-        "$Pan0    = [\\u0A05-\\u0A39];"    // Gurmukhi Letter A,...,Ha
-        "$PanV    = \\u0A4D;"              // Gurmukhi Sign Virama
-        "$Pan1    = [\\u0A15-\\u0A39];"    // Gurmukhi Letter Ka,...,Ha
-        "$Guj0    = [\\u0A85-\\u0AB9];"    // Gujarati Letter A,...,Ha
-        "$GujV    = \\u0ACD;"              // Gujarati Sign Virama
-        "$Guj1    = [\\u0A95-\\u0AB9];"    // Gujarati Letter Ka,...,Ha
-        "$Ori0    = [\\u0B05-\\u0B39];"    // Oriya Letter A,...,Ha
-        "$OriV    = \\u0B4D;"              // Oriya Sign Virama
-        "$Ori1    = [\\u0B15-\\u0B39];"    // Oriya Letter Ka,...,Ha
-        "$Tel0    = [\\u0C05-\\u0C39];"    // Telugu Letter A,...,Ha
-        "$TelV    = \\u0C4D;"              // Telugu Sign Virama
-        "$Tel1    = [\\u0C14-\\u0C39];"    // Telugu Letter Ka,...,Ha
-        "$Kan0    = [\\u0C85-\\u0CB9];"    // Kannada Letter A,...,Ha
-        "$KanV    = \\u0CCD;"              // Kannada Sign Virama
-        "$Kan1    = [\\u0C95-\\u0CB9];"    // Kannada Letter A,...,Ha
-        "$Mal0    = [\\u0D05-\\u0D39];"    // Malayalam Letter A,...,Ha
-        "$MalV    = \\u0D4D;"              // Malayalam Sign Virama
-        "$Mal1    = [\\u0D15-\\u0D39];"    // Malayalam Letter A,...,Ha
+        "$Hin0    = [\\u0905-\\u0939];" // Devanagari Letter A,...,Ha
+        "$HinV    = \\u094D;" // Devanagari Sign Virama
+        "$Hin1    = [\\u0915-\\u0939];" // Devanagari Letter Ka,...,Ha
+        "$Ben0    = [\\u0985-\\u09B9];" // Bengali Letter A,...,Ha
+        "$BenV    = \\u09CD;" // Bengali Sign Virama
+        "$Ben1    = [\\u0995-\\u09B9];" // Bengali Letter Ka,...,Ha
+        "$Pan0    = [\\u0A05-\\u0A39];" // Gurmukhi Letter A,...,Ha
+        "$PanV    = \\u0A4D;" // Gurmukhi Sign Virama
+        "$Pan1    = [\\u0A15-\\u0A39];" // Gurmukhi Letter Ka,...,Ha
+        "$Guj0    = [\\u0A85-\\u0AB9];" // Gujarati Letter A,...,Ha
+        "$GujV    = \\u0ACD;" // Gujarati Sign Virama
+        "$Guj1    = [\\u0A95-\\u0AB9];" // Gujarati Letter Ka,...,Ha
+        "$Ori0    = [\\u0B05-\\u0B39];" // Oriya Letter A,...,Ha
+        "$OriV    = \\u0B4D;" // Oriya Sign Virama
+        "$Ori1    = [\\u0B15-\\u0B39];" // Oriya Letter Ka,...,Ha
+        "$Tel0    = [\\u0C05-\\u0C39];" // Telugu Letter A,...,Ha
+        "$TelV    = \\u0C4D;" // Telugu Sign Virama
+        "$Tel1    = [\\u0C14-\\u0C39];" // Telugu Letter Ka,...,Ha
+        "$Kan0    = [\\u0C85-\\u0CB9];" // Kannada Letter A,...,Ha
+        "$KanV    = \\u0CCD;" // Kannada Sign Virama
+        "$Kan1    = [\\u0C95-\\u0CB9];" // Kannada Letter A,...,Ha
+        "$Mal0    = [\\u0D05-\\u0D39];" // Malayalam Letter A,...,Ha
+        "$MalV    = \\u0D4D;" // Malayalam Sign Virama
+        "$Mal1    = [\\u0D15-\\u0D39];" // Malayalam Letter A,...,Ha
         "$RI      = [\\U0001F1E6-\\U0001F1FF];" // Emoji regional indicators
-        "$ZWJ     = \\u200D;"               // Zero width joiner
-        "$EmojiVar = [\\uFE0F];"            // Emoji-style variation selector
+        "$ZWJ     = \\u200D;" // Zero width joiner
+        "$EmojiVar = [\\uFE0F];" // Emoji-style variation selector
 #if ADDITIONAL_EMOJI_SUPPORT
         "$EmojiForSeqs = [\\u2764 \\U0001F441 \\U0001F466-\\U0001F469 \\U0001F48B \\U0001F5E8];" // Emoji that participate in ZWJ sequences
         "$EmojiForMods = [\\u261D \\u26F9 \\u270A-\\u270D \\U0001F385 \\U0001F3C3-\\U0001F3C4 \\U0001F3CA \\U0001F3CB \\U0001F442-\\U0001F443 \\U0001F446-\\U0001F450 \\U0001F466-\\U0001F469 \\U0001F46E-\\U0001F478 \\U0001F47C \\U0001F481-\\U0001F483 \\U0001F485-\\U0001F487 \\U0001F4AA \\U0001F575 \\U0001F590 \\U0001F595 \\U0001F596 \\U0001F645-\\U0001F647 \\U0001F64B-\\U0001F64F \\U0001F6A3 \\U0001F6B4-\\U0001F6B6 \\U0001F6C0 \\U0001F918] ;" // Emoji that take Fitzpatrick modifiers
@@ -240,15 +240,15 @@ TextBreakIterator* cursorMovementIterator(StringView string)
         "$RI $RI / $RI;"
         "$RI $RI;"
 #endif
-        "$Hin0 $HinV $Hin1;"               // Devanagari Virama (forward)
-        "$Ben0 $BenV $Ben1;"               // Bengali Virama (forward)
-        "$Pan0 $PanV $Pan1;"               // Gurmukhi Virama (forward)
-        "$Guj0 $GujV $Guj1;"               // Gujarati Virama (forward)
-        "$Ori0 $OriV $Ori1;"               // Oriya Virama (forward)
-        "$Tel0 $TelV $Tel1;"               // Telugu Virama (forward)
-        "$Kan0 $KanV $Kan1;"               // Kannada Virama (forward)
-        "$Mal0 $MalV $Mal1;"               // Malayalam Virama (forward)
-        "$ZWJ $EmojiForSeqs;"              // Don't break in emoji ZWJ sequences
+        "$Hin0 $HinV $Hin1;" // Devanagari Virama (forward)
+        "$Ben0 $BenV $Ben1;" // Bengali Virama (forward)
+        "$Pan0 $PanV $Pan1;" // Gurmukhi Virama (forward)
+        "$Guj0 $GujV $Guj1;" // Gujarati Virama (forward)
+        "$Ori0 $OriV $Ori1;" // Oriya Virama (forward)
+        "$Tel0 $TelV $Tel1;" // Telugu Virama (forward)
+        "$Kan0 $KanV $Kan1;" // Kannada Virama (forward)
+        "$Mal0 $MalV $Mal1;" // Malayalam Virama (forward)
+        "$ZWJ $EmojiForSeqs;" // Don't break in emoji ZWJ sequences
         "$EmojiForMods $EmojiVar? $EmojiMods;" // Don't break between relevant emoji (possibly with variation selector) and Fitzpatrick modifier
         "!!reverse;"
         "$LF $CR;"
@@ -266,15 +266,15 @@ TextBreakIterator* cursorMovementIterator(StringView string)
         "$RI $RI / $RI $RI;"
         "$RI $RI;"
 #endif
-        "$Hin1 $HinV $Hin0;"               // Devanagari Virama (backward)
-        "$Ben1 $BenV $Ben0;"               // Bengali Virama (backward)
-        "$Pan1 $PanV $Pan0;"               // Gurmukhi Virama (backward)
-        "$Guj1 $GujV $Guj0;"               // Gujarati Virama (backward)
-        "$Ori1 $OriV $Ori0;"               // Gujarati Virama (backward)
-        "$Tel1 $TelV $Tel0;"               // Telugu Virama (backward)
-        "$Kan1 $KanV $Kan0;"               // Kannada Virama (backward)
-        "$Mal1 $MalV $Mal0;"               // Malayalam Virama (backward)
-        "$EmojiForSeqs $ZWJ;"              // Don't break in emoji ZWJ sequences
+        "$Hin1 $HinV $Hin0;" // Devanagari Virama (backward)
+        "$Ben1 $BenV $Ben0;" // Bengali Virama (backward)
+        "$Pan1 $PanV $Pan0;" // Gurmukhi Virama (backward)
+        "$Guj1 $GujV $Guj0;" // Gujarati Virama (backward)
+        "$Ori1 $OriV $Ori0;" // Gujarati Virama (backward)
+        "$Tel1 $TelV $Tel0;" // Telugu Virama (backward)
+        "$Kan1 $KanV $Kan0;" // Kannada Virama (backward)
+        "$Mal1 $MalV $Mal0;" // Malayalam Virama (backward)
+        "$EmojiForSeqs $ZWJ;" // Don't break in emoji ZWJ sequences
         "$EmojiMods $EmojiVar? $EmojiForMods;" // Don't break between relevant emoji (possibly with variation selector) and Fitzpatrick modifier
 #if ADDITIONAL_EMOJI_SUPPORT
         "!!safe_reverse;"
@@ -926,4 +926,4 @@ unsigned numCharactersInGraphemeClusters(const StringView& s, unsigned numGraphe
     return textBreakCurrent(it);
 }
 
-} // namespace WebCore
+} // namespace WTF

@@ -1,3 +1,406 @@
+2016-07-10  Chris Dumez  <cdumez@apple.com>
+
+        adoptNode() changes css class to lowercase for document loaded with XHR responseType = "document"
+        https://bugs.webkit.org/show_bug.cgi?id=159555
+        <rdar://problem/27252541>
+
+        Reviewed by Benjamin Poulain.
+
+        Follow-up on r203018 which was incomplete. We need to update ElementData's
+        m_classNames / m_idForStyleResolution when the source document is in strict
+        mode and the destination document is in quirks mode as well.
+
+        Test: fast/dom/Document/adoptNode-quirks-mismatch2.html
+
+        * dom/Element.cpp:
+        (WebCore::Element::didMoveToNewDocument):
+
+2016-07-10  Sam Weinig  <sam@webkit.org>
+
+        Rename isEmojiModifier to isEmojiFitzpatrickModifier to better capture its function
+        https://bugs.webkit.org/show_bug.cgi?id=159610
+
+        Reviewed by Dan Bernstein.
+
+        * platform/graphics/FontCascade.cpp:
+        (WebCore::FontCascade::characterRangeCodePath):
+        * platform/graphics/mac/ComplexTextController.cpp:
+        (WebCore::advanceByCombiningCharacterSequence):
+        Update for rename.
+
+        * platform/text/CharacterProperties.h:
+        (WebCore::isEmojiGroupCandidate):
+        (WebCore::isEmojiFitzpatrickModifier):
+        (WebCore::isVariationSelector):
+        Rename isEmojiModifier -> isEmojiFitzpatrickModifier. Also add some comments
+        explaining what the characters these predicate act on to demystify them a bit.
+
+        * rendering/RenderText.cpp:
+        (WebCore::RenderText::previousOffsetForBackwardDeletion):
+        Update for rename and rename a related variable.
+
+2016-07-10  Alex Christensen  <achristensen@webkit.org>
+
+        Fix client certificate authentication after r200463
+        https://bugs.webkit.org/show_bug.cgi?id=159574
+        <rdar://problem/26931006>
+
+        Reviewed by Sam Weinig.
+
+        No new tests.  We really need a test for this
+
+        * platform/network/cf/CertificateInfo.h:
+        (WebCore::CertificateInfo::CertificateInfo):
+        (WebCore::CertificateInfo::trust):
+        Make sure we only get the trust for Trust type CertificateInfos.  
+        If we mix up our types, we get unexpected nullptrs, which will cause authentication to fail.
+
+2016-07-10  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Fix Windows build after r203038
+
+        Unreviewed.
+
+        * platform/text/TextAllInOne.cpp:
+
+2016-07-10  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Move breaking iterator code to WTF
+        https://bugs.webkit.org/show_bug.cgi?id=159594
+
+        Reviewed by Alex Christensen.
+
+        This is in preparation for giving StringView a GraphemeClusters iterator.
+        Such an interator needs to be implemented on top of our breaking iterator
+        code.
+
+        No new tests because there is no behavior change.
+
+        * CMakeLists.txt:
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * PlatformMac.cmake:
+        * PlatformWin.cmake:
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/CharacterData.cpp:
+        * editing/TextCheckingHelper.cpp:
+        * editing/TextIterator.cpp:
+        * editing/VisibleUnits.cpp:
+        * html/HTMLInputElement.cpp:
+        * html/HTMLTextAreaElement.cpp:
+        * html/InputType.cpp:
+        * html/TextFieldInputType.cpp:
+        * html/TextInputType.cpp:
+        * platform/LocalizedStrings.cpp:
+        * platform/graphics/StringTruncator.cpp:
+        * platform/graphics/cg/ColorCG.cpp:
+        (WTF::RetainPtr<CGColorRef>>::createValueForKey):
+        (WebCore::RetainPtr<CGColorRef>>::createValueForKey): Deleted.
+        * platform/graphics/mac/ComplexTextController.cpp:
+        * platform/text/LineBreakIteratorPoolICU.h:
+        (WebCore::LineBreakIteratorPool::LineBreakIteratorPool): Deleted.
+        (WebCore::LineBreakIteratorPool::sharedPool): Deleted.
+        (WebCore::LineBreakIteratorPool::makeLocaleWithBreakKeyword): Deleted.
+        (WebCore::LineBreakIteratorPool::take): Deleted.
+        (WebCore::LineBreakIteratorPool::put): Deleted.
+        * platform/text/TextBoundaries.cpp:
+        * platform/text/TextBreakIterator.cpp:
+        (WebCore::initializeIterator): Deleted.
+        (WebCore::initializeIteratorWithRules): Deleted.
+        (WebCore::setTextForIterator): Deleted.
+        (WebCore::setContextAwareTextForIterator): Deleted.
+        (WebCore::wordBreakIterator): Deleted.
+        (WebCore::sentenceBreakIterator): Deleted.
+        (WebCore::cursorMovementIterator): Deleted.
+        (WebCore::acquireLineBreakIterator): Deleted.
+        (WebCore::releaseLineBreakIterator): Deleted.
+        (WebCore::mapLineIteratorModeToRules): Deleted.
+        (WebCore::isCJKLocale): Deleted.
+        (WebCore::openLineBreakIterator): Deleted.
+        (WebCore::closeLineBreakIterator): Deleted.
+        (WebCore::compareAndSwapNonSharedCharacterBreakIterator): Deleted.
+        (WebCore::NonSharedCharacterBreakIterator::NonSharedCharacterBreakIterator): Deleted.
+        (WebCore::NonSharedCharacterBreakIterator::~NonSharedCharacterBreakIterator): Deleted.
+        (WebCore::textBreakFirst): Deleted.
+        (WebCore::textBreakLast): Deleted.
+        (WebCore::textBreakNext): Deleted.
+        (WebCore::textBreakPrevious): Deleted.
+        (WebCore::textBreakPreceding): Deleted.
+        (WebCore::textBreakFollowing): Deleted.
+        (WebCore::textBreakCurrent): Deleted.
+        (WebCore::isTextBreak): Deleted.
+        (WebCore::isWordTextBreak): Deleted.
+        (WebCore::numGraphemeClusters): Deleted.
+        (WebCore::numCharactersInGraphemeClusters): Deleted.
+        * platform/text/TextBreakIterator.h:
+        (WebCore::LazyLineBreakIterator::LazyLineBreakIterator): Deleted.
+        (WebCore::LazyLineBreakIterator::~LazyLineBreakIterator): Deleted.
+        (WebCore::LazyLineBreakIterator::string): Deleted.
+        (WebCore::LazyLineBreakIterator::isLooseCJKMode): Deleted.
+        (WebCore::LazyLineBreakIterator::lastCharacter): Deleted.
+        (WebCore::LazyLineBreakIterator::secondToLastCharacter): Deleted.
+        (WebCore::LazyLineBreakIterator::setPriorContext): Deleted.
+        (WebCore::LazyLineBreakIterator::updatePriorContext): Deleted.
+        (WebCore::LazyLineBreakIterator::resetPriorContext): Deleted.
+        (WebCore::LazyLineBreakIterator::priorContextLength): Deleted.
+        (WebCore::LazyLineBreakIterator::get): Deleted.
+        (WebCore::LazyLineBreakIterator::resetStringAndReleaseIterator): Deleted.
+        (WebCore::NonSharedCharacterBreakIterator::operator TextBreakIterator*): Deleted.
+        * platform/text/cf/HyphenationCF.cpp:
+        * platform/text/efl/TextBreakIteratorInternalICUEfl.cpp:
+        (WebCore::currentSearchLocaleID): Deleted.
+        (WebCore::currentTextBreakLocaleID): Deleted.
+        * platform/text/enchant/TextCheckerEnchant.cpp:
+        * platform/text/gtk/TextBreakIteratorInternalICUGtk.cpp:
+        (WebCore::currentSearchLocaleID): Deleted.
+        (WebCore::currentTextBreakLocaleID): Deleted.
+        * platform/text/icu/UTextProvider.cpp:
+        (WebCore::fixPointer): Deleted.
+        (WebCore::uTextCloneImpl): Deleted.
+        * platform/text/icu/UTextProvider.h:
+        (WebCore::uTextProviderContext): Deleted.
+        (WebCore::initializeContextAwareUTextProvider): Deleted.
+        (WebCore::uTextAccessPinIndex): Deleted.
+        (WebCore::uTextAccessInChunkOrOutOfRange): Deleted.
+        * platform/text/icu/UTextProviderLatin1.cpp:
+        (WebCore::uTextLatin1Clone): Deleted.
+        (WebCore::uTextLatin1NativeLength): Deleted.
+        (WebCore::uTextLatin1Access): Deleted.
+        (WebCore::uTextLatin1Extract): Deleted.
+        (WebCore::uTextLatin1MapOffsetToNative): Deleted.
+        (WebCore::uTextLatin1MapNativeIndexToUTF16): Deleted.
+        (WebCore::uTextLatin1Close): Deleted.
+        (WebCore::openLatin1UTextProvider): Deleted.
+        (WebCore::textLatin1ContextAwareGetCurrentContext): Deleted.
+        (WebCore::textLatin1ContextAwareMoveInPrimaryContext): Deleted.
+        (WebCore::textLatin1ContextAwareSwitchToPrimaryContext): Deleted.
+        (WebCore::textLatin1ContextAwareMoveInPriorContext): Deleted.
+        (WebCore::textLatin1ContextAwareSwitchToPriorContext): Deleted.
+        (WebCore::uTextLatin1ContextAwareClone): Deleted.
+        (WebCore::uTextLatin1ContextAwareNativeLength): Deleted.
+        (WebCore::uTextLatin1ContextAwareAccess): Deleted.
+        (WebCore::uTextLatin1ContextAwareExtract): Deleted.
+        (WebCore::uTextLatin1ContextAwareClose): Deleted.
+        (WebCore::openLatin1ContextAwareUTextProvider): Deleted.
+        * platform/text/icu/UTextProviderUTF16.cpp:
+        (WebCore::textUTF16ContextAwareGetCurrentContext): Deleted.
+        (WebCore::textUTF16ContextAwareMoveInPrimaryContext): Deleted.
+        (WebCore::textUTF16ContextAwareSwitchToPrimaryContext): Deleted.
+        (WebCore::textUTF16ContextAwareMoveInPriorContext): Deleted.
+        (WebCore::textUTF16ContextAwareSwitchToPriorContext): Deleted.
+        (WebCore::uTextUTF16ContextAwareClone): Deleted.
+        (WebCore::uTextUTF16ContextAwareNativeLength): Deleted.
+        (WebCore::uTextUTF16ContextAwareAccess): Deleted.
+        (WebCore::uTextUTF16ContextAwareExtract): Deleted.
+        (WebCore::uTextUTF16ContextAwareClose): Deleted.
+        (WebCore::openUTF16ContextAwareUTextProvider): Deleted.
+        * platform/text/mac/TextBoundaries.mm:
+        * platform/text/mac/TextBreakIteratorInternalICUMac.mm:
+        (WebCore::textBreakLocalePreference): Deleted.
+        (WebCore::topLanguagePreference): Deleted.
+        (WebCore::getLocale): Deleted.
+        (WebCore::getSearchLocale): Deleted.
+        (WebCore::currentSearchLocaleID): Deleted.
+        (WebCore::getTextBreakLocale): Deleted.
+        (WebCore::currentTextBreakLocaleID): Deleted.
+        * platform/text/win/TextBreakIteratorInternalICUWin.cpp:
+        (WebCore::currentSearchLocaleID): Deleted.
+        (WebCore::currentTextBreakLocaleID): Deleted.
+        * rendering/RenderBlock.cpp:
+        * rendering/RenderText.cpp:
+        * rendering/RenderText.h:
+        * rendering/SimpleLineLayoutTextFragmentIterator.h:
+        * rendering/break_lines.cpp:
+        * rendering/break_lines.h:
+        * rendering/line/LineBreaker.h:
+
+2016-07-10  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [GTK] Crash on https://diafygi.github.io/webcrypto-examples with ENABLE_SUBTLE_CRYPTO
+        https://bugs.webkit.org/show_bug.cgi?id=159189
+
+        Reviewed by Michael Catanzaro.
+
+        Currently, we explicitly release the pointers of std::unique_ptr<CryptoAlgorithm> and std::unique_ptr<CryptoAlgorithmParameters>,
+        and delete them in the asynchronously called lambdas. In GnuTLS version, callback function is accidentally called twice,
+        and it incurs the double free problem.
+        In SubtleCrypto code, we have the rule that we must not call failureCallback when the error code is filled in synchronous execution.
+        So we drop the failureCallback calling code in GnuTLS subtle crypto code.
+
+        But, rather than carefully handling un-smart-pointer-managed raw pointer's life time, we should use ref counted pointer for that.
+        Using the raw delete is error-prone.
+
+        This patch also changes CryptoAlgorithm and CryptoAlgorithmParameters to RefCounted. And use Ref and RefPtr instead.
+        The change eliminates the ad-hoc delete code. And now, the lambdas can be called multiple times since once the result of the promise
+        is resolved or rejected, subsequent resolve / reject calls are ignored.
+
+        And this patch also fixes the incorrect call to the lambda that is already WTFMoved.
+
+        While we can see several `return WTFMove(...)`, they are necessary since it uses implicit type conversions, like,
+        `Ref<A>` => `RefPtr<A>`, and `Ref<Derived>` => `Ref<Base>`.
+
+        * bindings/js/JSCryptoAlgorithmDictionary.cpp:
+        (WebCore::createAesCbcParams):
+        (WebCore::createAesKeyGenParams):
+        (WebCore::createHmacParams):
+        (WebCore::createHmacKeyParams):
+        (WebCore::createRsaKeyGenParams):
+        (WebCore::createRsaKeyParamsWithHash):
+        (WebCore::createRsaOaepParams):
+        (WebCore::createRsaSsaParams):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForEncrypt):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForDecrypt):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForSign):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForVerify):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForDigest):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForGenerateKey):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForDeriveKey):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForDeriveBits):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForImportKey):
+        (WebCore::JSCryptoAlgorithmDictionary::createParametersForExportKey):
+        * bindings/js/JSCryptoAlgorithmDictionary.h:
+        * bindings/js/JSCryptoKeySerializationJWK.cpp:
+        (WebCore::createHMACParameters):
+        (WebCore::createRSAKeyParametersWithHash):
+        (WebCore::JSCryptoKeySerializationJWK::reconcileAlgorithm):
+        * bindings/js/JSCryptoKeySerializationJWK.h:
+        * bindings/js/JSSubtleCryptoCustom.cpp:
+        (WebCore::createAlgorithmFromJSValue):
+        (WebCore::importKey):
+        (WebCore::JSSubtleCrypto::importKey):
+        (WebCore::JSSubtleCrypto::wrapKey):
+        (WebCore::JSSubtleCrypto::unwrapKey):
+        * crypto/CryptoAlgorithm.h:
+        * crypto/CryptoAlgorithmParameters.h:
+        * crypto/CryptoAlgorithmRegistry.cpp:
+        (WebCore::CryptoAlgorithmRegistry::create):
+        * crypto/CryptoAlgorithmRegistry.h:
+        * crypto/CryptoKeySerialization.h:
+        * crypto/algorithms/CryptoAlgorithmAES_CBC.cpp:
+        (WebCore::CryptoAlgorithmAES_CBC::create):
+        * crypto/algorithms/CryptoAlgorithmAES_CBC.h:
+        * crypto/algorithms/CryptoAlgorithmAES_KW.cpp:
+        (WebCore::CryptoAlgorithmAES_KW::create):
+        * crypto/algorithms/CryptoAlgorithmAES_KW.h:
+        * crypto/algorithms/CryptoAlgorithmHMAC.cpp:
+        (WebCore::CryptoAlgorithmHMAC::create):
+        * crypto/algorithms/CryptoAlgorithmHMAC.h:
+        * crypto/algorithms/CryptoAlgorithmRSAES_PKCS1_v1_5.cpp:
+        (WebCore::CryptoAlgorithmRSAES_PKCS1_v1_5::create):
+        * crypto/algorithms/CryptoAlgorithmRSAES_PKCS1_v1_5.h:
+        * crypto/algorithms/CryptoAlgorithmRSASSA_PKCS1_v1_5.cpp:
+        (WebCore::CryptoAlgorithmRSASSA_PKCS1_v1_5::create):
+        * crypto/algorithms/CryptoAlgorithmRSASSA_PKCS1_v1_5.h:
+        * crypto/algorithms/CryptoAlgorithmRSA_OAEP.cpp:
+        (WebCore::CryptoAlgorithmRSA_OAEP::create):
+        * crypto/algorithms/CryptoAlgorithmRSA_OAEP.h:
+        * crypto/algorithms/CryptoAlgorithmSHA1.cpp:
+        (WebCore::CryptoAlgorithmSHA1::create):
+        * crypto/algorithms/CryptoAlgorithmSHA1.h:
+        * crypto/algorithms/CryptoAlgorithmSHA224.cpp:
+        (WebCore::CryptoAlgorithmSHA224::create):
+        * crypto/algorithms/CryptoAlgorithmSHA224.h:
+        * crypto/algorithms/CryptoAlgorithmSHA256.cpp:
+        (WebCore::CryptoAlgorithmSHA256::create):
+        * crypto/algorithms/CryptoAlgorithmSHA256.h:
+        * crypto/algorithms/CryptoAlgorithmSHA384.cpp:
+        (WebCore::CryptoAlgorithmSHA384::create):
+        * crypto/algorithms/CryptoAlgorithmSHA384.h:
+        * crypto/algorithms/CryptoAlgorithmSHA512.cpp:
+        (WebCore::CryptoAlgorithmSHA512::create):
+        * crypto/algorithms/CryptoAlgorithmSHA512.h:
+        * crypto/gnutls/CryptoAlgorithmAES_CBCGnuTLS.cpp:
+        (WebCore::CryptoAlgorithmAES_CBC::platformEncrypt):
+        (WebCore::CryptoAlgorithmAES_CBC::platformDecrypt):
+        * crypto/gnutls/CryptoAlgorithmAES_KWGnuTLS.cpp:
+        (WebCore::CryptoAlgorithmAES_KW::platformEncrypt):
+        (WebCore::CryptoAlgorithmAES_KW::platformDecrypt):
+        * crypto/gnutls/CryptoAlgorithmHMACGnuTLS.cpp:
+        (WebCore::CryptoAlgorithmHMAC::platformSign):
+        (WebCore::CryptoAlgorithmHMAC::platformVerify):
+        * crypto/gnutls/CryptoAlgorithmRSAES_PKCS1_v1_5GnuTLS.cpp:
+        (WebCore::CryptoAlgorithmRSAES_PKCS1_v1_5::platformEncrypt):
+        (WebCore::CryptoAlgorithmRSAES_PKCS1_v1_5::platformDecrypt):
+        * crypto/gnutls/CryptoAlgorithmRSASSA_PKCS1_v1_5GnuTLS.cpp:
+        (WebCore::CryptoAlgorithmRSASSA_PKCS1_v1_5::platformSign):
+        (WebCore::CryptoAlgorithmRSASSA_PKCS1_v1_5::platformVerify):
+        * crypto/gnutls/CryptoAlgorithmRSA_OAEPGnuTLS.cpp:
+        (WebCore::CryptoAlgorithmRSA_OAEP::platformEncrypt):
+        (WebCore::CryptoAlgorithmRSA_OAEP::platformDecrypt):
+        * crypto/keys/CryptoKeySerializationRaw.cpp:
+        (WebCore::CryptoKeySerializationRaw::reconcileAlgorithm):
+        * crypto/keys/CryptoKeySerializationRaw.h:
+
+2016-07-09  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r202931): breaks release builds with ASSERT_WITH_SECURITY_IMPLICATION for fuzzing
+        https://bugs.webkit.org/show_bug.cgi?id=159599
+        rdar://problem/27248835
+
+        Reviewed by Chris Dumez.
+
+        Make RenderStyle::deletionHasBegun() available with ENABLE(SECURITY_ASSERTIONS)
+
+        * rendering/style/RenderStyle.cpp:
+        (WebCore::RenderStyle::~RenderStyle):
+        * rendering/style/RenderStyle.h:
+        (WebCore::RenderStyle::deletionHasBegun):
+
+2016-07-09  Youenn Fablet  <youenn@apple.com>
+
+        Make use of PrivateIdentifier to simplify Fetch Headers built-in checks
+        https://bugs.webkit.org/show_bug.cgi?id=159554
+
+        Reviewed by Alex Christensen.
+
+        Test: fetch/header-constructor-overriden.html
+        Patch does not change visible behavior.
+
+        * Modules/fetch/FetchHeaders.idl: Adding PrivateIdentifier to the Headers constructor.
+        * Modules/fetch/FetchHeaders.js:
+        (initializeFetchHeaders): Checking directly with @Headers for improved clarity.
+        * Modules/fetch/FetchResponse.js: Using @Headers to check whether creating a Headers object or not before
+        passsing it to C++ FetchResponse initialize method.
+        (initializeFetchResponse):
+        * bindings/js/WebCoreBuiltinNames.h: Adding Headers private name.
+
+2016-07-08  Chris Dumez  <cdumez@apple.com>
+
+        adoptNode() changes css class to lowercase for document loaded with XHR responseType = "document"
+        https://bugs.webkit.org/show_bug.cgi?id=159555
+        <rdar://problem/27252541>
+
+        Reviewed by Ryosuke Niwa.
+
+        When adopting an Element from another document which has a different quirks mode,
+        case-sensitivity for id and class attributes differs and we need to correctly
+        update members such as ElementData::m_classNames or ElementData::m_idForStyleResolution.
+
+        To address the issue, have Element override didMoveToNewDocument() and call
+        attributeChanged() for id and class attributes.
+
+        Test: fast/dom/Document/adoptNode-quirks-mismatch.html
+
+        * dom/Element.cpp:
+        (WebCore::Element::didMoveToNewDocument):
+        * dom/Element.h:
+
+2016-07-08  Daniel Bates  <dabates@apple.com>
+
+        Cleanup: Remove use of PassRefPtr from class HTMLTableElement
+        https://bugs.webkit.org/show_bug.cgi?id=159587
+
+        Reviewed by Chris Dumez.
+
+        * html/HTMLTableElement.cpp:
+        (WebCore::HTMLTableElement::setCaption): Take a rvalue reference to a RefPtr instead of a PassRefPtr.
+        (WebCore::HTMLTableElement::setTHead): Take a rvalue reference to a RefPtr instead of a PassRefPtr. Also
+        fix a style nit; add curly braces around the for-loop body since its body is more than a single line.
+        (WebCore::HTMLTableElement::createTHead): Use Ref::copyRef() instead of Ref::ptr() to pass the instantiated
+        table section to better convey that we are passing a copy of the table section.
+        (WebCore::HTMLTableElement::createCaption): Ditto.
+        * html/HTMLTableElement.h:
+
 2016-07-08  Daniel Bates  <dabates@apple.com>
 
         Move shouldInheritSecurityOriginFromOwner() from URL to Document
