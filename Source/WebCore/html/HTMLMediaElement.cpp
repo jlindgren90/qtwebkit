@@ -563,6 +563,7 @@ HTMLMediaElement::~HTMLMediaElement()
     m_seekTaskQueue.close();
     m_promiseTaskQueue.close();
     m_pauseAfterDetachedTaskQueue.close();
+    m_updatePlaybackControlsManagerQueue.close();
 
     m_completelyLoaded = true;
 
@@ -3373,7 +3374,7 @@ void HTMLMediaElement::setMuted(bool muted)
 #endif
     }
 
-    updatePlaybackControlsManager();
+    scheduleUpdatePlaybackControlsManager();
 }
 
 void HTMLMediaElement::togglePlayState()
@@ -4020,7 +4021,7 @@ void HTMLMediaElement::layoutSizeChanged()
 
     if (!m_receivedLayoutSizeChanged) {
         m_receivedLayoutSizeChanged = true;
-        updatePlaybackControlsManager();
+        scheduleUpdatePlaybackControlsManager();
     }
 }
 
@@ -4868,7 +4869,7 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
     LOG(Media, "HTMLMediaElement::updatePlayState(%p) - shouldBePlaying = %s, playerPaused = %s", this, boolString(shouldBePlaying), boolString(playerPaused));
 
     if (shouldBePlaying) {
-        updatePlaybackControlsManager();
+        scheduleUpdatePlaybackControlsManager();
 
         setDisplayMode(Video);
         invalidateCachedTime();
@@ -4902,7 +4903,7 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
         startPlaybackProgressTimer();
         setPlaying(true);
     } else {
-        updatePlaybackControlsManager();
+        scheduleUpdatePlaybackControlsManager();
 
         if (!playerPaused)
             m_player->pause();
@@ -5100,6 +5101,9 @@ void HTMLMediaElement::contextDestroyed()
     m_shadowDOMTaskQueue.close();
     m_promiseTaskQueue.close();
     m_pauseAfterDetachedTaskQueue.close();
+    m_updatePlaybackControlsManagerQueue.close();
+
+    m_pendingPlayPromises.clear();
 
     ActiveDOMObject::contextDestroyed();
 }
@@ -5113,6 +5117,7 @@ void HTMLMediaElement::stop()
 
     m_asyncEventQueue.close();
     m_promiseTaskQueue.close();
+    m_updatePlaybackControlsManagerQueue.close();
 
     // Once an active DOM object has been stopped it can not be restarted, so we can deallocate
     // the media player now. Note that userCancelledLoad will already called clearMediaPlayer
@@ -5963,7 +5968,7 @@ void HTMLMediaElement::createMediaPlayer()
     forgetResourceSpecificTracks();
 #endif
     m_player = std::make_unique<MediaPlayer>(static_cast<MediaPlayerClient&>(*this));
-    updatePlaybackControlsManager();
+    scheduleUpdatePlaybackControlsManager();
 
 #if ENABLE(WEB_AUDIO)
     if (m_audioSourceNode) {
@@ -7127,6 +7132,12 @@ void HTMLMediaElement::updatePlaybackControlsManager()
         page->chrome().client().setUpPlaybackControlsManager(downcast<MediaElementSession>(session)->element());
 }
 
+void HTMLMediaElement::scheduleUpdatePlaybackControlsManager()
+{
+    if (!m_updatePlaybackControlsManagerQueue.hasPendingTasks())
+        m_updatePlaybackControlsManagerQueue.enqueueTask(std::bind(&HTMLMediaElement::updatePlaybackControlsManager, this));
+}
+
 bool HTMLMediaElement::shouldOverrideBackgroundLoadingRestriction() const
 {
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
@@ -7144,6 +7155,7 @@ void HTMLMediaElement::fullscreenModeChanged(VideoFullscreenMode mode)
 
     m_videoFullscreenMode = mode;
     m_mediaSession->scheduleClientDataBufferingCheck();
+    scheduleUpdatePlaybackControlsManager();
 }
 
 }

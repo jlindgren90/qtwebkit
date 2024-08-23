@@ -1,3 +1,34 @@
+2016-07-07  Chris Dumez  <cdumez@apple.com>
+
+        td / th should be exposed as HTMLTableCellElement objects
+        https://bugs.webkit.org/show_bug.cgi?id=159518
+        <rdar://problem/27225436>
+
+        Reviewed by Ryosuke Niwa.
+
+        Rebaseline W3C tests now that more checks are passing.
+
+        * web-platform-tests/html/dom/interfaces-expected.txt:
+        * web-platform-tests/html/semantics/interfaces-expected.txt:
+
+2016-07-07  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response constructor should throw in case of bad reason phrase
+        https://bugs.webkit.org/show_bug.cgi?id=159508
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/fetch/api/response/response-error-expected.txt:
+
+2016-07-07  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response.redirect should throw a RangeError in case of bad status code
+        https://bugs.webkit.org/show_bug.cgi?id=159507
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/fetch/api/response/response-static-redirect-expected.txt:
+
 2016-07-06  Chris Dumez  <cdumez@apple.com>
 
         Document.title setter does not work for SVG documents

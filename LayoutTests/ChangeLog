@@ -1,3 +1,225 @@
+2016-07-07  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: When IDBDatabase objects are garbage collected, they don't close their server connection.
+        <rdar://problem/25910345> and https://bugs.webkit.org/show_bug.cgi?id=159523
+
+        Reviewed by Alex Christensen.
+
+        * storage/indexeddb/modern/gc-closes-database-expected.txt: Added.
+        * storage/indexeddb/modern/gc-closes-database-private-expected.txt: Added.
+        * storage/indexeddb/modern/gc-closes-database-private.html: Added.
+        * storage/indexeddb/modern/gc-closes-database.html: Added.
+        * storage/indexeddb/modern/resources/gc-closes-database.js: Added.
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Refactor layout functions to avoid using flexbox in MathML
+        https://bugs.webkit.org/show_bug.cgi?id=153991
+
+        Reviewed by Brent Fulgham.
+
+        Update expectations of some MathML tests to take into account the
+        removal of some line breaks and a better computation of the width of
+        MathML expressions with vertical stretchy operators.
+
+        * mathml/presentation/stretchy-depth-height-expected.txt:
+        * platform/gtk/mathml/opentype/opentype-stretchy-expected.png:
+        * platform/gtk/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/gtk/mathml/opentype/vertical-expected.png:
+        * platform/gtk/mathml/opentype/vertical-expected.txt:
+        * platform/gtk/mathml/presentation/mo-stretch-expected.png:
+        * platform/gtk/mathml/presentation/mo-stretch-expected.txt:
+        * platform/gtk/mathml/presentation/roots-expected.png:
+        * platform/gtk/mathml/presentation/roots-expected.txt:
+        * platform/ios-simulator/mathml/opentype/opentype-stretchy-expected.png:
+        * platform/ios-simulator/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/ios-simulator/mathml/presentation/mo-stretch-expected.txt:
+        * platform/mac/mathml/opentype/opentype-stretchy-expected.png:
+        * platform/mac/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/mac/mathml/presentation/mo-stretch-expected.png:
+        * platform/mac/mathml/presentation/mo-stretch-expected.txt:
+        * accessibility/mac/mathml-elements-expected.txt:
+        * imported/blink/fast/text/output-isolate-at-end-of-line-crash-expected.txt:
+
+2016-07-07  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector, regression: JS/JSON pretty-printing sporadically broken in STP8
+        https://bugs.webkit.org/show_bug.cgi?id=159511
+        <rdar://problem/27218435>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/formatting/formatting-json-expected.txt: Added.
+        * inspector/formatting/formatting-json.html: Added.
+
+2016-07-07  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r199054): CrashTracer: [USER] parseWebKit at WebCore: WebCore::RenderBlockFlow::checkFloatsInCleanLine + 107
+        https://bugs.webkit.org/show_bug.cgi?id=159519
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/inline/trailing-floats-inline-crash-expected.txt: Added.
+        * fast/inline/trailing-floats-inline-crash.html: Added.
+
+2016-07-07  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202905 and r202911.
+        https://bugs.webkit.org/show_bug.cgi?id=159522
+
+        This test is fails on El Capitan and Sierra WK1 (Requested by
+        ryanhaddad on #webkit).
+
+        Reverted changesets:
+
+        "Add a test for media control dropoff"
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        http://trac.webkit.org/changeset/202905
+
+        "Add a test for media control dropoff"
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        http://trac.webkit.org/changeset/202911
+
+2016-07-07  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Array.prototype.includes uses ToInt32 instead of ToInteger on the index argument
+        https://bugs.webkit.org/show_bug.cgi?id=159505
+
+        Reviewed by Mark Lam.
+
+        * js/array-includes-expected.txt:
+        * js/script-tests/array-includes.js:
+
+2016-07-07  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] String.prototype.normalize should have a length of zero
+        https://bugs.webkit.org/show_bug.cgi?id=159506
+
+        Reviewed by Yusuke Suzuki.
+
+        * js/script-tests/string-normalize.js: Added.
+        (listener.toString):
+        * js/string-normalize-expected.txt: Added.
+        * js/string-normalize.html: Added.
+
+2016-07-07  Eric Carlson  <eric.carlson@apple.com>
+
+        Add a test for media control dropoff
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        <rdar://problem/23544666>
+
+        Unreviewed El Capitan-specific test results after r202905.
+
+        * platform/mac-elcapitan/media/controls: Added.
+        * platform/mac-elcapitan/media/controls/inline-elements-dropoff-order-expected.txt: Added.
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Replace reftest scripts-height.html with script tests
+        https://bugs.webkit.org/show_bug.cgi?id=159423
+
+        We import a test from the MathML in HTML5 test suite to replace the test scripts-height.html
+        and make results more reliable, explicit and accurate. This avoids the failure on iOS.
+
+        Reviewed by Martin Robinson.
+
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-4-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-4.html: Added.
+        * mathml/presentation/scripts-height.html: Removed.
+        * platform/ios-simulator/TestExpectations: Remove failure expectation.
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Replace multiscripts-positions.html reftest with script tests
+        https://bugs.webkit.org/show_bug.cgi?id=159418
+
+        We import more tests from the MathML in HTML5 test suite to replace
+        and extend the reftest testing metrics in the mmultiscripts element.
+        This allows to make such tests work on OS X and iOS.
+
+        Reviewed by Martin Robinson.
+
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-2-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-2.html: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-3-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-3.html: Added.
+        * mathml/presentation/multiscripts-positions.html: Removed.
+        * platform/ios-simulator/TestExpectations: Remove failure for multiscripts-positions.
+        * platform/mac/TestExpectations: Ditto.
+
+2016-07-07  Eric Carlson  <eric.carlson@apple.com>
+
+        Add a test for media control dropoff
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        <rdar://problem/23544666>
+
+        Reviewed by Antoine Quint.
+
+        * media/controls/inline-elements-dropoff-order-expected.txt: Added.
+        * media/controls/inline-elements-dropoff-order.html: Added.
+        * platform/mac-yosemite/media/controls: Added.
+        * platform/mac-yosemite/media/controls/inline-elements-dropoff-order-expected.txt: Added.
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Rewrite the tests of scripts-subsup.html
+        https://bugs.webkit.org/show_bug.cgi?id=159202
+
+        The tests for script metrics in scripts-subsup.html are very unreliable and difficult to
+        debug. They currently fail on all platforms. We remove them and import a test from the
+        MathML in HTML5 test suite that verifies equivalent features in a more reliable and
+        understandable way. The equivalence test for msubsup and empty script is not preserved as
+        the current code does not actually try to achieve this equivalence.
+
+        Reviewed by Martin Robinson.
+
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-1-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-1.html: Added.
+        * mathml/presentation/scripts-subsup-expected.html: Remove the tests for metrics.
+        * mathml/presentation/scripts-subsup.html: Ditto.
+        * platform/gtk/TestExpectations: Remove failure for scripts-subsup.html.
+        * platform/ios-simulator-wk1/TestExpectations: Ditto.
+        * platform/ios-simulator/TestExpectations: Ditto.
+        * platform/mac/TestExpectations: Ditto.
+        * platform/win/TestExpectations: Ditto.
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Improve test mathml/presentation/tokenElements-background-color.html
+        https://bugs.webkit.org/show_bug.cgi?id=130693
+
+        We use the Ahem font to make tokenElements-background-color.html more reliable. However, we
+        remove the case of italic m because Ahem does not contain the required character U+1D45A.
+
+        Reviewed by Martin Robinson.
+
+        * mathml/presentation/tokenElements-background-color-expected.html:
+        * mathml/presentation/tokenElements-background-color.html:
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/mac/TestExpectations:
+        * platform/win/TestExpectations:
+
+2016-07-07  Frederic Wang  <fred.wang@free.fr>
+
+        Fix the name of mathml-in-dashboard-expected.txt for iOS.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/mathml/mathml-in-dashboard-expected.txt: Renamed from LayoutTests/platform/ios-simulator/mathml/mathml-in-dashboard-actual.txt.
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Tweak mathml/presentation/semantics.html to make it pass on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=159457
+
+        Reviewed by Sergio Villar Senin.
+
+        * mathml/presentation/semantics-expected.html: Force a line break between the two tests.
+        * mathml/presentation/semantics.html: Ditto.
+        * platform/ios-simulator-wk1/TestExpectations: Remove failure expectation.
+        * platform/ios-simulator-wk2/TestExpectations: Ditto.
+
 2016-07-06  Chris Dumez  <cdumez@apple.com>
 
         Align Document.body setter with the HTML specification

@@ -162,6 +162,7 @@
 #include "SelectorQuery.h"
 #include "Settings.h"
 #include "ShadowRoot.h"
+#include "SocketProvider.h"
 #include "StorageEvent.h"
 #include "StyleProperties.h"
 #include "StyleResolveForDocument.h"
@@ -537,6 +538,9 @@ Document::Document(Frame* frame, const URL& url, unsigned documentClasses, unsig
     , m_disabledFieldsetElementsCount(0)
     , m_hasInjectedPlugInsScript(false)
     , m_hasStyleWithViewportUnits(false)
+#if ENABLE(WEB_SOCKETS)
+    , m_socketProvider(page() ? &page()->socketProvider() : nullptr)
+#endif
 {
     allDocuments().add(this);
 
@@ -3089,6 +3093,13 @@ IDBClient::IDBConnectionProxy* Document::idbConnectionProxy()
 }
 #endif // ENABLE(INDEXED_DATABASE)
 
+#if ENABLE(WEB_SOCKETS)
+SocketProvider* Document::socketProvider()
+{
+    return m_socketProvider.get();
+}
+#endif
+    
 bool Document::canNavigate(Frame* targetFrame)
 {
     if (!m_frame)

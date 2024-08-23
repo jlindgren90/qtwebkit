@@ -123,6 +123,11 @@ void ChildProcess::removeMessageReceiver(IPC::StringReference messageReceiverNam
     m_messageReceiverMap.removeMessageReceiver(messageReceiverName);
 }
 
+void ChildProcess::removeMessageReceiver(IPC::MessageReceiver& messageReceiver)
+{
+    m_messageReceiverMap.removeMessageReceiver(messageReceiver);
+}
+
 void ChildProcess::disableTermination()
 {
     m_terminationCounter++;

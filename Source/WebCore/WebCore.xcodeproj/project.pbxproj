@@ -1289,7 +1289,7 @@
 		2E4346450F546A8200B0F1BA /* Worker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2E4346330F546A8200B0F1BA /* Worker.cpp */; };
 		2E4346460F546A8200B0F1BA /* Worker.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E4346340F546A8200B0F1BA /* Worker.h */; };
 		2E4346480F546A8200B0F1BA /* WorkerGlobalScope.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2E4346360F546A8200B0F1BA /* WorkerGlobalScope.cpp */; };
-		2E4346490F546A8200B0F1BA /* WorkerGlobalScope.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E4346370F546A8200B0F1BA /* WorkerGlobalScope.h */; };
+		2E4346490F546A8200B0F1BA /* WorkerGlobalScope.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E4346370F546A8200B0F1BA /* WorkerGlobalScope.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		2E43464B0F546A8200B0F1BA /* WorkerGlobalScopeProxy.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E4346390F546A8200B0F1BA /* WorkerGlobalScopeProxy.h */; };
 		2E43464C0F546A8200B0F1BA /* WorkerLocation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2E43463A0F546A8200B0F1BA /* WorkerLocation.cpp */; };
 		2E43464D0F546A8200B0F1BA /* WorkerLocation.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E43463B0F546A8200B0F1BA /* WorkerLocation.h */; };
@@ -1303,7 +1303,7 @@
 		2E7582EE12764F260062628B /* JSFileReaderCustom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2E7582ED12764F260062628B /* JSFileReaderCustom.cpp */; };
 		2E75841D12779ADA0062628B /* FileReaderLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2E75841A12779ADA0062628B /* FileReaderLoader.cpp */; };
 		2E75841E12779ADA0062628B /* FileReaderLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E75841B12779ADA0062628B /* FileReaderLoader.h */; };
-		2E75841F12779ADA0062628B /* FileReaderLoaderClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E75841C12779ADA0062628B /* FileReaderLoaderClient.h */; };
+		2E75841F12779ADA0062628B /* FileReaderLoaderClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E75841C12779ADA0062628B /* FileReaderLoaderClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		2E94F43B119207DA00B7F75D /* JSFileReader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2E94F439119207DA00B7F75D /* JSFileReader.cpp */; };
 		2E94F43C119207DA00B7F75D /* JSFileReader.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E94F43A119207DA00B7F75D /* JSFileReader.h */; };
 		2E9B5D8F1B66A94E008C6A24 /* WheelEventDeltaFilterMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 2E9B5D8E1B66A94E008C6A24 /* WheelEventDeltaFilterMac.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -1794,7 +1794,6 @@
 		46C83EFE1A9BBE2900A79A41 /* GeoNotifier.h in Headers */ = {isa = PBXBuildFile; fileRef = 46C83EFC1A9BBE2900A79A41 /* GeoNotifier.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		46DB7D571B20FE46005651B2 /* VNodeTrackerCocoa.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46DB7D561B20FE3C005651B2 /* VNodeTrackerCocoa.cpp */; };
 		46DBB6501AB8C96F00D9A813 /* PowerObserverMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 46DBB64E1AB8C96F00D9A813 /* PowerObserverMac.h */; };
-		46DCFDC01C768A150025B868 /* HTMLTableHeaderCellElement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46DCFDBF1C768A150025B868 /* HTMLTableHeaderCellElement.cpp */; };
 		46EBEA021B7D4D6500BE4941 /* CollectionTraversal.h in Headers */ = {isa = PBXBuildFile; fileRef = 46EBEA011B7D4D5D00BE4941 /* CollectionTraversal.h */; };
 		46F3E3F91B2109000087ED13 /* VNodeTracker.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 46DB7D581B20FE58005651B2 /* VNodeTracker.cpp */; };
 		46F3E3FA1B2109100087ED13 /* VNodeTracker.h in Headers */ = {isa = PBXBuildFile; fileRef = 46DB7D591B20FE58005651B2 /* VNodeTracker.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -1933,7 +1932,7 @@
 		4A0FFAA51AAF5EF60062803B /* RealtimeMediaSourceCenterMac.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4A0FFAA31AAF5EF60062803B /* RealtimeMediaSourceCenterMac.cpp */; };
 		4A0FFAA61AAF5EF60062803B /* RealtimeMediaSourceCenterMac.h in Headers */ = {isa = PBXBuildFile; fileRef = 4A0FFAA41AAF5EF60062803B /* RealtimeMediaSourceCenterMac.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		4A38BF5014FE1C0900612512 /* WebSocketDeflateFramer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4A38BF4E14FE1C0900612512 /* WebSocketDeflateFramer.cpp */; };
-		4A38BF5114FE1C0900612512 /* WebSocketDeflateFramer.h in Headers */ = {isa = PBXBuildFile; fileRef = 4A38BF4F14FE1C0900612512 /* WebSocketDeflateFramer.h */; };
+		4A38BF5114FE1C0900612512 /* WebSocketDeflateFramer.h in Headers */ = {isa = PBXBuildFile; fileRef = 4A38BF4F14FE1C0900612512 /* WebSocketDeflateFramer.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		4A4F48A916B0DFC000EDBB29 /* DocumentRuleSets.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4A4F48A716B0DFC000EDBB29 /* DocumentRuleSets.cpp */; };
 		4A4F48AA16B0DFC000EDBB29 /* DocumentRuleSets.h in Headers */ = {isa = PBXBuildFile; fileRef = 4A4F48A816B0DFC000EDBB29 /* DocumentRuleSets.h */; };
 		4A4F65701AA997F100E38CDD /* RealtimeMediaSource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4A4F656B1AA997F100E38CDD /* RealtimeMediaSource.cpp */; };
@@ -2009,7 +2008,7 @@
 		510D4A34103165EE0049EA54 /* SocketStreamErrorBase.h in Headers */ = {isa = PBXBuildFile; fileRef = 510D4A2E103165EE0049EA54 /* SocketStreamErrorBase.h */; };
 		510D4A36103165EE0049EA54 /* SocketStreamHandleBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 510D4A30103165EE0049EA54 /* SocketStreamHandleBase.cpp */; };
 		510D4A37103165EE0049EA54 /* SocketStreamHandleBase.h in Headers */ = {isa = PBXBuildFile; fileRef = 510D4A31103165EE0049EA54 /* SocketStreamHandleBase.h */; };
-		510D4A38103165EE0049EA54 /* SocketStreamHandleClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 510D4A32103165EE0049EA54 /* SocketStreamHandleClient.h */; };
+		510D4A38103165EE0049EA54 /* SocketStreamHandleClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 510D4A32103165EE0049EA54 /* SocketStreamHandleClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		511EC1271C50AACA0032F983 /* IDBSerialization.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 511EC1251C50AA570032F983 /* IDBSerialization.cpp */; };
 		511EC1281C50AACA0032F983 /* IDBSerialization.h in Headers */ = {isa = PBXBuildFile; fileRef = 511EC1261C50AA570032F983 /* IDBSerialization.h */; };
 		511EC12B1C50ABBF0032F983 /* SQLiteIDBTransaction.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 511EC1291C50ABBA0032F983 /* SQLiteIDBTransaction.cpp */; };
@@ -2937,13 +2936,7 @@
 		835D363719FF6193004C93AB /* StyleBuilderCustom.h in Headers */ = {isa = PBXBuildFile; fileRef = 835D363619FF6193004C93AB /* StyleBuilderCustom.h */; };
 		8367587E1C56E99B008A1087 /* JSHTMLDataElement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 834B86A91C56E93E00F3F0E3 /* JSHTMLDataElement.cpp */; };
 		8367587F1C56E99B008A1087 /* JSHTMLDataElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 834B86A81C56E93E00F3F0E3 /* JSHTMLDataElement.h */; };
-		836BAD211BD1CA670037356A /* HTMLTableHeaderCellElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 836BAD1F1BD1CA670037356A /* HTMLTableHeaderCellElement.h */; };
-		836BAD221BD1CA670037356A /* HTMLTableDataCellElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 836BAD201BD1CA670037356A /* HTMLTableDataCellElement.h */; };
 		836C14431CDEAFD80073493F /* JSXPathNSResolverCustom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836C14421CDEAFCA0073493F /* JSXPathNSResolverCustom.cpp */; };
-		836CB1F61BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 836CB1F21BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.h */; };
-		836CB1F71BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836CB1F31BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.cpp */; };
-		836CB1F81BD1E41800AF1591 /* JSHTMLTableDataCellElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 836CB1F41BD1E41800AF1591 /* JSHTMLTableDataCellElement.h */; };
-		836CB1F91BD1E41800AF1591 /* JSHTMLTableDataCellElement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836CB1F51BD1E41800AF1591 /* JSHTMLTableDataCellElement.cpp */; };
 		836DAA061CEAB80D00A2B707 /* RenderDescendantIterator.h in Headers */ = {isa = PBXBuildFile; fileRef = 836DAA051CEAB7CD00A2B707 /* RenderDescendantIterator.h */; };
 		836FBCEA178C113200B21A15 /* SVGAnimatedTypeAnimator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836FBCE9178C113200B21A15 /* SVGAnimatedTypeAnimator.cpp */; };
 		836FBCEC178C117F00B21A15 /* SVGAnimatedProperty.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836FBCEB178C117F00B21A15 /* SVGAnimatedProperty.cpp */; };
@@ -3958,25 +3951,24 @@
 		97AA3CA5145237CC003E1DA6 /* EventTargetHeaders.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AA3CA3145237CC003E1DA6 /* EventTargetHeaders.h */; };
 		97AA3CA6145237CC003E1DA6 /* EventTargetInterfaces.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AA3CA4145237CC003E1DA6 /* EventTargetInterfaces.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		97AABD1314FA09D5007457AE /* CloseEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABCF814FA09D5007457AE /* CloseEvent.h */; };
-		97AABD1614FA09D5007457AE /* ThreadableWebSocketChannel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97AABCFB14FA09D5007457AE /* ThreadableWebSocketChannel.cpp */; };
-		97AABD1714FA09D5007457AE /* ThreadableWebSocketChannel.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABCFC14FA09D5007457AE /* ThreadableWebSocketChannel.h */; };
+		97AABD1714FA09D5007457AE /* ThreadableWebSocketChannel.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABCFC14FA09D5007457AE /* ThreadableWebSocketChannel.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		97AABD1814FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97AABCFD14FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.cpp */; };
-		97AABD1914FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABCFE14FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.h */; };
+		97AABD1914FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABCFE14FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		97AABD1A14FA09D5007457AE /* WebSocket.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97AABCFF14FA09D5007457AE /* WebSocket.cpp */; };
 		97AABD1B14FA09D5007457AE /* WebSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0014FA09D5007457AE /* WebSocket.h */; };
 		97AABD1D14FA09D5007457AE /* WebSocketChannel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97AABD0214FA09D5007457AE /* WebSocketChannel.cpp */; };
-		97AABD1E14FA09D5007457AE /* WebSocketChannel.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0314FA09D5007457AE /* WebSocketChannel.h */; };
-		97AABD1F14FA09D5007457AE /* WebSocketChannelClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0414FA09D5007457AE /* WebSocketChannelClient.h */; };
+		97AABD1E14FA09D5007457AE /* WebSocketChannel.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0314FA09D5007457AE /* WebSocketChannel.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		97AABD1F14FA09D5007457AE /* WebSocketChannelClient.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0414FA09D5007457AE /* WebSocketChannelClient.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		97AABD2014FA09D5007457AE /* WebSocketDeflater.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97AABD0514FA09D5007457AE /* WebSocketDeflater.cpp */; };
-		97AABD2114FA09D5007457AE /* WebSocketDeflater.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0614FA09D5007457AE /* WebSocketDeflater.h */; };
+		97AABD2114FA09D5007457AE /* WebSocketDeflater.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0614FA09D5007457AE /* WebSocketDeflater.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		97AABD2214FA09D5007457AE /* WebSocketExtensionDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97AABD0714FA09D5007457AE /* WebSocketExtensionDispatcher.cpp */; };
 		97AABD2314FA09D5007457AE /* WebSocketExtensionDispatcher.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0814FA09D5007457AE /* WebSocketExtensionDispatcher.h */; };
-		97AABD2414FA09D5007457AE /* WebSocketExtensionProcessor.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0914FA09D5007457AE /* WebSocketExtensionProcessor.h */; };
-		97AABD2514FA09D5007457AE /* WebSocketFrame.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0A14FA09D5007457AE /* WebSocketFrame.h */; };
+		97AABD2414FA09D5007457AE /* WebSocketExtensionProcessor.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0914FA09D5007457AE /* WebSocketExtensionProcessor.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		97AABD2514FA09D5007457AE /* WebSocketFrame.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0A14FA09D5007457AE /* WebSocketFrame.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		97AABD2614FA09D5007457AE /* WebSocketHandshake.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97AABD0B14FA09D5007457AE /* WebSocketHandshake.cpp */; };
 		97AABD2714FA09D5007457AE /* WebSocketHandshake.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD0C14FA09D5007457AE /* WebSocketHandshake.h */; };
 		97AABD2C14FA09D5007457AE /* WorkerThreadableWebSocketChannel.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97AABD1114FA09D5007457AE /* WorkerThreadableWebSocketChannel.cpp */; };
-		97AABD2D14FA09D5007457AE /* WorkerThreadableWebSocketChannel.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD1214FA09D5007457AE /* WorkerThreadableWebSocketChannel.h */; };
+		97AABD2D14FA09D5007457AE /* WorkerThreadableWebSocketChannel.h in Headers */ = {isa = PBXBuildFile; fileRef = 97AABD1214FA09D5007457AE /* WorkerThreadableWebSocketChannel.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		97B1F02E13B025CA00F5103F /* SharedBufferChunkReader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 37569E0013AF172C00CDBA8E /* SharedBufferChunkReader.cpp */; };
 		97B1F02F13B025D200F5103F /* SharedBufferChunkReader.h in Headers */ = {isa = PBXBuildFile; fileRef = 37569E0213AF172C00CDBA8E /* SharedBufferChunkReader.h */; };
 		97B38E27151C4271004622E9 /* DOMWindowNotifications.h in Headers */ = {isa = PBXBuildFile; fileRef = 97B38E24151C4264004622E9 /* DOMWindowNotifications.h */; };
@@ -4222,7 +4214,7 @@
 		A3BB59F31457A40D00AC56FE /* DocumentEventQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A3BB59F11457A40D00AC56FE /* DocumentEventQueue.cpp */; };
 		A3BB59F41457A40D00AC56FE /* DocumentEventQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = A3BB59F21457A40D00AC56FE /* DocumentEventQueue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A3E2643014748991005A8588 /* WorkerEventQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A3E2642E14748991005A8588 /* WorkerEventQueue.cpp */; };
-		A3E2643114748991005A8588 /* WorkerEventQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = A3E2642F14748991005A8588 /* WorkerEventQueue.h */; };
+		A3E2643114748991005A8588 /* WorkerEventQueue.h in Headers */ = {isa = PBXBuildFile; fileRef = A3E2642F14748991005A8588 /* WorkerEventQueue.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A409C985116D0DDD007197BD /* AccessibilityProgressIndicator.h in Headers */ = {isa = PBXBuildFile; fileRef = A409C983116D0DDD007197BD /* AccessibilityProgressIndicator.h */; };
 		A4226E5A1163D667008B8397 /* JSHTMLProgressElement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A4226E591163D667008B8397 /* JSHTMLProgressElement.cpp */; };
 		A4226E5C1163D695008B8397 /* JSHTMLProgressElement.h in Headers */ = {isa = PBXBuildFile; fileRef = A4226E5B1163D695008B8397 /* JSHTMLProgressElement.h */; };
@@ -6552,7 +6544,7 @@
 		E1A3162D134BC32D007C9A4F /* WebNSAttributedStringExtras.h in Headers */ = {isa = PBXBuildFile; fileRef = E1A3162B134BC32D007C9A4F /* WebNSAttributedStringExtras.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E1A3162E134BC32D007C9A4F /* WebNSAttributedStringExtras.mm in Sources */ = {isa = PBXBuildFile; fileRef = E1A3162C134BC32D007C9A4F /* WebNSAttributedStringExtras.mm */; };
 		E1A5F99B0E7EAA2500AF85EA /* JSMessageChannelCustom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E1A5F99A0E7EAA2500AF85EA /* JSMessageChannelCustom.cpp */; };
-		E1A643F20EC0972500779668 /* WorkerScriptController.h in Headers */ = {isa = PBXBuildFile; fileRef = E1A643F10EC0972500779668 /* WorkerScriptController.h */; };
+		E1A643F20EC0972500779668 /* WorkerScriptController.h in Headers */ = {isa = PBXBuildFile; fileRef = E1A643F10EC0972500779668 /* WorkerScriptController.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		E1A643FD0EC097A000779668 /* WorkerScriptController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E1A643FC0EC097A000779668 /* WorkerScriptController.cpp */; };
 		E1A8E56617552B2A007488E7 /* CFURLExtras.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E1A8E56417552B2A007488E7 /* CFURLExtras.cpp */; };
 		E1A8E56717552B2A007488E7 /* CFURLExtras.h in Headers */ = {isa = PBXBuildFile; fileRef = E1A8E56517552B2A007488E7 /* CFURLExtras.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -9419,7 +9411,6 @@
 		46DB7D581B20FE58005651B2 /* VNodeTracker.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = VNodeTracker.cpp; sourceTree = "<group>"; };
 		46DB7D591B20FE58005651B2 /* VNodeTracker.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VNodeTracker.h; sourceTree = "<group>"; };
 		46DBB64E1AB8C96F00D9A813 /* PowerObserverMac.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PowerObserverMac.h; sourceTree = "<group>"; };
-		46DCFDBF1C768A150025B868 /* HTMLTableHeaderCellElement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = HTMLTableHeaderCellElement.cpp; sourceTree = "<group>"; };
 		46EBEA011B7D4D5D00BE4941 /* CollectionTraversal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CollectionTraversal.h; sourceTree = "<group>"; };
 		46F2768E1B85297F005C2556 /* JSDOMNamedFlowCollectionCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSDOMNamedFlowCollectionCustom.cpp; sourceTree = "<group>"; };
 		490707E41219C04300D90E51 /* ANGLEWebKitBridge.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ANGLEWebKitBridge.cpp; sourceTree = "<group>"; };
@@ -10691,13 +10682,7 @@
 		835D363619FF6193004C93AB /* StyleBuilderCustom.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = StyleBuilderCustom.h; sourceTree = "<group>"; };
 		835F8B261D2D90BA00E408EC /* Slotable.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Slotable.idl; sourceTree = "<group>"; };
 		8369E58F1AFDD0300087DF68 /* NonDocumentTypeChildNode.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = NonDocumentTypeChildNode.idl; sourceTree = "<group>"; };
-		836BAD1F1BD1CA670037356A /* HTMLTableHeaderCellElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTMLTableHeaderCellElement.h; sourceTree = "<group>"; };
-		836BAD201BD1CA670037356A /* HTMLTableDataCellElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = HTMLTableDataCellElement.h; sourceTree = "<group>"; };
 		836C14421CDEAFCA0073493F /* JSXPathNSResolverCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSXPathNSResolverCustom.cpp; sourceTree = "<group>"; };
-		836CB1F21BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSHTMLTableHeaderCellElement.h; sourceTree = "<group>"; };
-		836CB1F31BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSHTMLTableHeaderCellElement.cpp; sourceTree = "<group>"; };
-		836CB1F41BD1E41800AF1591 /* JSHTMLTableDataCellElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSHTMLTableDataCellElement.h; sourceTree = "<group>"; };
-		836CB1F51BD1E41800AF1591 /* JSHTMLTableDataCellElement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSHTMLTableDataCellElement.cpp; sourceTree = "<group>"; };
 		836DAA051CEAB7CD00A2B707 /* RenderDescendantIterator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderDescendantIterator.h; sourceTree = "<group>"; };
 		836FBCE9178C113200B21A15 /* SVGAnimatedTypeAnimator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SVGAnimatedTypeAnimator.cpp; sourceTree = "<group>"; };
 		836FBCEB178C117F00B21A15 /* SVGAnimatedProperty.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SVGAnimatedProperty.cpp; sourceTree = "<group>"; };
@@ -10742,8 +10727,6 @@
 		83F1206A1B8C103600D75F63 /* JSNodeFilterCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSNodeFilterCustom.cpp; sourceTree = "<group>"; };
 		83F570AD1C53268E007FD6CB /* JSXMLDocument.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSXMLDocument.h; sourceTree = "<group>"; };
 		83F570AE1C53268E007FD6CB /* JSXMLDocument.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSXMLDocument.cpp; sourceTree = "<group>"; };
-		83FE5F1F1BD1C55E0038BEEC /* HTMLTableHeaderCellElement.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = HTMLTableHeaderCellElement.idl; sourceTree = "<group>"; };
-		83FE5F201BD1C55E0038BEEC /* HTMLTableDataCellElement.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = HTMLTableDataCellElement.idl; sourceTree = "<group>"; };
 		8419D2A4120D92D000141F8F /* SVGPathByteStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SVGPathByteStream.h; sourceTree = "<group>"; };
 		8419D2A5120D92D000141F8F /* SVGPathByteStreamBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SVGPathByteStreamBuilder.cpp; sourceTree = "<group>"; };
 		8419D2A6120D92D000141F8F /* SVGPathByteStreamBuilder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SVGPathByteStreamBuilder.h; sourceTree = "<group>"; };
@@ -11705,7 +11688,6 @@
 		97AA3CA4145237CC003E1DA6 /* EventTargetInterfaces.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EventTargetInterfaces.h; sourceTree = "<group>"; };
 		97AABCF814FA09D5007457AE /* CloseEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CloseEvent.h; sourceTree = "<group>"; };
 		97AABCF914FA09D5007457AE /* CloseEvent.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = CloseEvent.idl; sourceTree = "<group>"; };
-		97AABCFB14FA09D5007457AE /* ThreadableWebSocketChannel.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ThreadableWebSocketChannel.cpp; sourceTree = "<group>"; };
 		97AABCFC14FA09D5007457AE /* ThreadableWebSocketChannel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadableWebSocketChannel.h; sourceTree = "<group>"; };
 		97AABCFD14FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ThreadableWebSocketChannelClientWrapper.cpp; sourceTree = "<group>"; };
 		97AABCFE14FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ThreadableWebSocketChannelClientWrapper.h; sourceTree = "<group>"; };
@@ -19602,14 +19584,9 @@
 				A871DB1B0A150BD600B12A68 /* HTMLTableColElement.cpp */,
 				A871DB210A150BD600B12A68 /* HTMLTableColElement.h */,
 				855542590AA48B1E00BA89F2 /* HTMLTableColElement.idl */,
-				836BAD201BD1CA670037356A /* HTMLTableDataCellElement.h */,
-				83FE5F201BD1C55E0038BEEC /* HTMLTableDataCellElement.idl */,
 				A871DB1A0A150BD600B12A68 /* HTMLTableElement.cpp */,
 				A871DB190A150BD600B12A68 /* HTMLTableElement.h */,
 				8555425A0AA48B1E00BA89F2 /* HTMLTableElement.idl */,
-				46DCFDBF1C768A150025B868 /* HTMLTableHeaderCellElement.cpp */,
-				836BAD1F1BD1CA670037356A /* HTMLTableHeaderCellElement.h */,
-				83FE5F1F1BD1C55E0038BEEC /* HTMLTableHeaderCellElement.idl */,
 				A871DB1F0A150BD600B12A68 /* HTMLTablePartElement.cpp */,
 				A871DB1E0A150BD600B12A68 /* HTMLTablePartElement.h */,
 				A871DB220A150BD600B12A68 /* HTMLTableRowElement.cpp */,
@@ -19933,7 +19910,6 @@
 			children = (
 				97AABCF814FA09D5007457AE /* CloseEvent.h */,
 				97AABCF914FA09D5007457AE /* CloseEvent.idl */,
-				97AABCFB14FA09D5007457AE /* ThreadableWebSocketChannel.cpp */,
 				97AABCFC14FA09D5007457AE /* ThreadableWebSocketChannel.h */,
 				97AABCFD14FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.cpp */,
 				97AABCFE14FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.h */,
@@ -20549,12 +20525,8 @@
 				BC06EDE20BFD6D0D00856E9D /* JSHTMLTableCellElement.h */,
 				BC06ED990BFD660600856E9D /* JSHTMLTableColElement.cpp */,
 				BC06ED9A0BFD660600856E9D /* JSHTMLTableColElement.h */,
-				836CB1F51BD1E41800AF1591 /* JSHTMLTableDataCellElement.cpp */,
-				836CB1F41BD1E41800AF1591 /* JSHTMLTableDataCellElement.h */,
 				BC06EE020BFD71AA00856E9D /* JSHTMLTableElement.cpp */,
 				BC06EE030BFD71AA00856E9D /* JSHTMLTableElement.h */,
-				836CB1F31BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.cpp */,
-				836CB1F21BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.h */,
 				BC06ED9B0BFD660600856E9D /* JSHTMLTableRowElement.cpp */,
 				BC06ED9C0BFD660600856E9D /* JSHTMLTableRowElement.h */,
 				BC06ED040BFD5BAE00856E9D /* JSHTMLTableSectionElement.cpp */,
@@ -26590,9 +26562,7 @@
 				A871DB2B0A150BD600B12A68 /* HTMLTableCaptionElement.h in Headers */,
 				A871DB2A0A150BD600B12A68 /* HTMLTableCellElement.h in Headers */,
 				A871DB2F0A150BD600B12A68 /* HTMLTableColElement.h in Headers */,
-				836BAD221BD1CA670037356A /* HTMLTableDataCellElement.h in Headers */,
 				A871DB270A150BD600B12A68 /* HTMLTableElement.h in Headers */,
-				836BAD211BD1CA670037356A /* HTMLTableHeaderCellElement.h in Headers */,
 				A871DB2C0A150BD600B12A68 /* HTMLTablePartElement.h in Headers */,
 				A871DB310A150BD600B12A68 /* HTMLTableRowElement.h in Headers */,
 				93442C9E0D2B335C00338FF9 /* HTMLTableRowsCollection.h in Headers */,
@@ -26990,9 +26960,7 @@
 				BCA169A30BFD55B40019CA76 /* JSHTMLTableCaptionElement.h in Headers */,
 				BC06EDE40BFD6D0D00856E9D /* JSHTMLTableCellElement.h in Headers */,
 				BC06ED9E0BFD660600856E9D /* JSHTMLTableColElement.h in Headers */,
-				836CB1F81BD1E41800AF1591 /* JSHTMLTableDataCellElement.h in Headers */,
 				BC06EE050BFD71AA00856E9D /* JSHTMLTableElement.h in Headers */,
-				836CB1F61BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.h in Headers */,
 				BC06EDA00BFD660600856E9D /* JSHTMLTableRowElement.h in Headers */,
 				BC06ED070BFD5BAE00856E9D /* JSHTMLTableSectionElement.h in Headers */,
 				D6489D26166FFCF1007C031B /* JSHTMLTemplateElement.h in Headers */,
@@ -30324,7 +30292,6 @@
 				A871DB2E0A150BD600B12A68 /* HTMLTableCellElement.cpp in Sources */,
 				A871DB290A150BD600B12A68 /* HTMLTableColElement.cpp in Sources */,
 				A871DB280A150BD600B12A68 /* HTMLTableElement.cpp in Sources */,
-				46DCFDC01C768A150025B868 /* HTMLTableHeaderCellElement.cpp in Sources */,
 				A871DB2D0A150BD600B12A68 /* HTMLTablePartElement.cpp in Sources */,
 				A871DB300A150BD600B12A68 /* HTMLTableRowElement.cpp in Sources */,
 				93442CA00D2B336000338FF9 /* HTMLTableRowsCollection.cpp in Sources */,
@@ -30757,9 +30724,7 @@
 				BCA169A20BFD55B40019CA76 /* JSHTMLTableCaptionElement.cpp in Sources */,
 				BC06EDE30BFD6D0D00856E9D /* JSHTMLTableCellElement.cpp in Sources */,
 				BC06ED9D0BFD660600856E9D /* JSHTMLTableColElement.cpp in Sources */,
-				836CB1F91BD1E41800AF1591 /* JSHTMLTableDataCellElement.cpp in Sources */,
 				BC06EE040BFD71AA00856E9D /* JSHTMLTableElement.cpp in Sources */,
-				836CB1F71BD1E41800AF1591 /* JSHTMLTableHeaderCellElement.cpp in Sources */,
 				BC06ED9F0BFD660600856E9D /* JSHTMLTableRowElement.cpp in Sources */,
 				BC06ED060BFD5BAE00856E9D /* JSHTMLTableSectionElement.cpp in Sources */,
 				D6489D25166FFCF1007C031B /* JSHTMLTemplateElement.cpp in Sources */,
@@ -32237,7 +32202,6 @@
 				BCE659E90EA92FFA007E4533 /* ThemeMac.mm in Sources */,
 				976D6C94122B8A3D001FD1F7 /* ThreadableBlobRegistry.cpp in Sources */,
 				0B90561E0F257E930095FF6A /* ThreadableLoader.cpp in Sources */,
-				97AABD1614FA09D5007457AE /* ThreadableWebSocketChannel.cpp in Sources */,
 				97AABD1814FA09D5007457AE /* ThreadableWebSocketChannelClientWrapper.cpp in Sources */,
 				51DF6D800B92A18E00C2DC85 /* ThreadCheck.mm in Sources */,
 				0F6383DD18615B29003E5DB5 /* ThreadedScrollingTree.cpp in Sources */,

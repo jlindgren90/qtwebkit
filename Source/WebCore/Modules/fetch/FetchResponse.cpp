@@ -34,6 +34,7 @@
 #include "Dictionary.h"
 #include "ExceptionCode.h"
 #include "FetchRequest.h"
+#include "HTTPParsers.h"
 #include "JSFetchResponse.h"
 #include "ScriptExecutionContext.h"
 
@@ -65,7 +66,7 @@ RefPtr<FetchResponse> FetchResponse::redirect(ScriptExecutionContext& context, c
         return nullptr;
     }
     if (!isRedirectStatus(status)) {
-        ec = TypeError;
+        ec = RangeError;
         return nullptr;
     }
     auto redirectResponse = adoptRef(*new FetchResponse(context, { }, FetchHeaders::create(FetchHeaders::Guard::Immutable), { }));
@@ -86,9 +87,8 @@ void FetchResponse::initializeWith(const Dictionary& init, ExceptionCode& ec)
         return;
     }
 
-    // FIXME: Validate reason phrase (https://tools.ietf.org/html/rfc7230#section-3.1.2).
     String statusText;
-    if (!init.get("statusText", statusText)) {
+    if (!init.get("statusText", statusText) || !isValidReasonPhrase(statusText)) {
         ec = TypeError;
         return;
     }

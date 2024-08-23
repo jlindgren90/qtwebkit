@@ -1,3 +1,468 @@
+2016-07-07  Chris Dumez  <cdumez@apple.com>
+
+        td / th should be exposed as HTMLTableCellElement objects
+        https://bugs.webkit.org/show_bug.cgi?id=159518
+        <rdar://problem/27225436>
+
+        Reviewed by Ryosuke Niwa.
+
+        td / th should be exposed as HTMLTableCellElement objects:
+        - https://html.spec.whatwg.org/multipage/tables.html#the-td-element
+        - https://html.spec.whatwg.org/multipage/tables.html#the-th-element
+
+        We were using HTMLTableDataCellElement / HTMLTableHeaderCellElement
+        sub-types.
+
+        Firefox and Chrome match the current specification.
+
+        We actually introduced these types recently via Bug 148859 to align
+        with an older version of the HTML specification. However, it seems the
+        specification has been updated to match Firefox / Chrome in the mean
+        time.
+
+        Since we have not shipped those subtypes yet, the compatibility risk is
+        low.
+
+        No new tests, rebaselined existing tests.
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * html/HTMLElementsAllInOne.cpp:
+        * html/HTMLTableCellElement.cpp:
+        (WebCore::HTMLTableCellElement::create):
+        (WebCore::HTMLTableCellElement::scope):
+        (WebCore::HTMLTableCellElement::setScope):
+        (WebCore::HTMLTableCellElement::setRowSpanForBindings): Deleted.
+        * html/HTMLTableCellElement.h:
+        * html/HTMLTableCellElement.idl:
+        * html/HTMLTableDataCellElement.h: Removed.
+        * html/HTMLTableDataCellElement.idl: Removed.
+        * html/HTMLTableHeaderCellElement.cpp: Removed.
+        * html/HTMLTableHeaderCellElement.h: Removed.
+        * html/HTMLTableHeaderCellElement.idl: Removed.
+        * html/HTMLTableRowElement.cpp:
+        (WebCore::HTMLTableRowElement::insertCell):
+        * html/HTMLTagNames.in:
+
+2016-07-07  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: When IDBDatabase objects are garbage collected, they don't close their server connection.
+        <rdar://problem/25910345> and https://bugs.webkit.org/show_bug.cgi?id=159523
+
+        Reviewed by Alex Christensen.
+
+        Tests: storage/indexeddb/modern/gc-closes-database-private.html
+               storage/indexeddb/modern/gc-closes-database.html
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::IDBDatabase): New logging.
+        (WebCore::IDBDatabase::~IDBDatabase): Close server connection.
+        (WebCore::IDBDatabase::fireVersionChangeEvent): New logging.
+        (WebCore::IDBDatabase::dispatchEvent): New logging.
+
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::openDatabase): New logging.
+
+2016-07-07  Frederic Wang  <fwang@igalia.com>
+
+        Refactor layout functions to avoid using flexbox in MathML
+        https://bugs.webkit.org/show_bug.cgi?id=153991
+
+        Reviewed by Brent Fulgham.
+
+        No new tests, already covered by existing tests.
+
+        * css/mathml.css:
+        (math): Change inline mathematical formulas from inline-flex to inline.
+        (math[display="block"]): Change display mathematical formulas from flex to block and
+        remove flexbox property justify-content.
+        (ms, mspace, mtext, mi, mn, mo, mrow, mfenced, mfrac, msub, msup, msubsup, mmultiscripts,
+         mprescripts, none, munder, mover, munderover, msqrt, mroot, merror, mphantom, mstyle)
+         menclose, semantics, mpadded, maction): In order to render properly, all children of the
+         classes derived from RenderMathMLBlock must now be block-level. So we add more elements in
+         this list and update the display property.
+        (mtd > *): However, we use inline-block for children of the cell so that the text-align
+         property is taken into account.
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::computeLogicalWidthInRegion): Add a special case for RenderMathMLBlock
+        to preserve the old behavior.
+        (WebCore::RenderBox::sizesLogicalWidthToFitContent): Ditto.
+        * rendering/RenderFlexibleBox.h: No need to override layoutBlock anymore.
+        * rendering/mathml/RenderMathMLBlock.cpp: Include LayoutRepainter header for use in layoutBlock.
+        (WebCore::RenderMathMLBlock::RenderMathMLBlock): Inherit from RenderBlock and ensure that
+        our children are block-level.
+        (WebCore::RenderMathMLBlock::~RenderMathMLBlock): Added.
+        (WebCore::RenderMathMLBlock::baselinePosition): If the baselinefirstLineBaseline() is
+        undefined, just returns 0.
+        (WebCore::RenderMathMLBlock::paint): Call RenderBlock::paint.
+        (WebCore::RenderMathMLBlock::layoutItems): Implement a simplified version of
+        RenderFlexibleBox::layoutItems where we assume horizontal layout for all children.
+        (WebCore::RenderMathMLBlock::layoutBlock): Add a basic implementation based on
+        RenderFlexibleBox::layoutBlock.
+        (WebCore::RenderMathMLBlock::renderName): Deleted. There is now a simple implementation in the header.
+        * rendering/mathml/RenderMathMLBlock.h: Use RenderBlock instead of RenderFlexibleBox and
+        define layout functions. Define avoidsFloats and canDropAnonymousBlockChild to preserve
+        the old behavior and remove isFlexibleBoxImpl.
+        * rendering/mathml/RenderMathMLFenced.cpp:
+        (WebCore::RenderMathMLFenced::createMathMLOperator): Use block for anonymous RenderMathMLOperator.
+        * rendering/mathml/RenderMathMLRow.cpp:
+        (WebCore::RenderMathMLRow::layoutRowItems): No need to handle the flexbox case anymore.
+        (WebCore::RenderMathMLRow::paintChildren): Deleted. We now just use RenderBlock::paintChildren.
+        * rendering/mathml/RenderMathMLRow.h:
+        * rendering/mathml/RenderMathMLFraction.cpp:
+        (WebCore::RenderMathMLFraction::paintChildren): Deleted. We now just use RenderBlock::paintChildren.
+        * rendering/mathml/RenderMathMLFraction.h:
+        * rendering/mathml/RenderMathMLRoot.cpp:
+        (WebCore::RenderMathMLRoot::paintChildren): Deleted. We now just use RenderBlock::paintChildren.
+        * rendering/mathml/RenderMathMLRoot.h:
+        * rendering/mathml/RenderMathMLScripts.cpp:
+        (WebCore::RenderMathMLScripts::paintChildren): Deleted. We now just use RenderBlock::paintChildren.
+        * rendering/mathml/RenderMathMLScripts.h:
+        * rendering/mathml/RenderMathMLUnderOver.cpp:
+        (WebCore::RenderMathMLUnderOver::paintChildren): Deleted. We now just use RenderBlock::paintChildren.
+        * rendering/mathml/RenderMathMLUnderOver.h:
+
+2016-07-07  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r199054): CrashTracer: [USER] parseWebKit at WebCore: WebCore::RenderBlockFlow::checkFloatsInCleanLine + 107
+        https://bugs.webkit.org/show_bug.cgi?id=159519
+
+        Reviewed by Zalan Bujtas.
+
+        Test: fast/inline/trailing-floats-inline-crash.html
+
+        * rendering/RenderBlockLineLayout.cpp:
+        (WebCore::RenderBlockFlow::checkFloatsInCleanLine):
+
+            Use the existing deletionHasBegun bit in RenderStyle to assert against this reliably.
+
+        * rendering/RenderLineBoxList.cpp:
+        (WebCore::RenderLineBoxList::dirtyLinesFromChangedChild):
+
+            In some cases a special TrailingFloatsRootInlineBox may be added as the last root linebox of a flow.
+            If it is combined with br the existing invalidation that invalidates the next and previous line may
+            not be sufficient. Test for this case and invalidate the TrailingFloatsRootInlineBox too if it exists.
+
+        * rendering/RootInlineBox.h:
+        (WebCore::RootInlineBox::isTrailingFloatsRootInlineBox):
+        * rendering/TrailingFloatsRootInlineBox.h:
+        * rendering/style/RenderStyle.h:
+        (WebCore::RenderStyle::deletionHasBegun):
+
+            Expose the bit in debug.
+
+2016-07-07  Alex Christensen  <achristensen@webkit.org>
+
+        Use SocketProvider to create WebSocketChannels
+        https://bugs.webkit.org/show_bug.cgi?id=158776
+
+        Reviewed by Brent Fulgham.
+
+        This patch should have no change in behavior except making an InvalidStateError in
+        conditions where we should not be able to do networking, like in a detached frame.
+        It just replaces ThreadableWebSocketChannel::create with SocketProvider::createWebSocketChannel
+        which does the same thing as ThreadableWebSocketChannel::create for Mac and 
+        Windows WebKit1.  The WebKit2 implementation is the same right now, but it will
+        be replaced by a proxy that will do the WebSocket operations in the NetworkProcess.
+
+        * Modules/websockets/ThreadableWebSocketChannel.cpp: Removed.
+        * Modules/websockets/ThreadableWebSocketChannel.h:
+        (WebCore::ThreadableWebSocketChannel::ThreadableWebSocketChannel):
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::WebSocket::connect):
+        * Modules/websockets/WebSocketChannel.h:
+        * Modules/websockets/WorkerThreadableWebSocketChannel.h:
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/Document.cpp:
+        (WebCore::Document::idbConnectionProxy):
+        (WebCore::Document::socketProvider):
+        (WebCore::Document::canNavigate):
+        * dom/Document.h:
+        (WebCore::Document::notifyRemovePendingSheetIfNeeded):
+        * dom/ScriptExecutionContext.h:
+        * inspector/InspectorOverlay.cpp:
+        (WebCore::InspectorOverlay::overlayPage):
+        * loader/EmptyClients.cpp:
+        (WebCore::EmptyEditorClient::registerRedoStep):
+        (WebCore::EmptySocketProvider::createWebSocketChannel):
+        * loader/EmptyClients.h:
+        * page/Page.h:
+        * page/PageConfiguration.cpp:
+        (WebCore::PageConfiguration::PageConfiguration):
+        * page/PageConfiguration.h:
+        * page/SocketProvider.h:
+        (WebCore::SocketProvider::~SocketProvider):
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::dataChanged):
+        * workers/DedicatedWorkerGlobalScope.cpp:
+        (WebCore::DedicatedWorkerGlobalScope::create):
+        (WebCore::DedicatedWorkerGlobalScope::DedicatedWorkerGlobalScope):
+        * workers/DedicatedWorkerGlobalScope.h:
+        * workers/DedicatedWorkerThread.cpp:
+        (WebCore::DedicatedWorkerThread::DedicatedWorkerThread):
+        (WebCore::DedicatedWorkerThread::createWorkerGlobalScope):
+        (WebCore::DedicatedWorkerThread::runEventLoop):
+        * workers/DedicatedWorkerThread.h:
+        * workers/WorkerGlobalScope.cpp:
+        (WebCore::WorkerGlobalScope::WorkerGlobalScope):
+        (WebCore::WorkerGlobalScope::disableEval):
+        (WebCore::WorkerGlobalScope::socketProvider):
+        (WebCore::WorkerGlobalScope::idbConnectionProxy):
+        * workers/WorkerGlobalScope.h:
+        (WebCore::WorkerGlobalScope::script):
+        * workers/WorkerMessagingProxy.cpp:
+        (WebCore::WorkerMessagingProxy::startWorkerGlobalScope):
+        * workers/WorkerThread.cpp:
+        (WebCore::WorkerThreadStartupData::WorkerThreadStartupData):
+        (WebCore::WorkerThread::WorkerThread):
+        (WebCore::WorkerThread::idbConnectionProxy):
+        (WebCore::WorkerThread::socketProvider):
+        * workers/WorkerThread.h:
+        (WebCore::WorkerThread::workerGlobalScope):
+
+2016-07-07  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202905 and r202911.
+        https://bugs.webkit.org/show_bug.cgi?id=159522
+
+        This test is fails on El Capitan and Sierra WK1 (Requested by
+        ryanhaddad on #webkit).
+
+        Reverted changesets:
+
+        "Add a test for media control dropoff"
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        http://trac.webkit.org/changeset/202905
+
+        "Add a test for media control dropoff"
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        http://trac.webkit.org/changeset/202911
+
+2016-07-07  Antoine Quint  <graouts@apple.com>
+
+        <img> with a wide gamut PDF does not display using a wide gamut color space
+        https://bugs.webkit.org/show_bug.cgi?id=158983
+        <rdar://problem/25720247>
+
+        Reviewed by Dean Jackson.
+
+        Calls to ImageBuffer::createCompatibleBuffer() that do not provide an explicit
+        color space will now infer the color space from the provided graphics context
+        on platforms using CG. The method signature that takes in a GraphicsContext
+        without a color space is now split into a CG-specified implementation and a
+        Cairo one to avoid having diverging platform code in ImageBuffer.cpp.
+
+        Some call sites need to provide an explicit color space still, so we add a new
+        ImageBuffer::createCompatibleBuffer() that allows for that while inferring
+        sizing and scaling from a GraphicsContext.
+        
+        All signatures of ImageBuffer::createCompatibleBuffer() are losing the
+        hasAlpha parameter which was always ignored. All call sites that were using
+        hasAlpha have been updated.
+
+        In addition, we make all the IOSurface and IOSurfacePool code, which is
+        CG-specific, use the plaform-specific type CGColorSpaceRef instead of ColorSpace
+        so that we may pick up on the color space copied over from the graphics context
+        in the CG-specific implementation of ImageBuffer::createCompatibleBuffer().
+
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::drawTextInternal):
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::drawPattern):
+        * platform/graphics/GradientImage.cpp:
+        (WebCore::GradientImage::drawPattern):
+        * platform/graphics/ImageBuffer.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer):
+        * platform/graphics/ImageBuffer.h:
+        * platform/graphics/NamedImageGeneratedImage.cpp:
+        (WebCore::NamedImageGeneratedImage::drawPattern):
+        * platform/graphics/cairo/ImageBufferCairo.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer):
+        * platform/graphics/cg/IOSurfacePool.cpp:
+        (WebCore::surfaceMatchesParameters):
+        (WebCore::IOSurfacePool::takeSurface):
+        * platform/graphics/cg/IOSurfacePool.h:
+        * platform/graphics/cg/ImageBufferCG.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer):
+        (WebCore::ImageBuffer::ImageBuffer):
+        * platform/graphics/cocoa/IOSurface.h:
+        * platform/graphics/cocoa/IOSurface.mm:
+        (WebCore::IOSurface::surfaceFromPool):
+        (WebCore::IOSurface::create):
+        (WebCore::IOSurface::createFromSendRight):
+        (WebCore::IOSurface::createFromSurface):
+        (WebCore::IOSurface::createFromImage):
+        (WebCore::IOSurface::IOSurface):
+        (WebCore::IOSurface::ensurePlatformContext):
+        * platform/mac/ThemeMac.mm:
+        (WebCore::ThemeMac::drawCellOrFocusRingWithViewIntoContext):
+        * platform/spi/cg/CoreGraphicsSPI.h:
+        * rendering/RenderBoxModelObject.cpp:
+        (WebCore::RenderBoxModelObject::paintFillLayerExtended):
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::paintProgressBar):
+        * rendering/svg/SVGRenderingContext.cpp:
+        (WebCore::SVGRenderingContext::bufferForeground):
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::drawPatternForContainer):
+
+2016-07-07  Beth Dakin  <bdakin@apple.com>
+
+        All fullscreen videos should be able the control the controls manager
+        https://bugs.webkit.org/show_bug.cgi?id=159496
+        -and corresponding-
+        rdar://problem/27009446
+
+        Reviewed by Eric Carlson.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::fullscreenModeChanged):
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canControlControlsManager):
+
+2016-07-07  Jer Noble  <jer.noble@apple.com>
+
+        Crash due to HTMLMediaElement at JavaScriptCore: JSC::JSLockHolder::JSLockHolder
+        https://bugs.webkit.org/show_bug.cgi?id=159517
+        <rdar://problem/27221109>
+
+        Reviewed by Eric Carlson.
+
+        When WebKit on iOS gets a notification that the UIProcess has been backgrounded, it sends an
+        interruption event to the WebProcess to pause any playing HTMLMediaElements. When the
+        elements which get this interruption have pending promises created during a previous call to
+        play(), these promises get rejected.
+
+        However, if the HTMLMediaElement's document has already been destroyed, the pending Promises
+        are in an inconsistent state: their script execution context (the document) has been
+        destroyed, leading to the crash in JSLockHolder.
+
+        When HTMLMediaElement is notified that its ScriptExecutionContext has been destroyed, also
+        clear the list of pending Promises.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::contextDestroyed):
+
+2016-07-05  Jer Noble  <jer.noble@apple.com>
+
+        Facebook videos without audio tracks will sometimes cause playback controls to appear.
+        https://bugs.webkit.org/show_bug.cgi?id=159437
+
+        Reviewed by Eric Carlson.
+
+        Because updatePlaybackControlsManager() will cause the session manager to walk through all
+        the outstanding sessions asking if it canControlControlsManager(), some sessions will say
+        they can control the controls manager if we are currently processing a user gesture. This is
+        obviously not intended (there may be a user gesture to un-mute video 1, but an unrelated
+        video 2 should not be allowed to use that use gesture to fulfill its own requirements.)
+
+        So in those situations where conditions may have changed and updatePlaybackControlsManager()
+        needs to be called, instead schedule the update for the next run loop.
+        
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::setMuted):
+        (WebCore::HTMLMediaElement::layoutSizeChanged):
+        (WebCore::HTMLMediaElement::updatePlayState):
+        (WebCore::HTMLMediaElement::createMediaPlayer):
+        (WebCore::HTMLMediaElement::scheduleUpdatePlaybackControlsManager):
+        * html/HTMLMediaElement.h:
+
+2016-07-07  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed build fix after r202908. Fix the webPlaybackSessionInterfaceMac @property.
+
+        * platform/mac/WebPlaybackControlsManager.h:
+        * platform/mac/WebPlaybackControlsManager.mm:
+
+2016-07-07  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response constructor should throw in case of bad reason phrase
+        https://bugs.webkit.org/show_bug.cgi?id=159508
+
+        Reviewed by Alex Christensen.
+
+        Covered by rebased test.
+
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::initializeWith): Validating reason phrase with new routine.
+        Throwing a TypeError in case of error.
+        * platform/network/HTTPParsers.cpp:
+        (WebCore::isValidReasonPhrase): Added to validate reason phrase according
+        https://tools.ietf.org/html/rfc7230#section-3.1.2
+        * platform/network/HTTPParsers.h:
+
+2016-07-07  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response.redirect should throw a RangeError in case of bad status code
+        https://bugs.webkit.org/show_bug.cgi?id=159507
+
+        Reviewed by Alex Christensen.
+
+        Covered by rebased test.
+
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::redirect): Throw a RangeError in case of bad status.
+
+2016-07-05  Jer Noble  <jer.noble@apple.com>
+
+        Ownership between WebPlaybackSessionInterfaceMac and WebPlaybackControlsManager is backwards.
+        https://bugs.webkit.org/show_bug.cgi?id=159441
+
+        Reviewed by Eric Carlson.
+
+        The WebPlaybackControlsManager should own the WebPlaybackSessionInterfaceMac, and not
+        vice versa.
+
+        * platform/mac/WebPlaybackControlsManager.h:
+        * platform/mac/WebPlaybackControlsManager.mm:
+        (-[WebPlaybackControlsManager webPlaybackSessionInterfaceMac]):
+        (-[WebPlaybackControlsManager setWebPlaybackSessionInterfaceMac:]):
+        * platform/mac/WebPlaybackSessionInterfaceMac.h:
+        * platform/mac/WebPlaybackSessionInterfaceMac.mm:
+        (WebCore::WebPlaybackSessionInterfaceMac::playBackControlsManager):
+
+2016-07-07  Eric Carlson  <eric.carlson@apple.com>
+
+        Add a test for media control dropoff
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        <rdar://problem/23544666>
+
+        Reviewed by Antoine Quint.
+
+        Test: media/controls/inline-elements-dropoff-order.html
+
+        * Modules/mediacontrols/mediaControlsApple.js: Expose more state to testing.
+
+2016-07-07  Miguel Gomez  <magomez@igalia.com>
+
+        [GTK] Painting a video into a canvas doesn't work when accelerated compositing is enabled
+        https://bugs.webkit.org/show_bug.cgi?id=159405
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Implement video frame painting to the canvas when accelerated compositing is enabled.
+
+        Already covered by existent tests.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp:
+        (WebCore::MediaPlayerPrivateGStreamer::handleMessage):
+        Replace custom enumeration for the video rotation with the ImageOrientation class.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::naturalSize):
+        Replace the orientation value comparison with ImageOrientation::usesWidthAsHeight().
+        (WebCore::MediaPlayerPrivateGStreamerBase::paint):
+        Perform the frame painting taking into account the video orientation tag.
+        (WebCore::MediaPlayerPrivateGStreamerBase::nativeImageForCurrentTime):
+        Rotate the native image before returning it.
+        (WebCore::MediaPlayerPrivateGStreamerBase::setVideoSourceOrientation):
+        Replace custom enumeration for the video rotation with the ImageOrientation class.
+        (WebCore::MediaPlayerPrivateGStreamerBase::MediaPlayerPrivateGStreamerBase): Deleted.
+        Remove orientation initialization.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h:
+        Remove custom enumeration for the video orientation.
+
 2016-07-07  Philippe Normand  <pnormand@igalia.com>
 
         [GStreamer][GL] switch to appsink
