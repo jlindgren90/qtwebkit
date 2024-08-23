@@ -729,11 +729,6 @@ webkit.org/b/122031 fast/animation/request-animation-frame-time-unit.html [ Pass
 
 webkit.org/b/122038 animations/transform-non-accelerated.html [ Pass Failure ]
 
-webkit.org/b/122490 [ Debug ] mathml/very-large-stretchy-operators.html [ Skip ]
-
-# rdar://problem/21443002
-[ Release ElCapitan+ ] mathml/very-large-stretchy-operators.html [ Slow ]
-
 webkit.org/b/123220 compositing/regions/floated-region-with-transformed-child.html [ Pass ImageOnlyFailure ]
 webkit.org/b/138179 compositing/regions/propagate-region-box-shadow-border-padding-for-video.html [ Skip ]
 
@@ -1283,8 +1278,6 @@ webkit.org/b/153781 [ Debug ] imported/w3c/web-platform-tests/streams/readable-s
 # WOFF2 is only supported on certain Operating Systems.
 webkit.org/b/150830 [ Yosemite ElCapitan ] fast/text/woff2.html [ ImageOnlyFailure ]
 
-webkit.org/b/150956 imported/w3c/web-platform-tests/html/semantics/embedded-content/media-elements/event_loadeddata.html [ Pass Timeout ]
-
 webkit.org/b/140217 http/tests/navigation/forward-and-cancel.html [ Pass Failure ]
 
 webkit.org/b/151469 imported/w3c/web-platform-tests/html/syntax/parsing/template/creating-an-element-for-the-token/template-owner-document.html [ Pass Crash ]
@@ -1418,9 +1411,6 @@ webkit.org/b/158889 media/video-controls-show-on-kb-or-ax-event.html [ Pass Fail
 
 # rdar://problem/25578897
 [ Sierra+ ] fast/backgrounds/hidpi-background-image-contain-cover-scale-needs-more-precision.html [ Pass ImageOnlyFailure ]
-
-# rdar://problem/26884958
-[ Sierra+ ] fast/canvas/canvas-strokeRect-alpha-shadow.html [ Failure ]
 
 # rdar://problem/26924977
 [ Sierra+ ] fast/canvas/webgl/premultiplyalpha-test.html [ Failure ]

@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef NetworkProcess_h
-#define NetworkProcess_h
+#pragma once
 
 #include "CacheModel.h"
 #include "ChildProcess.h"
@@ -51,6 +50,7 @@ namespace WebCore {
 class DownloadID;
 class CertificateInfo;
 class NetworkStorageSession;
+class ProtectionSpace;
 class SecurityOrigin;
 class SessionID;
 struct SecurityOriginData;
@@ -60,6 +60,7 @@ namespace WebKit {
 class AuthenticationManager;
 class NetworkConnectionToWebProcess;
 class NetworkProcessSupplement;
+class NetworkResourceLoader;
 enum class WebsiteDataFetchOption;
 enum class WebsiteDataType;
 struct NetworkProcessCreationParameters;
@@ -112,7 +113,11 @@ public:
 #if USE(NETWORK_SESSION)
     void findPendingDownloadLocation(NetworkDataTask&, ResponseCompletionHandler&&, const WebCore::ResourceRequest&);
 #endif
-    
+
+#if USE(PROTECTION_SPACE_AUTH_CALLBACK)
+    void canAuthenticateAgainstProtectionSpace(NetworkResourceLoader&, const WebCore::ProtectionSpace&);
+#endif
+
 #if PLATFORM(QT)
     QNetworkAccessManager& networkAccessManager() { return m_networkAccessManager; }
 #endif
@@ -179,11 +184,14 @@ private:
     void downloadRequest(WebCore::SessionID, DownloadID, const WebCore::ResourceRequest&);
     void resumeDownload(WebCore::SessionID, DownloadID, const IPC::DataReference& resumeData, const String& path, const SandboxExtension::Handle&);
     void cancelDownload(DownloadID);
+#if USE(PROTECTION_SPACE_AUTH_CALLBACK)
+    void continueCanAuthenticateAgainstProtectionSpace(uint64_t resourceLoadIdentifier, bool canAuthenticate);
+#endif
 #if PLATFORM(QT)
     void startTransfer(DownloadID, const String& destination);
 #endif
 #if USE(NETWORK_SESSION)
-    void continueCanAuthenticateAgainstProtectionSpace(DownloadID, bool canAuthenticate);
+    void continueCanAuthenticateAgainstProtectionSpaceDownload(DownloadID, bool canAuthenticate);
     void continueWillSendRequest(DownloadID, WebCore::ResourceRequest&&);
     void continueDecidePendingDownloadDestination(DownloadID, String destination, const SandboxExtension::Handle& sandboxExtensionHandle, bool allowOverwrite);
 #endif
@@ -218,6 +226,7 @@ private:
     NetworkProcessSupplementMap m_supplements;
 
     HashMap<uint64_t, Function<void ()>> m_sandboxExtensionForBlobsCompletionHandlers;
+    HashMap<uint64_t, Ref<NetworkResourceLoader>> m_waitingNetworkResourceLoaders;
 
 #if PLATFORM(COCOA)
     void platformInitializeNetworkProcessCocoa(const NetworkProcessCreationParameters&);
@@ -238,5 +247,3 @@ private:
 };
 
 } // namespace WebKit
-
-#endif // NetworkProcess_h

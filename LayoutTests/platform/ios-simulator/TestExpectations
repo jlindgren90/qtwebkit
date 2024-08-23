@@ -256,6 +256,15 @@ fast/scrolling/scroll-animator-overlay-scrollbars-hovered.html [ Skip ]
 fast/scrolling/scroll-animator-select-list-events.html [ Skip ]
 fast/events/prevent-default-prevents-interaction-with-scrollbars.html [ Skip ]
 fast/text/text-disappear-on-deselect.html [ ImageOnlyFailure ]
+fast/css/pseudo-active-on-labeled-control-without-renderer.html [ Skip ]
+fast/css/pseudo-active-on-labeled-element-not-canceled-by-focus.html [ Skip ]
+fast/css/pseudo-active-style-sharing-1.html [ Skip ]
+fast/css/pseudo-active-style-sharing-2.html [ Skip ]
+fast/css/pseudo-active-style-sharing-3.html [ Skip ]
+fast/css/pseudo-active-style-sharing-4.html [ Skip ]
+fast/css/pseudo-active-style-sharing-5.html [ Skip ]
+fast/css/pseudo-active-style-sharing-6.html [ Skip ]
+fast/css/pseudo-active-with-programmatic-focus.html [ Skip ]
 
 webkit.org/b/148695 fast/shadow-dom [ Pass ]
 
@@ -665,9 +674,6 @@ mathml/opentype/horizontal.html [ Failure ]
 mathml/opentype/opentype-stretchy-horizontal.html [ Failure ]
 mathml/mathml-in-dashboard.html [ Failure ]
 mathml/presentation/scripts-height.html [ ImageOnlyFailure ]
-
-# <rdar://problem/19221067> ASSERT(m_stretchyData.top().glyph) fails in RenderMathMLOperator.cpp
-mathml/presentation/style-changed.html
 
 # <rdar://problem/19215305> ASSERT(m_cgFont.get()) fails in FontPlatformData::ctFont()
 svg/text/svg-fallback-font-crash.html
@@ -1437,8 +1443,6 @@ fast/css/min-width-with-spanned-cell.html [ Failure ]
 fast/css/negative-text-indent-in-inline-block.html [ ImageOnlyFailure ]
 fast/css/object-fit/object-fit-input-image.html [ ImageOnlyFailure ]
 fast/css/outline-auto-empty-rects.html [ Failure ]
-fast/css/pseudo-active-on-labeled-element-not-canceled-by-focus.html [ Failure ]
-fast/css/pseudo-active-with-programmatic-focus.html [ Failure ]
 fast/css/pseudo-first-line-border-width.html [ Failure ]
 fast/css/read-only-read-write-input-basics.html [ ImageOnlyFailure ]
 fast/css/replaced-element-implicit-size.html [ Failure ]
@@ -2952,8 +2956,6 @@ webkit.org/b/155372 [ Debug ] css3/masking/mask-svg-script-none-to-png.html [ Pa
 webkit.org/b/155339 [ Debug ] imported/blink/fast/multicol/dynamic/multicol-with-abspos-svg-with-foreignobject-with-multicol-crash.html [ Pass Crash ]
 webkit.org/b/155339 [ Debug ] imported/blink/fast/multicol/dynamic/relayout-abspos-in-relpos-spanner.html [ Pass Crash ]
 
-webkit.org/b/155565 [ Debug ] mathml/very-large-stretchy-operators.html [ Skip ]
-
 # RTL Scrollbars are not implemented on iOS.
 fast/scrolling/rtl-scrollbars-sticky-document-2.html [ ImageOnlyFailure ]
 fast/scrolling/rtl-scrollbars-sticky-document.html [ ImageOnlyFailure ]
@@ -2987,3 +2989,7 @@ webkit.org/b/158618 fast/hidpi/hidpi-3x-device-pixel-ratio.html [ Failure ]
 
 # These tests hardcode platform-specific font aliases.
 webkit.org/b/158649 fast/text/chinese-font-name-aliases-2.html [ ImageOnlyFailure ]
+
+webkit.org/b/159214 fast/multicol/fixed-stack.html [ ImageOnlyFailure ]
+
+webkit.org/b/157592 fast/images/composited-animated-gif-outside-viewport.html [ Pass Timeout ]

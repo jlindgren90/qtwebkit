@@ -82,6 +82,7 @@
 #include "HTMLHtmlElement.h"
 #include "HTMLIFrameElement.h"
 #include "HTMLImageElement.h"
+#include "HTMLInputElement.h"
 #include "HTMLLinkElement.h"
 #include "HTMLMediaElement.h"
 #include "HTMLNameCollection.h"
@@ -878,8 +879,8 @@ static RefPtr<Element> createHTMLElementWithNameValidation(Document& document, c
 #if ENABLE(CUSTOM_ELEMENTS)
     auto* definitions = document.customElementDefinitions();
     if (UNLIKELY(definitions)) {
-        if (auto* interface = definitions->findInterface(localName))
-            return interface->constructElement(localName, JSCustomElementInterface::ShouldClearException::DoNotClear);
+        if (auto* elementInterface = definitions->findInterface(localName))
+            return elementInterface->constructElement(localName, JSCustomElementInterface::ShouldClearException::DoNotClear);
     }
 #endif
 
@@ -891,7 +892,8 @@ static RefPtr<Element> createHTMLElementWithNameValidation(Document& document, c
     QualifiedName qualifiedName(nullAtom, localName, xhtmlNamespaceURI);
 
 #if ENABLE(CUSTOM_ELEMENTS)
-    if (Document::validateCustomElementName(localName) == CustomElementNameValidationStatus::Valid) {
+    if (RuntimeEnabledFeatures::sharedFeatures().customElementsEnabled()
+        && Document::validateCustomElementName(localName) == CustomElementNameValidationStatus::Valid) {
         Ref<HTMLElement> element = HTMLElement::create(qualifiedName, document);
         element->setIsUnresolvedCustomElement();
         document.ensureCustomElementDefinitions().addUpgradeCandidate(element.get());
@@ -1068,10 +1070,10 @@ static Ref<HTMLElement> createFallbackHTMLElement(Document& document, const Qual
 #if ENABLE(CUSTOM_ELEMENTS)
     auto* definitions = document.customElementDefinitions();
     if (UNLIKELY(definitions)) {
-        if (auto* interface = definitions->findInterface(name)) {
+        if (auto* elementInterface = definitions->findInterface(name)) {
             Ref<HTMLElement> element = HTMLElement::create(name, document);
             element->setIsUnresolvedCustomElement();
-            LifecycleCallbackQueue::enqueueElementUpgrade(element.get(), *interface);
+            LifecycleCallbackQueue::enqueueElementUpgrade(element.get(), *elementInterface);
             return element;
         }
     }
@@ -2329,7 +2331,7 @@ void Document::prepareForDestruction()
         return;
 
 #if ENABLE(IOS_TOUCH_EVENTS)
-    clearTouchEventListeners();
+    clearTouchEventHandlersAndListeners();
 #endif
 
 #if HAVE(ACCESSIBILITY)
@@ -2398,7 +2400,7 @@ void Document::removeAllEventListeners()
     if (m_domWindow)
         m_domWindow->removeAllEventListeners();
 #if ENABLE(IOS_TOUCH_EVENTS)
-    clearTouchEventListeners();
+    clearTouchEventHandlersAndListeners();
 #endif
     for (Node* node = firstChild(); node; node = NodeTraversal::next(*node))
         node->removeAllEventListeners();
@@ -3808,8 +3810,11 @@ bool Document::setFocusedElement(Element* element, FocusDirection direction, Foc
                 focusChangeBlocked = true;
                 newFocusedElement = nullptr;
             }
-        } else
+        } else {
+            if (is<HTMLInputElement>(*oldFocusedElement))
+                downcast<HTMLInputElement>(*oldFocusedElement).endEditing();
             ASSERT(!m_focusedElement);
+        }
 
         if (oldFocusedElement->isRootEditableElement())
             frame()->editor().didEndEditing();

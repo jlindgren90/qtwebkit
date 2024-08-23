@@ -1,3 +1,180 @@
+2016-06-28  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202580.
+        https://bugs.webkit.org/show_bug.cgi?id=159245
+
+        Caused all WKTR tests to fail on GuardMalloc and Production
+        only for unknown reasons, investigating offline. (Requested by
+        brrian on #webkit).
+
+        Reverted changeset:
+
+        "RunLoop::Timer should use constructor templates instead of
+        class templates"
+        https://bugs.webkit.org/show_bug.cgi?id=159153
+        http://trac.webkit.org/changeset/202580
+
+2016-06-28  Srinivasan Vijayaraghavan  <svijayaraghavan@apple.com>
+
+        Use a regex to check if a test step is for JavaScriptCore
+        https://bugs.webkit.org/show_bug.cgi?id=159224
+
+        Reviewed by Geoffrey Garen.
+
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Scripts/BuildbotCombinedQueueView.js:
+        (BuildbotCombinedQueueView.prototype.update): Replace array membership test with regex test.
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Scripts/BuildbotIteration.js:
+        (BuildbotIteration.prototype._parseData): Replace array membership test with regex test.
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Scripts/BuildbotTesterQueueView.js:
+        (BuildbotTesterQueueView.prototype.appendBuilderQueueStatus): Replace array membership test with regex test.
+
+2016-06-28  Michael Saboff  <msaboff@apple.com>
+
+        btjs no longer accepts optional frame count argument
+        https://bugs.webkit.org/show_bug.cgi?id=159235
+
+        Reviewed by Saam Barati.
+
+        Fix the detection of optional backtrace-depth parameter to use the length
+        of the command.
+
+        * lldb/lldb_webkit.py:
+        (btjs):
+
+2016-06-28  Jon Lee  <jonlee@apple.com>
+
+        Update animometer.plan
+
+        Rubber-stamped by Said Abou-Hallawa.
+
+        * Scripts/webkitpy/benchmark_runner/data/plans/animometer.plan: Update to r202601.
+
+2016-06-28  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, fix JSC tests. Air.js moved, and the harness needs to know.
+
+        * Scripts/run-javascriptcore-tests:
+        (runJSCStressTests):
+
+2016-06-28  Brian Burg  <bburg@apple.com>
+
+        RunLoop::Timer should use constructor templates instead of class templates
+        https://bugs.webkit.org/show_bug.cgi?id=159153
+
+        Reviewed by Alex Christensen.
+
+        Remove the RunLoop::Timer class template argument, and pass its constructor
+        a reference to `this` instead of a pointer to `this`.
+
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp:
+        (WTR::TestRunner::TestRunner):
+        * WebKitTestRunner/InjectedBundle/TestRunner.h:
+        * TestWebKitAPI/Tests/WTF/RunLoop.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-06-28  Ryosuke Niwa  <rniwa@webkit.org>
+
+        REGRESSION(r201471): FormClient.textFieldDidEndEditing is no longer called when a text field is removed
+        https://bugs.webkit.org/show_bug.cgi?id=159199
+
+        Reviewed by Alexey Proskuryakov.
+
+        Added a test case for removing a text field. Also fixed the flakiness and re-enabled it on Mac.
+
+        * TestWebKitAPI/Tests/WebKit2/TextFieldDidBeginAndEndEditing.cpp:
+        * TestWebKitAPI/Tests/WebKit2/TextFieldDidBeginAndEndEditing_Bundle.cpp:
+        * TestWebKitAPI/Tests/WebKit2/input-focus-blur.html: Focus a div upfront to avoid the flakiness from
+        an input element getting automatically focused on Mac.
+
+2016-06-28  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Custom elements tests are failing.
+        https://bugs.webkit.org/show_bug.cgi?id=159139
+
+        Reviewed by Alex Christensen.
+
+        Enable custom element API when running tests.
+
+        * DumpRenderTree/win/DumpRenderTree.cpp:
+        (resetWebPreferencesToConsistentValues):
+
+2016-06-27  Lucas Forschler  <lforschler@apple.com>
+
+        Test commit. Please ignore.
+        
+2016-06-27  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK][EFL] Disable subtle-crypto in FeatureList.pm
+        https://bugs.webkit.org/show_bug.cgi?id=155073
+
+        Reviewed by Daniel Bates.
+
+        * Scripts/webkitperl/FeatureList.pm:
+
+2016-06-27  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS] Make DumpRenderTree and WebKitTestRunner in the simulator use render server snapshotting
+        https://bugs.webkit.org/show_bug.cgi?id=159077
+
+        Reviewed by Tim Horton.
+
+        Re-enable render server snapshotting for iOS WTR via the change in InjectedBundlePage.cpp.
+
+        Fix WebPageProxy::forceRepaint() to correctly wait for the next commit from the web process,
+        which is necessary for UI-side compositing.
+
+        Add some null checks to fix issues when the WKWebView gets resized to be empty, which
+        seems to happen for some tests that call window.resizeTo().
+
+        * WebKitTestRunner/InjectedBundle/InjectedBundlePage.cpp:
+        (WTR::InjectedBundlePage::dump): Deleted.
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::dumpResults):
+        * WebKitTestRunner/cg/TestInvocationCG.cpp:
+        (WTR::createCGContextFromImage):
+        (WTR::computeMD5HashStringForContext):
+        (WTR::TestInvocation::dumpPixelsAndCompareWithExpected):
+        * WebKitTestRunner/ios/PlatformWebViewIOS.mm:
+        (WTR::PlatformWebView::windowSnapshotImage):
+
+2016-06-27  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Support to build on Debian linux
+        https://bugs.webkit.org/show_bug.cgi?id=159123
+
+        Reviewed by Antonio Gomes.
+
+        * efl/install-dependencies: Install libgnutls28-dev.
+
+2016-06-27  Alex Christensen  <achristensen@webkit.org>
+
+        Send canAuthenticateAgainstProtectionSpace calls from NetworkProcess directly to UIProcess
+        https://bugs.webkit.org/show_bug.cgi?id=159071
+
+        Reviewed by Brady Eidson.
+
+        * WebKitTestRunner/InjectedBundle/Bindings/TestRunner.idl:
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp:
+        (WTR::TestRunner::setHandlesAuthenticationChallenges):
+        (WTR::TestRunner::setShouldLogCanAuthenticateAgainstProtectionSpace):
+        (WTR::TestRunner::setAuthenticationUsername):
+        * WebKitTestRunner/InjectedBundle/TestRunner.h:
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::TestController):
+        (WTR::TestController::resetStateToConsistentValues):
+        (WTR::TestController::didFinishNavigation):
+        (WTR::TestController::canAuthenticateAgainstProtectionSpace):
+        (WTR::TestController::didReceiveAuthenticationChallenge):
+        (WTR::TestController::didCommitNavigation):
+        * WebKitTestRunner/TestController.h:
+        (WTR::TestController::setBlockAllPlugins):
+        (WTR::TestController::setShouldLogHistoryClientCallbacks):
+        (WTR::TestController::setShouldLogCanAuthenticateAgainstProtectionSpace):
+        (WTR::TestController::isCurrentInvocation):
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::didReceiveMessageFromInjectedBundle):
+        Added output so we can see when canAuthenticateAgainstProtectionSpace is called from the test expectations.
+
 2016-06-27  Per Arne Vollan  <pvollan@apple.com>
 
         [Win] The test fast/events/wheel-event-outside-body.html is timing out.

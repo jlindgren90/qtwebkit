@@ -336,7 +336,6 @@ webkit.org/b/85212 ietestcenter/css3/flexbox/flexbox-layout-002.htm [ ImageOnlyF
 webkit.org/b/79203 fast/mediastream/MediaStream-MediaElement-srcObject.html [ Skip ]
 webkit.org/b/79203 fast/mediastream/MediaStreamTrack.html [ Skip ]
 webkit.org/b/79203 fast/mediastream/MediaStreamTrack-onended.html [ Skip ]
-webkit.org/b/79203 fast/mediastream/RTCPeerConnection-AddRemoveStream.html [ Skip ]
 webkit.org/b/79203 fast/mediastream/RTCPeerConnection-createAnswer.html [ Skip ]
 webkit.org/b/79203 fast/mediastream/RTCPeerConnection-createOffer.html [ Skip ]
 webkit.org/b/79203 fast/mediastream/RTCPeerConnection-datachannel.html [ Skip ]
@@ -716,6 +715,8 @@ webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_use
 webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_user_timing_measure.html [ Failure ]
 webkit.org/b/158617 http/tests/w3c/webperf/submission/Intel/user-timing/test_user_timing_method_exist.html [ Failure ]
 
+# Subtle crypto
+webkit.org/b/133344 crypto/subtle/ [ Timeout ]
 
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of Expected failures
@@ -1092,7 +1093,6 @@ webkit.org/b/132254 fast/sub-pixel/simple-clipping.html [ ImageOnlyFailure Crash
 webkit.org/b/132257 fast/history/form-submit-in-frame-via-onclick.html [ Timeout Pass ]
 webkit.org/b/132260 fast/workers/worker-close.html [ Timeout Pass ]
 webkit.org/b/132261 html5lib/generated/run-tests16-data.html [ Timeout Pass ]
-webkit.org/b/132267 mathml/wbr-in-mroot-crash.html [ Timeout Pass ]
 webkit.org/b/132272 fast/dom/gc-10.html [ Failure Pass ]
 webkit.org/b/132279 perf/mouse-event.html [ Failure Pass ]
 webkit.org/b/132281 fast/workers/worker-constructor.html [ Timeout Pass ]
@@ -1605,7 +1605,6 @@ webkit.org/b/144690 editing/spelling/delete-into-misspelled-word.html [ Timeout 
 webkit.org/b/141835 media/video-controls-no-scripting.html [ Failure ]
 
 # May take too long on the bots.
-Bug(GTK) mathml/very-large-stretchy-operators.html [ Pass Timeout ]
 
 Bug(GTK) fast/history/go-back-to-iframe-with-plugin.html [ Timeout Pass ]
 
@@ -2299,9 +2298,6 @@ webkit.org/b/133803 editing/input/option-page-up-down.html [ Failure ]
 webkit.org/b/133803 editing/input/scroll-viewport-page-up-down.html [ Failure ]
 webkit.org/b/133803 editing/undo/undo-deleteWord.html [ Failure ]
 
-# Difference invisible at the naked eye with Latin Modern Math.
-webkit.org/b/134153 mathml/presentation/mo-stacked-glyphs.html [ ImageOnlyFailure ]
-
 webkit.org/b/134976 media/media-controls-invalid-url.html [ Failure ]
 webkit.org/b/134976 media/video-fast-seek.html [ Failure ]
 
@@ -2368,6 +2364,9 @@ webkit.org/b/138077 fast/layers/parent-clipping-overflow-is-overwritten-by-child
 # Smooth scrolling causes failure of scrolling tests
 webkit.org/b/138078 fast/dom/vertical-scrollbar-in-rtl.html [ Failure ]
 webkit.org/b/138078 fast/repaint/fixed-move-after-keyboard-scroll.html [ Failure ]
+
+# Scrolling cleanup causing some test to fail
+webkit.org/b/159143 fast/dom/horizontal-scrollbar-in-rtl.html [ Failure ]
 
 # Incomplete implementation of eventSender causes this test to fail
 webkit.org/b/42194 fast/scrolling/scroll-select-list.html [ ImageOnlyFailure ]
@@ -2594,11 +2593,6 @@ webkit.org/b/156438 imported/w3c/web-platform-tests/IndexedDB/keyorder.htm [ Fai
 webkit.org/b/156438 inspector/indexeddb/requestDatabaseNames.html [ Failure ]
 webkit.org/b/156438 storage/indexeddb/cursor-key-order.html [ Failure ]
 
-webkit.org/b/158927 webaudio/codec-tests/aac/vbr-128kbps-44khz.html [ Failure ]
-webkit.org/b/158927 webaudio/codec-tests/vorbis/vbr-128kbps-44khz.html [ Failure ]
-webkit.org/b/158927 webaudio/codec-tests/vorbis/vbr-70kbps-44khz.html [ Failure ]
-webkit.org/b/158927 webaudio/codec-tests/vorbis/vbr-96kbps-44khz.html [ Failure ]
-
 webkit.org/b/158928 svg/zoom/page/zoom-svg-through-object-with-absolute-size-2.xhtml [ Failure ]
 webkit.org/b/158928 svg/zoom/page/zoom-svg-through-object-with-absolute-size.xhtml [ Failure ]
 webkit.org/b/158928 svg/zoom/page/zoom-svg-through-object-with-percentage-size.xhtml [ Failure ]
@@ -2617,8 +2611,6 @@ css3/flexbox/multiline-reverse-wrap-baseline.html [ Pass ]
 ietestcenter/css3/flexbox/flexbox-layout-001.htm [ Pass ]
 
 imported/w3c/canvas/2d.line.cap.round.html [ Pass ]
-
-mathml/presentation/style-changed.html [ Pass ]
 
 transitions/svg-text-shadow-transition.html [ Pass ]
 

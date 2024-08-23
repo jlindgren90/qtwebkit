@@ -1145,6 +1145,8 @@ public:
 
     bool isAlwaysOnLoggingAllowed() const;
 
+    void canAuthenticateAgainstProtectionSpace(uint64_t loaderID, uint64_t frameID, const WebCore::ProtectionSpace&);
+
     void setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&&, const String& scheme);
     WebURLSchemeHandler* urlSchemeHandlerForScheme(const String& scheme);
 
@@ -1431,7 +1433,6 @@ private:
     void focusedFrameChanged(uint64_t frameID);
     void frameSetLargestFrameChanged(uint64_t frameID);
 
-    void canAuthenticateAgainstProtectionSpaceInFrame(uint64_t frameID, const WebCore::ProtectionSpace&, bool& canAuthenticate);
     void didReceiveAuthenticationChallenge(uint64_t frameID, const WebCore::AuthenticationChallenge&, uint64_t challengeID);
 
     void didFinishLoadingDataForCustomContentProvider(const String& suggestedFilename, const IPC::DataReference&);

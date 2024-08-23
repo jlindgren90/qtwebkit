@@ -1537,13 +1537,15 @@ void WebPageProxy::updateActivityToken()
 
 #if PLATFORM(IOS)
     if (!isViewVisible() && !m_alwaysRunsAtForegroundPriority) {
-        WEBPAGEPROXY_LOG_ALWAYS("UIProcess is releasing a foreground assertion because the view is no longer visible");
-        m_activityToken = nullptr;
+        if (m_activityToken) {
+            WEBPAGEPROXY_LOG_ALWAYS("%p - UIProcess is releasing a foreground assertion because the view is no longer visible", this);
+            m_activityToken = nullptr;
+        }
     } else if (!m_activityToken) {
         if (isViewVisible())
-            WEBPAGEPROXY_LOG_ALWAYS("UIProcess is taking a foreground assertion because the view is visible");
+            WEBPAGEPROXY_LOG_ALWAYS("%p - UIProcess is taking a foreground assertion because the view is visible", this);
         else
-            WEBPAGEPROXY_LOG_ALWAYS("UIProcess is taking a foreground assertion even though the view is not visible because m_alwaysRunsAtForegroundPriority is true");
+            WEBPAGEPROXY_LOG_ALWAYS("%p - UIProcess is taking a foreground assertion even though the view is not visible because m_alwaysRunsAtForegroundPriority is true", this);
         m_activityToken = m_process->throttler().foregroundActivityToken();
     }
 #endif
@@ -2368,9 +2370,11 @@ RefPtr<API::Navigation> WebPageProxy::restoreFromSessionState(SessionState sessi
 
         process().send(Messages::WebPage::RestoreSession(m_backForwardList->itemStates()), m_pageID);
 
-        // The back / forward list was restored from a sessionState so we don't want to snapshot the current
-        // page when navigating away. Suppress navigation snapshotting until the next load has committed.
-        m_suppressNavigationSnapshotting = true;
+        if (navigate) {
+            // The back / forward list was restored from a sessionState so we don't want to snapshot the current
+            // page when navigating away. Suppress navigation snapshotting until the next load has committed
+            m_suppressNavigationSnapshotting = true;
+        }
     }
 
     // FIXME: Navigating should be separate from state restoration.
@@ -2939,8 +2943,28 @@ void WebPageProxy::forceRepaint(PassRefPtr<VoidCallback> prpCallback)
         return;
     }
 
-    uint64_t callbackID = callback->callbackID();
-    m_callbacks.put(callback);
+    std::function<void (CallbackBase::Error)> didForceRepaintCallback = [this, callback](CallbackBase::Error error) {
+        if (error != CallbackBase::Error::None) {
+            callback->invalidate(error);
+            return;
+        }
+
+        if (!isValid()) {
+            callback->invalidate(CallbackBase::Error::OwnerWasInvalidated);
+            return;
+        }
+    
+        callAfterNextPresentationUpdate([callback](CallbackBase::Error error) {
+            if (error != CallbackBase::Error::None) {
+                callback->invalidate(error);
+                return;
+            }
+
+            callback->performCallback();
+        });
+    };
+
+    uint64_t callbackID = m_callbacks.put(didForceRepaintCallback, m_process->throttler().backgroundActivityToken());
     m_drawingArea->waitForBackingStoreUpdateOnNextPaint();
     m_process->send(Messages::WebPage::ForceRepaint(callbackID), m_pageID); 
 }
@@ -5449,17 +5473,22 @@ void WebPageProxy::backForwardClear()
     m_backForwardList->clear();
 }
 
-void WebPageProxy::canAuthenticateAgainstProtectionSpaceInFrame(uint64_t frameID, const ProtectionSpace& coreProtectionSpace, bool& canAuthenticate)
+void WebPageProxy::canAuthenticateAgainstProtectionSpace(uint64_t loaderID, uint64_t frameID, const ProtectionSpace& coreProtectionSpace)
 {
+#if USE(PROTECTION_SPACE_AUTH_CALLBACK)
     WebFrameProxy* frame = m_process->webFrame(frameID);
     MESSAGE_CHECK(frame);
 
     RefPtr<WebProtectionSpace> protectionSpace = WebProtectionSpace::create(coreProtectionSpace);
 
+    bool canAuthenticate;
     if (m_navigationClient)
         canAuthenticate = m_navigationClient->canAuthenticateAgainstProtectionSpace(*this, protectionSpace.get());
     else
         canAuthenticate = m_loaderClient->canAuthenticateAgainstProtectionSpaceInFrame(*this, *frame, protectionSpace.get());
+
+    m_process->processPool().sendToNetworkingProcess(Messages::NetworkProcess::ContinueCanAuthenticateAgainstProtectionSpace(loaderID, canAuthenticate));
+#endif
 }
 
 void WebPageProxy::didReceiveAuthenticationChallenge(uint64_t frameID, const AuthenticationChallenge& coreChallenge, uint64_t challengeID)
