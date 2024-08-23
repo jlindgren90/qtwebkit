@@ -1,3 +1,771 @@
+2016-07-19  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Add a JS builtin to implement https://fetch.spec.whatwg.org/#concept-headers-fill
+        https://bugs.webkit.org/show_bug.cgi?id=159932
+
+        Reviewed by Alex Christensen.
+
+        Covered by existing tests.
+
+        Refactoring Headers initializeWith to use the new built-in internal that implements
+        https://fetch.spec.whatwg.org/#concept-headers-fill.
+
+        Refactoring Response constructor to put more checks in the JS builtin fucntion called within constructor.
+        Making use of the new built-in internal that implements https://fetch.spec.whatwg.org/#concept-headers-fill.
+
+        * CMakeLists.txt: Adding FetchHeadersInternals.js
+        * DerivedSources.make: Ditto.
+        * Modules/fetch/FetchHeaders.js:
+        (initializeFetchHeaders): Using fillFetchHeaders new built-in internal.
+        * Modules/fetch/FetchInternals.js: Added.
+        (fillFetchHeaders):
+        * Modules/fetch/FetchResponse.cpp: Refactoring to do more in the JS built-in. Splitting of initializeWith so
+        that the checks are done in the order defined by the spec.
+        (WebCore::FetchResponse::setStatus):
+        (WebCore::FetchResponse::initializeWith):
+        (WebCore::isNullBodyStatus): Deleted.
+        * Modules/fetch/FetchResponse.h:
+        * Modules/fetch/FetchResponse.idl:
+        * Modules/fetch/FetchResponse.js:
+        (initializeFetchResponse): New built-in internal.
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/WebCoreBuiltinNames.h:
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of SVGScriptElement.type attribute
+        https://bugs.webkit.org/show_bug.cgi?id=159927
+
+        Reviewed by Benjamin Poulain.
+
+        Fix null handling of SVGScriptElement.type attribute:
+        - https://www.w3.org/TR/SVG2/interact.html#InterfaceSVGScriptElement
+
+        We were treating null as the null String which would end up removing
+        the 'type' content attribute. However, we should treat null as the
+        String "null".
+
+        Firefox and Chrome match the specification.
+
+        No new tests, updated existing test.
+
+        * svg/SVGScriptElement.idl:
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of several HTMLDocument attributes
+        https://bugs.webkit.org/show_bug.cgi?id=159923
+
+        Reviewed by Benjamin Poulain.
+
+        Fix null handling of several HTMLDocument attributes:
+        - https://html.spec.whatwg.org/multipage/dom.html#document
+        - https://html.spec.whatwg.org/multipage/obsolete.html#document-partial
+
+        In particular, null handling was incorrect in WebKit for 'dir',
+        'bgColor', 'fgColor', 'alinkColor', 'linkColor' and 'vlinkColor'.
+
+        Firefox and Chrome match the specification.
+
+        Test: fast/dom/HTMLDocument/null-handling.html
+
+        * html/HTMLDocument.idl:
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Document.createElementNS() / createAttributeNS() parameters should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=159938
+
+        Reviewed by Benjamin Poulain.
+
+        Document.createElementNS() / createAttributeNS() parameters should be mandatory:
+        - https://dom.spec.whatwg.org/#document
+
+        They were optional in WebKit. However, Firefox and Chrome both match the
+        specification.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Document.idl:
+
+2016-07-19  Benjamin Poulain  <bpoulain@apple.com>
+
+        Use getElementById for attribute matching if the attribute name is html's id
+        https://bugs.webkit.org/show_bug.cgi?id=159960
+
+        Reviewed by Chris Dumez.
+
+        Elliott Sprehn discovered YUI makes heavy uses of querySelector with [id=value]
+        (https://bugs.chromium.org/p/chromium/issues/detail?id=627242).
+
+        If we are not in quirks mode, IdForStyleResolution has the same value
+        as the Id attribute. We can use the same optimization for both cases.
+
+        Tests: fast/selectors/id-attribute-querySelector-used-as-id-selector-quirks.html
+               fast/selectors/id-attribute-querySelector-used-as-id-selector.html
+
+        * dom/SelectorQuery.cpp:
+        (WebCore::canBeUsedForIdFastPath):
+        (WebCore::findIdMatchingType):
+        (WebCore::SelectorDataList::SelectorDataList):
+        (WebCore::selectorForIdLookup):
+        (WebCore::filterRootById):
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Drop SVGElement.xmlbase attribute
+        https://bugs.webkit.org/show_bug.cgi?id=159926
+
+        Reviewed by Benjamin Poulain.
+
+        Drop SVGElement.xmlbase attribute as it is no longer part of the
+        specification:
+        - https://www.w3.org/TR/SVG2/types.html#InterfaceSVGElement
+
+        Both Firefox and Chrome have already dropped support for
+        SVGElement.xmlbase.
+
+        Chrome's intent to remove:
+        https://groups.google.com/a/chromium.org/forum/#!msg/blink-dev/TfwMq4d25hk/C-v_iC_wKfAJ
+
+        Test: svg/dom/SVGElement-xmlbase.html
+
+        * svg/SVGElement.cpp:
+        (WebCore::SVGElement::removedFrom): Deleted.
+        * svg/SVGElement.h:
+        * svg/SVGElement.idl:
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Align CSSStyleDeclaration.setProperty() with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=159955
+
+        Reviewed by Benjamin Poulain.
+
+        Align CSSStyleDeclaration.setProperty() with the specification:
+        - https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface
+
+        In particular, the following changes were needed:
+        1. The 'value' parameter should not be optional
+        2. The 'priority' parameter should treat null as the empty string
+           rather than the string "null".
+        3. The 'priority' parameter's default value should be the empty string,
+           not the string "undefined".
+        4. CSSStyleDeclaration.setProperty() should return early if 'priority'
+           is not the empty string and is not an ASCII case-insensitive match
+           for the string "important".
+
+        Chrome matches the specification entirely.
+        Firefox matches the specification with the exception that it does a
+        case-sensitive match for "important".
+
+        Test: fast/css/CSSStyleDeclaration-setProperty.html
+
+        * css/CSSStyleDeclaration.idl:
+        * css/PropertySetCSSStyleDeclaration.cpp:
+        (WebCore::PropertySetCSSStyleDeclaration::setProperty):
+
+2016-07-19  Daniel Bates  <dabates@apple.com>
+
+        CSP: Improve support for multiple policies to more closely conform to the CSP Level 2 spec.
+        https://bugs.webkit.org/show_bug.cgi?id=159841
+        <rdar://problem/27381684>
+
+        Reviewed by Brent Fulgham.
+
+        Implement a first pass at sending multiple violation reports so as to more closely
+        conform to section Enforcing multiple policies of the Content Security Policy Level 2 spec.,
+        <https://w3c.github.io/webappsec-csp/2/> (Editor's Draft, 25 April 2016).
+
+        Tests: http/tests/security/contentSecurityPolicy/1.1/script-blocked-sends-multiple-reports.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-enforced-policy-and-blocked-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-enforced-policy-and-blocked-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-enforced-policy-and-allowed-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-enforced-policy-and-allowed-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-in-enforced-policy-and-not-in-report-only.html
+               http/tests/security/contentSecurityPolicy/1.1/scripthash-in-one-enforced-policy-neither-in-another-enforced-policy-nor-report-policy.html
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-enforced-policy-and-blocked-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-enforced-policy-and-blocked-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-enforced-policy-and-allowed-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-enforced-policy-and-allowed-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy2.php
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-in-enforced-policy-and-not-in-report-only.html
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-in-one-enforced-policy-neither-in-another-enforced-policy-nor-report-policy.html
+               http/tests/security/contentSecurityPolicy/1.1/scriptnonce-multiple-policies.html
+
+        * page/csp/ContentSecurityPolicy.cpp:
+        (WebCore::ContentSecurityPolicy::allPoliciesWithDispositionAllow): Added. Returns whether the resource
+        is allowed by all of the policies with the specified disposition.
+        (WebCore::ContentSecurityPolicy::allPoliciesAllow): Added. Returns whether the resource is allowed by
+        all of the enforced policies.
+        (WebCore::ContentSecurityPolicy::findHashOfContentInPolicies): Formerly named foundHashOfContentInAllPolicies.
+        Modified to return a ("has found hash in all enforced policies, "has found hash in all report-only policies)-pair
+        so that we can differentiate whether the hash violated an enforced policy or a report-only policy.
+        (WebCore::ContentSecurityPolicy::allowJavaScriptURLs): Write in terms of ContentSecurityPolicy::allPoliciesAllow().
+        (WebCore::ContentSecurityPolicy::allowInlineEventHandlers): Ditto.
+        (WebCore::ContentSecurityPolicy::allowScriptWithNonce): For now only accept a nonce if it is allowed by
+        all enforced policies. As a side effect of this change is that we only send a CSP violation report when a
+        nonce violates a report-only policy only if the nonce also violates one or more enforced policies. We will
+        address this limitation in <https://bugs.webkit.org/show_bug.cgi?id=159830>.
+        (WebCore::ContentSecurityPolicy::allowStyleWithNonce): Ditto.
+        (WebCore::ContentSecurityPolicy::allowInlineScript): Differentiate between a hash/'unsafe-inline' that
+        matches/is contained in all enforce policies and a hash/'unsafe-inline' that matches/is contained in all
+        report-only policies so that we only allow the resource for the former. As a side effect of this change
+        we may report that a resource violated a policy even if it contained the hash. See <https://bugs.webkit.org/show_bug.cgi?id=159832>
+        for more details.
+        (WebCore::ContentSecurityPolicy::allowInlineStyle): Ditto.
+        (WebCore::ContentSecurityPolicy::allowEval): Write in terms of ContentSecurityPolicy::allPoliciesAllow().
+        (WebCore::ContentSecurityPolicy::allowFrameAncestors): Ditto.
+        (WebCore::ContentSecurityPolicy::allowPluginType): Ditto.
+        (WebCore::ContentSecurityPolicy::allowScriptFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowObjectFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowChildFrameFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowChildContextFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowImageFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowStyleFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFontFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowMediaFromSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowConnectToSource): Ditto.
+        (WebCore::ContentSecurityPolicy::allowFormAction): Ditto.
+        (WebCore::ContentSecurityPolicy::allowBaseURI): Ditto.
+        (WebCore::ContentSecurityPolicy::foundHashOfContentInAllPolicies): Deleted.
+        * page/csp/ContentSecurityPolicy.h:
+        (WebCore::ContentSecurityPolicy::violatedDirectiveInAnyPolicy): Deleted.
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of HTMLScriptElement.text attribute
+        https://bugs.webkit.org/show_bug.cgi?id=159943
+
+        Reviewed by Benjamin Poulain.
+
+        Fix null handling of HTMLScriptElement.text attribute:
+        - https://html.spec.whatwg.org/multipage/scripting.html#the-script-element
+
+        We should treat null as the "null" String but we were treating it as
+        the empty string.
+
+        Firefox and Chrome match the specification.
+
+        No new tests, rebaselined existing test.
+
+        * html/HTMLScriptElement.idl:
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        autocapitalize attribute should not use [TreatNullAs=LegacyNullString]
+        https://bugs.webkit.org/show_bug.cgi?id=159934
+
+        Reviewed by Benjamin Poulain.
+
+        autocapitalize attribute should not use [TreatNullAs=LegacyNullString]. This is
+        non-standard and we want to drop support for it from the bindings generator.
+
+        Instead, use [TreatNullAs=EmptyString] in order to maintain existing behavior
+        given that both a missing/empty attribute result in using the default
+        autocapitalization mode and that autocapitalize returns the empty string by
+        default.
+
+        Test: platform/ios-simulator/ios/fast/forms/autocapitalize-null.html
+
+        * html/HTMLFormElement.idl:
+        * html/HTMLInputElement.idl:
+        * html/HTMLTextAreaElement.idl:
+
+2016-07-19  Zalan Bujtas  <zalan@apple.com>
+
+        REGRESSION(r203415): ASSERTION FAILED: !m_layoutRoot->container() || !m_layoutRoot->container()->needsLayout()
+        https://bugs.webkit.org/show_bug.cgi?id=159952
+
+        Reviewed by Simon Fraser.
+
+        Update ASSERTs to reflect new functionality, that is, now we can end up in a state
+        where the container (RenderView) of one of the dirty subtrees is dirty.
+        See r203415.
+ 
+        Covered by editing/pasteboard/drag-drop-input-in-svg.svg
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::scheduleRelayoutOfSubtree):
+
+2016-07-19  Dean Jackson  <dino@apple.com>
+
+        REGRESSION(202927): The first slide is the only displayed slide when Quicklooking a Keynote file
+        https://bugs.webkit.org/show_bug.cgi?id=159948
+        <rdar://problem/27391012>
+
+        Reviewed by Simon Fraser.
+
+        There is an iOS bug (<rdar://problem/27416744>) that is causing us
+        to not always get a color space on CGContextRefs. Investigation of this
+        exposed some optimizations we can take when we are creating ImageBuffers.
+        In particular, if we have a bitmap context or an IOSurfaceContext we
+        can simply copy their color space using API. Otherwise we stick with
+        the existing CGContextCopyDeviceColorSpace.
+
+        Lastly, if for some reason we are unable to copy the device color space,
+        we should fall back to sRGB.
+
+        * platform/graphics/cg/ImageBufferCG.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer):
+        * platform/spi/cg/CoreGraphicsSPI.h: Add some SPI and enums.
+
+
+2016-07-19  George Ruan  <gruan@apple.com>
+
+        HTMLVideoElement frames do not update on iOS when src is a MediaStream blob
+        https://bugs.webkit.org/show_bug.cgi?id=159833
+        <rdar://problem/27379487>
+
+        Reviewed by Eric Carlson.
+
+        Test: fast/mediastream/MediaStream-video-element-displays-buffer.html
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/graphics/avfoundation/MediaSampleAVFObjC.h: Change create to return a Ref<T> instead
+        of RefPtr<T>
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h: Make observer of
+        MediaStreamTrackPrivate and make MediaPlayer use an AVSampleBufferDisplayLayer instead of CALayer.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm: Ditto.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::~MediaPlayerPrivateMediaStreamAVFObjC): Clean up
+        observers and AVSampleBufferDisplayLayer
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::isAvailable): Ensures AVSampleBufferDisplayLayer
+        is available.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::enqueueAudioSampleBufferFromTrack): Placeholder.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::enqueueVideoSampleBufferFromTrack): Responsible
+        for enqueuing sample buffers to the active video track.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::ensureLayer): Ensures that an AVSampleBufferDisplayLayer
+        exists.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::destroyLayer): Destroys the AVSampleBufferDisplayLayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::platformLayer): Replace CALayer with AVSampleBufferDisplayLayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::currentDisplayMode): Ditto.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::sampleBufferUpdated): Called from MediaStreamTrackPrivate when a
+        new SampleBuffer is available.
+        (WebCore::updateTracksOfType): Manage adding and removing self as observer from tracks.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updateTracks): Replace CALayer with AVSampleBufferDisplayLayer
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::acceleratedRenderingStateChanged): Copied from
+        MediaPlayerPrivateMediaSourceAVFObjC.mm
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::load): Deleted CALayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updateDisplayMode): Deleted process of updating CALayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updateIntrinsicSize): Deleted CALayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::createPreviewLayers): Deleted.
+        * platform/mediastream/MediaStreamPrivate.cpp:
+        (WebCore::MediaStreamPrivate::updateActiveVideoTrack): Remove redundant check.
+        * platform/mediastream/MediaStreamTrackPrivate.cpp:
+        (WebCore::MediaStreamTrackPrivate::sourceHasMoreMediaData): Called from RealtimeMediaSource when a new SampleBuffer
+        is available.
+        * platform/mediastream/MediaStreamTrackPrivate.h:
+        (WebCore::MediaStreamTrackPrivate::Observer::sampleBufferUpdated): Relays to MediaPlayerPrivateMediaStream that
+        a new SampleBuffer is available to enqueue to the AVSampleBufferDisplayLayer.
+        * platform/mediastream/RealtimeMediaSource.cpp:
+        (WebCore::RealtimeMediaSource::mediaDataUpdated): Relays to all observers that a new SampleBuffer is available.
+        * platform/mediastream/RealtimeMediaSource.h:
+        * platform/mediastream/mac/AVVideoCaptureSource.mm:
+        (WebCore::AVVideoCaptureSource::processNewFrame): Calls mediaDataUpdated when a new SampleBuffer is captured.
+
+2016-07-19  Anders Carlsson  <andersca@apple.com>
+
+        Get rid of a #define private public hack in WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=159953
+
+        Reviewed by Dan Bernstein.
+
+        Use @package instead.
+
+        * bindings/objc/DOMInternal.h:
+        * bindings/objc/DOMObject.h:
+
+2016-07-19  Andreas Kling  <akling@apple.com>
+
+        Fix SharedBuffer leak in MockContentFilter::replacementData().
+        <https://webkit.org/b/159945>
+
+        Reviewed by Andy Estes.
+
+        Spotted on leaks bot. This code was pretty explicit about how it's going to leak.
+        Since this is in the mock filter, it only affected layout tests.
+
+        * testing/MockContentFilter.cpp:
+        (WebCore::MockContentFilter::replacementData):
+
+2016-07-19  Zalan Bujtas  <zalan@apple.com>
+
+        theguardian.co.uk crossword puzzles are sometimes not displaying text
+        https://bugs.webkit.org/show_bug.cgi?id=159924
+        <rdar://problem/27409483>
+
+        Reviewed by Simon Fraser.
+
+        This patch fixes the case when
+        - 2 disjoint subtrees are dirty
+        - RenderView is also dirty.
+        and we end up not laying out one of the 2 subtrees.
+
+        In FrameView::scheduleRelayoutOfSubtree, we assume that when the RenderView is dirty
+        we already have a pending full layout which means that any previous subtree layouts have already been
+        converted to full layouts.
+        However this assumption is incorrect. RenderView can get dirty without checking if there's
+        already a pending subtree layout.
+        One option to solve this problem would be to override RenderObject::setNeedsLayout in RenderView
+        so that when the RenderView gets dirty, we could also convert any pending subtree layout to full layout.
+        However RenderObject::setNeedsLayout is a hot function and making it virtual would impact performance.
+        The other option is to always normalize subtree layouts in FrameView::scheduleRelayoutOfSubtree().
+        This patch implements the second option.
+
+        Test: fast/misc/subtree-layouts.html
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::scheduleRelayoutOfSubtree):
+
+2016-07-19  Anders Carlsson  <andersca@apple.com>
+
+        Some payment authorization status values should keep the sheet active
+        https://bugs.webkit.org/show_bug.cgi?id=159936
+        rdar://problem/26756701
+
+        Reviewed by Tim Horton.
+
+        * Modules/applepay/ApplePaySession.cpp:
+        (WebCore::ApplePaySession::completePayment):
+        Keep the sheet active if the status isn't a final state status.
+
+        * Modules/applepay/PaymentAuthorizationStatus.h:
+        (WebCore::isFinalStateStatus):
+        Add a new helper function that returns whether a given payment authorization status is "final",
+        meaning that once that status has been passed to completePayment, the session is finished.
+
+2016-07-19  Nan Wang  <n_wang@apple.com>
+
+        AX: Incorrect behavior for word related text marker functions when there's collapsed whitespace
+        https://bugs.webkit.org/show_bug.cgi?id=159910
+
+        Reviewed by Chris Fleizach.
+
+        We are getting a bad CharacterOffset when there's collapsed whitespace. Added a TraverseOptionValidateOffset
+        option to make sure we are getting the correct CharacterOffset based on the corresponding Range offset. And
+        fixed a word navigation issue based on that.
+
+        Test: accessibility/mac/text-marker-word-nav-collapsed-whitespace.html
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::AXObjectCache::traverseToOffsetInRange):
+        (WebCore::AXObjectCache::rangeForNodeContents):
+        (WebCore::AXObjectCache::startOrEndCharacterOffsetForRange):
+        (WebCore::AXObjectCache::characterOffsetFromVisiblePosition):
+        (WebCore::AXObjectCache::rightWordRange):
+        (WebCore::AXObjectCache::previousBoundary):
+        * accessibility/AXObjectCache.h:
+        (WebCore::AXObjectCache::isNodeInUse):
+
+2016-07-19  Youenn Fablet  <youenn@apple.com>
+
+        [Streams API] ReadableStreamController methods should throw if its stream is not readable
+        https://bugs.webkit.org/show_bug.cgi?id=159871
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Spec now mandates close and enqueue to throw if ReadableStream is not readable.
+        Covered by rebased and/or modified tests.
+
+        * Modules/streams/ReadableStreamController.js:
+        (enqueue): Throwing a TypeError if controlled stream is not readable.
+        (close): Ditto.
+
+2016-07-19  Simon Fraser  <simon.fraser@apple.com>
+
+        Bubbles appear split for a brief moment in Messages
+        https://bugs.webkit.org/show_bug.cgi?id=159915
+        rdar://problem/27182267
+
+        Reviewed by David Hyatt.
+
+        RenderView::repaintRootContents() had a long-standing bug in WebView when the
+        view is scrolled. repaint() uses visualOverflowRect() but, for the 
+        RenderView, the visualOverflowRect() is the initial containing block
+        which is anchored at 0,0. When the view is scrolled it's clipped out and
+        calls to repaintRootContents() have no effect.
+        
+        Change repaintRootContents() to use layoutOverflowRect(). ScrollView::repaintContentRectangle()
+        will clip it to the view if necessary.
+
+        Test: fast/repaint/scrolled-view-full-repaint.html
+
+        * rendering/RenderView.cpp:
+        (WebCore::RenderView::repaintRootContents):
+
+2016-07-19  Dan Bernstein  <mitz@apple.com>
+
+        <rdar://problem/27420308> WebCore-7602.1.42 fails to build: error: unused parameter 'vm'
+
+        * bindings/js/JSDOMGlobalObject.cpp:
+        (WebCore::JSDOMGlobalObject::addBuiltinGlobals): Fixed the !ENABLE(STREAMS_API) build.
+
+2016-07-19  Youenn Fablet  <youenn@apple.com>
+
+        [Streams API] Make ReadableStream properties not enumerable
+        https://bugs.webkit.org/show_bug.cgi?id=159868
+
+        Reviewed by Darin Adler.
+
+        Covered by rebased tests.
+
+        Uopdating IDL definitions to mark all functions/attributes as not enumerable.
+        Updating IDL constructor definitions to correctly compute constructor length.
+        Updating built-in implementation to correctly compute pipeTo length to 1 (second parameter being optional).
+
+        * Modules/streams/ReadableStream.idl:
+        * Modules/streams/ReadableStream.js:
+        * Modules/streams/ReadableStreamController.idl:
+        * Modules/streams/ReadableStreamReader.idl:
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        form.enctype / encoding / method should treat null as "null" string
+        https://bugs.webkit.org/show_bug.cgi?id=159916
+
+        Reviewed by Ryosuke Niwa.
+
+        form.enctype / encoding / method should treat null as "null" string:
+        - https://html.spec.whatwg.org/multipage/forms.html#htmlformelement
+
+        Previously, WebKit would treat null as the null String, which would
+        end up removing the existing attribute.
+
+        Firefox and Chrome match the specification.
+
+        Test: fast/dom/HTMLFormElement/null-handling.html
+
+        * html/HTMLFormElement.h:
+        * html/HTMLFormElement.idl:
+
+2016-07-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        All-in-one buildfix after r202439
+        https://bugs.webkit.org/show_bug.cgi?id=159877
+
+        Reviewed by Chris Dumez.
+
+        * Modules/webaudio/AudioDestinationNode.h:
+        (WebCore::AudioDestinationNode::resume):
+        (WebCore::AudioDestinationNode::suspend):
+        (WebCore::AudioDestinationNode::close):
+
+2016-07-18  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of subscriptshift and superscriptshift from rendering to element classes
+        https://bugs.webkit.org/show_bug.cgi?id=159622
+
+        Reviewed by Darin Adler.
+
+        We introduce a new MathMLScriptsElement that is used for elements msub, msup, msubsup and
+        mmultiscripts in order to create RenderMathMLScripts and parse and expose the values of the
+        subscriptshift and superscriptshift attributes. This is one more step toward moving MathML
+        attribute parsing to the DOM (bug 156536).
+
+        No new tests, rendering is unchanged.
+
+        * CMakeLists.txt: Add MathMLScriptsElement files.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAllInOne.cpp: Ditto.
+        * mathml/MathMLInlineContainerElement.cpp: Remove handling of scripts.
+        (WebCore::MathMLInlineContainerElement::createElementRenderer): Deleted.
+        * mathml/MathMLScriptsElement.cpp: Added. New class to handle scripted elements supporting
+        parsing for the subscriptshift and superscriptshift MathML lengths.
+        (WebCore::MathMLScriptsElement::MathMLScriptsElement):
+        (WebCore::MathMLScriptsElement::create):
+        (WebCore::MathMLScriptsElement::subscriptShift): Expose the cached length for the shift,
+        parsing the attribute again if necessary.
+        (WebCore::MathMLScriptsElement::superscriptShift): Ditto.
+        (WebCore::MathMLScriptsElement::parseAttribute): Mark attributes dirty.
+        (WebCore::MathMLScriptsElement::createElementRenderer): Create RenderMathMLScripts.
+        * mathml/MathMLScriptsElement.h: Ditto.
+        * mathml/mathtags.in: Map msub, msup, msubsup and mmultiscripts to MathMLScriptsElement.
+        * rendering/mathml/RenderMathMLScripts.cpp:
+        (WebCore::RenderMathMLScripts::scriptsElement): Helper function to cast the node to a
+        MathMLScriptsElement.
+        (WebCore::RenderMathMLScripts::getScriptMetricsAndLayoutIfNeeded): Resolve the attributes
+        using the functions from the MathMLScriptsElement class.
+        * rendering/mathml/RenderMathMLScripts.h: Declare scriptsElement.
+
+2016-07-18  Frederic Wang  <fwang@igalia.com>
+
+        Do not store gap and shift parameters on RenderMathMLFraction
+        https://bugs.webkit.org/show_bug.cgi?id=159876
+
+        Reviewed by Darin Adler.
+
+        After r203285, the stack and fraction layout parameters are only used in layoutBlock so we
+        do not need to store them on the class. We remove them and split updateLayoutParameters into
+        three functions: one to update the linethickness and two others to retrieve the fraction and
+        stack respectively.
+
+        No new tests, rendering is unchanged.
+
+        * rendering/mathml/RenderMathMLFraction.cpp:
+        (WebCore::RenderMathMLFraction::updateLineThickness): Move code to update thickness members here.
+        (WebCore::RenderMathMLFraction::getFractionParameters): Move code to retrieve fraction parameters here.
+        (WebCore::RenderMathMLFraction::getStackParameters): Move code to retrieve stack parameters here.
+        (WebCore::RenderMathMLFraction::layoutBlock): Use the new helper functions and local variables
+        for fraction and stack parameters.
+        (WebCore::RenderMathMLFraction::updateLayoutParameters): Deleted.
+        * rendering/mathml/RenderMathMLFraction.h: Declare new helper functions and remove members
+        for stack and fraction parameters.
+
+2016-07-18  Chris Dumez  <cdumez@apple.com>
+
+        input.formEnctype / formMethod and button.formEnctype / formMethod / type should treat null as "null"
+        https://bugs.webkit.org/show_bug.cgi?id=159908
+
+        Reviewed by Alex Christensen.
+
+        input.formEnctype / formMethod and button.formEnctype / formMethod / type
+        should treat null as "null" String:
+        - https://html.spec.whatwg.org/multipage/forms.html#htmlinputelement
+        - https://html.spec.whatwg.org/multipage/forms.html#htmlbuttonelement
+
+        In WebKit, we would treat null as a null String which would end up
+        removing the corresponding attribute. This does not match the
+        specification. Firefox and Chrome match the specification here.
+
+        Tests:
+        - fast/dom/HTMLButtonElement/null-handling.html
+        - fast/dom/HTMLInputElement/null-handling.html
+
+        * html/HTMLButtonElement.idl:
+        * html/HTMLInputElement.idl:
+
+2016-07-18  Alex Christensen  <achristensen@webkit.org>
+
+        webbookmarksd needs to use the same AppCache directory as MobileSafari
+        https://bugs.webkit.org/show_bug.cgi?id=159912
+
+        Reviewed by Alexey Proskuryakov.
+
+        No new tests.  This only changes behavior for webbookmarksd.
+
+        * platform/RuntimeApplicationChecks.h:
+        * platform/RuntimeApplicationChecks.mm:
+        (WebCore::IOSApplication::isWebBookmarksD): Added.
+
+2016-07-18  Chris Dumez  <cdumez@apple.com>
+
+        EventTarget.dispatchEvent() parameter should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=159897
+
+        Reviewed by Benjamin Poulain.
+
+        EventTarget.dispatchEvent() parameter should not be nullable:
+        - https://dom.spec.whatwg.org/#interface-eventtarget
+
+        Even though the parameter was marked as nullable in our IDL, our
+        implementation does a null check and we already throw a TypeError
+        when calling dispatchEvent(null).
+
+        Update our IDL so that it matches the specification and so that
+        the null check is generated in the bindings instead.
+
+        No new tests, rebaseline existing tests.
+
+        * dom/EventTarget.cpp:
+        (WebCore::EventTarget::dispatchEventForBindings):
+        * dom/EventTarget.h:
+        * dom/EventTarget.idl:
+
+2016-07-18  Chris Dumez  <cdumez@apple.com>
+
+        DocType's publicId / systemId should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=159901
+
+        Reviewed by Benjamin Poulain.
+
+        DocType's publicId / systemId should not be nullable. While they were
+        not marked as nullable in our IDL, they could be stored as null Strings
+        in our implementation depending on how the Node was constructed. This
+        led to subtle bugs where String() != emptyString().
+
+        In particular, Node.isEqualNode() would return false when DocumentType
+        nodes would mismatch because of their publicId / systemId being null
+        instead of the emptyString.
+
+        Serialization would DocumentType nodes would also be wrong when
+        publicId / systemId were empty Strings instead of null strings. The
+        new behavior now matches:
+        - https://www.w3.org/TR/DOM-Parsing/#dfn-concept-serialize-doctype (steps 7-9)
+
+        To address these issues, we now always store publicId / systemId as
+        non-null Strings inside the DocumentType class.
+
+        Test: fast/dom/DocumentType/isEqualNode.html
+
+        * dom/DocumentType.cpp:
+        (WebCore::DocumentType::DocumentType):
+        * editing/MarkupAccumulator.cpp:
+        (WebCore::MarkupAccumulator::appendDocumentType):
+
+2016-07-18  Jeremy Jones  <jeremyj@apple.com>
+
+        If previous media session interruptions were prevented, still allow subsequent interruptions to try.
+        https://bugs.webkit.org/show_bug.cgi?id=157553
+        rdar://problem/25740804
+
+        Reviewed by Eric Carlson.
+
+        Test: platform/ios-simulator/media/video-interruption-suspendunderlock.html
+
+        When suspending under lock on iOS, there is first a resign active event, then a
+        suspend under lock. PiP prevents resign active from interrupting playback. But it should allow the
+        suspend under lock to interrupt playback.
+
+        Currently if there are nested interruptions only the first one is acted upon.
+
+        This change allows subsequent, nested interruptions to have a chance to interrupt playback if the
+        previous interruptions were ignored.
+
+        This test is for iPad only, so it must be run manually.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::shouldOverrideBackgroundPlaybackRestriction):
+        * platform/audio/PlatformMediaSession.cpp:
+        (WebCore::PlatformMediaSession::beginInterruption):
+        * testing/Internals.cpp:
+        (WebCore::Internals::beginMediaSessionInterruption):
+
+2016-07-18  Brent Fulgham  <bfulgham@apple.com>
+
+        Don't associate form-associated elements with forms in other trees.
+        https://bugs.webkit.org/show_bug.cgi?id=119451
+        <rdar://problem/27382946>
+
+        Change is based on the Blink change (patch by <adamk@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/0b33128be67e7845d495d5219614c02ccfe7a414>
+
+        Reviewed by Chris Dumez.
+
+        Prevent elements from being associated with forms that are not part of the same home subtree.
+        This brings us in line with the WhatWG HTML specification as of September, 2013.
+
+        Tests: fast/forms/image-disconnected-during-parse.html
+               fast/forms/input-disconnected-during-parse.html
+
+        * dom/Element.h:
+        (WebCore::Node::rootElement): Added.
+        * html/FormAssociatedElement.cpp:
+        (WebCore::FormAssociatedElement::insertedInto): If the element is associated with a form that
+        is not part of the same tree, remove the association.
+        * html/HTMLImageElement.cpp:
+        (WebCore::HTMLImageElement::insertedInto): Ditto.
+
 2016-07-18  Anders Carlsson  <andersca@apple.com>
 
         WebKit nightly fails to build on macOS Sierra

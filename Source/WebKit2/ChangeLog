@@ -1,3 +1,101 @@
+2016-07-19  Brian Burg  <bburg@apple.com>
+
+        Web Automation: WebAutomationSessionProxy's HashMaps should support '0' as valid keys
+        https://bugs.webkit.org/show_bug.cgi?id=159957
+        <rdar://problem/27376446>
+
+        Reviewed by Joseph Pecoraro.
+
+        * WebProcess/Automation/WebAutomationSessionProxy.h:
+        Use UnsignedWithZeroKeyHashTraits to avoid problems with zero as a key.
+
+2016-07-19  Anders Carlsson  <andersca@apple.com>
+
+        Some payment authorization status values should keep the sheet active
+        https://bugs.webkit.org/show_bug.cgi?id=159936
+        rdar://problem/26756701
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/ApplePay/WebPaymentCoordinatorProxy.cpp:
+        (WebKit::WebPaymentCoordinatorProxy::completePaymentSession):
+        If the status isn't a final state status, bounce the current state back to active.
+
+        * UIProcess/ApplePay/cocoa/WebPaymentCoordinatorProxyCocoa.h:
+        Rename the _authorized ivar to _didReachFinalState.
+
+        * UIProcess/ApplePay/cocoa/WebPaymentCoordinatorProxyCocoa.mm:
+        (-[WKPaymentAuthorizationViewControllerDelegate paymentAuthorizationViewControllerDidFinish:]):
+        (WebKit::WebPaymentCoordinatorProxy::platformCompletePaymentSession):
+        Set _didReachFinalState based on the return value of isFinalStateStatus.
+
+2016-07-18  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the --minimal build fail in InjectedBundle.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=159770
+
+        Reviewed by Benjamin Poulain.
+
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+
+2016-07-18  Alex Christensen  <achristensen@webkit.org>
+
+        webbookmarksd needs to use the same AppCache directory as MobileSafari
+        https://bugs.webkit.org/show_bug.cgi?id=159912
+        <rdar://problem/27056844>
+
+        Reviewed by Alexey Proskuryakov.
+
+        * UIProcess/API/Cocoa/APIWebsiteDataStoreCocoa.mm:
+        (API::WebsiteDataStore::defaultApplicationCacheDirectory):
+        Make webbookmarksd match MobileSafari by adding a matching runtime exception.
+
+2016-07-18  Anders Carlsson  <andersca@apple.com>
+
+        Don't null out the IPC::Connection's XPC connection
+        https://bugs.webkit.org/show_bug.cgi?id=159911
+        rdar://problem/27018065
+
+        Reviewed by Alex Christensen.
+
+        The function that nulls out the XPC connection, platformInvalidate(), is called from the connection queue,
+        whereas the XPC connection is normally accessed from the main thread leading to inconsistencies when the
+        connection is being invalidated while the main thread is trying to access it.
+        
+        Fix this by simply never nulling out the XPC connection. It will be released when the IPC::Connection is destroyed anyway.
+
+        * Platform/IPC/mac/ConnectionMac.mm:
+        (IPC::Connection::platformInvalidate):
+
+2016-07-18  Tim Horton  <timothy_horton@apple.com>
+
+        Tapping on an apple.com tab in tab overview stutters when switching to it
+        https://bugs.webkit.org/show_bug.cgi?id=159904
+        <rdar://problem/27192350>
+
+        Reviewed by Simon Fraser.
+
+        * UIProcess/mac/RemoteLayerTreeDrawingAreaProxy.mm:
+        (WebKit::RemoteLayerTreeDrawingAreaProxy::waitForDidUpdateViewState):
+        In any case where we get to waitForDidUpdateViewState (usually a tab switch),
+        if we have an outstanding didUpdate message, the Web process will not commit
+        a new layer tree until it receives the didUpdate message. However, since
+        waitForDidUpdateViewState synchronously blocks the UI process, we also
+        won't *send* the didUpdate message, so we block for the full timeout duration.
+
+        Instead, if we get to waitForDidUpdateViewState, just send the didUpdate without
+        waiting for the DisplayLink or anything else, because calling rAF slightly too
+        quickly, once, is certainly better than blocking the UI process for a whole second.
+
+2016-07-18  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] ENABLE_OPENGL=OFF build broken since r201802
+        https://bugs.webkit.org/show_bug.cgi?id=159909
+
+        Reviewed by Antonio Gomes.
+
+        * WebProcess/WebPage/LayerTreeHost.h: Add missing include.
+
 2016-07-18  Anders Carlsson  <andersca@apple.com>
 
         WebKit nightly fails to build on macOS Sierra

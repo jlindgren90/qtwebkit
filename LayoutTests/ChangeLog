@@ -1,3 +1,377 @@
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of SVGScriptElement.type attribute
+        https://bugs.webkit.org/show_bug.cgi?id=159927
+
+        Reviewed by Benjamin Poulain.
+
+        Rebaseline existing test to reflect the behavior change.
+
+        * svg/dom/svg-element-attribute-js-null-expected.txt:
+        * svg/dom/svg-element-attribute-js-null.xhtml:
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of several HTMLDocument attributes
+        https://bugs.webkit.org/show_bug.cgi?id=159923
+
+        Reviewed by Benjamin Poulain.
+
+        Add layout test coverage. I have verified that this test is passing in
+        both Firefox and Chrome.
+
+        * fast/dom/HTMLDocument/null-handling-expected.txt: Added.
+        * fast/dom/HTMLDocument/null-handling.html: Added.
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Document.createElementNS() / createAttributeNS() parameters should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=159938
+
+        Reviewed by Benjamin Poulain.
+
+        Update / rebaseline existing tests to reflect the behavior change.
+
+        * fast/dom/Document/createAttributeNS-namespace-err-expected.txt:
+        * fast/dom/Document/createElementNS-namespace-err-expected.txt:
+        * fast/dom/Document/script-tests/createAttributeNS-namespace-err.js:
+        * fast/dom/Document/script-tests/createElementNS-namespace-err.js:
+        * fast/dom/attribute-downcast-right.html:
+
+2016-07-19  Benjamin Poulain  <bpoulain@apple.com>
+
+        Use getElementById for attribute matching if the attribute name is html's id
+        https://bugs.webkit.org/show_bug.cgi?id=159960
+
+        Reviewed by Chris Dumez.
+
+        * fast/selectors/id-attribute-querySelector-used-as-id-selector-expected.txt: Added.
+        * fast/selectors/id-attribute-querySelector-used-as-id-selector-quirks-expected.txt: Added.
+        * fast/selectors/id-attribute-querySelector-used-as-id-selector-quirks.html: Added.
+        * fast/selectors/id-attribute-querySelector-used-as-id-selector.html: Added.
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Drop SVGElement.xmlbase attribute
+        https://bugs.webkit.org/show_bug.cgi?id=159926
+
+        Reviewed by Benjamin Poulain.
+
+        * svg/dom/SVGElement-xmlbase-expected.txt: Added.
+        * svg/dom/SVGElement-xmlbase.html: Added.
+        Check that SVGElement.xmlbase does not exist.
+
+        * svg/dom/svg-element-attribute-js-null-expected.txt:
+        * svg/dom/svg-element-attribute-js-null.xhtml:
+        Drop obsolete testing for SVGElement.xmlbase.
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        Align CSSStyleDeclaration.setProperty() with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=159955
+
+        Reviewed by Benjamin Poulain.
+
+        Add layout test coverage.
+
+        * fast/css/CSSStyleDeclaration-setProperty-expected.txt: Added.
+        * fast/css/CSSStyleDeclaration-setProperty.html: Added.
+        * fast/css/shorthand-priority.html:
+
+2016-07-19  Daniel Bates  <dabates@apple.com>
+
+        CSP: Improve support for multiple policies to more closely conform to the CSP Level 2 spec.
+        https://bugs.webkit.org/show_bug.cgi?id=159841
+        <rdar://problem/27381684>
+
+        Reviewed by Brent Fulgham.
+
+        * http/tests/security/contentSecurityPolicy/1.1/resources/scripthash-in-enforced-policy-and-not-in-report-only.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/resources/scripthash-in-one-enforced-policy-neither-in-another-enforced-policy-nor-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/resources/scriptnonce-in-enforced-policy-and-not-in-report-only.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/resources/scriptnonce-in-one-enforced-policy-neither-in-another-enforced-policy-nor-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/script-blocked-sends-multiple-reports-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/script-blocked-sends-multiple-reports.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-enforced-policy-and-blocked-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-enforced-policy-and-blocked-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-enforced-policy-and-blocked-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-enforced-policy-and-blocked-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-enforced-policy-and-allowed-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-enforced-policy-and-allowed-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-enforced-policy-and-allowed-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-enforced-policy-and-allowed-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-in-enforced-policy-and-not-in-report-only-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-in-enforced-policy-and-not-in-report-only.html: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-in-one-enforced-policy-neither-in-another-enforced-policy-nor-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-in-one-enforced-policy-neither-in-another-enforced-policy-nor-report-policy.html: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-multiple-policies-expected.txt: Update expected result to reflect additional console
+        messages. We will remove these extraneous console messages as part of the fix for <https://bugs.webkit.org/show_bug.cgi?id=159832>.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-enforced-policy-and-blocked-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-enforced-policy-and-blocked-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-enforced-policy-and-blocked-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-enforced-policy-and-blocked-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-enforced-policy-and-allowed-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-enforced-policy-and-allowed-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-enforced-policy-and-allowed-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-enforced-policy-and-allowed-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy2-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy2.php: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-in-enforced-policy-and-not-in-report-only-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-in-enforced-policy-and-not-in-report-only.html: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-in-one-enforced-policy-neither-in-another-enforced-policy-nor-report-policy-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-in-one-enforced-policy-neither-in-another-enforced-policy-nor-report-policy.html: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-multiple-policies-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-multiple-policies.html: Added.
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        autocapitalize attribute should not use [TreatNullAs=LegacyNullString]
+        https://bugs.webkit.org/show_bug.cgi?id=159934
+
+        Reviewed by Benjamin Poulain.
+
+        Add layout test coverage.
+
+        * platform/ios-simulator/ios/fast/forms/autocapitalize-null-expected.txt: Added.
+        * platform/ios-simulator/ios/fast/forms/autocapitalize-null.html: Added.
+
+2016-07-19  George Ruan  <gruan@apple.com>
+
+        HTMLVideoElement frames do not update on iOS when src is a MediaStream blob
+        https://bugs.webkit.org/show_bug.cgi?id=159833
+        <rdar://problem/27379487>
+
+        Reviewed by Eric Carlson.
+
+        * fast/mediastream/MediaStream-video-element-displays-buffer-expected.txt: Added.
+        * fast/mediastream/MediaStream-video-element-displays-buffer.html: Added. Checks that
+        a video element with a mediastream source displays frames that are neither black or transparent.
+        * fast/mediastream/resources/getUserMedia-helper.js:
+        (setupVideoElementWithStream): Sets up video element with global variable mediastream.
+
+2016-07-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Land test expectations for rdar://problem/27356144.
+
+        * platform/mac/TestExpectations:
+
+2016-07-19  Zalan Bujtas  <zalan@apple.com>
+
+        theguardian.co.uk crossword puzzles are sometimes not displaying text
+        https://bugs.webkit.org/show_bug.cgi?id=159924
+        <rdar://problem/27409483>
+
+        Reviewed by Simon Fraser.
+
+        * fast/misc/subtree-layouts-expected.html: Added.
+        * fast/misc/subtree-layouts.html: Added.
+
+2016-07-19  Nan Wang  <n_wang@apple.com>
+
+        AX: Incorrect behavior for word related text marker functions when there's collapsed whitespace
+        https://bugs.webkit.org/show_bug.cgi?id=159910
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/text-marker-word-nav-collapsed-whitespace-expected.txt: Added.
+        * accessibility/mac/text-marker-word-nav-collapsed-whitespace.html: Added.
+
+2016-07-19  Youenn Fablet  <youenn@apple.com>
+
+        [Streams API] ReadableStreamController methods should throw if its stream is not readable
+        https://bugs.webkit.org/show_bug.cgi?id=159871
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        * streams/reference-implementation/pipe-to-options.html: Updated test case according whatwg original test.
+        * streams/reference-implementation/readable-stream-templated.html: Ditto.
+
+2016-07-19  Simon Fraser  <simon.fraser@apple.com>
+
+        Bubbles appear split for a brief moment in Messages
+        https://bugs.webkit.org/show_bug.cgi?id=159915
+        rdar://problem/27182267
+
+        Reviewed by David Hyatt.
+
+        * fast/repaint/scrolled-view-full-repaint-expected.txt: Added.
+        * fast/repaint/scrolled-view-full-repaint.html: Added.
+        * platform/ios-simulator-wk1/fast/repaint/scrolled-view-full-repaint-expected.txt: Added.
+        * platform/mac-wk1/fast/repaint/scrolled-view-full-repaint-expected.txt: Added.
+
+2016-07-19  Youenn Fablet  <youenn@apple.com>
+
+        [Release WK2] LayoutTest imported/w3c/web-platform-tests/XMLHttpRequest/send-redirect-post-upload.htm failing
+        https://bugs.webkit.org/show_bug.cgi?id=159724
+
+        Unreviewed.
+
+        * TestExpectations: Marking test as failure,passs,crash.
+        * platform/ios-simulator-wk2/TestExpectations: Removing specific expectation.
+        * platform/mac-wk2/TestExpectations: Ditto.
+
+2016-07-19  Chris Dumez  <cdumez@apple.com>
+
+        form.enctype / encoding / method should treat null as "null" string
+        https://bugs.webkit.org/show_bug.cgi?id=159916
+
+        Reviewed by Ryosuke Niwa.
+
+        Add layout test coverage.
+
+        * fast/dom/HTMLFormElement/null-handling-expected.txt: Added.
+        * fast/dom/HTMLFormElement/null-handling.html: Added.
+
+2016-07-19  Youenn Fablet  <youenn@apple.com>
+
+        Add new aliases to http test server
+        https://bugs.webkit.org/show_bug.cgi?id=159878
+
+        Reviewed by Darin Adler.
+
+        * http/tests/xmlhttprequest/set-bad-headervalue.html: Updating testharness.js and testharnessreport.js links to
+        ensure these new links are working on test servers.
+
+2016-07-18  Chris Dumez  <cdumez@apple.com>
+
+        input.formEnctype / formMethod and button.formEnctype / formMethod / type should treat null as "null"
+        https://bugs.webkit.org/show_bug.cgi?id=159908
+
+        Reviewed by Alex Christensen.
+
+        Add layout test coverage.
+
+        * fast/dom/HTMLButtonElement/change-type-expected.txt:
+        * fast/dom/HTMLButtonElement/change-type.html:
+        * fast/dom/HTMLButtonElement/null-handling-expected.txt: Added.
+        * fast/dom/HTMLButtonElement/null-handling.html: Added.
+        * fast/dom/HTMLInputElement/null-handling-expected.txt: Added.
+        * fast/dom/HTMLInputElement/null-handling.html: Added.
+        * fast/forms/submit-form-attributes-expected.txt:
+        * fast/forms/submit-form-attributes.html:
+
+2016-07-18  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Make builtin TypeErrors consistent
+        https://bugs.webkit.org/show_bug.cgi?id=159899
+
+        Reviewed by Keith Miller.
+
+        * js/array-find-expected.txt:
+        * js/array-findIndex-expected.txt:
+        * js/array-includes-expected.txt:
+        * js/dom/array-prototype-properties-expected.txt:
+        * js/dom/script-tests/string-prototype-properties.js:
+        * js/dom/string-prototype-properties-expected.txt:
+        * js/script-tests/array-find.js:
+        * js/script-tests/array-findIndex.js:
+        * js/script-tests/string-localeCompare.js:
+        * js/string-localeCompare-expected.txt:
+        * sputnik/Conformance/15_Native_Objects/15.5_String/15.5.4/15.5.4.10_String.prototype.match/S15.5.4.10_A1_T3-expected.txt:
+        * sputnik/Conformance/15_Native_Objects/15.5_String/15.5.4/15.5.4.11_String.prototype.replace/S15.5.4.11_A1_T3-expected.txt:
+        * sputnik/Conformance/15_Native_Objects/15.5_String/15.5.4/15.5.4.12_String.prototype.search/S15.5.4.12_A1_T3-expected.txt:
+        * sputnik/Conformance/15_Native_Objects/15.5_String/15.5.4/15.5.4.14_String.prototype.split/S15.5.4.14_A1_T3-expected.txt:
+
+2016-07-18  Chris Dumez  <cdumez@apple.com>
+
+        EventTarget.dispatchEvent() parameter should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=159897
+
+        Reviewed by Benjamin Poulain.
+
+        Update layout tests as the message of the TypeError exception being
+        thrown when calling dispatchEvent(null) is now more helpful.
+
+        * fast/dom/Window/dispatchEvent-expected.txt:
+        * fast/events/dispatchEvent-crash-expected.txt:
+
+2016-07-17  Filip Pizlo  <fpizlo@apple.com>
+
+        Implement table-based switches in B3/Air
+        https://bugs.webkit.org/show_bug.cgi?id=151141
+
+        Reviewed by Benjamin Poulain.
+
+        * js/regress/bigswitch-expected.txt: Added.
+        * js/regress/bigswitch.html: Added.
+        * js/regress/script-tests/bigswitch.js: Added.
+        (foo):
+
+2016-07-18  Chris Dumez  <cdumez@apple.com>
+
+        DocType's publicId / systemId should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=159901
+
+        Reviewed by Benjamin Poulain.
+
+        Add test coverage for comparison of DocumentType nodes
+        using isEqualNode(). This tests used to fail and now passes.
+        The test passes in Firefox and Chrome as well.
+
+        * fast/dom/DocumentType/isEqualNode-expected.txt: Added.
+        * fast/dom/DocumentType/isEqualNode.html: Added.
+
+2016-07-18  Jeremy Jones  <jeremyj@apple.com>
+
+        If previous media session interruptions were prevented, still allow subsequent interruptions to try.
+        https://bugs.webkit.org/show_bug.cgi?id=157553
+        rdar://problem/25740804
+
+        Reviewed by Eric Carlson.
+
+        When suspending under lock on iOS, there is first a resign active event, then a
+        suspend under lock. PiP prevents resign active from interrupting playback. But it should allow the
+        suspend under lock to interrupt playback.
+
+        Currently if there are nested interruptions only the first one is acted upon.
+
+        This change allows subsequent, nested interruptions to have a chance to interrupt playback if the
+        previous interruptions were ignored.
+
+        This test is for iPad only, so it must be run manually.
+
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/media/video-interruption-suspendunderlock-expcted.txt: Added.
+        * platform/ios-simulator/media/video-interruption-suspendunderlock.html: Added.
+
+2016-07-18  Brent Fulgham  <bfulgham@apple.com>
+
+        Don't associate form-associated elements with forms in other trees.
+        https://bugs.webkit.org/show_bug.cgi?id=119451
+        <rdar://problem/27382946>
+
+        Change is based on the Blink change (patch by <adamk@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/0b33128be67e7845d495d5219614c02ccfe7a414>
+
+        Reviewed by Chris Dumez.
+
+        * fast/forms/image-disconnected-during-parse-expected.txt: Added.
+        * fast/forms/image-disconnected-during-parse.html: Added.
+        * fast/forms/input-disconnected-during-parse-expected.txt: Added.
+        * fast/forms/input-disconnected-during-parse.html: Added.
+
 2016-07-18  Dean Jackson  <dino@apple.com>
 
         REGRESSION (r202950): Image zoom animations are broken at medium.com (159861)
