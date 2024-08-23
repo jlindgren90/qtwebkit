@@ -1,3 +1,48 @@
+2016-07-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Enable test262 module tests
+        https://bugs.webkit.org/show_bug.cgi?id=159854
+
+        Reviewed by Saam Barati.
+
+        Use --module-file instead.
+
+        * Scripts/run-jsc-stress-tests:
+
+2016-07-16  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r203318.
+
+        Regressed most JS Benchmarks on MacBook Air by ~2% (7% on
+        SunSpider)
+
+        Reverted changeset:
+
+        "[JSC] Change some parameters based on a random search"
+        https://bugs.webkit.org/show_bug.cgi?id=158514
+        http://trac.webkit.org/changeset/203318
+
+2016-07-16  Chris Dumez  <cdumez@apple.com>
+
+        Add move constructor / assignment operator to ListHashSet
+        https://bugs.webkit.org/show_bug.cgi?id=159837
+
+        Reviewed by Darin Adler.
+
+        Add API tests.
+
+        * TestWebKitAPI/Tests/WTF/ListHashSet.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-07-15  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Change some parameters based on a random search
+        https://bugs.webkit.org/show_bug.cgi?id=158514
+
+        Reviewed by Saam Barati.
+
+        * Scripts/run-jsc-stress-tests:
+
 2016-07-15  Jon Davis  <jond@apple.com>
 
         Changed the start page URL for WebKit Nightly builds.

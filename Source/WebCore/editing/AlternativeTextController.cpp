@@ -642,7 +642,7 @@ bool AlternativeTextController::respondToMarkerAtEndOfWord(const DocumentMarker&
     switch (marker.type()) {
     case DocumentMarker::Spelling:
         m_alternativeTextInfo.rangeWithAlternative = wordRange;
-        m_alternativeTextInfo.details = AutocorrectionAlternativeDetails::create("");
+        m_alternativeTextInfo.details = AutocorrectionAlternativeDetails::create(emptyString());
         startAlternativeTextUITimer(AlternativeTextTypeSpellingSuggestions);
         break;
     case DocumentMarker::Replacement:
@@ -673,7 +673,7 @@ String AlternativeTextController::markerDescriptionForAppliedAlternativeText(Alt
 
     if (alternativeTextType != AlternativeTextTypeReversion && alternativeTextType != AlternativeTextTypeDictationAlternatives && (markerType == DocumentMarker::Replacement || markerType == DocumentMarker::Autocorrected))
         return m_alternativeTextInfo.originalText;
-    return "";
+    return emptyString();
 }
 
 #endif

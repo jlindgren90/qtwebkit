@@ -289,7 +289,7 @@ void Editor::replaceNodeFromPasteboard(Node* node, const String& pasteboardName)
 String Editor::stringSelectionForPasteboard()
 {
     if (!canCopy())
-        return "";
+        return emptyString();
     String text = selectedText();
     text.replace(noBreakSpace, ' ');
     return text;
@@ -298,7 +298,7 @@ String Editor::stringSelectionForPasteboard()
 String Editor::stringSelectionForPasteboardWithImageAltText()
 {
     if (!canCopy())
-        return "";
+        return emptyString();
     String text = selectedTextForDataTransfer();
     text.replace(noBreakSpace, ' ');
     return text;
@@ -599,7 +599,7 @@ bool Editor::WebContentReader::readURL(const URL& url, const String& title)
         return false;
 
     auto anchor = frame.document()->createElement(HTMLNames::aTag, false);
-    anchor->setAttribute(HTMLNames::hrefAttr, url.string());
+    anchor->setAttributeWithoutSynchronization(HTMLNames::hrefAttr, url.string());
     anchor->appendChild(frame.document()->createTextNode([title precomposedStringWithCanonicalMapping]));
 
     fragment = frame.document()->createDocumentFragment();

@@ -74,7 +74,7 @@ public:
     WEBCORE_EXPORT bool hasAttribute(const QualifiedName&) const;
     WEBCORE_EXPORT const AtomicString& getAttribute(const QualifiedName&) const;
     WEBCORE_EXPORT void setAttribute(const QualifiedName&, const AtomicString& value);
-    void setAttributeWithoutSynchronization(const QualifiedName&, const AtomicString& value);
+    WEBCORE_EXPORT void setAttributeWithoutSynchronization(const QualifiedName&, const AtomicString& value);
     void setSynchronizedLazyAttribute(const QualifiedName&, const AtomicString& value);
     bool removeAttribute(const QualifiedName&);
     Vector<String> getAttributeNames() const;
@@ -88,7 +88,7 @@ public:
     // Call this to get the value of an attribute that is known not to be the style
     // attribute or one of the SVG animatable attributes.
     bool fastHasAttribute(const QualifiedName&) const;
-    const AtomicString& fastGetAttribute(const QualifiedName&) const;
+    const AtomicString& attributeWithoutSynchronization(const QualifiedName&) const;
 #ifndef NDEBUG
     WEBCORE_EXPORT bool fastAttributeLookupAllowed(const QualifiedName&) const;
 #endif
@@ -683,7 +683,7 @@ inline bool Element::fastHasAttribute(const QualifiedName& name) const
     return elementData() && findAttributeByName(name);
 }
 
-inline const AtomicString& Element::fastGetAttribute(const QualifiedName& name) const
+inline const AtomicString& Element::attributeWithoutSynchronization(const QualifiedName& name) const
 {
     ASSERT(fastAttributeLookupAllowed(name));
     if (elementData()) {
@@ -719,7 +719,7 @@ inline const AtomicString& Element::getNameAttribute() const
 
 inline void Element::setIdAttribute(const AtomicString& value)
 {
-    setAttribute(HTMLNames::idAttr, value);
+    setAttributeWithoutSynchronization(HTMLNames::idAttr, value);
 }
 
 inline const SpaceSplitString& Element::classNames() const

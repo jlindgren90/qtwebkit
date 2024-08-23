@@ -77,7 +77,7 @@ HTMLFormControlElement::~HTMLFormControlElement()
 
 String HTMLFormControlElement::formEnctype() const
 {
-    const AtomicString& formEnctypeAttr = fastGetAttribute(formenctypeAttr);
+    const AtomicString& formEnctypeAttr = attributeWithoutSynchronization(formenctypeAttr);
     if (formEnctypeAttr.isNull())
         return emptyString();
     return FormSubmission::Attributes::parseEncodingType(formEnctypeAttr);
@@ -85,12 +85,12 @@ String HTMLFormControlElement::formEnctype() const
 
 void HTMLFormControlElement::setFormEnctype(const String& value)
 {
-    setAttribute(formenctypeAttr, value);
+    setAttributeWithoutSynchronization(formenctypeAttr, value);
 }
 
 String HTMLFormControlElement::formMethod() const
 {
-    const AtomicString& formMethodAttr = fastGetAttribute(formmethodAttr);
+    const AtomicString& formMethodAttr = attributeWithoutSynchronization(formmethodAttr);
     if (formMethodAttr.isNull())
         return emptyString();
     return FormSubmission::Attributes::methodString(FormSubmission::Attributes::parseMethodType(formMethodAttr));
@@ -98,7 +98,7 @@ String HTMLFormControlElement::formMethod() const
 
 void HTMLFormControlElement::setFormMethod(const String& value)
 {
-    setAttribute(formmethodAttr, value);
+    setAttributeWithoutSynchronization(formmethodAttr, value);
 }
 
 bool HTMLFormControlElement::formNoValidate() const
@@ -108,7 +108,7 @@ bool HTMLFormControlElement::formNoValidate() const
 
 String HTMLFormControlElement::formAction() const
 {
-    const AtomicString& value = fastGetAttribute(formactionAttr);
+    const AtomicString& value = attributeWithoutSynchronization(formactionAttr);
     if (value.isEmpty())
         return document().url();
     return getURLAttribute(formactionAttr);
@@ -570,7 +570,7 @@ HTMLFormElement* HTMLFormControlElement::virtualForm() const
 
 bool HTMLFormControlElement::autocorrect() const
 {
-    const AtomicString& autocorrectValue = fastGetAttribute(autocorrectAttr);
+    const AtomicString& autocorrectValue = attributeWithoutSynchronization(autocorrectAttr);
     if (!autocorrectValue.isEmpty())
         return !equalLettersIgnoringASCIICase(autocorrectValue, "off");
     if (HTMLFormElement* form = this->form())
@@ -580,12 +580,12 @@ bool HTMLFormControlElement::autocorrect() const
 
 void HTMLFormControlElement::setAutocorrect(bool autocorrect)
 {
-    setAttribute(autocorrectAttr, autocorrect ? AtomicString("on", AtomicString::ConstructFromLiteral) : AtomicString("off", AtomicString::ConstructFromLiteral));
+    setAttributeWithoutSynchronization(autocorrectAttr, autocorrect ? AtomicString("on", AtomicString::ConstructFromLiteral) : AtomicString("off", AtomicString::ConstructFromLiteral));
 }
 
 WebAutocapitalizeType HTMLFormControlElement::autocapitalizeType() const
 {
-    WebAutocapitalizeType type = autocapitalizeTypeForAttributeValue(fastGetAttribute(autocapitalizeAttr));
+    WebAutocapitalizeType type = autocapitalizeTypeForAttributeValue(attributeWithoutSynchronization(autocapitalizeAttr));
     if (type == WebAutocapitalizeTypeDefault) {
         if (HTMLFormElement* form = this->form())
             return form->autocapitalizeType();
@@ -600,7 +600,7 @@ const AtomicString& HTMLFormControlElement::autocapitalize() const
 
 void HTMLFormControlElement::setAutocapitalize(const AtomicString& value)
 {
-    setAttribute(autocapitalizeAttr, value);
+    setAttributeWithoutSynchronization(autocapitalizeAttr, value);
 }
 
 #endif
@@ -621,7 +621,7 @@ String HTMLFormControlElement::autocomplete() const
 
 void HTMLFormControlElement::setAutocomplete(const String& value)
 {
-    setAttribute(autocompleteAttr, value);
+    setAttributeWithoutSynchronization(autocompleteAttr, value);
 }
 
 AutofillMantle HTMLFormControlElement::autofillMantle() const

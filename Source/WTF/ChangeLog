@@ -1,3 +1,85 @@
+2016-07-17  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Support new emoji group candidates
+        https://bugs.webkit.org/show_bug.cgi?id=159755
+        <rdar://problem/27325521>
+
+        Reviewed by Dean Jackson.
+
+        This patch doesn't update the rules for our cursor movement iterator, because
+        I don't know the language used for implementing these rules. These rules will
+        be updated in the near future. When they do,
+        editing/deleting/delete-emoji-expected.txt will need to be updated.
+
+        * wtf/text/TextBreakIterator.cpp:
+        (WTF::cursorMovementIterator):
+
+2016-07-16  Chris Dumez  <cdumez@apple.com>
+
+        Add move constructor / assignment operator to ListHashSet
+        https://bugs.webkit.org/show_bug.cgi?id=159837
+
+        Reviewed by Darin Adler.
+
+        Add move constructor / assignment operator to ListHashSet.
+
+        * wtf/ListHashSet.h:
+        (WTF::ListHashSetConstIterator::operator++):
+        (WTF::U>::ListHashSet):
+        (WTF::=):
+        (WTF::U>::clear):
+        (WTF::U>::appendNode):
+        (WTF::U>::prependNode):
+        (WTF::U>::deleteAllNodes):
+        (WTF::ListHashSetNode::ListHashSetNode): Deleted.
+
+2016-07-15  Chris Dumez  <cdumez@apple.com>
+
+        Use emptyString() / nullAtom when possible
+        https://bugs.webkit.org/show_bug.cgi?id=159850
+
+        Reviewed by Ryosuke Niwa.
+
+        Use emptyString() / nullAtom when possible, for performance.
+
+        * wtf/text/AtomicString.cpp:
+        (WTF::AtomicString::convertASCIICase):
+
+2016-07-15  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r203304.
+
+        This is wrong because of Node* entries in the internal HashMap
+
+        Reverted changeset:
+
+        "Add move constructor / assignment operator to ListHashSet"
+        https://bugs.webkit.org/show_bug.cgi?id=159837
+        http://trac.webkit.org/changeset/203304
+
+2016-07-15  Chris Dumez  <cdumez@apple.com>
+
+        Add move constructor / assignment operator to ListHashSet
+        https://bugs.webkit.org/show_bug.cgi?id=159837
+
+        Reviewed by Alex Christensen.
+
+        Add move constructor / assignment operator to ListHashSet.
+
+        * wtf/ListHashSet.h:
+
+2016-07-15  Geoffrey Garen  <ggaren@apple.com>
+
+        Added a makeRef<T> helper
+        https://bugs.webkit.org/show_bug.cgi?id=159835
+
+        Reviewed by Andreas Kling.
+
+        Anders told me to!
+
+        * wtf/Ref.h:
+        (WTF::makeRef): Helper function to do type inference for you.
+
 2016-07-15  Ryan Haddad  <ryanhaddad@apple.com>
 
         Unreviewed, rolling out r203266.

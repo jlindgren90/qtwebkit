@@ -52230,7 +52230,7 @@
 - path: test262/test/language/eval-code/direct/cptn-thrw-prim.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/eval-code/direct/export.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
 - path: test262/test/language/eval-code/direct/global-env-rec-catch.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/eval-code/direct/global-env-rec-catch.js
@@ -52250,7 +52250,7 @@
 - path: test262/test/language/eval-code/direct/global-env-rec.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/eval-code/direct/import.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
 - path: test262/test/language/eval-code/direct/lex-env-distinct-cls.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/eval-code/direct/lex-env-distinct-cls.js
@@ -52466,7 +52466,7 @@
 - path: test262/test/language/eval-code/indirect/cptn-nrml-expr-prim.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/eval-code/indirect/export.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
 - path: test262/test/language/eval-code/indirect/global-env-rec-catch.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/eval-code/indirect/global-env-rec-catch.js
@@ -52486,7 +52486,7 @@
 - path: test262/test/language/eval-code/indirect/global-env-rec.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/eval-code/indirect/import.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
 - path: test262/test/language/eval-code/indirect/lex-env-distinct-cls.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/eval-code/indirect/lex-env-distinct-cls.js
@@ -69560,7 +69560,7 @@
 - path: test262/test/language/identifiers/vals-rus-alpha-upper.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/language/import/dup-bound-names.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/keywords/S7.6.1.1_A1.1.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/language/keywords/S7.6.1.1_A1.1.js
@@ -70820,125 +70820,125 @@
 - path: test262/test/language/literals/string/mongolian-vowel-separator.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/module-code/comment-multi-line-html-close.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/comment-single-line-html-close.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/comment-single-line-html-open.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-dup-export-decl.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-dup-export-dflt-id.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-dup-export-dflt.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-dup-export-id-as.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-dup-export-id.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-dup-lables.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-dup-lex.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-export-global.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-export-unresolvable.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-import-arguments.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-import-as-arguments.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-import-as-eval.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-import-eval.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-lex-and-var.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-new-target.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-strict-mode.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-super.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-undef-break.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/early-undef-continue.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-cls-semi.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-cls-anon-semi.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-cls-anon.js
   cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-cls-name-meth.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-cls-named-semi.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-cls-named.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-cls-anon.js
   cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-cls-name-meth.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-cls-named.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-err-eval.js
   cmd: runTest262 :fail, "Test262Error", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-err-get-value.js
-  cmd: runTest262 :fail, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-fn-anon.js
   cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-fn-named.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-gen-anon.js
   cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-gen-named.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-expr-in.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-fun-anon-semi.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-fun-named-semi.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-gen-anon-semi.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-dflt-gen-named-semi.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-fun-semi.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-export-gen-semi.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-gtbndng-indirect-trlng-comma.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-gtbndng-indirect-trlng-comma_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/eval-gtbndng-indirect-update-as.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/eval-gtbndng-indirect-update-as_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/eval-gtbndng-indirect-update-dflt.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-gtbndng-indirect-update-dflt_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/eval-gtbndng-indirect-update.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/eval-gtbndng-indirect-update_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/eval-gtbndng-local-bndng-cls.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-gtbndng-local-bndng-const.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-gtbndng-local-bndng-let.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-gtbndng-local-bndng-var.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-rqstd-abrupt-err-type_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/eval-rqstd-abrupt-err-uri_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/eval-rqstd-abrupt.js
-  cmd: runTest262 :fail, "TypeError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "TypeError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-rqstd-once.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/eval-rqstd-once_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/eval-rqstd-order-1_FIXTURE.js
@@ -70958,35 +70958,35 @@
 - path: test262/test/language/module-code/eval-rqstd-order-8_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/eval-rqstd-order.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/eval-self-abrupt.js
   cmd: runTest262 :fail, "Test262Error", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/eval-self-once.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/eval-this.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-bndng-cls.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-bndng-cls_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-bndng-const.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-bndng-const_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-bndng-fun.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-bndng-fun_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-bndng-gen.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-bndng-gen_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-bndng-let.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-bndng-let_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-bndng-var.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-bndng-var_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-err-ambiguous-1_FIXTURE.js
@@ -70994,31 +70994,31 @@
 - path: test262/test/language/module-code/instn-iee-err-ambiguous-2_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-err-ambiguous-as.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-err-ambiguous.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-err-ambiguous_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-err-circular-as.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-err-circular.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-err-circular_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-err-dflt-thru-star-as.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-err-dflt-thru-star-dflt_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-err-dflt-thru-star-int_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-err-dflt-thru-star.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-err-not-found-as.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-err-not-found-empty_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-err-not-found.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-iee-cycle-2_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-iee-cycle.js
@@ -71028,125 +71028,125 @@
 - path: test262/test/language/module-code/instn-iee-star-cycle-indirect-x_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-iee-star-cycle.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-trlng-comma.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-iee-trlng-comma_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-local-bndng-cls.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-const.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-export-cls.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-export-const.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-export-fun.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-export-gen.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-export-let.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-export-var.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-for-dup.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-for.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-fun.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-gen.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-let.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-var-dup.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-local-bndng-var.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-cls.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-const.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-dflt-cls.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-dflt-expr.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-dflt-fun-anon.js
   cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-dflt-fun-named.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-dflt-gen-anon.js
   cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-dflt-gen-named.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-dflt-named.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-dflt-star.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-fun.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-gen.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-let.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-trlng-comma.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-bndng-var.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-err-ambiguous-1_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-named-err-ambiguous-2_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-named-err-ambiguous-as.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-err-ambiguous.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-err-ambiguous_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-named-err-dflt-thru-star-as.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-err-dflt-thru-star-dflt.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-err-dflt-thru-star-dflt_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-named-err-dflt-thru-star-int_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-named-err-not-found-as.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-err-not-found-dflt.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-err-not-found-empty_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-named-err-not-found.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-id-name.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-iee-cycle-2_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-named-iee-cycle.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-named-star-cycle-2_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-named-star-cycle-indirect-x_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-named-star-cycle.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-once.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-resolve-empty-export.js
-  cmd: runTest262 :fail, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-resolve-empty-export_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-resolve-empty-import.js
-  cmd: runTest262 :fail, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-resolve-empty-import_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-resolve-err-reference.js
-  cmd: runTest262 :fail, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-resolve-err-reference_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-resolve-err-syntax.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-resolve-err-syntax_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-resolve-order-depth-child_FIXTURE.js
@@ -71168,21 +71168,21 @@
 - path: test262/test/language/module-code/instn-same-global-set_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-same-global.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/fnGlobalObject.js"], [:module]
 - path: test262/test/language/module-code/instn-star-ambiguous-1_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-ambiguous-2_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-ambiguous.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-ambiguous_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-binding.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-equality-other_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-equality.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-err-not-found-empty_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-err-not-found-faulty_FIXTURE.js
@@ -71190,29 +71190,29 @@
 - path: test262/test/language/module-code/instn-star-err-not-found.js
   cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-id-name.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-iee-cycle-2_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-iee-cycle.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-props-circular-a_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-props-circular-b_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-props-circular.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-props-dflt-keep-indirect-def_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-props-dflt-keep-indirect-reexport_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-props-dflt-keep-indirect.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-props-dflt-keep-local-named_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-props-dflt-keep-local-prod_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-props-dflt-keep-local.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-props-dflt-skip-named_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-props-dflt-skip-prod_FIXTURE.js
@@ -71222,7 +71222,7 @@
 - path: test262/test/language/module-code/instn-star-props-dflt-skip-star-prod_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-props-dflt-skip.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-star-props-nrml-1_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-props-nrml-indirect_FIXTURE.js
@@ -71236,23 +71236,23 @@
 - path: test262/test/language/module-code/instn-star-star-cycle-indirect-x_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-star-star-cycle.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/instn-uniq-env-rec-other_FIXTURE.js
   cmd: prepareTest262Fixture
 - path: test262/test/language/module-code/instn-uniq-env-rec.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/list-iter-next-length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/list-iter-next-name.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/list-iter-next-prop-desc.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/name.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/prop-desc.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/this-val-not-ns.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/values-binding-types.js
@@ -71262,51 +71262,51 @@
 - path: test262/test/language/module-code/namespace/Symbol.iterator/values-order.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.toStringTag.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/define-own-property.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/delete-exported-init.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/delete-exported-uninit.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/delete-non-exported.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-own-property-str-found-init.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-own-property-str-found-uninit.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-own-property-str-not-found.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-own-property-sym.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-prototype-of.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-str-found-init.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-str-found-uninit.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-str-initialize.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-str-not-found.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-str-update.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-sym-found.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-sym-not-found.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/has-property-str-found-init.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/has-property-str-found-uninit.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/has-property-str-not-found.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/has-property-sym-found.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/has-property-sym-not-found.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/is-extensible.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/own-property-keys-binding-types.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/own-property-keys-binding-types_FIXTURE.js
@@ -71314,211 +71314,211 @@
 - path: test262/test/language/module-code/namespace/internals/own-property-keys-sort.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/prevent-extensions.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/set-prototype-of.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/set.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-arrow-function.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-block-stmt-list.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-block-stmt.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-class-decl-meth-static.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-class-decl-meth.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-class-decl-method-gen-static.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-class-decl-method-gen.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-class-expr-meth-gen-static.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-class-expr-meth-gen.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-class-expr-meth-static.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-class-expr-meth.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-do-while.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-const.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-in-const.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-in-let.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-in-lhs.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-in-var.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-let.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-lhs.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-of-const.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-of-let.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-of-lhs.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-of-var.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-for-var.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-function-decl.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-function-expr.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-generator-decl.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-generator-expr.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-if-else.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-if-if.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-labeled.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-object-gen-method.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-object-getter.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-object-method.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-object-setter.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-switch-case-dflt.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-switch-case.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-switch-dftl.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-try-catch-finally.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-try-catch.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-try-finally.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-try-try.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-export-while.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-arrow-function.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-block-stmt-list.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-block-stmt.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-class-decl-meth-static.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-class-decl-meth.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-class-decl-method-gen-static.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-class-decl-method-gen.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-class-expr-meth-gen-static.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-class-expr-meth-gen.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-class-expr-meth-static.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-class-expr-meth.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-do-while.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-const.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-in-const.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-in-let.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-in-lhs.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-in-var.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-let.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-lhs.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-of-const.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-of-let.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-of-lhs.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-of-var.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-for-var.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-function-decl.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-function-expr.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-generator-decl.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-generator-expr.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-if-else.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-if-if.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-labeled.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-object-gen-method.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-object-getter.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-object-method.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-object-setter.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-switch-case-dflt.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-switch-case.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-switch-dftl.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-try-catch-finally.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-try-catch.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-try-finally.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-try-try.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-decl-pos-import-while.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-export-dflt-const.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-export-dflt-expr.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-export-dflt-let.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-export-dflt-var.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-hoist-lex-fun.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-hoist-lex-gen.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-invoke-anon-fun-decl.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-invoke-anon-gen-decl.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-reference.js
-  cmd: runTest262 :fail, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "ReferenceError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-semi-dflt-expr.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-semi-export-clause-from.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-semi-export-clause.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-semi-export-star.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-err-syntax.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/parse-export-empty.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/punctuators/S7.7_A1.js
@@ -72096,7 +72096,7 @@
 - path: test262/test/language/reserved-words/S7.6.1_A2.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/language/reserved-words/await-module.js
-  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/reserved-words/await-script.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/language/reserved-words/await-script.js

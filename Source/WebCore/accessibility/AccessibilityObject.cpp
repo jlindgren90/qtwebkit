@@ -1599,7 +1599,7 @@ bool AccessibilityObject::contentEditableAttributeIsEnabled(Element* element)
     if (!element)
         return false;
     
-    const AtomicString& contentEditableValue = element->fastGetAttribute(contenteditableAttr);
+    const AtomicString& contentEditableValue = element->attributeWithoutSynchronization(contenteditableAttr);
     if (contentEditableValue.isNull())
         return false;
     
@@ -2001,7 +2001,7 @@ bool AccessibilityObject::hasAttribute(const QualifiedName& attribute) const
 const AtomicString& AccessibilityObject::getAttribute(const QualifiedName& attribute) const
 {
     if (Element* element = this->element())
-        return element->fastGetAttribute(attribute);
+        return element->attributeWithoutSynchronization(attribute);
     return nullAtom;
 }
     
@@ -2219,7 +2219,7 @@ bool AccessibilityObject::supportsPressAction() const
             // Search within for immediate descendants that are static text. If we find more than one
             // then this is an event delegator actionElement and we should expose the press action.
             Vector<AccessibilitySearchKey> keys({ StaticTextSearchKey, ControlSearchKey, GraphicSearchKey, HeadingSearchKey, LinkSearchKey });
-            AccessibilitySearchCriteria criteria(axObj, SearchDirectionNext, "", 2, false, false);
+            AccessibilitySearchCriteria criteria(axObj, SearchDirectionNext, emptyString(), 2, false, false);
             criteria.searchKeys = keys;
             axObj->findMatchingObjects(&criteria, results);
             if (results.size() > 1)

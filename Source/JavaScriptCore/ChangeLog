@@ -1,3 +1,256 @@
+2016-07-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Enable test262 module tests
+        https://bugs.webkit.org/show_bug.cgi?id=159854
+
+        Reviewed by Saam Barati.
+
+        This patch enables test262 module tests. Before this patch, the modules tests in test262 do not work fine.
+        This patch fixes the following 2 things.
+
+        1. Test harness
+
+            Before this patch, there is only one global switch "-m" in jsc shell. So we cannot load the test262 test harness before evaluating the module tests.
+            This patch adds a new option, "--module-file=". It is similar to "--strict-file=". When we specify the file with "--module-file=", it is evaluated as
+            a module, while the other files are evaluated by following the JSC's default manner. This option allows us to load the test harness files into the
+            global context before loading the module tests.
+
+        2. Module's asynchronous errors
+
+            Before this patch, the errors caused in the module evaluation are not handled as the same to the usual sync files. In synchronous execution, we have
+            "--exception=" option to pass the expected exception to the JSC shell. But this option does not work in the module evaluation.
+            This patch correctly handles this expected exception in the module evaluation promise's fulfill and reject handlers.
+
+        And we fix the YAML file. Now the recorded :fail and :normal are the correct test results for the module tests.
+
+        * jsc.cpp:
+        (Script::Script):
+        (checkUncaughtException):
+        (runWithScripts):
+        (printUsageStatement):
+        (CommandLine::parseArguments):
+        (dumpException): Deleted.
+        * tests/test262.yaml:
+
+2016-07-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Mask TrustedImm32 to 8bit in MacroAssembler for 8bit operations
+        https://bugs.webkit.org/show_bug.cgi?id=159334
+
+        Reviewed by Filip Pizlo.
+
+        Previously, in 8bit operations (like add8, compare8, test8, branch8, branchTest8 etc.),
+        we require that the given TrustedImm32 is in range of 8bit. While achieving this in
+        the manual MacroAssembler calling is easy, in Air, we don't guarantee that the higher bit
+        of the 8bit argument is cleared. So the current assertions are invalid.
+
+        This patch relaxes the above restriction. By removing this assertion,
+        8bit operations can take arbitrary 32bit imms. And only lower 8bit are effective when
+        emitting the code in these methods.
+
+        * assembler/MacroAssembler.h:
+        (JSC::MacroAssembler::branchTest8):
+        * assembler/MacroAssemblerARM.h:
+        (JSC::MacroAssemblerARM::store8):
+        (JSC::MacroAssemblerARM::branch8):
+        (JSC::MacroAssemblerARM::branchTest8):
+        (JSC::MacroAssemblerARM::compare8):
+        (JSC::MacroAssemblerARM::test8):
+        * assembler/MacroAssemblerARM64.h:
+        (JSC::MacroAssemblerARM64::store8):
+        (JSC::MacroAssemblerARM64::branch8):
+        (JSC::MacroAssemblerARM64::branchTest8):
+        (JSC::MacroAssemblerARM64::compare8):
+        (JSC::MacroAssemblerARM64::test8):
+        * assembler/MacroAssemblerARMv7.h:
+        (JSC::MacroAssemblerARMv7::store8):
+        (JSC::MacroAssemblerARMv7::branch8):
+        (JSC::MacroAssemblerARMv7::branchTest8):
+        (JSC::MacroAssemblerARMv7::compare8):
+        (JSC::MacroAssemblerARMv7::test8):
+        * assembler/MacroAssemblerMIPS.h:
+        (JSC::MacroAssemblerMIPS::store8):
+        (JSC::MacroAssemblerMIPS::branch8):
+        (JSC::MacroAssemblerMIPS::compare8):
+        (JSC::MacroAssemblerMIPS::branchTest8):
+        (JSC::MacroAssemblerMIPS::test8):
+        * assembler/MacroAssemblerSH4.h:
+        (JSC::MacroAssemblerSH4::store8):
+        (JSC::MacroAssemblerSH4::branchTest8):
+        (JSC::MacroAssemblerSH4::branch8):
+        (JSC::MacroAssemblerSH4::compare8):
+        (JSC::MacroAssemblerSH4::test8):
+        * assembler/MacroAssemblerX86.h:
+        (JSC::MacroAssemblerX86::store8):
+        (JSC::MacroAssemblerX86::branch8):
+        (JSC::MacroAssemblerX86::branchTest8):
+        * assembler/MacroAssemblerX86Common.h:
+        (JSC::MacroAssemblerX86Common::add8):
+        (JSC::MacroAssemblerX86Common::store8):
+        (JSC::MacroAssemblerX86Common::branch8):
+        (JSC::MacroAssemblerX86Common::branchTest8):
+        (JSC::MacroAssemblerX86Common::compare8):
+        (JSC::MacroAssemblerX86Common::test8):
+        * assembler/MacroAssemblerX86_64.h:
+        (JSC::MacroAssemblerX86_64::store8):
+        (JSC::MacroAssemblerX86_64::branch8):
+        (JSC::MacroAssemblerX86_64::branchTest8):
+
+2016-07-16  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r203318.
+
+        Regressed most JS Benchmarks on MacBook Air by ~2% (7% on
+        SunSpider)
+
+        Reverted changeset:
+
+        "[JSC] Change some parameters based on a random search"
+        https://bugs.webkit.org/show_bug.cgi?id=158514
+        http://trac.webkit.org/changeset/203318
+
+2016-07-15  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Convert the remaining createOutOfMemoryError()+throwException() into throwOutOfMemoryError()
+        https://bugs.webkit.org/show_bug.cgi?id=159665
+
+        Reviewed by Saam Barati.
+
+        * API/JSTypedArray.cpp:
+        (createTypedArray):
+        * runtime/Error.cpp:
+        (JSC::createOutOfMemoryError):
+        * runtime/Error.h:
+        * runtime/ExceptionHelpers.cpp:
+        (JSC::throwOutOfMemoryError):
+        * runtime/JSArrayBufferConstructor.cpp:
+        (JSC::constructArrayBuffer):
+        * runtime/JSArrayBufferPrototype.cpp:
+        (JSC::arrayBufferProtoFuncSlice):
+        * runtime/JSGenericTypedArrayViewInlines.h:
+        (JSC::JSGenericTypedArrayView<Adaptor>::create):
+        (JSC::JSGenericTypedArrayView<Adaptor>::createUninitialized):
+
+2016-07-15  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Change some parameters based on a random search
+        https://bugs.webkit.org/show_bug.cgi?id=158514
+
+        Reviewed by Saam Barati.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::optimizationThresholdScalingFactor):
+        * runtime/Options.h:
+
+2016-07-15  Mark Lam  <mark.lam@apple.com>
+
+        Assertion failures and crashes with missing TDZ checks for catch-node bindings.
+        https://bugs.webkit.org/show_bug.cgi?id=158797
+
+        Reviewed by Saam Barati.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitPushCatchScope):
+        (JSC::BytecodeGenerator::emitPopCatchScope):
+        * tests/stress/catch-clause-should-be-under-tdz1.js: Added.
+        * tests/stress/catch-clause-should-be-under-tdz2.js: Added.
+        * tests/stress/catch-clause-should-be-under-tdz3.js: Added.
+        * tests/stress/catch-clause-should-be-under-tdz4.js: Added.
+        * tests/stress/catch-clause-should-be-under-tdz5.js: Added.
+
+2016-07-15  Geoffrey Garen  <ggaren@apple.com>
+
+        Added a makeRef<T> helper
+        https://bugs.webkit.org/show_bug.cgi?id=159835
+
+        Reviewed by Andreas Kling.
+
+        Anders told me to!
+
+        * inspector/InjectedScriptHost.cpp:
+        (Inspector::InjectedScriptHost::wrapper):
+
+2016-07-15  Mark Lam  <mark.lam@apple.com>
+
+        FunctionOverride's parseClause() needs to keep the CString instance in scope while its data is being used.
+        https://bugs.webkit.org/show_bug.cgi?id=159828
+
+        Reviewed by Saam Barati.
+
+        Otherwise, we'll have a use after free.  This issue was caught when running an
+        ASan debug build of testapi.
+
+        * tools/FunctionOverrides.cpp:
+        (JSC::parseClause):
+
+2016-07-15  Keith Miller  <keith_miller@apple.com>
+
+        %TypedArray%.prototype.indexOf is coercing non-integers or non-floats to numbers wrongly
+        https://bugs.webkit.org/show_bug.cgi?id=159400
+
+        Reviewed by Geoffrey Garen.
+
+        This patch fixes coercion of non-numbers in indexOf/lastIndexOf.
+        Additionally, this patch fixes an issue with includes where it
+        would not check that the buffer remained non-neutered after
+        calling the toInteger() function. Lastly, some extra release
+        asserts have been added in some places to inform us of any issues
+        in the future.
+
+        Additionally, this patch changes bool toNativeFromDouble to
+        Optional<Type> toNativeFromDoubleWithoutCoercion. This makes it a
+        little clearer what the function does and also removes the return
+        argument. The only behavior change is that the function no longer
+        coerces non-numbers into numbers. That behavior was unused (maybe
+        unintended), however.
+
+        * runtime/JSGenericTypedArrayView.h:
+        (JSC::JSGenericTypedArrayView::toAdaptorNativeFromValueWithoutCoercion):
+        (JSC::JSGenericTypedArrayView::sort):
+        (JSC::JSGenericTypedArrayView::toAdaptorNativeFromValue): Deleted.
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        (JSC::genericTypedArrayViewProtoFuncCopyWithin):
+        (JSC::genericTypedArrayViewProtoFuncIncludes):
+        (JSC::genericTypedArrayViewProtoFuncIndexOf):
+        (JSC::genericTypedArrayViewProtoFuncLastIndexOf):
+        * runtime/ToNativeFromValue.h:
+        (JSC::toNativeFromValueWithoutCoercion):
+        (JSC::toNativeFromValue): Deleted.
+        * runtime/TypedArrayAdaptors.h:
+        (JSC::IntegralTypedArrayAdaptor::toNativeFromInt32WithoutCoercion):
+        (JSC::IntegralTypedArrayAdaptor::toNativeFromUint32WithoutCoercion):
+        (JSC::IntegralTypedArrayAdaptor::toNativeFromDoubleWithoutCoercion):
+        (JSC::FloatTypedArrayAdaptor::toNativeFromInt32WithoutCoercion):
+        (JSC::FloatTypedArrayAdaptor::toNativeFromDoubleWithoutCoercion):
+        (JSC::Uint8ClampedAdaptor::toNativeFromInt32WithoutCoercion):
+        (JSC::Uint8ClampedAdaptor::toNativeFromDoubleWithoutCoercion):
+        (JSC::IntegralTypedArrayAdaptor::toNativeFromInt32): Deleted.
+        (JSC::IntegralTypedArrayAdaptor::toNativeFromUint32): Deleted.
+        (JSC::IntegralTypedArrayAdaptor::toNativeFromDouble): Deleted.
+        (JSC::FloatTypedArrayAdaptor::toNativeFromInt32): Deleted.
+        (JSC::FloatTypedArrayAdaptor::toNativeFromDouble): Deleted.
+        (JSC::Uint8ClampedAdaptor::toNativeFromInt32): Deleted.
+        (JSC::Uint8ClampedAdaptor::toNativeFromDouble): Deleted.
+        * tests/stress/resources/typedarray-test-helper-functions.js:
+        * tests/stress/typedarray-functions-with-neutered.js:
+        (callWithArgs):
+        * tests/stress/typedarray-includes.js: Added.
+        * tests/stress/typedarray-indexOf.js:
+        * tests/stress/typedarray-lastIndexOf.js:
+
+2016-07-15  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Add new functions to ARMAssembler after r202214
+        https://bugs.webkit.org/show_bug.cgi?id=159713
+
+        Reviewed by Saam Barati.
+
+        * assembler/ARMAssembler.h:
+        (JSC::ARMAssembler::fillNops):
+        * assembler/MacroAssemblerARM.h:
+        (JSC::MacroAssemblerARM::patchableBranch32):
+        (JSC::MacroAssemblerARM::internalCompare32):
+
 2016-07-15  Mark Lam  <mark.lam@apple.com>
 
         Stack overflow error for deeply nested classes.

@@ -1075,7 +1075,7 @@ webkit.org/b/137505 media/track/track-forced-subtitles-in-band.html [ Failure Pa
 # Flaky Media Source tests
 webkit.org/b/149816 [ Yosemite+ ] http/tests/media/media-source/SourceBuffer-abort-updating.html [ Pass Timeout ]
 
-# These two tests have "Error: InvalidStateError: DOM Exception 11" in output.
+# These two tests have "InvalidStateError (DOM Exception 11): The object is in an invalid state." in output.
 [ Yosemite+ ] media/media-source/media-source-duplicate-seeked.html [ Failure ]
 [ Yosemite+ ] media/media-source/media-source-play.html [ Failure ]
 
@@ -1448,7 +1448,5 @@ webkit.org/b/159683 imported/w3c/web-platform-tests/fetch/api/request/request-ca
 webkit.org/b/158741 [ Yosemite Release ] storage/indexeddb/modern/handle-user-delete.html [ Pass Timeout ]
 
 webkit.org/b/158500 storage/indexeddb/database-close-private.html [ Pass Failure ]
-
-webkit.org/b/159173 fast/css/ancestor-of-hovered-element-detached.html [ Pass Failure ]
 
 webkit.org/b/158640 imported/blink/storage/indexeddb/blob-valid-after-deletion.html [ Pass Failure ]

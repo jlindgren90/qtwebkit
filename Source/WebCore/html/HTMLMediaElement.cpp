@@ -773,9 +773,9 @@ Node::InsertionNotificationRequest HTMLMediaElement::insertedInto(ContainerNode&
         m_inActiveDocument = true;
 
 #if PLATFORM(IOS)
-        if (m_networkState == NETWORK_EMPTY && !fastGetAttribute(srcAttr).isEmpty() && m_mediaSession->dataLoadingPermitted(*this))
+        if (m_networkState == NETWORK_EMPTY && !attributeWithoutSynchronization(srcAttr).isEmpty() && m_mediaSession->dataLoadingPermitted(*this))
 #else
-        if (m_networkState == NETWORK_EMPTY && !fastGetAttribute(srcAttr).isEmpty())
+        if (m_networkState == NETWORK_EMPTY && !attributeWithoutSynchronization(srcAttr).isEmpty())
 #endif
             scheduleDelayedAction(LoadMediaResource);
     }
@@ -996,7 +996,7 @@ MediaError* HTMLMediaElement::error() const
 
 void HTMLMediaElement::setSrc(const String& url)
 {
-    setAttribute(srcAttr, url);
+    setAttributeWithoutSynchronization(srcAttr, url);
 }
 
 #if ENABLE(MEDIA_STREAM)
@@ -1021,7 +1021,7 @@ void HTMLMediaElement::setCrossOrigin(const AtomicString& value)
 
 String HTMLMediaElement::crossOrigin() const
 {
-    return parseCORSSettingsAttribute(fastGetAttribute(crossoriginAttr));
+    return parseCORSSettingsAttribute(attributeWithoutSynchronization(crossoriginAttr));
 }
 
 HTMLMediaElement::NetworkState HTMLMediaElement::networkState() const
@@ -3052,7 +3052,7 @@ void HTMLMediaElement::setPreload(const String& preload)
         return;
 #endif
 
-    setAttribute(preloadAttr, preload);
+    setAttributeWithoutSynchronization(preloadAttr, preload);
 }
 
 void HTMLMediaElement::play(PlayPromise&& promise)
@@ -4023,7 +4023,7 @@ void HTMLMediaElement::updateCaptionContainer()
 void HTMLMediaElement::layoutSizeChanged()
 {
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
-    auto task = [this, protectedThis = Ref<Element>(*this)] {
+    auto task = [this, protectedThis = makeRef(*this)] {
         if (ShadowRoot* root = userAgentShadowRoot())
             root->dispatchEvent(Event::create("resize", false, false));
     };
@@ -6722,11 +6722,11 @@ String HTMLMediaElement::getCurrentMediaControlsStatus()
     JSC::JSObject* controllerObject = controllerValue.toObject(exec);
 
     if (exec->hadException())
-        return "";
+        return emptyString();
 
     JSC::JSValue functionValue = controllerObject->get(exec, JSC::Identifier::fromString(exec, "getCurrentControlsStatus"));
     if (exec->hadException() || functionValue.isUndefinedOrNull())
-        return "";
+        return emptyString();
 
     JSC::JSObject* function = functionValue.toObject(exec);
     ASSERT(!exec->hadException());
@@ -6734,12 +6734,12 @@ String HTMLMediaElement::getCurrentMediaControlsStatus()
     JSC::CallType callType = function->methodTable()->getCallData(function, callData);
     JSC::MarkedArgumentBuffer argList;
     if (callType == JSC::CallType::None)
-        return "";
+        return emptyString();
 
     JSC::JSValue outputValue = JSC::call(exec, function, callType, callData, controllerObject, argList);
 
     if (exec->hadException())
-        return "";
+        return emptyString();
 
     return outputValue.getString(exec);
 }
@@ -6829,7 +6829,7 @@ void HTMLMediaElement::mayResumePlayback(bool shouldResume)
 String HTMLMediaElement::mediaSessionTitle() const
 {
     if (fastHasAttribute(titleAttr))
-        return fastGetAttribute(titleAttr);
+        return attributeWithoutSynchronization(titleAttr);
     
     return m_currentSrc;
 }
@@ -6961,7 +6961,7 @@ bool HTMLMediaElement::doesHaveAttribute(const AtomicString& attribute, AtomicSt
 {
     QualifiedName attributeName(nullAtom, attribute, nullAtom);
 
-    AtomicString elementValue = fastGetAttribute(attributeName);
+    AtomicString elementValue = attributeWithoutSynchronization(attributeName);
     if (elementValue.isNull())
         return false;
     
