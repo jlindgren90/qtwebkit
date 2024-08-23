@@ -55,7 +55,7 @@ namespace NetworkCache {
 static const AtomicString& resourceType()
 {
     ASSERT(WTF::isMainThread());
-    static NeverDestroyed<const AtomicString> resource("resource", AtomicString::ConstructFromLiteral);
+    static NeverDestroyed<const AtomicString> resource("Resource", AtomicString::ConstructFromLiteral);
     return resource;
 }
 
@@ -382,7 +382,7 @@ void Cache::retrieve(const WebCore::ResourceRequest& request, const GlobalFrameI
     });
 }
 
-std::unique_ptr<Entry> Cache::store(const WebCore::ResourceRequest& request, const WebCore::ResourceResponse& response, RefPtr<WebCore::SharedBuffer>&& responseData, std::function<void (MappedBody&)>&& completionHandler)
+std::unique_ptr<Entry> Cache::store(const WebCore::ResourceRequest& request, const WebCore::ResourceResponse& response, RefPtr<WebCore::SharedBuffer>&& responseData, NoncopyableFunction<void (MappedBody&)>&& completionHandler)
 {
     ASSERT(isEnabled());
     ASSERT(responseData);

@@ -1,3 +1,47 @@
+2016-06-17  Enrique Ocaña González  <eocanha@igalia.com>
+
+        Unreviewed. Added myself to the list of committers.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-06-16  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL][GTK] LayoutTest doesn't run on Ubuntu 16.04
+        https://bugs.webkit.org/show_bug.cgi?id=158141
+
+        Reviewed by Michael Catanzaro.
+
+        * Scripts/webkitpy/port/base.py: Detect php version in system, then use it.
+        (Port._is_debian_php_version_7):
+        (Port._debian_php_version):
+        (Port._apache_config_file_name_for_platform):
+        * efl/install-dependencies:
+        * gtk/install-dependencies:
+
+2016-06-16  Filip Pizlo  <fpizlo@apple.com>
+
+        Baseline JIT should be concurrent
+        https://bugs.webkit.org/show_bug.cgi?id=158755
+
+        Reviewed by Geoffrey Garen.
+        
+        Need to disable concurrent JIT when running profiler tests. We should have been doing this
+        all along.
+
+        * Scripts/run-jsc-stress-tests:
+
+2016-06-16  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Accessibility implementation unable to recurse through document (sometimes) to find named elements
+        https://bugs.webkit.org/show_bug.cgi?id=140798
+
+        Reviewed by Brent Fulgham.
+       
+        Make sure layout is up-to-date before trying to find named elements. 
+
+        * DumpRenderTree/win/AccessibilityControllerWin.cpp:
+        (AccessibilityController::rootElement):
+
 2016-06-16  Chris Dumez  <cdumez@apple.com>
 
         Unreviewed, rolling out r202002 and r202111.

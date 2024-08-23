@@ -46,13 +46,18 @@ public:
 
     LayoutUnit width() const { return m_width; }
     LayoutUnit maxPreferredWidth() const { return m_maxPreferredWidth; }
+    LayoutUnit ascent() const { return m_ascent; }
+    LayoutUnit descent() const { return m_descent; }
     LayoutUnit italicCorrection() const { return m_italicCorrection; }
 
-    bool isStretched() const { return m_stretchType != StretchType::Unstretched; }
+    void stretchTo(const RenderStyle&, LayoutUnit ascent, LayoutUnit descent);
+    void stretchTo(const RenderStyle&, LayoutUnit width);
+    bool isStretched() const { return m_stretchType != StretchType::Unstretched || m_radicalVerticalScale > 1; }
     void unstretch() { m_stretchType = StretchType::Unstretched; }
 
-    // FIXME: All the code below should be private when it is no longer needed by RenderMathMLOperator (http://webkit.org/b/152244).
+    void paint(const RenderStyle&, PaintInfo&, const LayoutPoint&);
 
+private:
     struct GlyphAssemblyData {
         GlyphData topOrRight;
         GlyphData extension;
@@ -95,6 +100,7 @@ public:
     LayoutUnit m_ascent { 0 };
     LayoutUnit m_descent { 0 };
     LayoutUnit m_italicCorrection { 0 };
+    float m_radicalVerticalScale { 1 };
 };
 
 }

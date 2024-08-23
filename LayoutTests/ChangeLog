@@ -1,3 +1,322 @@
+2016-06-17  Chris Dumez  <cdumez@apple.com>
+
+        URL hash setter does not remove fragment identifier if argument is an empty string
+        https://bugs.webkit.org/show_bug.cgi?id=158869
+        <rdar://problem/26863430>
+
+        Reviewed by Darin Adler.
+
+        Update existing layout tests now that setting hash to "" or "#" clears
+        the fragment identifier.
+
+        * fast/dom/DOMURL/set-href-attribute-hash-expected.txt:
+        * fast/dom/DOMURL/set-href-attribute-hash.html:
+        * fast/dom/HTMLAnchorElement/script-tests/set-href-attribute-hash.js:
+        * fast/dom/HTMLAnchorElement/set-href-attribute-hash-expected.txt:
+
+2016-06-17  John Wilander  <wilander@apple.com>
+
+        Ignore case in the check for security origin inheritance
+        https://bugs.webkit.org/show_bug.cgi?id=158878
+
+        Reviewed by Alex Christensen.
+
+        * http/tests/dom/window-open-about-uppercase-blank-and-access-document-expected.txt: Added.
+        * http/tests/dom/window-open-about-uppercase-blank-and-access-document.html: Added.
+
+2016-06-17  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping two new LayoutTests that rely on mouse events on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=158855
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-06-17  Frederic Wang  <fwang@igalia.com>
+
+        Refactor RenderMathMLRoot layout function to avoid using flexbox
+        https://bugs.webkit.org/show_bug.cgi?id=153987
+
+        Reviewed by Brent Fulgham.
+
+        Update expectations for some MathML tests containing radical operators.
+
+        * TestExpectations: mathml/roots-removeChild.html works as expected now
+        that we do not manage anonymous wrappers anymore.
+        * mathml/presentation/roots.xhtml: Add one test for RTL roots.
+        * platform/gtk/mathml/presentation/mo-stretch-expected.txt: Update expectation to
+        take into change in the render tree.
+        * platform/gtk/mathml/presentation/roots-expected.txt: Ditto.
+        * platform/gtk/mathml/presentation/roots-expected.png: Update expectation to take
+        into account small rendering changes.
+        * platform/ios-simulator/mathml/presentation/roots-expected.txt: Ditto.
+        * platform/gtk/mathml/radical-fallback-expected.txt: Ditto.
+        * platform/gtk/mathml/radical-fallback-expected.png: Ditto.
+        * platform/mac/mathml/radical-fallback-expected.txt: Ditto.
+        * platform/mac/mathml/radical-fallback-expected.png: Ditto.
+        * platform/ios-simulator/mathml/radical-fallback-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/radical-fallback-expected.png: Added.
+
+2016-06-17  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        Update test-expected file for failing fullscreen test
+        https://bugs.webkit.org/show_bug.cgi?id=158838
+
+        Reviewed by Carlos Garcia Campos.
+
+        Used MAC version of the test as the default version since only MAC and
+        GTK do not skip this test and expect the same result. Removed 
+        test-expected files specific to each port when there was one. Prior to
+        this patch, GTK test was failing unexpectedly.
+
+        * fullscreen/video-controls-override-expected.txt:
+        * platform/efl/fullscreen/video-controls-override-expected.txt: Removed.
+        * platform/gtk/fullscreen/video-controls-override-expected.txt: Removed.
+        * platform/mac/fullscreen/video-controls-override-expected.txt: Removed.
+
+2016-06-17  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        CORS preflight with a non-200 response should be a preflight failure
+        https://bugs.webkit.org/show_bug.cgi?id=111008
+
+        Reviewed by Darin Adler.
+
+        * http/tests/xmlhttprequest/access-control-and-redirects-async-expected.txt:
+        * http/tests/xmlhttprequest/access-control-and-redirects-async.html:
+        * http/tests/xmlhttprequest/access-control-basic-get-fail-non-simple-expected.txt:
+        * http/tests/xmlhttprequest/workers/access-control-basic-get-fail-non-simple-expected.txt:
+
+2016-06-17  Frederic Wang  <fred.wang@free.fr>
+
+        MathOperator: Add fallback mechanisms for stretching and mirroring radical symbols
+        https://bugs.webkit.org/show_bug.cgi?id=156836
+
+        Reviewed by Sergio Villar Senin.
+
+        We add a pixel test to verify the result of stretching a radical operator.
+        We test RTL/LTR direction as well as default/sans-serif font in order to check the fallback code.
+
+        * mathml/radical-fallback.html: Added.
+        * platform/gtk/mathml/radical-fallback-expected.png: Added.
+        * platform/gtk/mathml/radical-fallback-expected.txt: Added.
+        * platform/ios-simulator/mathml/radical-fallback-expected.txt: Added.
+        * platform/mac/mathml/radical-fallback-expected.png: Added.
+        * platform/mac/mathml/radical-fallback-expected.txt: Added.
+        * platform/ios-simulator/mathml/presentation/roots.txt: Updated.
+
+2016-06-16  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202147.
+        https://bugs.webkit.org/show_bug.cgi?id=158867
+
+        Broke scrolling tests on iOS Simulator (Requested by ap on
+        #webkit).
+
+        Reverted changeset:
+
+        "Focus event dispatched in iframe causes parent document to
+        scroll incorrectly"
+        https://bugs.webkit.org/show_bug.cgi?id=158629
+        http://trac.webkit.org/changeset/202147
+
+2016-06-16  Benjamin Poulain  <bpoulain@apple.com>
+
+        :in-range & :out-of-range CSS pseudo-classes shouldn't match disabled or readonly inputs
+        https://bugs.webkit.org/show_bug.cgi?id=156530
+
+        Reviewed by Simon Fraser.
+
+        * fast/css/pseudo-in-range-on-disabled-input-basics-expected.html: Added.
+        * fast/css/pseudo-in-range-on-disabled-input-basics.html: Added.
+        * fast/css/pseudo-in-range-on-readonly-input-basics-expected.html: Added.
+        * fast/css/pseudo-in-range-on-readonly-input-basics.html: Added.
+        * fast/css/pseudo-in-range-out-of-range-on-disabled-input-trivial-expected.html: Added.
+        * fast/css/pseudo-in-range-out-of-range-on-disabled-input-trivial.html: Added.
+        * fast/css/pseudo-out-of-range-on-disabled-input-basics-expected.html: Added.
+        * fast/css/pseudo-out-of-range-on-disabled-input-basics.html: Added.
+        * fast/css/pseudo-out-of-range-on-readonly-input-basics-expected.html: Added.
+        * fast/css/pseudo-out-of-range-on-readonly-input-basics.html: Added.
+        * fast/selectors/in-range-out-of-range-style-update-expected.txt: Added.
+        * fast/selectors/in-range-out-of-range-style-update.html: Added.
+
+2016-06-16  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL][GTK] LayoutTest doesn't run on Ubuntu 16.04
+        https://bugs.webkit.org/show_bug.cgi?id=158141
+
+        Reviewed by Michael Catanzaro.
+
+        * http/conf/debian-httpd-2.4-php7.conf: Added.
+
+2016-06-15  Filip Pizlo  <fpizlo@apple.com>
+
+        Baseline JIT should be concurrent
+        https://bugs.webkit.org/show_bug.cgi?id=158755
+
+        Reviewed by Geoffrey Garen.
+        
+        This change revealed a latent bug in the LLInt.  The non-llint version of this new test
+        would usually fail because it was still in LLInt.  This new test always fails.
+
+        * js/dom/prototype-chain-caching-with-impure-get-own-property-slot-traps-llint.html: Added.
+        * js/dom/prototype-chain-caching-with-impure-get-own-property-slot-traps-llint-expected.txt: Added.
+        * js/dom/script-tests/prototype-chain-caching-with-impure-get-own-property-slot-traps-llint.js: Added.
+
+2016-06-16  Frederic Wang  <fwang@igalia.com>
+
+        Add separate MathOperator for selection/measuring/drawing of stretchy operators
+        https://bugs.webkit.org/show_bug.cgi?id=152244
+
+        Reviewed by Brent Fulgham.
+
+        Update expectations for some MathML tests containing operators/radicals
+        to take into account small rendering changes.
+
+        * platform/gtk/mathml/opentype/horizontal-expected.png:
+        * platform/gtk/mathml/opentype/horizontal-expected.txt:
+        * platform/gtk/mathml/opentype/horizontal-munderover-expected.txt:
+        * platform/gtk/mathml/opentype/large-operators-expected.png:
+        * platform/gtk/mathml/opentype/large-operators-expected.txt:
+        * platform/gtk/mathml/opentype/opentype-stretchy-expected.png:
+        * platform/gtk/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/gtk/mathml/opentype/opentype-stretchy-horizontal-expected.png:
+        * platform/gtk/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+        * platform/gtk/mathml/opentype/vertical-expected.png:
+        * platform/gtk/mathml/opentype/vertical-expected.txt:
+        * platform/gtk/mathml/presentation/mo-stretch-expected.png:
+        * platform/gtk/mathml/presentation/mo-stretch-expected.txt:
+        * platform/gtk/mathml/presentation/roots-expected.txt:
+        * platform/ios-simulator/mathml/opentype/horizontal-munderover-expected.txt:
+        * platform/mac/mathml/opentype/opentype-stretchy-horizontal-expected.png:
+        * platform/mac/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+
+2016-06-16  Jiewen Tan  <jiewen_tan@apple.com>
+
+        CSP: Content Security Policy should allow '*' to match the originating page's scheme
+        https://bugs.webkit.org/show_bug.cgi?id=158811
+        <rdar://problem/26819568>
+
+        Reviewed by Daniel Bates.
+
+        * security/contentSecurityPolicy/image-with-file-url-allowed-by-img-src-star-expected.html: Added.
+        * security/contentSecurityPolicy/image-with-file-url-allowed-by-img-src-star.html: Added.
+        * security/contentSecurityPolicy/image-with-file-url-blocked-by-img-src-star-expected.html: Removed.
+        * security/contentSecurityPolicy/image-with-file-url-blocked-by-img-src-star.html: Removed.
+        * security/contentSecurityPolicy/link-with-file-url-allowed-by-style-src-star-expected.html: Added.
+        * security/contentSecurityPolicy/link-with-file-url-allowed-by-style-src-star.html: Added.
+        * security/contentSecurityPolicy/link-with-file-url-blocked-by-style-src-star-expected.html: Removed.
+        * security/contentSecurityPolicy/link-with-file-url-blocked-by-style-src-star.html: Removed.
+        * security/contentSecurityPolicy/resources/alert-pass.js: Added.
+        * security/contentSecurityPolicy/script-with-file-url-allowed-by-script-src-star-expected.txt: Added.
+        * security/contentSecurityPolicy/script-with-file-url-allowed-by-script-src-star.html: Added.
+        * security/contentSecurityPolicy/video-with-file-url-allowed-by-media-src-star-expected.html: Copied from LayoutTests/security/contentSecurityPolicy/video-with-file-url-blocked-by-media-src-star.html.
+        * security/contentSecurityPolicy/video-with-file-url-allowed-by-media-src-star.html: Renamed from LayoutTests/security/contentSecurityPolicy/video-with-file-url-blocked-by-media-src-star.html.
+        * security/contentSecurityPolicy/video-with-file-url-blocked-by-media-src-star-expected.html: Removed.
+
+2016-06-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: console.profile should use the new Sampling Profiler
+        https://bugs.webkit.org/show_bug.cgi?id=153499
+        <rdar://problem/24352431>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/timeline/setInstruments-programmatic-capture-expected.txt: Added.
+        * inspector/timeline/setInstruments-programmatic-capture.html: Added.
+        New test that the backend auto-starts instruments during programmatic capture.
+
+2016-06-16  John Wilander  <wilander@apple.com>
+
+        Restrict security origin inheritance to empty, about:blank, and about:srcdoc URLs
+        https://bugs.webkit.org/show_bug.cgi?id=158855
+        <rdar://problem/26142632>
+
+        Reviewed by Alex Christensen.
+
+        * http/tests/dom/window-open-about-blank-and-access-document-expected.txt: Added.
+        * http/tests/dom/window-open-about-blank-and-access-document.html: Added.
+        * http/tests/dom/window-open-about-webkit-org-and-access-document-expected.txt: Added.
+        * http/tests/dom/window-open-about-webkit-org-and-access-document.html: Added.
+
+2016-06-16  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Move most of CSP tests into security/contentSecurityPolicy/
+        https://bugs.webkit.org/show_bug.cgi?id=158859
+
+        Reviewed by Daniel Bates.
+
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+        * platform/wk2/TestExpectations:
+        * security/contentSecurityPolicy/blocks-video-expected.txt: Renamed from LayoutTests/media/csp-blocks-video-expected.txt.
+        * security/contentSecurityPolicy/blocks-video.html: Renamed from LayoutTests/media/csp-blocks-video.html.
+        * security/contentSecurityPolicy/font-loading-block-all-expected.txt: Renamed from LayoutTests/fast/text/font-loading-csp-block-all-expected.txt.
+        * security/contentSecurityPolicy/font-loading-block-all.html: Renamed from LayoutTests/fast/text/font-loading-csp-block-all.html.
+        * security/contentSecurityPolicy/image-with-blob-url-allowed-by-img-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-blob-url-allowed-by-csp-img-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html.
+        * security/contentSecurityPolicy/image-with-blob-url-allowed-by-img-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-blob-url-allowed-by-csp-img-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html.
+        * security/contentSecurityPolicy/image-with-blob-url-blocked-by-img-src-star-expected.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-blob-url-blocked-by-csp-img-src-star-expected.html.
+        * security/contentSecurityPolicy/image-with-blob-url-blocked-by-img-src-star.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-blob-url-blocked-by-csp-img-src-star.html.
+        * security/contentSecurityPolicy/image-with-data-url-allowed-by-img-src-star-expected.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-data-url-allowed-by-csp-img-src-star-expected.html.
+        * security/contentSecurityPolicy/image-with-data-url-allowed-by-img-src-star.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-data-url-allowed-by-csp-img-src-star.html.
+        * security/contentSecurityPolicy/image-with-file-url-allowed-by-img-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-file-url-allowed-by-csp-img-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html.
+        * security/contentSecurityPolicy/image-with-file-url-allowed-by-img-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-file-url-allowed-by-csp-img-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html.
+        * security/contentSecurityPolicy/image-with-file-url-blocked-by-img-src-star-expected.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-file-url-blocked-by-csp-img-src-star-expected.html.
+        * security/contentSecurityPolicy/image-with-file-url-blocked-by-img-src-star.html: Renamed from LayoutTests/fast/dom/HTMLImageElement/image-with-file-url-blocked-by-csp-img-src-star.html.
+        * security/contentSecurityPolicy/link-with-blob-url-allowed-by-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-blob-url-allowed-by-csp-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html.
+        * security/contentSecurityPolicy/link-with-blob-url-allowed-by-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-blob-url-allowed-by-csp-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html.
+        * security/contentSecurityPolicy/link-with-blob-url-blocked-by-style-src-star-expected.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-blob-url-blocked-by-csp-style-src-star-expected.html.
+        * security/contentSecurityPolicy/link-with-blob-url-blocked-by-style-src-star.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-blob-url-blocked-by-csp-style-src-star.html.
+        * security/contentSecurityPolicy/link-with-data-url-allowed-by-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-data-url-allowed-by-csp-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html.
+        * security/contentSecurityPolicy/link-with-data-url-allowed-by-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-data-url-allowed-by-csp-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html.
+        * security/contentSecurityPolicy/link-with-data-url-blocked-by-style-src-star-expected.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-data-url-blocked-by-csp-style-src-star-expected.html.
+        * security/contentSecurityPolicy/link-with-data-url-blocked-by-style-src-star.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-data-url-blocked-by-csp-style-src-star.html.
+        * security/contentSecurityPolicy/link-with-file-url-allowed-by-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-file-url-allowed-by-csp-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html.
+        * security/contentSecurityPolicy/link-with-file-url-allowed-by-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-file-url-allowed-by-csp-style-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html.
+        * security/contentSecurityPolicy/link-with-file-url-blocked-by-style-src-star-expected.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-file-url-blocked-by-csp-style-src-star-expected.html.
+        * security/contentSecurityPolicy/link-with-file-url-blocked-by-style-src-star.html: Renamed from LayoutTests/fast/dom/HTMLLinkElement/link-with-file-url-blocked-by-csp-style-src-star.html.
+        * security/contentSecurityPolicy/resources/worker-inherits-blocks-eval.js: Renamed from LayoutTests/fast/workers/resources/worker-inherits-csp-blocks-eval.js.
+        (catch):
+        * security/contentSecurityPolicy/resources/worker-inherits-blocks-xhr.js: Renamed from LayoutTests/fast/workers/resources/worker-inherits-csp-blocks-xhr.js.
+        (catch):
+        * security/contentSecurityPolicy/video-with-blob-url-allowed-by-media-src-star-expected.html: Renamed from LayoutTests/media/video-with-blob-url-allowed-by-csp-media-src-star-expected.html.
+        * security/contentSecurityPolicy/video-with-blob-url-allowed-by-media-src-star.html: Renamed from LayoutTests/media/video-with-blob-url-allowed-by-csp-media-src-star.html.
+        * security/contentSecurityPolicy/video-with-data-url-allowed-by-media-src-star-expected.html: Renamed from LayoutTests/media/video-with-data-url-allowed-by-csp-media-src-star-expected.html.
+        * security/contentSecurityPolicy/video-with-data-url-allowed-by-media-src-star.html: Renamed from LayoutTests/media/video-with-data-url-allowed-by-csp-media-src-star.html.
+        * security/contentSecurityPolicy/video-with-file-url-allowed-by-media-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html: Renamed from LayoutTests/media/video-with-file-url-allowed-by-csp-media-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled-expected.html.
+        * security/contentSecurityPolicy/video-with-file-url-allowed-by-media-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html: Renamed from LayoutTests/media/video-with-file-url-allowed-by-csp-media-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html.
+        * security/contentSecurityPolicy/video-with-file-url-blocked-by-media-src-star-expected.html: Renamed from LayoutTests/media/video-with-file-url-blocked-by-csp-media-src-star-expected.html.
+        * security/contentSecurityPolicy/video-with-file-url-blocked-by-media-src-star.html: Renamed from LayoutTests/media/video-with-file-url-blocked-by-csp-media-src-star.html.
+        * security/contentSecurityPolicy/worker-inherits-blocks-eval-expected.txt: Renamed from LayoutTests/fast/workers/worker-inherits-csp-blocks-eval-expected.txt.
+        * security/contentSecurityPolicy/worker-inherits-blocks-eval.html: Renamed from LayoutTests/fast/workers/worker-inherits-csp-blocks-eval.html.
+        * security/contentSecurityPolicy/worker-inherits-blocks-xhr-expected.txt: Renamed from LayoutTests/fast/workers/worker-inherits-csp-blocks-xhr-expected.txt.
+        * security/contentSecurityPolicy/worker-inherits-blocks-xhr.html: Renamed from LayoutTests/fast/workers/worker-inherits-csp-blocks-xhr.html.
+
+2016-06-16  Simon Fraser  <simon.fraser@apple.com>
+
+        Focus event dispatched in iframe causes parent document to scroll incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=158629
+        rdar://problem/26521616
+
+        Reviewed by Enrica Casucci.
+        
+        Tests for user-initiated and programmatic focus in frames.
+
+        * fast/forms/ios/focus-input-in-iframe-expected.txt: Added.
+        * fast/forms/ios/focus-input-in-iframe.html: Added.
+        * fast/forms/ios/programmatic-focus-input-in-iframe.html: Added.
+        * fast/forms/ios/programmatic-focus-input-in-iframe-expected.txt: Added.
+
+2016-06-16  Zalan Bujtas  <zalan@apple.com>
+
+        [New Block-Inside-Inline Model] Do not attempt to re-run margin collapsing on the block sequence.
+        https://bugs.webkit.org/show_bug.cgi?id=158854
+
+        Reviewed by David Hyatt.
+
+        * fast/block/inside-inlines/crash-on-first-line-change-expected.txt: Added.
+        * fast/block/inside-inlines/crash-on-first-line-change.html: Added.
+
 2016-06-16  Benjamin Poulain  <bpoulain@apple.com>
 
         :in-range & :out-of-range CSS pseudo-classes shouldn't match inputs without range limitations

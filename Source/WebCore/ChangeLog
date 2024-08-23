@@ -1,3 +1,603 @@
+2016-06-17  Zalan Bujtas  <zalan@apple.com>
+
+        Potential null dereferencing on a detached positioned renderer.
+        https://bugs.webkit.org/show_bug.cgi?id=158879
+
+        Reviewed by Simon Fraser.
+
+        This patch fixes the case when the while loop to search for the absolute positioned ancestor
+        returns null (it happens when positioned renderer has been detached from the render tree).
+
+        Speculative fix.
+
+        * rendering/RenderBlock.cpp:
+        (WebCore::RenderBlock::markFixedPositionObjectForLayoutIfNeeded):
+        * rendering/RenderBlock.h:
+
+2016-06-17  Chris Dumez  <cdumez@apple.com>
+
+        URL hash setter does not remove fragment identifier if argument is an empty string
+        https://bugs.webkit.org/show_bug.cgi?id=158869
+        <rdar://problem/26863430>
+
+        Reviewed by Darin Adler.
+
+        URL hash setter and URLUtils hash setter should remove the fragment identifier
+        if set to "#" or "":
+        - https://url.spec.whatwg.org/#dom-url-hash
+        - https://html.spec.whatwg.org/multipage/semantics.html#dom-hyperlink-hash
+
+        This patch aligns our behavior with the specification and with other browsers
+        (tested Firefox and Chrome).
+
+        This patch also updates HTMLAnchorElement to inherit URLUtils to avoid code
+        duplication. HTMLAnchorElement already implements URLUtils in the IDL, as per
+        the specification:
+        - https://html.spec.whatwg.org/multipage/semantics.html#htmlanchorelement
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::origin): Deleted.
+        (WebCore::HTMLAnchorElement::text): Deleted.
+        (WebCore::HTMLAnchorElement::setText): Deleted.
+        (WebCore::HTMLAnchorElement::toString): Deleted.
+        (WebCore::HTMLAnchorElement::isLiveLink): Deleted.
+        (WebCore::HTMLAnchorElement::sendPings): Deleted.
+        (WebCore::HTMLAnchorElement::handleClick): Deleted.
+        (WebCore::HTMLAnchorElement::eventType): Deleted.
+        (WebCore::HTMLAnchorElement::treatLinkAsLiveForEventType): Deleted.
+        (WebCore::isEnterKeyKeydownEvent): Deleted.
+        (WebCore::shouldProhibitLinks): Deleted.
+        (WebCore::HTMLAnchorElement::willRespondToMouseClickEvents): Deleted.
+        (WebCore::rootEditableElementMap): Deleted.
+        (WebCore::HTMLAnchorElement::rootEditableElementForSelectionOnMouseDown): Deleted.
+        (WebCore::HTMLAnchorElement::clearRootEditableElementForSelectionOnMouseDown): Deleted.
+        (WebCore::HTMLAnchorElement::setRootEditableElementForSelectionOnMouseDown): Deleted.
+        * html/HTMLAnchorElement.h:
+        (WebCore::HTMLAnchorElement::invalidateCachedVisitedLinkHash): Deleted.
+        * html/URLUtils.h:
+        (WebCore::URLUtils<T>::setHash):
+
+2016-06-17  John Wilander  <wilander@apple.com>
+
+        Ignore case in the check for security origin inheritance
+        https://bugs.webkit.org/show_bug.cgi?id=158878
+
+        Reviewed by Alex Christensen.
+
+        Darin Adler commented in https://bugs.webkit.org/show_bug.cgi?id=158855:
+        "Are these comparisons intentionally case sensitive? Shouldn’t they ignore ASCII 
+        case? We could use equalIgnoringASCIICase and equalLettersIgnoringASCIICase for 
+        those two lines instead of using ==. URL::parse normalizes letters in the scheme 
+        and host by using toASCIILower, but does not normalize letters elsewhere in the 
+        URL, such as in the "blank" or "srcdoc" in the above URLs."
+
+        Test: http/tests/dom/window-open-about-uppercase-blank-and-access-document.html
+
+        * platform/URL.cpp:
+        (WebCore::URL::shouldInheritSecurityOriginFromOwner):
+
+2016-06-17  Hyungwook Lee  <hyungwook.lee@navercorp.com>
+
+        Fix compilation errors when we enable DUMP_NODE_STATISTICS in Node.h
+        https://bugs.webkit.org/show_bug.cgi?id=158868
+
+        Reviewed by Alex Christensen.
+
+        Fix compilation errors in Node.cpp when we enable DUMP_NODE_STATISTICS
+
+        * dom/Node.cpp:
+        (WebCore::Node::dumpStatistics):
+
+2016-06-17  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Scrolling in popup menu scrolls past last entry.
+        https://bugs.webkit.org/show_bug.cgi?id=158870
+
+        Reviewed by Brent Fulgham.
+
+        When the popup has a scrollbar, the content size is not equal to the popup window size.
+  
+        * platform/win/PopupMenuWin.cpp:
+        (WebCore::PopupMenuWin::contentsSize):
+
+2016-06-17  Frederic Wang  <fwang@igalia.com>
+
+        Refactor RenderMathMLRoot layout function to avoid using flexbox
+        https://bugs.webkit.org/show_bug.cgi?id=153987
+
+        Reviewed by Brent Fulgham.
+
+        No new tests, already covered by existing tests.
+        A case for RTL root has been added to roots.xhtml.
+
+        We reimplement RenderMathMLRoot without any flexbox or anonymous.
+        The anonymous RenderMathMLRadicalOperator used to draw the radical sign is replaced with
+        the MathOperator class introduced in bug 152244.
+        msqrt (row of children under a square root) is now implemented directly in RenderMathMLRoot,
+        so RenderMathMLSquareRoot is removed and RenderMathMLRoot now inherits from RenderMathMLRow.
+
+        * CMakeLists.txt: Remove files for RenderMathMLRadicalOperator and RenderMathMLSquareRoot.
+        * WebCore.xcodeproj/project.pbxproj: ditto.
+        * accessibility/AccessibilityRenderObject.cpp: Update code now that we do not use any
+        radical wrappers.
+        (WebCore::AccessibilityRenderObject::isMathRow): Now that RenderMathMLRoot inherits from
+        RenderMathMLRow, we must exclude MathRoot or otherwise some accessibility code may treat
+        roots as rows.
+        (WebCore::AccessibilityRenderObject::mathRadicandObject): Return the first child for
+        Root/SquareRoot or nullptr.
+        (WebCore::AccessibilityRenderObject::mathRootIndexObject): Return the second child for
+        Root and nullptr for SquareRoot.
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::childrenChanged): We no longer need a special case
+        for msqrt, it is treated as a normal RenderMathMLRow.
+        (WebCore::MathMLInlineContainerElement::createElementRenderer): Make msqrt create a
+        RenderMathMLRoot object.
+        * rendering/RenderObject.h:
+        (WebCore::RenderObject::isRenderMathMLRadicalOperator): Deleted.
+        * rendering/mathml/RenderMathMLBlock.cpp:
+        (WebCore::RenderMathMLBlock::mirrorIfNeeded): New function to mirror a child horizontal
+        offset according to the parent width.
+        (WebCore::RenderMathMLBlock::renderName):
+        * rendering/mathml/RenderMathMLBlock.h:
+        (WebCore::RenderMathMLBlock::mirrorIfNeeded): Moved from RenderMathMLScripts, just forward
+        call to the other mirrorIfNeeded function.
+        * rendering/mathml/RenderMathMLOperator.cpp: We no longer need this trailingSpaceError hack.
+        (WebCore::RenderMathMLOperator::trailingSpaceError): Deleted.
+        * rendering/mathml/RenderMathMLOperator.h: ditto.
+        * rendering/mathml/RenderMathMLRadicalOperator.cpp: Removed. The radical sign is now drawn
+        with a MathOperator.
+        * rendering/mathml/RenderMathMLRadicalOperator.h: Removed.
+        * rendering/mathml/RenderMathMLRoot.cpp: Complete refactoring to avoid using flexbox and
+        anonymous wrappers.
+        (WebCore::RenderMathMLRoot::RenderMathMLRoot): Set m_kind parameters to distinguish between
+        square root and general root and set the MathOperator member to draw the radical sign.
+        (WebCore::RenderMathMLRoot::isValid): Helper function to verify whether the child list is valid.
+        (WebCore::RenderMathMLRoot::getBase): Get the base of an mroot.
+        (WebCore::RenderMathMLRoot::getIndex): Get the index of an mroot.
+        (WebCore::RenderMathMLRoot::styleDidChange): Be sure to keep the style of the
+        MathOperator in sync with ours ; no need to skip empty roots.
+        (WebCore::RenderMathMLRoot::updateFromElement): Call the function from the new parent class ;
+        no need to skip empty roots.
+        (WebCore::RenderMathMLRoot::updateStyle): Remove the isEmpty ASSERT as it is valid to have
+        empty square root. Set the m_kernBeforeDegree, m_kernBeforeDegree members.
+        No need to set style for anonymous.
+        (WebCore::RenderMathMLRoot::computePreferredLogicalWidths): Implement this function.
+        (WebCore::RenderMathMLRoot::layoutBlock): Implement this function.
+        (WebCore::RenderMathMLRoot::paintChildren): Implement this function.
+        (WebCore::RenderMathMLRoot::paint): Remove the trailingSpaceError hack ;
+        paint the radical sign via MathOperator::paint
+        (WebCore::RenderMathMLRoot::baseWrapper): Deleted.
+        (WebCore::RenderMathMLRoot::radicalWrapper): Deleted.
+        (WebCore::RenderMathMLRoot::indexWrapper): Deleted.
+        (WebCore::RenderMathMLRoot::radicalOperator): Deleted.
+        (WebCore::RenderMathMLRoot::restructureWrappers): Deleted.
+        (WebCore::RenderMathMLRoot::addChild): Deleted.
+        (WebCore::RenderMathMLRoot::firstLineBaseline): Deleted.
+        (WebCore::RenderMathMLRoot::layout): Deleted.
+        (WebCore::RenderMathMLRootWrapper::createAnonymousWrapper): Deleted.
+        (WebCore::RenderMathMLRootWrapper::removeChildWithoutRestructuring): Deleted.
+        (WebCore::RenderMathMLRootWrapper::removeChild): Deleted.
+        * rendering/mathml/RenderMathMLRoot.h: Make RenderMathMLRoot inherit from RenderMathMLRow.
+        Make RenderMathMLRoot support <msqrt>.
+        Remove all the anonymous wrapper stuff and instead use a MathOperator for the radical symbol.
+        Update function declaration to implement layout without flexbox and add some helper functions.
+        * rendering/mathml/RenderMathMLRow.cpp: Allow to get the exact metrics of the chid row,
+        for use in RenderMathMLRoot.
+        (WebCore::RenderMathMLRow::computeLineVerticalStretch): rename parameters.
+        (WebCore::RenderMathMLRow::layoutRowItems): Set parameters to the final ascent, descent and
+        logical width of the chid row. Set the temporary logical width for RenderMathRoot before
+        laying the children out.
+        (WebCore::RenderMathMLRow::layoutBlock): Rename parameters ; add a dummy logicalWidth
+        parameter.
+        * rendering/mathml/RenderMathMLRow.h: Make some functions accessible or overridable by
+        RenderMathMLRoot. Make layoutRowItems return the final ascent, descent and logical width
+        after the chid row is laid out.
+        * rendering/mathml/RenderMathMLScripts.cpp: Move mirrorIfNeeded to RenderMathMLBlock.
+        (WebCore::RenderMathMLScripts::mirrorIfNeeded): Deleted.
+        * rendering/mathml/RenderMathMLScripts.h: Move mirrorIfNeeded to RenderMathMLBlock.
+        * rendering/mathml/RenderMathMLSquareRoot.cpp: Removed.
+        * rendering/mathml/RenderMathMLSquareRoot.h: Removed.
+        * rendering/mathml/MathOperator.cpp:
+        (WebCore::MathOperator::paint): Apply a mirroring scale transform to radical symbol
+        in RTL direction.
+
+2016-06-17  Chris Dumez  <cdumez@apple.com>
+
+        Drop some unnecessary header includes
+        https://bugs.webkit.org/show_bug.cgi?id=158864
+
+        Reviewed by Alexey Proskuryakov.
+
+        Drop some unnecessary header includes to try and reduce build times.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * accessibility/AccessibilityList.cpp:
+        * css/CSSComputedStyleDeclaration.cpp:
+        * css/MediaQueryMatcher.cpp:
+        * css/StyleMedia.cpp:
+        * css/TransformFunctions.cpp:
+        * dom/NodeRenderStyle.h:
+        * dom/PseudoElement.h:
+        (isType): Deleted.
+        * html/HTMLTitleElement.cpp:
+        * html/shadow/MediaControlElementTypes.h:
+        * html/shadow/MediaControls.cpp:
+        * inspector/InspectorDOMAgent.h:
+        * inspector/InspectorLayerTreeAgent.h:
+        * inspector/InspectorPageAgent.cpp:
+        * page/scrolling/AsyncScrollingCoordinator.cpp:
+        * page/scrolling/ScrollingCoordinator.h:
+        * rendering/BidiRun.h:
+        * rendering/BorderEdge.h:
+        * rendering/RenderElement.h:
+        * rendering/RenderObject.h:
+        (WebCore::AnnotatedRegionValue::operator==): Deleted.
+        (WebCore::AnnotatedRegionValue::operator!=): Deleted.
+        * rendering/RenderObjectEnums.h: Added.
+        * rendering/RenderTheme.h:
+        * rendering/SimpleLineLayoutFlowContents.h:
+        * rendering/SimpleLineLayoutTextFragmentIterator.h:
+        * rendering/TextPainter.h:
+        * rendering/style/RenderStyle.h:
+        (WebCore::pseudoElementRendererIsNeeded):
+        * rendering/style/ShapeValue.cpp:
+        * rendering/style/ShapeValue.h:
+        * style/ClassChangeInvalidation.cpp:
+        * style/ClassChangeInvalidation.h:
+        * style/InlineTextBoxStyle.h:
+        * style/StyleUpdate.cpp:
+
+2016-06-17  Andreas Kling  <akling@apple.com>
+
+        [iOS] Throw away linked code when navigating to a new page.
+        <https://webkit.org/b/153851>
+
+        Reviewed by Antti Koivisto.
+
+        When navigating to a new page, tell JSC to throw out any linked code it has lying around.
+        Linked code is tied to a specific global object, and as we're creating a new one for the
+        new page, none of it is useful to us here.
+
+        In the event that the user navigates back, the cost of relinking some code will be far
+        lower than the memory cost of keeping all of it around.
+
+        This was in-tree before but was rolled out due to regressing JSBench. It was a slowdown
+        due to the benchmark harness using top-level navigations to drive the tests.
+        This new version avoids that problem by only throwing out code if we haven't navigated
+        in the last 2 seconds. This also prevents excessive work in response to redirects.
+
+        I've also moved this into MemoryPressureHandler so we don't make a mess in FrameLoader.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::commitProvisionalLoad):
+        * platform/MemoryPressureHandler.cpp:
+        (WebCore::MemoryPressureHandler::jettisonExpensiveObjectsOnTopLevelNavigation):
+        * platform/MemoryPressureHandler.h:
+
+2016-06-17  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        CORS preflight with a non-200 response should be a preflight failure
+        https://bugs.webkit.org/show_bug.cgi?id=111008
+
+        Reviewed by Darin Adler.
+
+        Covered by rebased tests.
+
+        * Modules/fetch/FetchResponse.h: Making use of ResourceResponse::isSuccessful.
+        * loader/CrossOriginPreflightChecker.cpp:
+        (WebCore::CrossOriginPreflightChecker::validatePreflightResponse): Checking that response status is code is
+        successful. If not, calling preflight failure callback.
+        (WebCore::CrossOriginPreflightChecker::startPreflight): Putting in manual redirection mode so that redirection
+        responses are processed as other responses.
+        * loader/ResourceLoaderOptions.h:
+        (WebCore::ResourceLoaderOptions::fetchOptions): Adding a non-const getter and fixing const getter to return a
+        const reference.
+        (WebCore::ResourceLoaderOptions::setFetchOptions): Passing options by reference.
+        * platform/network/ResourceResponseBase.cpp:
+        (WebCore::ResourceResponseBase::isSuccessful): Utility function.
+        * platform/network/ResourceResponseBase.h:
+
+2016-06-17  Frederic Wang  <fwang@igalia.com>
+
+        MathOperator: Add fallback mechanisms for stretching and mirroring radical symbols
+        https://bugs.webkit.org/show_bug.cgi?id=156836
+
+        Reviewed by Sergio Villar Senin.
+
+        Some platforms do not have OpenType MATH fonts pre-installed and thus can not draw stretchy
+        operators using size variants or glyph assembly. This is especially problematic for the
+        radical symbol which is used to write roots. Currently, we have some fallback code to draw
+        that symbol using graphical primitives but it is a bit complex and makes the style of radical
+        inconsistent with the font used. We solve these issues by just scaling the base glyph via a
+        scale transform. Such scale transform is also used to mirror the radical symbol so that we
+        have some support for right-to-left roots until we can do glyph-level mirroring
+        via the OpenType rtlm feature.
+
+        Test: mathml/radical-fallback.html
+
+        * rendering/mathml/MathOperator.cpp: Add a constant for the code point U+221A of the radical.
+        (WebCore::MathOperator::reset): In general, we don't need any vertical scaling for radical
+        symbols so m_radicalVerticalScale is initialized to 1.
+        (WebCore::MathOperator::calculateStretchyData): If we don't have a font with a MATH table and we
+        try streching a radical, then we update the vertical metrics to match the target size and
+        set m_radicalVerticalScale to the value necessary to make the base glyph scaled to that size.
+        (WebCore::MathOperator::paint): For a radical operator, we may apply a scale transform of
+        parameters (radicalHorizontalScale, m_radicalVerticalScale) in order to support RTL
+        mirroring or vertical stretching.
+        * rendering/mathml/MathOperator.h: We add a m_radicalVerticalScale member to indicate the
+        scaling to apply to the base radical glyph when the stretchy fallback is necessary.
+        (WebCore::MathOperator::isStretched): The operator is also considered stretched when the
+        m_radicalVerticalScale is applied to the base size.
+        * rendering/mathml/RenderMathMLRadicalOperator.cpp: Remove code specific to the old fallback mechanism.
+        * rendering/mathml/RenderMathMLRadicalOperator.h: Ditto.
+
+2016-06-16  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202147.
+        https://bugs.webkit.org/show_bug.cgi?id=158867
+
+        Broke scrolling tests on iOS Simulator (Requested by ap on
+        #webkit).
+
+        Reverted changeset:
+
+        "Focus event dispatched in iframe causes parent document to
+        scroll incorrectly"
+        https://bugs.webkit.org/show_bug.cgi?id=158629
+        http://trac.webkit.org/changeset/202147
+
+2016-06-16  Benjamin Poulain  <bpoulain@apple.com>
+
+        :in-range & :out-of-range CSS pseudo-classes shouldn't match disabled or readonly inputs
+        https://bugs.webkit.org/show_bug.cgi?id=156530
+
+        Reviewed by Simon Fraser.
+
+        Elements should only match :in-range and :out-of-range
+        when they are candidate for constraint validation.
+
+        Tests: fast/css/pseudo-in-range-on-disabled-input-basics.html
+               fast/css/pseudo-in-range-on-readonly-input-basics.html
+               fast/css/pseudo-in-range-out-of-range-on-disabled-input-trivial.html
+               fast/css/pseudo-out-of-range-on-disabled-input-basics.html
+               fast/css/pseudo-out-of-range-on-readonly-input-basics.html
+               fast/selectors/in-range-out-of-range-style-update.html
+
+        * html/BaseDateAndTimeInputType.cpp:
+        (WebCore::BaseDateAndTimeInputType::minOrMaxAttributeChanged):
+        * html/NumberInputType.cpp:
+        (WebCore::NumberInputType::minOrMaxAttributeChanged):
+        I forgot to handle style update in r202143.
+        This is covered by the new style invalidation test.
+
+        * html/BaseDateAndTimeInputType.h:
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::isInRange):
+        (WebCore::HTMLInputElement::isOutOfRange):
+
+2016-06-16  Frederic Wang  <fwang@igalia.com>
+
+        Add separate MathOperator for selection/measuring/drawing of stretchy operators
+        https://bugs.webkit.org/show_bug.cgi?id=152244
+
+        Reviewed by Brent Fulgham.
+
+        We complete the class to select, measure and draw stretchy operators that is independent
+        from RenderMathMLOperator. That way, we will be able use stretchy operator without having
+        to introduce & manage anonymous RenderMathMLOperator's
+        (e.g for <mroot>, <msqrt> and <mfenced>).
+
+        No new tests, already covered by existing tests.
+
+        * rendering/mathml/MathOperator.cpp:
+        (WebCore::ascentForGlyph): Add this helper function to get glyph ascent.
+        (WebCore::descentForGlyph): Add this helper function to get glyph descent.
+        (WebCore::MathOperator::reset): Initialize all the data and calculate ascent/descent of the
+        base glyph.
+        (WebCore::MathOperator::setSizeVariant): Set the width/ascent/descent.
+        (WebCore::MathOperator::setGlyphAssembly): Ditto.
+        (WebCore::MathOperator::calculateDisplayStyleLargeOperator): Remove the STIX Word hack and
+        change m_maxPreferredWidth to use the actual width instead.
+        (WebCore::MathOperator::stretchTo): New functions to execute the actual operator streching.
+        (WebCore::MathOperator::fillWithVerticalExtensionGlyph): Add a FIXME for bug 155434.
+        (WebCore::MathOperator::fillWithHorizontalExtensionGlyph): Align all the glyph baselines on
+        the same axis, given by m_ascent.
+        Add a FIXME for bug 155434.
+        (WebCore::MathOperator::paintHorizontalGlyphAssembly): Ditto.
+        (WebCore::MathOperator::paint): Public function to do the painting.
+        (WebCore::MathOperator::paintVerticalGlyphAssembly): Deleted.
+        * rendering/mathml/MathOperator.h: Update declarations and make most of the members private.
+        (WebCore::MathOperator::ascent): Function to expose m_ascent.
+        (WebCore::MathOperator::descent): Function to expose m_descent.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::stretchTo): Forward the stretching call to MathOperator.
+        (WebCore::RenderMathMLOperator::computePreferredLogicalWidths): Unfold advanceForGlyph
+        since we delete RenderMathMLOperator::advanceForGlyph. Just rely on
+        MathOperator::maxPreferredWidth to determine the preferred width of stretchy operators.
+        For horizontal operators, we just use the width of the base glyph.
+        Finally, we remove the dirty flag on preferred logical width.
+        (WebCore::RenderMathMLOperator::rebuildTokenContent): Reinit the MathOperator instance.
+        (WebCore::RenderMathMLOperator::updateFromElement): Force more updates of
+        RenderMathMLOperator to avoid test breakage.
+        (WebCore::RenderMathMLOperator::styleDidChange): Call MathOperator::reset to take into
+        account style change.
+        (WebCore::RenderMathMLOperator::updateStyle): Remove unused code.
+        (WebCore::RenderMathMLOperator::firstLineBaseline): Use MathOperator::ascent() function.
+        (WebCore::RenderMathMLOperator::computeLogicalHeight): Use MathOperator::ascent() and
+        MathOperator::descent() functions to calculate the height.
+        (WebCore::RenderMathMLOperator::paint): Only stretched operators are treated specially.
+        We center horizontal operator and forward the paint() call to MathOperator.
+        (WebCore::RenderMathMLOperator::trailingSpaceError): The error is now just the difference
+        between the values returned by MathOperator::maxPreferredWidth() and
+        MathOperator::width().
+        (WebCore::boundsForGlyph): Deleted.
+        (WebCore::heightForGlyph): Deleted.
+        (WebCore::advanceWidthForGlyph): Deleted.
+        (WebCore::RenderMathMLOperator::updateStyle): Deleted.
+
+2016-06-16  Jiewen Tan  <jiewen_tan@apple.com>
+
+        CSP: Content Security Policy should allow '*' to match the originating page's scheme
+        https://bugs.webkit.org/show_bug.cgi?id=158811
+        <rdar://problem/26819568>
+
+        Reviewed by Daniel Bates.
+
+        Tests: security/contentSecurityPolicy/image-with-file-url-allowed-by-img-src-star.html
+               security/contentSecurityPolicy/link-with-file-url-allowed-by-style-src-star.html
+               security/contentSecurityPolicy/script-with-file-url-allowed-by-script-src-star.html
+               security/contentSecurityPolicy/video-with-file-url-allowed-by-media-src-star.html
+
+        * page/csp/ContentSecurityPolicySourceList.cpp:
+        (WebCore::ContentSecurityPolicySourceList::isProtocolAllowedByStar):
+
+2016-06-16  Chris Dumez  <cdumez@apple.com>
+
+        Add HTTPHeaderMap::set() overload taking a NSString*
+        https://bugs.webkit.org/show_bug.cgi?id=158857
+
+        Reviewed by Darin Adler.
+
+        Add HTTPHeaderMap::set() overloading taking a NSString* in addition to
+        the one taking a CFStringRef. It is useful for the Cocoa implementation
+        of ResourceRequest::doUpdateResourceRequest().
+
+        * platform/network/HTTPHeaderMap.h:
+        (WebCore::HTTPHeaderMap::set):
+
+2016-06-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: console.profile should use the new Sampling Profiler
+        https://bugs.webkit.org/show_bug.cgi?id=153499
+        <rdar://problem/24352431>
+
+        Reviewed by Timothy Hatcher.
+
+        Test: inspector/timeline/setInstruments-programmatic-capture.html
+
+        * inspector/InspectorTimelineAgent.cpp:
+        (WebCore::InspectorTimelineAgent::startFromConsole):
+        (WebCore::InspectorTimelineAgent::stopFromConsole):
+        (WebCore::InspectorTimelineAgent::mainFrameStartedLoading):
+        (WebCore::InspectorTimelineAgent::startProgrammaticCapture):
+        (WebCore::InspectorTimelineAgent::stopProgrammaticCapture):
+        (WebCore::InspectorTimelineAgent::toggleInstruments):
+        (WebCore::InspectorTimelineAgent::toggleScriptProfilerInstrument):
+        (WebCore::InspectorTimelineAgent::toggleHeapInstrument):
+        (WebCore::InspectorTimelineAgent::toggleMemoryInstrument):
+        (WebCore::InspectorTimelineAgent::toggleTimelineInstrument):
+        * inspector/InspectorTimelineAgent.h:
+        Web implementation of console.profile/profileEnd.
+        Make helpers for startings / stopping instruments.
+
+2016-06-16  John Wilander  <wilander@apple.com>
+
+        Restrict security origin inheritance to empty, about:blank, and about:srcdoc URLs
+        https://bugs.webkit.org/show_bug.cgi?id=158855
+        <rdar://problem/26142632>
+
+        Reviewed by Alex Christensen.
+
+        Tests: http/tests/dom/window-open-about-blank-and-access-document.html
+               http/tests/dom/window-open-about-webkit-org-and-access-document.html
+
+        Document.cpp previously checked whether a document should inherit its owner's 
+        security origin by checking if the URL is either empty or blank. URL.cpp in 
+        turn only checks if the protocol is "about:" in the isBlankURL() function. 
+        Thus all about:* URLs inherited security origin. This patch restricts 
+        security origin inheritance to empty, about:blank, and about:srcdoc URLs.
+
+        Quotes and links from the WHATWG spec regarding about:srcdoc:
+
+        7.1 Browsing contexts
+        A browsing context can have a creator browsing context, the browsing context 
+        that was responsible for its creation. If a browsing context has a parent 
+        browsing context, then that is its creator browsing context. Otherwise, if the 
+        browsing context has an opener browsing context, then that is its creator 
+        browsing context. Otherwise, the browsing context has no creator browsing 
+        context.
+        https://html.spec.whatwg.org/multipage/browsers.html#concept-document-bc
+
+        7.1.1 Nested browsing contexts
+        Certain elements (for example, iframe elements) can instantiate further 
+        browsing contexts. These are called nested browsing contexts. If a browsing 
+        context P has a Document D with an element E that nests another browsing 
+        context C inside it, then C is said to be nested through D, and E is said to 
+        be the browsing context container of C. If the browsing context container 
+        element E is in the Document D, then P is said to be the parent browsing 
+        context of C and C is said to be a child browsing context of P. Otherwise, 
+        the nested browsing context C has no parent browsing context.
+        https://html.spec.whatwg.org/multipage/browsers.html#nested-browsing-context
+
+        4.8.5 The iframe element
+        The iframe element represents a nested browsing context.
+        ...
+        If the srcdoc attribute is specified
+            Navigate the element's child browsing context to a new response whose 
+            url list consists of about:srcdoc ...
+        https://html.spec.whatwg.org/multipage/embedded-content.html#attr-iframe-srcdoc
+
+        * dom/Document.cpp:
+        (WebCore::Document::initSecurityContext):
+            Now uses the URL::shouldInheritSecurityOriginFromOwner() function instead.
+        (WebCore::Document::initContentSecurityPolicy):
+            Now uses the URL::shouldInheritSecurityOriginFromOwner() function instead.
+        (WebCore::shouldInheritSecurityOriginFromOwner): Deleted.
+            Moved to URL::shouldInheritSecurityOriginFromOwner() and restricted the check.
+        * platform/URL.cpp:
+        (WebCore::URL::shouldInheritSecurityOriginFromOwner):
+        * platform/URL.h:
+            Moved the function from Document and restricted the check to only allow
+            security origin inheritance for empty, about:blank, and about:srcdoc URLs.
+
+2016-06-16  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS] Focus event dispatched in iframe causes parent document to scroll incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=158629
+        rdar://problem/26521616
+
+        Reviewed by Enrica Casucci.
+
+        When focussing elements in iframes, the page could scroll to an incorrect location.
+        This happened because code in Element::focus() tried to disable scrolling on focus,
+        but did so only for the current frame, so ancestor frames got programmatically scrolled.
+        On iOS we handle the scrolling in the UI process, so never want the web process to
+        do programmatic scrolling.
+
+        Fix by changing the focus and cache restore code to use SelectionRevealMode::DoNotReveal,
+        rather than manually prohibiting frame scrolling.
+
+        Tests: fast/forms/ios/focus-input-in-iframe.html
+               fast/forms/ios/programmatic-focus-input-in-iframe.html
+
+        * dom/Element.cpp:
+        (WebCore::Element::focus):
+        * history/CachedPage.cpp:
+        (WebCore::CachedPage::restore):
+
+2016-06-16  Zalan Bujtas  <zalan@apple.com>
+
+        [New Block-Inside-Inline Model] Do not attempt to re-run margin collapsing on the block sequence.
+        https://bugs.webkit.org/show_bug.cgi?id=158854
+
+        Reviewed by David Hyatt.
+
+        Test: fast/block/inside-inlines/crash-on-first-line-change.html
+
+        * rendering/RenderBlockLineLayout.cpp:
+        (WebCore::RenderBlockFlow::marginCollapseLinesFromStart):
+
+2016-06-16  Ting-Wei Lan  <lantw44@gmail.com>
+
+        Include cstdlib before using std::atexit
+        https://bugs.webkit.org/show_bug.cgi?id=158681
+
+        Reviewed by Brent Fulgham.
+
+        * platform/graphics/PlatformDisplay.cpp:
+
 2016-06-16  Chris Dumez  <cdumez@apple.com>
 
         Use StringView::toAtomicString() in HTMLImageElement::setBestFitURLAndDPRFromImageCandidate()
