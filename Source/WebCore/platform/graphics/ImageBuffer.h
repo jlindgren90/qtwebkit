@@ -92,7 +92,7 @@ public:
     static std::unique_ptr<ImageBuffer> createCompatibleBuffer(const IntSize&, ColorSpace, QOpenGLContext*);
 #endif
 
-    static FloatSize compatibleBufferSize(const FloatSize&, const GraphicsContext&);
+    static IntSize compatibleBufferSize(const FloatSize&, const GraphicsContext&);
     bool isCompatibleWithContext(const GraphicsContext&) const;
 
     WEBCORE_EXPORT ~ImageBuffer();

@@ -1,3 +1,483 @@
+2016-06-23  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [jhbuild] Added libxslt module.
+        https://bugs.webkit.org/show_bug.cgi?id=159034
+
+        Reviewed by Michael Catanzaro.
+
+        * efl/jhbuild.modules:
+        * gtk/jhbuild.modules:
+
+2016-06-22  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Use Windows api function to find top level parent.
+        https://bugs.webkit.org/show_bug.cgi?id=159021
+
+        Reviewed by Brent Fulgham.
+
+        Delete findTopLevelParent function, and use Win32 function GetAncestor instead.
+ 
+        * DumpRenderTree/win/UIDelegate.cpp:
+        (UIDelegate::runModal):
+        (findTopLevelParent): Deleted.
+        * MiniBrowser/win/PrintWebUIDelegate.cpp:
+        (PrintWebUIDelegate::runModal):
+        (findTopLevelParent): Deleted.
+
+2016-06-22  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] The test storage/indexeddb/modern/handle-user-delete.html is timing out.
+        https://bugs.webkit.org/show_bug.cgi?id=158934
+
+        Reviewed by Brent Fulgham.
+
+        DumpRenderTree should also delete indexed databases when clearAllDatabases() is called.
+
+        * DumpRenderTree/win/TestRunnerWin.cpp:
+        (TestRunner::clearAllDatabases):
+
+2016-06-22  Saam Barati  <sbarati@apple.com>
+
+        run-javascriptcore-tests should have some environment variables for commonly used settings
+        https://bugs.webkit.org/show_bug.cgi?id=159047
+
+        Reviewed by Keith Miller.
+
+        This patch adds three environment variables that run-javascriptcore-tests
+        consults:
+        - RUN_JAVASCRIPTCORE_TESTS_TESTAPI can be set to 'true' or 'false'. It
+          determines if we should run the api tests or not.
+        - RUN_JAVASCRIPTCORE_TESTS_BUILD can be set to 'true' or 'false'. It
+          determines if we will perform a build or not before running the tests.
+          to set the default should-build setting.
+        - RUN_JAVASCRIPTCORE_TESTS_EXTRA_TESTS can be set to a directory or to
+          a yaml file. If set, we will run the extra tests it refers to.
+
+        All the values in these environment variables will be overridden if an
+        option is explicitly passed in. For example, the following will run
+        the api tests:
+        `RUN_JAVASCRIPTCORE_TESTS_TESTAPI=false run-javascriptcore-tests --testapi`
+
+        * Scripts/run-javascriptcore-tests:
+
+2016-06-22  Saam barati  <sbarati@apple.com>
+
+        TypeProfiler and TypeProfilerLog don't play nicely with the concurrent JIT
+        https://bugs.webkit.org/show_bug.cgi?id=159037
+        <rdar://problem/26935349>
+
+        Reviewed by Benjamin Poulain.
+
+        Run typeProfiler.yaml tests under an additional CJIT enabled mode.
+
+        * Scripts/run-jsc-stress-tests:
+
+2016-06-22  Aakash Jain  <aakash_jain@apple.com>
+
+        Fix style issues in webkitpy
+        https://bugs.webkit.org/show_bug.cgi?id=159019
+
+        Reviewed by Daniel Bates.
+
+        Fixed the formatting issues as reported by check-webkit-style in webkitpy.
+        There is no functionality change.
+        Only affected file names retained below for brevity.
+
+        * Scripts/webkitpy/benchmark_runner/browser_driver/browser_driver.py:
+        * Scripts/webkitpy/benchmark_runner/browser_driver/browser_driver_factory.py:
+        * Scripts/webkitpy/benchmark_runner/http_server_driver/http_server/twisted_http_server.py:
+        * Scripts/webkitpy/benchmark_runner/http_server_driver/simple_http_server_driver.py:
+        * Scripts/webkitpy/benchmark_runner/utils.py:
+        * Scripts/webkitpy/common/checkout/changelog.py:
+        * Scripts/webkitpy/common/checkout/changelog_unittest.py:
+        * Scripts/webkitpy/common/checkout/checkout.py:
+        * Scripts/webkitpy/common/checkout/checkout_mock.py:
+        * Scripts/webkitpy/common/checkout/checkout_unittest.py:
+        * Scripts/webkitpy/common/checkout/commitinfo.py:
+        * Scripts/webkitpy/common/checkout/commitinfo_unittest.py:
+        * Scripts/webkitpy/common/checkout/diff_parser_unittest.py:
+        * Scripts/webkitpy/common/checkout/scm/scm.py:
+        * Scripts/webkitpy/common/checkout/scm/scm_unittest.py:
+        * Scripts/webkitpy/common/config/committers_unittest.py:
+        * Scripts/webkitpy/common/config/irc.py:
+        * Scripts/webkitpy/common/config/ports.py:
+        * Scripts/webkitpy/common/config/ports_unittest.py:
+        * Scripts/webkitpy/common/config/urls.py:
+        * Scripts/webkitpy/common/host_mock.py:
+        * Scripts/webkitpy/common/net/bugzilla/bugzilla.py:
+        * Scripts/webkitpy/common/net/bugzilla/bugzilla_unittest.py:
+        * Scripts/webkitpy/common/net/buildbot/buildbot.py:
+        * Scripts/webkitpy/common/net/buildbot/buildbot_mock.py:
+        * Scripts/webkitpy/common/net/buildbot/buildbot_unittest.py:
+        * Scripts/webkitpy/common/net/credentials_unittest.py:
+        * Scripts/webkitpy/common/net/irc/ircproxy_unittest.py:
+        * Scripts/webkitpy/common/net/networktransaction_unittest.py:
+        * Scripts/webkitpy/common/net/statusserver.py:
+        * Scripts/webkitpy/common/system/autoinstall.py:
+        * Scripts/webkitpy/common/system/crashlogs_unittest.py:
+        * Scripts/webkitpy/common/system/executive.py:
+        * Scripts/webkitpy/common/system/executive_mock.py:
+        * Scripts/webkitpy/common/system/executive_unittest.py:
+        * Scripts/webkitpy/common/system/filesystem_mock.py:
+        * Scripts/webkitpy/common/system/filesystem_unittest.py:
+        * Scripts/webkitpy/common/system/logutils_unittest.py:
+        * Scripts/webkitpy/common/system/path.py:
+        * Scripts/webkitpy/common/system/path_unittest.py:
+        * Scripts/webkitpy/common/system/platforminfo.py:
+        * Scripts/webkitpy/common/system/user.py:
+        * Scripts/webkitpy/common/system/user_unittest.py:
+        * Scripts/webkitpy/common/system/workspace_unittest.py:
+        * Scripts/webkitpy/common/thread/threadedmessagequeue.py:
+        * Scripts/webkitpy/common/thread/threadedmessagequeue_unittest.py:
+        * Scripts/webkitpy/layout_tests/controllers/layout_test_finder.py:
+        * Scripts/webkitpy/layout_tests/controllers/manager.py:
+        * Scripts/webkitpy/layout_tests/controllers/test_result_writer.py:
+        * Scripts/webkitpy/layout_tests/layout_package/json_results_generator.py:
+        * Scripts/webkitpy/layout_tests/lint_test_expectations_unittest.py:
+        * Scripts/webkitpy/layout_tests/models/test_configuration.py:
+        * Scripts/webkitpy/layout_tests/models/test_expectations.py:
+        * Scripts/webkitpy/layout_tests/models/test_failures.py:
+        * Scripts/webkitpy/layout_tests/models/test_run_results.py:
+        * Scripts/webkitpy/layout_tests/run_webkit_tests_integrationtest.py:
+        * Scripts/webkitpy/layout_tests/views/metered_stream_unittest.py:
+        * Scripts/webkitpy/layout_tests/views/printing.py:
+        * Scripts/webkitpy/performance_tests/perftestsrunner.py:
+        * Scripts/webkitpy/performance_tests/perftestsrunner_integrationtest.py:
+        * Scripts/webkitpy/port/base_unittest.py:
+        * Scripts/webkitpy/port/driver.py:
+        * Scripts/webkitpy/port/driver_unittest.py:
+        * Scripts/webkitpy/port/factory.py:
+        * Scripts/webkitpy/port/gtk.py:
+        * Scripts/webkitpy/port/server_process_unittest.py:
+        * Scripts/webkitpy/port/test.py:
+        * Scripts/webkitpy/port/win.py:
+        * Scripts/webkitpy/style/checker.py:
+        * Scripts/webkitpy/style/checkers/common_unittest.py:
+        * Scripts/webkitpy/style/checkers/cpp.py:
+        * Scripts/webkitpy/style/checkers/cpp_unittest.py:
+        * Scripts/webkitpy/style/checkers/js.py:
+        * Scripts/webkitpy/style/checkers/jsonchecker.py:
+        * Scripts/webkitpy/style/checkers/png.py:
+        * Scripts/webkitpy/style/checkers/text.py:
+        * Scripts/webkitpy/style/checkers/text_unittest.py:
+        * Scripts/webkitpy/style/error_handlers.py:
+        * Scripts/webkitpy/style/filter.py:
+        * Scripts/webkitpy/style/filter_unittest.py:
+        * Scripts/webkitpy/style/optparser.py:
+        * Scripts/webkitpy/style/optparser_unittest.py:
+        * Scripts/webkitpy/test/main.py:
+        * Scripts/webkitpy/w3c/test_converter.py:
+        * Scripts/webkitpy/w3c/test_converter_unittest.py:
+        * Scripts/webkitpy/w3c/test_importer_unittest.py:
+        * Scripts/webkitpy/xcode/simulator.py:
+
+2016-06-22  Brady Eidson  <beidson@apple.com>
+
+        DatabaseProcess doesn't handle WebProcesses going away uncleanly.
+        https://bugs.webkit.org/show_bug.cgi?id=158894
+
+        Reviewed by Alex Christensen.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IndexedDBMultiProcess-2.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IndexedDBMultiProcess-3.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IndexedDBMultiProcess.mm:
+
+2016-06-22  Jon Lee  <jonlee@apple.com>
+
+        Update animometer.plan
+        https://bugs.webkit.org/show_bug.cgi?id=159012
+
+        Reviewed by Ryosuke Niwa.
+
+        * Scripts/webkitpy/benchmark_runner/data/plans/animometer.plan: Update to r202318.
+
+2016-06-22  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        W3C test importer should generate files to ignore by WebKit SCM
+        https://bugs.webkit.org/show_bug.cgi?id=142743
+
+        Reviewed by Darin Adler.
+
+        TestDownloader generates the .gitignore file according submodules git repository information.
+        TestImporter requests the generation of .gitignore and the main __init__.py according LayoutTests/imported/w3c/resources/TestRepositories options.
+
+        * Scripts/webkitpy/w3c/test_downloader.py:
+        (TestDownloader.generate_gitignore): Generating .gitignore according submodules description.
+        * Scripts/webkitpy/w3c/test_importer.py:
+        (TestImporter.process_test_repositories_import_options): Added the generation of .gitignore/__init__.py if the repo has the right option.
+        (TestImporter):
+        (TestImporter.write_init_py): Writing not empty __init__.py files.
+        (TestImporter.import_tests): Using  of write_init_py. 
+        * Scripts/webkitpy/w3c/test_importer_unittest.py:
+        (TestImporterTest.test_git_ignore_generation): Added .gitignore test.
+        (TestImporterTest):
+        (TestImporterTest.test_initpy_generation): Added __init__.py test.
+
+2016-06-21  Sam Weinig  <sam@webkit.org>
+
+        WKWebView with no WKNavigationDelegate does not follow universal links
+        <rdar://problem/24374110>
+        https://bugs.webkit.org/show_bug.cgi?id=158997
+
+        Reviewed by Dan Bernstein.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/WKWebViewDefaultNavigationDelegate.mm: Added.
+        Add a new test that shows that we have a default navigation delegate by swizzling
+        -[NSWorkspace openURL:]. This will only be called if there is a default client.
+
+2016-06-22  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Implement modal dialog support in MiniBrowser.
+        https://bugs.webkit.org/show_bug.cgi?id=158976
+
+        Reviewed by Brent Fulgham.
+
+        * MiniBrowser/win/PrintWebUIDelegate.cpp:
+        (PrintWebUIDelegate::createWebViewWithRequest):
+        (getHandleFromWebView):
+        (PrintWebUIDelegate::webViewClose):
+        (PrintWebUIDelegate::setFrame):
+        (PrintWebUIDelegate::webViewFrame):
+        (PrintWebUIDelegate::canRunModal):
+        (findTopLevelParent):
+        (PrintWebUIDelegate::runModal):
+        (PrintWebUIDelegate::createModalDialog):
+        * MiniBrowser/win/PrintWebUIDelegate.h:
+        (PrintWebUIDelegate::webViewClose):
+        (PrintWebUIDelegate::setFrame):
+        (PrintWebUIDelegate::webViewFrame):
+        (PrintWebUIDelegate::canRunModal):
+        (PrintWebUIDelegate::runModal):
+
+2016-06-22  Per Arne Vollan  <pvollan@apple.com>
+
+        window.showModalDialog doesn't work in DumpRenderTree on Windows
+        https://bugs.webkit.org/show_bug.cgi?id=53675
+
+        Reviewed by Brent Fulgham.
+
+        Implement modal dialog support in DumpRenderTree.
+
+        * DumpRenderTree/win/UIDelegate.cpp:
+        (UIDelegate::canRunModal):
+        (getHandleFromWebView):
+        (UIDelegate::createModalDialog):
+        (findTopLevelParent):
+        (UIDelegate::runModal):
+        (UIDelegate::webViewClose):
+        * DumpRenderTree/win/UIDelegate.h:
+
+2016-06-21  Aakash Jain  <aakash_jain@apple.com>
+
+        Fix formatting issues reported by check-webkit-style
+        https://bugs.webkit.org/show_bug.cgi?id=159008
+
+        Reviewed by Alexey Proskuryakov.
+
+        Fixed the formatting issues as reported by check-webkit-style in webkitpy/tool folder.
+        There is no functionality change.
+
+        * Scripts/webkitpy/tool/bot/irc_command.py:
+        (Restart.execute):
+        (Rollout):
+        * Scripts/webkitpy/tool/bot/ircbot_unittest.py:
+        (IRCBotTest.test_exception_during_command):
+        (IRCBotTest.test_exception_during_command.CommandWithException):
+        (IRCBotTest.test_exception_during_command.CommandWithException.execute):
+        * Scripts/webkitpy/tool/bot/layouttestresultsreader_unittest.py:
+        (test_missing_unit_test_results_path):
+        (test_layout_test_results):
+        * Scripts/webkitpy/tool/bot/queueengine.py:
+        * Scripts/webkitpy/tool/bot/queueengine_unittest.py:
+        * Scripts/webkitpy/tool/commands/abstractsequencedcommand.py:
+        (AbstractSequencedCommand):
+        (AbstractSequencedCommand.__init__):
+        * Scripts/webkitpy/tool/commands/download.py:
+        (Land):
+        * Scripts/webkitpy/tool/commands/openbugs.py:
+        * Scripts/webkitpy/tool/commands/openbugs_unittest.py:
+        (OpenBugsTest):
+        * Scripts/webkitpy/tool/commands/queries.py:
+        (PatchesToCommitQueue):
+        (PatchesToCommitQueue.__init__):
+        (PatchesToCommitQueue._needs_commit_queue):
+        * Scripts/webkitpy/tool/commands/queries_unittest.py:
+        (PrintExpectationsTest.test_platform):
+        (PrintBaselinesTest):
+        (PrintBaselinesTest.setUp):
+        * Scripts/webkitpy/tool/commands/queues.py:
+        (AbstractQueue):
+        (AbstractQueue.__init__):
+        (AbstractQueue.execute):
+        * Scripts/webkitpy/tool/commands/queues_unittest.py:
+        (test_auto_retry):
+        * Scripts/webkitpy/tool/commands/rebaseline.py:
+        (AbstractParallelRebaselineCommand._files_to_add):
+        (AbstractParallelRebaselineCommand):
+        (AbstractParallelRebaselineCommand._rebaseline):
+        * Scripts/webkitpy/tool/commands/setupgitclone.py:
+        (SetupGitClone):
+        * Scripts/webkitpy/tool/commands/sheriffbot.py:
+        * Scripts/webkitpy/tool/commands/stepsequence.py:
+        * Scripts/webkitpy/tool/commands/upload.py:
+        (PostCommits._comment_text_for_commit):
+        (PostCommits):
+        (PostCommits.execute):
+        (MarkBugFixed):
+        (MarkBugFixed.__init__):
+        * Scripts/webkitpy/tool/commands/upload_unittest.py:
+        (UploadCommandsTest):
+        (UploadCommandsTest.test_commit_message_for_current_diff):
+        * Scripts/webkitpy/tool/grammar_unittest.py:
+        (GrammarTest):
+        (GrammarTest.test_join_with_separators):
+        * Scripts/webkitpy/tool/multicommandtool.py:
+        (HelpCommand.__init__):
+        (HelpCommand):
+        (HelpCommand._help_epilog):
+        (HelpCommand._remove_help_options):
+        (MultiCommandTool):
+        (MultiCommandTool.__init__):
+        (MultiCommandTool.main):
+        * Scripts/webkitpy/tool/multicommandtool_unittest.py:
+        (TrivialCommand):
+        (TrivialCommand.__init__):
+        (MultiCommandToolTest):
+        (MultiCommandToolTest._assert_tool_main_outputs):
+        (MultiCommandToolTest.test_retry):
+        (test_command_help):
+        * Scripts/webkitpy/tool/steps/__init__.py:
+        * Scripts/webkitpy/tool/steps/abstractstep.py:
+        * Scripts/webkitpy/tool/steps/applypatch.py:
+        * Scripts/webkitpy/tool/steps/applypatchwithlocalcommit.py:
+        (ApplyPatchWithLocalCommit):
+        (ApplyPatchWithLocalCommit.options):
+        * Scripts/webkitpy/tool/steps/build.py:
+        * Scripts/webkitpy/tool/steps/checkstyle.py:
+        (CheckStyle):
+        (CheckStyle.options):
+        * Scripts/webkitpy/tool/steps/cleanworkingdirectory.py:
+        * Scripts/webkitpy/tool/steps/closebug.py:
+        * Scripts/webkitpy/tool/steps/closebugforlanddiff.py:
+        * Scripts/webkitpy/tool/steps/closebugforlanddiff_unittest.py:
+        (CloseBugForLandDiffTest):
+        (CloseBugForLandDiffTest.test_empty_state):
+        * Scripts/webkitpy/tool/steps/closepatch.py:
+        * Scripts/webkitpy/tool/steps/commit.py:
+        (Commit.run):
+        * Scripts/webkitpy/tool/steps/confirmdiff.py:
+        * Scripts/webkitpy/tool/steps/editchangelog.py:
+        * Scripts/webkitpy/tool/steps/ensurelocalcommitifneeded.py:
+        * Scripts/webkitpy/tool/steps/metastep.py:
+        (MetaStep):
+        (MetaStep.__init__):
+        (MetaStep.run):
+        * Scripts/webkitpy/tool/steps/obsoletepatches.py:
+        * Scripts/webkitpy/tool/steps/options.py:
+        (Options):
+        * Scripts/webkitpy/tool/steps/postdiff.py:
+        * Scripts/webkitpy/tool/steps/postdiffforcommit.py:
+        * Scripts/webkitpy/tool/steps/postdiffforrevert.py:
+        * Scripts/webkitpy/tool/steps/preparechangelog.py:
+        * Scripts/webkitpy/tool/steps/preparechangelog_unittest.py:
+        (PrepareChangeLogTest):
+        (PrepareChangeLogTest.test_resolve_existing_entry):
+        * Scripts/webkitpy/tool/steps/preparechangelogforrevert.py:
+        * Scripts/webkitpy/tool/steps/promptforbugortitle.py:
+        * Scripts/webkitpy/tool/steps/reopenbugafterrollout.py:
+        * Scripts/webkitpy/tool/steps/revertrevision.py:
+        * Scripts/webkitpy/tool/steps/runtests.py:
+        * Scripts/webkitpy/tool/steps/runtests_unittest.py:
+        * Scripts/webkitpy/tool/steps/steps_unittest.py:
+        (StepsTest):
+        (StepsTest._step_options):
+        * Scripts/webkitpy/tool/steps/update.py:
+        * Scripts/webkitpy/tool/steps/updatechangelogswithreview_unittest.py:
+        (UpdateChangeLogsWithReviewerTest):
+        (UpdateChangeLogsWithReviewerTest.test_guess_reviewer_from_bug):
+        * Scripts/webkitpy/tool/steps/updatechangelogswithreviewer.py:
+        * Scripts/webkitpy/tool/steps/validatereviewer.py:
+
+2016-06-21  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r202296.
+
+        Broke basic browsing in Safari
+
+        Reverted changeset:
+
+        "WKWebView with no WKNavigationDelegate does not follow
+        universal links"
+        https://bugs.webkit.org/show_bug.cgi?id=158997
+        http://trac.webkit.org/changeset/202296
+
+2016-06-21  Anders Carlsson  <andersca@apple.com>
+
+        Fix build.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-06-21  Anders Carlsson  <andersca@apple.com>
+
+        Begin moving the Apple Pay code to the open source repository
+        https://bugs.webkit.org/show_bug.cgi?id=158998
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+        Add ENABLE_APPLE_PAY.
+
+2016-06-21  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        Add system tracing points for requestAnimationFrame() workflow
+        https://bugs.webkit.org/show_bug.cgi?id=158723
+
+        Reviewed by Simon Fraser.
+
+        Add new plist entries to be used by kdebug_trace() viewing tools.
+
+        * Tracing/SystemTracePoints.plist:
+
+2016-06-21  Sam Weinig  <sam@webkit.org>
+
+        WKWebView with no WKNavigationDelegate does not follow universal links
+        <rdar://problem/24374110>
+        https://bugs.webkit.org/show_bug.cgi?id=158997
+
+        Reviewed by Dan Bernstein.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/WKWebViewDefaultNavigationDelegate.mm: Added.
+        Add a new test that shows that we have a default navigation delegate by swizzling
+        -[NSWorkspace openURL:]. This will only be called if there is a default client.
+
+2016-06-21  Aakash Jain  <aakash_jain@apple.com>
+
+        run-javascriptcore-tests should have flag to skip mozilla tests
+        https://bugs.webkit.org/show_bug.cgi?id=158963
+        rdar://problem/25838924
+
+        Reviewed by Alexey Proskuryakov.
+
+        * Scripts/run-javascriptcore-tests:
+        (runJSCStressTests): Added flag to skip mozilla tests.
+
+2016-06-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202136.
+        https://bugs.webkit.org/show_bug.cgi?id=158932
+
+        JSBench wasn't regressed by r202002 and r202111 on iOS after
+        all (Requested by rniwa_ on #webkit).
+
+        Reverted changeset:
+
+        "Unreviewed, rolling out r202002 and r202111."
+        https://bugs.webkit.org/show_bug.cgi?id=158638
+        http://trac.webkit.org/changeset/202136
+
 2016-06-20  Keith Rollin  <krollin@apple.com>
 
         Remove RefPtr::release() and change calls sites to use WTFMove()

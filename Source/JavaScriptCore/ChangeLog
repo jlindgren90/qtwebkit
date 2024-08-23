@@ -1,3 +1,397 @@
+2016-06-22  Saam barati  <sbarati@apple.com>
+
+        TypeProfiler and TypeProfilerLog don't play nicely with the concurrent JIT
+        https://bugs.webkit.org/show_bug.cgi?id=159037
+        <rdar://problem/26935349>
+
+        Reviewed by Benjamin Poulain.
+
+        The primary focus of this patch is to make the concurrent
+        baseline JIT work with the type profiler. We were clearing
+        the type profiler log on the background baseline compiler
+        thread which lead to bad things happening. This patch fixes
+        this by processing the log before we launch the compile on
+        a background thread.
+
+        Secondly, I audited the type profiler code inside the DFG,
+        and found that we were doing some racy things. I haven't
+        seen any crashes because of these things, but it is possible
+        that they exist. We were grabbing a RefPtr to a TypeSet,
+        even though TypeSet was RefCounted and not ThreadSafeRefCounted.
+        This patch makes TypeSet ThreadSafeRefCounted. We were
+        also copying a StructureSet while the execution thread could
+        be augmenting the StructureSet. This patch puts changes to 
+        TypeSet's StructureSet behind a ConcurrentJITLock.
+
+        I've also added two more large running tests that run with the
+        type profiler enabled. These are here just to catch any major bugs
+        in the type profiler implementation.
+
+        * jit/JIT.cpp:
+        (JSC::JIT::compileWithoutLinking):
+        (JSC::JIT::privateCompile):
+        (JSC::JIT::privateCompileExceptionHandlers):
+        (JSC::JIT::doMainThreadPreparationBeforeCompile):
+        (JSC::JIT::frameRegisterCountFor):
+        * jit/JIT.h:
+        (JSC::JIT::compile):
+        * jit/JITWorklist.cpp:
+        (JSC::JITWorklist::Plan::Plan):
+        (JSC::JITWorklist::Plan::compileInThread):
+        * runtime/TypeSet.cpp:
+        (JSC::TypeSet::addTypeInformation):
+        (JSC::TypeSet::invalidateCache):
+        * runtime/TypeSet.h:
+        (JSC::TypeSet::create):
+        (JSC::TypeSet::isEmpty):
+        (JSC::TypeSet::seenTypes):
+        (JSC::TypeSet::structureSet):
+        * tests/typeProfiler/deltablue-for-of.js: Added.
+        * tests/typeProfiler/getter-richards.js: Added.
+
+2016-06-22  Keith Miller  <keith_miller@apple.com>
+
+        We should have a DFG intrinsic that checks if a value is a TypedArrayView
+        https://bugs.webkit.org/show_bug.cgi?id=159048
+
+        Reviewed by Saam Barati.
+
+        This patch adds a new DFG Intrinsic that checks if a value is a TypedArrayView.
+        The intrinsic, IsTypedArrayView, works in the same way that the other Is<insert-type>
+        DFG nodes work. Additionally, a new builtin function isTypedArrayView has been added.
+        These changes are needed to fix regressions in %TypedArray%.prototype.subarray.
+
+        * builtins/BuiltinNames.h:
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileIsTypedArrayView):
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileIsTypedArrayView):
+        (JSC::FTL::DFG::LowerDFGToB3::isTypedArrayView):
+        * runtime/Intrinsic.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        (JSC::typedArrayViewPrivateFuncIsTypedArrayView):
+        * runtime/JSTypedArrayViewPrototype.h:
+        * tests/stress/istypedarrayview-intrinsic.js: Added.
+        (makeFn):
+        (typedArrays.forEach):
+        (let.test):
+        (test):
+
+2016-06-21  Anders Carlsson  <andersca@apple.com>
+
+        Fix build.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-06-21  Geoffrey Garen  <ggaren@apple.com>
+
+        Options::useImmortalObjects is not safe for conservative GC
+        https://bugs.webkit.org/show_bug.cgi?id=158999
+
+        Reviewed by Geoffrey Garen.
+
+        useImmortalObjects set the mark bit to keep an object from being
+        reallocated. This had the negative side-effect of convincing the
+        conservative marker that the object was a valid and live cell, which
+        would cause us to visit garbage.
+
+        * heap/Heap.cpp:
+        (JSC::Heap::didFinishCollection):
+        (JSC::Heap::resumeCompilerThreads):
+        (JSC::Heap::setFullActivityCallback):
+        (JSC::Heap::markDeadObjects): Deleted.
+        * heap/Heap.h: Don't set the mark bit on a dead object. That's a bug in
+        a conservative GC.
+
+        * heap/MarkedAllocator.cpp:
+        (JSC::MarkedAllocator::retire): New helper.
+
+        (JSC::MarkedAllocator::reset): Automatically retire old blocks when
+        we're doing the immortal objects thing. This has the effect of
+        preserving memory for debugging because we never recycle a previously
+        allocated block.
+
+2016-06-21  Anders Carlsson  <andersca@apple.com>
+
+        Begin moving the Apple Pay code to the open source repository
+        https://bugs.webkit.org/show_bug.cgi?id=158998
+
+        Reviewed by Tim Horton.
+
+        * Configurations/FeatureDefines.xcconfig:
+        Add ENABLE_APPLE_PAY.
+
+2016-06-21  Saam Barati  <sbarati@apple.com>
+
+        CodeBlock::shrinkToFit is racy
+        https://bugs.webkit.org/show_bug.cgi?id=158994
+        <rdar://problem/26920212>
+
+        Reviewed by Filip Pizlo.
+
+        To see why this is racy, consider the following scenario:
+        - CodeBlock A is link()ing its baseline compile.
+        - CodeBlock B is inlining A, and asks A for a result profile in DFGBytecodeParser.
+        - The race occurs when the link() step of the baseline compile calls shrinkToFit
+          on its m_resultProfiles field without grabbing a lock. This leads to a bad
+          time because the DFG compile will be reading from that vector as it's getting
+          changed by the baseline link() method.
+
+        This race has always existed, though the move to a concurrent baseline
+        JIT has made it more likely to occur. The solution is to have CodeBlock::shrinkToFit
+        grab its lock before shrinking the vector.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::shrinkToFit):
+
+2016-06-21  David Kilzer  <ddkilzer@apple.com>
+
+        Migrate testair & testb3 settings from Xcode project to ToolExecutable.xcconfig
+        <https://webkit.org/b/158989>
+
+        Reviewed by Andy Estes.
+
+        * Configurations/ToolExecutable.xcconfig:
+        (CODE_SIGN_ENTITLEMENTS_ios_testair): Add from Xcode project.
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        (CODE_SIGN_ENTITLEMENTS_ios_testair): Move to
+        ToolExecutable.xcconfig.
+        (PRODUCT_NAME): Remove.  This variable is already set for both
+        testair and testb3 since those build configurations use
+        ToolExecutable.xcconfig as a base.
+
+2016-06-21  Saam Barati  <sbarati@apple.com>
+
+        LLInt doesn't throw stack exception overflow from parent frame
+        https://bugs.webkit.org/show_bug.cgi?id=158962
+        <rdar://problem/26902188>
+
+        Reviewed by Filip Pizlo.
+
+        All JIT tiers will throw stack overflow exceptions from the parent frame.
+        The LLInt, on the other hand, did not use to. I've changed the LLInt to be
+        consistent with the JITs. The reason I found this bug is because we had a
+        test that would give different results depending on if the function was compiled
+        in the baseline or the LLInt. Since Filip recently landed the concurrent baseline
+        JIT patch, this otherwise deterministic test became dependent on it being compiled
+        in the LLInt or one of the JIT tiers. I've added a new test that is deterministic
+        because it runs the test with --useJIT=false.
+
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * tests/stress/llint-stack-overflow-location.js: Added.
+        (stackTraceDescription):
+        (foo):
+        (catch):
+
+2016-06-21  David Kilzer  <ddkilzer@apple.com>
+
+        CODE_SIGN_ENTITLEMENTS should be applied to iOS Simulator builds
+        <https://webkit.org/b/158990>
+        <rdar://problem/26906273>
+
+        Reviewed by Dan Bernstein.
+
+        * Configurations/JSC.xcconfig:
+        (CODE_SIGN_ENTITLEMENTS): Change [sdk=iphoneos*] to
+        [sdk=iphone*] to apply setting to iOS Simulator as well.
+        * Configurations/ToolExecutable.xcconfig:
+        (CODE_SIGN_ENTITLEMENTS): Ditto.
+
+2016-06-21  Keith Miller  <keith_miller@apple.com>
+
+        It should be easy to add a private global helper function for builtins
+        https://bugs.webkit.org/show_bug.cgi?id=158893
+
+        Reviewed by Mark Lam.
+
+        This patch does two things. First it moves all the builtin names
+        out of CommonIdentifiers and into BuiltinNames. This means that
+        adding a new function to the Builtins does not require rebuilding
+        all of JavaScriptCore. This patch also adds a new decorator to our
+        builtins @privateGlobal that will automatically put the function
+        on the global object. The name of the property will be the same as
+        the private name of the function.
+
+        This patch, also, removes the JSArrayIterator.h/.cpp files
+        as they no longer appear to be used in any real way. Finally,
+        the builtins tests have been rebaselined. It appears this has
+        not been done for a while so the expected files contain other
+        changes.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * Scripts/builtins/builtins_generate_combined_header.py:
+        (BuiltinsCombinedHeaderGenerator.generate_output):
+        (generate_section_for_code_name_macro):
+        (generate_section_for_global_private_code_name_macro):
+        * Scripts/builtins/builtins_model.py:
+        (BuiltinFunction.__init__):
+        (BuiltinFunction.fromString):
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Combined.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Separate.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Combined.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Separate.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Combined.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Separate.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-InternalClashingNames-Combined.js-result:
+        * Scripts/tests/builtins/expected/WebCore-ArbitraryConditionalGuard-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-GuardedBuiltin-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-GuardedInternalBuiltin-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-UnguardedBuiltin-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-xmlCasingTest-Separate.js-result:
+        * builtins/ArrayIteratorPrototype.js:
+        * builtins/ArrayPrototype.js:
+        * builtins/BuiltinNames.h:
+        * builtins/GeneratorPrototype.js:
+        * builtins/GlobalObject.js:
+        * builtins/PromiseOperations.js:
+        * builtins/RegExpPrototype.js:
+        * builtins/StringPrototype.js:
+        * bytecode/BytecodeIntrinsicRegistry.cpp:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::initializeArrowFunctionContextScopeIfNeeded):
+        (JSC::BytecodeGenerator::expectedFunctionForIdentifier):
+        (JSC::BytecodeGenerator::emitGetTemplateObject):
+        (JSC::BytecodeGenerator::emitLoadNewTargetFromArrowFunctionLexicalEnvironment):
+        (JSC::BytecodeGenerator::emitLoadDerivedConstructorFromArrowFunctionLexicalEnvironment):
+        (JSC::BytecodeGenerator::emitPutNewTargetToArrowFunctionContextScope):
+        (JSC::BytecodeGenerator::emitPutDerivedConstructorToArrowFunctionContextScope):
+        (JSC::BytecodeGenerator::emitGeneratorStateChange):
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::emitHomeObjectForCallee):
+        (JSC::emitPutHomeObject):
+        (JSC::FunctionNode::emitBytecode):
+        * dfg/DFGOperations.cpp:
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::subtype):
+        (Inspector::JSInjectedScriptHost::getInternalProperties): Deleted.
+        * parser/Lexer.cpp:
+        (JSC::Lexer<LChar>::parseIdentifier):
+        (JSC::Lexer<UChar>::parseIdentifier):
+        * parser/Nodes.h:
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::createGeneratorParameters):
+        (JSC::Parser<LexerType>::parseExportDeclaration):
+        * runtime/ArrayIteratorPrototype.cpp:
+        * runtime/ArrayIteratorPrototype.h:
+        * runtime/ArrayPrototype.cpp:
+        * runtime/CommonIdentifiers.cpp:
+        (JSC::CommonIdentifiers::CommonIdentifiers): Deleted.
+        * runtime/CommonIdentifiers.h:
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::SLOW_PATH_DECL):
+        * runtime/IntlDateTimeFormat.cpp:
+        * runtime/IntlDateTimeFormatPrototype.cpp:
+        (JSC::IntlDateTimeFormatPrototypeGetterFormat):
+        (JSC::IntlDateTimeFormatPrototypeFuncResolvedOptions):
+        * runtime/IntlNumberFormatPrototype.cpp:
+        (JSC::IntlNumberFormatPrototypeGetterFormat):
+        (JSC::IntlNumberFormatPrototypeFuncResolvedOptions):
+        * runtime/IntlObjectInlines.h:
+        (JSC::constructIntlInstanceWithWorkaroundForLegacyIntlConstructor):
+        * runtime/JSArrayIterator.cpp: Removed.
+        (JSC::JSArrayIterator::finishCreation): Deleted.
+        (JSC::JSArrayIterator::kind): Deleted.
+        (JSC::JSArrayIterator::iteratedValue): Deleted.
+        * runtime/JSArrayIterator.h: Removed.
+        (JSC::JSArrayIterator::createStructure): Deleted.
+        (JSC::JSArrayIterator::create): Deleted.
+        (JSC::JSArrayIterator::JSArrayIterator): Deleted.
+        * runtime/JSGenericTypedArrayViewConstructorInlines.h:
+        (JSC::JSGenericTypedArrayViewConstructor<ViewClass>::finishCreation):
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/JSInternalPromise.cpp:
+        * runtime/JSInternalPromiseDeferred.cpp:
+        (JSC::JSInternalPromiseDeferred::create):
+        * runtime/JSPromise.cpp:
+        (JSC::JSPromise::finishCreation):
+        (JSC::JSPromise::result):
+        * runtime/JSPromiseDeferred.cpp:
+        (JSC::JSPromiseDeferred::create):
+        * runtime/JSStringIterator.cpp:
+        (JSC::JSStringIterator::finishCreation):
+        (JSC::JSStringIterator::iteratedValue):
+        (JSC::JSStringIterator::clone):
+        * runtime/MapPrototype.cpp:
+        (JSC::MapPrototype::finishCreation):
+        * runtime/ObjectConstructor.cpp:
+        (JSC::ObjectConstructor::finishCreation):
+        * runtime/ReflectObject.cpp:
+        (JSC::ReflectObject::finishCreation):
+        * runtime/StringPrototype.cpp:
+        (JSC::StringPrototype::finishCreation):
+        * runtime/TypedArrayInlines.h:
+
+2016-06-20  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Use bytecode intrinsic to expose Module's loading status to builtin JS
+        https://bugs.webkit.org/show_bug.cgi?id=158871
+
+        Reviewed by Sam Weinig.
+
+        Now JSC has bytecode intrinsic system. Use it instead of exposing status values through the loader's properties.
+
+        * builtins/ModuleLoaderObject.js:
+        (newRegistryEntry):
+        (fulfillFetch):
+        (fulfillTranslate):
+        (commitInstantiated):
+        (requestFetch):
+        (requestTranslate):
+        (requestInstantiate):
+        (requestResolveDependencies.):
+        (requestResolveDependencies):
+        (requestLink):
+        (link):
+        (provide):
+        * bytecode/BytecodeIntrinsicRegistry.cpp:
+        (JSC::BytecodeIntrinsicRegistry::BytecodeIntrinsicRegistry):
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * runtime/ModuleLoaderObject.cpp:
+        (JSC::ModuleLoaderObject::finishCreation): Deleted.
+
+2016-06-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202248.
+        https://bugs.webkit.org/show_bug.cgi?id=158960
+
+        breaks builds on the simulator (Requested by keith_mi_ on
+        #webkit).
+
+        Reverted changeset:
+
+        "It should be easy to add a private global helper function for
+        builtins"
+        https://bugs.webkit.org/show_bug.cgi?id=158893
+        http://trac.webkit.org/changeset/202248
+
 2016-06-20  Keith Miller  <keith_miller@apple.com>
 
         It should be easy to add a private global helper function for builtins

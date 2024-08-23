@@ -67,7 +67,7 @@ public:
 protected:
     virtual void setOperatorProperties();
     void computePreferredLogicalWidths() final;
-    void computeLogicalHeight(LayoutUnit logicalHeight, LayoutUnit logicalTop, LogicalExtentComputedValues&) const final;
+    void layoutBlock(bool relayoutChildren, LayoutUnit pageLogicalHeight = 0) final;
     void setLeadingSpace(LayoutUnit leadingSpace) { m_leadingSpace = leadingSpace; }
     void setTrailingSpace(LayoutUnit trailingSpace) { m_trailingSpace = trailingSpace; }
     UChar textContent() const { return m_textContent; }
@@ -85,6 +85,7 @@ private:
     void rebuildTokenContent(const String& operatorString);
 
     bool shouldAllowStretching() const;
+    bool useMathOperator() const;
 
     void setOperatorFlagFromAttribute(MathMLOperatorDictionary::Flag, const QualifiedName&);
     void setOperatorFlagFromAttributeValue(MathMLOperatorDictionary::Flag, const AtomicString& attributeValue);

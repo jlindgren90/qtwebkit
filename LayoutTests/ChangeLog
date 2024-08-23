@@ -1,3 +1,578 @@
+2016-06-22  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectations gardening for rdar://problem/26960385
+
+        * platform/mac/TestExpectations:
+
+2016-06-22  Benjamin Poulain  <bpoulain@apple.com>
+
+        AX: Add support for CSS4 :focus-within pseudo
+        https://bugs.webkit.org/show_bug.cgi?id=140144
+
+        Reviewed by Antti Koivisto.
+
+        * fast/css/css-selector-text-expected.txt:
+        * fast/css/css-selector-text.html:
+        * fast/css/css-set-selector-text-expected.txt:
+        * fast/css/css-set-selector-text.html:
+        * fast/css/pseudo-focus-within-basics-expected.html: Added.
+        * fast/css/pseudo-focus-within-basics.html: Added.
+        * fast/css/pseudo-focus-within-inside-shadow-dom-expected.html: Added.
+        * fast/css/pseudo-focus-within-inside-shadow-dom.html: Added.
+        * fast/css/pseudo-focus-within-style-sharing-1-expected.html: Added.
+        * fast/css/pseudo-focus-within-style-sharing-1.html: Added.
+        * fast/css/pseudo-focus-within-style-sharing-2-expected.html: Added.
+        * fast/css/pseudo-focus-within-style-sharing-2.html: Added.
+        * fast/selectors/focus-within-style-update-expected.txt: Added.
+        * fast/selectors/focus-within-style-update.html: Added.
+
+2016-06-17  Dean Jackson  <dino@apple.com>
+
+        REGRESSION: Double tap to zoom does not work on yahoo finance
+        https://bugs.webkit.org/show_bug.cgi?id=158886
+        <rdar://problem/24917760>
+
+        Reviewed by Simon Fraser.
+
+        * fast/events/ios/viewport-shrink-to-fit-allows-double-tap-expected.txt: Added.
+        * fast/events/ios/viewport-shrink-to-fit-allows-double-tap.html: Added.
+
+2016-06-22  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Test gardening for css3/line-break-language-sensitive
+        https://bugs.webkit.org/show_bug.cgi?id=159017
+
+        Unreviewed.
+
+        Some reftests had content which ended up outside of the viewport. This patch
+        splits that extra content out into separate tests.
+
+        In addition, this test migrates these tests to using a web font, so the results
+        of this test are not sensitive to platform-specific font fallback.
+
+        Because of the migration to the web font, css3/line-break-language-sensitive is
+        no longer needed.
+
+        * TestExpectations:
+        * css3/line-break-language-sensitive/line-break-auto-centered-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-centered.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-half-kana-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-half-kana.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-hyphens.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-inseparables-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-inseparables.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-iteration-marks-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-iteration-marks.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-postfixes.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-prefixes-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-prefixes.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-sound-marks-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-auto-sound-marks.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-centered.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-half-kana-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-half-kana.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-hyphens.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-inseparables-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-inseparables.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-iteration-marks.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-postfixes.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-prefixes-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-prefixes.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-sound-marks-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-loose-sound-marks.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-centered-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-centered.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-half-kana-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-half-kana.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-hyphens-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-hyphens.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-inseparables-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-inseparables.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-iteration-marks.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-postfixes.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-prefixes-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-prefixes.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-sound-marks-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-normal-sound-marks.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-centered-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-centered.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-half-kana-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-half-kana.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-hyphens.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-inseparables-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-inseparables.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-iteration-marks-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-iteration-marks.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-postfixes.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-prefixes-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-prefixes.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-sound-marks-expected.html: Removed.
+        * css3/line-break-language-sensitive/line-break-strict-sound-marks.html: Removed.
+        * css3/line-break/line-break-auto-centered-2-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-strict-hyphens-expected.html.
+        * css3/line-break/line-break-auto-centered-2.html: Added.
+        * css3/line-break/line-break-auto-centered-expected.html:
+        * css3/line-break/line-break-auto-centered.html:
+        * css3/line-break/line-break-auto-half-kana-2-expected.html: Copied from LayoutTests/css3/line-break-language-sensitive/line-break-loose-postfixes-expected.html.
+        * css3/line-break/line-break-auto-half-kana-2.html: Added.
+        * css3/line-break/line-break-auto-half-kana-3-expected.html: Copied from LayoutTests/css3/line-break-language-sensitive/line-break-loose-postfixes-expected.html.
+        * css3/line-break/line-break-auto-half-kana-3.html: Added.
+        * css3/line-break/line-break-auto-half-kana-4-expected.html: Copied from LayoutTests/css3/line-break-language-sensitive/line-break-strict-postfixes-expected.html.
+        * css3/line-break/line-break-auto-half-kana-4.html: Added.
+        * css3/line-break/line-break-auto-half-kana-5-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-auto-postfixes-expected.html.
+        * css3/line-break/line-break-auto-half-kana-5.html: Added.
+        * css3/line-break/line-break-auto-half-kana-expected.html:
+        * css3/line-break/line-break-auto-half-kana.html:
+        * css3/line-break/line-break-auto-hyphens-expected.html:
+        * css3/line-break/line-break-auto-hyphens.html:
+        * css3/line-break/line-break-auto-inseparables-expected.html:
+        * css3/line-break/line-break-auto-inseparables.html:
+        * css3/line-break/line-break-auto-iteration-marks-expected.html:
+        * css3/line-break/line-break-auto-iteration-marks.html:
+        * css3/line-break/line-break-auto-postfixes-expected.html:
+        * css3/line-break/line-break-auto-postfixes.html:
+        * css3/line-break/line-break-auto-prefixes-expected.html:
+        * css3/line-break/line-break-auto-prefixes.html:
+        * css3/line-break/line-break-auto-sound-marks-expected.html:
+        * css3/line-break/line-break-auto-sound-marks.html:
+        * css3/line-break/line-break-loose-centered-2-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-loose-hyphens-expected.html.
+        * css3/line-break/line-break-loose-centered-2.html: Added.
+        * css3/line-break/line-break-loose-centered-expected.html:
+        * css3/line-break/line-break-loose-centered.html:
+        * css3/line-break/line-break-loose-half-kana-2-expected.html: Copied from LayoutTests/css3/line-break-language-sensitive/line-break-loose-postfixes-expected.html.
+        * css3/line-break/line-break-loose-half-kana-2.html: Added.
+        * css3/line-break/line-break-loose-half-kana-3-expected.html: Copied from LayoutTests/css3/line-break-language-sensitive/line-break-loose-postfixes-expected.html.
+        * css3/line-break/line-break-loose-half-kana-3.html: Added.
+        * css3/line-break/line-break-loose-half-kana-4-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-loose-centered-expected.html.
+        * css3/line-break/line-break-loose-half-kana-4.html: Added.
+        * css3/line-break/line-break-loose-half-kana-5-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-loose-iteration-marks-expected.html.
+        * css3/line-break/line-break-loose-half-kana-5.html: Added.
+        * css3/line-break/line-break-loose-half-kana-expected.html:
+        * css3/line-break/line-break-loose-half-kana.html:
+        * css3/line-break/line-break-loose-hyphens-expected.html:
+        * css3/line-break/line-break-loose-hyphens.html:
+        * css3/line-break/line-break-loose-inseparables-expected.html:
+        * css3/line-break/line-break-loose-inseparables.html:
+        * css3/line-break/line-break-loose-iteration-marks-expected.html:
+        * css3/line-break/line-break-loose-iteration-marks.html:
+        * css3/line-break/line-break-loose-postfixes-expected.html:
+        * css3/line-break/line-break-loose-postfixes.html:
+        * css3/line-break/line-break-loose-prefixes-expected.html:
+        * css3/line-break/line-break-loose-prefixes.html:
+        * css3/line-break/line-break-loose-sound-marks-expected.html:
+        * css3/line-break/line-break-loose-sound-marks.html:
+        * css3/line-break/line-break-normal-centered-2-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-normal-iteration-marks-expected.html.
+        * css3/line-break/line-break-normal-centered-2.html: Added.
+        * css3/line-break/line-break-normal-centered-expected.html:
+        * css3/line-break/line-break-normal-centered.html:
+        * css3/line-break/line-break-normal-half-kana-2-expected.html: Copied from LayoutTests/css3/line-break-language-sensitive/line-break-loose-postfixes-expected.html.
+        * css3/line-break/line-break-normal-half-kana-2.html: Added.
+        * css3/line-break/line-break-normal-half-kana-3-expected.html: Copied from LayoutTests/css3/line-break-language-sensitive/line-break-loose-postfixes-expected.html.
+        * css3/line-break/line-break-normal-half-kana-3.html: Added.
+        * css3/line-break/line-break-normal-half-kana-4-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-loose-postfixes-expected.html.
+        * css3/line-break/line-break-normal-half-kana-4.html: Added.
+        * css3/line-break/line-break-normal-half-kana-5-expected.html: Copied from LayoutTests/css3/line-break/line-break-loose-postfixes-expected.html.
+        * css3/line-break/line-break-normal-half-kana-5.html: Added.
+        * css3/line-break/line-break-normal-half-kana-expected.html:
+        * css3/line-break/line-break-normal-half-kana.html:
+        * css3/line-break/line-break-normal-hyphens-expected.html:
+        * css3/line-break/line-break-normal-hyphens.html:
+        * css3/line-break/line-break-normal-inseparables-expected.html:
+        * css3/line-break/line-break-normal-inseparables.html:
+        * css3/line-break/line-break-normal-iteration-marks-expected.html:
+        * css3/line-break/line-break-normal-iteration-marks.html:
+        * css3/line-break/line-break-normal-postfixes-expected.html:
+        * css3/line-break/line-break-normal-postfixes.html:
+        * css3/line-break/line-break-normal-prefixes-expected.html:
+        * css3/line-break/line-break-normal-prefixes.html:
+        * css3/line-break/line-break-normal-sound-marks-expected.html:
+        * css3/line-break/line-break-normal-sound-marks.html:
+        * css3/line-break/line-break-strict-centered-2-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-auto-hyphens-expected.html.
+        * css3/line-break/line-break-strict-centered-2.html: Added.
+        * css3/line-break/line-break-strict-centered-expected.html:
+        * css3/line-break/line-break-strict-centered.html:
+        * css3/line-break/line-break-strict-half-kana-2-expected.html: Copied from LayoutTests/css3/line-break-language-sensitive/line-break-normal-postfixes-expected.html.
+        * css3/line-break/line-break-strict-half-kana-2.html: Added.
+        * css3/line-break/line-break-strict-half-kana-3-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-strict-postfixes-expected.html.
+        * css3/line-break/line-break-strict-half-kana-3.html: Added.
+        * css3/line-break/line-break-strict-half-kana-4-expected.html: Copied from LayoutTests/css3/line-break-language-sensitive/line-break-normal-postfixes-expected.html.
+        * css3/line-break/line-break-strict-half-kana-4.html: Added.
+        * css3/line-break/line-break-strict-half-kana-5-expected.html: Renamed from LayoutTests/css3/line-break-language-sensitive/line-break-normal-postfixes-expected.html.
+        * css3/line-break/line-break-strict-half-kana-5.html: Added.
+        * css3/line-break/line-break-strict-half-kana-expected.html:
+        * css3/line-break/line-break-strict-half-kana.html:
+        * css3/line-break/line-break-strict-hyphens-expected.html:
+        * css3/line-break/line-break-strict-hyphens.html:
+        * css3/line-break/line-break-strict-inseparables-expected.html:
+        * css3/line-break/line-break-strict-inseparables.html:
+        * css3/line-break/line-break-strict-iteration-marks-expected.html:
+        * css3/line-break/line-break-strict-iteration-marks.html:
+        * css3/line-break/line-break-strict-postfixes-expected.html:
+        * css3/line-break/line-break-strict-postfixes.html:
+        * css3/line-break/line-break-strict-prefixes-expected.html:
+        * css3/line-break/line-break-strict-prefixes.html:
+        * css3/line-break/line-break-strict-sound-marks-expected.html:
+        * css3/line-break/line-break-strict-sound-marks.html:
+        * css3/line-break/resources/AllAhem.svg: Added.
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-06-22  Simon Fraser  <simon.fraser@apple.com>
+
+        REGRESSION (r201629): Weird button glitching on github.com
+        https://bugs.webkit.org/show_bug.cgi?id=159031
+        rdar://problem/26880332
+
+        Reviewed by Tim Horton.
+
+        * fast/backgrounds/scaled-gradient-background-expected.html: Added.
+        * fast/backgrounds/scaled-gradient-background.html: Added.
+
+2016-06-22  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectation gardening for rdar://problem/26950065
+
+        * platform/mac/TestExpectations:
+
+2016-06-22  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectation gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-06-22  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Add support for the negotiationneeded event in MediaEndpointPeerConnection
+        https://bugs.webkit.org/show_bug.cgi?id=158985
+
+        Add tests for the RTCPeerConnection negotiationneeded event.
+
+        Reviewed by Eric Carlson.
+
+        * fast/mediastream/RTCPeerConnection-more-media-to-negotiate-expected.txt: Added.
+        * fast/mediastream/RTCPeerConnection-more-media-to-negotiate.html: Added.
+        Verify that a negotiationneeded event is fired when not all local media can be included in
+        an answer. (The answerer cannot reply with more m-lines than the offer had to begin with.)
+        * fast/mediastream/RTCPeerConnection-onnegotiationneeded-expected.txt:
+        * fast/mediastream/RTCPeerConnection-onnegotiationneeded.html:
+        Verify that a negotiationneeded event is fired when tracks are added and removed from an
+        RTCPeerConnection.
+        * platform/gtk/TestExpectations:
+        Unskip fast/mediastream/RTCPeerConnection-onnegotiationneeded.html.
+        * platform/mac/TestExpectations:
+        The mac port does not build with WEB_RTC enabled yet.
+
+2016-06-22  Youenn Fablet  <youennf@gmail.com>
+
+        JSDOMIterator forEach should support second optional parameter
+        https://bugs.webkit.org/show_bug.cgi?id=159020
+
+        Reviewed by Chris Dumez.
+
+        * fast/dom/nodeListIterator-expected.txt:
+        * fast/dom/nodeListIterator.html: Adding 'thisValue' various checks.
+
+2016-06-22  Per Arne Vollan  <pvollan@apple.com>
+
+        window.showModalDialog doesn't work in DumpRenderTree on Windows
+        https://bugs.webkit.org/show_bug.cgi?id=53675
+
+        Reviewed by Brent Fulgham.
+
+        Update test expectations for modal dialog tests.
+
+        * platform/win/TestExpectations:
+
+2016-06-21  Alexey Proskuryakov  <ap@apple.com>
+
+        Land test expectations for rdar://problem/26422051.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-06-21  Benjamin Poulain  <bpoulain@apple.com>
+
+        :hover CSS pseudo-class sometimes keeps matching ever after mouse has left the element
+        https://bugs.webkit.org/show_bug.cgi?id=158340
+
+        Reviewed by Simon Fraser.
+
+        * fast/css/ancestor-of-hovered-element-detached-expected.txt: Added.
+        * fast/css/ancestor-of-hovered-element-detached.html: Added.
+        * fast/css/ancestor-of-hovered-element-removed-expected.txt: Added.
+        * fast/css/ancestor-of-hovered-element-removed.html: Added.
+
+2016-06-21  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectations gardening.
+
+        * platform/mac-wk2/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-06-21  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rolling out r202302, r202303, r202305, and
+        r202306.
+
+        Roll out the rollouts because of breaking the build.
+
+        Reverted changesets:
+
+        "Unreviewed, rolling out r200678."
+        https://bugs.webkit.org/show_bug.cgi?id=157453
+        http://trac.webkit.org/changeset/202302
+
+        "Unreviewed, rolling out r200619."
+        https://bugs.webkit.org/show_bug.cgi?id=131443
+        http://trac.webkit.org/changeset/202303
+
+        "Unreviewed, attempt to fix the build after r202303."
+        http://trac.webkit.org/changeset/202305
+
+        "Unreviewed, attempt to fix the build after r202303."
+        http://trac.webkit.org/changeset/202306
+
+2016-06-21  Zalan Bujtas  <zalan@apple.com>
+
+        LayoutTest tiled-drawing/scrolling/latched-div-with-scroll-snap.html is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=158320
+
+        Reviewed by Simon Fraser.
+
+        This test case is flaky because:
+        1. There are multiple mouseScrollByWithWheelAndMomentumPhases() event bundles and they all need their own
+        callbacks. (see additional eventSender.callAfterScrollingCompletes()) -> fail
+        2. When the test fails, the testFailed() function is called with undefined variables. -> timeout  
+
+        * platform/mac-wk2/TestExpectations:
+        * tiled-drawing/scrolling/latched-div-with-scroll-snap.html:
+
+2016-06-21  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rolling out r200619.
+
+        This incompleted feature broke http://m.yahoo.co.jp. Roll it
+        out together with r200678.
+
+        Reverted changeset:
+
+        "NodeList should be iterable"
+        https://bugs.webkit.org/show_bug.cgi?id=131443
+        http://trac.webkit.org/changeset/200619
+
+2016-06-21  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rolling out r200678.
+
+        This incompleted feature broke http://m.yahoo.co.jp. Roll it
+        out together with r200619.
+
+        Reverted changeset:
+
+        "Ensure DOM iterators remain done"
+        https://bugs.webkit.org/show_bug.cgi?id=157453
+        http://trac.webkit.org/changeset/200678
+
+2016-06-21  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Skip HeapSnapshot test on WebKit1. Shared VM skews the data.
+
+        Unreviewed gardening.
+
+        In this case, snapshots with snapshots with snapshots in the same VM
+        causes the test to run out of memory. This does not happen in WebKit2.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-06-21  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Test gardening for platform-specific font-fallback on macOS Sierra
+        https://bugs.webkit.org/show_bug.cgi?id=159003
+        <rdar://problem/25807529>
+
+        Unreviewed.
+
+        * fast/text/font-cursive-italic-cjk-2-expected.html: Added.
+        * fast/text/font-cursive-italic-cjk-2.html: Added.
+        * platform/mac/TestExpectations:
+
+2016-06-20  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS] Typing text into a text field or text area causes screen to scroll down (hiding text entry)
+        https://bugs.webkit.org/show_bug.cgi?id=158970
+
+        Reviewed by Ryosuke Niwa.
+
+        Test that focuses an input in a frame and then types a character, then checks for scrolling.
+
+        * fast/forms/ios/typing-in-input-in-iframe-expected.txt: Added.
+        * fast/forms/ios/typing-in-input-in-iframe.html: Added.
+
+2016-06-20  Simon Fraser  <simon.fraser@apple.com>
+
+        Focus event dispatched in iframe causes parent document to scroll incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=158629
+        rdar://problem/26521616
+
+        Reviewed by Tim Horton.
+
+        * fast/forms/ios/focus-input-in-iframe-expected.txt: Added.
+        * fast/forms/ios/focus-input-in-iframe.html: Added.
+        * fast/forms/ios/programmatic-focus-input-in-iframe-expected.txt: Added.
+        * fast/forms/ios/programmatic-focus-input-in-iframe.html: Added.
+
+2016-06-21  Alexey Proskuryakov  <ap@apple.com>
+
+        Add an expectation for another copy of fast/canvas/webgl/premultiplyalpha-test.html
+
+        * platform/mac/TestExpectations:
+
+2016-06-21  Alexey Proskuryakov  <ap@apple.com>
+
+        Update Sierra test expectations for fast/canvas/webgl/premultiplyalpha-test.html
+
+        * platform/mac/TestExpectations:
+
+2016-06-21  Frederic Wang  <fwang@igalia.com>
+
+        Implement RenderMathMLOperator::layoutBlock
+        https://bugs.webkit.org/show_bug.cgi?id=157521
+
+        Reviewed by Brent Fulgham.
+
+        Update some tests to take into account improved width computation and how the anonymous text
+        node of operators using MathOperator is layout.
+
+        * platform/gtk/mathml/opentype/horizontal-expected.txt:
+        * platform/gtk/mathml/opentype/horizontal-munderover-expected.txt:
+        * platform/gtk/mathml/opentype/large-operators-expected.txt:
+        * platform/gtk/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/gtk/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+        * platform/gtk/mathml/opentype/vertical-expected.png:
+        * platform/gtk/mathml/opentype/vertical-expected.txt:
+        * platform/gtk/mathml/presentation/mo-stretch-expected.png:
+        * platform/gtk/mathml/presentation/mo-stretch-expected.txt:
+        * platform/mac/mathml/opentype/large-operators-expected.txt:
+        * platform/mac/mathml/opentype/opentype-stretchy-expected.txt:
+        * platform/mac/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+        * platform/mac/mathml/opentype/vertical-expected.txt:
+        * platform/ios-simulator/mathml/opentype/horizontal-munderover-expected.txt:
+        * platform/ios-simulator/mathml/opentype/opentype-stretchy-expected.txt:
+
+2016-06-21  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202277.
+        https://bugs.webkit.org/show_bug.cgi?id=158992
+
+        imported/w3c/web-platform-tests/tools actually does exist, so
+        documentation files got executed as tests (Requested by ap on
+        #webkit).
+
+        Reverted changeset:
+
+        "Unskip non-existing imported/w3c/web-platform-tests/tools."
+        http://trac.webkit.org/changeset/202277
+
+2016-06-21  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Unskip non-existing imported/w3c/web-platform-tests/tools.
+
+        Unreviewed fix after r191043.
+
+        * TestExpectations:
+
+2016-06-21  Alexey Proskuryakov  <ap@apple.com>
+
+        Correct which test is marked as flaky, copy/paste mistake.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-06-21  Miguel Gomez  <magomez@igalia.com>
+
+        [GStreamer] video orientation support
+        https://bugs.webkit.org/show_bug.cgi?id=148524
+
+        Reviewed by Philippe Normand.
+
+        Test whether the video is properly being displayed by checking the video
+        element size.
+
+        * media/content/no-rotation.mp4: Added.
+        * media/content/rotation-180.mp4: Added.
+        * media/content/rotation-270.mp4: Added.
+        * media/content/rotation-90.mp4: Added.
+        * media/video-orientation-expected.txt: Added.
+        * media/video-orientation.html: Added.
+
+2016-06-20  Frederic Wang  <fwang@igalia.com>
+
+        Use the MathOperator to handle some non-stretchy operators
+        https://bugs.webkit.org/show_bug.cgi?id=157519
+
+        Reviewed by Brent Fulgham.
+
+        We adjust fenced-mi.html to handle one edge case that we no longer support.
+        We also update some test references on Mac and iOS.
+
+        * mathml/presentation/fenced-mi-expected.html: Indicate that this is no longer supported.
+        * mathml/presentation/fenced-mi.html: Adjust the reference since no text is shown.
+        * platform/mac/mathml/opentype/large-operators-expected.txt: Update reference.
+        * platform/mac/mathml/opentype/opentype-stretchy-expected.txt: Ditto.
+        * platform/mac/mathml/opentype/vertical-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/opentype/horizontal-munderover-expected.txt: Ditto.
+        * platform/ios-simulator/mathml/opentype/opentype-stretchy-expected.txt: Ditto.
+
+2016-06-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectation update for media/click-placeholder-not-pausing.html
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-06-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Test expectation update for
+        https://bugs.webkit.org/show_bug.cgi?id=158320
+        REGRESSION (r201476?): LayoutTest tiled-drawing/scrolling/latched-div-with-scroll-snap.html is flaky
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-06-20  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: RTCIceCandidate init dictionary don't handle explicit null or undefined values correctly
+        https://bugs.webkit.org/show_bug.cgi?id=158873
+
+        Reviewed by Alejandro G. Castro.
+
+        Updated test to verify that explicit null and undefined values, passed to the
+        RTCIceCandidate init dictionary, are handled correctly.
+
+        * fast/mediastream/RTCIceCandidate-expected.txt:
+        * fast/mediastream/RTCIceCandidate.html:
+
+2016-06-20  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION(r202253): Broke inspector/unit-tests/heap-snapshot-collection-event.html
+        https://bugs.webkit.org/show_bug.cgi?id=158973
+
+        Unreviewed fix after r202253.
+
+        * inspector/unit-tests/heap-snapshot-collection-event-expected.txt:
+        * inspector/unit-tests/heap-snapshot-collection-event.html:
+        Update the method name.
+
+2016-06-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202243.
+        https://bugs.webkit.org/show_bug.cgi?id=158972
+
+        Broke Windows build and iOS tests (Requested by ap on
+        #webkit).
+
+        Reverted changeset:
+
+        "Focus event dispatched in iframe causes parent document to
+        scroll incorrectly"
+        https://bugs.webkit.org/show_bug.cgi?id=158629
+        http://trac.webkit.org/changeset/202243
+
 2016-06-20  Zalan Bujtas  <zalan@apple.com>
 
         Set the end position on the placeholder BidiRun properly.

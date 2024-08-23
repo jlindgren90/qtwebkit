@@ -721,7 +721,13 @@ void MediaEndpointPeerConnection::stop()
 
 void MediaEndpointPeerConnection::markAsNeedingNegotiation()
 {
-    notImplemented();
+    if (m_negotiationNeeded)
+        return;
+
+    m_negotiationNeeded = true;
+
+    if (m_client->internalSignalingState() == SignalingState::Stable)
+        m_client->scheduleNegotiationNeededEvent();
 }
 
 bool MediaEndpointPeerConnection::localDescriptionTypeValidForState(RTCSessionDescription::SdpType type) const
@@ -802,16 +808,6 @@ void MediaEndpointPeerConnection::doneGatheringCandidates(unsigned mdescIndex)
     ASSERT(isMainThread());
 
     UNUSED_PARAM(mdescIndex);
-
-    notImplemented();
-}
-
-void MediaEndpointPeerConnection::gotRemoteSource(unsigned mdescIndex, RefPtr<RealtimeMediaSource>&& source)
-{
-    ASSERT(isMainThread());
-
-    UNUSED_PARAM(mdescIndex);
-    UNUSED_PARAM(source);
 
     notImplemented();
 }

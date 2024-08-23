@@ -1,3 +1,390 @@
+2016-06-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.13.2 release.
+
+        * gtk/NEWS: Add release notes for 2.13.2.
+
+2016-06-22  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r201880): WebSockets based remote inspector is broken since r201880
+        https://bugs.webkit.org/show_bug.cgi?id=158613
+
+        Reviewed by Michael Catanzaro.
+
+        In r201880 SocketStreamHandleClient was modified to receive references instead of
+        pointers. WebSocketServerConnection also implements SocketStreamHandleClient but since it's doesn't use
+        override, it was unnoticed and not updated, so we ended up using the default empty implementation instead of
+        the WebSocketServerConnection one.
+
+        * UIProcess/InspectorServer/WebSocketServerConnection.cpp:
+        (WebKit::WebSocketServerConnection::WebSocketServerConnection):
+        (WebKit::WebSocketServerConnection::setSocketHandle):
+        (WebKit::WebSocketServerConnection::shutdownNow):
+        (WebKit::WebSocketServerConnection::didCloseSocketStream):
+        (WebKit::WebSocketServerConnection::didReceiveSocketStreamData):
+        (WebKit::WebSocketServerConnection::didUpdateBufferedAmount):
+        (WebKit::WebSocketServerConnection::didFailSocketStream): Deleted.
+        * UIProcess/InspectorServer/WebSocketServerConnection.h:
+
+2016-06-22  Brent Fulgham  <bfulgham@apple.com>
+
+        [iOS][WK2] Expand sandbox to read voice services preferences
+        https://bugs.webkit.org/show_bug.cgi?id=159046
+        <rdar://problem/26926722>
+
+        Reviewed by Alexey Proskuryakov.
+
+        Expand the sandbox to permit read-only access to voice services preferences.
+
+        * Resources/SandboxProfiles/ios/com.apple.WebKit.WebContent.sb:
+
+2016-06-22  Sam Weinig  <sam@webkit.org>
+
+        Add SPI to allow creating a WKCertificateInfoRef from a SecTrustRef
+        https://bugs.webkit.org/show_bug.cgi?id=159025
+
+        Reviewed by Tim Horton.
+
+        * Shared/API/c/mac/WKCertificateInfoMac.h:
+        * Shared/API/c/mac/WKCertificateInfoMac.mm:
+        (WKCertificateInfoCreateWithServerTrust):
+
+2016-06-22  Brady Eidson  <beidson@apple.com>
+
+        DatabaseProcess doesn't handle WebProcesses going away uncleanly.
+        https://bugs.webkit.org/show_bug.cgi?id=158894
+
+        Reviewed by Alex Christensen.
+
+        * DatabaseProcess/DatabaseToWebProcessConnection.cpp:
+        (WebKit::DatabaseToWebProcessConnection::didClose):
+        
+        * DatabaseProcess/IndexedDB/WebIDBConnectionToClient.cpp:
+        (WebKit::WebIDBConnectionToClient::disconnectedFromWebProcess): Actually unregister this connection
+          from the IDBServer so it can clean up.
+        (WebKit::WebIDBConnectionToClient::~WebIDBConnectionToClient):
+        
+2016-06-22  Chris Dumez  <cdumez@apple.com>
+
+        Stop using PassRefPtr in ShareableResource
+        https://bugs.webkit.org/show_bug.cgi?id=159043
+
+        Reviewed by Alex Christensen.
+
+        Stop using PassRefPtr in ShareableResource.
+
+        * NetworkProcess/cache/NetworkCache.cpp:
+        (WebKit::NetworkCache::Cache::store):
+        * NetworkProcess/cache/NetworkCacheEntry.cpp:
+        (WebKit::NetworkCache::Entry::initializeShareableResourceHandleFromStorageRecord):
+        * Shared/ShareableResource.cpp:
+        (WebKit::shareableResourceDeallocate):
+        (WebKit::ShareableResource::wrapInSharedBuffer):
+        (WebKit::ShareableResource::Handle::tryWrapInSharedBuffer):
+        (WebKit::ShareableResource::create):
+        (WebKit::ShareableResource::map):
+        (WebKit::ShareableResource::ShareableResource):
+        * Shared/ShareableResource.h:
+
+2016-06-17  Dean Jackson  <dino@apple.com>
+
+        REGRESSION: Double tap to zoom does not work on yahoo finance
+        https://bugs.webkit.org/show_bug.cgi?id=158886
+        <rdar://problem/24917760>
+
+        Reviewed by Simon Fraser.
+
+        We shouldn't enable fast click on pages that have
+        had to shrink to fit. In other words, we should enable
+        double-tap-to-zoom if the page has already zoomed.
+
+        Test: fast/events/ios/viewport-shrink-to-fit-allows-double-tap.html
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _allowsDoubleTapGestures]):
+
+2016-06-22  Brian Burg  <bburg@apple.com>
+
+        Web Automation: Automation.inspectBrowsingContext should have an option to enable timeline auto-capturing
+        https://bugs.webkit.org/show_bug.cgi?id=159004
+        <rdar://problem/26931269>
+
+        Reviewed by Joseph Pecoraro.
+
+        Automation.inspectBrowsingContext was added to make it easier to hit breakpoints inside of
+        code evaluated using Automation.evaluateJavaScriptFunction. I recently changed the behavior
+        of this command to automatically start profiling the page as soon as the inspector attached
+        so that a full timeline recording could be obtained. However, starting a timeline recording
+        turns off the debugger, so this command is not so useful for debugging right now.
+
+        Add a new option, enableAutoCapturing, to the inspectBrowsingContext command. Don't toggle
+        profiling automatically unless this optional flag is present and set to true.
+
+        * UIProcess/Automation/Automation.json:
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::inspectBrowsingContext):
+        (WebKit::WebAutomationSession::inspectorFrontendLoaded): Deleted.
+        * UIProcess/Automation/WebAutomationSession.h:
+
+2016-06-22  Tim Horton  <timothy_horton@apple.com>
+
+        Mail snapshot has black webview in multitasking switcher
+        https://bugs.webkit.org/show_bug.cgi?id=159036
+        <rdar://problem/25972938>
+
+        Reviewed by Simon Fraser.
+
+        There is a window of time between an application going into the background
+        and SpringBoard's snapshotting mechanism completing where it is possible
+        (though difficult, timing-wise) for RemoteLayerBackingStoreCollection to
+        make still-needed surfaces volatile (and, even worse, for them to get emptied).
+
+        UIKit suggested instead waiting for the window context teardown notification,
+        which does indeed seem to fire after the snapshotting is complete.
+        This may have the convenient side effect of making the volatility timer
+        repeat fewer times in general, because it is now started closer to the
+        last time that the surfaces will be in-use.
+
+        * UIProcess/ApplicationStateTracker.h:
+        * UIProcess/ApplicationStateTracker.mm:
+        (WebKit::ApplicationStateTracker::ApplicationStateTracker):
+        (WebKit::ApplicationStateTracker::~ApplicationStateTracker):
+        (WebKit::ApplicationStateTracker::applicationDidFinishSnapshottingAfterEnteringBackground):
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/ios/WKContentView.mm:
+        (-[WKContentView didMoveToWindow]):
+        (-[WKContentView _applicationDidFinishSnapshottingAfterEnteringBackground]):
+        * UIProcess/ios/WKPDFView.mm:
+        (-[WKPDFView didMoveToWindow]):
+        (-[WKPDFView _applicationDidFinishSnapshottingAfterEnteringBackground]):
+        * UIProcess/ios/WebPageProxyIOS.mm:
+        (WebKit::WebPageProxy::applicationDidFinishSnapshottingAfterEnteringBackground):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/WebPage.messages.in:
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::applicationDidEnterBackground):
+        (WebKit::WebPage::applicationDidFinishSnapshottingAfterEnteringBackground):
+
+2016-06-22  Chris Dumez  <cdumez@apple.com>
+
+        Add logging related to process assertions to help debug process suspension issues
+        https://bugs.webkit.org/show_bug.cgi?id=159001
+
+        Reviewed by Antti Koivisto.
+
+        Add logging related to process assertions to help debug process suspension issues.
+
+        * UIProcess/Cocoa/NavigationState.mm:
+        (WebKit::NavigationState::didChangeIsLoading):
+        * UIProcess/Network/NetworkProcessProxy.cpp:
+        (WebKit::NetworkProcessProxy::fetchWebsiteData):
+        (WebKit::NetworkProcessProxy::deleteWebsiteData):
+        (WebKit::NetworkProcessProxy::deleteWebsiteDataForOrigins):
+        (WebKit::NetworkProcessProxy::setIsHoldingLockedFiles):
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::updateActivityToken):
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::setIsHoldingLockedFiles):
+
+2016-06-21  Sam Weinig  <sam@webkit.org>
+
+        WKWebView with no WKNavigationDelegate does not follow universal links
+        <rdar://problem/24374110>
+        https://bugs.webkit.org/show_bug.cgi?id=158997
+
+        Reviewed by Dan Bernstein.
+
+        API Test:
+             WKWebView.DefaultNavigationDelegate
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        When initializing the WKWebView, set a default navigation client.
+
+2016-06-21  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r202296.
+
+        Broke basic browsing in Safari
+
+        Reverted changeset:
+
+        "WKWebView with no WKNavigationDelegate does not follow
+        universal links"
+        https://bugs.webkit.org/show_bug.cgi?id=158997
+        http://trac.webkit.org/changeset/202296
+
+2016-06-21  Anders Carlsson  <andersca@apple.com>
+
+        Fix build.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-06-21  Anders Carlsson  <andersca@apple.com>
+
+        Begin moving the Apple Pay code to the open source repository
+        https://bugs.webkit.org/show_bug.cgi?id=158998
+
+        Reviewed by Tim Horton.
+
+        * Configurations/FeatureDefines.xcconfig:
+        Add ENABLE_APPLE_PAY.
+
+2016-06-21  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        Add system tracing points for requestAnimationFrame() workflow
+        https://bugs.webkit.org/show_bug.cgi?id=158723
+
+        Reviewed by Simon Fraser.
+
+        Add trace points for requestAnimationFrame().
+
+        * UIProcess/mac/RemoteLayerTreeDrawingAreaProxy.mm:
+        (WebKit::RemoteLayerTreeDrawingAreaProxy::commitLayerTree):
+        (WebKit::RemoteLayerTreeDrawingAreaProxy::didRefreshDisplay):
+        * WebProcess/WebPage/mac/RemoteLayerTreeContext.mm:
+        (WebKit::RemoteLayerTreeContext::buildTransaction):
+        * WebProcess/WebPage/mac/RemoteLayerTreeDrawingArea.mm:
+        (WebKit::RemoteLayerTreeDrawingArea::didUpdate):
+        (WebKit::RemoteLayerTreeDrawingArea::BackingStoreFlusher::flush):
+
+2016-06-21  Sam Weinig  <sam@webkit.org>
+
+        WKWebView with no WKNavigationDelegate does not follow universal links
+        <rdar://problem/24374110>
+        https://bugs.webkit.org/show_bug.cgi?id=158997
+
+        Reviewed by Dan Bernstein.
+
+        API Test:
+             WKWebView.DefaultNavigationDelegate
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        When initializing the WKWebView, set a default navigation client.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::setLoaderClient):
+        Be sure to clear out a navigation client, if present, when setting a loader client,
+        as they are mutually exclusive.
+
+2016-06-20  Simon Fraser  <simon.fraser@apple.com>
+
+        Focus event dispatched in iframe causes parent document to scroll incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=158629
+        rdar://problem/26521616
+
+        Reviewed by Tim Horton.
+
+        Pass SelectionRevealMode::Reveal in existing code.
+
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::centerSelectionInVisibleArea):
+
+2016-06-21  Said Abou-Hallawa  <sabouhallawa@apple,com>
+
+        [iOS][WK2] When an animation frame is missed, the UI process should immediately notify the Web process once a frame is committed
+        https://bugs.webkit.org/show_bug.cgi?id=158933
+
+        Reviewed by Simon Fraser.
+
+        When a frame is committed, the UI process schedules a CADisplayLink and waits until
+        the next didRefreshDisplay event is fired. This causes more delay in the scenario
+        where there are frames are dropped. didRefreshDisplay() should be called immediately
+        when commitLayerTree message is received and the last frame was dropped.
+
+        The fix is to have the CADisplayLink active all the times. It should be paused
+        only when we detect at least one frame is dropped. In this case we should not
+        send a message to the UI process since it has not sent the last requested LayerTree.
+        Also we should not waste the CPU time by scheduling a new CADisplayLink since we
+        have not processed the last event. We should resume CADisplayLink timer once a
+        commitLayerTree message is received.
+
+        * UIProcess/mac/RemoteLayerTreeDrawingAreaProxy.h:
+        * UIProcess/mac/RemoteLayerTreeDrawingAreaProxy.mm:
+        (-[WKOneShotDisplayLinkHandler pause]):
+        (WebKit::RemoteLayerTreeDrawingAreaProxy::commitLayerTree):
+        (WebKit::RemoteLayerTreeDrawingAreaProxy::didRefreshDisplay):
+        (-[WKOneShotDisplayLinkHandler displayLinkFired:]):
+
+2016-06-21  Amir Alavi  <aalavi@apple.com>
+
+        Upstream WKHTTPCookiesForURL from WebKitSystemInterface to OpenSource
+        https://bugs.webkit.org/show_bug.cgi?id=158967
+
+        Reviewed by Brent Fulgham.
+
+        * WebProcess/WebCoreSupport/mac/WebSystemInterface.mm:
+        (InitWebCoreSystemInterface): Deleted.
+
+2016-06-21  Dan Bernstein  <mitz@apple.com>
+
+        Inlined some picture-in-picture code.
+        https://bugs.webkit.org/show_bug.cgi?id=158977
+
+        Reviewed by Eric Carlsson.
+
+        This code was written primarily by Ada Chan, and originally reviewed by Alex Christensen,
+        Anders Carlsson, Conrad Shultz, Dan Bernstein, Eric Carlson, Jer Noble, Jeremy Jones,
+        Jon Lee, Remy Demarest, and Zach Li.
+
+        * Shared/WebPreferencesStoreDefaultsAdditions.cpp:
+          Define and use DEFAULT_ALLOWS_PICTURE_IN_PICTURE_MEDIA_PLAYBACK.
+
+        * Shared/WebPreferencesStore.cpp:
+        (WebKit::defaults): Removed include of WebPreferencesStoreDefaultsAdditions.cpp now that the
+          default is defined correctly in WebPreferencesStoreDefaultsAdditions.cpp.
+
+        * UIProcess/API/C/WKPreferences.cpp: Inlined WKPreferencesAdditions.cpp.
+        * UIProcess/API/C/WKPreferencesRefPrivate.h: Ditto.
+
+        * WebProcess/cocoa/WebVideoFullscreenManager.mm: Inlined WebVideoFullscreenManagerSupportsVideoFullscreenMac.mm.
+
+2016-06-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Web view is not redrawn when reparented in force compositing mode
+        https://bugs.webkit.org/show_bug.cgi?id=158689
+
+        Reviewed by Žan Doberšek.
+
+        When the web view is reparented in accelerated compositing mode, the UI process always exits the accelerated
+        mode when the view is unrealized, because the native surface handle for compositing is destroyed, but it doesn't
+        enter again when the view is realized and a new native surface handle for compositing is used. This happens
+        because the UI and Web processes are not in sync regarding whether the page is in accelerated compositing or
+        not. The Web process never exits accelerated mode when compositing mode is forced, but the UI process doesn't
+        check that setting at all.
+
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseResizeRedirectedWindow): Helper function to ensure the redirected window size is properly updated.
+        (webkitWebViewBaseRealize): Resize the redirected window if the view is already in AC mode when realized.
+        (webkitWebViewRenderAcceleratedCompositingResults): Use webkitWebViewBaseResizeRedirectedWindow().
+        (webkitWebViewBaseSizeAllocate): Ditto.
+        (webkitWebViewBaseWillEnterAcceleratedCompositingMode): Ditto.
+        * UIProcess/DrawingAreaProxyImpl.cpp:
+        (WebKit::DrawingAreaProxyImpl::alwaysUseCompositing): Return true in force compositing mode.
+        (WebKit::DrawingAreaProxyImpl::enterAcceleratedCompositingMode): Update assert.
+        (WebKit::DrawingAreaProxyImpl::exitAcceleratedCompositingMode): Do not exit AC mode compositing mode is always enabled.
+        * UIProcess/DrawingAreaProxyImpl.h:
+        (WebKit::DrawingAreaProxyImpl::isInAcceleratedCompositingMode): Return true also in force compositing mode.
+        * UIProcess/gtk/RedirectedXCompositeWindow.cpp:
+        (WebKit::RedirectedXCompositeWindow::surface): Ensure we never return an uninitialized surface to prevent
+        rendering artifacts in in force compositing mode when waiting for the first update on the redirected window.
+
+2016-06-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202243.
+        https://bugs.webkit.org/show_bug.cgi?id=158972
+
+        Broke Windows build and iOS tests (Requested by ap on
+        #webkit).
+
+        Reverted changeset:
+
+        "Focus event dispatched in iframe causes parent document to
+        scroll incorrectly"
+        https://bugs.webkit.org/show_bug.cgi?id=158629
+        http://trac.webkit.org/changeset/202243
+
 2016-06-20  Brent Fulgham  <bfulgham@apple.com>
 
         Allow Spotlight suggestions to be read by any process
