@@ -1,3 +1,1264 @@
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Make parameters to Document.getElementsBy*() operations mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160050
+
+        Reviewed by Daniel Bates.
+
+        Make parameters to Document.getElementsBy*() operations mandatory to
+        match the specification:
+        - https://dom.spec.whatwg.org/#interface-document
+
+        Firefox and Chrome agree with the specification so the compatibility
+        risk should be low.
+
+        It makes very little sense to call these operations without parameter,
+        especially considering WebKit uses the string "undefined" if the
+        parameter is omitted.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Document.idl:
+
+2016-07-21  Nan Wang  <n_wang@apple.com>
+
+        AX: aria-label not being used correctly in accessible name calculation of heading
+        https://bugs.webkit.org/show_bug.cgi?id=160009
+
+        Reviewed by Chris Fleizach.
+
+        Actually we are exposing the correct information for heading objects. On macOS, 
+        VoiceOver should handle the logic that picks the right information to speak.
+        On iOS, VoiceOver is speaking the static text child instead of the heading object.
+        So we should set the accessibilityLabel of the static text based on the parent's 
+        alternate label.
+
+        Test: accessibility/ios-simulator/heading-with-aria-label.html
+
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper _accessibilityTraitsFromAncestors]):
+
+2016-07-21  Saam Barati  <sbarati@apple.com>
+
+        op_add/ValueAdd should be an IC in all JIT tiers
+        https://bugs.webkit.org/show_bug.cgi?id=159649
+
+        Reviewed by Benjamin Poulain.
+
+        * ForwardingHeaders/jit/JITMathICForwards.h: Added.
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Make parameters mandatory for Document.create*() operations
+        https://bugs.webkit.org/show_bug.cgi?id=160047
+
+        Reviewed by Ryosuke Niwa.
+
+        Make parameters mandatory for Document.create*() operations:
+        createTextNode(), createComment(), createCDataSection(),
+        createAttribute() and createProcessingInstruction().
+
+        This matches the specification:
+        - https://dom.spec.whatwg.org/#interface-document
+
+        Firefox and Chrome both agree with the specification so the
+        compatibility risk should be low. Also WebKit uses the string
+        "undefined" when the parameter is omitted, which is not very
+        helpful.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Document.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of SVGAngle/SVGLength.valueAsString attribute
+        https://bugs.webkit.org/show_bug.cgi?id=160025
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling of SVGAngle/SVGLength.valueAsString attribute
+        to match the specification:
+        - https://www.w3.org/TR/SVG2/types.html#InterfaceSVGAngle
+        - https://www.w3.org/TR/SVG2/types.html#InterfaceSVGLength
+
+        In particular, this patch drops [TreatNullAs=EmptyString] IDL
+        extended attribute from this attribute. This is not supposed
+        to change behavior given that both "" and "null" are invalid
+        numbers and the specification says to throw a SYNTAX_ERR in
+        this case.
+
+        However, WebKit currently ignores assignments to "" instead
+        of throwing. As a result, assigning to null will now throw
+        instead of being ignored. The compatibility risk should be
+        low because both Firefox and Chrome throw when assigning
+        null.
+
+        I did not change the behavior when assigning to "" because
+        it is a bit out of scope for this patch and browsers to not
+        seem to agree:
+        - Firefox throws
+        - Chrome set value to "0"
+        - WebKit ignores the assignment
+
+        The specification seems to agree with Firefox as far as I
+        can tell given that "" is not a valid number as per:
+        - https://www.w3.org/TR/css3-values/#numbers
+
+        Test: svg/dom/valueAsString-null.html
+
+        * svg/SVGAngle.idl:
+        * svg/SVGLength.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of HTMLFontElement.color
+        https://bugs.webkit.org/show_bug.cgi?id=160036
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling of HTMLFontElement.color to match the specification:
+        - https://html.spec.whatwg.org/#htmlfontelement
+
+        We are supposed to treat null as the empty string. Both Firefox and
+        Chrome agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLFontElement.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for several HTMLTableElement attributes
+        https://bugs.webkit.org/show_bug.cgi?id=160041
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling for several HTMLTableElement attributes to match the
+        specification:
+        - https://html.spec.whatwg.org/#HTMLTableElement-partial
+
+        The attributes in question are 'bicolor', 'cellSpacing' and
+        'cellPadding'. We are supposed to treat null as the empty string for
+        these attributes.
+
+        Firefox and Chrome both agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLTableElement.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for HTMLObjectElement.border
+        https://bugs.webkit.org/show_bug.cgi?id=160040
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling for HTMLObjectElement.border to match the specification:
+        - https://html.spec.whatwg.org/#HTMLObjectElement-partial
+
+        We are supposed to treat null as the empty string.
+
+        Both Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLObjectElement.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for td.bgColor / tr.bgColor
+        https://bugs.webkit.org/show_bug.cgi?id=160043
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling for td.bgColor / tr.bgColor to match the
+        specification:
+        - https://html.spec.whatwg.org/#HTMLTableCellElement-partial
+        - https://html.spec.whatwg.org/#HTMLTableRowElement-partial
+
+        We are supposed to treat null as the empty string.
+
+        Firefox and Chrome both agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLTableCellElement.idl:
+        * html/HTMLTableRowElement.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for several HTMLBodyElement attributes
+        https://bugs.webkit.org/show_bug.cgi?id=160044
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling for several HTMLBodyElement attributes to match the
+        specification:
+        - https://html.spec.whatwg.org/#HTMLBodyElement-partial
+
+        The attributes in question are: 'text', 'link', 'vlink', 'alink' and
+        'bgcolor'.
+
+        We are supposed to treat null as the empty string for these attributes.
+
+        Firefox and Chrome both agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLBodyElement.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for HTMLIFrameElement.marginWidth / marginHeight
+        https://bugs.webkit.org/show_bug.cgi?id=160037
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling for HTMLIFrameElement.marginWidth / marginHeight to
+        match the specification:
+        - https://html.spec.whatwg.org/#HTMLIFrameElement-partial
+
+        We are supposed to treat null as the empty string. Both Firefox and
+        Chrome agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLIFrameElement.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for HTMLImageElement.border
+        https://bugs.webkit.org/show_bug.cgi?id=160039
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling for HTMLImageElement.border to match the specification:
+        - https://html.spec.whatwg.org/#HTMLImageElement-partial
+
+        We are supposed to treat null as the empty string.
+
+        Both Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLImageElement.idl:
+
+2016-07-21  Daniel Bates  <dabates@apple.com>
+
+        REGRESSION: Plugin replaced YouTube Flash videos always have the same width
+        https://bugs.webkit.org/show_bug.cgi?id=159998
+        <rdar://problem/27462285>
+
+        Reviewed by Simon Fraser.
+
+        Fixes an issue where the width of a plugin replaced YouTube video loaded via an HTML embed
+        element would always have the same width regardless of value of the width attribute.
+
+        For YouTube Flash videos the YouTube plugin replacement substitutes a shadow DOM subtree
+        for the default renderer of an HTML embed element. The root of this shadow DOM subtree
+        is an HTML div element. Currently we set inline styles on this <div> when it is instantiated.
+        In particular, we set inline display and position to "inline-block" and "relative", respectively,
+        and set an invalid height and width (we specify a font weight value instead of a CSS length value
+        - this causes an ASSERT_NOT_REACHED() assertion failure in StyleBuilderConverter::convertLengthSizing()
+        in a debug build). These styles never worked as intended and we ultimately created an inline
+        renderer (ignoring display "inline-block") that had auto width and height. Instead it is sufficient
+        to remove all these inline styles and create a RenderBlockFlow renderer for this <div> so that it
+        renders as a block, non-replaced element to achieve the intended illusion that the <embed> is a
+        single element.
+
+        * html/shadow/YouTubeEmbedShadowElement.cpp: Remove unused header HTMLEmbedElement.h and include
+        header RenderBlockFlow.h. Also update copyright in license block.
+        (WebCore::YouTubeEmbedShadowElement::YouTubeEmbedShadowElement): Remove inline styles as these
+        never worked as intended.
+        (WebCore::YouTubeEmbedShadowElement::createElementRenderer): Override; create a block-flow
+        renderer for us so that we layout as a block, non-replaced element.
+        * html/shadow/YouTubeEmbedShadowElement.h:
+
+2016-07-21  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=159967
+        <rdar://problem/26964090>
+
+        Reviewed by Jon Lee, Jeremy Jones, and Anders Carlsson.
+
+        WebKit recently starting honoring the playsinline and webkit-playsinline
+        attribute on iPhones. However, because these attributes previously did
+        nothing, some sites (such as Todou) were setting them on their content
+        and expecting that they are not honored. In this specific case, the
+        video is absolutely positioned to be 1 pixel x 1 pixel.
+
+        Previously, with iOS 9, apps could set the allowsInlineMediaPlayback
+        property on their WKWebView, which would honor the webkit-playsinline
+        attribute. Safari on iPhones didn't do this.
+
+        In order to not break these existing apps, it's important that the
+        allowsInlineMediaPlayback preference still allows webkit-playsinline
+        videos to play inline in apps using WKWebView. However, in Safari, these
+        videos should play fullscreen. (Todou videos have webkit-playsinline
+        but not playsinline.)
+
+        Therefore, in Safari, videos with playsinline should be inline, but
+        videos with webkit-playsinline should be fullscreen. In apps using
+        WKWebViews, if the app sets allowsInlineMediaPlayback, then videos with
+        playsinline should be inline, and videos with webkit-playsinline should
+        also be inline. Videos on iPad and Mac should all be inline by default.
+
+        We can create some truth tables for the cases which need to be covered:
+
+        All apps on Mac / iPad:
+        Presence of playsinline | Presence of webkit-playsinline | Result
+        ========================|================================|===========
+        Not present             | Not present                    | Inline
+        Present                 | Not present                    | Inline
+        Not Present             | Present                        | Inline
+        Present                 | Present                        | Inline
+
+        Safari on iPhone:
+        Presence of playsinline | Presence of webkit-playsinline | Result
+        ========================|================================|===========
+        Not present             | Not present                    | Fullscreen
+        Present                 | Not present                    | Inline
+        Not Present             | Present                        | Fullscreen
+        Present                 | Present                        | Inline
+
+        App on iPhone which sets allowsInlineMediaPlayback:
+        Presence of playsinline | Presence of webkit-playsinline | Result
+        ========================|================================|===========
+        Not present             | Not present                    | Fullscreen
+        Present                 | Not present                    | Inline
+        Not Present             | Present                        | Inline
+        Present                 | Present                        | Inline
+
+        The way to distinguish Safari from another app is to create an SPI
+        boolean preference which Safari can set. This is already how the
+        iPhone and iPad are differentiated using the requiresPlayInlineAttribute
+        which Safari sets but other apps don't. However, this preference is
+        no longer sufficient because Safari should now be discriminating
+        between the playsinline and webkit-playsinline attributes. Therefore,
+        this preference should be extended to two boolean preferences, which
+        this patch adds:
+
+        allowsInlineMediaPlaybackWithPlaysInlineAttribute
+        allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute
+
+        Safari on iPhone will set
+        allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute to true,
+        and allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute to
+        false. Other apps on iPhone will get their defaults values (because they
+        are SPI) which means they will both be true. On iPad and Mac, apps will
+        use the defaults values where both are false.
+
+        This patch adds support for these two preferences, but does not remove
+        the existing inlineMediaPlaybackRequiresPlaysInlineAttribute preference.
+        I will remove the exising preference as soon as I update Safari to migrate
+        off of it.
+
+        Test: media/video-playsinline.html
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::requiresFullscreenForVideoPlayback):
+        * page/Settings.cpp:
+        * page/Settings.in:
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo):
+        (WebCore::InternalSettings::setAllowsInlineMediaPlaybackWithPlaysInlineAttribute):
+        (WebCore::InternalSettings::setAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute):
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+
+2016-07-21  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Crash accessing null renderer inside WebCore::DeleteSelectionCommand::doApply
+        https://bugs.webkit.org/show_bug.cgi?id=160011
+
+        Reviewed by Chris Dumez.
+
+        Add a null pointer check for renderer() call.
+
+        Unfortunately no new tests since we don't have a reproduction.
+
+        * editing/DeleteSelectionCommand.cpp:
+        (WebCore::DeleteSelectionCommand::doApply):
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        The 2 first parameters to DOMImplementation.createDocument() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160030
+
+        Reviewed by Sam Weinig.
+
+        The 2 first parameters to DOMImplementation.createDocument() should be mandatory
+        as per the specification:
+        - https://dom.spec.whatwg.org/#domimplementation
+
+        Firefox and Chrome both agree with the specification. However, those
+        parameters were marked as optional in WebKit. Calling this function
+        without parameters would create a document element whose tag is the
+        string "undefined", which does not seem helpful. This patch thus
+        aligns our behavior with the specification and other browsers.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/DOMImplementation.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Kill legacy valueToStringWithNullCheck() utility function
+        https://bugs.webkit.org/show_bug.cgi?id=159991
+
+        Reviewed by Sam Weinig.
+
+        Kill legacy valueToStringWithNullCheck() utility function. Treating null as
+        a null string is legacy behavior so drop this function so that people are
+        not tempted to use it. We should be using either:
+        1. JSValue::toWTFString() for non-nullable DOMStrings
+        2. valueToStringWithUndefinedOrNullCheck() for nullable DOMStrings
+        3. valueToStringTreatingNullAsEmptyString() for strings with [TreatNullAs=EmptyString]
+
+        No new tests, no web-exposed behavior change.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::valueToStringWithNullCheck): Deleted.
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSHTMLFrameElementCustom.cpp:
+        (WebCore::JSHTMLFrameElement::setLocation):
+        * html/HTMLFrameElement.idl:
+
+2016-07-21  Zalan Bujtas  <zalan@apple.com>
+
+        Do not keep invalid IOSurface in ImageBufferData.
+        https://bugs.webkit.org/show_bug.cgi?id=160005
+        <rdar://problem/27208636>
+
+        Reviewed by Simon Fraser.
+
+        When we fail to initialize the IOSurface for the accelerated context, we switch over to
+        the non-accelerated code path. Since ImageBufferData::surface is used to indicate whether
+        the graphics context is in accelerated mode, we need to reset it when the initialization fails.
+
+        Unable to create a test case.
+
+        * platform/graphics/cg/ImageBufferCG.cpp:
+        (WebCore::ImageBuffer::ImageBuffer):
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        playsInline IDL attribute has the wrong casing
+        https://bugs.webkit.org/show_bug.cgi?id=160029
+        <rdar://problem/27474031>
+
+        Reviewed by Jon Lee.
+
+        Fix case from video.playsinline to video.playsInline in order to match
+        the specification:
+        - https://html.spec.whatwg.org/multipage/embedded-content.html#the-video-element:dom-video-playsinline
+
+        It still reflects the "playsinline" content attribute though, as per
+        the specification:
+        - https://html.spec.whatwg.org/multipage/embedded-content.html#dom-video-playsinline
+
+        No new tests, updated existing test.
+
+        * html/HTMLVideoElement.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Drop [TreatNullAs=EmptyString] from CanvasRenderingContext2D.globalCompositeOperation
+        https://bugs.webkit.org/show_bug.cgi?id=160026
+
+        Reviewed by Sam Weinig.
+
+        Drop [TreatNullAs=EmptyString] from CanvasRenderingContext2D.globalCompositeOperation
+        attribute as it does not match the specification:
+        - https://html.spec.whatwg.org/multipage/scripting.html#canvascompositing
+
+        It does not change web-exposed behavior because assigning to "" or "null"
+        gets ignored as those are not valid operations.
+
+        Test: fast/canvas/context-globalCompositeOperation-null.html
+
+        * html/canvas/CanvasRenderingContext2D.idl:
+
+2016-07-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][Threaded Compositor] Overlay scrollbars shouldn't be a requirement of the threaded compositor
+        https://bugs.webkit.org/show_bug.cgi?id=160020
+
+        Reviewed by Michael Catanzaro.
+
+        It has been a requirement only because we didn't really know why frame scrollbars were not rendered when using
+        the threaded compositor. The reason is that RenderView doesn't use layers for FrameView scrollbars by default,
+        unless using overlay scrollbars. When using the threaded compositor we really need layers for the FrameView
+        scrollbars even when not using overlay scrollbars.
+
+        * platform/gtk/ScrollbarThemeGtk.cpp:
+        (WebCore::ScrollbarThemeGtk::ScrollbarThemeGtk): Stop enforcing overlay scrollbars when threaded compositor is enabled.
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::shouldCompositeOverflowControls): Always use layers for scrollbars when
+        threaded compositor is enabled.
+
+2016-07-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Cairo] Fix a crash in fast/canvas/canvas-getImageData-invalid-result-buffer-crash.html
+        https://bugs.webkit.org/show_bug.cgi?id=160014
+
+        Reviewed by Michael Catanzaro.
+
+        In r202887 some null checks were added for JSArray::createUninitialized (and related) but not for the
+        ImageBuffer cairo implementation.
+
+        * platform/graphics/cairo/ImageBufferCairo.cpp:
+        (WebCore::getImageData): Return early if Uint8ClampedArray::createUninitialized() returns nullptr.
+
+2016-07-21  Miguel Gomez  <magomez@igalia.com>
+
+        [GTK] The GSTREAMER_GL path in MediaPlayerPrivateGStreamerBase::paintToTextureMapper() is missing a mutex lock
+        https://bugs.webkit.org/show_bug.cgi?id=160018
+
+        Reviewed by Philippe Normand.
+
+        Lock the video sample mutex while accessing it.
+
+        Covered by existent tests.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::paintToTextureMapper):
+
+2016-07-21  Miguel Gomez  <magomez@igalia.com>
+
+        [Threaded Compositor] Flickering when zooming in/out in maps.google.com
+        https://bugs.webkit.org/show_bug.cgi?id=154069
+
+        Reviewed by Carlos Garcia Campos.
+
+        Add a new extra buffer to GraphicsContext3D when using the Threaded Compositor,
+        so it doesn't have to reuse the buffers that are still waiting for composition.
+
+        Covered by existing tests.
+
+        * platform/graphics/GraphicsContext3D.h:
+        Add a new texture to use for the rendering. Remove the compositor fbo we were using.
+        * platform/graphics/cairo/GraphicsContext3DCairo.cpp:
+        (WebCore::GraphicsContext3D::GraphicsContext3D):
+        Initialize the new texture and remove the previous fbo related code.
+        (WebCore::GraphicsContext3D::~GraphicsContext3D):
+        Properly destroy the new texture and remove the previous fbo related code.
+        * platform/graphics/opengl/GraphicsContext3DOpenGL.cpp:
+        (WebCore::GraphicsContext3D::reshapeFBOs):
+        Allocate the new texture and remove the previous fbo allocation.
+        * platform/graphics/opengl/GraphicsContext3DOpenGLCommon.cpp:
+        (WebCore::GraphicsContext3D::prepareTexture):
+        Use a single fbo with three textures instead of two fbos with a texture each.
+        Rotate the three textures usage so:
+        - m_texture becomes m_compositorTexture to be pushed to the compositor.
+        - m_intermediateTexture becomes m_texture to receive the next rendering.
+        - m_compositorTexture becomes m_intermediateTexture.
+        And add a glFlush() to ensure that the gl commands are sent to the pipeline.
+        * platform/graphics/opengl/GraphicsContext3DOpenGLES.cpp:
+        (WebCore::GraphicsContext3D::reshapeFBOs):
+        Allocate the new texture.
+
+2016-07-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][Threaded Compositor] Web view background colors don't work
+        https://bugs.webkit.org/show_bug.cgi?id=159465
+
+        Reviewed by Michael Catanzaro.
+
+        * rendering/RenderLayerBacking.cpp:
+        (WebCore::RenderLayerBacking::createPrimaryGraphicsLayer): Initialize frame view layer opacity for platforms not
+        using the tiled cache layer.
+
+2016-07-20  Youenn Fablet  <youenn@apple.com>
+
+        [XHR] Cache response JS object in case of arraybuffer and blob response types
+        https://bugs.webkit.org/show_bug.cgi?id=128903
+
+        Reviewed by Alex Christensen.
+
+        Covered by existing and modified tests.
+
+        Making response getter a JS builtin that caches response in @response private slot.
+        Handling invalidation of cached response with @responseCacheIsValid new private method.
+        Handling creation of cached response with @retrieveResponse new private method which reuses most of
+        JSXMLHttpRequest::response previous code.
+
+        Caching of responses is activated whenever load ended without any error for blob and arraybuffer response types.
+
+        Caching of response for document is also activated in case the response getter is used but not if responseXML getter is used.
+
+        * CMakeLists.txt: Adding XMLHttpRequest.js.
+        * DerivedSources.make: Ditto.
+        * bindings/js/JSXMLHttpRequestCustom.cpp:
+        (WebCore::JSXMLHttpRequest::retrieveResponse): Implements creation of to-be-cached response.
+        (WebCore::JSXMLHttpRequest::response): Deleted.
+        * bindings/js/WebCoreBuiltinNames.h: Adding new private names.
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::didCacheResponse): Renamed from didCacheResponseJSON as all response types are now cached.
+        (WebCore::XMLHttpRequest::didCacheResponseJSON): Deleted.
+        * xml/XMLHttpRequest.h:
+        * xml/XMLHttpRequest.idl:
+
+2016-07-20  Youenn Fablet  <youenn@apple.com>
+
+        Remove crossOriginRequestPolicy from ThreadableLoaderOptions
+        https://bugs.webkit.org/show_bug.cgi?id=159417
+
+        Reviewed by Alex Christensen.
+
+        No observable change.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start): DenyCrossOriginRequests -> FetchOptions::Mode::SameOrigin.
+        * fileapi/FileReaderLoader.cpp:
+        (WebCore::FileReaderLoader::start): DenyCrossOriginRequests -> FetchOptions::Mode::SameOrigin.
+        * inspector/InspectorNetworkAgent.cpp:
+        (WebCore::InspectorNetworkAgent::loadResource): AllowCrossOriginRequests -> FetchOptions::Mode::NoCors.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::DocumentThreadableLoader): Ditto.
+        (WebCore::DocumentThreadableLoader::makeCrossOriginAccessRequest): UseAccessControl -> FetchOptions::Mode::Cors.
+        (WebCore::DocumentThreadableLoader::redirectReceived): Ditto.
+        (WebCore::DocumentThreadableLoader::didReceiveResponse): Ditto.
+        (WebCore::DocumentThreadableLoader::loadRequest): Use NoCors as option passed to ResourceLoader. This allows
+        desactivating ResourceLoader CORS checks as they are done in DocumentThreadableLoader right now. In the future,
+        these checks should be moved to ResourceLoader and DocumentThreadableLoader should directly pass the fetch mode
+        option.
+        (WebCore::DocumentThreadableLoader::isAllowedRedirect): AllowCrossOriginRequests -> FetchOptions::Mode::NoCors.
+        * loader/ThreadableLoader.cpp:
+        (WebCore::ThreadableLoaderOptions::ThreadableLoaderOptions): Removing CrossOriginRequestPolicy.
+        * loader/ThreadableLoader.h: Ditto.
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::LoaderTaskOptions::LoaderTaskOptions): Ditto.
+        * page/EventSource.cpp:
+        (WebCore::EventSource::connect): UseAccessControl -> FetchOptions::Mode::Cors.
+        * workers/Worker.cpp:
+        (WebCore::Worker::create): DenyCrossOriginRequests -> FetchOptions::Mode::SameOrigin.
+        * workers/WorkerGlobalScope.cpp:
+        (WebCore::WorkerGlobalScope::importScripts): AllowCrossOriginRequests -> FetchOptions::Mode::NoCors.
+        * workers/WorkerScriptLoader.cpp:
+        (WebCore::WorkerScriptLoader::loadSynchronously):
+        (WebCore::WorkerScriptLoader::loadAsynchronously):
+        * workers/WorkerScriptLoader.h:
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::createRequest):
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of several Document attributes
+        https://bugs.webkit.org/show_bug.cgi?id=159997
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling of the following Document attributes: title, cookie
+        and domain.
+
+        In WebKit, they were all marked as [TreatNullAs=EmptyString], which
+        does not match the specification:
+        - https://html.spec.whatwg.org/multipage/dom.html#document
+
+        Details for each attribute:
+        - title: null is now treated as the string "null", thus setting the
+          document title to "null". This matches Firefox and Chrome.
+        - cookie: adds a "null" cookie instead of being a no-op. This matches
+                  both Firefox and Chrome.
+        - domain: Calls setDomain(String("null")) instead of
+                  setDomain(String()). This throws an exception because "null"
+                  is not a suffix of the effective domain name. The behavior
+                  is the same in Firefox and Chrome. Previously, we were
+                  already throwing an exception since setting the domain to
+                  the empty string throws, as per the specification.
+
+        Test: http/tests//dom/document-attributes-null-handling.html
+
+        * dom/Document.idl:
+
+2016-07-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203471.
+        https://bugs.webkit.org/show_bug.cgi?id=160003
+
+        many iOS-simulator tests are failing (Requested by litherum on
+        #webkit).
+
+        Reverted changeset:
+
+        "[iPhone] Playing a video on tudou.com plays only sound, no
+        video"
+        https://bugs.webkit.org/show_bug.cgi?id=159967
+        http://trac.webkit.org/changeset/203471
+
+2016-07-19  Ryosuke Niwa  <rniwa@webkit.org>
+
+        iOS: Cannot paste images in RTF content
+        https://bugs.webkit.org/show_bug.cgi?id=159964
+        <rdar://problem/27442806>
+
+        Reviewed by Enrica Casucci.
+
+        The bug was caused by setDefersLoading(true) not deferring image loading for the parsed fragment.
+        Worked around this bug by disabling image loading while parsing the document fragment.
+
+        * editing/ios/EditorIOS.mm:
+        (WebCore::Editor::createFragmentAndAddResources):
+
+2016-07-20  Brady Eidson  <beidson@apple.com>
+
+        Address a small FIXME in IDB code.
+        https://bugs.webkit.org/show_bug.cgi?id=159999
+
+        Reviewed by Andy Estes.
+
+        No new tests (No behavior change).
+
+        * Modules/indexeddb/IDBRequest.cpp:
+        (WebCore::IDBRequest::IDBRequest):
+        
+        * Modules/indexeddb/shared/IDBResourceIdentifier.cpp:
+        (WebCore::IDBResourceIdentifier::IDBResourceIdentifier): Deleted.
+        * Modules/indexeddb/shared/IDBResourceIdentifier.h:
+
+2016-07-20  Brady Eidson  <beidson@apple.com>
+
+        Remove some "modernFoo"s from IndexedDB code.
+        https://bugs.webkit.org/show_bug.cgi?id=159985
+
+        Reviewed by Andy Estes.
+
+        No new tests (No known behavior change).
+
+        * Modules/indexeddb/IDBCursor.cpp:
+        (WebCore::IDBCursor::IDBCursor):
+        (WebCore::IDBCursor::~IDBCursor):
+        (WebCore::IDBCursor::sourcesDeleted):
+        (WebCore::IDBCursor::effectiveObjectStore):
+        (WebCore::IDBCursor::transaction):
+        (WebCore::IDBCursor::direction):
+        (WebCore::IDBCursor::update):
+        (WebCore::IDBCursor::advance):
+        (WebCore::IDBCursor::continueFunction):
+        (WebCore::IDBCursor::uncheckedIterateCursor):
+        (WebCore::IDBCursor::deleteFunction):
+        (WebCore::IDBCursor::setGetResult):
+        
+        * Modules/indexeddb/IDBIndex.cpp:
+        (WebCore::IDBIndex::IDBIndex):
+        (WebCore::IDBIndex::~IDBIndex):
+        (WebCore::IDBIndex::hasPendingActivity):
+        (WebCore::IDBIndex::name):
+        (WebCore::IDBIndex::objectStore):
+        (WebCore::IDBIndex::keyPath):
+        (WebCore::IDBIndex::unique):
+        (WebCore::IDBIndex::multiEntry):
+        (WebCore::IDBIndex::openCursor):
+        (WebCore::IDBIndex::doCount):
+        (WebCore::IDBIndex::openKeyCursor):
+        (WebCore::IDBIndex::doGet):
+        (WebCore::IDBIndex::doGetKey):
+        (WebCore::IDBIndex::markAsDeleted):
+        * Modules/indexeddb/IDBIndex.h:
+        
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::transaction):
+        (WebCore::IDBObjectStore::deleteFunction): Deleted.
+        (WebCore::IDBObjectStore::modernDelete): Deleted.
+        * Modules/indexeddb/IDBObjectStore.h:
+        
+        * bindings/js/JSIDBIndexCustom.cpp:
+        (WebCore::JSIDBIndex::visitAdditionalChildren):
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Stop using valueToStringWithNullCheck() in JSCSSStyleDeclaration::putDelegate()
+        https://bugs.webkit.org/show_bug.cgi?id=159982
+
+        Reviewed by Ryosuke Niwa.
+
+        valueToStringWithNullCheck() treats null as the null String() which is
+        legacy / non standard behavior. The specification says we should treat
+        null as the empty string:
+        - https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-camel-cased-attribute
+
+        Therefore, we should be using valueToStringTreatingNullAsEmptyString() instead.
+
+        In practice, there is no web-exposed behavior change because
+        MutableStyleProperties::setProperty() removes the property wether the
+        value is the null String or the empty String.
+
+        This behavior is correct since the specification says that we should
+        remove the property if the value is the empty string:
+        - https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty (step 4)
+
+        I added test coverage to make sure we behave according to specification.
+        This test is passing in Firefox, Chrome and in WebKit (before and after
+        my change).
+
+        Test: fast/css/CSSStyleDeclaration-property-setter.html
+
+        * bindings/js/JSCSSStyleDeclarationCustom.cpp:
+        (WebCore::JSCSSStyleDeclaration::putDelegate):
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of HTMLFrameElement.marginWidth / marginHeight
+        https://bugs.webkit.org/show_bug.cgi?id=159987
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix null handling of HTMLFrameElement.marginWidth / marginHeight:
+        - https://html.spec.whatwg.org/multipage/obsolete.html#htmlframeelement
+
+        We are supposed to treat null as the empty string but we treat it as
+        the string "null".
+
+        Firefox and Chrome both match the specification.
+
+        No new tests, updated existing tests.
+
+        * html/HTMLFrameElement.idl:
+
+2016-07-20  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Pausing autoplayed media should not remove all restrictions for that media element
+        https://bugs.webkit.org/show_bug.cgi?id=159988
+
+        Reviewed by Jon Lee.
+
+        Localizes the removal of behavior restrictions introduced in r203464 upon pausing an
+        autoplaying video to just affect the hiding or showing of the media controller. This
+        prevents pages from using Javascript to start playing autoplaying videos that have
+        been paused by the user.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::pause):
+
+2016-07-20  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=159967
+        <rdar://problem/26964090>
+
+        Reviewed by Jon Lee.
+
+        WebKit recently starting honoring the playsinline and webkit-playsinline
+        attribute on iPhones. However, because these attributes previously did
+        nothing, some sites (such as Todou) were setting them on their content
+        and expecting that they are not honored. In this specific case, the
+        video is absolutely positioned to be 1 pixel x 1 pixel.
+
+        Previously, with iOS 9, apps could set the allowsInlineMediaPlayback
+        property on their WKWebView, which would honor the webkit-playsinline
+        attribute. Safari on iPhones didn't do this.
+
+        In order to not break these existing apps, it's important that the
+        allowsInlineMediaPlayback preference still allows webkit-playsinline
+        videos to play inline in apps using WKWebView. However, in Safari, these
+        videos should play fullscreen. (Todou videos have webkit-playsinline
+        but not playsinline.)
+
+        Therefore, in Safari, videos with playsinline should be inline, but
+        videos with webkit-playsinline should be fullscreen. In apps using
+        WKWebViews, if the app sets allowsInlineMediaPlayback, then videos with
+        playsinline should be inline, and videos with webkit-playsinline should
+        also be inline. Videos on iPad and Mac should all be inline by default.
+
+        We can create some truth tables for the cases which need to be covered:
+
+        All apps on Mac / iPad:
+        Presence of playsinline | Presence of webkit-playsinline | Result
+        ========================|================================|===========
+        Not present             | Not present                    | Inline
+        Present                 | Not present                    | Inline
+        Not Present             | Present                        | Inline
+        Present                 | Present                        | Inline
+
+        Safari on iPhone:
+        Presence of playsinline | Presence of webkit-playsinline | Result
+        ========================|================================|===========
+        Not present             | Not present                    | Fullscreen
+        Present                 | Not present                    | Inline
+        Not Present             | Present                        | Fullscreen
+        Present                 | Present                        | Inline
+
+        App on iPhone which sets allowsInlineMediaPlayback:
+        Presence of playsinline | Presence of webkit-playsinline | Result
+        ========================|================================|===========
+        Not present             | Not present                    | Fullscreen
+        Present                 | Not present                    | Inline
+        Not Present             | Present                        | Inline
+        Present                 | Present                        | Inline
+
+        The way to distinguish Safari from another app is to create an SPI
+        boolean preference which Safari can set. This is already how the
+        iPhone and iPad are differentiated using the requiresPlayInlineAttribute
+        which Safari sets but other apps don't. However, this preference is
+        no longer sufficient because Safari should now be discriminating
+        between the playsinline and webkit-playsinline attributes. Therefore,
+        this preference should be extended to two boolean preferences, which
+        this patch adds:
+
+        allowsInlineMediaPlaybackWithPlaysInlineAttribute
+        allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute
+
+        Safari on iPhone will set
+        allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute to true,
+        and allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute to
+        false. Other apps on iPhone will get their defaults values (because they
+        are SPI) which means they will both be true. On iPad and Mac, apps will
+        use the defaults values where both are false.
+
+        This patch adds support for these two preferences, but does not remove
+        the existing inlineMediaPlaybackRequiresPlaysInlineAttribute preference.
+        I will remove the exising preference as soon as I update Safari to migrate
+        off of it.
+
+        Test: media/video-playsinline.html
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::requiresFullscreenForVideoPlayback):
+        * page/Settings.cpp:
+        * page/Settings.in:
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo):
+        (WebCore::InternalSettings::setAllowsInlineMediaPlaybackWithPlaysInlineAttribute):
+        (WebCore::InternalSettings::setAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute):
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Get rid of custom bindings code for XMLHttpRequest.open()
+        https://bugs.webkit.org/show_bug.cgi?id=159984
+
+        Reviewed by Ryosuke Niwa.
+
+        Get rid of custom bindings code for XMLHttpRequest.open() as the
+        bindings generator is able to generate it.
+
+        Relevant specification:
+        - https://xhr.spec.whatwg.org/#xmlhttprequest
+
+        The issue is that legacy content prevents treating the 'async' argument
+        being undefined identical from it being omitted. However, this can be
+        achieved by using overloading in IDL, like in the specification.
+
+        No new tests, already covered by the following tests:
+        - http/tests/xmlhttprequest/basic-auth.html
+        - http/tests/xmlhttprequest/open-async-overload.html
+
+        * bindings/js/JSXMLHttpRequestCustom.cpp:
+        (WebCore::SendFunctor::SendFunctor): Deleted.
+        (WebCore::SendFunctor::line): Deleted.
+        (WebCore::SendFunctor::column): Deleted.
+        (WebCore::SendFunctor::url): Deleted.
+        (WebCore::SendFunctor::operator()): Deleted.
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::open):
+        * xml/XMLHttpRequest.h:
+        * xml/XMLHttpRequest.idl:
+
+2016-07-20  Rawinder Singh  <rawinder.singh-webkit@cisra.canon.com.au>
+
+        Mark overriden methods in WebCore/svg final classes as final
+        https://bugs.webkit.org/show_bug.cgi?id=159966
+
+        Reviewed by Michael Catanzaro.
+
+        Update WebCore/svg classes so that overriden methods in final classes are marked final.
+
+        * svg/SVGAElement.h:
+        * svg/SVGAltGlyphDefElement.h:
+        * svg/SVGAltGlyphItemElement.h:
+        * svg/SVGAnimateTransformElement.h:
+        * svg/SVGAnimatedColor.h:
+        * svg/SVGCircleElement.h:
+        * svg/SVGClipPathElement.h:
+        * svg/SVGCursorElement.h:
+        * svg/SVGDefsElement.h:
+        * svg/SVGDescElement.h:
+        * svg/SVGEllipseElement.h:
+        * svg/SVGFEMergeNodeElement.h:
+        * svg/SVGFilterElement.h:
+        * svg/SVGFontElement.h:
+        * svg/SVGFontFaceElement.h:
+        * svg/SVGFontFaceFormatElement.h:
+        * svg/SVGFontFaceNameElement.h:
+        * svg/SVGFontFaceSrcElement.h:
+        * svg/SVGFontFaceUriElement.h:
+        * svg/SVGForeignObjectElement.h:
+        * svg/SVGGElement.h:
+        * svg/SVGGlyphElement.h:
+        * svg/SVGGlyphRefElement.h:
+        * svg/SVGHKernElement.h:
+        * svg/SVGImageElement.h:
+        * svg/SVGLineElement.h:
+        * svg/SVGMPathElement.h:
+        * svg/SVGMaskElement.h:
+        * svg/SVGMetadataElement.h:
+        * svg/SVGMissingGlyphElement.h:
+        * svg/SVGPathBuilder.h:
+        * svg/SVGPathByteStreamBuilder.h:
+        * svg/SVGPathByteStreamSource.h:
+        * svg/SVGPathElement.h:
+        * svg/SVGPathSegArcAbs.h:
+        * svg/SVGPathSegArcRel.h:
+        * svg/SVGPathSegClosePath.h:
+        * svg/SVGPathSegCurvetoCubicAbs.h:
+        * svg/SVGPathSegCurvetoCubicRel.h:
+        * svg/SVGPathSegCurvetoCubicSmoothAbs.h:
+        * svg/SVGPathSegCurvetoCubicSmoothRel.h:
+        * svg/SVGPathSegCurvetoQuadraticAbs.h:
+        * svg/SVGPathSegCurvetoQuadraticRel.h:
+        * svg/SVGPathSegCurvetoQuadraticSmoothAbs.h:
+        * svg/SVGPathSegCurvetoQuadraticSmoothRel.h:
+        * svg/SVGPathSegLinetoAbs.h:
+        * svg/SVGPathSegLinetoHorizontalAbs.h:
+        * svg/SVGPathSegLinetoHorizontalRel.h:
+        * svg/SVGPathSegLinetoRel.h:
+        * svg/SVGPathSegLinetoVerticalAbs.h:
+        * svg/SVGPathSegLinetoVerticalRel.h:
+        * svg/SVGPathSegListBuilder.h:
+        * svg/SVGPathSegListSource.h:
+        * svg/SVGPathSegMovetoAbs.h:
+        * svg/SVGPathSegMovetoRel.h:
+        * svg/SVGPathStringSource.h:
+        * svg/SVGPathTraversalStateBuilder.h:
+        * svg/SVGPatternElement.h:
+        * svg/SVGRectElement.h:
+        * svg/SVGScriptElement.h:
+        * svg/SVGStopElement.h:
+        * svg/SVGStyleElement.h:
+        * svg/SVGSwitchElement.h:
+        * svg/SVGTRefElement.cpp:
+        * svg/SVGTitleElement.h:
+        * svg/SVGToOTFFontConversion.cpp:
+        * svg/SVGUnknownElement.h:
+        * svg/SVGVKernElement.h:
+        * svg/SVGViewElement.h:
+        * svg/SVGZoomEvent.h:
+        * svg/animation/SVGSMILElement.cpp:
+        * svg/graphics/SVGImage.h:
+        * svg/graphics/SVGImageClients.h:
+        * svg/graphics/SVGImageForContainer.h:
+        * svg/graphics/filters/SVGFEImage.h:
+        * svg/graphics/filters/SVGFilter.h:
+        * svg/properties/SVGAnimatedEnumerationPropertyTearOff.h:
+        * svg/properties/SVGAnimatedPathSegListPropertyTearOff.h:
+        * svg/properties/SVGAnimatedPropertyTearOff.h:
+        * svg/properties/SVGAnimatedTransformListPropertyTearOff.h:
+        * svg/properties/SVGMatrixTearOff.h:
+        * svg/properties/SVGPathSegListPropertyTearOff.h:
+
+2016-07-20  Brady Eidson  <beidson@apple.com>
+
+        Transition most IDB interfaces from ScriptExecutionContext to ExecState.
+        https://bugs.webkit.org/show_bug.cgi?id=159975
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No known behavior change).
+
+        * Modules/indexeddb/IDBCursor.cpp:
+        (WebCore::IDBCursor::continueFunction):
+        (WebCore::IDBCursor::deleteFunction):
+        * Modules/indexeddb/IDBCursor.h:
+        * Modules/indexeddb/IDBCursor.idl:
+
+        * Modules/indexeddb/IDBDatabase.idl:
+
+        * Modules/indexeddb/IDBFactory.cpp:
+        (WebCore::IDBFactory::cmp):
+        * Modules/indexeddb/IDBFactory.h:
+        * Modules/indexeddb/IDBFactory.idl:
+
+        * Modules/indexeddb/IDBIndex.cpp:
+        (WebCore::IDBIndex::openCursor):
+        (WebCore::IDBIndex::count):
+        (WebCore::IDBIndex::doCount):
+        (WebCore::IDBIndex::openKeyCursor):
+        (WebCore::IDBIndex::get):
+        (WebCore::IDBIndex::doGet):
+        (WebCore::IDBIndex::getKey):
+        (WebCore::IDBIndex::doGetKey):
+        * Modules/indexeddb/IDBIndex.h:
+        * Modules/indexeddb/IDBIndex.idl:
+
+        * Modules/indexeddb/IDBKeyRange.cpp:
+        (WebCore::IDBKeyRange::only): Deleted.
+        * Modules/indexeddb/IDBKeyRange.h:
+
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::openCursor):
+        (WebCore::IDBObjectStore::get):
+        (WebCore::IDBObjectStore::putOrAdd):
+        (WebCore::IDBObjectStore::deleteFunction):
+        (WebCore::IDBObjectStore::doDelete):
+        (WebCore::IDBObjectStore::modernDelete):
+        (WebCore::IDBObjectStore::clear):
+        (WebCore::IDBObjectStore::createIndex):
+        (WebCore::IDBObjectStore::count):
+        (WebCore::IDBObjectStore::doCount):
+        * Modules/indexeddb/IDBObjectStore.h:
+        * Modules/indexeddb/IDBObjectStore.idl:
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::requestOpenCursor):
+        (WebCore::IDBTransaction::doRequestOpenCursor):
+        (WebCore::IDBTransaction::requestGetRecord):
+        (WebCore::IDBTransaction::requestGetValue):
+        (WebCore::IDBTransaction::requestGetKey):
+        (WebCore::IDBTransaction::requestIndexRecord):
+        (WebCore::IDBTransaction::requestCount):
+        (WebCore::IDBTransaction::requestDeleteRecord):
+        (WebCore::IDBTransaction::requestClearObjectStore):
+        (WebCore::IDBTransaction::requestPutOrAdd):
+        * Modules/indexeddb/IDBTransaction.h:
+
+        * inspector/InspectorIndexedDBAgent.cpp:
+
+2016-07-20  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls don't appear when pausing a small autoplaying video
+        https://bugs.webkit.org/show_bug.cgi?id=159972
+        <rdar://problem/27180657>
+
+        Reviewed by Beth Dakin.
+
+        When pausing an autoplaying video, remove behavior restrictions for the
+        initial user gesture and show media controls.
+
+        New WebKit API test. See VideoControlsManagerSingleSmallAutoplayingVideo.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::pause):
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of HTMLMediaElement.mediaGroup
+        https://bugs.webkit.org/show_bug.cgi?id=159974
+
+        Reviewed by Eric Carlson.
+
+        Fix null handling of HTMLMediaElement.mediaGroup to match the specification:
+        - https://www.w3.org/TR/html5/embedded-content-0.html#media-elements
+
+        null is supposed to be treated as the String "null". This patch aligns
+        our behavior with the specification. I tested Firefox and Chrome but both
+        do not have this attribute on HTMLMediaElement.
+
+        Also remove support for [TreatNullAs=LegacyNullString] from our bindings
+        generator as HTMLMediaElement.mediaGroup was the last user.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (JSValueToNative):
+        * bindings/scripts/IDLAttributes.txt:
+        * html/HTMLMediaElement.idl:
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        CSSStyleDeclaration.setProperty() should be able to unset "important" on a property
+        https://bugs.webkit.org/show_bug.cgi?id=159959
+
+        Reviewed by Alexey Proskuryakov.
+
+        CSSStyleDeclaration.setProperty() should be able to unsert "important"
+        on a property as per the latest specification:
+        - https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-setproperty
+        - https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-camel-cased-attribute
+
+        Firefox and Chrome match the specification here but WebKit was ignoring calls
+        to setProperty() if there is already an "important" property wit this name
+        and if the new property does not have the "important" flag set.
+
+        This behavior was added a long time ago via Bug 60007. However, it does not
+        match the latest specification or other browsers.
+
+        Test: fast/css/CSSStyleDeclaration-setProperty-unset-important.html
+
+        * css/StyleProperties.cpp:
+        (WebCore::MutableStyleProperties::addParsedProperty):
+        Drop code that was added via Bug 60007 as this behavior no longer matches the
+        specification or other browsers. The layout test added in Bug 60007 fails in
+        other browsers and was updated in this patch to match the specification.
+
+2016-07-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203423.
+        https://bugs.webkit.org/show_bug.cgi?id=159977
+
+        The test for this change is failing on Mac Release WK2
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "HTMLVideoElement frames do not update on iOS when src is a
+        MediaStream blob"
+        https://bugs.webkit.org/show_bug.cgi?id=159833
+        http://trac.webkit.org/changeset/203423
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of HTMLSelectElement.value attribute
+        https://bugs.webkit.org/show_bug.cgi?id=159925
+
+        Reviewed by Benjamin Poulain.
+
+        Fix null handling of HTMLSelectElement.value attribute:
+        - https://html.spec.whatwg.org/multipage/forms.html#htmlselectelement
+
+        We were treating null as the null String which would end up setting
+        selectedIndex to -1. However, we should treat null as the String "null"
+        which would set the selectedIndex to the index of the <option> element
+        whose value is "null".
+
+        Firefox and Chrome match the specification.
+
+        Test: fast/dom/HTMLSelectElement/value-null-handling.html
+
+        * html/HTMLSelectElement.cpp:
+        (WebCore::HTMLSelectElement::setValue):
+        * html/HTMLSelectElement.idl:
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        PostResolutionCallbackDisabler can resume pending requests while a ResourceLoadSuspender is alive
+        https://bugs.webkit.org/show_bug.cgi?id=159962
+        <rdar://problem/21439264>
+
+        Reviewed by David Kilzer.
+
+        PostResolutionCallbackDisabler can resume pending requests while a ResourceLoadSuspender
+        is alive. We have both PostResolutionCallbackDisabler and ResourceLoadSuspender that
+        call LoaderStrategy::suspendPendingRequests() / LoaderStrategy::resumePendingRequests().
+        However, PostResolutionCallbackDisabler and ResourceLoadSuspender are not aware of each
+        other. It is therefore possible for a PostResolutionCallbackDisabler object to get
+        destroyed, causing LoaderStrategy::resumePendingRequests() to be called while a
+        ResourceLoadSuspender object is alive.
+
+        This leads to hard to investigate crashes where we end up re-entering WebKit and killing
+        the style resolver.
+
+        This patch drops ResourceLoadSuspender and uses PostResolutionCallbackDisabler instead.
+        There was only one user of ResourceLoadSuspender and PostResolutionCallbackDisabler
+        is better because it manages a resolutionNestingDepth counter internally to make sure
+        it only calls LoaderStrategy::resumePendingRequests() once all
+        PostResolutionCallbackDisabler instances are destroyed.
+
+        No new tests, there is no easy way to reproduce the crashes.
+
+        * dom/Document.cpp:
+        (WebCore::Document::styleForElementIgnoringPendingStylesheets):
+        * loader/LoaderStrategy.cpp:
+        (WebCore::ResourceLoadSuspender::ResourceLoadSuspender): Deleted.
+        (WebCore::ResourceLoadSuspender::~ResourceLoadSuspender): Deleted.
+        * loader/LoaderStrategy.h:
+
 2016-07-19  Youenn Fablet  <youenn@apple.com>
 
         [Fetch API] Add a JS builtin to implement https://fetch.spec.whatwg.org/#concept-headers-fill

@@ -66,6 +66,7 @@ public:
 
     void setNativeSurfaceHandleForCompositing(uint64_t);
     void setDeviceScaleFactor(float);
+    void setDrawsBackground(bool);
 
     void updateSceneState(const WebCore::CoordinatedGraphicsState&);
 
@@ -74,6 +75,10 @@ public:
     void didChangeContentsSize(const WebCore::IntSize&);
     void scrollTo(const WebCore::IntPoint&);
     void scrollBy(const WebCore::IntSize&);
+
+    void invalidate();
+
+    void forceRepaint();
 
 private:
     ThreadedCompositor(Client*);
@@ -104,6 +109,7 @@ private:
 
     WebCore::IntSize m_viewportSize;
     float m_deviceScaleFactor { 1 };
+    bool m_drawsBackground { true };
     uint64_t m_nativeSurfaceHandle { 0 };
 
     std::unique_ptr<CompositingRunLoop> m_compositingRunLoop;

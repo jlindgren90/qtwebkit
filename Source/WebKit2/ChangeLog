@@ -1,3 +1,363 @@
+2016-07-21  Chelsea Pugh  <cpugh@apple.com>
+
+        [iOS] Apps using WKWebView will crash if they set the scroll view's delegate and don't nil it out later
+        https://bugs.webkit.org/show_bug.cgi?id=159980
+        rdar://problem/27450825
+
+        Reviewed by Dan Bernstein.
+
+        The root cause of this crash is that we are not abiding the UIScrollView API that the scroll view
+        delegate property should be weak. If setters of this delegate do not know that, since the WKWebView
+        exposes the scroll view as a UIScrollView, they may forget to nil out the delegate they set and will
+        then crash.
+
+        * UIProcess/ios/WKScrollView.mm:
+        (-[WKScrollViewDelegateForwarder methodSignatureForSelector:]): Get a RetainPtr holding the
+        external delegate and use where needed.
+        (-[WKScrollViewDelegateForwarder respondsToSelector:]): Ditto.
+        (-[WKScrollViewDelegateForwarder forwardInvocation:]): Ditto.
+        (-[WKScrollViewDelegateForwarder forwardingTargetForSelector:]): Ditto. When returning a reference
+        to the external delegate, get a retained and autoreleased reference so the caller needn't release
+        the object when done.
+        (-[WKScrollView delegate]): Ditto.
+        (-[WKScrollView _updateDelegate]): Get a RetainPtr holding the external delegate that can be
+        used throughout this method. Use the RetainPtr to get the external delegate for setting super's
+        delegate as well as creating the delegate forwarder.
+        (-[WKScrollView setDelegate:]): Get a RetainPtr holding the external delegate and use its value for
+        comparison to the object we are setting the external delegate to.
+
+2016-07-21  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=159967
+        <rdar://problem/26964090>
+
+        Reviewed by Jon Lee, Jeremy Jones, and Anders Carlsson.
+
+        Add the two preferences to WKWebViewConfiguration and WKPreferences to cover both
+        the Obj-C API and the C SPI.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetAllowsInlineMediaPlaybackWithPlaysInlineAttribute):
+        (WKPreferencesGetAllowsInlineMediaPlaybackWithPlaysInlineAttribute):
+        (WKPreferencesSetAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute):
+        (WKPreferencesGetAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute):
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration init]):
+        (-[WKWebViewConfiguration copyWithZone:]):
+        (-[WKWebViewConfiguration _allowsInlineMediaPlaybackWithPlaysInlineAttribute]):
+        (-[WKWebViewConfiguration _setAllowsInlineMediaPlaybackWithPlaysInlineAttribute:]):
+        (-[WKWebViewConfiguration _allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute]):
+        (-[WKWebViewConfiguration _setAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute:]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-07-21  Yongjun Zhang  <yongjun_zhang@apple.com>
+
+        WebBackForwardList's currentIndex could get out of bounds when filtering items.
+        https://bugs.webkit.org/show_bug.cgi?id=159986
+
+        When generating a new BackForwardListState object, if we filter out multiple items in the list, the currentIndex could get
+        out of bounds.
+
+        Reviewed by Dan Bernstein.
+
+        * UIProcess/WebBackForwardList.cpp:
+        (WebKit::WebBackForwardList::backForwardListState): Make currentIndex point to the last item if it is out of bounds.
+
+2016-07-21  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Automation: Allow JavaScript evaluation to return an InvalidElementState error
+        https://bugs.webkit.org/show_bug.cgi?id=160015
+        <rdar://problem/27434529>
+
+        Reviewed by Brian Burg.
+
+        * UIProcess/Automation/Automation.json:
+        * WebProcess/Automation/WebAutomationSessionProxy.cpp:
+        (WebKit::WebAutomationSessionProxy::evaluateJavaScriptFunction):
+
+2016-07-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][Threaded Compositor] WTR generates fully white images for pixel tests most of the time
+        https://bugs.webkit.org/show_bug.cgi?id=160016
+
+        Reviewed by Žan Doberšek.
+
+        WTR sends a force repaint message to the web process before taking a snapshot of the web view. With the threaded
+        compositor, the UI process is notified about the force repaint callback before the contents have been actually
+        painted. We need to ensure that the contents are rendered before the UI process is notified.
+
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::forceRepaint): Synchronously render the layer tree.
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.h:
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewRenderAcceleratedCompositingResults): Always mark the redirected window surface as dirty before
+        rendering, since it can be modified by the web process at any time.
+        * UIProcess/gtk/RedirectedXCompositeWindow.cpp:
+        (WebKit::XDamageNotifier::add):
+        (WebKit::RedirectedXCompositeWindow::RedirectedXCompositeWindow): Do not mark the surface as dirty on every
+        damage since the view will do it before rendering.
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        (WebKit::ThreadedCoordinatedLayerTreeHost::forceRepaint): Call ThreadedCompositor::forceRepaint().
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.h:
+
+2016-07-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] White page when loaded tab is visited until it's hovered when AC mode is always on
+        https://bugs.webkit.org/show_bug.cgi?id=159512
+
+        Reviewed by Michael Catanzaro.
+
+        The redirected window is always mapped, but offscreen, to ensure that the web process can always render
+        there. When the web process renders something into the offscreen window, we receive a damage event in the UI
+        process and queue a redraw of the web view. However, when the web view is not mapped, even if we still receive
+        the damage events, the web view redraws are ignored until the view is mapped again (gtk_widget_queue_draw()
+        returns early when the widget is not visible). The redirected window updates its pixmap on demand when the
+        surface is requested, which happens when the web view draws its contents. So when the web view becames visible,
+        the redirected window creates a new pixmap and surface (the first time or if the web view was resized), that we
+        initialize to avoid artifacts when the web process hasn't render anything yet. That initialization is actually
+        overwriting anything rendered into the redirected window while the view was unmapped. That's why see white pages
+        the first time, and previous contents after a resize, and we don't see the actual contents until the web process
+        renders again and we reuse the existing pixmap. The white page didn't happen for tabs with accelerated content,
+        because in those cases the web process was rendering a new frame every 16ms, but instead there was a flickering
+        effect due to the current frame being overwritten when the view is mapped until the next frame.
+        So, instead of lazily create and initialize the redirected window pixmap and surface, we should always create
+        the new pixmap as soon as the window is created or resized (and not empty) This fixes the issues but also makes
+        resizing the window a bit smoother when AC mode is enabled.
+
+        * UIProcess/gtk/RedirectedXCompositeWindow.cpp:
+        (WebKit::RedirectedXCompositeWindow::RedirectedXCompositeWindow): Create the pixmap and surface if the window is
+        not empty.
+        (WebKit::RedirectedXCompositeWindow::resize): Ditto.
+        (WebKit::RedirectedXCompositeWindow::createNewPixampAndPixampSurface): Create the pixmap and surface.
+        (WebKit::RedirectedXCompositeWindow::surface): Deleted.
+        * UIProcess/gtk/RedirectedXCompositeWindow.h:
+        (WebKit::RedirectedXCompositeWindow::surface):
+
+2016-07-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][Threaded Compositor] Web view background colors don't work
+        https://bugs.webkit.org/show_bug.cgi?id=159465
+
+        Reviewed by Michael Catanzaro.
+
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::setDrawsBackground): Set m_drawsBackground in compositing thread and schedule a
+        layer flush.
+        (WebKit::ThreadedCompositor::renderLayerTree): Clear the area when not rendering backgrounds.
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.h:
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        (WebKit::ThreadedCoordinatedLayerTreeHost::pageBackgroundTransparencyChanged): Notify the compositor.
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.h:
+
+2016-07-21  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Web view background colors don't work in accelerated compositing mode
+        https://bugs.webkit.org/show_bug.cgi?id=159455
+
+        Reviewed by Michael Catanzaro.
+
+        In non AC mode it's the drawing area backing store the one drawing the background, and the web process just
+        renders into a transparent bitmap. In AC mode we need to make the redirected window pixmap transparent for the
+        web process to render there, and let the web view fill the background color before rendering the redirected
+        window pixmap on top. To be able to make the redirected window surface transparent, we need to ensure the parent
+        window has an RGBA visual, even when setting a fully opaque background, because we still need the web process
+        to render on the transparent xwindow.
+
+        * UIProcess/API/gtk/WebKitWebView.cpp: Update documentation of webkit_web_view_set_background_color() since now
+        it's required to set the RGBA visual even for opaque colors in case AC mode is enabled.
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewRenderAcceleratedCompositingResults): When a background color has been set, fill it before
+        rendering the redirected window surface.
+        * UIProcess/gtk/RedirectedXCompositeWindow.cpp:
+        (WebKit::RedirectedXCompositeWindow::RedirectedXCompositeWindow): Mark the surface as dirty after every damage
+        event, since the web process has modified it.
+        (WebKit::RedirectedXCompositeWindow::surface): Initialize the surface after creating it, to avoid flickering and
+        rendering artifacts when waiting for the first damage event from the web process.
+        * WebProcess/WebPage/gtk/LayerTreeHostGtk.cpp:
+        (WebKit::LayerTreeHostGtk::compositeLayersToContext): Use a fully transparent color to clear the context when the page
+        is resized or when a view background color has been set.
+
+2016-07-20  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Avoid the redirected window resize when the view is realized in AC mode
+        https://bugs.webkit.org/show_bug.cgi?id=159463
+
+        Reviewed by Michael Catanzaro.
+
+        We are always creating the redirected window at 1x1 and then resizing it if we are in AC mode. When the view is
+        realized and AC mode is already enabled, which happens for example when AC mode is forced, or when the threaded
+        compositor is enabled, we could just pass the initial size to the redirected window constructor to create the
+        XWindow at the right size.
+
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseResizeRedirectedWindow): We no longer need to pass the device scale factor, since the
+        RedirectedXCompositeWindow already knows it.
+        (webkitWebViewBaseRealize): Pass the WebPageProxy and an initial size to the RedirectedXCompositeWindow
+        constructor instead of the parent GdkWindow. If AC mode is disabled, the initial size will be empty. With the
+        WebPageProxy the redirected window has access to the device scale factor and view widget to get the parent
+        GdkWindow.
+        (deviceScaleFactorChanged): Resize the redirected window when device scale factor changes.
+        * UIProcess/gtk/RedirectedXCompositeWindow.cpp:
+        (WebKit::RedirectedXCompositeWindow::create):
+        (WebKit::RedirectedXCompositeWindow::RedirectedXCompositeWindow):
+        (WebKit::RedirectedXCompositeWindow::resize):
+        (WebKit::RedirectedXCompositeWindow::surface):
+        (WebKit::RedirectedXCompositeWindow::~RedirectedXCompositeWindow):
+        * UIProcess/gtk/RedirectedXCompositeWindow.h:
+
+2016-07-20  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][Threaded Compositor] Web Process crash when the page is closed before the web view is realized
+        https://bugs.webkit.org/show_bug.cgi?id=159918
+
+        Reviewed by Michael Catanzaro.
+
+        When the web view is unrealized, we send a sync message to the web process to destroy the native surface handle
+        for compositing, and then we actually destroy the redirected window. But if the page is closed explicitly before
+        the web view is unrealized, the drawing area proxy is destroyed so that when the web view is unrealized we can't
+        notify the web process that keeps trying to render to a now deleted window handle. That produces a BadDrawable
+        X error and the web process crashes.
+
+        * UIProcess/API/gtk/PageClientImpl.cpp:
+        (WebKit::PageClientImpl::pageClosed): Call webkitWebViewBasePageClosed().
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBasePageClosed): If the web view is still realized, destroy the native surface handle and the
+        redirected window.
+        * UIProcess/API/gtk/WebKitWebViewBasePrivate.h: Add webkitWebViewBasePageClosed().
+
+2016-07-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203471.
+        https://bugs.webkit.org/show_bug.cgi?id=160003
+
+        many iOS-simulator tests are failing (Requested by litherum on
+        #webkit).
+
+        Reverted changeset:
+
+        "[iPhone] Playing a video on tudou.com plays only sound, no
+        video"
+        https://bugs.webkit.org/show_bug.cgi?id=159967
+        http://trac.webkit.org/changeset/203471
+
+2016-07-20  Simon Fraser  <simon.fraser@apple.com>
+
+        REGRESSION (r203189): Webpage snapshots are partially or fully blank when edge swiping back
+        https://bugs.webkit.org/show_bug.cgi?id=160000
+        rdar://problem/27455589
+        
+        Reviewed by Zalan Bujtas.
+
+        r203189 triggered a call to -_updateContentRectsWithState: in the middle of a swipe,
+        during which we'd compute the visible rect of the view as having zero width, causing us
+        to not create tiles.
+
+        -_navigationGestureDidBegin already snapshots the visibleContentRect in _frozenVisibleContentRect,
+        but -_visibleContentRect then clipped that with ancestor views, causing the issue.
+
+        Fix by having -_visibleContentRect just return _frozenVisibleContentRect if we have one.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _visibleContentRect]):
+
+2016-07-20  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=159967
+        <rdar://problem/26964090>
+
+        Reviewed by Jon Lee.
+
+        Add the two preferences to WKWebViewConfiguration and WKPreferences to cover both
+        the Obj-C API and the C SPI.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetAllowsInlineMediaPlaybackWithPlaysInlineAttribute):
+        (WKPreferencesGetAllowsInlineMediaPlaybackWithPlaysInlineAttribute):
+        (WKPreferencesSetAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute):
+        (WKPreferencesGetAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute):
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration init]):
+        (-[WKWebViewConfiguration copyWithZone:]):
+        (-[WKWebViewConfiguration _allowsInlineMediaPlaybackWithPlaysInlineAttribute]):
+        (-[WKWebViewConfiguration _setAllowsInlineMediaPlaybackWithPlaysInlineAttribute:]):
+        (-[WKWebViewConfiguration _allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute]):
+        (-[WKWebViewConfiguration _setAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute:]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-07-20  ChangSeok Oh  <changseok@webkit.org>
+
+        Fix a linking failure caused by NetworkCache::Data::~Data()
+        https://bugs.webkit.org/show_bug.cgi?id=159931
+
+        Linking is failed with clang 3.6. It says WebKit::NetworkCache::Data::~Data is undefined.
+        It is fixed by adding a destructor for NetworkCache::Data.
+
+        Reviewed by Alex Christensen.
+
+        * NetworkProcess/cache/NetworkCacheData.h:
+        (WebKit::NetworkCache::Data::~Data):
+
+2016-07-20  Tim Horton  <timothy_horton@apple.com>
+
+        Explain the default value of WKWebViewConfiguration's ignoresViewportScaleLimits
+        https://bugs.webkit.org/show_bug.cgi?id=159978
+        <rdar://problem/27453189>
+
+        Reviewed by Dan Bernstein.
+
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.h:
+        This defaults to NO.
+
+2016-07-20  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Linux] MemoryPressureMonitor fallback code to get memory available in older linux kernels doesn't work
+        https://bugs.webkit.org/show_bug.cgi?id=159970
+
+        Reviewed by Antonio Gomes.
+
+        We are failing to detect zones when parsing /proc/zoneinfo.
+
+        * UIProcess/linux/MemoryPressureMonitor.cpp:
+        (WebKit::lowWatermarkPages): Use strncmp since we want to know whether the line starts with "Node".
+        (WebKit::MemoryPressureMonitor::MemoryPressureMonitor): Stop the polling if we fail to get the memory available,
+        because that means it's not sopported in the system for whatever reason.
+
+2016-07-20  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Threaded Compositor] Web Process crash when the layer tree host is destroyed
+        https://bugs.webkit.org/show_bug.cgi?id=159922
+
+        Reviewed by Sergio Villar Senin.
+
+        It happens when the layer tree host is destroyed after the didChangeVisibleRect is scheduled to be run in the
+        main thread, but before it's actually dispatched. In that case the threaded compositor client points to a
+        deleted object and crashes when trying to dereference it.
+
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::~ThreadedCompositor): Add an assert to ensure invalidate is always called before
+        the object is deleted.
+        (WebKit::ThreadedCompositor::invalidate): Terminate the compositing thread and nullify the client.
+        (WebKit::ThreadedCompositor::didChangeVisibleRect): Return early if the client is null when the task is
+        dispatched in the main thread.
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.h: Add invalidate().
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        (WebKit::ThreadedCoordinatedLayerTreeHost::invalidate): Invalidate the ThreadedCompositor and chain up.
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.h:
+
 2016-07-19  Brian Burg  <bburg@apple.com>
 
         Web Automation: WebAutomationSessionProxy's HashMaps should support '0' as valid keys

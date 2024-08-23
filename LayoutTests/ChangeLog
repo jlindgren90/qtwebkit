@@ -1,3 +1,578 @@
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Make parameters to Document.getElementsBy*() operations mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160050
+
+        Reviewed by Daniel Bates.
+
+        Drop cases that were calling the operation without parameter.
+
+        * fast/dom/getElementsByClassName/dumpHTMLCollection-expected.txt:
+        * fast/dom/getElementsByClassName/dumpHTMLCollection.html:
+
+2016-07-21  Nan Wang  <n_wang@apple.com>
+
+        AX: aria-label not being used correctly in accessible name calculation of heading
+        https://bugs.webkit.org/show_bug.cgi?id=160009
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/ios-simulator/heading-with-aria-label-expected.txt: Added.
+        * accessibility/ios-simulator/heading-with-aria-label.html: Added.
+
+2016-07-21  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Move expected.txt file for editing/deleting/delete-emoji.html from mac-elcapitan to mac-yosemite
+
+        Unreviewed test gardening.
+
+        * platform/mac-yosemite/editing/deleting/delete-emoji-expected.txt: Renamed from LayoutTests/platform/mac-elcapitan/editing/deleting/delete-emoji-expected.txt.
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Make parameters mandatory for Document.create*() operations
+        https://bugs.webkit.org/show_bug.cgi?id=160047
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing tests to reflect the behavior change.
+
+        * compositing/geometry/assert-marquee-timer.html:
+        * editing/style/bold-with-dom-changes.html:
+        * fast/dom/MutationObserver/observe-characterdata.html:
+        * fast/dom/normalize-attributes-mutation-event-crash.html:
+        * fast/dom/null-chardata-crash.html:
+        * fast/dom/wrapper-classes-expected.txt:
+        * fast/dom/wrapper-classes.html:
+        * fast/forms/basic-textareas.html:
+        * fast/inspector-support/uncaught-dom1-exception-expected.txt:
+        * fast/inspector-support/uncaught-dom1-exception.html:
+
+2016-07-21  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/fetch/api/cors/cors-preflight.html as flaky on mac
+        https://bugs.webkit.org/show_bug.cgi?id=160056
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-21  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [macOS] Caret placement occurs in the middle of new emoji group candidates
+        https://bugs.webkit.org/show_bug.cgi?id=160008
+        <rdar://problem/27430111>
+
+        Reviewed by Simon Fraser.
+
+        Update expected results.
+
+        The new emoji support is behind the ADDITIONAL_EMOJI_SUPPORT guard, which
+        means it only occurs on El Capitan and higher. Similarly, these new rules
+        are not used for iOS.
+
+        * editing/deleting/delete-emoji-expected.txt: Deleted.
+        * platform/mac/editing/deleting/delete-emoji-expected.txt: Added.
+        * platform/mac-elcapitan/editing/deleting/delete-emoji-expected.txt: Added.
+        * platform/ios-simulator/editing/deleting/delete-emoji-expected.txt: Added.
+
+2016-07-21  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Land test expectations for rdar://problem/27475162.
+
+        * platform/mac/TestExpectations:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of SVGAngle/SVGLength.valueAsString attribute
+        https://bugs.webkit.org/show_bug.cgi?id=160025
+
+        Reviewed by Ryosuke Niwa.
+
+        Add test coverage.
+
+        * svg/dom/svg-element-attribute-js-null-expected.txt:
+        * svg/dom/svg-element-attribute-js-null.xhtml:
+        * svg/dom/valueAsString-null-expected.txt: Added.
+        * svg/dom/valueAsString-null.html: Added.
+        There are a couple of failures in this test because WebKit ignores
+        assignments to "" instead of throwing. Firefox passes all the checks.
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of HTMLFontElement.color
+        https://bugs.webkit.org/show_bug.cgi?id=160036
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect behavior change.
+
+        * fast/dom/element-attribute-js-null-expected.txt:
+        * fast/dom/element-attribute-js-null.html:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for several HTMLTableElement attributes
+        https://bugs.webkit.org/show_bug.cgi?id=160041
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect the behavior change.
+
+        * fast/dom/element-attribute-js-null-expected.txt:
+        * fast/dom/element-attribute-js-null.html:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for HTMLObjectElement.border
+        https://bugs.webkit.org/show_bug.cgi?id=160040
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect the behavior change.
+
+        * fast/dom/element-attribute-js-null-expected.txt:
+        * fast/dom/element-attribute-js-null.html:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for td.bgColor / tr.bgColor
+        https://bugs.webkit.org/show_bug.cgi?id=160043
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect the behavior change.
+
+        * fast/dom/element-attribute-js-null-expected.txt:
+        * fast/dom/element-attribute-js-null.html:
+
+2016-07-21  Daniel Bates  <dabates@apple.com>
+
+        Test platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe.html is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=160002
+
+        Reviewed by Alexey Proskuryakov.
+
+        The file platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe.html tests loading
+        plugin content from the main frame and from a subframe. Depending on timing the plugin
+        content loaded in the subframe may complete before plugin content loaded in the main frame.
+        We should test loading plugin content in a subframe after perform all main frame sub-tests
+        so as to ensure a well-defined sub-test order.
+
+        Add logic to ensure that an embedded YouTube flash video loaded in a subframe actually creates
+        a shadow DOM. Additionally, simplify the test logic by making use window.jsTestIsAsync/finishJSTest()
+        to mark the test as asynchronous and notify test completion instead of calling
+        window.testRunner.{waitUntilDone, notifyDone}(), remove the call to
+        testRunner.dumpAsText() (js-test-pre.js calls this for us), remove all of the DOM elements
+        used in the test to avoid noise in the expected results, and fix some style nits.
+
+        * platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe-expected.txt:
+        * platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe.html:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for several HTMLBodyElement attributes
+        https://bugs.webkit.org/show_bug.cgi?id=160044
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect the behavior change.
+
+        * fast/dom/element-attribute-js-null-expected.txt:
+        * fast/dom/element-attribute-js-null.html:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for HTMLIFrameElement.marginWidth / marginHeight
+        https://bugs.webkit.org/show_bug.cgi?id=160037
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect the behavior change.
+
+        * fast/dom/element-attribute-js-null-expected.txt:
+        * fast/dom/element-attribute-js-null.html:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling for HTMLImageElement.border
+        https://bugs.webkit.org/show_bug.cgi?id=160039
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect the behavior change.
+
+        * fast/dom/element-attribute-js-null-expected.txt:
+        * fast/dom/element-attribute-js-null.html:
+
+2016-07-21  Daniel Bates  <dabates@apple.com>
+
+        REGRESSION: Plugin replaced YouTube Flash videos always have the same width
+        https://bugs.webkit.org/show_bug.cgi?id=159998
+        <rdar://problem/27462285>
+
+        Reviewed by Simon Fraser.
+
+        Unskip existing iOS layout tests, update tests and expected results.
+
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe-expected.txt: Updated expected result based on the
+        changes to test youtube-flash-plugin-iframe.html.
+        * platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe-no-height-or-width-expected.txt: Updated expected result
+        based on the changes to test youtube-flash-plugin-iframe-no-height-or-width.html.
+        * platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe-no-height-or-width.html: Modified to check the
+        width of each embedded YouTube video to ensure that we respect it (if specified).
+        * platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe.html: Substitute pseudo id -webkit-plugin-replacement
+        for -apple-youtube-shadow-iframe as the later was renamed to the former in <https://trac.webkit.org/changeset/168442>.
+        Fix misspelling of the word "embed" in a comment.
+
+2016-07-21  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/codemirror/prettyprinting-javascript.html as a flaky timeout on mac debug.
+        https://bugs.webkit.org/show_bug.cgi?id=160048
+
+        Unreviewed test gardening.
+
+        Added TestExpectation and reordered alphabetically.
+
+        * platform/mac/TestExpectations:
+
+2016-07-21  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=159967
+        <rdar://problem/26964090>
+
+        Reviewed by Jon Lee, Jeremy Jones, and Anders Carlsson.
+
+        * media/video-playsinline.html: Updated.
+        * media/video-webkit-playsinline-expected.txt: Removed.
+        * media/video-webkit-playsinline.html: Removed.
+
+2016-07-21  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking accessibility/mac/value-change/value-change-user-info-contenteditable.html as flaky on El Capitan WK2
+        https://bugs.webkit.org/show_bug.cgi?id=160042
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        The 2 first parameters to DOMImplementation.createDocument() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160030
+
+        Reviewed by Sam Weinig.
+
+        Rebaseline / update existing test to reflect the behavior change.
+
+        * fast/css/zoom-on-unattached.html:
+        * fast/dom/DOMImplementation/createDocument-namespace-err-expected.txt:
+        * fast/dom/DOMImplementation/script-tests/createDocument-namespace-err.js:
+        * fast/dom/HTMLLinkElement/prefetch-detached.html:
+        * fast/dom/node-move-to-new-document-crash-main.html:
+        * fast/forms/change-form-element-document-crash.html:
+
+2016-07-21  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Clarify testing mode names in run-jsc-stress-tests
+        https://bugs.webkit.org/show_bug.cgi?id=160021
+
+        Reviewed by Mark Lam.
+
+        Default should mean really default, not default with disabled FTL, renamed
+        - runMozillaTestDefault to runMozillaTestNoFTL
+        - runMozillaTestDefaultFTL to runMozillaTestDefault
+        - runDefault to runNoFTL
+        - runDefaultFTL to runDefault
+        - runLayoutTestDefault to runLayoutTestNoFTL
+        - runLayoutTestDefaultFTL to runLayoutTestDefault
+        - runNoisyTestDefault to runNoisyTestNoFTL
+        - runNoisyTestDefaultFTL to runNoisyTestDefault
+
+        * js/regress/script-tests/DataView-custom-properties.js:
+        * js/regress/script-tests/HashMap-put-get-iterate-keys.js:
+        * js/regress/script-tests/HashMap-put-get-iterate.js:
+        * js/regress/script-tests/HashMap-string-put-get-iterate.js:
+        * js/regress/script-tests/array-nonarray-polymorhpic-access.js:
+        * js/regress/script-tests/basic-set.js:
+        * js/regress/script-tests/bug-153431.js:
+        * js/regress/script-tests/destructuring-arguments.js:
+        * js/regress/script-tests/destructuring-swap.js:
+        * js/regress/script-tests/inline-arguments-local-escape.js:
+        * js/regress/script-tests/method-on-number.js:
+        * js/regress/script-tests/new-array-buffer-push.js:
+        * js/regress/script-tests/new-array-push.js:
+        * js/regress/script-tests/poly-stricteq.js:
+        * js/regress/script-tests/polymorphic-array-call.js:
+        * js/regress/script-tests/regexp-prototype-is-not-instance.js:
+        * js/regress/script-tests/regexp-prototype-search-observable-side-effects.js:
+        * js/regress/script-tests/regexp-prototype-search-observable-side-effects2.js:
+        * js/regress/script-tests/regexp-prototype-split-observable-side-effects.js:
+        * js/regress/script-tests/regexp-prototype-split-observable-side-effects2.js:
+        * js/regress/script-tests/regexp-prototype-split-observable-side-effects3-flags.js:
+        * js/regress/script-tests/regexp-prototype-split-observable-side-effects3-global.js:
+        * js/regress/script-tests/regexp-prototype-split-observable-side-effects3-ignoreCase.js:
+        * js/regress/script-tests/regexp-prototype-split-observable-side-effects3-multiline.js:
+        * js/regress/script-tests/regexp-prototype-split-observable-side-effects3-sticky.js:
+        * js/regress/script-tests/regexp-prototype-split-observable-side-effects3-unicode.js:
+        * js/regress/script-tests/regexp-prototype-split-observable-side-effects4.js:
+        * js/regress/script-tests/regexp-prototype-test-observable-side-effects.js:
+        * js/regress/script-tests/regexp-prototype-test-observable-side-effects2.js:
+        * js/regress/script-tests/string-equality.js:
+        * js/regress/script-tests/string-prototype-search-observable-side-effects.js:
+        * js/regress/script-tests/string-prototype-search-observable-side-effects2.js:
+        * js/regress/script-tests/string-prototype-search-observable-side-effects3.js:
+        * js/regress/script-tests/string-prototype-search-observable-side-effects4.js:
+        * js/regress/script-tests/string-prototype-split-observable-side-effects.js:
+        * js/regress/script-tests/string-prototype-split-observable-side-effects2.js:
+        * js/regress/script-tests/string-prototype-split-observable-side-effects3-flags.js:
+        * js/regress/script-tests/string-prototype-split-observable-side-effects3-global.js:
+        * js/regress/script-tests/string-prototype-split-observable-side-effects3-ignoreCase.js:
+        * js/regress/script-tests/string-prototype-split-observable-side-effects3-multiline.js:
+        * js/regress/script-tests/string-prototype-split-observable-side-effects3-sticky.js:
+        * js/regress/script-tests/string-prototype-split-observable-side-effects3-unicode.js:
+        * js/regress/script-tests/string-prototype-split-observable-side-effects4.js:
+        * js/regress/script-tests/string-repeat-arith.js:
+        * js/regress/script-tests/string-sub.js:
+        * js/slow-stress/script-tests/destructuring-arguments-length.js:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        playsInline IDL attribute has the wrong casing
+        https://bugs.webkit.org/show_bug.cgi?id=160029
+        <rdar://problem/27474031>
+
+        Reviewed by Jon Lee.
+
+        Update test to use the correct case.
+
+        * media/video-playsinline-expected.txt:
+        * media/video-playsinline.html:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Drop [TreatNullAs=EmptyString] from CanvasRenderingContext2D.globalCompositeOperation
+        https://bugs.webkit.org/show_bug.cgi?id=160026
+
+        Reviewed by Sam Weinig.
+
+        Add test coverage.
+
+        * fast/canvas/context-globalCompositeOperation-null-expected.txt: Added.
+        * fast/canvas/context-globalCompositeOperation-null.html: Added.
+
+2016-07-21  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] Gardening: Layout tests expectations updates and test rebaselines.
+
+        Unreviewed.
+
+        * TestExpectations: js/regress-139548.html is ~10x slower since r203142.
+        * fast/mediastream/RTCPeerConnection-add-removeTrack-expected.txt: Rebaseline after r203333.
+        * fast/mediastream/RTCPeerConnection-addIceCandidate-expected.txt: Rebaseline after r203333.
+        * fast/mediastream/RTCPeerConnection-setLocalDescription-offer-expected.txt: Rebaseline after r203333.
+        * fast/mediastream/RTCPeerConnection-setRemoteDescription-offer-expected.txt: Rebaseline after r203333.
+        * platform/efl/TestExpectations: workers/bomb.html is slow.
+        * platform/gtk/TestExpectations: workers/bomb.html is slow, media/media-source/media-source-small-gap.html timeouts
+          and new failure on platform/gtk/scrollbars/main-frame-scrollbar-horizontal-wheel-scroll.html.
+
+2016-07-21  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Update test expectations for rdar://problem/27353750.
+
+        * platform/mac/TestExpectations:
+
+2016-07-21  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Handle min-content/max-content with orthogonal flows
+        https://bugs.webkit.org/show_bug.cgi?id=159294
+
+        Reviewed by Darin Adler.
+
+        New layout tests to evaluate basic positioning and sizing using orthogonal flows.
+
+        * fast/css-grid-layout/grid-item-positioning-with-orthogonal-flows-expected.txt: Added.
+        * fast/css-grid-layout/grid-item-positioning-with-orthogonal-flows.html: Added.
+        * fast/css-grid-layout/grid-item-sizing-with-orthogonal-flows-expected.txt: Added.
+        * fast/css-grid-layout/grid-item-sizing-with-orthogonal-flows.html: Added.
+        * fast/css-grid-layout/grid-item-spanning-and-orthogonal-flows-expected.txt: Added.
+        * fast/css-grid-layout/grid-item-spanning-and-orthogonal-flows.html: Added.
+        * fast/css-grid-layout/grid-track-sizing-with-orthogonal-flows-expected.txt: Added.
+        * fast/css-grid-layout/grid-track-sizing-with-orthogonal-flows.html: Added.
+        * fast/css-grid-layout/grid-track-sizing-with-percentages-and-orthogonal-flows-expected.txt: Added.
+        * fast/css-grid-layout/grid-track-sizing-with-percentages-and-orthogonal-flows.html: Added.
+
+2016-07-20  Youenn Fablet  <youenn@apple.com>
+
+        [XHR] Cache response JS object in case of arraybuffer and blob response types
+        https://bugs.webkit.org/show_bug.cgi?id=128903
+
+        Reviewed by Alex Christensen.
+
+        * http/tests/xmlhttprequest/onabort-response-getters-expected.txt:
+        * http/tests/xmlhttprequest/onabort-response-getters.html:
+
+2016-07-19  Filip Pizlo  <fpizlo@apple.com>
+
+        Switching on symbols should be fast
+        https://bugs.webkit.org/show_bug.cgi?id=158892
+
+        Reviewed by Keith Miller.
+
+        * js/regress/bigswitch-indirect-expected.txt: Added.
+        * js/regress/bigswitch-indirect-symbol-expected.txt: Added.
+        * js/regress/bigswitch-indirect-symbol-or-undefined-expected.txt: Added.
+        * js/regress/bigswitch-indirect-symbol-or-undefined.html: Added.
+        * js/regress/bigswitch-indirect-symbol.html: Added.
+        * js/regress/bigswitch-indirect.html: Added.
+        * js/regress/implicit-bigswitch-indirect-symbol-expected.txt: Added.
+        * js/regress/implicit-bigswitch-indirect-symbol.html: Added.
+        * js/regress/script-tests/bigswitch-indirect-symbol-or-undefined.js: Added.
+        (foo):
+        * js/regress/script-tests/bigswitch-indirect-symbol.js: Added.
+        (foo):
+        * js/regress/script-tests/bigswitch-indirect.js: Added.
+        (foo):
+        * js/regress/script-tests/implicit-bigswitch-indirect-symbol.js: Added.
+        (foo):
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of several Document attributes
+        https://bugs.webkit.org/show_bug.cgi?id=159997
+
+        Reviewed by Ryosuke Niwa.
+
+        Add test coverage.
+
+        * http/tests/dom/document-attributes-null-handling-expected.txt: Added.
+        * http/tests/dom/document-attributes-null-handling.html: Added.
+        * fast/dom/document-attribute-js-null-expected.txt:
+        * fast/dom/document-attribute-js-null.html:
+
+2016-07-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203471.
+        https://bugs.webkit.org/show_bug.cgi?id=160003
+
+        many iOS-simulator tests are failing (Requested by litherum on
+        #webkit).
+
+        Reverted changeset:
+
+        "[iPhone] Playing a video on tudou.com plays only sound, no
+        video"
+        https://bugs.webkit.org/show_bug.cgi?id=159967
+        http://trac.webkit.org/changeset/203471
+
+2016-07-20  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Fix timeout of imported/w3c/WebCryptoAPI/idlharness.html
+        https://bugs.webkit.org/show_bug.cgi?id=159979
+
+        Reviewed by Alex Christensen.
+
+        * TestExpectations:
+        Remove the skip tuple of the test.
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Stop using valueToStringWithNullCheck() in JSCSSStyleDeclaration::putDelegate()
+        https://bugs.webkit.org/show_bug.cgi?id=159982
+
+        Reviewed by Ryosuke Niwa.
+
+        Add layout test coverage for JSCSSStyleDeclaration::putDelegate(),
+        covering cases like setting to null or the empty String, to make
+        sure we behave according to specification.
+
+        * fast/css/CSSStyleDeclaration-property-setter-expected.txt: Added.
+        * fast/css/CSSStyleDeclaration-property-setter.html: Added.
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of HTMLFrameElement.marginWidth / marginHeight
+        https://bugs.webkit.org/show_bug.cgi?id=159987
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect the expected behavior change.
+
+        * fast/dom/element-attribute-js-null-expected.txt:
+        * fast/dom/element-attribute-js-null.html:
+
+2016-07-20  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=159967
+        <rdar://problem/26964090>
+
+        Reviewed by Jon Lee.
+
+        * media/video-playsinline.html: Updated.
+        * media/video-webkit-playsinline-expected.txt: Removed.
+        * media/video-webkit-playsinline.html: Removed.
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        CSSStyleDeclaration.setProperty() should be able to unset "important" on a property
+        https://bugs.webkit.org/show_bug.cgi?id=159959
+
+        Reviewed by Alexey Proskuryakov.
+
+        * fast/css/CSSStyleDeclaration-setProperty-unset-important-expected.txt: Added.
+        * fast/css/CSSStyleDeclaration-setProperty-unset-important.html: Added.
+        Add layout test coverage.
+
+        * fast/css/important-js-override.html:
+        The test covered our 'wrong' behavior and was failing in Firefox / Chrome.
+        I updated the test to match the behavior in the specification. The test
+        now passed in Chrome and Firefox.
+
+2016-07-20  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203423.
+        https://bugs.webkit.org/show_bug.cgi?id=159977
+
+        The test for this change is failing on Mac Release WK2
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "HTMLVideoElement frames do not update on iOS when src is a
+        MediaStream blob"
+        https://bugs.webkit.org/show_bug.cgi?id=159833
+        http://trac.webkit.org/changeset/203423
+
+2016-07-20  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Land test expectations for rdar://problem/27434307.
+
+        * platform/mac/TestExpectations:
+
+2016-07-20  Chris Dumez  <cdumez@apple.com>
+
+        Fix null handling of HTMLSelectElement.value attribute
+        https://bugs.webkit.org/show_bug.cgi?id=159925
+
+        Reviewed by Benjamin Poulain.
+
+        Add layout test coverage. I have verified that this test is passing in
+        both Firefox and Chrome.
+
+        * fast/dom/HTMLSelectElement/value-null-handling-expected.txt: Added.
+        * fast/dom/HTMLSelectElement/value-null-handling.html: Added.
+
+2016-07-20  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Consolidating duplicate TestExpectations for fast/images/animated-png.html.
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
 2016-07-19  Chris Dumez  <cdumez@apple.com>
 
         Fix null handling of SVGScriptElement.type attribute

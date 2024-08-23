@@ -56,7 +56,13 @@ ThreadedCompositor::ThreadedCompositor(Client* client)
 
 ThreadedCompositor::~ThreadedCompositor()
 {
+    ASSERT(!m_client);
+}
+
+void ThreadedCompositor::invalidate()
+{
     terminateCompositingThread();
+    m_client = nullptr;
 }
 
 void ThreadedCompositor::setNativeSurfaceHandleForCompositing(uint64_t handle)
@@ -77,6 +83,14 @@ void ThreadedCompositor::setDeviceScaleFactor(float scale)
 {
     m_compositingRunLoop->performTask([this, protectedThis = makeRef(*this), scale] {
         m_deviceScaleFactor = scale;
+        scheduleDisplayImmediately();
+    });
+}
+
+void ThreadedCompositor::setDrawsBackground(bool drawsBackground)
+{
+    m_compositingRunLoop->performTask([this, protectedThis = Ref<ThreadedCompositor>(*this), drawsBackground] {
+        m_drawsBackground = drawsBackground;
         scheduleDisplayImmediately();
     });
 }
@@ -171,10 +185,18 @@ void ThreadedCompositor::scheduleDisplayImmediately()
     m_compositingRunLoop->startUpdateTimer(CompositingRunLoop::Immediate);
 }
 
+void ThreadedCompositor::forceRepaint()
+{
+    m_compositingRunLoop->performTaskSync([this, protectedThis = makeRef(*this)] {
+        renderLayerTree();
+    });
+}
+
 void ThreadedCompositor::didChangeVisibleRect()
 {
     RunLoop::main().dispatch([this, protectedThis = makeRef(*this), visibleRect = m_viewportController->visibleContentsRect(), scale = m_viewportController->pageScaleFactor()] {
-        m_client->setVisibleContentsRect(visibleRect, FloatPoint::zero(), scale);
+        if (m_client)
+            m_client->setVisibleContentsRect(visibleRect, FloatPoint::zero(), scale);
     });
 
     scheduleDisplayImmediately();
@@ -195,7 +217,11 @@ void ThreadedCompositor::renderLayerTree()
     viewportTransform.scale(m_viewportController->pageScaleFactor() * m_deviceScaleFactor);
     viewportTransform.translate(-scrollPostion.x(), -scrollPostion.y());
 
-    m_scene->paintToCurrentGLContext(viewportTransform, 1, clipRect, Color::white, false, scrollPostion);
+    if (!m_drawsBackground) {
+        glClearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+    }
+    m_scene->paintToCurrentGLContext(viewportTransform, 1, clipRect, Color::transparent, !m_drawsBackground, scrollPostion);
 
     glContext()->swapBuffers();
 }
