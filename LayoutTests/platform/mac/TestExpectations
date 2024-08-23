@@ -737,14 +737,14 @@ webkit.org/b/123250 plugins/destroy-during-npp-new-object-with-fallback-content.
 webkit.org/b/123369 svg/css/parent-shadow-offscreen.svg [ ImageOnlyFailure ]
 webkit.org/b/123369 svg/css/root-shadow-offscreen.svg [ ImageOnlyFailure ]
 
-webkit.org/b/151832 inspector/debugger/break-on-uncaught-exception-throw-in-promise-rethrow-in-catch.html
-webkit.org/b/151832 inspector/debugger/break-on-uncaught-exception-throw-in-promise-then-with-catch.html
-webkit.org/b/151832 inspector/debugger/break-on-uncaught-exception-throw-in-promise-then.html
-webkit.org/b/151832 inspector/debugger/break-on-uncaught-exception-throw-in-promise-with-catch.html
-webkit.org/b/151832 inspector/debugger/break-on-uncaught-exception-throw-in-promise.html
 inspector/debugger/setBreakpoint-dfg-callee-and-examine-dfg-local.html
 inspector/debugger/didSampleProbe-multiple-probes.html
 inspector/debugger/nested-inspectors.html
+
+inspector/debugger/break-on-exception-throw-in-promise.html [ Slow ]
+inspector/debugger/break-on-exception.html [ Slow ]
+inspector/debugger/break-on-uncaught-exception-throw-in-promise.html [ Slow ]
+inspector/debugger/break-on-uncaught-exception.html [ Slow ]
 
 webkit.org/b/124311 compositing/regions/transform-transparent-positioned-video-inside-region.html [ ImageOnlyFailure ]
 
@@ -1232,13 +1232,6 @@ webkit.org/b/158006 inspector/console/console-time.html [ Pass Timeout ]
 webkit.org/b/156634 inspector/formatting/formatting-javascript.html [ Pass Timeout ]
 webkit.org/b/158948 inspector/timeline [ Pass Timeout ]
 
-webkit.org/b/159272 inspector/debugger/break-on-exception-finally.html
-webkit.org/b/159272 inspector/debugger/break-on-exception-native.html
-webkit.org/b/159272 inspector/debugger/break-on-exception.html
-webkit.org/b/159272 inspector/debugger/break-on-uncaught-exception-finally.html
-webkit.org/b/159272 inspector/debugger/break-on-uncaught-exception-native.html
-webkit.org/b/159272 inspector/debugger/break-on-uncaught-exception.html
-
 # Colorspaces on CA OpenGL layers not available in Yosemite
 [ Yosemite ] fast/canvas/webgl/match-page-color-space.html [ Skip ]
 
@@ -1271,10 +1264,6 @@ imported/blink/compositing/video/video-controls-layer-creation-squashing.html [ 
 
 webkit.org/b/150806 imported/w3c/web-platform-tests/XMLHttpRequest/send-timeout-events.htm [ Pass Failure ]
 webkit.org/b/150823 imported/w3c/web-platform-tests/XMLHttpRequest/getresponseheader-chunked-trailer.htm [ Pass Failure ]
-
-webkit.org/b/152436 [ Debug ] imported/w3c/web-platform-tests/streams/readable-streams/garbage-collection.https.html [ Pass Crash ]
-webkit.org/b/153781 [ Debug ] imported/w3c/web-platform-tests/streams/readable-streams/garbage-collection-1.html [ Pass Crash ]
-webkit.org/b/153781 [ Debug ] imported/w3c/web-platform-tests/streams/readable-streams/garbage-collection-2.html [ Pass Crash ]
 
 # WOFF2 is only supported on certain Operating Systems.
 webkit.org/b/150830 [ Yosemite ElCapitan ] fast/text/woff2.html [ ImageOnlyFailure ]
@@ -1438,3 +1427,12 @@ webkit.org/b/158889 media/video-controls-show-on-kb-or-ax-event.html [ Pass Fail
 [ Sierra+ ] editing/selection/triple-click-in-pre.html [ Failure ]
 
 webkit.org/b/159379 fast/history/page-cache-webdatabase-pending-transaction.html [ Pass Failure ]
+
+webkit.org/b/158747 [ ElCapitan ] media/restore-from-page-cache.html [ Pass Failure ]
+
+# rdar://problem/27182687
+[ Sierra+ ] canvas/philip/tests/2d.path.stroke.scale2.html [ Failure ]
+[ Sierra+ ] imported/w3c/canvas/2d.path.stroke.scale2.html [ Failure ]
+
+# rdar://problem/27187013
+[ Sierra+ ] fast/block/float/overhanging-tall-block.html [ Failure ]

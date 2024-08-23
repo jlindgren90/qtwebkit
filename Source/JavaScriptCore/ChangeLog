@@ -1,3 +1,438 @@
+2016-07-07  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [ARMv7] REGRESSION(r197655): ASSERTION FAILED: (cond == Zero) || (cond == NonZero)
+        https://bugs.webkit.org/show_bug.cgi?id=159419
+
+        Reviewed by Benjamin Poulain.
+
+        Allow Signed and PositiveOrZero conditions too because tst instruction updates N and Z flags.
+
+        * assembler/MacroAssemblerARM.h:
+        (JSC::MacroAssemblerARM::branchTest32):
+        * assembler/MacroAssemblerARMv7.h:
+        (JSC::MacroAssemblerARMv7::branchTest32): Add assertions to avoid possible bugs in the future.
+
+2016-07-06  Youenn Fablet  <youenn@apple.com>
+
+        Builtin generator should use pragma once for header files
+        https://bugs.webkit.org/show_bug.cgi?id=159462
+
+        Reviewed by Alex Christensen.
+
+        * Scripts/builtins/builtins_generate_combined_header.py:
+        (BuiltinsCombinedHeaderGenerator.generate_output): 
+        * Scripts/builtins/builtins_generate_separate_header.py:
+        (BuiltinsSeparateHeaderGenerator.generate_output):
+        * Scripts/builtins/builtins_templates.py:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Combined.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.Promise-Separate.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Combined.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-Builtin.prototype-Separate.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Combined.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-BuiltinConstructor-Separate.js-result:
+        * Scripts/tests/builtins/expected/JavaScriptCore-InternalClashingNames-Combined.js-result:
+        * Scripts/tests/builtins/expected/WebCore-ArbitraryConditionalGuard-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-GuardedBuiltin-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-GuardedInternalBuiltin-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-UnguardedBuiltin-Separate.js-result:
+        * Scripts/tests/builtins/expected/WebCore-xmlCasingTest-Separate.js-result:
+
+2016-07-06  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Unify how we throw TypeError from C++
+        https://bugs.webkit.org/show_bug.cgi?id=159500
+
+        Reviewed by Saam Barati.
+
+        Throwing a TypeError is an uncommon case. We should minimize the impact
+        on the call sites.
+
+        This patch does that by:
+        -Replace the 2 calls createTypeError()->throwException() by throwTypeError().
+        -Use ASCIILiteral when possible.
+        -Add an overload of throwTypeError() taking ASCIILiteral directly
+         (that way, the String creation and destruction is done by the callee).
+
+        On x86_64, this reduces the __TEXT__ segment by 29kb.
+
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::evaluateWithScopeExtension):
+        * inspector/JSJavaScriptCallFrame.cpp:
+        (Inspector::JSJavaScriptCallFrame::evaluateWithScopeExtension):
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::execute):
+        * jit/JITOperations.cpp:
+        * runtime/DatePrototype.cpp:
+        (JSC::dateProtoFuncToJSON):
+        * runtime/Error.cpp:
+        (JSC::throwConstructorCannotBeCalledAsFunctionTypeError):
+        (JSC::throwTypeError):
+        * runtime/Error.h:
+        (JSC::throwVMTypeError):
+        * runtime/JSArrayBufferPrototype.cpp:
+        (JSC::arrayBufferProtoFuncSlice):
+        * runtime/JSCJSValue.cpp:
+        (JSC::JSValue::putToPrimitive):
+        (JSC::JSValue::toStringSlowCase):
+        * runtime/JSCJSValueInlines.h:
+        (JSC::toPreferredPrimitiveType):
+        * runtime/JSDataViewPrototype.cpp:
+        (JSC::getData):
+        (JSC::setData):
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::defineOwnProperty):
+        * runtime/JSGenericTypedArrayViewConstructorInlines.h:
+        (JSC::constructGenericTypedArrayViewFromIterator):
+        (JSC::constructGenericTypedArrayViewWithArguments):
+        (JSC::constructGenericTypedArrayView):
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        (JSC::speciesConstruct):
+        (JSC::genericTypedArrayViewProtoFuncSet):
+        (JSC::genericTypedArrayViewProtoFuncCopyWithin):
+        (JSC::genericTypedArrayViewProtoFuncIndexOf):
+        (JSC::genericTypedArrayViewProtoFuncLastIndexOf):
+        (JSC::genericTypedArrayViewProtoFuncSubarray):
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncProtoGetter):
+        (JSC::globalFuncProtoSetter):
+        * runtime/JSONObject.cpp:
+        (JSC::Stringifier::appendStringifiedValue):
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+        (JSC::callToPrimitiveFunction):
+        (JSC::JSObject::ordinaryToPrimitive):
+        (JSC::JSObject::defaultHasInstance):
+        (JSC::validateAndApplyPropertyDescriptor):
+        * runtime/JSTypedArrayViewConstructor.cpp:
+        (JSC::constructTypedArrayView):
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        (JSC::typedArrayViewPrivateFuncLength):
+        (JSC::typedArrayViewProtoFuncSet):
+        (JSC::typedArrayViewProtoFuncCopyWithin):
+        (JSC::typedArrayViewProtoFuncFill):
+        (JSC::typedArrayViewProtoFuncLastIndexOf):
+        (JSC::typedArrayViewProtoFuncIndexOf):
+        (JSC::typedArrayViewProtoFuncJoin):
+        (JSC::typedArrayViewProtoGetterFuncBuffer):
+        (JSC::typedArrayViewProtoGetterFuncLength):
+        (JSC::typedArrayViewProtoGetterFuncByteLength):
+        (JSC::typedArrayViewProtoGetterFuncByteOffset):
+        (JSC::typedArrayViewProtoFuncReverse):
+        (JSC::typedArrayViewProtoFuncSubarray):
+        (JSC::typedArrayViewProtoFuncSlice):
+        * runtime/ObjectConstructor.cpp:
+        (JSC::toPropertyDescriptor):
+        (JSC::objectConstructorDefineProperty):
+        (JSC::objectConstructorDefineProperties):
+        (JSC::objectConstructorCreate):
+        * runtime/ObjectPrototype.cpp:
+        (JSC::objectProtoFuncDefineGetter):
+        (JSC::objectProtoFuncDefineSetter):
+        * runtime/RegExpPrototype.cpp:
+        (JSC::regExpProtoFuncCompile):
+        * runtime/Symbol.cpp:
+        (JSC::Symbol::toNumber):
+
+2016-07-06  Saam Barati  <sbarati@apple.com>
+
+        InlineAccess::sizeForLengthAccess() is wrong on some platforms because it should also consider "length" not being array length
+        https://bugs.webkit.org/show_bug.cgi?id=159429
+
+        Reviewed by Filip Pizlo.
+
+        The calculation inside sizeForLengthAccess() was not taking into
+        account that an access to a "length" property might not be an
+        array length access. sizeForLengthAccess() should always have enough
+        room for a regular self property accesses. This only changes how
+        much of a nop sled we emit if array length access size is smaller
+        than self access size. This matters on ARM64.
+
+        * bytecode/InlineAccess.h:
+        (JSC::InlineAccess::sizeForPropertyAccess):
+        (JSC::InlineAccess::sizeForPropertyReplace):
+        (JSC::InlineAccess::sizeForLengthAccess):
+
+2016-07-06  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r198928 and r198985.
+        https://bugs.webkit.org/show_bug.cgi?id=159478
+
+        "It's breaking some websites" (Requested by saamyjoon on
+        #webkit).
+
+        Reverted changesets:
+
+        "[ES6] Disallow var assignments in for-in loops"
+        https://bugs.webkit.org/show_bug.cgi?id=155451
+        http://trac.webkit.org/changeset/198928
+
+        "Unreviewed, turn ES6 for-in loop test success"
+        https://bugs.webkit.org/show_bug.cgi?id=155451
+        http://trac.webkit.org/changeset/198985
+
+2016-07-05  Mark Lam  <mark.lam@apple.com>
+
+        Rename VM stack limit fields to better describe their purpose.
+        https://bugs.webkit.org/show_bug.cgi?id=159451
+
+        Reviewed by Keith Miller.
+
+        This is in preparation for an upcoming patch that changes what stack limit values
+        are used under various circumstances.  This patch aims to do some minimal work to
+        rename the fields so that it will be easier to reason about the upcoming patch.
+    
+        In this patch, we make the following changes:
+
+        1. Rename VM::m_stackLimit to VM::m_jsCPUStackLimit.
+
+        2. VM::m_jsStackLimit used to have an overloaded meaning:
+           a. For JIT builds, m_jsStackLimit is synonymous with m_stackLimit.
+           b. For C Loop builds, m_jsStackLimit is a separate pointer that points to the
+              emulated JS stack that the C Loop uses.
+
+           In place of m_jsStackLimit, this patch introduces 2 new fields:
+           VM::m_jsEmulatedStackLimit and VM::m_llintStackLimit.
+
+           m_llintStackLimit is the limit that the LLInt assembly uses for its stack
+           check.  m_llintStackLimit behaves like the old m_jsStackLimit in that:
+           a. For JIT builds, m_llintStackLimit is synonymous with m_jsCPUStackLimit.
+           b. For C Loop builds, m_llintStackLimit is synonymous with m_jsEmulatedStackLimit.
+
+           m_jsEmulatedStackLimit is used for the emulated stack that the C Loop uses.
+
+        3. Rename the following methods to match the above:
+             VM::stackLimit() ==> VM::jsCPUStackLimit()
+             VM::addressOfStackLimit() ==> VM::addressOfJSCPUStackLimit()
+             VM::jsStackLimit() ==> VM::jsEmulatedStackLimit()
+             VM::setJSStackLimit() ==> VM::setJSEmulatedStackLimit()
+             JSStack::setStackLimit() ==> JSStack::setEmulatedStackLimit()
+
+        4. With change (2) and (3), the limits will be used as follows:
+           a. VM code doing stack recursion checks will only use m_jsCPUStackLimit.
+           b. JIT code will only use m_jsCPUStackLimit.
+           c. C Loop emulated stack code in JSStack will only use m_jsEmulatedStackLimit.
+              Note: the part of JSStack that operates on a JIT build will use
+                    m_jsCPUStackLimit as expected.
+           d. LLINT assembly code will only use m_llintStackLimit.
+
+        This patch only contains the above refactoring changes.  There is no behavior
+        change.
+
+        * dfg/DFGJITCompiler.cpp:
+        (JSC::DFG::JITCompiler::compile):
+        (JSC::DFG::JITCompiler::compileFunction):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::lower):
+        * interpreter/JSStack.cpp:
+        (JSC::JSStack::JSStack):
+        (JSC::JSStack::growSlowCase):
+        (JSC::JSStack::lowAddress):
+        (JSC::JSStack::highAddress):
+        * interpreter/JSStack.h:
+        * interpreter/JSStackInlines.h:
+        (JSC::JSStack::ensureCapacityFor):
+        (JSC::JSStack::shrink):
+        (JSC::JSStack::grow):
+        (JSC::JSStack::setJSEmulatedStackLimit):
+        (JSC::JSStack::setStackLimit): Deleted.
+        * jit/JIT.cpp:
+        (JSC::JIT::compileWithoutLinking):
+        * jit/SetupVarargsFrame.cpp:
+        (JSC::emitSetupVarargsFrameFastCase):
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * llint/LowLevelInterpreter.asm:
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+        * runtime/RegExp.cpp:
+        (JSC::RegExp::finishCreation):
+        (JSC::RegExp::compile):
+        (JSC::RegExp::compileMatchOnly):
+        * runtime/VM.cpp:
+        (JSC::VM::VM):
+        (JSC::VM::updateStackLimit):
+        * runtime/VM.h:
+        (JSC::VM::reservedZoneSize):
+        (JSC::VM::jsCPUStackLimit):
+        (JSC::VM::addressOfJSCPUStackLimit):
+        (JSC::VM::jsEmulatedStackLimit):
+        (JSC::VM::setJSEmulatedStackLimit):
+        (JSC::VM::isSafeToRecurse):
+        (JSC::VM::jsStackLimit): Deleted.
+        (JSC::VM::setJSStackLimit): Deleted.
+        (JSC::VM::stackLimit): Deleted.
+        (JSC::VM::addressOfStackLimit): Deleted.
+        * wasm/WASMFunctionCompiler.h:
+        (JSC::WASMFunctionCompiler::startFunction):
+
+2016-07-05  Saam Barati  <sbarati@apple.com>
+
+        StackVisitor::unwindToMachineCodeBlockFrame() may unwind past a VM entry frame when catching an exception and the frame has inlined tail calls
+        https://bugs.webkit.org/show_bug.cgi?id=159448
+        <rdar://problem/27084459>
+
+        Reviewed by Mark Lam.
+
+        Consider the following stack trace:
+        (machine) foo -> VM entry frame -> (machine) bar -> (inlined tailcall) baz
+
+        If an exception is thrown at 'baz', we will do exception unwinding,
+        which will eventually call unwindToMachineCodeBlockFrame() which will call
+        gotoNextFrame() on the 'baz' frame. The next logical frame for 'baz' is 'foo' because
+        'bar' tail called 'baz' even though there is a machine frame for 'bar' on the stack.
+        This is a bug. unwindToMachineCodeBlockFrame() should not care about the next
+        logical frame, it just wants to move StackVisitor's state to the current machine
+        frame. The bug here is that we would end up unwinding past the VM entry frame
+        which can have all kinds of terrible consequences.
+
+        This bug fixes unwindToMachineCodeBlockFrame() by having it not rely
+        on gotoNextFrame() and instead using its own mechanism for setting
+        the StackVisotor's state to the current machine frame.
+
+        * interpreter/StackVisitor.cpp:
+        (JSC::StackVisitor::unwindToMachineCodeBlockFrame):
+        * tests/stress/dont-unwind-past-vm-entry-frame.js: Added.
+        (let.p.new.Proxy):
+        (let.p.new.Proxy.apply):
+        (bar):
+        (let.good):
+        (getItem):
+        (start):
+
+2016-07-05  Joseph Pecoraro  <pecoraro@apple.com>
+
+        RELEASE_ASSERT(!thisObject) in ObjCCallbackFunctionImpl::call when calling JSExport ObjC Constructor without operator new
+        https://bugs.webkit.org/show_bug.cgi?id=159446
+
+        Reviewed by Mark Lam.
+
+        Treat ObjC JSExport init constructors like ES6 Class Constructors
+        and throw a TypeError when called without 'new'.
+
+        * API/ObjCCallbackFunction.mm:
+        (JSC::ObjCCallbackFunctionImpl::type):
+        (JSC::objCCallbackFunctionCallAsFunction):
+        When calling an init method as a function instead of construction
+        throw a TypeError.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        Improve error message.
+
+        * API/tests/testapi.mm:
+        (testObjectiveCAPIMain):
+        Test we get an exception when calling an ObjC constructor without 'new'.
+
+2016-07-05  Mark Lam  <mark.lam@apple.com>
+
+        Remove some unneeded #include "CachedCall.h".
+        https://bugs.webkit.org/show_bug.cgi?id=159449
+
+        Reviewed by Saam Barati.
+
+        * runtime/ArrayPrototype.cpp:
+        * runtime/JSArray.cpp:
+        * runtime/MapPrototype.cpp:
+        * runtime/SetPrototype.cpp:
+
+2016-07-05  Geoffrey Garen  <ggaren@apple.com>
+
+        Crash @ bankofamerica.com, University of Vienna
+        https://bugs.webkit.org/show_bug.cgi?id=159439
+
+        Reviewed by Saam Barati.
+
+        * ftl/FTLLink.cpp:
+        (JSC::FTL::link): Do check for stack overflow in the arity mismatch thunk
+        because it can happen. Don't store a CallSiteIndex because we haven't
+        stored a CodeBlock yet, and our stack frame is not fully constructed,
+        so it would be an error for any client to try to load this value (and
+        operationCallArityCheck does not load this value).
+
+        * tests/stress/arity-check-ftl-throw.js: Added. New test case for stressing
+        a stack overflow with arity mismatch. Sadly, after hours of fiddling, I
+        can't seem to get this to fail in trunk. Still, it's good to have some
+        more testing in this area.
+
+2016-07-05  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] The prototype cycle checks throws the wrong error type
+        https://bugs.webkit.org/show_bug.cgi?id=159393
+
+        Reviewed by Geoffrey Garen.
+
+        We were supposed to throw the TypeError:
+        -https://tc39.github.io/ecma262/#sec-set-object.prototype.__proto__
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+
+2016-07-05  Saam Barati  <sbarati@apple.com>
+
+        our parsing for "use strict" is wrong when we first parse other directives that are not "use strict" but are located in a place where "use strict" would be valid
+        https://bugs.webkit.org/show_bug.cgi?id=159376
+        <rdar://problem/27108773>
+
+        Reviewed by Benjamin Poulain.
+
+        Our strict mode detection algorithm used to break if we ever saw a directive
+        that is not "use strict" but is syntactically located in a location where our
+        parser looks for "use strict". It broke as follows:
+
+        If a function started with a non "use strict" string literal, we will allow
+        "use strict" to be in any arbitrary statement inside the top level block in
+        the function body. For example, this meant that if we parsed a sequence of string
+        literals, followed by arbitrary statements, followed by "use strict", we would parse
+        the function as if it's in strict mode. This is the wrong behavior with respect to
+        the spec. This has consequences in other ways that break invariants of the language.
+        For example, we used to allow functions that are lexically nested inside what we deemed
+        a strict function to be non-strict. This used to fire an assertion if we ever skipped over
+        that function using the source provider cache, but it worked just fine in release builds.
+
+        This patch fixes this bug.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseSourceElements):
+        (JSC::Parser<LexerType>::parseStatement):
+        * tests/stress/ensure-proper-strict-mode-parsing.js: Added.
+        (foo.bar):
+        (foo):
+        (bar.foo):
+        (bar):
+        (bar.call.undefined.this.throw.new.Error.string_appeared_here.baz):
+        (baz.call.undefined.undefined.throw.new.Error.string_appeared_here.jaz):
+        (jaz.call.undefined.this.throw.new.Error.string_appeared_here.vaz):
+
+2016-07-05  Saam Barati  <sbarati@apple.com>
+
+        reportAbandonedObjectGraph should report abandoned bytes based on capacity() so it works even if a GC has never happened
+        https://bugs.webkit.org/show_bug.cgi?id=159222
+        <rdar://problem/27001991>
+
+        Reviewed by Geoffrey Garen.
+
+        When reportAbandonedObjectGraph() was called before the first GC, it used to
+        not indicate to the GC timers that we have memory that needs to be collected
+        because the calculation was based on m_sizeAfterLastCollect (which was zero).
+        This patch makes the calculation based on capacity() which is a valid number
+        even before the first GC.
+
+        * heap/Heap.cpp:
+        (JSC::Heap::reportAbandonedObjectGraph):
+        (JSC::Heap::protect):
+        (JSC::Heap::didAbandon): Deleted.
+        * heap/Heap.h:
+        (JSC::Heap::jitStubRoutines):
+
+2016-07-05  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Typo fix after r202214
+        https://bugs.webkit.org/show_bug.cgi?id=159416
+
+        Reviewed by Saam Barati.
+
+        * bytecode/InlineAccess.h:
+
 2016-07-03  Per Arne Vollan  <pvollan@apple.com>
 
         [Win] DLLs are missing version information.

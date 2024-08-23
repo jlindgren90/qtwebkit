@@ -1,3 +1,927 @@
+2016-07-07  Philippe Normand  <pnormand@igalia.com>
+
+        [GStreamer][GL] switch to appsink
+        https://bugs.webkit.org/show_bug.cgi?id=159466
+
+        Reviewed by Carlos Garcia Campos.
+
+        Fakesink is mostly used for tests. Appsink provides the same
+        functionality and is actually meant to be used on application
+        side.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::~MediaPlayerPrivateGStreamerBase):
+        (WebCore::newSampleCallback):
+        (WebCore::newPrerollCallback):
+        (WebCore::MediaPlayerPrivateGStreamerBase::createVideoSinkGL):
+        (WebCore::MediaPlayerPrivateGStreamerBase::drawCallback): Deleted.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h:
+
+2016-07-06  Chris Dumez  <cdumez@apple.com>
+
+        Document.title setter does not work for SVG documents
+        https://bugs.webkit.org/show_bug.cgi?id=159503
+        <rdar://problem/27212313>
+
+        Reviewed by Ryosuke Niwa.
+
+        Document.title setter should work for SVG documents:
+        - https://html.spec.whatwg.org/multipage/dom.html#document.title
+
+        This patch aligns our behavior with the specification
+        and with Firefox / Chrome.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Document.cpp:
+        (WebCore::Document::setTitle):
+        - Reverse the if conditions for clarity.
+        - If the document element is an SVG svg element, create a
+          SVGTitleElement and insert it as first child of the
+          document element.
+        - Call SVGTitleElement::setText() instead of
+          HTMLTitleElement::setText() at the end of the method if
+          m_titleElement is a SVGTitleElement.
+
+        (WebCore::Document::updateTitleElement):
+        - If document element is an SVG svg element, use the first
+          child of the document element that is a SVGTitleElement.
+
+        * svg/SVGTitleElement.cpp:
+        (WebCore::SVGTitleElement::setText):
+        * svg/SVGTitleElement.h:
+        Add SVGTitleElement::setText() method that does the same
+        thing as HTMLTitleElement::setText().
+
+2016-07-06  Chris Dumez  <cdumez@apple.com>
+
+        Align Document.body setter with the HTML specification
+        https://bugs.webkit.org/show_bug.cgi?id=159490
+
+        Reviewed by Alex Christensen.
+
+        Align Document.body setter with the HTML specification:
+        - https://html.spec.whatwg.org/multipage/dom.html#dom-document-body
+
+        In particular, the following web-exposed changes were made:
+        - It is now possible to set document.body to a frameset element.
+        - We no longer call importNode() on the passed in body. Therefore,
+          if the body comes from another document, its will be adopted /
+          transferred rather than cloned.
+
+        Both changes match the behavior of Firefox and Chrome.
+
+        No new tests, updated / rebaselined existing tests.
+
+        * dom/Document.cpp:
+        (WebCore::Document::setBodyOrFrameset):
+
+2016-07-06  Brady Eidson  <beidson@apple.com>
+
+        Fix my bogus json I landed earlier today.
+
+        * features.json:
+
+2016-07-06  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Unify how we throw TypeError from C++
+        https://bugs.webkit.org/show_bug.cgi?id=159500
+
+        Reviewed by Saam Barati.
+
+        * bindings/js/JSBiquadFilterNodeCustom.cpp:
+        (WebCore::JSBiquadFilterNode::setType):
+        * bindings/js/JSBlobCustom.cpp:
+        (WebCore::constructJSBlob):
+        * bindings/js/JSCryptoKeySerializationJWK.cpp:
+        (WebCore::getBigIntegerVectorFromJSON):
+        (WebCore::JSCryptoKeySerializationJWK::JSCryptoKeySerializationJWK):
+        (WebCore::tryJWKKeyOpsValue):
+        (WebCore::JSCryptoKeySerializationJWK::reconcileUsages):
+        (WebCore::JSCryptoKeySerializationJWK::keyDataOctetSequence):
+        (WebCore::JSCryptoKeySerializationJWK::keyDataRSAComponents):
+        (WebCore::JSCryptoKeySerializationJWK::keyData):
+        (WebCore::addJWKAlgorithmToJSON):
+        (WebCore::JSCryptoKeySerializationJWK::serialize):
+        * bindings/js/JSCryptoOperationData.cpp:
+        (WebCore::cryptoOperationDataFromJSValue):
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::enforceRange):
+        (WebCore::throwTypeError):
+        (WebCore::throwArgumentMustBeEnumError):
+        (WebCore::throwArgumentMustBeFunctionError):
+        (WebCore::throwArgumentTypeError):
+        (WebCore::throwArrayElementTypeError):
+        (WebCore::throwGetterTypeError):
+        (WebCore::throwThisTypeError):
+        * bindings/js/JSDataCueCustom.cpp:
+        (WebCore::constructJSDataCue):
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::defineElement):
+        * bindings/js/JSFileCustom.cpp:
+        (WebCore::constructJSFile):
+        * bindings/js/JSModuleLoader.cpp:
+        (WebCore::JSModuleLoader::evaluate):
+        * bindings/js/JSMutationObserverCustom.cpp:
+        (WebCore::constructJSMutationObserver):
+        * bindings/js/JSOscillatorNodeCustom.cpp:
+        (WebCore::JSOscillatorNode::setType):
+        * bindings/js/JSPannerNodeCustom.cpp:
+        (WebCore::JSPannerNode::setPanningModel):
+        (WebCore::JSPannerNode::setDistanceModel):
+        * bindings/js/JSReadableStreamPrivateConstructors.cpp:
+        (WebCore::constructJSReadableStreamController):
+        (WebCore::constructJSReadableStreamReader):
+        * bindings/js/JSSubtleCryptoCustom.cpp:
+        (WebCore::cryptoKeyFormatFromJSValue):
+        (WebCore::importKey):
+        (WebCore::exportKey):
+        * bindings/js/ReadableStreamController.cpp:
+        (WebCore::ReadableStreamController::invoke):
+        * bindings/js/SerializedScriptValue.cpp:
+        (WebCore::CloneDeserializer::throwValidationError):
+        (WebCore::SerializedScriptValue::maybeThrowExceptionIfSerializationFailed):
+        * bridge/c/c_instance.cpp:
+        (JSC::Bindings::CInstance::invokeMethod):
+        * bridge/objc/objc_instance.mm:
+        (ObjcInstance::invokeMethod):
+        * bridge/objc/objc_runtime.mm:
+        (JSC::Bindings::ObjcArray::setValueAt):
+
+2016-07-06  Tim Horton  <timothy_horton@apple.com>
+
+        Email from June 1st containing text 'Today @ 7:10PM' is linkified, but shouldn't be
+        https://bugs.webkit.org/show_bug.cgi?id=159498
+        <rdar://problem/26719903>
+
+        Reviewed by Sam Weinig.
+
+        New API test: WebKit2.DataDetectionReferenceDate
+
+        * editing/cocoa/DataDetection.h:
+        * editing/cocoa/DataDetection.mm:
+        (WebCore::DataDetection::detectContentInRange):
+        Extract the reference date from the DataDetectors context dictionary if it exists,
+        and pass it along to DataDetectors.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::checkLoadCompleteForThisFrame):
+        * loader/FrameLoaderClient.h:
+        Plumb the DataDetectors context dictionary through from WebPage.
+
+2016-07-06  Chris Dumez  <cdumez@apple.com>
+
+        [WK2][Cocoa] Disable ResourceResponse lazy initialization
+        https://bugs.webkit.org/show_bug.cgi?id=159497
+        <rdar://problem/27209066>
+
+        Reviewed by Alex Christensen.
+
+        Add method to Cocoa's ResponseResponse header to disable
+        lazy initialization.
+
+        * platform/network/cf/ResourceResponse.h:
+        * platform/network/cocoa/ResourceResponseCocoa.mm:
+        (WebCore::ResourceResponse::disableLazyInitialization):
+
+2016-07-06  Brent Fulgham  <bfulgham@apple.com>
+
+        Return values of JSArray::createUninitialized (and related) are not consistently checked for nullptr
+        https://bugs.webkit.org/show_bug.cgi?id=159495
+        <rdar://problem/26075433>
+
+        Reviewed by Dean Jackson.
+
+        Test: fast/canvas/canvas-getImageData-invalid-result-buffer-crash.html
+
+        * html/ImageData.cpp:
+        (WebCore::ImageData::ImageData): Assert at construction if we could not create a valid
+        buffer.
+        * platform/SharedBuffer.cpp:
+        (WebCore::SharedBuffer::createArrayBuffer): Check for a null buffer before using it.
+        * platform/graphics/cg/ImageBufferDataCG.cpp:
+        (WebCore::ImageBufferData::getData): Ditto.
+        * platform/graphics/filters/FEGaussianBlur.cpp:
+        (WebCore::FEGaussianBlur::platformApplySoftware): Ditto.
+        * platform/graphics/filters/FilterEffect.cpp:
+        (WebCore::FilterEffect::copyImageBytes): Ditto.
+        (WebCore::FilterEffect::copyUnmultipliedImage): Ditto.
+        (WebCore::FilterEffect::copyPremultipliedImage): Ditto.
+
+2016-07-06  Chris Dumez  <cdumez@apple.com>
+
+        Document.body should return the first child of the html element that is either a body / frameset element
+        https://bugs.webkit.org/show_bug.cgi?id=159488
+
+        Reviewed by Ryosuke Niwa.
+
+        Document.body should return the first child of the html element that is
+        either a body / frameset element:
+        - https://html.spec.whatwg.org/multipage/dom.html#dom-document-body
+        - https://html.spec.whatwg.org/multipage/dom.html#the-body-element-2
+
+        We used the first child of the *document* element that is either a
+        body / frameset element, even if the document element is not an html
+        element.
+
+        Firefox and Chrome match the specification.
+
+        Test: imported/w3c/web-platform-tests/html/dom/documents/dom-tree-accessors/Document.body.html
+
+        * dom/Document.cpp:
+        (WebCore::Document::bodyOrFrameset):
+
+2016-07-06  Dean Jackson  <dino@apple.com>
+
+        Adopt new PiP glyph
+        https://bugs.webkit.org/show_bug.cgi?id=159494
+        <rdar://problem/27061084>
+
+        Reviewed by Ada Chan.
+
+        We got new artwork for Picture-in-Picture on macOS from
+        our designers.
+
+        * Modules/mediacontrols/mediaControlsApple.css:
+        (video::-webkit-media-controls-panel .picture-in-picture-button):
+        (video::-webkit-media-controls-panel .picture-in-picture-button.return-from-picture-in-picture):
+
+2016-07-06  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202867.
+        https://bugs.webkit.org/show_bug.cgi?id=159491
+
+        This change caused an existing LayoutTest to crash on ios-
+        simulator (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "<img> with a wide gamut PDF does not display using a wide
+        gamut color space"
+        https://bugs.webkit.org/show_bug.cgi?id=158983
+        http://trac.webkit.org/changeset/202867
+
+2016-07-06  Chris Dumez  <cdumez@apple.com>
+
+        [ShadowDOM] assignedSlot property should be on Text, not CharacterData
+        https://bugs.webkit.org/show_bug.cgi?id=159482
+        <rdar://problem/27201687>
+
+        Reviewed by Ryosuke Niwa.
+
+        assignedSlot property should be on Text, not CharacterData as per:
+        - https://dom.spec.whatwg.org/#mixin-slotable
+
+        Align with the latest specification.
+
+        No new tests, rebaselined existing test.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/Element.idl:
+        * dom/NonDocumentTypeChildNode.idl:
+        * dom/Slotable.idl: Copied from Source/WebCore/dom/NonDocumentTypeChildNode.idl.
+        * dom/Text.idl:
+
+2016-07-06  Jeremy Jones  <jeremyj@apple.com>
+
+        Do not animate video fullscreen exit when page has navigated away.
+        https://bugs.webkit.org/show_bug.cgi?id=159479
+
+        Reviewed by Eric Carlson.
+
+        No new tests there is no effect on the DOM. The only effect is to video fullscreen window animation.
+
+        When the page has been navigated away, the fullscreen or picture-in-picture window should
+        not animate back inline in the page, since the page has already navigated to a new page.
+        Instead exit the fullscreen mode without animating.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::exitFullscreen):
+
+2016-07-06  Jeremy Jones  <jeremyj@apple.com>
+
+        Signal that media element is prepared for inline when being stopped since script won't be able to.
+        https://bugs.webkit.org/show_bug.cgi?id=159163
+        rdar://problem/26844557
+
+        Reviewed by Jer Noble.
+
+        No new tests since this don't change behavior in the DOM. It prevents a race that could cause 
+        fullscreen and picture in picture to fail to tear down completely.
+  
+        When an element exits a fullscreen mode and is immediately removed from the DOM by the page, 
+        its JavaScript stops running. The fullscreen code is then blocked waiting for JS to signal 
+        that it has updated its state in preparation for inline mode. This change explicitly signals
+        this since JS wont be able to.
+
+        Additionally, when going from PiP back to inline, don't go through fullscreen first, when the 
+        request comes from the DOM. This was causing the presentation mode to become confused. The
+        page requests inline. PiP would exit back to fullscreen and set the presentation mode to
+        fullscreen. Then it would exit fullscreen back to inline, but the DOM still had the wrong
+        presentation mode. Skipping this removes an unnecessary step in the animation and keeps the
+        presentation mode state consistent.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::stopWithoutDestroyingMediaPlayer):
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm: Set prepared for inline.
+        (WebVideoFullscreenInterfaceAVKit::exitFullscreen): Return directly to inlne.
+
+2016-07-06  Chris Dumez  <cdumez@apple.com>
+
+        Add support for Node.isConnected
+        https://bugs.webkit.org/show_bug.cgi?id=159474
+        <rdar://problem/27197947>
+
+        Reviewed by Ryosuke Niwa.
+
+        Add support for Node.isConnected as per:
+        - https://dom.spec.whatwg.org/#dom-node-isconnected
+
+        Chrome already supports this.
+
+        Test: imported/w3c/web-platform-tests/dom/nodes/Node-isConnected.html
+
+        * dom/Node.idl:
+
+2016-07-06  Brady Eidson  <beidson@apple.com>
+
+        Update IndexedDB's status on the feature page (How had we not done this already?)
+
+        Rubberstamped by Sam Weinig.
+
+        * features.json:
+
+2016-07-06  Antoine Quint  <graouts@apple.com>
+
+        <img> with a wide gamut PDF does not display using a wide gamut color space
+        https://bugs.webkit.org/show_bug.cgi?id=158983
+        <rdar://problem/25720247>
+
+        Reviewed by Tim Horton.
+
+        Calls to ImageBuffer::createCompatibleBuffer() that do not provide an explicit
+        color space will now infer the color space from the provided graphics context
+        on platforms using CG. The method signature that takes in a GraphicsContext
+        without a color space is now split into a CG-specified implementation and a
+        Cairo one to avoid having diverging platform code in ImageBuffer.cpp.
+
+        Some call sites need to provide an explicit color space still, so we add a new
+        ImageBuffer::createCompatibleBuffer() that allows for that while inferring
+        sizing and scaling from a GraphicsContext.
+        
+        All signatures of ImageBuffer::createCompatibleBuffer() are losing the
+        hasAlpha parameter which was always ignored. All call sites that were using
+        hasAlpha have been updated.
+
+        In addition, we make all the IOSurface and IOSurfacePool code, which is
+        CG-specific, use the plaform-specific type CGColorSpaceRef instead of ColorSpace
+        so that we may pick up on the color space copied over from the graphics context
+        in the CG-specific implementation of ImageBuffer::createCompatibleBuffer().
+
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::drawTextInternal):
+        * platform/graphics/GradientImage.cpp:
+        (WebCore::GradientImage::drawPattern):
+        * platform/graphics/ImageBuffer.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer):
+        * platform/graphics/ImageBuffer.h:
+        * platform/graphics/NamedImageGeneratedImage.cpp:
+        (WebCore::NamedImageGeneratedImage::drawPattern):
+        * platform/graphics/cairo/ImageBufferCairo.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer):
+        * platform/graphics/cg/IOSurfacePool.cpp:
+        (WebCore::surfaceMatchesParameters):
+        (WebCore::IOSurfacePool::takeSurface):
+        * platform/graphics/cg/IOSurfacePool.h:
+        * platform/graphics/cg/ImageBufferCG.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer):
+        (WebCore::ImageBuffer::ImageBuffer):
+        * platform/graphics/cocoa/IOSurface.h:
+        * platform/graphics/cocoa/IOSurface.mm:
+        (WebCore::IOSurface::surfaceFromPool):
+        (WebCore::IOSurface::create):
+        (WebCore::IOSurface::createFromSendRight):
+        (WebCore::IOSurface::createFromSurface):
+        (WebCore::IOSurface::createFromImage):
+        (WebCore::IOSurface::IOSurface):
+        (WebCore::IOSurface::ensurePlatformContext):
+        * platform/mac/ThemeMac.mm:
+        (WebCore::ThemeMac::drawCellOrFocusRingWithViewIntoContext):
+        * platform/spi/cg/CoreGraphicsSPI.h:
+        * rendering/RenderBoxModelObject.cpp:
+        (WebCore::RenderBoxModelObject::paintFillLayerExtended):
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::paintProgressBar):
+        * rendering/svg/SVGRenderingContext.cpp:
+        (WebCore::SVGRenderingContext::bufferForeground):
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::drawPatternForContainer):
+
+2016-07-06  Tim Horton  <timothy_horton@apple.com>
+
+        Long spin editing text at top of message containing Reader version of web page with many GIFs
+        https://bugs.webkit.org/show_bug.cgi?id=159444
+        <rdar://problem/26790386>
+
+        Reviewed by Sam Weinig.
+
+        * editing/cocoa/HTMLConverter.mm:
+        (fileWrapperForElement):
+        Instead of looking up the image's data in the cache by URL, just use the
+        CachedImage on the HTMLImageElement. There are situations (which seem to involve
+        cloning the DOM then having the cloned DOM get garbage collected) where the image
+        can be removed from the cache, but still be live in the document.
+
+2016-07-06  Brady Eidson  <beidson@apple.com>
+
+        Hold RefPtr<>'s to UniqueIDBDatabases while performing user delete.
+        https://bugs.webkit.org/show_bug.cgi?id=159471
+
+        Reviewed by Brent Fulgham.
+
+        * Modules/indexeddb/server/IDBServer.cpp:
+        (WebCore::IDBServer::IDBServer::closeAndDeleteDatabasesModifiedSince):
+        (WebCore::IDBServer::IDBServer::closeAndDeleteDatabasesForOrigins):
+
+2016-07-06  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202725.
+        https://bugs.webkit.org/show_bug.cgi?id=159473
+
+        didn't reduce coreui memory usage (Requested by kling on
+        #webkit).
+
+        Reverted changeset:
+
+        "[Mac] Get rid of the old timey rubber-banding linen pattern."
+        https://bugs.webkit.org/show_bug.cgi?id=159329
+        http://trac.webkit.org/changeset/202725
+
+2016-07-06  Philippe Normand  <pnormand@igalia.com>
+
+        [GStreamer] duration query improvements
+        https://bugs.webkit.org/show_bug.cgi?id=159458
+
+        Reviewed by Carlos Garcia Campos.
+
+        Currently the player caches the result of the duration query but
+        this is overkill because it's cached by playbin already. The only
+        time where the player needs to cache the duration is when EOS was
+        reached because in that situation the query would fail.
+
+        No new tests, existing media tests cover this patch.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp:
+        (WebCore::MediaPlayerPrivateGStreamer::MediaPlayerPrivateGStreamer): Member variables update.
+        (WebCore::MediaPlayerPrivateGStreamer::load): Stop the fill timer
+        before loading a new URL, the same player can be used for
+        different assets.
+        (WebCore::MediaPlayerPrivateGStreamer::playbackPosition): Perform
+        a duration query, the duration value is no longer locally cached.
+        (WebCore::MediaPlayerPrivateGStreamer::duration): Return cached value only after EOS was reached.
+        (WebCore::MediaPlayerPrivateGStreamer::fillTimerFired): Perform
+        a duration query, the duration value is no longer locally cached.
+        (WebCore::MediaPlayerPrivateGStreamer::maxTimeSeekable): Ditto.
+        (WebCore::MediaPlayerPrivateGStreamer::maxTimeLoaded): Ditto.
+        (WebCore::MediaPlayerPrivateGStreamer::didLoadingProgress): Ditto.
+        (WebCore::MediaPlayerPrivateGStreamer::updateStates): Remove duration caching support.
+        (WebCore::MediaPlayerPrivateGStreamer::didEnd): Ditto.
+        (WebCore::MediaPlayerPrivateGStreamer::durationChanged): Ditto.
+        (WebCore::MediaPlayerPrivateGStreamer::cacheDuration): Deleted.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.h:
+
+2016-07-06  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Height percentages are not properly resolved for item's children
+        https://bugs.webkit.org/show_bug.cgi?id=159258
+
+        Reviewed by Sergio Villar Senin.
+
+        When grid items are vertically stretched (default behavior)
+        they store their height on RenderBox::overrideLogicalContentHeight().
+        In order to resolve the percentage height on the grid item's children
+        we need to use that size.
+
+        Test: fast/css-grid-layout/percent-resolution-grid-item-children.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::computePercentageLogicalHeight):
+
+2016-07-06  Zan Dobersek  <zdobersek@igalia.com>
+
+        [GTK] Better guard TextureMapper header and CMake includes
+        https://bugs.webkit.org/show_bug.cgi?id=159415
+
+        Reviewed by Carlos Garcia Campos.
+
+        * PlatformGTK.cmake: Only include TextureMapper.cmake if USE_TEXTURE_MAPPER is enabled.
+        * platform/graphics/GraphicsContext3DPrivate.h: Guard texmap header inclusions with USE(TEXTURE_MAPPER).
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h: Ditto, but wrap it around
+        the existing USE(TEXTURE_MAPPER_GL) block.
+
+2016-07-05  Olivier Blin  <olivier.blin@softathome.com>
+
+        [GStreamer] Do not build MediaPlayerPrivateGStreamerOwr when VIDEO is disabled
+        https://bugs.webkit.org/show_bug.cgi?id=159425
+
+        Reviewed by Philippe Normand.
+
+        MediaPlayer backends are useful and can be built only when VIDEO is enabled.
+
+        No new tests, behavior is unchanged.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerOwr.cpp:
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerOwr.h:
+
+2016-07-05  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Layout Test http/tests/security/contentSecurityPolicy/source-list-parsing-10.html is failing
+        https://bugs.webkit.org/show_bug.cgi?id=147646
+
+        Reviewed by Brent Fulgham.
+
+        Fix build error when CSP_NEXT is disabled.
+
+        * DerivedSources.cpp:
+
+2016-07-05  David Kilzer  <ddkilzer@apple.com>
+
+        Throw exceptions for invalid number of channels for ConvolverNode
+        <https://webkit.org/b/159238>
+
+        Reviewed by Brent Fulgham.
+
+        Fix based on a Blink change (patch by <rtoy@chromium.org>):
+        <https://chromium.googlesource.com/chromium/src.git/+/0cc26bbb7175aec77910d0b47faf9f8c8a640fe5>
+
+        Also includes a related fix for ReverbConvolverStage (patch by <rtoy@chromium.org>):
+        <https://src.chromium.org/viewvc/blink?revision=157832&view=revision>
+
+        Test: webaudio/convolver-channels.html
+
+        * Modules/webaudio/ConvolverNode.cpp:
+        (WebCore::ConvolverNode::setBuffer): Throw an exception for
+        anything but 1, 2 or 4 channels.
+        * platform/audio/ReverbConvolverStage.cpp:
+        (WebCore::ReverbConvolverStage::ReverbConvolverStage): Don't read past the end of
+        the impulseResponse array.
+
+2016-07-05  Johan K. Jensen  <jj@johanjensen.dk>
+
+        Web Inspector: Sending XHR with UTF8 encoded data shows garbled data in Resource sidebar
+        https://bugs.webkit.org/show_bug.cgi?id=159358
+
+        Reviewed by Joseph Pecoraro.
+
+        Test: http/tests/inspector/network/xhr-request-data-encoded-correctly.html
+
+        * inspector/InspectorNetworkAgent.cpp:
+        (WebCore::buildObjectForResourceRequest):
+        * inspector/NetworkResourcesData.cpp:
+        (WebCore::NetworkResourcesData::setResourceContent):
+
+2016-07-05  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: Image attachment in email does not show up in AX tree
+        https://bugs.webkit.org/show_bug.cgi?id=159422
+
+        Reviewed by Joanmarie Diggs.
+
+        When an image loads after the accessibility tree has already been created, the ignored status
+        of that image does not get updated.
+
+        Test: accessibility/image-load-on-delay.html
+
+        * rendering/RenderImage.cpp:
+        (WebCore::RenderImage::imageChanged):
+
+2016-07-05  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build.
+        https://bugs.webkit.org/show_bug.cgi?id=159103
+
+        * Modules/indexeddb/IDBActiveDOMObject.h:
+        (WebCore::IDBActiveDOMObject::callFunctionOnOriginThread):
+        WTF.
+
+2016-07-05  Enrica Casucci  <enrica@apple.com>
+
+        HTMLAttachment elements don't receive clicks after the first on iOS.
+        https://bugs.webkit.org/show_bug.cgi?id=159310
+        rdar://problem/25776940
+
+        Reviewed by Tim Horton.
+
+        shouldSelectOnMouseDown() now returns false on iOS.
+
+        * html/HTMLAttachmentElement.h:
+
+2016-07-05  Brady Eidson  <beidson@apple.com>
+
+        IDBDatabase can null deref its ScriptExecutionContext inside connectionToServerLost.
+        <rdar://problem/27169924> and https://bugs.webkit.org/show_bug.cgi?id=159432
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Targeted test not possible, covered peripherally by all IDB tests).
+
+        * Modules/indexeddb/IDBActiveDOMObject.h:
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::connectionToServerLost): Make sure there is still a script execution context.
+
+2016-07-01  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION (r202641): Netflix playback stalls after a few seconds
+        https://bugs.webkit.org/show_bug.cgi?id=159365
+
+        Reviewed by Eric Carlson.
+
+        Test: LayoutTests/media/media-source/media-source-small-gap.html
+
+        In r202641, we removed a "fudge factor" of 1 millisecond added onto the duration
+        of every sample for the purposes of calculating a SourceBuffer's buffered ranges.
+        Netflix (and likely other providers) have streams that have 1 "timeScale" gaps
+        between segments (e.g., 1/9000s, 1/3003s, etc.). Fill those gaps by looking for
+        the previous and next samples and extending the buffered range to cover the gaps
+        if they're short enough. We have to ensure that we correctly remove those extended
+        durations when we remove samples from the SourceBuffer as well.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::removeSamplesFromTrackBuffer):
+        (WebCore::SourceBuffer::removeCodedFrames):
+        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
+
+2016-07-05  Brady Eidson  <beidson@apple.com>
+
+        Database process crashes deleting a corrupt SQLite database file (null deref).
+        https://bugs.webkit.org/show_bug.cgi?id=155506.
+
+        Reviewed by Alex Christensen.
+
+        Covered by new API test.
+
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::SQLiteIDBBackingStore::deleteBackingStore): Null check.
+
+2016-07-05  Brady Eidson  <beidson@apple.com>
+
+        TransactionOperations can get destroyed on the wrong thread.
+        https://bugs.webkit.org/show_bug.cgi?id=159103
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Very racy, not feasible to write a dedicated test for, caught on bots occasionally as-is).
+
+        * Modules/indexeddb/IDBActiveDOMObject.h:
+        (WebCore::IDBActiveDOMObject::callFunctionOnOriginThread):
+        
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::completeOperation): Pass the last ref to the operation to its
+          origin thread to be deleted there.
+        
+        * Modules/indexeddb/client/TransactionOperation.h:
+        (WebCore::IDBClient::TransactionOperation::performCompleteOnOriginThread):
+
+2016-07-05  Youenn Fablet  <youenn@apple.com>
+
+        Remove CredentialRequest ResourceLoaderOptions
+        https://bugs.webkit.org/show_bug.cgi?id=159404
+
+        Reviewed by Sam Weinig.
+
+        No observable change of behavior.
+        Removing CredentialRequest from ResourceLoaderOptions and replacing it by FetchOptions::Credentials.
+        As per https://fetch.spec.whatwg.org/#http-fetch, credentials flag is set according FetchOptions::Credentials.
+
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::startLoadingMainResource): Set credentials mode to Include.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::redirectReceived): Disable credentials if credentials mode is SameOrigin
+        (request being cross origin).
+        * loader/MediaResourceLoader.cpp: Refqctoring to use CachedResourceReauest::setAsPotentiallyCrossOrigin.
+        Removed unnecessary ResourceRequest copy by using the mutable request of CachedResourceRequest.
+        (WebCore::MediaResourceLoader::requestResource):
+        * loader/NetscapePlugInStreamLoader.cpp:
+        (WebCore::NetscapePlugInStreamLoader::NetscapePlugInStreamLoader): Set credential mode  to Include
+        * loader/ResourceLoaderOptions.h: Removing CredentialRequest option.
+        (WebCore::ResourceLoaderOptions::ResourceLoaderOptions):
+        (WebCore::ResourceLoaderOptions::credentialRequest): Deleted.
+        (WebCore::ResourceLoaderOptions::setCredentialRequest): Deleted.
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::requestUserCSSStyleSheet): Set credential mode to Include.
+        (WebCore::CachedResourceLoader::defaultCachedResourceOptions): Ditto.
+        * loader/cache/CachedResourceRequest.cpp:
+        (WebCore::CachedResourceRequest::setAsPotentiallyCrossOrigin): Set credential mode according crossorigin
+        atribute value.
+        * loader/icon/IconLoader.cpp:
+        (WebCore::IconLoader::startLoading): Set credential mode to Omit.
+        * page/EventSource.cpp:
+        (WebCore::EventSource::connect): Set credential mode according crossorigin atribute value.
+        * platform/graphics/avfoundation/cf/WebCoreAVCFResourceLoader.cpp:
+        (WebCore::WebCoreAVCFResourceLoader::startLoading): Set credential mode to Omit.
+        * platform/graphics/avfoundation/objc/WebCoreAVFResourceLoader.mm:
+        (WebCore::WebCoreAVFResourceLoader::startLoading): Ditto.
+        * platform/network/ResourceHandleTypes.h: Removed definition of CredentialRequest.
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::createRequest): Set credential mode according crossorigin atribute value.
+
+2016-07-04  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [GTK] Null Node dereference in FrameSelection::notifyAccessibilityForSelectionChange of FrameSelectionAtk.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=159411
+
+        Reviewed by Carlos Garcia Campos.
+
+        Tests:
+            editing/selection/selection-in-iframe-removed-crash.html
+
+        * editing/atk/FrameSelectionAtk.cpp:
+        (WebCore::FrameSelection::notifyAccessibilityForSelectionChange):
+        Added a null check for the return value of containerNode().
+
+2016-07-04  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Remove mac configuration dependency in WebKit Version definition
+        https://bugs.webkit.org/show_bug.cgi?id=159407
+
+        Reviewed by Yusuke Suzuki.
+
+        EFL port has been used Version.xconfig file in WebKit/mac/Configurations
+        in order to generate WebKitVersion.h file. But it can be simply defined
+        in cmake.
+
+        * PlatformEfl.cmake: Remove WebKitVersion.h generation.
+        * platform/efl/UserAgentEfl.cpp:
+        (WebCore::versionForUAString): Use USER_AGENT_EFL_MAJOR_VERSION and USER_AGENT_EFL_MINOR_VERSION.
+
+2016-07-04  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Modernize and cleanup CompositingCoordinator
+        https://bugs.webkit.org/show_bug.cgi?id=159212
+
+        Reviewed by Žan Doberšek.
+
+        Use references instead of pointers when possible.
+
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp:
+        (WebCore::CoordinatedGraphicsLayer::paintToSurface):
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.h:
+        * platform/graphics/texmap/coordinated/CoordinatedImageBacking.cpp:
+        (WebCore::CoordinatedImageBacking::update):
+        * platform/graphics/texmap/coordinated/CoordinatedImageBacking.h:
+        * platform/graphics/texmap/coordinated/CoordinatedSurface.h:
+        * platform/graphics/texmap/coordinated/Tile.cpp:
+        (WebCore::Tile::updateBackBuffer):
+        * platform/graphics/texmap/coordinated/TiledBackingStoreClient.h:
+
+2016-07-04  Youenn Fablet  <youenn@apple.com>
+
+        Remove RequestOriginPolicy from ResourceLoaderOptions
+        https://bugs.webkit.org/show_bug.cgi?id=159406
+
+        Reviewed by Sam Weinig.
+
+        Using FetchOptions::mode in lieu of ResourceLoaderOptions::RequestOriginPolicy.
+        The cors, no-cors and same-origin values match PotentiallyCrossOriginEnabled,
+        UseDefaultOriginRestrictionsForType and RestrictToSameOrigin, default being
+        cors/UseDefaultOriginRestrictionsForType as per fetch specification.
+
+        No change of behavior.
+
+        * css/CSSImageSetValue.cpp:
+        (WebCore::CSSImageSetValue::cachedImageSet):
+        * css/CSSImageValue.cpp:
+        (WebCore::CSSImageValue::cachedImage):
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::startLoadingMainResource):
+        * loader/MediaResourceLoader.cpp:
+        (WebCore::MediaResourceLoader::requestResource):
+        * loader/NetscapePlugInStreamLoader.cpp:
+        (WebCore::NetscapePlugInStreamLoader::NetscapePlugInStreamLoader):
+        * loader/ResourceLoaderOptions.h:
+        (WebCore::ResourceLoaderOptions::ResourceLoaderOptions):
+        (WebCore::ResourceLoaderOptions::requestOriginPolicy): Deleted.
+        (WebCore::ResourceLoaderOptions::setRequestOriginPolicy): Deleted.
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::init):
+        (WebCore::SubresourceLoader::willSendRequestInternal):
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::requestUserCSSStyleSheet):
+        (WebCore::CachedResourceLoader::canRequest):
+        (WebCore::CachedResourceLoader::defaultCachedResourceOptions):
+        * loader/cache/CachedResourceRequest.cpp:
+        (WebCore::CachedResourceRequest::setAsPotentiallyCrossOrigin):
+        * loader/icon/IconLoader.cpp:
+        (WebCore::IconLoader::startLoading):
+        * platform/graphics/avfoundation/cf/WebCoreAVCFResourceLoader.cpp:
+        (WebCore::WebCoreAVCFResourceLoader::startLoading):
+        * platform/graphics/avfoundation/objc/WebCoreAVFResourceLoader.mm:
+        (WebCore::WebCoreAVFResourceLoader::startLoading):
+        * style/StylePendingResources.cpp:
+        (WebCore::Style::loadPendingImage):
+
+2016-07-04  Youenn Fablet  <youenn@apple.com>
+
+        Shield WebRTC JS built-ins from user scripts
+        https://bugs.webkit.org/show_bug.cgi?id=155964
+
+        Reviewed by Sam Weinig.
+
+        Making use of Promise.prototype.@then instead of Promise.prototype.then.
+        Covered by updated tests.
+
+        * Modules/mediastream/RTCPeerConnection.js:
+        (createOffer):
+        (createAnswer):
+        (setLocalDescription):
+        (setRemoteDescription):
+        (addIceCandidate):
+        (getStats):
+        * Modules/mediastream/RTCPeerConnectionInternals.js:
+        (enqueueOperation):
+
+2016-07-04  Brady Eidson  <beidson@apple.com>
+
+        WebProcesses don't handle DatabaseProcess going away uncleanly..
+        https://bugs.webkit.org/show_bug.cgi?id=159371
+
+        Reviewed by Alex Christensen.
+
+        Covered by new API test.
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::didCloseFromServer):
+        (WebCore::IDBDatabase::connectionToServerLost):
+        * Modules/indexeddb/IDBDatabase.h:
+        
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::connectionToServerLost): Notify all IDBDatabase
+          connections, as well as all pending IDBOpenDBRequests, with the error about the
+          server connection dropping.
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+        
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::connectionToServerLost):
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+        
+        * Modules/indexeddb/shared/IDBError.h:
+
+2016-07-04  Philippe Normand  <pnormand@igalia.com>
+
+        Release build with logging enabled fails
+        https://bugs.webkit.org/show_bug.cgi?id=159403
+
+        Reviewed by Žan Doberšek.
+
+        Protect logging-related methods with !LOG_DISABLED.
+
+        * Modules/indexeddb/IDBDatabaseIdentifier.cpp:
+        * Modules/indexeddb/IDBDatabaseIdentifier.h:
+        * Modules/indexeddb/IDBKey.cpp:
+        * Modules/indexeddb/IDBKey.h:
+        * Modules/indexeddb/IDBKeyData.cpp:
+        * Modules/indexeddb/IDBKeyData.h:
+        * Modules/indexeddb/IDBKeyPath.cpp:
+        (WebCore::IDBKeyPath::IDBKeyPath):
+        * Modules/indexeddb/IDBKeyRangeData.cpp:
+        * Modules/indexeddb/IDBKeyRangeData.h:
+        * Modules/indexeddb/server/IndexValueEntry.cpp:
+        (WebCore::IDBServer::IndexValueEntry::Iterator::isValid):
+        * Modules/indexeddb/server/IndexValueStore.cpp:
+        * Modules/indexeddb/server/IndexValueStore.h:
+        * Modules/indexeddb/server/MemoryIDBBackingStore.cpp:
+        (WebCore::IDBServer::MemoryIDBBackingStore::clearObjectStore):
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::isVersionChangeInProgress):
+        * Modules/indexeddb/shared/IDBDatabaseInfo.cpp:
+        * Modules/indexeddb/shared/IDBDatabaseInfo.h:
+        * Modules/indexeddb/shared/IDBIndexInfo.cpp:
+        * Modules/indexeddb/shared/IDBIndexInfo.h:
+        * Modules/indexeddb/shared/IDBObjectStoreInfo.cpp:
+        * Modules/indexeddb/shared/IDBObjectStoreInfo.h:
+        * Modules/indexeddb/shared/IDBResourceIdentifier.cpp:
+        * Modules/indexeddb/shared/IDBResourceIdentifier.h:
+        * Modules/indexeddb/shared/IDBTransactionInfo.cpp:
+        * Modules/indexeddb/shared/IDBTransactionInfo.h:
+        * page/SecurityOriginData.cpp:
+        * page/SecurityOriginData.h:
+
+2016-07-04  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202556.
+        https://bugs.webkit.org/show_bug.cgi?id=159399
+
+        introduces deadlocks (Requested by philn on #webkit).
+
+        Reverted changeset:
+
+        "[GStreamer] improved duration query support in the HTTP
+        source element"
+        https://bugs.webkit.org/show_bug.cgi?id=159204
+        http://trac.webkit.org/changeset/202556
+
 2016-07-03  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [image-decoders] Make ImageDecoder::size() lazily decode the image if needed to return a valid size

@@ -5074,6 +5074,8 @@ void HTMLMediaElement::stopWithoutDestroyingMediaPlayer()
     if (m_videoFullscreenMode != VideoFullscreenModeNone)
         exitFullscreen();
 
+    setPreparedForInline(true);
+
     updatePlaybackControlsManager();
     m_inActiveDocument = false;
 
@@ -5446,6 +5448,11 @@ void HTMLMediaElement::exitFullscreen()
         if (m_mediaSession->requiresFullscreenForVideoPlayback(*this) && (!document().settings() || !document().settings()->allowsInlineMediaPlaybackAfterFullscreen()))
             pauseInternal();
 
+#if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
+        if (document().activeDOMObjectsAreSuspended() || document().activeDOMObjectsAreStopped())
+            document().page()->chrome().client().exitVideoFullscreenToModeWithoutAnimation(downcast<HTMLVideoElement>(*this), VideoFullscreenModeNone);
+        else
+#endif
         if (document().page()->chrome().client().supportsVideoFullscreen(oldVideoFullscreenMode)) {
             document().page()->chrome().client().exitVideoFullscreenForVideoElement(downcast<HTMLVideoElement>(*this));
             scheduleEvent(eventNames().webkitendfullscreenEvent);

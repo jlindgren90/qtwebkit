@@ -178,7 +178,6 @@ endif ()
 set(NetworkProcess_COMMON_SOURCES
     NetworkProcess/NetworkConnectionToWebProcess.cpp
     NetworkProcess/NetworkLoad.cpp
-    NetworkProcess/NetworkLoadParameters.cpp
     NetworkProcess/NetworkProcess.cpp
     NetworkProcess/NetworkProcessPlatformStrategies.cpp
     NetworkProcess/NetworkResourceLoader.cpp
@@ -243,6 +242,7 @@ set(WebKit2_SOURCES
     Shared/EditorState.cpp
     Shared/FontInfo.cpp
     Shared/LayerTreeContext.cpp
+    Shared/LoadParameters.cpp
     Shared/NavigationActionData.cpp
     Shared/PlatformPopupMenuData.cpp
     Shared/PrintInfo.cpp

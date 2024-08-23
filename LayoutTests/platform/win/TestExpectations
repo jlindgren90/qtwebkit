@@ -224,23 +224,13 @@ http/tests/misc/image-checks-for-accept.html [ Skip ]
 # TODO Need to add functionality to DumpRenderTree to handle enable/disable Spatial Navigation
 fast/spatial-navigation/ [ Skip ]
 
-# TODO mouseScrollBy() and continuousMouseScrollBy() are not yet implemented in the Windows EventSender API.
-webkit.org/b/36002 fast/events/remove-child-onscroll.html [ Skip ]
-webkit.org/b/36002 fast/events/platform-wheelevent-in-scrolling-div.html [ Skip ]
-webkit.org/b/36002 fast/events/platform-wheelevent-with-delta-zero-crash.html [ Skip ]
-webkit.org/b/36002 fast/events/continuous-platform-wheelevent-in-scrolling-div.html [ Skip ]
-webkit.org/b/36002 fast/events/scroll-in-scaled-page-with-overflow-hidden.html [ Skip ]
-webkit.org/b/36002 fast/events/wheelevent-direction-inverted-from-device.html [ Skip ]
-webkit.org/b/36002 fast/events/wheelevent-in-horizontal-scrollbar-in-rtl.html [ Skip ]
-webkit.org/b/36002 fast/events/wheelevent-in-text-node.html [ Skip ]
-webkit.org/b/36002 fast/events/wheelevent-in-vertical-scrollbar-in-rtl.html [ Skip ]
-webkit.org/b/36002 fast/forms/search/search-scroll-hidden-decoration-container-crash.html [ Skip ]
-webkit.org/b/36002 fast/repaint/overflow-auto-in-overflow-auto-scrolled.html [ Skip ]
-webkit.org/b/36002 fast/repaint/overflow-scroll-in-overflow-scroll-scrolled.html [ Skip ]
-webkit.org/b/36002 fast/repaint/table-overflow-auto-in-overflow-auto-scrolled.html [ Skip ]
-webkit.org/b/36002 fast/repaint/table-overflow-scroll-in-overflow-scroll-scrolled.html [ Skip ]
-webkit.org/b/36002 scrollbars/scrollevent-iframe-no-scrolling-wheel.html [ Skip ]
-webkit.org/b/36002 scrollbars/scroll-rtl-or-bt-layer.html [ Skip ]
+# TODO Investigate why these mouse scroll tests are failing.
+fast/events/platform-wheelevent-in-scrolling-div.html [ Failure ]
+fast/events/continuous-platform-wheelevent-in-scrolling-div.html [ Failure ]
+fast/events/scroll-in-scaled-page-with-overflow-hidden.html [ Failure ]
+fast/events/wheelevent-in-horizontal-scrollbar-in-rtl.html [ Failure ]
+fast/events/wheelevent-in-vertical-scrollbar-in-rtl.html [ Failure ]
+scrollbars/scroll-rtl-or-bt-layer.html [ Timeout ]
 
 # TODO Needs testRunner.enableAutoResizeMode()
 fast/autoresize/ [ Skip ]
@@ -1978,7 +1968,6 @@ webkit.org/b/117322 fast/css/text-indent-first-line-006.html [ ImageOnlyFailure 
 webkit.org/b/117322 fast/css/word-spacing-characters-complex-text.html [ ImageOnlyFailure ]
 fast/css/image-set-setting.html [ Failure ]
 fast/css/image-set-value-not-removed-crash.html [ Failure ]
-fast/css/fontloader-download-error.html [ Failure ]
 fast/css/input-search-padding.html [ Failure ]
 fast/css/getComputedStyle/getComputedStyle-outline-shorthand.html [ Pass Timeout ]
 webkit.org/b/136484 fast/css-generated-content/initial-letter-basic.html [ Failure ]
@@ -2182,7 +2171,6 @@ http/tests/security/contentSecurityPolicy/block-mixed-content-hides-warning.html
 http/tests/security/contentSecurityPolicy/object-src-url-allowed.html [ Failure ]
 http/tests/security/contentSecurityPolicy/object-src-url-blocked.html [ Failure ]
 http/tests/security/contentSecurityPolicy/script-src-star-cross-scheme.html [ Failure ]
-webkit.org/b/147646 http/tests/security/contentSecurityPolicy/source-list-parsing-10.html [ Failure ]
 
 # Crashes
 http/tests/misc/drag-not-loaded-image.html [ Skip ] # Crash

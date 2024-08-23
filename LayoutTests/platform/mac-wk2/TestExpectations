@@ -296,8 +296,6 @@ webkit.org/b/151729 [ Yosemite ] http/tests/xmlhttprequest/methods-async.html [ 
 
 webkit.org/b/152025 [ Debug ] inspector/console/messagesCleared.html [ Pass Timeout ]
 
-webkit.org/b/152492 [ Debug ] inspector/debugger/break-on-exception-catch.html [ Pass Timeout ]
-
 webkit.org/b/155138 [ Yosemite ElCapitan ] inspector/console/addInspectedNode.html [ Pass Timeout ]
 
 webkit.org/b/155151 [ Debug ElCapitan ] media/track/track-cues-pause-on-exit.html [ Pass Timeout ]
@@ -648,3 +646,7 @@ webkit.org/b/158639 [ Release Yosemite ] imported/blink/storage/indexeddb/blob-d
 [ Sierra+ ] swipe/main-frame-pinning-requirement.html [ Skip ]
 [ Sierra+ ] swipe/pushState-cached-back-swipe.html [ Skip ]
 [ Sierra+ ] swipe/swipe-start-hysteresis-failures.html [ Skip ]
+
+webkit.org/b/159447 [ Debug ] inspector/debugger/tail-deleted-frames-from-vm-entry.html [ Pass Failure ]
+
+webkit.org/b/159430 [ Debug Sierra+ ] media/restore-from-page-cache.html [ Pass Crash ]

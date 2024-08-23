@@ -1,3 +1,125 @@
+2016-07-06  Tim Horton  <timothy_horton@apple.com>
+
+        Email from June 1st containing text 'Today @ 7:10PM' is linkified, but shouldn't be
+        https://bugs.webkit.org/show_bug.cgi?id=159498
+        <rdar://problem/26719903>
+
+        Reviewed by Sam Weinig.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/DataDetection.mm: Added.
+        (-[DataDetectionNavigationDelegate webView:didFinishNavigation:]):
+        (-[DataDetectionUIDelegate _dataDetectionContextForWebView:]):
+        (expectLinkCount):
+        (TEST):
+        Add a test ensuring that ReferenceDate in the DataDetectors context is respected
+        when deciding what to linkify.
+
+2016-07-06  Alexey Proskuryakov  <ap@apple.com>
+
+        Build fix - work around rdar://problem/27196668.
+
+        * LayoutTestRelay/Configurations/Base.xcconfig:
+
+2016-07-05  Per Arne Vollan  <pvollan@apple.com>
+
+        Enhance Windows DRT implementation to support platform scroll wheel events.
+        https://bugs.webkit.org/show_bug.cgi?id=36002
+
+        Reviewed by Brent Fulgham.
+
+        Implement function continuousMouseScrollBy in Windows event sender.
+
+        * DumpRenderTree/win/EventSender.cpp:
+        (mouseScrollBy):
+        (continuousMouseScrollBy):
+
+2016-07-05  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Sierra] Rebaseline tests to use un-mocked system font metrics
+        https://bugs.webkit.org/show_bug.cgi?id=159311
+        <rdar://problem/24138411>
+
+        Reviewed in person by Alexey Proskuryakov.
+
+        Stop mocking the system font on Sierra.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (setDefaultsToConsistentValuesForTesting):
+        * WebKitTestRunner/InjectedBundle/mac/InjectedBundleMac.mm:
+        (WTR::InjectedBundle::platformInitialize):
+
+2016-07-05  Brady Eidson  <beidson@apple.com>
+
+        Database process crashes deleting a corrupt SQLite database file (null deref).
+        https://bugs.webkit.org/show_bug.cgi?id=155506.
+
+        Reviewed by Alex Christensen.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IDBDeleteRecovery.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IDBDeleteRecovery.mm: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IDBDeleteRecovery.sqlite3: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IDBDeleteRecovery.sqlite3-shm: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IDBDeleteRecovery.sqlite3-wal: Added.
+
+2016-07-05  Alexey Proskuryakov  <ap@apple.com>
+
+        run-webkit-tests should print more complete baseline search paths
+        https://bugs.webkit.org/show_bug.cgi?id=159354
+
+        Reviewed by Daniel Bates.
+
+        run-webkit-tests used to only print directory names in baseline search paths.
+        This was ok in basic usage, but quickly got confusing when using
+        --additional-platform-directory flags.
+
+        * Scripts/webkitpy/layout_tests/views/printing.py:
+        (Printer.print_config):
+        * Scripts/webkitpy/layout_tests/views/printing_unittest.py:
+        (Testprinter.test_print_config):
+        (Testprinter.test_print_one_line_summary):
+
+2016-07-04  Brady Eidson  <beidson@apple.com>
+
+        WebProcesses don't handle DatabaseProcess going away uncleanly..
+        https://bugs.webkit.org/show_bug.cgi?id=159371
+
+        Reviewed by Alex Christensen.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IndexedDBDatabaseProcessKill-1.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IndexedDBDatabaseProcessKill.mm: Added.
+        (-[DatabaseProcessKillNavigationDelegate webView:didFinishNavigation:]):
+        (-[DatabaseProcessKillMessageHandler userContentController:didReceiveScriptMessage:]):
+
+2016-07-04  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [EFL][GTK] Layout Test doesn't run on Ubuntu 16.04
+        https://bugs.webkit.org/show_bug.cgi?id=158141
+
+        Rubber-stamped by Michael Catanzaro.
+
+        Instead of checking for an specific Ubuntu version, query the apt
+        database to see which version of PHP is available.
+
+        * efl/install-dependencies:
+        * gtk/install-dependencies:
+
+2016-07-04  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        webkit-patch failure-reason always raises TypeError
+        https://bugs.webkit.org/show_bug.cgi?id=159394
+
+        Reviewed by Benjamin Poulain.
+
+        In r170637 (Bug 133067), the first and second arguments of
+        pluralize were swapped.
+
+        * Scripts/webkitpy/tool/commands/queries.py:
+        (FailureReason._builder_to_explain): Swap the first and second
+        arguments of pluralize.
+
 2016-07-02  Youenn Fablet  <youennf@gmail.com>
 
         Make it straightforward to start the Web Platform Tests HTTP server using run-webkit-httpd

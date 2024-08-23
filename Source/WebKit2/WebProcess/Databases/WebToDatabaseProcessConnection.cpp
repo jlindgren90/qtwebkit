@@ -53,9 +53,9 @@ void WebToDatabaseProcessConnection::didReceiveMessage(IPC::Connection& connecti
 {
 #if ENABLE(INDEXED_DATABASE)
     if (decoder.messageReceiverName() == Messages::WebIDBConnectionToServer::messageReceiverName()) {
-        auto iterator = m_webIDBConnectionsByIdentifier.find(decoder.destinationID());
-        if (iterator != m_webIDBConnectionsByIdentifier.end())
-            iterator->value->didReceiveMessage(connection, decoder);
+        auto idbConnection = m_webIDBConnectionsByIdentifier.get(decoder.destinationID());
+        if (idbConnection)
+            idbConnection->didReceiveMessage(connection, decoder);
         return;
     }
 #endif
@@ -65,6 +65,12 @@ void WebToDatabaseProcessConnection::didReceiveMessage(IPC::Connection& connecti
 
 void WebToDatabaseProcessConnection::didClose(IPC::Connection& connection)
 {
+    for (auto& connection : m_webIDBConnectionsByIdentifier.values())
+        connection->connectionToServerLost();
+
+    m_webIDBConnectionsByIdentifier.clear();
+    m_webIDBConnectionsBySession.clear();
+
     WebProcess::singleton().webToDatabaseProcessConnectionClosed(this);
 }
 
