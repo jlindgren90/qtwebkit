@@ -477,7 +477,6 @@ public:
 
     String composedTreeAsText(Node&);
     
-    void setViewportForceAlwaysUserScalable(bool);
     void setLinkPreloadSupport(bool);
     void setResourceTimingSupport(bool);
 

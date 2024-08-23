@@ -61,6 +61,7 @@
 #include <WebCore/Page.h>
 #include <WebCore/PageOverlay.h>
 #include <WebCore/PageVisibilityState.h>
+#include <WebCore/PlatformMouseEvent.h>
 #include <WebCore/ScrollTypes.h>
 #include <WebCore/TextChecking.h>
 #include <WebCore/TextIndicator.h>
@@ -574,7 +575,7 @@ public:
     WebCore::IntRect rectForElementAtInteractionLocation();
     void updateSelectionAppearance();
     void getSelectionContext(uint64_t callbackID);
-    void handleTwoFingerTapAtPoint(const WebCore::IntPoint&, uint64_t callbackID);
+    void handleTwoFingerTapAtPoint(const WebCore::IntPoint&, uint64_t requestID);
 #if ENABLE(IOS_TOUCH_EVENTS)
     void dispatchAsynchronousTouchEvents(const Vector<WebTouchEvent, 1>& queue);
 #endif
@@ -593,7 +594,7 @@ public:
     void enableInspectorNodeSearch();
     void disableInspectorNodeSearch();
     
-    void updateForceAlwaysUserScalable();
+    void setForceAlwaysUserScalable(bool);
 #endif
 
     void setLayerTreeStateIsFrozen(bool);
@@ -996,7 +997,7 @@ private:
     void getAssistedNodeInformation(AssistedNodeInformation&);
     void platformInitializeAccessibility();
     void handleSyntheticClick(WebCore::Node* nodeRespondingToClick, const WebCore::FloatPoint& location);
-    void completeSyntheticClick(WebCore::Node* nodeRespondingToClick, const WebCore::FloatPoint& location);
+    void completeSyntheticClick(WebCore::Node* nodeRespondingToClick, const WebCore::FloatPoint& location, WebCore::SyntheticClickType);
     void sendTapHighlightForNodeIfNecessary(uint64_t requestID, WebCore::Node*);
     void resetTextAutosizing();
     WebCore::VisiblePosition visiblePositionInFocusedNodeForPoint(const WebCore::Frame&, const WebCore::IntPoint&, bool isInteractingWithAssistedNode);
@@ -1452,7 +1453,7 @@ private:
     bool m_hasPendingBlurNotification;
     bool m_useTestingViewportConfiguration;
     bool m_isInStableState;
-    bool m_forceAlwaysUserScalable { false };
+    bool m_forceAlwaysUserScalable;
     std::chrono::milliseconds m_oldestNonStableUpdateVisibleContentRectsTimestamp;
     std::chrono::milliseconds m_estimatedLatency;
     WebCore::FloatSize m_screenSize;

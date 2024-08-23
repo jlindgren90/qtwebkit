@@ -1,3 +1,260 @@
+2016-07-11  Nan Wang  <n_wang@apple.com>
+
+        AX: Crash when backspacing in number field with spin button
+        https://bugs.webkit.org/show_bug.cgi?id=157830
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/spinbutton-crash-expected.txt: Added.
+        * accessibility/spinbutton-crash.html: Added.
+
+2016-07-11  Brent Fulgham  <bfulgham@apple.com>
+
+        [WebGL] Check for existing buffer exists for enabled vertex array attributes before permitting glDrawArrays to execute
+        https://bugs.webkit.org/show_bug.cgi?id=159590
+        <rdar://problem/26865535>
+
+        Reviewed by Dean Jackson.
+
+        * fast/canvas/webgl/webgl-drawarrays-crash-2-expected.txt: Added.
+        * fast/canvas/webgl/webgl-drawarrays-crash-2.html: Added.
+
+2016-07-11  Keith Miller  <keith_miller@apple.com>
+
+        STP TypedArray.subarray 5x slowdown compared to 9.1
+        https://bugs.webkit.org/show_bug.cgi?id=156404
+
+        Reviewed by Geoffrey Garen.
+
+        Add new micro-benchmark for testing subarray performance with small subarray sizes.
+
+        * js/regress/script-tests/typed-array-subarray.js: Added.
+        (createManySubs):
+        (go):
+        * js/regress/typed-array-subarray-expected.txt: Added.
+        * js/regress/typed-array-subarray.html: Added.
+
+2016-07-11  Nan Wang  <n_wang@apple.com>
+
+        AX: WKWebView should have API to prevent pinch-to-zoom always being allowed
+        https://bugs.webkit.org/show_bug.cgi?id=158364
+
+        Reviewed by Anders Carlsson.
+
+        * fast/viewport/ios/force-always-user-scalable.html:
+        * fast/viewport/ios/user-scalable-does-not-scale-for-keyboard-focus-with-author-defined-scale.html:
+        * fast/viewport/ios/user-scalable-scales-for-keyboard-focus-with-no-author-defined-scale.html:
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Use parameters from the OpenType MATH table for <munderover>
+        https://bugs.webkit.org/show_bug.cgi?id=155756
+
+        Reviewed by Brent Fulgham.
+
+        Import some tests from the MathML in HTML5 test suite to verify
+        the layout of the <munderover> element. We also write a test to
+        verify dynamic change of accent/accentunder attributes and adjust
+        other tests.
+
+        * imported/mathml-in-html5/fonts/math/limits-lowerlimitbaselinedropmin3000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/limits-lowerlimitgapmin11000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/limits-upperlimitbaselinerisemin5000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/limits-upperlimitgapmin7000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stretchstack-bottomshiftdown3000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stretchstack-gapabovemin7000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stretchstack-gapbelowmin11000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stretchstack-topshiftup5000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/underover-accentbaseheight4000-overbarextraascender3000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/underover-accentbaseheight4000-overbarverticalgap11000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/underover-accentbaseheight4000-underbarextradescender5000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/underover-accentbaseheight4000-underbarverticalgap7000.woff: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-1-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-1.html: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-2-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-2.html: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-3-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-3.html: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-4-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-4.html: Added.
+        * mathml/presentation/attributes-accent-accentunder-dynamic.html: Added.
+        Test dynamic changes of accent and accentunder.
+        * mathml/presentation/attributes-accent-accentunder-dynamic-expected.html: Added.
+        * mathml/presentation/scripts-underover.html: Remove one of the test since munderover
+        with an empty script is no longer equivalent to munder or mover.
+        * mathml/presentation/scripts-underover-expected.html: Ditto.
+        * platform/gtk/mathml/opentype/horizontal-expected.png: Updated due to change in
+        vertical metrics of scripts.
+        * platform/gtk/mathml/opentype/horizontal-expected.txt: Ditto.
+        * platform/gtk/mathml/opentype/horizontal-munderover-expected.png: Ditto.
+        * platform/gtk/mathml/opentype/horizontal-munderover-expected.txt: Ditto.
+        * platform/gtk/mathml/presentation/roots-expected.txt: Udapted due to script baseline fix.
+        * platform/gtk/mathml/presentation/roots-expected.png: ditto.
+        * mathml/presentation/underover-nonstretchy-or-vertical.html: Prevent the <mo> to be treated
+        as an accent so that we always get the same spacing as the reference. We also use the Ahem
+        font to make the result more reliable.
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Use Stack* parameters from the OpenType MATH table
+        https://bugs.webkit.org/show_bug.cgi?id=155714
+
+        Reviewed by Brent Fulgham.
+
+        We import a test from the MathML in HTML5 test suite to verify Stack* parameters.
+
+        * imported/mathml-in-html5/fonts/math/stack-axisheight7000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stack-bottomdisplaystyleshiftdown5000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stack-bottomshiftdown6000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stack-displaystylegapmin4000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stack-gapmin8000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stack-topdisplaystyleshiftup3000.woff: Added.
+        * imported/mathml-in-html5/fonts/math/stack-topshiftup9000.woff: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/fractions/frac-parameters-2-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/fractions/frac-parameters-2.html: Added.
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Add support for mathvariants that cannot be emulated via CSS.
+        https://bugs.webkit.org/show_bug.cgi?id=108778
+
+        Reviewed by Brent Fulgham.
+
+        Import a test from the MathML in HTML5 test suite to perform an exhaustive
+        verification of all the mathvariant transforms allowed.
+        We also add some tests to verify inheritance of the mathvariant style, the
+        effect on each token element and dynamic modification of mathvariant.
+        Finally, we modify one test now that mathvariant is no longer emulated via CSS.
+
+        * mathml/mathml-in-html5/fonts/mathvariant-transforms.woff: Added.
+        * mathml/mathml-in-html5/mathvariant-transforms-1-expected.html: Added.
+        * mathml/mathml-in-html5/mathvariant-transforms-1.html: Added.
+        * mathml/mathml-in-html5/mathvariant-transforms-2-expected.html: Added.
+        * mathml/mathml-in-html5/mathvariant-transforms-2.html: Added.
+        * mathml/presentation/attributes-mathvariant-expected.html: Update this test now that
+        mathvariant is correctly implemented using character transforms.
+        * mathml/presentation/mathvariant-inheritance-expected.html: Added.
+        * mathml/presentation/mathvariant-inheritance.html: Added.
+        * mathml/presentation/mathvariant-tokens-expected.html: Added.
+        * mathml/presentation/mathvariant-tokens.html: Added.
+        * mathml/presentation/mathvariant-dynamic.html: Added.
+        * mathml/presentation/mathvariant-dynamic-expected.html: Added.
+
+2016-07-11  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/controls/inline-elements-dropoff-order.html as failing on El Capitan
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-11  Eric Carlson  <eric.carlson@apple.com>
+
+        Add a test for media control dropoff
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        <rdar://problem/23544666>
+
+        Unreviewed El Capitan-specific test results after r203057.
+
+        * platform/mac-elcapitan/media/controls: Added.
+        * platform/mac-elcapitan/media/controls/inline-elements-dropoff-order-expected.txt: Added.
+        * platform/mac-yosemite/media/controls: Added.
+
+2016-07-11  Mark Lam  <mark.lam@apple.com>
+
+        Change run-webkit-tests.py and run-jsc-stress-tests to use a smaller JS stack size for testing.
+        https://bugs.webkit.org/show_bug.cgi?id=159524
+
+        Reviewed by Michael Saboff.
+
+        * js/dom/deep-recursion-test.html:
+        * js/script-tests/stack-overflow-arrity-catch.js:
+        (funcWith20Args):
+
+2016-07-11  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        Using dpi unit in sizes attribute raises SIGSEGV
+        https://bugs.webkit.org/show_bug.cgi?id=159412
+
+        Reviewed by Darin Adler.
+
+        * TestExpectations: Unskip fast/dom/HTMLImageElement/sizes.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-invalids-expected.txt: Updated.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-invalids.html: Added a dpi unit test case.
+        Renumbering element IDs.
+
+2016-07-11  Eric Carlson  <eric.carlson@apple.com>
+
+        Add a test for media control dropoff
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        <rdar://problem/23544666>
+
+        Reviewed by Antoine Quint.
+
+        * media/controls/inline-elements-dropoff-order-expected.txt: Added.
+        * media/controls/inline-elements-dropoff-order.html: Added.
+        * platform/mac-yosemite/media/controls: Added.
+        * platform/mac-yosemite/media/controls/inline-elements-dropoff-order-expected.txt: Added.
+        * platform/mac-elcapitan/media/controls: Added.
+        * platform/mac-elcapitan/media/controls/inline-elements-dropoff-order-expected.txt: Added.
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Update expectations for some MathML pixel tests on Windows.
+
+        Unreviewed test gardening.
+
+        * platform/win/mathml/opentype/vertical-expected.txt:
+        * platform/win/mathml/presentation/mo-stretch-expected.txt:
+        * platform/win/mathml/presentation/roots-expected.txt:
+        * platform/win/mathml/radical-fallback-expected.txt:
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Update expectations for some MathML pixel tests on EFL.
+
+        Unreviewed test gardening.
+
+        * platform/efl/mathml/opentype/vertical-expected.txt:
+        * platform/efl/mathml/presentation/mo-stretch-expected.txt:
+        * platform/efl/mathml/presentation/roots-expected.txt:
+        * platform/efl/mathml/radical-fallback-expected.txt:
+
+2016-07-10  Chris Dumez  <cdumez@apple.com>
+
+        Setting document.title reuses <title>'s textnode child
+        https://bugs.webkit.org/show_bug.cgi?id=28864
+        <rdar://problem/7186473>
+
+        Reviewed by Benjamin Poulain.
+
+        * fast/dom/title-setter-new-text-node-expected.txt: Added.
+        * fast/dom/title-setter-new-text-node.html: Added.
+        Add test coverage.
+
+        * fast/dom/title-text-property-2-expected.txt:
+        * fast/dom/title-text-property-expected.txt:
+        * http/tests/globalhistory/history-delegate-basic-title-expected.txt:
+        Rebaseline a few tests now that we do not reuse the <title>'s text
+        node child.
+
+2016-07-10  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203037.
+        https://bugs.webkit.org/show_bug.cgi?id=159614
+
+        The JSC tests are breaking in elcapitan-debug-tests-jsc and
+        elcapitan-release-tests-jsc (Requested by caiolima on
+        #webkit).
+
+        Reverted changeset:
+
+        "ECMAScript 2016: %TypedArray%.prototype.includes
+        implementation"
+        https://bugs.webkit.org/show_bug.cgi?id=159385
+        http://trac.webkit.org/changeset/203037
+
 2016-07-10  Zalan Bujtas  <zalan@apple.com>
 
         Fix LogicalSelectionOffsetCaches to work with detached render tree.

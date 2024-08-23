@@ -132,6 +132,7 @@ struct WebPageCreationParameters {
     WebCore::FloatSize screenSize;
     WebCore::FloatSize availableScreenSize;
     float textAutosizingWidth;
+    bool ignoresViewportScaleLimits;
 #endif
     bool appleMailPaginationQuirkEnabled;
     bool shouldScaleViewToFitDocument;

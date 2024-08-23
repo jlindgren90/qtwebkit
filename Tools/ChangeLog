@@ -1,3 +1,116 @@
+2016-07-11  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Implement grapheme cluster iterator on StringView
+        https://bugs.webkit.org/show_bug.cgi?id=159598
+
+        Reviewed by Anders Carlsson.
+
+        This is in preparation for honoring the second argument to FontFaceSet.load().
+
+        * TestWebKitAPI/Tests/WTF/StringView.cpp:
+        (TestWebKitAPI::compareLoopIterations):
+        (TestWebKitAPI::TEST):
+
+2016-07-11  Nan Wang  <n_wang@apple.com>
+
+        AX: WKWebView should have API to prevent pinch-to-zoom always being allowed
+        https://bugs.webkit.org/show_bug.cgi?id=158364
+
+        Reviewed by Anders Carlsson.
+
+        Added a function in TestRunner so that we can toggle the ignoring viewport
+        scale limits setting. Also added a test option for that in order to change the 
+        configuration of the webview in test.
+
+        * WebKitTestRunner/InjectedBundle/Bindings/TestRunner.idl:
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp:
+        (WTR::TestRunner::setNavigationGesturesEnabled):
+        (WTR::TestRunner::setIgnoresViewportScaleLimits):
+        (WTR::nextUIScriptCallbackID):
+        * WebKitTestRunner/InjectedBundle/TestRunner.h:
+        (WTR::TestRunner::shouldDecideNavigationPolicyAfterDelay):
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::resetStateToConsistentValues):
+        (WTR::updateTestOptionsFromTestHeader):
+        (WTR::TestController::setNavigationGesturesEnabled):
+        (WTR::TestController::setIgnoresViewportScaleLimits):
+        (WTR::TestController::platformWillRunTest):
+        * WebKitTestRunner/TestController.h:
+        (WTR::TestController::setShouldDecideNavigationPolicyAfterDelay):
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::didReceiveMessageFromInjectedBundle):
+        * WebKitTestRunner/TestOptions.h:
+        * WebKitTestRunner/cocoa/TestControllerCocoa.mm:
+        (WTR::TestController::platformCreateWebView):
+
+2016-07-11  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [GTK] install-dependencies should not install packages built by jhbuild.
+        https://bugs.webkit.org/show_bug.cgi?id=159628
+
+        Reviewed by Michael Catanzaro.
+
+        * gtk/install-dependencies:
+        Don't install icu, harfbuzz, orc, llvm, freetype, fontconfig.
+
+2016-07-11  Olivier Blin  <olivier.blin@softathome.com>
+
+        System proxy settings not used when building deps with jhbuild
+        https://bugs.webkit.org/show_bug.cgi?id=159567
+
+        Reviewed by Michael Catanzaro.
+
+        This adds the gsettings-desktop-schemas-devel build dep to enable
+        the libgiognomeproxy.so gio module in glib-networking, which uses
+        GSettings on org.gnome.system.proxy.
+        This is needed to query system proxy settings for Gnome desktops.
+
+        dconf can be manually added to jhbuild to build the
+        libdconfsettings.so gio module for GSettings, so that
+        libgiognomeproxy.so can access system settings.
+          https://trac.webkit.org/wiki/WebKitGTK/StartHacking#Workingbehindaproxy
+
+        As an alternative to dconf settings, this commit also adds the
+        libproxy-devel build dep to enable the libgiolibproxy.so module in
+        glib-networking (suggested by Fujii Hironori).
+
+        It is useful to read proxy settings from environment variables.
+        From a Gnome desktop, one may unset the GNOME_DESKTOP_SESSION_ID
+        environment variable to force using the envvar module in libproxy.
+
+        * gtk/install-dependencies:
+
+2016-07-11  Mark Lam  <mark.lam@apple.com>
+
+        Change run-webkit-tests.py and run-jsc-stress-tests to use a smaller JS stack size for testing.
+        https://bugs.webkit.org/show_bug.cgi?id=159524
+
+        Reviewed by Michael Saboff.
+
+        Forced tests to run with only a 1.5M JS stack size instead of the default 4M.
+        Also fixed up some tests to behave better to work with this new limit.  This
+        should make stack overflow tests complete sooner.
+
+        * Scripts/run-jsc-stress-tests:
+        * Scripts/webkitpy/layout_tests/run_webkit_tests.py:
+        (main):
+
+2016-07-11  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Whitespace fixes in install-dependencies script
+
+        Unreviewed.
+
+        * gtk/install-dependencies:
+
+2016-07-11  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Install missing Fedora dependencies
+
+        Unreviewed.
+
+        * gtk/install-dependencies:
+
 2016-07-09  Dan Bernstein  <mitz@apple.com>
 
         Give git-add-reviewer an option to say “Rubber-stamped by” in non-interactive mode

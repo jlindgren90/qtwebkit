@@ -1,3 +1,565 @@
+2016-07-11  Chris Dumez  <cdumez@apple.com>
+
+        Potential null dereference under DocumentLoader::mainReceivedError()
+        https://bugs.webkit.org/show_bug.cgi?id=159640
+        <rdar://problem/27283372>
+
+        Reviewed by Brady Eidson.
+
+        Move frameLoader() null check a bit earlier in DocumentLoader::mainReceivedError()
+        as it was dereferenced before the check.
+
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::mainReceivedError):
+
+2016-07-11  Enrica Casucci  <enrica@apple.com>
+
+        Add synthetic click origin to WKNavigationAction.
+        https://bugs.webkit.org/show_bug.cgi?id=159584
+        rdar://problem/25610422
+
+        Reviewed by Tim Horton.
+
+        Adding plumbing code to pass synthetic click type
+        through WebCore.
+
+        * dom/Element.cpp:
+        (WebCore::Element::dispatchMouseEvent):
+        (WebCore::Element::dispatchMouseForceWillBegin):
+        * dom/MouseEvent.cpp:
+        (WebCore::MouseEvent::create):
+        (WebCore::MouseEvent::MouseEvent):
+        (WebCore::MouseEvent::initMouseEvent):
+        (WebCore::MouseEvent::cloneFor):
+        * dom/MouseEvent.h:
+        (WebCore::MouseEvent::createForBindings):
+        (WebCore::MouseEvent::button):
+        (WebCore::MouseEvent::syntheticClickType):
+        (WebCore::MouseEvent::buttonDown):
+        (WebCore::MouseEvent::setRelatedTarget):
+        * dom/SimulatedClick.cpp:
+        * dom/WheelEvent.cpp:
+        (WebCore::WheelEvent::WheelEvent):
+        * page/ContextMenuController.cpp:
+        (WebCore::ContextMenuController::showContextMenuAt):
+        * page/DragController.cpp:
+        (WebCore::createMouseEvent):
+        (WebCore::DragController::DragController):
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::dispatchDragEvent):
+        (WebCore::EventHandler::sendContextMenuEventForKey):
+        (WebCore::EventHandler::fakeMouseMoveEventTimerFired):
+        * platform/PlatformMouseEvent.h:
+        (WebCore::PlatformMouseEvent::PlatformMouseEvent):
+        (WebCore::PlatformMouseEvent::clickCount):
+        (WebCore::PlatformMouseEvent::modifierFlags):
+        (WebCore::PlatformMouseEvent::force):
+        (WebCore::PlatformMouseEvent::syntheticClickType):
+        * replay/SerializationMethods.cpp:
+        (JSC::EncodingTraits<PlatformMouseEvent>::decodeValue):
+
+2016-07-11  Anders Carlsson  <andersca@apple.com>
+
+        Able to open multiple payment sheets in Safari at the same time
+        https://bugs.webkit.org/show_bug.cgi?id=159637
+        rdar://problem/26411339
+
+        Reviewed by Beth Dakin.
+
+        Fold PaymentCoordinator::showPaymentUI into PaymentCoordinator::beginPaymentSession and
+        change the return value of the latter member function to a bool to indicate whether the
+        payment UI could be shown (or whether it's already showing).
+
+        * Modules/applepay/ApplePaySession.cpp:
+        (WebCore::ApplePaySession::begin):
+        Check the return value of beginPaymentSession.
+
+        * Modules/applepay/PaymentCoordinator.cpp:
+        (WebCore::PaymentCoordinator::beginPaymentSession):
+        This now takes a payment session and returns a boolean.
+        (WebCore::PaymentCoordinator::showPaymentUI): Deleted.
+
+        * Modules/applepay/PaymentCoordinator.h:
+        * Modules/applepay/PaymentCoordinatorClient.h:
+        * loader/EmptyClients.cpp:
+        The showPaymentUI client function now returns a bool.
+
+2016-07-11  Nan Wang  <n_wang@apple.com>
+
+        AX: Crash when backspacing in number field with spin button
+        https://bugs.webkit.org/show_bug.cgi?id=157830
+
+        Reviewed by Chris Fleizach.
+
+        It's possible to access spin button parts after they've been detached from their parent, which can lead to crashes.
+        This adds in a number of redundant safeguards to prevent this and other cases in the future.
+
+        Test: accessibility/spinbutton-crash.html
+
+        * accessibility/AccessibilitySpinButton.cpp:
+        (WebCore::AccessibilitySpinButton::incrementButton):
+        (WebCore::AccessibilitySpinButton::decrementButton):
+        (WebCore::AccessibilitySpinButton::addChildren):
+
+2016-07-11  Chris Dumez  <cdumez@apple.com>
+
+        Possible null dereference under EventHandler::dispatchMouseEvent()
+        https://bugs.webkit.org/show_bug.cgi?id=159632
+        <rdar://problem/27247619>
+
+        Reviewed by Andreas Kling.
+
+        FrameSelection::toNormalizedRange() can return null even when FrameSelection::isRange()
+        returns true so add a null check.
+
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::dispatchMouseEvent):
+
+2016-07-11  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203064.
+        https://bugs.webkit.org/show_bug.cgi?id=159642
+
+        This change causes LayoutTest crashes on WK1 ASan (Requested
+        by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "Use refs for ResourceLoaders"
+        https://bugs.webkit.org/show_bug.cgi?id=159592
+        http://trac.webkit.org/changeset/203064
+
+2016-07-11  Brent Fulgham  <bfulgham@apple.com>
+
+        [WebGL] Check for existing buffer exists for enabled vertex array attributes before permitting glDrawArrays to execute
+        https://bugs.webkit.org/show_bug.cgi?id=159590
+        <rdar://problem/26865535>
+
+        Reviewed by Dean Jackson.
+
+        Test: fast/canvas/webgl/webgl-drawarrays-crash-2.html
+
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::validateVertexAttributes): If enabled array buffer attributes exist,
+        ensure that an array buffer has been bound.
+
+2016-07-11  Nan Wang  <n_wang@apple.com>
+
+        AX: WKWebView should have API to prevent pinch-to-zoom always being allowed
+        https://bugs.webkit.org/show_bug.cgi?id=158364
+
+        Reviewed by Anders Carlsson.
+
+        Removed the internals settings for viewport force always user scalable.
+
+        Changes are covered in modified tests.
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::resetToConsistentState):
+        (WebCore::Internals::Internals):
+        (WebCore::Internals::composedTreeAsText):
+        (WebCore::Internals::setLinkPreloadSupport):
+        (WebCore::Internals::setViewportForceAlwaysUserScalable): Deleted.
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Use parameters from the OpenType MATH table for <munderover>
+        https://bugs.webkit.org/show_bug.cgi?id=155756
+
+        Reviewed by Brent Fulgham.
+
+        We follow the description from the MathML in HTML5 implementation
+        to improve the layout of <munderover> using some constants from the MATH table.
+
+        Tests: imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-1.html
+               imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-2.html
+               imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-3.html
+               imported/mathml-in-html5/mathml/presentation-markup/scripts/underover-parameters-4.html
+               mathml/presentation/attributes-accent-accentunder-dynamic.html
+
+        * mathml/mathattrs.in: Add accentunder attribute.
+        * rendering/mathml/MathMLOperatorDictionary.h: Remove FIXME comment.
+        * rendering/mathml/RenderMathMLUnderOver.cpp:
+        (WebCore::RenderMathMLUnderOver::hasAccent): Helper function to determine whether
+        the over/under script should be treated as an accent.
+        (WebCore::RenderMathMLUnderOver::getVerticalParameters): Helper function to read
+        some vertical parameters from the MATH table.
+        (WebCore::RenderMathMLUnderOver::layoutBlock): Take into account the new vertical
+        parameters for the layout of <munderover>.
+        * rendering/mathml/RenderMathMLUnderOver.h: Define new helper functions.
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Use Stack* parameters from the OpenType MATH table
+        https://bugs.webkit.org/show_bug.cgi?id=155714
+
+        Reviewed by Brent Fulgham.
+
+        Test: mathml/mathml-in-html5/frac-parameters-2.html
+
+        * rendering/mathml/RenderMathMLFraction.cpp:
+        (WebCore::RenderMathMLFraction::updateFromElement): Set the stack parameters when
+        the line thickness is zero.
+        (WebCore::RenderMathMLFraction::layoutBlock): Correctly set the <mfrac> ascent and
+        the denominator vertical offset when the line thickness is zero.
+        (WebCore::RenderMathMLFraction::paint): Early return when we actually do not need to
+        paint any fraction bar.
+        * rendering/mathml/RenderMathMLFraction.h: Define an isStack helper function and define
+        members corresponding to stack parameters.
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Add support for mathvariants that cannot be emulated via CSS.
+        https://bugs.webkit.org/show_bug.cgi?id=108778
+
+        Reviewed by Brent Fulgham.
+
+        Tests: mathml/mathml-in-html5/mathvariant-transforms-1.html
+               mathml/mathml-in-html5/mathvariant-transforms-2.html
+               mathml/presentation/mathvariant-inheritance.html
+               mathml/presentation/mathvariant-tokens.html
+
+        We remove the old code to emulate partial mathvariant support via CSS and add support
+        for all mathvariant values using the technique used for implicit italic on <mi> element.
+        We also rely on the MathMLStyle class introduced earlier to support custome MathML style
+        and manage inheritance of mathvariant values.
+        The function that tries and converts one base character into a transformed mathvariant
+        character is based on similar code from Gecko:
+        http://hg.mozilla.org/mozilla-central/file/tip/layout/generic/MathMLTextRunFactory.cpp
+        Note that we only support transform on token elements with a single character, which
+        should cover the most important use cases.
+
+        * css/mathml.css: Remove the CSS rules to emulate some mathvariant values.
+        (math[mathvariant="normal"], mstyle[mathvariant="normal"], mo[mathvariant="normal"], mn[mathvariant="normal"], mi[mathvariant="normal"], mtext[mathvariant="normal"], mspace[mathvariant="normal"], ms[mathvariant="normal"]): Deleted.
+        (math[mathvariant="bold"], mstyle[mathvariant="bold"], mo[mathvariant="bold"], mn[mathvariant="bold"], mi[mathvariant="bold"], mtext[mathvariant="bold"], mspace[mathvariant="bold"], ms[mathvariant="bold"]): Deleted.
+        (math[mathvariant="italic"], mstyle[mathvariant="italic"], mo[mathvariant="italic"], mn[mathvariant="italic"], mi[mathvariant="italic"], mtext[mathvariant="italic"], mspace[mathvariant="italic"], ms[mathvariant="italic"]): Deleted.
+        (math[mathvariant="bold-italic"], mstyle[mathvariant="bold-italic"], mo[mathvariant="bold-italic"], mn[mathvariant="bold-italic"], mi[mathvariant="bold-italic"], mtext[mathvariant="bold-italic"], mspace[mathvariant="bold-italic"], ms[mathvariant="bold-italic"]): Deleted.
+        * mathml/MathMLInlineContainerElement.cpp: We resolve mathml style when mathvariant changes.
+        (WebCore::MathMLInlineContainerElement::parseAttribute):
+        * mathml/MathMLMathElement.cpp: ditto.
+        (WebCore::MathMLMathElement::parseAttribute):
+        * mathml/MathMLTextElement.cpp: ditto.
+        (WebCore::MathMLTextElement::parseAttribute):
+        * rendering/mathml/MathMLStyle.cpp: Add mathvariant property to the MathML style.
+        (WebCore::MathMLStyle::MathMLStyle): Init mathvariant to none.
+        (WebCore::MathMLStyle::getMathMLStyle): Helper function to retrieve the MathML style on a renderer.
+        (WebCore::MathMLStyle::updateStyleIfNeeded): Take into account change of mathvariant.
+        (WebCore::MathMLStyle::parseMathVariant): Helper function to parse a mathvariant attribute.
+        (WebCore::MathMLStyle::resolveMathMLStyle): Take into account mathvariant value: it is None
+        by default, inherited and can be modified via an attribute on <math>, <mstyle> or token
+        elements. We also refactor a bit to share logic between displaystyle and mathvariant.
+        (WebCore::MathMLStyle::setDisplayStyle): Deleted.
+        * rendering/mathml/MathMLStyle.h: Add mathvariant members and update declarations.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::updateTokenContent): Call the function from the parent class
+        to consider mathvariant on <mo>.
+        * rendering/mathml/RenderMathMLToken.cpp:
+        We implement a mathVariant function to transform a base character into its transformed mathvariant:
+        - There are some regularity that allows to perform this via simple linear transforms.
+        - However, there are also many exceptions and we rely on some sorted MathVariantMapping
+        tables to handle these cases.
+        (WebCore::ExtractKey): Helper function to perform binary searches on MathVariant tables.
+        (WebCore::MathVariantMappingSearch): ditto.
+        (WebCore::mathVariant): New function to perform mathvariant transforms.
+        (WebCore::RenderMathMLToken::updateMathVariantGlyph): Use the mathVariant function to
+        perform all transformations, not just the italic one.
+        (WebCore::transformToItalic): Deleted. Replaced with the more general mathVariant function.
+
+2016-07-11  Jeremy Jones  <jeremyj@apple.com>
+
+        Pause small video elements when returning to inline.
+        https://bugs.webkit.org/show_bug.cgi?id=159535
+
+        Reviewed by Jer Noble.
+
+        Will add a test in a later commit.
+
+        When exiting fullscreen, don't allow playback to continue inline if video is too small.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::isVideoTooSmallForInlinePlayback): Added.
+        (WebCore::HTMLMediaElement::exitFullscreen): Pause if video is too small.
+        * html/HTMLMediaElement.h:
+
+2016-07-11  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        toNative functions in JSDOMBinding.h should take an ExecState reference instead of pointer
+        https://bugs.webkit.org/show_bug.cgi?id=159298
+
+        Reviewed by Youenn Fablet.
+
+        Pass ExecState by reference instead of pointer.
+
+        * bindings/js/IDBBindingUtilities.cpp:
+        (WebCore::idbKeyPathFromValue):
+        * bindings/js/JSBlobCustom.cpp:
+        (WebCore::constructJSBlob):
+        * bindings/js/JSDOMBinding.h: Pass ExecState by reference instead of pointer.
+        (WebCore::toJSSequence):
+        (WebCore::NativeValueTraits<String>::nativeValue):
+        (WebCore::NativeValueTraits<unsigned>::nativeValue):
+        (WebCore::NativeValueTraits<float>::nativeValue):
+        (WebCore::NativeValueTraits<double>::nativeValue):
+        (WebCore::toNativeArray):
+        (WebCore::toNativeArguments):
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::Converter<Vector<T>>::convert):
+        * bindings/js/JSDictionary.cpp:
+        (WebCore::JSDictionary::convertValue):
+        * bindings/js/JSFileCustom.cpp:
+        (WebCore::constructJSFile):
+        * bindings/js/JSMessagePortCustom.cpp:
+        (WebCore::fillMessagePortArray):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        (JSValueToNative):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalSequence):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalArray):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalArrayIsEmpty):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod7):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod9):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod10):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithUnsignedLongSequence):
+        (WebCore::jsTestObjPrototypeFunctionStringArrayFunction):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithAndWithoutNullableSequence):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithAndWithoutNullableSequence2):
+        (WebCore::jsTestObjPrototypeFunctionStrictFunctionWithSequence):
+        (WebCore::jsTestObjPrototypeFunctionStrictFunctionWithArray):
+        (WebCore::jsTestObjPrototypeFunctionVariadicStringMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicDoubleMethod):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::constructJSTestOverloadedConstructors5):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::jsTestTypedefsPrototypeFunctionFunc):
+        (WebCore::jsTestTypedefsPrototypeFunctionNullableArrayArg):
+        (WebCore::jsTestTypedefsPrototypeFunctionStringArrayFunction):
+        (WebCore::jsTestTypedefsPrototypeFunctionStringArrayFunction2):
+
+2016-07-08  Alex Christensen  <achristensen@webkit.org>
+
+        Use refs for ResourceLoaders
+        https://bugs.webkit.org/show_bug.cgi?id=159592
+
+        Reviewed by Chris Dumez.
+
+        No new tests.  No change in behavior except a fixed memory leak in WebKit1.
+
+        * loader/LoaderStrategy.h:
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::finishNetworkLoad):
+        (WebCore::ResourceLoader::setDefersLoading):
+        (WebCore::ResourceLoader::frameLoader):
+        (WebCore::ResourceLoader::willSwitchToSubstituteResource):
+        (WebCore::ResourceLoader::willSendRequestInternal):
+
+2016-07-11  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        Using dpi unit in sizes attribute raises SIGSEGV
+        https://bugs.webkit.org/show_bug.cgi?id=159412
+
+        Reviewed by Darin Adler.
+
+        CSSParser::sourceSize returns a invalid CSSParser::SourceSize
+        whose length is a null value for a dpi unit value.  Because
+        CSSParserValue::createCSSValue returns null for a dpi value.
+
+        Tests:
+            fast/dom/HTMLImageElement/sizes/image-sizes-invalids.html
+            imported/w3c/web-platform-tests/html/semantics/embedded-content/the-img-element/sizes/parse-a-sizes-attribute.html
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::sourceSize): Create a CSSPrimitiveValue of
+        CSS_UNKNOWN if CSSParserValue::createCSSValue returns null.
+
+2016-07-11  Olivier Blin  <olivier.blin@softathome.com>
+
+        Red and blue colors are swapped in video rendered through WebGL when GSTREAMER_GL is enabled
+        https://bugs.webkit.org/show_bug.cgi?id=159621
+
+        Reviewed by Philippe Normand.
+
+        When a video is rendered through WebGL, and GSTREAMER_GL is enabled, red and blue colors are swapped.
+        This occurs for example with the following videos:
+        http://www.scirra.com/labs/bugs/webglvideo/
+        http://www.dailymotion.com/embed/video/x4jiicp?autoplay=1
+
+        This is because ImageGStreamerCairo expects video frames in either
+        BGRA or ARGB, while when GSTREAMER_GL is enabled,
+        createVideoSinkGL() forces a RGBA format.
+
+        Without GSTREAMER_GL, the rendering is fine since
+        VideoSinkGStreamer uses either BGRA or ARGB.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::createVideoSinkGL):
+
+2016-07-11  Philippe Normand  <pnormand@igalia.com>
+
+        [GStreamer] remove WEBKIT_DEBUG support
+        https://bugs.webkit.org/show_bug.cgi?id=159553
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Remove the *_MEDIA_MESSAGE macros specific to the GStreamer
+        platform code and replace them with standard GST_DEBUG macros. In
+        Debug builds the WEBKIT_DEBUG=Media logs now only contain logs
+        related with the cross-platform Media element code. If GStreamer
+        logs are needed, the GST_DEBUG=webkit*:5 environment variable can
+        be used.
+
+        * platform/graphics/gstreamer/GStreamerUtilities.h:
+        * platform/graphics/gstreamer/InbandTextTrackPrivateGStreamer.cpp:
+        (WebCore::InbandTextTrackPrivateGStreamer::notifyTrackOfSample):
+        (WebCore::InbandTextTrackPrivateGStreamer::notifyTrackOfStreamChanged):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp:
+        (WebCore::MediaPlayerPrivateGStreamer::setAudioStreamProperties):
+        (WebCore::MediaPlayerPrivateGStreamer::load):
+        (WebCore::MediaPlayerPrivateGStreamer::commitLoad):
+        (WebCore::MediaPlayerPrivateGStreamer::playbackPosition):
+        (WebCore::MediaPlayerPrivateGStreamer::changePipelineState):
+        (WebCore::MediaPlayerPrivateGStreamer::play):
+        (WebCore::MediaPlayerPrivateGStreamer::pause):
+        (WebCore::MediaPlayerPrivateGStreamer::duration):
+        (WebCore::MediaPlayerPrivateGStreamer::seek):
+        (WebCore::MediaPlayerPrivateGStreamer::updatePlaybackRate):
+        (WebCore::MediaPlayerPrivateGStreamer::paused):
+        (WebCore::MediaPlayerPrivateGStreamer::newTextSample):
+        (WebCore::MediaPlayerPrivateGStreamer::handleMessage):
+        (WebCore::MediaPlayerPrivateGStreamer::processBufferingStats):
+        (WebCore::MediaPlayerPrivateGStreamer::fillTimerFired):
+        (WebCore::MediaPlayerPrivateGStreamer::maxTimeSeekable):
+        (WebCore::MediaPlayerPrivateGStreamer::maxTimeLoaded):
+        (WebCore::MediaPlayerPrivateGStreamer::didLoadingProgress):
+        (WebCore::MediaPlayerPrivateGStreamer::totalBytes):
+        (WebCore::MediaPlayerPrivateGStreamer::asyncStateChangeDone):
+        (WebCore::MediaPlayerPrivateGStreamer::updateStates):
+        (WebCore::MediaPlayerPrivateGStreamer::loadNextLocation):
+        (WebCore::MediaPlayerPrivateGStreamer::setDownloadBuffering):
+        (WebCore::MediaPlayerPrivateGStreamer::createAudioSink):
+        (WebCore::MediaPlayerPrivateGStreamer::createGSTPlayBin):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::naturalSize):
+        (WebCore::MediaPlayerPrivateGStreamerBase::setVolume):
+        (WebCore::MediaPlayerPrivateGStreamerBase::volumeChangedCallback):
+        (WebCore::MediaPlayerPrivateGStreamerBase::triggerRepaint):
+        (WebCore::MediaPlayerPrivateGStreamerBase::createVideoSinkGL):
+        (WebCore::MediaPlayerPrivateGStreamerBase::setStreamVolumeElement):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerOwr.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerOwr::~MediaPlayerPrivateGStreamerOwr):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::play):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::pause):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::currentTime):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::load):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::internalLoad):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::stop):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::createGSTAudioSinkBin):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::trackEnded):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::trackMutedChanged):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::trackSettingsChanged):
+        (WebCore::MediaPlayerPrivateGStreamerOwr::trackEnabledChanged):
+        * platform/graphics/gstreamer/TrackPrivateBaseGStreamer.cpp:
+        (WebCore::TrackPrivateBaseGStreamer::getLanguageCode):
+        (WebCore::TrackPrivateBaseGStreamer::getTag):
+
+2016-07-11  Eric Carlson  <eric.carlson@apple.com>
+
+        Add a test for media control dropoff
+        https://bugs.webkit.org/show_bug.cgi?id=151287
+        <rdar://problem/23544666>
+
+        Reviewed by Antoine Quint.
+
+        Test: media/controls/inline-elements-dropoff-order.html
+
+        * Modules/mediacontrols/mediaControlsApple.js: Expose more state to testing.
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::setAllowsAirPlayForMediaPlayback): Renamed from setWirelessPlaybackDisabled.
+        (WebCore::InternalSettings::setWirelessPlaybackDisabled): Deleted.
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+
+
+2016-07-11  Philippe Normand  <pnormand@igalia.com>
+
+        [GStreamer][GL] crash within triggerRepaint
+        https://bugs.webkit.org/show_bug.cgi?id=159552
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Ensure the sizeChanged notification is emitted from the main
+        thread. When GStreamer-GL rendering is enabled the appsink draw
+        callbacks are fired in a non-main thread.
+
+        The WeakPtr support was moved to the player base class so that it
+        can be used there as well as in the MediaPlayerPrivateGStreamer
+        sub-class.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp:
+        (WebCore::MediaPlayerPrivateGStreamer::createGSTPlayBin):
+        (WebCore::MediaPlayerPrivateGStreamer::MediaPlayerPrivateGStreamer): Deleted.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.h:
+        (WebCore::MediaPlayerPrivateGStreamer::createWeakPtr): Deleted.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::MediaPlayerPrivateGStreamerBase):
+        (WebCore::MediaPlayerPrivateGStreamerBase::triggerRepaint):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h:
+        (WebCore::MediaPlayerPrivateGStreamerBase::createWeakPtr):
+
+2016-07-10  Chris Dumez  <cdumez@apple.com>
+
+        Setting document.title reuses <title>'s textnode child
+        https://bugs.webkit.org/show_bug.cgi?id=28864
+        <rdar://problem/7186473>
+
+        Reviewed by Benjamin Poulain.
+
+        Setting document.title should be equivalent to setting the 'textContent'
+        IDL attribute of the <title> element:
+        - https://html.spec.whatwg.org/multipage/dom.html#document.title
+
+        In particular, this means we should always create a new Text node and
+        replace all the <title>'s children with this new Node, as per:
+        - https://dom.spec.whatwg.org/#dom-node-textcontent
+
+        Previously, WebKit would in some cases reuse the existing <title>'s
+        Text node and merely update its data.
+
+        Firefox and Chrome behave as per the specification so this aligns our
+        behavior with other major browsers as well.
+
+        Test: fast/dom/title-setter-new-text-node.html
+
+        * dom/Document.cpp:
+        (WebCore::Document::setTitle):
+        - Call Node::setTextContent() instead of HTMLTitleElement::setText(),
+          as per the specification.
+        - Take an ExceptionCode parameter and pass it to Node::setTextContent()
+          as it may throw.
+
+        * dom/Document.h:
+        * dom/Document.idl:
+
+        * html/HTMLTitleElement.cpp:
+        (WebCore::HTMLTitleElement::setText):
+        Update implementation of HTMLTitleElement::setText() to call
+        setTextContent() as per the specification:
+        - https://html.spec.whatwg.org/multipage/semantics.html#dom-title-text
+
+        * html/HTMLTitleElement.h:
+        * html/HTMLTitleElement.idl:
+
+        * html/ImageDocument.cpp:
+        (WebCore::ImageDocument::finishedParsing):
+
+        * svg/SVGTitleElement.cpp:
+        * svg/SVGTitleElement.h:
+        Drop setText() setter which was duplicated from HTMLTitleElement::setText()
+        now that Document::setTitle() calls SVGTitleElement::setTextContent()
+        instead.
+
 2016-07-10  Zalan Bujtas  <zalan@apple.com>
 
         Fix LogicalSelectionOffsetCaches to work with detached render tree.
