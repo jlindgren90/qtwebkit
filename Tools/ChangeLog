@@ -1,3 +1,64 @@
+2016-06-16  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r202002 and r202111.
+
+        Ryosuke says this was a JSBench regression on iOS
+
+        Reverted changesets:
+
+        "Make HashMap and HashSet work with Refs"
+        https://bugs.webkit.org/show_bug.cgi?id=158638
+        http://trac.webkit.org/changeset/202002
+
+        "Improve HashMap and HashSet support for Ref"
+        https://bugs.webkit.org/show_bug.cgi?id=158789
+        http://trac.webkit.org/changeset/202111
+
+2016-06-15  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] On iPad, indirect focussing of a text field doesn't always scroll to the correct location
+        https://bugs.webkit.org/show_bug.cgi?id=158828
+
+        Reviewed by Enrica Casucci.
+        
+        Expose "forceIPadStyleZoomOnInputFocus" on UIScriptController, which allows iPad-style
+        zooming behavior on <input> focus in the iPhone simulator, which is used for testing.
+
+        * WebKitTestRunner/UIScriptContext/Bindings/UIScriptController.idl:
+        * WebKitTestRunner/UIScriptContext/UIScriptController.cpp:
+        (WTR::UIScriptController::forceIPadStyleZoomOnInputFocus):
+        (WTR::UIScriptController::setForceIPadStyleZoomOnInputFocus):
+        * WebKitTestRunner/UIScriptContext/UIScriptController.h:
+        * WebKitTestRunner/ios/TestControllerIOS.mm:
+        (WTR::TestController::platformResetStateToConsistentValues):
+        * WebKitTestRunner/ios/UIScriptControllerIOS.mm:
+        (WTR::UIScriptController::forceIPadStyleZoomOnInputFocus):
+        (WTR::UIScriptController::setForceIPadStyleZoomOnInputFocus):
+
+2016-06-15  Sam Weinig  <sam@webkit.org>
+
+        Forward/Back keyboard shortcuts need to flip for RTL
+        https://bugs.webkit.org/show_bug.cgi?id=158823
+        <rdar://problem/25975359>
+
+        Reviewed by Darin Adler.
+
+        Add tests for flipping the behavior of command-left and command-right
+        under RTL mode.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/CommandBackForward.mm: Added.
+        (-[CommandBackForwardOffscreenWindow isKeyWindow]):
+        (-[CommandBackForwardOffscreenWindow isVisible]):
+        (simulateCommandArrow):
+        (WebKit2_CommandBackForwardTest::SetUp):
+        (WebKit2_CommandBackForwardTestWKView::didFinishLoadForFrame):
+        (WebKit2_CommandBackForwardTestWKView::SetUp):
+        (WebKit2_CommandBackForwardTestWKView::loadFiles):
+        (-[CommandBackForwardNavigationDelegate webView:didFinishNavigation:]):
+        (WebKit2_CommandBackForwardTestWKWebView::SetUp):
+        (WebKit2_CommandBackForwardTestWKWebView::loadFiles):
+
 2016-06-15  Tim Horton  <timothy_horton@apple.com>
 
         Expose _shouldExpandContentToViewHeightForAutoLayout SPI on WKWebView

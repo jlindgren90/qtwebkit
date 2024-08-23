@@ -1,3 +1,126 @@
+2016-06-16  Chris Dumez  <cdumez@apple.com>
+
+        Use StringView::toAtomicString() in HTMLImageElement::setBestFitURLAndDPRFromImageCandidate()
+        https://bugs.webkit.org/show_bug.cgi?id=158853
+
+        Reviewed by Brent Fulgham.
+
+        Use StringView::toAtomicString() in HTMLImageElement::setBestFitURLAndDPRFromImageCandidate()
+        as m_bestFitImageURL data member is an AtomicString. This avoids constructing a String and
+        then atomizing it.
+
+        * html/HTMLImageElement.cpp:
+        (WebCore::HTMLImageElement::setBestFitURLAndDPRFromImageCandidate):
+
+2016-06-16  Benjamin Poulain  <bpoulain@apple.com>
+
+        :in-range & :out-of-range CSS pseudo-classes shouldn't match inputs without range limitations
+        https://bugs.webkit.org/show_bug.cgi?id=156558
+
+        Reviewed by Simon Fraser.
+
+        The pseudo selectors :in-range and :out-of-range should only
+        apply if:
+        -minimum/maximum are defined for the input type
+        -the input value is/is-not suffering from underflow/overflow.
+
+        Only certain types have a valid minimum and maximum:
+        -number
+        -range
+        -date
+        -month
+        -week
+        -time
+        -datetime-local
+
+        Of those, only one has a default minimum and maximum: range.
+        For all the others, the minimum or maximum is only defined
+        if the min/max attribute is defined and valid.
+
+        This patch addresses these constraints for number and range.
+        The date types range validation is severely broken and is
+        left untouched. It really needs a clean rewrite.
+
+        Tests: fast/css/pseudo-in-range-basics.html
+               fast/css/pseudo-in-range-out-of-range-trivial.html
+               fast/css/pseudo-out-of-range-basics.html
+
+        * html/DateInputType.cpp:
+        (WebCore::DateInputType::createStepRange):
+        * html/DateTimeInputType.cpp:
+        (WebCore::DateTimeInputType::createStepRange):
+        * html/DateTimeLocalInputType.cpp:
+        (WebCore::DateTimeLocalInputType::createStepRange):
+        * html/InputType.cpp:
+        (WebCore::InputType::isInRange):
+        (WebCore::InputType::isOutOfRange):
+        Notice the isEmpty() shortcut.
+        A value can only overflow/underflow if it is not empty.
+
+        * html/MonthInputType.cpp:
+        (WebCore::MonthInputType::createStepRange):
+        * html/NumberInputType.cpp:
+        (WebCore::NumberInputType::createStepRange):
+        * html/RangeInputType.cpp:
+        (WebCore::RangeInputType::createStepRange):
+        * html/StepRange.cpp:
+        (WebCore::StepRange::StepRange):
+        * html/StepRange.h:
+        (WebCore::StepRange::hasRangeLimitations):
+        * html/WeekInputType.cpp:
+        (WebCore::WeekInputType::createStepRange):
+
+2016-06-16  Anders Carlsson  <andersca@apple.com>
+
+        Fix macOS Sierra build
+        https://bugs.webkit.org/show_bug.cgi?id=158849
+
+        Reviewed by Tim Horton.
+
+        Add WebCore:: qualifiers for IOSurface, to avoid conflicts with the IOSurface Objective-C class.
+        
+        Also, add an asLayerContents() getter that will return an id that's suitable for setting 
+        as the contents of a CALayer.
+
+        * platform/graphics/cocoa/IOSurface.h:
+        * platform/graphics/cocoa/IOSurface.mm:
+
+2016-06-16  Andreas Kling  <akling@apple.com>
+
+        REGRESSION(r196217): 3% JSBench regression on iPhone 5.
+        <https://webkit.org/b/158848>
+        <rdar://problem/26609622>
+
+        Unreviewed rollout.
+
+        Don't jettison linked code on every top-level navigation as that was hurting JSBench on iPhone 5.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::commitProvisionalLoad):
+
+2016-06-16  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Check type of this in RTCPeerConnection JS built-in functions
+        https://bugs.webkit.org/show_bug.cgi?id=151303
+
+        Reviewed by Youenn Fablet.
+
+        Check type of 'this' in RTCPeerConnection JS built-in functions.
+
+        Test: fast/mediastream/RTCPeerConnection-js-built-ins-check-this.html
+
+        * Modules/mediastream/RTCPeerConnection.js:
+        (createOffer):
+        (createAnswer):
+        (setLocalDescription):
+        (setRemoteDescription):
+        (addIceCandidate):
+        (getStats):
+        Reject if 'this' isn't of type RTCPeerConnection.
+        * Modules/mediastream/RTCPeerConnectionInternals.js:
+        (isRTCPeerConnection):
+        Add helper function to perform type check. Needs further robustifying.
+
 2016-06-16  Myles C. Maxfield  <mmaxfield@apple.com>
 
         Sporadic crash in HashTableAddResult following CSSValuePool::createFontFamilyValue

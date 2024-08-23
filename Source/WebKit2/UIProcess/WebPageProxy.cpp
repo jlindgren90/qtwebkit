@@ -5344,6 +5344,7 @@ WebPageCreationParameters WebPageProxy::creationParameters()
     parameters.appleMailPaginationQuirkEnabled = false;
 #endif
     parameters.shouldScaleViewToFitDocument = m_shouldScaleViewToFitDocument;
+    parameters.userInterfaceLayoutDirection = m_pageClient.userInterfaceLayoutDirection();
 
     for (auto& iterator : m_urlSchemeHandlersByScheme)
         parameters.urlSchemeHandlers.set(iterator.key, iterator.value->identifier());
@@ -6382,6 +6383,14 @@ void WebPageProxy::setResourceCachingDisabled(bool disabled)
 UserInterfaceLayoutDirection WebPageProxy::userInterfaceLayoutDirection()
 {
     return m_pageClient.userInterfaceLayoutDirection();
+}
+
+void WebPageProxy::setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection userInterfaceLayoutDirection)
+{
+    if (!isValid())
+        return;
+
+    m_process->send(Messages::WebPage::SetUserInterfaceLayoutDirection(static_cast<uint32_t>(userInterfaceLayoutDirection)), m_pageID);
 }
 
 void WebPageProxy::setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&& handler, const String& scheme)

@@ -1,3 +1,134 @@
+2016-06-16  Anders Carlsson  <andersca@apple.com>
+
+        Fix macOS Sierra build
+        https://bugs.webkit.org/show_bug.cgi?id=158849
+
+        Reviewed by Tim Horton.
+
+        Add WebCore:: qualifiers for IOSurface, to avoid conflicts with the IOSurface Objective-C class
+        and adopt IOSurface::asLayerContents().
+
+        * Shared/mac/RemoteLayerBackingStore.mm:
+        (WebKit::RemoteLayerBackingStore::decode):
+        (WebKit::RemoteLayerBackingStore::bytesPerPixel):
+        (WebKit::RemoteLayerBackingStore::swapToValidFrontBuffer):
+        (WebKit::RemoteLayerBackingStore::applyBackingStoreToLayer):
+        (WebKit::RemoteLayerBackingStore::setBufferVolatility):
+        (WebKit::RemoteLayerBackingStore::Buffer::discard):
+        * UIProcess/mac/ViewSnapshotStore.mm:
+        (WebKit::ViewSnapshot::create):
+        (WebKit::ViewSnapshot::ViewSnapshot):
+        (WebKit::ViewSnapshot::asLayerContents):
+
+2016-06-16  Brady Eidson  <beidson@apple.com>
+
+        When a WebsiteDataStore finds no ProcessPools and creates one from scratch, it should represent the data store's config.
+        rdar://problem/26586991 and https://bugs.webkit.org/show_bug.cgi?id=158844
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/API/APIProcessPoolConfiguration.cpp:
+        (API::ProcessPoolConfiguration::createWithWebsiteDataStoreConfiguration):
+        * UIProcess/API/APIProcessPoolConfiguration.h:
+
+        * UIProcess/WebsiteData/WebsiteDataStore.cpp:
+        (WebKit::WebsiteDataStore::WebsiteDataStore):
+        (WebKit::WebsiteDataStore::fetchData):
+        (WebKit::WebsiteDataStore::removeData):
+        (WebKit::WebsiteDataStore::processPools):
+        * UIProcess/WebsiteData/WebsiteDataStore.h:
+
+2016-06-15  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] On iPad, indirect focussing of a text field doesn't always scroll to the correct location
+        https://bugs.webkit.org/show_bug.cgi?id=158828
+
+        Reviewed by Enrica Casucci.
+        
+        WebPage::getAssistedNodeInformation() unconditionally set information.selectionRect()
+        to a 1x1 rect at the last interaction location. This caused -[WKWebView _zoomToFocusRect:...]
+        to early return under the !forceScroll clause if the last interaction rect was visible, but
+        the elementRect was not. This would happen, for example, if a click in a <button> focussed
+        an input on some other portion of the page. This behavior is iPad-only, because forceScroll
+        is only NO there.
+        
+        Fix by making getAssistedNodeInformation() only set the selectionRect to the last interaction
+        location if that is inside of the elementRect (this caters to the case where a tap is inside
+        an input which is larger than the screen). Otherwise, set it to the empty rect.
+        
+        Make this testable by allowing a test to opt into the iPad-style scrolling/zooming behavior
+        in this code path (essentially, making forceScroll NO for testing), via testing SPI on WKWebView,
+        plumbed through to WKContentView.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView forceIPadStyleZoomOnInputFocus]):
+        (-[WKWebView setForceIPadStyleZoomOnInputFocus:]):
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h:
+        * UIProcess/ios/WKContentViewInteraction.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _displayFormNodeInputView]):
+        (-[WKContentView requiresAccessoryView:]):
+        (-[WKContentView inputAccessoryView]):
+        (-[WKContentView forceIPadStyleZoomOnInputFocus]):
+        (-[WKContentView setForceIPadStyleZoomOnInputFocus:]):
+        (-[WKContentView requiresAccessoryView]): Remove redundant returns, and allow testing to
+        override the "isIPad" condition.
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::getAssistedNodeInformation):
+
+2016-06-15  Sam Weinig  <sam@webkit.org>
+
+        Forward/Back keyboard shortcuts need to flip for RTL
+        https://bugs.webkit.org/show_bug.cgi?id=158823
+        <rdar://problem/25975359>
+
+        Reviewed by Darin Adler.
+
+        Pipe the UserInterfaceLayoutDirection down to the WebContentProcess on initialization
+        and when it changes, and use it to flip the behavior of command-left and command-right
+        when in RTL mode.
+
+        Tests:
+            WebKit2_CommandBackForwardTestWKView.LTR
+            WebKit2_CommandBackForwardTestWKView.RTL
+            WebKit2_CommandBackForwardTestWKWebView.LTR
+            WebKit2_CommandBackForwardTestWKWebView.RTL
+
+        * Shared/WebPageCreationParameters.cpp:
+        (WebKit::WebPageCreationParameters::encode):
+        (WebKit::WebPageCreationParameters::decode):
+        * Shared/WebPageCreationParameters.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _webViewPrintFormatter]):
+        (-[WKWebView setSemanticContentAttribute:]):
+        (-[WKWebView _printOperationWithPrintInfo:forFrame:]):
+        (-[WKWebView setUserInterfaceLayoutDirection:]):
+        * UIProcess/API/mac/WKView.mm:
+        (-[WKView setUserInterfaceLayoutDirection:]):
+        * UIProcess/Cocoa/WebViewImpl.h:
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::windowIsFrontWindowUnderMouse):
+        (WebKit::toUserInterfaceLayoutDirection):
+        (WebKit::WebViewImpl::userInterfaceLayoutDirection):
+        (WebKit::WebViewImpl::setUserInterfaceLayoutDirection):
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::creationParameters):
+        (WebKit::WebPageProxy::userInterfaceLayoutDirection):
+        (WebKit::WebPageProxy::setUserInterfaceLayoutDirection):
+        * UIProcess/WebPageProxy.h:
+        (WebKit::WebPageProxy::hasHadSelectionChangesFromUserInteraction):
+        * UIProcess/ios/WKContentView.mm:
+        (-[WKContentView _commonInitializationWithProcessPool:configuration:]):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::m_userInterfaceLayoutDirection):
+        (WebKit::WebPage::setResourceCachingDisabled):
+        (WebKit::WebPage::setUserInterfaceLayoutDirection):
+        (WebKit::m_shouldDispatchFakeMouseMoveEvents): Deleted.
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/WebPage.messages.in:
+        * WebProcess/WebPage/mac/WebPageMac.mm:
+        (WebKit::WebPage::performNonEditingBehaviorForSelector):
+
 2016-06-15  Tim Horton  <timothy_horton@apple.com>
 
         Expose _shouldExpandContentToViewHeightForAutoLayout SPI on WKWebView

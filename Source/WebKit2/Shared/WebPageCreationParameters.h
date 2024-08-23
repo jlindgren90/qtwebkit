@@ -29,6 +29,7 @@
 #include "DrawingAreaInfo.h"
 #include "LayerTreeContext.h"
 #include "SessionState.h"
+#include "UserInterfaceLayoutDirection.h"
 #include "WebCoreArgumentCoders.h"
 #include "WebPageGroupData.h"
 #include "WebPreferencesStore.h"
@@ -135,6 +136,7 @@ struct WebPageCreationParameters {
     bool appleMailPaginationQuirkEnabled;
     bool shouldScaleViewToFitDocument;
 
+    UserInterfaceLayoutDirection userInterfaceLayoutDirection;
     HashMap<String, uint64_t> urlSchemeHandlers;
 };
 

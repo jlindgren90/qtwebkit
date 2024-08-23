@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WebPage_h
-#define WebPage_h
+#pragma once
 
 #include "APIInjectedBundleFormClient.h"
 #include "APIInjectedBundlePageContextMenuClient.h"
@@ -48,6 +47,7 @@
 #include "SandboxExtension.h"
 #include "ShareableBitmap.h"
 #include "UserData.h"
+#include "UserInterfaceLayoutDirection.h"
 #include "UserMediaPermissionRequestManager.h"
 #include "WebURLSchemeHandler.h"
 #include <WebCore/DictationAlternative.h>
@@ -1226,6 +1226,7 @@ private:
 #endif
 
     void setResourceCachingDisabled(bool);
+    void setUserInterfaceLayoutDirection(uint32_t);
 
     void registerURLSchemeHandler(uint64_t identifier, const String& scheme);
 
@@ -1505,10 +1506,10 @@ private:
     std::chrono::system_clock::time_point m_loadCommitTime;
 #endif
 
+    UserInterfaceLayoutDirection m_userInterfaceLayoutDirection { UserInterfaceLayoutDirection::LTR };
     HashMap<String, std::unique_ptr<WebURLSchemeHandlerProxy>> m_schemeToURLSchemeHandlerProxyMap;
     HashMap<uint64_t, WebURLSchemeHandlerProxy*> m_identifierToURLSchemeHandlerProxyMap;
 };
 
 } // namespace WebKit
 
-#endif // WebPage_h
