@@ -961,8 +961,6 @@ webkit.org/b/84589 http/tests/security/cross-frame-access-get.html [ Crash Pass 
 
 webkit.org/b/127723 accessibility/menu-list-sends-change-notification.html [ Crash Pass ]
 
-webkit.org/b/135561 mathml/opentype/opentype-stretchy-horizontal.html [ Failure Pass ]
-
 # Fails on the bots.
 webkit.org/b/97968 media/unsupported-rtsp.html [ Failure Pass Timeout ]
 
@@ -2067,9 +2065,6 @@ webkit.org/b/133220 fast/events/shadow-event-path-2.html [ Failure ]
 
 webkit.org/b/133308 fast/selectors/hover-quirks.html [ Failure ]
 
-# Failures EFL since the inception
-webkit.org/b/133972 mathml/presentation/foreign-element-in-token.html [ Failure ]
-
 # Tests failing or flaky with closer reasons unknwown at this time
 #webkit.org/b/133857 inspector/layers/layers-blending-compositing-reasons.html [ Failure ]
 webkit.org/b/133860 fast/regions/auto-size/autosize-region-window-resize.html [ ImageOnlyFailure Pass ]
@@ -2321,9 +2316,6 @@ fast/text/fallback-language-han-2.html [ Skip ]
 
 # This test uses an MPEG-4 video
 media/video-seek-to-current-time.html [ Skip ]
-
-# This operating system does not have language-sensitive font fallback.
-css3/line-break-language-sensitive [ Pass ImageOnlyFailure ]
 
 # [EFL] REGRESSION: fullscreen tests fail with timeout
 webkit.org/b/148518 fullscreen [ Skip ]

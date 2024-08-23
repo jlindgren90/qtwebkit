@@ -2601,6 +2601,17 @@ void WebPage::setDrawsBackground(bool drawsBackground)
     m_drawingArea->setNeedsDisplay();
 }
 
+#if PLATFORM(COCOA)
+void WebPage::setTopContentInsetFenced(float contentInset, IPC::Attachment fencePort)
+{
+    m_drawingArea->addFence(MachSendRight::create(fencePort.port()));
+
+    setTopContentInset(contentInset);
+
+    mach_port_deallocate(mach_task_self(), fencePort.port());
+}
+#endif
+
 void WebPage::setTopContentInset(float contentInset)
 {
     if (contentInset == m_page->topContentInset())
@@ -3292,6 +3303,8 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 #endif
 
     RuntimeEnabledFeatures::sharedFeatures().setShadowDOMEnabled(store.getBoolValueForKey(WebPreferencesKey::shadowDOMEnabledKey()));
+
+    RuntimeEnabledFeatures::sharedFeatures().setDOMIteratorEnabled(store.getBoolValueForKey(WebPreferencesKey::domIteratorEnabledKey()));
 
     // Experimental Features.
 

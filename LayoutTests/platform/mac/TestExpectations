@@ -795,22 +795,21 @@ webkit.org/b/129180 svg/clip-path/clip-path-on-svg-002.svg [ ImageOnlyFailure ]
 # Skipped for ios-simulator as well:
 webkit.org/b/129758 js/dom/create-lots-of-workers.html [ Skip ]
 
-webkit.org/b/130693 mathml/presentation/tokenElements-background-color.html [ ImageOnlyFailure ]
-
 # These tests require an OpenType MATH font on the Apple bots.
-webkit.org/b/72828 mathml/opentype/horizontal.html [ Failure ]
-webkit.org/b/72828 mathml/opentype/horizontal-munderover.html [ Failure ]
+mathml/opentype/vertical.html [ Skip ]
+mathml/opentype/large-operators.html [ Skip ]
+mathml/opentype/horizontal.html [ Skip ]
+mathml/opentype/horizontal-munderover.html [ Skip ]
 
 # These tests require the Latin Modern Math font.
-mathml/opentype/fraction-line.html [ Pass ImageOnlyFailure ]
-mathml/presentation/fractions-linethickness.html [ Pass ImageOnlyFailure ]
-mathml/opentype/large-operators-italic-correction.html [ Pass Failure ]
+mathml/opentype/fraction-line.html [ Skip ]
+mathml/presentation/fractions-linethickness.html [ Skip ]
+mathml/opentype/large-operators-italic-correction.html [ Skip ]
+
+# MathML tests that fail:
 mathml/presentation/multiscripts-positions.html [ Pass ImageOnlyFailure ]
 mathml/presentation/scripts-subsup.html [ Pass ImageOnlyFailure ]
-
-# Missing references
-webkit.org/b/119038 mathml/presentation/mo-stretch.html [ Failure ]
-webkit.org/b/119038 mathml/presentation/roots.xhtml [ Failure ]
+webkit.org/b/130693 mathml/presentation/tokenElements-background-color.html [ ImageOnlyFailure ]
 
 webkit.org/b/128255 compositing/columns/composited-lr-paginated-repaint.html [ Pass Failure ]
 webkit.org/b/128255 compositing/columns/composited-rl-paginated-repaint.html [ Pass Failure ]
@@ -1210,6 +1209,7 @@ webkit.org/b/148636 inspector/css/pseudo-element-matches-for-pseudo-element-node
 webkit.org/b/148636 inspector/css/pseudo-element-matches.html [ Pass Timeout ]
 webkit.org/b/148636 inspector/css/selector-dynamic-specificity.html [ Pass Timeout ]
 webkit.org/b/148636 inspector/css/selector-specificity.html [ Pass Timeout ]
+webkit.org/b/153460 [ Debug ] inspector/codemirror/prettyprinting-css-rules.html [ Pass Timeout ]
 webkit.org/b/158742 [ Debug ] inspector/debugger/break-in-constructor-before-super.html [ Pass Timeout ]
 webkit.org/b/152029 inspector/debugger/command-line-api-exception.html [ Pass Timeout ]
 webkit.org/b/152487 inspector/debugger/command-line-api-exception-nested-catch.html [ Pass Timeout ]
@@ -1234,6 +1234,13 @@ webkit.org/b/156078 inspector/console/heapSnapshot.html [ Pass Timeout ]
 webkit.org/b/158006 inspector/console/console-time.html [ Pass Timeout ]
 webkit.org/b/156634 inspector/formatting/formatting-javascript.html [ Pass Timeout ]
 webkit.org/b/158948 inspector/timeline [ Pass Timeout ]
+
+webkit.org/b/159272 inspector/debugger/break-on-exception-finally.html
+webkit.org/b/159272 inspector/debugger/break-on-exception-native.html
+webkit.org/b/159272 inspector/debugger/break-on-exception.html
+webkit.org/b/159272 inspector/debugger/break-on-uncaught-exception-finally.html
+webkit.org/b/159272 inspector/debugger/break-on-uncaught-exception-native.html
+webkit.org/b/159272 inspector/debugger/break-on-uncaught-exception.html
 
 # Colorspaces on CA OpenGL layers not available in Yosemite
 [ Yosemite ] fast/canvas/webgl/match-page-color-space.html [ Skip ]
@@ -1432,3 +1439,8 @@ webkit.org/b/158889 media/video-controls-show-on-kb-or-ax-event.html [ Pass Fail
 # rdar://problem/27000853
 [ Sierra+ ] fast/canvas/canvas-strokePath-gradient-shadow.html [ Failure ]
 [ Sierra+ ] fast/canvas/canvas-strokeRect-gradient-shadow.html [ Failure ]
+
+# rdar://problem/27141291
+[ Sierra+ ] editing/selection/triple-click-in-pre.html [ Failure ]
+
+webkit.org/b/159379 fast/history/page-cache-webdatabase-pending-transaction.html [ Pass Failure ]

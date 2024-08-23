@@ -1,3 +1,257 @@
+2016-07-01  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION(r201405): Fullscreen video no longer enters low-power mode
+        https://bugs.webkit.org/show_bug.cgi?id=159220
+        <rdar://problem/26701056>
+
+        Reviewed by Beth Dakin.
+
+        In r201405, we removed the call to setTopContentInset(0) to avoid a flash
+        during repainting where the WebProcess still thought it had an inset and
+        the UIProcess did not, but the >0 inset breaks low power video playback 
+        in fullscreen. So, instead, fix the repaint issue by setting a CALayer
+        fence which makes sure both the UIProcess and WebProcess paint simultaneously
+        after resizing and changing the top content inset.
+
+        This requires a new message from WebPageProxy -> WebPage: setTopContentInsetFenced().
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::setTopContentInset):
+        * UIProcess/mac/WKFullScreenWindowController.h:
+        * UIProcess/mac/WKFullScreenWindowController.mm:
+        (-[WKFullScreenWindowController enterFullScreen:]):
+        (-[WKFullScreenWindowController finishedEnterFullScreenAnimation:]):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::setTopContentInsetFenced):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/WebPage.messages.in:
+
+2016-07-01  Dan Bernstein  <mitz@apple.com>
+
+        [Mac] Get rid of support for old SDKs
+        https://bugs.webkit.org/show_bug.cgi?id=159369
+
+        Reviewed by Anders Carlsson.
+
+        * Shared/API/Cocoa/WKFoundation.h: Removed the WK_ARRAY, WK_DICTIONARY, and WK_SET macros,
+          which were only needed for pre-10.11 SDKs.
+
+        * Shared/mac/WebEventFactory.mm:
+        (WebKit::mouseButtonForEvent): Removed checking for pre-10.10.3 SDKs.
+        (WebKit::globalPointForEvent): Ditto.
+        (WebKit::pointForEvent): Ditto.
+        (WebKit::WebEventFactory::createWebMouseEvent): Ditto.
+
+        * UIProcess/API/Cocoa/WKBackForwardList.h: Replaced WK_ARRAY(...) with NSArray<...>.
+
+        * UIProcess/API/Cocoa/WKPreferences.mm: Ditto.
+        (-[WKPreferences _setFixedPitchFontFamily:]):
+        (+[WKPreferences _experimentalFeatures]):
+        * UIProcess/API/Cocoa/WKPreferencesPrivate.h: Ditto.
+
+        * UIProcess/API/Cocoa/WKUIDelegate.h: Ditto.
+        * UIProcess/API/Cocoa/WKUIDelegatePrivate.h: Ditto.
+
+        * UIProcess/API/Cocoa/WKUserContentController.h: Ditto.
+        * UIProcess/API/Cocoa/WKUserContentControllerPrivate.h: Ditto.
+
+        * UIProcess/API/Cocoa/WKUserScriptPrivate.h: Ditto.
+
+        * UIProcess/API/Cocoa/WKWebsiteDataRecord.h: Replaced WK_SET(...) with NSSet<...>.
+        * UIProcess/API/Cocoa/WKWebsiteDataStore.h: Ditto.
+        * UIProcess/API/Cocoa/WKWebsiteDataStore.mm: Ditto.
+        (-[WKWebsiteDataStore fetchDataRecordsOfTypes:completionHandler:]):
+        (-[WKWebsiteDataStore _fetchDataRecordsOfTypes:withOptions:completionHandler:]):
+
+        * UIProcess/API/Cocoa/WKWebsiteDataStorePrivate.h: Ditto.
+
+        * UIProcess/API/Cocoa/_WKProcessPoolConfiguration.h: Replaced WK_ARRAY(...) with NSArray<...>.
+
+        * UIProcess/API/Cocoa/_WKUserStyleSheet.h: Ditto.
+        * UIProcess/API/Cocoa/_WKUserStyleSheet.mm: Ditto.
+        (-[_WKUserStyleSheet initWithSource:forMainFrameOnly:]):
+        (-[_WKUserStyleSheet initWithSource:forMainFrameOnly:legacyWhitelist:legacyBlacklist:userContentWorld:]):
+        (-[_WKUserStyleSheet initWithSource:forMainFrameOnly:legacyWhitelist:legacyBlacklist:baseURL:userContentWorld:]):
+
+        * UIProcess/API/Cocoa/_WKWebsiteDataSize.h: Replaced WK_SET(...) with NSSet<...>.
+
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::pressureChangeWithEvent): Removed checking for pre-10.10.3 SDKs.
+
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInFrame.h: Replaced WK_ARRAY(...) with
+          NSArray<...>.
+
+        * mac/postprocess-framework-headers.sh: Removed sed rules for WK_ARRAY, WK_DICTIONARY and
+          WK_SET.
+
+2016-07-01  Chris Dumez  <cdumez@apple.com>
+
+        [iOS] Possible null Range dereference under computeAutocorrectionContext()
+        https://bugs.webkit.org/show_bug.cgi?id=159328
+        <rdar://problem/26766720>
+
+        Reviewed by Benjamin Poulain.
+
+        The code in computeAutocorrectionContext() was checking Editor::hasComposition()
+        before dereferencing Editor::compositionRange(). However, compositionRange()
+        can also return null in other cases (e.g. compositionStart == compositionEnd).
+
+        Drop the check for hasComposition() and do a null check on the value returned
+        by compositionRange() instead.
+
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::computeAutocorrectionContext):
+
+2016-07-01  Brent Fulgham  <bfulgham@apple.com>
+
+        Prevent crash when attempting to copy an image
+        https://bugs.webkit.org/show_bug.cgi?id=159288
+        <rdar://problem/23507828>
+
+        Reviewed by Brady Eidson.
+        
+        WebKit could crash if the HTMLImageElement had a null cachedImage member.
+        A little investigation showed that the URL we retrieve from the cachedImage
+        is never used, so rather than adding a null check, let's just pass a
+        default argument. The actual URL gets read from elsewhere in the pasteboard
+        processing code.
+
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::performActionOnElement): Don't bother passing the
+        unused URL argument to the pasteboard method.
+
+2016-07-01  Brady Eidson  <beidson@apple.com>
+
+        Blob content type not preserved when retrieving blobs from IndexedDB.
+        <rdar://problem/27057357> and https://bugs.webkit.org/show_bug.cgi?id=159360
+
+        Reviewed by Alex Christensen.
+
+        * NetworkProcess/FileAPI/NetworkBlobRegistry.cpp:
+        (WebKit::NetworkBlobRegistry::registerBlobURLOptionallyFileBacked):
+        * NetworkProcess/FileAPI/NetworkBlobRegistry.h:
+
+        * NetworkProcess/NetworkConnectionToWebProcess.cpp:
+        (WebKit::NetworkConnectionToWebProcess::registerBlobURLOptionallyFileBacked):
+        * NetworkProcess/NetworkConnectionToWebProcess.h:
+        * NetworkProcess/NetworkConnectionToWebProcess.messages.in:
+
+        * WebProcess/FileAPI/BlobRegistryProxy.cpp:
+        (WebKit::BlobRegistryProxy::registerBlobURLOptionallyFileBacked):
+        * WebProcess/FileAPI/BlobRegistryProxy.h:
+
+2016-07-01  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] Get rid of WK_NULLABLE_SPECIFIER now that all supported compilers understand _Nullable
+        https://bugs.webkit.org/show_bug.cgi?id=159361
+
+        Reviewed by Anders Carlsson.
+
+        * Shared/API/Cocoa/WKFoundation.h:
+        * UIProcess/API/Cocoa/WKNavigationDelegate.h:
+        * UIProcess/API/Cocoa/WKUIDelegate.h:
+        * UIProcess/API/Cocoa/WKWebView.h:
+        * mac/postprocess-framework-headers.sh:
+
+2016-07-01  Youenn Fablet  <youennf@gmail.com>
+
+        Add a runtime flag for DOM iterators
+        https://bugs.webkit.org/show_bug.cgi?id=159300
+
+        Reviewed by Alex Christensen.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+        (WebKit::InjectedBundle::overrideBoolPreferenceForTestRunner):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-07-01  Andreas Kling  <akling@apple.com>
+
+        [Mac] Get rid of the old timey rubber-banding linen pattern.
+        <https://webkit.org/b/159329>
+
+        Reviewed by Benjamin Poulain.
+
+        * Shared/mac/RemoteLayerTreePropertyApplier.mm:
+        (WebKit::updateCustomAppearance):
+
+2016-06-30  Tina Liu  <iting_liu@apple.com>
+
+        Add SPI to allow restoring session state without navigation in WKPage
+        https://bugs.webkit.org/show_bug.cgi?id=159326
+
+        Reviewed by Brady Eidson.
+
+        * UIProcess/API/C/WKPage.cpp:
+        (restoreFromSessionState):
+        Added a helper function that takes a bool parameter to specify whether
+        to navigate or not when restoring from the session state.
+        (WKPageRestoreFromSessionState):
+        Calling restoreFromSessionState, passing navigate = true.
+        (WKPageRestoreFromSessionStateWithoutNavigation):
+        Ditto but passing navigate = false.
+        * UIProcess/API/C/WKPagePrivate.h:
+
+2016-06-30  Chris Dumez  <cdumez@apple.com>
+
+        [iOS] WebContent processes do not exit promptly
+        https://bugs.webkit.org/show_bug.cgi?id=159301
+        <rdar://problem/26965488>
+
+        Reviewed by Anders Carlsson.
+
+        WebContent processes do not exit promptly, they hang around for 10 seconds
+        until the watchdog forcefully calls exit().
+
+        This patch addresses the issue by asking XPC to exit when clean. It also
+        fixes 2 XPC transactions that were leaking so that XPC can become clean.
+
+        * DatabaseProcess/EntryPoint/mac/XPCService/DatabaseServiceEntryPoint.mm:
+        (DatabaseServiceInitializer):
+        * NetworkProcess/EntryPoint/mac/XPCService/NetworkServiceEntryPoint.mm:
+        (NetworkServiceInitializer):
+        * PluginProcess/EntryPoint/mac/XPCService/PluginServiceEntryPoint.mm:
+        (PluginServiceInitializer):
+        * WebProcess/EntryPoint/mac/XPCService/WebContentServiceEntryPoint.mm:
+        (WebContentServiceInitializer):
+        Add extra priorityBoostMessage parameter which is then passed along to
+        ChildProcess via initialization parameters. ChildProcess is now in
+        charge of retaining the message for as long as it needs the priority
+        boost. In particular, ChildProcess now takes care of releasing the
+        boost message before existing to avoid leaking an XPC transaction.
+
+        * Shared/ChildProcess.cpp:
+        (WebKit::ChildProcess::initialize):
+        Retain priorityBoostMessage as a data member.
+
+        (WebKit::ChildProcess::stopRunLoop):
+        (WebKit::ChildProcess::platformStopRunLoop):
+        * Shared/ios/ChildProcessIOS.mm:
+        (WebKit::ChildProcess::platformStopRunLoop):
+        On iOS, call XPCServiceExit() to exit instead of RunLoop::main().stop()
+        which did not work.
+
+        * Shared/ChildProcess.h:
+        * Shared/EntryPointUtilities/mac/XPCService/XPCServiceEntryPoint.h:
+        (WebKit::XPCServiceInitializer):
+        Set priorityBoostMessage on ChildProcessInitializationParameters.
+
+        * Shared/EntryPointUtilities/mac/XPCService/XPCServiceEntryPoint.mm:
+        (WebKit::XPCServiceExit):
+        Add XPCServiceExit() function which destroys the priority boost
+        message, calls xpc_transaction_end() to balance the
+        xpc_transaction_begin() in XPCServiceInitializer() and then call
+        xpc_transaction_exit_clean() to ask XPC to exit when clean.
+
+        * Shared/EntryPointUtilities/mac/XPCService/XPCServiceMain.mm:
+        (WebKit::XPCServiceEventHandler):
+        Leaking the "pre-bootstrap" event for priority boosting would cause us to
+        leak an XPC transaction, which would prevent XPC from becoming clean and
+        exiting. Instead, we now pass it along to the initialization function.
+        We then pass it to ChildProcess which manages the lifetime of this message
+        instead of leaking it.
+
 2016-06-30  Brian Burg  <bburg@apple.com>
 
         REGRESSION(r202329): WebInspectorProxy's WKPagePolicyClient callbacks are not being called

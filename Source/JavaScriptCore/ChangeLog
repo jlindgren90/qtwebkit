@@ -1,3 +1,212 @@
+2016-07-01  Saam Barati  <sbarati@apple.com>
+
+        fix "ASSERTION FAILED: currentOffset() >= currentLineStartOffset()"
+        https://bugs.webkit.org/show_bug.cgi?id=158572
+        <rdar://problem/26884092>
+
+        Reviewed by Mark Lam.
+
+        There is a bug in our lexer when we notice the pattern:
+        ```<return|continue|break|...etc> // some comment here```
+        Our code will say that the token for the comment is a semicolon.
+        This is the correct semantics, however, it would give the semicolon
+        a start offset of the comment, but it will give its line start offset
+        the newline after the comment.  This breaks the invariant in the lexer/parser
+        that the offset for the current line starting point must be less than or equal to
+        than the start offset of any token on that line. This invariant was broken because
+        the line start offset was greater than the token start offset. To maintain this
+        invariant, we claim that the semicolon token is located where the comment starts,
+        and that its line start offset is the line start offset for the line with the
+        comment on it.  There are other solutions that maintain this invariant, but this
+        solution provides the best error messages.
+
+        * parser/Lexer.cpp:
+        (JSC::Lexer<T>::lex):
+        * parser/Parser.h:
+        (JSC::Parser::internalSaveLexerState):
+        * tests/stress/obscure-error-message-dont-crash.js: Added.
+        (try.eval.or.catch):
+
+2016-07-01  Benjamin Poulain  <bpoulain@apple.com>
+
+        __defineGetter__/__defineSetter__ should throw exceptions
+        https://bugs.webkit.org/show_bug.cgi?id=142934
+
+        Reviewed by Mark Lam.
+
+        * runtime/ObjectPrototype.cpp:
+        (JSC::objectProtoFuncDefineGetter):
+        (JSC::objectProtoFuncDefineSetter):
+
+2016-07-01  Jon Davis  <jond@apple.com>
+
+        Moved Web Animations and Resource Timing feature entries to WebCore.
+        https://bugs.webkit.org/show_bug.cgi?id=159356
+
+        Reviewed by Timothy Hatcher.
+
+        * features.json:
+
+2016-07-01  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Date.toGMTString should be the Date.toUTCString function
+        https://bugs.webkit.org/show_bug.cgi?id=159318
+
+        Reviewed by Mark Lam.
+
+        See https://tc39.github.io/ecma262/#sec-date.prototype.togmtstring
+
+        * runtime/DatePrototype.cpp:
+        (JSC::DatePrototype::finishCreation):
+        (JSC::dateProtoFuncToGMTString): Deleted.
+
+2016-07-01  Mark Lam  <mark.lam@apple.com>
+
+        Update JSC_functionOverrides to handle the new SourceCode strings that have params.
+        https://bugs.webkit.org/show_bug.cgi?id=159321
+
+        Reviewed by Geoffrey Garen.
+
+        And add tests so that this won't fail silently and bit rot anymore.
+
+        * API/tests/FunctionOverridesTest.cpp: Added.
+        (testFunctionOverrides):
+        * API/tests/FunctionOverridesTest.h: Added.
+        * API/tests/testapi-function-overrides.js: Added.
+        * API/tests/testapi.c:
+        (main):
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/UnlinkedFunctionExecutable.cpp:
+        (JSC::UnlinkedFunctionExecutable::link):
+        * shell/PlatformWin.cmake:
+        * tools/FunctionOverrides.cpp:
+        (JSC::FunctionOverrides::FunctionOverrides):
+        (JSC::FunctionOverrides::reinstallOverrides):
+        (JSC::initializeOverrideInfo):
+        (JSC::FunctionOverrides::initializeOverrideFor):
+        * tools/FunctionOverrides.h:
+        (JSC::FunctionOverrides::clear):
+
+2016-07-01  Caio Lima  <ticaiolima@gmail.com>
+
+        ES6: Implement HasRestrictedGlobalProperty when checking for global lexical tier conflicts
+        https://bugs.webkit.org/show_bug.cgi?id=148763
+
+        Reviewed by Saam Barati
+
+        I've implemented the ES6 spec 8.1.1.4.14
+        (http://www.ecma-international.org/ecma-262/6.0/index.html#sec-hasrestrictedglobalproperty)
+        that defines when a global property can be shadowed.
+
+        Added some test cases into global-lexical-redeclare-variable.js
+
+        * runtime/Executable.cpp:
+        (JSC::ProgramExecutable::initializeGlobalProperties):
+        * tests/stress/global-lexical-redeclare-variable.js:
+        (catch):
+        * tests/stress/multiple-files-tests/global-lexical-redeclare-variable/eighth.js: Added.
+        * tests/stress/multiple-files-tests/global-lexical-redeclare-variable/nineth.js: Added.
+        * tests/stress/multiple-files-tests/global-lexical-redeclare-variable/seventh.js: Added.
+        * tests/stress/multiple-files-tests/global-lexical-redeclare-variable/sixth.js:
+        * tests/stress/multiple-files-tests/global-lexical-redeclare-variable/tenth.js: Added.
+
+2016-07-01  Youenn Fablet  <youennf@gmail.com>
+
+        Add a runtime flag for DOM iterators
+        https://bugs.webkit.org/show_bug.cgi?id=159300
+
+        Reviewed by Alex Christensen.
+
+        * runtime/CommonIdentifiers.h:
+
+2016-06-30  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Wrong function name next to scope
+        https://bugs.webkit.org/show_bug.cgi?id=158210
+        <rdar://problem/26543093>
+
+        Reviewed by Timothy Hatcher.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        Add DebuggerLocation. A helper for describing a unique location.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::setConstantRegisters):
+        When compiled with debug info, add a SymbolTable rare data pointer
+        back to the CodeBlock. This will be used later to get JSScope debug
+        info if Web Inspector pauses.
+
+        * runtime/SymbolTable.h:
+        * runtime/SymbolTable.cpp:
+        (JSC::SymbolTable::cloneScopePart):
+        (JSC::SymbolTable::prepareForTypeProfiling):
+        (JSC::SymbolTable::uniqueIDForVariable):
+        (JSC::SymbolTable::uniqueIDForOffset):
+        (JSC::SymbolTable::globalTypeSetForOffset):
+        (JSC::SymbolTable::globalTypeSetForVariable):
+        Rename rareData and include a CodeBlock pointer.
+
+        (JSC::SymbolTable::rareDataCodeBlock):
+        (JSC::SymbolTable::setRareDataCodeBlock):
+        Setter and getter for the rare data. It should only be set once.
+
+        (JSC::SymbolTable::visitChildren):
+        Visit the rare data code block if we have one.
+
+        * runtime/JSSymbolTableObject.h:
+        * runtime/JSSymbolTableObject.cpp:
+        (JSC::JSSymbolTableObject::deleteProperty):
+        (JSC::JSSymbolTableObject::getOwnNonIndexPropertyNames):
+        Give JSSymbolTable its own class info. JSWithScope was unexpectedly
+        inheriting from JSSymbolTable since it did not have its own and
+        was using JSScope's class info. Also do a bit of cleanup.
+
+        * debugger/DebuggerLocation.cpp: Added.
+        (JSC::DebuggerLocation::DebuggerLocation):
+        * debugger/DebuggerLocation.h: Added.
+        (JSC::DebuggerLocation::DebuggerLocation):
+        Construction from a ScriptExecutable.
+
+        * runtime/JSScope.cpp:
+        (JSC::JSScope::symbolTable):
+        * runtime/JSScope.h:
+        * debugger/DebuggerScope.h:
+        * debugger/DebuggerScope.cpp:
+        (JSC::DebuggerScope::name):
+        (JSC::DebuggerScope::location):
+        Name and location for a scope. This uses:
+        JSScope -> SymbolTable -> CodeBlock -> Executable
+
+        * inspector/protocol/Debugger.json:
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.CallFrameProxy.prototype._wrapScopeChain):
+        (InjectedScript.CallFrameProxy._createScopeJson):
+        * inspector/JSJavaScriptCallFrame.cpp:
+        (Inspector::valueForScopeType):
+        (Inspector::valueForScopeLocation):
+        (Inspector::JSJavaScriptCallFrame::scopeDescriptions):
+        (Inspector::JSJavaScriptCallFrame::scopeType): Deleted.
+        * inspector/JSJavaScriptCallFrame.h:
+        * inspector/JSJavaScriptCallFramePrototype.cpp:
+        (Inspector::JSJavaScriptCallFramePrototype::finishCreation):
+        (Inspector::jsJavaScriptCallFramePrototypeFunctionScopeDescriptions):
+        (Inspector::jsJavaScriptCallFramePrototypeFunctionScopeType): Deleted.
+        Simplify this code to build the objects we will send across the protocol
+        to descript a Scope.
+
+2016-06-30  Saam Barati  <sbarati@apple.com>
+
+        missing exception checks in arrayProtoFuncReverse
+        https://bugs.webkit.org/show_bug.cgi?id=159319
+        <rdar://problem/27083696>
+
+        Reviewed by Filip Pizlo.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::arrayProtoFuncToString):
+        (JSC::arrayProtoFuncReverse):
+
 2016-06-30  Saam Barati  <sbarati@apple.com>
 
         get_by_id_with_this does not trigger a to_this in caller.

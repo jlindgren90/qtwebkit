@@ -892,6 +892,9 @@ void HTMLMediaElement::scheduleDelayedAction(DelayedActionType actionType)
     if (actionType & MediaEngineUpdated)
         setFlags(m_pendingActionFlags, MediaEngineUpdated);
 
+    if (actionType & UpdatePlayState)
+        setFlags(m_pendingActionFlags, UpdatePlayState);
+
     m_pendingActionTimer.startOneShot(0);
 }
 
@@ -979,6 +982,9 @@ void HTMLMediaElement::pendingActionTimerFired()
 
     if (pendingActions & MediaEngineUpdated)
         mediaEngineWasUpdated();
+
+    if (pendingActions & UpdatePlayState)
+        updatePlayState();
 }
 
 MediaError* HTMLMediaElement::error() const
@@ -2274,7 +2280,7 @@ void HTMLMediaElement::setReadyState(MediaPlayer::ReadyState state)
         logMediaLoadRequest(document().page(), m_player->engineDescription(), String(), true);
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
-        updateMediaState(UpdateMediaState::Asynchronously);
+        updateMediaState(UpdateState::Asynchronously);
 #endif
 
         m_mediaSession->clientCharacteristicsChanged();
@@ -3131,7 +3137,7 @@ bool HTMLMediaElement::playInternal()
 
     m_autoplaying = false;
     updatePlayState();
-    updateMediaController();
+
     return true;
 }
 
@@ -3363,7 +3369,7 @@ void HTMLMediaElement::setMuted(bool muted)
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
-        updateMediaState(UpdateMediaState::Asynchronously);
+        updateMediaState(UpdateState::Asynchronously);
 #endif
     }
 
@@ -4425,7 +4431,7 @@ void HTMLMediaElement::mediaPlayerTimeChanged(MediaPlayer*)
         m_sentEndEvent = false;
     }
 
-    updatePlayState();
+    updatePlayState(UpdateState::Asynchronously);
     endProcessingMediaPlayerCallback();
 }
 
@@ -4601,7 +4607,7 @@ void HTMLMediaElement::mediaEngineWasUpdated()
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
-    updateMediaState(UpdateMediaState::Asynchronously);
+    updateMediaState(UpdateState::Asynchronously);
 #endif
 }
 
@@ -4835,8 +4841,13 @@ void HTMLMediaElement::updateVolume()
 #endif
 }
 
-void HTMLMediaElement::updatePlayState()
+void HTMLMediaElement::updatePlayState(UpdateState updateState)
 {
+    if (updateState == UpdateState::Asynchronously) {
+        scheduleDelayedAction(UpdatePlayState);
+        return;
+    }
+
     if (!m_player)
         return;
 
@@ -4929,14 +4940,14 @@ void HTMLMediaElement::setPlaying(bool playing)
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
-    updateMediaState(UpdateMediaState::Asynchronously);
+    updateMediaState(UpdateState::Asynchronously);
 #endif
 }
 
 void HTMLMediaElement::setPausedInternal(bool b)
 {
     m_pausedInternal = b;
-    updatePlayState();
+    updatePlayState(UpdateState::Asynchronously);
 }
 
 void HTMLMediaElement::stopPeriodicTimers()
@@ -5228,7 +5239,7 @@ void HTMLMediaElement::mediaPlayerCurrentPlaybackTargetIsWirelessChanged(MediaPl
     m_mediaSession->isPlayingToWirelessPlaybackTargetChanged(m_isPlayingToWirelessTarget);
     if (m_isPlayingToWirelessTarget)
         m_mediaSession->setCanProduceAudio(true);
-    updateMediaState(UpdateMediaState::Asynchronously);
+    updateMediaState(UpdateState::Asynchronously);
 }
 
 bool HTMLMediaElement::dispatchEvent(Event& event)
@@ -5273,7 +5284,7 @@ bool HTMLMediaElement::removeEventListener(const AtomicString& eventType, EventL
     if (didRemoveLastAvailabilityChangedListener) {
         m_hasPlaybackTargetAvailabilityListeners = false;
         m_mediaSession->setHasPlaybackTargetAvailabilityListeners(*this, false);
-        updateMediaState(UpdateMediaState::Asynchronously);
+        updateMediaState(UpdateState::Asynchronously);
     }
 
     return true;
@@ -5286,7 +5297,7 @@ void HTMLMediaElement::enqueuePlaybackTargetAvailabilityChangedEvent()
     auto event = WebKitPlaybackTargetAvailabilityEvent::create(eventNames().webkitplaybacktargetavailabilitychangedEvent, hasTargets);
     event->setTarget(this);
     m_asyncEventQueue.enqueueEvent(WTFMove(event));
-    updateMediaState(UpdateMediaState::Asynchronously);
+    updateMediaState(UpdateState::Asynchronously);
 }
 
 void HTMLMediaElement::setWirelessPlaybackTarget(Ref<MediaPlaybackTarget>&& device)
@@ -6851,9 +6862,9 @@ bool HTMLMediaElement::shouldOverrideBackgroundPlaybackRestriction(PlatformMedia
 }
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
-void HTMLMediaElement::updateMediaState(UpdateMediaState updateState)
+void HTMLMediaElement::updateMediaState(UpdateState updateState)
 {
-    if (updateState == UpdateMediaState::Asynchronously) {
+    if (updateState == UpdateState::Asynchronously) {
         scheduleDelayedAction(CheckMediaState);
         return;
     }

@@ -1,3 +1,382 @@
+2016-07-01  Johan K. Jensen  <jj@johanjensen.dk>
+
+        Web Inspector: Sending XHR with UTF8 encoded data shows garbled data in Resource sidebar
+        https://bugs.webkit.org/show_bug.cgi?id=159358
+
+        Reviewed by Joseph Pecoraro.
+
+        Test: http/tests/inspector/network/xhr-request-data-encoded-correctly.html
+
+        * inspector/InspectorNetworkAgent.cpp:
+        (WebCore::buildObjectForResourceRequest):
+
+2016-07-01  Dean Jackson  <dino@apple.com>
+
+        "image-src" support is missing. We only support "-webkit-image-src"
+        https://bugs.webkit.org/show_bug.cgi?id=159373
+        <rdar://problem/27140443>
+
+        Patch by Brent Fulgham and Dean Jackson.
+        Reviewed by Dean Jackson and Brent Fulgham.
+
+        Support unprefixed image-set.
+
+        Test: fast/css/image-set-unprefixed.html
+
+        * css/CSSImageSetValue.cpp:
+        (WebCore::CSSImageSetValue::customCSSText):
+        * css/CSSParser.cpp:
+        (WebCore::isImageSetFunctionValue): New helper function
+        that checks prefixed and unprefixed form.
+        (WebCore::CSSParser::parseValue): Use the helper.
+        (WebCore::CSSParser::parseContent):
+        (WebCore::CSSParser::parseFillImage):
+        (WebCore::CSSParser::parseBorderImage):
+
+2016-07-01  Chris Dumez  <cdumez@apple.com>
+
+        Possible null Range dereference under AXObjectCache::visiblePositionFromCharacterOffset()
+        https://bugs.webkit.org/show_bug.cgi?id=159330
+        <rdar://problem/27123752>
+
+        Reviewed by Benjamin Poulain.
+
+        rangeForUnorderedCharacterOffsets() can return a null Range but we failed
+        to do a null check before dereferencing it.
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::AXObjectCache::visiblePositionFromCharacterOffset):
+
+2016-07-01  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r199087): window.focus() / window.close() can no longer be called by a Window's opener
+        https://bugs.webkit.org/show_bug.cgi?id=159364
+        <rdar://problem/27117169>
+
+        Reviewed by Gavin Barraclough.
+
+        window.focus() / window.close() could no longer be called by a Window's opener
+        after r199087, which would break focusing of open iWork documents on icloud.com.
+
+        Before r199087, we would construct a new function in the caller's context every
+        time window.focus and window.close was accessed. r199087 fixed the issue so that
+        we always call the same function. However, those functions are using
+        [CallWith=Document] and they are were no longer passed the *caller*'s document
+        as a result. This broke focus / close permission checking as the code needed the
+        caller's document to do the check.
+
+        This patch introduces [CallWith=CallerDocument] and [CallWith=CallerWindow] so
+        that the implementation can now pass the caller's Document / Window to the
+        implementation. The bindings rely on JSDOMWindow's callerDOMWindow() to get the
+        caller DOMWindow / document. This new functionality is now used for window.close
+        and window.focus to unbreak their permission checking.
+
+        Test: fast/dom/Window/child-window-focus.html
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateCallWith):
+        * bindings/scripts/IDLAttributes.txt:
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::focus):
+        * page/DOMWindow.h:
+        * page/DOMWindow.idl:
+
+2016-07-01  Chris Dumez  <cdumez@apple.com>
+
+        [iOS] Possible null Range dereference under computeAutocorrectionContext()
+        https://bugs.webkit.org/show_bug.cgi?id=159328
+        <rdar://problem/26766720>
+
+        Reviewed by Benjamin Poulain.
+
+        * editing/Editor.cpp:
+        (WebCore::Editor::compositionRange):
+        * editing/Editor.h:
+        Update to return a RefPtr instead of a PassRefPtr and use nullptr
+        instead of 0 in the implementation.
+
+2016-07-01  Jon Davis  <jond@apple.com>
+
+        Updated Picture element and WOFF 2 status
+        https://bugs.webkit.org/show_bug.cgi?id=159356
+
+        Reviewed by Timothy Hatcher.
+        
+        Status updates and clean-up to move Web Animations and Resource Timing entries from JSC to WebCore.
+
+        * features.json:
+
+2016-07-01  Andreas Kling  <akling@apple.com>
+
+        Add early return when processing content extensions if there aren't any.
+        <https://webkit.org/b/159363>
+
+        Reviewed by Antti Koivisto.
+
+        Short-circuit outta there if there aren't any extensions to query.
+
+        * contentextensions/ContentExtensionsBackend.cpp:
+        (WebCore::ContentExtensions::ContentExtensionsBackend::processContentExtensionRulesForLoad):
+
+2016-07-01  Eric Carlson  <eric.carlson@apple.com>
+
+        HTMLMediaElement::resume() may cause JavaScript execution
+        https://bugs.webkit.org/show_bug.cgi?id=159327
+        <rdar://problem/27131641>
+
+        Reviewed by Jer Noble.
+
+        HTMLMediaElement::updatePlayState can cause an element to begin playing and enter fullscreen,
+        which can result in a call to the media controls and JavaScript execution. Javascript is not
+        allowed allowed to run when a page resumes, so make the call to updatePlayState asynchronous.
+
+        No new tests, I wasn't able to create a test that triggers the crash.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::scheduleDelayedAction): Support UpdatePlayState.
+        (WebCore::HTMLMediaElement::pendingActionTimerFired): Ditto.
+        (WebCore::HTMLMediaElement::setReadyState): UpdateMediaState -> UpdateState.
+        (WebCore::HTMLMediaElement::playInternal): Don't call updateMediaController, it is called
+          by updatePlayState.
+        (WebCore::HTMLMediaElement::setMuted): UpdateMediaState -> UpdateState.
+        (WebCore::HTMLMediaElement::mediaPlayerTimeChanged): Ditto.
+        (WebCore::HTMLMediaElement::mediaEngineWasUpdated): Update media state asynchronously.
+        (WebCore::HTMLMediaElement::updatePlayState): Add parameter to allow update to happen
+          asynchronously.
+        (WebCore::HTMLMediaElement::setPlaying): UpdateMediaState -> UpdateState.
+        (WebCore::HTMLMediaElement::setPausedInternal): Update media state asynchronously.
+        (WebCore::HTMLMediaElement::mediaPlayerCurrentPlaybackTargetIsWirelessChanged):  
+          UpdateMediaState -> UpdateState.
+        (WebCore::HTMLMediaElement::removeEventListener): Ditto.
+        (WebCore::HTMLMediaElement::enqueuePlaybackTargetAvailabilityChangedEvent): Ditto.
+        (WebCore::HTMLMediaElement::updateMediaState): UpdateMediaState -> UpdateState
+        * html/HTMLMediaElement.h:
+        * html/HTMLMediaElementEnums.h: Add UpdatePlayState.
+
+2016-07-01  Brady Eidson  <beidson@apple.com>
+
+        Blob content type not preserved when retrieving blobs from IndexedDB.
+        <rdar://problem/27057357> and https://bugs.webkit.org/show_bug.cgi?id=159360
+
+        Reviewed by Alex Christensen.
+
+        Test: storage/indexeddb/modern/blob-svg-image.html
+
+        * fileapi/Blob.cpp:
+        (WebCore::Blob::Blob):
+
+        * fileapi/ThreadableBlobRegistry.cpp:
+        (WebCore::postToMainThread):
+        (WebCore::ThreadableBlobRegistry::registerBlobURLOptionallyFileBacked): Pass along the content type
+          to the blob registry so that if the file-backed blob takes over, it has the content type.
+        (WebCore::threadableQueue): Deleted.
+        * fileapi/ThreadableBlobRegistry.h:
+
+        * platform/network/BlobRegistry.h:
+
+        * platform/network/BlobRegistryImpl.cpp:
+        (WebCore::BlobRegistryImpl::registerBlobURL):
+        (WebCore::BlobRegistryImpl::registerBlobURLOptionallyFileBacked):
+        * platform/network/BlobRegistryImpl.h:
+
+2016-07-01  Youenn Fablet  <youenn@apple.com>
+
+        Make ResourceLoaderOptions derive from FetchOptions
+        https://bugs.webkit.org/show_bug.cgi?id=159345
+
+        Reviewed by Alex Christensen.
+
+        No change of behavior.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start):
+        * loader/CrossOriginPreflightChecker.cpp:
+        (WebCore::CrossOriginPreflightChecker::startPreflight):
+        * loader/ResourceLoaderOptions.h:
+        (WebCore::ResourceLoaderOptions::fetchOptions): Deleted.
+        (WebCore::ResourceLoaderOptions::setFetchOptions): Deleted.
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::willSendRequestInternal):
+        * loader/ThreadableLoader.h: Removing securityOrigin field (left over from https://bugs.webkit.org/show_bug.cgi?id=159221)
+
+2016-07-01  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Animations tests are crashing in debug mode.
+        https://bugs.webkit.org/show_bug.cgi?id=159335
+
+        Reviewed by Alex Christensen.
+
+        A MSVC runtime check fails because an uninitialized variable is being used.
+
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::keyframeStylesForAnimation):
+
+2016-07-01  Youenn Fablet  <youennf@gmail.com>
+
+        Add a runtime flag for DOM iterators
+        https://bugs.webkit.org/show_bug.cgi?id=159300
+
+        Reviewed by Alex Christensen.
+
+        * Modules/fetch/FetchHeaders.idl: Making iterator runtime-enabled.
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::setDOMIteratorEnabled):
+        (WebCore::RuntimeEnabledFeatures::domIteratorEnabled):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (ToMethodName): Fixing dOM -> dom casing issue.
+        (GenerateImplementation): Using addIterableProperties new method.
+        (addIterableProperties): Activating property addition according runtime flag if iterator is rnutime flagged.
+        * bindings/scripts/IDLParser.pm:
+        (parseOptionalIterableInterface): Adding extendedAttributes to iterable.
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::JSTestNodePrototype::finishCreation):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjPrototype::finishCreation):
+        * bindings/scripts/test/TestNode.idl: Making iterator runtime-enabled.
+        * bindings/scripts/test/TestObj.idl: Ditto.
+        * css/FontFaceSet.idl: Ditto.
+        * dom/NodeList.idl: Ditto.
+
+2016-07-01  Frederic Wang  <fwang.igalia.com>
+
+        Eliminate trailing whitespace in MathML code
+        https://bugs.webkit.org/show_bug.cgi?id=159091
+
+        Reviewed by Alex Christensen.
+
+        No new tests, behavior is unchanged.
+
+        * rendering/mathml/RenderMathMLBlock.cpp:
+        (WebCore::RenderMathMLBlock::baselinePosition):
+        (WebCore::RenderMathMLBlock::paint):
+        (WebCore::parseMathMLNamedSpace):
+        * rendering/mathml/RenderMathMLBlock.h:
+        * rendering/mathml/RenderMathMLFenced.cpp:
+        (WebCore::RenderMathMLFenced::updateFromElement):
+        (WebCore::RenderMathMLFenced::addChild):
+        * rendering/mathml/RenderMathMLFenced.h:
+        * rendering/mathml/RenderMathMLFraction.cpp:
+        (WebCore::RenderMathMLFraction::styleDidChange):
+        (WebCore::RenderMathMLFraction::paint):
+        * rendering/mathml/RenderMathMLFraction.h:
+        * rendering/mathml/RenderMathMLMath.h:
+        * rendering/mathml/RenderMathMLMenclose.h:
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        * rendering/mathml/RenderMathMLOperator.h:
+        * rendering/mathml/RenderMathMLRoot.cpp:
+        (WebCore::RenderMathMLRoot::paint):
+        * rendering/mathml/RenderMathMLScripts.cpp:
+        * rendering/mathml/RenderMathMLSpace.cpp:
+        * rendering/mathml/RenderMathMLSpace.h:
+        * rendering/mathml/RenderMathMLToken.h:
+        * rendering/mathml/RenderMathMLUnderOver.cpp:
+        * rendering/mathml/RenderMathMLUnderOver.h:
+
+2016-07-01  Frederic Wang  <fwang@igalia.com>
+
+        Small cleanup: Remove unused functions RenderObject::isRenderMathML*Wrapper
+        https://bugs.webkit.org/show_bug.cgi?id=159333
+
+        Reviewed by Alex Christensen.
+
+        After the refactoring of RenderMathMLRoot and RenderMathMLScripts, the anonymous flexbox
+        wrappers used in the old layout implementation have been removed. We thus remove the
+        corresponding isRender* function from RenderObject.
+
+        No new tests, behavior is unchanged.
+
+        * rendering/RenderObject.h:
+        (WebCore::RenderObject::isRenderMathMLRootWrapper): Deleted.
+        (WebCore::RenderObject::isRenderMathMLScriptsWrapper): Deleted.
+
+2016-07-01  Andreas Kling  <akling@apple.com>
+
+        [Mac] Get rid of the old timey rubber-banding linen pattern.
+        <https://webkit.org/b/159329>
+
+        Reviewed by Benjamin Poulain.
+
+        Remove the "ScrollingOverhang" custom GraphicsLayer appearance since that was only used to
+        install the old timey linen pattern behind the web content.
+
+        We now always just set the overhang area's background color to the document background color.
+
+        This fixes an issue where we could end up loading the linen pattern and keeping it in memory
+        despite never actually showing it on screen.
+
+        * platform/ScrollbarTheme.h:
+        (WebCore::ScrollbarTheme::setUpOverhangAreasLayerContents): Deleted.
+        * platform/graphics/GraphicsLayer.cpp:
+        * platform/graphics/GraphicsLayer.h:
+        * platform/graphics/ca/cocoa/PlatformCALayerCocoa.mm:
+        (PlatformCALayerCocoa::updateCustomAppearance):
+        * platform/mac/ScrollbarThemeMac.h:
+        * platform/mac/ScrollbarThemeMac.mm:
+        (WebCore::linenBackgroundColor): Deleted.
+        (WebCore::ScrollbarThemeMac::setUpOverhangAreaBackground): Deleted.
+        (WebCore::ScrollbarThemeMac::removeOverhangAreaBackground): Deleted.
+        (WebCore::ScrollbarThemeMac::setUpOverhangAreasLayerContents): Deleted.
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::updateOverflowControlsLayers):
+        (WebCore::RenderLayerCompositor::setRootExtendedBackgroundColor):
+
+2016-06-30  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Create a generic "linked-on-or-after" check for new CSP Rules
+        https://bugs.webkit.org/show_bug.cgi?id=159322
+        <rdar://problem/27117220>
+
+        Reviewed by Brent Fulgham.
+
+        Create a generic "linked-on-or-after" check for new CSP Rules and cleanup
+        quirks for Ecobee, Quora and XtraMat.
+
+        * platform/RuntimeApplicationChecks.h:
+        * platform/RuntimeApplicationChecks.mm:
+        (WebCore::IOSApplication::isEcobee): Deleted.
+        (WebCore::IOSApplication::isQuora): Deleted.
+        (WebCore::IOSApplication::isXtraMath): Deleted.
+
+2016-06-30  Antti Koivisto  <antti@apple.com>
+
+        WebContent crash due to RELEASE_ASSERT(!m_inLoadPendingImages) in StyleResolver::~StyleResolver()
+        https://bugs.webkit.org/show_bug.cgi?id=159307
+        <rdar://problem/26184868>
+
+        Reviewed by Andreas Kling.
+
+        Pseudo elements are resolved in RenderTreeUpdater (instead of Style::TreeResolver). Their resolution may trigger
+        resource loads which can cause synchronous layout (when failing synchronously) and lead to destruction of the
+        the style resolver in post layout task.
+
+        No known reliable way to test this.
+
+        * style/RenderTreeUpdater.cpp:
+        (WebCore::RenderTreeUpdater::commit):
+
+            Use PostResolutionCallbackDisabler in RenderTreeUpdater similarly to Style::TreeResolver. This prevents
+            post layout tasks from running synchronously and closes this particular crash path.
+
+2016-06-30  Antoine Quint  <graouts@apple.com>
+
+        Drawing an SVG image into a <canvas> that is not in the DOM draws the wrong region
+        https://bugs.webkit.org/show_bug.cgi?id=159276
+
+        Reviewed by Dean Jackson.
+
+        In the event where the <img> element that we are passing to CanvasRenderingContext2D.drawImage()
+        points to an SVG resource, we ensure that the container for the SVG image is sized to match the
+        HTML element. The necessity for setting this container size, explained in webkit.org/b/148845,
+        is that we must ensure a cached image does not have an outdated container size.
+
+        Tests: svg/as-image/img-with-svg-resource-in-dom-and-drawImage.html
+               svg/as-image/img-with-svg-resource-in-dom-no-size-and-drawImage.html
+               svg/as-image/img-with-svg-resource-not-in-dom-and-drawImage.html
+               svg/as-image/img-with-svg-resource-not-in-dom-no-size-and-drawImage.html
+
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::drawImage):
+
 2016-06-30  Eric Carlson  <eric.carlson@apple.com>
 
         getUserMedia() exposed, but not functional

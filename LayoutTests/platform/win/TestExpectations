@@ -169,7 +169,6 @@ http/tests/xmlhttprequest/upload-onprogress-event.html [ Skip ]
 fast/files [ Skip ]
 http/tests/fileapi [ Skip ]
 fast/forms/file/recover-file-input-in-unposted-form.html [ Skip ]
-http/tests/security/contentSecurityPolicy/blob-urls-match-self.html [ Skip ]
 http/tests/xmlhttprequest/post-blob-content-type-async.html [ Skip ]
 http/tests/xmlhttprequest/post-blob-content-type-sync.html [ Skip ]
 webkit.org/b/29287 http/tests/local/fileapi/ [ Skip ]
@@ -3097,8 +3096,6 @@ webkit.org/b/140216 fast/writing-mode/broken-ideograph-small-caps.html [ Failure
 webkit.org/b/117322 fast/writing-mode/vertical-subst-font-vert-no-dflt.html [ ImageOnlyFailure ]
 fast/writing-mode/Kusa-Makura-background-canvas.html [ Failure ]
 
-imported/w3c/html-templates/parsing-html-templates/creating-an-element-for-the-token/template-owner-document.html [ Pass Failure Timeout ]
-
 webkit.org/b/117322 printing/quirks-percentage-height-body.html [ ImageOnlyFailure ]
 webkit.org/b/117322 printing/quirks-percentage-height.html [ ImageOnlyFailure ]
 webkit.org/b/117322 printing/standards-percentage-heights.html [ ImageOnlyFailure ]
@@ -3223,9 +3220,6 @@ media/video-seek-to-current-time.html [ Skip ]
 # Weird black image sometimes
 webkit.org/b/148144 fast/css/will-change/will-change-creates-stacking-context.html [ ImageOnlyFailure ]
 
-# This operating system does not have language-sensitive font fallback.
-css3/line-break-language-sensitive [ Pass ImageOnlyFailure ]
-
 # TestRunner::cellForColumnAndRow() not implemented
 webkit.org/b/148354 accessibility/aria-table-content.html [ Skip ]
 
@@ -3332,6 +3326,9 @@ webkit.org/b/137204 svg/W3C-SVG-1.1/fonts-kern-01-t.svg [ Failure ]
 webkit.org/b/137204 svg/text/kerning.svg [ Failure ]
 webkit.org/b/137204 svg/text/text-hkern.svg [ Failure ]
 webkit.org/b/137204 svg/text/text-vkern.svg [ Failure ]
+
+# This test is WebKit2 only.
+fast/dom/Window/child-window-focus.html
 
 # SVG Fonts don't draw multibyte characters.
 webkit.org/b/154690 svg/W3C-SVG-1.1/text-align-08-b.svg [ Failure ]

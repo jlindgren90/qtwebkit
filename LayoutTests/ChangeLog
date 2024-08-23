@@ -1,3 +1,311 @@
+2016-07-01  Saam Barati  <sbarati@apple.com>
+
+        fix "ASSERTION FAILED: currentOffset() >= currentLineStartOffset()"
+        https://bugs.webkit.org/show_bug.cgi?id=158572
+        <rdar://problem/26884092>
+
+        Reviewed by Mark Lam.
+
+        * js/parser-syntax-check-expected.txt:
+        * js/script-tests/parser-syntax-check.js:
+        (invalid.or.break.catch):
+        (catch): Deleted.
+
+2016-07-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/history/page-cache-webdatabase-pending-transaction.html as flaky on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=159379
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-01  Johan K. Jensen  <jj@johanjensen.dk>
+
+        Web Inspector: Sending XHR with UTF8 encoded data shows garbled data in Resource sidebar
+        https://bugs.webkit.org/show_bug.cgi?id=159358
+
+        Reviewed by Joseph Pecoraro.
+
+        Based on Chromium patch:
+        <https://chromium.googlesource.com/chromium/src/+/bcbb663864624ab38b36731eb2edc839a90f9e65%5E%21/#F2>
+
+        * http/tests/inspector/network/xhr-request-data-encoded-correctly-expected.txt:
+        * http/tests/inspector/network/xhr-request-data-encoded-correctly.html:
+
+2016-07-01  Dean Jackson  <dino@apple.com>
+
+        "image-src" support is missing. We only support "-webkit-image-src"
+        https://bugs.webkit.org/show_bug.cgi?id=159373
+        <rdar://problem/27140443>
+
+        Patch by Brent Fulgham and Dean Jackson.
+        Reviewed by Dean Jackson and Brent Fulgham.
+
+        Convert some existing tests to use the unprefixed form,
+        and add a test that checks we are compatible with
+        the prefixed form.
+
+        * cssom/cssvalue-comparison-expected.txt:
+        * cssom/cssvalue-comparison.html:
+        * fast/css/cursor-parsing-image-set-expected.txt:
+        * fast/css/cursor-parsing-image-set.html:
+        * fast/css/image-set-setting-expected.txt:
+        * fast/css/image-set-unprefixed-expected.txt: Added.
+        * fast/css/image-set-unprefixed.html: Added.
+        * fast/css/script-tests/image-set-setting.js:
+        (testImageSetRule):
+
+2016-07-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Land test expectations for rdar://problem/27141291.
+
+        * platform/mac/TestExpectations:
+
+2016-07-01  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r199087): window.focus() / window.close() can no longer be called by a Window's opener
+        https://bugs.webkit.org/show_bug.cgi?id=159364
+        <rdar://problem/27117169>
+
+        Reviewed by Gavin Barraclough.
+
+        Add layout test coverage.
+
+        * fast/dom/Window/child-window-focus-expected.txt: Added.
+        * fast/dom/Window/child-window-focus.html: Added.
+
+2016-07-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Test gardening for Sierra WK1
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-01  Frederic Wang  <fwang@igalia.com>
+
+        Remove failure expectation for mathml/presentation/bug97990.html on ios-simulator
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-07-01  Benjamin Poulain  <bpoulain@apple.com>
+
+        __defineGetter__/__defineSetter__ should throw exceptions
+        https://bugs.webkit.org/show_bug.cgi?id=142934
+
+        Reviewed by Mark Lam.
+
+        * js/dom/dom-properties-are-configurable-expected.txt: Added.
+        * js/dom/dom-properties-are-configurable.html: Added.
+        * js/object-literal-duplicate-properties-expected.txt:
+        * js/property-getters-and-setters-expected.txt:
+        * js/script-tests/object-literal-duplicate-properties.js:
+        * js/script-tests/property-getters-and-setters.js:
+
+2016-07-01  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Date.toGMTString should be the Date.toUTCString function
+        https://bugs.webkit.org/show_bug.cgi?id=159318
+
+        Reviewed by Mark Lam.
+
+        * js/date-prototype-expected.txt: Added.
+        * js/date-prototype.html: Added.
+        * js/script-tests/date-prototype.js: Added.
+
+2016-07-01  Frederic Wang  <fwang@igalia.com>
+
+        Rebaseline some MathML tests.
+
+        Unreviewed test gardening.
+
+        * platform/gtk/mathml/opentype/munderover-window-resize-expected.txt: Removed.
+        * platform/ios-simulator/mathml/presentation/roots-expected.png: Added.
+        * platform/mac/mathml/opentype/munderover-window-resize-expected.png: Removed.
+
+2016-07-01  Frederic Wang  <fwang@igalia.com>
+
+        Update OS X and iOS expectations for some MathML pixel tests.
+        https://bugs.webkit.org/show_bug.cgi?id=159339
+
+        Unreviewed test gardening.
+
+        * mathml/opentype/fraction-line.html: Add a comment about font requirements.
+        * mathml/opentype/horizontal-munderover.html: Ditto.
+        * mathml/opentype/horizontal.html: Ditto.
+        * mathml/opentype/large-operators-italic-correction.html: Ditto.
+        * mathml/opentype/large-operators.html: Ditto.
+        * mathml/opentype/vertical.html: Ditto.
+        * mathml/presentation/attributes-mathvariant.html: Ditto.
+        * mathml/presentation/fractions-linethickness.html: Ditto.
+        * mathml/presentation/tokenElements-mathvariant.html: Ditto.
+        * mathml/radical-fallback.html: Ditto.
+        * platform/ios-simulator-wk1/TestExpectations: Update expectations.
+        * platform/ios-simulator-wk2/TestExpectations: Ditto.
+        * platform/ios-simulator-wk2/mathml/opentype/large-operators-expected.png: Removed.
+        * platform/ios-simulator-wk2/mathml/opentype/vertical-expected.png: Removed.
+        * platform/ios-simulator-wk2/mathml/presentation/mo-stretch-expected.png: Removed.
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/mathml/opentype/horizontal-expected.txt: Removed.
+        * platform/ios-simulator/mathml/opentype/horizontal-munderover-expected.txt: Removed.
+        * platform/ios-simulator/mathml/opentype/large-operators-expected.txt: Removed.
+        * platform/ios-simulator/mathml/opentype/opentype-stretchy-expected.png: Added.
+        * platform/ios-simulator/mathml/opentype/opentype-stretchy-horizontal-expected.png: Added.
+        * platform/ios-simulator/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+        * platform/ios-simulator/mathml/opentype/vertical-expected.txt: Removed.
+        * platform/ios-simulator/mathml/presentation/menclose-notation-default-longdiv-expected.png: Added.
+        * platform/ios-simulator/mathml/presentation/menclose-notation-values-expected.png: Added.
+        * platform/ios-simulator/mathml/presentation/mo-stretch-expected.png: Added.
+        * platform/ios-simulator/mathml/presentation/mo-stretch-expected.txt:
+        * platform/ios-simulator/mathml/presentation/mspace-children-expected.png: Added.
+        * platform/ios-simulator/mathml/radical-fallback-expected.png:
+        * platform/mac/TestExpectations: Update expectations.
+        * platform/mac/mathml/opentype/horizontal-expected.txt: Removed.
+        * platform/mac/mathml/opentype/horizontal-munderover-expected.txt: Removed.
+        * platform/mac/mathml/opentype/large-operators-expected.txt: Removed.
+        * platform/mac/mathml/opentype/opentype-stretchy-expected.png: Added.
+        * platform/mac/mathml/opentype/vertical-expected.txt: Removed.
+        * platform/mac/mathml/presentation/menclose-notation-values-expected.png:
+        * platform/mac/mathml/presentation/menclose-notation-values-expected.txt:
+        * platform/mac/mathml/presentation/mo-stretch-expected.png:
+        * platform/mac/mathml/presentation/mo-stretch-expected.txt:
+        * platform/mac/mathml/presentation/mspace-children-expected.png: Added.
+        * platform/mac/mathml/presentation/roots-expected.png:
+        * platform/mac/mathml/presentation/roots-expected.txt:
+        * platform/mac/mathml/radical-fallback-expected.png:
+        * platform/mac/mathml/radical-fallback-expected.txt:
+
+2016-07-01  Brady Eidson  <beidson@apple.com>
+
+        Blob content type not preserved when retrieving blobs from IndexedDB.
+        <rdar://problem/27057357> and https://bugs.webkit.org/show_bug.cgi?id=159360
+
+        Reviewed by Alex Christensen.
+
+        * storage/indexeddb/modern/blob-svg-image-expected.txt: Added.
+        * storage/indexeddb/modern/blob-svg-image.html: Added.
+        * storage/indexeddb/modern/resources/blob-svg-image.js: Added.
+        * storage/indexeddb/modern/resources/blob-svg-image1.html: Added.
+        * storage/indexeddb/modern/resources/blob-svg-image2.html: Added.
+
+2016-07-01  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Cleanup inspector/console/console-message.html
+        https://bugs.webkit.org/show_bug.cgi?id=159324
+
+        Reviewed by Brian Burg.
+
+        * inspector/console/console-message.html:
+
+2016-07-01  Frederic Wang  <fwang@igalia.com>
+
+        Rebaseline opentype-stretchy-horizontal.html for EFL.
+        https://bugs.webkit.org/show_bug.cgi?id=135561
+
+        Unreviewed test gardening.
+
+        * platform/efl/TestExpectations:
+        * platform/efl/mathml/opentype/opentype-stretchy-horizontal-expected.txt:
+
+2016-07-01  Frederic Wang  <fwang@igalia.com>
+
+        Regenerate EFL expectation for foreign-element-in-token.html
+        https://bugs.webkit.org/show_bug.cgi?id=133972
+
+        Unreviewed test gardening.
+
+        * platform/efl/TestExpectations:
+        * platform/efl/mathml/presentation/foreign-element-in-token-expected.txt: Added.
+
+2016-07-01  Frederic Wang  <fwang@igalia.com>
+
+        Fix warnings about non existent paths in TestExpectations
+
+        Unreviewed test gardening.
+
+        * platform/efl/TestExpectations:
+        * platform/gtk/TestExpectations:
+        * platform/win/TestExpectations:
+
+2016-07-01  Frederic Wang  <fwang@igalia.com>
+
+        Fix error in r202729
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations: Revert unintentional change of horizontal-munderover.
+
+2016-07-01  Frederic Wang  <fwang@igalia.com>
+
+        Reorganize and improve comments for MathML test expectations on ios and mac.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-06-30  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping flaky inspector/debugger/break-on-* tests
+        https://bugs.webkit.org/show_bug.cgi?id=159272
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-06-30  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Moving flaky expectation for inspector/codemirror/prettyprinting-css-rules.html from mac-wk1 to mac.
+        https://bugs.webkit.org/show_bug.cgi?id=153460
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-06-30  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Wrong function name next to scope
+        https://bugs.webkit.org/show_bug.cgi?id=158210
+        <rdar://problem/26543093>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/debugger/paused-scopes-expected.txt: Added.
+        * inspector/debugger/paused-scopes.html: Added.
+        * inspector/debugger/resources/paused-scopes.js: Added.
+        Test dumps the call frames and scope chains for each call frame
+        when pausing at different locations in a program. Outputting
+        the hashes we can see even identically named functions have
+        different hashes because their location is different.
+
+        * inspector/model/scope-chain-node.html:
+        Make the test more stable on debug builds which run slower.
+
+2016-06-30  Antoine Quint  <graouts@apple.com>
+
+        Drawing an SVG image into a <canvas> that is not in the DOM draws the wrong region
+        https://bugs.webkit.org/show_bug.cgi?id=159276
+
+        Reviewed by Dean Jackson.
+
+        Adding a series of new tests to check we correctly respect mismatching source and
+        destination rectangles with SVG images as sources, both with the source <img> element
+        being present and absent from the DOM, and explicit sizes being set or not set.
+
+        * svg/as-image/img-with-svg-resource-in-dom-and-drawImage-expected.html: Added.
+        * svg/as-image/img-with-svg-resource-in-dom-and-drawImage.html: Added.
+        * svg/as-image/img-with-svg-resource-in-dom-no-size-and-drawImage-expected.html: Added.
+        * svg/as-image/img-with-svg-resource-in-dom-no-size-and-drawImage.html: Added.
+        * svg/as-image/img-with-svg-resource-not-in-dom-and-drawImage-expected.html: Added.
+        * svg/as-image/img-with-svg-resource-not-in-dom-and-drawImage.html: Added.
+        * svg/as-image/img-with-svg-resource-not-in-dom-no-size-and-drawImage-expected.html: Added.
+        * svg/as-image/img-with-svg-resource-not-in-dom-no-size-and-drawImage.html: Added.
+
 2016-06-30  Antoine Quint  <graouts@apple.com>
 
         [iOS] Media controls are too cramped with small video
