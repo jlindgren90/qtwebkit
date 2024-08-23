@@ -30,6 +30,7 @@
 #include "NetworkLoadParameters.h"
 #include "RemoteNetworkingContext.h"
 #include <WebCore/ResourceHandleClient.h>
+#include <wtf/Optional.h>
 
 #if USE(NETWORK_SESSION)
 #include "DownloadID.h"
@@ -46,7 +47,7 @@ class NetworkLoad : public WebCore::ResourceHandleClient
 {
     WTF_MAKE_FAST_ALLOCATED;
 public:
-    NetworkLoad(NetworkLoadClient&, const NetworkLoadParameters&);
+    NetworkLoad(NetworkLoadClient&, NetworkLoadParameters&&);
     ~NetworkLoad();
 
     void setDefersLoading(bool);
@@ -123,7 +124,7 @@ private:
     const NetworkLoadParameters m_parameters;
 #if USE(NETWORK_SESSION)
     RefPtr<NetworkDataTask> m_task;
-    WebCore::AuthenticationChallenge m_challenge;
+    Optional<WebCore::AuthenticationChallenge> m_challenge;
     ChallengeCompletionHandler m_challengeCompletionHandler;
     ResponseCompletionHandler m_responseCompletionHandler;
     RedirectCompletionHandler m_redirectCompletionHandler;

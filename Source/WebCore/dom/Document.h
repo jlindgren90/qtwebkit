@@ -47,7 +47,6 @@
 #include "StringWithDirection.h"
 #include "StyleChange.h"
 #include "Supplementable.h"
-#include "TextAutoSizing.h"
 #include "TextResourceDecoder.h"
 #include "Timer.h"
 #include "TreeScope.h"
@@ -214,6 +213,12 @@ class DeviceOrientationController;
 struct TextAutoSizingHash;
 class TextAutoSizingKey;
 class TextAutoSizingValue;
+
+struct TextAutoSizingTraits : WTF::GenericHashTraits<TextAutoSizingKey> {
+    static const bool emptyValueIsZero = true;
+    static void constructDeletedValue(TextAutoSizingKey& slot);
+    static bool isDeletedValue(const TextAutoSizingKey& value);
+};
 #endif
 
 #if ENABLE(MEDIA_SESSION)
@@ -390,9 +395,7 @@ public:
     WEBCORE_EXPORT RefPtr<Element> createElementNS(const String& namespaceURI, const String& qualifiedName, ExceptionCode&);
     WEBCORE_EXPORT Ref<Element> createElement(const QualifiedName&, bool createdByParser);
 
-#if ENABLE(CUSTOM_ELEMENTS) || ENABLE(SHADOW_DOM)
     static CustomElementNameValidationStatus validateCustomElementName(const AtomicString&);
-#endif
 
 #if ENABLE(CSS_GRID_LAYOUT)
     bool isCSSGridLayoutEnabled() const;

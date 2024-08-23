@@ -1,3 +1,138 @@
+2016-06-14  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Rename DataGrid.showColumn to setColumnVisible
+        https://bugs.webkit.org/show_bug.cgi?id=158764
+        <rdar://problem/26801448>
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid):
+        Drive-by update to initialize "this._columnChooserEnabled".
+
+        (WebInspector.DataGrid.prototype.set identifier):
+        (WebInspector.DataGrid.prototype.insertColumn):
+        (WebInspector.DataGrid.prototype._collapseColumnGroupWithCell):
+        Use new method name.
+
+        (WebInspector.DataGrid.prototype._contextMenuInHeader):
+        Drive-by style update.
+
+2016-06-14  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Storage tab should allow hiding columns in the cookies grid
+        https://bugs.webkit.org/show_bug.cgi?id=158767
+        <rdar://problem/26803568>
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/CookieStorageContentView.js:
+        (WebInspector.CookieStorageContentView.prototype._rebuildTable):
+        Enable column chooser, exclude Name and Value columns.
+
+2016-06-14  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Visual Sidebar: Remove "Text -> Content" subsection
+        https://bugs.webkit.org/show_bug.cgi?id=158758
+        <rdar://problem/26799628>
+
+        Reviewed by Timothy Hatcher.
+
+        "content" CSS property only works with pseudo elements ::before and ::after.
+        It doesn't do anything for regular (non pseudo) elements. Remove it to
+        reduce UI clutter.
+
+        * UserInterface/Views/VisualStyleDetailsPanel.js:
+        (WebInspector.VisualStyleDetailsPanel.prototype.initialLayout):
+        (WebInspector.VisualStyleDetailsPanel.prototype._populateContentSection): Deleted.
+        * UserInterface/Views/VisualStylePropertyEditor.css:
+        (.visual-style-property-container > *:first-child:matches(.visual-style-property-value-container)): Deleted.
+
+2016-06-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Rename Timeline.setAutoCaptureInstruments to Timeline.setInstruments
+        https://bugs.webkit.org/show_bug.cgi?id=158762
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Controllers/TimelineManager.js:
+        (WebInspector.TimelineManager.prototype._updateAutoCaptureInstruments):
+        (WebInspector.TimelineManager):
+
+2016-06-14  Benjamin Poulain  <bpoulain@apple.com>
+
+        Add the unprefixed version of the pseudo element ::placeholder
+        https://bugs.webkit.org/show_bug.cgi?id=158653
+
+        Reviewed by Dean Jackson.
+
+        * UserInterface/Views/FilterBar.css:
+        (.filter-bar > input[type="search"]::placeholder):
+        (.filter-bar > input[type="search"]::-webkit-input-placeholder): Deleted.
+        * UserInterface/Views/FindBanner.css:
+        (.find-banner.console-find-banner > input[type="search"]::placeholder):
+        (.find-banner.console-find-banner > input[type="search"]::-webkit-input-placeholder): Deleted.
+        * UserInterface/Views/GoToLineDialog.css:
+        (.go-to-line-dialog > div > input::placeholder):
+        (.go-to-line-dialog > div > input::-webkit-input-placeholder): Deleted.
+        * UserInterface/Views/OpenResourceDialog.css:
+        (.open-resource-dialog > .field > input::placeholder):
+        (.open-resource-dialog > .field > input::-webkit-input-placeholder): Deleted.
+        * UserInterface/Views/SearchBar.css:
+        (.search-bar > input[type="search"]::placeholder):
+        (.search-bar > input[type="search"]::-webkit-input-placeholder): Deleted.
+        * UserInterface/Views/VisualStyleCommaSeparatedKeywordEditor.css:
+
+2016-06-14  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Introduce --navigation-bar-height CSS variable
+        https://bugs.webkit.org/show_bug.cgi?id=158752
+
+        Reviewed by Timothy Hatcher.
+
+        Abstract a commonly repeated height value (29px) into a variable.
+
+        * UserInterface/Views/CSSStyleDetailsSidebarPanel.css:
+        (.sidebar > .panel.details.css-style > .content.has-filter-bar):
+        * UserInterface/Views/DebuggerSidebarPanel.css:
+        (.sidebar > .panel.navigation.debugger > :matches(.content, .empty-content-placeholder)):
+        * UserInterface/Views/FilterBar.css:
+        (.filter-bar):
+        * UserInterface/Views/NavigationBar.css:
+        (.navigation-bar):
+        * UserInterface/Views/NavigationSidebarPanel.css:
+        (.sidebar > .panel.navigation > .content):
+        (.sidebar > .panel.navigation > .overflow-shadow.top):
+        * UserInterface/Views/NetworkSidebarPanel.css:
+        (.sidebar > .panel.navigation.network > .title-bar):
+        * UserInterface/Views/ResourceSidebarPanel.css:
+        (.sidebar > .panel.navigation.resource > :matches(.content, .empty-content-placeholder)):
+        * UserInterface/Views/SearchSidebarPanel.css:
+        (.sidebar > .panel.navigation.search > :matches(.content, .empty-content-placeholder)):
+        (.sidebar > .panel.navigation.search > .search-bar):
+        * UserInterface/Views/Sidebar.css:
+        (.sidebar.has-navigation-bar > .panel):
+        * UserInterface/Views/StorageSidebarPanel.css:
+        (.sidebar > .panel.navigation.storage > :matches(.content, .empty-content-placeholder)):
+        * UserInterface/Views/TimelineRecordingContentView.css:
+        (.content-view.timeline-recording > .content-browser .recording-progress):
+        * UserInterface/Views/Variables.css:
+        (:root):
+
+2016-06-14  Saam Barati  <sbarati@apple.com>
+
+        Follow up to: Web Inspector: Call Trees view should have a 'Top Functions'-like mode
+        https://bugs.webkit.org/show_bug.cgi?id=158555
+        <rdar://problem/26712544>
+
+        Unreviewed follow up patch.
+
+        - Move a long if-else sequence to a switch statement.
+        - Fix a copy-paste typo in a Symbol(.) enum.
+
+        * UserInterface/Models/CallingContextTree.js:
+        (WebInspector.CallingContextTree.prototype.updateTreeWithStackTrace):
+
 2016-06-13  Joseph Pecoraro  <pecoraro@apple.com>
 
         Web Inspector: Show Exception Stack in UncaughtExceptionReporter view

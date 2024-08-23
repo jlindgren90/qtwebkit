@@ -1,3 +1,55 @@
+2016-06-15  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, follow up patch for r202092
+        https://bugs.webkit.org/show_bug.cgi?id=158661
+
+        During checking Windows port on EWS, accidentally introduce the regression.
+
+        * wtf/Platform.h:
+
+2016-06-15  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Move calling convention flags to WTF
+        https://bugs.webkit.org/show_bug.cgi?id=158661
+
+        Reviewed by Keith Miller.
+
+        * wtf/Platform.h:
+
+2016-06-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Honor bidi unicode codepoints
+        https://bugs.webkit.org/show_bug.cgi?id=149170
+        <rdar://problem/26527378>
+
+        Reviewed by Simon Fraser.
+
+        * wtf/unicode/CharacterNames.h:
+
+2016-06-14  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202057.
+        https://bugs.webkit.org/show_bug.cgi?id=158749
+
+        This change broke the Windows build. (Requested by ryanhaddad
+        on #webkit).
+
+        Reverted changeset:
+
+        "Honor bidi unicode codepoints"
+        https://bugs.webkit.org/show_bug.cgi?id=149170
+        http://trac.webkit.org/changeset/202057
+
+2016-06-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Honor bidi unicode codepoints
+        https://bugs.webkit.org/show_bug.cgi?id=149170
+        <rdar://problem/26527378>
+
+        Reviewed by Simon Fraser.
+
+        * wtf/unicode/CharacterNames.h:
+
 2016-06-13  Alex Christensen  <achristensen@webkit.org>
 
         Add WebSocketProvider stub
@@ -125,6 +177,8 @@
 
         Make platformUserPreferredLanguages() thread safe on Windows. The
         Mac and Unix implementations are already thread-safe.
+
+        HAS_FASTCALL_CALLING_CONVENTION is changed to COMPILER_SUPPORTS(FASTCALL_CALLING_CONVENTION).
 
 2016-06-10  Alex Christensen  <achristensen@webkit.org>
 

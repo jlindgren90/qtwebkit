@@ -208,7 +208,7 @@ void NetworkResourceLoader::startNetworkLoad(const ResourceRequest& request)
     NetworkLoadParameters parameters = m_parameters;
     parameters.defersLoading = m_defersLoading;
     parameters.request = request;
-    m_networkLoad = std::make_unique<NetworkLoad>(*this, parameters);
+    m_networkLoad = std::make_unique<NetworkLoad>(*this, WTFMove(parameters));
 }
 
 void NetworkResourceLoader::setDefersLoading(bool defers)
@@ -278,7 +278,7 @@ auto NetworkResourceLoader::didReceiveResponse(ResourceResponse&& receivedRespon
 {
     NETWORKRESOURCELOADER_LOG_ALWAYS("Received network resource response: loader = %p, pageID = %llu, frameID = %llu, isMainResource = %d, isSynchronous = %d, httpStatusCode = %d", this, m_parameters.webPageID, m_parameters.webFrameID, isMainResource(), isSynchronous(), receivedResponse.httpStatusCode());
 
-    m_response = receivedResponse;
+    m_response = WTFMove(receivedResponse);
 
     // For multipart/x-mixed-replace didReceiveResponseAsync gets called multiple times and buffering would require special handling.
     if (!isSynchronous() && m_response.isMultipart())

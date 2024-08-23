@@ -365,9 +365,10 @@ static bool decompose4(const TransformationMatrix::Matrix4& mat, TransformationM
         return false;
 
     int i, j;
-    for (i = 0; i < 4; i++)
+    for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++)
             localMatrix[i][j] /= localMatrix[3][3];
+    }
 
     // perspectiveMatrix is used to solve for perspective, but it also provides
     // an easy way to test for singularity of the upper 3x3 component.

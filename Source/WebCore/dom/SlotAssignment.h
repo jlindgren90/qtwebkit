@@ -26,7 +26,6 @@
 #ifndef SlotAssignment_h
 #define SlotAssignment_h
 
-#if ENABLE(SHADOW_DOM) || ENABLE(DETAILS_ELEMENT)
 
 #include "ShadowRoot.h"
 #include <functional>
@@ -134,6 +133,5 @@ inline void ShadowRoot::innerSlotDidChange(const AtomicString& name)
 
 }
 
-#endif
 
 #endif /* SlotAssignment_h */

@@ -41,31 +41,31 @@ namespace WebKit {
 
 using namespace WebCore;
 
-NetworkLoad::NetworkLoad(NetworkLoadClient& client, const NetworkLoadParameters& parameters)
+NetworkLoad::NetworkLoad(NetworkLoadClient& client, NetworkLoadParameters&& parameters)
     : m_client(client)
-    , m_parameters(parameters)
+    , m_parameters(WTFMove(parameters))
 #if !USE(NETWORK_SESSION)
-    , m_networkingContext(RemoteNetworkingContext::create(parameters.sessionID, parameters.shouldClearReferrerOnHTTPSToHTTPRedirect))
+    , m_networkingContext(RemoteNetworkingContext::create(m_parameters.sessionID, m_parameters.shouldClearReferrerOnHTTPSToHTTPRedirect))
 #endif
-    , m_currentRequest(parameters.request)
+    , m_currentRequest(m_parameters.request)
 {
 #if USE(NETWORK_SESSION)
-    if (parameters.request.url().protocolIsBlob()) {
-        m_handle = ResourceHandle::create(nullptr, parameters.request, this, parameters.defersLoading, parameters.contentSniffingPolicy == SniffContent);
+    if (m_parameters.request.url().protocolIsBlob()) {
+        m_handle = ResourceHandle::create(nullptr, m_parameters.request, this, m_parameters.defersLoading, m_parameters.contentSniffingPolicy == SniffContent);
         return;
     }
-    if (auto* networkSession = SessionTracker::networkSession(parameters.sessionID)) {
-        m_task = NetworkDataTask::create(*networkSession, *this, parameters.request, parameters.allowStoredCredentials, parameters.contentSniffingPolicy, parameters.shouldClearReferrerOnHTTPSToHTTPRedirect);
-        if (!parameters.defersLoading)
+    if (auto* networkSession = SessionTracker::networkSession(m_parameters.sessionID)) {
+        m_task = NetworkDataTask::create(*networkSession, *this, m_parameters.request, m_parameters.allowStoredCredentials, m_parameters.contentSniffingPolicy, m_parameters.shouldClearReferrerOnHTTPSToHTTPRedirect);
+        if (!m_parameters.defersLoading)
             m_task->resume();
     } else {
-        WTFLogAlways("Attempted to create a NetworkLoad with a session (id=%" PRIu64 ") that does not exist.", parameters.sessionID.sessionID());
-        RunLoop::current().dispatch([this, url = parameters.request.url()] {
+        WTFLogAlways("Attempted to create a NetworkLoad with a session (id=%" PRIu64 ") that does not exist.", m_parameters.sessionID.sessionID());
+        RunLoop::current().dispatch([this, url = m_parameters.request.url()] {
             didCompleteWithError(internalError(url));
         });
     }
 #else
-    m_handle = ResourceHandle::create(m_networkingContext.get(), parameters.request, this, parameters.defersLoading, parameters.contentSniffingPolicy == SniffContent);
+    m_handle = ResourceHandle::create(m_networkingContext.get(), m_parameters.request, this, m_parameters.defersLoading, m_parameters.contentSniffingPolicy == SniffContent);
 #endif
 }
 
@@ -359,15 +359,15 @@ void NetworkLoad::continueCanAuthenticateAgainstProtectionSpace(bool result)
     ASSERT(m_challengeCompletionHandler);
     auto completionHandler = std::exchange(m_challengeCompletionHandler, nullptr);
     if (!result) {
-        if (m_task && m_task->allowsSpecificHTTPSCertificateForHost(m_challenge))
-            completionHandler(AuthenticationChallengeDisposition::UseCredential, serverTrustCredential(m_challenge));
+        if (m_task && m_task->allowsSpecificHTTPSCertificateForHost(*m_challenge))
+            completionHandler(AuthenticationChallengeDisposition::UseCredential, serverTrustCredential(*m_challenge));
         else
             completionHandler(AuthenticationChallengeDisposition::RejectProtectionSpace, { });
         return;
     }
     
-    if (m_challenge.protectionSpace().authenticationScheme() == ProtectionSpaceAuthenticationSchemeServerTrustEvaluationRequested) {
-        completionHandler(AuthenticationChallengeDisposition::UseCredential, serverTrustCredential(m_challenge));
+    if (m_challenge->protectionSpace().authenticationScheme() == ProtectionSpaceAuthenticationSchemeServerTrustEvaluationRequested) {
+        completionHandler(AuthenticationChallengeDisposition::UseCredential, serverTrustCredential(*m_challenge));
         return;
     }
     
@@ -378,9 +378,9 @@ void NetworkLoad::continueCanAuthenticateAgainstProtectionSpace(bool result)
     
     if (m_task) {
         if (auto* pendingDownload = m_task->pendingDownload())
-            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(*pendingDownload, m_challenge, completionHandler);
+            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(*pendingDownload, *m_challenge, completionHandler);
         else
-            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(m_parameters.webPageID, m_parameters.webFrameID, m_challenge, completionHandler);
+            NetworkProcess::singleton().authenticationManager().didReceiveAuthenticationChallenge(m_parameters.webPageID, m_parameters.webFrameID, *m_challenge, completionHandler);
     }
 #endif
     if (m_handle)

@@ -3276,9 +3276,7 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
     RuntimeEnabledFeatures::sharedFeatures().setDownloadAttributeEnabled(store.getBoolValueForKey(WebPreferencesKey::downloadAttributeEnabledKey()));
 #endif
 
-#if ENABLE(SHADOW_DOM)
     RuntimeEnabledFeatures::sharedFeatures().setShadowDOMEnabled(store.getBoolValueForKey(WebPreferencesKey::shadowDOMEnabledKey()));
-#endif
 
     // Experimental Features.
 

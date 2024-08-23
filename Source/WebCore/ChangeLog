@@ -1,3 +1,427 @@
+2016-06-15  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        Enabling Shadow DOM for all platforms
+        https://bugs.webkit.org/show_bug.cgi?id=158738
+
+        Reviewed by Ryosuke Niwa.
+
+        No new tests (no new behavior to be tested).
+
+        Removed Shadow DOM from options (enabled by default)
+        (comprises removal of corresponding preprocessor directives)
+
+        * Configurations/FeatureDefines.xcconfig:
+        * DerivedSources.make:
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        * bindings/js/JSDocumentFragmentCustom.cpp:
+        * bindings/js/JSNodeCustom.cpp:
+        * css/CSSGrammar.y.in:
+        * css/CSSParser.cpp:
+        * css/CSSParserValues.cpp:
+        * css/CSSParserValues.h:
+        * css/CSSSelector.cpp:
+        * css/CSSSelector.h:
+        * css/ElementRuleCollector.cpp:
+        * css/ElementRuleCollector.h:
+        * css/RuleSet.cpp:
+        * css/RuleSet.h:
+        * css/SelectorChecker.cpp:
+        * css/SelectorChecker.h:
+        * css/SelectorPseudoClassAndCompatibilityElementMap.in:
+        * css/StyleResolver.cpp:
+        * cssjit/SelectorCompiler.cpp:
+        * dom/ComposedTreeAncestorIterator.h:
+        * dom/ComposedTreeIterator.cpp:
+        * dom/ComposedTreeIterator.h:
+        * dom/ContainerNode.cpp:
+        * dom/Document.cpp:
+        * dom/Document.h:
+        * dom/Element.cpp:
+        * dom/Element.h:
+        * dom/Element.idl:
+        * dom/Event.idl:
+        * dom/EventPath.cpp:
+        * dom/Node.cpp:
+        * dom/Node.h:
+        * dom/NonDocumentTypeChildNode.idl:
+        * dom/ShadowRoot.cpp:
+        * dom/ShadowRoot.h:
+        * dom/ShadowRoot.idl:
+        * dom/SlotAssignment.cpp:
+        * dom/SlotAssignment.h:
+        * html/HTMLSlotElement.cpp:
+        * html/HTMLSlotElement.h:
+        * html/HTMLSlotElement.idl:
+        * html/HTMLTagNames.in:
+        * page/FocusController.cpp:
+        * style/StyleSharingResolver.cpp:
+        * style/StyleTreeResolver.cpp:
+
+2016-06-15  Andreas Kling  <akling@apple.com>
+
+        [Cocoa] Add two notify listeners for poking the garbage collector.
+        <https://webkit.org/b/158783>
+
+        Reviewed by Antti Koivisto.
+
+        Add two new notify listeners:
+
+        - com.apple.WebKit.fullGC
+
+            Trigger a full garbage collection in the main WebCore VM immediately.
+
+        - com.apple.WebKit.deleteAllCode
+
+            Throw away all of JSC's linked and unlinked code, and do a full GC.
+
+        These will make it easier to diagnose memory growth issues by having a lever that
+        eliminates many of the large object graphs without going after behavior-changing things
+        like the memory cache.
+
+        * platform/MemoryPressureHandler.cpp:
+        (WebCore::MemoryPressureHandler::platformInitialize):
+        * platform/MemoryPressureHandler.h:
+        * platform/cocoa/MemoryPressureHandlerCocoa.mm:
+        (WebCore::MemoryPressureHandler::platformInitialize):
+
+2016-06-15  Antti Koivisto  <antti@apple.com>
+
+        Vary:Cookie validation doesn't work in private browsing
+        https://bugs.webkit.org/show_bug.cgi?id=158616
+        <rdar://problem/26755067>
+
+        Reviewed by Andreas Kling.
+
+        There wasn't a way to get cookie based on SessionID from WebCore.
+
+        * platform/CookiesStrategy.h:
+
+            Add a cookie retrival function that takes SessionID instead of NetworkStorageSession.
+
+        * platform/network/CacheValidation.cpp:
+        (WebCore::headerValueForVary):
+
+            Use it.
+
+        (WebCore::verifyVaryingRequestHeaders):
+
+2016-06-15  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] The test accessibility/selected-text-range-aria-elements.html is failing.
+        https://bugs.webkit.org/show_bug.cgi?id=158732
+
+        Reviewed by Brent Fulgham.
+
+        Implement support for getting selected text range.
+
+        * accessibility/win/AccessibilityObjectWrapperWin.cpp:
+        (WebCore::AccessibilityObjectWrapper::accessibilityAttributeValue):
+
+2016-06-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Addressing post-review comments after r201971
+        https://bugs.webkit.org/show_bug.cgi?id=158450
+
+        Unreviewed.
+
+        * css/CSSFontFaceSet.cpp:
+        (WebCore::CSSFontFaceSet::add):
+        (WebCore::CSSFontFaceSet::remove):
+
+2016-06-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Honor bidi unicode codepoints
+        https://bugs.webkit.org/show_bug.cgi?id=149170
+        <rdar://problem/26527378>
+
+        Reviewed by Simon Fraser.
+
+        BidiResolver doesn't have any concept of isolate Unicode code points, so produces
+        unexpected output when they are present. Fix by considering such code points as
+        whitespace in the bidi algorithm. This is a stop-gap measure until we can support
+        the codepoints fully in our Bidi algorithm.
+
+        Test: fast/text/isolate-ignore.html
+
+        * platform/graphics/Font.cpp:
+        (WebCore::createAndFillGlyphPage):
+        * platform/text/BidiResolver.h:
+        (WebCore::Subclass>::createBidiRunsForLine):
+
+2016-06-14  Antoine Quint  <graouts@apple.com>
+
+        [iOS] Play glyph is pixelated when the page zoom is large
+        https://bugs.webkit.org/show_bug.cgi?id=158770
+        <rdar://problem/26092124>
+
+        Reviewed by Dean Jackson.
+
+        Use the same technique that we use to scale the video controls by using a combination
+        of CSS "zoom" and "transform" properties to have the video play glyph scaled at its
+        native size regardless of page zoom.
+
+        * Modules/mediacontrols/mediaControlsiOS.js:
+        (ControllerIOS.prototype.set pageScaleFactor):
+
+2016-06-14  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r201534): Compile time greatly regressed
+        https://bugs.webkit.org/show_bug.cgi?id=158765
+        <rdar://problem/26587342>
+
+        Reviewed by Darin Adler.
+
+        Compile time greatly regressed by r201534 due to Document.h now including
+        TextAutoSizing.h. Move the TextAutoSizingTraits back to Document.h to
+        restore pre-r201534 behavior.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/Document.cpp:
+        (WebCore::TextAutoSizingTraits::constructDeletedValue):
+        (WebCore::TextAutoSizingTraits::isDeletedValue):
+        * dom/Document.h:
+        * rendering/TextAutoSizing.h:
+        (WebCore::TextAutoSizingTraits::constructDeletedValue): Deleted.
+        (WebCore::TextAutoSizingTraits::isDeletedValue): Deleted.
+
+2016-06-14  Antoine Quint  <graouts@apple.com>
+
+        Inline media controls cut off PiP and fullscreen buttons on cnn.com
+        https://bugs.webkit.org/show_bug.cgi?id=158766
+        <rdar://problem/24175161>
+
+        Reviewed by Dean Jackson.
+
+        The display of the picture-in-picture and fullscreen buttons are dependent on the availability
+        of video tracks through a call to hasVideo(). We need to ensure that the display properties of
+        both those buttons are updated when the number of video tracks has changed since the controls
+        may be populated prior to the availability of video tracks.
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.updateHasVideo):
+
+2016-06-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Rename Timeline.setAutoCaptureInstruments to Timeline.setInstruments
+        https://bugs.webkit.org/show_bug.cgi?id=158762
+
+        Reviewed by Timothy Hatcher.
+
+        Test: inspector/timeline/setInstruments-errors.html
+
+        * inspector/InspectorTimelineAgent.cpp:
+        (WebCore::InspectorTimelineAgent::willDestroyFrontendAndBackend):
+        (WebCore::InspectorTimelineAgent::setInstruments):
+        (WebCore::InspectorTimelineAgent::mainFrameStartedLoading):
+        (WebCore::InspectorTimelineAgent::setAutoCaptureInstruments): Deleted.
+        * inspector/InspectorTimelineAgent.h:
+
+2016-06-14  Dean Jackson  <dino@apple.com>
+
+        decompose4 return value is unchecked, leading to potentially uninitialized data.
+        https://bugs.webkit.org/show_bug.cgi?id=158761
+        <rdar://problem/17526268>
+
+        Reviewed by Simon Fraser.
+
+        WebCore::decompose4 could return early without initializing data.
+        I now initialize it, but I also started checking the return
+        value at all the call sites to make sure everything is sensible.
+
+        Test: transforms/undecomposable.html
+
+        * platform/graphics/transforms/PerspectiveTransformOperation.cpp:
+        (WebCore::PerspectiveTransformOperation::blend):
+        * platform/graphics/transforms/RotateTransformOperation.cpp:
+        (WebCore::RotateTransformOperation::blend):
+        * platform/graphics/transforms/TransformationMatrix.cpp:
+        (WebCore::decompose4):
+        (WebCore::TransformationMatrix::blend4):
+        * platform/graphics/transforms/TransformationMatrix.h:
+
+2016-06-14  Benjamin Poulain  <bpoulain@apple.com>
+
+        Add the unprefixed version of the pseudo element ::placeholder
+        https://bugs.webkit.org/show_bug.cgi?id=158653
+
+        Reviewed by Dean Jackson.
+
+        Test: fast/forms/placeholder-pseudo-element-with-webkit-prefix.html
+
+        The pseudo element ::-webkit-input-placeholder is stupidly popular
+        which forces other engines to support this exact name.
+
+        The pseudo-element spec provides a new standard name we can adopt
+        to drop the prefix: https://drafts.csswg.org/css-pseudo-4/#placeholder-pseudo
+
+        This patch does just that, make ::placeholder the standard name to select
+        the placeholder element in the shadow dom of input elements.
+
+        Unlike pseudo classes, we did not have any support for prefixes and aliasing.
+        I want to keep the absurdly efficient matching we currently use for styling
+        because style updates are more common than stylesheet updates.
+        With that constraint in mind, the value of CSSSelector has to be the unprefixed
+        version for both forms of input.
+
+        This leaves us with the problem of displaying the CSSSelector for CSSOM.
+        To differentiate the legacy form from the standard form, I added
+        a new type of PseudoElement: PseudoElementWebKitCustomLegacyPrefixed.
+        When parsing, PseudoElementWebKitCustomLegacyPrefixed let us replace
+        the original value "-webkit-input-placeholder" by the standard value.
+        When creating the selectorText for CSSOM, PseudoElementWebKitCustomLegacyPrefixed
+        let us replace the standard for by the legacy form.
+
+        * css/CSSParserValues.cpp:
+        (WebCore::CSSParserSelector::parsePseudoElementSelector):
+        * css/CSSSelector.cpp:
+        (WebCore::CSSSelector::pseudoId):
+        (WebCore::CSSSelector::selectorText):
+        * css/CSSSelector.h:
+        (WebCore::CSSSelector::isCustomPseudoElement):
+        (WebCore::CSSSelector::isWebKitCustomPseudoElement):
+        * css/SelectorChecker.cpp:
+        (WebCore::SelectorChecker::matchRecursively):
+        * css/SelectorPseudoElementTypeMap.in:
+        * css/html.css:
+        (::placeholder):
+        (input::placeholder, isindex::placeholder):
+        (textarea::placeholder):
+        (::-webkit-input-placeholder): Deleted.
+        (input::-webkit-input-placeholder, isindex::-webkit-input-placeholder): Deleted.
+        (textarea::-webkit-input-placeholder): Deleted.
+        * features.json:
+        * html/shadow/TextControlInnerElements.cpp:
+        (WebCore::TextControlPlaceholderElement::TextControlPlaceholderElement):
+
+2016-06-14  Doug Russell  <d_russell@apple.com>
+
+        AX: Form label text should be exposed as static text if it contains only static text
+        https://bugs.webkit.org/show_bug.cgi?id=158634
+
+        Reviewed by Chris Fleizach.
+
+        Use AccessibilityLabel to represent HTMLLabelElement to assistive technology.
+        AccessibilityLabel::containsOnlyStaticText() searches label subtree to evaluate 
+        if all children are static text.
+        AccessibilityLabel::stringValue() consults containsOnlyStaticText() and returns
+        textUnderElement() if true.
+        WebAccessibilityObjectWrapperMac consults containsOnlyStaticText() and substitutes
+        StaticTextRole for LabelRole if true.
+        Cache containsOnlyStaticText() in the common case when updating children.
+
+        Tests: accessibility/mac/label-element-all-text-string-value.html
+               accessibility/mac/label-element-with-link-string-value.html
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::createFromRenderer):
+        * accessibility/AccessibilityAllInOne.cpp:
+        * accessibility/AccessibilityLabel.cpp: Added.
+        (WebCore::AccessibilityLabel::AccessibilityLabel):
+        (WebCore::AccessibilityLabel::~AccessibilityLabel):
+        (WebCore::AccessibilityLabel::create):
+        (WebCore::AccessibilityLabel::computeAccessibilityIsIgnored):
+        (WebCore::AccessibilityLabel::stringValue):
+        (WebCore::childrenContainOnlyStaticText):
+        (WebCore::AccessibilityLabel::containsOnlyStaticText):
+        (WebCore::AccessibilityLabel::updateChildrenIfNecessary):
+        (WebCore::AccessibilityLabel::clearChildren):
+        (WebCore::AccessibilityLabel::insertChild):
+        * accessibility/AccessibilityLabel.h: Added.
+        * accessibility/AccessibilityObject.h:
+        (WebCore::AccessibilityObject::isLabel):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (-[WebAccessibilityObjectWrapper role]):
+
+2016-06-14  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r202057.
+        https://bugs.webkit.org/show_bug.cgi?id=158749
+
+        This change broke the Windows build. (Requested by ryanhaddad
+        on #webkit).
+
+        Reverted changeset:
+
+        "Honor bidi unicode codepoints"
+        https://bugs.webkit.org/show_bug.cgi?id=149170
+        http://trac.webkit.org/changeset/202057
+
+2016-06-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Honor bidi unicode codepoints
+        https://bugs.webkit.org/show_bug.cgi?id=149170
+        <rdar://problem/26527378>
+
+        Reviewed by Simon Fraser.
+
+        BidiResolver doesn't have any concept of isolate Unicode code points, so produces
+        unexpected output when they are present. Fix by considering such code points as
+        whitespace in the bidi algorithm. This is a stop-gap measure until we can support
+        the codepoints fully in our Bidi algorithm.
+
+        Test: fast/text/isolate-ignore.html
+
+        * platform/graphics/Font.cpp:
+        (WebCore::createAndFillGlyphPage):
+        * platform/text/BidiResolver.h:
+        (WebCore::Subclass>::createBidiRunsForLine):
+
+2016-06-14  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r200455.
+        https://bugs.webkit.org/show_bug.cgi?id=158740
+
+        hangs twitter/facebook (Requested by mcatanzaro on #webkit).
+
+        Reverted changeset:
+
+        "[GStreamer] Adaptive streaming issues"
+        https://bugs.webkit.org/show_bug.cgi?id=144040
+        http://trac.webkit.org/changeset/200455
+
+2016-06-14  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        WebRTC: RTCPeerConnection::addTrack() should throw InvalidAccessError instead of InvalidModificationError.
+        https://bugs.webkit.org/show_bug.cgi?id=158735
+
+        Reviewed by Eric Carlson.
+
+        Throw InvalidAccessError instead of InvalidModificationError when track already exists in connection's
+        set of senders as per specification (https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addtrack).
+
+        Updated existing test results: fast/mediastream/RTCPeerConnection-add-removeTrack-expected.txt
+
+        * Modules/mediastream/RTCPeerConnection.cpp:
+        (WebCore::RTCPeerConnection::addTrack):
+
+2016-06-14  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Imlement MediaEndpointPeerConnection::addIceCandidate()
+        https://bugs.webkit.org/show_bug.cgi?id=158690
+
+        Reviewed by Eric Carlson.
+
+        Implement MediaEndpointPeerConnection::addIceCandidate() that is the MediaEndpoint
+        implementation of RTCPeerConnection.addIceCandidate() [1].
+
+        [1] https://w3c.github.io/webrtc-pc/archives/20160513/webrtc.html#dom-peerconnection-addicecandidate
+
+        Test: fast/mediastream/RTCPeerConnection-addIceCandidate.html
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::addIceCandidate):
+        (WebCore::MediaEndpointPeerConnection::addIceCandidateTask):
+        Implemented.
+        * Modules/mediastream/MediaEndpointPeerConnection.h:
+        * platform/mediastream/MediaEndpoint.h:
+        Use mid instead of mdescIndex to identify the target media description in the backend.
+        * platform/mock/MockMediaEndpoint.cpp:
+        Update mock method signature accordingly.
+        (WebCore::MockMediaEndpoint::addRemoteCandidate):
+        * platform/mock/MockMediaEndpoint.h:
+
 2016-06-14  Zalan Bujtas  <zalan@apple.com>
 
         Make RenderBlock::insertInto/RemoveFromTrackedRendererMaps functions static.

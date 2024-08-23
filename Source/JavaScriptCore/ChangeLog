@@ -1,3 +1,158 @@
+2016-06-15  Keith Miller  <keith_miller@apple.com>
+
+        DFGByteCodeParser should be able to infer a property is unset from the Baseline inline cache.
+        https://bugs.webkit.org/show_bug.cgi?id=158774
+
+        Reviewed by Filip Pizlo.
+
+        This patch allows the DFGByteCodeParser to speculatively convert a property access into a
+        constant if that access was always a miss in the Baseline inline cache. This patch does
+        not add support for MultiGetByOffset and unset properties. That functionality will come
+        a future patch.
+
+        * bytecode/ComplexGetStatus.cpp:
+        (JSC::ComplexGetStatus::computeFor):
+        * bytecode/GetByIdStatus.cpp:
+        (JSC::GetByIdStatus::computeForStubInfoWithoutExitSiteFeedback):
+        * bytecode/GetByIdVariant.h:
+        (JSC::GetByIdVariant::isPropertyUnset):
+        * bytecode/PutByIdVariant.h:
+        (JSC::PutByIdVariant::isPropertyUnset):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::load):
+        (JSC::DFG::ByteCodeParser::handleGetById):
+        * tests/stress/undefined-access-then-self-change.js: Added.
+        (foo):
+
+2016-06-15  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Move calling convention flags to WTF
+        https://bugs.webkit.org/show_bug.cgi?id=158661
+
+        Reviewed by Keith Miller.
+
+        Due to some calling convention flags and JIT_OPERATION flags, MathCommon.h includes MacroAssemblerCodeRef and JITOperations.h.
+        But MacroAssembler and JIT part should not be necessary for the MathCommon component.
+        As with other calling convention flags like JSC_HOST_CALL, these flags should be in WTF.
+
+        * assembler/MacroAssemblerCodeRef.h:
+        * jit/JITOperations.h:
+        Add wtf/Platform.h inclusion driven by the Windows port build failure.
+
+        * runtime/MathCommon.h:
+
+2016-06-15  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        Enabling Shadow DOM for all platforms
+        https://bugs.webkit.org/show_bug.cgi?id=158738
+
+        Reviewed by Ryosuke Niwa.
+
+        Removed Shadow DOM from options (enabled by default)
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-06-14  Caio Lima  <ticaiolima@gmail.com>
+
+        The parser doesn't properly parse "super" when default parameter is an
+        arrow function.
+        https://bugs.webkit.org/show_bug.cgi?id=157872.
+
+        Reviewed by Saam Barati.
+
+        The "super" member or "super()" could not be used when default parameter is an
+        arrow function, resuling in sytax error. It happened because the
+        "closestOrdinaryFunctionScope" was not being initialized properly
+        before "parseFunctionParameters" step and the condition
+        "functionSuperBinding == SuperBinding::NotNeeded" or
+        "functionConstructorKind != ConstructorKind::Derived" on
+        "Parser<LexerType>::parseMemberExpression" step were being true
+        resulting in SyntaxError.
+
+        * parser/Parser.cpp: 
+        (JSC::Parser<LexerType>::parseFunctionInfo): setting
+        "functionScope->setExpectedSuperBinding(expectedSuperBinding)" and
+        "functionScope->setConstructorKind(constructorKind)" before
+        "parseFunctionParameters" step.
+
+2016-06-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Rename Timeline.setAutoCaptureInstruments to Timeline.setInstruments
+        https://bugs.webkit.org/show_bug.cgi?id=158762
+
+        Reviewed by Timothy Hatcher.
+
+        Rename the protocol methods since the backend may use the instruments
+        for purposes other then auto-capture, such as programmatic capture
+        via console.profile.
+
+        * inspector/protocol/Timeline.json:
+
+2016-06-14  David Kilzer  <ddkilzer@apple.com>
+
+        Document the native format of JSChar type
+        <http://webkit.org/b/156137>
+
+        Reviewed by Darin Adler.
+
+        * API/JSStringRef.h:
+        (typedef JSChar): Update documentation.
+
+2016-06-14  Keith Miller  <keith_miller@apple.com>
+
+        The Array species constructor watchpoints should be created the first time they are needed rather than on creation
+        https://bugs.webkit.org/show_bug.cgi?id=158754
+
+        Reviewed by Benjamin Poulain.
+
+        We use adaptive watchpoints for some Array prototype functions to
+        ensure that the user has not overridden the value of the
+        Array.prototype.constructor or Array[Symbol.species]. This patch
+        changes when the Array species constructor watchpoints are
+        initialized. Before, those watchpoints would be created when the
+        global object is initialized. This had the advantage that it did
+        not require validating the constructor and Symbol.species
+        properties. On the other hand, it also meant that if the user were
+        to reconfigure properties Array.prototype, which would cause the
+        structure of the property to become an uncachable dictionary,
+        prior to running code that the watchpoints would be
+        invalidated. It turns out that JSBench amazon, for instance, does
+        reconfigure some of Array.prototype's properties. This patch
+        initializes the watchpoints the first time they are needed. Since
+        we only initialize once we also flatten the structure of Array and
+        Array.prototype.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::speciesConstructArray):
+        (JSC::ArrayPrototype::attemptToInitializeSpeciesWatchpoint):
+        (JSC::ArrayPrototypeAdaptiveInferredPropertyWatchpoint::handleFire):
+        (JSC::ArrayPrototype::setConstructor): Deleted.
+        * runtime/ArrayPrototype.h:
+        (JSC::ArrayPrototype::speciesWatchpointStatus):
+        (JSC::ArrayPrototype::didChangeConstructorOrSpeciesProperties): Deleted.
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::speciesGetterSetter):
+        (JSC::JSGlobalObject::arrayConstructor):
+        * tests/stress/array-symbol-species-lazy-watchpoints.js: Added.
+        (test):
+        (arrayEq):
+        (A):
+
+2016-06-14  Keith Miller  <keith_miller@apple.com>
+
+        REGRESSION(202002-202014): 845 32-bit JSC Stress Test failures
+        https://bugs.webkit.org/show_bug.cgi?id=158737
+
+        Reviewed by Filip Pizlo.
+
+        When the this child and arguments child for the varargs nodes was switched I missed one
+        case in the 32-bit build.
+
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::emitCall):
+
 2016-06-13  Gavin & Ellie Barraclough  <barraclough@apple.com>
 
         setUpStaticFunctionSlot does not handle Builtin|Accessor properties

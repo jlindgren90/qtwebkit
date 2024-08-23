@@ -1,3 +1,81 @@
+2016-06-15  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        Enabling Shadow DOM for all platforms
+        https://bugs.webkit.org/show_bug.cgi?id=158738
+
+        Reviewed by Ryosuke Niwa.
+
+        Removed Shadow DOM from options (enabled by default)
+        (comprises removal of corresponding preprocessor directives)
+
+        * Configurations/FeatureDefines.xcconfig:
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+        * WebProcess/WebPage/WebPage.cpp:
+
+2016-06-15  Antti Koivisto  <antti@apple.com>
+
+        Vary:Cookie validation doesn't work in private browsing
+        https://bugs.webkit.org/show_bug.cgi?id=158616
+        <rdar://problem/26755067>
+
+        Reviewed by Andreas Kling.
+
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebKit::WebPlatformStrategies::cookieRequestHeaderFieldValue):
+
+            Implement SessionID version of the function.
+
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h:
+
+2016-06-14  Chris Dumez  <cdumez@apple.com>
+
+        Avoid constructing a AuthenticationChallenge unnecessarily in the NetworkLoad constructor
+        https://bugs.webkit.org/show_bug.cgi?id=158746
+
+        Reviewed by Darin Adler.
+
+        Avoid constructing a AuthenticationChallenge unnecessarily in the
+        NetworkLoad constructor by using WTF::Optional<> for this data
+        member.
+
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::continueCanAuthenticateAgainstProtectionSpace):
+        * NetworkProcess/NetworkLoad.h:
+
+2016-06-14  Chris Dumez  <cdumez@apple.com>
+
+        Add missing WTFMove() in NetworkResourceLoader::didReceiveResponse()
+        https://bugs.webkit.org/show_bug.cgi?id=158745
+
+        Reviewed by Darin Adler.
+
+        Add missing WTFMove() in NetworkResourceLoader::didReceiveResponse()
+        to avoid copying the ResourceResponse.
+
+        * NetworkProcess/NetworkResourceLoader.cpp:
+
+2016-06-14  Chris Dumez  <cdumez@apple.com>
+
+        Reduce copying of NetworkLoadParameters
+        https://bugs.webkit.org/show_bug.cgi?id=158744
+
+        Reviewed by Alex Christensen.
+
+        Reduce copying of NetworkLoadParameters by moving it around instead.
+
+        * NetworkProcess/Downloads/DownloadManager.cpp:
+        (WebKit::DownloadManager::startDownload):
+        * NetworkProcess/Downloads/PendingDownload.cpp:
+        (WebKit::PendingDownload::PendingDownload):
+        * NetworkProcess/Downloads/PendingDownload.h:
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::NetworkLoad):
+        * NetworkProcess/NetworkLoad.h:
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::startNetworkLoad):
+        * NetworkProcess/cache/NetworkCacheSpeculativeLoad.cpp:
+        (WebKit::NetworkCache::SpeculativeLoad::SpeculativeLoad):
+
 2016-06-14  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [ThreadedCompositor] Opening the inspector in a window causes a crash.
