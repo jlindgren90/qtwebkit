@@ -1,3 +1,135 @@
+2016-07-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] WebKitGtk+ uses too many file descriptors
+        https://bugs.webkit.org/show_bug.cgi?id=152316
+
+        Reviewed by Michael Catanzaro.
+
+        Add helper functions to duplicate a file descriptor setting close on exec flag, and also to set close on exec
+        flag to an existing file descriptor.
+
+        * wtf/UniStdExtras.h:
+        * wtf/UniStdExtras.cpp
+        (WTF::setCloseOnExec):
+        (WTF::dupCloseOnExec):
+
+2016-07-12  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Array.prototype.join() fails some conformance tests
+        https://bugs.webkit.org/show_bug.cgi?id=159657
+
+        Reviewed by Saam Barati.
+
+        * wtf/text/AtomicString.cpp:
+        (WTF::AtomicString::number):
+        * wtf/text/AtomicString.h:
+
+2016-07-12  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203131.
+        https://bugs.webkit.org/show_bug.cgi?id=159698
+
+        This change caused an existing LayoutTest to time out on debug
+        testers (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "[JSC] Array.prototype.join() fails some conformance tests"
+        https://bugs.webkit.org/show_bug.cgi?id=159657
+        http://trac.webkit.org/changeset/203131
+
+2016-07-12  Filip Pizlo  <fpizlo@apple.com>
+
+        platformUserPreferredLanguages on Mac should not try to put the region into the language
+        https://bugs.webkit.org/show_bug.cgi?id=159693
+
+        Rubber stamped by Alexey Proskuryakov.
+        
+        Currently, navigator.language is the thing that we use as the BCP-47 tag in our Intl code
+        when certain APIs are called without a locale argument.  That mostly makes sense, and is
+        deeply wired into our engine.
+
+        In r200105, we made Intl aware of the region as a separate thing from the language by having
+        platformUserPreferredLanguages() return something like a BCP-47 tag that was
+        <language>-<region>.  For example, if I told System Preferences that I want to speak English
+        but live in Poland then we'd get "en-pl".  This had the effect of making Intl APIs format
+        dates using Polish formatting, for example.
+
+        But this is an odd change, since that same function also feeds into navigator.language.
+        "en-pl" isn't what we want there, since my System Preferences settings aren't supposed to
+        mean that I want to speak Polish-style English.  There's no such thing.
+
+        It may be worthwhile to wire the region settings more elegantly into Intl, but if we do that,
+        it should be via a mechanism that is separate from navigator.language. So, this change simply
+        reverts r200105.
+
+        * wtf/PlatformUserPreferredLanguagesMac.mm:
+        (WTF::httpStyleLanguageCode):
+        (WTF::platformUserPreferredLanguages):
+        (WTF::isValidICUCountryCode): Deleted.
+
+2016-07-12  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Fix for build error when trying to version stamp dll.
+        https://bugs.webkit.org/show_bug.cgi?id=159692
+
+        Reviewed by Brent Fulgham.
+
+        Use correct path to version stamp script.
+
+        * wtf/CMakeLists.txt:
+
+2016-07-12  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Array.prototype.join() fails some conformance tests
+        https://bugs.webkit.org/show_bug.cgi?id=159657
+
+        Reviewed by Saam Barati.
+
+        * wtf/text/AtomicString.cpp:
+        (WTF::AtomicString::number):
+        * wtf/text/AtomicString.h:
+
+2016-07-12  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Relax ordering requirements on StringView::CodePoints iterator
+        https://bugs.webkit.org/show_bug.cgi?id=159609
+
+        Reviewed by Darin Adler.
+
+        Previously, there was a requirement where if you use a CodePoints
+        iterator, you couldn't dereference twice in a row or increment
+        twice in a row. This restriction is unnecessary.
+
+        * wtf/text/StringView.h:
+        (WTF::StringView::CodePoints::Iterator::Iterator):
+        (WTF::StringView::CodePoints::Iterator::advanceCurrentCodePoint):
+        (WTF::StringView::CodePoints::Iterator::operator*):
+        (WTF::StringView::CodePoints::Iterator::operator==):
+
+2016-07-12  Csaba Osztrogonác  <ossy@webkit.org>
+
+        JSCOnly bulidfix after r203078
+        https://bugs.webkit.org/show_bug.cgi?id=159669
+
+        Reviewed by Yusuke Suzuki.
+
+        * wtf/PlatformJSCOnly.cmake:
+        * wtf/text/jsconly/TextBreakIteratorInternalICUJSCOnly.cpp: Added.
+        (WTF::currentSearchLocaleID):
+        (WTF::currentTextBreakLocaleID):
+
+2016-07-12  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] DLLs are missing version information.
+        https://bugs.webkit.org/show_bug.cgi?id=159349
+
+        Reviewed by Brent Fulgham.
+
+        Generate autoversion.h and run perl version stamp utility.
+
+        * wtf/CMakeLists.txt:
+
 2016-07-11  Myles C. Maxfield  <mmaxfield@apple.com>
 
         Implement grapheme cluster iterator on StringView

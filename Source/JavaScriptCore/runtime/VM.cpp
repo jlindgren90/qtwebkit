@@ -197,7 +197,7 @@ VM::VM(VMType vmType, HeapType heapType)
 {
     interpreter = new Interpreter(*this);
     StackBounds stack = wtfThreadData().stack();
-    updateReservedZoneSize(Options::reservedZoneSize());
+    updateSoftReservedZoneSize(Options::softReservedZoneSize());
     setLastStackTop(stack.origin());
 
     // Need to be careful to keep everything consistent here
@@ -610,20 +610,20 @@ JSObject* VM::throwException(ExecState* exec, JSObject* error)
 void VM::setStackPointerAtVMEntry(void* sp)
 {
     m_stackPointerAtVMEntry = sp;
-    updateStackLimit();
+    updateStackLimits();
 }
 
-size_t VM::updateReservedZoneSize(size_t reservedZoneSize)
+size_t VM::updateSoftReservedZoneSize(size_t softReservedZoneSize)
 {
-    size_t oldReservedZoneSize = m_reservedZoneSize;
-    m_reservedZoneSize = reservedZoneSize;
+    size_t oldSoftReservedZoneSize = m_currentSoftReservedZoneSize;
+    m_currentSoftReservedZoneSize = softReservedZoneSize;
 #if !ENABLE(JIT)
-    interpreter->cloopStack().setReservedZoneSize(reservedZoneSize);
+    interpreter->cloopStack().setSoftReservedZoneSize(softReservedZoneSize);
 #endif
 
-    updateStackLimit();
+    updateStackLimits();
 
-    return oldReservedZoneSize;
+    return oldSoftReservedZoneSize;
 }
 
 #if PLATFORM(WIN)
@@ -651,23 +651,34 @@ static void preCommitStackMemory(void* stackLimit)
 }
 #endif
 
-inline void VM::updateStackLimit()
+inline void VM::updateStackLimits()
 {
 #if PLATFORM(WIN)
-    void* lastOSStackLimitWithReserve = m_osStackLimitWithReserve;
+    void* lastSoftStackLimit = m_softStackLimit;
 #endif
 
+    size_t reservedZoneSize = Options::reservedZoneSize();
     if (m_stackPointerAtVMEntry) {
         ASSERT(wtfThreadData().stack().isGrowingDownward());
         char* startOfStack = reinterpret_cast<char*>(m_stackPointerAtVMEntry);
-        m_osStackLimitWithReserve = wtfThreadData().stack().recursionLimit(startOfStack, Options::maxPerThreadStackUsage(), m_reservedZoneSize);
+        m_softStackLimit = wtfThreadData().stack().recursionLimit(startOfStack, Options::maxPerThreadStackUsage(), m_currentSoftReservedZoneSize);
+        m_stackLimit = wtfThreadData().stack().recursionLimit(startOfStack, Options::maxPerThreadStackUsage(), reservedZoneSize);
     } else {
-        m_osStackLimitWithReserve = wtfThreadData().stack().recursionLimit(m_reservedZoneSize);
+        m_softStackLimit = wtfThreadData().stack().recursionLimit(m_currentSoftReservedZoneSize);
+        m_stackLimit = wtfThreadData().stack().recursionLimit(reservedZoneSize);
     }
 
 #if PLATFORM(WIN)
-    if (lastOSStackLimitWithReserve != m_osStackLimitWithReserve)
-        preCommitStackMemory(m_osStackLimitWithReserve);
+    // We only need to precommit stack memory dictated by the VM::m_softStackLimit limit.
+    // This is because VM::m_softStackLimit applies to stack usage by LLINT asm or JIT
+    // generated code which can allocate stack space that the C++ compiler does not know
+    // about. As such, we have to precommit that stack memory manually.
+    //
+    // In contrast, we do not need to worry about VM::m_stackLimit because that limit is
+    // used exclusively by C++ code, and the C++ compiler will automatically commit the
+    // needed stack pages.
+    if (lastSoftStackLimit != m_softStackLimit)
+        preCommitStackMemory(m_softStackLimit);
 #endif
 }
 

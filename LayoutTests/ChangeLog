@@ -1,3 +1,312 @@
+2016-07-13  Frederic Wang  <fwang@igalia.com>
+
+        Update MathML expectations on EFL and Windows ports.
+
+        Unreviewed test gardening.
+
+        * platform/efl/mathml/opentype/horizontal-expected.txt:
+        * platform/efl/mathml/opentype/horizontal-munderover-expected.txt:
+        * platform/win/TestExpectations:
+        * platform/win/mathml/opentype/horizontal-expected.txt:
+        * platform/win/mathml/opentype/horizontal-munderover-expected.txt:
+
+2016-07-12  Eric Carlson  <eric.carlson@apple.com>
+
+        REGRESSION (r202509): media controls controls enabled AirPlay placeholder is shown
+        https://bugs.webkit.org/show_bug.cgi?id=159685
+        <rdar://problem/27198899>
+
+        Reviewed by Dean Jackson.
+
+        * media/controls/airplay-controls-expected.txt: Added.
+        * media/controls/airplay-controls.html: Added.
+
+        * media/controls/controls-test-helpers.js:
+        (ControlsTest.prototype.get currentState): Put a try block around the call to get the current
+        status in case it fails.
+
+        * platform/mac/TestExpectations: Skip the new test on Yosemite where AirPlay doesn't work.
+
+2016-07-12  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Array.prototype.join() fails some conformance tests
+        https://bugs.webkit.org/show_bug.cgi?id=159657
+
+        Reviewed by Saam Barati.
+
+        I removed 3 sputnik tests that are incorrect in the latest spec.
+        In ES5, Array.prototype.join() was using ToUint32 on the argument:
+            https://es5.github.io/#x15.4.4.5
+        In ES6, the function uses ToLength:
+            https://tc39.github.io/ecma262/#sec-array.prototype.join
+
+        The test use Infinity and very large integer as the length.
+        They are guaranteed to time out or run out of memory.
+        Even if we waited the hours it takes to run this, the results would be different
+        from what the tests expect.
+
+        * js/array-join-expected.txt: Added.
+        * js/array-join.html: Added.
+        * js/script-tests/array-join.js: Added.
+
+2016-07-12  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203131.
+        https://bugs.webkit.org/show_bug.cgi?id=159698
+
+        This change caused an existing LayoutTest to time out on debug
+        testers (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "[JSC] Array.prototype.join() fails some conformance tests"
+        https://bugs.webkit.org/show_bug.cgi?id=159657
+        http://trac.webkit.org/changeset/203131
+
+2016-07-12  Mark Lam  <mark.lam@apple.com>
+
+        We should use different stack limits for stack checks from JS and host code.
+        https://bugs.webkit.org/show_bug.cgi?id=159442
+        <rdar://problem/26889188>
+
+        Reviewed by Geoffrey Garen.
+
+        * js/regress-141098-expected.txt:
+        * js/script-tests/regress-141098.js:
+        (testEval):
+        (probeAndRecurse):
+        - Gave all the test constants names.
+        - Tweaked the constants to allow the test to run in the least amount of time, and
+          also to behave consistently across all test configurations.
+        - Re-enable eager tests now that the test should finish quickly.
+
+2016-07-12  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (202694): Audio and Video playback controls: Cannot find a position slider to adjust playback position using VO.
+        https://bugs.webkit.org/show_bug.cgi?id=159661
+        <rdar://problem/27285135>
+
+        Unreviewed. Slight tweak to test to hopefully avoid flakiness.
+
+        * media/controls/default-size-should-show-scrubber-expected.txt:
+        * media/controls/default-size-should-show-scrubber.html:
+
+2016-07-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/css/ancestor-of-hovered-element-detached.html as flaky on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=159173
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-12  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Web Inspector: ER: Copy as cURL
+        https://bugs.webkit.org/show_bug.cgi?id=159380
+
+        Reviewed by Joseph Pecoraro.
+
+        * http/tests/inspector/network/copy-as-curl-expected.txt: Added.
+        * http/tests/inspector/network/copy-as-curl.html: Added.
+
+2016-07-12  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Array.prototype.join() fails some conformance tests
+        https://bugs.webkit.org/show_bug.cgi?id=159657
+
+        Reviewed by Saam Barati.
+
+        I removed 3 sputnik tests that are incorrect in the latest spec.
+        In ES5, Array.prototype.join() was using ToUint32 on the argument:
+            https://es5.github.io/#x15.4.4.5
+        In ES6, the function uses ToLength:
+            https://tc39.github.io/ecma262/#sec-array.prototype.join
+
+        The test use Infinity and very large integer as the length.
+        They are guaranteed to time out or run out of memory.
+        Even if we waited the hours it takes to run this, the results would be different
+        from what the tests expect.
+
+        * js/array-join-expected.txt: Added.
+        * js/array-join.html: Added.
+        * js/script-tests/array-join.js: Added.
+
+2016-07-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking storage/indexeddb/database-close-private.html as flaky on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=158500
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking storage/indexeddb/modern/handle-user-delete.html as flaky on Yosemite Release
+        https://bugs.webkit.org/show_bug.cgi?id=158741
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/indexeddb/deleteDatabaseNamesWithSpace.html as a flaky timeout on Mac debug.
+        https://bugs.webkit.org/show_bug.cgi?id=159684
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Update test expectations for rdar://problem/26590623 after r203117.
+
+        * platform/mac/TestExpectations:
+
+2016-07-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/fetch/api/request/request-cache.html as flaky on Mac and ios-simulator
+        https://bugs.webkit.org/show_bug.cgi?id=159683
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-07-11  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (202694): Audio and Video playback controls: Cannot find a position slider to adjust playback position using VO.
+        https://bugs.webkit.org/show_bug.cgi?id=159661
+        <rdar://problem/27285135>
+
+        Reviewed by Eric Carlson.
+
+        Add a test that checks the scrubber is visible on a default media element.
+        Unfortunately this isn't quite an accurate test, since we really want to
+        examine a Media Document, but it's close enough.
+
+        * media/controls/default-size-should-show-scrubber-expected.txt: Added.
+        * media/controls/default-size-should-show-scrubber.html: Added.
+
+2016-07-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/preload/single_download_preload_runner.html as a timeout
+        https://bugs.webkit.org/show_bug.cgi?id=159678
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-07-11  Caio Lima  <ticaiolima@gmail.com>
+
+        ECMAScript 2016: %TypedArray%.prototype.includes implementation
+        https://bugs.webkit.org/show_bug.cgi?id=159385
+
+        Reviewed by Benjamin Poulain.
+
+        This patch implements test case to ECMAScript 2016:
+        %TypedArray%.prototype.includes implementation
+        following spec 22.2.3.14
+        https://tc39.github.io/ecma262/2016/#sec-%typedarray%.prototype.includes
+
+        * js/regress/script-tests/typed-array-includes.js: Added.
+        (assertProperError):
+        (testIntTypedArray):
+        (testFloatTypedArray):
+        * js/typed-array-includes-expected.txt: Added.
+        * js/typed-array-includes.html: Added.
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Disable some a failing test.
+
+        Unreviewed test gardening.
+
+        * imported/mathml-in-html5/mathml/presentation-markup/fractions/frac-1.html:
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Add support for @href attribute in MathML
+        https://bugs.webkit.org/show_bug.cgi?id=85733
+
+        Reviewed by Brent Fulgham.
+
+        We import some tests from the MathML in HTML5 test suite to
+        test clicks on href attributes and write similar tests.
+        We also test tab/enter keys and user agent style with links.
+
+        * mathml/mathml-in-html5/href-click-1.html: Added. Verify mouse click on a MathML link.
+        * mathml/mathml-in-html5/href-click-1-expected.html: Added.
+        * mathml/mathml-in-html5/href-click-2.html: Added.
+        Verify mouse click on a descendant of a MathML link.
+        * mathml/mathml-in-html5/href-click-2-expected.html: Added.
+        * mathml/presentation/href-enter.html: Added.
+        Verify tab navigation and activing link with enter.
+        * mathml/presentation/href-enter-expected.html: Added.
+        * mathml/presentation/href-style.html: Added.
+        Verify default style of links and of focused links.
+        * mathml/presentation/href-style-expected.html: Added.
+        * mathml/presentation/maction-toggle-href.html: Added.
+        Verify conflicts between maction toggle and href link.
+        * mathml/presentation/maction-toggle-href-expected.html: Added.
+        * mathml/presentation/semantics-href.html: Added. Verify mouse click on a <semantics> link.
+        * mathml/presentation/semantics-href-expected.html: Added.
+        * platform/mac/TestExpectations: Disable MathML link tests that rely on keyboard events.
+        * platform/ios-simulator/TestExpectations: Ditto.
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Replace reftest mathml/presentation/fractions-positions.html with script tests
+        https://bugs.webkit.org/show_bug.cgi?id=159558
+
+        Reviewed by Martin Robinson.
+
+        * TestExpectations: Remove fractions-positions.html
+        * imported/mathml-in-html5/mathml/presentation-markup/fractions/frac-1-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/fractions/frac-1.html: Added.
+        * mathml/presentation/fractions-positions-expected.html: Removed.
+        * mathml/presentation/fractions-positions.html: Removed.
+
+2016-07-11  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Array.from() and Array.of() try to build objects even if "this" is not a constructor
+        https://bugs.webkit.org/show_bug.cgi?id=159604
+
+        Reviewed by Yusuke Suzuki.
+
+        * js/array-from-expected.txt:
+        * js/array-of-expected.txt:
+        * js/script-tests/array-from.js:
+        * js/script-tests/array-of.js:
+
+2016-07-11  Simon Fraser  <simon.fraser@apple.com>
+
+        Deleting in a text input inside an iframe causes the page to scroll incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=159654
+        rdar://problem/26805722
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/forms/ios/delete-in-input-in-iframe-expected.txt: Added.
+        * fast/forms/ios/delete-in-input-in-iframe.html: Added.
+
+2016-07-11  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Honor the second argument to FontFaceSet.load and FontFaceSet.check
+        https://bugs.webkit.org/show_bug.cgi?id=159607
+        <rdar://problem/27284902>
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/text/font-face-set-document-expected.txt:
+        * fast/text/font-face-set-document.html:
+        * fast/text/font-face-set-javascript-expected.txt:
+        * fast/text/font-face-set-javascript.html:
+        * fast/text/unicode-range-javascript-expected.txt: Added.
+        * fast/text/unicode-range-javascript.html: Added.
+
 2016-07-11  Nan Wang  <n_wang@apple.com>
 
         AX: Crash when backspacing in number field with spin button

@@ -1,3 +1,99 @@
+2016-07-12  Mark Lam  <mark.lam@apple.com>
+
+        We should use different stack limits for stack checks from JS and host code.
+        https://bugs.webkit.org/show_bug.cgi?id=159442
+        <rdar://problem/26889188>
+
+        Reviewed by Geoffrey Garen.
+
+        In http://trac.webkit.org/r203067, we limited the amount of stack that tests will
+        run with to keep stack overflow tests sane.  Turns out, we also need to teach the
+        LayoutTestRelay to pass env vars over to the iOS simulator.  This is needed in
+        order to keep the js/regress-139548.html test happy with this patch.
+
+        Also fixed up run_webkit_tests.py to explicitly pass an int size value for the
+        JSC_maxPerThreadStackUsage option.  Otherwise, it will pass a float value.
+
+        * LayoutTestRelay/LayoutTestRelay/LTRelayController.m:
+        (-[LTRelayController _environmentVariables]):
+        * Scripts/webkitpy/layout_tests/run_webkit_tests.py:
+        (main):
+
+2016-07-12  Filip Pizlo  <fpizlo@apple.com>
+
+        platformUserPreferredLanguages on Mac should not try to put the region into the language
+        https://bugs.webkit.org/show_bug.cgi?id=159693
+
+        Rubber stamped by Alexey Proskuryakov.
+        
+        Revert the test change in r200105.
+
+        * TestWebKitAPI/Tests/mac/NavigatorLanguage.mm:
+        (TestWebKitAPI::languageForSystemLanguage):
+
+2016-07-12  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] Protect against bad database data in LocalStorageDatabase::importItems()
+        https://bugs.webkit.org/show_bug.cgi?id=159663
+        <rdar://problem/18995873>
+
+        Reviewed by Benjamin Poulain.
+
+        Add API test coverage.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/LocalStorageNullEntries.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/LocalStorageNullEntries.localstorage: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/LocalStorageNullEntries.localstorage-shm: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/LocalStorageNullEntries.mm: Added.
+        (-[LocalStorageNullEntriesMessageHandler userContentController:didReceiveScriptMessage:]):
+        (TEST):
+
+2016-07-12  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Relax ordering requirements on StringView::CodePoints iterator
+        https://bugs.webkit.org/show_bug.cgi?id=159609
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Tests/WTF/StringView.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-07-12  Youenn Fablet  <youenn@apple.com>
+
+        Fixing Tools/Scripts/run-builtins-generator-tests after https://trac.webkit.org/changeset/202975
+        https://bugs.webkit.org/show_bug.cgi?id=159564
+
+        Reviewed by Brian Burg.
+
+        * Scripts/webkitpy/codegen/main.py:
+        (BuiltinsGeneratorTests.generate_from_js_builtins): Changing --with-wrapper-files option to --wrappers.
+
+2016-07-12  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Remove ENABLE_CSS3_TEXT_LINE_BREAK flag
+        https://bugs.webkit.org/show_bug.cgi?id=159671
+
+        Reviewed by Csaba Osztrogonác.
+
+        ENABLE_CSS3_TEXT_LINE_BREAK feature was implemented without guards.
+        https://bugs.webkit.org/show_bug.cgi?id=89235
+
+        So this guard can be removed in build scripts.
+
+        * Scripts/webkitperl/FeatureList.pm:
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-07-11  Jason Marcell  <jmarcell@apple.com>
+
+        SVN.create_patch should find svn-create-patch relative to the WebKit root.
+        https://bugs.webkit.org/show_bug.cgi?id=159652
+
+        Reviewed by Daniel Bates.
+
+        * Scripts/webkitpy/common/checkout/scm/svn.py:
+        (SVN.create_patch): Use WebKitFinder to find the WebKit checkout so that we can find svn-create-patch relative to it.
+
 2016-07-11  Myles C. Maxfield  <mmaxfield@apple.com>
 
         Implement grapheme cluster iterator on StringView

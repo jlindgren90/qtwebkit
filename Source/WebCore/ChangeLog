@@ -1,3 +1,475 @@
+2016-07-12  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] isRedirected should be conveyed in workers
+        https://bugs.webkit.org/show_bug.cgi?id=159676
+
+        Reviewed by Alex Christensen.
+
+        Passing isRedirected value between threads.
+        Rebasing corresponding worker test, even though it is currently skipped (due to crashing flakiness).
+
+        * platform/network/ResourceResponseBase.cpp:
+        (WebCore::ResourceResponseBase::crossThreadData):
+        (WebCore::ResourceResponseBase::fromCrossThreadData):
+        * platform/network/ResourceResponseBase.h:
+
+2016-07-12  Eric Carlson  <eric.carlson@apple.com>
+
+        REGRESSION (r202509): media controls controls enabled AirPlay placeholder is shown
+        https://bugs.webkit.org/show_bug.cgi?id=159685
+        <rdar://problem/27198899>
+
+        Reviewed by Dean Jackson.
+
+        Test: media/controls/airplay-controls.html
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.shouldShowControls): Split some of the logic out of shouldHaveControls.
+        (Controller.prototype.shouldHaveControls): Having controls != showing controls.
+        (Controller.prototype.updateControls): Call shouldShowControls, not shouldHaveControls.
+        (Controller.prototype.updateWirelessPlaybackStatus): Add 'appletv' to the class when active.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::getCurrentMediaControlsStatus): Call ensureMediaControlsShadowRoot
+        in case the controls haven't been created yet.
+
+2016-07-12  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of mpadded attributes to a MathMLPaddedElement class
+        https://bugs.webkit.org/show_bug.cgi?id=159620
+
+        Reviewed by Brent Fulgham.
+
+        No new tests, behavior is unchanged.
+
+        * CMakeLists.txt: Add MathMLPaddedElement files.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAllInOne.cpp: Ditto.
+        * mathml/MathMLInlineContainerElement.cpp: Remove handling of mpadded.
+        * mathml/MathMLPaddedElement.cpp: Added.
+        (WebCore::MathMLPaddedElement::MathMLPaddedElement):
+        (WebCore::MathMLPaddedElement::create):
+        (WebCore::MathMLPaddedElement::width): Expose width attribute as a MathMLLength until mpadded
+        pseudo-units are supported.
+        (WebCore::MathMLPaddedElement::height): Ditto.
+        (WebCore::MathMLPaddedElement::depth): Ditto
+        (WebCore::MathMLPaddedElement::lspace): Ditto.
+        (WebCore::MathMLPaddedElement::voffset): Ditto.
+        (WebCore::MathMLPaddedElement::parseAttribute): Make length attribute dirty.
+        (WebCore::MathMLPaddedElement::createElementRenderer): Moved code from MathMLInlineContainerElement.
+        * mathml/MathMLPaddedElement.h: Added.
+        * mathml/mathtags.in: Map mapdded to MathMLPaddedElement.
+        * rendering/mathml/RenderMathMLPadded.cpp:
+        (WebCore::RenderMathMLPadded::resolveWidth): Helper function to resolve width.
+        (WebCore::RenderMathMLPadded::resolveAttributes): Helper function to resolve all attributes.
+        (WebCore::RenderMathMLPadded::computePreferredLogicalWidths): Use resolveWidth.
+        (WebCore::RenderMathMLPadded::layoutBlock): Use resolveAttributes.
+        * rendering/mathml/RenderMathMLPadded.h: Add new helper functions to access attributes from
+        the MathMLPaddedElement class.
+
+2016-07-12  Andreas Kling  <akling@apple.com>
+
+        [Cocoa] Simulated memory warning doesn't trigger libcache purge.
+        <https://webkit.org/b/159688>
+
+        Reviewed by Chris Dumez.
+
+        Since simulated memory warnings will have the "is under memory pressure" flag set,
+        we were skipping the libcache purge call.
+
+        Add a separate flag that tracks whether we're under simulated pressure, and always
+        prod libcache in that case.
+
+        * platform/MemoryPressureHandler.h:
+        * platform/cocoa/MemoryPressureHandlerCocoa.mm:
+        (WebCore::MemoryPressureHandler::platformReleaseMemory):
+        (WebCore::MemoryPressureHandler::install):
+
+2016-07-12  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Purge PassRefPtr in Modules/webdatabase
+        https://bugs.webkit.org/show_bug.cgi?id=159255
+
+        Reviewed by Benjamin Poulain.
+
+        As a step to remove PassRefPtr use, this patch cleans it up in Modules/webdatabase.
+
+        Additionally unnecessary spaces and tabs are removed too.
+
+        * Modules/webdatabase/ChangeVersionWrapper.cpp:
+        * Modules/webdatabase/DOMWindowWebDatabase.h:
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::Database):
+        (WebCore::Database::~Database):
+        (WebCore::Database::scheduleTransaction):
+        (WebCore::Database::runTransaction):
+        * Modules/webdatabase/Database.h:
+        * Modules/webdatabase/DatabaseAuthorizer.cpp:
+        (WebCore::DatabaseAuthorizer::allowRead):
+        * Modules/webdatabase/DatabaseManager.cpp:
+        (WebCore::DatabaseManager::openDatabase):
+        (WebCore::DatabaseManager::fullPathForDatabase):
+        (WebCore::DatabaseManager::detailsForNameAndOrigin):
+        * Modules/webdatabase/DatabaseManager.h:
+        * Modules/webdatabase/DatabaseTask.cpp:
+        (WebCore::DatabaseTransactionTask::DatabaseTransactionTask):
+        * Modules/webdatabase/DatabaseTask.h:
+        * Modules/webdatabase/SQLCallbackWrapper.h:
+        (WebCore::SQLCallbackWrapper::SQLCallbackWrapper):
+        * Modules/webdatabase/SQLResultSetRowList.h:
+        * Modules/webdatabase/SQLStatement.cpp:
+        (WebCore::SQLStatement::SQLStatement):
+        (WebCore::SQLStatement::sqlError):
+        (WebCore::SQLStatement::sqlResultSet):
+        * Modules/webdatabase/SQLStatement.h:
+        * Modules/webdatabase/SQLTransaction.h:
+        * Modules/webdatabase/SQLTransactionBackend.cpp:
+        (WebCore::SQLTransactionBackend::create):
+        (WebCore::SQLTransactionBackend::SQLTransactionBackend):
+        (WebCore::SQLTransactionBackend::transactionError):
+        * Modules/webdatabase/SQLTransactionBackend.h:
+
+2016-07-11  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (202694): Audio and Video playback controls: Cannot find a position slider to adjust playback position using VO.
+        https://bugs.webkit.org/show_bug.cgi?id=159661
+        <rdar://problem/27285135>
+
+        Reviewed by Eric Carlson.
+
+        The change in r202694 caused MediaDocuments to not always
+        show their scrubber. The fix is to reduce the minimum amount
+        of size needed to show the scrubber.
+
+        Test: media/controls/default-size-should-show-scrubber.html
+
+        * Modules/mediacontrols/mediaControlsApple.js: 80 pixels is enough
+        to show the scrubber.
+
+2016-07-12  Frederic Wang  <fwang@igalia.com>
+
+        Move MathMLOperatorDictionary from rendering to DOM
+        https://bugs.webkit.org/show_bug.cgi?id=159619
+
+        Reviewed by Brent Fulgham.
+
+        No new tests, behavior is unchanged.
+
+        * CMakeLists.txt: Use the new location of MathMLOperatorDictionary files.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAllInOne.cpp: Add MathMLOperatorDictionary.cpp
+        * mathml/MathMLOperatorDictionary.cpp: Renamed from Source/WebCore/rendering/mathml/MathMLOperatorDictionary.cpp.
+        * mathml/MathMLOperatorDictionary.h: Renamed from Source/WebCore/rendering/mathml/MathMLOperatorDictionary.h.
+
+2016-07-12  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Remove ENABLE_CSS3_TEXT_LINE_BREAK flag
+        https://bugs.webkit.org/show_bug.cgi?id=159671
+
+        Reviewed by Csaba Osztrogonác.
+
+        ENABLE_CSS3_TEXT_LINE_BREAK feature was implemented without guards.
+        https://bugs.webkit.org/show_bug.cgi?id=89235
+
+        So this guard can be removed in build scripts.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-07-12  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203059.
+        https://bugs.webkit.org/show_bug.cgi?id=159673
+
+        B and R channels now swapped on desktop GL builds (Requested
+        by philn on #webkit).
+
+        Reverted changeset:
+
+        "Red and blue colors are swapped in video rendered through
+        WebGL when GSTREAMER_GL is enabled"
+        https://bugs.webkit.org/show_bug.cgi?id=159621
+        http://trac.webkit.org/changeset/203059
+
+2016-07-12  Yoav Weiss  <yoav@yoav.ws>
+
+        js/dom/global-constructors-attributes.html is flaky: ResourceTiming runtime feature leaks between tests
+        https://bugs.webkit.org/show_bug.cgi?id=158902
+
+        Reviewed by Benjamin Poulain.
+
+        Adds a new reset() mechanism to RuntimeEnabledFeatures so that they could be brought back to the initial state.
+        This reset() is then called from DumpRenderTree and WebKitTestRunner.
+
+        No new tests but hopefully current tests will be less flaky.
+
+        * bindings/generic/RuntimeEnabledFeatures.cpp:
+        (WebCore::RuntimeEnabledFeatures::RuntimeEnabledFeatures):
+        (WebCore::RuntimeEnabledFeatures::reset):
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        * testing/Internals.cpp:
+        (WebCore::Internals::resetToConsistentState): reset RuntimeEnabledFeatures.
+
+2016-07-11  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Purge PassRefPtr in platform/efl and platform/mac 
+        https://bugs.webkit.org/show_bug.cgi?id=159548
+
+        Reviewed by Alex Christensen.
+
+        Remove all use of PassRefPtr and clean up unnecessary tabs and spaces.
+        WebKit2 codes are also changed because of setBufferForType()'s modification.
+
+        No new tests, no behavior changes.
+
+        * platform/PasteboardStrategy.h:
+        * platform/PlatformPasteboard.h:
+        * platform/PlatformSpeechSynthesizer.h:
+        * platform/SerializedPlatformRepresentation.h:
+        * platform/efl/PlatformSpeechSynthesisProviderEfl.cpp:
+        (WebCore::PlatformSpeechSynthesisProviderEfl::speak):
+        * platform/efl/PlatformSpeechSynthesisProviderEfl.h:
+        * platform/efl/PlatformSpeechSynthesizerEfl.cpp:
+        (WebCore::PlatformSpeechSynthesizer::speak):
+        * platform/ios/PlatformPasteboardIOS.mm:
+        (WebCore::PlatformPasteboard::setBufferForType):
+        * platform/ios/PlatformSpeechSynthesizerIOS.mm:
+        (SOFT_LINK_CONSTANT):
+        (-[WebSpeechSynthesisWrapper initWithSpeechSynthesizer:]):
+        (-[WebSpeechSynthesisWrapper mapSpeechRateToPlatformRate:]):
+        (-[WebSpeechSynthesisWrapper speakUtterance:]):
+        (-[WebSpeechSynthesisWrapper pause]):
+        (-[WebSpeechSynthesisWrapper resume]):
+        (-[WebSpeechSynthesisWrapper cancel]):
+        (-[WebSpeechSynthesisWrapper speechSynthesizer:didStartSpeechUtterance:]):
+        (-[WebSpeechSynthesisWrapper speechSynthesizer:didFinishSpeechUtterance:]):
+        (-[WebSpeechSynthesisWrapper speechSynthesizer:didPauseSpeechUtterance:]):
+        (-[WebSpeechSynthesisWrapper speechSynthesizer:didContinueSpeechUtterance:]):
+        (-[WebSpeechSynthesisWrapper speechSynthesizer:didCancelSpeechUtterance:]):
+        (-[WebSpeechSynthesisWrapper speechSynthesizer:willSpeakRangeOfSpeechString:utterance:]):
+        (WebCore::PlatformSpeechSynthesizer::speak):
+        * platform/mac/PasteboardMac.mm:
+        (WebCore::Pasteboard::write):
+        * platform/mac/PlatformPasteboardMac.mm:
+        (WebCore::PlatformPasteboard::getTypes):
+        (WebCore::PlatformPasteboard::getPathnamesForType):
+        (WebCore::PlatformPasteboard::color):
+        (WebCore::PlatformPasteboard::copy):
+        (WebCore::PlatformPasteboard::setBufferForType):
+        (WebCore::PlatformPasteboard::setPathnamesForType):
+        * platform/mac/PlatformSpeechSynthesizerMac.mm:
+        (-[WebSpeechSynthesisWrapper initWithSpeechSynthesizer:]):
+        (-[WebSpeechSynthesisWrapper speakUtterance:]):
+        (-[WebSpeechSynthesisWrapper pause]):
+        (-[WebSpeechSynthesisWrapper resume]):
+        (-[WebSpeechSynthesisWrapper cancel]):
+        (-[WebSpeechSynthesisWrapper speechSynthesizer:didFinishSpeaking:]):
+        (WebCore::PlatformSpeechSynthesizer::initializeVoiceList):
+        (WebCore::PlatformSpeechSynthesizer::speak):
+        * platform/mac/SerializedPlatformRepresentationMac.h:
+        * platform/mac/SerializedPlatformRepresentationMac.mm:
+        (WebCore::SerializedPlatformRepresentationMac::data):
+        (WebCore::jsValueWithValueInContext):
+        * platform/mock/PlatformSpeechSynthesizerMock.cpp:
+        (WebCore::PlatformSpeechSynthesizerMock::speakingFinished):
+        (WebCore::PlatformSpeechSynthesizerMock::speak):
+        (WebCore::PlatformSpeechSynthesizerMock::cancel):
+        * platform/mock/PlatformSpeechSynthesizerMock.h:
+
+2016-07-11  Frederic Wang  <fwang@igalia.org>
+
+        Move parsing of mspace attributes to a MathMLSpaceElement class
+        https://bugs.webkit.org/show_bug.cgi?id=156795
+
+        Reviewed by Brent Fulgham.
+
+        No new tests, already covered by existing tests.
+
+        * CMakeLists.txt: Add MathMLSpaceElement to the build system.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::cachedMathMLLength): Helper function to returned the cached parsed
+        value of a MathML length and parsing the corresponding attribute value if the cache is dirty.
+        * mathml/MathMLElement.h: Add a dirty boolean to MathML Length structure. Declare cachedMathMLLength.
+        * mathml/MathMLSpaceElement.cpp: New class for the <mspace> element.
+        (WebCore::MathMLSpaceElement::MathMLSpaceElement):
+        (WebCore::MathMLSpaceElement::create):
+        (WebCore::MathMLSpaceElement::parseAttribute): Make width, height, depth attributes dirty.
+        (WebCore::MathMLSpaceElement::createElementRenderer):
+        * mathml/MathMLSpaceElement.h: New class for the <mspace> element.
+        We define MathML lengths for width, height and depth attributes are on the class and expose
+        with the corresponding helper functions via memoization.
+        * mathml/MathMLTextElement.cpp: Remove handling of mspace from this class.
+        (WebCore::MathMLTextElement::createElementRenderer):
+        * mathml/mathtags.in: Change the interface for mspace to use the new class.
+        * rendering/mathml/RenderMathMLSpace.cpp: Do not store width/height/depth values on the
+        renderer and instead just use the corresponding MathML lengths on the element class.
+        (WebCore::RenderMathMLSpace::RenderMathMLSpace): Use MathMLSpaceElement and remove member
+        initialization.
+        (WebCore::RenderMathMLSpace::computePreferredLogicalWidths): Use spaceWidth().
+        (WebCore::RenderMathMLSpace::spaceWidth): Helper function to resolve the width attribute value.
+        (WebCore::RenderMathMLSpace::getSpaceHeightAndDepth): Ditto for height and depth.
+        (WebCore::RenderMathMLSpace::layoutBlock): Use the helper functions to get the mspace metrics.
+        (WebCore::RenderMathMLSpace::firstLineBaseline): Ditto.
+        (WebCore::RenderMathMLSpace::updateFromElement): Deleted.
+        (WebCore::RenderMathMLSpace::styleDidChange): Deleted.
+        * rendering/mathml/RenderMathMLSpace.h: Use MathMLSpaceElement, replace members with helper
+        functions and and make element() usable from a const instance.
+
+2016-07-11  Frederic Wang  <fwang@igalia.org>
+
+        Create a MathMLLength struct to handle the parsing of MathML length.
+        https://bugs.webkit.org/show_bug.cgi?id=156792
+
+        Reviewed by Brent Fulgham.
+
+        We introduce a structure for MathML lengths that will be used in the future to store the
+        parsed values in the MathElement class. We also rewrite the parsing function for MathML
+        lengths in order to improve efficiency and code reuse. This function is moved into the
+        MathElement class and only the conversion to LayoutUnit remains in the renderer classes.
+
+        No new tests, already covered by existing tests.
+
+        * mathml/MathMLElement.cpp:
+        (WebCore::parseNamedSpace): Helper function to parse a named space.
+        (WebCore::MathMLElement::parseMathMLLength): Parsing function for MathML lengths.
+        * mathml/MathMLElement.h: Declare new function and structure to handle MathML lengths.
+        * rendering/mathml/RenderMathMLBlock.cpp:
+        (WebCore::toUserUnits): Helper function to resolve a MathML length.
+        (WebCore::parseMathMLLength): Remove the old parsing code and just use MathMLElement::parseMathMLLength and toUserUnits instead.
+        (WebCore::parseMathMLNamedSpace): Deleted.
+        * rendering/mathml/RenderMathMLBlock.h: Remove unused function.
+
+2016-07-11  Frederic Wang  <fwang@igalia.com>
+
+        Add support for @href attribute in MathML
+        https://bugs.webkit.org/show_bug.cgi?id=85733
+
+        Reviewed by Brent Fulgham.
+
+        We add support for the href attribute from MathML 3 but ignore the deprecated XLink version.
+        We also use the code from HTMLAnchorElement SVGAElement to make MathMLElement with a href
+        attribute behave as a link.
+        Finally, we adjust mathml.css based on rules from the html and svg user agent stylesheets.
+
+        Tests: mathml/mathml-in-html5/href-click-1.html
+               mathml/mathml-in-html5/href-click-2.html
+               mathml/presentation/href-enter.html
+               mathml/presentation/href-style.html
+               mathml/presentation/maction-toggle-href.html
+               mathml/presentation/semantics-href.html
+
+        * css/mathml.css:
+        (:any-link): Set color and mouse cursor of links.
+        (:any-link:active): Set color of active links.
+        (:focus): Set outline of focused links.
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::parseAttribute): Parse the href attribute.
+        (WebCore::MathMLElement::willRespondToMouseClickEvents): Based on HTMLAnchorElement/SVGAElement.
+        (WebCore::MathMLElement::defaultEventHandler): Based on HTMLAnchorElement/SVGAElement.
+        (WebCore::MathMLElement::canStartSelection): Based on HTMLAnchorElement/SVGAElement.
+        (WebCore::MathMLElement::isFocusable): Based on HTMLAnchorElement/SVGAElement.
+        (WebCore::MathMLElement::isKeyboardFocusable): Based on HTMLAnchorElement/SVGAElement.
+        (WebCore::MathMLElement::isMouseFocusable): Based on HTMLAnchorElement/SVGAElement.
+        (WebCore::MathMLElement::isURLAttribute): Based on HTMLAnchorElement/SVGAElement.
+        (WebCore::MathMLElement::supportsFocus): Based on HTMLAnchorElement/SVGAElement.
+        (WebCore::MathMLElement::tabIndex): Based on HTMLAnchorElement/SVGAElement.
+        * mathml/MathMLElement.h: Define new members.
+        * mathml/MathMLSelectElement.cpp:
+        (WebCore::MathMLSelectElement::willRespondToMouseClickEvents): We also verify whether
+        the parent class will respond.
+        * mathml/mathattrs.in: Add href attribute.
+
+2016-07-11  Sam Weinig  <sam@webkit.org>
+
+        Speech Synthesis: getting list of voices no longer works
+        <rdar://problem/22954120>
+        https://bugs.webkit.org/show_bug.cgi?id=159656
+
+        Reviewed by Tim Horton.
+
+        * platform/PlatformSpeechSynthesizer.h:
+        * platform/mac/PlatformSpeechSynthesizerMac.mm:
+        Default initialize m_voiceListIsInitialized to false so it is
+        initialized on both Mac and iOS. Remove the explicit initialization
+        from the Mac.
+
+2016-07-11  Simon Fraser  <simon.fraser@apple.com>
+
+        <rdar://problem/27285599> REGRESSION: Assertion under CertificateInfo::trust() every time I focus a text field
+
+        Reviewed by Sam Weinig.
+
+        The assertion added to CertificateInfo::trust() in r203040 is wrong, and is triggered when
+        focusing a form field via calls to -[WKWebProcessPlugInFrame _serverTrust], so remove it.
+
+        * platform/network/cf/CertificateInfo.h:
+        (WebCore::CertificateInfo::trust):
+
+2016-07-11  Simon Fraser  <simon.fraser@apple.com>
+
+        Deleting in a text input inside an iframe causes the page to scroll incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=159654
+        rdar://problem/26805722
+
+        Reviewed by Zalan Bujtas.
+
+        Editor::revealSelectionAfterEditingOperation() needs the same iOS-specific reveal
+        behavior as was added for typing in r202295.
+
+        Test: fast/forms/ios/delete-in-input-in-iframe.html
+
+        * editing/Editor.cpp:
+        (WebCore::Editor::revealSelectionAfterEditingOperation):
+
+2016-07-11  Andy Estes  <aestes@apple.com>
+
+        Fix indentation in FrameLoaderTypes.h
+        https://bugs.webkit.org/show_bug.cgi?id=159650
+
+        Reviewed by Brady Eidson.
+
+        * loader/FrameLoaderTypes.h:
+
+2016-07-11  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Honor the second argument to FontFaceSet.load and FontFaceSet.check
+        https://bugs.webkit.org/show_bug.cgi?id=159607
+        <rdar://problem/27284902>
+
+        Reviewed by Zalan Bujtas.
+
+        This second argument is used in conjunction with the unicode-range CSS property, so that
+        loading from a FontFaceSet only loads the fonts which actually match the characters given.
+        Previously, we hadn't implemented proper support for this unicode-range property, but now
+        that we have implemented it, we should honor this second argument.
+
+        Test: fast/text/unicode-range-javascript.html
+
+        * css/CSSFontFace.cpp:
+        (WebCore::CSSFontFace::rangesMatchCodePoint):
+        * css/CSSFontFace.h:
+        * css/CSSFontFaceSet.cpp:
+        (WebCore::codePointsFromString):
+        (WebCore::CSSFontFaceSet::matchingFaces):
+
+2016-07-11  Zalan Bujtas  <zalan@apple.com>
+
+        Unable to edit fields or drag to select text in Dashboard widgets.
+        https://bugs.webkit.org/show_bug.cgi?id=159647
+        <rdar://problem/26941698>
+
+        Reviewed by Brent Fulgham.
+
+        RenderObject::computeAbsoluteRepaintRect's first paramenter is no longer in/out. Use the return
+        value to set the clip on the dashboard region.
+
+        Not testable.
+
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::addAnnotatedRegions):
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::addAnnotatedRegions):
+
 2016-07-11  Chris Dumez  <cdumez@apple.com>
 
         Potential null dereference under DocumentLoader::mainReceivedError()

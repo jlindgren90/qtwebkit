@@ -1,3 +1,358 @@
+2016-07-12  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Array.prototype.join() fails some conformance tests
+        https://bugs.webkit.org/show_bug.cgi?id=159657
+
+        Reviewed by Saam Barati.
+
+        There were a couple of failures:
+        -separator.toString() was called *before* we get the length
+         and process ToLength() on it.
+        -We were using toUInt32() on length instead of ToLength(),
+         failing on big integers and various negative numbers.
+
+        Additionally, I replaced the "fast" ArrayStorage path
+        by a fully generic implementation that does not depends on StringJoiner.
+
+        The reason is StringJoiner was doing poorly on sparse objects
+        in certain cases.
+        If you have a sparse object with a length > INT_MAX but very few
+        indices defined, and you join on the empty string, it should be possible
+        to join the array (albeit very slowly). With StringJoiner, we fail
+        because we try to allocate > INT_MAX empty strings in a contiguous vector.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::slowJoin):
+        (JSC::canUseFastJoin):
+        (JSC::fastJoin):
+        (JSC::arrayProtoFuncJoin):
+        (JSC::join): Deleted.
+        * runtime/JSArray.h:
+        (JSC::toLength):
+
+2016-07-12  Mark Lam  <mark.lam@apple.com>
+
+        Gardening: C Loop build fix after r203142.
+
+        Not reviewed.
+
+        * interpreter/CLoopStackInlines.h:
+        (JSC::CLoopStack::isSafeToRecurse):
+
+2016-07-12  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203131.
+        https://bugs.webkit.org/show_bug.cgi?id=159698
+
+        This change caused an existing LayoutTest to time out on debug
+        testers (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "[JSC] Array.prototype.join() fails some conformance tests"
+        https://bugs.webkit.org/show_bug.cgi?id=159657
+        http://trac.webkit.org/changeset/203131
+
+2016-07-12  Mark Lam  <mark.lam@apple.com>
+
+        We should use different stack limits for stack checks from JS and host code.
+        https://bugs.webkit.org/show_bug.cgi?id=159442
+        <rdar://problem/26889188>
+
+        Reviewed by Geoffrey Garen.
+
+        We have 2 stack reservedZoneSizes:
+        1. Options::softReservedZoneSize()
+        2. Options::reservedZoneSize()
+
+        Respectively, there are used to define 2 stack limits based on these reserved
+        zone sizes:
+        1. VM::m_softStackLimit
+        2. VM::m_stackLimit
+
+        Options::reservedZoneSize() is the amount of the stack space that JSC guarantees
+        to the VM and client host code for it's use.  Host code that has well known
+        stack usage characteristics (i.e. doesn't call arbitrary code) may do stack
+        checks against the VM::m_stackLimit limit (which is computed using
+        Options::reservedZoneSize()).
+
+        Options::softReservedZoneSize() is a more conservative amount of reserved stack
+        space.  This is used to compute the VM::m_softStackLimit limit.  Any code that
+        is difficult to have its stack usage characterized (i.e. may call arbitrary code)
+        may need more stack space for its work.  Hence, these should do stack checks
+        against the VM::m_softStackLimit limit.
+
+        JS code and host code that may call into JS code falls into the category of code
+        that may call arbitrary code.  Hence, they should do stack checks against the
+        VM::m_softStackLimit limit.
+
+        Accordingly, the VM now provides 2 recursion check functions:
+
+        1. VM::isSafeToRecurseSoft() will do a stack check against VM::m_softStackLimit.
+           In addition, for C Loop builds, VM::isSafeToRecurseSoft() will also
+           check the CLoopStack against VM::m_cloopStackLimit.
+
+        2. VM::isSafeToRecurse() will do a stack check against VM::m_stackLimit.
+
+        Also added a promise-infinite-recursion-should-not-crash.js test.
+
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::emitNodeInTailPosition):
+        (JSC::BytecodeGenerator::emitNodeInConditionContext):
+        * interpreter/CLoopStack.cpp:
+        (JSC::CLoopStack::grow):
+        * interpreter/CLoopStack.h:
+        (JSC::CLoopStack::size):
+        * interpreter/CLoopStackInlines.h:
+        (JSC::CLoopStack::ensureCapacityFor):
+        (JSC::CLoopStack::isSafeToRecurse):
+        (JSC::CLoopStack::topOfFrameFor):
+        * interpreter/CachedCall.h:
+        (JSC::CachedCall::CachedCall):
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::execute):
+        (JSC::Interpreter::executeCall):
+        (JSC::Interpreter::executeConstruct):
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * parser/Parser.cpp:
+        * runtime/Options.h:
+        * runtime/ProxyObject.cpp:
+        (JSC::performProxyGet):
+        (JSC::ProxyObject::performInternalMethodGetOwnProperty):
+        (JSC::ProxyObject::performHasProperty):
+        (JSC::ProxyObject::getOwnPropertySlotCommon):
+        (JSC::ProxyObject::performPut):
+        (JSC::performProxyCall):
+        (JSC::performProxyConstruct):
+        (JSC::ProxyObject::performDelete):
+        (JSC::ProxyObject::performPreventExtensions):
+        (JSC::ProxyObject::performIsExtensible):
+        (JSC::ProxyObject::performDefineOwnProperty):
+        (JSC::ProxyObject::performGetOwnPropertyNames):
+        (JSC::ProxyObject::performSetPrototype):
+        (JSC::ProxyObject::performGetPrototype):
+        * runtime/RegExp.cpp:
+        (JSC::RegExp::finishCreation):
+        (JSC::RegExp::compile):
+        (JSC::RegExp::compileMatchOnly):
+        * runtime/StringRecursionChecker.h:
+        (JSC::StringRecursionChecker::performCheck):
+        * runtime/VM.cpp:
+        (JSC::VM::setStackPointerAtVMEntry):
+        (JSC::VM::updateSoftReservedZoneSize):
+        (JSC::preCommitStackMemory):
+        (JSC::VM::updateStackLimits):
+        (JSC::VM::updateStackLimit): Deleted.
+        * runtime/VM.h:
+        (JSC::VM::stackLimit):
+        (JSC::VM::softStackLimit):
+        (JSC::VM::addressOfSoftStackLimit):
+        (JSC::VM::setCLoopStackLimit):
+        (JSC::VM::isSafeToRecurse):
+        (JSC::VM::lastStackTop):
+        (JSC::VM::setException):
+        * runtime/VMInlines.h:
+        (JSC::VM::ensureStackCapacityFor):
+        (JSC::VM::isSafeToRecurseSoft):
+        (JSC::VM::shouldTriggerTermination):
+        * tests/stress/promise-infinite-recursion-should-not-crash.js: Added.
+        (testPromise):
+        (promiseFunc):
+        * yarr/YarrPattern.cpp:
+
+2016-07-12  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Fix for build error when trying to version stamp dll.
+        https://bugs.webkit.org/show_bug.cgi?id=159692
+
+        Reviewed by Brent Fulgham.
+
+        Use correct path to version stamp script.
+
+        * CMakeLists.txt:
+
+2016-07-12  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Array.prototype.join() fails some conformance tests
+        https://bugs.webkit.org/show_bug.cgi?id=159657
+
+        Reviewed by Saam Barati.
+
+        There were a couple of failures:
+        -separator.toString() was called *before* we get the length
+         and process ToLength() on it.
+        -We were using toUInt32() on length instead of ToLength(),
+         failing on big integers and various negative numbers.
+
+        Additionally, I replaced the "fast" ArrayStorage path
+        by a fully generic implementation that does not depends on StringJoiner.
+
+        The reason is StringJoiner was doing poorly on sparse objects
+        in certain cases.
+        If you have a sparse object with a length > INT_MAX but very few
+        indices defined, and you join on the empty string, it should be possible
+        to join the array (albeit very slowly). With StringJoiner, we fail
+        because we try to allocate > INT_MAX empty strings in a contiguous vector.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::slowJoin):
+        (JSC::canUseFastJoin):
+        (JSC::fastJoin):
+        (JSC::arrayProtoFuncJoin):
+        (JSC::join): Deleted.
+        * runtime/JSArray.h:
+        (JSC::toLength):
+
+2016-07-12  Mark Lam  <mark.lam@apple.com>
+
+        More stack limit and reserved zone renaming.
+        https://bugs.webkit.org/show_bug.cgi?id=159690
+
+        Rubber-stamped by Geoffrey Garen.
+
+        We should rename the following:
+            osStackLimitWithReserve => softStackLimit
+            reservedZoneSize => softReservedZoneSize
+            errorModeReservedZoneSize => reservedZoneSize
+
+        * API/tests/PingPongStackOverflowTest.cpp:
+        (testPingPongStackOverflow):
+        * dfg/DFGJITCompiler.cpp:
+        (JSC::DFG::JITCompiler::compile):
+        (JSC::DFG::JITCompiler::compileFunction):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::lower):
+        * interpreter/CLoopStack.cpp:
+        (JSC::CLoopStack::CLoopStack):
+        (JSC::CLoopStack::grow):
+        (JSC::CLoopStack::releaseExcessCapacity):
+        (JSC::CLoopStack::addToCommittedByteCount):
+        (JSC::CLoopStack::setSoftReservedZoneSize):
+        (JSC::CLoopStack::setReservedZoneSize): Deleted.
+        * interpreter/CLoopStack.h:
+        (JSC::CLoopStack::size):
+        * interpreter/CLoopStackInlines.h:
+        (JSC::CLoopStack::shrink):
+        * jit/JIT.cpp:
+        (JSC::JIT::compileWithoutLinking):
+        * jit/SetupVarargsFrame.cpp:
+        (JSC::emitSetupVarargsFrameFastCase):
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * llint/LowLevelInterpreter.asm:
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+        * runtime/ErrorHandlingScope.cpp:
+        (JSC::ErrorHandlingScope::ErrorHandlingScope):
+        (JSC::ErrorHandlingScope::~ErrorHandlingScope):
+        * runtime/ErrorHandlingScope.h:
+        * runtime/Options.h:
+        * runtime/RegExp.cpp:
+        (JSC::RegExp::finishCreation):
+        (JSC::RegExp::compile):
+        (JSC::RegExp::compileMatchOnly):
+        * runtime/VM.cpp:
+        (JSC::VM::VM):
+        (JSC::VM::setStackPointerAtVMEntry):
+        (JSC::VM::updateSoftReservedZoneSize):
+        (JSC::VM::updateStackLimit):
+        (JSC::VM::updateReservedZoneSize): Deleted.
+        * runtime/VM.h:
+        (JSC::VM::stackPointerAtVMEntry):
+        (JSC::VM::softReservedZoneSize):
+        (JSC::VM::softStackLimit):
+        (JSC::VM::addressOfSoftStackLimit):
+        (JSC::VM::cloopStackLimit):
+        (JSC::VM::setCLoopStackLimit):
+        (JSC::VM::isSafeToRecurse):
+        (JSC::VM::reservedZoneSize): Deleted.
+        (JSC::VM::osStackLimitWithReserve): Deleted.
+        (JSC::VM::addressOfOSStackLimitWithReserve): Deleted.
+        * runtime/VMInlines.h:
+        (JSC::VM::ensureStackCapacityFor):
+        * wasm/WASMFunctionCompiler.h:
+        (JSC::WASMFunctionCompiler::startFunction):
+
+2016-07-12  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Remove ENABLE_CSS3_TEXT_LINE_BREAK flag
+        https://bugs.webkit.org/show_bug.cgi?id=159671
+
+        Reviewed by Csaba Osztrogonác.
+
+        ENABLE_CSS3_TEXT_LINE_BREAK feature was implemented without guards.
+        https://bugs.webkit.org/show_bug.cgi?id=89235
+
+        So this guard can be removed in build scripts.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-07-12  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] DLLs are missing version information.
+        https://bugs.webkit.org/show_bug.cgi?id=159349
+
+        Reviewed by Brent Fulgham.
+
+        Generate autoversion.h and run perl version stamp utility.
+
+        * CMakeLists.txt:
+
+2016-07-11  Caio Lima  <ticaiolima@gmail.com>
+
+        ECMAScript 2016: %TypedArray%.prototype.includes implementation
+        https://bugs.webkit.org/show_bug.cgi?id=159385
+
+        Reviewed by Benjamin Poulain.
+
+        This patch implements the ECMAScript 2016:
+        %TypedArray%.prototype.includes
+        following spec 22.2.3.14
+        https://tc39.github.io/ecma262/2016/#sec-%typedarray%.prototype.includes
+
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        (JSC::genericTypedArrayViewProtoFuncIncludes):
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        (JSC::typedArrayViewProtoFuncIncludes):
+        (JSC::JSTypedArrayViewPrototype::finishCreation):
+
+2016-07-11  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Array.from() and Array.of() try to build objects even if "this" is not a constructor
+        https://bugs.webkit.org/show_bug.cgi?id=159604
+
+        Reviewed by Yusuke Suzuki.
+
+        The spec says IsConstructor(), we were just checking if "this"
+        is any function.
+
+        * builtins/ArrayConstructor.js:
+        (of):
+        (from):
+
+2016-07-11  Keith Miller  <keith_miller@apple.com>
+
+        defineProperty on a index of a TypedArray should throw if configurable
+        https://bugs.webkit.org/show_bug.cgi?id=159653
+
+        Reviewed by Saam Barati.
+
+        When I fixed this before I misread the spec and thought it said we
+        should throw if the descriptor said the proprety is not
+        configurable. This is the opposite. We should throw if the
+        descriptor says the property is configurable.
+
+        * runtime/JSGenericTypedArrayViewInlines.h:
+        (JSC::JSGenericTypedArrayView<Adaptor>::defineOwnProperty):
+        * tests/stress/typedarray-access-monomorphic-neutered.js:
+        * tests/stress/typedarray-access-neutered.js:
+        * tests/stress/typedarray-configure-index.js: Added.
+        (assert):
+        (assertThrows):
+        (makeDescriptor):
+        (test):
+
 2016-07-11  Saam Barati  <sbarati@apple.com>
 
         some paths in Array.prototype.splice don't account for the array not having certain indexed properties

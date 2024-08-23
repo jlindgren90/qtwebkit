@@ -42,6 +42,12 @@ inline bool CLoopStack::ensureCapacityFor(Register* newTopOfStack)
     return grow(newTopOfStack);
 }
 
+bool CLoopStack::isSafeToRecurse() const
+{
+    void* reservationLimit = reinterpret_cast<int8_t*>(reservationTop() + m_softReservedZoneSizeInRegisters);
+    return !m_topCallFrame || (m_topCallFrame->topOfFrame() > reservationLimit);
+}
+
 inline Register* CLoopStack::topOfFrameFor(CallFrame* frame)
 {
     if (UNLIKELY(!frame))
@@ -64,7 +70,7 @@ inline void CLoopStack::shrink(Register* newTopOfStack)
     // invoke std::max() with it as an argument. To work around this, we first
     // assign the constant to a local variable, and use the local instead.
     ptrdiff_t maxExcessCapacity = CLoopStack::maxExcessCapacity;
-    ptrdiff_t maxExcessInRegisters = std::max(maxExcessCapacity, m_reservedZoneSizeInRegisters);
+    ptrdiff_t maxExcessInRegisters = std::max(maxExcessCapacity, m_softReservedZoneSizeInRegisters);
     if (m_end == baseOfStack() && (highAddress() - m_commitTop) >= maxExcessInRegisters)
         releaseExcessCapacity();
 }

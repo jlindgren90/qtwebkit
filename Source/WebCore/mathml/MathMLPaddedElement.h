@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Frederic Wang (fred.wang@free.fr). All rights reserved.
+ * Copyright (C) 2016 Igalia S.L. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,38 +23,36 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MathMLOperatorDictionary_h
-#define MathMLOperatorDictionary_h
+#ifndef MathMLPaddedElement_h
+#define MathMLPaddedElement_h
 
 #if ENABLE(MATHML)
-
-#include <unicode/utypes.h>
+#include "MathMLInlineContainerElement.h"
 
 namespace WebCore {
 
-namespace MathMLOperatorDictionary {
-enum Form { Infix, Prefix, Postfix };
-enum Flag {
-    Accent = 0x1,
-    Fence = 0x2, // This has no visual effect but allows to expose semantic information via the accessibility tree.
-    LargeOp = 0x4,
-    MovableLimits = 0x8,
-    Separator = 0x10, // This has no visual effect but allows to expose semantic information via the accessibility tree.
-    Stretchy = 0x20,
-    Symmetric = 0x40
+class MathMLPaddedElement final : public MathMLInlineContainerElement {
+public:
+    static Ref<MathMLPaddedElement> create(const QualifiedName& tagName, Document&);
+    // FIXME: Pseudo-units are not supported yet (https://bugs.webkit.org/show_bug.cgi?id=85730).
+    const Length& width();
+    const Length& height();
+    const Length& depth();
+    const Length& lspace();
+    const Length& voffset();
+private:
+    MathMLPaddedElement(const QualifiedName& tagName, Document&);
+    RenderPtr<RenderElement> createElementRenderer(RenderStyle&&, const RenderTreePosition&) final;
+    void parseAttribute(const QualifiedName&, const AtomicString&) final;
+
+    Length m_width;
+    Length m_height;
+    Length m_depth;
+    Length m_lspace;
+    Length m_voffset;
 };
-struct Entry {
-    UChar character;
-    unsigned form : 2;
-    unsigned lspace : 3;
-    unsigned rspace : 3;
-    unsigned flags : 8;
-};
-const Entry* getEntry(UChar, Form);
-const Entry* getEntry(UChar);
-bool isVertical(UChar);
-}
 
 }
+
 #endif // ENABLE(MATHML)
-#endif // MathMLOperatorDictionary_h
+#endif // MathMLPaddedElement_h

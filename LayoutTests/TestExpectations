@@ -121,9 +121,6 @@ webkit.org/b/83618 fast/dom/inline-event-attributes-release.html [ Failure ]
 
 webkit.org/b/129057 media/controls-styling-strict.html [ Pass Failure ]
 
-# Skip this MathML test for now until it is rewritten to be more reliable.
-webkit.org/b/159558 mathml/presentation/fractions-positions.html [ Skip ]
-
 # These tests will be rewritten, just skip them until that time.
 webkit.org/b/148036 http/tests/inspector/css/ [ Skip ]
 webkit.org/b/148036 http/tests/inspector/page/ [ Skip ]
@@ -980,3 +977,5 @@ media/pip-video-going-into-fullscreen.html [ WontFix ]
 media/video-contained-in-fullscreen-element-going-into-pip.html [ WontFix ]
 
 [ Debug ] js/regress/misc-bugs-847389-jpeg2000.html [ Skip ]
+
+webkit.org/b/159678 http/tests/preload/single_download_preload_runner.html [ Timeout ]

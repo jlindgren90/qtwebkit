@@ -6711,6 +6711,8 @@ void HTMLMediaElement::userInterfaceLayoutDirectionChanged()
 String HTMLMediaElement::getCurrentMediaControlsStatus()
 {
     DOMWrapperWorld& world = ensureIsolatedWorld();
+    ensureMediaControlsShadowRoot();
+
     ScriptController& scriptController = document().frame()->script();
     JSDOMGlobalObject* globalObject = JSC::jsCast<JSDOMGlobalObject*>(scriptController.globalObject(world));
     JSC::ExecState* exec = globalObject->globalExec();

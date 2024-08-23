@@ -1,3 +1,148 @@
+2016-07-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] WebKitGtk+ uses too many file descriptors
+        https://bugs.webkit.org/show_bug.cgi?id=152316
+
+        Reviewed by Michael Catanzaro.
+
+        The problem is that we are keeping file descriptors open in SharedMemory objects. Those objects can be kept
+        alive for a long time, for example in case of cached resources sent from the network process as shareable
+        resources. The thing is that we keep the file descriptor in the SharedMemory object only to be able to create a
+        Handle, duplicating the file descriptor. However, we are also assuming that we create handles for SharedMemory
+        objects created by another handle which is wrong. SharedMemory objects are created to map a file or data and
+        then a handle is created to send it to another process, or to map an existing file or data for a given handle
+        received from another process. They can also be created to wrap another map, but in that case we don't own the
+        file descritor nor the mapped data. So, after mapping from a handle, we no longer need the file descriptor, and
+        it can be closed to release it, while the mapped memory data will still be alive until munmap() is called. This
+        drastically reduces the amount of file descriptors used by WebKitGTK+.
+
+        * Platform/IPC/unix/ConnectionUnix.cpp:
+        (IPC::readBytesFromSocket): Use setCloseOnExec().
+        (IPC::Connection::createPlatformConnection): Ditto.
+        * Platform/SharedMemory.h:
+        * Platform/unix/SharedMemoryUnix.cpp:
+        (WebKit::SharedMemory::map): Close the file descriptor right after mmap.
+        (WebKit::SharedMemory::~SharedMemory): Close the file descriptor only if it hasn't been closed yet.
+        (WebKit::SharedMemory::createHandle): Add an ASSERT to ensure we only try to create a handle for SharedMemory
+        objects having a valid file descriptor. Use dupCloseOnExec() to duplicate the handle and set the close on exec flag.
+        * UIProcess/Launcher/gtk/ProcessLauncherGtk.cpp:
+        (WebKit::ProcessLauncher::launchProcess): Use setCloseOnExec().
+
+2016-07-12  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] After zooming and when under memory pressure, page tiles sometimes don't redraw while panning
+        https://bugs.webkit.org/show_bug.cgi?id=159697
+        rdar://problem/26314075
+
+        Reviewed by Benjamin Poulain.
+
+        When under memory pressure, and after pinching back to minimum scale, WebPage::updateVisibleContentRects()
+        would sometimes always bail under the "boundedScale != currentScale..." condition.
+
+        This happened because the visibleContentRectUpdateInfo.scale() is a double, but m_page->pageScaleFactor()
+        is a float, and the constraining between min and max scale (which are doubles) caused boundedScale
+        to be always different from currentScale.
+
+        Fix by using floats throughout.
+
+        No test because there's no way to simulate memory pressure for testing.
+
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::updateVisibleContentRects):
+
+2016-07-12  Chris Dumez  <cdumez@apple.com>
+
+        [WK2][NetworkSession] Fix unsafe RunLoop::dispatch() in NetworkLoad constructor
+        https://bugs.webkit.org/show_bug.cgi?id=159691
+
+        Reviewed by Brady Eidson.
+
+        Remove unsafe RunLoop::dispatch() in NetworkLoad constructor. It captured |this| but there
+        was no guarantee the NetworkLoad would still be alive by the time the lambda gets executed.
+
+        Instead, the constructor now takes a NetworkSession& parameter so that the call sites
+        have to retrieve the NetworkSession for a given SessionID and deal with the fact that
+        there may be no such NetworkSession before constructing the NetworkLoad.
+
+        * NetworkProcess/Downloads/DownloadManager.cpp:
+        (WebKit::DownloadManager::startDownload):
+        * NetworkProcess/Downloads/PendingDownload.cpp:
+        (WebKit::PendingDownload::PendingDownload):
+        * NetworkProcess/Downloads/PendingDownload.h:
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::NetworkLoad):
+        * NetworkProcess/NetworkLoad.h:
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::startNetworkLoad):
+        * NetworkProcess/cache/NetworkCacheSpeculativeLoad.cpp:
+        (WebKit::NetworkCache::SpeculativeLoad::SpeculativeLoad):
+
+2016-07-12  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] Protect against bad database data in LocalStorageDatabase::importItems()
+        https://bugs.webkit.org/show_bug.cgi?id=159663
+        <rdar://problem/18995873>
+
+        Reviewed by Benjamin Poulain.
+
+        Protect against bad database data in LocalStorageDatabase::importItems(). We
+        crash if the database contains a null key or a null value so protect against
+        it given that we have evidence it can happen.
+
+        With this change, I can no longer reproduce the UIProcess crash on evernote.com
+        that is documented at <rdar://problem/18995873>.
+
+        * UIProcess/Storage/LocalStorageDatabase.cpp:
+        (WebKit::LocalStorageDatabase::importItems):
+
+2016-07-12  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Remove ENABLE_CSS3_TEXT_LINE_BREAK flag
+        https://bugs.webkit.org/show_bug.cgi?id=159671
+
+        Reviewed by Csaba Osztrogonác.
+
+        ENABLE_CSS3_TEXT_LINE_BREAK feature was implemented without guards.
+        https://bugs.webkit.org/show_bug.cgi?id=89235
+
+        So this guard can be removed in build scripts.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-07-11  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Purge PassRefPtr in platform/efl and platform/mac 
+        https://bugs.webkit.org/show_bug.cgi?id=159548
+
+        Reviewed by Alex Christensen.
+
+        Remove all use of PassRefPtr and clean up unnecessary tabs and spaces.
+        WebKit2 codes are also changed because of setBufferForType()'s modification.
+
+        * UIProcess/Cocoa/WebPasteboardProxyCocoa.mm:
+        (WebKit::WebPasteboardProxy::setPasteboardBufferForType):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebKit::WebPlatformStrategies::setBufferForType):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h:
+
+2016-07-11  Chris Dumez  <cdumez@apple.com>
+
+        [WK2][iOS] Intermittent crash in [UIApplication beginBackgroundTaskWithName] expiration handler
+        https://bugs.webkit.org/show_bug.cgi?id=159648
+        <rdar://problem/27219361>
+
+        Reviewed by Anders Carlsson.
+
+        We see an intermittent crash in [UIApplication beginBackgroundTaskWithName] expiration handler.
+        From the traces, we noticed the expiration handler can get called on a non-main thread under
+        certain conditions, which our code is designed to deal with.
+
+        In particular, we get called on a non-main thread when UIKit fails to acquire the assertion.
+        Update our expiration handler to always notify the clients on the main thread.
+
+        * UIProcess/ios/ProcessAssertionIOS.mm:
+        (-[WKProcessAssertionBackgroundTaskManager _updateBackgroundTask]):
+
 2016-07-11  Dan Bernstein  <mitz@apple.com>
 
         Tried to fix the macOS build.

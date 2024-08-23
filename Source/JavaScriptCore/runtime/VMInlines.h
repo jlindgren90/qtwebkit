@@ -40,11 +40,20 @@ bool VM::ensureStackCapacityFor(Register* newTopOfStack)
 {
 #if ENABLE(JIT)
     ASSERT(wtfThreadData().stack().isGrowingDownward());
-    return newTopOfStack >= m_osStackLimitWithReserve;
+    return newTopOfStack >= m_softStackLimit;
 #else
     return interpreter->cloopStack().ensureCapacityFor(newTopOfStack);
 #endif
     
+}
+
+bool VM::isSafeToRecurseSoft() const
+{
+    bool safe = isSafeToRecurse(m_softStackLimit);
+#if !ENABLE(JIT)
+    safe = safe && interpreter->cloopStack().isSafeToRecurse();
+#endif
+    return safe;
 }
 
 bool VM::shouldTriggerTermination(ExecState* exec)
