@@ -45,6 +45,7 @@
 #include "JSLexicalEnvironment.h"
 #include "JSCInlines.h"
 #include "JSModuleEnvironment.h"
+#include "ObjectConstructor.h"
 #include "PreciseJumpTargets.h"
 #include "PutByIdFlags.h"
 #include "PutByIdStatus.h"
@@ -2708,7 +2709,16 @@ bool ByteCodeParser::handleConstantInternalFunction(
         set(VirtualRegister(resultOperand), result);
         return true;
     }
-    
+
+    // FIXME: This should handle construction as well. https://bugs.webkit.org/show_bug.cgi?id=155591
+    if (function->classInfo() == ObjectConstructor::info() && kind == CodeForCall) {
+        insertChecks();
+
+        Node* result = addToGraph(CallObjectConstructor, get(virtualRegisterForArgument(1, registerOffset)));
+        set(VirtualRegister(resultOperand), result);
+        return true;
+    }
+
     for (unsigned typeIndex = 0; typeIndex < NUMBER_OF_TYPED_ARRAY_TYPES; ++typeIndex) {
         bool result = handleTypedArrayConstructor(
             resultOperand, function, registerOffset, argumentCountIncludingThis,
@@ -2977,7 +2987,11 @@ GetByOffsetMethod ByteCodeParser::planLoad(const ObjectPropertyConditionSet& con
             break;
         }
     }
-    RELEASE_ASSERT(!!result);
+    if (!result) {
+        // We have a unset property.
+        ASSERT(!conditionSet.numberOfConditionsWithKind(PropertyCondition::Presence));
+        return GetByOffsetMethod::constant(m_constantUndefined);
+    }
     return result;
 }
 
@@ -3185,7 +3199,7 @@ void ByteCodeParser::handleGetById(
         //    optimal, if there is some rarely executed case in the chain that requires a lot
         //    of checks and those checks are not watchpointable.
         for (const GetByIdVariant& variant : getByIdStatus.variants()) {
-            if (variant.intrinsic() != NoIntrinsic || variant.isPropertyUnset()) {
+            if (variant.intrinsic() != NoIntrinsic) {
                 set(VirtualRegister(destinationOperand),
                     addToGraph(getById, OpInfo(identifierNumber), OpInfo(prediction), base));
                 return;
@@ -3198,7 +3212,7 @@ void ByteCodeParser::handleGetById(
                         GetByOffsetMethod::load(variant.offset())));
                 continue;
             }
-            
+
             GetByOffsetMethod method = planLoad(variant.conditionSet());
             if (!method) {
                 set(VirtualRegister(destinationOperand),
@@ -3885,6 +3899,12 @@ bool ByteCodeParser::parseBlock(unsigned limit)
             Node* value = get(VirtualRegister(currentInstruction[2].u.operand));
             set(VirtualRegister(currentInstruction[1].u.operand), addToGraph(IsString, value));
             NEXT_OPCODE(op_is_string);
+        }
+
+        case op_is_jsarray: {
+            Node* value = get(VirtualRegister(currentInstruction[2].u.operand));
+            set(VirtualRegister(currentInstruction[1].u.operand), addToGraph(IsJSArray, value));
+            NEXT_OPCODE(op_is_jsarray);
         }
 
         case op_is_object: {

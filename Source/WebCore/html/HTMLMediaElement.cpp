@@ -1757,6 +1757,8 @@ void HTMLMediaElement::audioTrackEnabledChanged(AudioTrack* track)
     ASSERT(track);
     if (m_audioTracks && m_audioTracks->contains(*track))
         m_audioTracks->scheduleChangeEvent();
+    if (ScriptController::processingUserGestureForMedia())
+        removeBehaviorsRestrictionsAfterFirstUserGesture(MediaElementSession::AllRestrictions & ~MediaElementSession::RequireUserGestureToControlControlsManager);
 }
 
 void HTMLMediaElement::textTrackModeChanged(TextTrack* track)
@@ -3337,12 +3339,13 @@ void HTMLMediaElement::setMuted(bool muted)
 {
     LOG(Media, "HTMLMediaElement::setMuted(%p) - %s", this, boolString(muted));
 
-#if PLATFORM(IOS)
-    UNUSED_PARAM(muted);
-#else
     if (m_muted != muted || !m_explicitlyMuted) {
         m_muted = muted;
         m_explicitlyMuted = true;
+
+        if (ScriptController::processingUserGestureForMedia())
+            removeBehaviorsRestrictionsAfterFirstUserGesture(MediaElementSession::AllRestrictions & ~MediaElementSession::RequireUserGestureToControlControlsManager);
+
         // Avoid recursion when the player reports volume changes.
         if (!processingMediaPlayerCallback()) {
             if (m_player) {
@@ -3365,7 +3368,6 @@ void HTMLMediaElement::setMuted(bool muted)
         updateMediaState(UpdateMediaState::Asynchronously);
 #endif
     }
-#endif
 
     updatePlaybackControlsManager();
 }
@@ -6408,9 +6410,10 @@ void HTMLMediaElement::requestInstallMissingPlugins(const String& details, const
 }
 #endif
 
-void HTMLMediaElement::removeBehaviorsRestrictionsAfterFirstUserGesture()
+void HTMLMediaElement::removeBehaviorsRestrictionsAfterFirstUserGesture(MediaElementSession::BehaviorRestrictions mask)
 {
-    MediaElementSession::BehaviorRestrictions restrictionsToRemove = MediaElementSession::RequireUserGestureForLoad
+    MediaElementSession::BehaviorRestrictions restrictionsToRemove = mask &
+        (MediaElementSession::RequireUserGestureForLoad
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
         | MediaElementSession::RequireUserGestureToShowPlaybackTargetPicker
         | MediaElementSession::RequireUserGestureToAutoplayToExternalDevice
@@ -6420,7 +6423,8 @@ void HTMLMediaElement::removeBehaviorsRestrictionsAfterFirstUserGesture()
         | MediaElementSession::RequireUserGestureForAudioRateChange
         | MediaElementSession::RequireUserGestureForFullscreen
         | MediaElementSession::InvisibleAutoplayNotPermitted
-        | MediaElementSession::RequireUserGestureToControlControlsManager;
+        | MediaElementSession::RequireUserGestureToControlControlsManager);
+
     m_mediaSession->removeBehaviorRestriction(restrictionsToRemove);
 }
 

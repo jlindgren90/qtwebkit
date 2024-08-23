@@ -17,6 +17,7 @@ editing/pasteboard/gtk [ Skip ]
 tiled-drawing [ Skip ]
 swipe [ Skip ]
 fast/zooming/ios [ Skip ]
+fast/forms/ios [ Skip ]
 fast/viewport/ios [ Skip ]
 fast/events/ios [ Skip ]
 fast/events/touch/ios [ Skip ]
@@ -52,6 +53,9 @@ http/tests/misc/will-send-request-with-client-provided-http-body.html [ Skip ]
 # Only Mac and iOS have an implementation of UIScriptController::doAsyncTask().
 fast/harness/ui-side-scripts.html [ Skip ]
 fast/harness/concurrent-ui-side-scripts.html [ Skip ]
+
+# This test only makes sense on Mac
+fast/attachment/attachment-subtitle-resize.html
 
 #//////////////////////////////////////////////////////////////////////////////////////////
 # End platform-specific tests.

@@ -1,3 +1,189 @@
+2016-06-16  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Sporadic crash in HashTableAddResult following CSSValuePool::createFontFamilyValue
+        https://bugs.webkit.org/show_bug.cgi?id=158297
+
+        Reviewed by Darin Adler.
+
+        * fast/text/placeholder-renderstyle-null-font-expected.txt: Added.
+        * fast/text/placeholder-renderstyle-null-font.html: Added.
+
+2016-06-15  Keith Miller  <keith_miller@apple.com>
+
+        Add support for Symbol.isConcatSpreadable (round 2)
+        https://bugs.webkit.org/show_bug.cgi?id=158769
+
+        Reviewed by Mark Lam.
+
+        Fix tests for Symbol.isConcatSpreadable. Also, add new test that
+        the array species construction does not use the callees' global
+        object's Array[Symbol.species] when given an array from another
+        global object.
+
+        * js/Object-getOwnPropertyNames-expected.txt:
+        * js/array-species-different-globalobjects.html:
+        * js/dom/array-prototype-properties-expected.txt:
+        * js/script-tests/Object-getOwnPropertyNames.js:
+
+2016-06-15  Zalan Bujtas  <zalan@apple.com>
+
+        Decouple the percent height and positioned descendants maps.
+        https://bugs.webkit.org/show_bug.cgi?id=158773
+
+        Reviewed by David Hyatt and Chris Dumez.
+
+        Various dynamic containing block changing tests.
+
+        * fast/block/fixed-position-reparent-when-transition-is-removed.html:
+        * fast/block/positioning/change-containing-block-for-absolute-positioned-expected.txt: Added.
+        * fast/block/positioning/change-containing-block-for-absolute-positioned.html: Added.
+        * fast/block/positioning/change-containing-block-for-fixed-positioned-expected.txt: Added.
+        * fast/block/positioning/change-containing-block-for-fixed-positioned.html: Added.
+
+2016-06-15  Tim Horton  <timothy_horton@apple.com>
+
+        <attachment> elements jump around a lot around when subtitle text changes slightly
+        https://bugs.webkit.org/show_bug.cgi?id=158818
+        <rdar://problem/24450270>
+
+        Reviewed by Simon Fraser.
+
+        * fast/attachment/attachment-subtitle-resize-expected.txt: Added.
+        * fast/attachment/attachment-subtitle-resize.html: Added.
+
+2016-06-13  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Make it possible to test the Next/Previous buttons in the keyboard accessory bar
+        https://bugs.webkit.org/show_bug.cgi?id=158714
+
+        Reviewed by Enrica Casucci.
+
+        Add UIScriptController.keyboardAccessoryBar{Next,Previous} and hook it up to the WKContentView
+        method that gets called from UIKit.
+
+        Add a test that exercises it.
+
+        * TestExpectations:
+        * fast/forms/ios/accessory-bar-navigation-expected.txt: Added.
+        * fast/forms/ios/accessory-bar-navigation.html: Added.
+        * fast/forms/ios/resources/zooming-test-utils.js: Added.
+        (testZoomAfterTap):
+        (tableFromJSON):
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-06-15  Dean Jackson  <dino@apple.com>
+
+        [mac] LayoutTest transforms/undecomposable.html is a flaky timeout
+        https://bugs.webkit.org/show_bug.cgi?id=158816
+
+        Unflakify this test by putting the script in a place that
+        will execute it before the load event (by which time the animation
+        may have started).
+
+        * transforms/undecomposable.html:
+
+2016-06-15  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Add tests for zooming to text fields on focus
+        https://bugs.webkit.org/show_bug.cgi?id=158786
+
+        Reviewed by Enrica Casucci.
+
+        Add tests that focus form controls, and test the resulting scroll position and zoom level.
+
+        * TestExpectations:
+        * fast/forms/ios/focus-input-via-button-expected.txt: Added.
+        * fast/forms/ios/focus-input-via-button-no-scaling-expected.txt: Added.
+        * fast/forms/ios/focus-input-via-button-no-scaling.html: Added.
+        * fast/forms/ios/focus-input-via-button.html: Added.
+        * fast/forms/ios/resources/zooming-test-utils.js: Added.
+        (testZoomAfterTap):
+        (tableFromJSON):
+        * fast/forms/ios/zoom-after-input-tap-expected.txt: Added.
+        * fast/forms/ios/zoom-after-input-tap-wide-input-expected.txt: Added.
+        * fast/forms/ios/zoom-after-input-tap-wide-input.html: Added.
+        * fast/forms/ios/zoom-after-input-tap.html: Added.
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-06-15  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Add media setup test using the legacy callback APIs
+        https://bugs.webkit.org/show_bug.cgi?id=158736
+
+        Reviewed by Eric Carlson.
+
+        Add a test that sets up media using the legacy callback-based createOffer/Answer() and
+        setLocal/RemoteDescription() methods [1].
+
+        [1] https://w3c.github.io/webrtc-pc/archives/20160513/webrtc.html#legacy-interface-extensions
+
+        * fast/mediastream/RTCPeerConnection-media-setup-callbacks-single-dialog-expected.txt: Added.
+        * fast/mediastream/RTCPeerConnection-media-setup-callbacks-single-dialog.html: Added.
+        * platform/mac/TestExpectations:
+        The mac port is not building with WEB_RTC yet.
+
+2016-06-15  Antti Koivisto  <antti@apple.com>
+
+        GoogleMaps transit schedule explorer comes up blank initially
+        https://bugs.webkit.org/show_bug.cgi?id=158803
+        rdar://problem/25818080
+
+        Reviewed by Andreas Kling
+
+        Expand the tests to cover this case.
+
+        * fast/css/style-invalidation-attribute-change-descendants-expected.txt:
+        * fast/css/style-invalidation-attribute-change-descendants.html:
+        * fast/css/style-invalidation-class-change-descendants-expected.txt:
+        * fast/css/style-invalidation-class-change-descendants.html:
+
+2016-06-15  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-sizing] Item borders are missing with 'min-width:-webkit-fill-available' and zero available width
+        https://bugs.webkit.org/show_bug.cgi?id=158258
+
+        Tests to verify that fill-available size works as expected when contaner's width is zero.
+
+        Reviewed by Darin Adler.
+
+        * fast/css-intrinsic-dimensions/fill-available-with-zero-width-expected.html: Added.
+        * fast/css-intrinsic-dimensions/fill-available-with-zero-width.html: Added.
+
+2016-06-15  Alex Christensen  <achristensen@webkit.org>
+
+        Fix 2d canvas transform after r192900
+        https://bugs.webkit.org/show_bug.cgi?id=158725
+
+        Reviewed by Dean Jackson.
+
+        * fast/canvas/canvas-transform-inverse-expected.html: Added.
+        * fast/canvas/canvas-transform-inverse.html: Added.
+
+2016-06-15  Eric Carlson  <eric.carlson@apple.com>
+
+        [iOS] Make HTMLMediaElement.muted mutable
+        https://bugs.webkit.org/show_bug.cgi?id=158787
+        <rdar://problem/24452567>
+
+        Reviewed by Dean Jackson.
+
+        * media/audio-playback-restriction-removed-muted-expected.txt: Added.
+        * media/audio-playback-restriction-removed-muted.html: Added.
+        * media/audio-playback-restriction-removed-track-enabled-expected.txt: Added.
+        * media/audio-playback-restriction-removed-track-enabled.html: Added.
+
+2016-06-15  Simon Fraser  <simon.fraser@apple.com>
+
+        fast/events/ios tests are marked as flakey, but really just fail in OpenSource and WK1
+        https://bugs.webkit.org/show_bug.cgi?id=158804
+        
+        Test gardening.
+
+        fast/events/ios is skipped globally. Ideally it would be re-enabled in /ios-simulator-wk2/TestExpectations, but relies on unreleased
+        software, so leave disabled for now.
+
+        * platform/ios-simulator/TestExpectations:
+
 2016-06-15  Antti Koivisto  <antti@apple.com>
 
         Vary:Cookie validation doesn't work in private browsing

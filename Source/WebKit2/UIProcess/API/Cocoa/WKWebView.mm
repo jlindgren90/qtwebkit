@@ -4400,6 +4400,16 @@ static inline WebKit::FindOptions toFindOptions(_WKFindOptions wkFindOptions)
     _impl->setClipsToVisibleRect(expandsToFit);
 }
 
+- (BOOL)_shouldExpandContentToViewHeightForAutoLayout
+{
+    return _impl->shouldExpandToViewHeightForAutoLayout();
+}
+
+- (void)_setShouldExpandContentToViewHeightForAutoLayout:(BOOL)shouldExpand
+{
+    return _impl->setShouldExpandToViewHeightForAutoLayout(shouldExpand);
+}
+
 - (NSPrintOperation *)_printOperationWithPrintInfo:(NSPrintInfo *)printInfo
 {
     if (auto webFrameProxy = _page->mainFrame())
@@ -4436,6 +4446,16 @@ static inline WebKit::FindOptions toFindOptions(_WKFindOptions wkFindOptions)
 - (CGPoint)_convertPointFromViewToContents:(CGPoint)point
 {
     return [self convertPoint:point toView:self._currentContentView];
+}
+
+- (void)keyboardAccessoryBarNext
+{
+    [_contentView accessoryTab:YES];
+}
+
+- (void)keyboardAccessoryBarPrevious
+{
+    [_contentView accessoryTab:NO];
 }
 
 #endif // PLATFORM(IOS)
