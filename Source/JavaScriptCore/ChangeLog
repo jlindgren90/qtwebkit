@@ -1,3 +1,146 @@
+2016-07-15  Mark Lam  <mark.lam@apple.com>
+
+        Stack overflow error for deeply nested classes.
+        https://bugs.webkit.org/show_bug.cgi?id=157086
+
+        Reviewed by Geoffrey Garen.
+
+        Changed the StructureStubClearingWatchpoint destructor to iteratively destruct
+        its chain of next StructureStubClearingWatchpoints instead of recursively doing
+        so.
+
+        The added deep-StructureStubClearingWatchpoint-destructor-recursion.js test
+        produces a crash before the fix is applied, but takes about 14 minutes to run.
+        Hence, it is skipped.
+
+        * bytecode/StructureStubClearingWatchpoint.cpp:
+        (JSC::StructureStubClearingWatchpoint::~StructureStubClearingWatchpoint):
+        * tests/stress/deep-StructureStubClearingWatchpoint-destructor-recursion.js: Added.
+
+2016-07-15  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix expectations in test262.yaml
+        https://bugs.webkit.org/show_bug.cgi?id=159810
+
+        Reviewed by Keith Miller.
+
+        * tests/test262.yaml:
+
+2016-07-15  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [ARM] Disable Inline Caching on ARMv7 traditional until proper fix
+        https://bugs.webkit.org/show_bug.cgi?id=159759
+
+        Reviewed by Saam Barati.
+
+        * jit/Repatch.cpp:
+        (JSC::forceICFailure):
+
+2016-07-14  Keith Miller  <keith_miller@apple.com>
+
+        Add Test262 test files and yaml
+
+        Rubber Stamped by Benjamin Poulain.
+
+        This patch adds all the test262 test files and the yaml that drives
+        run-jsc-stress-tests.
+
+        * tests/test262.yaml: Added. Yaml file to drive the test262 test suite with our driver.
+        * tests/test262/LICENSE: Added. License for the test262 test suite.
+        * tests/test262/harness/: Added. Harness directory for the test262 tests.
+        * tests/test262/test/: Added. Directory with all the actual test files.
+
+2016-07-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Return the correct value from Heap::externalMemorySize
+        https://bugs.webkit.org/show_bug.cgi?id=159797
+        <rdar://problem/27362446>
+
+        Reviewed by Timothy Hatcher.
+
+        * heap/Heap.h:
+        (JSC::Heap::externalMemorySize):
+        We should have been returning m_externalMemorySize which is a subset
+        of m_extraMemorySize. In practice the difference can be small. A major
+        difference in "extra memory size" may be from deprecated memory size
+        and array buffer sizes.
+
+2016-07-14  Saam Barati  <sbarati@apple.com>
+
+        It should be a syntax error to have a 'use strict' directive inside a function that has a non-simple parameter list
+        https://bugs.webkit.org/show_bug.cgi?id=159790
+        <rdar://problem/27171636>
+
+        Reviewed by Geoffrey Garen.
+
+        Is is a syntax error for a function's parameter list to be non-simple
+        and for the function to also contain a 'use strict' directive.
+
+        See section 14.2.1 of the spec:
+        https://tc39.github.io/ecma262/#sec-arrow-function-definitions-static-semantics-early-errors
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseSourceElements):
+        (JSC::Parser<LexerType>::parseFormalParameters):
+        * parser/Parser.h:
+        (JSC::Scope::Scope):
+        (JSC::Scope::strictMode):
+        (JSC::Scope::isValidStrictMode):
+        (JSC::Scope::shadowsArguments):
+        (JSC::Scope::setHasNonSimpleParameterList):
+        (JSC::Scope::hasNonSimpleParameterList):
+        (JSC::Scope::copyCapturedVariablesToVector):
+
+2016-07-14  Geoffrey Garen  <ggaren@apple.com>
+
+        ASSERTION FAILED: : this != replacement()
+        https://bugs.webkit.org/show_bug.cgi?id=159779
+
+        Reviewed by Michael Saboff.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::jettison): If we jettison during GC, and our owner
+        is dead, we choose not to replace ourselves. (See
+        https://bugs.webkit.org/show_bug.cgi?id=159588.) So, it's possible to
+        invalidate and still be our owner's CodeBlock. Relax our ASSERT to allow
+        for this.
+
+2016-07-14  Mark Lam  <mark.lam@apple.com>
+
+        JSONObject Walker::walk must save array length before processing array elements.
+        https://bugs.webkit.org/show_bug.cgi?id=153485
+
+        Reviewed by Darin Adler and Michael Saboff.
+
+        According to https://tc39.github.io/ecma262/#sec-internalizejsonproperty,
+        JSON.parse() should cache the length of an array and use the cached length when
+        iterating array elements (see section 24.3.1.1 2.b.iii).
+
+        * runtime/JSONObject.cpp:
+        (JSC::Walker::walk):
+        * tests/stress/JSON-parse-should-cache-array-lengths.js: Added.
+        (toString):
+        (shouldBe):
+        (test):
+        (test2):
+
+2016-07-14  Julien Brianceau  <jbriance@cisco.com>
+
+        [mips] Handle properly unaligned halfword load
+        https://bugs.webkit.org/show_bug.cgi?id=153226
+
+        Reviewed by Michael Catanzaro.
+
+        Waiting for the kernel to silently fix-up unaligned accesses is
+        not efficient, so let's provide an implementation of load16Unaligned
+        in mips macro assembler.
+
+        Performance improvement seen with SunSpider's regexp-dna test.
+
+        * assembler/MacroAssemblerMIPS.h:
+        (JSC::MacroAssemblerMIPS::load16Unaligned):
+        (JSC::MacroAssemblerMIPS::load32WithUnalignedHalfWords):
+
 2016-07-14  Youenn Fablet  <youenn@apple.com>
 
         DOM value iterable interfaces should use Array prototype methods

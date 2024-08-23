@@ -1,3 +1,175 @@
+2016-07-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r203248.
+
+        This change causes LayoutTests to crash and exit early
+
+        Reverted changeset:
+
+        "Use more Refs with WorkQueues"
+        https://bugs.webkit.org/show_bug.cgi?id=159792
+        http://trac.webkit.org/changeset/203248
+
+2016-07-14  Chris Dumez  <cdumez@apple.com>
+
+        Use emptyString() instead of "" when possible
+        https://bugs.webkit.org/show_bug.cgi?id=159789
+
+        Reviewed by Alex Christensen.
+
+        Use emptyString() instead of "" when possible to reduce String allocations.
+
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::pasteboardChangedOwner):
+        * WebProcess/Plugins/Netscape/NetscapeBrowserFuncs.cpp:
+        (WebKit::parseRFC822HeaderFields):
+        (WebKit::NPN_Status):
+
+2016-07-14  Alex Christensen  <achristensen@webkit.org>
+
+        Use more Refs with WorkQueues
+        https://bugs.webkit.org/show_bug.cgi?id=159792
+
+        Reviewed by Brady Eidson.
+
+        * NetworkProcess/CustomProtocols/CustomProtocolManager.h:
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::setShouldExitOnSyncMessageSendFailure):
+        (IPC::Connection::addWorkQueueMessageReceiver):
+        * Platform/IPC/Connection.h:
+        * Shared/mac/SecItemShim.cpp:
+        (WebKit::SecItemShim::initializeConnection):
+        * UIProcess/Storage/LocalStorageDatabaseTracker.cpp:
+        (WebKit::LocalStorageDatabaseTracker::create):
+        (WebKit::LocalStorageDatabaseTracker::LocalStorageDatabaseTracker):
+        * UIProcess/Storage/LocalStorageDatabaseTracker.h:
+        * UIProcess/Storage/StorageManager.cpp:
+        (WebKit::StorageManager::StorageArea::openDatabaseAndImportItemsIfNeeded):
+        (WebKit::StorageManager::StorageManager):
+        * UIProcess/Storage/StorageManager.h:
+        * UIProcess/WebResourceLoadStatisticsStore.cpp:
+        (WebKit::WebResourceLoadStatisticsStore::processWillOpenConnection):
+        (WebKit::WebResourceLoadStatisticsStore::processDidCloseConnection):
+        * UIProcess/mac/SecItemShimProxy.cpp:
+        (WebKit::SecItemShimProxy::initializeConnection):
+        (WebKit::SecItemShimProxy::secItemRequest):
+        * WebProcess/Plugins/PluginProcessConnectionManager.cpp:
+        (WebKit::PluginProcessConnectionManager::initializeConnection):
+        (WebKit::PluginProcessConnectionManager::getPluginProcessConnection):
+        * WebProcess/WebPage/EventDispatcher.cpp:
+        (WebKit::EventDispatcher::initializeConnection):
+        (WebKit::EventDispatcher::wheelEvent):
+        * WebProcess/WebPage/ViewUpdateDispatcher.cpp:
+        (WebKit::ViewUpdateDispatcher::initializeConnection):
+        (WebKit::ViewUpdateDispatcher::visibleContentRectUpdate):
+
+2016-07-14  Timothy Hatcher  <timothy@apple.com>
+
+        Web Automation: FrameNotFound errors happen a lot for the main frame
+        https://bugs.webkit.org/show_bug.cgi?id=159777
+        rdar://problem/27224628
+
+        Send both pageID and frameID, and have the WebProcess side resolve the
+        mainFrame from 0 based on the known pageID. This avoids a race waiting
+        for the DidCreateMainFrame message.
+
+        Reviewed by Brian Burg.
+
+        * UIProcess/Automation/WebAutomationSession.cpp:
+        (WebKit::WebAutomationSession::webFrameIDForHandle):
+        (WebKit::WebAutomationSession::switchToBrowsingContext):
+        (WebKit::WebAutomationSession::evaluateJavaScriptFunction):
+        (WebKit::WebAutomationSession::resolveChildFrameHandle):
+        (WebKit::WebAutomationSession::resolveParentFrameHandle):
+        (WebKit::WebAutomationSession::computeElementLayout):
+        (WebKit::WebAutomationSession::getAllCookies):
+        (WebKit::WebAutomationSession::deleteSingleCookie):
+        (WebKit::WebAutomationSession::webFrameProxyForHandle): Deleted.
+        (WebKit::WebAutomationSession::webFrameIDForHandle): Added.
+        * UIProcess/Automation/WebAutomationSession.h:
+        * WebProcess/Automation/WebAutomationSessionProxy.cpp:
+        (WebKit::WebAutomationSessionProxy::evaluateJavaScriptFunction):
+        (WebKit::WebAutomationSessionProxy::resolveChildFrameWithOrdinal):
+        (WebKit::WebAutomationSessionProxy::resolveChildFrameWithNodeHandle):
+        (WebKit::WebAutomationSessionProxy::resolveChildFrameWithName):
+        (WebKit::WebAutomationSessionProxy::resolveParentFrame):
+        (WebKit::WebAutomationSessionProxy::focusFrame):
+        (WebKit::WebAutomationSessionProxy::computeElementLayout):
+        (WebKit::WebAutomationSessionProxy::takeScreenshot):
+        (WebKit::WebAutomationSessionProxy::getCookiesForFrame):
+        (WebKit::WebAutomationSessionProxy::deleteCookie):
+        * WebProcess/Automation/WebAutomationSessionProxy.h:
+        * WebProcess/Automation/WebAutomationSessionProxy.messages.in:
+
+2016-07-14  Alex Christensen  <achristensen@webkit.org>
+
+        Use SocketProvider to create SocketStreamHandles
+        https://bugs.webkit.org/show_bug.cgi?id=159774
+
+        Reviewed by Brady Eidson.
+
+        * WebProcess/Network/WebSocketProvider.cpp:
+        (WebKit::WebSocketProvider::createSocketStreamHandle):
+        (WebKit::WebSocketProvider::createWebSocketChannel): Deleted.
+        * WebProcess/Network/WebSocketProvider.h:
+
+2016-07-14  Chris Dumez  <cdumez@apple.com>
+
+        [WK2][iOS] Potential null dereference under ViewGestureController::beginSwipeGesture()
+        https://bugs.webkit.org/show_bug.cgi?id=159776
+        <rdar://problem/22467100>
+
+        Reviewed by Tim Horton.
+
+        Potential null dereference under ViewGestureController::beginSwipeGesture() of:
+        m_webPageProxy.backForwardList().currentItem()
+
+        The client side is expected to call ViewGestureController::canSwipeInDirection() but
+        this only guarantees that the m_alternateBackForwardListSourceView's currentItem is
+        non-null when m_alternateBackForwardListSourceView is non-null. It does not guarantee
+        that m_webPageProxy's currentItem is non-null.
+
+        * UIProcess/ios/ViewGestureControllerIOS.mm:
+        (WebKit::ViewGestureController::beginSwipeGesture):
+
+2016-07-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(WEB_SOCKETS) build after r202930
+        https://bugs.webkit.org/show_bug.cgi?id=159768
+
+        Reviewed by Alex Christensen.
+
+        * WebProcess/Network/WebSocketProvider.h:
+
+2016-07-14  Chris Dumez  <cdumez@apple.com>
+
+        Possible crash under NavigationState::NavigationClient::processDidCrash()
+        https://bugs.webkit.org/show_bug.cgi?id=159773
+        <rdar://problem/19814215>
+
+        Reviewed by Anders Carlsson.
+
+        Add a m_navigationState.m_navigationDelegateMethods.webViewWebProcessDidCrash before
+        trying to call it to avoid crashing if the client does not implement it.
+
+        At the beginning of the method, we abort early only if both webViewWebContentProcessDidTerminate
+        and webViewWebProcessDidCrash are implemented. However, if webViewWebContentProcessDidTerminate
+        implemented but not webViewWebProcessDidCrash we can end up crashing as we fail to check later
+        on before trying to call it.
+
+        * UIProcess/Cocoa/NavigationState.mm:
+        (WebKit::NavigationState::NavigationClient::processDidCrash):
+
+2016-07-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the DatabaseProcess build with disabled IDB
+        https://bugs.webkit.org/show_bug.cgi?id=159769
+
+        Reviewed by Alex Christensen.
+
+        * WebProcess/Databases/WebToDatabaseProcessConnection.cpp:
+        (WebKit::WebToDatabaseProcessConnection::didClose):
+
 2016-07-14  Hyunjun Ko  <zzoon@igalia.com>
 
         [ThreadedCompositor] Build fails in debug mode after r202040

@@ -1,3 +1,71 @@
+2016-07-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r203266.
+
+        This change caused editing/deleting/delete-emoji.html to time
+        out on El Capitan, crash under GuardMalloc
+
+        Reverted changeset:
+
+        "Support new emoji group candidates"
+        https://bugs.webkit.org/show_bug.cgi?id=159755
+        http://trac.webkit.org/changeset/203266
+
+2016-07-15  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Revert r202560 to fix the ARMv7 build with ARM instruction set
+        https://bugs.webkit.org/show_bug.cgi?id=159707
+
+        Reviewed by Carlos Garcia Campos.
+
+        * wtf/Platform.h: Revert r202560.
+
+2016-07-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Support new emoji group candidates
+        https://bugs.webkit.org/show_bug.cgi?id=159755
+        <rdar://problem/27325521>
+
+        Reviewed by Dean Jackson.
+
+        This patch doesn't update the rules for our cursor movement iterator, because
+        I don't know the language used for implementing these rules. These rules will
+        be updated in the near future. When they do,
+        editing/deleting/delete-emoji-expected.txt will need to be updated.
+
+        * wtf/text/TextBreakIterator.cpp:
+        (WTF::cursorMovementIterator):
+
+2016-07-14  Alex Christensen  <achristensen@webkit.org>
+
+        Allow RefPtrs of const RefCounted types
+        https://bugs.webkit.org/show_bug.cgi?id=158269
+
+        Reviewed by Anders Carlsson.
+
+        * wtf/RefCounted.h:
+        (WTF::RefCountedBase::ref):
+        (WTF::RefCountedBase::~RefCountedBase):
+        (WTF::RefCountedBase::derefBase):
+        (WTF::RefCounted::deref):
+        Creating references to a const object does not really modify the object,
+        so everything in RefCounted is now mutable, and ref and deref are const.
+
+2016-07-14  Chris Dumez  <cdumez@apple.com>
+
+        Avoid an extra heap allocation when dispatching Functions to WorkQueue
+        https://bugs.webkit.org/show_bug.cgi?id=158367
+
+        Reviewed by Anders Carlsson.
+
+        Avoid an extra heap allocation when dispatching Functions to WorkQueue
+        by adding leakCallable() / adoptCallable() functions to Function.
+
+        * wtf/Function.h:
+        * wtf/cocoa/WorkQueueCocoa.cpp:
+        (WTF::WorkQueue::dispatch):
+        (WTF::WorkQueue::dispatchAfter):
+
 2016-07-13  Myles C. Maxfield  <mmaxfield@apple.com>
 
         Addressing post-review comments after r203119

@@ -1,3 +1,35 @@
+2016-07-14  Chris Dumez  <cdumez@apple.com>
+
+        Use emptyString() instead of "" when possible
+        https://bugs.webkit.org/show_bug.cgi?id=159789
+
+        Reviewed by Alex Christensen.
+
+        Use emptyString() instead of "" when possible to reduce String allocations.
+
+        * Plugins/PluginView.cpp:
+        (WebCore::parseRFC822HeaderFields):
+
+2016-07-14  Alex Christensen  <achristensen@webkit.org>
+
+        Use SocketProvider to create SocketStreamHandles
+        https://bugs.webkit.org/show_bug.cgi?id=159774
+
+        Reviewed by Brady Eidson.
+
+        * WebSocketProvider.cpp: Removed.
+        * WebSocketProvider.h: Removed.
+        * WebView.cpp: Replaced WebSocketProvider with SocketProvider as we did in WebCore.
+
+2016-07-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(WEB_SOCKETS) build after r202930
+        https://bugs.webkit.org/show_bug.cgi?id=159768
+
+        Reviewed by Alex Christensen.
+
+        * WebSocketProvider.h:
+
 2016-07-11  Enrica Casucci  <enrica@apple.com>
 
         Build fix.

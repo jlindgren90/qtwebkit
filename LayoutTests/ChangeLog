@@ -1,3 +1,375 @@
+2016-07-15  Brady Eidson  <beidson@apple.com>
+
+        WebKit should prevent push/replace state with username in URL.
+        <rdar://problem/27361737> and https://bugs.webkit.org/show_bug.cgi?id=159818
+
+        Reviewed by Brent Fulgham.
+
+        * http/tests/security/history-username-password-expected.txt: Added.
+        * http/tests/security/history-username-password.html: Added.
+
+2016-07-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r203266.
+
+        This change caused editing/deleting/delete-emoji.html to time
+        out on El Capitan, crash under GuardMalloc
+
+        Reverted changeset:
+
+        "Support new emoji group candidates"
+        https://bugs.webkit.org/show_bug.cgi?id=159755
+        http://trac.webkit.org/changeset/203266
+
+2016-07-15  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of mfrac attributes into a MathMLFractionElementClass
+        https://bugs.webkit.org/show_bug.cgi?id=159624
+
+        Reviewed by Brent Fulgham.
+
+        We update the expectation for negative linethickness. As indicated in the MathML
+        recommendation, it should be rounded up to the nearest valid value, which is 0.
+
+        * mathml/presentation/mfrac-linethickness2.html: Update the comment to reflect the new behavior.
+        * mathml/presentation/mfrac-linethickness2-expected.html: Use 0px as the reference for negative values.
+
+2016-07-15  Brent Fulgham  <bfulgham@apple.com>
+
+        Merge InlineBidiResolver end-of-line Blink test case
+        https://bugs.webkit.org/show_bug.cgi?id=126201
+        <rdar://problem/27331789>
+
+        Test case is from the Blink change (patch by <igor.o@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/d34ca9bbbdf71905d61aa45def30063311508a64>
+
+        * fast/text/international/bidi-crash-reached-end-of-line-expected.txt: Added.
+        * fast/text/international/bidi-crash-reached-end-of-line.html: Added.
+
+2016-07-15  Brent Fulgham  <bfulgham@apple.com>
+
+        Merge Blink test case
+        https://bugs.webkit.org/show_bug.cgi?id=123870
+
+        Patch is from the Blink change (patch by <morritaw@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/2abd63ccea97b1fcf25b337c76f12e6ad1bfc025>
+
+        * fast/dom/mutation-details-focus-expected.txt: Added.
+        * fast/dom/mutation-details-focus.html: Added.
+
+2016-07-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Updating TestExpectations after r203267
+        https://bugs.webkit.org/show_bug.cgi?id=159817
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-07-15  Frederic Wang  <fwang@igalia.com>
+
+        Import more tests from the MathML in HTML5 test suite
+        https://bugs.webkit.org/show_bug.cgi?id=159715
+
+        Reviewed by Brent Fulgham.
+
+        * imported/mathml-in-html5/fonts/math/lineheight5000-typolineheight2300.woff: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-5-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/scripts/subsup-5.html: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/spaces/space-1-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/spaces/space-1.html: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/spaces/space-2-expected.html: Added.
+        * imported/mathml-in-html5/mathml/presentation-markup/spaces/space-2.html: Added.
+        * imported/mathml-in-html5/mathml/relations/css-styling/color-1-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/css-styling/color-1.html: Added.
+        * imported/mathml-in-html5/mathml/relations/css-styling/visibility-1-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/css-styling/visibility-1.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/class-1-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/class-1.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/class-2-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/class-2.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/color-attributes-1-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/color-attributes-1.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/display-1-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/display-1.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/dynamic-1-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/dynamic-1.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/integration-point-1-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/integration-point-1.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/integration-point-2-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/integration-point-2.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/integration-point-3-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/integration-point-3.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/namespace-1-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/namespace-1.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/required-extensions-1-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/required-extensions-1.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/required-extensions-2-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/required-extensions-2.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/unique-identifier-2-expected.txt: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/unique-identifier-2.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/unique-identifier-3-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/html5-tree/unique-identifier-3.html: Added.
+        * imported/mathml-in-html5/mathml/relations/text-and-math/use-typo-metrics-1-expected.html: Added.
+        * imported/mathml-in-html5/mathml/relations/text-and-math/use-typo-metrics-1.html: Added.
+        * platform/ios-simulator/TestExpectations: Mark use-typo-metrics-1.html as failing.
+        * platform/mac/TestExpectations: Ditto.
+
+2016-07-15  Eric Carlson  <eric.carlson@apple.com>
+
+        [MSE] Increase the SourceBuffer "fudge factor"
+        https://bugs.webkit.org/show_bug.cgi?id=159813
+        <rdar://problem/27372033>
+
+        Reviewed by Jon Lee.
+
+        * media/media-source/media-source-small-gap-expected.txt:
+        * media/media-source/media-source-small-gap.html:
+
+2016-07-14  Yoav Weiss  <yoav@yoav.ws>
+
+        Change CSSParser::sourceSize returning Optional<CSSParser::SourceSize>
+        https://bugs.webkit.org/show_bug.cgi?id=159666
+
+        Reviewed by Michael Catanzaro.
+
+        Added a test to make sure that an invalid source-size value is skipped, but the next one is properly picked.
+
+        * fast/dom/HTMLImageElement/sizes/image-sizes-invalids-expected.txt:
+        * fast/dom/HTMLImageElement/sizes/image-sizes-invalids.html:
+
+2016-07-14  Antonio Gomes  <tonikitoo@igalia.com>
+
+        [RTL Scrollbars] Frame scrollbars don't move to the right when text direction changes to RTL
+        https://bugs.webkit.org/show_bug.cgi?id=158252
+
+        Reviewed by Myles C. Maxfield.
+
+        * fast/scrolling/rtl-scrollbars-alternate-body-dir-attr-does-not-update-scrollbar-placement.html: Added.
+        * fast/scrolling/rtl-scrollbars-alternate-body-dir-attr-does-not-update-scrollbar-placement-expected.txt: Added.
+        * fast/scrolling/rtl-scrollbars-alternate-body-dir-attr-does-not-update-scrollbar-placement-2.html: Added.
+        * fast/scrolling/rtl-scrollbars-alternate-body-dir-attr-does-not-update-scrollbar-placement-2-expected.html: Added.
+        * fast/scrolling/rtl-scrollbars-alternate-iframe-body-dir-attr-does-not-update-scrollbar-placement.html: Added.
+        * fast/scrolling/rtl-scrollbars-alternate-iframe-body-dir-attr-does-not-update-scrollbar-placement-expected.txt: Added.
+
+2016-07-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Support new emoji group candidates
+        https://bugs.webkit.org/show_bug.cgi?id=159755
+        <rdar://problem/27325521>
+
+        Reviewed by Dean Jackson.
+
+        Because this patch doesn't update the rules for our cursor movement
+        iterator, the new expected result for editing/deleting/delete-emoji.html
+        expects incorrect results. In the patch where we update these rules,
+        the expected result should also be updated.
+
+        Because these new emoji require system support, TestExpectations has
+        been updated to mark the tests as failing until the system support has
+        been added.
+
+        * TestExpectations:
+        * editing/deleting/delete-emoji-expected.txt:
+        * editing/deleting/delete-emoji.html:
+        * fast/text/emoji-gender-2-3-expected.html: Added.
+        * fast/text/emoji-gender-2-3.html: Added.
+        * fast/text/emoji-gender-2-4-expected.html: Added.
+        * fast/text/emoji-gender-2-4.html: Added.
+        * fast/text/emoji-gender-2-5-expected.html: Added.
+        * fast/text/emoji-gender-2-5.html: Added.
+        * fast/text/emoji-gender-2-6-expected.html: Added.
+        * fast/text/emoji-gender-2-6.html: Added.
+        * fast/text/emoji-gender-2-7-expected.html: Added.
+        * fast/text/emoji-gender-2-7.html: Added.
+        * fast/text/emoji-gender-2-8-expected.html: Added.
+        * fast/text/emoji-gender-2-8.html: Added.
+        * fast/text/emoji-gender-2-9-expected.html: Added.
+        * fast/text/emoji-gender-2-9.html: Added.
+        * fast/text/emoji-gender-2-expected-mismatch.html: Added.
+        * fast/text/emoji-gender-2.html: Added.
+        * fast/text/emoji-gender-3-expected.html: Added.
+        * fast/text/emoji-gender-3.html: Added.
+        * fast/text/emoji-gender-4-expected.html: Added.
+        * fast/text/emoji-gender-4.html: Added.
+        * fast/text/emoji-gender-5-expected.html: Added.
+        * fast/text/emoji-gender-5.html: Added.
+        * fast/text/emoji-gender-6-expected.html: Added.
+        * fast/text/emoji-gender-6.html: Added.
+        * fast/text/emoji-gender-7-expected.html: Added.
+        * fast/text/emoji-gender-7.html: Added.
+        * fast/text/emoji-gender-8-expected.html: Added.
+        * fast/text/emoji-gender-8.html: Added.
+        * fast/text/emoji-gender-9-expected.html: Added.
+        * fast/text/emoji-gender-9.html: Added.
+        * fast/text/emoji-gender-expected-mismatch.html: Added.
+        * fast/text/emoji-gender-fe0f-3-expected.html: Added.
+        * fast/text/emoji-gender-fe0f-3.html: Added.
+        * fast/text/emoji-gender-fe0f-4-expected.html: Added.
+        * fast/text/emoji-gender-fe0f-4.html: Added.
+        * fast/text/emoji-gender-fe0f-5-expected.html: Added.
+        * fast/text/emoji-gender-fe0f-5.html: Added.
+        * fast/text/emoji-gender-fe0f-6-expected.html: Added.
+        * fast/text/emoji-gender-fe0f-6.html: Added.
+        * fast/text/emoji-gender-fe0f-7-expected.html: Added.
+        * fast/text/emoji-gender-fe0f-7.html: Added.
+        * fast/text/emoji-gender-fe0f-8-expected.html: Added.
+        * fast/text/emoji-gender-fe0f-8.html: Added.
+        * fast/text/emoji-gender-fe0f-9-expected.html: Added.
+        * fast/text/emoji-gender-fe0f-9.html: Added.
+        * fast/text/emoji-gender.html: Added.
+        * fast/text/emoji-num-glyphs-expected.txt: Added.
+        * fast/text/emoji-num-glyphs.html: Added.
+        * fast/text/emoji-single-parent-family-2-expected-mismatch.html: Added.
+        * fast/text/emoji-single-parent-family-2.html: Added.
+        * fast/text/emoji-single-parent-family-expected-mismatch.html: Added.
+        * fast/text/emoji-single-parent-family.html: Added.
+
+2016-07-14  Saam Barati  <sbarati@apple.com>
+
+        It should be a syntax error to have a 'use strict' directive inside a function that has a non-simple parameter list
+        https://bugs.webkit.org/show_bug.cgi?id=159790
+        <rdar://problem/27171636>
+
+        Reviewed by Geoffrey Garen.
+
+        * js/parser-syntax-check-expected.txt:
+        * js/script-tests/parser-syntax-check.js:
+
+2016-07-14  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] When scrolling apple.com/music on iPad Pro in landscape, left-hand tiles appear first
+        https://bugs.webkit.org/show_bug.cgi?id=159798
+        rdar://problem/27362717
+
+        Reviewed by Tim Horton.
+        
+        Test with an offscreen tiled layer.
+
+        * compositing/tiling/offscreen-tiled-layer-expected.txt: Added.
+        * compositing/tiling/offscreen-tiled-layer.html: Added.
+        * platform/ios-simulator-wk1/compositing/tiling/offscreen-tiled-layer-expected.txt: Added.
+        * platform/ios-simulator-wk2/compositing/tiling/offscreen-tiled-layer-expected.txt: Added.
+        * platform/mac-wk1/compositing/tiling/offscreen-tiled-layer-expected.txt: Added.
+
+2016-07-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping editing/spelling/copy-paste-crash.html on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=142969
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-07-14  Brent Fulgham  <bfulgham@apple.com>
+
+        Merge Blink test case
+        https://bugs.webkit.org/show_bug.cgi?id=117422
+
+        Patch is from a set of Blink changes (patches by <leviw@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/507e1576555bd2ce6688206f28339c25761893b1>
+        <https://chromium.googlesource.com/chromium/blink/+/4c95872f52340cf0cf9a2a7078bb63a94f38d302>
+
+        * fast/list/list-style-position-inside-expected.txt: Added.
+        * fast/list/list-style-position-inside.html: Added.
+        * fast/sub-pixel/float-list-inside-expected.txt: Added.
+        * fast/sub-pixel/float-list-inside.html: Added.
+
+2016-07-14  John Wilander  <wilander@apple.com>
+
+        Remove credentials in URL when accessed through location.href
+        https://bugs.webkit.org/show_bug.cgi?id=139562
+        <rdar://problem/27331164>
+
+        Reviewed by Brent Fulgham.
+
+        The reason for this change is to not allow scripts on the page to
+        exfiltrate username and password from the URL.
+
+        * http/tests/security/location-href-clears-username-password-expected.txt: Added.
+        * http/tests/security/location-href-clears-username-password.html: Added.
+            Test case adapted from https://src.chromium.org/viewvc/blink?revision=189367&view=revision.
+
+2016-07-14  Brent Fulgham  <bfulgham@apple.com>
+
+        Merge Blink test case
+        https://bugs.webkit.org/show_bug.cgi?id=116507
+
+        Patch is from a Blink change (patch by <ojan@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/6598fc75a7260643ecfc42856ef24bcf96380443>
+
+        * compositing/iframes/crash-mouse-event-expected.txt: Added.
+        * compositing/iframes/crash-mouse-event.html: Added.
+
+2016-07-14  Brent Fulgham  <bfulgham@apple.com>
+
+        editing/spelling/spellcheck-async.html sometimes crashes with GuardMalloc 
+        https://bugs.webkit.org/show_bug.cgi?id=142969
+        <rdar://problem/27331095>
+
+        Reviewed by Alex Christensen.
+
+        Fix based on a Blink change (patch by <rouslan@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/c713736b122c2224804b2db72f1f711cb47ee260%5E%21/#F1>
+
+        * editing/spelling/copy-paste-crash-expected.txt: Added.
+        * editing/spelling/copy-paste-crash.html: Added.
+        * platform/platform/mac-wk2/TestExpectations: Skip test on mac-wk2 since all Spelling tests are
+        currently broken (see <https://webkit.org/b/105616>).
+
+2016-07-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Remove duplicate TestExpectations entry.
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-14  Brent Fulgham  <bfulgham@apple.com>
+
+        Add test to confirm we do not crash in media destruction
+        https://bugs.webkit.org/show_bug.cgi?id=122816
+
+        Test based on a Blink change (patch by <igor.o@sisa.samsung.com>):
+        <https://chromium.googlesource.com/chromium/blink/+/7a2b2dcefbc013003487d5055eeda7a57daafa93%5E%21/#F0>
+
+        We do not seem to have the bug that prompted the Chromium source change. Adding
+        test case to ensure we do not introduce this problem in the future.
+
+        * editing/undo/audio-in-undo-stack-crash-expected.txt: Added.
+        * editing/undo/audio-in-undo-stack-crash.html: Added.
+
+2016-07-14  Youenn Fablet  <youenn@apple.com>
+
+        Remove support for value iterators from JSDOMIterator
+        https://bugs.webkit.org/show_bug.cgi?id=159293
+
+        Reviewed by Chris Dumez.
+
+        * fast/text/font-face-set-javascript-expected.txt:
+        * fast/text/font-face-set-javascript.html:
+
+2016-07-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Land test expectations for rdar://problem/27353750.
+
+        * platform/mac/TestExpectations:
+
+2016-07-14  Mark Lam  <mark.lam@apple.com>
+
+        JSONObject Walker::walk must save array length before processing array elements.
+        https://bugs.webkit.org/show_bug.cgi?id=153485
+
+        Reviewed by Darin Adler and Michael Saboff.
+
+        * js/JSON-parse-reviver-expected.txt:
+        * js/script-tests/JSON-parse-reviver.js:
+        - Fixed a bug in arrayReviver() where it was setting the array length to 3,
+          but was immediately returning a value from the reviver for index 3.  This
+          effectively forces array.length to 4.  As a result, case 4 always failed
+          silently, and case 5 never executed.
+        - Added tracking of cases visited by the revivers so that they can be verified.
+
 2016-07-14  Youenn Fablet  <youenn@apple.com>
 
         DOM value iterable interfaces should use Array prototype methods

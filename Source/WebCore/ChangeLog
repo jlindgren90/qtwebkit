@@ -1,3 +1,832 @@
+2016-07-15  Brady Eidson  <beidson@apple.com>
+
+        WebKit should prevent push/replace state with username in URL.
+        <rdar://problem/27361737> and https://bugs.webkit.org/show_bug.cgi?id=159818
+
+        Reviewed by Brent Fulgham.
+
+        Test: http/tests/security/history-username-password.html
+
+        * page/History.cpp:
+        (WebCore::History::stateObjectAdded): Don't allow URLs with usernames/passwords.
+
+2016-07-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r203266.
+
+        This change caused editing/deleting/delete-emoji.html to time
+        out on El Capitan, crash under GuardMalloc
+
+        Reverted changeset:
+
+        "Support new emoji group candidates"
+        https://bugs.webkit.org/show_bug.cgi?id=159755
+        http://trac.webkit.org/changeset/203266
+
+2016-07-15  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of mfrac attributes into a MathMLFractionElement class
+        https://bugs.webkit.org/show_bug.cgi?id=159624
+
+        Reviewed by Brent Fulgham.
+
+        We move the parsing of mfrac attributes to a MathMLFractionElement class. This allows to
+        minimize the updates in RenderMathMLFraction and to remove the alignment members. Many of
+        the members in updateLayoutParameters are actually only used in layoutBlock and could be
+        removed in a follow-up patch. We also improve the resolution of negative line thickness value
+        since the MathML recommendation says it should be rounded up to the nearest valid
+        value (which is zero) instead of ignoring the attribute and using the line thickness.
+
+        No new tests, already covered by existing tests.
+
+        * CMakeLists.txt: Add MathMLFractionElement.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAllInOne.cpp: Ditto.
+        * mathml/MathMLFractionElement.cpp: Added.
+        (WebCore::MathMLFractionElement::MathMLFractionElement):
+        (WebCore::MathMLFractionElement::create):
+        (WebCore::MathMLFractionElement::lineThickness): Return the cached linethickness length,
+        parsing it again if it is dirty. This handles the special values "thin", "medium" and "thick"
+        or fallback to the general parseMathMLLength for MathML lengths.
+        (WebCore::MathMLFractionElement::cachedFractionAlignment): Return the cached alignment value,
+        parsing it again if it is dirty.
+        (WebCore::MathMLFractionElement::numeratorAlignment): Return the cached alignment.
+        (WebCore::MathMLFractionElement::denominatorAlignment): Ditto.
+        (WebCore::MathMLFractionElement::parseAttribute): Make attributes dirty.
+        (WebCore::MathMLFractionElement::createElementRenderer): Create a RenderMathMLFraction.
+        * mathml/MathMLFractionElement.h: Added.
+        * mathml/MathMLInlineContainerElement.cpp: We no longer need to handle fraction here.
+        (WebCore::MathMLInlineContainerElement::createElementRenderer):
+        * mathml/mathtags.in: Use MathMLFractionElement for mfrac.
+        * rendering/mathml/RenderMathMLFraction.cpp:
+        (WebCore::RenderMathMLFraction::updateLayoutParameters): New helper function to set the
+        layout parameters, replacing updateFromElement. We no longer parse and store the alignment
+        values here. We also change the resolution of negative values.
+        (WebCore::RenderMathMLFraction::horizontalOffset): Use the enum from MathMLFractionElement.
+        (WebCore::RenderMathMLFraction::layoutBlock): We call updateLayoutParameters instead of
+        updateFromElement. The numerator and denominator alignments are resolved here.
+        (WebCore::RenderMathMLFraction::parseAlignmentAttribute): Deleted. Parsing of alignment
+        attribute is now handled in MathMLFractionElement.
+        (WebCore::RenderMathMLFraction::updateFromElement): Deleted. Attribute changes are now
+        handled in MathMLFractionElement.
+        (WebCore::RenderMathMLFraction::styleDidChange): Deleted. Font changes are properly handled.
+        * rendering/mathml/RenderMathMLFraction.h: Update declarations.
+
+2016-07-15  Frederic Wang  <fwang@igalia.com>
+
+        Check whether font is nonnull for GlyphData instead of calling GlyphData::isValid()
+        https://bugs.webkit.org/show_bug.cgi?id=159783
+
+        Reviewed by Brent Fulgham.
+
+        GlyphData::isValid() returns true for GlyphData with null 'font' pointer when the 'glyph'
+        index is nonzero. This behavior is not expected by the MathML code and we have had crashes
+        in our test suite in the past on Windows (e.g. bug 140653). We thus replace the call to
+        GlyphData::isValid() with a stronger verification: Whether the 'font' pointer is nonzero.
+
+        No new tests, this only makes null pointer checks stronger.
+
+        * rendering/mathml/MathOperator.cpp:
+        (WebCore::boundsForGlyph):
+        (WebCore::advanceWidthForGlyph):
+        (WebCore::MathOperator::getBaseGlyph):
+        (WebCore::MathOperator::setSizeVariant):
+        (WebCore::MathOperator::fillWithVerticalExtensionGlyph):
+        (WebCore::MathOperator::fillWithHorizontalExtensionGlyph):
+        (WebCore::MathOperator::paintVerticalGlyphAssembly):
+        (WebCore::MathOperator::paintHorizontalGlyphAssembly):
+        (WebCore::MathOperator::paint):
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::computePreferredLogicalWidths):
+        * rendering/mathml/RenderMathMLToken.cpp:
+        (WebCore::RenderMathMLToken::computePreferredLogicalWidths):
+        (WebCore::RenderMathMLToken::firstLineBaseline):
+        (WebCore::RenderMathMLToken::layoutBlock):
+        (WebCore::RenderMathMLToken::paint):
+        (WebCore::RenderMathMLToken::paintChildren):
+
+2016-07-15  Frederic Wang  <fwang@igalia.com>
+
+        Add DejaVu Math TeX Gyre to the list of math fonts.
+        https://bugs.webkit.org/show_bug.cgi?id=159805
+
+        Reviewed by Brent Fulgham.
+
+        DejaVu 2.36 has a new math font that can be used for MathML rendering. Because this font is
+        likely to be installed on many systems (Linux, LibreOffice, etc) we include it in the default
+        list of font-families in mathml.css in order to increase the chance to find a math font.
+
+        No new tests, it only affects rendering when DejaVu Math TeX Gyre is installed on the system.
+
+        * css/mathml.css:
+        (math):
+
+2016-07-15  Eric Carlson  <eric.carlson@apple.com>
+
+        [MSE] Increase the SourceBuffer "fudge factor"
+        https://bugs.webkit.org/show_bug.cgi?id=159813
+        <rdar://problem/27372033>
+
+        Reviewed by Jon Lee.
+        
+        Some media encoding/conversion pipelines are sloppy when doing sample time/timescale
+        math, and the error accumulation results in small gaps in the media timeline. r202641
+        increased the maximum allowable gap from 0.01 second to one 24fps frame, but it turns
+        out that at least one large provider has a significant amount of content encoded with
+        up to two 24fps frames.
+
+        No new tests, updated media/media-source/media-source-small-gap.html.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::currentTimeFudgeFactor): Increase maximum gap to 2002 / 24000 frames.
+
+2016-07-15  Rawinder Singh  <rawinder.singh-webkit@cisra.canon.com.au>
+
+        Add final keyword to WebCore/svg classes
+        https://bugs.webkit.org/show_bug.cgi?id=159802
+
+        Reviewed by Youenn Fablet.
+
+        Updated classes in the WebCore/svg directory to be marked as final where appropriate.
+
+        * svg/SVGException.h:
+        * svg/SVGLengthList.h:
+        * svg/SVGMatrix.h:
+        * svg/SVGNumberList.h:
+        * svg/SVGPaint.h:
+        * svg/SVGPathBuilder.h:
+        * svg/SVGPathByteStreamBuilder.h:
+        * svg/SVGPathByteStreamSource.h:
+        * svg/SVGPathSegArcAbs.h:
+        * svg/SVGPathSegArcRel.h:
+        * svg/SVGPathSegClosePath.h:
+        * svg/SVGPathSegCurvetoCubicAbs.h:
+        * svg/SVGPathSegCurvetoCubicRel.h:
+        * svg/SVGPathSegCurvetoCubicSmoothAbs.h:
+        * svg/SVGPathSegCurvetoCubicSmoothRel.h:
+        * svg/SVGPathSegCurvetoQuadraticAbs.h:
+        * svg/SVGPathSegCurvetoQuadraticRel.h:
+        * svg/SVGPathSegCurvetoQuadraticSmoothAbs.h:
+        * svg/SVGPathSegCurvetoQuadraticSmoothRel.h:
+        * svg/SVGPathSegLinetoAbs.h:
+        * svg/SVGPathSegLinetoHorizontalAbs.h:
+        * svg/SVGPathSegLinetoHorizontalRel.h:
+        * svg/SVGPathSegLinetoRel.h:
+        * svg/SVGPathSegLinetoVerticalAbs.h:
+        * svg/SVGPathSegLinetoVerticalRel.h:
+        * svg/SVGPathSegListBuilder.h:
+        * svg/SVGPathSegListSource.h:
+        * svg/SVGPathSegMovetoAbs.h:
+        * svg/SVGPathSegMovetoRel.h:
+        * svg/SVGPathStringSource.h:
+        * svg/SVGPathTraversalStateBuilder.h:
+        * svg/SVGPointList.h:
+        * svg/SVGRenderingIntent.h:
+        * svg/SVGStringList.h:
+        * svg/SVGTRefElement.cpp:
+        * svg/SVGToOTFFontConversion.cpp:
+        * svg/SVGTransformList.h:
+        * svg/SVGUnitTypes.h:
+        * svg/SVGViewSpec.h:
+        * svg/SVGZoomEvent.h:
+        * svg/animation/SMILTimeContainer.h:
+        * svg/animation/SVGSMILElement.cpp:
+        * svg/graphics/filters/SVGFEImage.h:
+        * svg/graphics/filters/SVGFilter.h:
+        * svg/properties/SVGAnimatedPathSegListPropertyTearOff.h:
+        * svg/properties/SVGAnimatedPropertyTearOff.h:
+        * svg/properties/SVGAnimatedTransformListPropertyTearOff.h:
+        * svg/properties/SVGMatrixTearOff.h:
+        * svg/properties/SVGPathSegListPropertyTearOff.h:
+        * svg/properties/SVGStaticListPropertyTearOff.h:
+        * svg/properties/SVGStaticPropertyTearOff.h:
+        * svg/properties/SVGTransformListPropertyTearOff.h:
+
+2016-07-15  Per Arne Vollan  <pvollan@apple.com>
+
+        Uninitialized variable in DIBPixelData can cause a dangerous memory write
+        https://bugs.webkit.org/show_bug.cgi?id=159414
+
+        Reviewed by Brent Fulgham.
+
+        Initialize local BITMAP variable, in case the ::GetObject function that should initialize it
+        fails to do so, because the bitmap handle is invalid.
+
+        Tests: Tools/TestWebKitAPI/Tests/WebCore/win/DIBPixelData.cpp
+
+        * platform/graphics/win/DIBPixelData.cpp:
+        (WebCore::DIBPixelData::initialize): Initialize local variable.
+        (WebCore::DIBPixelData::setRGBABitmapAlpha): Return early if we have no bitmap.
+        * platform/graphics/win/DIBPixelData.h: Link fix.
+
+2016-07-14  Yoav Weiss  <yoav@yoav.ws>
+
+        Change CSSParser::sourceSize returning Optional<CSSParser::SourceSize>
+        https://bugs.webkit.org/show_bug.cgi?id=159666
+
+        Reviewed by Michael Catanzaro.
+
+        Tests:
+            fast/dom/HTMLImageElement/sizes/image-sizes-invalids.html
+
+        * css/CSSGrammar.y.in: Avoid adding SourceSize to source_size_list when the value is a Nullopt.
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::sourceSize): Return a Nullopt when an invalid value is encountered.
+        * css/CSSParser.h:
+
+2016-07-14  Antonio Gomes  <tonikitoo@igalia.com>
+
+        [RTL Scrollbars] Frame scrollbars don't move to the right when text direction changes to RTL
+        https://bugs.webkit.org/show_bug.cgi?id=158252
+
+        Reviewed by Myles C. Maxfield.
+
+        When the 'dir' attribute changes either on body or on the document
+        element level, the associated FrameView does not trigger an update on
+        the frame level vertical scrollbar.
+
+        Patch adds a 'hook' so that RenderBox::styleDidChange can call in
+        order to get the document level scrollbar placed properly in the next
+        layout.
+
+        Test: fast/scrolling/rtl-scrollbars-alternate-body-dir-attr-does-not-update-scrollbar-placement.html
+              fast/scrolling/rtl-scrollbars-alternate-body-dir-attr-does-not-update-scrollbar-placement-2.html
+              fast/scrolling/rtl-scrollbars-alternate-iframe-body-dir-attr-does-not-update-scrollbar-placement.html
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::topContentDirectionDidChange):
+        * page/FrameView.h:
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::styleDidChange):
+
+2016-07-14  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Support new emoji group candidates
+        https://bugs.webkit.org/show_bug.cgi?id=159755
+        <rdar://problem/27325521>
+
+        Reviewed by Dean Jackson.
+
+        There are a few code points which should be able to be joined (with ZWJ) to
+        either U+2640 or U+2642 to change the gender of the emoji. These patterns
+        should also work with an additional 0xFE0F variation selector. This patch
+        adds these new patterns to our existing emoji group candidate infrastructure.
+
+        Tests: fast/text/emoji-gender-2-3.html
+               fast/text/emoji-gender-2-4.html
+               fast/text/emoji-gender-2-5.html
+               fast/text/emoji-gender-2-6.html
+               fast/text/emoji-gender-2-7.html
+               fast/text/emoji-gender-2-8.html
+               fast/text/emoji-gender-2-9.html
+               fast/text/emoji-gender-2.html
+               fast/text/emoji-gender-3.html
+               fast/text/emoji-gender-4.html
+               fast/text/emoji-gender-5.html
+               fast/text/emoji-gender-6.html
+               fast/text/emoji-gender-7.html
+               fast/text/emoji-gender-8.html
+               fast/text/emoji-gender-9.html
+               fast/text/emoji-gender-fe0f-3.html
+               fast/text/emoji-gender-fe0f-4.html
+               fast/text/emoji-gender-fe0f-5.html
+               fast/text/emoji-gender-fe0f-6.html
+               fast/text/emoji-gender-fe0f-7.html
+               fast/text/emoji-gender-fe0f-8.html
+               fast/text/emoji-gender-fe0f-9.html
+               fast/text/emoji-gender.html
+               fast/text/emoji-num-glyphs.html
+               fast/text/emoji-single-parent-family-2.html
+               fast/text/emoji-single-parent-family.html
+
+        * platform/graphics/mac/ComplexTextControllerCoreText.mm:
+        (WebCore::ComplexTextController::ComplexTextRun::ComplexTextRun): Removed incorrect ASSERT()s.
+        * platform/graphics/FontCascade.cpp:
+        (WebCore::FontCascade::characterRangeCodePath):
+        * platform/text/CharacterProperties.h:
+        (WebCore::isEmojiGroupCandidate):
+
+2016-07-14  Dean Jackson  <dino@apple.com>
+
+        CrashTracer: com.apple.WebKit.WebContent at WebCore: WebCore::MediaQueryEvaluator::evaluate const
+        https://bugs.webkit.org/show_bug.cgi?id=159799
+        <rdar://problem/27346959>
+
+        Reviewed by Myles Maxfield.
+
+        Speculative fix for this crash, which seems to happen when asking for the Node's
+        renderer(). From the incoming crash logs, it is triggered by mutations on
+        a <picture> or <img> element, which would require choosing a new source,
+        and causing some media queries to evaluate.
+
+        The only place in MediaQueryEvaluator that has anything to do with
+        renderers is when gathering up some style information to pass to the
+        actual evaluation function. I put a guard against a missing documentElement
+        in there.
+
+        * css/MediaQueryEvaluator.cpp:
+        (WebCore::MediaQueryEvaluator::evaluate): Make sure documentElement is not
+        null.
+
+2016-07-14  Rawinder Singh  <rawinder.singh-webkit@cisra.canon.com.au>
+
+        Update HTML*Element class override methods in final classes
+        https://bugs.webkit.org/show_bug.cgi?id=159456
+
+        Reviewed by Youenn Fablet.
+
+        Update HTML*Element classes so that overriden methods in final classes are marked final.
+        Also marked HTMLDivElement overriden methods as final since they are not overridden by derived classes.
+
+        * html/HTMLAppletElement.h:
+        * html/HTMLAreaElement.h:
+        * html/HTMLAttachmentElement.h:
+        * html/HTMLAudioElement.h:
+        * html/HTMLBRElement.h:
+        * html/HTMLBaseElement.h:
+        * html/HTMLBodyElement.h:
+        * html/HTMLButtonElement.h:
+        * html/HTMLCanvasElement.h:
+        * html/HTMLDataElement.h:
+        * html/HTMLDetailsElement.h:
+        * html/HTMLDivElement.h:
+        * html/HTMLEmbedElement.h:
+        * html/HTMLFieldSetElement.h:
+        * html/HTMLFontElement.h:
+        * html/HTMLFormElement.h:
+        * html/HTMLFrameSetElement.h:
+        * html/HTMLHRElement.h:
+        * html/HTMLHtmlElement.h:
+        * html/HTMLKeygenElement.h:
+        * html/HTMLLIElement.h:
+        * html/HTMLLabelElement.h:
+        * html/HTMLLegendElement.h:
+        * html/HTMLLinkElement.h:
+        * html/HTMLMapElement.h:
+        * html/HTMLMarqueeElement.h:
+        * html/HTMLMetaElement.h:
+        * html/HTMLMeterElement.h:
+        * html/HTMLModElement.h:
+        * html/HTMLOListElement.h:
+        * html/HTMLObjectElement.h:
+        * html/HTMLOptGroupElement.h:
+        * html/HTMLOptionElement.h:
+        * html/HTMLOutputElement.h:
+        * html/HTMLParagraphElement.h:
+        * html/HTMLParamElement.h:
+        * html/HTMLPreElement.h:
+        * html/HTMLProgressElement.h:
+        * html/HTMLQuoteElement.h:
+        * html/HTMLScriptElement.h:
+        * html/HTMLSourceElement.h:
+        * html/HTMLStyleElement.h:
+        * html/HTMLSummaryElement.h:
+        * html/HTMLTableCaptionElement.h:
+        * html/HTMLTableColElement.h:
+        * html/HTMLTableElement.h:
+        * html/HTMLTableSectionElement.h:
+        * html/HTMLTemplateElement.h:
+        * html/HTMLTextAreaElement.h:
+        * html/HTMLTitleElement.h:
+        * html/HTMLUListElement.h:
+        * html/HTMLUnknownElement.h:
+        * html/HTMLVideoElement.h:
+        * html/HTMLWBRElement.h:
+
+2016-07-14  Chris Dumez  <cdumez@apple.com>
+
+        Modernize GlyphMetricsMap
+        https://bugs.webkit.org/show_bug.cgi?id=159788
+
+        Reviewed by Darin Adler.
+
+        Modernize GlyphMetricsMap a bit.
+
+        * platform/graphics/GlyphMetricsMap.h:
+        - Drop WTF_MAKE_NONCOPYABLE as the class is already non-copyable due to having
+          to having a std::unique_ptr data member.
+        - Drop GlyphMetricsMap default constructor and let the compiler generate it
+          instead. This required using inline initialization for m_filledPrimaryPage.
+
+        (WebCore::GlyphMetricsMap::GlyphMetricsPage::GlyphMetricsPage):
+        - Make m_metrics data member private as it does not need to be public.
+        - Make setMetricsForIndex(unsigned index, const T& metrics) setter private
+          as it does not need to be public.
+        - Make GlyphMetricsPage(const T& initialValue) constructor explicit as it
+          takes only 1 parameter.
+
+        (WebCore::GlyphMetricsMap<T>::locatePageSlowCase):
+        - Use HashMap::ensure() to make the code a bit nicer.
+
+2016-07-14  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] When scrolling apple.com/music on iPad Pro in landscape, left-hand tiles appear first
+        https://bugs.webkit.org/show_bug.cgi?id=159798
+        rdar://problem/27362717
+
+        Reviewed by Tim Horton.
+
+        In out-of-visible tiled layers, we always allocated the top-left tile, wasting
+        memory and causing ugliness when scrolling that layer into view. This happened
+        because getTileIndexRangeForRect() had no way to express the fact that no tiles
+        should be created.
+
+        Fix getTileIndexRangeForRect() to return a bool, and fix callers to respect the
+        return value.
+
+        Test: compositing/tiling/offscreen-tiled-layer.html
+
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayerCA::dumpAdditionalProperties):
+        * platform/graphics/ca/TileGrid.cpp:
+        (WebCore::TileGrid::setNeedsDisplayInRect):
+        (WebCore::TileGrid::tilesWouldChangeForCoverageRect):
+        (WebCore::TileGrid::getTileIndexRangeForRect):
+        (WebCore::TileGrid::revalidateTiles):
+        (WebCore::TileGrid::ensureTilesForRect):
+        (WebCore::TileGrid::extent):
+        * platform/graphics/ca/TileGrid.h:
+
+2016-07-14  John Wilander  <wilander@apple.com>
+
+        Remove credentials in URL when accessed through location.href
+        https://bugs.webkit.org/show_bug.cgi?id=139562
+        <rdar://problem/27331164>
+
+        Reviewed by Brent Fulgham.
+
+        Test: http/tests/security/location-href-clears-username-password.html
+
+        The reason for this change is to not allow scripts on the page to
+        exfiltrate username and password from the URL.
+
+        * page/Location.cpp:
+        (WebCore::Location::href):
+            Now checks if there is a username or password in the URL. If so,
+            it copies the URL and removes the username and password.
+
+2016-07-14  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Handle min-content/max-content with orthogonal flows
+        https://bugs.webkit.org/show_bug.cgi?id=159294
+
+        Reviewed by Darin Adler.
+
+        Currently there is no support for orthogonal flows in many aspects of the
+        Grid Layout logic.
+
+        The Grid sizing algorithm should be adapted to this scenario, hence this
+        patch focus on the min-content and max-content functions, used to resolve
+        content based track sizes.
+
+        There are still issues related to alignment and sizes using percentages,
+        but they will be addressed in different patches.
+
+        Tests: fast/css-grid-layout/grid-item-positioning-with-orthogonal-flows.html
+               fast/css-grid-layout/grid-item-sizing-with-orthogonal-flows.html
+               fast/css-grid-layout/grid-item-spanning-and-orthogonal-flows.html
+               fast/css-grid-layout/grid-track-sizing-with-orthogonal-flows.html
+               fast/css-grid-layout/grid-track-sizing-with-percentages-and-orthogonal-flows.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::computeLogicalWidthInRegion):
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::GridSizingData::advanceNextState):
+        (WebCore::RenderGrid::GridSizingData::isValidTransitionForDirection):
+        (WebCore::RenderGrid::computeTrackSizesForDirection):
+        (WebCore::RenderGrid::repeatTracksSizingIfNeeded): Added.
+        (WebCore::RenderGrid::layoutBlock):
+        (WebCore::RenderGrid::computeIntrinsicLogicalWidths):
+        (WebCore::RenderGrid::computeIntrinsicLogicalHeight):
+        (WebCore::hasOverrideContainingBlockContentSizeForChild):
+        (WebCore::overrideContainingBlockContentSizeForChild):
+        (WebCore::setOverrideContainingBlockContentSizeForChild):
+        (WebCore::shouldClearOverrideContainingBlockContentSizeForChild):
+        (WebCore::RenderGrid::gridTrackSize):
+        (WebCore::RenderGrid::isOrthogonalChild): Added.
+        (WebCore::RenderGrid::logicalHeightForChild):
+        (WebCore::RenderGrid::flowAwareDirectionForChild): Added.
+        (WebCore::RenderGrid::minSizeForChild):
+        (WebCore::RenderGrid::updateOverrideContainingBlockContentSizeForChild):
+        (WebCore::RenderGrid::minContentForChild):
+        (WebCore::RenderGrid::maxContentForChild):
+        (WebCore::RenderGrid::placeItemsOnGrid):
+        (WebCore::RenderGrid::layoutPositionedObject):
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+        (WebCore::RenderGrid::assumedRowsSizeForOrthogonalChild): Added.
+        (WebCore::RenderGrid::gridAreaBreadthForChild):
+        (WebCore::RenderGrid::columnAxisPositionForChild):
+        (WebCore::RenderGrid::rowAxisPositionForChild):
+        (WebCore::RenderGrid::findChildLogicalPosition):
+        * rendering/RenderGrid.h:
+        (WebCore::RenderGrid::SizingOperation): This enum has been moved to the header file.
+        (WebCore::RenderGrid::m_hasAnyOrthogonalChild): New class attribute to know if there are any orthogonal grid items.
+        (WebCore::RenderGrid::updateOverrideContainingBlockContentSizeForChild):
+        (WebCore::RenderGrid::logicalHeightForChild):
+        (WebCore::RenderGrid::gridAreaBreadthForChild):
+        (WebCore::RenderGrid::assumedRowsSizeForOrthogonalChild):
+
+
+
+2016-07-14  Chris Dumez  <cdumez@apple.com>
+
+        Use emptyString() instead of "" when possible
+        https://bugs.webkit.org/show_bug.cgi?id=159789
+
+        Reviewed by Alex Christensen.
+
+        Use emptyString() instead of "" when possible to reduce String allocations.
+
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::performOpenAndVerify):
+        * css/CSSSelector.h:
+        * css/StyleProperties.cpp:
+        (WebCore::MutableStyleProperties::removeProperty):
+        (WebCore::MutableStyleProperties::removeCustomProperty):
+        * editing/TextCheckingHelper.cpp:
+        (WebCore::TextCheckingHelper::findFirstMisspellingOrBadGrammar):
+        (WebCore::TextCheckingHelper::findFirstBadGrammar):
+        * editing/TypingCommand.h:
+        (WebCore::TypingCommand::create):
+        * fileapi/FileReaderLoader.cpp:
+        (WebCore::FileReaderLoader::cleanup):
+        * inspector/InspectorStyleSheet.cpp:
+        (WebCore::fillMediaListChain):
+        * page/UserContentURLPattern.cpp:
+        (WebCore::UserContentURLPattern::parse):
+        * platform/graphics/MediaPlayer.cpp:
+        (WebCore::MediaPlayer::load):
+        * platform/gtk/DataObjectGtk.h:
+        (WebCore::DataObjectGtk::clearURIList):
+        * platform/network/curl/ResourceHandleCurl.cpp:
+        (WebCore::ResourceHandle::receivedRequestToContinueWithoutCredential):
+        * platform/network/curl/ResourceHandleManager.h:
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::layerTreeAsText):
+        * rendering/RenderListMarker.cpp:
+        (WebCore::RenderListMarker::updateContent):
+        * rendering/style/RenderStyle.cpp:
+        (WebCore::RenderStyle::noneDashboardRegions):
+        * rendering/svg/SVGTextMetrics.cpp:
+        (WebCore::SVGTextMetrics::SVGTextMetrics):
+        * xml/XPathParser.cpp:
+        (WebCore::XPath::Parser::lexString):
+
+2016-07-14  Brent Fulgham  <bfulgham@apple.com>
+
+        editing/spelling/spellcheck-async.html sometimes crashes with GuardMalloc 
+        https://bugs.webkit.org/show_bug.cgi?id=142969
+        <rdar://problem/27331095>
+
+        Reviewed by Alex Christensen.
+
+        Fix based on a Blink change (patch by <rouslan@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/c713736b122c2224804b2db72f1f711cb47ee260%5E%21/#F1>
+
+        Test: editing/spelling/copy-paste-crash.html
+              editing/spelling/spellcheck-async.html
+
+        * editing/SpellChecker.cpp:
+        (WebCore::SpellCheckRequest::didSucceed):
+        (WebCore::SpellCheckRequest::didCancel):
+
+2016-07-14  Zalan Bujtas  <zalan@apple.com>
+
+        ImageBuffer's succes flag should be set to false at the very beginning of the c'tor.
+        https://bugs.webkit.org/show_bug.cgi?id=159784
+
+        Reviewed by Simon Fraser.
+
+        No change in functionality.
+
+        * platform/graphics/cg/ImageBufferCG.cpp:
+        (WebCore::ImageBuffer::ImageBuffer):
+
+2016-07-14  Alex Christensen  <achristensen@webkit.org>
+
+        Use SocketProvider to create SocketStreamHandles
+        https://bugs.webkit.org/show_bug.cgi?id=159774
+
+        Reviewed by Brady Eidson.
+
+        No new tests.  No change in behaviour.
+        
+        In r202930 I introduced the SocketProvider, but I used it to make a WebSocketChannel
+        instead of a SocketStreamHandle, which is the class I want to make into an interface
+        and proxy the web traffic over to the NetworkProcess.
+
+        * CMakeLists.txt:
+        * Modules/websockets/ThreadableWebSocketChannel.cpp: Added.
+        (WebCore::ThreadableWebSocketChannel::create):
+        I removed this in 202930, so this is restoring it from that patch, hence the old copyright.
+        * Modules/websockets/ThreadableWebSocketChannel.h:
+        (WebCore::ThreadableWebSocketChannel::ThreadableWebSocketChannel):
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::WebSocket::connect):
+        * Modules/websockets/WebSocketChannel.cpp:
+        (WebCore::WebSocketChannel::WebSocketChannel):
+        (WebCore::WebSocketChannel::connect):
+        * Modules/websockets/WebSocketChannel.h:
+        (WebCore::WebSocketChannel::create):
+        * Modules/websockets/WorkerThreadableWebSocketChannel.cpp:
+        (WebCore::WorkerThreadableWebSocketChannel::WorkerThreadableWebSocketChannel):
+        (WebCore::WorkerThreadableWebSocketChannel::resume):
+        (WebCore::WorkerThreadableWebSocketChannel::Peer::Peer):
+        (WebCore::WorkerThreadableWebSocketChannel::Peer::didReceiveMessageError):
+        (WebCore::WorkerThreadableWebSocketChannel::Bridge::Bridge):
+        (WebCore::WorkerThreadableWebSocketChannel::Bridge::~Bridge):
+        (WebCore::WorkerThreadableWebSocketChannel::Bridge::mainThreadInitialize):
+        (WebCore::WorkerThreadableWebSocketChannel::Bridge::initialize):
+        * Modules/websockets/WorkerThreadableWebSocketChannel.h:
+        (WebCore::WorkerThreadableWebSocketChannel::create):
+        (WebCore::WorkerThreadableWebSocketChannel::Bridge::create):
+        * WebCore.xcodeproj/project.pbxproj:
+        * inspector/InspectorOverlay.cpp:
+        (WebCore::InspectorOverlay::overlayPage):
+        * loader/EmptyClients.cpp:
+        (WebCore::EmptyEditorClient::registerRedoStep):
+        (WebCore::EmptySocketProvider::createWebSocketChannel): Deleted.
+        * loader/EmptyClients.h:
+        * page/SocketProvider.cpp: Added.
+        (WebCore::SocketProvider::createSocketStreamHandle):
+        * page/SocketProvider.h:
+        (WebCore::SocketProvider::~SocketProvider): Deleted.
+        * platform/network/cf/SocketStreamHandle.h:
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::dataChanged):
+
+2016-07-14  Brady Eidson  <beidson@apple.com>
+
+        "User delete" tests are flakey timeouts (and/or DatabaseProcess crashes).
+        https://bugs.webkit.org/show_bug.cgi?id=158741
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Covered by existing tests in some configurations)
+
+        - Check if a database hard delete is complete in more places.
+        - Asynchronously clear out the hard close protector instead of synchronously.
+        
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::~UniqueIDBDatabase):
+        (WebCore::IDBServer::UniqueIDBDatabase::didPerformUnconditionalDeleteBackingStore):
+        (WebCore::IDBServer::UniqueIDBDatabase::didFinishHandlingVersionChange):
+        (WebCore::IDBServer::UniqueIDBDatabase::connectionClosedFromClient):
+        (WebCore::IDBServer::UniqueIDBDatabase::transactionCompleted):
+        (WebCore::IDBServer::UniqueIDBDatabase::executeNextDatabaseTaskReply):
+        (WebCore::IDBServer::UniqueIDBDatabase::maybeFinishHardClose):
+        (WebCore::IDBServer::UniqueIDBDatabase::isDoneWithHardClose):
+        (WebCore::IDBServer::UniqueIDBDatabase::doneWithHardClose): Deleted.
+
+        * Modules/indexeddb/server/UniqueIDBDatabase.h:
+        (WebCore::IDBServer::UniqueIDBDatabase::hardClosedForUserDelete):
+
+        * Modules/indexeddb/server/UniqueIDBDatabaseConnection.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabaseConnection::didAbortTransaction):
+
+2016-07-13  Brent Fulgham  <bfulgham@apple.com>
+
+        CSSStyleSheet members should clear their owner node when destroyed
+        https://bugs.webkit.org/show_bug.cgi?id=117470
+
+        Reviewed by Chris Dumez.
+
+        Make sure that CSSStyleSheet members are detached from their owner node when
+        the owning object is destroyed.
+
+        I audited other CSSStyleSheet uses, and found one other place where the owner node was not
+        being cleared during destruction. The Inspector also uses CSSStyleSheet, but seems to
+        handle the node ownership properly.
+
+        Fix based on a Blink change (patch by <haraken@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/c4949bfdeb2a613701afa1410bdae70531b8f6bf>
+
+        Also includes a follow-up fix (patch by <haraken@chromium.org>):
+        <https://chromium.googlesource.com/chromium/blink/+/9c3932dc80b33429db3a5873cb266b726c8a19bf>
+
+        No test case. Was found by the Chromium team through review of their crash traces under minor DOM GC.
+
+        * contentextensions/ContentExtensionStyleSheet.cpp:
+        (WebCore::ContentExtensions::ContentExtensionStyleSheet::~ContentExtensionStyleSheet):
+        * contentextensions/ContentExtensionStyleSheet.h:
+        * dom/InlineStyleSheetOwner.cpp:
+        (WebCore::InlineStyleSheetOwner::~InlineStyleSheetOwner):
+        (WebCore::authorStyleSheetsForElement):
+
+2016-07-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(WEB_SOCKETS) build after r202930
+        https://bugs.webkit.org/show_bug.cgi?id=159768
+
+        Reviewed by Alex Christensen.
+
+        * loader/EmptyClients.cpp:
+        * loader/EmptyClients.h:
+        * page/SocketProvider.h:
+        * workers/WorkerGlobalScope.cpp:
+        (WebCore::WorkerGlobalScope::WorkerGlobalScope):
+        * workers/WorkerThread.cpp:
+        (WebCore::WorkerThread::WorkerThread):
+
+2016-07-14  Youenn Fablet  <youenn@apple.com>
+
+        DOMIterators should be assigned a correct prototype
+        https://bugs.webkit.org/show_bug.cgi?id=159115
+
+        Reviewed by Chris Dumez.
+
+        Default iterator object internal prototype property is the Iterator prototype as defined in
+        http://heycam.github.io/webidl/#dfn-iterator-prototype-object.
+        Linking DOMIterator prototype to IteratorPrototype.
+        This allows adding @@iterator property to the result of entries, keys and values methods.
+        This in turns allow doing for-of loops on them.
+
+        Covered by updated test.
+
+        * ForwardingHeaders/runtime/IteratorPrototype.h: Added.
+        * bindings/js/JSDOMIterator.h: Setting correct prototype and marking next prototype property as enumerable.
+
+2016-07-14  Youenn Fablet  <youenn@apple.com>
+
+        Remove support for value iterators from JSDOMIterator
+        https://bugs.webkit.org/show_bug.cgi?id=159293
+
+        Reviewed by Chris Dumez.
+
+        Value iterators are now handled without using DOMIterator.
+        Since FontFaceSet is using DOMIterator as an intermediate step towards supporting set-like,
+        entries and forEach implementation should be made compliant with set-like.
+        This means that item value should be passed instead of an index in entries iterator and forEach callback.
+
+        Covered by updated test.
+
+        * bindings/js/JSDOMIterator.h:
+        (WebCore::JSDOMIterator<JSWrapper>::asJS): Pass set item as entries value field.
+        (WebCore::appendForEachArguments): Pass set item as second parameter.
+        (WebCore::iteratorForEach): Remove index handling.
+
+2016-07-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(MATHML) build after r201739
+        https://bugs.webkit.org/show_bug.cgi?id=159767
+
+        Reviewed by Alex Christensen.
+
+        * dom/Document.cpp:
+        (WebCore::Document::validateCustomElementName):
+
+2016-07-14  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(CSS_IMAGE_SET) build
+        https://bugs.webkit.org/show_bug.cgi?id=159766
+
+        Reviewed by Alex Christensen.
+
+        * css/CSSParser.cpp:
+
+2016-07-14  Frederic Wang  <fred.wang@free.fr>
+
+        Cleanup of MathML headers
+        https://bugs.webkit.org/show_bug.cgi?id=159336
+
+        Reviewed by Alex Christensen.
+
+        We do some cleanup in MathML headers:
+        - Use #pragma once
+        - Use final for class that are not extended.
+        - Use final instead of override for virtual members that are not overridden by derived classes.
+        - Try and reduce the visibility of function members to private or protected as appropriate.
+        - Remove useless #include
+        - Remove useless class or friendship declaration
+        - Remove unused functions
+
+        No new tests, behavior is unchanged.
+
+        * mathml/MathMLElement.h:
+        * mathml/MathMLInlineContainerElement.h:
+        * mathml/MathMLMathElement.h:
+        * mathml/MathMLMencloseElement.h:
+        * mathml/MathMLOperatorDictionary.h:
+        * mathml/MathMLPaddedElement.h:
+        * mathml/MathMLSelectElement.h:
+        * mathml/MathMLSpaceElement.h:
+        * mathml/MathMLTextElement.h:
+        * rendering/mathml/MathOperator.h:
+        * rendering/mathml/RenderMathMLBlock.h:
+        * rendering/mathml/RenderMathMLFenced.h:
+        * rendering/mathml/RenderMathMLFraction.h:
+        * rendering/mathml/RenderMathMLMath.h:
+        * rendering/mathml/RenderMathMLMenclose.h:
+        * rendering/mathml/RenderMathMLOperator.h:
+        * rendering/mathml/RenderMathMLRoot.h:
+        * rendering/mathml/RenderMathMLRow.cpp:
+        (WebCore::RenderMathMLRow::RenderMathMLRow): Deleted. We no longer create anonymous row.
+        * rendering/mathml/RenderMathMLRow.h:
+        * rendering/mathml/RenderMathMLScripts.h:
+        * rendering/mathml/RenderMathMLSpace.h:
+        * rendering/mathml/RenderMathMLToken.h:
+        * rendering/mathml/RenderMathMLUnderOver.h:
+
 2016-07-14  Alex Christensen  <achristensen@webkit.org>
 
         Pass SessionID to WebSocketHandle constructor

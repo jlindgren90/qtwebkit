@@ -1032,6 +1032,7 @@ set(WebCore_SOURCES
     Modules/webdatabase/SQLTransactionCoordinator.cpp
     Modules/webdatabase/SQLTransactionStateMachine.cpp
 
+    Modules/websockets/ThreadableWebSocketChannel.cpp
     Modules/websockets/ThreadableWebSocketChannelClientWrapper.cpp
     Modules/websockets/WebSocket.cpp
     Modules/websockets/WebSocketChannel.cpp
@@ -1984,6 +1985,7 @@ set(WebCore_SOURCES
     loader/icon/PageURLRecord.cpp
 
     mathml/MathMLElement.cpp
+    mathml/MathMLFractionElement.cpp
     mathml/MathMLInlineContainerElement.cpp
     mathml/MathMLMathElement.cpp
     mathml/MathMLMencloseElement.cpp
@@ -2053,6 +2055,7 @@ set(WebCore_SOURCES
     page/SecurityOriginData.cpp
     page/SecurityPolicy.cpp
     page/Settings.cpp
+    page/SocketProvider.cpp
     page/SpatialNavigation.cpp
     page/SuspendableTimer.cpp
     page/TextIndicator.cpp

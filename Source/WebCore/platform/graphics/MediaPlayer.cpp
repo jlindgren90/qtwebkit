@@ -405,7 +405,7 @@ bool MediaPlayer::load(const URL& url, const ContentType& contentType, MediaSour
     m_contentMIMEType = contentType.type().convertToASCIILowercase();
     m_contentTypeCodecs = contentType.parameter(codecs());
     m_url = url;
-    m_keySystem = "";
+    m_keySystem = emptyString();
     m_contentMIMETypeWasInferredFromExtension = false;
     loadWithNextMediaEngine(0);
     return m_currentMediaEngine;
@@ -419,8 +419,8 @@ bool MediaPlayer::load(MediaStreamPrivate* mediaStream)
     ASSERT(mediaStream);
 
     m_mediaStream = mediaStream;
-    m_keySystem = "";
-    m_contentMIMEType = "";
+    m_keySystem = emptyString();
+    m_contentMIMEType = emptyString();
     m_contentMIMETypeWasInferredFromExtension = false;
     loadWithNextMediaEngine(0);
     return m_currentMediaEngine;
