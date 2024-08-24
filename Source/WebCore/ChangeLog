@@ -1,3 +1,831 @@
+2016-08-02  Frederic Wang  <fwang@igalia.com>
+
+        Move determination of operator direction into DOM class and reduce relayout
+        https://bugs.webkit.org/show_bug.cgi?id=160339
+
+        Reviewed by Darin Adler.
+
+        We move the determination of operator direction into MathMLOperatorElement. We also simplify
+        a bit RenderMathMLFencedOperator so that the update of operator properties are done
+        immediately in updateOperatorContent and the resolution of to LayoutUnit is implemented
+        in leadingSpace, trailingSpace, minSize and maxSize. After that, setOperatorProperties is no
+        longer necessary and we can remove many calls that used to update operator properties and
+        force relayout.
+
+        No new tests, already covered by existing tests.
+
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::childrenChanged): No need to call updateOperatorProperties.
+        * mathml/MathMLOperatorElement.cpp: Change names from "text" to "char".
+        (WebCore::MathMLOperatorElement::parseOperatorChar): Parse character and isVertical in this function.
+        (WebCore::MathMLOperatorElement::operatorChar):
+        (WebCore::MathMLOperatorElement::childrenChanged):
+        (WebCore::MathMLOperatorElement::computeDictionaryProperty): Call operatorChar().character.
+        (WebCore::MathMLOperatorElement::parseOperatorText): Deleted.
+        (WebCore::MathMLOperatorElement::operatorText): Deleted.
+        * mathml/MathMLOperatorElement.h: Use a new structure to hold both the character and direction
+        and change names from "text" to "char".
+        * rendering/mathml/RenderMathMLFencedOperator.cpp:
+        (WebCore::RenderMathMLFencedOperator::updateOperatorContent): Update both the character and
+        direction using MathMLOperatorElement::parseOperatorChar. Then set the boolean properties
+        and leading/trailing space using the operator dictionary. minsize and maxsize are constant
+        so we do not need to set them any more.
+        (WebCore::RenderMathMLFencedOperator::leadingSpace): Resolve the spacing read from the
+        dictionary to LayoutUnit. Note that it can never be negative.
+        (WebCore::RenderMathMLFencedOperator::trailingSpace): Ditto.
+        (WebCore::RenderMathMLFencedOperator::RenderMathMLFencedOperator): Deleted.
+        (WebCore::RenderMathMLFencedOperator::setOperatorProperties): Deleted.
+        * rendering/mathml/RenderMathMLFencedOperator.h: We use the new OperatorChar structure for
+        accessors and members. We make minSize and maxSize just return the default values and delete
+        the corresponding members. Finally, leading and trailing space are now stored as unsigned
+        short in MathUnit.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::textContent): Use the new OperatorChar structure.
+        (WebCore::RenderMathMLOperator::isVertical): Helper function forwarding to MathMLOperatorElement.
+        (WebCore::RenderMathMLOperator::stretchTo): Use isVertical() and remove setOperatorProperties().
+        (WebCore::RenderMathMLOperator::resetStretchSize): Ditto.
+        (WebCore::RenderMathMLOperator::updateMathOperator): Rename rebuildTokenContent as this is
+        now really only used to update MathOperator and hence replace the condition on
+        useMathOperator() with an ASSERT.
+        (WebCore::RenderMathMLOperator::updateTokenContent): Call updateMathOperator instead of
+        rebuildTokenContent.
+        (WebCore::RenderMathMLOperator::verticalStretchedOperatorShift): We use isVertical().
+        (WebCore::RenderMathMLOperator::paint): Ditto.
+        (WebCore::RenderMathMLOperator::setOperatorProperties): Deleted. This is no longer needed.
+        (WebCore::RenderMathMLOperator::computePreferredLogicalWidths): Deleted.
+        (WebCore::RenderMathMLOperator::rebuildTokenContent): Deleted. Renamed updateMathOperator.
+        (WebCore::RenderMathMLOperator::styleDidChange): No need to call updateOperatorProperties.
+        (WebCore::RenderMathMLOperator::updateOperatorProperties): Ditto..
+        * rendering/mathml/RenderMathMLOperator.h: Update some declaration and remove m_isVertical.
+        (WebCore::RenderMathMLOperator::isVertical): Deleted.
+        * rendering/mathml/RenderMathMLRow.cpp:
+        (WebCore::RenderMathMLRow::updateOperatorProperties): Deleted. This is no longer needed.
+        * rendering/mathml/RenderMathMLRow.h: Ditto.
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        Drop custom bindings code for HTMLSelectElement.remove()
+        https://bugs.webkit.org/show_bug.cgi?id=160477
+
+        Reviewed by Darin Adler.
+
+        Drop custom bindings code for HTMLSelectElement.remove() and use
+        overloading instead.
+
+        * bindings/js/JSHTMLSelectElementCustom.cpp:
+        (WebCore::JSHTMLSelectElement::remove): Deleted.
+        * html/HTMLSelectElement.idl:
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        Drop custom bindings code for HTMLOptionsCollection.remove()
+        https://bugs.webkit.org/show_bug.cgi?id=160475
+
+        Reviewed by Darin Adler.
+
+        Drop custom bindings code for HTMLOptionsCollection.remove() and use
+        overloading instead. The overload that take an HTMLOptionElement is
+        WebKit-specific and should probably be dropped at some point:
+        - https://html.spec.whatwg.org/multipage/infrastructure.html#htmloptionscollection
+
+        This patch also fixes several bugs:
+        - The parameter is now mandatory. This is consistent with the
+          specification, Firefox and Chrome.
+        - HTMLOptionsCollection.prototype.remove.length is now 1 instead of 0.
+
+        No new tests, rebaselined existing tests.
+
+        * bindings/js/JSHTMLOptionsCollectionCustom.cpp:
+        (WebCore::JSHTMLOptionsCollection::remove): Deleted.
+        * html/HTMLOptionsCollection.idl:
+
+2016-08-02  Nan Wang  <n_wang@apple.com>
+
+        AX: Simulated touch events are not working on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=160395
+        <rdar://problem/27633597>
+
+        Reviewed by Chris Fleizach.
+
+        We should mark the simulated touch as a potential tap otherwise it won't
+        be handled on iOS. Also, we need to dispatch both touch start and touch end
+        to mimic the real touch events. Last, added a has event listeners check,
+        because iOS is dispatching mouse click events for elements without touch event
+        listeners.
+
+        Test: accessibility/ios-simulator/press-fires-touch-events.html
+
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::press):
+        (WebCore::AccessibilityObject::dispatchTouchEvent):
+        * page/ios/EventHandlerIOS.mm:
+        (WebCore::EventHandler::dispatchSimulatedTouchEvent):
+        * platform/ios/PlatformEventFactoryIOS.mm:
+        (WebCore::PlatformTouchEventBuilder::PlatformTouchEventBuilder):
+
+2016-08-02  Benjamin Poulain  <bpoulain@apple.com>
+
+        Clean up some useless AtomicString atoms
+        https://bugs.webkit.org/show_bug.cgi?id=160471
+
+        Reviewed by Geoffrey Garen.
+
+        The only uses of "commentAtom" and "textAtom" where for their
+        respective overload of Node::nodeName().
+        Those methods return a string, we should not keep them in the atomic
+        string table just to hold a small String alive. They were also the only
+        two nodes to behave that way.
+
+        The atom xlinkAtom was only used by createForeignAttributesMap(), which
+        is itself only invoked once. There is no need for the symbol xlinkAtom.
+
+        * dom/CDATASection.cpp:
+        (WebCore::CDATASection::nodeName):
+        * dom/Comment.cpp:
+        (WebCore::Comment::nodeName):
+        * dom/Document.cpp:
+        (WebCore::Document::nodeName):
+        * dom/Text.cpp:
+        (WebCore::Text::nodeName):
+        * html/parser/HTMLTreeBuilder.cpp:
+        (WebCore::createForeignAttributesMap):
+
+2016-08-02  Anders Carlsson  <andersca@apple.com>
+
+        Freeze the Objective-C DOM Event and CSS bindings
+        https://bugs.webkit.org/show_bug.cgi?id=160476
+
+        Reviewed by Tim Horton.
+
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMCSSCharsetRule.h: Added.
+        * bindings/objc/DOMCSSCharsetRule.mm: Added.
+        * bindings/objc/DOMCSSCharsetRuleInternal.h: Added.
+        * bindings/objc/DOMCSSFontFaceRule.h: Added.
+        * bindings/objc/DOMCSSFontFaceRule.mm: Added.
+        * bindings/objc/DOMCSSFontFaceRuleInternal.h: Added.
+        * bindings/objc/DOMCSSImportRule.h: Added.
+        * bindings/objc/DOMCSSImportRule.mm: Added.
+        * bindings/objc/DOMCSSImportRuleInternal.h: Added.
+        * bindings/objc/DOMCSSMediaRule.h: Added.
+        * bindings/objc/DOMCSSMediaRule.mm: Added.
+        * bindings/objc/DOMCSSMediaRuleInternal.h: Added.
+        * bindings/objc/DOMCSSPageRule.h: Added.
+        * bindings/objc/DOMCSSPageRule.mm: Added.
+        * bindings/objc/DOMCSSPageRuleInternal.h: Added.
+        * bindings/objc/DOMCSSPrimitiveValue.h: Added.
+        * bindings/objc/DOMCSSPrimitiveValue.mm: Added.
+        * bindings/objc/DOMCSSPrimitiveValueInternal.h: Added.
+        * bindings/objc/DOMCSSRule.h: Added.
+        * bindings/objc/DOMCSSRule.mm: Added.
+        * bindings/objc/DOMCSSRuleInternal.h: Added.
+        * bindings/objc/DOMCSSRuleList.h: Added.
+        * bindings/objc/DOMCSSRuleList.mm: Added.
+        * bindings/objc/DOMCSSRuleListInternal.h: Added.
+        * bindings/objc/DOMCSSStyleDeclaration.h: Added.
+        * bindings/objc/DOMCSSStyleDeclaration.mm: Added.
+        * bindings/objc/DOMCSSStyleDeclarationInternal.h: Added.
+        * bindings/objc/DOMCSSStyleRule.h: Added.
+        * bindings/objc/DOMCSSStyleRule.mm: Added.
+        * bindings/objc/DOMCSSStyleRuleInternal.h: Added.
+        * bindings/objc/DOMCSSStyleSheet.h: Added.
+        * bindings/objc/DOMCSSStyleSheet.mm: Added.
+        * bindings/objc/DOMCSSStyleSheetInternal.h: Added.
+        * bindings/objc/DOMCSSUnknownRule.h: Added.
+        * bindings/objc/DOMCSSUnknownRule.mm: Added.
+        * bindings/objc/DOMCSSUnknownRuleInternal.h: Added.
+        * bindings/objc/DOMCSSValue.h: Added.
+        * bindings/objc/DOMCSSValue.mm: Added.
+        * bindings/objc/DOMCSSValueInternal.h: Added.
+        * bindings/objc/DOMCSSValueList.h: Added.
+        * bindings/objc/DOMCSSValueList.mm: Added.
+        * bindings/objc/DOMCSSValueListInternal.h: Added.
+        * bindings/objc/DOMCounter.h: Added.
+        * bindings/objc/DOMCounter.mm: Added.
+        * bindings/objc/DOMCounterInternal.h: Added.
+        * bindings/objc/DOMEvent.h: Added.
+        * bindings/objc/DOMEvent.mm: Added.
+        * bindings/objc/DOMEventInternal.h: Added.
+        * bindings/objc/DOMEventListener.h: Added.
+        * bindings/objc/DOMEventTarget.h: Added.
+        * bindings/objc/DOMKeyboardEvent.h: Added.
+        * bindings/objc/DOMKeyboardEvent.mm: Added.
+        * bindings/objc/DOMKeyboardEventInternal.h: Added.
+        * bindings/objc/DOMMouseEvent.h: Added.
+        * bindings/objc/DOMMouseEvent.mm: Added.
+        * bindings/objc/DOMMouseEventInternal.h: Added.
+        * bindings/objc/DOMMutationEvent.h: Added.
+        * bindings/objc/DOMMutationEvent.mm: Added.
+        * bindings/objc/DOMMutationEventInternal.h: Added.
+        * bindings/objc/DOMOverflowEvent.h: Added.
+        * bindings/objc/DOMOverflowEvent.mm: Added.
+        * bindings/objc/DOMOverflowEventInternal.h: Added.
+        * bindings/objc/DOMProgressEvent.h: Added.
+        * bindings/objc/DOMProgressEvent.mm: Added.
+        * bindings/objc/DOMProgressEventInternal.h: Added.
+        * bindings/objc/DOMRGBColor.h: Added.
+        * bindings/objc/DOMRGBColor.mm: Added.
+        * bindings/objc/DOMRGBColorInternal.h: Added.
+        * bindings/objc/DOMRect.h: Added.
+        * bindings/objc/DOMRect.mm: Added.
+        * bindings/objc/DOMRectInternal.h: Added.
+        * bindings/objc/DOMTextEvent.h: Added.
+        * bindings/objc/DOMTextEvent.mm: Added.
+        (-[DOMTextEvent data]):
+        (-[DOMTextEvent initTextEvent:canBubbleArg:cancelableArg:viewArg:dataArg:]):
+        * bindings/objc/DOMTextEventInternal.h: Added.
+        * bindings/objc/DOMUIEvent.h: Added.
+        * bindings/objc/DOMUIEvent.mm: Added.
+        * bindings/objc/DOMUIEventInternal.h: Added.
+        * bindings/objc/DOMWheelEvent.h: Added.
+        * bindings/objc/DOMWheelEvent.mm: Added.
+        * bindings/objc/DOMWheelEventInternal.h: Added.
+
+2016-08-02  Enrica Casucci  <enrica@apple.com>
+
+        Allow building with content filtering disabled.
+        https://bugs.webkit.org/show_bug.cgi?id=160454
+
+        Reviewed by Simon Fraser.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * platform/PlatformContentFilter.h:
+        (WebCore::PlatformContentFilter::unblockRequestDeniedScript):
+        * platform/cocoa/NetworkExtensionContentFilter.h:
+        * platform/cocoa/NetworkExtensionContentFilter.mm:
+        (WebCore::NetworkExtensionContentFilter::unblockHandler):
+        * platform/cocoa/ParentalControlsContentFilter.h:
+        * testing/MockContentFilter.h:
+
+2016-08-02  Dean Jackson  <dino@apple.com>
+
+        Reapply fixes for webkit.org/b/159450 and webkit.org/b/157569
+        https://bugs.webkit.org/show_bug.cgi?id=160474
+        <rdar://problem/27668170>
+
+        Reviewed by Simon Fraser.
+
+        The fixes are behaviour we want. They just caused a regression
+        on medium.com (reverted in http://trac.webkit.org/r203380).
+
+        Now that we've branched, revert the reversion (which itself
+        was a reversion), so we can fix the actual bug:
+        https://bugs.webkit.org/show_bug.cgi?id=160478
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseValue):
+        (WebCore::CSSParser::parseAnimationShorthand):
+        (WebCore::CSSParser::addPropertyWithPrefixingVariant):
+        (WebCore::CSSParser::parseTransitionShorthand):
+        * css/CSSPropertyNames.in:
+        * css/PropertySetCSSStyleDeclaration.cpp:
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyCSSValue):
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyValue):
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyCSSValueInternal):
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyValueInternal):
+        * css/StyleProperties.cpp:
+        (WebCore::MutableStyleProperties::removeShorthandProperty):
+        (WebCore::StyleProperties::asText):
+        (WebCore::MutableStyleProperties::removeProperty): Deleted.
+        (WebCore::MutableStyleProperties::removePrefixedOrUnprefixedProperty): Deleted.
+        (WebCore::MutableStyleProperties::setProperty): Deleted.
+        (WebCore::getIndexInShorthandVectorForPrefixingVariant): Deleted.
+        (WebCore::MutableStyleProperties::appendPrefixingVariantProperty): Deleted.
+        (WebCore::MutableStyleProperties::setPrefixingVariantProperty): Deleted.
+        * css/StyleProperties.h:
+
+2016-08-02  Eric Carlson  <eric.carlson@apple.com>
+
+        Cleanup HTMLMediaElement track lists.
+        https://bugs.webkit.org/show_bug.cgi?id=160470
+
+        Reviewed by David Kilzer.
+
+        Test: media/range-extract-contents-crash.html
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::~HTMLMediaElement): 
+
+        * html/track/AudioTrack.cpp:
+        (WebCore::AudioTrack::willRemove): ASSERT if media element is NULL.
+
+        * html/track/TextTrackList.cpp:
+        (TextTrackList::clearElement): Clear track media element pointers and client.
+        * html/track/TextTrackList.h:
+
+        * html/track/TrackListBase.cpp:
+        (TrackListBase::~TrackListBase): Call clearElement.
+        (TrackListBase::clearElement): Clear track media element pointers and client.
+        * html/track/TrackListBase.h:
+
+2016-08-02  Anders Carlsson  <andersca@apple.com>
+
+        Remove more Objective-C bindings that are not used
+        https://bugs.webkit.org/show_bug.cgi?id=160473
+
+        Reviewed by Sam Weinig.
+
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMCSS.mm:
+        (kitClass):
+        * dom/Document.idl:
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        Drop custom bindings for FormData.append()
+        https://bugs.webkit.org/show_bug.cgi?id=160466
+
+        Reviewed by Sam Weinig.
+
+        Drop custom bindings for FormData.append(). We no longer need them now
+        that we have proper support for overloads after r204028.
+
+        This patch also fixes the fact that FormData.prototype.append.length
+        was 0 instead of 2.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/js/JSDOMFormDataCustom.cpp:
+        (WebCore::JSDOMFormData::append): Deleted.
+        * html/DOMFormData.cpp:
+        (WebCore::DOMFormData::append):
+        * html/DOMFormData.h:
+        * html/DOMFormData.idl:
+        * html/FileInputType.cpp:
+        (WebCore::FileInputType::appendFormData):
+        * html/FormDataList.cpp:
+        (WebCore::FormDataList::appendBlob):
+        * html/FormDataList.h:
+        (WebCore::FormDataList::Item::Item):
+        (WebCore::FormDataList::appendBlob):
+
+2016-08-02  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203799.
+        https://bugs.webkit.org/show_bug.cgi?id=160467
+
+        Decided on a different solution (Requested by jonlee_ on
+        #webkit).
+
+        Reverted changeset:
+
+        "Captions do not render in PiP window when element is hidden"
+        https://bugs.webkit.org/show_bug.cgi?id=160265
+        http://trac.webkit.org/changeset/203799
+
+2016-08-02  Alex Christensen  <achristensen@webkit.org>
+
+        Remove unused functions in URL
+        https://bugs.webkit.org/show_bug.cgi?id=160468
+
+        Reviewed by Geoffrey Garen.
+
+        * page/SecurityOrigin.cpp:
+        (WebCore::SecurityOrigin::extractInnerURL):
+        * platform/URL.cpp:
+        (WebCore::mimeTypeFromURL):
+        (WebCore::URL::stringCenterEllipsizedToLength):
+        (WebCore::URL::isSafeToSendToAnotherThread): Deleted.
+        * platform/URL.h:
+        (WebCore::URL::operator NSString*):
+        (WebCore::URL::innerURL): Deleted.
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        Named / Indexed properties should be configurable
+        https://bugs.webkit.org/show_bug.cgi?id=160457
+
+        Reviewed by Darin Adler.
+
+        Report Named / Indexed properties as being configurable to comply with
+        the Web IDL specification:
+        - http://heycam.github.io/webidl/#getownproperty-guts (step 1. and 2.)
+
+        Firefox and Chrome also report them as being configurable.
+
+        No new tests, rebaselined existing tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateGetOwnPropertySlotBody):
+
+2016-08-02  Anders Carlsson  <andersca@apple.com>
+
+        Remove more unused/uninstalled Objective-C DOM bindings
+        https://bugs.webkit.org/show_bug.cgi?id=160464
+
+        Reviewed by Darin Adler.
+
+        * Configurations/WebCore.xcconfig:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMCSS.mm:
+        (kitClass):
+        * bindings/objc/DOMEvents.h:
+        * bindings/objc/DOMEvents.mm:
+        (kitClass): Deleted.
+        * dom/Document.idl:
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Extend new overload resolution algorithm support to constructors
+        https://bugs.webkit.org/show_bug.cgi?id=160455
+
+        Reviewed by Ryosuke Niwa.
+
+        Extend new overload resolution algorithm support (added in r204028) to
+        constructors as well. It was only used for operations. Remove code that
+        is now dead from the bindings generator.
+
+        We now share the same code of generating the overload resolution code
+        for operations and constructors.
+
+        No new tests, rebaselined existing tests.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (LinkOverloadedFunctions):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateOverloadedFunctionOrConstructor):
+        (GenerateImplementation):
+        (GenerateConstructorDefinitions):
+        (GenerateConstructorDefinition):
+        (GetFunctionLength): Deleted.
+        (LengthOfLongestFunctionParameterList): Deleted.
+        (GetNativeTypeForConversions): Deleted.
+        (GetGnuVTableNameForInterface): Deleted.
+        (GetGnuMangledNameForInterface): Deleted.
+        (GetGnuVTableOffsetForType): Deleted.
+        (GenerateConstructorHelperMethods): Deleted.
+        * bindings/scripts/IDLParser.pm:
+        (applyExtendedAttributeList): Deleted.
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::JSTestOverloadedConstructorsConstructor::construct):
+        * bindings/scripts/test/TestOverloadedConstructors.idl:
+
+2016-08-02  Brady Eidson  <beidson@apple.com>
+
+        Removing IndexedDB WebsiteData can fail for some users.
+        https://bugs.webkit.org/show_bug.cgi?id=160463
+
+        Reviewed by Alex Christensen.
+
+        Covered by changes to API test IndexedDB.StoreBlobThenDelete.
+
+        For a few months in trunk WebKit, deleting an IndexedDB using WebsiteDataStore API would only
+        delete the "IndexedDB.sqlite3" file, but would leave the "-wal" and "-shm" files behind.
+        
+        We'd then fail to delete the directory itself, tricking API clients to think there are still
+        databases in the given origin.
+        
+        Furthermore, the code to delete a database first checks for the existence of "IndexedDB.sqlite3"
+        then refuses to do any further cleanup if it doesn't exist.
+        
+        We should just always run the entire delete procedure even if IndexedDB.sqlite does not exist.
+        
+        * Modules/indexeddb/server/IDBServer.cpp:
+        (WebCore::IDBServer::removeAllDatabasesForOriginPath):
+
+        * platform/sql/SQLiteFileSystem.cpp:
+        (WebCore::SQLiteFileSystem::deleteDatabaseFile):
+
+2016-08-02  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Mac CMake build.
+
+        * PlatformMac.cmake:
+        Some ObjC bindings have been frozen.
+
+2016-08-02  Frederic Wang  <fwang@igalia.com>
+
+        More cleanup of MathML operator parsing
+        https://bugs.webkit.org/show_bug.cgi?id=160336
+
+        Reviewed by Darin Adler.
+
+        No new tests, behavior is unchanged.
+
+        * rendering/mathml/RenderMathMLBlock.cpp:
+        (WebCore::parseMathMLLength): Deleted. This function is no longer used.
+        * rendering/mathml/RenderMathMLBlock.h: Ditto.
+        * rendering/mathml/RenderMathMLFencedOperator.h: Move some length members from
+        RenderMathMLOperator and override the accessors. Also override useMathOperator() since it is
+        always true for anonymous mfenced operators.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::textContent): No need to ASSERT !isAnonymous since this
+        function is overriden by RenderMathMLFencedOperator.
+        (WebCore::RenderMathMLOperator::isInvisibleOperator): Use a temporary variable to call
+        textContent only once.
+        (WebCore::RenderMathMLOperator::leadingSpace): Helper function to determine the leading space.
+        (WebCore::RenderMathMLOperator::trailingSpace): Helper function to determine the trailing space.
+        (WebCore::RenderMathMLOperator::minSize): Helper function to determine the min space.
+        (WebCore::RenderMathMLOperator::maxSize): Helper function to determine the max space.
+        (WebCore::RenderMathMLOperator::setOperatorProperties): This is now only used to set m_isVertical.
+        (WebCore::RenderMathMLOperator::stretchTo): Call maxSize and minSize when necessary.
+        (WebCore::RenderMathMLOperator::computePreferredLogicalWidths): Call leadingSpace and trailingSpace.
+        (WebCore::RenderMathMLOperator::layoutBlock): Ditto.
+        (WebCore::RenderMathMLOperator::useMathOperator): Remove the case for anonymous operators as
+        this is now handled in the derived class.
+        (WebCore::RenderMathMLOperator::paint): Call leadingSpace.
+        * rendering/mathml/RenderMathMLOperator.h: Remove length members and declare helper functions
+        to get these lengths from MathMLOperatorElement.
+        (WebCore::RenderMathMLOperator::setLeadingSpace): Deleted. This is no longer used.
+        (WebCore::RenderMathMLOperator::setTrailingSpace): Deleted. This is no longer used.
+
+2016-08-02  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of operator length attributes to MathMLOperatorElement
+        https://bugs.webkit.org/show_bug.cgi?id=160301
+
+        Reviewed by Darin Adler.
+
+        We move parsing of operator attributes lspace, rspace minsize, maxsize into the class
+        MathMLOperatorElement. We rely on the existing MathMLElement::Length structure and expand
+        it to handle the "infinity" case of maxsize that we always resolve as intMaxForLayoutUnit.
+        We also improve the resolution of a negative value for minsize and maxsize since the MathML
+        recommendation says it should be rounded up to the nearest valid value (which is zero)
+        instead of ignoring the attribute and using the default value. This is similar to r203285
+        for mfrac@linethickness. We also update the existing test for minsize/maxsize to take into
+        account that change.
+
+        No new tests, already covered by existing tests.
+
+        * mathml/MathMLElement.h: Add an "Infinity" type for MathML Length.
+        * mathml/MathMLOperatorElement.cpp:
+        (WebCore::MathMLOperatorElement::leadingSpace): Helper function to retrieve the cached value
+        for the lspace attribute, parse it if necessary.
+        (WebCore::MathMLOperatorElement::trailingSpace): Ditto for rspace.
+        (WebCore::MathMLOperatorElement::minSize): Ditto for minsize.
+        (WebCore::MathMLOperatorElement::maxSize): Ditto for maxsize. This attribute also accepts the
+        "infinity" value.
+        (WebCore::MathMLOperatorElement::parseAttribute): Mark attributes dirty.
+        * mathml/MathMLOperatorElement.h: Declare Length members and accessors.
+        * rendering/mathml/RenderMathMLBlock.cpp:
+        (WebCore::toUserUnits): Resolve Infinity as intMaxForLayoutUnit.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::setOperatorProperties): We use toUserUnits to resolve the
+        lengths. Negative maxsize and minsize values now fallback to 0 instead of their default
+        values. We also remove the !isAnonymous() check since setOperatorProperties is overriden
+        in the RenderMathMLFencedOperator class.
+
+2016-08-02  Frederic Wang  <fred.wang@free.fr>
+
+        Unreviewed build error fix.
+
+        * mathml/MathMLOperatorElement.cpp:
+        (WebCore::propertyFlagToAttributeName): Return a nullQName to avoid warnings on some platforms.
+
+2016-08-02  Anders Carlsson  <andersca@apple.com>
+
+        Stop building Objective-C bindings that aren't exposed anywhere
+        https://bugs.webkit.org/show_bug.cgi?id=160458
+
+        Reviewed by Darin Adler.
+
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        HTMLCollection's named getter should only do 'name' attribute matching for HTMLElements
+        https://bugs.webkit.org/show_bug.cgi?id=160456
+
+        Reviewed by Darin Adler.
+
+        HTMLCollection's named getter should only do 'name' attribute matching for HTMLElements:
+        - https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem
+
+        Our slow path which relies on HTMLCollection::updateNamedElementCache() does the right
+        thing. However, we have a fast path in 
+        CachedHTMLCollection<HTMLCollectionClass, traversalType>::namedItem() that was missing a
+        check.
+
+        Firefox and Chrome both behave correctly here.
+
+        No new tests, rebaselined existing tests.
+
+        * html/CachedHTMLCollection.h:
+        (WebCore::traversalType>::namedItem):
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        Kill [StrictTypeChecking] IDL extended attribute
+        https://bugs.webkit.org/show_bug.cgi?id=160382
+
+        Reviewed by Darin Adler.
+
+        Kill [StrictTypeChecking] IDL extended attribute. Its only remaining
+        use was on DOMString parameters for a few CanvasRenderingContext2D
+        operations in order to work around a bug in our overload resolution.
+
+        However, as of r204028, we implement the Web IDL overload resolution
+        algorithm and [StrictTypeChecking] is now a no-op and is no longer
+        needed.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheckExpression):
+        * bindings/scripts/IDLAttributes.txt:
+        * bindings/scripts/test/TestObj.idl:
+        * bindings/scripts/test/TestTypedefs.idl:
+        * html/canvas/CanvasRenderingContext2D.idl:
+
+2016-08-02  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of boolean operator properties into MathMLOperatorElement
+        https://bugs.webkit.org/show_bug.cgi?id=160190
+
+        Reviewed by Darin Adler.
+
+        No new tests, already covered by existing tests.
+
+        * mathml/MathMLOperatorDictionary.h: Add a bit mask with all the property flags set.
+        * mathml/MathMLOperatorElement.cpp:
+        (WebCore::attributeNameToPropertyFlag): helper function to map from attribute name to flag.
+        (WebCore::MathMLOperatorElement::computeOperatorFlag): Helper function to update one
+        bit of m_properties.flags from the corresponding boolean attribute. The default value is
+        taken from the operator dictionary data stored in m_dictionaryProperty.flags.
+        (WebCore::MathMLOperatorElement::hasProperty): Returns whether the operator has a property,
+        parsing it again if the corresponding attribute is dirty.
+        (WebCore::MathMLOperatorElement::childrenChanged): Make all properties dirty.
+        (WebCore::propertyFlagToAttributeName): helper function to map from flag to attribute name.
+        (WebCore::MathMLOperatorElement::parseAttribute): Make all properties dirty if the form
+        attribute changed. Make each property dirty when the corresponding attribute changed.
+        (WebCore::MathMLOperatorElement::flags): Deleted. Replaced with the finer hasProperty function.
+        * mathml/MathMLOperatorElement.h: Define new structure, member and functions to handle
+        operator properties.
+        * rendering/mathml/RenderMathMLFencedOperator.cpp:
+        (WebCore::RenderMathMLFencedOperator::RenderMathMLFencedOperator): Move m_operatorFlags from
+        the base class to the derived class.
+        * rendering/mathml/RenderMathMLFencedOperator.h: Ditto.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::RenderMathMLOperator): Ditto.
+        (WebCore::RenderMathMLOperator::hasOperatorFlag): Just call hasOperatorFlag from the
+        MathMLOperatorElement class.
+        (WebCore::RenderMathMLOperator::setOperatorProperties): We do not initialize m_operatorFlags
+        since it has been removed from the base class. We also do not parse attributes since this
+        has been moved to the MathMLOperatorElement class.
+        (WebCore::RenderMathMLOperator::setOperatorFlagFromAttribute): Deleted.
+        (WebCore::RenderMathMLOperator::setOperatorFlagFromAttributeValue): Deleted.
+        * rendering/mathml/RenderMathMLOperator.h: Move m_operatorFlags from the base class to the
+        derived class, remove some parsing helper functions and update hasOperatorFlag to make it
+        overridable.
+
+2016-08-01  Anders Carlsson  <andersca@apple.com>
+
+        Freeze another bunch of Objective-C binding files
+        https://bugs.webkit.org/show_bug.cgi?id=160435
+
+        Reviewed by Alex Christensen.
+
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMAbstractView.h: Added.
+        * bindings/objc/DOMAbstractView.mm:
+        * bindings/objc/DOMAbstractViewInternal.h: Added.
+        * bindings/objc/DOMMediaList.h: Added.
+        * bindings/objc/DOMMediaList.mm: Added.
+        * bindings/objc/DOMMediaListInternal.h: Added.
+        * bindings/objc/DOMNodeFilter.h: Added.
+        * bindings/objc/DOMNodeIterator.h: Added.
+        * bindings/objc/DOMNodeIterator.mm: Added.
+        * bindings/objc/DOMNodeIteratorInternal.h: Added.
+        * bindings/objc/DOMRange.h: Added.
+        * bindings/objc/DOMRange.mm: Added.
+        * bindings/objc/DOMRangeInternal.h: Added.
+        * bindings/objc/DOMStyleSheet.h: Added.
+        * bindings/objc/DOMStyleSheet.mm: Added.
+        * bindings/objc/DOMStyleSheetInternal.h: Added.
+        * bindings/objc/DOMStyleSheetList.h: Added.
+        * bindings/objc/DOMStyleSheetList.mm: Added.
+        * bindings/objc/DOMStyleSheetListInternal.h: Added.
+        * bindings/objc/DOMTreeWalker.h: Added.
+        * bindings/objc/DOMTreeWalker.mm: Added.
+        * bindings/objc/DOMTreeWalkerInternal.h: Added.
+        * bindings/objc/DOMXPathExpression.h: Added.
+        * bindings/objc/DOMXPathExpression.mm: Added.
+        * bindings/objc/DOMXPathExpressionInternal.h: Added.
+        * bindings/objc/DOMXPathNSResolver.h: Added.
+        * bindings/objc/DOMXPathResult.h: Added.
+        * bindings/objc/DOMXPathResult.mm: Added.
+        * bindings/objc/DOMXPathResultInternal.h: Added.
+
+2016-08-02  Frederic Wang  <fwang@igalia.com>
+
+        [MathML] Use more auto for local variables
+        https://bugs.webkit.org/show_bug.cgi?id=160453
+
+        Reviewed by Darin Adler.
+
+        No new tests, behavior is unchanged.
+
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::colSpan):
+        (WebCore::MathMLElement::rowSpan):
+        (WebCore::MathMLElement::childShouldCreateRenderer):
+        (WebCore::MathMLElement::defaultEventHandler):
+        * mathml/MathMLSelectElement.cpp:
+        (WebCore::MathMLSelectElement::getSelectedActionChild):
+        (WebCore::MathMLSelectElement::getSelectedSemanticsChild):
+        * rendering/mathml/RenderMathMLFenced.cpp:
+        (WebCore::RenderMathMLFenced::updateFromElement):
+
+2016-08-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Attempt to fix build after r204014.
+
+        Unreviewed build fix.
+
+        * loader/mac/ResourceLoaderMac.mm:
+        (WebCore::ResourceLoader::willCacheResponse):
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Implement overload resolution algorithm
+        https://bugs.webkit.org/show_bug.cgi?id=160394
+
+        Reviewed by Darin Adler.
+
+        Implement overload resolution algorithm:
+        - http://heycam.github.io/webidl/#es-overloads
+
+        This means that our support for operation overloading in our IDL is
+        now a lot more extensive than it used to be and is now compliant with
+        the Web IDL specification.
+
+        In particular, overloading should now work for a lot more parameter
+        types which means that:
+        - We should be able to drop some custom bindings code in a follow-up patch.
+        - We will be able to drop the [StrictTypeChecking] attribute which was
+          a hack used to make overloading work for parameters of type DOMString.
+
+        Also, the order of the overloads in the IDL no longer impacts the
+        generated bindings code. It used to be that you needed to put the
+        overloads with the more specific parameter types first in order for the
+        generated bindings code to be somewhat correct.
+
+        No new tests, rebaselined bindings tests.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (IsStringOrEnumType):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (IsNullableType):
+        (StripNullable):
+        (ComputeEffectiveOverloadSet):
+        (AreTypesDistinguishableForOverloadResolution):
+        (GetDistinguishingArgumentIndex):
+        (GetOverloadThatMatches):
+        (GenerateOverloadedFunction):
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod1):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod12): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise): Deleted.
+        * bindings/scripts/test/TestObj.idl:
+        * dom/EventTarget.h:
+        * dom/EventTarget.idl:
+        * html/HTMLOptionsCollection.h:
+        * html/HTMLOptionsCollection.idl:
+        * html/HTMLSelectElement.h:
+        (WebCore::HTMLSelectElement::add):
+        * html/HTMLSelectElement.idl:
+
+2016-08-02  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [macOS] Guard workaround in r203314 for only OSes which need it
+        https://bugs.webkit.org/show_bug.cgi?id=160440
+
+        Reviewed by Simon Fraser.
+
+        The workarond introduced in r203314 only needs to be applied on
+        certain OSes.
+
+        No new tests because there is no behavior change.
+
+        * platform/text/mac/TextBoundaries.mm:
+        (WebCore::findNextWordFromIndex):
+
+2016-08-02  Youenn Fablet  <youenn@apple.com>
+
+        Remove CachedResourceRequest initiatingDocumentLoader
+        https://bugs.webkit.org/show_bug.cgi?id=160449
+
+        Reviewed by Alex Christensen.
+
+        No change of behavior.
+
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::startLoadingMainResource): Removing call to setInitiator.
+        * loader/cache/CachedResourceRequest.cpp:
+        (WebCore::CachedResourceRequest::setInitiator): Deleted.
+        * loader/cache/CachedResourceRequest.h:
+        (WebCore::CachedResourceRequest::initiatingDocumentLoader): Deleted.
+
 2016-07-28  Frederic Wang  <fwang@igalia.com>
 
         Move parsing of the form attribute to MathMLOperatorElement

@@ -39,35 +39,31 @@ class MathMLOperatorElement;
 class RenderMathMLOperator : public RenderMathMLToken {
 public:
     RenderMathMLOperator(MathMLOperatorElement&, RenderStyle&&);
-    RenderMathMLOperator(Document&, RenderStyle&&, unsigned short flags = 0);
+    RenderMathMLOperator(Document&, RenderStyle&&);
     MathMLOperatorElement& element() const;
 
     void stretchTo(LayoutUnit heightAboveBaseline, LayoutUnit depthBelowBaseline);
     void stretchTo(LayoutUnit width);
-    LayoutUnit stretchSize() const { return m_isVertical ? m_stretchHeightAboveBaseline + m_stretchDepthBelowBaseline : m_stretchWidth; }
+    LayoutUnit stretchSize() const { return isVertical() ? m_stretchHeightAboveBaseline + m_stretchDepthBelowBaseline : m_stretchWidth; }
     void resetStretchSize();
 
-    bool hasOperatorFlag(MathMLOperatorDictionary::Flag flag) const { return m_operatorFlags & flag; }
+    virtual bool hasOperatorFlag(MathMLOperatorDictionary::Flag) const;
     bool isLargeOperatorInDisplayStyle() const { return !hasOperatorFlag(MathMLOperatorDictionary::Stretchy) && hasOperatorFlag(MathMLOperatorDictionary::LargeOp) && mathMLStyle()->displayStyle(); }
     bool shouldMoveLimits() const { return hasOperatorFlag(MathMLOperatorDictionary::MovableLimits) && !mathMLStyle()->displayStyle(); }
-    bool isVertical() const { return m_isVertical; }
+    virtual bool isVertical() const;
     LayoutUnit italicCorrection() const { return m_mathOperator.italicCorrection(); }
 
     void updateTokenContent() final;
-    void updateOperatorProperties();
     void updateFromElement() final;
     virtual UChar textContent() const;
 
 protected:
-    void rebuildTokenContent();
-    virtual void setOperatorProperties();
-
-    bool m_isVertical { true };
-    LayoutUnit m_leadingSpace;
-    LayoutUnit m_trailingSpace;
-    LayoutUnit m_minSize;
-    LayoutUnit m_maxSize;
-    unsigned short m_operatorFlags;
+    virtual void updateMathOperator();
+    virtual LayoutUnit leadingSpace() const;
+    virtual LayoutUnit trailingSpace() const;
+    virtual LayoutUnit minSize() const;
+    virtual LayoutUnit maxSize() const;
+    virtual bool useMathOperator() const;
 
 private:
     void styleDidChange(StyleDifference, const RenderStyle* oldStyle) final;
@@ -75,23 +71,15 @@ private:
     void layoutBlock(bool relayoutChildren, LayoutUnit pageLogicalHeight = 0) final;
     void paint(PaintInfo&, const LayoutPoint&) final;
 
-    void setLeadingSpace(LayoutUnit leadingSpace) { m_leadingSpace = leadingSpace; }
-    void setTrailingSpace(LayoutUnit trailingSpace) { m_trailingSpace = trailingSpace; }
-
     const char* renderName() const final { return isAnonymous() ? "RenderMathMLOperator (anonymous)" : "RenderMathMLOperator"; }
     void paintChildren(PaintInfo& forSelf, const LayoutPoint&, PaintInfo& forChild, bool usePrintRect) final;
     bool isRenderMathMLOperator() const final { return true; }
-    // The following operators are invisible: U+2061 FUNCTION APPLICATION, U+2062 INVISIBLE TIMES, U+2063 INVISIBLE SEPARATOR, U+2064 INVISIBLE PLUS.
-    bool isInvisibleOperator() { return 0x2061 <= textContent() && textContent() <= 0x2064; }
+    bool isInvisibleOperator() const;
 
     Optional<int> firstLineBaseline() const final;
     RenderMathMLOperator* unembellishedOperator() final { return this; }
 
     bool shouldAllowStretching() const;
-    bool useMathOperator() const;
-
-    void setOperatorFlagFromAttribute(MathMLOperatorDictionary::Flag, const QualifiedName&);
-    void setOperatorFlagFromAttributeValue(MathMLOperatorDictionary::Flag, const AtomicString& attributeValue);
 
     LayoutUnit verticalStretchedOperatorShift() const;
 

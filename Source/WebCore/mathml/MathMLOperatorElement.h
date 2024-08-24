@@ -34,13 +34,21 @@ namespace WebCore {
 class MathMLOperatorElement final : public MathMLTextElement {
 public:
     static Ref<MathMLOperatorElement> create(const QualifiedName& tagName, Document&);
-    static UChar parseOperatorText(const String&);
-    UChar operatorText();
+    struct OperatorChar {
+        UChar character { 0 };
+        bool isVertical { true };
+    };
+    static OperatorChar parseOperatorChar(const String&);
+    const OperatorChar& operatorChar();
     void setOperatorFormDirty() { m_dictionaryProperty = Nullopt; }
     MathMLOperatorDictionary::Form form() { return dictionaryProperty().form; }
-    unsigned short flags();
+    bool hasProperty(MathMLOperatorDictionary::Flag);
     Length defaultLeadingSpace();
     Length defaultTrailingSpace();
+    const Length& leadingSpace();
+    const Length& trailingSpace();
+    const Length& minSize();
+    const Length& maxSize();
 
 private:
     MathMLOperatorElement(const QualifiedName& tagName, Document&);
@@ -48,7 +56,7 @@ private:
     void childrenChanged(const ChildChange&) final;
     void parseAttribute(const QualifiedName&, const AtomicString&) final;
 
-    Optional<UChar> m_operatorText;
+    Optional<OperatorChar> m_operatorChar;
 
     struct DictionaryProperty {
         MathMLOperatorDictionary::Form form;
@@ -61,6 +69,18 @@ private:
     Optional<DictionaryProperty> m_dictionaryProperty;
     DictionaryProperty computeDictionaryProperty();
     const DictionaryProperty& dictionaryProperty();
+
+    struct OperatorProperties {
+        unsigned short flags;
+        unsigned short dirtyFlags { MathMLOperatorDictionary::allFlags };
+    };
+    OperatorProperties m_properties;
+    void computeOperatorFlag(MathMLOperatorDictionary::Flag);
+
+    Optional<Length> m_leadingSpace;
+    Optional<Length> m_trailingSpace;
+    Optional<Length> m_minSize;
+    Optional<Length> m_maxSize;
 };
 
 }

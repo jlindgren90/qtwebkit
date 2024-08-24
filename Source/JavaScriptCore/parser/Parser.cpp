@@ -224,7 +224,7 @@ Parser<LexerType>::Parser(VM* vm, const SourceCode& source, JSParserBuiltinMode 
         scope->setEvalContextType(evalContextType);
     
     if (derivedContextType == DerivedContextType::DerivedConstructorContext) {
-        scope->setConstructorKind(ConstructorKind::Derived);
+        scope->setConstructorKind(ConstructorKind::Extends);
         scope->setExpectedSuperBinding(SuperBinding::Needed);
     }
     
@@ -960,9 +960,6 @@ template <class TreeBuilder> TreeDestructuringPattern Parser<LexerType>::parseDe
                 if (kind == DestructuringKind::DestructureToExpressions && !innerPattern)
                     return 0;
                 failIfFalse(innerPattern, "Cannot parse this destructuring pattern");
-
-                failIfTrue(kind != DestructuringKind::DestructureToExpressions && !context.isBindingNode(innerPattern),  "Expected identifier for a rest element destructuring pattern");
-
                 context.appendArrayPatternRestEntry(arrayPattern, location, innerPattern);
                 restElementWasFound = true;
                 break;
@@ -1764,13 +1761,9 @@ template <class TreeBuilder> bool Parser<LexerType>::parseFormalParameters(TreeB
         
         if (match(DOTDOTDOT)) {
             next();
-            failIfFalse(matchSpecIdentifier(), "Rest parameter '...' should be followed by a variable identifier");
-            declareRestOrNormalParameter(*m_token.m_data.ident, &duplicateParameter);
+            TreeDestructuringPattern destructuringPattern = parseDestructuringPattern(context, DestructuringKind::DestructureToParameters, ExportType::NotExported, &duplicateParameter, &hasDestructuringPattern);
             propagateError();
-            JSTextPosition identifierStart = tokenStartPosition();
-            JSTextPosition identifierEnd = tokenEndPosition();
-            parameter = context.createRestParameter(*m_token.m_data.ident, parameterCount, identifierStart, identifierEnd);
-            next();
+            parameter = context.createRestParameter(destructuringPattern, parameterCount);
             failIfTrue(match(COMMA), "Rest parameter should be the last parameter in a function declaration"); // Let's have a good error message for this common case.
             isRestParameter = true;
         } else
@@ -2101,7 +2094,7 @@ template <class TreeBuilder> bool Parser<LexerType>::parseFunctionInfo(TreeBuild
     
         if (m_defaultConstructorKind != ConstructorKind::None) {
             constructorKind = m_defaultConstructorKind;
-            expectedSuperBinding = m_defaultConstructorKind == ConstructorKind::Derived ? SuperBinding::Needed : SuperBinding::NotNeeded;
+            expectedSuperBinding = m_defaultConstructorKind == ConstructorKind::Extends ? SuperBinding::Needed : SuperBinding::NotNeeded;
         }
 
         functionBodyType = StandardFunctionBodyBlock;
@@ -2303,7 +2296,7 @@ template <class TreeBuilder> TreeClassExpression Parser<LexerType>::parseClass(T
         parentClass = parseMemberExpression(context);
         failIfFalse(parentClass, "Cannot parse the parent class name");
     }
-    const ConstructorKind constructorKind = parentClass ? ConstructorKind::Derived : ConstructorKind::Base;
+    const ConstructorKind constructorKind = parentClass ? ConstructorKind::Extends : ConstructorKind::Base;
 
     consumeOrFail(OPENBRACE, "Expected opening '{' at the start of a class body");
 
@@ -4017,7 +4010,7 @@ template <class TreeBuilder> TreeExpression Parser<LexerType>::parseMemberExpres
                                 ? functionScope->constructorKind()
                                 : closestOrdinaryFunctionScope->constructorKind();
                             semanticFailIfTrue(functionConstructorKind == ConstructorKind::None, "super is not valid in this context");
-                            semanticFailIfTrue(functionConstructorKind != ConstructorKind::Derived, "super is not valid in this context");
+                            semanticFailIfTrue(functionConstructorKind != ConstructorKind::Extends, "super is not valid in this context");
                         }
                     }
                     if (currentScope()->isArrowFunction())

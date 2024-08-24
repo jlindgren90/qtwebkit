@@ -1,3 +1,178 @@
+2016-08-03  Saam Barati  <sbarati@apple.com>
+
+        Implement nested rest destructuring w.r.t the ES7 spec
+        https://bugs.webkit.org/show_bug.cgi?id=160423
+
+        Reviewed by Filip Pizlo.
+
+        The spec has updated the BindingRestElement grammar production to be:
+        BindingRestElement:
+           BindingIdentifier
+           BindingingPattern.
+
+        It used to only allow BindingIdentifier in the grammar production.
+        I've updated our engine to account for this. The semantics are exactly
+        what you'd expect.  For example:
+        `let [a, ...[b, ...c]] = expr();`
+        means that we create an array for the first rest element `...[b, ...c]`
+        and then perform the binding of `[b, ...c]` to that array. And so on, 
+        applied recursively through the pattern.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::RestParameterNode::collectBoundIdentifiers):
+        (JSC::RestParameterNode::toString):
+        (JSC::RestParameterNode::bindValue):
+        (JSC::RestParameterNode::emit):
+        * parser/ASTBuilder.h:
+        (JSC::ASTBuilder::createBindingLocation):
+        (JSC::ASTBuilder::createRestParameter):
+        (JSC::ASTBuilder::createAssignmentElement):
+        * parser/NodeConstructors.h:
+        (JSC::AssignmentElementNode::AssignmentElementNode):
+        (JSC::RestParameterNode::RestParameterNode):
+        (JSC::DestructuringAssignmentNode::DestructuringAssignmentNode):
+        * parser/Nodes.h:
+        (JSC::RestParameterNode::name): Deleted.
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseDestructuringPattern):
+        (JSC::Parser<LexerType>::parseFormalParameters):
+        * parser/SyntaxChecker.h:
+        (JSC::SyntaxChecker::operatorStackPop):
+
+2016-08-03  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Fix Windows build after r204065
+
+        * dfg/DFGAbstractValue.cpp:
+        (JSC::DFG::AbstractValue::observeTransitions):
+        AbstractValue is bigger on Windows for an unknown reason.
+
+2016-08-02  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Fix 32bits jsc after r204065
+
+        Default constructed JSValue() are not equal to zero in 32bits.
+
+        * dfg/DFGAbstractValue.h:
+        (JSC::DFG::AbstractValue::AbstractValue):
+
+2016-08-02  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Simplify the initialization of AbstractValue in the AbstractInterpreter
+        https://bugs.webkit.org/show_bug.cgi?id=160370
+
+        Reviewed by Saam Barati.
+
+        We use a ton of AbstractValue to run the Abstract Interpreter.
+
+        When we set up the initial values, the compiler sets
+        a zero on a first word, a one on a second word, and a zero
+        again on a third word.
+        Since no vector or double-store can deal with 3 words, unrolling
+        is done by repeating those instructions.
+
+        The reason for the one was TinyPtrSet. It needed a flag for
+        empty value to identify the set as thin. I flipped the flag to "fat"
+        to make sure TinyPtrSet is initialized to zero.
+
+        With that done, I just had to clean some places to make
+        the initialization shorter.
+        It makes the binary easier to follow but this does not help with
+        the bigger problem: the time spent per block on Abstract Interpreter.
+
+        * bytecode/Operands.h:
+        The traits were useless, no client code defines it.
+
+        (JSC::Operands::Operands):
+        (JSC::Operands::ensureLocals):
+        Because of the size of the function, llvm is not inlining it.
+        We were literally loading 3 registers from memory and storing
+        them in the vector.
+        Now that AbstractValue has a VectorTraits, we should just rely
+        on the memset of Vector when possible.
+
+        (JSC::Operands::getLocal):
+        (JSC::Operands::setArgumentFirstTime):
+        (JSC::Operands::setLocalFirstTime):
+        (JSC::Operands::clear):
+        (JSC::OperandValueTraits::defaultValue): Deleted.
+        (JSC::OperandValueTraits::isEmptyForDump): Deleted.
+        * bytecode/OperandsInlines.h:
+        (JSC::Operands<T>::dumpInContext):
+        (JSC::Operands<T>::dump):
+        (JSC::Traits>::dumpInContext): Deleted.
+        (JSC::Traits>::dump): Deleted.
+        * dfg/DFGAbstractValue.cpp:
+        * dfg/DFGAbstractValue.h:
+        (JSC::DFG::AbstractValue::AbstractValue):
+
+2016-08-02  Saam Barati  <sbarati@apple.com>
+
+        update a class extending null w.r.t the ES7 spec
+        https://bugs.webkit.org/show_bug.cgi?id=160417
+
+        Reviewed by Keith Miller.
+
+        When a class extends null, it should not be marked as a derived class.
+        This was changed in the ES2016 spec, and this patch makes the needed
+        changes in JSC to follow the spec. This allows classes to extend
+        null and have their default constructor invoked without throwing an exception.
+        This also prevents |this| from being under TDZ at the start of the constructor.
+        Because ES6 allows arbitrary expressions in the `class <ident> extends <expr>`
+        syntax, we don't know statically if a constructor is extending null or not.
+        Therefore, we don't always know statically if it's a base or derived constructor.
+        I solved this by putting a boolean on the constructor function under a private
+        symbol named isDerivedConstructor when doing class construction. We only need
+        to put this boolean on constructors that may extend null. Constructors that are
+        declared in a class with no extends syntax can tell statically that they are a base constructor.
+
+        I've also renamed the ConstructorKind::Derived enum value to be
+        ConstructorKind::Extends to better indicate that we can't answer
+        the "am I a derived constructor?" question statically.
+
+        * builtins/BuiltinExecutables.cpp:
+        (JSC::BuiltinExecutables::createDefaultConstructor):
+        * builtins/BuiltinNames.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::BytecodeGenerator):
+        (JSC::BytecodeGenerator::initializeArrowFunctionContextScopeIfNeeded):
+        (JSC::BytecodeGenerator::emitReturn):
+        (JSC::BytecodeGenerator::emitLoadArrowFunctionLexicalEnvironment):
+        (JSC::BytecodeGenerator::ensureThis):
+        (JSC::BytecodeGenerator::emitPutDerivedConstructorToArrowFunctionContextScope):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::makeFunction):
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::EvalFunctionCallNode::emitBytecode):
+        (JSC::FunctionCallValueNode::emitBytecode):
+        (JSC::FunctionNode::emitBytecode):
+        (JSC::ClassExprNode::emitBytecode):
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::Parser):
+        (JSC::Parser<LexerType>::parseFunctionInfo):
+        (JSC::Parser<LexerType>::parseClass):
+        (JSC::Parser<LexerType>::parseMemberExpression):
+        * parser/ParserModes.h:
+
+2016-08-02  Enrica Casucci  <enrica@apple.com>
+
+        Allow building with content filtering disabled.
+        https://bugs.webkit.org/show_bug.cgi?id=160454
+
+        Reviewed by Simon Fraser.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-08-02  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [ARM] Disable Inline Caching on ARMv7 traditional until proper fix
+        https://bugs.webkit.org/show_bug.cgi?id=159759
+
+        Reviewed by Saam Barati.
+
+        * jit/JITMathIC.h:
+        (JSC::JITMathIC::generateInline):
+
 2016-08-01  Filip Pizlo  <fpizlo@apple.com>
 
         REGRESSION (r203990): JSC Debug test stress/arity-check-ftl-throw.js failing

@@ -203,13 +203,9 @@ public:
     operator QUrl() const;
 #endif
 
-    const URL* innerURL() const { return 0; }
-
 #ifndef NDEBUG
     void print() const;
 #endif
-
-    bool isSafeToSendToAnotherThread() const;
 
     template <class Encoder> void encode(Encoder&) const;
     template <class Decoder> static bool decode(Decoder&, URL&);

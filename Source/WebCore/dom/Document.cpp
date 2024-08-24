@@ -1745,7 +1745,7 @@ void Document::allowsMediaDocumentInlinePlaybackChanged()
 
 String Document::nodeName() const
 {
-    return "#document";
+    return ASCIILiteral("#document");
 }
 
 Node::NodeType Document::nodeType() const

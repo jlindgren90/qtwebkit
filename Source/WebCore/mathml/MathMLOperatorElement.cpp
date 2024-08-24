@@ -47,8 +47,10 @@ Ref<MathMLOperatorElement> MathMLOperatorElement::create(const QualifiedName& ta
     return adoptRef(*new MathMLOperatorElement(tagName, document));
 }
 
-UChar MathMLOperatorElement::parseOperatorText(const String& string)
+MathMLOperatorElement::OperatorChar MathMLOperatorElement::parseOperatorChar(const String& string)
 {
+    OperatorChar operatorChar;
+
     // We collapse the whitespace and replace the hyphens by minus signs.
     AtomicString textContent = string.stripWhiteSpace().simplifyWhiteSpace().replace(hyphenMinus, minusSign).impl();
 
@@ -56,14 +58,16 @@ UChar MathMLOperatorElement::parseOperatorText(const String& string)
     // FIXME: This is a really inefficient way to extract a character from a string (https://webkit.org/b/160241#c7).
     // FIXME: This does not handle surrogate pairs (https://webkit.org/b/122296).
     // FIXME: This does not handle <mo> operators with multiple characters (https://webkit.org/b/124828).
-    return textContent.length() == 1 ? textContent[0] : 0;
+    operatorChar.character = textContent.length() == 1 ? textContent[0] : 0;
+    operatorChar.isVertical = MathMLOperatorDictionary::isVertical(operatorChar.character);
+    return operatorChar;
 }
 
-UChar MathMLOperatorElement::operatorText()
+const MathMLOperatorElement::OperatorChar& MathMLOperatorElement::operatorChar()
 {
-    if (!m_operatorText)
-        m_operatorText = parseOperatorText(textContent());
-    return m_operatorText.value();
+    if (!m_operatorChar)
+        m_operatorChar = parseOperatorChar(textContent());
+    return m_operatorChar.value();
 }
 
 MathMLOperatorElement::DictionaryProperty MathMLOperatorElement::computeDictionaryProperty()
@@ -91,7 +95,7 @@ MathMLOperatorElement::DictionaryProperty MathMLOperatorElement::computeDictiona
     }
 
     // We then try and find an entry in the operator dictionary to override the default values.
-    if (auto entry = search(operatorText(), dictionaryProperty.form, explicitForm)) {
+    if (auto entry = search(operatorChar().character, dictionaryProperty.form, explicitForm)) {
         dictionaryProperty.form = static_cast<MathMLOperatorDictionary::Form>(entry.value().form);
         dictionaryProperty.leadingSpaceInMathUnit = entry.value().lspace;
         dictionaryProperty.trailingSpaceInMathUnit = entry.value().rspace;
@@ -108,10 +112,59 @@ const MathMLOperatorElement::DictionaryProperty& MathMLOperatorElement::dictiona
     return m_dictionaryProperty.value();
 }
 
-unsigned short MathMLOperatorElement::flags()
+static const QualifiedName& propertyFlagToAttributeName(MathMLOperatorDictionary::Flag flag)
 {
-    // FIXME: We should also handle boolean attributes here (https://webkit.org/b/160190).
-    return dictionaryProperty().flags;
+    switch (flag) {
+    case Accent:
+        return accentAttr;
+    case Fence:
+        return fenceAttr;
+    case LargeOp:
+        return largeopAttr;
+    case MovableLimits:
+        return movablelimitsAttr;
+    case Separator:
+        return separatorAttr;
+    case Stretchy:
+        return stretchyAttr;
+    case Symmetric:
+        return symmetricAttr;
+    }
+    ASSERT_NOT_REACHED();
+    return nullQName();
+}
+
+void MathMLOperatorElement::computeOperatorFlag(MathMLOperatorDictionary::Flag flag)
+{
+    ASSERT(m_properties.dirtyFlags & flag);
+
+    Optional<BooleanValue> property;
+    const auto& name = propertyFlagToAttributeName(flag);
+    const BooleanValue& value = cachedBooleanAttribute(name, property);
+    switch (value) {
+    case BooleanValue::True:
+        m_properties.flags |= flag;
+        break;
+    case BooleanValue::False:
+        m_properties.flags &= ~flag;
+        break;
+    case BooleanValue::Default:
+        // By default, we use the value specified in the operator dictionary.
+        if (dictionaryProperty().flags & flag)
+            m_properties.flags |= flag;
+        else
+            m_properties.flags &= ~flag;
+        break;
+    }
+}
+
+bool MathMLOperatorElement::hasProperty(MathMLOperatorDictionary::Flag flag)
+{
+    if (m_properties.dirtyFlags & flag) {
+        computeOperatorFlag(flag);
+        m_properties.dirtyFlags &= ~flag;
+    }
+    return m_properties.flags & flag;
 }
 
 MathMLElement::Length MathMLOperatorElement::defaultLeadingSpace()
@@ -130,17 +183,79 @@ MathMLElement::Length MathMLOperatorElement::defaultTrailingSpace()
     return space;
 }
 
+const MathMLElement::Length& MathMLOperatorElement::leadingSpace()
+{
+    return cachedMathMLLength(MathMLNames::lspaceAttr, m_leadingSpace);
+}
+
+const MathMLElement::Length& MathMLOperatorElement::trailingSpace()
+{
+    return cachedMathMLLength(MathMLNames::rspaceAttr, m_trailingSpace);
+}
+
+const MathMLElement::Length& MathMLOperatorElement::minSize()
+{
+    return cachedMathMLLength(MathMLNames::minsizeAttr, m_minSize);
+}
+
+const MathMLElement::Length& MathMLOperatorElement::maxSize()
+{
+    if (m_maxSize)
+        return m_maxSize.value();
+
+    const AtomicString& value = attributeWithoutSynchronization(MathMLNames::maxsizeAttr);
+    if (value == "infinity") {
+        Length maxsize;
+        maxsize.type = LengthType::Infinity;
+        m_maxSize = maxsize;
+    } else
+        m_maxSize = parseMathMLLength(value);
+
+    return m_maxSize.value();
+}
+
 void MathMLOperatorElement::childrenChanged(const ChildChange& change)
 {
-    m_operatorText = Nullopt;
+    m_operatorChar = Nullopt;
     m_dictionaryProperty = Nullopt;
+    m_properties.dirtyFlags = MathMLOperatorDictionary::allFlags;
     MathMLTextElement::childrenChanged(change);
+}
+
+static Optional<MathMLOperatorDictionary::Flag> attributeNameToPropertyFlag(const QualifiedName& name)
+{
+    if (name == accentAttr)
+        return Accent;
+    if (name == fenceAttr)
+        return Fence;
+    if (name == largeopAttr)
+        return LargeOp;
+    if (name == movablelimitsAttr)
+        return MovableLimits;
+    if (name == separatorAttr)
+        return Separator;
+    if (name == stretchyAttr)
+        return Stretchy;
+    if (name == symmetricAttr)
+        return Symmetric;
+    return Nullopt;
 }
 
 void MathMLOperatorElement::parseAttribute(const QualifiedName& name, const AtomicString& value)
 {
-    if (name == formAttr)
+    if (name == formAttr) {
         m_dictionaryProperty = Nullopt;
+        m_properties.dirtyFlags = MathMLOperatorDictionary::allFlags;
+    } else if (auto flag = attributeNameToPropertyFlag(name))
+        m_properties.dirtyFlags |= flag.value();
+    else if (name == lspaceAttr)
+        m_leadingSpace = Nullopt;
+    else if (name == rspaceAttr)
+        m_trailingSpace = Nullopt;
+    else if (name == minsizeAttr)
+        m_minSize = Nullopt;
+    else if (name == maxsizeAttr)
+        m_maxSize = Nullopt;
 
     if ((name == stretchyAttr || name == lspaceAttr || name == rspaceAttr || name == movablelimitsAttr) && renderer()) {
         downcast<RenderMathMLOperator>(*renderer()).updateFromElement();

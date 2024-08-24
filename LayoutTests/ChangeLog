@@ -1,3 +1,207 @@
+2016-08-03  Saam Barati  <sbarati@apple.com>
+
+        Implement nested rest destructuring w.r.t the ES7 spec
+        https://bugs.webkit.org/show_bug.cgi?id=160423
+
+        Reviewed by Filip Pizlo.
+
+        * js/parser-syntax-check-expected.txt:
+        * js/script-tests/parser-syntax-check.js:
+
+2016-08-03  Youenn Fablet  <youenn@apple.com>
+
+        Activate directory index generation for Apache test server
+        https://bugs.webkit.org/show_bug.cgi?id=160451
+
+        Reviewed by Alexey Proskuryakov.
+
+        * http/conf/apache2.4-httpd.conf:
+
+2016-08-02  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Update breaking rules to match ICU 57
+        https://bugs.webkit.org/show_bug.cgi?id=160488
+        <rdar://problem/25856238>
+
+        Reviewed by Darin Adler.
+
+        * fast/text/flag-emoji-line-break-expected.html: Added.
+        * fast/text/flag-emoji-line-break.html: Added.
+        * platform/mac/TestExpectations: Mark the test as failing on Yosemite.
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        Drop custom bindings code for HTMLOptionsCollection.remove()
+        https://bugs.webkit.org/show_bug.cgi?id=160475
+
+        Reviewed by Darin Adler.
+
+        Update existing tests to reflect behavior change.
+
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+        * js/dom/select-options-remove-expected.txt:
+        * js/resources/select-options-remove.js:
+
+2016-08-02  Nan Wang  <n_wang@apple.com>
+
+        AX: Simulated touch events are not working on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=160395
+        <rdar://problem/27633597>
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/ios-simulator/press-fires-touch-events-expected.txt: Added.
+        * accessibility/ios-simulator/press-fires-touch-events.html: Added.
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/ios/accessibility/press-fires-touch-events-expected.txt: Removed.
+        * platform/ios-simulator/ios/accessibility/press-fires-touch-events.html: Removed.
+
+2016-08-02  Saam Barati  <sbarati@apple.com>
+
+        update a class extending null w.r.t the ES7 spec
+        https://bugs.webkit.org/show_bug.cgi?id=160417
+
+        Reviewed by Keith Miller.
+
+        * js/class-syntax-extends-expected.txt:
+        * js/class-syntax-super-expected.txt:
+        * js/script-tests/class-syntax-extends.js:
+        * js/script-tests/class-syntax-super.js:
+
+2016-08-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip media/track/track-remove-crash.html on ios-simulator-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=160367
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-08-02  Dean Jackson  <dino@apple.com>
+
+        Reapply fixes for webkit.org/b/159450 and webkit.org/b/157569
+        https://bugs.webkit.org/show_bug.cgi?id=160474
+        <rdar://problem/27668170>
+
+        Reviewed by Simon Fraser.
+
+        The fixes are behaviour we want. They just caused a regression
+        on medium.com (reverted in http://trac.webkit.org/r203380).
+
+        Now that we've branched, revert the reversion (which itself
+        was a reversion), so we can fix the actual bug:
+        https://bugs.webkit.org/show_bug.cgi?id=160478
+
+        * animations/fill-mode-forwards-zero-duration.html:
+        * animations/play-state-start-paused.html:
+        * animations/script-tests/spring-parsing.js:
+        (testSpring):
+        * animations/spring-parsing-expected.txt:
+        * animations/unprefixed-properties-expected.txt:
+        * animations/unprefixed-properties.html:
+        * fast/css/prefixed-unprefixed-variant-style-declaration-expected.txt:
+        * fast/css/shorthand-omitted-initial-value-overrides-shorthand-expected.txt:
+
+2016-08-02  Eric Carlson  <eric.carlson@apple.com>
+
+        Cleanup HTMLMediaElement track lists.
+        https://bugs.webkit.org/show_bug.cgi?id=160470
+
+        Reviewed by David Kilzer.
+
+        * media/range-extract-contents-crash-expected.txt: Added.
+        * media/range-extract-contents-crash.html: Added.
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        Named / Indexed properties should be configurable
+        https://bugs.webkit.org/show_bug.cgi?id=160457
+
+        Reviewed by Darin Adler.
+
+        Update / rebaseline existing tests to reflect behavior change.
+
+        * fast/dom/NodeList/nodelist-name-getter-properties-expected.txt:
+        * fast/dom/NodeList/nodelist-name-getter-properties.html:
+        * js/dom/getOwnPropertyDescriptor-expected.txt:
+        * js/resources/getOwnPropertyDescriptor.js:
+
+2016-08-02  Anders Carlsson  <andersca@apple.com>
+
+        Remove more unused/uninstalled Objective-C DOM bindings
+        https://bugs.webkit.org/show_bug.cgi?id=160464
+
+        Reviewed by Darin Adler.
+
+        Update test results.
+
+        * platform/mac/fast/dom/wrapper-classes-objc-expected.txt:
+        * platform/mac/fast/dom/wrapper-classes-objc.html:
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Extend new overload resolution algorithm support to constructors
+        https://bugs.webkit.org/show_bug.cgi?id=160455
+
+        Reviewed by Ryosuke Niwa.
+
+        Update / rebaseline existing test as we now provide slightly different
+        exception messages when given bad overloaded constructor parameters.
+
+        * fast/canvas/canvas-imageData-expected.txt:
+        * fast/canvas/script-tests/canvas-imageData.js:
+
+2016-08-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking two media tests as flaky crashes on ios-simulator-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=160367
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-08-02  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of operator length attributes to MathMLOperatorElement
+        https://bugs.webkit.org/show_bug.cgi?id=160301
+
+        Reviewed by Darin Adler.
+
+        * mathml/presentation/stretchy-minsize-maxsize-expected.html: Update the test for negative
+        minsize and maxsize to align on the behavior suggested in the MathML recommendation.
+        * mathml/presentation/stretchy-minsize-maxsize.html: Ditto.
+
+2016-08-02  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Implement overload resolution algorithm
+        https://bugs.webkit.org/show_bug.cgi?id=160394
+
+        Reviewed by Darin Adler.
+
+        Update / Rebaseline existing test. There is no major behavior change.
+        We sometimes get a different exception message than we used to.
+
+        * fast/canvas/canvas-clip-path-expected.txt:
+        * fast/canvas/canvas-fill-path-expected.txt:
+        * fast/canvas/canvas-path-addPath-expected.txt:
+        * fast/canvas/canvas-path-isPointInPath-expected.txt:
+        * fast/canvas/canvas-path-isPointInStroke-expected.txt:
+        * fast/canvas/canvas-putImageData-expected.txt:
+        * fast/canvas/canvas-putImageData.js:
+        * fast/canvas/canvas-stroke-path-expected.txt:
+        * fast/canvas/webgl/script-tests/texImageTest.js:
+        * fast/canvas/webgl/texImageTest-expected.txt:
+        * fast/dom/HTMLSelectElement/add-expected.txt:
+        * fast/dom/HTMLSelectElement/add.html:
+        * fast/dom/HTMLSelectElement/options-collection-add-expected.txt:
+        * fast/dom/HTMLSelectElement/options-collection-add.html:
+        * fast/dom/incompatible-operations-expected.txt:
+        * js/dom/select-options-add-expected.txt:
+        * webaudio/audiobuffer-expected.txt:
+        * webaudio/audiobuffer.html:
+        * webgl/1.0.2/resources/webgl_test_files/conformance/textures/tex-image-with-invalid-data.html:
+
 2016-08-02  Per Arne Vollan  <pvollan@apple.com>
 
         Unreviewed test gardening.

@@ -1,3 +1,26 @@
+2016-08-02  Enrica Casucci  <enrica@apple.com>
+
+        Allow building with content filtering disabled.
+        https://bugs.webkit.org/show_bug.cgi?id=160454
+
+        Reviewed by Simon Fraser.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * WebCoreSupport/WebFrameLoaderClient.h:
+        * WebCoreSupport/WebFrameLoaderClient.mm:
+        (WebFrameLoaderClient::blockedByContentFilterError):
+
+2016-08-02  Anders Carlsson  <andersca@apple.com>
+
+        Remove more unused/uninstalled Objective-C DOM bindings
+        https://bugs.webkit.org/show_bug.cgi?id=160464
+
+        Reviewed by Darin Adler.
+
+        Stop installing unused headers.
+
+        * MigrateHeaders.make:
+
 2016-08-01  Anders Carlsson  <andersca@apple.com>
 
         Bring back a file - it needs to be copied by WebCore.

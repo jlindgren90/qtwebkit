@@ -1,3 +1,46 @@
+2016-08-02  Nan Wang  <n_wang@apple.com>
+
+        AX: Simulated touch events are not working on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=160395
+        <rdar://problem/27633597>
+
+        Reviewed by Chris Fleizach.
+
+        * WebKitTestRunner/InjectedBundle/ios/AccessibilityUIElementIOS.mm:
+        (WTR::AccessibilityUIElement::press):
+        (WTR::AccessibilityUIElement::setSelectedChild):
+
+2016-08-02  Filip Pizlo  <fpizlo@apple.com>
+
+        run-javascriptcore-tests should accept multiple --extra-tests
+        https://bugs.webkit.org/show_bug.cgi?id=160486
+
+        Reviewed by Saam Barati.
+        
+        We want to be able to pass --extra-tests multiple times, to supply an arbitrary number of extra
+        test suites. This does it by using GetOpt::Long's array support.
+
+        * Scripts/run-javascriptcore-tests:
+        (runJSCStressTests):
+
+2016-08-02  Enrica Casucci  <enrica@apple.com>
+
+        Allow building with content filtering disabled.
+        https://bugs.webkit.org/show_bug.cgi?id=160454
+
+        Reviewed by Simon Fraser.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-08-02  Brady Eidson  <beidson@apple.com>
+
+        Removing IndexedDB WebsiteData can fail for some users.
+        https://bugs.webkit.org/show_bug.cgi?id=160463
+
+        Reviewed by Alex Christensen.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/StoreBlobThenDelete.mm:
+
 2016-08-01  Alex Christensen  <achristensen@webkit.org>
 
         _WKDownloadDelegate.didReceiveResponse should be called before decideDestinationWithSuggestedFilename

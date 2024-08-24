@@ -2283,11 +2283,6 @@ String mimeTypeFromURL(const URL& url)
     return MIMETypeRegistry::getMIMETypeForExtension(extension);
 }
 
-bool URL::isSafeToSendToAnotherThread() const
-{
-    return m_string.isSafeToSendToAnotherThread();
-}
-
 String URL::stringCenterEllipsizedToLength(unsigned length) const
 {
     if (string().length() <= length)
