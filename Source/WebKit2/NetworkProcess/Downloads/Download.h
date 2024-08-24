@@ -68,7 +68,6 @@ class ResourceResponse;
 
 namespace WebKit {
 
-class DownloadAuthenticationClient;
 class DownloadManager;
 class NetworkSession;
 class WebPage;
@@ -118,10 +117,6 @@ public:
     void startTransfer(const String& destination);
 #endif
 
-#if USE(CFNETWORK)
-    DownloadAuthenticationClient* authenticationClient();
-#endif
-
 private:
     // IPC::MessageSender
     IPC::Connection* messageSenderConnection() override;
@@ -150,7 +145,6 @@ private:
 #endif
 #if USE(CFNETWORK)
     RetainPtr<CFURLDownloadRef> m_download;
-    RefPtr<DownloadAuthenticationClient> m_authenticationClient;
 #endif
 #if PLATFORM(QT)
     QtFileDownloader* m_qtDownloader { nullptr };

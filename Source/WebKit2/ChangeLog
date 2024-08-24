@@ -1,3 +1,272 @@
+2016-07-28  Tim Horton  <timothy_horton@apple.com>
+
+        Frequent animation lags when interacting with Safari (sidebar, tab switching, etc.)
+        https://bugs.webkit.org/show_bug.cgi?id=160289
+        <rdar://problem/27553464>
+
+        Reviewed by Simon Fraser.
+
+        API Tests: WebKit2.AnimatedResizeDoesNotHang, WebKit2.ResizeWithHiddenContentDoesNotHang
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _didCommitLayerTree:]):
+        Avoid calling _endAnimatedResize when a commit comes in when we haven't yet received
+        a dynamic viewport update reply (and thus don't have a transaction ID to wait on).
+        Previously, in this case, _resizeAnimationTransformTransactionID would be 0,
+        and *any* commit would cause _endAnimatedResize to be called, causing us to always
+        fall into the worst-case sync wait.
+        
+        * UIProcess/ios/WebPageProxyIOS.mm:
+        (WebKit::WebPageProxy::synchronizeDynamicViewportUpdate):
+        Make use of waitForDidUpdateViewState instead of having a separate waitForAndDispatchImmediately
+        here, because it knows to do things like dispatch the didUpdate message if it's still
+        pending. This also shortens the sync wait timeout from 1s to 500ms, which makes it
+        consistent with e.g. the newly-parented-view timeout duration, and should be nothing
+        but positive.
+
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::timeoutRespectingIgnoreTimeoutsForTesting):
+        (IPC::Connection::waitForMessage):
+        (IPC::Connection::sendSyncMessageFromSecondaryThread):
+        (IPC::Connection::waitForSyncReply):
+        * Platform/IPC/Connection.h:
+        (IPC::Connection::ignoreTimeoutsForTesting):
+        * UIProcess/API/APIProcessPoolConfiguration.cpp:
+        (API::ProcessPoolConfiguration::copy):
+        * UIProcess/API/APIProcessPoolConfiguration.h:
+        * UIProcess/API/Cocoa/_WKProcessPoolConfiguration.h:
+        * UIProcess/API/Cocoa/_WKProcessPoolConfiguration.mm:
+        (-[_WKProcessPoolConfiguration ignoreSynchronousMessagingTimeoutsForTesting]):
+        (-[_WKProcessPoolConfiguration setIgnoreSynchronousMessagingTimeoutsForTesting:]):
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::processDidFinishLaunching):
+        Add a mechanism for clients to cause all synchronous message timeouts to be effectively infinite.
+        The new API tests use this to ensure that the test will time out if they ever enter
+        the bad state (otherwise, the shorter sync wait timeout could make the test still pass).
+
+2016-07-27  Andy Estes  <aestes@apple.com>
+
+        [iOS] Add WKUIDelegate SPI for specifying that an attachment list is from a managed source
+        https://bugs.webkit.org/show_bug.cgi?id=160280
+        <rdar://problem/27471815>
+
+        Reviewed by Dan Bernstein.
+
+        * Platform/spi/ios/UIKitSPI.h: Declared
+        UIPreviewItemTypeAttachment, UIPreviewDataAttachmentList, and UIPreviewDataAttachmentIndex.
+        * UIProcess/API/Cocoa/WKUIDelegatePrivate.h: Declared -_attachmentListForWebView:sourceIsManaged:.
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _dataForPreviewItemController:atPosition:type:]): Used UIPreviewItemTypeAttachment,
+        UIPreviewDataAttachmentList, and UIPreviewDataAttachmentIndex. If uiDelegate responds to
+        -_attachmentListForWebView:sourceIsManaged:, called it instead of -_attachmentListForWebView:.
+        Set sourceIsManaged as the value for the UIPreviewDataAttachmentListSourceIsManaged key in dataForPreview.
+
+2016-07-27  Chelsea Pugh  <cpugh@apple.com>
+
+        [iOS] Remove unused textContentType SPI from _WKFormInputSession
+        https://bugs.webkit.org/show_bug.cgi?id=160260
+
+        Reviewed by Dan Bernstein.
+
+        * UIProcess/API/Cocoa/_WKFormInputSession.h: Remove unused SPI.
+
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView textInputTraits]): Set textContentType of _traits to whatever we classify it as based
+        on the assisted node info. The default textContentType is nil, and that is our fallback in our method
+        for determining textContentType.
+        (-[WKFormInputSession textContentType]): Deleted.
+        (-[WKFormInputSession setTextContentType:]): Deleted.
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Fix m_isInBackground initialization for Safari View Services
+        https://bugs.webkit.org/show_bug.cgi?id=160255
+        <rdar://problem/27569255>
+
+        Reviewed by Tim Horton.
+
+        Fix m_isInBackground initialization for Safari View Services. The
+        code was using m_applicationStateMonitor without initializing it.
+        Instead, use the local applicationStateMonitor and make sure we
+        invalidate it before it gets released.
+
+        * UIProcess/ApplicationStateTracker.mm:
+        (WebKit::ApplicationStateTracker::ApplicationStateTracker):
+
+2016-07-27  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Improve scheduling of tasks between threads in CoordinatedGraphicsScene
+        https://bugs.webkit.org/show_bug.cgi?id=160238
+
+        Reviewed by Michael Catanzaro.
+
+        This patch makes the following improvements:
+
+         - Avoid scheduling tasks to the main thread if the scene is detached.
+         - Do not take references when not actually sending tasks to another threads.
+         - Use Function instead of std::function on dispatch methods.
+         - Remove purgeBackingStores that is actually never called. It's only scheduled from purgeGLResources() that
+           is always called after detach.
+
+        * Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp:
+        (WebKit::CoordinatedGraphicsScene::dispatchOnMainThread):
+        (WebKit::CoordinatedGraphicsScene::dispatchOnClientRunLoop):
+        (WebKit::CoordinatedGraphicsScene::paintToCurrentGLContext):
+        (WebKit::CoordinatedGraphicsScene::updateViewport):
+        (WebKit::CoordinatedGraphicsScene::onNewBufferAvailable):
+        (WebKit::CoordinatedGraphicsScene::commitSceneState):
+        (WebKit::CoordinatedGraphicsScene::renderNextFrame):
+        (WebKit::CoordinatedGraphicsScene::purgeGLResources):
+        (WebKit::CoordinatedGraphicsScene::commitScrollOffset):
+        (WebKit::CoordinatedGraphicsScene::detach):
+        (WebKit::CoordinatedGraphicsScene::setActive):
+        (WebKit::CoordinatedGraphicsScene::dispatchCommitScrollOffset): Deleted.
+        (WebKit::CoordinatedGraphicsScene::purgeBackingStores): Deleted.
+        * Shared/CoordinatedGraphics/CoordinatedGraphicsScene.h:
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::purgeBackingStores): Deleted.
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.h:
+        * UIProcess/CoordinatedGraphics/CoordinatedLayerTreeHostProxy.cpp:
+        (WebKit::CoordinatedLayerTreeHostProxy::purgeBackingStores): Deleted.
+        * UIProcess/CoordinatedGraphics/CoordinatedLayerTreeHostProxy.h:
+        * WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.cpp:
+        (WebKit::CompositingCoordinator::invalidate):
+        * WebProcess/WebPage/CoordinatedGraphics/CompositingCoordinator.h:
+        * WebProcess/WebPage/CoordinatedGraphics/CoordinatedLayerTreeHost.cpp:
+        (WebKit::CoordinatedLayerTreeHost::invalidate):
+        (WebKit::CoordinatedLayerTreeHost::purgeBackingStores): Deleted.
+        * WebProcess/WebPage/CoordinatedGraphics/CoordinatedLayerTreeHost.h:
+        * WebProcess/WebPage/CoordinatedGraphics/CoordinatedLayerTreeHost.messages.in:
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.h:
+
+2016-07-27  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Remove network setup from web process
+        https://bugs.webkit.org/show_bug.cgi?id=160236
+
+        Reviewed by Michael Catanzaro.
+
+        We are still doing network init and finish in th web process. It's useless since we switched to mandatory
+        network process.
+
+        * WebProcess/gtk/WebProcessMainGtk.cpp:
+
+2016-07-27  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.13.4 release.
+
+        * gtk/NEWS: Add release notes for 2.13.4.
+
+2016-07-26  Simon Fraser  <simon.fraser@apple.com>
+
+        Sort the project files.
+
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-07-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=160178
+        <rdar://problem/27535468>
+
+        Reviewed by Eric Carlson and Dan Bernstein.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetInlineMediaPlaybackRequiresPlaysInlineAttribute):
+        (WKPreferencesGetInlineMediaPlaybackRequiresPlaysInlineAttribute):
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]):
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration init]):
+        (-[WKWebViewConfiguration copyWithZone:]):
+        (-[WKWebViewConfiguration _inlineMediaPlaybackRequiresPlaysInlineAttribute]):
+        (-[WKWebViewConfiguration _setInlineMediaPlaybackRequiresPlaysInlineAttribute:]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-07-26  Alex Christensen  <achristensen@webkit.org>
+
+        Remove unused DownloadAuthenticationClient
+        https://bugs.webkit.org/show_bug.cgi?id=160220
+
+        Reviewed by Darin Adler.
+
+        * CMakeLists.txt:
+        * NetworkProcess/Downloads/Download.cpp:
+        * NetworkProcess/Downloads/Download.h:
+        * NetworkProcess/Downloads/DownloadAuthenticationClient.cpp: Removed.
+        * NetworkProcess/Downloads/DownloadAuthenticationClient.h: Removed.
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-07-26  Simon Fraser  <simon.fraser@apple.com>
+
+        Allow LOG macros to be used outside the namespace, and other logging cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=160216
+
+        Reviewed by Anders Carlsson.
+
+        Fix some issues with the LOG macros.
+        
+        First, they were not usable outside the WebKit namespace in WebKit2 code. Fix by moving
+        its log channels outside of the namespace (they are protected by a unique prefix anyway).
+        
+        Second, allow LOG_WITH_STREAM to be used in WebKit2 by moving that and a helper macro
+        into LogMacros.h, which is exported from WebCore as a private header.
+        
+        Third, split the Logging.h header into two. Logging.h remains for framework-internal
+        log channels and log macros. Add LogInitialization.h which is external, and used to
+        initialize the channels.
+        
+        Finally unify "initializeLogChannels" and "initializeLoggingChannels" terminology everywhere.
+
+        * NetworkProcess/NetworkProcess.cpp:
+        * Platform/LogInitialization.h: Copied from Source/WebKit2/Platform/foundation/LoggingFoundation.mm.
+        * Platform/Logging.cpp:
+        (WebKit::initializeLogChannelsIfNecessary):
+        * Platform/Logging.h:
+        * Platform/foundation/LoggingFoundation.mm:
+        * Shared/WebKit2Initialize.cpp:
+        (WebKit::InitializeWebKit2):
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _updateContentRectsWithState:]):
+        (-[WKWebView _navigationGestureDidBegin]):
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::m_hiddenPageThrottlingTimer):
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-07-26  David Kilzer <ddkilzer@apple.com>
+
+        Networking process crash due to missing -[WebCoreAuthenticationClientAsChallengeSender performDefaultHandlingForAuthenticationChallenge:] implementation
+        https://bugs.webkit.org/show_bug.cgi?id=156947
+        <rdar://problem/23325160>
+
+        Reviewed by Alex Christensen.
+
+        * UIProcess/API/C/WKAuthenticationDecisionListener.cpp:
+        (WKAuthenticationDecisionListenerRejectProtectionSpaceAndContinue): 
+        * UIProcess/API/C/WKAuthenticationDecisionListener.h:
+        Added new SPI for testing corresponding to calling the completion handler of
+        WKWebView.didReceiveAuthenticationChallenge with NSURLSessionAuthChallengeRejectProtectionSpace.
+
+2016-07-26  Anders Carlsson  <andersca@apple.com>
+
+        Payment session does not end if user closes all Safari windows
+        https://bugs.webkit.org/show_bug.cgi?id=160213
+        rdar://problem/27480873
+
+        Reviewed by Tim Horton.
+
+        Listen for the NSWindowWillCloseNotification of the sheet window and hide the payment UI when
+        the sheet window is going to be closed.
+
+        * UIProcess/ApplePay/WebPaymentCoordinatorProxy.h:
+        * UIProcess/ApplePay/mac/WebPaymentCoordinatorProxyMac.mm:
+        (WebKit::WebPaymentCoordinatorProxy::platformShowPaymentUI):
+        (WebKit::WebPaymentCoordinatorProxy::hidePaymentUI):
+
 2016-07-26  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [Threaded Compositor] ASSERTION FAILED: canAccessThreadLocalDataForThread(m_thread) after r203718

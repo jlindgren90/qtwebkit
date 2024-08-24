@@ -122,6 +122,7 @@
 #include <WebCore/IntRect.h>
 #include <WebCore/JSElement.h>
 #include <WebCore/KeyboardEvent.h>
+#include <WebCore/LogInitialization.h>
 #include <WebCore/Logging.h>
 #include <WebCore/MIMETypeRegistry.h>
 #include <WebCore/MainFrame.h>
@@ -2905,7 +2906,7 @@ HRESULT WebView::initWithFrame(RECT frame, _In_ BSTR frameName, _In_ BSTR groupN
     static bool didOneTimeInitialization;
     if (!didOneTimeInitialization) {
 #if !LOG_DISABLED
-        initializeLoggingChannelsIfNecessary();
+        initializeLogChannelsIfNecessary();
 #endif // !LOG_DISABLED
 
         // Initialize our platform strategies first before invoking the rest

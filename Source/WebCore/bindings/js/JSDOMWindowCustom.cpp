@@ -444,14 +444,15 @@ JSValue JSDOMWindow::open(ExecState& state)
     String urlString = valueToStringWithUndefinedOrNullCheck(&state, state.argument(0));
     if (state.hadException())
         return jsUndefined();
-    AtomicString frameName = state.argument(1).isUndefinedOrNull() ? "_blank" : state.argument(1).toString(&state)->value(&state);
+    JSValue targetValue = state.argument(1);
+    AtomicString target = targetValue.isUndefinedOrNull() ? AtomicString("_blank", AtomicString::ConstructFromLiteral) : targetValue.toString(&state)->toAtomicString(&state);
     if (state.hadException())
         return jsUndefined();
     String windowFeaturesString = valueToStringWithUndefinedOrNullCheck(&state, state.argument(2));
     if (state.hadException())
         return jsUndefined();
 
-    RefPtr<DOMWindow> openedWindow = wrapped().open(urlString, frameName, windowFeaturesString, activeDOMWindow(&state), firstDOMWindow(&state));
+    RefPtr<DOMWindow> openedWindow = wrapped().open(urlString, target, windowFeaturesString, activeDOMWindow(&state), firstDOMWindow(&state));
     if (!openedWindow)
         return jsUndefined();
     return toJS(&state, openedWindow.get());
@@ -518,6 +519,9 @@ JSValue JSDOMWindow::showModalDialog(ExecState& state)
 
 static JSValue handlePostMessage(DOMWindow& impl, ExecState& state)
 {
+    if (UNLIKELY(state.argumentCount() < 2))
+        return state.vm().throwException(&state, createNotEnoughArgumentsError(&state));
+
     MessagePortArray messagePorts;
     ArrayBufferArray arrayBuffers;
 
@@ -530,7 +534,7 @@ static JSValue handlePostMessage(DOMWindow& impl, ExecState& state)
     int targetOriginArgIndex = 1;
     if (state.argumentCount() > 2) {
         int transferablesArgIndex = 2;
-        if (state.argument(2).isString()) {
+        if (state.uncheckedArgument(2).isString()) {
             targetOriginArgIndex = 2;
             transferablesArgIndex = 1;
         }
@@ -539,12 +543,12 @@ static JSValue handlePostMessage(DOMWindow& impl, ExecState& state)
     if (state.hadException())
         return jsUndefined();
 
-    auto message = SerializedScriptValue::create(&state, state.argument(0), &messagePorts, &arrayBuffers);
+    auto message = SerializedScriptValue::create(&state, state.uncheckedArgument(0), &messagePorts, &arrayBuffers);
 
     if (state.hadException())
         return jsUndefined();
 
-    String targetOrigin = valueToStringWithUndefinedOrNullCheck(&state, state.argument(targetOriginArgIndex));
+    String targetOrigin = valueToStringWithUndefinedOrNullCheck(&state, state.uncheckedArgument(targetOriginArgIndex));
     if (state.hadException())
         return jsUndefined();
 
@@ -562,6 +566,9 @@ JSValue JSDOMWindow::postMessage(ExecState& state)
 
 JSValue JSDOMWindow::setTimeout(ExecState& state)
 {
+    if (UNLIKELY(state.argumentCount() < 1))
+        return state.vm().throwException(&state, createNotEnoughArgumentsError(&state));
+
     ContentSecurityPolicy* contentSecurityPolicy = wrapped().document() ? wrapped().document()->contentSecurityPolicy() : nullptr;
     std::unique_ptr<ScheduledAction> action = ScheduledAction::create(&state, globalObject()->world(), contentSecurityPolicy);
     if (state.hadException())
@@ -581,6 +588,9 @@ JSValue JSDOMWindow::setTimeout(ExecState& state)
 
 JSValue JSDOMWindow::setInterval(ExecState& state)
 {
+    if (UNLIKELY(state.argumentCount() < 1))
+        return state.vm().throwException(&state, createNotEnoughArgumentsError(&state));
+
     ContentSecurityPolicy* contentSecurityPolicy = wrapped().document() ? wrapped().document()->contentSecurityPolicy() : nullptr;
     std::unique_ptr<ScheduledAction> action = ScheduledAction::create(&state, globalObject()->world(), contentSecurityPolicy);
     if (state.hadException())

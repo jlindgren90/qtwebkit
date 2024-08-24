@@ -686,6 +686,7 @@ void TestController::resetPreferencesToConsistentValues(const TestOptions& optio
     WKPreferencesSetStorageBlockingPolicy(preferences, kWKAllowAllStorage);
 
     WKPreferencesSetMediaPlaybackAllowsInline(preferences, true);
+    WKPreferencesSetInlineMediaPlaybackRequiresPlaysInlineAttribute(preferences, false);
     WKPreferencesSetAllowsInlineMediaPlaybackWithPlaysInlineAttribute(preferences, false);
     WKPreferencesSetAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute(preferences, false);
 
@@ -775,6 +776,7 @@ bool TestController::resetStateToConsistentValues(const TestOptions& options)
 
     m_workQueueManager.clearWorkQueue();
 
+    m_rejectsProtectionSpaceAndContinueForAuthenticationChallenges = false;
     m_handlesAuthenticationChallenges = false;
     m_authenticationUsername = String();
     m_authenticationPassword = String();
@@ -1610,6 +1612,12 @@ void TestController::didReceiveAuthenticationChallenge(WKPageRef page, WKAuthent
 
         WKRetainPtr<WKCredentialRef> credential = adoptWK(WKCredentialCreate(toWK("accept server trust").get(), toWK("").get(), kWKCredentialPersistenceNone));
         WKAuthenticationDecisionListenerUseCredential(decisionListener, credential.get());
+        return;
+    }
+
+    if (m_rejectsProtectionSpaceAndContinueForAuthenticationChallenges) {
+        m_currentInvocation->outputText("Simulating reject protection space and continue for authentication challenge\n");
+        WKAuthenticationDecisionListenerRejectProtectionSpaceAndContinue(decisionListener);
         return;
     }
 

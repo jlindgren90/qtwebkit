@@ -1,3 +1,1409 @@
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        window.open.length should be 0
+        https://bugs.webkit.org/show_bug.cgi?id=160323
+
+        Reviewed by Darin Adler.
+
+        window.open.length should be 0 as all its parameters are optional:
+        - https://html.spec.whatwg.org/multipage/browsers.html#the-window-object
+
+        It is 2 in WebKit. Firefox and Chrome agree with the specification and return 0.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::open):
+        Minor code optimization.
+
+        * page/DOMWindow.idl:
+        Update IDL to match the specification and our custom implementation.
+        This makes us return the right "length" value.
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to Event.initEvent() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160320
+
+        Reviewed by Darin Adler.
+
+        Parameters to Event.initEvent() should be mandatory:
+        - https://dom.spec.whatwg.org/#interface-event
+
+        Firefox agrees with the specification. Chrome does not.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Event.idl:
+
+2016-07-28  Anders Carlsson  <andersca@apple.com>
+
+        Move a Mail.app workaround closer to where it's actually needed
+        https://bugs.webkit.org/show_bug.cgi?id=160317
+
+        Reviewed by Tim Horton.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::loadArchive):
+        * platform/network/cf/ResourceRequest.h:
+        * platform/network/cocoa/ResourceRequestCocoa.mm:
+        (WebCore::ResourceRequest::applyWebArchiveHackForMail): Deleted.
+        * platform/network/mac/ResourceRequestMac.mm:
+        (WebCore::ResourceRequest::applyWebArchiveHackForMail): Deleted.
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        2 first parameters to window.postMessage() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160319
+
+        Reviewed by Darin Adler.
+
+        2 first parameters to window.postMessage() should be mandatory:
+        - https://html.spec.whatwg.org/multipage/browsers.html#the-window-object
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::handlePostMessage):
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to canvas.getContext() / probablySupportsContext() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160312
+
+        Reviewed by Darin Adler.
+
+        First parameter to canvas.getContext() / probablySupportsContext()
+        should be mandatory:
+        - http://w3c.github.io/html/semantics-scripting.html#the-canvas-element
+
+        Firefox and Chrome agree with the specification for getContext().
+        Neither of them supports probablySupportsContext().
+
+        No new tests, rebaselined existing tests.
+
+        * bindings/js/JSHTMLCanvasElementCustom.cpp:
+        (WebCore::JSHTMLCanvasElement::getContext):
+        (WebCore::JSHTMLCanvasElement::probablySupportsContext):
+        * html/HTMLCanvasElement.idl:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to table.deleteRow() / body.deleteRow() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160307
+
+        Reviewed by Ryosuke Niwa.
+
+        Parameter to table.deleteRow() / body.deleteRow() should be mandatory:
+        - https://html.spec.whatwg.org/multipage/tables.html#the-table-element
+        - https://html.spec.whatwg.org/multipage/tables.html#htmltablesectionelement
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * html/HTMLTableElement.idl:
+        * html/HTMLTableSectionElement.idl:
+
+2016-07-28  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203826.
+        https://bugs.webkit.org/show_bug.cgi?id=160314
+
+        The test added with this change fails on El Capitan WK2.
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "HTMLVideoElement with MediaStream src shows paused image when
+        all video tracks are disabled"
+        https://bugs.webkit.org/show_bug.cgi?id=160222
+        http://trac.webkit.org/changeset/203826
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        2 first parameters to input.setSelectionRange() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160310
+
+        Reviewed by Alex Christensen.
+
+        2 first parameters to input.setSelectionRange() should be mandatory:
+        - https://html.spec.whatwg.org/multipage/forms.html#htmlinputelement
+
+        Calling this method without the 2 first parameters makes little
+        sense.
+
+        Firefox agrees with the specification, Chrome does not.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/js/JSHTMLInputElementCustom.cpp:
+        (WebCore::JSHTMLInputElement::setSelectionRange):
+        * html/HTMLInputElement.idl:
+
+2016-07-28  Anders Carlsson  <andersca@apple.com>
+
+        Remove an unnecessary comment from UUID.h
+        https://bugs.webkit.org/show_bug.cgi?id=160313
+
+        Reviewed by Simon Fraser.
+
+        * platform/UUID.h:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to tr.deleteCell() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160308
+
+        Reviewed by Ryosuke Niwa.
+
+        Parameter to tr.deleteCell() should be mandatory:
+        - https://html.spec.whatwg.org/multipage/tables.html#htmltablerowelement
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLTableRowElement.idl:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        [Bindings] "length" value of overloaded operations may be wrong
+        https://bugs.webkit.org/show_bug.cgi?id=160303
+
+        Reviewed by Ryosuke Niwa.
+
+        "length" value of overloaded operations may be wrong because we fail to
+        account for overloads when computing the length of a function:
+        - https://heycam.github.io/webidl/#es-operations
+
+        No new tests, rebaselined existing test.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetFunctionLength):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+
+2016-07-28  George Ruan  <gruan@apple.com>
+
+        HTMLVideoElement with MediaStream src shows paused image when all video tracks are disabled
+        https://bugs.webkit.org/show_bug.cgi?id=160222
+        <rdar://problem/27557313>
+
+        Reviewed by Eric Carlson.
+
+        Tests: fast/mediastream/MediaStream-video-element-video-tracks-disabled-then-enabled.html
+               fast/mediastream/MediaStream-video-element-video-tracks-disabled.html
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::enqueueVideoSampleBufferFromTrack): Change criteria to enqueue a
+        Sample Buffer to the AVSampleBufferDisplayLayer to allow an initial frame to be shown.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::shouldEnqueueVideoSampleBuffer): Allow an initial frame to be shown.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::flushAndRemoveVideoSampleBuffers): Removes all buffers from the
+        AVSampleBufferDisplayLayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::ensureLayer): Make the AVSampleBufferDisplayLayer's background black.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updateDisplayMode): Remove all buffers from the AVSampleBufferDisplayLayer
+        when state of MediaPlayerPrivateMediaStreamAVFObjC is changed to None of PaintItBlack.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updatePausedImage): Updates paused image.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::pause): Calls updatePausedImage.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::paintCurrentFrameInContext): Allow an initial frame to be painted to canvas.
+
+2016-07-28  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (r202880): Default controls pip glyph inverted
+        https://bugs.webkit.org/show_bug.cgi?id=160304
+        <rdar://problem/27578447>
+
+        Reviewed by Eric Carlson.
+
+        I accidentally committed the "Exit Picture-in-picture" glyph
+        for the "Enter Picture-in-picture" buttons :(
+
+        * Modules/mediacontrols/mediaControlsApple.css:
+        (video::-webkit-media-controls-panel .picture-in-picture-button):
+        Use the correct artwork.
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to SVGDocument.createEvent() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160296
+
+        Reviewed by Alex Christensen.
+
+        First parameter to SVGDocument.createEvent() should be mandatory:
+        - https://www.w3.org/TR/SVG2/struct.html#InterfaceDocumentExtensions
+        - https://dom.spec.whatwg.org/#document
+
+        This patch drops createEvent() from SVGDocument so that the spec-compliant
+        Document.createEvent() is used instead. In the specification, SVGDocument
+        no longer exists and is a simple Document.
+
+        Firefox and Chrome agree with the specification.
+
+        Test: svg/dom/SVGDocument-createEvent.html
+
+        * svg/SVGDocument.idl:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to CanvasGradient.addColorStop() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160297
+
+        Reviewed by Alex Christensen.
+
+        Parameters to CanvasGradient.addColorStop() should be mandatory:
+        - https://html.spec.whatwg.org/multipage/scripting.html#canvasgradient
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * html/canvas/CanvasGradient.idl:
+
+2016-07-28  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Streams API] Replace ReadableStreamController by ReadableStreamDefaultController
+        https://bugs.webkit.org/show_bug.cgi?id=160242
+
+        Reviewed by Youenn Fablet.
+
+        Replaced ReadableStreamController by ReadableStreamDefaultController to align
+        with updated Streams API specification.
+
+        No change in functionality.
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * Modules/streams/ReadableStream.js:
+        (initializeReadableStream):
+        * Modules/streams/ReadableStreamDefaultController.idl: Renamed from Source/WebCore/Modules/streams/ReadableStreamController.idl.
+        * Modules/streams/ReadableStreamDefaultController.js: Renamed from Source/WebCore/Modules/streams/ReadableStreamController.js.
+        (enqueue):
+        (error):
+        (close):
+        (desiredSize):
+        * Modules/streams/ReadableStreamInternals.js:
+        (privateInitializeReadableStreamDefaultController):
+        (isReadableStreamDefaultController):
+        * Modules/streams/ReadableStreamSource.h:
+        (WebCore::ReadableStreamSource::controller):
+        (WebCore::ReadableStreamSource::start):
+        * Modules/streams/ReadableStreamSource.idl:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSDOMGlobalObject.cpp:
+        (WebCore::JSDOMGlobalObject::addBuiltinGlobals):
+        * bindings/js/JSReadableStreamPrivateConstructors.cpp:
+        (WebCore::constructJSReadableStreamDefaultController):
+        (WebCore::JSBuiltinReadableStreamDefaultControllerPrivateConstructor::initializeExecutable):
+        (WebCore::createReadableStreamDefaultControllerPrivateConstructor):
+        * bindings/js/JSReadableStreamPrivateConstructors.h:
+        * bindings/js/JSReadableStreamSourceCustom.cpp:
+        (WebCore::JSReadableStreamSource::start):
+        * bindings/js/ReadableStreamDefaultController.cpp: Renamed from Source/WebCore/bindings/js/ReadableStreamController.cpp.
+        (WebCore::callFunction):
+        (WebCore::ReadableStreamDefaultController::invoke):
+        (WebCore::ReadableStreamDefaultController::isControlledReadableStreamLocked):
+        * bindings/js/ReadableStreamDefaultController.h: Renamed from Source/WebCore/bindings/js/ReadableStreamController.h.
+        (WebCore::ReadableStreamDefaultController::ReadableStreamDefaultController):
+        (WebCore::ReadableStreamDefaultController::close):
+        (WebCore::ReadableStreamDefaultController::error):
+        (WebCore::ReadableStreamDefaultController::enqueue):
+        (WebCore::ReadableStreamDefaultController::globalObject):
+        (WebCore::ReadableStreamDefaultController::error<String>):
+        * bindings/js/WebCoreBuiltinNames.h:
+
+2016-07-28  Youenn Fablet  <youenn@apple.com>
+
+        Compute fetch response type in case of cross-origin requests
+        https://bugs.webkit.org/show_bug.cgi?id=158565
+
+        Reviewed by Alex Christensen.
+
+        Covered by rebased tests.
+
+        Implementing Response filtering based on Response tainting in ResourceResponse.
+        Refactoring code in FetchHeaders and CrossOriginAccessControl.cpp accordingly.
+
+        Computing response tainting in SubresourceLoader for all resources.
+        This is used by DocumentThreadableLoader which now filters responses accordingly for all its clients including fetch and XHR.
+
+        Response tainting notably allows computing the response type and filtering out headers in case of cross origin responses.
+
+        Removing the filtering implemented in XMLHttpRequest as this is done before it gets access to the headers.
+        This is triggering some rebasing in the XHR tests as error messages triggered by trying to access unsafe headers no longer happen.
+
+        This filtering currently requires creating a new ResourceResponse object from the one sent from CachedResource.
+        This is done so as the same ResourceResponse may be reused accross loads and may be filtered differently by given to two different DocumentThreadableLoader
+        This can be mitigated in the future by changing ThreadableLoaderClient API to pass a ResourceResponse&&.
+
+        * Modules/fetch/FetchHeaders.cpp: Moving header checking in HTTParsers.h/.cpp
+        (WebCore::isForbiddenHeaderName): Deleted.
+        (WebCore::isForbiddenResponseHeaderName): Deleted.
+        (WebCore::isSimpleHeader): Deleted.
+        * loader/CrossOriginAccessControl.cpp:
+        (WebCore::parseAccessControlExposeHeadersAllowList): Deleted.
+        * loader/CrossOriginAccessControl.h: Moving header checking in HTTParsers.h/.cpp
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::responseReceived):
+        (WebCore::DocumentThreadableLoader::didReceiveResponse): Doing response filtering. Since underlying loaders are
+        not yet aware that fetch mode may be cors (it is always no-cors currently), the tainting needs to be updated.
+        (WebCore::DocumentThreadableLoader::loadRequest): Computing response tainting in case of synchronous calls to ensure headers are filtered for synchronous XHR.
+        * loader/DocumentThreadableLoader.h:
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::init): Getting origin from its resource and setting response tainting accordingly
+        (WebCore::SubresourceLoader::willSendRequestInternal): Always calling checkRedirectionCrossOriginAccessControl
+        to ensure response tainting is computed, even for no-cors resources.
+        (WebCore::SubresourceLoader::didReceiveResponse):
+        (WebCore::SubresourceLoader::checkRedirectionCrossOriginAccessControl): Computing response tainting in case of redirection.
+        * loader/SubresourceLoader.h:
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::load): Computing resource origin from the HTTP headers or from the document if none is
+        set in the HTTP headers.
+        (WebCore::CachedResource::setCrossOrigin): Helper routine to set response tainting.
+        (WebCore::CachedResource::isCrossOrigin): Helper routine to know whether resource is cross origin
+        (WebCore::CachedResource::isClean):
+        (WebCore::CachedResource::setResponse): Removing m_responseType
+        * loader/cache/CachedResource.h:
+        (WebCore::CachedResource::responseTainting):
+        (WebCore::CachedResource::origin):
+        (WebCore::CachedResource::setOpaqueRedirect): Deleted.
+        * platform/network/HTTPParsers.cpp: Implementing safe response header checking
+        (WebCore::parseAccessControlExposeHeadersAllowList):
+        (WebCore::isForbiddenHeaderName):
+        (WebCore::isForbiddenResponseHeaderName):
+        (WebCore::isSimpleHeader):
+        (WebCore::isCrossOriginSafeHeader):
+        * platform/network/HTTPParsers.h:
+        * platform/network/ResourceRequestBase.cpp:
+        (WebCore::ResourceRequestBase::hasHTTPOrigin): Added.
+        (WebCore::ResourceRequestBase::clearHTTPOrigin):
+        * platform/network/ResourceRequestBase.h:
+        * platform/network/ResourceResponseBase.cpp: Implementation of response filtering.
+        (WebCore::ResourceResponseBase::filterResponse):
+        * platform/network/ResourceResponseBase.h:
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::isSetCookieHeader): Deleted.
+        (WebCore::XMLHttpRequest::getAllResponseHeaders): Removing header filtering since DocumentThreadableLoader does it.
+        (WebCore::XMLHttpRequest::getResponseHeader): Ditto.
+
+2016-07-27  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Streams API] Use makeThisTypeError in ReadableStreamDefaultReader.js
+        https://bugs.webkit.org/show_bug.cgi?id=160254
+
+        Reviewed by Darin Adler.
+
+        Use makeThisTypeError and makeGetterTypeError in ReadableStreamDefaultReader.js
+
+        No change in functionality.
+
+        * Modules/streams/ReadableStreamDefaultReader.js:
+        (cancel):
+        (read):
+        (releaseLock):
+        (closed):
+
+2016-07-27  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [soup] Incorrect usage of relaxAdoptionRequirement in the constructor of SocketStreamHandle
+        https://bugs.webkit.org/show_bug.cgi?id=160281
+
+        Reviewed by Carlos Garcia Campos.
+
+        No new tests (No behavior change).
+
+        Incrementing refcount in a constructor causes an assertion failure
+        that it's not adopted yet.  So, relaxAdoptionRequirement() was
+        used to avoid the problem in the constructors of
+        SocketStreamHandle.  This is a incorrect solution. The correct
+        solution is to make SocketStreamHandle::create() increment the
+        refcount after calling the constructor.
+
+        * platform/network/soup/SocketStreamHandle.h: Removed the second
+        constructor of SocketStreamHandle which is not used anymore.
+        Uninlined create() because this is not trivial anymore.
+        * platform/network/soup/SocketStreamHandleSoup.cpp:
+        (WebCore::SocketStreamHandle::create): Do the rest of jobs which
+        was done by the constructors.
+        (WebCore::SocketStreamHandle::SocketStreamHandle): Move the jobs
+        after initialization to create().
+        Removed the second constructor.
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to HTMLMediaElement.canPlayType() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160275
+
+        Reviewed by Ryosuke Niwa.
+
+        First parameter to HTMLMediaElement.canPlayType() should be mandatory:
+        - https://html.spec.whatwg.org/multipage/embedded-content.html#htmlmediaelement
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLMediaElement.idl:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to setTimeout() / setInterval() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160277
+
+        Reviewed by Darin Adler.
+
+        First parameter to setTimeout() / setInterval() should be mandatory:
+        - https://html.spec.whatwg.org/multipage/webappapis.html#windoworworkerglobalscope
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::setTimeout):
+        (WebCore::JSDOMWindow::setInterval):
+        * bindings/js/JSWorkerGlobalScopeCustom.cpp:
+        (WebCore::JSWorkerGlobalScope::setTimeout):
+        (WebCore::JSWorkerGlobalScope::setInterval):
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to insertAdjacentText() / insertAdjacentHTML() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160274
+
+        Reviewed by Darin Adler.
+
+        Parameters to insertAdjacentText() / insertAdjacentHTML() should be mandatory:
+        - https://dom.spec.whatwg.org/#element
+        - https://www.w3.org/TR/DOM-Parsing/#extensions-to-the-element-interface
+
+        Firefox and Chrome agree with the specification (although Firefox does not
+        have insertAdjacentText()).
+
+        Test: fast/dom/Element/insertAdjacentText-parameters.html
+
+        * html/HTMLElement.idl:
+
+2016-07-27  Beth Dakin  <bdakin@apple.com>
+
+        Add localizable strings for inserting list types
+        https://bugs.webkit.org/show_bug.cgi?id=160233
+        -and corresponding-
+        rdar://problem/26102954
+
+        Reviewed by Dan Bernstein.
+
+        * English.lproj/Localizable.strings:
+        * platform/LocalizedStrings.cpp:
+        (WebCore::insertListTypeNone):
+        (WebCore::insertListTypeNoneAccessibilityTitle):
+        (WebCore::insertListTypeBulleted):
+        (WebCore::insertListTypeBulletedAccessibilityTitle):
+        (WebCore::insertListTypeNumbered):
+        (WebCore::insertListTypeNumberedAccessibilityTitle):
+        * platform/LocalizedStrings.h:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to DOMParser.parseFromString() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160268
+
+        Reviewed by Ryosuke Niwa.
+
+        Parameters to DOMParser.parseFromString() should be mandatory:
+        - https://www.w3.org/TR/DOM-Parsing/#the-domparser-interface
+
+        Firefox and Chrome agree with the specification.
+
+        Test: fast/parser/DOMParser-parameters.html
+
+        * xml/DOMParser.idl:
+
+2016-07-27  Eric Carlson  <eric.carlson@apple.com>
+
+        Captions do not render in PiP window when element is hidden
+        https://bugs.webkit.org/show_bug.cgi?id=160265
+        <rdar://problem/27556788>
+
+        Reviewed by Simon Fraser.
+
+        * html/shadow/MediaControlElements.cpp:
+        (WebCore::MediaControlTextTrackContainerElement::createTextTrackRepresentationImage): Pass new flag so
+        caption layers are always rendered.
+
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::paintLayerContents): Paint non-visible layers when PaintLayerIgnoreVisibility
+        flag is set.
+        * rendering/RenderLayer.h: Define PaintLayerIgnoreVisibility.
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to named property getter should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160269
+
+        Reviewed by Ryosuke Niwa.
+
+        Parameter to named property getter should be mandatory:
+        - https://heycam.github.io/webidl/#idl-named-properties
+
+        No new tests, rebaselined existing test.
+
+        * Modules/mediastream/RTCStatsResponse.idl:
+        * bindings/scripts/test/TestOverrideBuiltins.idl:
+        * html/HTMLOptionsCollection.idl:
+        * html/HTMLSelectElement.idl:
+        * plugins/DOMMimeTypeArray.idl:
+        * plugins/DOMPlugin.idl:
+        * plugins/DOMPluginArray.idl:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to Range.createContextualFragment() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160266
+
+        Reviewed by Ryosuke Niwa.
+
+        First parameter to Range.createContextualFragment() should be mandatory:
+        - https://w3c.github.io/DOM-Parsing/#extensions-to-the-range-interface
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Range.idl:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Align MediaList with the CSSOM specification
+        https://bugs.webkit.org/show_bug.cgi?id=160257
+
+        Reviewed by Ryosuke Niwa.
+
+        Align MediaList with the CSSOM specification:
+        - https://www.w3.org/TR/cssom-1/#the-medialist-interface
+
+        In particular, the parameter to item() / deleteMedium() and
+        appendMedium() is now mandatory.
+
+        Firefox and Chrome agree with the specification.
+
+        Test: fast/css/MediaList-mediaText-null.html
+              fast/css/MediaList-parameters.html
+
+        * css/MediaList.idl:
+
+2016-07-27  Jeremy Jones  <jeremyj@apple.com>
+
+        Fullscreen video zoom button does not work after rotating when aspect ratio matches display.
+        https://bugs.webkit.org/show_bug.cgi?id=160263
+        rdar://problem/27368872
+
+        Reviewed by Eric Carlson.
+
+        When video and display aspect ratio match, and rotating from landscape to protrait, the transform used in layout
+        will be Identity. This means checking the transform for identity is an insufficient test to see if the bounds
+        need to be resolved.
+
+        Instead, always attempt to resolve the bounds and do a more accurate test while doing so.
+
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (-[WebAVPlayerLayer layoutSublayers]):
+        (-[WebAVPlayerLayer resolveBounds]):
+
+2016-07-27  Anders Carlsson  <andersca@apple.com>
+
+        Stop accepting the deprecated "requiredShippingAddressFields" and "requiredBillingAddressFields" properties
+        https://bugs.webkit.org/show_bug.cgi?id=160264
+        rdar://problem/27574519
+
+        Reviewed by Simon Fraser.
+
+        * Modules/applepay/ApplePaySession.cpp:
+        (WebCore::createPaymentRequest):
+        (WebCore::isValidPaymentRequestPropertyName):
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to indexed property getters should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160259
+
+        Reviewed by Ryosuke Niwa.
+
+        First parameter to indexed property getters should be mandatory:
+        - https://heycam.github.io/webidl/#idl-indexed-properties
+
+        No new tests, rebaselined existing tests.
+
+        * Modules/gamepad/deprecated/GamepadList.idl:
+        * bindings/js/JSHTMLAllCollectionCustom.cpp:
+        (WebCore::JSHTMLAllCollection::item):
+        * css/CSSRuleList.idl:
+        * css/CSSValueList.idl:
+        * css/StyleSheetList.idl:
+        * css/WebKitCSSFilterValue.idl:
+        * css/WebKitCSSTransformValue.idl:
+        * dom/ClientRectList.idl:
+        * dom/DOMStringList.idl:
+        * dom/DataTransferItemList.idl:
+        * html/HTMLAllCollection.idl:
+        * plugins/DOMMimeTypeArray.idl:
+        * plugins/DOMPlugin.idl:
+        * plugins/DOMPluginArray.idl:
+
+2016-07-27  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] The isValidTransition function must not alter the GridSizingData object
+        https://bugs.webkit.org/show_bug.cgi?id=160252
+
+        Reviewed by Darin Adler.
+
+        It's not correct that a function which purpose is to check out the
+        validity of a state modifies such state.
+
+        That code was there to allow the extra row track sizing iteration
+        in the case of a grid container with indefinite height. We need to
+        do that in order to figure out its intrinsic height, which will be
+        used then to properly sizing the row tracks.
+
+        Since the intrinsic height computation uses directly the
+        computeUsedBreadthOfGridTracks function, it does not alter the
+        algorithm state-machine, hence, we can safely remove this code,
+        which was incorrect in any case.
+
+        No new tests, it's just a refactoring with no functionality change.
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::GridSizingData::isValidTransition):
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to Document.execCommand() / queryCommand*() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160258
+
+        Reviewed by Darin Adler.
+
+        First parameter to Document.execCommand() / queryCommand*() should be mandatory:
+        - https://w3c.github.io/editing/execCommand.html
+
+        Firefox and Chrome agree with the specification.
+
+        Test: fast/dom/Document/editing-parameters.html
+
+        * dom/Document.idl:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Align CSSSupportsRule with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160256
+
+        Reviewed by Darin Adler.
+
+        Align CSSSupportsRule with the specification:
+        - https://drafts.csswg.org/css-conditional-3/#csssupportsrule
+
+        In particular:
+        - Make the parameters to insertRule() / deleteRule() mandatory
+        - Expose CSSSupportsRule on the global Window object
+
+        Both Firefox and Chrome agree with the specification here.
+
+        Test: fast/css/CSSSupportsRule-parameters.html
+
+        * css/CSSSupportsRule.idl:
+
+2016-07-27  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Soup] Test http/tests/xmlhttprequest/auth-reject-protection-space.html fails since added in r203743
+        https://bugs.webkit.org/show_bug.cgi?id=160235
+
+        Reviewed by Michael Catanzaro.
+
+        It times out in release and crashes in debug due to an ASSERT_NOT_REACHED(). The soup backend doesn't really
+        support rejecting the protection space and continuing with the next one, but we can at least continue with the
+        request without crendential to make the test pass.
+
+        * platform/network/soup/ResourceHandleSoup.cpp:
+        (WebCore::ResourceHandle::receivedChallengeRejection):
+
+2016-07-27  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Streams API] Replace ReadableStreamReader by ReadableStreamDefaultReader
+        https://bugs.webkit.org/show_bug.cgi?id=160194
+
+        Reviewed by Youenn Fablet.
+
+        Replaced ReadableStreamReader by ReadableStreamDefaultReader to align
+        with updated Streams API specification.
+
+        No change in functionality.
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * Modules/fetch/FetchInternals.js:
+        (consumeStream):
+        * Modules/fetch/FetchResponse.js:
+        (body):
+        * Modules/streams/ReadableStream.js:
+        (getReader):
+        * Modules/streams/ReadableStreamDefaultReader.idl: Renamed from Source/WebCore/Modules/streams/ReadableStreamReader.idl.
+        * Modules/streams/ReadableStreamDefaultReader.js: Renamed from Source/WebCore/Modules/streams/ReadableStreamReader.js.
+        (cancel):
+        (read):
+        (releaseLock):
+        (closed):
+        * Modules/streams/ReadableStreamInternals.js:
+        (privateInitializeReadableStreamDefaultReader):
+        (teeReadableStream):
+        (teeReadableStreamPullFunction):
+        (isReadableStreamDefaultReader):
+        (closeReadableStream):
+        (readFromReadableStreamDefaultReader):
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSDOMGlobalObject.cpp:
+        (WebCore::JSDOMGlobalObject::addBuiltinGlobals):
+        (WebCore::JSDOMGlobalObject::finishCreation):
+        * bindings/js/JSReadableStreamPrivateConstructors.cpp:
+        (WebCore::constructJSReadableStreamDefaultReader):
+        (WebCore::JSBuiltinReadableStreamDefaultReaderPrivateConstructor::initializeExecutable):
+        (WebCore::createReadableStreamDefaultReaderPrivateConstructor):
+        * bindings/js/JSReadableStreamPrivateConstructors.h:
+        * bindings/js/WebCoreBuiltinNames.h:
+        * features.json:
+
+2016-07-27  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Handle alignment with orthogonal flows
+        https://bugs.webkit.org/show_bug.cgi?id=159295
+
+        Reviewed by Darin Adler.
+
+        Now that grid sizing and positioning issues wrt orthogonal flows have
+        been clarified in the last spec draft, we can adapt now our alignment
+        logic to work with orthogonal flows.
+
+        Even though basic alignment would work with orthogonal flows with
+        this patch, we still doesn't allow stretching in that case. I'll provide a
+        patch for that feature since it's a complex logic and better have an
+        isolated change.
+
+        Tests: fast/css-grid-layout/grid-item-alignment-with-orthogonal-flows-vertical-lr.html
+               fast/css-grid-layout/grid-item-alignment-with-orthogonal-flows-vertical-rl.html
+               fast/css-grid-layout/grid-item-alignment-with-orthogonal-flows.html
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::computeOverflowAlignmentOffset): Using 'size' instead of 'breadth' as concept.
+        (WebCore::RenderGrid::columnAxisPositionForChild): Dealing with orthogonal flow cases.
+        (WebCore::RenderGrid::rowAxisPositionForChild): Dealing with orthogonal flow cases.
+        (WebCore::RenderGrid::columnAxisOffsetForChild): Using 'size' instead of 'breadth' as concept.
+        (WebCore::RenderGrid::rowAxisOffsetForChild): Using 'size' instead of 'breadth' as concept.
+        (WebCore::RenderGrid::findChildLogicalPosition): Dealing with orthogonal flow cases.
+
+2016-07-26  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response constructor should be able to take a ReadableStream as body
+        https://bugs.webkit.org/show_bug.cgi?id=159804
+
+        Reviewed by Alex Christensen.
+
+        Covered by existing and updated tests.
+
+        Introduced FetchBodyConsumer to encapsulate the code responsible to adapt FetchBody internal data to the requests made by user scripts.
+        This refactoring eases the handling of internal data coming from ReadableStream.
+
+        FetchLoader is now delegating conversion from the data to its m_consumer field.
+        If m_consumer is null, FetchLoader calls FetchLoaderClient::didReceiveData (streaming reception mode).
+        Clients of FetchLoader needs to pass a FetchBodyConsumer to the FetchLoader to do the data adaptation at loader creation time.
+
+        Added support for body data passed as a ReadableStream to Response.
+        This requires to set @body internal slot of the Response object in the constructor initialization JS built-in.
+
+        To actually use that data, Body accessors are also implemented as JS built-in for Response.
+        Since there is no need to do so for Request, FetchResponse is no longer marked as implementing FetchBody but all
+        FetchBody IDL description is inlined in FetchResponse.idl.
+
+        For each body accessor (arrayBuffer, blob, json, text), the corresponding JS built-in checks whether @body internal slot is set.
+        If that is not the case, regular handling is done through a new private method called @consume.
+        If @body internal slot is set, chunks are pumped from the ReadableStream using ReadableStream internal built-ins functions.
+        Data handling is done in C++ through the private methods @startConsumingStream, @consumeChunk and @finishConsumingStream.
+
+        To support cloning of Response with bodies, clone method is also implemented as a JS built-in.
+        Main clone is done through @cloneFoJS private method implemented in C++.
+        JS built-in clone code does the teeing of the ReadableStream using ReadableStream JS built-in internal functions.
+
+        Introducing a new ReadableStream type for FetchBody to cope with body being stored in a ReadableStream.
+
+        Introducing a new Loaded type for FetchBody to cope with body being stored in the FetchBodyConsumer owned by FetchBody.
+        This allows removing the conversion of data to JSC::ArrayBuffer which was done by defaut at the end of Fetch loading if user script did not request data before.
+        At the end of a load, the data remains in FetchBodyConsumer and the body is marked as Loaded.
+        If the user wants to get the data after data finished being loaded, FetchBodyConsumer will do the required conversions.
+
+        Introducing DeferredWrapper::resolveWithNewValue to handle the case of resolving promises with new objects.
+        This allows directly using toJSNewlyCreated instead of toJS.
+
+        * CMakeLists.txt: Adding FetchBodyConsumer.cpp. Removing WebCoreJSBuiltins.cpp from CMake list as it is not needed.
+        * Modules/fetch/FetchBody.cpp: Moving data adaptation code to FetchBodyConsumer.
+        (WebCore::FetchBody::extract):
+        (WebCore::FetchBody::arrayBuffer):
+        (WebCore::FetchBody::blob): Setting contentType in FetchBodyConsumer to handle proper creation of blob.
+        (WebCore::FetchBody::json):
+        (WebCore::FetchBody::text):
+        (WebCore::FetchBody::consume): Refactoring and added case of Loaded bodies.
+        (WebCore::FetchBody::consumeAsStream): Ditto.
+        (WebCore::FetchBody::consumeArrayBuffer):
+        (WebCore::FetchBody::consumeText):
+        (WebCore::FetchBody::consumeBlob):
+        (WebCore::FetchBody::loadingFailed):
+        (WebCore::FetchBody::loadingSucceeded):
+        (WebCore::FetchBody::loadingType): Deleted.
+        (WebCore::blobFromArrayBuffer): Deleted.
+        (WebCore::FetchBody::fulfillTextPromise): Deleted.
+        (WebCore::FetchBody::loadedAsArrayBuffer): Deleted.
+        (WebCore::FetchBody::loadedAsText): Deleted.
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::consumer):
+        * Modules/fetch/FetchBodyConsumer.cpp: Added, responsible of data adaptation.
+        (WebCore::blobFromData):
+        (WebCore::FetchBodyConsumer::resolveWithData):
+        (WebCore::FetchBodyConsumer::resolve):
+        (WebCore::FetchBodyConsumer::append):
+        (WebCore::FetchBodyConsumer::takeData):
+        (WebCore::FetchBodyConsumer::takeAsArrayBuffer):
+        (WebCore::FetchBodyConsumer::takeAsBlob):
+        (WebCore::FetchBodyConsumer::takeAsText):
+        * Modules/fetch/FetchBodyConsumer.h: Added.
+        (WebCore::FetchBodyConsumer::FetchBodyConsumer):
+        (WebCore::FetchBodyConsumer::setContentType):
+        (WebCore::FetchBodyConsumer::setType):
+        (WebCore::FetchBodyConsumer::type):
+        (WebCore::FetchBodyConsumer::clean):
+        (WebCore::FetchBodyConsumer::hasData):
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::loadBlob):
+        (WebCore::FetchBodyOwner::blobLoadingSucceeded):
+        (WebCore::FetchBodyOwner::loadedBlobAsText): Deleted.
+        * Modules/fetch/FetchBodyOwner.h:
+        (WebCore::FetchBodyOwner::loadedBlobAsArrayBuffer): Deleted.
+        * Modules/fetch/FetchInternals.js:
+        (consumeStream): Pump ReadableStream data and send it to FetchResponse to be converted according user need.
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::FetchLoader): FetchLoader is simplified as it has two nodes: consumer mode in which case
+        data is sent to the consumer and no-consumer mode in which case data is passed to loader client. The second mode
+        is used to conveyy data to ReadableStream source.
+        (WebCore::FetchLoader::stop):
+        (WebCore::FetchLoader::startStreaming):
+        (WebCore::FetchLoader::didReceiveData):
+        (WebCore::FetchLoader::didFinishLoading): Deleted.
+        * Modules/fetch/FetchLoader.h:
+        * Modules/fetch/FetchLoaderClient.h:
+        (WebCore::FetchLoaderClient::didFinishLoadingAsText): Deleted.
+        (WebCore::FetchLoaderClient::didFinishLoadingAsArrayBuffer): Deleted.
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::cloneForJS):
+        (WebCore::FetchResponse::BodyLoader::didSucceed):
+        (WebCore::FetchResponse::BodyLoader::start):
+        (WebCore::FetchResponse::consume): Introduced to consume data stored in body and not in ReadableStream.
+        (WebCore::FetchResponse::startConsumingStream): Introduced to start process of consuming data stored in the ReadableStream.
+        (WebCore::FetchResponse::consumeChunk): Reception of ReadableStream data.
+        (WebCore::FetchResponse::finishConsumingStream): Doing the final conversion.
+        (WebCore::FetchResponse::clone): Deleted.
+        (WebCore::FetchResponse::BodyLoader::didFinishLoadingAsArrayBuffer): Deleted.
+        * Modules/fetch/FetchResponse.h:
+        * Modules/fetch/FetchResponse.idl: Inlining of FetchBody methods/attributes and adding private methods.
+        * Modules/fetch/FetchResponse.js:
+        (initializeFetchResponse):
+        (clone):
+        (arrayBuffer):
+        (blob):
+        (formData):
+        (json):
+        (text):
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::DeferredWrapper::resolveWithNewValue):
+        * bindings/js/WebCoreBuiltinNames.h:
+
+2016-07-26  Youenn Fablet  <youennf@gmail.com>
+
+        JS Built-ins should throw this-error messages consistently with binding generated code
+        https://bugs.webkit.org/show_bug.cgi?id=160191
+
+        Reviewed by Darin Adler.
+
+        Introducing @makeThisTypeError and @makeGetterTypeError to create TypeError objects with a consistent error message.
+        Making use of these functions in streams API and fetch API related built-in code.
+
+        Refactored JSDOMBinding.cpp code by adding makeThisTypeErrorMessage and makeGetterTypeErrorMessage helper routines
+        These routines are used by both new built-in functions as well as binding generated code helper routine.
+
+        Tests: fetch/fetch-error-messages.html
+               streams/readable-stream-error-messages.html
+
+        * Modules/fetch/FetchResponse.js:
+        (body): Adding an explicit check so that the error message is right. The previous error message was related to the call of Response.@isDisturbed.
+        * Modules/streams/ReadableStream.js:
+        (cancel):
+        (getReader):
+        (pipeTo):
+        (tee):
+        (locked):
+        * Modules/streams/ReadableStreamController.js:
+        (enqueue):
+        (error):
+        (close):
+        (desiredSize):
+        * Modules/streams/ReadableStreamReader.js:
+        (cancel):
+        (read):
+        (releaseLock):
+        (closed):
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::makeGetterTypeErrorMessage):
+        (WebCore::throwGetterTypeError):
+        (WebCore::makeThisTypeErrorMessage):
+        (WebCore::throwThisTypeError):
+        (WebCore::throwSequenceTypeError): Deleted.
+        (WebCore::throwSetterTypeError): Deleted.
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSDOMGlobalObject.cpp:
+        (WebCore::makeThisTypeErrorForBuiltins):
+        (WebCore::makeGetterTypeErrorForBuiltins):
+        (WebCore::JSDOMGlobalObject::addBuiltinGlobals):
+        * bindings/js/WebCoreBuiltinNames.h:
+
+2016-07-26  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GTK+ distcheck build.
+
+        wtf/spi/darwin/dyldSPI.h is not included in GTK+ release tarballs.
+
+        * html/HTMLObjectElement.cpp: Include wtf/spi/darwin/dyldSPI.h only for iOS.
+        * html/MediaElementSession.cpp: Ditto.
+
+2016-07-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iOS] SF-Heavy is inaccessible by web content
+        https://bugs.webkit.org/show_bug.cgi?id=160186
+        <rdar://problem/27434423>
+
+        Reviewed by Dean Jackson.
+
+        Once we create the system font, we need to modify it with the appropriate weight.
+        This is because the CoreText API we use to get the system font on iOS does not
+        let us choose the exact weight we want.
+
+        Test: fast/text/system-font-weight.html
+
+        * platform/graphics/ios/FontCacheIOS.mm:
+        (WebCore::baseSystemFontDescriptor):
+        (WebCore::systemFontModificationAttributes):
+        (WebCore::systemFontDescriptor):
+        (WebCore::platformFontWithFamilySpecialCase):
+        * platform/spi/cocoa/CoreTextSPI.h:
+
+2016-07-26  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [GTK] ASSERTION FAILED: !m_adoptionIsRequired when Inspector Server is connected
+        https://bugs.webkit.org/show_bug.cgi?id=160229
+
+        Reviewed by Carlos Garcia Campos.
+
+        An assertion fails because refcount of SocketStreamHandle is
+        incremented before adoptRef, in the constructor of
+        SocketStreamHandle.  The constructor of SocketStreamHandle needs
+        to increment recount because it passes this pointer to libsoup.
+
+        * platform/network/soup/SocketStreamHandleSoup.cpp:
+        (WebCore::SocketStreamHandle::SocketStreamHandle): Do
+        relaxAdoptionRequirement() as well as the another constructor.
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Move 'dir' attribute from HTMLDocument to Document
+        https://bugs.webkit.org/show_bug.cgi?id=160231
+
+        Reviewed by Sam Weinig.
+
+        Move 'dir' attribute from HTMLDocument to Document to match the
+        specification:
+        - https://html.spec.whatwg.org/multipage/dom.html#document
+
+        Both Firefox and Chrome have 'dir' on Document already.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Document.cpp:
+        (WebCore::Document::dir):
+        (WebCore::Document::setDir):
+        * dom/Document.h:
+        * dom/Document.idl:
+        * html/HTMLDocument.cpp:
+        (WebCore::HTMLDocument::dir): Deleted.
+        (WebCore::HTMLDocument::setDir): Deleted.
+        * html/HTMLDocument.h:
+        * html/HTMLDocument.idl:
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Second parameter to History.pushState() / replaceState() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160230
+
+        Reviewed by Sam Weinig.
+
+        Second parameter to History.pushState() / replaceState() should be mandatory:
+        - https://html.spec.whatwg.org/multipage/browsers.html#history-3
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/js/JSHistoryCustom.cpp:
+        (WebCore::JSHistory::pushState):
+        (WebCore::JSHistory::replaceState):
+        * page/History.idl:
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Align Node.isEqualNode() with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160224
+
+        Reviewed by Sam Weinig.
+
+        Align our implementation for Node.isEqualNode() to match more closely
+        the text of the specification:
+        - https://dom.spec.whatwg.org/#dom-node-isequalnode
+        - https://dom.spec.whatwg.org/#concept-node-equals
+
+        This also fixes a bug where isEqualNode() would sometimes return false
+        wrongly for elements because we were comparing the value returned by
+        nodeName() which returns the tagName of elements. The issue was that
+        the tagName's case may differ depending on the element being in an
+        HTMLDocument or not. We now compare Element::tagQName() instead which
+        ends up comparing namespace / namespace prefix and localName, as per
+        the specification. The new behavior matches Firefox and Chrome and
+        helps us pass an extra W3C test.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Node.cpp:
+        (WebCore::Node::isEqualNode):
+
+2016-07-26  Simon Fraser  <simon.fraser@apple.com>
+
+        Sort the project files.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Align CSSKeyframesRule with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160219
+
+        Reviewed by Darin Adler.
+
+        Align CSSKeyframesRule with the specification:
+        - https://drafts.csswg.org/css-animations/#interface-csskeyframesrule
+
+        In particular, the parameter to insertRule() / appendRule() /
+        deleteRule() / findRule() should be mandatory. Both Firefox and Chrome
+        agree with the specification here.
+
+        Also, the CSSKeyframesRule.name attribute should not be nullable.
+        Chrome agrees with the specification. However, Firefox, has the
+        attribute nullable. This patch aligns our behavior with Chrome and
+        the specification.
+
+        Tests: animations/CSSKeyframesRule-name-null.html
+               animations/CSSKeyframesRule-parameters.html
+
+        * css/CSSKeyframesRule.h:
+        (WebCore::StyleRuleKeyframes::name):
+        (WebCore::StyleRuleKeyframes::setName):
+        * css/CSSKeyframesRule.idl:
+
+2016-07-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=160178
+        <rdar://problem/27535468>
+
+        Reviewed by Eric Carlson and Dan Bernstein.
+
+        This patch re-implements r203520 in a much simpler way which doesn't involve a new SPI.
+        The biggest problem with r203520 is that it make it impossible for a WKWebView to match
+        MobileSafari's behavior. Instead of adding this new SPI, a simple version check should
+        be used to keep old apps working.
+
+        The new behavior is characterized by the following table:
+
+                                             |                iOS                 |      Non-iOS
+        =============================================================================================
+        requiresPlayInlineAttribute == true  | Old app: honor -webkit-playsinline | honor playsinline
+                                             | New app: honor playsinline         | honor playsinline
+        ---------------------------------------------------------------------------------------------
+        requiresPlayInlineAttribute == false | Always inline                      | Always inline
+
+        Specifically, this patch reverts r203545 which is the commit which actually removes
+        the old SPI. As soon as Safari is migrated back to this old SPI, I'll remove the two
+        new SPIs added in r203520.
+
+        Tests: media/video-playsinline.html
+               media/video-webkit-playsinline.html
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::requiresFullscreenForVideoPlayback):
+        * page/Settings.cpp:
+        * page/Settings.in:
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo):
+        (WebCore::InternalSettings::setInlineMediaPlaybackRequiresPlaysInlineAttribute):
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+
+2016-07-26  Zalan Bujtas  <zalan@apple.com>
+
+        Move RenderView::shouldDisableLayoutStateForSubtree to SubtreeLayoutStateMaintainer.
+        https://bugs.webkit.org/show_bug.cgi?id=160215
+
+        Reviewed by Darin Adler and Simon Fraser.
+
+        No change in functionality.
+
+        * page/FrameView.cpp:
+        (WebCore::SubtreeLayoutStateMaintainer::SubtreeLayoutStateMaintainer):
+        * rendering/RenderView.cpp:
+        (WebCore::RenderView::shouldDisableLayoutStateForSubtree):
+        * rendering/RenderView.h:
+
+2016-07-26  Simon Fraser  <simon.fraser@apple.com>
+
+        Allow LOG macros to be used outside the namespace, and other logging cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=160216
+
+        Reviewed by Anders Carlsson.
+
+        Fix some issues with the LOG macros.
+        
+        First, they were not usable outside the WebKit namespace in WebKit2 code. Fix by moving
+        its log channels outside of the namespace (they are protected by a unique prefix anyway).
+        
+        Second, allow LOG_WITH_STREAM to be used in WebKit2 by moving that and a helper macro
+        into LogMacros.h, which is exported from WebCore as a private header.
+        
+        Third, split the Logging.h header into two. Logging.h remains for framework-internal
+        log channels and log macros. Add LogInitialization.h which is external, and used to
+        initialize the channels.
+        
+        Finally unify "initializeLogChannels" and "initializeLoggingChannels" terminology everywhere.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/LogInitialization.h: Added.
+        * platform/LogMacros.h: Added.
+        * platform/Logging.cpp:
+        (WebCore::initializeLogChannelsIfNecessary):
+        (WebCore::initializeLoggingChannelsIfNecessary): Deleted.
+        * platform/Logging.h:
+        * testing/js/WebCoreTestSupport.cpp:
+        (WebCoreTestSupport::initializeLogChannelsIfNecessary):
+        (WebCoreTestSupport::initializeLoggingChannelsIfNecessary): Deleted.
+        * testing/js/WebCoreTestSupport.h:
+
+2016-07-26  Anders Carlsson  <andersca@apple.com>
+
+        onpaymentauthorized callback not received when authorizing for a second time
+        https://bugs.webkit.org/show_bug.cgi?id=160218
+        rdar://problem/27527151
+
+        Reviewed by Tim Horton.
+
+        Only null out the active session if the status is a final state status.
+
+        * Modules/applepay/PaymentCoordinator.cpp:
+        (WebCore::PaymentCoordinator::completePaymentSession):
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Range.prototype.compareBoundaryPoints.length should be 2
+        https://bugs.webkit.org/show_bug.cgi?id=160217
+
+        Reviewed by Sam Weinig.
+
+        Range.prototype.compareBoundaryPoints.length:
+        - https://dom.spec.whatwg.org/#interface-range
+
+        We had a bug in our IDL which caused length to be 0 even though
+        both parameters were effectively mandatory.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Range.idl:
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Align CSSStyleDeclaration with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160214
+
+        Reviewed by Darin Adler.
+
+        Align CSSStyleDeclaration with the specification:
+        - https://drafts.csswg.org/cssom/#the-cssstyledeclaration-interface
+
+        In particular, the parameters to removeProperty() / item() and
+        getPropertyPriority() should be mandatory.
+
+        Firefox and Chrome match the specification.
+
+        Tests: fast/css/CSSStyleDeclaration-cssText-null.html
+               fast/css/CSSStyleDeclaration-parameters.html
+
+        * bindings/js/JSCSSStyleDeclarationCustom.cpp:
+        (WebCore::JSCSSStyleDeclaration::getPropertyCSSValue):
+        * css/CSSStyleDeclaration.idl:
+
+2016-07-26  David Kilzer <ddkilzer@apple.com>
+
+        Networking process crash due to missing -[WebCoreAuthenticationClientAsChallengeSender performDefaultHandlingForAuthenticationChallenge:] implementation
+        https://bugs.webkit.org/show_bug.cgi?id=156947
+        <rdar://problem/23325160>
+
+        Reviewed by Alex Christensen.
+
+        Test: http/tests/xmlhttprequest/auth-reject-protection-space.html
+
+        * platform/network/mac/AuthenticationMac.mm:
+        (-[WebCoreAuthenticationClientAsChallengeSender performDefaultHandlingForAuthenticationChallenge:]): Added.
+        (-[WebCoreAuthenticationClientAsChallengeSender rejectProtectionSpaceAndContinueWithChallenge:]): Added.
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to CSSStyleSheet.insertRule() / deleteRule() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160210
+
+        Reviewed by Darin Adler.
+
+        Parameters to CSSStyleSheet.insertRule() / deleteRule() should be mandatory:
+        - https://drafts.csswg.org/cssom/#cssstylesheet
+
+        They are mandatory in Firefox.
+        They are mandatory in Chrome except for the second parameter of insertRule()
+        which merely logs a deprecation warning.
+
+        This patch aligns our behavior with Chrome to move towards to specification
+        while limiting the risk of breakage.
+
+        Test: fast/css/stylesheet-parameters.html
+
+        * css/CSSStyleSheet.cpp:
+        (WebCore::CSSStyleSheet::deprecatedInsertRule):
+        * css/CSSStyleSheet.h:
+        * css/CSSStyleSheet.idl:
+
+2016-07-26  George Ruan  <gruan@apple.com>
+
+        HTMLVideoElement frames do not update on iOS when src is a MediaStream blob
+        https://bugs.webkit.org/show_bug.cgi?id=159833
+        <rdar://problem/27379487>
+
+        Reviewed by Eric Carlson.
+
+        Test: fast/mediastream/MediaStream-video-element-displays-buffer.html
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/cf/CoreMediaSoftLink.cpp: Add CMSampleBufferCreateReadyWithImageBuffer and CMVideoFormatDescriptionCreateForImageBuffer
+        softlink.
+        * platform/cf/CoreMediaSoftLink.h: Ditto.
+        * platform/cocoa/CoreVideoSoftLink.cpp: Add CVPixelBufferCreate, kCVPixelBufferCGBitmapContextCompatibilityKey, and
+        kCVPixelBufferCGImageCompatibilityKey.
+        * platform/cocoa/CoreVideoSoftLink.h: Ditto.
+        * platform/graphics/avfoundation/MediaSampleAVFObjC.h: Change create to return a Ref<T> instead
+        of RefPtr<T>.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h: Make observer of
+        MediaStreamTrackPrivate and make MediaPlayer use an AVSampleBufferDisplayLayer instead of CALayer.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm: Ditto.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::~MediaPlayerPrivateMediaStreamAVFObjC): Clean up
+        observers and AVSampleBufferDisplayLayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::isAvailable): Ensures AVSampleBufferDisplayLayer
+        is available.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::enqueueAudioSampleBufferFromTrack): Placeholder.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::enqueueVideoSampleBufferFromTrack): Responsible
+        for enqueuing sample buffers to the active video track.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::ensureLayer): Ensures that an AVSampleBufferDisplayLayer
+        exists.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::destroyLayer): Destroys the AVSampleBufferDisplayLayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::platformLayer): Replace CALayer with AVSampleBufferDisplayLayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::currentDisplayMode): Ditto.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::play): Call updateReadyState as a deferred task.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::currentReadyState): readyState is bumped to HAVE_ENOUGH_DATA
+        only when the MediaPlayerPrivateMediaStreamAVFObjC has received a media sample.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::sampleBufferUpdated): Called from MediaStreamTrackPrivate when a
+        new SampleBuffer is available.
+        (WebCore::updateTracksOfType): Manage adding and removing self as observer from tracks.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updateTracks): Replace CALayer with AVSampleBufferDisplayLayer
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::acceleratedRenderingStateChanged): Copied from
+        MediaPlayerPrivateMediaSourceAVFObjC.mm
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::load): Deleted CALayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updateDisplayMode): Deleted process of updating CALayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updateIntrinsicSize): Deleted CALayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::createPreviewLayers): Deleted.
+        * platform/mediastream/MediaStreamPrivate.cpp:
+        (WebCore::MediaStreamPrivate::updateActiveVideoTrack): Remove redundant check.
+        * platform/mediastream/MediaStreamTrackPrivate.cpp:
+        (WebCore::MediaStreamTrackPrivate::sourceHasMoreMediaData): Called from RealtimeMediaSource when a new SampleBuffer
+        is available.
+        * platform/mediastream/MediaStreamTrackPrivate.h:
+        (WebCore::MediaStreamTrackPrivate::Observer::sampleBufferUpdated): Relays to MediaPlayerPrivateMediaStreamAVFObjC that
+        a new SampleBuffer is available to enqueue to the AVSampleBufferDisplayLayer.
+        * platform/mediastream/RealtimeMediaSource.cpp:
+        (WebCore::RealtimeMediaSource::settingsDidChange): Fix grammatical mistake in function name settingsDidChanged().
+        (WebCore::RealtimeMediaSource::mediaDataUpdated): Relays to all observers that a new SampleBuffer is available.
+        (WebCore::RealtimeMediaSource::settingsDidChanged): Deleted.
+        * platform/mediastream/RealtimeMediaSource.h:
+        * platform/mediastream/mac/AVVideoCaptureSource.mm:
+        (WebCore::AVVideoCaptureSource::processNewFrame): Calls mediaDataUpdated when a new SampleBuffer is captured.
+        * platform/mediastream/mac/MockRealtimeVideoSourceMac.h:
+        * platform/mediastream/mac/MockRealtimeVideoSourceMac.mm:
+        (WebCore::MockRealtimeVideoSourceMac::CMSampleBufferFromPixelBuffer): Convert CVPixelBuffer to CMSampleBuffer.
+        (WebCore::MockRealtimeVideoSourceMac::pixelBufferFromCGImage): Convert CGImage to CVPixelBuffer.
+        (WebCore::MockRealtimeVideoSourceMac::updateSampleBuffer): Creates a CMSampleBuffer from current imageBuffer and
+        sends the CMSampleBuffer to MediaPlayerPrivateMediaStreamAVFObjC
+        * platform/mock/MockRealtimeVideoSource.cpp:
+        (WebCore::MockRealtimeVideoSource::setFrameRate): Fix grammar of settingsDidChanged() to settingsDidChange().
+        (WebCore::MockRealtimeVideoSource::setSize): Ditto.
+        (WebCore::MockRealtimeVideoSource::generateFrame): Call updateSampleBuffer().
+        * platform/mock/MockRealtimeVideoSource.h: Change elapsedTime() from private to protected.
+        (WebCore::MockRealtimeVideoSource::updateSampleBuffer): Overriden by MockRealtimeVideoSourceMac.
+
+2016-07-26  Zalan Bujtas  <zalan@apple.com>
+
+        Move ControlStates HashMap to RenderBox.
+        https://bugs.webkit.org/show_bug.cgi?id=160206
+
+        Reviewed by Simon Fraser.
+
+        Move and modernize it.
+
+        No change in functionality.
+
+        * platform/ControlStates.h:
+        (WebCore::ControlStates::ControlStates): Deleted.
+        * rendering/RenderBox.cpp:
+        (WebCore::controlStatesRendererMap):
+        (WebCore::controlStatesForRenderer):
+        (WebCore::removeControlStatesForRenderer):
+        (WebCore::RenderBox::~RenderBox):
+        (WebCore::RenderBox::paintBoxDecorations):
+        * rendering/RenderElement.cpp:
+        (WebCore::controlStatesRendererMap): Deleted.
+        (WebCore::RenderElement::hasControlStatesForRenderer): Deleted.
+        (WebCore::RenderElement::controlStatesForRenderer): Deleted.
+        (WebCore::RenderElement::removeControlStatesForRenderer): Deleted.
+        (WebCore::RenderElement::addControlStatesForRenderer): Deleted.
+        * rendering/RenderElement.h:
+
 2016-07-26  Eric Carlson  <eric.carlson@apple.com>
 
         Occasional crash in WebCore::RenderVTTCue::initializeLayoutParameters

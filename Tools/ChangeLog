@@ -1,3 +1,213 @@
+2016-07-28  Tim Horton  <timothy_horton@apple.com>
+
+        Disable WebKit2.ResizeWithHiddenContentDoesNotHang for now
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/AnimatedResize.mm:
+        (animatedResizeWebView):
+        (TEST):
+        This test times out only when run in the WebKit Testing simulator environment,
+        but not in a fresh simulator. Disabling to keep the bots green while under investigation.
+
+2016-07-28  Tim Horton  <timothy_horton@apple.com>
+
+        Frequent animation lags when interacting with Safari (sidebar, tab switching, etc.)
+        https://bugs.webkit.org/show_bug.cgi?id=160289
+        <rdar://problem/27553464>
+
+        Reviewed by Simon Fraser.
+
+        * TestWebKitAPI/Configurations/TestWebKitAPI.xcconfig:
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/AnimatedResize.mm: Added.
+        (-[AnimatedResizeNavigationDelegate _webView:renderingProgressDidChange:]):
+        (-[AnimatedResizeWebView _endAnimatedResize]):
+        (animatedResizeWebView):
+        (TEST):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/blinking-div.html: Added.
+        Add two tests that ensure that hidden-content and animated resizes
+        don't cause unnecessary synchronous waits. Only the hidden-content
+        one fails before my patch, but it seemed reasonable to add both anyway.
+
+2016-07-28  David Kilzer  <ddkilzer@apple.com>
+
+        webkit-patch upload --suggest-reviewers shouldn't break in the presence of deleted or moved files
+        <https://webkit.org/b/83342>
+
+        Reviewed by Ryosuke Niwa.
+
+        * Scripts/webkitpy/common/checkout/scm/git.py:
+        (Git.revisions_changing_file): Remove code to raise an exception
+        when the file doesn't exist.  If a file was moved or renamed,
+        then this caused the script to terminate, which was very
+        frustrating when you wanted a list of reviewers.
+        * Scripts/webkitpy/common/checkout/scm/scm_unittest.py:
+        (SCMTest._shared_test_revisions_changing_file): Update test
+        expectation to return an empty list of revisions.
+        (test_create_patch_is_full_patch): Drive-by fix when running all
+        webkitpy tests (including scm tests).
+        * Scripts/webkitpy/common/checkout/scm/svn.py:
+        (SVN.revisions_changing_file): Catch ScriptError exceptions and
+        return an empty array of revisions if this occurs.
+
+2016-07-28  Aakash Jain  <aakash_jain@apple.com>
+
+        EWS error message "Error: * did not process patch" should include explanation
+        https://bugs.webkit.org/show_bug.cgi?id=159903
+        <rdar://problem/27410788>
+
+        Reviewed by Alexey Proskuryakov.
+
+        * QueueStatusServer/handlers/statusbubble.py:
+        (StatusBubble._build_bubble): Display more detailed error message on bubbles when patch
+        is not processed.
+        * QueueStatusServer/handlers/processingtimesjson.py:
+        (ProcessingTimesJSON._resultFromFinalStatus): Updated error message to match with rest
+        of the code.
+        * Scripts/webkitpy/tool/bot/commitqueuetask.py:
+        (CommitQueueTask.validate): Add more information about validation failure.
+        (CommitQueueTask.run): Pass the error details in the PatchIsNotValid exception.
+        * Scripts/webkitpy/tool/bot/earlywarningsystemtask.py:
+        (EarlyWarningSystemTask.validate): Add more information about validation failure.
+        (EarlyWarningSystemTask.run): Pass the error details in the PatchIsNotValid exception.
+        * Scripts/webkitpy/tool/bot/patchanalysistask.py:
+        (PatchIsNotValid.__init__): Add the failure_message argument.
+        * Scripts/webkitpy/tool/commands/earlywarningsystem.py:
+        (AbstractEarlyWarningSystem.review_patch): Re-word the error message and include
+        failure details.
+        * Scripts/webkitpy/tool/commands/queues.py:
+        (CommitQueue.process_work_item): Same.
+        (StyleQueue.review_patch): Same.
+        * Scripts/webkitpy/tool/commands/queues_unittest.py:
+        (test_non_valid_patch): Updated test-cases messages to match the above changes.
+
+2016-07-27  Alexey Proskuryakov  <ap@apple.com>
+
+        LayoutTestRelay should wait for WebKitTestRunnerApp installation to complete
+        https://bugs.webkit.org/show_bug.cgi?id=160262
+
+        Reviewed by Daniel Bates.
+
+        * LayoutTestRelay/LayoutTestRelay/LTRelayController.m:
+        (-[LTRelayController installApp]):
+
+2016-07-27  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Disable WebCoreNSURLSessionTest API tests on ios-simulator
+        https://bugs.webkit.org/show_bug.cgi?id=160225
+
+        Reviewed by Alexey Proskuryakov.
+
+        * TestWebKitAPI/Tests/WebCore/WebCoreNSURLSession.mm:
+
+2016-07-27  Miguel Gomez  <magomez@igalia.com>
+
+        [GTK] Fix some video/canvas tests that should be passing
+        https://bugs.webkit.org/show_bug.cgi?id=160023
+
+        Reviewed by Carlos Garcia Campos.
+
+        Add a platform identifier to the TestRunner's page user agent when the tests are run on the
+        EFL or GTK platforms.
+
+        * WebKitTestRunner/efl/TestControllerEfl.cpp:
+        (WTR::TestController::platformConfigureViewForTest):
+        * WebKitTestRunner/gtk/TestControllerGtk.cpp:
+        (WTR::TestController::platformConfigureViewForTest):
+
+2016-07-27  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [Tools] The built product doesn't contains the dwo files when DEBUG_FISSION is enabled.
+        https://bugs.webkit.org/show_bug.cgi?id=160247
+
+        Reviewed by Michael Catanzaro.
+
+        * BuildSlaveSupport/built-product-archive:
+        (createZip):
+        (dirContainsdwo):
+        (archiveBuiltProduct):
+
+2016-07-26  Alex Christensen  <achristensen@webkit.org>
+
+        Fix tests after r203743.
+        https://bugs.webkit.org/show_bug.cgi?id=156947
+
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::resetStateToConsistentValues):
+        Reset the new boolean m_rejectsProtectionSpaceAndContinueForAuthenticationChallenges.
+
+2016-07-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=160178
+        <rdar://problem/27535468>
+
+        Reviewed by Dan Bernstein.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (setDefaultsToConsistentValuesForTesting):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/RequiresUserActionForPlayback.mm:
+        (RequiresUserActionForPlaybackTest::SetUp):
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::resetPreferencesToConsistentValues):
+        * WebKitTestRunner/cocoa/TestControllerCocoa.mm:
+        (WTR::initializeWebViewConfiguration):
+
+2016-07-26  Simon Fraser  <simon.fraser@apple.com>
+
+        Allow LOG macros to be used outside the namespace, and other logging cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=160216
+
+        Reviewed by Anders Carlsson.
+        
+        initializeLoggingChannelsIfNecessary -> initializeLogChannelsIfNecessary
+
+        * DumpRenderTree/TestRunner.cpp:
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (resetWebViewToConsistentStateBeforeTesting):
+
+2016-07-26  David Kilzer <ddkilzer@apple.com>
+
+        Networking process crash due to missing -[WebCoreAuthenticationClientAsChallengeSender performDefaultHandlingForAuthenticationChallenge:] implementation
+        https://bugs.webkit.org/show_bug.cgi?id=156947
+        <rdar://problem/23325160>
+
+        Reviewed by Alex Christensen.
+
+        * DumpRenderTree/TestRunner.cpp:
+        (TestRunner::TestRunner):
+        (setRejectsProtectionSpaceAndContinueForAuthenticationChallengesCallback):
+        * DumpRenderTree/TestRunner.h:
+        (TestRunner::rejectsProtectionSpaceAndContinueForAuthenticationChallenges):
+        (TestRunner::setRejectsProtectionSpaceAndContinueForAuthenticationChallenges):
+        * DumpRenderTree/mac/ResourceLoadDelegate.mm:
+        (-[ResourceLoadDelegate webView:resource:didReceiveAuthenticationChallenge:fromDataSource:]):
+        * WebKitTestRunner/InjectedBundle/Bindings/TestRunner.idl:
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp:
+        (WTR::TestRunner::queueNonLoadingScript):
+        (WTR::TestRunner::setRejectsProtectionSpaceAndContinueForAuthenticationChallenges):
+        * WebKitTestRunner/InjectedBundle/TestRunner.h:
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::didReceiveAuthenticationChallenge):
+        * WebKitTestRunner/TestController.h:
+        (WTR::TestController::setRejectsProtectionSpaceAndContinueForAuthenticationChallenges):
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::didReceiveMessageFromInjectedBundle):
+        Add TestRunner.setRejectsProtectionSpaceAndContinueForAuthenticationChallenges to use for testing.
+
+2016-07-26  David Kilzer  <ddkilzer@apple.com>
+
+        check-for-exit-time-destructors should be usable outside Xcode
+        <https://webkit.org/b/160195>
+
+        Reviewed by Darin Adler.
+
+        * Scripts/check-for-exit-time-destructors: Update to parse
+        -h|--help switch, or to take one argument to a binary to check
+        for exit time destructors on the command-line.  The clang
+        compiler will find these at compile-time with the
+        -Wexit-time-destructors switch, but this script will check for
+        them after-the-fact.
+
 2016-07-26  Lucas Forschler  <lforschler@apple.com>
 
         Test svn.webkit.org functionality after maintenance.

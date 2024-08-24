@@ -1,3 +1,590 @@
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        window.open.length should be 0
+        https://bugs.webkit.org/show_bug.cgi?id=160323
+
+        Reviewed by Darin Adler.
+
+        Update existing test to reflect behavior change.
+
+        * js/dom/function-length-expected.txt:
+        * js/dom/function-length.html:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to Event.initEvent() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160320
+
+        Reviewed by Darin Adler.
+
+        Update existing tests to make sure they call initEvent() will all 3
+        parameters.
+
+        * fast/dom/HTMLObjectElement/beforeload-set-text-crash.xhtml:
+        * fast/forms/form-submission-create-crash.xhtml:
+        * js/arity-mismatch-at-vmentry.html:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to canvas.getContext() / probablySupportsContext() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160312
+
+        Reviewed by Darin Adler.
+
+        Update existing test to reflect behavior change.
+
+        * fast/canvas/webgl/canvas-supports-context-expected.txt:
+        * fast/canvas/webgl/canvas-supports-context.html:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to table.deleteRow() / body.deleteRow() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160307
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect behavior change.
+
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+
+2016-07-28  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203826.
+        https://bugs.webkit.org/show_bug.cgi?id=160314
+
+        The test added with this change fails on El Capitan WK2.
+        (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "HTMLVideoElement with MediaStream src shows paused image when
+        all video tracks are disabled"
+        https://bugs.webkit.org/show_bug.cgi?id=160222
+        http://trac.webkit.org/changeset/203826
+
+2016-07-28  Alexey Proskuryakov  <ap@apple.com>
+
+        macOS Sierra test result gardening.
+
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        2 first parameters to input.setSelectionRange() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160310
+
+        Reviewed by Alex Christensen.
+
+        Update existing test to reflect behavior change.
+
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to tr.deleteCell() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160308
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect behavior change.
+
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+
+2016-07-28  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/dom/Window/child-window-focus.html as flaky on mac-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=160309
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-07-28  George Ruan  <gruan@apple.com>
+
+        HTMLVideoElement with MediaStream src shows paused image when all video tracks are disabled
+        https://bugs.webkit.org/show_bug.cgi?id=160222
+        <rdar://problem/27557313>
+
+        Reviewed by Eric Carlson.
+
+        * fast/mediastream/MediaStream-video-element-video-tracks-disabled-expected.html: Added.
+        * fast/mediastream/MediaStream-video-element-video-tracks-disabled-then-enabled-expected.txt: Added.
+        * fast/mediastream/MediaStream-video-element-video-tracks-disabled-then-enabled.html: Added. Checks
+        that the video frames display captured media if all video tracks were disabled and then a single
+        video track is re-enabled. This test also checks that an initial frame is painted to
+        canvas if the video has not yet been played.
+        * fast/mediastream/MediaStream-video-element-video-tracks-disabled.html: Added. Reference tests the
+        frames of the video to be black, since the canvas is painted black regardless of the state of the video frames
+        if displayMode of MediaPlayerPrivateMediaStreamAVFObjC is PaintItBlack.
+
+2016-07-28  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unskip some CSS tests that previously timed out on ios-simulator.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to SVGDocument.createEvent() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160296
+
+        Reviewed by Alex Christensen.
+
+        Add test coverage.
+
+        * svg/dom/SVGDocument-createEvent-expected.txt: Added.
+        * svg/dom/SVGDocument-createEvent.html: Added.
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to CanvasGradient.addColorStop() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160297
+
+        Reviewed by Alex Christensen.
+
+        Rebaseline existing test due to behavior change.
+
+        * platform/mac/canvas/philip/tests/2d.missingargs-expected.txt:
+
+2016-07-27  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unskip some compositing tests on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=152131
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/compositing/overflow/overflow-compositing-descendant-expected.txt: Added.
+        * platform/ios-simulator/compositing/overflow/scroll-ancestor-update-expected.txt: Added.
+
+2016-07-28  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Streams API] Replace ReadableStreamController by ReadableStreamDefaultController
+        https://bugs.webkit.org/show_bug.cgi?id=160242
+
+        Reviewed by Youenn Fablet.
+
+        Replaced ReadableStreamController by ReadableStreamDefaultController to align
+        with updated Streams API specification.
+
+        No change in functionality.
+
+        * streams/readable-stream-default-controller-error-expected.txt: Renamed from LayoutTests/streams/readable-stream-controller-error-expected.txt.
+        * streams/readable-stream-default-controller-error.html: Renamed from LayoutTests/streams/readable-stream-controller-error.html.
+        * streams/readable-stream-error-messages-expected.txt:
+        * streams/readable-stream-error-messages.html:
+        * streams/reference-implementation/readable-stream-expected.txt:
+
+2016-07-28  Youenn Fablet  <youenn@apple.com>
+
+        Compute fetch response type in case of cross-origin requests
+        https://bugs.webkit.org/show_bug.cgi?id=158565
+
+        Reviewed by Alex Christensen.
+
+        Rebasing fetch API tests as filtering is now done.
+        Rebasing XHR tests as console messages are no longer available when trying to access non-exposed headers.
+
+        * http/tests/xmlhttprequest/access-control-basic-whitelist-response-headers-expected.txt:
+        * http/tests/xmlhttprequest/access-control-response-with-expose-headers-expected.txt:
+        * http/tests/xmlhttprequest/get-dangerous-headers-expected.txt:
+        * http/tests/xmlhttprequest/getResponseHeader-expected.txt:
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/fetch/api/basic/mode-no-cors-expected.txt:
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/fetch/api/basic/mode-no-cors-worker-expected.txt:
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/fetch/api/cors/cors-basic-expected.txt:
+        * platform/mac-wk2/imported/w3c/web-platform-tests/fetch/api/basic/mode-no-cors-expected.txt:
+        * platform/mac-wk2/imported/w3c/web-platform-tests/fetch/api/basic/mode-no-cors-worker-expected.txt:
+        * platform/mac-wk2/imported/w3c/web-platform-tests/fetch/api/cors/cors-basic-expected.txt:
+
+2016-07-27  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/loading/basic-credentials-sent-automatically.html as flaky on mac and ios-sim wk2
+        https://bugs.webkit.org/show_bug.cgi?id=159427
+
+        Unreivewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/mac-wk2/TestExpectations:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to HTMLMediaElement.canPlayType() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160275
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing tests to reflect behavior change.
+
+        * media/encrypted-media/encrypted-media-can-play-type.html:
+        * media/media-can-play-type-expected.txt:
+        * media/media-can-play-type.html:
+        * platform/mac/media/encrypted-media/encrypted-media-can-play-type-expected.txt:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to insertAdjacentText() / insertAdjacentHTML() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160274
+
+        Reviewed by Darin Adler.
+
+        Add test coverage.
+
+        * fast/dom/Element/insertAdjacentText-parameters-expected.txt: Added.
+        * fast/dom/Element/insertAdjacentText-parameters.html: Added.
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to DOMParser.parseFromString() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160268
+
+        Reviewed by Ryosuke Niwa.
+
+        Add test coverage.
+
+        * fast/parser/DOMParser-parameters-expected.txt: Added.
+        * fast/parser/DOMParser-parameters.html: Added.
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Align MediaList with the CSSOM specification
+        https://bugs.webkit.org/show_bug.cgi?id=160257
+
+        Reviewed by Ryosuke Niwa.
+
+        * fast/css/MediaList-mediaText-null-expected.txt: Added.
+        * fast/css/MediaList-mediaText-null.html: Added.
+        Add test coverage for MediaList.mediaText to make sure it is not nullable
+        and treats null as the empty string. Our IDL did not match the
+        specification here but our behavior was correct. Therefore, this test is
+        passing with and without my change. I just wanted to make sure we had
+        good coverage since I updated our IDL to match the specification.
+
+        * fast/css/MediaList-parameters-expected.txt: Added.
+        * fast/css/MediaList-parameters.html: Added.
+        Add test coverage for mandatory parameters.
+
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+        Update existing test to reflect behavior change.
+
+2016-07-27  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Correct the syntax used to skip js/regress/script-tests/bigswitch-indirect-symbol.js
+
+        Unreviewed test gardening.
+
+        * js/regress/script-tests/bigswitch-indirect-symbol.js:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to indexed property getters should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160259
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing tests to reflect behavior change.
+
+        * fast/css/webkit-keyframes-crash.html:
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+
+2016-07-27  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Land test expectations for rdar://problem/27574303.
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to Document.execCommand() / queryCommand*() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160258
+
+        Reviewed by Darin Adler.
+
+        Add layout test coverage.
+
+        * fast/dom/Document/editing-parameters-expected.txt: Added.
+        * fast/dom/Document/editing-parameters.html: Added.
+
+2016-07-27  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Fix a typo in TestExpectations.
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-27  Chris Dumez  <cdumez@apple.com>
+
+        Align CSSSupportsRule with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160256
+
+        Reviewed by Darin Adler.
+
+        * fast/css/CSSSupportsRule-parameters-expected.txt: Added.
+        * fast/css/CSSSupportsRule-parameters.html: Added.
+        Add layout test coverage for mandatory parameters.
+
+        * platform/efl/js/dom/global-constructors-attributes-expected.txt:
+        * platform/gtk/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * platform/win/js/dom/global-constructors-attributes-expected.txt:
+        Rebaseline existing test now that CSSSupportsRule is exposed on the
+        global Window object.
+
+2016-07-27  Miguel Gomez  <magomez@igalia.com>
+
+        [GTK] Unreviewed gardening: update expectations after r203770
+        https://bugs.webkit.org/show_bug.cgi?id=160253
+
+        Unreviewed gardening.
+
+        * platform/gtk/TestExpectations:
+
+2016-07-27  Miguel Gomez  <magomez@igalia.com>
+
+        [GTK] Fix some video/canvas tests that should be passing
+        https://bugs.webkit.org/show_bug.cgi?id=160023
+
+        Reviewed by Carlos Garcia Campos.
+
+        Modify the tests to use a tolerance of 6 when running on the GTK or EFL platforms. Also,
+        added new expectations for the tests that need them.
+
+        * fast/canvas/canvas-createPattern-video-loading.html:
+        * fast/canvas/canvas-createPattern-video-modify.html:
+        * media/video-canvas-createPattern.html:
+        * platform/efl/fast/canvas/canvas-createPattern-video-loading-expected.txt: Added.
+        * platform/efl/fast/canvas/canvas-createPattern-video-modify-expected.txt: Added.
+        * platform/gtk/fast/canvas/canvas-createPattern-video-loading-expected.txt: Added.
+        * platform/gtk/fast/canvas/canvas-createPattern-video-modify-expected.txt: Added.
+        * resources/platform-helper.js: Added.
+        (isGtk):
+        (isEfl):
+        (videoCanvasPixelComparisonTolerance):
+
+2016-07-27  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Streams API] Replace ReadableStreamReader by ReadableStreamDefaultReader
+        https://bugs.webkit.org/show_bug.cgi?id=160194
+
+        Reviewed by Youenn Fablet.
+
+        Replaced ReadableStreamReader by ReadableStreamDefaultReader to align
+        with updated Streams API specification.
+
+        No change in functionality.
+
+        * streams/brand-checks.html:
+        * streams/readable-stream-controller-error-expected.txt:
+        * streams/readable-stream-controller-error.html:
+        * streams/readable-stream-default-reader-read-expected.txt: Renamed from LayoutTests/streams/readable-stream-reader-read-expected.txt.
+        * streams/readable-stream-default-reader-read.html: Renamed from LayoutTests/streams/readable-stream-reader-read.html.
+        * streams/readable-stream-error-messages-expected.txt:
+        * streams/readable-stream-error-messages.html:
+        * streams/reference-implementation/readable-stream-reader-expected.txt:
+        * streams/shadowing-Promise-expected.txt:
+        * streams/shadowing-Promise.html:
+
+2016-07-27  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Handle alignment with orthogonal flows
+        https://bugs.webkit.org/show_bug.cgi?id=159295
+
+        Reviewed by Darin Adler.
+
+        Now that grid sizing and positioning issues wrt orthogonal flows have
+        been clarified in the last spec draft, we can adapt now our alignment
+        logic to work with orthogonal flows.
+
+        These tests ensure that alignment works as expected in the cases where
+        grid and its children are orthogonal.
+
+        * fast/css-grid-layout/grid-item-alignment-with-orthogonal-flows-expected.txt: Added.
+        * fast/css-grid-layout/grid-item-alignment-with-orthogonal-flows-vertical-lr-expected.txt: Added.
+        * fast/css-grid-layout/grid-item-alignment-with-orthogonal-flows-vertical-lr.html: Added.
+        * fast/css-grid-layout/grid-item-alignment-with-orthogonal-flows-vertical-rl-expected.txt: Added.
+        * fast/css-grid-layout/grid-item-alignment-with-orthogonal-flows-vertical-rl.html: Added.
+        * fast/css-grid-layout/grid-item-alignment-with-orthogonal-flows.html: Added.
+        * fast/css-grid-layout/resources/grid-alignment.css:
+        (.alignContentSpaceBetween):
+        (.alignContentSpaceAround):
+        (.alignContentSpaceEvenly):
+        (.alignContentStretch):
+        (.selfStart):
+        (.selfEnd):
+        (.selfCenter):
+        (.selfRight):
+        (.selfLeft):
+        (.selfSelfStart):
+        (.selfSelfEnd):
+        (.itemsSelfEnd): Deleted.
+
+2016-07-26  Youenn Fablet  <youennf@gmail.com>
+
+        JS Built-ins should throw this-error messages consistently with binding generated code
+        https://bugs.webkit.org/show_bug.cgi?id=160191
+
+        Reviewed by Darin Adler.
+
+        * fetch/fetch-error-messages-expected.txt: Added.
+        * fetch/fetch-error-messages.html: Added.
+        * streams/readable-stream-error-messages-expected.txt: Added.
+        * streams/readable-stream-error-messages.html: Added.
+
+2016-07-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iOS] SF-Heavy is inaccessible by web content
+        https://bugs.webkit.org/show_bug.cgi?id=160186
+        <rdar://problem/27434423>
+
+        Reviewed by Dean Jackson.
+
+        * platform/ios-simulator/TestExpectations: system-font-weight-italic.html
+        is expected to fail on iOS 9.
+        * fast/text/system-font-weight-italic-expected.txt: Added.
+        * fast/text/system-font-weight-italic.html: Added.
+        * fast/text/system-font-weight-expected.txt: Added.
+        * fast/text/system-font-weight.html: Added.
+
+2016-07-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip failing JSC test regress/script-tests/bigswitch-indirect-symbol.js
+        https://bugs.webkit.org/show_bug.cgi?id=160035
+
+        Unreviewed test gardening.
+
+        * js/regress/script-tests/bigswitch-indirect-symbol.js:
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Second parameter to History.pushState() / replaceState() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160230
+
+        Reviewed by Sam Weinig.
+
+        * fast/history/state-api-parameters.html: Added.
+        * fast/history/state-api-parameters-expected.txt: Added.
+        Add layout test coverage.
+
+        * fast/history/replacestate-nocrash.html:
+        * fast/loader/stateobjects/popstate-fires-with-page-cache.html:
+        Update existing tests to reflect behavior change.
+
+2016-07-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/memory/tracking.html as flaky on mac-wk1 debug
+        https://bugs.webkit.org/show_bug.cgi?id=160227
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Align CSSKeyframesRule with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160219
+
+        Reviewed by Darin Adler.
+
+        Add layout test coverage.
+
+        * animations/CSSKeyframesRule-name-null-expected.txt: Added.
+        * animations/CSSKeyframesRule-name-null.html: Added.
+        * animations/CSSKeyframesRule-parameters-expected.txt: Added.
+        * animations/CSSKeyframesRule-parameters.html: Added.
+
+2016-07-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iPhone] Playing a video on tudou.com plays only sound, no video
+        https://bugs.webkit.org/show_bug.cgi?id=160178
+        <rdar://problem/27535468>
+
+        Reviewed by Eric Carlson and Dan Bernstein.
+
+        * media/video-playsinline-expected.txt:
+        * media/video-playsinline.html:
+        * media/video-webkit-playsinline-expected.txt: Added.
+        * media/video-webkit-playsinline.html: Added.
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Align CSSStyleDeclaration with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160214
+
+        Reviewed by Darin Adler.
+
+        * fast/css/CSSStyleDeclaration-cssText-null-expected.txt: Added.
+        * fast/css/CSSStyleDeclaration-cssText-null.html: Added.
+        Add layout test coverage for setting cssText to null. This test
+        passes in WebKit, Firefox and Chrome, with or without my change.
+        Our IDL wrongly reported the cssText attribute as nullable but
+        WebKit was already behaving correctly.
+
+        * fast/css/CSSStyleDeclaration-parameters-expected.txt: Added.
+        * fast/css/CSSStyleDeclaration-parameters.html: Added.
+        Add testing for omitting CSSStyleDeclaration API parameters, to
+        make sure they are mandatory. This test passes in Firefox and
+        Chrome.
+
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+        Update existing test to reflect behavior change.
+
+2016-07-26  David Kilzer <ddkilzer@apple.com>
+
+        Networking process crash due to missing -[WebCoreAuthenticationClientAsChallengeSender performDefaultHandlingForAuthenticationChallenge:] implementation
+        https://bugs.webkit.org/show_bug.cgi?id=156947
+        <rdar://problem/23325160>
+
+        Reviewed by Alex Christensen.
+
+        * http/tests/xmlhttprequest/auth-reject-protection-space-expected.txt: Added.
+        * http/tests/xmlhttprequest/auth-reject-protection-space.html: Added.
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to CSSStyleSheet.insertRule() / deleteRule() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160210
+
+        Reviewed by Darin Adler.
+
+        * fast/css/stylesheet-parameters-expected.txt: Added.
+        * fast/css/stylesheet-parameters.html: Added.
+        Add layout test coverage.
+
+        * editing/selection/first-letter-selection-crash.html:
+        * fast/css/counters/asterisk-counter-update-after-layout-crash.html:
+        * fast/dom/HTMLElement/dynamic-editability-change.html:
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+        Update existing tests to reflect the behavior change.
+
+2016-07-26  George Ruan  <gruan@apple.com>
+
+        HTMLVideoElement frames do not update on iOS when src is a MediaStream blob
+        https://bugs.webkit.org/show_bug.cgi?id=159833
+        <rdar://problem/27379487>
+
+        Reviewed by Eric Carlson.
+
+        * fast/mediastream/MediaStream-video-element-displays-buffer-expected.txt: Added.
+        * fast/mediastream/MediaStream-video-element-displays-buffer.html: Added. Checks that
+        a video element with a mediastream source displays frames that are neither black or transparent.
+        * fast/mediastream/resources/getUserMedia-helper.js:
+        (setupVideoElementWithStream): Sets up video element with global variable mediastream.
+
 2016-07-26  Ryosuke Niwa  <rniwa@webkit.org>
 
         Remove the tests for legacy custom elements API

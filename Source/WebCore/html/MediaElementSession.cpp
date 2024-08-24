@@ -51,6 +51,7 @@
 #if PLATFORM(IOS)
 #include "AudioSession.h"
 #include "RuntimeApplicationChecks.h"
+#include <wtf/spi/darwin/dyldSPI.h>
 #endif
 
 namespace WebCore {
@@ -465,16 +466,14 @@ bool MediaElementSession::requiresFullscreenForVideoPlayback(const HTMLMediaElem
     if (!settings || !settings->allowsInlineMediaPlayback())
         return true;
 
-    bool requiresPlaysInline = settings->allowsInlineMediaPlaybackWithPlaysInlineAttribute();
-    bool requiresWebKitPlaysInline = settings->allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute();
-
-    if (!requiresPlaysInline && !requiresWebKitPlaysInline)
+    if (!settings->inlineMediaPlaybackRequiresPlaysInlineAttribute())
         return false;
 
-    bool hasPlaysInline = element.hasAttributeWithoutSynchronization(HTMLNames::playsinlineAttr);
-    bool hasWebKitPlaysInline = element.hasAttributeWithoutSynchronization(HTMLNames::webkit_playsinlineAttr);
-
-    return !((requiresPlaysInline && hasPlaysInline) || (requiresWebKitPlaysInline && hasWebKitPlaysInline));
+#if PLATFORM(IOS)
+    if (dyld_get_program_sdk_version() < DYLD_IOS_VERSION_10_0)
+        return !element.hasAttributeWithoutSynchronization(HTMLNames::webkit_playsinlineAttr);
+#endif
+    return !element.hasAttributeWithoutSynchronization(HTMLNames::playsinlineAttr);
 }
 
 bool MediaElementSession::allowsAutomaticMediaDataLoading(const HTMLMediaElement& element) const

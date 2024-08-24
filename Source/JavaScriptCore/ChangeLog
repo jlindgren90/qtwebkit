@@ -1,3 +1,324 @@
+2016-07-28  Mark Lam  <mark.lam@apple.com>
+
+        StringView should have an explicit m_is8Bit field.
+        https://bugs.webkit.org/show_bug.cgi?id=160282
+        <rdar://problem/27327943>
+
+        Reviewed by Benjamin Poulain.
+
+        * tests/stress/string-joining-long-strings-should-not-crash.js: Added.
+        (catch):
+
+2016-07-28  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [ARM] Typo fix after r121885
+        https://bugs.webkit.org/show_bug.cgi?id=160288
+
+        Reviewed by Zoltan Herczeg.
+
+        * assembler/MacroAssemblerARM.h:
+        (JSC::MacroAssemblerARM::maxJumpReplacementSize):
+
+2016-07-28  Csaba Osztrogonác  <ossy@webkit.org>
+
+        64-bit alignment check isn't necessary in ARMAssembler::prepareExecutableCopy after r202214
+        https://bugs.webkit.org/show_bug.cgi?id=159711
+
+        Reviewed by Mark Lam.
+
+        * assembler/ARMAssembler.cpp:
+        (JSC::ARMAssembler::prepareExecutableCopy):
+
+2016-07-27  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Remove some unused code from FTL
+        https://bugs.webkit.org/show_bug.cgi?id=160285
+
+        Reviewed by Mark Lam.
+
+        All the liveness and swapping is done inside B3,
+        this code is no longer needed.
+
+        * dfg/DFGEdge.h:
+        (JSC::DFG::Edge::doesNotKill): Deleted.
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::doesKill): Deleted.
+
+2016-07-27  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] DFG::Node should not have its own allocator
+        https://bugs.webkit.org/show_bug.cgi?id=160098
+
+        Reviewed by Geoffrey Garen.
+
+        We need some design changes for DFG::Node:
+        -Accessing the index must be fast. B3 uses indices for sets
+         and maps, it is a lot faster than hashing pointers.
+        -We should be able to subclass DFG::Node to specialize it.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * dfg/DFGAllocator.h: Removed.
+        (JSC::DFG::Allocator::Region::size): Deleted.
+        (JSC::DFG::Allocator::Region::headerSize): Deleted.
+        (JSC::DFG::Allocator::Region::numberOfThingsPerRegion): Deleted.
+        (JSC::DFG::Allocator::Region::data): Deleted.
+        (JSC::DFG::Allocator::Region::isInThisRegion): Deleted.
+        (JSC::DFG::Allocator::Region::regionFor): Deleted.
+        (JSC::DFG::Allocator<T>::Allocator): Deleted.
+        (JSC::DFG::Allocator<T>::~Allocator): Deleted.
+        (JSC::DFG::Allocator<T>::allocate): Deleted.
+        (JSC::DFG::Allocator<T>::free): Deleted.
+        (JSC::DFG::Allocator<T>::freeAll): Deleted.
+        (JSC::DFG::Allocator<T>::reset): Deleted.
+        (JSC::DFG::Allocator<T>::indexOf): Deleted.
+        (JSC::DFG::Allocator<T>::allocatorOf): Deleted.
+        (JSC::DFG::Allocator<T>::bumpAllocate): Deleted.
+        (JSC::DFG::Allocator<T>::freeListAllocate): Deleted.
+        (JSC::DFG::Allocator<T>::allocateSlow): Deleted.
+        (JSC::DFG::Allocator<T>::freeRegionsStartingAt): Deleted.
+        (JSC::DFG::Allocator<T>::startBumpingIn): Deleted.
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::addToGraph):
+        * dfg/DFGCPSRethreadingPhase.cpp:
+        (JSC::DFG::CPSRethreadingPhase::freeUnnecessaryNodes):
+        (JSC::DFG::CPSRethreadingPhase::addPhiSilently):
+        * dfg/DFGCleanUpPhase.cpp:
+        (JSC::DFG::CleanUpPhase::run):
+        * dfg/DFGConstantFoldingPhase.cpp:
+        (JSC::DFG::ConstantFoldingPhase::run):
+        * dfg/DFGConstantHoistingPhase.cpp:
+        * dfg/DFGDCEPhase.cpp:
+        (JSC::DFG::DCEPhase::fixupBlock):
+        * dfg/DFGDriver.cpp:
+        (JSC::DFG::compileImpl):
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::Graph):
+        (JSC::DFG::Graph::deleteNode):
+        (JSC::DFG::Graph::killBlockAndItsContents):
+        (JSC::DFG::Graph::~Graph): Deleted.
+        * dfg/DFGGraph.h:
+        (JSC::DFG::Graph::addNode):
+        * dfg/DFGLICMPhase.cpp:
+        (JSC::DFG::LICMPhase::attemptHoist):
+        * dfg/DFGLongLivedState.cpp: Removed.
+        (JSC::DFG::LongLivedState::LongLivedState): Deleted.
+        (JSC::DFG::LongLivedState::~LongLivedState): Deleted.
+        (JSC::DFG::LongLivedState::shrinkToFit): Deleted.
+        * dfg/DFGLongLivedState.h: Removed.
+        * dfg/DFGNode.cpp:
+        (JSC::DFG::Node::index): Deleted.
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::index):
+        * dfg/DFGNodeAllocator.h: Removed.
+        (operator new ): Deleted.
+        * dfg/DFGObjectAllocationSinkingPhase.cpp:
+        * dfg/DFGPlan.cpp:
+        (JSC::DFG::Plan::compileInThread):
+        (JSC::DFG::Plan::compileInThreadImpl):
+        * dfg/DFGPlan.h:
+        * dfg/DFGSSAConversionPhase.cpp:
+        (JSC::DFG::SSAConversionPhase::run):
+        * dfg/DFGWorklist.cpp:
+        (JSC::DFG::Worklist::runThread):
+        * runtime/VM.cpp:
+        (JSC::VM::VM): Deleted.
+        * runtime/VM.h:
+
+2016-07-27  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Fix a bunch of use-after-free of DFG::Node
+        https://bugs.webkit.org/show_bug.cgi?id=160228
+
+        Reviewed by Mark Lam.
+
+        FTL had a few places where we use a node after it has been
+        deleted. The dangling pointers come from the SSA liveness information
+        kept on the basic blocks.
+
+        This patch fixes the issues I could find and adds liveness invalidation
+        to help finding dependencies like these.
+
+        * dfg/DFGBasicBlock.h:
+        (JSC::DFG::BasicBlock::SSAData::invalidate):
+
+        * dfg/DFGConstantFoldingPhase.cpp:
+        (JSC::DFG::ConstantFoldingPhase::run):
+        Constant folding phase was deleting nodes in the loop over basic blocks.
+        The problem is the deleted nodes can be referenced by other blocks.
+        When the abstract interpreter was manipulating the abstract values of those
+        it was doing so on the dead nodes.
+
+        * dfg/DFGConstantHoistingPhase.cpp:
+        Just invalidation. Nothing wrong here since the useless nodes were
+        kept live while iterating the blocks.
+
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::killBlockAndItsContents):
+        (JSC::DFG::Graph::killUnreachableBlocks):
+        (JSC::DFG::Graph::invalidateNodeLiveness):
+
+        * dfg/DFGGraph.h:
+        * dfg/DFGPlan.cpp:
+        (JSC::DFG::Plan::compileInThreadImpl):
+        We had a lot of use-after-free in LCIM because we were using the stale
+        live nodes deleted by previous phases.
+
+2016-07-27  Keith Miller  <keith_miller@apple.com>
+
+        concatAppendOne should allocate using the indexing type of the array if it cannot merge
+        https://bugs.webkit.org/show_bug.cgi?id=160261
+        <rdar://problem/27530122>
+
+        Reviewed by Mark Lam.
+
+        Before, if we could not merge the indexing types for copying, we would allocate the
+        the array as ArrayWithUndecided. Instead, we should allocate an array with the original
+        array's indexing type.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::concatAppendOne):
+        * tests/stress/concat-append-one-with-sparse-array.js: Added.
+
+2016-07-27  Saam Barati  <sbarati@apple.com>
+
+        We don't optimize for-in properly in baseline JIT (maybe other JITs too) with an object with symbols
+        https://bugs.webkit.org/show_bug.cgi?id=160211
+        <rdar://problem/27572612>
+
+        Reviewed by Geoffrey Garen.
+
+        The fast for-in iteration mode assumes all inline/out-of-line properties
+        can be iterated in linear order. This is not true if we have Symbols
+        because Symbols should not be iterated by for-in.
+
+        * runtime/Structure.cpp:
+        (JSC::Structure::add):
+        * tests/stress/symbol-should-not-break-for-in.js: Added.
+        (assert):
+        (foo):
+
+2016-07-27  Mark Lam  <mark.lam@apple.com>
+
+        The second argument for Function.prototype.apply should be array-like or null/undefined.
+        https://bugs.webkit.org/show_bug.cgi?id=160212
+        <rdar://problem/27328525>
+
+        Reviewed by Filip Pizlo.
+
+        The spec for Function.prototype.apply says its second argument can only be null,
+        undefined, or must be array-like.  See
+        https://tc39.github.io/ecma262/#sec-function.prototype.apply and
+        https://tc39.github.io/ecma262/#sec-createlistfromarraylike.
+
+        Our previous implementation was not handling this correctly for SymbolType.
+        This is now fixed.
+
+        * interpreter/Interpreter.cpp:
+        (JSC::sizeOfVarargs):
+        * tests/stress/apply-second-argument-must-be-array-like.js: Added.
+
+2016-07-27  Saam Barati  <sbarati@apple.com>
+
+        MathICs should be able to emit only a jump along the inline path when they don't have any type data
+        https://bugs.webkit.org/show_bug.cgi?id=160110
+
+        Reviewed by Mark Lam.
+
+        This patch allows for MathIC fast-path generation to be delayed.
+        We delay when we don't see any observed type information for
+        the lhs/rhs operand, which implies that the MathIC has never
+        executed. This is profitable for two main reasons:
+        1. If the math operation never executes, we emit much less code.
+        2. Once we get type information for the lhs/rhs, we can emit better code.
+
+        To implement this, we just emit a jump to the slow path call
+        that will repatch on first execution.
+
+        New data for add:
+                   |   JetStream  |  Unity 3D  |
+             ------| -------------|--------------
+              Old  |   148 bytes  |  143 bytes |
+             ------| -------------|--------------
+              New  |   116  bytes |  113 bytes |
+             ------------------------------------
+
+        New data for mul:
+                   |   JetStream  |  Unity 3D  |
+             ------| -------------|--------------
+              Old  |   210 bytes  |  185 bytes |
+             ------| -------------|--------------
+              New  |   170  bytes |  137 bytes |
+             ------------------------------------
+
+        * jit/JITAddGenerator.cpp:
+        (JSC::JITAddGenerator::generateInline):
+        * jit/JITAddGenerator.h:
+        (JSC::JITAddGenerator::isLeftOperandValidConstant):
+        (JSC::JITAddGenerator::isRightOperandValidConstant):
+        (JSC::JITAddGenerator::arithProfile):
+        * jit/JITMathIC.h:
+        (JSC::JITMathIC::generateInline):
+        (JSC::JITMathIC::generateOutOfLine):
+        (JSC::JITMathIC::finalizeInlineCode):
+        * jit/JITMathICInlineResult.h:
+        * jit/JITMulGenerator.cpp:
+        (JSC::JITMulGenerator::generateInline):
+        * jit/JITMulGenerator.h:
+        (JSC::JITMulGenerator::isLeftOperandValidConstant):
+        (JSC::JITMulGenerator::isRightOperandValidConstant):
+        (JSC::JITMulGenerator::arithProfile):
+        * jit/JITOperations.cpp:
+
+2016-07-26  Saam Barati  <sbarati@apple.com>
+
+        rollout r203666
+        https://bugs.webkit.org/show_bug.cgi?id=160226
+
+        Unreviewed rollout.
+
+        * b3/B3BasicBlock.h:
+        (JSC::B3::BasicBlock::successorBlock):
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::createGenericCompare):
+        * b3/B3LowerToAir.h:
+        * b3/air/AirArg.cpp:
+        (JSC::B3::Air::Arg::isRepresentableAs):
+        (JSC::B3::Air::Arg::usesTmp):
+        * b3/air/AirArg.h:
+        (JSC::B3::Air::Arg::isRepresentableAs):
+        (JSC::B3::Air::Arg::asNumber):
+        (JSC::B3::Air::Arg::castToType): Deleted.
+        * b3/air/AirCode.h:
+        (JSC::B3::Air::Code::size):
+        (JSC::B3::Air::Code::at):
+        * b3/air/AirOpcode.opcodes:
+        * b3/air/AirValidate.h:
+        * b3/air/opcode_generator.rb:
+        * b3/testb3.cpp:
+        (JSC::B3::compileAndRun):
+        (JSC::B3::testSomeEarlyRegister):
+        (JSC::B3::zero):
+        (JSC::B3::run):
+        (JSC::B3::lowerToAirForTesting): Deleted.
+        (JSC::B3::testBranchBitAndImmFusion): Deleted.
+
+2016-07-26  Caitlin Potter  <caitp@igalia.com>
+
+        [JSC] Object.getOwnPropertyDescriptors should not add undefined props to result
+        https://bugs.webkit.org/show_bug.cgi?id=159409
+
+        Reviewed by Geoffrey Garen.
+
+        * runtime/ObjectConstructor.cpp:
+        (JSC::objectConstructorGetOwnPropertyDescriptors):
+        * tests/es6.yaml:
+        * tests/es6/Object_static_methods_Object.getOwnPropertyDescriptors-proxy.js:
+        (testPropertiesIndexedSetterOnPrototypeThrows.set get var): Deleted.
+        (testPropertiesIndexedSetterOnPrototypeThrows): Deleted.
+        * tests/stress/Object_static_methods_Object.getOwnPropertyDescriptors-proxy.js: Renamed from Source/JavaScriptCore/tests/es6/Object_static_methods_Object.getOwnPropertyDescriptors-proxy.js.
+        * tests/stress/Object_static_methods_Object.getOwnPropertyDescriptors.js: Renamed from Source/JavaScriptCore/tests/es6/Object_static_methods_Object.getOwnPropertyDescriptors.js.
+
 2016-07-26  Mark Lam  <mark.lam@apple.com>
 
         Remove unused DEBUG_WITH_BREAKPOINT configuration.

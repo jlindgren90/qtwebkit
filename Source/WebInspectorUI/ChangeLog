@@ -1,3 +1,180 @@
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to Event.initEvent() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160320
+
+        Reviewed by Darin Adler.
+
+        Update WebInspector accordingly.
+
+        * UserInterface/Models/NativeFunctionParameters.js:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to canvas.getContext() / probablySupportsContext() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160312
+
+        Reviewed by Darin Adler.
+
+        Update WebInspector accordingly.
+
+        * UserInterface/Models/NativeFunctionParameters.js:
+
+2016-07-28  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Hiding a column which contains a TimelineRuler as the headerview, doesn't hide the headerView
+        https://bugs.webkit.org/show_bug.cgi?id=160093
+        <rdar://problem/27499300>
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid.prototype._positionHeaderViews):
+        Remove early return so that a header view in a hidden column will have
+        its width resized to zero, matching the column.
+
+2016-07-28  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Web Inspector: Waterfall view should be visible in Network tab and Network Timeline
+        https://bugs.webkit.org/show_bug.cgi?id=160061
+
+        Reviewed by Joseph Pecoraro.
+
+        Adds a Timeline-column (waterfall) to the Network tab and Network Timeline.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        Add "Timeline" localized string.
+
+        * UserInterface/Views/NetworkGridContentView.js:
+        (WebInspector.NetworkGridContentView):
+        Add the Timeline-column with a TimelineRuler as the headerview,
+        and properties for updating current time.
+
+        (WebInspector.NetworkGridContentView.prototype.get secondsPerPixel):
+        (WebInspector.NetworkGridContentView.prototype.get startTime):
+        (WebInspector.NetworkGridContentView.prototype.get currentTime):
+        (WebInspector.NetworkGridContentView.prototype.get endTime):
+        Acting as a graphDataSource used by TimelineDataGridNode.
+
+        (WebInspector.NetworkGridContentView.prototype.shown):
+        (WebInspector.NetworkGridContentView.prototype.reset):
+        (WebInspector.NetworkGridContentView.prototype.layout):
+        Refresh graphs and update the TimelineRuler on layout changes.
+
+        (WebInspector.NetworkGridContentView.prototype._networkTimelineRecordAdded):
+        Add listeners for when resources are finished to stop the timer.
+
+        (WebInspector.NetworkGridContentView.prototype._update):
+        (WebInspector.NetworkGridContentView.prototype._startUpdatingCurrentTime):
+        (WebInspector.NetworkGridContentView.prototype._stopUpdatingCurrentTime):
+        Adding a timer which updates the TimelineRuler and the layout
+        if any non-finished requests are running.
+
+        * UserInterface/Views/NetworkTimelineView.js:
+        (WebInspector.NetworkTimelineView):
+        Add the Timeline-column with a TimelineRuler as the headerview.
+
+        (WebInspector.NetworkTimelineView.prototype.get secondsPerPixel):
+        (WebInspector.NetworkTimelineView.prototype.layout):
+        Refresh graphs on layout changes.
+
+        * UserInterface/Views/TimelineDataGrid.css:
+        (.tree-outline.timeline-data-grid .item:hover .subtitle):
+        (.data-grid.timeline th):
+        (.data-grid.timeline th.graph-column > .timeline-ruler):
+        (.data-grid.timeline td.graph-column):
+        (.data-grid.timeline td.graph-column > .cell-content):
+        (.data-grid.timeline td.graph-column .timeline-record-bar):
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to table.deleteRow() / body.deleteRow() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160307
+
+        Reviewed by Ryosuke Niwa.
+
+        Update WebInspector accordingly.
+
+        * UserInterface/Models/NativeFunctionParameters.js:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        2 first parameters to input.setSelectionRange() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160310
+
+        Reviewed by Alex Christensen.
+
+        Update WebInspector accordingly.
+
+        * UserInterface/Models/NativeFunctionParameters.js:
+
+2016-07-28  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to tr.deleteCell() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160308
+
+        Reviewed by Ryosuke Niwa.
+
+        Report tr.deleteCell() parameter as mandatory.
+
+        * UserInterface/Models/NativeFunctionParameters.js:
+
+2016-07-27  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Visual Styles Sidebar should have only one column when it's narrow
+        https://bugs.webkit.org/show_bug.cgi?id=159905
+        <rdar://problem/27413248>
+
+        Reviewed by Joseph Pecoraro.
+
+        Many CSS values often get clipped in the two colunm layout. Change the layout to one colunm
+        when visual style rows get too narrow.
+
+        * UserInterface/Views/VisualStyleDetailsPanel.css:
+        (.sidebar > .panel.details.css-style .visual > .details-section .details-section > .content .group > .row):
+        (.sidebar > .panel.details.css-style .visual > .details-section .details-section > .content .group > .metric-section-row):
+        Wrap all rows except for position/padding/margin controls.
+
+        (.sidebar > .panel.details.css-style .visual > .details-section .details-section > .content .group > .row > .visual-style-property-container:not(.layout-reversed):last-child): Deleted.
+        Margin between the first and the second column doesn't make sense one column layout.
+        Set the margin in .visual-style-property-container instead.
+
+        * UserInterface/Views/VisualStyleDetailsPanel.js:
+        (WebInspector.VisualStyleDetailsPanel.prototype._generateMetricSectionRows):
+        * UserInterface/Views/VisualStylePropertyEditor.css:
+        (.visual-style-property-container):
+
+2016-07-27  Joseph Pecoraro  <pecoraro@apple.com>
+
+        [Mac] Web Inspector: CodeMirror-based editor bindings for Home and End don't match system behavior
+        https://bugs.webkit.org/show_bug.cgi?id=160267
+        <rdar://problem/27575553>
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/CodeMirrorEditor.js:
+        (WebInspector.CodeMirrorEditor.create):
+        (WebInspector.CodeMirrorEditor):
+        Add some key map overrides for Home and End to better match system Mac
+        behavior. This scrolls to the start or end of a document and does not
+        change the cursor position.
+
+2016-07-27  Brian Burg  <bburg@apple.com>
+
+        Regression(r203535): Uncaught Exception: TypeError: Not enough arguments at LayerTreeDataGridNode.js:47
+        https://bugs.webkit.org/show_bug.cgi?id=160187
+        <rdar://problem/27540435>
+
+        Reviewed by Eric Carlson.
+
+        After r203535, document.createTextNode() requires an argument.
+
+        * UserInterface/Views/LayerTreeDataGridNode.js:
+        (WebInspector.LayerTreeDataGridNode.prototype.createCellContent):
+        Since this use-site is for creating a cell in an unknown column,
+        initialize it to '–'. Previously it would have been the string
+        "undefined" or empty.
+
 2016-07-24  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: Filtering is broken in the Overview timeline view
