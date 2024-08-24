@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009 Alex Milowski (alex@milowski.com). All rights reserved.
+ * Copyright (C) 2016 Igalia S.L. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,33 +27,25 @@
 
 #if ENABLE(MATHML)
 
-#include "MathMLInlineContainerElement.h"
-#include "RenderMathMLFencedOperator.h"
-#include "RenderMathMLRow.h"
+#include "MathMLOperatorDictionary.h"
+#include "RenderMathMLOperator.h"
 
 namespace WebCore {
 
-class RenderMathMLFenced final : public RenderMathMLRow {
+class RenderMathMLFencedOperator final : public RenderMathMLOperator {
 public:
-    RenderMathMLFenced(MathMLInlineContainerElement&, RenderStyle&&);
-    MathMLInlineContainerElement& element() { return static_cast<MathMLInlineContainerElement&>(nodeForNonAnonymous()); }
+    RenderMathMLFencedOperator(Document&, RenderStyle&&, const String& operatorString, MathMLOperatorDictionary::Form, unsigned short flags = 0);
+    void updateOperatorContent(const String&);
 
 private:
-    bool isRenderMathMLFenced() const final { return true; }
-    const char* renderName() const final { return "RenderMathMLFenced"; }
-    void addChild(RenderObject* child, RenderObject* beforeChild) final;
-    void updateFromElement() final;
+    bool isRenderMathMLFencedOperator() const final { return true; }
+    UChar textContent() const final { return m_textContent; }
 
-    RenderPtr<RenderMathMLFencedOperator> createMathMLOperator(const String& operatorString, MathMLOperatorDictionary::Form, MathMLOperatorDictionary::Flag);
-    void makeFences();
-
-    String m_open;
-    String m_close;
-    RefPtr<StringImpl> m_separators;
-
-    RenderMathMLFencedOperator* m_closeFenceRenderer;
+    UChar m_textContent { 0 };
 };
 
-}
+}; // namespace WebCore
+
+SPECIALIZE_TYPE_TRAITS_RENDER_OBJECT(RenderMathMLFencedOperator, isRenderMathMLFencedOperator())
 
 #endif // ENABLE(MATHML)

@@ -1,3 +1,119 @@
+2016-08-01  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r196383): Drop down CSS menus not working on cnet.com, apmex.com
+        https://bugs.webkit.org/show_bug.cgi?id=160390
+
+        Reviewed by Simon Fraser.
+
+        The case here is that we have a rule like
+
+            .enableHover:hover .child { ... }
+
+        and the "enableHover" class is added dynamically. The class change invalidation optimization code would figure out
+        that nothing needs to be invalidated as the class change doesn't make the rule match (since :hover doesn't match).
+
+        However for event driven hover to actually work the hover element needs to have its childrenAffectedByHover bit set.
+        This bits is set when the selector match is attempted, whether it actually matches or not. Since we optimized away
+        the style invalidation we never set the bit either.
+
+        Fix by treating :hover as always matching (==ignored) when collecting rules for invalidation optimization purposes.
+        Dynamic pseudo elements are already treated this way for similar reasons.
+
+        Test: fast/selectors/hover-invalidation-descendant-dynamic.html
+
+        * css/SelectorChecker.cpp:
+        (WebCore::SelectorChecker::checkOne):
+
+            Match always in CollectingRulesIgnoringVirtualPseudoElements mode (now slightly misnamed).
+
+            This mode is used for optimization purposes in StyleInvalidationAnalysis (which we care about here) and
+            StyleSharingResolver. The change is fine for both.
+
+        * cssjit/SelectorCompiler.cpp:
+        (WebCore::SelectorCompiler::SelectorCodeGenerator::generateElementIsHovered):
+
+            Same change for the slow path selector checker.
+
+2016-08-01  Darin Adler  <darin@apple.com>
+
+        [Cocoa] Freeze Objective-C bindings and stop autogenerating them: Step 1 - Convert a single file
+        https://bugs.webkit.org/show_bug.cgi?id=160386
+
+        Reviewed by Anders Carlsson.
+
+        No behavior change, no tests changed. I tested this locally by putting "#error" into the
+        files in the DerivedSources directory to make sure the build doesn't use those files even
+        if there are stale copies still sitting there.
+
+        Moving the bindings from WebCore to the legacy part of WebKit is something we also want to
+        do, but that is quite challenging to do one file at a time, so we will do that later.
+
+        For this first file, I did some hand edits to make the code in a the file a little less
+        peculiar. It's still awkward to have all those JSMainThreadNullState in there; should double
+        check that we really need them.
+
+        An important follow up step will be to cut down on the bindings. We have lots of bindings
+        that are only in the Private.h header, and it would be good to find a way to cut down on those.
+        And on iOS we would like eliminate these bindings entirely since they are not API there.
+
+        * DerivedSources.make: Moved HTMLTextAreaElement from a list we use for both JavaScript and
+        Objective-C DOM bindings to a list we use only for JavaScript bindings.
+        * WebCore.xcodeproj/project.pbxproj: Removed references to generated DOMHTMLTextAreaElement
+        files and instead reference the checked-in copies.
+        * bindings/objc/DOMHTMLTextAreaElement.h: Added.
+        * bindings/objc/DOMHTMLTextAreaElement.mm: Added.
+        * bindings/objc/DOMHTMLTextAreaElementInternal.h: Added.
+        * bindings/objc/DOMHTMLTextAreaElementPrivate.h: Added.
+
+2016-08-01  Frederic Wang  <fwang@igalia.com>
+
+        Introduce a RenderMathMLFencedOperator class
+        https://bugs.webkit.org/show_bug.cgi?id=160245
+
+        Reviewed by Darin Adler.
+
+        We introduce a class to handle all the code specific to anonymous mfenced operators. In
+        particular many members of the RenderMathMLOperator class are going to be removed while
+        fixing bug 156537 but they may still need to stored and exposed in some way by mfenced
+        operators.
+
+        No new tests, behavior is unchanged.
+
+        * CMakeLists.txt: Add RenderMathMLFencedOperator.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * rendering/RenderObject.h:
+        (WebCore::RenderObject::isRenderMathMLFencedOperator): Function to allow casting to
+        RenderMathMLFencedOperator.
+        * rendering/mathml/RenderMathMLFenced.cpp: Use RenderMathMLFencedOperator instead of
+        RenderMathMLOperator and use the new name updateOperatorContent.
+        (WebCore::RenderMathMLFenced::updateFromElement):
+        (WebCore::RenderMathMLFenced::createMathMLOperator):
+        (WebCore::RenderMathMLFenced::makeFences):
+        (WebCore::RenderMathMLFenced::addChild):
+        * rendering/mathml/RenderMathMLFenced.h: Use RenderMathMLFencedOperator instead of
+        RenderMathMLOperator.
+        * rendering/mathml/RenderMathMLFencedOperator.cpp: New class derived from RenderMathMLOperator
+        (WebCore::RenderMathMLFencedOperator::RenderMathMLFencedOperator): Init form and operator
+        flags with the specified parameters and init the text content.
+        (WebCore::RenderMathMLFencedOperator::updateOperatorContent): We move the
+        RenderMathMLOperator::updateTokenContent function used by anonymous operators here. It is
+        renamed to avoid build errors due to conflicts with the other
+        RenderMathMLOperator::updateTokenContent function.
+        * rendering/mathml/RenderMathMLFencedOperator.h: New class for anonymous mfenced operators
+        with getter and setter for the m_textContent. Also override RenderMathMLFencedOperator to
+        allow casting to RenderMathMLFencedOperator.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::RenderMathMLOperator): Simplify the constructors. Some
+        initializations is moved in RenderMathMLOperator.h while other code is moved to
+        RenderMathMLFencedOperator.
+        (WebCore::RenderMathMLOperator::textContent): No need to handle the anonymous case here since
+        it is handled in RenderMathMLFencedOperator.
+        (WebCore::RenderMathMLOperator::updateTokenContent): We delete the version used for anonymous
+        operators and move it into RenderMathMLFencedOperator.
+        * rendering/mathml/RenderMathMLOperator.h: Make the class and some members overridable and
+        exposed to the derived RenderMathMLFencedOperator class. We also move initialization of some
+        members here.
+
 2016-08-01  Youenn Fablet  <youennf@gmail.com>
 
         Reduce the number of ResourceRequest copies in DocumentThreadableLoader
