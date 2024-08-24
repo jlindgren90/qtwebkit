@@ -1,3 +1,428 @@
+2016-07-24  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        The web process hangs when computing elements-based snap points for a container with large max scroll offset
+        https://bugs.webkit.org/show_bug.cgi?id=152605
+        <rdar://problem/25353661>
+
+        Reviewed by Simon Fraser.
+
+        Fixes a bug in the computation of axis snap points. The ScrollSnapPoints object, which tracks
+        snap points along a particular axis, has two flags, hasRepeat and usesElements. For elements-
+        based snapping, both flags would be turned on, since StyleBuilderConverter::convertScrollSnapPoints
+        short-circuits for elements-based snapping and does not default usesRepeat to false. To address this,
+        we make ScrollSnapPoints not repeat(100%) by default.
+
+        Test: css3/scroll-snap/scroll-snap-elements-container-larger-than-children.html
+
+        * css/StyleBuilderConverter.h:
+        (WebCore::StyleBuilderConverter::convertScrollSnapPoints): Deleted.
+        * rendering/style/StyleScrollSnapPoints.cpp:
+        (WebCore::ScrollSnapPoints::ScrollSnapPoints):
+
+2016-07-25  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r200931): Invalid cast in highestAncestorToWrapMarkup()
+        https://bugs.webkit.org/show_bug.cgi?id=160163
+
+        Reviewed by Michael Catanzaro.
+
+        Since r200931 the result of enclosingNodeOfType() in highestAncestorToWrapMarkup() is downcasted to Element, but
+        the result of enclosingNodeOfType() can be a Node that is not an Element, in this case is Text. The cast is not
+        needed at all since that node is passed to editingIgnoresContent() and selectionFromContentsOfNode() and both
+        receive a Node not an Element.
+
+        * editing/markup.cpp:
+        (WebCore::highestAncestorToWrapMarkup): Remove invalid cast.
+
+2016-07-25  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] ASSERTION FAILED: m_coordinator->isFlushingLayerChanges() in fast/repaint/animation-after-layer-scroll.html
+        https://bugs.webkit.org/show_bug.cgi?id=160156
+
+        Reviewed by Michael Catanzaro.
+
+        So, we fixed an assertion in r203663, but now is hitting the next one. As explained in bug #160142, flush
+        compositing state can be triggered in tests by RenderLayerCompositor::layerTreeAsText(), without the coordinator
+        even noticing it, so the assert can be just removed.
+
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp:
+        (WebCore::CoordinatedGraphicsLayer::flushCompositingStateForThisLayerOnly): Remove incorrect assert.
+
+2016-07-25  Zalan Bujtas  <zalan@apple.com>
+
+        EllipsisBox ctor's isVertical parameter should read isHorizontal.
+        https://bugs.webkit.org/show_bug.cgi?id=160153
+
+        Reviewed by Andreas Kling.
+
+        It indicates whether the ellipsis box is horizontal. (both the callsites
+        and the parent class use isHorizontal)
+
+        No change in functionality.
+
+        * rendering/EllipsisBox.cpp:
+        (WebCore::EllipsisBox::EllipsisBox):
+        * rendering/EllipsisBox.h:
+
+2016-07-25  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Implement repeat(auto-fit)
+        https://bugs.webkit.org/show_bug.cgi?id=159771
+
+        Reviewed by Darin Adler.
+
+        The auto-fit keyword works exactly as the already implemented auto-fill except that all
+        empty tracks collapse (became 0px). Absolutely positioned items do not participate on the
+        layout of the grid so they are not considered (a grid with only absolutely positioned items
+        is considered an empty grid).
+
+        Whenever a track collapses the gutters on either side do also collapse. When a collapsed
+        track's gutters collapse, they coincide exactly. If one side of a collapsed track does not
+        have a gutter then collapsing its gutters results in no gutter on either "side" of the
+        collapsed track.
+
+        In practice this means that is not possible to know the gap between 2 consecutive auto
+        repeat tracks without examining some others whenever there are collapsed tracks.
+
+        Uncommented the auto-fit cases from Mozilla tests. They have to be adapted as the reftest
+        machinery requires all the content to be rendered in the original 800x600 viewport.
+
+        Tests: fast/css-grid-layout/grid-auto-fit-columns.html
+        fast/css-grid-layout/grid-auto-fit-rows.html
+        fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-005-part-1.html
+        fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-005-part-2.html
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::valueForGridTrackList): Use the newly added trackSizesForComputedStyle().
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::computeTrackBasedLogicalHeight):
+        (WebCore::RenderGrid::computeTrackSizesForDirection):
+        (WebCore::RenderGrid::isEmptyAutoRepeatTrack):
+        (WebCore::RenderGrid::gridGapForDirection): Returns the gap directly from the style.
+        (WebCore::RenderGrid::guttersSize): Computes the gap between a startLine and an
+        endLine. This method may need to inspect some other surrounding tracks to compute the gap.
+        (WebCore::RenderGrid::computeIntrinsicLogicalWidths):
+        (WebCore::RenderGrid::computeIntrinsicLogicalHeight):
+        (WebCore::RenderGrid::computeUsedBreadthOfGridTracks):
+        (WebCore::RenderGrid::gridTrackSize):
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctionsForItems):
+        (WebCore::RenderGrid::computeAutoRepeatTracksCount):
+        (WebCore::RenderGrid::computeEmptyTracksForAutoRepeat): Returns a Vector with the auto
+        repeat tracks that are going to be collapsed because they're empty.
+        (WebCore::RenderGrid::placeItemsOnGrid):
+        (WebCore::RenderGrid::trackSizesForComputedStyle): Used by ComputedStyle logic to print the
+        size of tracks. Added in order to hide the actual contents of m_columnPositions and
+        m_rowPositions to the outter world.
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+        (WebCore::RenderGrid::gridAreaBreadthForChild):
+        (WebCore::RenderGrid::populateGridPositionsForDirection): Added some extra code to compute
+        gaps as they cannot be directly added between tracks in case of having collapsed tracks.
+        (WebCore::RenderGrid::columnAxisOffsetForChild):
+        (WebCore::RenderGrid::rowAxisOffsetForChild):
+        (WebCore::RenderGrid::offsetBetweenTracks): Deleted.
+        * rendering/RenderGrid.h: Made some API private. Added new required methods/attributes.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::valueForGridTrackList):
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::computeTrackBasedLogicalHeight):
+        (WebCore::RenderGrid::computeTrackSizesForDirection):
+        (WebCore::RenderGrid::hasAutoRepeatEmptyTracks):
+        (WebCore::RenderGrid::isEmptyAutoRepeatTrack):
+        (WebCore::RenderGrid::gridGapForDirection):
+        (WebCore::RenderGrid::guttersSize):
+        (WebCore::RenderGrid::computeIntrinsicLogicalWidths):
+        (WebCore::RenderGrid::computeIntrinsicLogicalHeight):
+        (WebCore::RenderGrid::computeUsedBreadthOfGridTracks):
+        (WebCore::RenderGrid::gridTrackSize):
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctionsForItems):
+        (WebCore::RenderGrid::computeAutoRepeatTracksCount):
+        (WebCore::RenderGrid::computeEmptyTracksForAutoRepeat):
+        (WebCore::RenderGrid::placeItemsOnGrid):
+        (WebCore::RenderGrid::trackSizesForComputedStyle):
+        (WebCore::RenderGrid::offsetAndBreadthForPositionedChild):
+        (WebCore::RenderGrid::assumedRowsSizeForOrthogonalChild):
+        (WebCore::RenderGrid::gridAreaBreadthForChild):
+        (WebCore::RenderGrid::populateGridPositionsForDirection):
+        (WebCore::RenderGrid::columnAxisOffsetForChild):
+        (WebCore::RenderGrid::rowAxisOffsetForChild):
+        (WebCore::RenderGrid::offsetBetweenTracks): Deleted.
+        * rendering/RenderGrid.h:
+
+2016-07-24  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of display, displaystyle and mathvariant attributes into MathML element classes
+        https://bugs.webkit.org/show_bug.cgi?id=159623
+
+        Reviewed by Brent Fulgham.
+
+        No new tests, already covered by existing tests.
+
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::parseMathVariantAttribute): Move helper function to parse the
+        mathvariant attribute.
+        (WebCore::MathMLElement::getSpecifiedDisplayStyle): Helper function to set the displaystyle
+        value from the attribute specified on the MathML element.
+        (WebCore::MathMLElement::getSpecifiedMathVariant): Helper function to set the mathvariant
+        value from the attribute specified on the MathML element.
+        * mathml/MathMLElement.h: Move the enum for mathvariant values and declare new members.
+        (WebCore::MathMLElement::acceptsDisplayStyleAttribute): Indicate whether the element accepts
+        displaystyle attribute (false for most of them).
+        (WebCore::MathMLElement::acceptsMathVariantAttribute): Indicate whether the element accepts
+        mathvariant attribute (false for most of them).
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::acceptsDisplayStyleAttribute): Add mstyle and mtable
+        to the list of elements accepting the displaystyle attribute.
+        (WebCore::MathMLInlineContainerElement::acceptsMathVariantAttribute): Add mstyle to the list
+        of elements accepting the mathvariant attribute.
+        (WebCore::MathMLInlineContainerElement::parseAttribute): Mark displaystyle and mathvariant
+        dirty if necessary. Also use the new accepts*Attribute function.
+        * mathml/MathMLInlineContainerElement.h: Declare overridden accepts*Attribute members.
+        * mathml/MathMLMathElement.cpp:
+        (WebCore::MathMLMathElement::getSpecifiedDisplayStyle): Override acceptsDisplayStyleAttribute
+        so that the display attribute is also used to set the default value if the displaystyle
+        attribute is absent.
+        (WebCore::MathMLMathElement::parseAttribute): Mark displaystyle and mathvariant dirty if
+        necessary. We directly MathMLElement::parseAttribute to avoid duplicate work.
+        * mathml/MathMLMathElement.h: Add the math tag to the list of elements accepting the
+        displaystyle and mathvariant attributes. Declare overridden getSpecifiedDisplayStyle.
+        * mathml/MathMLTextElement.cpp:
+        (WebCore::MathMLTextElement::parseAttribute): Mark mathvariant as dirty.
+        * mathml/MathMLTextElement.h: Add token elements to the list of elements accepting the
+        mathvariant attribute.
+        * rendering/mathml/MathMLStyle.cpp:
+        (WebCore::MathMLStyle::updateStyleIfNeeded): Use the new MathMLElement::MathVariant enum.
+        (WebCore::MathMLStyle::resolveMathMLStyle):  We no longer parse the display value to
+        initialize the default value on the math tag, because this is handled in
+        getSpecifiedDisplayStyle. In general, we also just call getSpecifiedDisplayStyle and
+        getSpecifiedMathVariant on the MathML elements instead of parsing the displaystyle and
+        mathvariant attributes here.
+        (WebCore::MathMLStyle::parseMathVariant): Deleted. This is moved into MathMLElement.
+        * rendering/mathml/MathMLStyle.h: Use the new MathMLElement::MathVariant enum.
+        * rendering/mathml/RenderMathMLToken.cpp: Ditto.
+        (WebCore::mathVariant): Ditto.
+        (WebCore::RenderMathMLToken::updateMathVariantGlyph): Ditto.
+
+2016-07-25  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Remove unneeded header includes from CoordinatedGraphicsLayer.
+
+        Not only thjey are not needed, they are a layer violation, CoordinatedGraphicsLayer shouldn't know anything
+        about Page, Frame and FrameView.
+
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp:
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.h:
+
+2016-07-24  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Request should be created with any HeadersInit data
+        https://bugs.webkit.org/show_bug.cgi?id=159672
+
+        Reviewed by Sam Weinig.
+
+        Made Request use JSBuiltinConstructor.
+        This allows initializing newly created Request with a JS built-in function, initializeFetchRequest.
+        initializeFetchRequest can call @fillFetchHeaders internal built-in to handle any HeadersInit data.
+        Future effort should be made to migrate more initialization code in initializeFetchRequest.
+
+        Made window and worker fetch function as a JS built-in.
+        This becomes more handy as these new functions can construct the Request object.
+        They can then call a single private function that takes a Request object as input.
+        Updated DOMWindowFetch and WorkerGlobalScopeFetch code accordingly.
+
+        To enable this, the binding generator is updated to support runtime-enabled JS built-in functions and
+        private functions atttached to global objects.
+
+        Covered by existing and modified tests.
+        Binding generator test covered by updated binding tests.
+
+        * CMakeLists.txt: Adding DOMWindowFetch.js, FetchRequest.js and WorkerGlobalScopeFetch.js built-in files.
+        * DerivedSources.make: Ditto.
+        * Modules/fetch/DOMWindowFetch.cpp: Removed overloaded fetch and updated according new signature.
+        (WebCore::DOMWindowFetch::fetch):
+        * Modules/fetch/DOMWindowFetch.h: Ditto.
+        * Modules/fetch/DOMWindowFetch.idl: Making fetch a JS built-in and adding a @fetchRequest private function.
+        * Modules/fetch/DOMWindowFetch.js: Added.
+        (fetch):
+        * Modules/fetch/FetchHeaders.h:
+        (WebCore::FetchHeaders::setGuard): Used by FetchRequest when initializing headers.
+        * Modules/fetch/FetchRequest.cpp: 
+        (WebCore::buildHeaders): Removed as implemented in JS.
+        (WebCore::FetchRequest::initializeOptions): Added to handle most of the dictionary initialization.
+        (WebCore::FetchRequest::initializeWith): Method called from built-in constructor function.
+        (WebCore::FetchRequest::setBody): Corresponding to @setBody private method.
+        (WebCore::buildBody): Deleted.
+        * Modules/fetch/FetchRequest.h:
+        * Modules/fetch/FetchRequest.idl:
+        * Modules/fetch/FetchRequest.js: Added.
+        (initializeFetchRequest): Implements fetch Request(input, init) constructor.
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::fetch): Removed the construction of FetchRequest in fetch method since it is done by JS built-in code.
+        * Modules/fetch/FetchResponse.h:
+        * Modules/fetch/WorkerGlobalScopeFetch.cpp: Removed overloaded fetch and updated according new signature.
+        (WebCore::WorkerGlobalScopeFetch::fetch):
+        * Modules/fetch/WorkerGlobalScopeFetch.h: Ditto.
+        * Modules/fetch/WorkerGlobalScopeFetch.idl: Making fetch a JS built-in and adding a @fetchRequest private function.
+        * Modules/fetch/WorkerGlobalScopeFetch.js: Added.
+        (fetch):
+        * bindings/js/WebCoreBuiltinNames.h: Adding fetchRequest, setBody and Request private identifiers.
+        * bindings/scripts/CodeGenerator.pm:
+        (WK_lcfirst): Replacing dOM by dom.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Adding support for runtime-enabled built-in methods and private methods.
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::JSTestGlobalObject::finishCreation):
+        (WebCore::jsTestGlobalObjectInstanceFunctionTestPrivateFunction):
+        * bindings/scripts/test/ObjC/DOMTestGlobalObject.mm:
+        (-[DOMTestGlobalObject testJSBuiltinFunction]):
+        * bindings/scripts/test/TestGlobalObject.idl: Adding tests for runtime-enabled global built-in methods and private methods.
+
+2016-07-24  Nan Wang  <n_wang@apple.com>
+
+        AX: Video Controls: Volume cannot be adjusted using VO.
+        https://bugs.webkit.org/show_bug.cgi?id=160107
+
+        Reviewed by Dean Jackson.
+
+        The volume slider in video tag had 0.01 step which caused the screen reader adjusting it slowly.
+        Changed the step to 0.05 and added the aria-valuetext attribute to the slider, so that the value
+        is spoken in percentage. 
+
+        Test: accessibility/mac/video-volume-slider-accessibility.html
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.createControls):
+        (Controller.prototype.handleVolumeSliderInput):
+        (Controller.prototype.updateVolume):
+
+2016-07-24  David Kilzer  <ddkilzer@apple.com>
+
+        REGRESSION (r203106): Crash in WebCore::MathMLElement::parseMathMLLength()
+        <https://webkit.org/b/160111>
+        <rdar://problem/27506489>
+
+        Reviewed by Chris Dumez.
+
+        Test: mathml/mpadded-crash.html
+
+        * mathml/MathMLElement.cpp:
+        (WebCore::skipLeadingAndTrailingWhitespace): Change to take
+        StringView parameter instead of String to avoid creating a
+        temporary String that's released on return.
+
+2016-07-24  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] ASSERTION FAILED: !m_flushingLayers in fast/repaint/animation-after-layer-scroll.html
+        https://bugs.webkit.org/show_bug.cgi?id=160142
+
+        Reviewed by Michael Catanzaro.
+
+        This only happens in layout tests, because it happens when RenderLayerCompositor::layerTreeAsText() is
+        called. The thing is that CoordinatedGraphicsLayer::flushCompositingState() calls notifyFlushRequired() that
+        checks if the coordinator is flusing layers and if not it calls RenderLayerCompositor::notifyFlushRequired() and
+        returns early. This normally works because the coodinator is the one starting the layer flush, so that when
+        RenderLayerCompositor::flushPendingLayerChanges() is called the coordinator is always flusing layers. But
+        RenderLayerCompositor::layerTreeAsText() calls RenderLayerCompositor::flushPendingLayerChanges() directly, so at
+        that moment the coordinator is not flusing layers, what causes that
+        CoordinatedGraphicsLayer::flushCompositingState() ends up calling RenderLayerCompositor::notifyFlushRequired()
+        that schedules a new flush while flusing layers causing the
+        assertion. CoordinatedGraphicsLayer::flushCompositingState() is always called from
+        CompositingCoordinator::flushPendingLayerChanges() or RenderLayerCompositor::flushPendingLayerChanges() so we
+        never need to call RenderLayerCompositor::notifyFlushRequired() from there.
+
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp:
+        (WebCore::CoordinatedGraphicsLayer::notifyFlushRequired): This is void now since the return value is not checked anywhere.
+        (WebCore::CoordinatedGraphicsLayer::flushCompositingState): Remove the call to notifyFlushRequired().
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.h:
+
+2016-07-24  Darin Adler  <darin@apple.com>
+
+        Adding a new WebCore JavaScript built-in source file does not trigger rebuild of WebCoreJSBuiltins*
+        https://bugs.webkit.org/show_bug.cgi?id=160115
+
+        Reviewed by Youenn Fablet.
+
+        * DerivedSources.make: Added a missing dependency so the rule that builds WebCore_BUILTINS_WRAPPERS
+        kicks in when the list of WebCore_BUILTINS_SOURCES is modified. Also added another missing dependency
+        so that changes to the JavaScript built-ins Python scripts will also trigger WebCore_BUILTINS_WRAPPERS.
+
+        * make-generated-sources.sh: Removed. Was unused.
+
+2016-07-23  Zalan Bujtas  <zalan@apple.com>
+
+        Stop isEmpty() from leaking out of SVG.
+        https://bugs.webkit.org/show_bug.cgi?id=160121
+
+        Reviewed by Simon Fraser.
+
+        It's unclear what isEmpty() actually means and it doesn't bring any value to Render* classes.
+
+        No change in functionality.
+
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::CompositeEditCommand::addBlockPlaceholderIfNeeded):
+        * rendering/RenderElement.h:
+        * rendering/RenderListItem.cpp:
+        (WebCore::RenderListItem::isEmpty): Deleted.
+        * rendering/RenderListItem.h:
+        * rendering/RenderObject.h:
+        (WebCore::RenderObject::isEmpty): Deleted.
+        * rendering/RenderRubyRun.cpp:
+        (WebCore::RenderRubyRun::removeChild):
+        (WebCore::RenderRubyRun::isEmpty): Deleted.
+        * rendering/RenderRubyRun.h:
+        * rendering/mathml/RenderMathMLFenced.cpp:
+        (WebCore::RenderMathMLFenced::updateFromElement):
+        (WebCore::RenderMathMLFenced::addChild):
+        * rendering/mathml/RenderMathMLRoot.cpp:
+        (WebCore::RenderMathMLRoot::paint):
+        * rendering/svg/RenderSVGShape.h:
+
+2016-07-23  Zalan Bujtas  <zalan@apple.com>
+
+        table*BorderAdjoiningCell and borderAdjoiningCell* should take reference instead of RenderTableCell*.
+        https://bugs.webkit.org/show_bug.cgi?id=160123
+
+        Reviewed by Simon Fraser.
+
+        No change in functionality.
+
+        * rendering/RenderTable.cpp:
+        (WebCore::RenderTable::tableStartBorderAdjoiningCell):
+        (WebCore::RenderTable::tableEndBorderAdjoiningCell):
+        * rendering/RenderTable.h:
+        * rendering/RenderTableCell.cpp:
+        (WebCore::RenderTableCell::computeCollapsedStartBorder):
+        (WebCore::RenderTableCell::computeCollapsedEndBorder):
+        * rendering/RenderTableCell.h:
+        (WebCore::RenderTableCell::borderAdjoiningCellBefore):
+        (WebCore::RenderTableCell::borderAdjoiningCellAfter):
+        * rendering/RenderTableCol.cpp:
+        (WebCore::RenderTableCol::borderAdjoiningCellStartBorder):
+        (WebCore::RenderTableCol::borderAdjoiningCellEndBorder):
+        (WebCore::RenderTableCol::borderAdjoiningCellBefore):
+        (WebCore::RenderTableCol::borderAdjoiningCellAfter):
+        * rendering/RenderTableCol.h:
+        * rendering/RenderTableRow.cpp:
+        (WebCore::RenderTableRow::borderAdjoiningStartCell):
+        (WebCore::RenderTableRow::borderAdjoiningEndCell):
+        * rendering/RenderTableRow.h:
+        * rendering/RenderTableSection.cpp:
+        (WebCore::RenderTableSection::borderAdjoiningStartCell):
+        (WebCore::RenderTableSection::borderAdjoiningEndCell):
+        * rendering/RenderTableSection.h:
+
+2016-07-23  Zalan Bujtas  <zalan@apple.com>
+
+        Remove unused enum and stale comment from RenderObject.
+        https://bugs.webkit.org/show_bug.cgi?id=160122
+
+        Reviewed by Simon Fraser.
+
+        No change in functionality.
+
+        * rendering/RenderBox.h:
+
 2016-07-23  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [Coordinated Graphics] Lots of flaky tests
