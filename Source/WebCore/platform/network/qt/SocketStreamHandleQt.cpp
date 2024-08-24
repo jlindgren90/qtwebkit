@@ -102,17 +102,17 @@ void SocketStreamHandlePrivate::initConnections()
 
 void SocketStreamHandlePrivate::socketConnected()
 {
-    if (m_streamHandle && m_streamHandle->client()) {
+    if (m_streamHandle) {
         m_streamHandle->m_state = SocketStreamHandleBase::Open;
-        m_streamHandle->client()->didOpenSocketStream(*m_streamHandle);
+        m_streamHandle->client().didOpenSocketStream(*m_streamHandle);
     }
 }
 
 void SocketStreamHandlePrivate::socketReadyRead()
 {
-    if (m_streamHandle && m_streamHandle->client()) {
+    if (m_streamHandle) {
         QByteArray data = m_socket->read(m_socket->bytesAvailable());
-        m_streamHandle->client()->didReceiveSocketStreamData(*m_streamHandle, data.constData(), data.size());
+        m_streamHandle->client().didReceiveSocketStreamData(*m_streamHandle, data.constData(), data.size());
     }
 }
 
@@ -129,7 +129,7 @@ void SocketStreamHandlePrivate::close()
 {
     if (m_socket && m_streamHandle && m_streamHandle->m_state == SocketStreamHandleBase::Connecting) {
         m_socket->abort();
-        m_streamHandle->client()->didCloseSocketStream(*m_streamHandle);
+        m_streamHandle->client().didCloseSocketStream(*m_streamHandle);
         return;
     }
     if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState)
@@ -154,25 +154,25 @@ void SocketStreamHandlePrivate::socketError(QAbstractSocket::SocketError error)
 
 void SocketStreamHandlePrivate::socketClosedCallback()
 {
-    if (m_streamHandle && m_streamHandle->client()) {
+    if (m_streamHandle) {
         SocketStreamHandle* streamHandle = m_streamHandle;
         m_streamHandle = 0;
         // This following call deletes _this_. Nothing should be after it.
-        streamHandle->client()->didCloseSocketStream(*streamHandle);
+        streamHandle->client().didCloseSocketStream(*streamHandle);
     }
 }
 
 void SocketStreamHandlePrivate::socketErrorCallback(int error)
 {
     // FIXME - in the future, we might not want to treat all errors as fatal.
-    if (m_streamHandle && m_streamHandle->client()) {
+    if (m_streamHandle) {
         SocketStreamHandle* streamHandle = m_streamHandle;
         m_streamHandle = 0;
 
-        streamHandle->client()->didFailSocketStream(*streamHandle, SocketStreamError(error, m_socket->errorString()));
+        streamHandle->client().didFailSocketStream(*streamHandle, SocketStreamError(error, m_socket->errorString()));
 
         // This following call deletes _this_. Nothing should be after it.
-        streamHandle->client()->didCloseSocketStream(*streamHandle);
+        streamHandle->client().didCloseSocketStream(*streamHandle);
     }
 }
 
@@ -183,17 +183,17 @@ void SocketStreamHandlePrivate::socketSslErrors(const QList<QSslError>& error)
 }
 #endif
 
-SocketStreamHandle::SocketStreamHandle(const URL& url, SocketStreamHandleClient* client)
+SocketStreamHandle::SocketStreamHandle(const URL& url, SocketStreamHandleClient& client)
     : SocketStreamHandleBase(url, client)
 {
-    LOG(Network, "SocketStreamHandle %p new client %p", this, m_client);
+    LOG(Network, "SocketStreamHandle %p new client %p", this, &m_client);
     m_p = new SocketStreamHandlePrivate(this, url);
 }
 
-SocketStreamHandle::SocketStreamHandle(QTcpSocket* socket, SocketStreamHandleClient* client)
+SocketStreamHandle::SocketStreamHandle(QTcpSocket* socket, SocketStreamHandleClient& client)
     : SocketStreamHandleBase(URL(), client)
 {
-    LOG(Network, "SocketStreamHandle %p new client %p", this, m_client);
+    LOG(Network, "SocketStreamHandle %p new client %p", this, &m_client);
     m_p = new SocketStreamHandlePrivate(this, socket);
     if (socket->isOpen())
         m_state = Open;
@@ -202,7 +202,6 @@ SocketStreamHandle::SocketStreamHandle(QTcpSocket* socket, SocketStreamHandleCli
 SocketStreamHandle::~SocketStreamHandle()
 {
     LOG(Network, "SocketStreamHandle %p delete", this);
-    setClient(0);
     delete m_p;
 }
 

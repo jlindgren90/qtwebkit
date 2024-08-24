@@ -5,6 +5,7 @@ list(APPEND WTF_SOURCES
     qt/RunLoopQt.cpp
 
     text/qt/StringQt.cpp
+    text/qt/TextBreakIteratorInternalICUQt.cpp
 )
 QTWEBKIT_GENERATE_MOC_FILES_CPP(WTF qt/MainThreadQt.cpp qt/RunLoopQt.cpp)
 

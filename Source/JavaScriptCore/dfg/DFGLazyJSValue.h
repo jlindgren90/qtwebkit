@@ -31,6 +31,7 @@
 #include "DFGCommon.h"
 #include "DFGFrozenValue.h"
 #include <wtf/text/StringImpl.h>
+#undef emit // FIXME: Qt
 
 namespace JSC {
 

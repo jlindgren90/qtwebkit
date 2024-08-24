@@ -1642,7 +1642,7 @@ void QWebElementCollection::append(const QWebElementCollection &other)
         }
     }
 
-    d->m_result = StaticNodeList::adopt(nodes);
+    d->m_result = StaticNodeList::create(std::move(nodes));
 }
 
 /*!

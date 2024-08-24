@@ -77,6 +77,7 @@
 #include "Scrollbar.h"
 #include "ScrollbarTheme.h"
 #include "Settings.h"
+#include "SocketProvider.h"
 #include "TextIterator.h"
 #include "UndoStepQt.h"
 #include "UserAgentQt.h"
@@ -86,7 +87,6 @@
 #include "WebDatabaseProvider.h"
 #include "WebEventConversion.h"
 #include "WebKitVersion.h"
-#include "win/WebSocketProvider.h"
 #include "WebStorageNamespaceProvider.h"
 #include "WindowFeatures.h"
 #include "qwebhistory_p.h"
@@ -225,7 +225,7 @@ void QWebPageAdapter::initializeWebCorePage()
     const bool useMock = QWebPageAdapter::drtRun;
 #endif
     PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this),
-                                        WebSocketProvider::create());
+                                        SocketProvider::create());
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
     pageConfiguration.dragClient = new DragClientQt(pageConfiguration.chromeClient);
@@ -1181,7 +1181,7 @@ void QWebPageAdapter::triggerAction(QWebPageAdapter::MenuAction action, QWebHitT
     case ToggleVideoFullscreen:
         if (HTMLMediaElement* mediaElt = mediaElement(hitTestResult->innerNonSharedNode)) {
             if (mediaElt->isVideo() && mediaElt->supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenModeStandard)) {
-                UserGestureIndicator indicator(DefinitelyProcessingUserGesture);
+                UserGestureIndicator indicator(ProcessingUserGesture);
                 mediaElt->toggleStandardFullscreenState();
             }
         }

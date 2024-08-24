@@ -48,6 +48,7 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
     "${WEBKIT2_DIR}/UIProcess/CoordinatedGraphics"
     "${WEBKIT2_DIR}/UIProcess/InspectorServer/qt"
     "${WEBKIT2_DIR}/UIProcess/gstreamer"
+    "${WEBKIT2_DIR}/UIProcess/linux"
     "${WEBKIT2_DIR}/UIProcess/qt"
 
     "${WEBKIT2_DIR}/WebProcess/Plugins/Netscape/unix"
@@ -154,6 +155,8 @@ list(APPEND WebKit2_SOURCES
 
     UIProcess/gstreamer/InstallMissingMediaPluginsPermissionRequest.cpp
     UIProcess/gstreamer/WebPageProxyGStreamer.cpp
+
+    UIProcess/linux/MemoryPressureMonitor.cpp
 
     UIProcess/qt/BackingStoreQt.cpp
     UIProcess/qt/ColorChooserContextObject.h

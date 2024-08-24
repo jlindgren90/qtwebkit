@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <mutex>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/eventfd.h>

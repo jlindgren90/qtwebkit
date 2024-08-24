@@ -25,7 +25,7 @@
 #include <QScopedPointer>
 #include <qglobal.h>
 
-namespace WebCore {
+namespace WTF {
 
 Q_GLOBAL_STATIC_WITH_ARGS(QByteArray, cachedSystemLocale, (QLocale::system().name().toLatin1()))
 
