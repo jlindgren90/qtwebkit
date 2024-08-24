@@ -375,10 +375,6 @@ void QtPageClient::didCommitLoadForMainFrame(const WTF::String& mimeType, bool u
 {
 }
 
-void QtPageClient::willEnterAcceleratedCompositingMode()
-{
-}
-
 void QtPageClient::didFinishLoadingDataForCustomContentProvider(const WTF::String& suggestedFilename, const IPC::DataReference&)
 {
 }

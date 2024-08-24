@@ -129,7 +129,6 @@ private:
 public:
     void requestScroll(const WebCore::FloatPoint& scrollPosition, const WebCore::IntPoint& scrollOrigin, bool isProgrammaticScroll) override;
     void didCommitLoadForMainFrame(const WTF::String& mimeType, bool useCustomContentProvider) override;
-    void willEnterAcceleratedCompositingMode() override;
     void didFinishLoadingDataForCustomContentProvider(const WTF::String& suggestedFilename, const IPC::DataReference&) override;
     void navigationGestureDidBegin() override;
     void navigationGestureWillEnd(bool willNavigate, WebBackForwardListItem&) override;
