@@ -3073,8 +3073,10 @@ void HTMLMediaElement::play(PlayPromise&& promise)
     if (ScriptController::processingUserGestureForMedia())
         removeBehaviorsRestrictionsAfterFirstUserGesture();
 
-    if (!playInternal())
+    if (!playInternal()) {
         promise.reject(NotAllowedError);
+        return;
+    }
 
     m_pendingPlayPromises.append(WTFMove(promise));
 }
@@ -3097,7 +3099,7 @@ bool HTMLMediaElement::playInternal()
     
     if (!m_mediaSession->clientWillBeginPlayback()) {
         LOG(Media, "  returning because of interruption");
-        return false;
+        return true; // Treat as success because we will begin playback on cessation of the interruption.
     }
 
     // 4.8.10.9. Playing the media resource
@@ -4823,6 +4825,8 @@ MediaTime HTMLMediaElement::maxTimeSeekable() const
     
 void HTMLMediaElement::updateVolume()
 {
+    if (!m_player)
+        return;
 #if PLATFORM(IOS)
     // Only the user can change audio volume so update the cached volume and post the changed event.
     float volume = m_player->volume();
@@ -4831,9 +4835,6 @@ void HTMLMediaElement::updateVolume()
         scheduleEvent(eventNames().volumechangeEvent);
     }
 #else
-    if (!m_player)
-        return;
-
     // Avoid recursion when the player reports volume changes.
     if (!processingMediaPlayerCallback()) {
         Page* page = document().page();

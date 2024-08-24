@@ -1,3 +1,754 @@
+2016-08-01  Youenn Fablet  <youennf@gmail.com>
+
+        Reduce the number of ResourceRequest copies in DocumentThreadableLoader
+        https://bugs.webkit.org/show_bug.cgi?id=160338
+
+        Reviewed by Darin Adler.
+
+        No observable change of behavior.
+
+        Updating one of CachedResourceReques constructor to take a ResourceRequest&&.
+        This allows reducing a ResourceRequest copy in DocumentThreadableLoader.
+        Updating DocumentLoader and MediaResourceLoader accordingly (future optimization steps may look at making these
+        two loaders more efficient with regards to Resource Request).
+
+        Updating ThreadableLoader to take a ResourceRequest&&.
+        This allows reducing the number of copies in DocumentThreadableLoader.
+        Updating clients of ThreadableLoader accordingly.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start):
+        * dom/Document.cpp:
+        (WebCore::Document::didLoadResourceSynchronously):
+        * dom/Document.h:
+        * dom/ScriptExecutionContext.cpp:
+        (WebCore::ScriptExecutionContext::didLoadResourceSynchronously):
+        * dom/ScriptExecutionContext.h:
+        * fileapi/FileReaderLoader.cpp:
+        (WebCore::FileReaderLoader::start):
+        * inspector/InspectorNetworkAgent.cpp:
+        (WebCore::InspectorNetworkAgent::loadResource):
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::startLoadingMainResource):
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::loadResourceSynchronously):
+        (WebCore::DocumentThreadableLoader::create):
+        (WebCore::DocumentThreadableLoader::DocumentThreadableLoader):
+        (WebCore::DocumentThreadableLoader::makeCrossOriginAccessRequest):
+        (WebCore::DocumentThreadableLoader::makeSimpleCrossOriginAccessRequest):
+        (WebCore::DocumentThreadableLoader::redirectReceived):
+        (WebCore::DocumentThreadableLoader::preflightSuccess):
+        (WebCore::DocumentThreadableLoader::loadRequest):
+        * loader/DocumentThreadableLoader.h:
+        * loader/MediaResourceLoader.cpp:
+        (WebCore::MediaResourceLoader::requestResource):
+        * loader/ThreadableLoader.cpp:
+        (WebCore::ThreadableLoader::create):
+        (WebCore::ThreadableLoader::loadResourceSynchronously):
+        * loader/ThreadableLoader.h:
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::WorkerThreadableLoader):
+        (WebCore::WorkerThreadableLoader::loadResourceSynchronously):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::MainThreadBridge):
+        * loader/WorkerThreadableLoader.h:
+        (WebCore::WorkerThreadableLoader::create):
+        * loader/cache/CachedResourceRequest.cpp:
+        (WebCore::CachedResourceRequest::CachedResourceRequest):
+        * loader/cache/CachedResourceRequest.h:
+        * page/EventSource.cpp:
+        (WebCore::EventSource::connect):
+        * workers/WorkerScriptLoader.cpp:
+        (WebCore::WorkerScriptLoader::loadSynchronously):
+        (WebCore::WorkerScriptLoader::loadAsynchronously):
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::createRequest):
+
+2016-07-31  Youenn Fablet  <youenn@apple.com>
+
+        Fetch Response built-ins should use @makeThisTypeError
+        https://bugs.webkit.org/show_bug.cgi?id=160290
+
+        Reviewed by Darin Adler.
+
+        Covered by updated test.
+
+        Fixed type error checks.
+        Making use of @makeThisTypeError to have the correct error message.
+        Updating arrayBuffer, blob, json and text to return rejected promises in lieu of throwing
+        in case the 'this' value is not q Response object.
+
+        * Modules/fetch/FetchResponse.js:
+        (clone): Updated instanceof check and making use of @makeThisTypeError.
+        (arrayBuffer): Ditto.
+        (blob): Ditto.
+        (formData): Ditto.
+        (json): Ditto.
+        (text): Ditto.
+
+2016-07-31  Adrian Perez de Castro  <aperez@igalia.com>
+
+        [GTK] Implement missing WebCore::moveFile() using GLib functions
+        https://bugs.webkit.org/show_bug.cgi?id=160363
+
+        Reviewed by Carlos Garcia Campos.
+
+        * platform/glib/FileSystemGlib.cpp:
+        (WebCore::moveFile): Function added.
+
+2016-07-31  Chris Dumez  <cdumez@apple.com>
+
+        Drop [StrictTypeChecking] in cases where it is a no-op
+        https://bugs.webkit.org/show_bug.cgi?id=160387
+
+        Reviewed by Darin Adler.
+
+        Drop [StrictTypeChecking] in cases where it is a no-op. After r203949 & r203950,
+        [StrictTypeChecking] only has an impact when used on operation parameters of
+        string types and is currently used as a workaround for bugs in our overload
+        resolution algorithm.
+
+        * Modules/mediastream/RTCPeerConnection.idl:
+        * Modules/mediastream/RTCRtpSender.idl:
+        * bindings/scripts/test/TestObj.idl:
+        * bindings/scripts/test/TestTypedefs.idl:
+        * html/canvas/ANGLEInstancedArrays.idl:
+        * html/canvas/OESVertexArrayObject.idl:
+        * html/canvas/WebGL2RenderingContext.idl:
+        * html/canvas/WebGLDebugShaders.idl:
+        * html/canvas/WebGLLoseContext.idl:
+        * html/canvas/WebGLRenderingContextBase.idl:
+        * svg/SVGAngle.idl:
+        * svg/SVGColor.idl:
+        * svg/SVGLength.idl:
+        * svg/SVGLengthList.idl:
+        * svg/SVGMatrix.idl:
+        * svg/SVGNumberList.idl:
+        * svg/SVGPaint.idl:
+        * svg/SVGPathSegList.idl:
+        * svg/SVGPoint.idl:
+        * svg/SVGPointList.idl:
+        * svg/SVGStringList.idl:
+        * svg/SVGTransform.idl:
+        * svg/SVGTransformList.idl:
+
+2016-07-31  Nan Wang  <n_wang@apple.com>
+
+        AX: Add a check for touch event listener on iOS accessibility object
+        https://bugs.webkit.org/show_bug.cgi?id=160388
+
+        Reviewed by Chris Fleizach.
+
+        dispatchTouchEvent() is not working correctly within AXPress() sometimes. Need to 
+        investigate it more in the future. Now, adding a check for the touch event listener
+        on the object's node so that iOS can handle dispatching the touch event instead.
+
+        Test: accessibility/ios-simulator/has-touch-event-listener.html
+
+        * accessibility/AccessibilityObject.h:
+        * accessibility/ios/AccessibilityObjectIOS.mm:
+        (WebCore::AccessibilityObject::accessibilityPlatformIncludesObject):
+        (WebCore::AccessibilityObject::hasTouchEventListener):
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (appendStringToResult):
+        (-[WebAccessibilityObjectWrapper _accessibilityHasTouchEventListener]):
+        (-[WebAccessibilityObjectWrapper _accessibilityValueIsAutofilled]):
+
+2016-07-30  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rebaseline bindings tests.
+
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.cpp:
+        (webkit_dom_test_obj_set_property): Deleted.
+        (webkit_dom_test_obj_get_property): Deleted.
+        (webkit_dom_test_obj_class_init): Deleted.
+        * bindings/scripts/test/GObject/WebKitDOMTestObj.h:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjStrictTypeCheckingAttribute): Deleted.
+        (WebCore::jsTestObjStrictFloat): Deleted.
+        (WebCore::setJSTestObjStrictTypeCheckingAttribute): Deleted.
+        (WebCore::setJSTestObjStrictFloat): Deleted.
+        * bindings/scripts/test/ObjC/DOMTestObj.h:
+        * bindings/scripts/test/ObjC/DOMTestObj.mm:
+        (-[DOMTestObj strictTypeCheckingAttribute]): Deleted.
+        (-[DOMTestObj setStrictTypeCheckingAttribute:]): Deleted.
+        (-[DOMTestObj strictFloat]): Deleted.
+        (-[DOMTestObj setStrictFloat:]): Deleted.
+
+2016-07-30  Chris Dumez  <cdumez@apple.com>
+
+        Enable strict type checking for Window dictionary members
+        https://bugs.webkit.org/show_bug.cgi?id=160356
+
+        Reviewed by Darin Adler.
+
+        Enable strict type checking for Window dictionary members. Technically,
+        we should do strict type checking of all wrapper types but this patch
+        focuses on Window because it is common to pass a Window dictionary
+        member to Event constructors.
+
+        By strict type checking, I mean that we should throw a TypeError is
+        the value is not null/undefined and does not implement the Window
+        interface:
+        - http://heycam.github.io/webidl/#es-interface
+
+        Firefox and Chrome comply with the specification already.
+
+        No new tests, updated / rebaselined existing tests.
+
+        * bindings/js/JSDictionary.cpp:
+        (WebCore::JSDictionary::convertValue):
+
+2016-07-30  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Enable strict type checking for nullable attribute setters of wrapper types
+        https://bugs.webkit.org/show_bug.cgi?id=160375
+
+        Reviewed by Darin Adler.
+
+        Enable strict type checking for nullable attribute setters of wrapper types:
+        - http://heycam.github.io/webidl/#es-nullable-type
+        - http://heycam.github.io/webidl/#es-interface
+
+        For such attributes, if the JS tries to assign a value that is not null /
+        undefined and does not have the expected wrapper type, then we now throw a
+        TypeError instead of silently converting the value to null.
+
+        This behavior is consistent with Chrome and Firefox. It also helps identify
+        bugs in JavaScript code.
+
+        No new tests, updated existing tests.
+
+        * Modules/webaudio/AudioBufferSourceNode.idl:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::setJSTestObjTestNullableObjAttr):
+        (WebCore::setJSTestObjMutablePoint):
+        (WebCore::setJSTestObjImmutablePoint):
+        * bindings/scripts/test/TestObj.idl:
+        * dom/Document.idl:
+        * html/HTMLTableElement.idl:
+        * svg/SVGAngle.idl:
+        * svg/SVGAnimatedBoolean.idl:
+        * svg/SVGAnimatedEnumeration.idl:
+        * svg/SVGAnimatedInteger.idl:
+        * svg/SVGAnimatedNumber.idl:
+        * svg/SVGLength.idl:
+        * svg/SVGMatrix.idl:
+        * svg/SVGNumber.idl:
+        * svg/SVGPathSegArcAbs.idl:
+        * svg/SVGPathSegArcRel.idl:
+        * svg/SVGPathSegCurvetoCubicAbs.idl:
+        * svg/SVGPathSegCurvetoCubicRel.idl:
+        * svg/SVGPathSegCurvetoCubicSmoothAbs.idl:
+        * svg/SVGPathSegCurvetoCubicSmoothRel.idl:
+        * svg/SVGPathSegCurvetoQuadraticAbs.idl:
+        * svg/SVGPathSegCurvetoQuadraticRel.idl:
+        * svg/SVGPathSegCurvetoQuadraticSmoothAbs.idl:
+        * svg/SVGPathSegCurvetoQuadraticSmoothRel.idl:
+        * svg/SVGPathSegLinetoAbs.idl:
+        * svg/SVGPathSegLinetoHorizontalAbs.idl:
+        * svg/SVGPathSegLinetoHorizontalRel.idl:
+        * svg/SVGPathSegLinetoRel.idl:
+        * svg/SVGPathSegLinetoVerticalAbs.idl:
+        * svg/SVGPathSegLinetoVerticalRel.idl:
+        * svg/SVGPathSegMovetoAbs.idl:
+        * svg/SVGPathSegMovetoRel.idl:
+        * svg/SVGPoint.idl:
+        * svg/SVGPreserveAspectRatio.idl:
+        * svg/SVGRect.idl:
+
+2016-07-30  Youenn Fablet  <youenn@apple.com>
+
+        Synchronous preflight should check for successful responses
+        https://bugs.webkit.org/show_bug.cgi?id=159350
+
+        Reviewed by Darin Adler.
+
+        Test: http/tests/xmlhttprequest/access-control-preflight-not-successful.html
+
+        * loader/CrossOriginPreflightChecker.cpp:
+        (WebCore::CrossOriginPreflightChecker::doPreflight): Adding successful response check for synchronous
+        preflighting.
+
+2016-07-30  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Enable strict type checking for operations' nullable parameters of wrapper types
+        https://bugs.webkit.org/show_bug.cgi?id=160374
+
+        Reviewed by Youenn Fablet.
+
+        Enable strict type checking for operations' nullable parameters of
+        wrapper types to comply with the Web IDL specification:
+        - http://heycam.github.io/webidl/#es-nullable-type
+        - http://heycam.github.io/webidl/#es-interface
+
+        For such parameters, if the JS passes a value that is not null /
+        undefined and does not have the expected wrapper type, then we now
+        throw a TypeError instead of silently converting the value to null.
+
+        This behavior is consistent with Chrome and Firefox. It also helps
+        identify bugs in JavaScript code.
+
+        No new tests, rebaselined existing tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalNullableWrapper):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalNullableWrapperIsNull):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalXPathNSResolver):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod2):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod6):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter2):
+        (WebCore::jsTestObjPrototypeFunctionConvert2):
+        (WebCore::jsTestObjPrototypeFunctionStrictFunctionWithSequence):
+        (WebCore::jsTestObjPrototypeFunctionConditionalMethod3): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod5): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod): Deleted.
+        (WebCore::jsTestObjPrototypeFunctionOrange): Deleted.
+
+2016-07-29  Chris Dumez  <cdumez@apple.com>
+
+        Window's named properties should be exposed on a WindowProperties object in its prototype
+        https://bugs.webkit.org/show_bug.cgi?id=160354
+
+        Reviewed by Gavin Barraclough.
+
+        Window's named properties should be exposed on a WindowProperties object
+        in its prototype:
+        - http://heycam.github.io/webidl/#named-properties-object
+
+        Firefox and Chrome both comply with the specification. However, WebKit
+        had no "WindowProperties" object in the Window prototype chain and the
+        named properties are exposed on the Window object itself.
+
+        No new tests, rebaselined existing tests.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::getOwnPropertySlot):
+        (WebCore::JSDOMWindow::getOwnPropertySlotByIndex):
+        (WebCore::jsDOMWindowGetOwnPropertySlotRestrictedAccess): Deleted.
+        (WebCore::JSDOMWindow::put): Deleted.
+        (WebCore::JSDOMWindow::putByIndex): Deleted.
+        (WebCore::JSDOMWindow::getEnumerableLength): Deleted.
+        * bindings/js/JSDOMWindowProperties.cpp: Added.
+        (WebCore::jsDOMWindowPropertiesGetOwnPropertySlotNamedItemGetter):
+        (WebCore::JSDOMWindowProperties::getOwnPropertySlot):
+        (WebCore::JSDOMWindowProperties::getOwnPropertySlotByIndex):
+        * bindings/js/JSDOMWindowProperties.h: Added.
+        (WebCore::JSDOMWindowProperties::create):
+        (WebCore::JSDOMWindowProperties::createStructure):
+        (WebCore::JSDOMWindowProperties::JSDOMWindowProperties):
+        * bindings/js/JSDOMWindowShell.cpp:
+        (WebCore::JSDOMWindowShell::setWindow):
+
+2016-07-29  Daniel Bates  <dabates@apple.com>
+
+        Crash under HTMLMediaElement::{resolve, reject}PendingPlayPromises() when playback is interrupted
+        https://bugs.webkit.org/show_bug.cgi?id=160366
+        <rdar://problem/27317407>
+
+        Reviewed by Eric Carlson.
+
+        Fixes a crash/assertion failure in DeferredWrapper::{resolve, rejectWithValue}() caused by a Promise
+        being settled twice. In particular, if a system interruption occurs when media.play() is invoked
+        the returned Promise may ultimately be settled twice upon cessation of the interruption.
+
+        A Promise can be settled (resolved) exactly once. When a system interruption occurs media
+        playback is paused and resumes on cessation of the interruption. Currently we also immediately
+        reject the Promise p retuned by media.play() if the interruption occurs during its invocation.
+        So, when we resume playback on cessation of an interruption we try to resolve p again. But a
+        Promise can only be resolved once and hence we violate the assertions that p has both a valid
+        reference to a JSPromiseDeferred object and a reference to the global object of the page.
+
+        Tests: media/non-existent-video-playback-interrupted.html
+               media/video-playback-interrupted.html
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::play): Modified to reject the Promise and return immediately if
+        playInternal() returns false.
+        (WebCore::HTMLMediaElement::playInternal): Treat an interruption as success and return true
+        so that HTMLMediaElement::play() adds the Promise to the end of the list of pending promises.
+        We treat an interruption as a success because we will resume playback (assuming the media
+        can be loaded and is well-formed) upon cessation of the interruption and therefore can either
+        fulfill or reject the Promise object returned by media.play().
+
+2016-07-29  Daniel Bates  <dabates@apple.com>
+
+        [iOS] HTMLMediaElement::updateVolume() calls MediaPlayer::volume() on null media player
+        https://bugs.webkit.org/show_bug.cgi?id=160353
+
+        Reviewed by Eric Carlson.
+
+        Using testing functions HTMLMediaElement::updateVolume() can be called on a <video> element
+        without an associated video. We should support this usage on iOS just as we do for non-iOS
+        ports.
+
+        The use of testing functions to call HTMLMediaElement::updateVolume() on a <video> element
+        without an associated video is demonstrated by the test LayoutTests/media/video-muted-after-setting-page-muted-state.html.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::updateVolume):
+
+2016-07-29  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls are not displayed for some autoplaying videos at certain browser dimensions
+        https://bugs.webkit.org/show_bug.cgi?id=160360
+        <rdar://problem/27179484>
+
+        Reviewed by Myles C. Maxfield.
+
+        Previously, if a video's aspect ratio fell outside of the range [0.5, 1.8], we would
+        not consider it main content and would subsequently not show media controls for it.
+        This meant that on many websites that scale video dimensions to match the mainframe,
+        if the mainframe is too wide (e.g. full bounds on a widescreen display) we would not
+        consider the video to be main content. To fix this, we only consider aspect ratio to
+        be a requirement if the video does not already take up most of the space in the
+        mainframe.
+
+        Covered by two new TestWebKitAPI unit tests.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::isElementLargeRelativeToMainFrame):
+        (WebCore::isElementLargeEnoughForMainContent):
+
+2016-07-29  Zalan Bujtas  <zalan@apple.com>
+
+        Do not set negative rate on AVSampleBufferRenderSynchronizer.
+        https://bugs.webkit.org/show_bug.cgi?id=160326
+        <rdar://problem/27355214>
+
+        Reviewed by Eric Carlson.
+
+        Test: http/tests/media/media-source/mediasource-play-then-seek-back-with-remote-control.html
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::setRateDouble):
+
+2016-07-29  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Backspace key removes only the rainbow from the rainbow flag
+        https://bugs.webkit.org/show_bug.cgi?id=160349
+        <rdar://problem/27594995>
+
+        Reviewed by Dean Jackson.
+
+        In r203330 I added support for new emoji group candidates. I accidentally
+        missed one of the new emoji code points.
+
+        Test: editing/deleting/delete-emoji.html
+
+        * platform/text/CharacterProperties.h:
+        (WebCore::isEmojiGroupCandidate):
+
+2016-07-29  Nan Wang  <n_wang@apple.com>
+
+        AX: Media controls accessibility improvement
+        https://bugs.webkit.org/show_bug.cgi?id=160223
+        <rdar://problem/27558003>
+
+        Reviewed by Eric Carlson.
+
+        Changes in this patch:
+        1. Added a change observer for volume slider so that it will handle accessibility 
+           increment/decrement functions correctly.
+        2. Update the timer div's aria-label when time changes.
+        3. Added a keydown handler for left/right arrow adjusting the timeline, so that the
+           value increment/decrement in a reasonable way.
+        4. Changed the mute button's role to checkbox since it only has on/off states.
+
+        Test: media/media-controls-accessibility.html
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.createControls):
+        (Controller.prototype.updatePictureInPictureButton):
+        (Controller.prototype.timelineStepFromVideoDuration):
+        (Controller.prototype.incrementTimelineValue):
+        (Controller.prototype.decrementTimelineValue):
+        (Controller.prototype.showInlinePlaybackPlaceholderWhenSafe):
+        (Controller.prototype.handleTimelineMouseUp):
+        (Controller.prototype.handleTimelineKeyDown):
+        (Controller.prototype.handleMuteButtonClicked):
+        (Controller.prototype.handleMinButtonClicked):
+        (Controller.prototype.handleMaxButtonClicked):
+        (Controller.prototype.updateVideoVolume):
+        (Controller.prototype.handleVolumeSliderInput):
+        (Controller.prototype.handleVolumeSliderChange):
+        (Controller.prototype.handleVolumeSliderMouseDown):
+        (Controller.prototype.updateTime):
+        (Controller.prototype.updateControlsWhileScrubbing):
+        (Controller.prototype.updateVolume):
+
+2016-07-29  Mark Lam  <mark.lam@apple.com>
+
+        Remove an unused line of code.
+        https://bugs.webkit.org/show_bug.cgi?id=160350
+
+        Reviewed by Simon Fraser.
+
+        No new tests because there's no behavior change.  Just removing dead code.
+
+        SVGInlineTextBox::paintText() instantiates a local variable selectionTextRun. 
+        Thanks to analysis by Said Abou-Hallawa, we know that selectionTextRun
+        was introduced in https://trac.webkit.org/changeset/61393, but was later
+        rendered unused in https://trac.webkit.org/changeset/62099 because we
+        switched to using paintTextWithShadows() with the selectionStyle.  Hence,
+        selectionTextRun can be removed.
+
+        * rendering/svg/SVGInlineTextBox.cpp:
+        (WebCore::SVGInlineTextBox::paintText):
+
+2016-07-29  Eric Carlson  <eric.carlson@apple.com>
+
+        Change internal AVCaptureDeviceType typedef name
+        https://bugs.webkit.org/show_bug.cgi?id=160345
+        <rdar://problem/27610935>
+
+        Reviewed by Dean Jackson.
+
+        * platform/mediastream/mac/AVAudioCaptureSource.mm:
+        (WebCore::AVAudioCaptureSource::create): AVCaptureDeviceType -> AVCaptureDeviceTypedef
+        (WebCore::AVAudioCaptureSource::AVAudioCaptureSource): Ditto.
+
+        * platform/mediastream/mac/AVCaptureDeviceManager.mm:
+        (WebCore::AVCaptureDeviceManager::captureDeviceList): Ditto.
+        (WebCore::shouldConsiderDeviceInDeviceList): Ditto.
+        (WebCore::AVCaptureDeviceManager::refreshCaptureDeviceList): Ditto.
+        (WebCore::AVCaptureDeviceManager::createMediaSourceForCaptureDeviceWithConstraints): Ditto.
+        (WebCore::AVCaptureDeviceManager::deviceConnected): Ditto.
+        (WebCore::AVCaptureDeviceManager::deviceDisconnected): Ditto.
+        (-[WebCoreAVCaptureDeviceManagerObserver deviceDisconnected:]): Ditto.
+
+        * platform/mediastream/mac/AVMediaCaptureSource.mm:
+        (WebCore::globaVideoCaptureSerialQueue): Ditto.
+        (WebCore::AVMediaCaptureSource::AVMediaCaptureSource): Ditto.
+
+        * platform/mediastream/mac/AVVideoCaptureSource.mm:
+        (WebCore::AVVideoCaptureSource::create): Ditto.
+        (WebCore::AVVideoCaptureSource::AVVideoCaptureSource): Ditto.
+
+2016-07-28  Dean Jackson  <dino@apple.com>
+
+        color-gamut media query returns incorrect results
+        https://bugs.webkit.org/show_bug.cgi?id=160166
+        <rdar://problem/27537577>
+
+        Reviewed by Darin Adler.
+
+        While I was unable to reproduce the originator's issue,
+        we communicated via email and it might have been related
+        to a customized color space calibration on an external
+        display.
+
+        Anyway, I took this opportunity to update to use the
+        more appropriate API for detection on macOS Sierra.
+
+        Covered by the existing fast/media/mq-color-gamut.html test.
+
+        * platform/mac/PlatformScreenMac.mm:
+        (WebCore::screenSupportsExtendedColor): Use NSScreen canRepresentDisplayGamut.
+
+2016-07-29  George Ruan  <gruan@apple.com>
+
+        HTMLVideoElement with MediaStream src shows paused image when all video tracks are disabled
+        https://bugs.webkit.org/show_bug.cgi?id=160222
+        <rdar://problem/27557313>
+
+        Reviewed by Eric Carlson.
+
+        Tests: fast/mediastream/MediaStream-video-element-video-tracks-disabled-then-enabled.html
+               fast/mediastream/MediaStream-video-element-video-tracks-disabled.html
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::enqueueVideoSampleBufferFromTrack): Change criteria to enqueue a
+        Sample Buffer to the AVSampleBufferDisplayLayer to allow an initial frame to be shown.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::shouldEnqueueVideoSampleBuffer): Allow an initial frame to be shown.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::flushAndRemoveVideoSampleBuffers): Removes all buffers from the
+        AVSampleBufferDisplayLayer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::ensureLayer): Make the AVSampleBufferDisplayLayer's background black.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updateDisplayMode): Remove all buffers from the AVSampleBufferDisplayLayer
+        when state of MediaPlayerPrivateMediaStreamAVFObjC is changed to None of PaintItBlack.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updatePausedImage): Updates paused image.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::pause): Calls updatePausedImage.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::paintCurrentFrameInContext): Allow an initial frame to be painted to canvas.
+
+2016-07-29  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Activate credentials mode
+        https://bugs.webkit.org/show_bug.cgi?id=160292
+
+        Reviewed by Alex Christensen.
+
+        Covered by updated and rebased tests.
+
+        Previously the allowCredentials option was computed by DocumentThreadableLoader clients.
+        This option is really similar to the credentials flag in the fetch specification and should be handled at lower levels.
+        In the future, it might be good to retire that option.
+
+        In case of Omit mode, we need to explicitely disable cookies in DocumentThreadableLoader.
+        This should be updated so that ResourceLoader does it, depending on credential flag being set or not.
+
+        Updated DocumentThreadableLoader clients to only use FetchOptions::Credentials.
+        This allows to link code more easely to specification.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start): Removing use of allowCredentials option. Using FetchOptions::Credentials instead.
+        * fileapi/FileReaderLoader.cpp:
+        (WebCore::FileReaderLoader::start): Ditto.
+        * inspector/InspectorNetworkAgent.cpp:
+        (WebCore::InspectorNetworkAgent::loadResource): Ditto.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::DocumentThreadableLoader): Computing allowCredentials from FetchOptions::Credentials.
+        (WebCore::DocumentThreadableLoader::loadRequest): Enabling cookie only if allowed to use credentials. This is in
+        particular useful for FetchOptions::Credentials::Omit mode.
+        * page/EventSource.cpp:
+        (WebCore::EventSource::connect): Removing use of allowCredentials option. Using FetchOptions::Credentials instead.
+        * workers/WorkerScriptLoader.cpp:
+        (WebCore::WorkerScriptLoader::loadSynchronously): Ditto.
+        (WebCore::WorkerScriptLoader::loadAsynchronously): Ditto.
+        * xml/XMLHttpRequest.cpp: Ditto.
+        (WebCore::XMLHttpRequest::createRequest):
+
+2016-07-29  Youenn Fablet  <youenn@apple.com>
+
+        CrossOrigin preflight checker should compute the right Access-Control-Request-Headers value
+        https://bugs.webkit.org/show_bug.cgi?id=160028
+
+        Reviewed by Alex Christensen.
+
+        Covered by updated test.
+
+        Computing Access-Control-Request-Headers value according https://fetch.spec.whatwg.org/#cors-preflight-fetch:
+        - Remove safe headers
+        - lowercase header names
+        - sort lexicographically header names
+        The only difference is that we keep separating headers with ', ' instead of ',' as per the spec.
+        Also, some headers that might be safe are still marked as unsafe (DPR, Downlink...).
+
+        Moved setting of Origin header after preflighting, consistently with fetch spec.
+
+        * loader/CrossOriginAccessControl.cpp:
+        (WebCore::createAccessControlPreflightRequest): Implementing new computation of Access-Control-Request-Headers.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::makeCrossOriginAccessRequest): Removing call to updateRequestForAccessControl (which sets Origin header value).
+        (WebCore::DocumentThreadableLoader::makeSimpleCrossOriginAccessRequest): Adding call to updateRequestForAccessControl.
+        (WebCore::DocumentThreadableLoader::preflightSuccess): Ditto.
+        * platform/network/HTTPParsers.cpp:
+        (WebCore::isCrossOriginSafeRequestHeader): Helper routine to implement https://fetch.spec.whatwg.org/#cors-safelisted-request-header.
+        * platform/network/HTTPParsers.h:
+
+2016-07-29  Frederic Wang  <fwang@igalia.com>
+
+        Parse the operator text on the MathMLOperatorElement class.
+        https://bugs.webkit.org/show_bug.cgi?id=160241
+
+        Reviewed by Darin Adler.
+
+        The text of the MathML operators is important to determine form or dictionary properties and
+        hence provide default values when no explicit attributes are privided. Since that text only
+        depends on the MathML DOM content, it makes sense to move its parsing into
+        MathMLOperatorElement. Anonymous operators created by the mfenced elements still need to be
+        handled specially and this will be true for all the operator properties that can just be
+        determined in MathMLOperatorElement. Hence in a follow-up patch we will introduce a class
+        to move all the code specific to mfenced in a class derived from RenderMathMLOperator while
+        we continue to move the corresponding code for non-anonymous into MathMLOperatorElement.
+
+        No new tests, behavior is unchanged.
+
+        * mathml/MathMLOperatorElement.cpp: Include header for hyphenMinus/minusSign characters.
+        (WebCore::MathMLOperatorElement::parseOperatorText): Move that code from rebuildTokenContent
+        (WebCore::MathMLOperatorElement::operatorText): Helper function to get the cached text.
+        (WebCore::MathMLOperatorElement::childrenChanged): Make the cached text dirty.
+        * mathml/MathMLOperatorElement.h: Update defitions and add a member for the operator text.
+        * mathml/MathMLTextElement.h: Make childrenChanged overridable.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::element): Helper function to cast to a MathMLOperatorElement.
+        (WebCore::RenderMathMLOperator::textContent): Helper function to call
+        MathMLOperatorElement::operatorText or fallback to m_textContent for anonymous operators.
+        m_textContent and this special case can be moved into a derived class later.
+        (WebCore::RenderMathMLOperator::setOperatorProperties): Call textContent().
+        (WebCore::RenderMathMLOperator::computePreferredLogicalWidths): Ditto.
+        (WebCore::RenderMathMLOperator::rebuildTokenContent): Remove the string parameter and the
+        parsing of the operator text.
+        (WebCore::RenderMathMLOperator::updateTokenContent): Call textContent(). The special function
+        for anonymous operators also parses the text content but this could be moved into a derived
+        class later.
+        (WebCore::RenderMathMLOperator::shouldAllowStretching): Call textContent().
+        (WebCore::RenderMathMLOperator::useMathOperator): Ditto.
+        (WebCore::RenderMathMLOperator::RenderMathMLOperator): No need to initialize m_textContent
+        as it is not used anymore for non-anonymous renderers.
+        * rendering/mathml/RenderMathMLOperator.h: Update definitions and call textContent().
+
+2016-07-28  Youenn Fablet  <youenn@apple.com>
+
+        Binding generator should expose the visible interface name in error messages
+        https://bugs.webkit.org/show_bug.cgi?id=160192
+
+        Reviewed by Darin Adler.
+
+        Covered by updated layout and binding tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Using visibleInterfaceName instead of interfaceName.
+        (GenerateFunctionCastedThis): Ditto.
+        (GenerateParametersCheck): Ditto.
+        (GenerateConstructorDefinition): Ditto.
+        * bindings/scripts/test/JS/JSTestObj.cpp: Rebased.
+        * bindings/scripts/test/TestObj.idl: Adding ConstructorCallWith to exercice change in GenerateConstructorDefinition.
+
+2016-07-28  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Split calculateCacheSizes in two methods
+        https://bugs.webkit.org/show_bug.cgi?id=160237
+
+        Reviewed by Darin Adler.
+
+        Rename getVolumeFreeSizeForPath as volumeFreeSizeForPath and make it available to all platforms adding an
+        implementation for mac.
+
+        * platform/FileSystem.h:
+        * platform/efl/FileSystemEfl.cpp:
+        (WebCore::volumeFreeSizeForPath):
+        (WebCore::getVolumeFreeSizeForPath): Deleted.
+        * platform/glib/FileSystemGlib.cpp:
+        (WebCore::volumeFreeSizeForPath):
+        (WebCore::getVolumeFreeSizeForPath): Deleted.
+        * platform/mac/FileSystemMac.mm:
+        (WebCore::volumeFreeSizeForPath):
+        * platform/win/FileSystemWin.cpp:
+        (WebCore::volumeFreeSizeForPath):
+
+2016-07-28  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Remove deprecated SPI for video inline / fullscreen controls
+        https://bugs.webkit.org/show_bug.cgi?id=160318
+
+        Reviewed by Tim Horton.
+
+        r203752 deprecated the SPI allowsInlineMediaPlaybackWithPlaysInlineAttribute
+        and allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute (in favor of
+        inlineMediaPlaybackRequiresPlaysInlineAttribute). This patch removes the
+        deprecated SPI symbols.
+
+        No new tests because there is no behavior change.
+
+        * page/Settings.cpp:
+        * page/Settings.in:
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup): Deleted.
+        (WebCore::InternalSettings::Backup::restoreTo): Deleted.
+        (WebCore::InternalSettings::setAllowsInlineMediaPlaybackWithPlaysInlineAttribute): Deleted.
+        (WebCore::InternalSettings::setAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute): Deleted.
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+
 2016-07-28  Chris Dumez  <cdumez@apple.com>
 
         Add support for Element.getAttributeNames()

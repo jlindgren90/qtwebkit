@@ -690,7 +690,6 @@ void XMLHttpRequest::createRequest(ExceptionCode& ec)
     options.setSendLoadCallbacks(SendCallbacks);
     options.setSniffContent(DoNotSniffContent);
     options.preflightPolicy = uploadEvents ? ForcePreflight : ConsiderPreflight;
-    options.setAllowCredentials((m_sameOriginRequest || m_includeCredentials) ? AllowStoredCredentials : DoNotAllowStoredCredentials);
     options.credentials = m_includeCredentials ? FetchOptions::Credentials::Include : FetchOptions::Credentials::SameOrigin;
     options.mode = FetchOptions::Mode::Cors;
     options.contentSecurityPolicyEnforcement = scriptExecutionContext()->shouldBypassMainWorldContentSecurityPolicy() ? ContentSecurityPolicyEnforcement::DoNotEnforce : ContentSecurityPolicyEnforcement::EnforceConnectSrcDirective;
@@ -715,7 +714,7 @@ void XMLHttpRequest::createRequest(ExceptionCode& ec)
         // ThreadableLoader::create can return null here, for example if we're no longer attached to a page or if a content blocker blocks the load.
         // This is true while running onunload handlers.
         // FIXME: Maybe we need to be able to send XMLHttpRequests from onunload, <http://bugs.webkit.org/show_bug.cgi?id=10904>.
-        m_loader = ThreadableLoader::create(scriptExecutionContext(), this, request, options);
+        m_loader = ThreadableLoader::create(scriptExecutionContext(), this, WTFMove(request), options);
 
         // Neither this object nor the JavaScript wrapper should be deleted while
         // a request is in progress because we need to keep the listeners alive,
@@ -728,7 +727,7 @@ void XMLHttpRequest::createRequest(ExceptionCode& ec)
         }
     } else {
         InspectorInstrumentation::willLoadXHRSynchronously(scriptExecutionContext());
-        ThreadableLoader::loadResourceSynchronously(scriptExecutionContext(), request, *this, options);
+        ThreadableLoader::loadResourceSynchronously(scriptExecutionContext(), WTFMove(request), *this, options);
         InspectorInstrumentation::didLoadXHRSynchronously(scriptExecutionContext());
     }
 

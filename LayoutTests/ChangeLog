@@ -1,3 +1,382 @@
+2016-07-31  Youenn Fablet  <youenn@apple.com>
+
+        Fetch Response built-ins should use @makeThisTypeError
+        https://bugs.webkit.org/show_bug.cgi?id=160290
+
+        Reviewed by Darin Adler.
+
+        * fetch/fetch-error-messages-expected.txt:
+        * fetch/fetch-error-messages.html:
+
+2016-07-31  Nan Wang  <n_wang@apple.com>
+
+        AX: Add a check for touch event listener on iOS accessibility object
+        https://bugs.webkit.org/show_bug.cgi?id=160388
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/ios-simulator/has-touch-event-listener-expected.txt: Added.
+        * accessibility/ios-simulator/has-touch-event-listener.html: Added.
+
+2016-07-30  Mark Lam  <mark.lam@apple.com>
+
+        Assertion failure while setting the length of an ArrayClass array.
+        https://bugs.webkit.org/show_bug.cgi?id=160381
+        <rdar://problem/27328703>
+
+        Reviewed by Filip Pizlo.
+
+        Test that RuntimeArrays will throw an error if we try to set its length.
+
+        * platform/mac/fast/dom/wrapper-classes-objc.html:
+        * platform/mac/fast/dom/wrapper-classes-objc-expected.txt:
+
+2016-07-30  Chris Dumez  <cdumez@apple.com>
+
+        Enable strict type checking for Window dictionary members
+        https://bugs.webkit.org/show_bug.cgi?id=160356
+
+        Reviewed by Darin Adler.
+
+        Update existing tests to reflect behavior change.
+
+        * fast/events/constructors/composition-event-constructor-expected.txt:
+        * fast/events/constructors/composition-event-constructor.html:
+        * fast/events/constructors/focus-event-constructor-expected.txt:
+        * fast/events/constructors/focus-event-constructor.html:
+        * fast/events/constructors/keyboard-event-constructor-expected.txt:
+        * fast/events/constructors/keyboard-event-constructor.html:
+        * fast/events/constructors/mouse-event-constructor.html:
+        * fast/events/constructors/ui-event-constructor-expected.txt:
+        * fast/events/constructors/ui-event-constructor.html:
+        * fast/events/constructors/wheel-event-constructor.html:
+        * platform/mac/fast/events/constructors/mouse-event-constructor-expected.txt:
+        * platform/mac/fast/events/constructors/wheel-event-constructor-expected.txt:
+
+        * resources/js-test-pre.js:
+        Add a shouldThrowErrorName() utility function that is similar to shouldThrow()
+        but only checks the error name instead of the full error message. Checking
+        only the error name has the benefit of working across browsers and facilitating
+        refactoring of error messages.
+
+2016-07-30  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Enable strict type checking for nullable attribute setters of wrapper types
+        https://bugs.webkit.org/show_bug.cgi?id=160375
+
+        Reviewed by Darin Adler.
+
+        Rebaseline / update existing tests to reflect behavior change.
+
+        * fast/speechsynthesis/speech-synthesis-crash-on-bad-utterance-expected.txt:
+        * fast/speechsynthesis/speech-synthesis-crash-on-bad-utterance.html:
+        * webaudio/convolver-setBuffer-null-expected.txt:
+        * webaudio/convolver-setBuffer-null.html:
+
+2016-07-30  Alexey Proskuryakov  <ap@apple.com>
+
+        macOS Sierra test result gardening for media/video-loop.html.
+
+        * platform/mac/TestExpectations:
+
+2016-07-30  Alexey Proskuryakov  <ap@apple.com>
+
+        macOS Sierra test result gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-30  Youenn Fablet  <youenn@apple.com>
+
+        Synchronous preflight should check for successful responses
+        https://bugs.webkit.org/show_bug.cgi?id=159350
+
+        Reviewed by Darin Adler.
+
+        * http/tests/xmlhttprequest/access-control-preflight-not-successful-expected.txt: Added.
+        * http/tests/xmlhttprequest/access-control-preflight-not-successful.html: Added, not all tests are passing as CORS checks.
+        for redirections are not well supported for synchronous loading.
+        * http/tests/xmlhttprequest/resources/status-404-without-body.php:
+
+2016-07-30  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Enable strict type checking for operations' nullable parameters of wrapper types
+        https://bugs.webkit.org/show_bug.cgi?id=160374
+
+        Reviewed by Youenn Fablet.
+
+        Update / rebaseline existing tests to reflect behavior change. Also fix
+        several bugs in tests that became obvious now that we throw.
+
+        * editing/execCommand/indent-pre-expected.txt:
+        * editing/execCommand/indent-pre.html:
+        * editing/selection/4895428-2.html:
+        * editing/selection/move-by-word-visually-null-box.html:
+        * fast/dom/DOMImplementation/detached-doctype.html:
+        * fast/dom/MutationObserver/observe-attributes.html:
+        * fast/dom/Node/contains-method-expected.txt:
+        * fast/dom/Node/script-tests/contains-method.js:
+        * fast/dom/Window/webkitConvertPoint.html:
+        * fast/dom/adopt-node-crash-2.html:
+        * fast/dom/incompatible-operations-expected.txt:
+        * fast/dom/incompatible-operations.html:
+        * fast/events/selectstart-by-arrow-keys.html:
+        * fast/images/image-copy-memory-usage.html:
+        * fast/xsl/xslt-processor-expected.txt:
+        * http/tests/misc/webtiming-cross-origin-and-back1.html:
+        * platform/mac/fast/dom/Window/webkitConvertPoint-expected.txt:
+        * svg/custom/unicode-in-tspan-multi-svg-crash.html:
+
+2016-07-29  Chris Dumez  <cdumez@apple.com>
+
+        Window's named properties should be exposed on a WindowProperties object in its prototype
+        https://bugs.webkit.org/show_bug.cgi?id=160354
+
+        Reviewed by Gavin Barraclough.
+
+        * fast/dom/Window/es52-globals-expected.txt:
+        Update / Rebaseline test now that named properties are no longer reported as "own"
+        properties on the Window object. I have verified that the test gives the
+        same result in Firefox and Chrome.
+
+        * fast/loader/window-clearing-expected.txt:
+        Rebaseline test that prints one more line because there is one more
+        object in Window's prototype chain.
+
+        * http/tests/security/window-named-proto-expected.txt:
+        * http/tests/security/window-named-valueOf-expected.txt:
+        Rebaseline 2 security tests that give slightly different output. The new
+        output is identical to the one in Firefox and Chrome. The tests are not
+        failing since they are not alert'ing content from the other frame.
+        The reason those tests were logging a security error is because we would
+        previously prevent named property access if the frame name conflicts with
+        a property name in the Window prototype, and we now no longer
+        differentiate this case.
+
+2016-07-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/xmlhttprequest/workers/methods-async.html as flaky on ios-simulator release WK2
+        https://bugs.webkit.org/show_bug.cgi?id=160368
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-07-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline fast/block/float/overhanging-tall-block.html for Sierra.
+
+        Unreviewed test gardening.
+
+        * platform/mac-elcapitan/fast/block/float/overhanging-tall-block-expected.png: Renamed from LayoutTests/platform/mac/fast/block/float/overhanging-tall-block-expected.png.
+        * platform/mac-elcapitan/fast/block/float/overhanging-tall-block-expected.txt: Copied from LayoutTests/platform/mac/fast/block/float/overhanging-tall-block-expected.txt.
+        * platform/mac/TestExpectations:
+        * platform/mac/fast/block/float/overhanging-tall-block-expected.txt:
+
+2016-07-29  Daniel Bates  <dabates@apple.com>
+
+        Crash under HTMLMediaElement::{resolve, reject}PendingPlayPromises() when playback is interrupted
+        https://bugs.webkit.org/show_bug.cgi?id=160366
+        <rdar://problem/27317407>
+
+        Reviewed by Eric Carlson.
+
+        * media/non-existent-video-playback-interrupted-expected.txt: Added.
+        * media/non-existent-video-playback-interrupted.html: Added.
+        * media/video-playback-interrupted-expected.txt: Added.
+        * media/video-playback-interrupted.html: Added.
+
+2016-07-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Land test expectations for rdar://problem/27611932.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Test gardening on ios-simualtor after some media tests were unskipped in r203906.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/media/audio-controls-rendering-expected.txt: Added.
+        * platform/ios-simulator/media/audio-repaint-expected.txt: Added.
+        * platform/ios-simulator/media/controls-strict-expected.txt: Added.
+        * platform/ios-simulator/media/controls-styling-strict-expected.txt: Added.
+        * platform/ios-simulator/media/controls-without-preload-expected.txt: Added.
+        * platform/ios-simulator/media/media-controls-clone-expected.txt: Added.
+        * platform/ios-simulator/media/track/track-cue-rendering-horizontal-expected.txt: Added.
+        * platform/ios-simulator/media/track/track-cue-rendering-vertical-expected.txt: Added.
+        * platform/ios-simulator/media/video-aspect-ratio-expected.txt: Added.
+        * platform/ios-simulator/media/video-controls-captions-trackmenu-expected.txt: Added.
+        * platform/ios-simulator/media/video-controls-captions-trackmenu-hide-on-click-expected.txt: Added.
+        * platform/ios-simulator/media/video-controls-captions-trackmenu-localized-expected.txt: Added.
+        * platform/ios-simulator/media/video-controls-captions-trackmenu-sorted-expected.txt: Added.
+        * platform/ios-simulator/media/video-controls-rendering-expected.txt: Added.
+        * platform/ios-simulator/media/video-display-toggle-expected.txt: Added.
+        * platform/ios-simulator/media/video-empty-source-expected.txt: Added.
+        * platform/ios-simulator/media/video-layer-crash-expected.txt: Added.
+        * platform/ios-simulator/media/video-no-audio-expected.txt: Added.
+        * platform/ios-simulator/media/video-transformed-expected.txt: Added.
+        * platform/ios-simulator/media/video-volume-slider-expected.txt: Added.
+        * platform/ios-simulator/media/video-zoom-controls-expected.txt: Added.
+        * platform/ios-simulator/media/video-zoom-expected.txt: Added.
+
+2016-07-29  Zalan Bujtas  <zalan@apple.com>
+
+        Do not set negative rate on AVSampleBufferRenderSynchronizer.
+        https://bugs.webkit.org/show_bug.cgi?id=160326
+        <rdar://problem/27355214>
+
+        Reviewed by Eric Carlson.
+
+        Negative rate is not supported at the moment.
+
+        * http/tests/media/media-source/mediasource-play-then-seek-back-with-remote-control-expected.txt: Added.
+        * http/tests/media/media-source/mediasource-play-then-seek-back-with-remote-control.html: Added.
+
+2016-07-29  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [macOS Sierra] Test gardening after r198859
+        https://bugs.webkit.org/show_bug.cgi?id=160358
+        <rdar://problem/26422274>
+
+        Reviewed by Zalan Bujtas.
+
+        RTL Scrollbars are not enabled on WK1, so this test should be marked in the
+        same way as all the other RTL scrollbars tests.
+
+        * TestExpectations:
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac-wk2/TestExpectations:
+
+2016-07-29  Alexey Proskuryakov  <ap@apple.com>
+
+        Remove a Sierra specific expectation for http/tests/navigation/forward-and-cancel.html,
+        we already have an identical one in platform/mac.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-29  Daniel Bates  <dabates@apple.com>
+
+        Skip some media tests that fail on iOS
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-07-29  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [macOS Sierra] Unskip new emoji group candidates tests
+        https://bugs.webkit.org/show_bug.cgi?id=160351
+        <rdar://problem/27430381>
+
+        Reviewed by Alexey Proskuryakov.
+
+        * platform/mac/TestExpectations:
+
+2016-07-29  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Backspace key removes only the rainbow from the rainbow flag
+        https://bugs.webkit.org/show_bug.cgi?id=160349
+        <rdar://problem/27594995>
+
+        Reviewed by Dean Jackson.
+
+        * platform/mac/editing/deleting/delete-emoji-expected.txt:
+        * platform/mac-yosemite/editing/deleting/delete-emoji-expected.txt:
+        * platform/ios-simulator/editing/deleting/delete-emoji-expected.txt:
+
+2016-07-29  Nan Wang  <n_wang@apple.com>
+
+        AX: Media controls accessibility improvement
+        https://bugs.webkit.org/show_bug.cgi?id=160223
+        <rdar://problem/27558003>
+
+        Reviewed by Eric Carlson.
+
+        * accessibility/mac/video-volume-slider-accessibility-expected.txt:
+        * accessibility/mac/video-volume-slider-accessibility.html:
+        * accessibility/media-emits-object-replacement-expected.txt:
+        * media/media-controls-accessibility-expected.txt: Added.
+        * media/media-controls-accessibility.html: Added.
+        * platform/efl/accessibility/media-element-expected.txt:
+        * platform/efl/accessibility/media-emits-object-replacement-expected.txt:
+        * platform/gtk/accessibility/media-element-expected.txt:
+        * platform/gtk/accessibility/media-emits-object-replacement-expected.txt:
+        * platform/mac/accessibility/media-element-expected.txt:
+
+2016-07-29  Daniel Bates  <dabates@apple.com>
+
+        Unskip some media tests on iOS when run in WebKitTestRunner
+
+        As a step towards running the various media tests on iOS, unskip LayoutTests/media
+        when run in WebKitTestRunner in the iOS Simulator. Incorporate the reasons we skip some
+        of the iOS tests from r189372. For now continue to skip LayoutTest/media when run in
+        DumpRenderTree in the iOS Simulator as many tests crash and are otherwise flaky. Further
+        investigation is required.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-07-29  George Ruan  <gruan@apple.com>
+
+        HTMLVideoElement with MediaStream src shows paused image when all video tracks are disabled
+        https://bugs.webkit.org/show_bug.cgi?id=160222
+        <rdar://problem/27557313>
+
+        Reviewed by Eric Carlson.
+
+        * fast/mediastream/MediaStream-video-element-video-tracks-disabled-expected.html: Added.
+        * fast/mediastream/MediaStream-video-element-video-tracks-disabled-then-enabled-expected.txt: Added.
+        * fast/mediastream/MediaStream-video-element-video-tracks-disabled-then-enabled.html: Added. Checks
+        that the video frames display captured media if all video tracks were disabled and then a single
+        video track is re-enabled. This test also checks that an initial frame is painted to
+        canvas if the video has not yet been played.
+        * fast/mediastream/MediaStream-video-element-video-tracks-disabled.html: Added. Reference tests the
+        frames of the video to be black, since the canvas is painted black regardless of the state of the video frames
+        if displayMode of MediaPlayerPrivateMediaStreamAVFObjC is PaintItBlack.
+        * platform/mac-wk2/TestExpectations: MediaStream-video-element-video-tracks-disabled.html fails on El
+        Capitan due to incorrect behavior of AVSampleBufferDisplayLayer's API call flushAndRemoveImage.
+
+2016-07-29  Youenn Fablet  <youenn@apple.com>
+
+        CrossOrigin preflight checker should compute the right Access-Control-Request-Headers value
+        https://bugs.webkit.org/show_bug.cgi?id=160028
+
+        Reviewed by Alex Christensen.
+
+        Rebasing regular tests. Also updating skipped worker tests.
+
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/fetch/api/cors/cors-no-preflight-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/fetch/api/cors/cors-no-preflight-worker-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/fetch/api/cors/cors-preflight-redirect-worker-expected.txt: Added.
+        * platform/mac-wk2/imported/w3c/web-platform-tests/fetch/api/cors/cors-no-preflight-expected.txt: Added.
+        * platform/mac-wk2/imported/w3c/web-platform-tests/fetch/api/cors/cors-no-preflight-worker-expected.txt: Added.
+        * platform/mac-wk2/imported/w3c/web-platform-tests/fetch/api/cors/cors-preflight-redirect-worker-expected.txt: Added.
+        * platform/mac/TestExpectations:
+
+2016-07-28  Youenn Fablet  <youennf@gmail.com>
+
+        Binding generator should expose the visible interface name in error messages
+        https://bugs.webkit.org/show_bug.cgi?id=160192
+
+        Reviewed by Darin Adler.
+
+        * editing/selection/extend-expected.txt:
+        * fast/dom/Window/getComputedStyle-missing-parameter-expected.txt:
+        * fast/dom/Window/getComputedStyle-missing-parameter.html:
+        * fetch/fetch-error-messages-expected.txt:
+        * fetch/fetch-error-messages.html: Adding test for Request.
+        * js/dom/toString-and-valueOf-override-expected.txt:
+        * js/getOwnPropertyDescriptor-unforgeable-attributes-expected.txt:
+        * js/getOwnPropertyDescriptor-window-attributes-expected.txt:
+        * media/encrypted-media/encrypted-media-v2-syntax-expected.txt:
+        * media/encrypted-media/encrypted-media-v2-syntax.html:
+        * webaudio/createMediaStreamSource-null-expected.txt:
+        * webaudio/createMediaStreamSource-null.html:
+        * webaudio/decode-audio-data-basic-expected.txt:
+        * webaudio/decode-audio-data-basic.html:
+        * webaudio/mediaelementaudiosourcenode-expected.txt:
+        * webaudio/mediaelementaudiosourcenode.html:
+
 2016-07-28  Chris Dumez  <cdumez@apple.com>
 
         Add support for Element.getAttributeNames()

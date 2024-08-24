@@ -209,7 +209,7 @@ private:
 #endif
 
     // Platform Helpers
-    void platformSetCacheModel(CacheModel);
+    void platformSetURLCacheSize(unsigned urlCacheMemoryCapacity, uint64_t urlCacheDiskCapacity);
 
     // Connections to WebProcesses.
     Vector<RefPtr<NetworkConnectionToWebProcess>> m_webProcessConnections;

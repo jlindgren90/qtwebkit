@@ -1,3 +1,144 @@
+2016-07-31  Adrian Perez de Castro  <aperez@igalia.com>
+
+        [GTK][Unix] Implement missing WebKit::SharedMemory::create() function
+        https://bugs.webkit.org/show_bug.cgi?id=160364
+
+        Reviewed by Carlos Garcia Campos.
+
+        The WebKit::SharedMemory::create() function is missing for the Unix
+        platform, which is also used by the GTK+ port. The latter is going
+        to need this in place to use the common content filtering code.
+
+        * Platform/unix/SharedMemoryUnix.cpp:
+        (WebKit::accessModeMMap): Added helper function to convert a
+        SharedMemory::Protection value into flags useable with mmap().
+        (WebKit::SharedMemory::create): Added. Implementation reuses code
+        existing in the SharedMemory::allocate() function.
+        (WebKit::SharedMemory::allocate): Reimplemented in terms of
+        SharedMemory::create().
+
+2016-07-30  Dan Bernstein  <mitz@apple.com>
+
+        [Xcode] WebKit.framework is touched on incremental build even if nothing’s changed
+        https://bugs.webkit.org/show_bug.cgi?id=160383
+
+        Reviewed by Tim Horton.
+
+        * WebKit2.xcodeproj/project.pbxproj: Removed the output files listed under the
+          Copy iOS Sandbox Profiles for Manual Sandboxing script build phase, because it doesn’t
+          produce those files on macOS. With no outputs listed, the script will still run every
+          time, but the fact that it has run won’t trigger touching the framework.
+
+2016-07-28  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Crash with an Invalid Web Process IPC Message ID: WebPageProxy.AttributedStringForCharacterRangeCallback
+        https://bugs.webkit.org/show_bug.cgi?id=160334
+        <rdar://problem/27078089>
+
+        Reviewed by Alexey Proskuryakov.
+
+        The crash is most likely caused by an MESSAGE_CHECK failure in WebPageProxy::attributedStringForCharacterRangeCallback
+        which marks the currently dispatching message was invalid inside the macro.
+
+        Make sure we never fail this check by sending an empty EditingRange in attributedSubstringForCharacterRangeAsync when
+        the editing range we're about to send to the UIProcess is invalid in WebProcess.
+
+        Unfortunately, no new tests since we don't have any reproduction and I couldn't spot any code path in which we end up
+        with an invalid EditingRage here with multiple inspection of the relevant code.
+
+        * WebProcess/WebPage/mac/WebPageMac.mm:
+        (WebKit::WebPage::attributedSubstringForCharacterRangeAsync):
+
+2016-07-28  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Split calculateCacheSizes in two methods
+        https://bugs.webkit.org/show_bug.cgi?id=160237
+
+        Reviewed by Darin Adler.
+
+        It's used to calculate memory and disk cache sizes, but only the web process is interested in memory caches, and
+        the network process in disk cache. We can also avoid a lot of duplicated code between ports to set the cache model.
+
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::setCacheModel): Use calculateURLCacheSizes to set the disk cache size and call
+        platformSetURLCacheSize if not set to allow ports to setup platform specific cache.
+        * NetworkProcess/NetworkProcess.h:
+        * NetworkProcess/cocoa/NetworkProcessCocoa.mm:
+        (WebKit::NetworkProcess::platformSetURLCacheSize): Remove common code that is now in cross-platform file.
+        (WebKit::volumeFreeSize): Deleted.
+        (WebKit::NetworkProcess::platformSetCacheModel): Renamed to platformSetURLCacheSize().
+        * NetworkProcess/soup/NetworkProcessSoup.cpp:
+        (WebKit::NetworkProcess::platformSetURLCacheSize): Remove common code that is now in cross-platform file.
+        (WebKit::getCacheDiskFreeSize): Deleted.
+        (WebKit::NetworkProcess::platformSetCacheModel): Renamed to platformSetURLCacheSize().
+        * Shared/CacheModel.cpp:
+        (WebKit::calculateMemoryCacheSizes): Calculate the memory and page cache sizes.
+        (WebKit::calculateURLCacheSizes): Calculate the disk cache size.
+        (WebKit::calculateCacheSizes): Deleted.
+        * Shared/CacheModel.h:
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess): Tell the page cache to clear backing stores for GTK+ port too. This was done before when
+        setting the cache model.
+        (WebKit::WebProcess::setCacheModel): Use calculateMemoryCacheSizes to setup memory caches and call
+        platformSetCacheModel to allow ports do more setup according to the cache model.
+        (WebKit::WebProcess::clearResourceCaches): Deleted.
+        * WebProcess/WebProcess.h:
+        * WebProcess/cocoa/WebProcessCocoa.mm:
+        (WebKit::WebProcess::platformSetCacheModel): Remove common code that is now in cross-platform file.
+        (WebKit::volumeFreeSize): Deleted.
+        (WebKit::WebProcess::platformClearResourceCaches): Deleted.
+        * WebProcess/soup/WebProcessSoup.cpp:
+        (WebKit::WebProcess::platformSetCacheModel): Remove common code that is now in cross-platform file.
+        (WebKit::WebProcess::platformInitializeWebProcess):
+        (WebKit::WebProcess::platformClearResourceCaches): Deleted.
+
+2016-07-28  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Database Process: ASSERTION FAILED: paths.size() == handles.size() with SANDBOX_EXTENSIONS disabled
+        https://bugs.webkit.org/show_bug.cgi?id=160188
+
+        Reviewed by Sergio Villar Senin.
+
+        This happens in ports with sandbox extensions disabled, and it's making several tests to crash in debug
+        builds. The SandboxExtension implementation is empty in case of building with sandbox extensions disabled, so
+        that we are actually allocating no extensions at all in
+        NetworkProcessProxy::grantSandboxExtensionsToDatabaseProcessForBlobs(). When the message arrives to database
+        process, we have a list of paths, but an empty list of hanldes which causes the assertion. We can just avoid
+        that message entirely in case of building without sandbox extensions.
+
+        * DatabaseProcess/DatabaseProcess.cpp:
+        * DatabaseProcess/DatabaseProcess.h:
+        * DatabaseProcess/DatabaseProcess.messages.in:
+        * UIProcess/Network/NetworkProcessProxy.cpp:
+        (WebKit::NetworkProcessProxy::grantSandboxExtensionsToDatabaseProcessForBlobs):
+
+2016-07-28  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Remove deprecated SPI for video inline / fullscreen controls
+        https://bugs.webkit.org/show_bug.cgi?id=160318
+
+        Reviewed by Tim Horton.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/C/WKPreferences.cpp:
+        (WKPreferencesSetAllowsInlineMediaPlaybackWithPlaysInlineAttribute): Deleted.
+        (WKPreferencesGetAllowsInlineMediaPlaybackWithPlaysInlineAttribute): Deleted.
+        (WKPreferencesSetAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute): Deleted.
+        (WKPreferencesGetAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute): Deleted.
+        * UIProcess/API/C/WKPreferencesRefPrivate.h:
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _initializeWithConfiguration:]): Deleted.
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration init]): Deleted.
+        (-[WKWebViewConfiguration copyWithZone:]): Deleted.
+        (-[WKWebViewConfiguration _allowsInlineMediaPlaybackWithPlaysInlineAttribute]): Deleted.
+        (-[WKWebViewConfiguration _setAllowsInlineMediaPlaybackWithPlaysInlineAttribute:]): Deleted.
+        (-[WKWebViewConfiguration _allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute]): Deleted.
+        (-[WKWebViewConfiguration _setAllowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute:]): Deleted.
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences): Deleted.
+
 2016-07-28  Tim Horton  <timothy_horton@apple.com>
 
         Frequent animation lags when interacting with Safari (sidebar, tab switching, etc.)

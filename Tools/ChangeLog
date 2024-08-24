@@ -1,3 +1,147 @@
+2016-07-31  Nan Wang  <n_wang@apple.com>
+
+        AX: Add a check for touch event listener on iOS accessibility object
+        https://bugs.webkit.org/show_bug.cgi?id=160388
+
+        Reviewed by Chris Fleizach.
+
+        * DumpRenderTree/ios/AccessibilityUIElementIOS.mm:
+        (AccessibilityUIElement::boolAttributeValue):
+        * WebKitTestRunner/InjectedBundle/ios/AccessibilityUIElementIOS.mm:
+        (WTR::AccessibilityUIElement::boolAttributeValue):
+
+2016-07-30  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        Unreviewed: add myself to the reviewers list.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-07-29  Alexey Proskuryakov  <ap@apple.com>
+
+        Undo r203939, and copy over a rule that clips the logos.
+
+        Sierra wasn't the only logo without transparency.
+
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Images/Sierra.png:
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Images/Sierra@2x.png:
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Styles/Main.css:
+
+2016-07-29  Alan Sien Wei Hshieh  <hshieh@apple.com>
+
+        The Sierra asset at build.webkit.org/dashboard/images/Sierra*.png has a white background
+        https://bugs.webkit.org/show_bug.cgi?id=160377
+
+        Reviewed by Brian Weinstein.
+
+        Update assets to remove the white background and use a transparent background instead.
+
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Images/Sierra.png:
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Images/Sierra@2x.png:
+
+2016-07-29  David Kilzer  <ddkilzer@apple.com>
+
+        Ignore most check-webkit-style checks for ANGLE project
+        <https://webkit.org/b/160333>
+
+        Reviewed by Daniel Bates.
+
+        * Scripts/webkitpy/style/checker.py: Ignore all checkers except:
+        - No tabs.
+        - No spaces at the end of lines.
+        - No carriage returns (DOS line endings).
+
+2016-07-29  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls are not displayed for some autoplaying videos at certain browser dimensions
+        https://bugs.webkit.org/show_bug.cgi?id=160360
+        <rdar://problem/27179484>
+
+        Reviewed by Myles C. Maxfield.
+
+        Adds two tests verifying that videos may be considered main content as long as they
+        are large enough and cover a majority of the mainframe's viewport.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/full-size-autoplaying-video-with-audio.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/skinny-autoplaying-video-with-audio.html: Added.
+
+2016-07-29  Mark Lam  <mark.lam@apple.com>
+
+        Gardening: removed unused variable.
+
+        Not reviewed.
+
+        * TestWebKitAPI/Tests/WTF/StringView.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-07-29  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Add TestWebKitAPI support for interacting with media controls
+        https://bugs.webkit.org/show_bug.cgi?id=160342
+        <rdar://problem/27610246>
+
+        Reviewed by Beth Dakin.
+
+        Adds support for testing interaction with some media controls, as well as a basic test
+        verifying that media control teardown after interaction does not result in a crash.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        (-[WKWebView mouseDownAtPoint:]):
+        (-[WKWebView performAfterLoading:]):
+        (TestWebKitAPI::TEST):
+
+2016-07-29  Jonathan Bedard  <jbedard@apple.com>
+
+        Crash Log Clobbering on Unbound Crashes
+        https://bugs.webkit.org/show_bug.cgi?id=160198
+        <rdar://problem/27472618>
+
+        Reviewed by Alexey Proskuryakov.
+
+        * Scripts/webkitpy/common/system/crashlogs.py:
+        (CrashLogs): Fix header order.
+        * Scripts/webkitpy/layout_tests/controllers/test_result_writer.py:
+        (TestResultWriter.output_filename): Only remove file extension if it is clearly a file extension.
+
+2016-07-29  Tibor Meszaros  <tmeszaros.u-szeged@partner.samsung.com>
+
+        Update for contributors.json
+        https://bugs.webkit.org/show_bug.cgi?id=160294
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-07-28  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Remove deprecated SPI for video inline / fullscreen controls
+        https://bugs.webkit.org/show_bug.cgi?id=160318
+
+        Reviewed by Tim Horton.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (setDefaultsToConsistentValuesForTesting): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/RequiresUserActionForPlayback.mm:
+        (RequiresUserActionForPlaybackTest::SetUp): Deleted.
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::resetPreferencesToConsistentValues): Deleted.
+        * WebKitTestRunner/cocoa/TestControllerCocoa.mm:
+        (WTR::initializeWebViewConfiguration): Deleted.
+
+2016-07-28  Daniel Bates  <dabates@apple.com>
+
+        [iOS] TestWebKitAPI bundle targets are not code signed
+        https://bugs.webkit.org/show_bug.cgi?id=160328
+        <rdar://problem/27409246>
+
+        Reviewed by Andy Estes.
+
+        Workaround <rdar://problem/27459890> by explicitly defining Xcode build settings
+        CODE_SIGNING_ALLOWED and AD_HOC_CODE_SIGNING_ALLOWED to be YES so as to allow the
+        the TestWebKitAPI bundle targets to be code signed when building for the iOS simulator.
+
+        * TestWebKitAPI/Configurations/Base.xcconfig:
+
 2016-07-28  Tim Horton  <timothy_horton@apple.com>
 
         Disable WebKit2.ResizeWithHiddenContentDoesNotHang for now

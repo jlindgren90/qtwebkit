@@ -1,3 +1,68 @@
+2016-07-30  Chris Dumez  <cdumez@apple.com>
+
+        Enable strict type checking for Window dictionary members
+        https://bugs.webkit.org/show_bug.cgi?id=160356
+
+        Reviewed by Darin Adler.
+
+        Rebaseline W3C test now that one more check is passing.
+
+        * web-platform-tests/dom/events/Event-subclasses-constructors-expected.txt:
+
+2016-07-30  Chris Dumez  <cdumez@apple.com>
+
+        [WebIDL] Enable strict type checking for operations' nullable parameters of wrapper types
+        https://bugs.webkit.org/show_bug.cgi?id=160374
+
+        Reviewed by Youenn Fablet.
+
+        Rebaseline W3C test now that one more check is passing.
+
+        * web-platform-tests/dom/nodes/DOMImplementation-createDocument-expected.txt:
+
+2016-07-29  Chris Dumez  <cdumez@apple.com>
+
+        Window's named properties should be exposed on a WindowProperties object in its prototype
+        https://bugs.webkit.org/show_bug.cgi?id=160354
+
+        Reviewed by Gavin Barraclough.
+
+        Rebaseline W3C test now that one more check is passing.
+
+        * web-platform-tests/html/dom/interfaces-expected.txt:
+
+2016-07-29  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Activate credentials mode
+        https://bugs.webkit.org/show_bug.cgi?id=160292
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/fetch/api/cors/cors-cookies-expected.txt:
+        * web-platform-tests/fetch/api/cors/cors-cookies-worker-expected.txt:
+        * web-platform-tests/fetch/api/cors/cors-cookies.js: Fixin otherRemote computation.
+        (corsCookies): ensuring cookie clean-up is done in case of error before going to the next test.
+        * web-platform-tests/fetch/api/cors/cors-redirect-credentials-expected.txt:
+        * web-platform-tests/fetch/api/cors/cors-redirect-credentials-worker-expected.txt:
+        * web-platform-tests/fetch/api/credentials/cookies-expected.txt:
+        * web-platform-tests/fetch/api/credentials/cookies-worker-expected.txt:
+
+2016-07-29  Youenn Fablet  <youenn@apple.com>
+
+        CrossOrigin preflight checker should compute the right Access-Control-Request-Headers value
+        https://bugs.webkit.org/show_bug.cgi?id=160028
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/fetch/api/cors/cors-no-preflight-expected.txt:
+        * web-platform-tests/fetch/api/cors/cors-no-preflight-worker-expected.txt:
+        * web-platform-tests/fetch/api/cors/cors-no-preflight.js:
+        (corsNoPreflight): fixing bugs in that test and adding new test to cover mime type checking that should ignore case.
+        * web-platform-tests/fetch/api/cors/cors-preflight-worker.html:
+        * web-platform-tests/fetch/api/cors/cors-preflight.html:
+        * web-platform-tests/fetch/api/cors/cors-preflight.js:
+        (corsPreflight): Adding safe headers to the request and checking more precisely sent Access-Control-Request-Headers header value.
+
 2016-07-28  Chris Dumez  <cdumez@apple.com>
 
         Add support for Element.getAttributeNames()

@@ -807,7 +807,7 @@ public:
     }
     
     bool hasVariableAccessData(Graph&);
-    bool hasLocal(Graph& graph)
+    bool accessesStack(Graph& graph)
     {
         return hasVariableAccessData(graph);
     }
@@ -1519,7 +1519,7 @@ public:
 
     bool hasUidOperand()
     {
-        return op() == CheckIdent;
+        return op() == CheckStringIdent;
     }
 
     UniquedStringImpl* uidOperand()
