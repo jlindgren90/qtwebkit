@@ -598,13 +598,11 @@ public:
         return layoutOverflowRect.y() < y() || layoutOverflowRect.maxY() > y() + logicalHeight();
     }
 
-    virtual RenderBox* createAnonymousBoxWithSameTypeAs(const RenderObject*) const
+    virtual std::unique_ptr<RenderBox> createAnonymousBoxWithSameTypeAs(const RenderBox&) const
     {
         ASSERT_NOT_REACHED();
         return nullptr;
     }
-
-    bool hasSameDirectionAs(const RenderBox* object) const { return style().direction() == object->style().direction(); }
 
 #if ENABLE(CSS_SHAPES)
     ShapeOutsideInfo* shapeOutsideInfo() const

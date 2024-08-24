@@ -1,3 +1,668 @@
+2016-07-26  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Infinite Canvas context save() causes WebKit to crash
+        https://bugs.webkit.org/show_bug.cgi?id=159586
+        <rdar://problem/26759984>
+
+        Reviewed by Simon Fraser.
+
+        Limit the size of the canvas context state stack to 1024 * 16 saves. All
+        the saves which come after that limit will stay unrealized. The restore() 
+        should not have any effect till there is no unrealized saves.
+         
+        Test: fast/canvas/canvas-context-save-limit.html
+
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::realizeSaves):
+        (WebCore::CanvasRenderingContext2D::realizeSavesLoop):
+        * html/canvas/CanvasRenderingContext2D.h: 
+
+2016-07-26  Youenn Fablet  <youenn@apple.com>
+
+        DOMTokenList should be iterable
+        https://bugs.webkit.org/show_bug.cgi?id=160183
+
+        Reviewed by Chris Dumez.
+
+        DOMTokenList should be iterable as per https://dom.spec.whatwg.org/#interface-domtokenlist
+
+        Test: fast/dom/domTokenListIterator.html
+
+        * html/DOMTokenList.idl: Added iterable to the interface description.
+
+2016-07-26  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203719.
+        https://bugs.webkit.org/show_bug.cgi?id=160200
+
+        It is breaking win build (Requested by youenn on #webkit).
+
+        Reverted changeset:
+
+        "[Fetch API] Response constructor should be able to take a
+        ReadableStream as body"
+        https://bugs.webkit.org/show_bug.cgi?id=159804
+        http://trac.webkit.org/changeset/203719
+
+2016-07-26  John Wilander  <wilander@apple.com>
+
+        Stop supporting compressed character sets BOCU-1 and SCSU
+        https://bugs.webkit.org/show_bug.cgi?id=159581
+
+        Reviewed by Brent Fulgham.
+
+        WebKit should not support the compressed character sets BOCU-1 and SCSU.
+        Chrome and Firefox don't and these old formats may pass server-side character
+        filters while still rendering in WebKit.
+
+        The HTML specification says "The above prohibits supporting, for example,
+        CESU-8, UTF-7, BOCU-1, SCSU, EBCDIC, and UTF-32."
+        https://html.spec.whatwg.org/#character-encodings
+
+        Tests: http/tests/misc/char-encoding-bocu-1-blacklisted.html
+               http/tests/misc/char-encoding-scsu-blacklisted.html
+
+        * platform/text/TextEncodingRegistry.cpp:
+            Blacklisted BOCU-1 and SCSU character sets.
+
+2016-07-26  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        ASSERTION FAILED: !m_frame->page()->defersLoading() || InspectorInstrumentation::isDebuggerPaused(m_frame)
+        https://bugs.webkit.org/show_bug.cgi?id=160193
+
+        Reviewed by Michael Catanzaro.
+
+        This is happening in the GTK+ Debug bot when running test loader/load-defer.html (note that the assert is inside
+        a !USE(CF) block).
+        The test is creating an iframe with load deferred, then in a timeout it disables the deferred load and checks
+        that the load actually happens. What happens is that the initial empty document is what calls
+        DocumentLoader::finishedLoading() when load is still deferred. The onload handler is not called because load
+        events are disabled for the initial empty document in SubframeLoader::loadSubframe(), but
+        DocumentLoader::finishedLoading() is called unconditionally from maybeLoadEmpty(). I think it's fine to call
+        DocumentLoader::finishedLoading() for the initial empty document even when load is deferred, so we can simply
+        update the assert to handle that case.
+
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::finishedLoading): Do not assert if called for the initial empty document when load is
+        deferred.
+
+2016-07-26  Youenn Fablet  <youenn@apple.com>
+
+        Remove ClientCredentialPolicy cross-origin option from ResourceLoaderOptions
+        https://bugs.webkit.org/show_bug.cgi?id=159413
+
+        Reviewed by Alex Christensen.
+
+        ClientCredentialPolicy had three values (not ask, ask, ask only for same origin).
+        The distinction between allowing cross-origin or same-origin credentials is misleading as it is not supported
+        for synchronous loads and not supported by Network process.
+        It is best replaced by a boolean option (ask or not ask).
+
+        Same-origin ClientCredentialPolicy option was only used by DocumentThreadableLoader for asynchronous loads.
+        Since DocumentThreadableLoader is already computing whether the request is cross-origin, it can also compute
+        whether credentials may be requested or not. In case of cross-origin redirections, credentials are omitted, thus
+        disabling any possibility for requesting credentials for cross-origin resources after redirections.
+
+        Moving ClientCredentialPolicy to ResourceLoaderOptions since it is not used by platform code except for some
+        mac-specific code that is already using ResourceLoaderOptions.
+
+        Covered by existing tests.
+
+        * loader/CrossOriginPreflightChecker.cpp:
+        (WebCore::CrossOriginPreflightChecker::startPreflight): Setting clearly credential mode to Omit credentials.
+        (WebCore::CrossOriginPreflightChecker::doPreflight): Ditto.
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::startLoadingMainResource): AskClientForAllCredentials ->
+        ClientCredentialPolicy::MayAskClientForCredentials.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::loadRequest): Disabling requesting credentials for any cross-origin request.
+        * loader/FrameLoader.h:
+        * loader/MediaResourceLoader.cpp:
+        (WebCore::MediaResourceLoader::requestResource): AskClientForAllCredentials -> ClientCredentialPolicy::MayAskClientForCredentials.
+        * loader/NetscapePlugInStreamLoader.cpp:
+        (WebCore::NetscapePlugInStreamLoader::NetscapePlugInStreamLoader): Ditto.
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::isAllowedToAskUserForCredentials): Disabling client credential request if ClientCredentialPolicy is CannotAskClientForCredentials.
+        Otherwise, returns true if fetch credentials mode allows it.
+        * loader/ResourceLoaderOptions.h:
+        (WebCore::ResourceLoaderOptions::ResourceLoaderOptions):
+        (WebCore::ResourceLoaderOptions::clientCredentialPolicy): Deleted.
+        (WebCore::ResourceLoaderOptions::setClientCredentialPolicy): Deleted.
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::requestUserCSSStyleSheet): AskClientForAllCredentials -> ClientCredentialPolicy::MayAskClientForCredentials.
+        (WebCore::CachedResourceLoader::defaultCachedResourceOptions): AskClientForAllCredentials -> ClientCredentialPolicy::MayAskClientForCredentials.
+        * loader/icon/IconLoader.cpp:
+        (WebCore::IconLoader::startLoading): DoNotAskClientForAnyCredentials -> ClientCredentialPolicy::CannotAskClientForCredentials.
+        * platform/graphics/avfoundation/cf/WebCoreAVCFResourceLoader.cpp:
+        (WebCore::WebCoreAVCFResourceLoader::startLoading): DoNotAskClientForCrossOriginCredentials -> ClientCredentialPolicy::CannotAskClientForCredentials.
+        This is ok as credentials mode is omit and stored credentials are not allowed.
+        * platform/graphics/avfoundation/objc/WebCoreAVFResourceLoader.mm:
+        (WebCore::WebCoreAVFResourceLoader::startLoading): Ditto.
+        * platform/network/ResourceHandleTypes.h:
+        * xml/XSLTProcessorLibxslt.cpp: DoNotAskClientForCrossOriginCredentials -> ClientCredentialPolicy::MayAskClientForCredentials.
+        This is ok as this is a synchronous load.
+        (WebCore::docLoaderFunc):
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+        (WebCore::openFunc): DoNotAskClientForCrossOriginCredentials -> ClientCredentialPolicy::MayAskClientForCredentials.
+        This is ok as this is a synchronous load.
+
+2016-07-26  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response constructor should be able to take a ReadableStream as body
+        https://bugs.webkit.org/show_bug.cgi?id=159804
+
+        Reviewed by Alex Christensen.
+
+        Covered by existing and updated tests.
+
+        Introduced FetchBodyConsumer to encapsulate the code responsible to adapt FetchBody internal data to the requests made by user scripts.
+        This refactoring eases the handling of internal data coming from ReadableStream.
+
+        FetchLoader is now delegating conversion from the data to its m_consumer field.
+        If m_consumer is null, FetchLoader calls FetchLoaderClient::didReceiveData (streaming reception mode).
+        Clients of FetchLoader needs to pass a FetchBodyConsumer to the FetchLoader to do the data adaptation at loader creation time.
+
+        Added support for body data passed as a ReadableStream to Response.
+        This requires to set @body internal slot of the Response object in the constructor initialization JS built-in.
+
+        To actually use that data, Body accessors are also implemented as JS built-in for Response.
+        Since there is no need to do so for Request, FetchResponse is no longer marked as implementing FetchBody but all
+        FetchBody IDL description is inlined in FetchResponse.idl.
+
+        For each body accessor (arrayBuffer, blob, json, text), the corresponding JS built-in checks whether @body internal slot is set.
+        If that is not the case, regular handling is done through a new private method called @consume.
+        If @body internal slot is set, chunks are pumped from the ReadableStream using ReadableStream internal built-ins functions.
+        Data handling is done in C++ through the private methods @startConsumingStream, @consumeChunk and @finishConsumingStream.
+
+        To support cloning of Response with bodies, clone method is also implemented as a JS built-in.
+        Main clone is done through @cloneFoJS private method implemented in C++.
+        JS built-in clone code does the teeing of the ReadableStream using ReadableStream JS built-in internal functions.
+
+        Introducing a new ReadableStream type for FetchBody to cope with body being stored in a ReadableStream.
+
+        Introducing a new Loaded type for FetchBody to cope with body being stored in the FetchBodyConsumer owned by FetchBody.
+        This allows removing the conversion of data to JSC::ArrayBuffer which was done by defaut at the end of Fetch loading if user script did not request data before.
+        At the end of a load, the data remains in FetchBodyConsumer and the body is marked as Loaded.
+        If the user wants to get the data after data finished being loaded, FetchBodyConsumer will do the required conversions.
+
+        Introducing DeferredWrapper::resolveWithNewValue to handle the case of resolving promises with new objects.
+        This allows directly using toJSNewlyCreated instead of toJS.
+
+        * CMakeLists.txt: Adding FetchBodyConsumer.
+        * Modules/fetch/FetchBody.cpp: Moving data adaptation code to FetchBodyConsumer.
+        (WebCore::FetchBody::extract):
+        (WebCore::FetchBody::arrayBuffer):
+        (WebCore::FetchBody::blob): Setting contentType in FetchBodyConsumer to handle proper creation of blob.
+        (WebCore::FetchBody::json):
+        (WebCore::FetchBody::text):
+        (WebCore::FetchBody::consume): Refactoring and added case of Loaded bodies.
+        (WebCore::FetchBody::consumeAsStream): Ditto.
+        (WebCore::FetchBody::consumeArrayBuffer):
+        (WebCore::FetchBody::consumeText):
+        (WebCore::FetchBody::consumeBlob):
+        (WebCore::FetchBody::loadingFailed):
+        (WebCore::FetchBody::loadingSucceeded):
+        (WebCore::FetchBody::loadingType): Deleted.
+        (WebCore::blobFromArrayBuffer): Deleted.
+        (WebCore::FetchBody::fulfillTextPromise): Deleted.
+        (WebCore::FetchBody::loadedAsArrayBuffer): Deleted.
+        (WebCore::FetchBody::loadedAsText): Deleted.
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::consumer):
+        * Modules/fetch/FetchBodyConsumer.cpp: Added, responsible of data adaptation.
+        (WebCore::blobFromData):
+        (WebCore::FetchBodyConsumer::resolveWithData):
+        (WebCore::FetchBodyConsumer::resolve):
+        (WebCore::FetchBodyConsumer::append):
+        (WebCore::FetchBodyConsumer::takeData):
+        (WebCore::FetchBodyConsumer::takeAsArrayBuffer):
+        (WebCore::FetchBodyConsumer::takeAsBlob):
+        (WebCore::FetchBodyConsumer::takeAsText):
+        * Modules/fetch/FetchBodyConsumer.h: Added.
+        (WebCore::FetchBodyConsumer::FetchBodyConsumer):
+        (WebCore::FetchBodyConsumer::setContentType):
+        (WebCore::FetchBodyConsumer::setType):
+        (WebCore::FetchBodyConsumer::type):
+        (WebCore::FetchBodyConsumer::clean):
+        (WebCore::FetchBodyConsumer::hasData):
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::loadBlob):
+        (WebCore::FetchBodyOwner::blobLoadingSucceeded):
+        (WebCore::FetchBodyOwner::loadedBlobAsText): Deleted.
+        * Modules/fetch/FetchBodyOwner.h:
+        (WebCore::FetchBodyOwner::loadedBlobAsArrayBuffer): Deleted.
+        * Modules/fetch/FetchInternals.js:
+        (consumeStream): Pump ReadableStream data and send it to FetchResponse to be converted according user need.
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::FetchLoader): FetchLoader is simplified as it has two nodes: consumer mode in which case
+        data is sent to the consumer and no-consumer mode in which case data is passed to loader client. The second mode
+        is used to conveyy data to ReadableStream source.
+        (WebCore::FetchLoader::stop):
+        (WebCore::FetchLoader::startStreaming):
+        (WebCore::FetchLoader::didReceiveData):
+        (WebCore::FetchLoader::didFinishLoading): Deleted.
+        * Modules/fetch/FetchLoader.h:
+        * Modules/fetch/FetchLoaderClient.h:
+        (WebCore::FetchLoaderClient::didFinishLoadingAsText): Deleted.
+        (WebCore::FetchLoaderClient::didFinishLoadingAsArrayBuffer): Deleted.
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::cloneForJS):
+        (WebCore::FetchResponse::BodyLoader::didSucceed):
+        (WebCore::FetchResponse::BodyLoader::start):
+        (WebCore::FetchResponse::consume): Introduced to consume data stored in body and not in ReadableStream.
+        (WebCore::FetchResponse::startConsumingStream): Introduced to start process of consuming data stored in the ReadableStream.
+        (WebCore::FetchResponse::consumeChunk): Reception of ReadableStream data.
+        (WebCore::FetchResponse::finishConsumingStream): Doing the final conversion.
+        (WebCore::FetchResponse::clone): Deleted.
+        (WebCore::FetchResponse::BodyLoader::didFinishLoadingAsArrayBuffer): Deleted.
+        * Modules/fetch/FetchResponse.h:
+        * Modules/fetch/FetchResponse.idl: Inlining of FetchBody methods/attributes and adding private methods.
+        * Modules/fetch/FetchResponse.js:
+        (initializeFetchResponse):
+        (clone):
+        (arrayBuffer):
+        (blob):
+        (formData):
+        (json):
+        (text):
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::DeferredWrapper::resolveWithNewValue):
+        * bindings/js/WebCoreBuiltinNames.h:
+
+2016-07-25  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] repeat() syntax should take a <track-list> argument
+        https://bugs.webkit.org/show_bug.cgi?id=160162
+
+        Reviewed by Darin Adler.
+
+        The repeat() notation used to allow just 1 <track-size> as second argument. Specs have been
+        recently modified so that a <track-list> is now supported, meaning that we can pass an
+        arbitrary number of track sizes and line numbers.
+
+        It has been working for some time for repeat() if the first argument was a positive integer,
+        but it requires some changes for the auto repeat cases (auto-fill and auto-fit).
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::OrderedNamedLinesCollector::OrderedNamedLinesCollector): Store the total number of
+        auto repeat tracks and the length of a single repetition instead of the number of
+        repetitions.
+        (WebCore::OrderedNamedLinesCollector::collectLineNamesForIndex): Do not assume that there is
+        only 1 repeat track.
+        (WebCore::valueForGridTrackList):
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseGridTrackRepeatFunction): Allow multiple tracks in repeat().
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::rawGridTrackSize): Renamed repetitions -> autoRepeatTracksCount.
+        (WebCore::RenderGrid::computeAutoRepeatTracksCount): Use all the repeat tracks to compute
+        the total track size of a single repetition.
+        (WebCore::RenderGrid::computeEmptyTracksForAutoRepeat):
+        * rendering/style/GridPositionsResolver.cpp:
+        (WebCore::NamedLineCollection::NamedLineCollection): Renamed m_repetitions ->
+        m_autoRepeatTotalTracks. Added m_autoRepeatTrackListLength (it was always 1 before).
+        (WebCore::NamedLineCollection::find): Resolve lines inside multiple repeat tracks.
+        (WebCore::NamedLineCollection::firstPosition): Ditto.
+        * rendering/style/GridPositionsResolver.h:
+
+2016-07-25  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] grid-auto-flow|row should take a <track-size>+
+        https://bugs.webkit.org/show_bug.cgi?id=160158
+
+        Reviewed by Darin Adler.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::valueForGridTrackSizeList):
+        (WebCore::ComputedStyleExtractor::propertyValue): Return a list of <track-size> instead of
+        just one.
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::parseValue): Use the new values of TrackListType;
+        (WebCore::CSSParser::parseGridTemplateRowsAndAreasAndColumns): Ditto.
+        (WebCore::CSSParser::parseGridTemplateShorthand): Ditto.
+        (WebCore::CSSParser::parseGridShorthand): Ditto.
+        (WebCore::CSSParser::parseGridTrackList): Changed behavior depending on the value of
+        TrackSizeList.
+        * css/CSSParser.h: TrackListType has now 3 different values which determine the behavior of
+        parseGridTrackList.
+        * css/CSSPropertyNames.in: Use a new converter for lists.
+        * css/StyleBuilderConverter.h:
+        (WebCore::StyleBuilderConverter::convertGridTrackSizeList):
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::rawGridTrackSize): Resolve the size of the auto track.
+        * rendering/style/RenderStyle.h:
+        (WebCore::RenderStyle::gridAutoColumns): Return a Vector.
+        (WebCore::RenderStyle::gridAutoRows): Ditto.
+        (WebCore::RenderStyle::setGridAutoColumns): Store a Vector.
+        (WebCore::RenderStyle::setGridAutoRows): Ditto.
+        (WebCore::RenderStyle::initialGridAutoColumns): Return a Vector with one auto track.
+        (WebCore::RenderStyle::initialGridAutoRows): Ditto.
+        * rendering/style/StyleGridData.h: Store a Vector of GridTrackSize instead of just one.
+
+2016-07-25  Frederic Wang  <fwang@igalia.com>
+
+        MathOperator: Add a mapping from combining to non-combining equivalents
+        https://bugs.webkit.org/show_bug.cgi?id=159513
+
+        Reviewed by Darin Adler.
+
+        Many math fonts provide stretch variants and assemblies for combining characters but not for
+        their non-combining equivalent. In the MathML recommendation, it is suggested to use
+        non-combining charaters, so we allow the operator stretching code to look for constructions
+        associated to these non-combining characters in order to still be able to stretch the
+        combining ones.
+
+        Test: mathml/presentation/bug159513.html
+
+        * rendering/mathml/MathOperator.cpp:
+        (WebCore::MathOperator::getGlyph): New function extending getBaseGlyph to retrieve the glyph
+        data for an arbitrary character.
+        (WebCore::MathOperator::getMathVariantsWithFallback): This helper function calls
+        getMathVariants for the base glyph. If no constructions are available, it calls
+        getMathVariants for the glyph associated to equivalent fallback characters as listed in the
+        small characterFallback table.
+        (WebCore::MathOperator::calculateStretchyData): Call getMathVariantsWithFallback instead of
+        getMathVariants. Note that we do not need to do that for calculateDisplayStyleLargeOperator
+        as we do not use fallback for large operators.
+        * rendering/mathml/MathOperator.h:
+        (WebCore::MathOperator::getBaseGlyph): Use getGlyph to implement this function.
+
+2016-07-25  Chris Dumez  <cdumez@apple.com>
+
+        Second parameter to Range.setStart() / setEnd() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160184
+
+        Reviewed by Ryosuke Niwa.
+
+        Second parameter to Range.setStart() / setEnd() should be mandatory:
+        - https://dom.spec.whatwg.org/#interface-range
+
+        Also use "unsigned long" instead of "long" type for the parameter,
+        as per the specification.
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Range.cpp:
+        (WebCore::Range::setStart):
+        (WebCore::Range::setEnd):
+        (WebCore::Range::checkNodeWOffset):
+        * dom/Range.h:
+        * dom/Range.idl:
+        * dom/RangeBoundaryPoint.h:
+        (WebCore::RangeBoundaryPoint::set):
+
+2016-07-25  Chris Dumez  <cdumez@apple.com>
+
+        DOMTokenList.prototype.toString should be enumerable
+        https://bugs.webkit.org/show_bug.cgi?id=160182
+
+        Reviewed by Ryosuke Niwa.
+
+        DOMTokenList.prototype.toString should be enumerable:
+        - https://dom.spec.whatwg.org/#interface-domtokenlist
+        - http://heycam.github.io/webidl/#es-stringifier
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * html/DOMTokenList.idl:
+
+2016-07-25  Nan Wang  <n_wang@apple.com>
+
+        AX: Expose autoFillButtonType to accessibility
+        https://bugs.webkit.org/show_bug.cgi?id=160179
+
+        Reviewed by Chris Fleizach.
+
+        Added a new attribute on Mac to expose the auto-fill button type.
+
+        Changes are covered in modified test.
+
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::isValueAutofillAvailable):
+        (WebCore::AccessibilityObject::valueAutofillButtonType):
+        (WebCore::AccessibilityObject::isValueAutofilled):
+        * accessibility/AccessibilityObject.h:
+        (WebCore::AccessibilityObject::passwordFieldValue):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (-[WebAccessibilityObjectWrapper accessibilityAttributeValue:]):
+
+2016-07-25  Zalan Bujtas  <zalan@apple.com>
+
+        Cleanup RenderTable*::createAnonymous*
+        https://bugs.webkit.org/show_bug.cgi?id=160175
+
+        Reviewed by Simon Fraser.
+
+        This patch
+        1. tightens the type on createAnonymousBoxWithSameTypeAs, createAnonymousWithParentRendererAndDisplay and
+        createAnonymousWithParentRenderer from RenderObject to the appropriate type.
+        2. changes the return type of create* function from raw pointer to std::unique_ptr<>
+        3. decouples createAnonymousBoxWithSameTypeAs and createAnonymousWithParentRenderer.
+        createAnonymousBoxWithSameTypeAs misleadingly calls createAnonymousWithParentRenderer
+        while it is never the parent in case of table items.
+        (std::unique_ptr::release() vs. WTFMove() will be addressed in a separate patch)
+
+        No change in functionality.
+
+        * rendering/RenderBlock.cpp:
+        (WebCore::RenderBlock::createAnonymousBoxWithSameTypeAs):
+        (WebCore::RenderBlock::createAnonymousWithParentRendererAndDisplay):
+        * rendering/RenderBlock.h:
+        (WebCore::RenderBlock::createAnonymousBlock):
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::layoutOverflowRectForPropagation):
+        * rendering/RenderBox.h:
+        (WebCore::RenderBox::createAnonymousBoxWithSameTypeAs):
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::addChild):
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::splitFlow):
+        * rendering/RenderTable.cpp:
+        (WebCore::RenderTable::addChild):
+        (WebCore::RenderTable::createTableWithStyle):
+        (WebCore::RenderTable::createAnonymousWithParentRenderer):
+        * rendering/RenderTable.h:
+        (WebCore::RenderTable::createAnonymousBoxWithSameTypeAs):
+        * rendering/RenderTableCell.cpp:
+        (WebCore::RenderTableCell::createTableCellWithStyle):
+        (WebCore::RenderTableCell::createAnonymousWithParentRenderer):
+        * rendering/RenderTableCell.h:
+        (WebCore::RenderTableCell::createAnonymousBoxWithSameTypeAs):
+        * rendering/RenderTableRow.cpp:
+        (WebCore::RenderTableRow::addChild):
+        (WebCore::RenderTableRow::createTableRowWithStyle):
+        (WebCore::RenderTableRow::createAnonymousWithParentRenderer):
+        * rendering/RenderTableRow.h:
+        (WebCore::RenderTableRow::createAnonymousBoxWithSameTypeAs):
+        * rendering/RenderTableSection.cpp:
+        (WebCore::RenderTableSection::addChild):
+        (WebCore::RenderTableSection::createTableSectionWithStyle):
+        (WebCore::RenderTableSection::createAnonymousWithParentRenderer):
+        * rendering/RenderTableSection.h:
+        (WebCore::RenderTableSection::createAnonymousBoxWithSameTypeAs):
+
+2016-07-25  Chris Dumez  <cdumez@apple.com>
+
+        Touch properties should be on the prototype
+        https://bugs.webkit.org/show_bug.cgi?id=160174
+
+        Reviewed by Ryosuke Niwa.
+
+        Touch properties should be on the prototype:
+        - https://w3c.github.io/touch-events/#idl-def-touch
+
+        Chrome agrees with the specification.
+
+        Test: platform/ios-simulator/ios/touch/Touch-attributes-prototype.html
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (InterfaceRequiresAttributesOnInstanceForCompatibility): Deleted.
+
+2016-07-25  Jeremy Jones  <jeremyj@apple.com>
+
+        Set MediaRemote playback state based on MediaSession playback state.
+        https://bugs.webkit.org/show_bug.cgi?id=160177
+
+        Reviewed by Eric Carlson.
+
+        Use playback session state to update media remote playback state instead of 
+        unconditionally setting it to playing.
+
+        * platform/audio/mac/MediaSessionManagerMac.mm:
+        (WebCore::MediaSessionManagerMac::updateNowPlayingInfo):
+
+2016-07-25  Zalan Bujtas  <zalan@apple.com>
+
+        RenderBox::haveSameDirection is used only by table items.
+        https://bugs.webkit.org/show_bug.cgi?id=160141
+
+        Reviewed by Simon Fraser.
+
+        Remove RenderBox::haveSameDirection() since it's used only by RenderTable*
+        classes. The new stand alone function (with 2 arguments) now checks if both of
+        the objects are valid. 
+
+        No change in functionality.
+
+        * rendering/RenderBox.h:
+        (WebCore::RenderBox::hasSameDirectionAs): Deleted.
+        * rendering/RenderTable.cpp:
+        (WebCore::RenderTable::tableStartBorderAdjoiningCell):
+        (WebCore::RenderTable::tableEndBorderAdjoiningCell):
+        * rendering/RenderTable.h:
+        (WebCore::haveSameDirection):
+        * rendering/RenderTableCell.cpp:
+        (WebCore::RenderTableCell::hasStartBorderAdjoiningTable):
+        (WebCore::RenderTableCell::hasEndBorderAdjoiningTable):
+        * rendering/RenderTableCell.h:
+        (WebCore::RenderTableCell::borderAdjoiningTableStart):
+        (WebCore::RenderTableCell::borderAdjoiningTableEnd):
+        * rendering/RenderTableRow.h:
+        (WebCore::RenderTableRow::borderAdjoiningTableStart):
+        (WebCore::RenderTableRow::borderAdjoiningTableEnd):
+        * rendering/RenderTableSection.cpp:
+        (WebCore::RenderTableSection::borderAdjoiningStartCell):
+        (WebCore::RenderTableSection::borderAdjoiningEndCell):
+        (WebCore::RenderTableSection::firstRowCellAdjoiningTableStart):
+        (WebCore::RenderTableSection::firstRowCellAdjoiningTableEnd):
+        * rendering/RenderTableSection.h:
+        (WebCore::RenderTableSection::borderAdjoiningTableStart):
+        (WebCore::RenderTableSection::borderAdjoiningTableEnd):
+
+2016-07-25  Chris Dumez  <cdumez@apple.com>
+
+        ClientRect properties should be on the prototype
+        https://bugs.webkit.org/show_bug.cgi?id=160165
+
+        Reviewed by Geoffrey Garen.
+
+        Move ClientRect properties from the instance to the prototype. This
+        matches the specification, Firefox and Chrome.
+
+        Also add a serializer to ClientRect in order to match the specification:
+        - https://drafts.fxtf.org/geometry/Overview.html#domrectreadonly
+        - https://heycam.github.io/webidl/#es-serializer
+
+        This avoids breaking content that relies on JSON.stringify() to
+        serialize ClientRect objects.
+
+        Tests: fast/css/ClientRect-attributes-prototype.html
+               fast/css/ClientRect-serialization.html
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        * bindings/js/JSClientRectCustom.cpp: Added.
+        (WebCore::JSClientRect::toJSON):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        * dom/ClientRect.idl:
+
+2016-07-25  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to DOMImplementation.createDocumentType() should be mandatory and non-nullable
+        https://bugs.webkit.org/show_bug.cgi?id=160167
+
+        Reviewed by Ryosuke Niwa.
+
+        Parameters to DOMImplementation.createDocumentType() should be mandatory
+        and non-nullable:
+        - https://dom.spec.whatwg.org/#domimplementation
+
+        Firefox and Chrome both agree with the specification. However, those
+        parameters were nullable and optional in WebKit.
+
+        Test: fast/dom/DOMImplementation/createDocumentType-parameters.html
+
+        * dom/DOMImplementation.idl:
+
+2016-07-25  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls should not be displayed for a video until it starts playing
+        https://bugs.webkit.org/show_bug.cgi?id=160092
+        <rdar://problem/26986673>
+
+        Reviewed by Beth Dakin.
+
+        For videos that have never played back yet, we should not show media controls. To ensure this
+        behavior, we ensure that the playback behavior restriction is set upon creating the media
+        element. This restriction is then removed when the media element begins to play.
+
+        Added two new WebKit API tests.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::HTMLMediaElement):
+
+2016-07-25  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Rename SubtleCrypto to WebKitSubtleCrypto
+        https://bugs.webkit.org/show_bug.cgi?id=160067
+        <rdar://problem/27483617>
+
+        Reviewed by Brent Fulgham.
+
+        Tests: crypto/webkitSubtle/gc-2.html
+               crypto/webkitSubtle/gc-3.html
+               crypto/webkitSubtle/gc.html
+
+        Rename Class SubtleCrypto to WebKitSubtleCrypto, and Crypto.subtle to Crypto.webkitSubtle in order
+        to let the new implementation to reuse the name SubtleCrypto. This renaming should match what our
+        current JSBindings use, and therefore should not introduce any change of behavoir.
+
+        * CMakeLists.txt:
+        Revise project files for for new file names.
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * PlatformMac.cmake:
+        * WebCore.xcodeproj/project.pbxproj:
+        Revise project files for for new file names.
+        * bindings/js/JSWebKitSubtleCryptoCustom.cpp: Renamed from Source/WebCore/bindings/js/JSSubtleCryptoCustom.cpp.
+        * crypto/WebKitSubtleCrypto.cpp: Renamed from Source/WebCore/crypto/SubtleCrypto.cpp.
+        * crypto/WebKitSubtleCrypto.h: Renamed from Source/WebCore/crypto/SubtleCrypto.h.
+        * crypto/WebKitSubtleCrypto.idl: Renamed from Source/WebCore/crypto/SubtleCrypto.idl.
+        * page/Crypto.cpp:
+        (WebCore::Crypto::webkitSubtle):
+        (WebCore::Crypto::subtle): Deleted.
+        * page/Crypto.h:
+        * page/Crypto.idl:
+
+2016-07-25  Brady Eidson  <beidson@apple.com>
+
+        Allow LocalStorage by default for file URLs.
+        https://bugs.webkit.org/show_bug.cgi?id=160169
+
+        Reviewed by Brent Fulgham.
+
+        Test: storage/domstorage/localstorage/file-can-access.html
+
+        * page/SecurityOrigin.cpp:
+        (WebCore::SecurityOrigin::canAccessStorage): Remove the m_universalAccess check for local URLs.
+
 2016-07-25  Nan Wang  <n_wang@apple.com>
 
         AX: AccessibilityRenderObject is adding duplicated children when CSS first-letter is being used.

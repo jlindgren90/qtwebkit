@@ -315,7 +315,7 @@ set(WebCore_NON_SVG_IDL_FILES
 
     crypto/CryptoKey.idl
     crypto/CryptoKeyPair.idl
-    crypto/SubtleCrypto.idl
+    crypto/WebKitSubtleCrypto.idl
 
     css/CSSCharsetRule.idl
     css/CSSFontFaceLoadEvent.idl
@@ -1105,6 +1105,7 @@ set(WebCore_SOURCES
     bindings/js/JSCanvasRenderingContext2DCustom.cpp
     bindings/js/JSCanvasRenderingContextCustom.cpp
     bindings/js/JSCharacterDataCustom.cpp
+    bindings/js/JSClientRectCustom.cpp
     bindings/js/JSCommandLineAPIHostCustom.cpp
     bindings/js/JSCryptoAlgorithmBuilder.cpp
     bindings/js/JSCryptoAlgorithmDictionary.cpp
@@ -1210,7 +1211,6 @@ set(WebCore_SOURCES
     bindings/js/JSStorageCustom.cpp
     bindings/js/JSStyleSheetCustom.cpp
     bindings/js/JSStyleSheetListCustom.cpp
-    bindings/js/JSSubtleCryptoCustom.cpp
     bindings/js/JSTextCustom.cpp
     bindings/js/JSTextTrackCueCustom.cpp
     bindings/js/JSTextTrackCustom.cpp
@@ -1224,6 +1224,7 @@ set(WebCore_SOURCES
     bindings/js/JSWebGLRenderingContextBaseCustom.cpp
     bindings/js/JSWebGLRenderingContextCustom.cpp
     bindings/js/JSWebKitPointCustom.cpp
+    bindings/js/JSWebKitSubtleCryptoCustom.cpp
     bindings/js/JSWorkerCustom.cpp
     bindings/js/JSWorkerGlobalScopeBase.cpp
     bindings/js/JSWorkerGlobalScopeCustom.cpp

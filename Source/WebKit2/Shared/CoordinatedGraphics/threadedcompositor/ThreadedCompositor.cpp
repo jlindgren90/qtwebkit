@@ -30,8 +30,6 @@
 
 #include "CompositingRunLoop.h"
 #include <WebCore/TransformationMatrix.h>
-#include <wtf/RunLoop.h>
-#include <wtf/StdLibExtras.h>
 
 #if USE(OPENGL_ES_2)
 #include <GLES2/gl2.h>
@@ -50,8 +48,12 @@ Ref<ThreadedCompositor> ThreadedCompositor::create(Client* client)
 
 ThreadedCompositor::ThreadedCompositor(Client* client)
     : m_client(client)
+    , m_compositingRunLoop(std::make_unique<CompositingRunLoop>([this] { renderLayerTree(); }))
 {
-    createCompositingThread();
+    m_compositingRunLoop->performTaskSync([this, protectedThis = makeRef(*this)] {
+        m_scene = adoptRef(new CoordinatedGraphicsScene(this));
+        m_viewportController = std::make_unique<SimpleViewportController>(this);
+    });
 }
 
 ThreadedCompositor::~ThreadedCompositor()
@@ -61,7 +63,15 @@ ThreadedCompositor::~ThreadedCompositor()
 
 void ThreadedCompositor::invalidate()
 {
-    terminateCompositingThread();
+    m_scene->detach();
+    m_compositingRunLoop->stopUpdateTimer();
+    m_compositingRunLoop->performTaskSync([this, protectedThis = makeRef(*this)] {
+        m_scene->purgeGLResources();
+        m_context = nullptr;
+        m_scene = nullptr;
+        m_viewportController = nullptr;
+    });
+    m_compositingRunLoop = nullptr;
     m_client = nullptr;
 }
 
@@ -132,12 +142,20 @@ void ThreadedCompositor::scrollBy(const IntSize& delta)
 
 void ThreadedCompositor::purgeBackingStores()
 {
+    ASSERT(isMainThread());
     m_client->purgeBackingStores();
 }
 
 void ThreadedCompositor::renderNextFrame()
 {
+    ASSERT(isMainThread());
     m_client->renderNextFrame();
+}
+
+void ThreadedCompositor::commitScrollOffset(uint32_t layerID, const IntSize& offset)
+{
+    ASSERT(isMainThread());
+    m_client->commitScrollOffset(layerID, offset);
 }
 
 void ThreadedCompositor::updateViewport()
@@ -145,9 +163,9 @@ void ThreadedCompositor::updateViewport()
     m_compositingRunLoop->startUpdateTimer(CompositingRunLoop::WaitUntilNextFrame);
 }
 
-void ThreadedCompositor::commitScrollOffset(uint32_t layerID, const IntSize& offset)
+void ThreadedCompositor::scheduleDisplayImmediately()
 {
-    m_client->commitScrollOffset(layerID, offset);
+    m_compositingRunLoop->startUpdateTimer(CompositingRunLoop::Immediate);
 }
 
 bool ThreadedCompositor::tryEnsureGLContext()
@@ -178,11 +196,6 @@ GLContext* ThreadedCompositor::glContext()
 
     m_context = GLContext::createContextForWindow(reinterpret_cast<GLNativeWindowType>(m_nativeSurfaceHandle), GLContext::sharingContext());
     return m_context.get();
-}
-
-void ThreadedCompositor::scheduleDisplayImmediately()
-{
-    m_compositingRunLoop->startUpdateTimer(CompositingRunLoop::Immediate);
 }
 
 void ThreadedCompositor::forceRepaint()
@@ -235,56 +248,6 @@ void ThreadedCompositor::updateSceneState(const CoordinatedGraphicsState& state)
     });
 
     scheduleDisplayImmediately();
-}
-
-void ThreadedCompositor::createCompositingThread()
-{
-    if (m_threadIdentifier)
-        return;
-
-    LockHolder locker(m_initializeRunLoopConditionMutex);
-    m_threadIdentifier = createThread("WebKit: ThreadedCompositor", [this] { runCompositingThread(); });
-    m_initializeRunLoopCondition.wait(m_initializeRunLoopConditionMutex);
-}
-
-void ThreadedCompositor::runCompositingThread()
-{
-    {
-        LockHolder locker(m_initializeRunLoopConditionMutex);
-
-        m_compositingRunLoop = std::make_unique<CompositingRunLoop>([&] {
-            renderLayerTree();
-        });
-        m_scene = adoptRef(new CoordinatedGraphicsScene(this));
-        m_viewportController = std::make_unique<SimpleViewportController>(this);
-
-        m_initializeRunLoopCondition.notifyOne();
-    }
-
-    m_compositingRunLoop->run();
-
-    m_scene->purgeGLResources();
-
-    {
-        LockHolder locker(m_terminateRunLoopConditionMutex);
-        m_context = nullptr;
-        m_scene = nullptr;
-        m_viewportController = nullptr;
-        m_compositingRunLoop = nullptr;
-        m_terminateRunLoopCondition.notifyOne();
-    }
-
-    detachThread(m_threadIdentifier);
-}
-
-void ThreadedCompositor::terminateCompositingThread()
-{
-    LockHolder locker(m_terminateRunLoopConditionMutex);
-
-    m_scene->detach();
-    m_compositingRunLoop->stop();
-
-    m_terminateRunLoopCondition.wait(m_terminateRunLoopConditionMutex);
 }
 
 }

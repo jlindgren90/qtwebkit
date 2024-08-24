@@ -1,3 +1,209 @@
+2016-07-26  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Infinite Canvas context save() causes WebKit to crash
+        https://bugs.webkit.org/show_bug.cgi?id=159586
+        <rdar://problem/26759984>
+
+        Reviewed by Simon Fraser.
+
+        * fast/canvas/canvas-context-save-limit-expected.txt: Added.
+        * fast/canvas/canvas-context-save-limit.html: Added.
+
+2016-07-26  Youenn Fablet  <youenn@apple.com>
+
+        DOMTokenList should be iterable
+        https://bugs.webkit.org/show_bug.cgi?id=160183
+
+        Reviewed by Chris Dumez.
+
+        * fast/dom/domTokenListIterator-expected.txt: Added.
+        * fast/dom/domTokenListIterator.html: Added.
+        * fast/dom/iterable-tests.js: Added.
+        * fast/dom/nodeListIterator-expected.txt:
+        * fast/dom/nodeListIterator.html: Making use of iterable-tests.js
+
+2016-07-26  John Wilander  <wilander@apple.com>
+
+        Stop supporting compressed character sets BOCU-1 and SCSU
+        https://bugs.webkit.org/show_bug.cgi?id=159581
+
+        Reviewed by Brent Fulgham.
+
+        WebKit should not support the compressed character sets BOCU-1 and SCSU.
+        Chrome and Firefox don't and these old formats may pass server-side character
+        filters while still rendering in WebKit.
+
+        The HTML specification says "The above prohibits supporting, for example,
+        CESU-8, UTF-7, BOCU-1, SCSU, EBCDIC, and UTF-32."
+        https://html.spec.whatwg.org/#character-encodings
+
+        * http/tests/misc/char-encoding-bocu-1-blacklisted-expected.txt: Added.
+        * http/tests/misc/char-encoding-bocu-1-blacklisted.html: Added.
+        * http/tests/misc/char-encoding-scsu-blacklisted-expected.txt: Added.
+        * http/tests/misc/char-encoding-scsu-blacklisted.html: Added.
+        * http/tests/misc/resources/bocu-1-cyrillic.php: Added.
+        * http/tests/misc/resources/scsu-cyrillic.php: Added.
+
+2016-07-26  Youenn Fablet  <youenn@apple.com>
+
+        Remove ClientCredentialPolicy cross-origin option from ResourceLoaderOptions
+        https://bugs.webkit.org/show_bug.cgi?id=159413
+
+        Reviewed by Alex Christensen.
+
+        * platform/mac-wk1/imported/w3c/web-platform-tests/fetch/api/credentials/authentication-basic-expected.txt: Removed.
+
+2016-07-25  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] repeat() syntax should take a <track-list> argument
+        https://bugs.webkit.org/show_bug.cgi?id=160162
+
+        Reviewed by Darin Adler.
+
+        Added new test cases with multiple tracks inside repeat() notation, both for fixed an
+        automatic (auto-fill & auto-fit) repetitions.
+
+        * fast/css-grid-layout/grid-auto-fill-columns-expected.txt:
+        * fast/css-grid-layout/grid-auto-fill-columns.html:
+        * fast/css-grid-layout/grid-auto-fill-rows-expected.txt:
+        * fast/css-grid-layout/grid-auto-fill-rows.html:
+        * fast/css-grid-layout/grid-auto-fit-columns-expected.txt:
+        * fast/css-grid-layout/grid-auto-fit-columns.html:
+        * fast/css-grid-layout/grid-auto-fit-rows-expected.txt:
+        * fast/css-grid-layout/grid-auto-fit-rows.html:
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set-expected.txt:
+        * fast/css-grid-layout/grid-element-auto-repeat-get-set.html:
+        * fast/css-grid-layout/grid-element-repeat-get-set-expected.txt:
+        * fast/css-grid-layout/grid-element-repeat-get-set.html:
+
+2016-07-25  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] grid-auto-flow|row should take a <track-size>+
+        https://bugs.webkit.org/show_bug.cgi?id=160158
+
+        Reviewed by Darin Adler.
+
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set-expected.txt:
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set.html:
+        * fast/css-grid-layout/grid-shorthand-get-set-expected.txt:
+        * fast/css-grid-layout/grid-shorthand-get-set.html:
+        * svg/css/getComputedStyle-basic-expected.txt: CSSPrimitiveValue -> CSSValueList.
+
+2016-07-25  Frederic Wang  <fwang@igalia.com>
+
+        MathOperator: Add a mapping from combining to non-combining equivalents
+        https://bugs.webkit.org/show_bug.cgi?id=159513
+
+        Reviewed by Darin Adler.
+
+        * mathml/presentation/bug159513.html: Added.
+        * platform/gtk/mathml/presentation/bug159513-expected.png: Added.
+        * platform/gtk/mathml/presentation/bug159513-expected.txt: Added.
+        * platform/ios-simulator/TestExpectations: Skip this test on iOS.
+        * platform/mac/TestExpectations: Skip this test on Mac.
+
+2016-07-25  Chris Dumez  <cdumez@apple.com>
+
+        Second parameter to Range.setStart() / setEnd() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160184
+
+        Reviewed by Ryosuke Niwa.
+
+        Update tests to reflect behavior change.
+
+        * editing/deleting/delete-uneditable-style.html:
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+        * fast/regions/simplified-layout-no-regions.html:
+
+2016-07-25  Nan Wang  <n_wang@apple.com>
+
+        AX: Expose autoFillButtonType to accessibility
+        https://bugs.webkit.org/show_bug.cgi?id=160179
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/auto-fill-types-expected.txt:
+        * accessibility/auto-fill-types.html:
+
+2016-07-25  Chris Dumez  <cdumez@apple.com>
+
+        Touch properties should be on the prototype
+        https://bugs.webkit.org/show_bug.cgi?id=160174
+
+        Reviewed by Ryosuke Niwa.
+
+        Add layout test coverage.
+
+        * platform/ios-simulator/ios/touch/Touch-attributes-prototype-expected.txt: Added.
+        * platform/ios-simulator/ios/touch/Touch-attributes-prototype.html: Added.
+
+2016-07-25  Chris Dumez  <cdumez@apple.com>
+
+        ClientRect properties should be on the prototype
+        https://bugs.webkit.org/show_bug.cgi?id=160165
+
+        Reviewed by Geoffrey Garen.
+
+        * fast/css/ClientRect-attributes-prototype-expected.txt: Added.
+        * fast/css/ClientRect-attributes-prototype.html: Added.
+        Add layout test to check that ClientRect's properties are on the
+        prototype.
+
+        * fast/css/ClientRect-serialization-expected.txt: Added.
+        * fast/css/ClientRect-serialization.html: Added.
+        Add layout test to check that ClientRect has a serializer.
+
+2016-07-25  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to DOMImplementation.createDocumentType() should be mandatory and non-nullable
+        https://bugs.webkit.org/show_bug.cgi?id=160167
+
+        Reviewed by Ryosuke Niwa.
+
+        * editing/selection/script-tests/DOMSelection-DocumentType.js:
+        * fast/dom/DOMImplementation/createDocumentType-err-expected.txt:
+        * fast/dom/DOMImplementation/script-tests/createDocumentType-err.js:
+        Update existing tests to reflect the behavior change.
+
+        * fast/dom/DOMImplementation/createDocumentType-parameters-expected.txt: Added.
+        * fast/dom/DOMImplementation/createDocumentType-parameters.html: Added.
+        Add layout test coverage. I have verified that this test passes on both
+        Firefox and Chrome.
+
+2016-07-25  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Rename SubtleCrypto to WebKitSubtleCrypto
+        https://bugs.webkit.org/show_bug.cgi?id=160067
+        <rdar://problem/27483617>
+
+        Reviewed by Brent Fulgham.
+
+        Move tests involving crypto.webkitSubtle from crypto/subtle to crypto/webkitSubtle.
+
+        * crypto/webkitSubtle/gc-2-expected.txt: Renamed from LayoutTests/crypto/subtle/gc-2-expected.txt.
+        * crypto/webkitSubtle/gc-2.html: Renamed from LayoutTests/crypto/subtle/gc-2.html.
+        * crypto/webkitSubtle/gc-3-expected.txt: Renamed from LayoutTests/crypto/subtle/gc-3-expected.txt.
+        * crypto/webkitSubtle/gc-3.html: Renamed from LayoutTests/crypto/subtle/gc-3.html.
+        * crypto/webkitSubtle/gc-expected.txt: Renamed from LayoutTests/crypto/subtle/gc-expected.txt.
+        * crypto/webkitSubtle/gc.html: Renamed from LayoutTests/crypto/subtle/gc.html.
+        * platform/efl/TestExpectations:
+        * platform/gtk/TestExpectations:
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/win/TestExpectations:
+
+2016-07-25  Brady Eidson  <beidson@apple.com>
+
+        Allow LocalStorage by default for file URLs.
+        https://bugs.webkit.org/show_bug.cgi?id=160169
+
+        Reviewed by Brent Fulgham.
+
+        * storage/domstorage/localstorage/blocked-file-access-expected.txt: Removed.
+        * storage/domstorage/localstorage/file-can-access-expected.txt: Added.
+        * storage/domstorage/localstorage/file-can-access.html: Renamed from LayoutTests/storage/domstorage/localstorage/blocked-file-access.html.
+        * storage/domstorage/localstorage/resources/unblocked-example.html: Renamed from LayoutTests/storage/domstorage/localstorage/resources/blocked-example.html.
+
 2016-07-25  Nan Wang  <n_wang@apple.com>
 
         AX: AccessibilityRenderObject is adding duplicated children when CSS first-letter is being used.

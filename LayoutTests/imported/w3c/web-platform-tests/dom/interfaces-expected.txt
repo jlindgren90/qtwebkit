@@ -533,16 +533,14 @@ PASS DOMImplementation interface object length
 PASS DOMImplementation interface object name 
 PASS DOMImplementation interface: existence and properties of interface prototype object 
 PASS DOMImplementation interface: existence and properties of interface prototype object's "constructor" property 
-FAIL DOMImplementation interface: operation createDocumentType(DOMString,DOMString,DOMString) assert_equals: property has wrong .length expected 3 but got 0
+PASS DOMImplementation interface: operation createDocumentType(DOMString,DOMString,DOMString) 
 PASS DOMImplementation interface: operation createDocument(DOMString,DOMString,DocumentType) 
 PASS DOMImplementation interface: operation createHTMLDocument(DOMString) 
 PASS DOMImplementation interface: operation hasFeature() 
 PASS DOMImplementation must be primary interface of document.implementation 
 PASS Stringification of document.implementation 
 PASS DOMImplementation interface: document.implementation must inherit property "createDocumentType" with the proper type (0) 
-FAIL DOMImplementation interface: calling createDocumentType(DOMString,DOMString,DOMString) on document.implementation with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" threw object "InvalidCharacterError (DOM Exception 5): The string conta..." ("InvalidCharacterError") expected object "TypeError" ("TypeError")
+PASS DOMImplementation interface: calling createDocumentType(DOMString,DOMString,DOMString) on document.implementation with too few arguments must throw TypeError 
 PASS DOMImplementation interface: document.implementation must inherit property "createDocument" with the proper type (1) 
 PASS DOMImplementation interface: calling createDocument(DOMString,DOMString,DocumentType) on document.implementation with too few arguments must throw TypeError 
 PASS DOMImplementation interface: document.implementation must inherit property "createHTMLDocument" with the proper type (2) 
@@ -1293,8 +1291,8 @@ PASS Range interface: attribute endContainer
 PASS Range interface: attribute endOffset 
 PASS Range interface: attribute collapsed 
 PASS Range interface: attribute commonAncestorContainer 
-FAIL Range interface: operation setStart(Node,unsigned long) assert_equals: property has wrong .length expected 2 but got 1
-FAIL Range interface: operation setEnd(Node,unsigned long) assert_equals: property has wrong .length expected 2 but got 1
+PASS Range interface: operation setStart(Node,unsigned long) 
+PASS Range interface: operation setEnd(Node,unsigned long) 
 PASS Range interface: operation setStartBefore(Node) 
 PASS Range interface: operation setStartAfter(Node) 
 PASS Range interface: operation setEndBefore(Node) 
@@ -1331,13 +1329,9 @@ PASS Range interface: document.createRange() must inherit property "endOffset" w
 PASS Range interface: document.createRange() must inherit property "collapsed" with the proper type (4) 
 PASS Range interface: document.createRange() must inherit property "commonAncestorContainer" with the proper type (5) 
 PASS Range interface: document.createRange() must inherit property "setStart" with the proper type (6) 
-FAIL Range interface: calling setStart(Node,unsigned long) on document.createRange() with too few arguments must throw TypeError assert_throws: Called with 1 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Range interface: calling setStart(Node,unsigned long) on document.createRange() with too few arguments must throw TypeError 
 PASS Range interface: document.createRange() must inherit property "setEnd" with the proper type (7) 
-FAIL Range interface: calling setEnd(Node,unsigned long) on document.createRange() with too few arguments must throw TypeError assert_throws: Called with 1 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Range interface: calling setEnd(Node,unsigned long) on document.createRange() with too few arguments must throw TypeError 
 PASS Range interface: document.createRange() must inherit property "setStartBefore" with the proper type (8) 
 PASS Range interface: calling setStartBefore(Node) on document.createRange() with too few arguments must throw TypeError 
 PASS Range interface: document.createRange() must inherit property "setStartAfter" with the proper type (9) 
@@ -1386,13 +1380,9 @@ PASS Range interface: detachedRange must inherit property "endOffset" with the p
 PASS Range interface: detachedRange must inherit property "collapsed" with the proper type (4) 
 PASS Range interface: detachedRange must inherit property "commonAncestorContainer" with the proper type (5) 
 PASS Range interface: detachedRange must inherit property "setStart" with the proper type (6) 
-FAIL Range interface: calling setStart(Node,unsigned long) on detachedRange with too few arguments must throw TypeError assert_throws: Called with 1 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Range interface: calling setStart(Node,unsigned long) on detachedRange with too few arguments must throw TypeError 
 PASS Range interface: detachedRange must inherit property "setEnd" with the proper type (7) 
-FAIL Range interface: calling setEnd(Node,unsigned long) on detachedRange with too few arguments must throw TypeError assert_throws: Called with 1 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Range interface: calling setEnd(Node,unsigned long) on detachedRange with too few arguments must throw TypeError 
 PASS Range interface: detachedRange must inherit property "setStartBefore" with the proper type (8) 
 PASS Range interface: calling setStartBefore(Node) on detachedRange with too few arguments must throw TypeError 
 PASS Range interface: detachedRange must inherit property "setStartAfter" with the proper type (9) 
@@ -1537,7 +1527,7 @@ PASS DOMTokenList interface: operation toggle(DOMString,boolean)
 FAIL DOMTokenList interface: operation replace(DOMString,DOMString) assert_own_property: interface prototype object missing non-static operation expected property "replace" missing
 FAIL DOMTokenList interface: operation supports(DOMString) assert_own_property: interface prototype object missing non-static operation expected property "supports" missing
 PASS DOMTokenList interface: attribute value 
-FAIL DOMTokenList interface: stringifier assert_true: property is not enumerable expected true got false
+PASS DOMTokenList interface: stringifier 
 PASS DOMTokenList must be primary interface of document.body.classList 
 PASS Stringification of document.body.classList 
 PASS DOMTokenList interface: document.body.classList must inherit property "length" with the proper type (0) 
