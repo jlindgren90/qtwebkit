@@ -59,7 +59,7 @@ namespace WebCore {
 void DocumentThreadableLoader::loadResourceSynchronously(Document& document, ResourceRequest&& request, ThreadableLoaderClient& client, const ThreadableLoaderOptions& options, RefPtr<SecurityOrigin>&& origin, std::unique_ptr<ContentSecurityPolicy>&& contentSecurityPolicy)
 {
     // The loader will be deleted as soon as this function exits.
-    RefPtr<DocumentThreadableLoader> loader = adoptRef(new DocumentThreadableLoader(document, client, LoadSynchronously, WTFMove(request), options, WTFMove(origin), WTFMove(contentSecurityPolicy)));
+    Ref<DocumentThreadableLoader> loader = adoptRef(*new DocumentThreadableLoader(document, client, LoadSynchronously, WTFMove(request), options, WTFMove(origin), WTFMove(contentSecurityPolicy), String()));
     ASSERT(loader->hasOneRef());
 }
 
@@ -68,9 +68,9 @@ void DocumentThreadableLoader::loadResourceSynchronously(Document& document, Res
     loadResourceSynchronously(document, WTFMove(request), client, options, nullptr, nullptr);
 }
 
-RefPtr<DocumentThreadableLoader> DocumentThreadableLoader::create(Document& document, ThreadableLoaderClient& client, ResourceRequest&& request, const ThreadableLoaderOptions& options, RefPtr<SecurityOrigin>&& origin, std::unique_ptr<ContentSecurityPolicy>&& contentSecurityPolicy)
+RefPtr<DocumentThreadableLoader> DocumentThreadableLoader::create(Document& document, ThreadableLoaderClient& client, ResourceRequest&& request, const ThreadableLoaderOptions& options, RefPtr<SecurityOrigin>&& origin, std::unique_ptr<ContentSecurityPolicy>&& contentSecurityPolicy, String&& referrer)
 {
-    RefPtr<DocumentThreadableLoader> loader = adoptRef(new DocumentThreadableLoader(document, client, LoadAsynchronously, WTFMove(request), options, WTFMove(origin), WTFMove(contentSecurityPolicy)));
+    RefPtr<DocumentThreadableLoader> loader = adoptRef(new DocumentThreadableLoader(document, client, LoadAsynchronously, WTFMove(request), options, WTFMove(origin), WTFMove(contentSecurityPolicy), WTFMove(referrer)));
     if (!loader->isLoading())
         loader = nullptr;
     return loader;
@@ -78,14 +78,15 @@ RefPtr<DocumentThreadableLoader> DocumentThreadableLoader::create(Document& docu
 
 RefPtr<DocumentThreadableLoader> DocumentThreadableLoader::create(Document& document, ThreadableLoaderClient& client, ResourceRequest&& request, const ThreadableLoaderOptions& options)
 {
-    return create(document, client, WTFMove(request), options, nullptr, nullptr);
+    return create(document, client, WTFMove(request), options, nullptr, nullptr, String());
 }
 
-DocumentThreadableLoader::DocumentThreadableLoader(Document& document, ThreadableLoaderClient& client, BlockingBehavior blockingBehavior, ResourceRequest&& request, const ThreadableLoaderOptions& options, RefPtr<SecurityOrigin>&& origin, std::unique_ptr<ContentSecurityPolicy>&& contentSecurityPolicy)
+DocumentThreadableLoader::DocumentThreadableLoader(Document& document, ThreadableLoaderClient& client, BlockingBehavior blockingBehavior, ResourceRequest&& request, const ThreadableLoaderOptions& options, RefPtr<SecurityOrigin>&& origin, std::unique_ptr<ContentSecurityPolicy>&& contentSecurityPolicy, String&& referrer)
     : m_client(&client)
     , m_document(document)
     , m_options(options)
     , m_origin(WTFMove(origin))
+    , m_referrer(WTFMove(referrer))
     , m_sameOriginRequest(securityOrigin().canRequest(request.url()))
     , m_simpleRequest(true)
     , m_async(blockingBehavior == LoadAsynchronously)
@@ -96,7 +97,7 @@ DocumentThreadableLoader::DocumentThreadableLoader(Document& document, Threadabl
 
     ASSERT_WITH_SECURITY_IMPLICATION(isAllowedByContentSecurityPolicy(request.url()));
 
-    m_options.setAllowCredentials((m_options.credentials == FetchOptions::Credentials::Include || (m_options.credentials == FetchOptions::Credentials::SameOrigin && m_sameOriginRequest)) ? AllowStoredCredentials : DoNotAllowStoredCredentials);
+    m_options.allowCredentials = (m_options.credentials == FetchOptions::Credentials::Include || (m_options.credentials == FetchOptions::Credentials::SameOrigin && m_sameOriginRequest)) ? AllowStoredCredentials : DoNotAllowStoredCredentials;
 
     if (m_sameOriginRequest || m_options.mode == FetchOptions::Mode::NoCors) {
         loadRequest(WTFMove(request), DoSecurityCheck);
@@ -119,7 +120,7 @@ void DocumentThreadableLoader::makeCrossOriginAccessRequest(ResourceRequest&& re
         makeSimpleCrossOriginAccessRequest(WTFMove(request));
     else {
         m_simpleRequest = false;
-        if (CrossOriginPreflightResultCache::singleton().canSkipPreflight(securityOrigin().toString(), request.url(), m_options.allowCredentials(), request.httpMethod(), request.httpHeaderFields()))
+        if (CrossOriginPreflightResultCache::singleton().canSkipPreflight(securityOrigin().toString(), request.url(), m_options.allowCredentials, request.httpMethod(), request.httpHeaderFields()))
             preflightSuccess(WTFMove(request));
         else
             makeCrossOriginAccessRequestWithPreflight(WTFMove(request));
@@ -137,7 +138,7 @@ void DocumentThreadableLoader::makeSimpleCrossOriginAccessRequest(ResourceReques
         return;
     }
 
-    updateRequestForAccessControl(request, securityOrigin(), m_options.allowCredentials());
+    updateRequestForAccessControl(request, securityOrigin(), m_options.allowCredentials);
     loadRequest(WTFMove(request), DoSecurityCheck);
 }
 
@@ -227,7 +228,7 @@ void DocumentThreadableLoader::redirectReceived(CachedResource* resource, Resour
         if (m_simpleRequest) {
             String accessControlErrorDescription;
             allowRedirect = isValidCrossOriginRedirectionURL(request.url())
-                            && (m_sameOriginRequest || passesAccessControlCheck(redirectResponse, m_options.allowCredentials(), securityOrigin(), accessControlErrorDescription));
+                && (m_sameOriginRequest || passesAccessControlCheck(redirectResponse, m_options.allowCredentials, securityOrigin(), accessControlErrorDescription));
         }
 
         if (allowRedirect) {
@@ -245,7 +246,7 @@ void DocumentThreadableLoader::redirectReceived(CachedResource* resource, Resour
             m_sameOriginRequest = false;
 
             if (m_options.credentials == FetchOptions::Credentials::SameOrigin)
-                m_options.setAllowCredentials(DoNotAllowStoredCredentials);
+                m_options.allowCredentials = DoNotAllowStoredCredentials;
 
             cleanRedirectedRequestForAccessControl(request);
 
@@ -277,7 +278,7 @@ void DocumentThreadableLoader::didReceiveResponse(unsigned long identifier, cons
 
     String accessControlErrorDescription;
     if (!m_sameOriginRequest && m_options.mode == FetchOptions::Mode::Cors) {
-        if (!passesAccessControlCheck(response, m_options.allowCredentials(), securityOrigin(), accessControlErrorDescription)) {
+        if (!passesAccessControlCheck(response, m_options.allowCredentials, securityOrigin(), accessControlErrorDescription)) {
             m_client->didFail(ResourceError(errorDomainWebKitInternal, 0, response.url(), accessControlErrorDescription, ResourceError::Type::AccessControl));
             return;
         }
@@ -334,7 +335,7 @@ void DocumentThreadableLoader::didFail(unsigned long, const ResourceError& error
 void DocumentThreadableLoader::preflightSuccess(ResourceRequest&& request)
 {
     ResourceRequest actualRequest(WTFMove(request));
-    updateRequestForAccessControl(actualRequest, securityOrigin(), m_options.allowCredentials());
+    updateRequestForAccessControl(actualRequest, securityOrigin(), m_options.allowCredentials);
 
     m_preflightChecker = Nullopt;
 
@@ -357,9 +358,12 @@ void DocumentThreadableLoader::loadRequest(ResourceRequest&& request, SecurityCh
 {
     // Any credential should have been removed from the cross-site requests.
     const URL& requestURL = request.url();
-    m_options.setSecurityCheck(securityCheck);
+    m_options.securityCheck = securityCheck;
     ASSERT(m_sameOriginRequest || requestURL.user().isEmpty());
     ASSERT(m_sameOriginRequest || requestURL.pass().isEmpty());
+
+    if (!m_referrer.isNull())
+        request.setHTTPReferrer(m_referrer);
 
     if (m_async) {
         ThreadableLoaderOptions options = m_options;
@@ -371,7 +375,7 @@ void DocumentThreadableLoader::loadRequest(ResourceRequest&& request, SecurityCh
         CachedResourceRequest newRequest(WTFMove(request), options);
         if (RuntimeEnabledFeatures::sharedFeatures().resourceTimingEnabled())
             newRequest.setInitiator(m_options.initiator);
-        newRequest.mutableResourceRequest().setAllowCookies(m_options.allowCredentials() == AllowStoredCredentials);
+        newRequest.mutableResourceRequest().setAllowCookies(m_options.allowCredentials == AllowStoredCredentials);
 
         ASSERT(!m_resource);
         m_resource = m_document.cachedResourceLoader().requestRawResource(newRequest);
@@ -393,7 +397,7 @@ void DocumentThreadableLoader::loadRequest(ResourceRequest&& request, SecurityCh
         auto& frameLoader = m_document.frame()->loader();
         if (!frameLoader.mixedContentChecker().canRunInsecureContent(m_document.securityOrigin(), requestURL))
             return;
-        identifier = frameLoader.loadResourceSynchronously(request, m_options.allowCredentials(), m_options.clientCredentialPolicy, error, response, data);
+        identifier = frameLoader.loadResourceSynchronously(request, m_options.allowCredentials, m_options.clientCredentialPolicy, error, response, data);
     }
 
     if (!error.isNull() && response.httpStatusCode() <= 0) {

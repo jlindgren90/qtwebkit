@@ -346,106 +346,19 @@ JS_AND_OBJC_BINDING_IDLS = \
     $(WebCore)/dom/WebKitTransitionEvent.idl \
     $(WebCore)/dom/WheelEvent.idl \
     $(WebCore)/dom/XMLDocument.idl \
-    $(WebCore)/fileapi/Blob.idl \
-    $(WebCore)/fileapi/File.idl \
-    $(WebCore)/fileapi/FileError.idl \
     $(WebCore)/fileapi/FileException.idl \
-    $(WebCore)/fileapi/FileList.idl \
     $(WebCore)/fileapi/FileReader.idl \
     $(WebCore)/fileapi/FileReaderSync.idl \
     $(WebCore)/html/DOMFormData.idl \
     $(WebCore)/html/DOMSettableTokenList.idl \
-    $(WebCore)/html/DOMTokenList.idl \
     $(WebCore)/html/DOMURL.idl \
-    $(WebCore)/html/HTMLAllCollection.idl \
-    $(WebCore)/html/HTMLAnchorElement.idl \
-    $(WebCore)/html/HTMLAppletElement.idl \
-    $(WebCore)/html/HTMLAreaElement.idl \
-    $(WebCore)/html/HTMLAttachmentElement.idl \
-    $(WebCore)/html/HTMLAudioElement.idl \
-    $(WebCore)/html/HTMLBRElement.idl \
-    $(WebCore)/html/HTMLBaseElement.idl \
-    $(WebCore)/html/HTMLBaseFontElement.idl \
-    $(WebCore)/html/HTMLBodyElement.idl \
-    $(WebCore)/html/HTMLButtonElement.idl \
-    $(WebCore)/html/HTMLCanvasElement.idl \
-    $(WebCore)/html/HTMLCollection.idl \
-    $(WebCore)/html/HTMLDListElement.idl \
-    $(WebCore)/html/HTMLDataElement.idl \
-    $(WebCore)/html/HTMLDataListElement.idl \
-    $(WebCore)/html/HTMLDetailsElement.idl \
-    $(WebCore)/html/HTMLDirectoryElement.idl \
-    $(WebCore)/html/HTMLDivElement.idl \
-    $(WebCore)/html/HTMLDocument.idl \
-    $(WebCore)/html/HTMLElement.idl \
-    $(WebCore)/html/HTMLEmbedElement.idl \
-    $(WebCore)/html/HTMLFieldSetElement.idl \
-    $(WebCore)/html/HTMLFontElement.idl \
-    $(WebCore)/html/HTMLFormControlsCollection.idl \
-    $(WebCore)/html/HTMLFormElement.idl \
-    $(WebCore)/html/HTMLFrameElement.idl \
-    $(WebCore)/html/HTMLFrameSetElement.idl \
-    $(WebCore)/html/HTMLHRElement.idl \
-    $(WebCore)/html/HTMLHeadElement.idl \
-    $(WebCore)/html/HTMLHeadingElement.idl \
-    $(WebCore)/html/HTMLHtmlElement.idl \
-    $(WebCore)/html/HTMLHyperlinkElementUtils.idl \
-    $(WebCore)/html/HTMLIFrameElement.idl \
-    $(WebCore)/html/HTMLImageElement.idl \
-    $(WebCore)/html/HTMLInputElement.idl \
-    $(WebCore)/html/HTMLKeygenElement.idl \
-    $(WebCore)/html/HTMLLIElement.idl \
-    $(WebCore)/html/HTMLLabelElement.idl \
-    $(WebCore)/html/HTMLLegendElement.idl \
-    $(WebCore)/html/HTMLLinkElement.idl \
-    $(WebCore)/html/HTMLMapElement.idl \
-    $(WebCore)/html/HTMLMarqueeElement.idl \
-    $(WebCore)/html/HTMLMediaElement.idl \
-    $(WebCore)/html/HTMLMenuElement.idl \
-    $(WebCore)/html/HTMLMetaElement.idl \
-    $(WebCore)/html/HTMLMeterElement.idl \
-    $(WebCore)/html/HTMLModElement.idl \
-    $(WebCore)/html/HTMLOListElement.idl \
-    $(WebCore)/html/HTMLObjectElement.idl \
-    $(WebCore)/html/HTMLOptGroupElement.idl \
-    $(WebCore)/html/HTMLOptionElement.idl \
-    $(WebCore)/html/HTMLOptionsCollection.idl \
-    $(WebCore)/html/HTMLOutputElement.idl \
-    $(WebCore)/html/HTMLParagraphElement.idl \
-    $(WebCore)/html/HTMLParamElement.idl \
-	$(WebCore)/html/HTMLPictureElement.idl \
-    $(WebCore)/html/HTMLPreElement.idl \
-    $(WebCore)/html/HTMLProgressElement.idl \
-    $(WebCore)/html/HTMLQuoteElement.idl \
-    $(WebCore)/html/HTMLScriptElement.idl \
-    $(WebCore)/html/HTMLSelectElement.idl \
-    $(WebCore)/html/HTMLSlotElement.idl \
-    $(WebCore)/html/HTMLSourceElement.idl \
-    $(WebCore)/html/HTMLSpanElement.idl \
-    $(WebCore)/html/HTMLStyleElement.idl \
-    $(WebCore)/html/HTMLTableCaptionElement.idl \
-    $(WebCore)/html/HTMLTableCellElement.idl \
-    $(WebCore)/html/HTMLTableColElement.idl \
-    $(WebCore)/html/HTMLTableElement.idl \
-    $(WebCore)/html/HTMLTableRowElement.idl \
-    $(WebCore)/html/HTMLTableSectionElement.idl \
-    $(WebCore)/html/HTMLTemplateElement.idl \
-    $(WebCore)/html/HTMLTimeElement.idl \
-    $(WebCore)/html/HTMLTitleElement.idl \
-    $(WebCore)/html/HTMLTrackElement.idl \
-    $(WebCore)/html/HTMLUListElement.idl \
-    $(WebCore)/html/HTMLUnknownElement.idl \
-    $(WebCore)/html/HTMLVideoElement.idl \
     $(WebCore)/html/ImageData.idl \
     $(WebCore)/html/MediaController.idl \
-    $(WebCore)/html/MediaError.idl \
     $(WebCore)/html/MediaKeyError.idl \
     $(WebCore)/html/MediaKeyEvent.idl \
     $(WebCore)/html/RadioNodeList.idl \
     $(WebCore)/html/TextMetrics.idl \
-    $(WebCore)/html/TimeRanges.idl \
     $(WebCore)/html/URLUtils.idl \
-    $(WebCore)/html/ValidityState.idl \
     $(WebCore)/html/VoidCallback.idl \
     $(WebCore)/html/canvas/ANGLEInstancedArrays.idl \
     $(WebCore)/html/canvas/CanvasGradient.idl \
@@ -572,7 +485,94 @@ JS_AND_OBJC_BINDING_IDLS = \
 #
 
 JS_ONLY_BINDING_IDLS = \
+	$(WebCore)/fileapi/Blob.idl \
+	$(WebCore)/fileapi/File.idl \
+	$(WebCore)/fileapi/FileError.idl \
+	$(WebCore)/fileapi/FileList.idl \
+	$(WebCore)/html/DOMTokenList.idl \
+	$(WebCore)/html/HTMLAnchorElement.idl \
+	$(WebCore)/html/HTMLAppletElement.idl \
+	$(WebCore)/html/HTMLAreaElement.idl \
+	$(WebCore)/html/HTMLBRElement.idl \
+	$(WebCore)/html/HTMLBaseElement.idl \
+	$(WebCore)/html/HTMLBaseFontElement.idl \
+	$(WebCore)/html/HTMLBodyElement.idl \
+	$(WebCore)/html/HTMLButtonElement.idl \
+	$(WebCore)/html/HTMLCanvasElement.idl \
+	$(WebCore)/html/HTMLCollection.idl \
+	$(WebCore)/html/HTMLDListElement.idl \
+	$(WebCore)/html/HTMLDataElement.idl \
+	$(WebCore)/html/HTMLPictureElement.idl \
+    $(WebCore)/html/HTMLAllCollection.idl \
+    $(WebCore)/html/HTMLAttachmentElement.idl \
+    $(WebCore)/html/HTMLAudioElement.idl \
+    $(WebCore)/html/HTMLDataListElement.idl \
+    $(WebCore)/html/HTMLDetailsElement.idl \
+    $(WebCore)/html/HTMLDirectoryElement.idl \
+    $(WebCore)/html/HTMLDivElement.idl \
+    $(WebCore)/html/HTMLDocument.idl \
+    $(WebCore)/html/HTMLElement.idl \
+    $(WebCore)/html/HTMLEmbedElement.idl \
+    $(WebCore)/html/HTMLFieldSetElement.idl \
+    $(WebCore)/html/HTMLFontElement.idl \
+    $(WebCore)/html/HTMLFormControlsCollection.idl \
+    $(WebCore)/html/HTMLFormElement.idl \
+    $(WebCore)/html/HTMLFrameElement.idl \
+    $(WebCore)/html/HTMLFrameSetElement.idl \
+    $(WebCore)/html/HTMLHRElement.idl \
+    $(WebCore)/html/HTMLHeadElement.idl \
+    $(WebCore)/html/HTMLHeadingElement.idl \
+    $(WebCore)/html/HTMLHtmlElement.idl \
+    $(WebCore)/html/HTMLHyperlinkElementUtils.idl \
+    $(WebCore)/html/HTMLIFrameElement.idl \
+    $(WebCore)/html/HTMLImageElement.idl \
+    $(WebCore)/html/HTMLInputElement.idl \
+    $(WebCore)/html/HTMLKeygenElement.idl \
+    $(WebCore)/html/HTMLLIElement.idl \
+    $(WebCore)/html/HTMLLabelElement.idl \
+    $(WebCore)/html/HTMLLegendElement.idl \
+    $(WebCore)/html/HTMLLinkElement.idl \
+    $(WebCore)/html/HTMLMapElement.idl \
+    $(WebCore)/html/HTMLMarqueeElement.idl \
+    $(WebCore)/html/HTMLMediaElement.idl \
+    $(WebCore)/html/HTMLMenuElement.idl \
+    $(WebCore)/html/HTMLMetaElement.idl \
+    $(WebCore)/html/HTMLMeterElement.idl \
+    $(WebCore)/html/HTMLModElement.idl \
+    $(WebCore)/html/HTMLOListElement.idl \
+    $(WebCore)/html/HTMLObjectElement.idl \
+    $(WebCore)/html/HTMLOptGroupElement.idl \
+    $(WebCore)/html/HTMLOptionElement.idl \
+    $(WebCore)/html/HTMLOptionsCollection.idl \
+    $(WebCore)/html/HTMLOutputElement.idl \
+    $(WebCore)/html/HTMLParagraphElement.idl \
+    $(WebCore)/html/HTMLParamElement.idl \
+    $(WebCore)/html/HTMLPreElement.idl \
+    $(WebCore)/html/HTMLProgressElement.idl \
+    $(WebCore)/html/HTMLQuoteElement.idl \
+    $(WebCore)/html/HTMLScriptElement.idl \
+    $(WebCore)/html/HTMLSelectElement.idl \
+    $(WebCore)/html/HTMLSlotElement.idl \
+    $(WebCore)/html/HTMLSourceElement.idl \
+    $(WebCore)/html/HTMLSpanElement.idl \
+    $(WebCore)/html/HTMLStyleElement.idl \
+    $(WebCore)/html/HTMLTableCaptionElement.idl \
+    $(WebCore)/html/HTMLTableCellElement.idl \
+    $(WebCore)/html/HTMLTableColElement.idl \
+    $(WebCore)/html/HTMLTableElement.idl \
+    $(WebCore)/html/HTMLTableRowElement.idl \
+    $(WebCore)/html/HTMLTableSectionElement.idl \
+    $(WebCore)/html/HTMLTemplateElement.idl \
     $(WebCore)/html/HTMLTextAreaElement.idl \
+    $(WebCore)/html/HTMLTimeElement.idl \
+    $(WebCore)/html/HTMLTitleElement.idl \
+    $(WebCore)/html/HTMLTrackElement.idl \
+    $(WebCore)/html/HTMLUListElement.idl \
+    $(WebCore)/html/HTMLUnknownElement.idl \
+    $(WebCore)/html/HTMLVideoElement.idl \
+    $(WebCore)/html/MediaError.idl \
+    $(WebCore)/html/TimeRanges.idl \
+    $(WebCore)/html/ValidityState.idl \
     $(WebCore)/svg/SVGAElement.idl \
     $(WebCore)/svg/SVGAltGlyphDefElement.idl \
     $(WebCore)/svg/SVGAltGlyphElement.idl \

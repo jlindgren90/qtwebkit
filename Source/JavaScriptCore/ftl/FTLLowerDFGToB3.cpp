@@ -1712,7 +1712,10 @@ private:
                 break;
             }
 
-            emitBinarySnippet<JITSubGenerator>(operationValueSub);
+            JITSubIC* subIC = codeBlock()->addJITSubIC();
+            auto repatchingFunction = operationValueSubOptimize;
+            auto nonRepatchingFunction = operationValueSub;
+            compileMathIC(subIC, repatchingFunction, nonRepatchingFunction);
             break;
         }
 

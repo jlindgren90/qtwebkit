@@ -46,6 +46,8 @@ class IDBResultData;
 class IDBValue;
 class SecurityOrigin;
 
+struct IDBGetRecordData;
+
 namespace IDBClient {
 
 class IDBConnectionToServer : public ThreadSafeRefCounted<IDBConnectionToServer> {
@@ -80,7 +82,7 @@ public:
     void putOrAdd(const IDBRequestData&, const IDBKeyData&, const IDBValue&, const IndexedDB::ObjectStoreOverwriteMode);
     WEBCORE_EXPORT void didPutOrAdd(const IDBResultData&);
 
-    void getRecord(const IDBRequestData&, const IDBKeyRangeData&);
+    void getRecord(const IDBRequestData&, const IDBGetRecordData&);
     WEBCORE_EXPORT void didGetRecord(const IDBResultData&);
 
     void getCount(const IDBRequestData&, const IDBKeyRangeData&);

@@ -152,9 +152,6 @@ bool SubresourceLoader::init(const ResourceRequest& request)
     // SubresourceLoader could use the document origin as a default and set PotentiallyCrossOriginEnabled requests accordingly.
     // This would simplify resource loader users as they would only need to set fetch mode to Cors.
     m_origin = m_resource->origin();
-    // https://fetch.spec.whatwg.org/#main-fetch, step 11, data URL here is considered not cross origin.
-    if (!request.url().protocolIsData() && m_origin && !m_origin->canRequest(request.url()))
-        m_resource->setCrossOrigin();
 
     return true;
 }
@@ -415,7 +412,7 @@ bool SubresourceLoader::checkRedirectionCrossOriginAccessControl(const ResourceR
     ASSERT(m_origin);
     String errorDescription;
     bool responsePassesCORS = m_origin->canRequest(previousRequest.url())
-        || passesAccessControlCheck(redirectResponse, options().allowCredentials(), *m_origin, errorDescription);
+        || passesAccessControlCheck(redirectResponse, options().allowCredentials, *m_origin, errorDescription);
     if (!responsePassesCORS || !isValidCrossOriginRedirectionURL(newRequest.url())) {
         if (m_frame && m_frame->document()) {
             String errorMessage = "Cross-origin redirection denied by Cross-Origin Resource Sharing policy: " +
@@ -428,7 +425,7 @@ bool SubresourceLoader::checkRedirectionCrossOriginAccessControl(const ResourceR
     // If the request URL origin is not the same as the original origin, the request origin should be set to a globally unique identifier.
     m_origin = SecurityOrigin::createUnique();
     cleanRedirectedRequestForAccessControl(newRequest);
-    updateRequestForAccessControl(newRequest, *m_origin, options().allowCredentials());
+    updateRequestForAccessControl(newRequest, *m_origin, options().allowCredentials);
 
     return true;
 }

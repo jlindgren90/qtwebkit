@@ -1,3 +1,108 @@
+2016-08-02  Youenn Fablet  <youenn@apple.com>
+
+        Skip fetch API worker tests in Debug mode
+        https://bugs.webkit.org/show_bug.cgi?id=160448
+
+        Unreviewed.
+
+        * TestExpectations:
+
+2016-08-02  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Fetch promises should not reject or resolve when ActiveDOMObjects are being stopped
+        https://bugs.webkit.org/show_bug.cgi?id=160420
+
+        Reviewed by Alex Christensen.
+
+        * TestExpectations:
+        * http/tests/fetch/fetch-in-worker-crash-expected.txt: Added.
+        * http/tests/fetch/fetch-in-worker-crash.html: Added.
+        * http/tests/fetch/fetch-in-worker.js: Added.
+        (onmessage):
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/fetch/api/cors/cors-basic-worker-expected.txt:
+
+2016-08-01  Tim Horton  <timothy_horton@apple.com>
+
+        <attachment> action label doesn't wrap, but needs to for some localizations
+        https://bugs.webkit.org/show_bug.cgi?id=160431
+        <rdar://problem/27526464>
+
+        Reviewed by Simon Fraser.
+
+        * fast/attachment/attachment-wrapping-action-expected-mismatch.html: Added.
+        * fast/attachment/attachment-wrapping-action.html: Added.
+        Add a test that ensures that the action label wraps by filling one with
+        non-breaking and breaking spaces, which will wrap onto two lines, and one
+        with just a single space, which will always fit in one line, and ensuring
+        that they do not match.
+
+2016-08-01  Chris Dumez  <cdumez@apple.com>
+
+        [iOS] Fix fast/events/touch/document-create-touch-list-ios.html
+        https://bugs.webkit.org/show_bug.cgi?id=160429
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix several bugs in fast/events/touch/document-create-touch-list-ios.html:
+        1. Use proper parameters to TouchEvent.initTouchEvent() so that it no longer throws.
+        2. For the check testing passing bad parameters to createTouchList(), print PASS
+           if it throws instead of FAIL since this is the expected behavior.
+
+        * fast/events/touch/document-create-touch-list-ios-expected.txt:
+        * fast/events/touch/script-tests/document-create-touch-list-ios.js:
+        (catch): Deleted.
+
+2016-08-01  Alexey Proskuryakov  <ap@apple.com>
+
+        Sierra test expectations gardening for editing/input/password-echo-textnode.html.
+
+        * platform/mac/TestExpectations:
+
+2016-08-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Land updated baseline for rdar://problem/27611932.
+
+        * editing/mac/attributed-string/font-style-variant-effect-expected.txt:
+        * platform/mac-elcapitan/editing/mac/attributed-string/font-style-variant-effect-expected.txt: Copied from LayoutTests/editing/mac/attributed-string/font-style-variant-effect-expected.txt.
+        * platform/mac-wk1/TestExpectations:
+
+2016-08-01  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION(r198943): drop-down menu navigation on fiddlevideo.com doesn't appear on iOS, works on OS X
+        https://bugs.webkit.org/show_bug.cgi?id=160406
+
+        Reviewed by Simon Fraser.
+
+        This stuff has had zero test coverage. Adding a basic UIScript based test.
+
+        * TestExpectations:
+        * fast/content-observation/click-event-suppression-on-content-change-expected.txt: Added.
+        * fast/content-observation/click-event-suppression-on-content-change.html: Added.
+
+2016-08-01  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac][iOS] Adopt MediaRemote "seek to playback position"
+        https://bugs.webkit.org/show_bug.cgi?id=160405
+        <rdar://problem/27547583>
+
+        Reviewed by Dean Jackson.
+
+        * media/remote-control-command-seek-expected.txt: Added.
+        * media/remote-control-command-seek.html: Added.
+
+2016-08-01  Adrian Perez de Castro  <aperez@igalia.com>
+
+        Update Apache configuration for Arch Linux
+        https://bugs.webkit.org/show_bug.cgi?id=160408
+
+        Reviewed by Ryosuke Niwa.
+
+        Arch Linux now ships Apache 2.4 and PHP 7, so the configuration file
+        used for the layout tests is updated to be compatible with the newer
+        versions.
+
+        * http/conf/archlinux-httpd.conf: Updated.
+
 2016-08-01  Antti Koivisto  <antti@apple.com>
 
         REGRESSION (r196383): Drop down CSS menus not working on cnet.com, apmex.com

@@ -1,3 +1,69 @@
+2016-08-01  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Don't set `width:calc(100% - 0px); left:0px` on console messages
+        https://bugs.webkit.org/show_bug.cgi?id=160428
+        <rdar://problem/27646033>
+
+        Reviewed by Timothy Hatcher.
+
+        Console messages inside console.group() are indented. Console messages outside of
+        console.group() aren't and there is no reason to set inline styles that do nothing
+        on each one of them.
+
+        * UserInterface/Views/LogContentView.js:
+        (WebInspector.LogContentView.prototype.didAppendConsoleMessageView):
+
+2016-08-01  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Grid column resizer elements positioned incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=160311
+        <rdar://problem/27595586>
+
+        Reviewed by Brian Burg.
+
+        Perform a resize layout on a newly shown tab content view if the tab
+        browser was resized before showing the tab.
+
+        * UserInterface/Views/TabBrowser.js:
+        (WebInspector.TabBrowser):
+        (WebInspector.TabBrowser.prototype.layout):
+        Mark all recent tab content views (except for the current view)
+        as needing a resize layout.
+
+        (WebInspector.TabBrowser.prototype._tabBarItemSelected):
+        If the tab browser was resized while the view was hidden, update the
+        view's layout for the new content view container size.
+
+2016-08-01  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Waterfall graph in Network tab shows too much whitespace/dead time
+        https://bugs.webkit.org/show_bug.cgi?id=160373
+
+        Reviewed by Timothy Hatcher.
+
+        Track the start and end time separate from the ruler to remove
+        leading/trailing whitespace in the graph. Also prevent network
+        record bars from being clipped.
+
+        * UserInterface/Views/NetworkGridContentView.js:
+        (WebInspector.NetworkGridContentView):
+        (WebInspector.NetworkGridContentView.prototype.get zeroTime):
+        Set equal to the ruler start time.
+        (WebInspector.NetworkGridContentView.prototype.reset):
+        Reset start and end time.
+        (WebInspector.NetworkGridContentView.prototype.layout):
+        Set the initial values for ruler start/zero time if needed.
+        (WebInspector.NetworkGridContentView.prototype._networkTimelineRecordAdded):
+        Set the start time if needed.
+        Reduce debounce from 250ms to 150ms. This prevents the current time from
+        exceeding the end time by as wide a margin, while keeping the current
+        time "timer" from being restarted too frequently.
+
+        (WebInspector.NetworkGridContentView.prototype._stopUpdatingCurrentTime):
+        Update the ruler end time and schedule a layout.
+        Add padding equal to the time needed to draw a network bar at minimum width
+        to prevent bars from being clipped.
+
 2016-07-29  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: Inactive/active network bar segments overlap when latency is zero

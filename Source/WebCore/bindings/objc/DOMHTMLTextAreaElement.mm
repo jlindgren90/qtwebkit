@@ -24,19 +24,16 @@
  */
 
 #import "config.h"
-#import "DOMHTMLTextAreaElement.h"
+#import "DOMHTMLTextAreaElementInternal.h"
 
 #import "DOMHTMLFormElementInternal.h"
-#import "DOMHTMLTextAreaElementInternal.h"
 #import "DOMNodeInternal.h"
 #import "DOMNodeListInternal.h"
-#import "DOMValidityStateInternal.h"
 #import "ExceptionHandlers.h"
 #import "HTMLTextAreaElement.h"
 #import "JSMainThreadExecState.h"
 #import "NodeList.h"
 #import "ThreadCheck.h"
-#import "ValidityState.h"
 
 using namespace WebCore;
 
@@ -241,18 +238,6 @@ DOMHTMLTextAreaElement *kit(HTMLTextAreaElement* value)
     return wrapped(_internal).willValidate();
 }
 
-- (DOMValidityState *)validity
-{
-    JSMainThreadNullState state;
-    return kit(wrapped(_internal).validity());
-}
-
-- (NSString *)validationMessage
-{
-    JSMainThreadNullState state;
-    return wrapped(_internal).validationMessage();
-}
-
 - (DOMNodeList *)labels
 {
     JSMainThreadNullState state;
@@ -317,18 +302,6 @@ DOMHTMLTextAreaElement *kit(HTMLTextAreaElement* value)
 {
     JSMainThreadNullState state;
     wrapped(_internal).setAutocomplete(newAutocomplete);
-}
-
-- (BOOL)checkValidity
-{
-    JSMainThreadNullState state;
-    return wrapped(_internal).checkValidity();
-}
-
-- (void)setCustomValidity:(NSString *)error
-{
-    JSMainThreadNullState state;
-    wrapped(_internal).setCustomValidity(error);
 }
 
 - (void)select

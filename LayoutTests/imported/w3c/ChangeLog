@@ -1,3 +1,53 @@
+2016-08-02  Youenn Fablet  <youenn@apple.com>
+
+        Skip fetch API worker tests in Debug mode
+        https://bugs.webkit.org/show_bug.cgi?id=160448
+
+        Unreviewed.
+
+        * web-platform-tests/fetch/api/cors/cors-cookies-worker-expected.txt: Rebasing
+
+2016-08-02  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Fetch promises should not reject or resolve when ActiveDOMObjects are being stopped
+        https://bugs.webkit.org/show_bug.cgi?id=160420
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/fetch/api/cors/cors-preflight-redirect-worker-expected.txt: Added.
+        * web-platform-tests/fetch/nosniff/worker-expected.txt: Added.
+
+2016-08-02  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Add support to ReferrerPolicy
+        https://bugs.webkit.org/show_bug.cgi?id=160404
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/fetch/api/basic/referrer-expected.txt: Added.
+        * web-platform-tests/fetch/api/basic/referrer-worker-expected.txt: Added.
+        * web-platform-tests/fetch/api/basic/referrer-worker.html: Added.
+        * web-platform-tests/fetch/api/basic/referrer.html: Added.
+        * web-platform-tests/fetch/api/basic/referrer.js: Added.
+        (runTest):
+        * web-platform-tests/fetch/api/cors/cors-preflight-referrer-expected.txt:
+        * web-platform-tests/fetch/api/cors/cors-preflight-referrer-worker-expected.txt:
+        * web-platform-tests/fetch/api/cors/cors-preflight-referrer.js:
+        (corsPreflightReferrer): fix infrastructure bug in test and fix expected referrer policy in default case.
+        * web-platform-tests/fetch/api/cors/cors-preflight-worker-expected.txt:
+
+2016-08-01  Youenn Fablet  <youenn@apple.com>
+
+        Make wpt server generate its certificates in layout test results folder
+        https://bugs.webkit.org/show_bug.cgi?id=160422
+
+        Reviewed by Chris Dumez.
+
+        * resources/_wpt_certs/.gitignore: Removed.
+        * resources/_wpt_certs/localhost.key: Removed.
+        * resources/_wpt_certs/localhost.pem: Removed.
+        * resources/config.json:
+
 2016-07-30  Chris Dumez  <cdumez@apple.com>
 
         Enable strict type checking for Window dictionary members

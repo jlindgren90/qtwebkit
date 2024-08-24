@@ -1,3 +1,800 @@
+2016-07-28  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of the form attribute to MathMLOperatorElement
+        https://bugs.webkit.org/show_bug.cgi?id=160239
+
+        Reviewed by Darin Adler.
+
+        We move the parsing of the mo@form attribute to the MathMLOperatorElement class. Note that
+        when the attribute is not explicit, the form may also be guessed by searching into the
+        operator dictionary. Hence we also start moving the determination of the default dictionary
+        properties. Moving the actual parsing of the corresponding attributes will be done in
+        follow-up commits.
+
+        No new tests, already covered by existing tests.
+
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::childrenChanged): Make the form of operators dirty
+        if its siblings have changed.
+        * mathml/MathMLOperatorDictionary.cpp:
+        (WebCore::MathMLOperatorDictionary::search): Merge old getEntry functions into one helper
+        function that returns an Optional<Entry>.
+        (WebCore::MathMLOperatorDictionary::getEntry): Deleted
+        * mathml/MathMLOperatorDictionary.h: Declare MathMLOperatorDictionary::find.
+        * mathml/MathMLOperatorElement.cpp:
+        (WebCore::MathMLOperatorElement::dictionaryProperty): We determine the operator form by
+        parsing the corresponding attribute or by using heuristics if that attribute is not
+        specified. We also read dictionary the corresponding dictionary properties.
+        (WebCore::MathMLOperatorElement::flags): Return the flags read from the dictionary.
+        (WebCore::MathMLOperatorElement::defaultLeadingSpace): Return the space read from the dictionary.
+        (WebCore::MathMLOperatorElement::defaultTrailingSpace): Return the space read from the dictionary.
+        (WebCore::MathMLOperatorElement::childrenChanged): Make the dictionary properties dirty.
+        (WebCore::MathMLOperatorElement::parseAttribute): Make the dictionary properties dirty when
+        the form changes.
+        * mathml/MathMLOperatorElement.h: New member to store dictionary properties and expose them.
+        * rendering/mathml/RenderMathMLFencedOperator.cpp:
+        (WebCore::RenderMathMLFencedOperator::setOperatorProperties): We implement the case specific
+        to anonymous mfenced operators here.
+        * rendering/mathml/RenderMathMLFencedOperator.h: Move the m_operatorForm member here and
+        declare the overriden function setOperatorProperties.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::setOperatorProperties): Simplify this code since the logic
+        has been moved to the element classes.
+        (WebCore::RenderMathMLOperator::setOperatorPropertiesFromOpDictEntry): Deleted.
+        * rendering/mathml/RenderMathMLOperator.h: Remove setOperatorPropertiesFromOpDictEntry, make
+        members accessible to RenderMathMLFencedOperator and remove m_operatorForm.
+
+2016-08-02  Frederic Wang  <fwang.igalia.com>
+
+        Use Optional members to store parsed MathML attributes.
+        https://bugs.webkit.org/show_bug.cgi?id=160400
+
+        Reviewed by Darin Adler.
+
+        Parsed MathML attributes are stored on the element classes using the memoize pattern to
+        minimize the number of parsing updates. Currently, a dirty flag for each member
+        indicate when it must be parsed again. We change this to wrap these members into an
+        Optional<T> container instead, where a null value indicates that the member is dirty.
+
+        No new tests, behavior is unchanged.
+
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::cachedMathMLLength):
+        (WebCore::MathMLElement::cachedBooleanAttribute):
+        (WebCore::MathMLElement::parseMathVariantAttribute):
+        (WebCore::MathMLElement::specifiedDisplayStyle):
+        (WebCore::MathMLElement::specifiedMathVariant):
+        * mathml/MathMLElement.h:
+        * mathml/MathMLFractionElement.cpp:
+        (WebCore::MathMLFractionElement::lineThickness):
+        (WebCore::MathMLFractionElement::cachedFractionAlignment):
+        (WebCore::MathMLFractionElement::parseAttribute):
+        * mathml/MathMLFractionElement.h:
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::parseAttribute):
+        * mathml/MathMLMathElement.cpp:
+        (WebCore::MathMLMathElement::specifiedDisplayStyle):
+        (WebCore::MathMLMathElement::parseAttribute):
+        * mathml/MathMLOperatorElement.cpp:
+        (WebCore::MathMLOperatorElement::operatorText):
+        * mathml/MathMLPaddedElement.cpp:
+        (WebCore::MathMLPaddedElement::parseAttribute):
+        * mathml/MathMLPaddedElement.h:
+        * mathml/MathMLScriptsElement.cpp:
+        (WebCore::MathMLScriptsElement::parseAttribute):
+        * mathml/MathMLScriptsElement.h:
+        * mathml/MathMLSpaceElement.cpp:
+        (WebCore::MathMLSpaceElement::parseAttribute):
+        * mathml/MathMLSpaceElement.h:
+        * mathml/MathMLTextElement.cpp:
+        (WebCore::MathMLTextElement::parseAttribute):
+        * mathml/MathMLUnderOverElement.cpp:
+        (WebCore::MathMLUnderOverElement::parseAttribute):
+        * mathml/MathMLUnderOverElement.h:
+        * rendering/mathml/MathMLStyle.cpp:
+        (WebCore::MathMLStyle::resolveMathMLStyle):
+        * rendering/mathml/MathMLStyle.h:
+        * rendering/mathml/RenderMathMLToken.cpp:
+        (WebCore::mathVariant):
+        (WebCore::RenderMathMLToken::updateMathVariantGlyph):
+
+2016-08-02  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Fetch promises should not reject or resolve when ActiveDOMObjects are being stopped
+        https://bugs.webkit.org/show_bug.cgi?id=160420
+
+        Reviewed by Alex Christensen.
+
+        Test: http/tests/fetch/fetch-in-worker-crash.html
+
+        Promises should not be rejected when FetchResponse/FetchRequest are stopped as ActiveDOMObject.
+
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::cleanConsumePromise): Allowing to nullify the promise used to consume body.
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::stop): Nullifying the body consume promise if any.
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::BodyLoader::stop): Nullifying the fetch promise if any.
+
+2016-08-02  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Add support to ReferrerPolicy
+        https://bugs.webkit.org/show_bug.cgi?id=160404
+
+        Reviewed by Alex Christensen.
+
+        Tests: imported/w3c/web-platform-tests/fetch/api/basic/referrer-worker.html
+               imported/w3c/web-platform-tests/fetch/api/basic/referrer.html
+
+        Refactored ThreadableLoader API to take more references.
+
+        Updated loading code in CachedResource to take into account referrer policy, that can be set by fetch API.
+        To enable correct handling of OriginWhenCrossOrigin policy, the computation of the cross-origin status of a request is
+        moved from ResourceLoader to CachedResource.
+
+        Referrer is passed to the loading code through HTTP headers.
+        This was triggering preflighting for Workers request as WorkerThreadableLoader was setting the referrer.
+        It is now done in DocumentThreadableLoader::loadRequest so that preflighting is done before setting the referrer.
+        Note that this referrer setting is only a way to pass a specific referrer value to the loading code.
+        CachedResource code will compute the actual referer value based on the referrer policy.
+        It might be good in the future to have a different way of conveying this information to CachedResource, maybe
+        through CachedResourceRequest.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start): Refactoring of ThreadableLoader API.
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::internalRequest): Setting referrer if it has a specific value.
+        * fileapi/FileReaderLoader.cpp:
+        (WebCore::FileReaderLoader::start): Ractoring of ThreadableLoader API.
+        * loader/CrossOriginPreflightChecker.cpp:
+        (WebCore::CrossOriginPreflightChecker::startPreflight): Set referrer in the preflight request if any.
+        (WebCore::CrossOriginPreflightChecker::doPreflight): Ditto.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::loadResourceSynchronously): Refactoring of ThreadableLoader API.
+        (WebCore::DocumentThreadableLoader::create): Ditto.
+        (WebCore::DocumentThreadableLoader::DocumentThreadableLoader): Ditto.
+        (WebCore::DocumentThreadableLoader::loadRequest): Ditto.
+        * loader/DocumentThreadableLoader.h:
+        (WebCore::DocumentThreadableLoader::referrer): Storing referrer in case one is defined.
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::init): Removing of cross origin computation since it is done earlier in CachedResource.
+        * loader/ThreadableLoader.cpp:
+        (WebCore::ThreadableLoader::create): Refactoring of ThreadableLoader API.
+        (WebCore::ThreadableLoader::loadResourceSynchronously): Ditto.
+        * loader/ThreadableLoader.h:
+        * loader/ThreadableLoaderClientWrapper.h:
+        (WebCore::ThreadableLoaderClientWrapper::create): Ditto.
+        (WebCore::ThreadableLoaderClientWrapper::ThreadableLoaderClientWrapper): Ditto.
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::WorkerThreadableLoader): Ditto.
+        (WebCore::WorkerThreadableLoader::loadResourceSynchronously): Removing setting of referrer in header and passing
+        it as a parameter.
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::MainThreadBridge): Ditto.
+        * loader/WorkerThreadableLoader.h:
+        (WebCore::WorkerThreadableLoader::create): Refactoring of ThreadableLoader API.
+        * loader/cache/CachedResource.cpp:
+        (WebCore::addAdditionalRequestHeadersToRequest): Computation of referrer based on referrer policy.
+        (WebCore::CachedResource::addAdditionalRequestHeaders): Ditto.
+        (WebCore::CachedResource::load): Computation of cross origin status.
+        (WebCore::CachedResource::varyHeaderValuesMatch):
+        * loader/cache/CachedResource.h:
+        (WebCore::CachedResource::options):
+        * page/EventSource.cpp:
+        (WebCore::EventSource::connect): Refactoring of ThreadableLoader API.
+        * workers/WorkerScriptLoader.cpp:
+        (WebCore::WorkerScriptLoader::loadSynchronously): Ditto.
+        (WebCore::WorkerScriptLoader::loadAsynchronously): Ditto.
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::createRequest): Ditto.
+
+2016-08-02  Brady Eidson  <beidson@apple.com>
+
+        Refactor data passed along for a "GetRecord" request.
+        https://bugs.webkit.org/show_bug.cgi?id=160352
+
+        Reviewed by Tim Horton.
+
+        No new tests (No behavior change).
+
+        Adding this new object lets us easily add new data passed along for GetRecord
+        requests going forward.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * CMakeLists.txt:
+
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::get):
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::requestGetRecord):
+        (WebCore::IDBTransaction::requestIndexRecord):
+        (WebCore::IDBTransaction::getRecordOnServer):
+        * Modules/indexeddb/IDBTransaction.h:
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::getRecord):
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::getRecord):
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+        * Modules/indexeddb/client/IDBConnectionToServerDelegate.h:
+
+        * Modules/indexeddb/server/IDBServer.cpp:
+        (WebCore::IDBServer::IDBServer::getRecord):
+        * Modules/indexeddb/server/IDBServer.h:
+
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::getRecord):
+        * Modules/indexeddb/server/UniqueIDBDatabase.h:
+
+        * Modules/indexeddb/server/UniqueIDBDatabaseTransaction.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabaseTransaction::getRecord):
+        * Modules/indexeddb/server/UniqueIDBDatabaseTransaction.h:
+
+        * Modules/indexeddb/shared/IDBGetRecordData.cpp: Added.
+        (WebCore::IDBGetRecordData::isolatedCopy):
+        * Modules/indexeddb/shared/IDBGetRecordData.h: Added.
+        (WebCore::IDBGetRecordData::encode):
+        (WebCore::IDBGetRecordData::decode):
+
+        * Modules/indexeddb/shared/InProcessIDBServer.cpp:
+        (WebCore::InProcessIDBServer::getRecord):
+        * Modules/indexeddb/shared/InProcessIDBServer.h:
+
+2016-08-01  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Pass directly FetchRequest fetch options to ThreadableLoader
+        https://bugs.webkit.org/show_bug.cgi?id=160407
+
+        Reviewed by Sam Weinig.
+
+        No change of behavior.
+
+        Added a ResourceLoaderOptions constructor that takes a FetchOptions as input.
+        Removed setters and getters of ResourceLoaderOptions as it is a struct.
+        Updated member fields accordingly.
+
+        Updated code accordingly.
+        Removed explicit option setting if it is the same as the default value.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start):
+        * css/CSSFontFaceSrcValue.cpp:
+        (WebCore::CSSFontFaceSrcValue::cachedFont):
+        * css/CSSImageSetValue.cpp:
+        (WebCore::CSSImageSetValue::cachedImageSet):
+        * css/CSSImageValue.cpp:
+        (WebCore::CSSImageValue::cachedImage):
+        * dom/ScriptElement.cpp:
+        (WebCore::ScriptElement::requestScript):
+        * fileapi/FileReaderLoader.cpp:
+        (WebCore::FileReaderLoader::start):
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::process):
+        * inspector/InspectorNetworkAgent.cpp:
+        (WebCore::InspectorNetworkAgent::loadResource):
+        * loader/CrossOriginPreflightChecker.cpp:
+        (WebCore::CrossOriginPreflightChecker::validatePreflightResponse):
+        (WebCore::CrossOriginPreflightChecker::startPreflight):
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::DocumentThreadableLoader):
+        (WebCore::DocumentThreadableLoader::makeCrossOriginAccessRequest):
+        (WebCore::DocumentThreadableLoader::makeSimpleCrossOriginAccessRequest):
+        (WebCore::DocumentThreadableLoader::redirectReceived):
+        (WebCore::DocumentThreadableLoader::didReceiveResponse):
+        (WebCore::DocumentThreadableLoader::preflightSuccess):
+        (WebCore::DocumentThreadableLoader::loadRequest):
+        * loader/ImageLoader.cpp:
+        (WebCore::ImageLoader::updateFromElement):
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::ResourceLoader):
+        (WebCore::ResourceLoader::init):
+        (WebCore::ResourceLoader::start):
+        (WebCore::ResourceLoader::setDefersLoading):
+        (WebCore::ResourceLoader::setDataBufferingPolicy):
+        (WebCore::ResourceLoader::addDataOrBuffer):
+        (WebCore::ResourceLoader::willSendRequestInternal):
+        (WebCore::ResourceLoader::didReceiveResponse):
+        (WebCore::ResourceLoader::didReceiveDataOrBuffer):
+        (WebCore::ResourceLoader::didFinishLoadingOnePart):
+        (WebCore::ResourceLoader::cleanupForError):
+        (WebCore::ResourceLoader::shouldUseCredentialStorage):
+        (WebCore::ResourceLoader::didReceiveAuthenticationChallenge):
+        * loader/ResourceLoader.h:
+        (WebCore::ResourceLoader::shouldSendResourceLoadCallbacks):
+        (WebCore::ResourceLoader::setSendCallbackPolicy):
+        (WebCore::ResourceLoader::shouldSniffContent):
+        (WebCore::ResourceLoader::shouldIncludeCertificateInfo):
+        * loader/ResourceLoaderOptions.h:
+        (WebCore::ResourceLoaderOptions::ResourceLoaderOptions):
+        (WebCore::ResourceLoaderOptions::sendLoadCallbacks): Deleted.
+        (WebCore::ResourceLoaderOptions::setSendLoadCallbacks): Deleted.
+        (WebCore::ResourceLoaderOptions::sniffContent): Deleted.
+        (WebCore::ResourceLoaderOptions::setSniffContent): Deleted.
+        (WebCore::ResourceLoaderOptions::dataBufferingPolicy): Deleted.
+        (WebCore::ResourceLoaderOptions::setDataBufferingPolicy): Deleted.
+        (WebCore::ResourceLoaderOptions::allowCredentials): Deleted.
+        (WebCore::ResourceLoaderOptions::setAllowCredentials): Deleted.
+        (WebCore::ResourceLoaderOptions::securityCheck): Deleted.
+        (WebCore::ResourceLoaderOptions::setSecurityCheck): Deleted.
+        (WebCore::ResourceLoaderOptions::certificateInfoPolicy): Deleted.
+        (WebCore::ResourceLoaderOptions::setCertificateInfoPolicy): Deleted.
+        (WebCore::ResourceLoaderOptions::contentSecurityPolicyImposition): Deleted.
+        (WebCore::ResourceLoaderOptions::setContentSecurityPolicyImposition): Deleted.
+        (WebCore::ResourceLoaderOptions::defersLoadingPolicy): Deleted.
+        (WebCore::ResourceLoaderOptions::setDefersLoadingPolicy): Deleted.
+        (WebCore::ResourceLoaderOptions::cachingPolicy): Deleted.
+        (WebCore::ResourceLoaderOptions::setCachingPolicy): Deleted.
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::checkRedirectionCrossOriginAccessControl):
+        * loader/TextTrackLoader.cpp:
+        (WebCore::TextTrackLoader::load):
+        * loader/cache/CachedRawResource.cpp:
+        (WebCore::CachedRawResource::setDataBufferingPolicy):
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::load):
+        * loader/cache/CachedResource.h:
+        (WebCore::CachedResource::shouldSendResourceLoadCallbacks):
+        (WebCore::CachedResource::dataBufferingPolicy):
+        (WebCore::CachedResource::allowsCaching):
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::canRequest):
+        * loader/cache/CachedResourceRequest.cpp:
+        (WebCore::CachedResourceRequest::setAsPotentiallyCrossOrigin):
+        * loader/cache/CachedResourceRequest.h:
+        (WebCore::CachedResourceRequest::allowsCaching):
+        * loader/cache/CachedResourceRequestInitiators.cpp:
+        (WebCore::CachedResourceRequestInitiators::CachedResourceRequestInitiators):
+        * loader/cache/CachedResourceRequestInitiators.h:
+        * loader/mac/ResourceLoaderMac.mm:
+        (WebCore::ResourceLoader::willCacheResponse):
+        (WebCore::ResourceLoader::didReceiveDataArray):
+        * page/EventSource.cpp:
+        (WebCore::EventSource::connect):
+        * style/StylePendingResources.cpp:
+        (WebCore::Style::loadPendingImage):
+        (WebCore::Style::loadPendingSVGFilters):
+        * svg/SVGFEImageElement.cpp:
+        (WebCore::SVGFEImageElement::requestImageResource):
+        * svg/SVGFontFaceUriElement.cpp:
+        (WebCore::SVGFontFaceUriElement::loadFont):
+        * svg/SVGUseElement.cpp:
+        (WebCore::SVGUseElement::updateExternalDocument):
+        * workers/WorkerScriptLoader.cpp:
+        (WebCore::WorkerScriptLoader::loadSynchronously):
+        (WebCore::WorkerScriptLoader::loadAsynchronously):
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::createRequest):
+
+2016-08-01  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Move the redirected XComposite window to the web process
+        https://bugs.webkit.org/show_bug.cgi?id=160389
+
+        Reviewed by Žan Doberšek.
+
+        Add helper methods to PlatformDisplayX11 to query X extensions supported by the display.
+
+        * platform/graphics/x11/PlatformDisplayX11.cpp:
+        (WebCore::PlatformDisplayX11::supportsXComposite):
+        (WebCore::PlatformDisplayX11::supportsXDamage):
+        * platform/graphics/x11/PlatformDisplayX11.h:
+
+2016-08-01  Andreas Kling  <akling@apple.com>
+
+        Shrink MediaQuerySets to fit after parsing.
+        <https://webkit.org/b/160419>
+
+        Reviewed by Antti Koivisto.
+
+        Add shrinkToFit() helpers to MediaQuerySet and MediaQuery
+        and call it after parsing to remove extra capacity from their
+        internal vectors.
+
+        This reduces memory usage by 1.24MB on theverge.com.
+
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::createMediaRule):
+        * css/MediaList.cpp:
+        (WebCore::MediaQuerySet::parse):
+        (WebCore::MediaQuerySet::shrinkToFit):
+        * css/MediaList.h:
+        * css/MediaQuery.h:
+        (WebCore::MediaQuery::shrinkToFit):
+
+2016-08-01  Tim Horton  <timothy_horton@apple.com>
+
+        <attachment> action label doesn't wrap, but needs to for some localizations
+        https://bugs.webkit.org/show_bug.cgi?id=160431
+        <rdar://problem/27526464>
+
+        Reviewed by Simon Fraser.
+
+        Test: fast/attachment/attachment-wrapping-action.html
+
+        * rendering/RenderThemeIOS.mm:
+        (WebCore::AttachmentInfo::buildWrappedLines):
+        (WebCore::AttachmentInfo::AttachmentInfo):
+        (WebCore::AttachmentInfo::buildTitleLines): Deleted.
+        Rework buildTitleLines into buildWrappedLines so that we have a
+        generic way to add lines that wrap up to N lines and then center-truncate.
+
+        Make use of it for the action text, and follow the same rules/width as
+        the title text already does.
+
+2016-08-01  Anders Carlsson  <andersca@apple.com>
+
+        Build fix.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-08-01  Anders Carlsson  <andersca@apple.com>
+
+        Another build fix.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-08-01  Anders Carlsson  <andersca@apple.com>
+
+        Freeze the last of the HTML Objective-C bindings
+        https://bugs.webkit.org/show_bug.cgi?id=160430
+
+        Reviewed by Tim Horton.
+
+        Also, remove a bunch of form validation related methods that were never exposed/used.
+
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMBlob.h: Added.
+        * bindings/objc/DOMBlob.mm: Added.
+        * bindings/objc/DOMBlobInternal.h: Added.
+        * bindings/objc/DOMDOMTokenList.h: Added.
+        * bindings/objc/DOMDOMTokenList.mm: Added.
+        * bindings/objc/DOMDOMTokenListInternal.h: Added.
+        * bindings/objc/DOMFile.h: Added.
+        * bindings/objc/DOMFile.mm: Added.
+        * bindings/objc/DOMFileInternal.h: Added.
+        * bindings/objc/DOMFileList.h: Added.
+        * bindings/objc/DOMFileList.mm: Added.
+        * bindings/objc/DOMFileListInternal.h: Added.
+        * bindings/objc/DOMHTMLButtonElement.mm:
+        * bindings/objc/DOMHTMLFieldSetElement.mm:
+        * bindings/objc/DOMHTMLInputElement.mm:
+        * bindings/objc/DOMHTMLInputElementPrivate.h:
+        * bindings/objc/DOMHTMLObjectElement.mm:
+        * bindings/objc/DOMHTMLSelectElement.mm:
+        * bindings/objc/DOMHTMLTextAreaElement.mm:
+        * bindings/objc/DOMHTMLTextAreaElementPrivate.h:
+        * bindings/objc/DOMMediaError.h: Added.
+        * bindings/objc/DOMMediaError.mm: Added.
+        * bindings/objc/DOMMediaErrorInternal.h: Added.
+        * bindings/objc/DOMTimeRanges.h: Added.
+        * bindings/objc/DOMTimeRanges.mm: Added.
+        * bindings/objc/DOMTimeRangesInternal.h: Added.
+
+2016-08-01  Anders Carlsson  <andersca@apple.com>
+
+        Fix build.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-08-01  Anders Carlsson  <andersca@apple.com>
+
+        Freeze all the DOMHTML* Objective-C bindings
+        https://bugs.webkit.org/show_bug.cgi?id=160424
+
+        Reviewed by Tim Horton.
+
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMHTMLAnchorElement.h: Added.
+        * bindings/objc/DOMHTMLAnchorElement.mm: Added.
+        * bindings/objc/DOMHTMLAnchorElementInternal.h: Added.
+        * bindings/objc/DOMHTMLAppletElement.h: Added.
+        * bindings/objc/DOMHTMLAppletElement.mm: Added.
+        * bindings/objc/DOMHTMLAppletElementInternal.h: Added.
+        * bindings/objc/DOMHTMLAreaElement.h: Added.
+        * bindings/objc/DOMHTMLAreaElement.mm: Added.
+        * bindings/objc/DOMHTMLAreaElementInternal.h: Added.
+        * bindings/objc/DOMHTMLBRElement.h: Added.
+        * bindings/objc/DOMHTMLBRElement.mm: Added.
+        * bindings/objc/DOMHTMLBRElementInternal.h: Added.
+        * bindings/objc/DOMHTMLBaseElement.h: Added.
+        * bindings/objc/DOMHTMLBaseElement.mm: Added.
+        * bindings/objc/DOMHTMLBaseElementInternal.h: Added.
+        * bindings/objc/DOMHTMLBaseFontElement.h: Added.
+        * bindings/objc/DOMHTMLBaseFontElement.mm: Added.
+        * bindings/objc/DOMHTMLBaseFontElementInternal.h: Added.
+        * bindings/objc/DOMHTMLBodyElement.h: Added.
+        * bindings/objc/DOMHTMLBodyElement.mm: Added.
+        * bindings/objc/DOMHTMLBodyElementInternal.h: Added.
+        * bindings/objc/DOMHTMLButtonElement.h: Added.
+        * bindings/objc/DOMHTMLButtonElement.mm: Added.
+        * bindings/objc/DOMHTMLButtonElementInternal.h: Added.
+        * bindings/objc/DOMHTMLCanvasElement.h: Added.
+        * bindings/objc/DOMHTMLCanvasElement.mm: Added.
+        * bindings/objc/DOMHTMLCanvasElementInternal.h: Added.
+        * bindings/objc/DOMHTMLCollection.h: Added.
+        * bindings/objc/DOMHTMLCollection.mm: Added.
+        * bindings/objc/DOMHTMLCollectionInternal.h: Added.
+        * bindings/objc/DOMHTMLDListElement.h: Added.
+        * bindings/objc/DOMHTMLDListElement.mm: Added.
+        * bindings/objc/DOMHTMLDListElementInternal.h: Added.
+        * bindings/objc/DOMHTMLDirectoryElement.h: Added.
+        * bindings/objc/DOMHTMLDirectoryElement.mm: Added.
+        * bindings/objc/DOMHTMLDirectoryElementInternal.h: Added.
+        * bindings/objc/DOMHTMLDivElement.h: Added.
+        * bindings/objc/DOMHTMLDivElement.mm: Added.
+        * bindings/objc/DOMHTMLDivElementInternal.h: Added.
+        * bindings/objc/DOMHTMLDocument.h: Added.
+        * bindings/objc/DOMHTMLDocument.mm: Added.
+        * bindings/objc/DOMHTMLDocumentInternal.h: Added.
+        * bindings/objc/DOMHTMLElement.h: Added.
+        * bindings/objc/DOMHTMLElement.mm: Added.
+        * bindings/objc/DOMHTMLElementInternal.h: Added.
+        * bindings/objc/DOMHTMLEmbedElement.h: Added.
+        * bindings/objc/DOMHTMLEmbedElement.mm: Added.
+        * bindings/objc/DOMHTMLEmbedElementInternal.h: Added.
+        * bindings/objc/DOMHTMLFieldSetElement.h: Added.
+        * bindings/objc/DOMHTMLFieldSetElement.mm: Added.
+        * bindings/objc/DOMHTMLFieldSetElementInternal.h: Added.
+        * bindings/objc/DOMHTMLFontElement.h: Added.
+        * bindings/objc/DOMHTMLFontElement.mm: Added.
+        * bindings/objc/DOMHTMLFontElementInternal.h: Added.
+        * bindings/objc/DOMHTMLFormElement.h: Added.
+        * bindings/objc/DOMHTMLFormElement.mm: Added.
+        * bindings/objc/DOMHTMLFormElementInternal.h: Added.
+        * bindings/objc/DOMHTMLFrameElement.h: Added.
+        * bindings/objc/DOMHTMLFrameElement.mm: Added.
+        * bindings/objc/DOMHTMLFrameElementInternal.h: Added.
+        * bindings/objc/DOMHTMLFrameSetElement.h: Added.
+        * bindings/objc/DOMHTMLFrameSetElement.mm: Added.
+        * bindings/objc/DOMHTMLFrameSetElementInternal.h: Added.
+        * bindings/objc/DOMHTMLHRElement.h: Added.
+        * bindings/objc/DOMHTMLHRElement.mm: Added.
+        * bindings/objc/DOMHTMLHRElementInternal.h: Added.
+        * bindings/objc/DOMHTMLHeadElement.h: Added.
+        * bindings/objc/DOMHTMLHeadElement.mm: Added.
+        * bindings/objc/DOMHTMLHeadElementInternal.h: Added.
+        * bindings/objc/DOMHTMLHeadingElement.h: Added.
+        * bindings/objc/DOMHTMLHeadingElement.mm: Added.
+        * bindings/objc/DOMHTMLHeadingElementInternal.h: Added.
+        * bindings/objc/DOMHTMLHtmlElement.h: Added.
+        * bindings/objc/DOMHTMLHtmlElement.mm: Added.
+        * bindings/objc/DOMHTMLHtmlElementInternal.h: Added.
+        * bindings/objc/DOMHTMLIFrameElement.h: Added.
+        * bindings/objc/DOMHTMLIFrameElement.mm: Added.
+        * bindings/objc/DOMHTMLIFrameElementInternal.h: Added.
+        * bindings/objc/DOMHTMLImageElement.h: Added.
+        * bindings/objc/DOMHTMLImageElement.mm: Added.
+        * bindings/objc/DOMHTMLImageElementInternal.h: Added.
+        * bindings/objc/DOMHTMLInputElement.h: Added.
+        * bindings/objc/DOMHTMLInputElement.mm: Added.
+        * bindings/objc/DOMHTMLInputElementInternal.h: Added.
+        * bindings/objc/DOMHTMLInputElementPrivate.h: Added.
+        * bindings/objc/DOMHTMLLIElement.h: Added.
+        * bindings/objc/DOMHTMLLIElement.mm: Added.
+        * bindings/objc/DOMHTMLLIElementInternal.h: Added.
+        * bindings/objc/DOMHTMLLabelElement.h: Added.
+        * bindings/objc/DOMHTMLLabelElement.mm: Added.
+        * bindings/objc/DOMHTMLLabelElementInternal.h: Added.
+        * bindings/objc/DOMHTMLLegendElement.h: Added.
+        * bindings/objc/DOMHTMLLegendElement.mm: Added.
+        * bindings/objc/DOMHTMLLegendElementInternal.h: Added.
+        * bindings/objc/DOMHTMLLinkElement.h: Added.
+        * bindings/objc/DOMHTMLLinkElement.mm: Added.
+        * bindings/objc/DOMHTMLLinkElementInternal.h: Added.
+        * bindings/objc/DOMHTMLMapElement.h: Added.
+        * bindings/objc/DOMHTMLMapElement.mm: Added.
+        * bindings/objc/DOMHTMLMapElementInternal.h: Added.
+        * bindings/objc/DOMHTMLMarqueeElement.h: Added.
+        * bindings/objc/DOMHTMLMarqueeElement.mm: Added.
+        * bindings/objc/DOMHTMLMarqueeElementInternal.h: Added.
+        * bindings/objc/DOMHTMLMediaElement.h: Added.
+        * bindings/objc/DOMHTMLMediaElement.mm: Added.
+        * bindings/objc/DOMHTMLMediaElementInternal.h: Added.
+        * bindings/objc/DOMHTMLMenuElement.h: Added.
+        * bindings/objc/DOMHTMLMenuElement.mm: Added.
+        * bindings/objc/DOMHTMLMenuElementInternal.h: Added.
+        * bindings/objc/DOMHTMLMetaElement.h: Added.
+        * bindings/objc/DOMHTMLMetaElement.mm: Added.
+        * bindings/objc/DOMHTMLMetaElementInternal.h: Added.
+        * bindings/objc/DOMHTMLModElement.h: Added.
+        * bindings/objc/DOMHTMLModElement.mm: Added.
+        * bindings/objc/DOMHTMLModElementInternal.h: Added.
+        * bindings/objc/DOMHTMLOListElement.h: Added.
+        * bindings/objc/DOMHTMLOListElement.mm: Added.
+        * bindings/objc/DOMHTMLOListElementInternal.h: Added.
+        * bindings/objc/DOMHTMLObjectElement.h: Added.
+        * bindings/objc/DOMHTMLObjectElement.mm: Added.
+        * bindings/objc/DOMHTMLObjectElementInternal.h: Added.
+        * bindings/objc/DOMHTMLObjectElementPrivate.h: Added.
+        * bindings/objc/DOMHTMLOptGroupElement.h: Added.
+        * bindings/objc/DOMHTMLOptGroupElement.mm: Added.
+        * bindings/objc/DOMHTMLOptGroupElementInternal.h: Added.
+        * bindings/objc/DOMHTMLOptionElement.h: Added.
+        * bindings/objc/DOMHTMLOptionElement.mm: Added.
+        * bindings/objc/DOMHTMLOptionElementInternal.h: Added.
+        * bindings/objc/DOMHTMLOptionsCollection.h: Added.
+        * bindings/objc/DOMHTMLOptionsCollection.mm: Added.
+        * bindings/objc/DOMHTMLOptionsCollectionInternal.h: Added.
+        * bindings/objc/DOMHTMLParagraphElement.h: Added.
+        * bindings/objc/DOMHTMLParagraphElement.mm: Added.
+        * bindings/objc/DOMHTMLParagraphElementInternal.h: Added.
+        * bindings/objc/DOMHTMLParamElement.h: Added.
+        * bindings/objc/DOMHTMLParamElement.mm: Added.
+        * bindings/objc/DOMHTMLParamElementInternal.h: Added.
+        * bindings/objc/DOMHTMLPreElement.h: Added.
+        * bindings/objc/DOMHTMLPreElement.mm: Added.
+        * bindings/objc/DOMHTMLPreElementInternal.h: Added.
+        * bindings/objc/DOMHTMLQuoteElement.h: Added.
+        * bindings/objc/DOMHTMLQuoteElement.mm: Added.
+        * bindings/objc/DOMHTMLQuoteElementInternal.h: Added.
+        * bindings/objc/DOMHTMLScriptElement.h: Added.
+        * bindings/objc/DOMHTMLScriptElement.mm: Added.
+        * bindings/objc/DOMHTMLScriptElementInternal.h: Added.
+        * bindings/objc/DOMHTMLSelectElement.h: Added.
+        * bindings/objc/DOMHTMLSelectElement.mm: Added.
+        * bindings/objc/DOMHTMLSelectElementInternal.h: Added.
+        * bindings/objc/DOMHTMLStyleElement.h: Added.
+        * bindings/objc/DOMHTMLStyleElement.mm: Added.
+        * bindings/objc/DOMHTMLStyleElementInternal.h: Added.
+        * bindings/objc/DOMHTMLTableCaptionElement.h: Added.
+        * bindings/objc/DOMHTMLTableCaptionElement.mm: Added.
+        * bindings/objc/DOMHTMLTableCaptionElementInternal.h: Added.
+        * bindings/objc/DOMHTMLTableCellElement.h: Added.
+        * bindings/objc/DOMHTMLTableCellElement.mm: Added.
+        * bindings/objc/DOMHTMLTableCellElementInternal.h: Added.
+        * bindings/objc/DOMHTMLTableColElement.h: Added.
+        * bindings/objc/DOMHTMLTableColElement.mm: Added.
+        * bindings/objc/DOMHTMLTableColElementInternal.h: Added.
+        * bindings/objc/DOMHTMLTableElement.h: Added.
+        * bindings/objc/DOMHTMLTableElement.mm: Added.
+        * bindings/objc/DOMHTMLTableElementInternal.h: Added.
+        * bindings/objc/DOMHTMLTableRowElement.h: Added.
+        * bindings/objc/DOMHTMLTableRowElement.mm: Added.
+        * bindings/objc/DOMHTMLTableRowElementInternal.h: Added.
+        * bindings/objc/DOMHTMLTableSectionElement.h: Added.
+        * bindings/objc/DOMHTMLTableSectionElement.mm: Added.
+        * bindings/objc/DOMHTMLTableSectionElementInternal.h: Added.
+        * bindings/objc/DOMHTMLVideoElement.h: Added.
+        * bindings/objc/DOMHTMLVideoElement.mm: Added.
+        * bindings/objc/DOMHTMLVideoElementInternal.h: Added.
+
+2016-08-01  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION(r198943): drop-down menu navigation on fiddlevideo.com doesn't appear on iOS, works on OS X
+        https://bugs.webkit.org/show_bug.cgi?id=160406
+        rdar://problem/26310261
+
+        Reviewed by Simon Fraser.
+
+        On iOS we generate synthetic mouse events from taps. Click event is generated on tap only if the move event
+        doesn't produce visible changes to the document. This is important to make certain types of drop down menus
+        work.
+
+        The information on mutations is passed via WKContentObservation side channel which is updated from varous parts
+        of the code. Newly visible elements are detected CheckForVisibilityChangeOnRecalcStyle during style resolution.
+        This got broken by the style refactoring because it assumes that renderer is mutated along with style computation.
+        However mutation is now a separate step performed by RenderTreeUpdater.
+
+        Fix by moving CheckForVisibilityChange to RenderTreeUpdater.
+
+        Test: fast/content-observation/click-event-suppression-on-content-change.html
+
+        * style/RenderTreeUpdater.cpp:
+        (WebCore::RenderTreeUpdater::Parent::Parent):
+        (WebCore::RenderTreeUpdater::updateElementRenderer):
+        (WebCore::RenderTreeUpdater::tearDownRenderer):
+        (WebCore::elementImplicitVisibility):
+        (WebCore::CheckForVisibilityChange::CheckForVisibilityChange):
+        (WebCore::CheckForVisibilityChange::~CheckForVisibilityChange):
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::TreeResolver::createAnimatedElementUpdate):
+        (WebCore::Style::TreeResolver::pushParent):
+        (WebCore::Style::TreeResolver::resolveComposedTree):
+        (WebCore::Style::elementImplicitVisibility): Deleted.
+        (WebCore::Style::CheckForVisibilityChangeOnRecalcStyle::CheckForVisibilityChangeOnRecalcStyle): Deleted.
+        (WebCore::Style::CheckForVisibilityChangeOnRecalcStyle::~CheckForVisibilityChangeOnRecalcStyle): Deleted.
+
+2016-08-01  Eric Carlson  <eric.carlson@apple.com>
+
+        [iOS] A video element that does not pause after exiting from fullscreen should be allowed to continue playing inline
+        https://bugs.webkit.org/show_bug.cgi?id=160416
+        <rdar://problem/27409854>
+
+        Reviewed by Alex Christensen.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::exitFullscreen): If playback normally requires fullscreen but the 
+        element was not paused when exiting from fullscreen, set the 'playsinline' attribute so we won't
+        force fullscreen if playback is paused and resumes, and set the 'controls' attribute so the
+        user can control playback.
+
+2016-08-01  Anders Carlsson  <andersca@apple.com>
+
+        Build fix.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-08-01  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac][iOS] Adopt MediaRemote "seek to playback position"
+        https://bugs.webkit.org/show_bug.cgi?id=160405
+        <rdar://problem/27547583>
+
+        Reviewed by Dean Jackson.
+
+        Test: media/remote-control-command-seek.html
+
+        * Modules/webaudio/AudioContext.h: Update for didReceiveRemoteControlCommand argument change.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::didReceiveRemoteControlCommand): Support SeekToPlaybackPositionCommand.
+        Drive by fix, support Stop command.
+        (WebCore::HTMLMediaElement::supportsSeeking): New.
+        * html/HTMLMediaElement.h:
+
+        * platform/RemoteCommandListener.h:
+        (WebCore::RemoteCommandListenerClient::didReceiveRemoteControlCommand): Add command argument.
+        (WebCore::RemoteCommandListenerClient::supportsSeeking): New.
+        (WebCore::RemoteCommandListener::updateSupportedCommands): Ditto.
+        (WebCore::RemoteCommandListener::client): Ditto.
+
+        * platform/audio/PlatformMediaSession.cpp:
+        (WebCore::PlatformMediaSession::didReceiveRemoteControlCommand): Add command argument.
+        (WebCore::PlatformMediaSession::supportsSeeking): New, pass through to client.
+        * platform/audio/PlatformMediaSession.h:
+
+        * platform/audio/PlatformMediaSessionManager.cpp:
+        (WebCore::PlatformMediaSessionManager::setCurrentSession): Tell remote command listener to
+        update supported commands.
+        (WebCore::PlatformMediaSessionManager::currentSession): Make const.
+        (WebCore::PlatformMediaSessionManager::didReceiveRemoteControlCommand): Add command argument.
+        (WebCore::PlatformMediaSessionManager::supportsSeeking): New, pass through to session.
+        * platform/audio/PlatformMediaSessionManager.h:
+
+        * platform/ios/RemoteCommandListenerIOS.h:
+        (WebCore::RemoteCommandListenerIOS::createWeakPtr):
+        * platform/ios/RemoteCommandListenerIOS.mm:
+        (WebCore::RemoteCommandListenerIOS::RemoteCommandListenerIOS): Support changePlaybackPositionCommand.
+        (WebCore::RemoteCommandListenerIOS::~RemoteCommandListenerIOS): Remove seekToTime target.
+        (WebCore::RemoteCommandListenerIOS::updateSupportedCommands): Update changePlaybackPositionCommand.
+
+        * platform/mac/MediaRemoteSoftLink.cpp:
+        * platform/mac/MediaRemoteSoftLink.h:
+
+        * platform/mac/RemoteCommandListenerMac.h:
+        * platform/mac/RemoteCommandListenerMac.mm:
+        (WebCore::RemoteCommandListenerMac::updateSupportedCommands): New, split out of constructor.
+        (WebCore::RemoteCommandListenerMac::RemoteCommandListenerMac): Split setup logic out into
+        updateSupportedCommands. Support MRMediaRemoteCommandSeekToPlaybackPosition. Don't assert when
+        receiving an unsupported command, it happens. Return error when a command isn't supported or
+        fails.
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::postRemoteControlCommand): Add command argument parameter. Support
+        seektoplaybackposition.
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-08-01  Anders Carlsson  <andersca@apple.com>
+
+        Freeze DOMHTMLTitleElement and DOMHTMLUListElement bindings
+        https://bugs.webkit.org/show_bug.cgi?id=160415
+
+        Reviewed by Sam Weinig.
+
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMHTMLTitleElement.h: Added.
+        * bindings/objc/DOMHTMLTitleElement.mm: Added.
+        * bindings/objc/DOMHTMLTitleElementInternal.h: Added.
+        * bindings/objc/DOMHTMLUListElement.h: Added.
+        * bindings/objc/DOMHTMLUListElement.mm: Added.
+        * bindings/objc/DOMHTMLUListElementInternal.h: Added.
+
 2016-08-01  Antti Koivisto  <antti@apple.com>
 
         REGRESSION (r196383): Drop down CSS menus not working on cnet.com, apmex.com
