@@ -1,3 +1,22 @@
+2016-08-05  John Wilander  <wilander@apple.com>
+
+        Popups opened from a sandboxed iframe should themselves be sandboxed
+        https://bugs.webkit.org/show_bug.cgi?id=134850
+        <rdar://problem/27375388>
+
+        Reviewed by Brent Fulgham.
+
+        This replicates the behavior in Chrome, Firefox, and according to the reporter
+        also in Internet Explorer. See the Mozilla bug report:
+        https://bugzilla.mozilla.org/show_bug.cgi?id=1037381#c1
+
+        Test: http/tests/security/window-opened-from-sandboxed-iframe-should-inherit-sandbox.html
+
+        * page/Chrome.cpp:
+        (WebCore::Chrome::createWindow):
+            Now copies the opener's frame loader effective sandbox flags to the new
+            frame loader.
+
 2016-08-05  Darin Adler  <darin@apple.com>
 
         * DerivedSources.make: Fix all places that were using tabs instead of spaces outside

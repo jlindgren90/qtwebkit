@@ -15,19 +15,32 @@
     }
 
     function wrapUp () {
+        finishJSTest();
         if (window.testRunner) {
             testRunner.notifyDone();
         }
     }
 
     function run() {
-        var iframeContentDocument = document.getElementById("theIframe").contentDocument,
-            theLink = iframeContentDocument.getElementById("theLink"),
-            clickEvent = document.createEvent("HTMLEvents");
-        clickEvent.initEvent("click", true, true);
-        theLink.dispatchEvent(clickEvent);
+        var iframeContentDocument = document.getElementById("theIframe").contentDocument;
+        if (!iframeContentDocument) {
+            testFailed("Can't get iframeElement.contentDocument");
+            finishJSTest();
+            testRunner.notifyDone();
+        } else {
+            var theLink = iframeContentDocument.getElementById("theLink");
+            if (!theLink) {
+                testFailed("Can't get iframeElement.contentDocument.getElementById('theLink')");
+                finishJSTest();
+                testRunner.notifyDone();
+            } else {
+                var clickEvent = document.createEvent("HTMLEvents");
+                clickEvent.initEvent("click", true, true);
+                theLink.dispatchEvent(clickEvent);
 
-        setTimeout(wrapUp, 500);
+                setTimeout(wrapUp, 500);
+            }
+        }
     }
 </script>
 <iframe onload="run()" id="theIframe" sandbox="allow-same-origin allow-popups" src="resources/anchor-tag-with-blank-target.html"></iframe>
