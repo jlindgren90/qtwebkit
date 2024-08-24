@@ -1,3 +1,84 @@
+2016-07-25  Nan Wang  <n_wang@apple.com>
+
+        AX: AccessibilityRenderObject is adding duplicated children when CSS first-letter is being used.
+        https://bugs.webkit.org/show_bug.cgi?id=160155
+
+        Reviewed by Chris Fleizach.
+
+        We were adding the same text node twice if CSS first-letter selector was being used. Added a
+        check for the inline continuation so that we only add it once. 
+
+        Test: accessibility/mac/css-first-letter-children.html
+
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::firstChildConsideringContinuation):
+
+2016-07-25  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls on apple.com don't disappear when movie finishes playing
+        https://bugs.webkit.org/show_bug.cgi?id=160068
+        <rdar://problem/26668526>
+
+        Reviewed by Darin Adler.
+
+        When a video ends, it should cause media controls to hide. While current logic
+        mostly accounts for this, it does not account for programmatic seeks causing
+        the video to lose its 'ended' status before querying for whether or not to
+        show media controls.
+
+        Three new API tests: large-video-seek-after-ending.html
+        large-video-hides-controls-after-seek-to-end.html
+        large-video-seek-to-beginning-and-play-after-ending.html
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::mediaPlayerTimeChanged):
+        (WebCore::HTMLMediaElement::setPlaying):
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canControlControlsManager):
+        * html/MediaElementSession.h:
+
+2016-07-25  Frederic Wang  <fwang@igalia.com>
+
+        Introduce a MathMLOperatorElement class
+        https://bugs.webkit.org/show_bug.cgi?id=160034
+
+        Reviewed by Darin Adler.
+
+        No new tests, rendering is unchaned.
+
+        * CMakeLists.txt: Add MathMLOperatorElement to the build file.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAllInOne.cpp: Ditto.
+        * mathml/MathMLOperatorElement.cpp: New DOM class for <mo> element.
+        (WebCore::MathMLOperatorElement::MathMLOperatorElement):
+        (WebCore::MathMLOperatorElement::create):
+        (WebCore::MathMLOperatorElement::parseAttribute): Handle mo attributes.
+        (WebCore::MathMLOperatorElement::createElementRenderer): Create RenderMathMLOperator.
+        * mathml/MathMLOperatorElement.h: Declare a class deriving from MathMLTextElement.
+        * mathml/MathMLTextElement.cpp: Remove all the RenderMathMLOperator parts.
+        (WebCore::MathMLTextElement::MathMLTextElement): Remove inline keyword so that the class can
+        be overriden.
+        (WebCore::MathMLTextElement::parseAttribute): Remove code handled in MathMLOperatorElement.
+        (WebCore::MathMLTextElement::createElementRenderer): Ditto.
+        * mathml/MathMLTextElement.h: Make class and members overridable.
+        * mathml/mathtags.in: Map mo to MathMLOperatorElement.
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        (WebCore::RenderMathMLOperator::RenderMathMLOperator): Make the constructor take a
+        MathMLOperatorElement.
+        * rendering/mathml/RenderMathMLOperator.h: Ditto.
+
+2016-07-25  Darin Adler  <darin@apple.com>
+
+        Speed up make process slightly by improving "list of files" idiom
+        https://bugs.webkit.org/show_bug.cgi?id=160164
+
+        Reviewed by Mark Lam.
+
+        * DerivedSources.make: Change rules that build lists of files to only run when
+        DerivedSources.make has been modified since the last time they were run. Since the
+        list of files are inside this file, this is safe, and this is faster than always
+        comparing and regenerating the file containing the list of files each time.
+
 2016-07-24  Wenson Hsieh  <wenson_hsieh@apple.com>
 
         The web process hangs when computing elements-based snap points for a container with large max scroll offset

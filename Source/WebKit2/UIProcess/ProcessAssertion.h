@@ -28,9 +28,11 @@
 
 #include "PlatformProcessIdentifier.h"
 #include <functional>
+#include <wtf/Function.h>
 
 #if PLATFORM(IOS) && !PLATFORM(IOS_SIMULATOR)
 #include <wtf/RetainPtr.h>
+#include <wtf/WeakPtr.h>
 OBJC_CLASS BKSProcessAssertion;
 #endif
 
@@ -50,7 +52,7 @@ public:
 
 class ProcessAssertion {
 public:
-    ProcessAssertion(PlatformProcessIdentifier, AssertionState, std::function<void()> invalidationCallback = { });
+    ProcessAssertion(PlatformProcessIdentifier, AssertionState, Function<void()>&& invalidationCallback = { });
     ~ProcessAssertion();
 
     void setClient(ProcessAssertionClient& client) { m_client = &client; }
@@ -67,8 +69,13 @@ protected:
 
 private:
 #if PLATFORM(IOS) && !PLATFORM(IOS_SIMULATOR)
+    WeakPtr<ProcessAssertion> createWeakPtr() { return m_weakFactory.createWeakPtr(); }
+    void markAsInvalidated();
+
     RetainPtr<BKSProcessAssertion> m_assertion;
     Validity m_validity { Validity::Unset };
+    WeakPtrFactory<ProcessAssertion> m_weakFactory;
+    Function<void()> m_invalidationCallback;
 #endif
     AssertionState m_assertionState;
     ProcessAssertionClient* m_client { nullptr };
