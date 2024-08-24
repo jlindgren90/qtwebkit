@@ -26,7 +26,6 @@
 #ifndef ProcessAssertion_h
 #define ProcessAssertion_h
 
-#include "PlatformProcessIdentifier.h"
 #include <functional>
 #include <wtf/Function.h>
 
@@ -52,7 +51,7 @@ public:
 
 class ProcessAssertion {
 public:
-    ProcessAssertion(PlatformProcessIdentifier, AssertionState, Function<void()>&& invalidationCallback = { });
+    ProcessAssertion(pid_t, AssertionState, Function<void()>&& invalidationCallback = { });
     ~ProcessAssertion();
 
     void setClient(ProcessAssertionClient& client) { m_client = &client; }
@@ -83,7 +82,7 @@ private:
     
 class ProcessAndUIAssertion : public ProcessAssertion {
 public:
-    ProcessAndUIAssertion(PlatformProcessIdentifier, AssertionState);
+    ProcessAndUIAssertion(pid_t, AssertionState);
     ~ProcessAndUIAssertion();
 
     void setClient(ProcessAssertionClient&);

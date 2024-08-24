@@ -228,17 +228,16 @@ void ProcessLauncher::launchProcess()
 #endif
     RefPtr<ProcessLauncher> protector(this);
     RunLoop::main().dispatch([protector, webProcessOrSUIDHelper, connector] {
-        protector->didFinishLaunchingProcess(webProcessOrSUIDHelper, connector);
+        protector->didFinishLaunchingProcess(webProcessOrSUIDHelper->processId(), connector);
     });
 }
 
 void ProcessLauncher::terminateProcess()
 {
-    if (!m_processIdentifier)
-        return;
-
-    QObject::connect(m_processIdentifier, SIGNAL(finished(int)), m_processIdentifier, SLOT(deleteLater()), Qt::QueuedConnection);
-    m_processIdentifier->terminate();
+    if (m_processIdentifier) {
+        kill(m_processIdentifier, SIGKILL);
+        m_processIdentifier = 0;
+    }
 }
 
 void ProcessLauncher::platformInvalidate()

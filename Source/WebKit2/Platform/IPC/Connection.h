@@ -48,10 +48,6 @@
 #include <wtf/spi/darwin/XPCSPI.h>
 #endif
 
-#if PLATFORM(QT) || PLATFORM(GTK) || PLATFORM(EFL)
-#include "PlatformProcessIdentifier.h"
-#endif
-
 #if PLATFORM(GTK)
 #include "GSocketMonitor.h"
 #endif
@@ -161,8 +157,6 @@ public:
 
 #if (PLATFORM(MAC) || (PLATFORM(QT) && USE(MACH_PORTS))) && __MAC_OS_X_VERSION_MIN_REQUIRED <= 101000
     void setShouldCloseConnectionOnMachExceptions();
-#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-    void setShouldCloseConnectionOnProcessTermination(WebKit::PlatformProcessIdentifier);
 #endif
 
     void setOnlySendMessagesAsDispatchWhenWaitingForSyncReplyWhenProcessingSuchAMessage(bool);

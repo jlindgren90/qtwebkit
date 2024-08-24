@@ -56,7 +56,7 @@ public:
     inline ForegroundActivityToken foregroundActivityToken() const;
     inline BackgroundActivityToken backgroundActivityToken() const;
     
-    void didConnectToProcess(PlatformProcessIdentifier);
+    void didConnectToProcess(pid_t);
     void processReadyToSuspend();
     void didCancelProcessSuspension();
 

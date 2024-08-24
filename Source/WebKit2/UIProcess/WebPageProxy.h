@@ -41,7 +41,6 @@
 #include "MessageSender.h"
 #include "NotificationPermissionRequestManagerProxy.h"
 #include "PageLoadState.h"
-#include "PlatformProcessIdentifier.h"
 #include "ProcessThrottler.h"
 #include "SandboxExtension.h"
 #include "ShareableBitmap.h"
@@ -864,7 +863,7 @@ public:
 #endif
 
     WebProcessProxy& process() { return m_process; }
-    PlatformProcessIdentifier processIdentifier() const;
+    pid_t processIdentifier() const;
 
     WebPreferences& preferences() { return m_preferences; }
     void setPreferences(WebPreferences&);
