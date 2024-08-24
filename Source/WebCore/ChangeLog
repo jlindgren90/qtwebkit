@@ -1,3 +1,104 @@
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to CustomEvent.initCustomEvent() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160205
+
+        Reviewed by Ryosuke Niwa.
+
+        Parameters to CustomEvent.initCustomEvent() should be mandatory:
+        - https://dom.spec.whatwg.org/#interface-customevent
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * dom/CustomEvent.idl:
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Second parameter to Range.isPointInRange() / comparePoint() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160202
+
+        Reviewed by Ryosuke Niwa.
+
+        Second parameter to Range.isPointInRange() / comparePoint() should be mandatory
+        and be of type "unsigned long":
+        - https://dom.spec.whatwg.org/#interface-range
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::AXObjectCache::traverseToOffsetInRange):
+        * dom/DocumentMarkerController.cpp:
+        (WebCore::DocumentMarkerController::removeMarkers):
+        (WebCore::DocumentMarkerController::markersInRange):
+        (DocumentMarkerController::setMarkersActive):
+        * dom/Range.cpp:
+        (WebCore::Range::isPointInRange):
+        (WebCore::Range::comparePoint):
+        (WebCore::Range::compareBoundaryPoints):
+        (WebCore::Range::toString):
+        (WebCore::Range::absoluteTextRects):
+        (WebCore::Range::absoluteTextQuads):
+        (WebCore::boundaryTextNodesMerged):
+        (WebCore::Range::getBorderAndTextQuads):
+        * dom/Range.h:
+        (WebCore::Range::startOffset):
+        (WebCore::Range::endOffset):
+        * dom/Range.idl:
+        * dom/RangeBoundaryPoint.h:
+        (WebCore::RangeBoundaryPoint::ensureOffsetIsValid):
+        (WebCore::RangeBoundaryPoint::toPosition):
+        (WebCore::RangeBoundaryPoint::offset):
+        (WebCore::RangeBoundaryPoint::setOffset):
+        (WebCore::RangeBoundaryPoint::setToBeforeChild):
+        (WebCore::RangeBoundaryPoint::setToAfterChild):
+        (WebCore::RangeBoundaryPoint::setToEndOfNode):
+        (WebCore::RangeBoundaryPoint::childBeforeWillBeRemoved):
+        (WebCore::RangeBoundaryPoint::invalidateOffset):
+
+2016-07-26  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Add support for fetch mode, in particular cors
+        https://bugs.webkit.org/show_bug.cgi?id=156753
+
+        Reviewed by Darin Adler.
+
+        Covered by rebased tests.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start): Passing fetch mode to ThreadableLoader.
+        Disabling as a temp fix credentials in case of CORS mode as credential options is not yet supported and would make several tests fail.
+
+2016-07-26  Chris Dumez  <cdumez@apple.com>
+
+        Align NamedNodeMap with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160204
+
+        Reviewed by Darin Adler.
+
+        Align NamedNodeMap with the specification:
+        - https://dom.spec.whatwg.org/#interface-namednodemap
+
+        In particular, mark parameters as mandatory when they should be, and
+        use tighter "Attr" typing instead of Node.
+
+        Chrome and Firefox agree with the specification.
+
+        Test: fast/dom/NamedNodeMap-parameters.html
+
+        * dom/NamedNodeMap.cpp:
+        (WebCore::NamedNodeMap::getNamedItem):
+        (WebCore::NamedNodeMap::getNamedItemNS):
+        (WebCore::NamedNodeMap::removeNamedItem):
+        (WebCore::NamedNodeMap::removeNamedItemNS):
+        (WebCore::NamedNodeMap::setNamedItem):
+        (WebCore::NamedNodeMap::item):
+        * dom/NamedNodeMap.h:
+        * dom/NamedNodeMap.idl:
+
 2016-07-26  Said Abou-Hallawa  <sabouhallawa@apple.com>
 
         Infinite Canvas context save() causes WebKit to crash
