@@ -257,7 +257,7 @@ IntSize ScrollView::unscaledVisibleContentSizeIncludingObscuredArea(VisibleConte
     if (platformWidget())
         return platformVisibleContentSizeIncludingObscuredArea(scrollbarInclusion == IncludeScrollbars);
 
-    if (!m_fixedVisibleContentRect.isEmpty())
+    if (m_useFixedLayout && !m_fixedVisibleContentRect.isEmpty())
         return m_fixedVisibleContentRect.size();
 
     IntSize scrollbarSpace;
@@ -274,7 +274,7 @@ IntSize ScrollView::unscaledUnobscuredVisibleContentSize(VisibleContentRectInclu
     if (platformWidget())
         return platformVisibleContentSize(scrollbarInclusion == IncludeScrollbars);
 
-    if (!m_fixedVisibleContentRect.isEmpty())
+    if (m_useFixedLayout && !m_fixedVisibleContentRect.isEmpty())
         return visibleContentSize;
 
     visibleContentSize.setHeight(visibleContentSize.height() - topContentInset());
@@ -298,7 +298,7 @@ IntRect ScrollView::visibleContentRectInternal(VisibleContentRectIncludesScrollb
     if (platformWidget())
         return platformVisibleContentRect(scrollbarInclusion == IncludeScrollbars);
 
-    if (!m_fixedVisibleContentRect.isEmpty())
+    if (m_useFixedLayout && !m_fixedVisibleContentRect.isEmpty())
         return m_fixedVisibleContentRect;
 
     return unobscuredContentRect(scrollbarInclusion);

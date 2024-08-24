@@ -1,3 +1,781 @@
+2016-07-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Lots of flaky tests
+        https://bugs.webkit.org/show_bug.cgi?id=160118
+
+        Reviewed by Michael Catanzaro.
+
+        Since the GTK+ ported to threaded compositor (coordinated graphics) there are a lot of flaky tests in the
+        bots. In manu of the cases the diff shows a different size in the FrameView layer.
+
+        This happens for tests run in the same WTR after fast/fixed-layout/fixed-layout.html. This is what happens:
+
+         1.- Test fast/fixed-layout/fixed-layout.html runs and sets fixed layout to true and fixed layout size to 400x400
+         2.- When it finishes TestController::resetStateToConsistentValues() is called.
+         3.- Blank URL is loaded after state has been updated
+         4.- Then Reset message is handled in the web process and Internals::resetToConsistentState() resets the fixed
+             layout state and size.
+         5.- onresize happens and the handler set in fast/fixed-layout/fixed-layout.html is invoked setting the fixed
+             layout to true and size to 400x400 again.
+         6.- about_blank is then loaded with the fixed layout enabled, as well as other tests after this one.
+
+        In addition to this, coordinated graphics uses a fixedVisibleContentRect in ScrollView that is never reset.
+
+        * platform/ScrollView.cpp:
+        (WebCore::ScrollView::unscaledVisibleContentSizeIncludingObscuredArea): Only use m_fixedVisibleContentRect when
+        fixed layout is enabled.
+        (WebCore::ScrollView::unscaledUnobscuredVisibleContentSize): Ditto.
+        (WebCore::ScrollView::visibleContentRectInternal): Ditto.
+        * testing/Internals.cpp:
+        (WebCore::Internals::resetToConsistentState): Reset also the m_fixedVisibleContentRect.
+
+2016-07-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Test imported/blink/svg/custom/svg-image-layers-crash.html crashes
+        https://bugs.webkit.org/show_bug.cgi?id=160078
+
+        Reviewed by Michael Catanzaro.
+
+        This is a merge of Blink r155373.
+        https://chromiumcodereview.appspot.com/20789004
+
+        Disable accelerated compositing for SVGImage content layers. SVGImageChromeClient does not support it.
+
+        Fixes imported/blink/svg/custom/svg-image-layers-crash.html.
+
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::dataChanged):
+
+2016-07-23  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203641.
+        https://bugs.webkit.org/show_bug.cgi?id=160116
+
+        It broke make-based builds (Requested by youenn on #webkit).
+
+        Reverted changeset:
+
+        "[Fetch API] Request should be created with any HeadersInit
+        data"
+        https://bugs.webkit.org/show_bug.cgi?id=159672
+        http://trac.webkit.org/changeset/203641
+
+2016-07-23  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Request should be created with any HeadersInit data
+        https://bugs.webkit.org/show_bug.cgi?id=159672
+
+        Reviewed by Sam Weinig.
+
+        Made Request use JSBuiltinConstructor.
+        This allows initializing newly created Request with a JS built-in function, initializeFetchRequest.
+        initializeFetchRequest can call @fillFetchHeaders internal built-in to handle any HeadersInit data.
+        Future effort should be made to migrate more initialization code in initializeFetchRequest.
+
+        Made window and worker fetch function as a JS built-in.
+        This becomes more handy as these new functions can construct the Request object.
+        They can then call a single private function that takes a Request object as input.
+        Updated DOMWindowFetch and WorkerGlobalScopeFetch code accordingly.
+
+        To enable this, the binding generator is updated to support runtime-enabled JS built-in functions and
+        private functions atttached to global objects.
+
+        Covered by existing and modified tests.
+        Binding generator test covered by updated binding tests.
+
+        * CMakeLists.txt: Adding DOMWindowFetch.js, FetchRequest.js and WorkerGlobalScopeFetch.js built-in files.
+        * DerivedSources.make: Ditto.
+        * Modules/fetch/DOMWindowFetch.cpp: Removed overloaded fetch and updated according new signature.
+        (WebCore::DOMWindowFetch::fetch):
+        * Modules/fetch/DOMWindowFetch.h: Ditto.
+        * Modules/fetch/DOMWindowFetch.idl: Making fetch a JS built-in and adding a @fetchRequest private function.
+        * Modules/fetch/DOMWindowFetch.js: Added.
+        (fetch):
+        * Modules/fetch/FetchHeaders.h:
+        (WebCore::FetchHeaders::setGuard): Used by FetchRequest when initializing headers.
+        * Modules/fetch/FetchRequest.cpp: 
+        (WebCore::buildHeaders): Removed as implemented in JS.
+        (WebCore::FetchRequest::initializeOptions): Added to handle most of the dictionary initialization.
+        (WebCore::FetchRequest::initializeWith): Method called from built-in constructor function.
+        (WebCore::FetchRequest::setBody): Corresponding to @setBody private method.
+        (WebCore::buildBody): Deleted.
+        * Modules/fetch/FetchRequest.h:
+        * Modules/fetch/FetchRequest.idl:
+        * Modules/fetch/FetchRequest.js: Added.
+        (initializeFetchRequest): Implements fetch Request(input, init) constructor.
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::fetch): Removed the construction of FetchRequest in fetch method since it is done by JS built-in code.
+        * Modules/fetch/FetchResponse.h:
+        * Modules/fetch/WorkerGlobalScopeFetch.cpp: Removed overloaded fetch and updated according new signature.
+        (WebCore::WorkerGlobalScopeFetch::fetch):
+        * Modules/fetch/WorkerGlobalScopeFetch.h: Ditto.
+        * Modules/fetch/WorkerGlobalScopeFetch.idl: Making fetch a JS built-in and adding a @fetchRequest private function.
+        * Modules/fetch/WorkerGlobalScopeFetch.js: Added.
+        (fetch):
+        * bindings/js/WebCoreBuiltinNames.h: Adding fetchRequest, setBody and Request private identifiers.
+        * bindings/scripts/CodeGenerator.pm:
+        (WK_lcfirst): Replacing dOM by dom.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Adding support for runtime-enabled built-in methods and private methods.
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::JSTestGlobalObject::finishCreation):
+        (WebCore::jsTestGlobalObjectInstanceFunctionTestPrivateFunction):
+        * bindings/scripts/test/ObjC/DOMTestGlobalObject.mm:
+        (-[DOMTestGlobalObject testJSBuiltinFunction]):
+        * bindings/scripts/test/TestGlobalObject.idl: Adding tests for runtime-enabled global built-in methods and private methods.
+
+2016-07-23  Frederic Wang  <fwang@igalia.com>
+
+        Reset font-style on the <math> element
+        https://bugs.webkit.org/show_bug.cgi?id=160074
+
+        Reviewed by Darin Adler.
+
+        Mathematical formulas with italic font-style render poorly (slanted operators, mathvariant
+        italic etc). We align on Gecko and make the user agent stylesheet reset the font-style to
+        'normal' by default. This addresses the concrete use case of formula inside theorem or
+        proposition statements, which are often written in italic.
+
+        Test: mathml/presentation/math-font-style.html
+
+        * css/mathml.css:
+        (math): Reset the font-style to normal.
+
+2016-07-23  Frederic Wang  <fwang@igalia.com>
+
+        [MathML] PaintInfo state is not properly restored after applyTransform.
+        https://bugs.webkit.org/show_bug.cgi?id=160077
+
+        Reviewed by Simon Fraser.
+
+        PaintInfo::applyTransform modifies PaintInfo::rect and the original state is not properly
+        restored by GraphicsContextStateSaver. To avoid some weird rendering bugs in MathOperator
+        and RenderMathMLMenclose, we follow what is done in SVG renderers and make a copy of the
+        original PaintInfo before applying the transform.
+
+        Test: mathml/presentation/bug160077.html
+
+        * rendering/mathml/MathOperator.cpp:
+        (WebCore::MathOperator::paint):
+        * rendering/mathml/RenderMathMLMenclose.cpp:
+        (WebCore::RenderMathMLMenclose::paint):
+
+2016-07-23  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Fetch response stream should enqueue Uint8Array
+        https://bugs.webkit.org/show_bug.cgi?id=160083
+
+        Reviewed by Sam Weinig.
+
+        Covered by updated tests.
+
+        Before enqueuing, ReadableStreamController::enqueue will convert ArrayBuffer as Uint8Array.
+        It also returns a boolean whether the operation is successful or not.
+
+        If returned value is false, calling code will stop loading or if everything is loaded it will refrain from closing the stream.
+        The enqueuing should be succesful except in OutOfMemory cases. This case is not yet handled in test cases.
+
+        Updated the code to remove templated enqueuing as Fetch has no use of it.
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::consumeAsStream): Do not close the stream if enqueuing failed.
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::blobChunk): Stop blob loading if enqueuing failed.
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::BodyLoader::didReceiveData): Stop resource loading if enqueuing failed.
+        (WebCore::FetchResponse::consumeBodyAsStream): Ditto.
+        * Modules/fetch/FetchResponseSource.h:
+        * bindings/js/ReadableStreamController.h:
+        (WebCore::ReadableStreamController::enqueue):
+        (WebCore::ReadableStreamController::enqueue<RefPtr<JSC::ArrayBuffer>>): Deleted.
+
+2016-07-22  Youenn Fablet  <youenn@apple.com>
+
+        Use a private property to implement FetchResponse.body getter
+        https://bugs.webkit.org/show_bug.cgi?id=159808
+
+        Reviewed by Sam Weinig.
+
+        Covered by existing test sets.
+
+        Previously, body was handled as a CachedAttribute.
+        Using a private property will allow direct use of this property from JS built-ins which will allow easier
+        handling of ReadableStream cloning in Response.clone.
+        Also, this allows removing some binding custom code.
+
+        Updated redirect and error static methods to take NewObject keyword, as this removes a search into cached wrappers.
+        Ditto for createReadableStreamSource.
+
+        * CMakeLists.txt: Removing JSFetchResponseCustom.cpp.
+        * Modules/fetch/FetchResponse.idl: Adding createReadableStreamSource and isDisturbed private functions.
+        Making body getter a JSBuiltin.
+        * Modules/fetch/FetchResponse.js:
+        (body): Adding getter which will call createReadableStreamSource if needed.
+        * WebCore.xcodeproj/project.pbxproj: Removing JSFetchResponseCustom.cpp.
+        * bindings/js/JSFetchResponseCustom.cpp: Removed.
+        * bindings/js/ReadableStreamController.cpp:
+        (WebCore::createReadableStream): Deleted.
+        (WebCore::getReadableStreamReader): Deleted.
+        * bindings/js/ReadableStreamController.h: Removing unneeded ReadableStream helper routine now that they can be
+        handled within JS built-in code.
+        * bindings/js/WebCoreBuiltinNames.h: Adding @createReadableStreamSource, @isDisturbed  and @Response identifiers.
+
+2016-07-22  Zalan Bujtas  <zalan@apple.com>
+
+        Handle cases when IOSurface initialization fails.
+        https://bugs.webkit.org/show_bug.cgi?id=160006
+        <rdar://problem/27495102>
+
+        Reviewed by Tim Horton and Simon Fraser.
+
+        This is an additional fix to r203514 to check if IOSurface initialization was successful.
+
+        Unable to test.
+
+        * platform/graphics/cg/ImageBufferCG.cpp:
+        (WebCore::ImageBuffer::ImageBuffer):
+        * platform/graphics/cocoa/IOSurface.h: Merge 2 c'tors.
+        * platform/graphics/cocoa/IOSurface.mm: Remove redundant IOSurface::create() code.  
+        (WebCore::IOSurface::create):
+        (WebCore::IOSurface::createFromImage):
+        (WebCore::IOSurface::IOSurface):
+        (WebCore::IOSurface::convertToFormat):
+
+2016-07-22  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls should be displayed for media in media documents
+        https://bugs.webkit.org/show_bug.cgi?id=160104
+        <rdar://problem/27438936>
+
+        Reviewed by Myles C. Maxfield.
+
+        Make videos that would otherwise not have been large enough or have the right
+        aspect ratio cause media controls to appear. This is because media elements in
+        a media document are implied to be main content.
+
+        Added a new API test.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canControlControlsManager):
+
+2016-07-22  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        All dancers with bunny ears are female
+        https://bugs.webkit.org/show_bug.cgi?id=160102
+        <rdar://problem/27453479>
+
+        Reviewed by Simon Fraser.
+
+        In r203330 I added support for new emoji group candidates. I accidentally
+        missed one of the new emoji code points.
+
+        Tests: editing/deleting/delete-emoji.html:
+               fast/text/emoji-gender-2-9.html:
+               fast/text/emoji-gender-9.html:
+               fast/text/emoji-gender-fe0f-9.html:
+
+        * platform/text/CharacterProperties.h:
+        (WebCore::isEmojiGroupCandidate):
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to HTMLCollection.item() / namedItem() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160099
+
+        Reviewed by Sam Weinig.
+
+        Parameter to HTMLCollection.item() / namedItem() should be mandatory:
+        - https://dom.spec.whatwg.org/#interface-htmlcollection
+        - https://html.spec.whatwg.org/multipage/infrastructure.html#htmlformcontrolscollection
+        - https://html.spec.whatwg.org/multipage/infrastructure.html#the-htmloptionscollection-interface
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * bindings/js/JSHTMLFormControlsCollectionCustom.cpp:
+        (WebCore::JSHTMLFormControlsCollection::namedItem):
+        * html/HTMLCollection.idl:
+        * html/HTMLFormControlsCollection.idl:
+        * html/HTMLOptionsCollection.idl:
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to Window.getComputedStyle() should be mandatory and non-nullable
+        https://bugs.webkit.org/show_bug.cgi?id=160097
+
+        Reviewed by Ryosuke Niwa.
+
+        First parameter to Window.getComputedStyle() should be mandatory and
+        non-nullable:
+        - https://drafts.csswg.org/cssom/#extensions-to-the-window-interface
+
+        Firefox and Chrome agree with the specification.
+
+        Test: fast/dom/Window/getComputedStyle-missing-parameter.html
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::ComputedStyleExtractor::ComputedStyleExtractor):
+        (WebCore::CSSComputedStyleDeclaration::CSSComputedStyleDeclaration):
+        (WebCore::CSSComputedStyleDeclaration::getPropertyCSSValue):
+        (WebCore::CSSComputedStyleDeclaration::copyProperties):
+        (WebCore::CSSComputedStyleDeclaration::length):
+        (WebCore::CSSComputedStyleDeclaration::item):
+        (WebCore::CSSComputedStyleDeclaration::getPropertyValue):
+        * css/CSSComputedStyleDeclaration.h:
+        * dom/Document.idl:
+        * inspector/InspectorCSSAgent.cpp:
+        (WebCore::InspectorCSSAgent::getComputedStyleForNode):
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::getComputedStyle):
+        * page/DOMWindow.h:
+        * page/DOMWindow.idl:
+        * testing/Internals.cpp:
+        (WebCore::Internals::computedStyleIncludingVisitedInfo):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-07-22  Brady Eidson  <beidson@apple.com>
+
+        Removing IndexedDatabases that have stored blobs doesn't remove the blob files.
+        https://bugs.webkit.org/show_bug.cgi?id=160089
+
+        Reviewed by Darin Adler.
+
+        Tested by API test IndexedDB.StoreBlobThenDelete.
+
+        Blob filenames exist in the IDB directory with the name "[0-9]+.blob".
+        
+        That is, one or more digits, followed by ".blob".
+        
+        So when we delete an IndexedDB.sqlite3 and related files, we should delete those blob files as well.
+        
+        * Modules/indexeddb/server/IDBServer.cpp:
+        (WebCore::IDBServer::removeAllDatabasesForOriginPath):
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        Fix default parameter values for window.alert() / prompt() / confirm()
+        https://bugs.webkit.org/show_bug.cgi?id=160085
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix default parameter values for window.alert() / prompt() / confirm() to
+        match the specification:
+        - https://html.spec.whatwg.org/multipage/browsers.html#the-window-object
+
+        They should default to the empty string, not the string "undefined".
+
+        Firefox and chrome agree with the specification.
+
+        No new tests, updated existing test.
+
+        * page/DOMWindow.h:
+        * page/DOMWindow.idl:
+
+2016-07-22  Daniel Bates  <dabates@apple.com>
+
+        CSP: object-src and plugin-types directives are not respected for plugin replacements
+        https://bugs.webkit.org/show_bug.cgi?id=159761
+        <rdar://problem/27365724>
+
+        Reviewed by Brent Fulgham.
+
+        Apply the Content Security Policy (CSP) object-src and plugin-types directives to content that will
+        load with a plugin replacement.
+
+        Tests: security/contentSecurityPolicy/object-src-none-blocks-quicktime-plugin-replacement.html
+               security/contentSecurityPolicy/object-src-none-blocks-youtube-plugin-replacement.html
+               security/contentSecurityPolicy/plugins-types-allows-quicktime-plugin-replacement.html
+               security/contentSecurityPolicy/plugins-types-allows-youtube-plugin-replacement.html
+               security/contentSecurityPolicy/plugins-types-blocks-quicktime-plugin-replacement-without-mime-type.html
+               security/contentSecurityPolicy/plugins-types-blocks-quicktime-plugin-replacement.html
+               security/contentSecurityPolicy/plugins-types-blocks-youtube-plugin-replacement-without-mime-type.html
+               security/contentSecurityPolicy/plugins-types-blocks-youtube-plugin-replacement.html
+
+        * html/HTMLPlugInImageElement.cpp:
+        (WebCore::HTMLPlugInImageElement::allowedToLoadPluginContent): Added.
+        (WebCore::HTMLPlugInImageElement::requestObject): Only request loading plugin content if we
+        are allowed to load such content.
+        * html/HTMLPlugInImageElement.h:
+        * loader/SubframeLoader.cpp:
+        (WebCore::SubframeLoader::pluginIsLoadable): Removed code to check CSP as we will check CSP
+        earlier in HTMLPlugInImageElement::requestObject().
+        (WebCore::SubframeLoader::requestPlugin): Ditto.
+        (WebCore::SubframeLoader::isPluginContentAllowedByContentSecurityPolicy): Deleted; moved implementation
+        to HTMLPlugInImageElement::allowedToLoadPluginContent().
+        (WebCore::SubframeLoader::requestObject): Deleted.
+        * loader/SubframeLoader.h:
+        * page/csp/ContentSecurityPolicy.cpp:
+        (WebCore::ContentSecurityPolicy::upgradeInsecureRequestIfNeeded): Changed signature from a non-const
+        function to a const function since these functions do not modify |this|.
+        * page/csp/ContentSecurityPolicy.h: 
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to Node.replaceChild() / insertBefore() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160091
+
+        Reviewed by Darin Adler.
+
+        Parameters to Node.replaceChild() / insertBefore() should be mandatory:
+        - https://dom.spec.whatwg.org/#node
+
+        The compatibility risk should be low since Firefox and Chrome both agree
+        with the specification and because it does not make much sense to omit
+        parameters when using this API.
+
+        No new tests, rebaselined existing tests.
+
+        * bindings/js/JSNodeCustom.cpp:
+        (WebCore::JSNode::insertBefore):
+        (WebCore::JSNode::replaceChild):
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to Node.contains() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160084
+
+        Reviewed by Darin Adler.
+
+        Parameter to Node.contains() should be mandatory as per the
+        specification:
+        - https://dom.spec.whatwg.org/#node
+
+        The compatibility risk should be low because both Firefox and Chrome
+        both agree with the specification. Also, it does not make much sense
+        to call this API without parameter.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Node.idl:
+
+2016-07-22  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        [iOS] REGRESSION(203378): PDFDocumentImage::updateCachedImageIfNeeded() uses the unscaled size when deciding whether to cache the PDF image
+        https://bugs.webkit.org/show_bug.cgi?id=159933
+
+        Reviewed by Simon Fraser.
+
+        We need to use the scaled size when deciding whether to cache the PDF image
+        or not. This is because ImageBuffer takes the display resolution into account
+        which gives higher resolution for the image when zooming.
+
+        * platform/graphics/cg/PDFDocumentImage.cpp:
+        (WebCore::PDFDocumentImage::updateCachedImageIfNeeded):
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to getElementById() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160087
+
+        Reviewed by Darin Adler.
+
+        First parameter to getElementById() should be mandatory:
+        - https://dom.spec.whatwg.org/#nonelementparentnode
+        - https://www.w3.org/TR/SVG/struct.html#InterfaceSVGSVGElement
+
+        Both Firefox and Chrome agree with the specification.
+
+        Test: svg/dom/SVGSVGElement-getElementById.html
+
+        * dom/NonElementParentNode.idl:
+        * svg/SVGSVGElement.idl:
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to Node.lookupPrefix() / lookupNamespaceURI() / isDefaultNamespace() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160086
+
+        Reviewed by Darin Adler.
+
+        Parameter to Node.lookupPrefix() / lookupNamespaceURI() / isDefaultNamespace()
+        should be mandatory:
+        - https://dom.spec.whatwg.org/#node
+
+        Firefox and Chrome both agree with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Node.idl:
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to Node.compareDocumentPosition() should be mandatory and non-nullable
+        https://bugs.webkit.org/show_bug.cgi?id=160071
+
+        Reviewed by Ryosuke Niwa.
+
+        
+        Parameter to Node.compareDocumentPosition() should be mandatory and
+        non-nullable:
+        - https://dom.spec.whatwg.org/#interface-node
+
+        Firefox and Chrome agree with the specification so the compatibility
+        risk should be low. Also, it does not make much sense to call this
+        operation without parameter.
+
+        No new tests, rebaselined existing tests.
+
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::rangeClosestToRange):
+        * dom/AuthorStyleSheets.cpp:
+        (WebCore::AuthorStyleSheets::addStyleSheetCandidateNode):
+        * dom/Node.cpp:
+        (WebCore::compareDetachedElementsPosition):
+        (WebCore::Node::compareDocumentPosition):
+        * dom/Node.h:
+        * dom/Node.idl:
+        * dom/Position.h:
+        (WebCore::operator<):
+        * html/HTMLFormElement.cpp:
+        (WebCore::HTMLFormElement::formElementIndexWithFormAttribute):
+        (WebCore::HTMLFormElement::formElementIndex):
+        * rendering/RenderNamedFlowThread.cpp:
+        (WebCore::RenderNamedFlowThread::nextRendererForElement):
+        (WebCore::compareRenderNamedFlowFragments):
+        (WebCore::RenderNamedFlowThread::registerNamedFlowContentElement):
+
+2016-07-22  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] Removed obsolete plugins/win directory
+        https://bugs.webkit.org/show_bug.cgi?id=160081
+
+        Reviewed by Per Arne Vollan.
+
+        It was removed in r178219.
+
+        No new tests needed.
+
+        * PlatformWin.cmake:
+
+2016-07-22  Youenn Fablet  <youenn@apple.com>
+
+        run-builtins-generator-tests should be able to test WebCore builtins wrapper with more than one file
+        https://bugs.webkit.org/show_bug.cgi?id=159921
+
+        Reviewed by Brian Burg.
+
+        Covered by existing and added built-ins tests.
+
+        Updating built system according ---wrappers-only new meaning.
+        builtin generator is now called for each individual built-in file plus once for WebCore wrapper files.
+        WebCore wrapper files allow handling things like conditionally guarded features.
+        They also remove the need to use built-ins macros outside generated code.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+
+2016-07-21  Frederic Wang  <fwang@igalia.com>
+
+        Move parsing of accentunder and accent attributes from renderer to element classes
+        https://bugs.webkit.org/show_bug.cgi?id=159625
+
+        Reviewed by Brent Fulgham.
+
+        We introduce a new MathMLUnderOverElement that is used for elements munder, mover and
+        munderover in order to create RenderMathMLUnderOver and parse and expose the values of the
+        accent and accentunder attributes. This is one more step toward moving MathML attribute
+        parsing to the DOM (bug 156536). We also do minor clean-up for this and previous renderer
+        classes that no longer do attribute parsing: the MathMLNames namespace is no longer necessary
+        and constructors can take a more accurate element type.
+
+        No new tests, already covered by existing test.
+
+        * CMakeLists.txt: Add MathMLUnderOverElement files.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAllInOne.cpp: Ditto.
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::cachedBooleanAttribute): Add parsing of boolean attributes.
+        * mathml/MathMLElement.h: New type and helper functions for boolean attributes.
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::createElementRenderer): Remove handling of
+        under/over/underover elements.
+        * mathml/MathMLScriptsElement.cpp:
+        (WebCore::MathMLScriptsElement::MathMLScriptsElement): Remove inline keyword to avoid link
+        errors now that MathMLUnderOverElement overrides that class.
+        * mathml/MathMLScriptsElement.h: Allow MathMLUnderOverElement to override this class.
+        * mathml/MathMLUnderOverElement.cpp:
+        (WebCore::MathMLUnderOverElement::MathMLUnderOverElement):
+        (WebCore::MathMLUnderOverElement::create):
+        (WebCore::MathMLUnderOverElement::accent): Helper function to access the accent value.
+        (WebCore::MathMLUnderOverElement::accentUnder): Helper function to access the accentunder value.
+        (WebCore::MathMLUnderOverElement::parseAttribute): Make accent and accentunder dirty.
+        (WebCore::MathMLUnderOverElement::createElementRenderer): Create RenderMathMLUnderOver
+        * mathml/MathMLUnderOverElement.h:
+        * mathml/mathtags.in: Map under/over/underover to MathMLUnderOverElement.
+        * rendering/mathml/RenderMathMLFraction.cpp: Remove MathMLNames and make the constructor
+        take a MathMLFractionElement.
+        (WebCore::RenderMathMLFraction::RenderMathMLFraction):
+        * rendering/mathml/RenderMathMLFraction.h:
+        * rendering/mathml/RenderMathMLPadded.cpp: Remove MathMLNames and make the constructor
+        take a MathMLPaddedElement.
+        (WebCore::RenderMathMLPadded::RenderMathMLPadded):
+        * rendering/mathml/RenderMathMLPadded.h:
+        * rendering/mathml/RenderMathMLScripts.cpp: Remove MathMLNames and make the constructor
+        take a MathMLScriptsElement. Also rename scriptsElement() to element().
+        (WebCore::RenderMathMLScripts::RenderMathMLScripts):
+        (WebCore::RenderMathMLScripts::element):
+        (WebCore::RenderMathMLScripts::getScriptMetricsAndLayoutIfNeeded):
+        (WebCore::RenderMathMLScripts::scriptsElement): Deleted.
+        * rendering/mathml/RenderMathMLScripts.h:
+        * rendering/mathml/RenderMathMLUnderOver.cpp: Remove MathMLNames and make the constructor
+        take a RenderMathMLUnderOver.
+        (WebCore::RenderMathMLUnderOver::RenderMathMLUnderOver):
+        (WebCore::RenderMathMLUnderOver::element):
+        (WebCore::RenderMathMLUnderOver::hasAccent): Use the helper functions for accent and accentunder.
+        * rendering/mathml/RenderMathMLUnderOver.h:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to Node.isSameNode() / isEqualNode() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160070
+
+        Reviewed by Ryosuke Niwa.
+
+        Parameter to Node.isSameNode() / isEqualNode() should be mandatory as
+        per the specification:
+        - https://dom.spec.whatwg.org/#interface-node
+
+        Chrome and Firefox agree with the specification (although Firefox does
+        not support isSameNode()).
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Node.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to Document.createEvent() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160065
+
+        Reviewed by Darin Adler.
+
+        Parameter to Document.createEvent() should be mandatory as per the
+        specification:
+        - https://dom.spec.whatwg.org/#document
+
+        We already throw anyway when the parameter is omitted because we use
+        "undefined" as event type, which is invalid. However, we throw the
+        wrong exception.
+
+        Firefox and Chrome agree with the specification here.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Document.idl:
+
+2016-07-21  Brian Burg  <bburg@apple.com>
+
+        REGRESSION(r62549): Objective-C DOM bindings sometimes fail to regenerate when CodeGenerator.pm is modified
+        https://bugs.webkit.org/show_bug.cgi?id=160031
+
+        Reviewed by Darin Adler.
+
+        This bug was caused by a refactoring 6 years ago. Not all uses of a variable
+        were renamed, so the ObjC bindings target pattern was not specifying any
+        build scripts as target dependencies.
+
+        * DerivedSources.make: Standardize on {COMMON,JS,DOM}_BINDINGS_SCRIPTS.
+
+2016-07-21  Darin Adler  <darin@apple.com>
+
+        Remove unneeded content attribute name "playsinline"
+        https://bugs.webkit.org/show_bug.cgi?id=160069
+
+        Reviewed by Chris Dumez.
+
+        * html/HTMLVideoElement.idl: Removed explicit content attribute name on Reflect
+        attribute since it is the same as the name that the code generator will generate.
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Make parameters to Element.getElementsBy*() operations mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160060
+
+        Reviewed by Darin Adler.
+
+        Make parameters to Element.getElementsBy*() operations mandatory to
+        match the specification:
+        - https://dom.spec.whatwg.org/#interface-element
+
+        Firefox and Chrome agree with the specification so the compatibility
+        risk should be low.
+
+        It makes very little sense to call these operations without parameter,
+        especially considering WebKit uses the string "undefined" if the
+        parameter is omitted.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Element.idl:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Make parameters mandatory for attribute-related API on Element
+        https://bugs.webkit.org/show_bug.cgi?id=160059
+
+        Reviewed by Ryosuke Niwa.
+
+        Make parameters mandatory for attribute-related API on Element to match
+        the specification:
+        - https://dom.spec.whatwg.org/#element
+
+        Firefox and Chrome agree with the specification. Calling this API
+        without the parameters does not make much sense, especially considering
+        WebKit uses the string "undefined" when the parameter is omitted.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Element.idl:
+
+2016-07-21  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Remove support for deprecated SPI inlineMediaPlaybackRequiresPlaysInlineAttribute
+        https://bugs.webkit.org/show_bug.cgi?id=160066
+
+        Reviewed by Dean Jackson.
+
+        r203520 deprecated inlineMediaPlaybackRequiresPlaysInlineAttribute in favor of
+        allowsInlineMediaPlaybackWithPlaysInlineAttribute and
+        allowsInlineMediaPlaybackWithWebKitPlaysInlineAttribute. The old
+        inlineMediaPlaybackRequiresPlaysInlineAttribute is SPI and was never released
+        to the public. Therefore, it can be removed safely.
+
+        No new tests because there is no behavior change.
+
+        * page/Settings.cpp:
+        * page/Settings.in:
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup): Deleted.
+        (WebCore::InternalSettings::Backup::restoreTo): Deleted.
+        (WebCore::InternalSettings::setInlineMediaPlaybackRequiresPlaysInlineAttribute): Deleted.
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+
+2016-07-21  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (r202927): The internal size of the ImageBuffer is scaled twice by the context scaleFactor
+        https://bugs.webkit.org/show_bug.cgi?id=159981
+        <rdar://problem/27429465>
+
+        Reviewed by Myles Maxfield.
+
+        The change to propagate color spaces through ImageBuffers created an
+        alternate version of createCompatibleBuffer. This version accidentally
+        attempted to take the display resolution (i.e. hidpi) into account
+        when creating the buffer, which meant it was being applied twice.
+
+        The fix is simply to remove that logic. The caller of the method
+        will take the resolution into account, the same way they did
+        with the old createCompatibleBuffer method.
+
+        Test: fast/hidpi/pdf-image-scaled.html
+
+        * platform/graphics/cg/ImageBufferCG.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer): Don't calculate
+        a resolution - just use the value of 1.0.
+
 2016-07-21  John Wilander  <wilander@apple.com>
 
         Block mixed content synchronous XHR

@@ -160,9 +160,7 @@ PASS Document interface: calling createAttribute(DOMString) on iframe.contentDoc
 PASS Document interface: iframe.contentDocument must inherit property "createAttributeNS" with the proper type (23) 
 PASS Document interface: calling createAttributeNS(DOMString,DOMString) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Document interface: iframe.contentDocument must inherit property "createEvent" with the proper type (24) 
-FAIL Document interface: calling createEvent(DOMString) on iframe.contentDocument with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" threw object "NotSupportedError (DOM Exception 9): The operation is not..." ("NotSupportedError") expected object "TypeError" ("TypeError")
+PASS Document interface: calling createEvent(DOMString) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Document interface: iframe.contentDocument must inherit property "createRange" with the proper type (25) 
 PASS Document interface: iframe.contentDocument must inherit property "createNodeIterator" with the proper type (26) 
 PASS Document interface: calling createNodeIterator(Node,unsigned long,NodeFilter) on iframe.contentDocument with too few arguments must throw TypeError 
@@ -246,9 +244,7 @@ PASS Document interface: iframe.contentDocument must inherit property "captureEv
 PASS Document interface: iframe.contentDocument must inherit property "releaseEvents" with the proper type (80) 
 PASS Document interface: iframe.contentDocument must inherit property "all" with the proper type (81) 
 PASS Document interface: iframe.contentDocument must inherit property "getElementById" with the proper type (82) 
-FAIL Document interface: calling getElementById(DOMString) on iframe.contentDocument with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Document interface: calling getElementById(DOMString) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Document interface: iframe.contentDocument must inherit property "children" with the proper type (83) 
 PASS Document interface: iframe.contentDocument must inherit property "firstElementChild" with the proper type (84) 
 PASS Document interface: iframe.contentDocument must inherit property "lastElementChild" with the proper type (85) 
@@ -358,9 +354,7 @@ PASS Node interface: iframe.contentDocument must inherit property "normalize" wi
 PASS Node interface: iframe.contentDocument must inherit property "cloneNode" with the proper type (27) 
 PASS Node interface: calling cloneNode(boolean) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Node interface: iframe.contentDocument must inherit property "isEqualNode" with the proper type (28) 
-FAIL Node interface: calling isEqualNode(Node) on iframe.contentDocument with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling isEqualNode(Node) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Node interface: iframe.contentDocument must inherit property "DOCUMENT_POSITION_DISCONNECTED" with the proper type (29) 
 PASS Node interface: iframe.contentDocument must inherit property "DOCUMENT_POSITION_PRECEDING" with the proper type (30) 
 PASS Node interface: iframe.contentDocument must inherit property "DOCUMENT_POSITION_FOLLOWING" with the proper type (31) 
@@ -368,29 +362,17 @@ PASS Node interface: iframe.contentDocument must inherit property "DOCUMENT_POSI
 PASS Node interface: iframe.contentDocument must inherit property "DOCUMENT_POSITION_CONTAINED_BY" with the proper type (33) 
 PASS Node interface: iframe.contentDocument must inherit property "DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC" with the proper type (34) 
 PASS Node interface: iframe.contentDocument must inherit property "compareDocumentPosition" with the proper type (35) 
-FAIL Node interface: calling compareDocumentPosition(Node) on iframe.contentDocument with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling compareDocumentPosition(Node) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Node interface: iframe.contentDocument must inherit property "contains" with the proper type (36) 
-FAIL Node interface: calling contains(Node) on iframe.contentDocument with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling contains(Node) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Node interface: iframe.contentDocument must inherit property "lookupPrefix" with the proper type (37) 
-FAIL Node interface: calling lookupPrefix(DOMString) on iframe.contentDocument with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling lookupPrefix(DOMString) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Node interface: iframe.contentDocument must inherit property "lookupNamespaceURI" with the proper type (38) 
-FAIL Node interface: calling lookupNamespaceURI(DOMString) on iframe.contentDocument with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling lookupNamespaceURI(DOMString) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Node interface: iframe.contentDocument must inherit property "isDefaultNamespace" with the proper type (39) 
-FAIL Node interface: calling isDefaultNamespace(DOMString) on iframe.contentDocument with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling isDefaultNamespace(DOMString) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Node interface: iframe.contentDocument must inherit property "insertBefore" with the proper type (40) 
-FAIL Node interface: calling insertBefore(Node,Node) on iframe.contentDocument with too few arguments must throw TypeError assert_throws: Called with 1 arguments function "function () {
-            fn.apply(obj, args);
-        }" threw object "HierarchyRequestError (DOM Exception 3): The operation wo..." ("HierarchyRequestError") expected object "TypeError" ("TypeError")
+PASS Node interface: calling insertBefore(Node,Node) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Node interface: iframe.contentDocument must inherit property "appendChild" with the proper type (41) 
 PASS Node interface: calling appendChild(Node) on iframe.contentDocument with too few arguments must throw TypeError 
 PASS Node interface: iframe.contentDocument must inherit property "replaceChild" with the proper type (42) 
@@ -442,9 +424,7 @@ PASS Document interface: calling createAttribute(DOMString) on new Document() wi
 PASS Document interface: new Document() must inherit property "createAttributeNS" with the proper type (23) 
 PASS Document interface: calling createAttributeNS(DOMString,DOMString) on new Document() with too few arguments must throw TypeError 
 PASS Document interface: new Document() must inherit property "createEvent" with the proper type (24) 
-FAIL Document interface: calling createEvent(DOMString) on new Document() with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" threw object "NotSupportedError (DOM Exception 9): The operation is not..." ("NotSupportedError") expected object "TypeError" ("TypeError")
+PASS Document interface: calling createEvent(DOMString) on new Document() with too few arguments must throw TypeError 
 PASS Document interface: new Document() must inherit property "createRange" with the proper type (25) 
 PASS Document interface: new Document() must inherit property "createNodeIterator" with the proper type (26) 
 PASS Document interface: calling createNodeIterator(Node,unsigned long,NodeFilter) on new Document() with too few arguments must throw TypeError 
@@ -528,9 +508,7 @@ FAIL Document interface: new Document() must inherit property "captureEvents" wi
 FAIL Document interface: new Document() must inherit property "releaseEvents" with the proper type (80) assert_inherits: property "releaseEvents" not found in prototype chain
 FAIL Document interface: new Document() must inherit property "all" with the proper type (81) assert_inherits: property "all" not found in prototype chain
 PASS Document interface: new Document() must inherit property "getElementById" with the proper type (82) 
-FAIL Document interface: calling getElementById(DOMString) on new Document() with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Document interface: calling getElementById(DOMString) on new Document() with too few arguments must throw TypeError 
 PASS Document interface: new Document() must inherit property "children" with the proper type (83) 
 PASS Document interface: new Document() must inherit property "firstElementChild" with the proper type (84) 
 PASS Document interface: new Document() must inherit property "lastElementChild" with the proper type (85) 
@@ -640,9 +618,7 @@ PASS Node interface: new Document() must inherit property "normalize" with the p
 PASS Node interface: new Document() must inherit property "cloneNode" with the proper type (27) 
 PASS Node interface: calling cloneNode(boolean) on new Document() with too few arguments must throw TypeError 
 PASS Node interface: new Document() must inherit property "isEqualNode" with the proper type (28) 
-FAIL Node interface: calling isEqualNode(Node) on new Document() with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling isEqualNode(Node) on new Document() with too few arguments must throw TypeError 
 PASS Node interface: new Document() must inherit property "DOCUMENT_POSITION_DISCONNECTED" with the proper type (29) 
 PASS Node interface: new Document() must inherit property "DOCUMENT_POSITION_PRECEDING" with the proper type (30) 
 PASS Node interface: new Document() must inherit property "DOCUMENT_POSITION_FOLLOWING" with the proper type (31) 
@@ -650,29 +626,17 @@ PASS Node interface: new Document() must inherit property "DOCUMENT_POSITION_CON
 PASS Node interface: new Document() must inherit property "DOCUMENT_POSITION_CONTAINED_BY" with the proper type (33) 
 PASS Node interface: new Document() must inherit property "DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC" with the proper type (34) 
 PASS Node interface: new Document() must inherit property "compareDocumentPosition" with the proper type (35) 
-FAIL Node interface: calling compareDocumentPosition(Node) on new Document() with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling compareDocumentPosition(Node) on new Document() with too few arguments must throw TypeError 
 PASS Node interface: new Document() must inherit property "contains" with the proper type (36) 
-FAIL Node interface: calling contains(Node) on new Document() with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling contains(Node) on new Document() with too few arguments must throw TypeError 
 PASS Node interface: new Document() must inherit property "lookupPrefix" with the proper type (37) 
-FAIL Node interface: calling lookupPrefix(DOMString) on new Document() with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling lookupPrefix(DOMString) on new Document() with too few arguments must throw TypeError 
 PASS Node interface: new Document() must inherit property "lookupNamespaceURI" with the proper type (38) 
-FAIL Node interface: calling lookupNamespaceURI(DOMString) on new Document() with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling lookupNamespaceURI(DOMString) on new Document() with too few arguments must throw TypeError 
 PASS Node interface: new Document() must inherit property "isDefaultNamespace" with the proper type (39) 
-FAIL Node interface: calling isDefaultNamespace(DOMString) on new Document() with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling isDefaultNamespace(DOMString) on new Document() with too few arguments must throw TypeError 
 PASS Node interface: new Document() must inherit property "insertBefore" with the proper type (40) 
-FAIL Node interface: calling insertBefore(Node,Node) on new Document() with too few arguments must throw TypeError assert_throws: Called with 1 arguments function "function () {
-            fn.apply(obj, args);
-        }" threw object "HierarchyRequestError (DOM Exception 3): The operation wo..." ("HierarchyRequestError") expected object "TypeError" ("TypeError")
+PASS Node interface: calling insertBefore(Node,Node) on new Document() with too few arguments must throw TypeError 
 PASS Node interface: new Document() must inherit property "appendChild" with the proper type (41) 
 PASS Node interface: calling appendChild(Node) on new Document() with too few arguments must throw TypeError 
 PASS Node interface: new Document() must inherit property "replaceChild" with the proper type (42) 
@@ -727,9 +691,7 @@ PASS Document interface: calling createAttribute(DOMString) on document.implemen
 PASS Document interface: document.implementation.createDocument(null, "", null) must inherit property "createAttributeNS" with the proper type (23) 
 PASS Document interface: calling createAttributeNS(DOMString,DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Document interface: document.implementation.createDocument(null, "", null) must inherit property "createEvent" with the proper type (24) 
-FAIL Document interface: calling createEvent(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" threw object "NotSupportedError (DOM Exception 9): The operation is not..." ("NotSupportedError") expected object "TypeError" ("TypeError")
+PASS Document interface: calling createEvent(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Document interface: document.implementation.createDocument(null, "", null) must inherit property "createRange" with the proper type (25) 
 PASS Document interface: document.implementation.createDocument(null, "", null) must inherit property "createNodeIterator" with the proper type (26) 
 PASS Document interface: calling createNodeIterator(Node,unsigned long,NodeFilter) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
@@ -813,9 +775,7 @@ FAIL Document interface: document.implementation.createDocument(null, "", null) 
 FAIL Document interface: document.implementation.createDocument(null, "", null) must inherit property "releaseEvents" with the proper type (80) assert_inherits: property "releaseEvents" not found in prototype chain
 FAIL Document interface: document.implementation.createDocument(null, "", null) must inherit property "all" with the proper type (81) assert_inherits: property "all" not found in prototype chain
 PASS Document interface: document.implementation.createDocument(null, "", null) must inherit property "getElementById" with the proper type (82) 
-FAIL Document interface: calling getElementById(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Document interface: calling getElementById(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Document interface: document.implementation.createDocument(null, "", null) must inherit property "children" with the proper type (83) 
 PASS Document interface: document.implementation.createDocument(null, "", null) must inherit property "firstElementChild" with the proper type (84) 
 PASS Document interface: document.implementation.createDocument(null, "", null) must inherit property "lastElementChild" with the proper type (85) 
@@ -925,9 +885,7 @@ PASS Node interface: document.implementation.createDocument(null, "", null) must
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "cloneNode" with the proper type (27) 
 PASS Node interface: calling cloneNode(boolean) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "isEqualNode" with the proper type (28) 
-FAIL Node interface: calling isEqualNode(Node) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling isEqualNode(Node) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "DOCUMENT_POSITION_DISCONNECTED" with the proper type (29) 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "DOCUMENT_POSITION_PRECEDING" with the proper type (30) 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "DOCUMENT_POSITION_FOLLOWING" with the proper type (31) 
@@ -935,29 +893,17 @@ PASS Node interface: document.implementation.createDocument(null, "", null) must
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "DOCUMENT_POSITION_CONTAINED_BY" with the proper type (33) 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC" with the proper type (34) 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "compareDocumentPosition" with the proper type (35) 
-FAIL Node interface: calling compareDocumentPosition(Node) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling compareDocumentPosition(Node) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "contains" with the proper type (36) 
-FAIL Node interface: calling contains(Node) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling contains(Node) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "lookupPrefix" with the proper type (37) 
-FAIL Node interface: calling lookupPrefix(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling lookupPrefix(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "lookupNamespaceURI" with the proper type (38) 
-FAIL Node interface: calling lookupNamespaceURI(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling lookupNamespaceURI(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "isDefaultNamespace" with the proper type (39) 
-FAIL Node interface: calling isDefaultNamespace(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling isDefaultNamespace(DOMString) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "insertBefore" with the proper type (40) 
-FAIL Node interface: calling insertBefore(Node,Node) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError assert_throws: Called with 1 arguments function "function () {
-            fn.apply(obj, args);
-        }" threw object "HierarchyRequestError (DOM Exception 3): The operation wo..." ("HierarchyRequestError") expected object "TypeError" ("TypeError")
+PASS Node interface: calling insertBefore(Node,Node) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "appendChild" with the proper type (41) 
 PASS Node interface: calling appendChild(Node) on document.implementation.createDocument(null, "", null) with too few arguments must throw TypeError 
 PASS Node interface: document.implementation.createDocument(null, "", null) must inherit property "replaceChild" with the proper type (42) 
@@ -995,7 +941,7 @@ PASS HTMLFormControlsCollection interface object length
 PASS HTMLFormControlsCollection interface object name 
 PASS HTMLFormControlsCollection interface: existence and properties of interface prototype object 
 PASS HTMLFormControlsCollection interface: existence and properties of interface prototype object's "constructor" property 
-FAIL HTMLFormControlsCollection interface: operation namedItem(DOMString) assert_equals: property has wrong .length expected 1 but got 0
+PASS HTMLFormControlsCollection interface: operation namedItem(DOMString) 
 FAIL HTMLFormControlsCollection must be primary interface of document.createElement("form").elements assert_equals: wrong typeof object expected "function" but got "object"
 FAIL Stringification of document.createElement("form").elements assert_equals: wrong typeof object expected "function" but got "object"
 FAIL HTMLFormControlsCollection interface: document.createElement("form").elements must inherit property "namedItem" with the proper type (0) assert_equals: wrong typeof object expected "function" but got "object"
@@ -1241,41 +1187,25 @@ PASS Element interface: document.createElement("noscript") must inherit property
 PASS Element interface: document.createElement("noscript") must inherit property "attributes" with the proper type (8) 
 FAIL Element interface: document.createElement("noscript") must inherit property "getAttributeNames" with the proper type (9) assert_inherits: property "getAttributeNames" not found in prototype chain
 PASS Element interface: document.createElement("noscript") must inherit property "getAttribute" with the proper type (10) 
-FAIL Element interface: calling getAttribute(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling getAttribute(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "getAttributeNS" with the proper type (11) 
-FAIL Element interface: calling getAttributeNS(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling getAttributeNS(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "setAttribute" with the proper type (12) 
-FAIL Element interface: calling setAttribute(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling setAttribute(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "setAttributeNS" with the proper type (13) 
-FAIL Element interface: calling setAttributeNS(DOMString,DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling setAttributeNS(DOMString,DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "removeAttribute" with the proper type (14) 
-FAIL Element interface: calling removeAttribute(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling removeAttribute(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "removeAttributeNS" with the proper type (15) 
 PASS Element interface: calling removeAttributeNS(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "hasAttribute" with the proper type (16) 
 PASS Element interface: calling hasAttribute(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "hasAttributeNS" with the proper type (17) 
-FAIL Element interface: calling hasAttributeNS(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling hasAttributeNS(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "getAttributeNode" with the proper type (18) 
-FAIL Element interface: calling getAttributeNode(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling getAttributeNode(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "getAttributeNodeNS" with the proper type (19) 
-FAIL Element interface: calling getAttributeNodeNS(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling getAttributeNodeNS(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "setAttributeNode" with the proper type (20) 
 PASS Element interface: calling setAttributeNode(Attr) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "setAttributeNodeNS" with the proper type (21) 
@@ -1287,17 +1217,11 @@ PASS Element interface: calling closest(DOMString) on document.createElement("no
 PASS Element interface: document.createElement("noscript") must inherit property "matches" with the proper type (24) 
 PASS Element interface: calling matches(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "getElementsByTagName" with the proper type (25) 
-FAIL Element interface: calling getElementsByTagName(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling getElementsByTagName(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "getElementsByTagNameNS" with the proper type (26) 
-FAIL Element interface: calling getElementsByTagNameNS(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling getElementsByTagNameNS(DOMString,DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "getElementsByClassName" with the proper type (27) 
-FAIL Element interface: calling getElementsByClassName(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Element interface: calling getElementsByClassName(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Element interface: document.createElement("noscript") must inherit property "children" with the proper type (28) 
 PASS Element interface: document.createElement("noscript") must inherit property "firstElementChild" with the proper type (29) 
 PASS Element interface: document.createElement("noscript") must inherit property "lastElementChild" with the proper type (30) 
@@ -1353,9 +1277,7 @@ PASS Node interface: document.createElement("noscript") must inherit property "n
 PASS Node interface: document.createElement("noscript") must inherit property "cloneNode" with the proper type (27) 
 PASS Node interface: calling cloneNode(boolean) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Node interface: document.createElement("noscript") must inherit property "isEqualNode" with the proper type (28) 
-FAIL Node interface: calling isEqualNode(Node) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling isEqualNode(Node) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Node interface: document.createElement("noscript") must inherit property "DOCUMENT_POSITION_DISCONNECTED" with the proper type (29) 
 PASS Node interface: document.createElement("noscript") must inherit property "DOCUMENT_POSITION_PRECEDING" with the proper type (30) 
 PASS Node interface: document.createElement("noscript") must inherit property "DOCUMENT_POSITION_FOLLOWING" with the proper type (31) 
@@ -1363,29 +1285,17 @@ PASS Node interface: document.createElement("noscript") must inherit property "D
 PASS Node interface: document.createElement("noscript") must inherit property "DOCUMENT_POSITION_CONTAINED_BY" with the proper type (33) 
 PASS Node interface: document.createElement("noscript") must inherit property "DOCUMENT_POSITION_IMPLEMENTATION_SPECIFIC" with the proper type (34) 
 PASS Node interface: document.createElement("noscript") must inherit property "compareDocumentPosition" with the proper type (35) 
-FAIL Node interface: calling compareDocumentPosition(Node) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling compareDocumentPosition(Node) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Node interface: document.createElement("noscript") must inherit property "contains" with the proper type (36) 
-FAIL Node interface: calling contains(Node) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling contains(Node) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Node interface: document.createElement("noscript") must inherit property "lookupPrefix" with the proper type (37) 
-FAIL Node interface: calling lookupPrefix(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling lookupPrefix(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Node interface: document.createElement("noscript") must inherit property "lookupNamespaceURI" with the proper type (38) 
-FAIL Node interface: calling lookupNamespaceURI(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling lookupNamespaceURI(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Node interface: document.createElement("noscript") must inherit property "isDefaultNamespace" with the proper type (39) 
-FAIL Node interface: calling isDefaultNamespace(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 0 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling isDefaultNamespace(DOMString) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Node interface: document.createElement("noscript") must inherit property "insertBefore" with the proper type (40) 
-FAIL Node interface: calling insertBefore(Node,Node) on document.createElement("noscript") with too few arguments must throw TypeError assert_throws: Called with 1 arguments function "function () {
-            fn.apply(obj, args);
-        }" did not throw
+PASS Node interface: calling insertBefore(Node,Node) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Node interface: document.createElement("noscript") must inherit property "appendChild" with the proper type (41) 
 PASS Node interface: calling appendChild(Node) on document.createElement("noscript") with too few arguments must throw TypeError 
 PASS Node interface: document.createElement("noscript") must inherit property "replaceChild" with the proper type (42) 

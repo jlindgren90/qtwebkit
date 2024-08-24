@@ -1,3 +1,273 @@
+2016-07-23  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed GTK gardening new passes after enabling threaded compositor
+
+        * platform/gtk/TestExpectations:
+
+2016-07-23  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed test expectation gardening
+
+        Skip layout test editing/deleting/delete-emoji.html 
+
+        * platform/gtk/TestExpectations:
+
+2016-07-23  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed, move some GTK expectations to more appropriate locations
+
+        * platform/gtk/TestExpectations:
+
+2016-07-23  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed, add GTK expectations for threaded compositor regressions
+
+        * platform/gtk/TestExpectations:
+
+2016-07-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Lots of flaky tests
+        https://bugs.webkit.org/show_bug.cgi?id=160118
+
+        Reviewed by Michael Catanzaro.
+
+        * fast/fixed-layout/fixed-layout.html: Remove the onresize handler when the test finishes to ensure it can't be
+        called later affecting other tests.
+
+2016-07-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Coordinated Graphics] Test imported/blink/svg/custom/svg-image-layers-crash.html crashes
+        https://bugs.webkit.org/show_bug.cgi?id=160078
+
+        Reviewed by Michael Catanzaro.
+
+        * platform/efl/TestExpectations: Remove imported/blink/svg/custom/svg-image-layers-crash.html.
+
+2016-07-23  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203641.
+        https://bugs.webkit.org/show_bug.cgi?id=160116
+
+        It broke make-based builds (Requested by youenn on #webkit).
+
+        Reverted changeset:
+
+        "[Fetch API] Request should be created with any HeadersInit
+        data"
+        https://bugs.webkit.org/show_bug.cgi?id=159672
+        http://trac.webkit.org/changeset/203641
+
+2016-07-23  Frederic Wang  <fwang@igalia.com>
+
+        Reset font-style on the <math> element
+        https://bugs.webkit.org/show_bug.cgi?id=160074
+
+        Reviewed by Darin Adler.
+
+        * mathml/presentation/math-font-style-expected.html: Added.
+        * mathml/presentation/math-font-style.html: Added.
+
+2016-07-23  Frederic Wang  <fwang@igalia.com>
+
+        [MathML] PaintInfo state not properly restored after applyTransform.
+        https://bugs.webkit.org/show_bug.cgi?id=160077
+
+        Reviewed by Simon Fraser.
+
+        * mathml/presentation/bug160077-expected-mismatch.html: Added.
+        * mathml/presentation/bug160077.html: Added.
+
+2016-07-22  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        All dancers with bunny ears are female
+        https://bugs.webkit.org/show_bug.cgi?id=160102
+        <rdar://problem/27453479>
+
+        Reviewed by Simon Fraser.
+
+        * editing/deleting/delete-emoji.html:
+        * platform/mac/editing/deleting/delete-emoji-expected.txt:
+        * fast/text/emoji-gender-2-9-expected.html:
+        * fast/text/emoji-gender-2-9.html:
+        * fast/text/emoji-gender-9-expected.html:
+        * fast/text/emoji-gender-9.html:
+        * fast/text/emoji-gender-fe0f-9-expected.html:
+        * fast/text/emoji-gender-fe0f-9.html:
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        Parameter to HTMLCollection.item() / namedItem() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160099
+
+        Reviewed by Sam Weinig.
+
+        Update existing test to reflect behavior change.
+
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to Window.getComputedStyle() should be mandatory and non-nullable
+        https://bugs.webkit.org/show_bug.cgi?id=160097
+
+        Reviewed by Ryosuke Niwa.
+
+        Add test coverage.
+
+        * fast/dom/Window/getComputedStyle-missing-parameter-expected.txt: Added.
+        * fast/dom/Window/getComputedStyle-missing-parameter.html: Added.
+
+2016-07-22  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking webaudio/audionode-connect-order.html as a flaky crash on mac-wk1 debug
+        https://bugs.webkit.org/show_bug.cgi?id=105870
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-22  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking userscripts/window-onerror-for-isolated-world-3.html as a flaky failure on mac-wk1
+        https://bugs.webkit.org/show_bug.cgi?id=160101
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-07-22  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Remove unused code from Debounce layout test
+        https://bugs.webkit.org/show_bug.cgi?id=160049
+        <rdar://problem/27479713>
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/unit-tests/debounce-expected.txt:
+        Updated with new delay times.
+
+        * inspector/unit-tests/debounce.html:
+        Remove unused code that was copy-pasted from other tests, and reduced
+        delay times from 100ms to 10ms to speed up test.
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        Fix default parameter values for window.alert() / prompt() / confirm()
+        https://bugs.webkit.org/show_bug.cgi?id=160085
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect behavior change.
+
+        * fast/dom/Window/alert-undefined-expected.txt:
+        * fast/dom/Window/alert-undefined.html:
+
+2016-07-22  Daniel Bates  <dabates@apple.com>
+
+        CSP: object-src and plugin-types directives are not respected for plugin replacements
+        https://bugs.webkit.org/show_bug.cgi?id=159761
+        <rdar://problem/27365724>
+
+        Reviewed by Brent Fulgham.
+
+        Add layout tests to ensure that we apply the CSP object-src and plugin-types directives to content
+        that loads with either the QuickTime plugin replacement or YouTube plugin replacement.
+
+        * security/contentSecurityPolicy/object-src-none-blocks-quicktime-plugin-replacement-expected.txt: Added.
+        * security/contentSecurityPolicy/object-src-none-blocks-quicktime-plugin-replacement.html: Added.
+        * security/contentSecurityPolicy/object-src-none-blocks-youtube-plugin-replacement-expected.txt: Added.
+        * security/contentSecurityPolicy/object-src-none-blocks-youtube-plugin-replacement.html: Added.
+        * security/contentSecurityPolicy/plugins-types-allows-quicktime-plugin-replacement-expected.txt: Added.
+        * security/contentSecurityPolicy/plugins-types-allows-quicktime-plugin-replacement.html: Added.
+        * security/contentSecurityPolicy/plugins-types-allows-youtube-plugin-replacement-expected.txt: Added.
+        * security/contentSecurityPolicy/plugins-types-allows-youtube-plugin-replacement.html: Added.
+        * security/contentSecurityPolicy/plugins-types-blocks-quicktime-plugin-replacement-expected.txt: Added.
+        * security/contentSecurityPolicy/plugins-types-blocks-quicktime-plugin-replacement-without-mime-type-expected.txt: Added.
+        * security/contentSecurityPolicy/plugins-types-blocks-quicktime-plugin-replacement-without-mime-type.html: Added.
+        * security/contentSecurityPolicy/plugins-types-blocks-quicktime-plugin-replacement.html: Added.
+        * security/contentSecurityPolicy/plugins-types-blocks-youtube-plugin-replacement-expected.txt: Added.
+        * security/contentSecurityPolicy/plugins-types-blocks-youtube-plugin-replacement-without-mime-type-expected.txt: Added.
+        * security/contentSecurityPolicy/plugins-types-blocks-youtube-plugin-replacement-without-mime-type.html: Added.
+        * security/contentSecurityPolicy/plugins-types-blocks-youtube-plugin-replacement.html: Added.
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        Parameters to Node.replaceChild() / insertBefore() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160091
+
+        Reviewed by Darin Adler.
+
+        Update existing tests due to the behavior change.
+
+        * fast/block/basic/empty-anonymous-block-remove-crash.html:
+        * fast/html/details-summary-document-child.html:
+        * fast/repaint/focus-ring-with-negative-offset-repaint.html:
+        * svg/animations/mpath-remove-from-dependents-on-delete-crash.html:
+
+2016-07-22  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to getElementById() should be mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160087
+
+        Reviewed by Darin Adler.
+
+        Add layout test coverage for SVGSVGElement.getElementById().
+
+        * svg/dom/SVGSVGElement-getElementById-expected.txt: Added.
+        * svg/dom/SVGSVGElement-getElementById.html: Added.
+
+2016-07-22  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Correct a TestExpectation by changing it from Failure to ImageOnlyFailure
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Make parameters to Element.getElementsBy*() operations mandatory
+        https://bugs.webkit.org/show_bug.cgi?id=160060
+
+        Reviewed by Darin Adler.
+
+        Drop cases that were calling the operation without parameter.
+        
+        * fast/dom/getElementsByClassName/dumpHTMLCollection-expected.txt:
+        * fast/dom/getElementsByClassName/dumpHTMLCollection.html:
+
+2016-07-21  Chris Dumez  <cdumez@apple.com>
+
+        Make parameters mandatory for attribute-related API on Element
+        https://bugs.webkit.org/show_bug.cgi?id=160059
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing layout tests to reflect the behavior change.
+
+        * fast/dom/Element/script-tests/setAttributeNS-namespace-err.js:
+        * fast/dom/Element/setAttributeNS-namespace-err-expected.txt:
+        * fast/dom/HTMLHrElement/hr-color-noshade-attribute.html:
+        * fast/dom/attribute-downcast-right.html:
+        * fast/images/style-access-during-imageChanged-style-freeze.html:
+        * fast/selectors/read-only-read-write-input-basics.html:
+        * fast/selectors/read-only-read-write-textarea-basics.html:
+        * media/video-playsinline-expected.txt:
+        * media/video-playsinline.html:
+
+2016-07-21  Dean Jackson  <dino@apple.com>
+
+        REGRESSION (r202927): The internal size of the ImageBuffer is scaled twice by the context scaleFactor
+        https://bugs.webkit.org/show_bug.cgi?id=159981
+        <rdar://problem/27429465>
+
+        Reviewed by Myles Maxfield.
+
+        * fast/hidpi/pdf-image-scaled-expected.html: Added.
+        * fast/hidpi/pdf-image-scaled.html: Added.
+        * fast/hidpi/resources/circle.pdf: Added.
+
 2016-07-21  John Wilander  <wilander@apple.com>
 
         Block mixed content synchronous XHR

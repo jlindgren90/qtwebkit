@@ -86,8 +86,7 @@
 
     // DOM Level 2 Events (DocumentEvents interface)
 
-    // FIXME: Using "undefined" as default parameter value is wrong.
-    [RaisesException, NewObject] Event createEvent(optional DOMString eventType = "undefined");
+    [RaisesException, NewObject] Event createEvent(DOMString eventType);
 
     // DOM Level 2 Tranversal and Range (DocumentRange interface)
 
@@ -220,8 +219,7 @@
 
 #if defined(LANGUAGE_OBJECTIVE_C) && LANGUAGE_OBJECTIVE_C
     // DOM Level 2 Style Interface
-    [ObjCLegacyUnnamedParameters, ObjCUseDefaultView] CSSStyleDeclaration getComputedStyle(Element? element,
-                                                                  DOMString pseudoElement);
+    [ObjCLegacyUnnamedParameters, ObjCUseDefaultView] CSSStyleDeclaration getComputedStyle(Element element, DOMString pseudoElement);
 
     // WebKit extension
     // FIXME: remove the first version once optional is implemented for Objective-C.

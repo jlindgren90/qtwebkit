@@ -1,3 +1,256 @@
+2016-07-23  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203641.
+        https://bugs.webkit.org/show_bug.cgi?id=160116
+
+        It broke make-based builds (Requested by youenn on #webkit).
+
+        Reverted changeset:
+
+        "[Fetch API] Request should be created with any HeadersInit
+        data"
+        https://bugs.webkit.org/show_bug.cgi?id=159672
+        http://trac.webkit.org/changeset/203641
+
+2016-07-23  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Request should be created with any HeadersInit data
+        https://bugs.webkit.org/show_bug.cgi?id=159672
+
+        Reviewed by Sam Weinig.
+
+        * Scripts/builtins/builtins_generator.py:
+        (WK_lcfirst): Synchronized with CodeGenerator.pm version.
+
+2016-07-21  Filip Pizlo  <fpizlo@apple.com>
+
+        Teach MarkedSpace how to allocate auxiliary storage
+        https://bugs.webkit.org/show_bug.cgi?id=160053
+
+        Reviewed by Sam Weinig.
+        
+        Previously, we had two kinds of subspaces in MarkedSpace: destructor and non-destructor. This
+        was described using "bool needsDestruction" that would get passed around. We'd iterate over
+        these spaces using duplicated code - one loop for destructors and one for non-destructors, or
+        a single loop that does one thing for destructors and one for non-destructors.
+        
+        But now we want a third subspace: non-destructor non-JSCell, aka Auxiliary.
+        
+        So, this changes all of the reflection and iteration over subspaces to use functors, so that
+        the looping is written once and reused. Most places don't even have to know that there is a
+        third subspace; they just know that they must do things for each subspace, for each
+        allocator, or for each block - and the functor magic handles it for you.
+        
+        To make this somewhat nice, this change also fixes how we describe subspaces. Instead of a
+        bool, we now have AllocatorAttributes, which is a struct. If we ever add more subspaces, we
+        can add fields to AllocatorAttributes to describe how those subspaces differ. For now it just
+        contains two properties: a DestructionMode and a HeapCell::Kind. The DesctructionMode
+        replaces bool needsDestruction. I deliberately used a non-class enum to avoid tautologies.
+        DestructionMode has two members: NeedsDestruction and DoesNotNeedDestruction. I almost went
+        with DestructionMode::Needed and DestructionMode::NotNeeded, but I felt like that involves
+        more typing and doesn't actually avoid any kind of namespace issues.
+        
+        This is intended to have no behavior change other than the addition of a totally unused
+        space, which should always be empty. So hopefully it doesn't cost anything.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * heap/AllocatorAttributes.cpp: Added.
+        (JSC::AllocatorAttributes::dump):
+        * heap/AllocatorAttributes.h: Added.
+        (JSC::AllocatorAttributes::AllocatorAttributes):
+        * heap/DestructionMode.cpp: Added.
+        (WTF::printInternal):
+        * heap/DestructionMode.h: Added.
+        * heap/Heap.h:
+        * heap/MarkedAllocator.cpp:
+        (JSC::MarkedAllocator::allocateBlock):
+        (JSC::MarkedAllocator::addBlock):
+        * heap/MarkedAllocator.h:
+        (JSC::MarkedAllocator::cellSize):
+        (JSC::MarkedAllocator::attributes):
+        (JSC::MarkedAllocator::needsDestruction):
+        (JSC::MarkedAllocator::destruction):
+        (JSC::MarkedAllocator::cellKind):
+        (JSC::MarkedAllocator::heap):
+        (JSC::MarkedAllocator::takeLastActiveBlock):
+        (JSC::MarkedAllocator::MarkedAllocator):
+        (JSC::MarkedAllocator::init):
+        (JSC::MarkedAllocator::allocate):
+        * heap/MarkedBlock.cpp:
+        (JSC::MarkedBlock::create):
+        (JSC::MarkedBlock::destroy):
+        (JSC::MarkedBlock::MarkedBlock):
+        (JSC::MarkedBlock::callDestructor):
+        (JSC::MarkedBlock::sweep):
+        (JSC::MarkedBlock::stopAllocating):
+        (JSC::MarkedBlock::didRetireBlock):
+        * heap/MarkedBlock.h:
+        (JSC::MarkedBlock::cellSize):
+        (JSC::MarkedBlock::attributes):
+        (JSC::MarkedBlock::needsDestruction):
+        (JSC::MarkedBlock::destruction):
+        (JSC::MarkedBlock::cellKind):
+        (JSC::MarkedBlock::size):
+        (JSC::MarkedBlock::forEachCell):
+        (JSC::MarkedBlock::forEachLiveCell):
+        (JSC::MarkedBlock::forEachDeadCell):
+        * heap/MarkedSpace.cpp:
+        (JSC::MarkedSpace::MarkedSpace):
+        (JSC::MarkedSpace::~MarkedSpace):
+        (JSC::MarkedSpace::lastChanceToFinalize):
+        (JSC::MarkedSpace::resetAllocators):
+        (JSC::MarkedSpace::forEachAllocator):
+        (JSC::MarkedSpace::stopAllocating):
+        (JSC::MarkedSpace::resumeAllocating):
+        (JSC::MarkedSpace::isPagedOut):
+        (JSC::MarkedSpace::freeBlock):
+        (JSC::MarkedSpace::shrink):
+        (JSC::MarkedSpace::clearNewlyAllocated):
+        (JSC::clearNewlyAllocatedInBlock): Deleted.
+        * heap/MarkedSpace.h:
+        (JSC::MarkedSpace::subspaceForObjectsWithDestructor):
+        (JSC::MarkedSpace::subspaceForObjectsWithoutDestructor):
+        (JSC::MarkedSpace::subspaceForAuxiliaryData):
+        (JSC::MarkedSpace::allocatorFor):
+        (JSC::MarkedSpace::destructorAllocatorFor):
+        (JSC::MarkedSpace::auxiliaryAllocatorFor):
+        (JSC::MarkedSpace::allocateWithoutDestructor):
+        (JSC::MarkedSpace::allocateWithDestructor):
+        (JSC::MarkedSpace::allocateAuxiliary):
+        (JSC::MarkedSpace::forEachBlock):
+        (JSC::MarkedSpace::didAddBlock):
+        (JSC::MarkedSpace::capacity):
+        (JSC::MarkedSpace::forEachSubspace):
+
+2016-07-22  Saam Barati  <sbarati@apple.com>
+
+        REGRESSION(r203537): It made many tests crash on ARMv7 Linux platforms
+        https://bugs.webkit.org/show_bug.cgi?id=160082
+
+        Reviewed by Keith Miller.
+
+        We were improperly linking the Jump in the link buffer.
+        It caused us to be linking against the executable address
+        which always has bit 0 set. We shouldn't be doing that.
+        This patch fixes this, by using the same idiom that
+        PolymorphicAccess uses to link a jump to out of line code.
+
+        * jit/JITMathIC.h:
+        (JSC::JITMathIC::generateOutOfLine):
+
+2016-07-22  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203603.
+        https://bugs.webkit.org/show_bug.cgi?id=160096
+
+        Caused CLoop tests to fail with assertions (Requested by
+        perarne on #webkit).
+
+        Reverted changeset:
+
+        "[Win] jsc.exe sometimes never exits."
+        https://bugs.webkit.org/show_bug.cgi?id=158073
+        http://trac.webkit.org/changeset/203603
+
+2016-07-22  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] jsc.exe sometimes never exits.
+        https://bugs.webkit.org/show_bug.cgi?id=158073
+
+        Reviewed by Mark Lam.
+
+        Make sure the VM is deleted after the test has finished. This will gracefully stop the sampling profiler thread,
+        and give the thread the opportunity to release the machine thread lock aquired in SamplingProfiler::takeSample.  
+        If the sampling profiler thread was terminated while holding the machine thread lock, the machine thread will
+        not be able to grab the lock afterwards. 
+ 
+        * jsc.cpp:
+        (jscmain):
+
+2016-07-22  Per Arne Vollan  <pvollan@apple.com>
+
+        Fix the Windows 64-bit build after r203537
+        https://bugs.webkit.org/show_bug.cgi?id=160080
+
+        Reviewed by Csaba Osztrogonác.
+
+        Added new version of setupArgumentsWithExecState method.
+
+        * jit/CCallHelpers.h:
+        (JSC::CCallHelpers::setupArgumentsWithExecState):
+
+2016-07-22  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [ARM] Unreviewed EABI buildfix after r203537.
+
+        * jit/CCallHelpers.h:
+        (JSC::CCallHelpers::setupArgumentsWithExecState): Added.
+
+2016-07-22  Youenn Fablet  <youenn@apple.com>
+
+        run-builtins-generator-tests should be able to test WebCore builtins wrapper with more than one file
+        https://bugs.webkit.org/show_bug.cgi?id=159921
+
+        Reviewed by Brian Burg.
+
+        Updated built-in generator to generate only wrapper files when passed the --wrappers-only option.
+        When this option is used, wrapper files are generated but no individual file is generated.
+        When this option is not used, individual files are generated but not wrapper file is generated.
+        This allows the builtin generator test runner to generate a single WebCore-Wrappers.h-result generated for all
+        WebCore test files, like used for real in WebCore.
+        Previously wrapper code was generated individually for each WebCore test file.
+
+        Added new built-in test file to cover the case of concatenating several guards in generated WebCore wrapper files.
+
+        * Scripts/generate-js-builtins.py:
+        (concatenated_output_filename): Compute a decent name for wrapper files in case of test mode.
+        (generate_bindings_for_builtins_files): When --wrappers-only is activated, this generates only the wrapper files, not the individual files.
+        * Scripts/tests/builtins/WebCore-AnotherGuardedInternalBuiltin-Separate.js: Added.
+        * Scripts/tests/builtins/expected/WebCore-AnotherGuardedInternalBuiltin-Separate.js-result: Added.
+        * Scripts/tests/builtins/expected/WebCore-ArbitraryConditionalGuard-Separate.js-result: Removed wrapper code.
+        * Scripts/tests/builtins/expected/WebCore-GuardedBuiltin-Separate.js-result: Ditto.
+        * Scripts/tests/builtins/expected/WebCore-GuardedInternalBuiltin-Separate.js-result: Ditto.
+        * Scripts/tests/builtins/expected/WebCore-UnguardedBuiltin-Separate.js-result: Ditto.
+        * Scripts/tests/builtins/expected/WebCore-xmlCasingTest-Separate.js-result: Removed wrapper code.
+        * Scripts/tests/builtins/expected/WebCoreJSBuiltins.h-result: Added, contains wrapper code for all WebCore valid test cases.
+
+2016-07-21  Saam Barati  <sbarati@apple.com>
+
+        callOperation(.) variants in the DFG that explicitly take a tag/payload register should take a JSValueRegs instead
+        https://bugs.webkit.org/show_bug.cgi?id=160007
+
+        Reviewed by Filip Pizlo.
+
+        This patch is the first step in my plan to remove all callOperation(.) variants
+        in the various JITs and to unify them using a couple template variations.
+        The steps are as follows:
+        1. Replace all explicit tag/payload pairs with JSValueRegs in the DFG
+        2. Replace all explicit tag/payload pairs with JSValueRegs in the baseline
+        3. remove callOperation(.) variants and teach setupArgumentsWithExecState
+           about JSValueRegs.
+
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileGetByValOnString):
+        (JSC::DFG::SpeculativeJIT::compileValueAdd):
+        (JSC::DFG::SpeculativeJIT::compileGetDynamicVar):
+        (JSC::DFG::SpeculativeJIT::compilePutDynamicVar):
+        (JSC::DFG::SpeculativeJIT::compilePutAccessorByVal):
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::callOperation):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::cachedGetById):
+        (JSC::DFG::SpeculativeJIT::cachedPutById):
+        (JSC::DFG::SpeculativeJIT::nonSpeculativePeepholeBranch):
+        (JSC::DFG::CompareAndBoxBooleanSlowPathGenerator::generateInternal):
+        (JSC::DFG::SpeculativeJIT::nonSpeculativeNonPeepholeCompare):
+        (JSC::DFG::SpeculativeJIT::nonSpeculativePeepholeStrictEq):
+        (JSC::DFG::SpeculativeJIT::nonSpeculativeNonPeepholeStrictEq):
+        (JSC::DFG::SpeculativeJIT::emitCall):
+        (JSC::DFG::SpeculativeJIT::compileLogicalNot):
+        (JSC::DFG::SpeculativeJIT::emitBranch):
+        (JSC::DFG::SpeculativeJIT::compile):
+
 2016-07-21  Saam Barati  <sbarati@apple.com>
 
         op_add/ValueAdd should be an IC in all JIT tiers
