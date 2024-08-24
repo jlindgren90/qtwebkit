@@ -24,7 +24,7 @@
  */
 
 #import "config.h"
-#import "DOMCSSMediaRuleInternal.h"
+#import "DOMCSSMediaRule.h"
 
 #import "CSSMediaRule.h"
 #import "CSSRuleList.h"
@@ -65,15 +65,6 @@
     return result;
 }
 
-- (unsigned)insertRule:(NSString *)rule :(unsigned)index
-{
-    WebCore::JSMainThreadNullState state;
-    WebCore::ExceptionCode ec = 0;
-    unsigned result = IMPL->insertRule(rule, index, ec);
-    WebCore::raiseOnDOMError(ec);
-    return result;
-}
-
 - (void)deleteRule:(unsigned)index
 {
     WebCore::JSMainThreadNullState state;
@@ -84,13 +75,11 @@
 
 @end
 
-WebCore::CSSMediaRule* core(DOMCSSMediaRule *wrapper)
+@implementation DOMCSSMediaRule (DOMCSSMediaRuleDeprecated)
+
+- (unsigned)insertRule:(NSString *)rule :(unsigned)index
 {
-    return wrapper ? reinterpret_cast<WebCore::CSSMediaRule*>(wrapper->_internal) : 0;
+    return [self insertRule:rule index:index];
 }
 
-DOMCSSMediaRule *kit(WebCore::CSSMediaRule* value)
-{
-    WebCoreThreadViolationCheckRoundOne();
-    return static_cast<DOMCSSMediaRule*>(kit(static_cast<WebCore::CSSRule*>(value)));
-}
+@end

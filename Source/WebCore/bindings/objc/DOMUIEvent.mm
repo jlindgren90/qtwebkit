@@ -24,7 +24,7 @@
  */
 
 #import "config.h"
-#import "DOMUIEventInternal.h"
+#import "DOMUIEvent.h"
 
 #import "DOMAbstractViewInternal.h"
 #import "DOMEventInternal.h"
@@ -102,21 +102,13 @@
     IMPL->initUIEvent(type, canBubble, cancelable, core(inView), inDetail);
 }
 
+@end
+
+@implementation DOMUIEvent (DOMUIEventDeprecated)
+
 - (void)initUIEvent:(NSString *)type :(BOOL)canBubble :(BOOL)cancelable :(DOMAbstractView *)inView :(int)inDetail
 {
-    WebCore::JSMainThreadNullState state;
-    IMPL->initUIEvent(type, canBubble, cancelable, core(inView), inDetail);
+    [self initUIEvent:type canBubble:canBubble cancelable:cancelable view:inView detail:inDetail];
 }
 
 @end
-
-WebCore::UIEvent* core(DOMUIEvent *wrapper)
-{
-    return wrapper ? reinterpret_cast<WebCore::UIEvent*>(wrapper->_internal) : 0;
-}
-
-DOMUIEvent *kit(WebCore::UIEvent* value)
-{
-    WebCoreThreadViolationCheckRoundOne();
-    return static_cast<DOMUIEvent*>(kit(static_cast<WebCore::Event*>(value)));
-}

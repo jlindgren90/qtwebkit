@@ -1,3 +1,303 @@
+2016-08-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203935.
+        https://bugs.webkit.org/show_bug.cgi?id=160596
+
+        looks like a 1-2% PLUM regression on iPhone 6s (Requested by
+        kling_ on #webkit).
+
+        Reverted changeset:
+
+        "Window's named properties should be exposed on a
+        WindowProperties object in its prototype"
+        https://bugs.webkit.org/show_bug.cgi?id=160354
+        http://trac.webkit.org/changeset/203935
+
+2016-08-05  Youenn Fablet  <youenn@apple.com>
+
+        http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-worker.html is failing on iOS-simulator-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=160591
+
+        Unreviewed.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-08-05  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Activate CSP checks
+        https://bugs.webkit.org/show_bug.cgi?id=160445
+
+        Reviewed by Daniel Bates.
+
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/resources/insecure-fetch-in-main-frame-window.html: Added.
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/resources/insecure-xhr-in-main-frame-window.html:
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html: Added.
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-worker-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-worker.html: Added.
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-xhr-in-main-frame-expected.txt:
+        * platform/mac-wk2/TestExpectations: Marking new worker test as failing at loading https resource from loader.
+        It gets a "The certificate for this server is invalid" error.
+        * platform/wk2/TestExpectations: Marking new frame test as timing out for WK2 as fetch is not activated in the pop-up window.
+
+2016-08-05  Youenn Fablet  <youenn@apple.com>
+
+        DocumentThreadableLoader should report an error when getting a null CachedResource
+        https://bugs.webkit.org/show_bug.cgi?id=160444
+
+        Reviewed by Alex Christensen.
+
+        * fast/frames/frame-unload-crash.html:
+        * http/tests/contentextensions/async-xhr-onerror-expected.txt:
+        * http/tests/eventsource/eventsource-reconnect-during-navigate-crash-expected.txt:
+        * http/tests/navigation/subframe-pagehide-handler-starts-load-expected.txt:
+        * http/tests/navigation/subframe-pagehide-handler-starts-load2-expected.txt:
+        * http/tests/security/mixedContent/insecure-xhr-in-main-frame-expected.txt:
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        Move insertAdjacent*() API from HTMLElement to Element
+        https://bugs.webkit.org/show_bug.cgi?id=160567
+
+        Reviewed by Sam Weinig.
+
+        Rebaseline several tests to reflect behavior change.
+
+        * fast/dom/HTMLElement/insertAdjacentHTML-errors-expected.txt:
+        * fast/dom/HTMLElement/script-tests/insertAdjacentHTML-errors.js:
+        * fast/dynamic/insertAdjacentElement-expected.txt:
+
+2016-08-04  Benjamin Poulain  <benjamin@webkit.org>
+
+        Add some extra test coverage for active touch event handler on subdocuments
+        https://bugs.webkit.org/show_bug.cgi?id=160276
+
+        Reviewed by Alex Christensen.
+
+        I wrote some tests while chasing a bug.
+        Documents are handled differently than other EventTarget. We had no test coverage
+        for that.
+
+        * fast/events/touch/ios/touch-event-listeners-on-detached-document-expected.txt: Added.
+        * fast/events/touch/ios/touch-event-listeners-on-detached-document.html: Added.
+        * fast/events/touch/ios/touch-event-listeners-on-subdocument-then-detach-from-frame-expected.txt: Added.
+        * fast/events/touch/ios/touch-event-listeners-on-subdocument-then-detach-from-frame.html: Added.
+        * fast/events/touch/ios/touch-event-listeners-on-subdocuments-expected.txt: Added.
+        * fast/events/touch/ios/touch-event-listeners-on-subdocuments.html: Added.
+        * fast/events/touch/ios/touch-event-listeners-on-template-document-expected.txt: Added.
+        * fast/events/touch/ios/touch-event-listeners-on-template-document.html: Added.
+
+2016-08-04  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline http/tests/security/cross-frame-access-put.html after r204126.
+
+        Unreviewed test gardening.
+
+        * http/tests/security/cross-frame-access-put-expected.txt:
+
+2016-08-04  Jeremy Jones  <jeremyj@apple.com>
+
+        Temporary redirected m3u8 streaming stopped working.
+        https://bugs.webkit.org/show_bug.cgi?id=160472
+        rdar://problem/27592694
+
+        Reviewed by Alex Christensen.
+
+        This tests that m3u8 files can be loaded when going through a temporary redirect.
+
+        * http/tests/media/hls/hls-redirect-expected.txt: Added.
+        * http/tests/media/hls/hls-redirect.html: Added.
+
+2016-08-04  Alex Christensen  <achristensen@webkit.org>
+
+        Content Blocker cannot block WebSocket connections
+        https://bugs.webkit.org/show_bug.cgi?id=160159
+
+        Reviewed by Brady Eidson.
+
+        * http/tests/contentextensions/make-https-expected.txt:
+        Rebased to reflect slight change in console logged messages which contain the same information.
+        * http/tests/websocket/tests/hybi/contentextensions: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block-cookies-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block-cookies-worker-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block-cookies-worker.php: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block-cookies-worker.php.json: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block-cookies.php: Copied from LayoutTests/http/tests/websocket/tests/hybi/httponly-cookie.pl.
+        * http/tests/websocket/tests/hybi/contentextensions/block-cookies.php.json: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block-worker-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block-worker.html: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block-worker.html.json: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block.html: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/block.html.json: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/display-none-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/display-none-worker-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/display-none-worker.html: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/display-none-worker.html.json: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/display-none.html: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/display-none.html.json: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/resources: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/resources/block-cookies-worker.js: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/resources/block-worker.js: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/resources/display-none-worker.js: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/resources/echo-cookie_wsh.py: Copied from LayoutTests/http/tests/websocket/tests/hybi/echo-cookie_wsh.py.
+        * http/tests/websocket/tests/hybi/contentextensions/resources/echo_wsh.py: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/resources/upgrade-worker.js: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/upgrade-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/upgrade-worker-expected.txt: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/upgrade-worker.html: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/upgrade-worker.html.json: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/upgrade.html: Added.
+        * http/tests/websocket/tests/hybi/contentextensions/upgrade.html.json: Added.
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        [[Prototype]] property of an interface object for a callback interface must be the Object.prototype object
+        https://bugs.webkit.org/show_bug.cgi?id=160555
+
+        Reviewed by Geoffrey Garen.
+
+        Rebaseline existing test.
+
+        * platform/mac/fast/dom/Window/window-lookup-precedence-expected.txt:
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        Element.insertAdjacent*() should throw a SYNTAX_ERR for invalid "where" parameter
+        https://bugs.webkit.org/show_bug.cgi?id=160514
+
+        Reviewed by Alex Christensen.
+
+        Rebaseline existing test now that a different exception is thrown.
+
+        * fast/dynamic/insertAdjacentElement-expected.txt:
+        * fast/dynamic/insertAdjacentText-expected.txt:
+
+2016-08-04  Youenn Fablet  <youenn@apple.com>
+
+        DocumentThreadableLoader should pass the fetch mode to underlying loader code
+        https://bugs.webkit.org/show_bug.cgi?id=160399
+
+        Reviewed by Alex Christensen.
+
+        * TestExpectations:
+        * http/tests/security/contentSecurityPolicy/1.1/child-src/worker-redirect-blocked-expected.txt:
+        * http/tests/security/isolatedWorld/bypass-main-world-csp-worker-redirect-expected.txt:
+        * http/tests/workers/worker-redirect-expected.txt:
+        * http/tests/xmlhttprequest/access-control-and-redirects-async-expected.txt:
+        * http/tests/xmlhttprequest/access-control-and-redirects-async.html: Fixed bugs in the test and updated comments.
+        * http/tests/xmlhttprequest/access-control-and-redirects-expected.txt:
+        * http/tests/xmlhttprequest/redirect-cross-origin-post-expected.txt:
+        * http/tests/xmlhttprequest/simple-cross-origin-denied-events-post-expected.txt:
+
+2016-08-04  Youenn Fablet  <youenn@apple.com>
+
+        LayoutTest imported/w3c/web-platform-tests/XMLHttpRequest/send-redirect-post-upload.htm failing
+        https://bugs.webkit.org/show_bug.cgi?id=159724
+
+        Unreviewed..
+
+        * TestExpectations: Removing Crash expectation since it is only occuring on Debug Mac bots.
+        * platform/mac/TestExpectations: Skipping test in Debug for Mac bots.
+
+2016-08-03  Chris Dumez  <cdumez@apple.com>
+
+        Drop legacy Document.defaultCharset attribute
+        https://bugs.webkit.org/show_bug.cgi?id=160536
+
+        Reviewed by Alex Christensen.
+
+        * fast/dom/Document/document-charset-expected.txt:
+        * fast/dom/Document/document-charset.html:
+        Drop defaultCharset checks.
+
+        * fast/frames/detached-frame-document-defaultCharset-expected.txt: Removed.
+        * fast/frames/detached-frame-document-defaultCharset.html: Removed.
+        Drop test that is no longer useful now that we dropped defaultCharset.
+
+2016-08-03  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/track/track-in-band-cues-added-once.html as flaky on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=142152
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-08-03  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iOS] SF-Heavy is not accessible from web content
+        https://bugs.webkit.org/show_bug.cgi?id=160522
+        <rdar://problem/27685273>
+
+        Reviewed by Simon Fraser.
+
+        * platform/ios-simulator/fast/text/system-font-weight-expected.txt: iOS 9 is not
+        expected to pass this test, but there is no way to specify that currently using
+        TestExpectations. Instead, we can create an iOS 9 specific result.
+        * fast/text/system-font-weight-expected.txt:
+        * fast/text/system-font-weight.html:
+
+2016-08-03  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline tests for ios-simulator after r204090.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/dom/reflection-embedded-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/dom/reflection-forms-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-checkValidity-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-reportValidity-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-rangeOverflow-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-rangeUnderflow-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-stepMismatch-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-valid-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-valueMissing-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-willValidate-expected.txt: Renamed from LayoutTests/platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-willValidate-expected.txt.
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/form-control-infrastructure/form-expected.txt:
+
+2016-08-03  Chris Dumez  <cdumez@apple.com>
+
+        Fix logging in W3C tests
+        https://bugs.webkit.org/show_bug.cgi?id=160513
+
+        Reviewed by Alex Christensen.
+
+        Fix logging in W3C tests. Some W3C tests have no visible output or
+        output in the wrong order because we fail to use the test's "log"
+        <div> and always append the log lines to the body.
+
+        * resources/testharnessreport.js:
+        (self.testRunner.add_completion_callback):
+
+2016-08-02  Ada Chan  <adachan@apple.com>
+
+        [Mac] media/pip-video-going-into-fullscreen.html is a flaky failure
+        https://bugs.webkit.org/show_bug.cgi?id=160469
+
+        Reviewed by Eric Carlson.
+
+        Re-enable media/pip-video-going-into-fullscreen.html on Sierra.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-08-03  Youenn Fablet  <youenn@apple.com>
+
+        http/tests/fetch/fetch-in-worker-crash.html is sometimes crashing
+        https://bugs.webkit.org/show_bug.cgi?id=160498
+
+        Reviewed by Chris Dumez.
+
+        * http/tests/fetch/fetch-in-worker.js:
+        (onmessage): Reducing flakiness risk by making fetch http load being delayed.
+
+2016-08-03  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, move LayoutTest out of platform/ios-simulator/ios.
+
+        * fast/events/touch/ios/Touch-attributes-prototype-expected.txt: Renamed from LayoutTests/platform/ios-simulator/ios/touch/Touch-attributes-prototype-expected.txt.
+        * fast/events/touch/ios/Touch-attributes-prototype.html: Renamed from LayoutTests/platform/ios-simulator/ios/touch/Touch-attributes-prototype.html.
+
 2016-08-03  Saam Barati  <sbarati@apple.com>
 
         Implement nested rest destructuring w.r.t the ES7 spec

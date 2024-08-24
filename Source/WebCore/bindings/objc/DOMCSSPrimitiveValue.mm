@@ -60,14 +60,6 @@
     WebCore::raiseOnDOMError(ec);
 }
 
-- (void)setFloatValue:(unsigned short)unitType :(float)floatValue
-{
-    WebCore::JSMainThreadNullState state;
-    WebCore::ExceptionCode ec = 0;
-    IMPL->setFloatValue(unitType, floatValue, ec);
-    WebCore::raiseOnDOMError(ec);
-}
-
 - (float)getFloatValue:(unsigned short)unitType
 {
     WebCore::JSMainThreadNullState state;
@@ -78,14 +70,6 @@
 }
 
 - (void)setStringValue:(unsigned short)stringType stringValue:(NSString *)stringValue
-{
-    WebCore::JSMainThreadNullState state;
-    WebCore::ExceptionCode ec = 0;
-    IMPL->setStringValue(stringType, stringValue, ec);
-    WebCore::raiseOnDOMError(ec);
-}
-
-- (void)setStringValue:(unsigned short)stringType :(NSString *)stringValue
 {
     WebCore::JSMainThreadNullState state;
     WebCore::ExceptionCode ec = 0;
@@ -131,10 +115,19 @@
 
 @end
 
-WebCore::CSSPrimitiveValue* core(DOMCSSPrimitiveValue *wrapper)
+@implementation DOMCSSPrimitiveValue (DOMCSSPrimitiveValueDeprecated)
+
+- (void)setFloatValue:(unsigned short)unitType :(float)floatValue
 {
-    return wrapper ? reinterpret_cast<WebCore::CSSPrimitiveValue*>(wrapper->_internal) : 0;
+    [self setFloatValue:unitType floatValue:floatValue];
 }
+
+- (void)setStringValue:(unsigned short)stringType :(NSString *)stringValue
+{
+    [self setStringValue:stringType stringValue:stringValue];
+}
+
+@end
 
 DOMCSSPrimitiveValue *kit(WebCore::CSSPrimitiveValue* value)
 {

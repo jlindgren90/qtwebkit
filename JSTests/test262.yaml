@@ -53738,7 +53738,7 @@
 - path: test262/test/language/expressions/arrow-function/object-literal-return-requires-body-parens.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/arrow-function/param-dflt-yield-expr.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/arrow-function/param-dflt-yield-expr.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/arrow-function/param-dflt-yield-id-non-strict.js
@@ -71250,7 +71250,7 @@
 - path: test262/test/language/module-code/namespace/Symbol.iterator/list-iter-next-prop-desc.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/name.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/prop-desc.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/Symbol.iterator/this-val-not-ns.js

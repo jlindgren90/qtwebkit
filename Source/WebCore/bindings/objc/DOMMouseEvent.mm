@@ -24,7 +24,7 @@
  */
 
 #import "config.h"
-#import "DOMMouseEventInternal.h"
+#import "DOMMouseEvent.h"
 
 #import "DOMAbstractViewInternal.h"
 #import "DOMEventInternal.h"
@@ -165,23 +165,13 @@
     IMPL->initMouseEvent(type, canBubble, cancelable, core(view), detail, inScreenX, inScreenY, inClientX, inClientY, inCtrlKey, inAltKey, inShiftKey, inMetaKey, inButton, inRelatedTargetNode);
 }
 
+@end
+
+@implementation DOMMouseEvent (DOMMouseEventDeprecated)
+
 - (void)initMouseEvent:(NSString *)type :(BOOL)canBubble :(BOOL)cancelable :(DOMAbstractView *)view :(int)detail :(int)inScreenX :(int)inScreenY :(int)inClientX :(int)inClientY :(BOOL)inCtrlKey :(BOOL)inAltKey :(BOOL)inShiftKey :(BOOL)inMetaKey :(unsigned short)inButton :(id <DOMEventTarget>)inRelatedTarget
 {
-    WebCore::JSMainThreadNullState state;
-    DOMNode* inRelatedTargetObjC = inRelatedTarget;
-    WebCore::Node* inRelatedTargetNode = core(inRelatedTargetObjC);
-    IMPL->initMouseEvent(type, canBubble, cancelable, core(view), detail, inScreenX, inScreenY, inClientX, inClientY, inCtrlKey, inAltKey, inShiftKey, inMetaKey, inButton, inRelatedTargetNode);
+    [self initMouseEvent:type canBubble:canBubble cancelable:cancelable view:view detail:detail screenX:inScreenX screenY:inScreenY clientX:inClientX clientY:inClientY ctrlKey:inCtrlKey altKey:inAltKey shiftKey:inShiftKey metaKey:inMetaKey button:inButton relatedTarget:inRelatedTarget];
 }
 
 @end
-
-WebCore::MouseEvent* core(DOMMouseEvent *wrapper)
-{
-    return wrapper ? reinterpret_cast<WebCore::MouseEvent*>(wrapper->_internal) : 0;
-}
-
-DOMMouseEvent *kit(WebCore::MouseEvent* value)
-{
-    WebCoreThreadViolationCheckRoundOne();
-    return static_cast<DOMMouseEvent*>(kit(static_cast<WebCore::Event*>(value)));
-}

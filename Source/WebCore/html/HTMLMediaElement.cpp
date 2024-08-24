@@ -1355,13 +1355,14 @@ void HTMLMediaElement::loadResource(const URL& initialURL, ContentType& contentT
     }
 
 #if ENABLE(CONTENT_EXTENSIONS)
-    ResourceRequest request(url);
     DocumentLoader* documentLoader = frame->loader().documentLoader();
 
-    if (documentLoader && page->userContentProvider().processContentExtensionRulesForLoad(request, ResourceType::Media, *documentLoader) == ContentExtensions::BlockedStatus::Blocked) {
-        request = { };
-        mediaLoadingFailed(MediaPlayer::FormatError);
-        return;
+    if (documentLoader) {
+        auto blockedStatus = page->userContentProvider().processContentExtensionRulesForLoad(url, ResourceType::Media, *documentLoader);
+        if (blockedStatus.blockedLoad) {
+            mediaLoadingFailed(MediaPlayer::FormatError);
+            return;
+        }
     }
 #endif
 
@@ -5086,7 +5087,7 @@ void HTMLMediaElement::stopWithoutDestroyingMediaPlayer()
     if (m_videoFullscreenMode != VideoFullscreenModeNone)
         exitFullscreen();
 
-    setPreparedForInline(true);
+    setPreparedToReturnVideoLayerToInline(true);
 
     updatePlaybackControlsManager();
     m_inActiveDocument = false;
@@ -5536,7 +5537,7 @@ PlatformLayer* HTMLMediaElement::platformLayer() const
     return m_player ? m_player->platformLayer() : nullptr;
 }
 
-void HTMLMediaElement::setPreparedForInline(bool value)
+void HTMLMediaElement::setPreparedToReturnVideoLayerToInline(bool value)
 {
     m_preparedForInline = value;
     if (m_preparedForInline && m_preparedForInlineCompletionHandler) {

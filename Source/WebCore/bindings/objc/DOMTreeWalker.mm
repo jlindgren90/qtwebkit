@@ -73,8 +73,7 @@
 
 - (BOOL)expandEntityReferences
 {
-    WebCore::JSMainThreadNullState state;
-    return IMPL->expandEntityReferences();
+    return NO;
 }
 
 - (DOMNode *)currentNode
@@ -136,11 +135,6 @@
 }
 
 @end
-
-WebCore::TreeWalker* core(DOMTreeWalker *wrapper)
-{
-    return wrapper ? reinterpret_cast<WebCore::TreeWalker*>(wrapper->_internal) : 0;
-}
 
 DOMTreeWalker *kit(WebCore::TreeWalker* value)
 {

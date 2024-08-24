@@ -77,8 +77,7 @@
 
 - (BOOL)expandEntityReferences
 {
-    WebCore::JSMainThreadNullState state;
-    return IMPL->expandEntityReferences();
+    return NO;
 }
 
 - (DOMNode *)referenceNode
@@ -112,11 +111,6 @@
 }
 
 @end
-
-WebCore::NodeIterator* core(DOMNodeIterator *wrapper)
-{
-    return wrapper ? reinterpret_cast<WebCore::NodeIterator*>(wrapper->_internal) : 0;
-}
 
 DOMNodeIterator *kit(WebCore::NodeIterator* value)
 {

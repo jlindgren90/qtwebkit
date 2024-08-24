@@ -58,7 +58,6 @@
 #include "DocumentType.h"
 #include "Editor.h"
 #include "ElementIterator.h"
-#include "EntityReference.h"
 #include "EventHandler.h"
 #include "ExtensionStyleSheets.h"
 #include "FocusController.h"
@@ -964,12 +963,6 @@ RefPtr<ProcessingInstruction> Document::createProcessingInstruction(const String
     return ProcessingInstruction::create(*this, target, data);
 }
 
-RefPtr<EntityReference> Document::createEntityReference(const String&, ExceptionCode& ec)
-{
-    ec = NOT_SUPPORTED_ERR;
-    return nullptr;
-}
-
 Ref<Text> Document::createEditingTextNode(const String& text)
 {
     return Text::createEditingText(*this, text);
@@ -1336,7 +1329,7 @@ String Document::characterSetWithUTF8Fallback() const
     return UTF8Encoding().domName();
 }
 
-String Document::defaultCharset() const
+String Document::defaultCharsetForBindings() const
 {
     if (Settings* settings = this->settings())
         return settings->defaultTextEncodingName();

@@ -1,3 +1,141 @@
+2016-08-05  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Print test name in "Last character read from DRT..." error message.
+        https://bugs.webkit.org/show_bug.cgi?id=160559
+
+        Reviewed by Michael Catanzaro.
+
+        * Scripts/webkitpy/port/driver.py:
+        (Driver.run_test):
+        (Driver._read_first_block):
+        (Driver._read_optional_image_block):
+        (Driver._read_block):
+        * Scripts/webkitpy/port/driver_unittest.py:
+        (DriverTest.test_read_block):
+        (DriverTest.test_read_binary_block):
+        (DriverTest.test_read_base64_block):
+
+2016-08-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r204123.
+        https://bugs.webkit.org/show_bug.cgi?id=160597
+
+        Caused layout test timeouts on Windows. (Requested by perarne
+        on #webkit).
+
+        Reverted changeset:
+
+        "[Win] Unable to reliably run tests in parallel"
+        https://bugs.webkit.org/show_bug.cgi?id=140914
+        http://trac.webkit.org/changeset/204123
+
+2016-08-04  Saam Barati  <sbarati@apple.com>
+
+        Restore CodeBlock jettison code to jettison when a CodeBlock has been alive for a long time
+        https://bugs.webkit.org/show_bug.cgi?id=151241
+
+        Reviewed by Benjamin Poulain.
+
+        * Scripts/run-jsc-stress-tests:
+
+2016-08-04  Dean Johnson  <dean_johnson@apple.com>
+
+        UI improvements to Flakiness Dashboard.
+        https://bugs.webkit.org/show_bug.cgi?id=153295
+
+        Reviewed by Alexey Proskuryakov.
+
+        * TestResultServer/static-dashboards/flakiness_dashboard.css:
+        (td.options-container): Center text in most fields.
+        * TestResultServer/static-dashboards/flakiness_dashboard.js:
+        (createBugHTML): Text/Grammar updates.
+        (tableHeaders): Ditto.
+        (htmlForSingleTestRow): Ditto.
+        (headerForTestTableHtml): Ditto.
+        * TestResultServer/static-dashboards/ui.js: Removed the "Group: " and "Test type: " headings.
+        (ui.html.testTypeSwitcher): Deleted. Removes the "Group:" heading.
+
+2016-08-04  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] install-dependencies script misses libxslt as build-dependency and some python libs for the run-benchmark script
+        https://bugs.webkit.org/show_bug.cgi?id=160518
+
+        Reviewed by Michael Catanzaro.
+
+        * Scripts/webkitpy/thirdparty/__init__.py:
+        (AutoinstallImportHook._install_twisted): Twisted requires zope.interface.
+        * gtk/install-dependencies:
+
+2016-08-04  Alexey Proskuryakov  <ap@apple.com>
+
+        Optimize bot watcher's dashboard a little
+        https://bugs.webkit.org/show_bug.cgi?id=160515
+        rdar://problem/26096900
+
+        Reviewed by Lucas Forschler.
+
+        Made re-sorting after loading an iteration more efficient.
+
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Scripts/BuildbotIteration.js:
+        (BuildbotIteration.prototype._updateWithData):
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Scripts/BuildbotQueue.js:
+        (BuildbotQueue.prototype.updateIterationPosition):
+
+2016-08-04  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Unable to reliably run tests in parallel
+        https://bugs.webkit.org/show_bug.cgi?id=140914
+
+        Reviewed by Brent Fulgham.
+
+        The cygpath utility function can fail badly when running with multiple DumpRenderTree
+        processes. We can use string replacement to convert the Cygwin path to a Windows path
+        instead.
+ 
+        * Scripts/webkitpy/common/system/path.py:
+        (cygpathFast):
+        * Scripts/webkitpy/port/driver.py:
+        (Driver._command_from_driver_input):
+
+2016-08-03  Aakash Jain  <aakash_jain@apple.com>
+
+        Document instructions for increasing process and file limits
+        https://bugs.webkit.org/show_bug.cgi?id=160528
+        rdar://problem/24777576
+
+        Reviewed by Alexey Proskuryakov.
+
+        * Scripts/webkitpy/port/ios.py:
+        (IOSSimulatorPort.default_child_processes):
+
+2016-08-03  Anders Carlsson  <andersca@apple.com>
+
+        Remove the Objective-C bindings generator
+        https://bugs.webkit.org/show_bug.cgi?id=160526
+
+        Reviewed by Sam Weinig.
+
+        * Scripts/run-bindings-tests:
+        Update test.
+
+2016-08-03  Tim Horton  <timothy_horton@apple.com>
+
+        Revise a TestWebKitAPI comment to mention the actual underlying problem
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/AnimatedResize.mm:
+        Note that this is because of https://bugs.webkit.org/show_bug.cgi?id=160516
+
+2016-08-03  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        Benchmark test content-animation timeouts always
+        https://bugs.webkit.org/show_bug.cgi?id=160057
+
+        Reviewed by Simon Fraser.
+
+        * Scripts/webkitpy/benchmark_runner/data/plans/Skipped: Added.
+        * Scripts/webkitpy/benchmark_runner/run_benchmark.py:
+        (start):
+
 2016-08-02  Nan Wang  <n_wang@apple.com>
 
         AX: Simulated touch events are not working on iOS

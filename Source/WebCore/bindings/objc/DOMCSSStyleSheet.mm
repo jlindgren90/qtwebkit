@@ -72,15 +72,6 @@
     return result;
 }
 
-- (unsigned)insertRule:(NSString *)rule :(unsigned)index
-{
-    WebCore::JSMainThreadNullState state;
-    WebCore::ExceptionCode ec = 0;
-    unsigned result = IMPL->insertRule(rule, index, ec);
-    WebCore::raiseOnDOMError(ec);
-    return result;
-}
-
 - (void)deleteRule:(unsigned)index
 {
     WebCore::JSMainThreadNullState state;
@@ -108,10 +99,14 @@
 
 @end
 
-WebCore::CSSStyleSheet* core(DOMCSSStyleSheet *wrapper)
+@implementation DOMCSSStyleSheet (DOMCSSStyleSheetDeprecated)
+
+- (unsigned)insertRule:(NSString *)rule :(unsigned)index
 {
-    return wrapper ? reinterpret_cast<WebCore::CSSStyleSheet*>(wrapper->_internal) : 0;
+    return [self insertRule:rule index:index];
 }
+
+@end
 
 DOMCSSStyleSheet *kit(WebCore::CSSStyleSheet* value)
 {

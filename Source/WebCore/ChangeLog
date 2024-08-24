@@ -1,3 +1,1431 @@
+2016-08-05  Darin Adler  <darin@apple.com>
+
+        * DerivedSources.make: Fix all places that were using tabs instead of spaces outside
+        the actual make rules, where tabs are required as part of make syntax.
+
+2016-08-05  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] SubresourceLoader::checkRedirectionCrossOriginAccessControl should not always assert in SameOrigin mode
+        https://bugs.webkit.org/show_bug.cgi?id=160594
+
+        Reviewed by Alex Christensen.
+
+        Covered by rebased tests.
+
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::checkRedirectionCrossOriginAccessControl):
+        It should not throw is mode is SameOrigin and resource is same origin.
+
+2016-08-05  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response.blob should not assert in case the created blob is empty
+        https://bugs.webkit.org/show_bug.cgi?id=160592
+
+        Reviewed by Alex Christensen.
+
+        Covered bu updated test.
+
+        * Modules/fetch/FetchBodyConsumer.cpp:
+        (WebCore::FetchBodyConsumer::takeAsBlob): Removing assertion as a response may have a body but with no data in it.
+
+2016-08-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r203935.
+        https://bugs.webkit.org/show_bug.cgi?id=160596
+
+        looks like a 1-2% PLUM regression on iPhone 6s (Requested by
+        kling_ on #webkit).
+
+        Reverted changeset:
+
+        "Window's named properties should be exposed on a
+        WindowProperties object in its prototype"
+        https://bugs.webkit.org/show_bug.cgi?id=160354
+        http://trac.webkit.org/changeset/203935
+
+2016-08-05  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Activate CSP checks
+        https://bugs.webkit.org/show_bug.cgi?id=160445
+
+        Reviewed by Daniel Bates.
+
+        Tests: http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html
+               http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-worker.html
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start): Adding CSP and URL upgrade checks.
+
+2016-08-05  Youenn Fablet  <youenn@apple.com>
+
+        DocumentThreadableLoader should report an error when getting a null CachedResource
+        https://bugs.webkit.org/show_bug.cgi?id=160444
+
+        Reviewed by Alex Christensen.
+
+        Covered by existing and rebased tests.
+
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::loadRequest): Calling didFail with an AccessControl error if unable to have a CachedResource.
+        The resource error type AccessControl is important as it indicates to some clients that they should not retry loading the same resource (EventSource notably).
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::createRequest): Removed handling of ThreadableLoader::create returning null.
+        This should be handled in didFail callback. This allows aligning behavior of
+        WorkerThreadableLoaderi::MainThreadBridge and XMLHttpRequest as ThreadableLoader clients.
+        (WebCore::XMLHttpRequest::didFail): Handle the case of didFail being called synchronously from ThreadableLoader::create.
+        In that case, use a timer to dispatch network events asynchronously.
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        Add support for DOMTokenList.replace()
+        https://bugs.webkit.org/show_bug.cgi?id=160573
+
+        Reviewed by Alex Christensen.
+
+        Add support for DOMTokenList.replace():
+        https://dom.spec.whatwg.org/#dom-domtokenlist-replace
+
+        No new tests, rebaselined existing tests.
+
+        * html/DOMTokenList.cpp:
+        (WebCore::tokenContainsHTMLSpace):
+        (WebCore::DOMTokenList::validateToken):
+        (WebCore::DOMTokenList::replace):
+        * html/DOMTokenList.h:
+        * html/DOMTokenList.idl:
+
+2016-08-04  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iOS] Some videos in iBooks erroneously go fullscreen
+        https://bugs.webkit.org/show_bug.cgi?id=160582
+        <rdar://problem/27669831>
+
+        Reviewed by Jon Lee.
+
+        No new tests because we can't currently mock the iBooks application bundle ID.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::requiresFullscreenForVideoPlayback):
+
+2016-08-04  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [Fontconfig] Segmentation fault in WebCore::FontCache::lastResortFallbackFont
+        https://bugs.webkit.org/show_bug.cgi?id=141432
+
+        Reviewed by Myles C. Maxfield.
+
+        Crash more cleanly when we can't find any last resort fallback font.
+
+        * platform/graphics/freetype/FontCacheFreeType.cpp:
+        (WebCore::FontCache::lastResortFallbackFont):
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        Move insertAdjacent*() API from HTMLElement to Element
+        https://bugs.webkit.org/show_bug.cgi?id=160567
+
+        Reviewed by Sam Weinig.
+
+        Move insertAdjacent*() API from HTMLElement to Element:
+        - https://w3c.github.io/DOM-Parsing/#extensions-to-the-element-interface
+        - https://dom.spec.whatwg.org/#element
+
+        Firefox and Chrome both have insertAdjacentHTML() on Element.
+        Chrome has insertAdjacentText() / insertAdjacentElement() on Element as
+        well. Firefox does not have this API at all.
+
+        Also align insertAdjacentHTML() with the specification so that we
+        now throw a NO_MODIFICATION_ALLOWED_ERR if called with "beforebegin" /
+        "afterend" on a parent-less element. This is as per:
+        - https://w3c.github.io/DOM-Parsing/#dom-element-insertadjacenthtml
+
+        Previously, WebKit would just silently ignore such calls. The new
+        behavior with consistent with both Firefox and Chrome.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Element.cpp:
+        (WebCore::Element::insertAdjacent):
+        (WebCore::Element::insertAdjacentElement):
+        (WebCore::contextElementForInsertion):
+        (WebCore::Element::insertAdjacentHTML):
+        (WebCore::Element::insertAdjacentText):
+        * dom/Element.h:
+        * dom/Element.idl:
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::insertAdjacent): Deleted.
+        (WebCore::HTMLElement::insertAdjacentElement): Deleted.
+        (WebCore::contextElementForInsertion): Deleted.
+        (WebCore::HTMLElement::insertAdjacentHTML): Deleted.
+        (WebCore::HTMLElement::insertAdjacentText): Deleted.
+        * html/HTMLElement.h:
+        * html/HTMLElement.idl:
+
+2016-08-04  Anders Carlsson  <andersca@apple.com>
+
+        Another build fix attempt.
+
+        * bindings/gobject/WebKitDOMDeprecated.cpp:
+
+2016-08-04  George Ruan  <gruan@apple.com>
+
+        Add long, boolean, double, and String Media Constraint classes
+        https://bugs.webkit.org/show_bug.cgi?id=160524
+        <rdar://problem/27685132>
+
+        Reviewed by Eric Carlson.
+
+        No new tests. The current patch is untestable, but functionality
+        will be tested in a future patch.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/mediastream/MediaConstraints.cpp: Added.
+        (WebCore::BaseConstraint::create): Initializes min, max, exact, ideal
+        value of constraint with dictionary.
+        (WebCore::BaseConstraint::createEmptyDerivedConstraint): Factory 
+        for all derived constraints.
+        (WebCore::LongConstraint::create): Creates LongConstraint with name.
+        (WebCore::LongConstraint::setMin): Sets mandatory min constraint value.
+        (WebCore::LongConstraint::setMax): Sets mandatory max constraint value.
+        (WebCore::LongConstraint::setExact): Sets mandatory exact constraint
+        value.
+        (WebCore::LongConstraint::setIdeal): Sets optional ideal constraint
+        value.
+        (WebCore::LongConstraint::initializeWithDictionary): Parses user input
+        and sets min, max, exact, ideal values.
+        (WebCore::DoubleConstraint::create): Ditto.
+        (WebCore::DoubleConstraint::setMin): Ditto.
+        (WebCore::DoubleConstraint::setMax): Ditto.
+        (WebCore::DoubleConstraint::setExact): Ditto.
+        (WebCore::DoubleConstraint::setIdeal): Ditto.
+        (WebCore::DoubleConstraint::initializeWithDictionary): Ditto.
+        (WebCore::BooleanConstraint::create): Ditto.
+        (WebCore::BooleanConstraint::setExact): Ditto.
+        (WebCore::BooleanConstraint::setIdeal): Ditto.
+        (WebCore::BooleanConstraint::initializeWithDictionary): Ditto.
+        (WebCore::StringConstraint::create): Ditto.
+        (WebCore::StringConstraint::setExact): Ditto.
+        (WebCore::StringConstraint::setIdeal): Ditto.
+        (WebCore::StringConstraint::initializeWithDictionary): Ditto.
+        * platform/mediastream/MediaConstraints.h: Add abstract classes
+        BaseConstraint and NumericConstraint, and final classes
+        DoubleConstraint, LongConstraint, BooleanConstraint, and
+        StringConstraint.
+        (WebCore::BaseConstraint::~BaseConstraint):
+        (WebCore::BaseConstraint::name): Name of constraint associated with.
+        (WebCore::BaseConstraint::BaseConstraint):
+        (WebCore::NumericConstraint::setHasMin): Sets min constraint value.
+        (WebCore::NumericConstraint::setHasMax): Sets max constraint value.
+        (WebCore::NumericConstraint::setHasExact): Sets exact constraint
+        value.
+        (WebCore::NumericConstraint::setHasIdeal): Sets ideal constraint
+        value.
+        (WebCore::NumericConstraint::hasMin): Determines whether constraint
+        has a minimum value.
+        (WebCore::NumericConstraint::hasMax): Determines whether constraint
+        has a maximum value.
+        (WebCore::NumericConstraint::hasExact): Determines whether constraint
+        has an exact value.
+        (WebCore::NumericConstraint::NumericConstraint):
+
+2016-08-04  Anders Carlsson  <andersca@apple.com>
+
+        Try to fix the GTK+ build.
+
+        * bindings/gobject/WebKitDOMDeprecated.cpp:
+        (webkit_dom_document_get_elements_by_tag_name):
+        (webkit_dom_document_get_elements_by_tag_name_ns):
+        (webkit_dom_document_get_elements_by_class_name):
+        (webkit_dom_element_get_elements_by_tag_name):
+        (webkit_dom_element_get_elements_by_tag_name_ns):
+        (webkit_dom_element_get_elements_by_class_name):
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        Add support for wrapper types in dictionaries
+        https://bugs.webkit.org/show_bug.cgi?id=160487
+
+        Reviewed by Sam Weinig.
+
+        Add support for nullable wrapper types in dictionaries.
+        A TypeError is thrown if the conversion fails.
+
+        No new tests, updated bindings tests.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::convertWrapperType):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDictionaryImplementationContent):
+        * bindings/scripts/IDLParser.pm:
+        (parseDictionaryMember):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convert<TestObj::Dictionary>):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-08-04  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] Fix the build after Objective-C bindings generator removal
+        https://bugs.webkit.org/show_bug.cgi?id=160545
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt:
+        * PlatformMac.cmake:
+
+2016-08-04  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Attempt to fix Windows build after r204134.
+
+        Unreviewed build fix.
+
+        * dom/DOMAllInOne.cpp:
+
+2016-08-04  Anders Carlsson  <andersca@apple.com>
+
+        Remove more Objective-C specific bindings code
+        https://bugs.webkit.org/show_bug.cgi?id=160564
+
+        Reviewed by Sam Weinig.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSNodeCustom.cpp:
+        * bindings/objc/DOMDocument.mm:
+        * bindings/objc/DOMEntity.mm:
+        (-[DOMEntity publicId]):
+        (-[DOMEntity systemId]):
+        (-[DOMEntity notationName]):
+        * bindings/objc/DOMEntityReference.mm:
+        (kit): Deleted.
+        * bindings/objc/DOMEntityReferenceInternal.h: Removed.
+        * bindings/objc/DOMNodeIterator.mm:
+        (-[DOMNodeIterator expandEntityReferences]):
+        * bindings/objc/DOMTreeWalker.mm:
+        (-[DOMTreeWalker expandEntityReferences]):
+        * dom/Document.idl:
+        * dom/Entity.h: Removed.
+        (WebCore::Entity::publicId): Deleted.
+        (WebCore::Entity::systemId): Deleted.
+        (WebCore::Entity::notationName): Deleted.
+        (WebCore::Entity::Entity): Deleted.
+        * dom/Entity.idl: Removed.
+        * dom/EntityReference.cpp: Removed.
+        (WebCore::EntityReference::EntityReference): Deleted.
+        * dom/EntityReference.h: Removed.
+        * dom/EntityReference.idl: Removed.
+        * dom/NodeIterator.idl:
+        * dom/Traversal.h:
+        (WebCore::NodeIteratorBase::expandEntityReferences): Deleted.
+        * dom/TreeWalker.idl:
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        Simplify overloads for HTMLSelectElement.add() / HTMLOptionsCollection.add()
+        https://bugs.webkit.org/show_bug.cgi?id=160527
+
+        Reviewed by Ryosuke Niwa.
+
+        Simplify overloads for HTMLSelectElement.add() / HTMLOptionsCollection.add().
+        We now have 2 overloads instead of 3 while achieving the same web-facing
+        behavior.
+
+        * html/HTMLOptionsCollection.h:
+        * html/HTMLOptionsCollection.idl:
+        * html/HTMLSelectElement.h:
+        (WebCore::HTMLSelectElement::add): Deleted.
+        * html/HTMLSelectElement.idl:
+
+2016-08-04  Anders Carlsson  <andersca@apple.com>
+
+        Move Objective-C bindings specific code into the bindings
+        https://bugs.webkit.org/show_bug.cgi?id=160561
+
+        Reviewed by Tim Horton.
+
+        * bindings/objc/DOMDocument.mm:
+        (-[DOMDocument createEntityReference:]):
+        (-[DOMDocument getElementsByTagName:]):
+        (-[DOMDocument getElementsByTagNameNS:localName:]):
+        (-[DOMDocument getElementsByClassName:]):
+        * bindings/objc/DOMElement.mm:
+        (-[DOMElement getElementsByTagName:]):
+        (-[DOMElement getElementsByTagNameNS:localName:]):
+        (-[DOMElement getElementsByClassName:]):
+        * css/CSSCharsetRule.idl:
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::getElementsByTagNameForObjC): Deleted.
+        (WebCore::ContainerNode::getElementsByTagNameNSForObjC): Deleted.
+        (WebCore::ContainerNode::getElementsByClassNameForObjC): Deleted.
+        * dom/ContainerNode.h:
+        * dom/Document.cpp:
+        (WebCore::Document::createEntityReference): Deleted.
+        * dom/Document.h:
+        * dom/Document.idl:
+        * dom/Element.idl:
+
+2016-08-04  Anders Carlsson  <andersca@apple.com>
+
+        Clean up the deprecated Objective-C binding methods
+        https://bugs.webkit.org/show_bug.cgi?id=160558
+
+        Reviewed by Tim Horton.
+
+        Put the deprecated methods in their respective category @implementation, and
+        simply have them call their non-deprecated counterparts.
+
+        * bindings/objc/DOMCSSMediaRule.mm:
+        (-[DOMCSSMediaRule deleteRule:]):
+        (-[DOMCSSMediaRule insertRule::]):
+        * bindings/objc/DOMCSSPrimitiveValue.mm:
+        (-[DOMCSSPrimitiveValue setFloatValue::]):
+        (-[DOMCSSPrimitiveValue setStringValue::]):
+        * bindings/objc/DOMCSSStyleDeclaration.mm:
+        (-[DOMCSSStyleDeclaration setProperty:::]):
+        * bindings/objc/DOMCSSStyleSheet.mm:
+        (-[DOMCSSStyleSheet insertRule::]):
+        * bindings/objc/DOMCharacterData.mm:
+        (-[DOMCharacterData deleteData:length:]):
+        (-[DOMCharacterData replaceData:length:data:]):
+        (-[DOMCharacterData remove]):
+        (-[DOMCharacterData substringData::]):
+        (-[DOMCharacterData insertData::]):
+        (-[DOMCharacterData deleteData::]):
+        (-[DOMCharacterData replaceData:::]):
+        * bindings/objc/DOMDocument.mm:
+        (-[DOMDocument createProcessingInstruction::]):
+        (-[DOMDocument importNode::]):
+        (-[DOMDocument createElementNS::]):
+        (-[DOMDocument createAttributeNS::]):
+        (-[DOMDocument getElementsByTagNameNS::]):
+        (-[DOMDocument createNodeIterator::::]):
+        (-[DOMDocument createTreeWalker::::]):
+        (-[DOMDocument getOverrideStyle::]):
+        (-[DOMDocument createExpression::]):
+        (-[DOMDocument evaluate:::::]):
+        (-[DOMDocument getComputedStyle::]):
+        * bindings/objc/DOMElement.mm:
+        (-[DOMElement setAttribute::]):
+        (-[DOMElement getAttributeNS::]):
+        (-[DOMElement setAttributeNS:::]):
+        (-[DOMElement removeAttributeNS::]):
+        (-[DOMElement getElementsByTagNameNS::]):
+        (-[DOMElement getAttributeNodeNS::]):
+        (-[DOMElement hasAttributeNS::]):
+        * bindings/objc/DOMEvent.mm:
+        (-[DOMEvent stopImmediatePropagation]):
+        (-[DOMEvent initEvent:::]):
+        * bindings/objc/DOMHTMLSelectElement.mm:
+        (-[DOMHTMLSelectElement remove:]):
+        (-[DOMHTMLSelectElement add::]):
+        * bindings/objc/DOMMouseEvent.mm:
+        (-[DOMMouseEvent initMouseEvent:::::::::::::::]):
+        * bindings/objc/DOMMutationEvent.mm:
+        (-[DOMMutationEvent initMutationEvent::::::::]):
+        * bindings/objc/DOMNamedNodeMap.mm:
+        (-[DOMNamedNodeMap getNamedItemNS::]):
+        (-[DOMNamedNodeMap removeNamedItemNS::]):
+        * bindings/objc/DOMNode.mm:
+        (-[DOMNode insertBefore::]):
+        (-[DOMNode replaceChild::]):
+        (-[DOMNode isSupported::]):
+        * bindings/objc/DOMRange.mm:
+        (-[DOMRange setStart::]):
+        (-[DOMRange setEnd::]):
+        (-[DOMRange compareBoundaryPoints::]):
+        * bindings/objc/DOMUIEvent.mm:
+        (-[DOMUIEvent initUIEvent:::::]):
+        * bindings/objc/DOMXPathExpression.mm:
+        (-[DOMXPathExpression evaluate:::]):
+
+2016-08-04  Jeremy Jones  <jeremyj@apple.com>
+
+        Temporary redirected m3u8 streaming stopped working.
+        https://bugs.webkit.org/show_bug.cgi?id=160472
+        rdar://problem/27592694
+
+        Reviewed by Alex Christensen.
+
+        Test: http/tests/media/hls/hls-redirect.html
+
+        The change for https://trac.webkit.org/changeset/202466 hides knowledge of the temporary redirected URL from 
+        WebCoreNSURLSession clients. MPEG playlists (e.g. .m3u8) can contain paths relative to the redirected URL.
+
+        This change exposes the redirected URL for MPEG playlists.
+
+        * platform/MIMETypeRegistry.cpp:
+        (WebCore::initializeMPEGPlaylistMIMETypes): Added.
+        (WebCore::initializeMIMETypeRegistry):
+        (WebCore::MIMETypeRegistry::isMPEGPlaylistMIMEType): Added.
+        * platform/MIMETypeRegistry.h:
+        * platform/network/cocoa/WebCoreNSURLSession.mm:
+        (-[WebCoreNSURLSessionDataTask resource:receivedResponse:]): Add MPEG playlist condition.
+        (-[WebCoreNSURLSessionDataTask resource:receivedRedirect:request:]): Add MPEG playlist condition.
+
+2016-08-04  Alex Christensen  <achristensen@webkit.org>
+
+        Content Blocker cannot block WebSocket connections
+        https://bugs.webkit.org/show_bug.cgi?id=160159
+
+        Reviewed by Brady Eidson.
+
+        Tests: http/tests/websocket/tests/hybi/contentextensions/block-cookies-worker.php
+               http/tests/websocket/tests/hybi/contentextensions/block-cookies.php
+               http/tests/websocket/tests/hybi/contentextensions/block-worker.html
+               http/tests/websocket/tests/hybi/contentextensions/block.html
+               http/tests/websocket/tests/hybi/contentextensions/display-none-worker.html
+               http/tests/websocket/tests/hybi/contentextensions/display-none.html
+               http/tests/websocket/tests/hybi/contentextensions/upgrade-worker.html
+               http/tests/websocket/tests/hybi/contentextensions/upgrade.html
+
+        * Modules/websockets/ThreadableWebSocketChannelClientWrapper.cpp:
+        (WebCore::ThreadableWebSocketChannelClientWrapper::didReceiveMessageError):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::didUpgradeURL):
+        (WebCore::ThreadableWebSocketChannelClientWrapper::suspend):
+        * Modules/websockets/ThreadableWebSocketChannelClientWrapper.h:
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::WebSocket::didClose):
+        (WebCore::WebSocket::didUpgradeURL):
+        (WebCore::WebSocket::getFramingOverhead):
+        * Modules/websockets/WebSocket.h:
+        
+        Added didUpgradeURL to WebSocketChannelClient so the WebSocketChannel can tell the WebSocket
+        that it has upgraded a ws: url to a wss: url.
+        
+        * Modules/websockets/WebSocketChannel.cpp:
+        (WebCore::WebSocketChannel::~WebSocketChannel):
+        (WebCore::WebSocketChannel::connect):
+        
+        If content extensions are being used, run the URL through the content extension and apply its actions
+        before connecting the WebSocket.  This is done in WebSocketChannel instead of WebSocket like the CSP checks
+        because we need access to the Document in order to get access to the main document's URL for if-domain and
+        unless-domain rules, and to apply any display:none css to the Document.
+        
+        (WebCore::WebSocketChannel::disconnect):
+        * Modules/websockets/WebSocketChannelClient.h:
+        (WebCore::WebSocketChannelClient::~WebSocketChannelClient):
+        (WebCore::WebSocketChannelClient::WebSocketChannelClient):
+        (WebCore::WebSocketChannelClient::didConnect):
+        (WebCore::WebSocketChannelClient::didReceiveMessage):
+        (WebCore::WebSocketChannelClient::didReceiveBinaryData):
+        (WebCore::WebSocketChannelClient::didReceiveMessageError):
+        (WebCore::WebSocketChannelClient::didUpdateBufferedAmount):
+        (WebCore::WebSocketChannelClient::didStartClosingHandshake):
+        (WebCore::WebSocketChannelClient::didClose):
+        
+        Made WebSocketChannelClient purely virtual to avoid accidentally making an implementation that is missing functionality.
+        
+        (WebCore::WebSocketChannelClient::didUpgradeURL): Added.
+        * Modules/websockets/WebSocketHandshake.cpp:
+        (WebCore::WebSocketHandshake::getExpectedWebSocketAccept):
+        (WebCore::WebSocketHandshake::WebSocketHandshake):
+        (WebCore::WebSocketHandshake::clientOrigin):
+        (WebCore::WebSocketHandshake::clientLocation):
+        (WebCore::WebSocketHandshake::clientHandshakeMessage):
+        
+        Only put cookies on the WebSocket's handshake if we are allowed to use cookies.
+        
+        (WebCore::WebSocketHandshake::clientHandshakeRequest):
+        
+        A WebSocketHandshake always has a Document* for its ScriptExecutionContext, so I replaced m_context with 
+        m_document and removed a suspicious-looking check for is<Document> that turned out to not be suspicious at all.
+        
+        (WebCore::WebSocketHandshake::reset):
+        (WebCore::WebSocketHandshake::clearDocument):
+        (WebCore::WebSocketHandshake::readServerHandshake):
+        (WebCore::WebSocketHandshake::clearScriptExecutionContext): Deleted.
+        * Modules/websockets/WebSocketHandshake.h:
+        * Modules/websockets/WorkerThreadableWebSocketChannel.cpp:
+        (WebCore::WorkerThreadableWebSocketChannel::Peer::didReceiveMessageError):
+        (WebCore::WorkerThreadableWebSocketChannel::Peer::didUpgradeURL):
+        (WebCore::WorkerThreadableWebSocketChannel::Bridge::Bridge):
+        * Modules/websockets/WorkerThreadableWebSocketChannel.h:
+        * contentextensions/ContentExtensionActions.h:
+        
+        Before this change we would pass a ResourceRequest as a parameter to the content extension engine.
+        The ResourceRequest would be used to get the URL, and it would be modified by possibly disabling cookies
+        or making the URL https.  Any display:none CSS rules added were put into the Document through the DocumentLoader.
+        The only information it needed to return was whether the load was blocked.
+        To make content extensions work with WebSockets, we need to pass a URL as a parameter instead of a ResourceRequest
+        because there is no ResourceRequest with WebSockets, only a URL.  We can still put CSS rules in through the DocumentLoader,
+        but the rest of the actions need to be returned through the return value, which is then processed by the callers.
+        BlockedStatus is now a struct containing a set of actions to apply, and applyBlockedStatusToRequest is a helper function
+        that applies the actions to the ResourceRequests we have at all previously existing call sites of processContentExtensionRulesForLoad.
+        
+        * contentextensions/ContentExtensionsBackend.cpp:
+        (WebCore::ContentExtensions::ContentExtensionsBackend::globalDisplayNoneStyleSheet):
+        (WebCore::ContentExtensions::ContentExtensionsBackend::processContentExtensionRulesForLoad):
+        (WebCore::ContentExtensions::ContentExtensionsBackend::displayNoneCSSRule):
+        (WebCore::ContentExtensions::applyBlockedStatusToRequest):
+        * contentextensions/ContentExtensionsBackend.h:
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::loadResource):
+        
+        Here, we also only had a URL.  Before, we were making a ResourceRequest from the URL just for the content extension engine,
+        but now we can just pass the URL.
+        
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::loadResourceSynchronously):
+        * loader/PingLoader.cpp:
+        (WebCore::processContentExtensionRulesForLoad):
+        (WebCore::PingLoader::loadImage):
+        (WebCore::PingLoader::sendPing):
+        (WebCore::PingLoader::sendViolationReport):
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::willSendRequestInternal):
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::requestResource):
+        * page/UserContentProvider.cpp:
+        (WebCore::contentExtensionsEnabled):
+        (WebCore::UserContentProvider::processContentExtensionRulesForLoad):
+        (WebCore::UserContentProvider::actionsForResourceLoad):
+        * page/UserContentProvider.h:
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        [[Prototype]] property of an interface object for a callback interface must be the Object.prototype object
+        https://bugs.webkit.org/show_bug.cgi?id=160555
+
+        Reviewed by Geoffrey Garen.
+
+        [[Prototype]] property of an interface object for a callback interface
+        must be the Object.prototype object:
+        - http://heycam.github.io/webidl/#interface-object
+
+        This impacts NodeFilter, which is a callback interface.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateConstructorHelperMethods):
+
+2016-08-04  Chris Dumez  <cdumez@apple.com>
+
+        Element.insertAdjacent*() should throw a SYNTAX_ERR for invalid "where" parameter
+        https://bugs.webkit.org/show_bug.cgi?id=160514
+
+        Reviewed by Alex Christensen.
+
+        Element.insertAdjacent*() should throw a SYNTAX_ERR for invalid "where" parameter:
+        - https://dom.spec.whatwg.org/#insert-adjacent
+
+        We were throwing a NOT_SUPPORTED_ERR instead.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::insertAdjacent):
+
+2016-08-04  Alejandro G. Castro  <alex@igalia.com>
+
+        WebRTC: OWR: Add support for the muted state in the mediaplayer
+        https://bugs.webkit.org/show_bug.cgi?id=160502
+
+        Modified the load, play and stop methods to handle the new
+        situation where the mediaSource could be empty, until the remote
+        side sends the information to create the receiver.
+
+        Reviewed by Philippe Normand.
+
+        No new tests, we need to upstream the owr endpoint to check this
+        situation.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerOwr.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerOwr::play): Check the muted
+        state of the tracks if required, we do it using the new
+        maybeHandleChangeMutedState function.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::load): Add always the
+        observer of the track to check when it is unmuted, and we delay
+        enabling/setting the source until the play or the unmute.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::internalLoad): Removed,
+        we now do all in the load method.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::stop): Remove the
+        mediasource when disabling. Removed the m_stopped state, it was
+        there because the internalLoad was called multiple times.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::trackMutedChanged):
+        Check the muted state and handle it, we use the new method
+        maybeHandleChangeMutedState.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::maybeHandleChangeMutedState):
+        Check if the track is muted or not, in case it is muted disable
+        the the renderer and remove its mediasource. If it is not muted
+        enable the renderer and set the mediasource.
+        (WebCore::MediaPlayerPrivateGStreamerOwr::createVideoSink): Move
+        the workaround for the renderer to this method when it is created.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerOwr.h:
+        Removed internalLoad method and the m_stopped attribute used to
+        call internalLoad multiple times.
+
+2016-08-04  Youenn Fablet  <youenn@apple.com>
+
+        DocumentThreadableLoader should pass the fetch mode to underlying loader code
+        https://bugs.webkit.org/show_bug.cgi?id=160399
+
+        Reviewed by Alex Christensen.
+
+        Tests: imported/w3c/web-platform-tests/fetch/api/redirect/redirect-origin-worker.html
+               imported/w3c/web-platform-tests/fetch/api/redirect/redirect-origin.html
+        Covered by existing and rebased tests.
+
+        DocumentThredableLoader was previously loading resources in NoCors mode and doing the cors checks on it own.
+        This was duplicating code and increasing the risk of being not consistent.
+        DocumentThreadableLoader is now passing the fetch mode given by client to underlying loader code.
+        This allows removing some CORS checks in DocumentThreadableLoader code for redirections.
+
+        Updated SubresourceLoader redirection CORS checks to be on par with DocumentThreadableLoader.
+        In particular, aligning the code with https://fetch.spec.whatwg.org/#http-redirect-fetch.
+
+        The error logging situation is not perfect as some errors are properly logged in the console while some others are not.
+        For instance blockedError (due to forbidden port for instance) reason is not logged on the console.
+
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::redirectReceived): Updating redirection checking as SubresourceLoader is already doing most of the checks.
+        (WebCore::DocumentThreadableLoader::didReceiveResponse): Removing temp hack as tainting is now computed by underlying loader code.
+        (WebCore::DocumentThreadableLoader::loadRequest): Removing fetch mode change.
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::willSendRequestInternal): Updating cancellation error and improve error logging.
+        (WebCore::SubresourceLoader::checkRedirectionCrossOriginAccessControl): Improved the checks and error reporting.
+        Tried to align as much as possible to https://fetch.spec.whatwg.org/#http-redirect-fetch.
+        * loader/SubresourceLoader.h:
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::didFail): Added an error message to the console in case of access control error.
+
+2016-08-03  Chris Dumez  <cdumez@apple.com>
+
+        Object.getOwnPropertyNames() on NamedNodeMap fails to return named properties
+        https://bugs.webkit.org/show_bug.cgi?id=160517
+
+        Reviewed by Alex Christensen.
+
+        Object.getOwnPropertyNames() on NamedNodeMap should return named
+        properties' names as per:
+        - https://dom.spec.whatwg.org/#dom-namednodemap-item
+
+        No new tests, rebaselined existing tests.
+
+        * dom/NamedNodeMap.cpp:
+        (WebCore::NamedNodeMap::supportedPropertyNames):
+        * dom/NamedNodeMap.h:
+
+2016-08-03  Chris Dumez  <cdumez@apple.com>
+
+        Drop DocumentType.internalSubset attribute
+        https://bugs.webkit.org/show_bug.cgi?id=160530
+
+        Reviewed by Alex Christensen.
+
+        Drop DocumentType.internalSubset attribute.
+
+        It is no longer in the DOM specification:
+        - https://dom.spec.whatwg.org/#documenttype
+        - https://w3c.github.io/DOM-Parsing/#xml-serializing-a-documenttype-node
+
+        Other browsers have already dropped it. In WebKit, it was always null
+        anyway.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/objc/DOMDocumentType.mm:
+        (-[DOMDocumentType internalSubset]):
+        * dom/DocumentType.h:
+        * dom/DocumentType.idl:
+        * dom/Node.cpp:
+        (WebCore::Node::isEqualNode): Deleted.
+        * editing/MarkupAccumulator.cpp:
+        (WebCore::MarkupAccumulator::appendDocumentType): Deleted.
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::buildObjectForNode): Deleted.
+
+2016-08-03  Chris Dumez  <cdumez@apple.com>
+
+        Drop legacy Document.defaultCharset attribute
+        https://bugs.webkit.org/show_bug.cgi?id=160536
+
+        Reviewed by Alex Christensen.
+
+        Drop legacy Document.defaultCharset attribute.
+
+        It is no longer in the specification:
+        - https://dom.spec.whatwg.org/#interface-document
+
+        Firefox and Chrome have already dropped it.
+
+        No new tests, rebaselined existing test.
+
+        * bindings/objc/DOMDocument.mm:
+        (-[DOMDocument defaultCharset]):
+        * dom/Document.cpp:
+        (WebCore::Document::defaultCharsetForBindings):
+        * dom/Document.h:
+        * dom/Document.idl:
+
+2016-08-03  Anders Carlsson  <andersca@apple.com>
+
+        Remove some unneeded #ifs now that the Objective-C bindings are frozen
+        https://bugs.webkit.org/show_bug.cgi?id=160532
+
+        Reviewed by Tim Horton.
+
+        * DerivedSources.make:
+        * Modules/mediasession/HTMLMediaElementMediaSession.idl:
+        * Modules/mediastream/HTMLMediaElementMediaStream.idl:
+        * WebCore.xcodeproj/project.pbxproj:
+        * animation/DocumentAnimation.idl:
+        * dom/ChildNode.idl:
+        * dom/Document.idl:
+        * dom/Element.idl:
+        * dom/Event.idl:
+        * dom/ParentNode.idl:
+        * fileapi/Blob.idl:
+        * fileapi/FileError.idl:
+        * html/DOMSettableTokenList.h: Removed.
+        * html/DOMSettableTokenList.idl: Removed.
+        * html/HTMLCanvasElement.idl:
+        * html/HTMLEmbedElement.idl:
+        * html/HTMLFrameElement.idl:
+        * html/HTMLIFrameElement.idl:
+        * html/HTMLMediaElement.idl:
+        * html/HTMLObjectElement.idl:
+        * html/HTMLOptionsCollection.idl:
+        * html/HTMLVideoElement.idl:
+
+2016-08-03  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [iOS] SF-Heavy is not accessible from web content
+        https://bugs.webkit.org/show_bug.cgi?id=160522
+        <rdar://problem/27685273>
+
+        Reviewed by Simon Fraser.
+
+        The mappings we were using from CSS font-weight to CoreText font weight were inaccurate.
+        Instead, these new mappings should be used.
+
+        Test: fast/text/system-font-weight.html
+
+        * platform/graphics/ios/FontCacheIOS.mm:
+        (WebCore::systemFontModificationAttributes):
+
+2016-08-03  Anders Carlsson  <andersca@apple.com>
+
+        Remove the Objective-C bindings generator
+        https://bugs.webkit.org/show_bug.cgi?id=160526
+
+        Reviewed by Sam Weinig.
+
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/PublicDOMInterfaces.h: Removed.
+        * bindings/scripts/CodeGeneratorObjC.pm: Removed.
+        * bindings/scripts/test/ObjC/DOMFloat64Array.h: Removed.
+        * bindings/scripts/test/ObjC/DOMFloat64Array.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMFloat64ArrayInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMInterfaceName.h: Removed.
+        * bindings/scripts/test/ObjC/DOMInterfaceName.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMInterfaceNameInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestActiveDOMObject.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestActiveDOMObject.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestActiveDOMObjectInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCallback.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCallback.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCallbackFunction.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCallbackFunction.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCallbackFunctionInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCallbackInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestClassWithJSBuiltinConstructor.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestClassWithJSBuiltinConstructor.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestClassWithJSBuiltinConstructorInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCustomConstructorWithNoInterfaceObject.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCustomConstructorWithNoInterfaceObject.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCustomConstructorWithNoInterfaceObjectInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCustomNamedGetter.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCustomNamedGetter.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestCustomNamedGetterInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestEventConstructor.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestEventConstructor.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestEventConstructorInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestEventTarget.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestEventTarget.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestEventTargetInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestException.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestException.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestExceptionInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestGenerateIsReachable.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestGenerateIsReachable.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestGenerateIsReachableInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestGlobalObject.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestGlobalObject.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestGlobalObjectInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestImplements.cpp: Removed.
+        * bindings/scripts/test/ObjC/DOMTestImplements.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestInterface.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestInterface.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestInterfaceInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestIterable.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestIterable.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestIterableInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestJSBuiltinConstructor.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestJSBuiltinConstructor.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestJSBuiltinConstructorInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestMediaQueryListListener.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestMediaQueryListListener.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestMediaQueryListListenerInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestNamedConstructor.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestNamedConstructor.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestNamedConstructorInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestNode.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestNode.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestNodeInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestNondeterministic.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestNondeterministic.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestNondeterministicInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestObj.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestObj.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestObjInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestOverloadedConstructors.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestOverloadedConstructors.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestOverloadedConstructorsInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestOverrideBuiltins.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestOverrideBuiltins.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestOverrideBuiltinsInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestSerializedScriptValueInterface.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestSerializedScriptValueInterface.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestSerializedScriptValueInterfaceInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestSupplemental.cpp: Removed.
+        * bindings/scripts/test/ObjC/DOMTestSupplemental.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestTypedefs.h: Removed.
+        * bindings/scripts/test/ObjC/DOMTestTypedefs.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMTestTypedefsInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMattribute.h: Removed.
+        * bindings/scripts/test/ObjC/DOMattribute.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMattributeInternal.h: Removed.
+        * bindings/scripts/test/ObjC/DOMreadonly.h: Removed.
+        * bindings/scripts/test/ObjC/DOMreadonly.mm: Removed.
+        * bindings/scripts/test/ObjC/DOMreadonlyInternal.h: Removed.
+        * bindings/scripts/test/ObjC/ObjCTestSupplemental.cpp: Removed.
+        * bindings/scripts/test/ObjC/ObjCTestSupplemental.h: Removed.
+
+2016-08-03  Anders Carlsson  <andersca@apple.com>
+
+        Remove dead bindings code
+        https://bugs.webkit.org/show_bug.cgi?id=160521
+
+        Reviewed by Tim Horton.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMBlob.mm:
+        (core): Deleted.
+        * bindings/objc/DOMBlobInternal.h:
+        * bindings/objc/DOMCDATASection.mm:
+        (core): Deleted.
+        * bindings/objc/DOMCDATASectionInternal.h:
+        * bindings/objc/DOMCSSCharsetRule.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMCSSCharsetRuleInternal.h: Removed.
+        * bindings/objc/DOMCSSFontFaceRule.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMCSSFontFaceRuleInternal.h: Removed.
+        * bindings/objc/DOMCSSImportRule.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMCSSImportRuleInternal.h: Removed.
+        * bindings/objc/DOMCSSMediaRule.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMCSSMediaRuleInternal.h: Removed.
+        * bindings/objc/DOMCSSPageRule.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMCSSPageRuleInternal.h: Removed.
+        * bindings/objc/DOMCSSPrimitiveValue.mm:
+        (core): Deleted.
+        * bindings/objc/DOMCSSPrimitiveValueInternal.h:
+        * bindings/objc/DOMCSSRule.mm:
+        (core): Deleted.
+        * bindings/objc/DOMCSSRuleInternal.h:
+        * bindings/objc/DOMCSSRuleList.mm:
+        (core): Deleted.
+        * bindings/objc/DOMCSSRuleListInternal.h:
+        * bindings/objc/DOMCSSStyleRule.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMCSSStyleRuleInternal.h: Removed.
+        * bindings/objc/DOMCSSStyleSheet.mm:
+        (core): Deleted.
+        * bindings/objc/DOMCSSStyleSheetInternal.h:
+        * bindings/objc/DOMCSSUnknownRule.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMCSSUnknownRuleInternal.h: Removed.
+        * bindings/objc/DOMCSSValue.mm:
+        (core): Deleted.
+        * bindings/objc/DOMCSSValueInternal.h:
+        * bindings/objc/DOMCSSValueList.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMCSSValueListInternal.h: Removed.
+        * bindings/objc/DOMCharacterData.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMCharacterDataInternal.h: Removed.
+        * bindings/objc/DOMComment.mm:
+        (core): Deleted.
+        * bindings/objc/DOMCommentInternal.h:
+        * bindings/objc/DOMCounter.mm:
+        (core): Deleted.
+        * bindings/objc/DOMCounterInternal.h:
+        * bindings/objc/DOMDOMImplementation.mm:
+        (core): Deleted.
+        * bindings/objc/DOMDOMImplementationInternal.h:
+        * bindings/objc/DOMDOMTokenList.mm:
+        (core): Deleted.
+        * bindings/objc/DOMDOMTokenListInternal.h:
+        * bindings/objc/DOMEntity.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMEntityInternal.h: Removed.
+        * bindings/objc/DOMEntityReference.mm:
+        (core): Deleted.
+        * bindings/objc/DOMEntityReferenceInternal.h:
+        * bindings/objc/DOMFile.mm:
+        (core): Deleted.
+        * bindings/objc/DOMFileInternal.h:
+        * bindings/objc/DOMHTMLAnchorElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLAnchorElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLAppletElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLAppletElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLAreaElement.mm:
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLAreaElementInternal.h:
+        * bindings/objc/DOMHTMLBRElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLBRElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLBaseElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLBaseElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLBaseFontElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLBaseFontElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLBodyElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLBodyElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLButtonElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLButtonElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLCanvasElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLCanvasElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLCollection.mm:
+        (core): Deleted.
+        * bindings/objc/DOMHTMLCollectionInternal.h:
+        * bindings/objc/DOMHTMLDListElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLDListElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLDirectoryElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLDirectoryElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLDivElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLDivElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLEmbedElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLEmbedElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLFieldSetElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLFieldSetElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLFontElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLFontElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLFormElement.mm:
+        (core): Deleted.
+        * bindings/objc/DOMHTMLFormElementInternal.h:
+        * bindings/objc/DOMHTMLFrameElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLFrameElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLFrameSetElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLFrameSetElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLHRElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLHRElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLHeadElement.mm:
+        (core): Deleted.
+        * bindings/objc/DOMHTMLHeadElementInternal.h:
+        * bindings/objc/DOMHTMLHeadingElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLHeadingElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLHtmlElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLHtmlElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLIFrameElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLIFrameElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLImageElement.mm:
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLImageElementInternal.h:
+        * bindings/objc/DOMHTMLLIElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLLIElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLLabelElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLLabelElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLLegendElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLLegendElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLLinkElement.mm:
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLLinkElementInternal.h:
+        * bindings/objc/DOMHTMLMapElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLMapElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLMarqueeElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLMarqueeElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLMediaElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLMediaElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLMenuElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLMenuElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLMetaElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLMetaElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLModElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLModElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLOListElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLOListElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLObjectElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLObjectElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLOptGroupElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLOptGroupElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLOptionsCollection.mm:
+        (core): Deleted.
+        * bindings/objc/DOMHTMLOptionsCollectionInternal.h:
+        * bindings/objc/DOMHTMLParagraphElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLParagraphElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLParamElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLParamElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLPreElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLPreElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLQuoteElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLQuoteElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLScriptElement.mm:
+        (core): Deleted.
+        * bindings/objc/DOMHTMLScriptElementInternal.h:
+        * bindings/objc/DOMHTMLSelectElement.mm:
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLSelectElementInternal.h:
+        * bindings/objc/DOMHTMLStyleElement.mm:
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLStyleElementInternal.h:
+        * bindings/objc/DOMHTMLTableColElement.mm:
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLTableColElementInternal.h:
+        * bindings/objc/DOMHTMLTableElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLTableElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLTableRowElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLTableRowElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLTitleElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLTitleElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLUListElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLUListElementInternal.h: Removed.
+        * bindings/objc/DOMHTMLVideoElement.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMHTMLVideoElementInternal.h: Removed.
+        * bindings/objc/DOMKeyboardEvent.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMKeyboardEventInternal.h: Removed.
+        * bindings/objc/DOMMediaError.mm:
+        (core): Deleted.
+        * bindings/objc/DOMMediaErrorInternal.h:
+        * bindings/objc/DOMMediaList.mm:
+        (core): Deleted.
+        * bindings/objc/DOMMediaListInternal.h:
+        * bindings/objc/DOMMouseEvent.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMMouseEventInternal.h: Removed.
+        * bindings/objc/DOMMutationEvent.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMMutationEventInternal.h: Removed.
+        * bindings/objc/DOMNamedNodeMap.mm:
+        (core): Deleted.
+        * bindings/objc/DOMNamedNodeMapInternal.h:
+        * bindings/objc/DOMNodeIterator.mm:
+        (core): Deleted.
+        * bindings/objc/DOMNodeIteratorInternal.h:
+        * bindings/objc/DOMNodeList.mm:
+        (core): Deleted.
+        * bindings/objc/DOMNodeListInternal.h:
+        * bindings/objc/DOMOverflowEvent.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMOverflowEventInternal.h: Removed.
+        * bindings/objc/DOMProgressEvent.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMProgressEventInternal.h: Removed.
+        * bindings/objc/DOMRGBColor.mm:
+        (core): Deleted.
+        * bindings/objc/DOMRGBColorInternal.h:
+        * bindings/objc/DOMRect.mm:
+        (core): Deleted.
+        * bindings/objc/DOMRectInternal.h:
+        * bindings/objc/DOMStyleSheet.mm:
+        (core): Deleted.
+        * bindings/objc/DOMStyleSheetInternal.h:
+        * bindings/objc/DOMStyleSheetList.mm:
+        (core): Deleted.
+        * bindings/objc/DOMStyleSheetListInternal.h:
+        * bindings/objc/DOMText.mm:
+        (core): Deleted.
+        * bindings/objc/DOMTextEvent.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMTextEventInternal.h: Removed.
+        * bindings/objc/DOMTextInternal.h:
+        * bindings/objc/DOMTimeRanges.mm:
+        (core): Deleted.
+        * bindings/objc/DOMTimeRangesInternal.h:
+        * bindings/objc/DOMTreeWalker.mm:
+        (core): Deleted.
+        * bindings/objc/DOMTreeWalkerInternal.h:
+        * bindings/objc/DOMUIEvent.mm:
+        (core): Deleted.
+        (kit): Deleted.
+        * bindings/objc/DOMUIEventInternal.h: Removed.
+        * bindings/objc/DOMWheelEvent.mm:
+        (kit): Deleted.
+        * bindings/objc/DOMWheelEventInternal.h:
+        * bindings/objc/DOMXPathExpression.mm:
+        (core): Deleted.
+        * bindings/objc/DOMXPathExpressionInternal.h:
+
+2016-08-03  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac] Work around AVPlayer setMuted bug
+        https://bugs.webkit.org/show_bug.cgi?id=160519
+        <rdar://problem/27310475>
+
+        Reviewed by Dean Jackson.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.h: Only override
+        supportsMuting on iOS.
+
+2016-08-03  Eric Carlson  <eric.carlson@apple.com>
+
+        Cleanup HTMLMediaElement track lists.
+        https://bugs.webkit.org/show_bug.cgi?id=160470
+
+        Reviewed by Brent Fulgham.
+
+        * html/track/AudioTrack.cpp:
+        (WebCore::AudioTrack::willRemove): Remove unnecessary ASSERT and NULL check.
+
+        * html/track/TextTrackList.cpp:
+        (TextTrackList::~TextTrackList): Call clearElement so media element and client pointers are
+        cleared.
+
+2016-08-02  Ada Chan  <adachan@apple.com>
+
+        [Mac] media/pip-video-going-into-fullscreen.html is a flaky failure
+        https://bugs.webkit.org/show_bug.cgi?id=160469
+
+        Reviewed by Eric Carlson.
+
+        When going from picture-in-picture directly to fullscreen, fix the issue where the
+        presentation mode unexpectedly changes back to inline after changing to fullscreen.
+
+        On Mac, standard fullscreen is not handled by WebVideoFullscreenManager.
+        When going from picture-in-picture directly to fullscreen, we call
+        WebVideoFullscreenInterfaceMac::exitFullscreenWithoutAnimationToMode().
+        We should update m_mode to VideoFullscreenModeStandard there to keep it in sync
+        with the fullscreen mode in HTMLMediaElement. Otherwise, we'll inadvertently
+        update the mode to inline when we clear the VideoFullscreenModePictureInPicture mode
+        in -[WebVideoFullscreenInterfaceMacObjC pipDidClose:].
+
+        Since standard fullscreen on Mac doesn't make use of the video fullscreen layer,
+        we need to make sure we return the video layer back to inline when the presentation
+        mode changes to "fullscreen". We only do this on Mac because iOS does use
+        the video fullscreen layer for standard fullscreen.
+
+        * Modules/mediacontrols/MediaControlsHost.cpp:
+        (WebCore::MediaControlsHost::setPreparedToReturnVideoLayerToInline):
+        Renamed from MediaControlsHost::setPreparedForInline to make it clear this is about
+        whether the video layer should be inline.
+        (WebCore::MediaControlsHost::setPreparedForInline): Deleted.
+        * Modules/mediacontrols/MediaControlsHost.h:
+        * Modules/mediacontrols/MediaControlsHost.idl:
+
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.shouldReturnVideoLayerToInline):
+        On Mac, the video layer is inline when the presentation mode is "inline" or "fullscreen".
+        (Controller.prototype.handlePresentationModeChange):
+        Call shouldReturnVideoLayerToInline() to determine whether the video layer should be inline.
+
+        * Modules/mediacontrols/mediaControlsiOS.js:
+        (ControllerIOS.prototype.shouldReturnVideoLayerToInline):
+        Override this method since on iOS, the video layer is only inline when the presentation
+        mode is "inline".
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::stopWithoutDestroyingMediaPlayer):
+        (WebCore::HTMLMediaElement::setPreparedToReturnVideoLayerToInline):
+        (WebCore::HTMLMediaElement::setPreparedForInline): Deleted.
+        * html/HTMLMediaElement.h:
+
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (WebCore::WebVideoFullscreenInterfaceMac::enterFullscreen):
+        Remove the assertion that the mode must be "picture-in-picture". I've run into this
+        assertion in layout tests. Since the EnterFullscreen message is sent in a dispatch_async
+        block in WebVideoFullscreenManager::didSetupFullscreen(), there's a chance that the
+        fullscreen mode tracked in WebVideoFullscreenInterfaceMac has already changed to
+        something else when WebVideoFullscreenInterfaceMac::enterFullscreen() is called.
+        (WebCore::WebVideoFullscreenInterfaceMac::exitFullscreenWithoutAnimationToMode):
+        If exiting to standard fullscreen, update m_mode to VideoFullscreenModeStandard.
+
+2016-08-03  Youenn Fablet  <youenn@apple.com>
+
+        http/tests/fetch/fetch-in-worker-crash.html is sometimes crashing
+        https://bugs.webkit.org/show_bug.cgi?id=160498
+
+        Reviewed by Chris Dumez.
+
+        Covered by http/tests/fetch/fetch-in-worker-crash.html.
+
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::cancel): Taking a reference of the client wrapper to ensure it can be cleaned-up successfully.
+
+2016-08-02  Anders Carlsson  <andersca@apple.com>
+
+        Freeze the last of the Objective-C bindings
+        https://bugs.webkit.org/show_bug.cgi?id=160482
+
+        Reviewed by Darin Adler.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMAttr.h: Added.
+        * bindings/objc/DOMAttr.mm: Added.
+        * bindings/objc/DOMAttrInternal.h: Added.
+        * bindings/objc/DOMCDATASection.h: Added.
+        * bindings/objc/DOMCDATASection.mm: Added.
+        * bindings/objc/DOMCDATASectionInternal.h: Added.
+        * bindings/objc/DOMCharacterData.h
+        * bindings/objc/DOMCharacterData.mm: Added.
+        * bindings/objc/DOMCharacterDataInternal.h: Added.
+        * bindings/objc/DOMComment.h: Added.
+        * bindings/objc/DOMComment.mm: Added.
+        * bindings/objc/DOMCommentInternal.h: Added.
+        * bindings/objc/DOMDOMImplementation.h: Added.
+        * bindings/objc/DOMDOMImplementation.mm: Added.
+        * bindings/objc/DOMDOMImplementationInternal.h: Added.
+        * bindings/objc/DOMDocument.h: Added.
+        * bindings/objc/DOMDocument.mm: Added.
+        * bindings/objc/DOMDocumentFragment.h: Added.
+        * bindings/objc/DOMDocumentFragment.mm: Added.
+        * bindings/objc/DOMDocumentFragmentInternal.h: Added.
+        * bindings/objc/DOMDocumentFragmentPrivate.h: Added.
+        * bindings/objc/DOMDocumentInternal.h: Added.
+        * bindings/objc/DOMDocumentPrivate.h: Added.
+        * bindings/objc/DOMDocumentType.h: Added.
+        * bindings/objc/DOMDocumentType.mm: Added.
+        * bindings/objc/DOMDocumentTypeInternal.h: Added.
+        * bindings/objc/DOMElement.h: Added.
+        * bindings/objc/DOMElement.mm: Added.
+        * bindings/objc/DOMElementInternal.h: Added.
+        * bindings/objc/DOMEntity.h: Added.
+        * bindings/objc/DOMEntity.mm: Added.
+        * bindings/objc/DOMEntityInternal.h: Added.
+        * bindings/objc/DOMEntityReference.h: Added.
+        * bindings/objc/DOMEntityReference.mm: Added.
+        * bindings/objc/DOMEntityReferenceInternal.h: Added.
+        * bindings/objc/DOMNamedNodeMap.h: Added.
+        * bindings/objc/DOMNamedNodeMap.mm: Added.
+        * bindings/objc/DOMNamedNodeMapInternal.h: Added.
+        * bindings/objc/DOMNode.h: Added.
+        * bindings/objc/DOMNode.mm: Added.
+        * bindings/objc/DOMNodeInternal.h: Added.
+        * bindings/objc/DOMNodeList.h: Added.
+        * bindings/objc/DOMNodeList.mm: Added.
+        * bindings/objc/DOMNodeListInternal.h: Added.
+        * bindings/objc/DOMNodePrivate.h: Added.
+        * bindings/objc/DOMProcessingInstruction.h: Added.
+        * bindings/objc/DOMProcessingInstruction.mm: Added.
+        * bindings/objc/DOMProcessingInstructionInternal.h: Added.
+        * bindings/objc/DOMText.h: Added.
+        * bindings/objc/DOMText.mm: Added.
+        * bindings/objc/DOMTextEvent.mm:
+        * bindings/objc/DOMTextEventInternal.h:
+        * bindings/objc/DOMTextInternal.h: Added.
+
+2016-08-03  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac][iOS] Adopt MediaRemote "seek to playback position"
+        https://bugs.webkit.org/show_bug.cgi?id=160405
+        <rdar://problem/27547583>
+
+        Reviewed by Dean Jackson.
+
+        * platform/ios/RemoteCommandListenerIOS.mm:
+        (WebCore::RemoteCommandListenerIOS::RemoteCommandListenerIOS): Fix a typo.
+
 2016-08-02  Frederic Wang  <fwang@igalia.com>
 
         Move determination of operator direction into DOM class and reduce relayout

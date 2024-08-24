@@ -377,6 +377,9 @@ webkit.org/b/142726 [ Yosemite ] fast/images/animated-png.html [ Skip ]
 # This test fails every time on El Capitan
 [ ElCapitan ] fast/mediastream/MediaStream-video-element-video-tracks-disabled.html [ Skip ]
 
+# Hitting "The certificate for this server is invalid" loading error (not happening in WK1)
+webkit.org/b/160445 http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-worker.html [ Failure Timeout ]
+
 ### END OF (3) Unclassified failures
 ########################################
 
@@ -571,6 +574,7 @@ webkit.org/b/145702 [ Debug Yosemite ] http/tests/misc/acid3.html [ Pass Timeout
 
 # Content Extensions tests must be enabled explicitly on mac-wk2.
 http/tests/contentextensions [ Pass ]
+http/tests/websocket/tests/hybi/contentextensions [ Pass ]
 webkit.org/b/146400 http/tests/contentextensions/character-set-basic-support.html [ Pass Failure ]
 
 # WebKit1-only failure.
@@ -604,14 +608,12 @@ webkit.org/b/158639 [ Release Yosemite ] imported/blink/storage/indexeddb/blob-d
 [ Sierra+ ] media/fullscreen-api-enabled-media-with-presentation-mode.html [ Pass ]
 [ Sierra+ ] media/fullscreen-video-going-into-pip.html [ Pass ]
 [ Sierra+ ] media/navigate-with-pip-should-not-crash.html [ Pass ]
+[ Sierra+ ] media/pip-video-going-into-fullscreen.html [ Pass ]
 [ Sierra+ ] media/video-contained-in-fullscreen-element-going-into-pip.html [ Pass ]
 
 # rdar://problem/26885345
 [ Release Sierra+ ] media/click-placeholder-not-pausing.html [ Pass ]
 [ Debug Sierra+ ] media/click-placeholder-not-pausing.html [ Skip ]
-
-# rdar://problem/26901714
-[ Sierra+ ] media/pip-video-going-into-fullscreen.html [ Pass Failure ]
 
 # RTL Scrollbars are enabled on Sierra WebKit2.
 [ Sierra+ ] fast/scrolling/rtl-scrollbars.html [ Pass ]

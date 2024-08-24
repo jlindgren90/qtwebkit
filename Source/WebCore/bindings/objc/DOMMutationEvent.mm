@@ -24,7 +24,7 @@
  */
 
 #import "config.h"
-#import "DOMMutationEventInternal.h"
+#import "DOMMutationEvent.h"
 
 #import "DOMEventInternal.h"
 #import "DOMNodeInternal.h"
@@ -77,21 +77,13 @@
     IMPL->initMutationEvent(type, canBubble, cancelable, core(inRelatedNode), inPrevValue, inNewValue, inAttrName, inAttrChange);
 }
 
+@end
+
+@implementation DOMMutationEvent (DOMMutationEventDeprecated)
+
 - (void)initMutationEvent:(NSString *)type :(BOOL)canBubble :(BOOL)cancelable :(DOMNode *)inRelatedNode :(NSString *)inPrevValue :(NSString *)inNewValue :(NSString *)inAttrName :(unsigned short)inAttrChange
 {
-    WebCore::JSMainThreadNullState state;
-    IMPL->initMutationEvent(type, canBubble, cancelable, core(inRelatedNode), inPrevValue, inNewValue, inAttrName, inAttrChange);
+    [self initMutationEvent:type canBubble:canBubble cancelable:cancelable relatedNode:inRelatedNode prevValue:inPrevValue newValue:inNewValue attrName:inAttrName attrChange:inAttrChange];
 }
 
 @end
-
-WebCore::MutationEvent* core(DOMMutationEvent *wrapper)
-{
-    return wrapper ? reinterpret_cast<WebCore::MutationEvent*>(wrapper->_internal) : 0;
-}
-
-DOMMutationEvent *kit(WebCore::MutationEvent* value)
-{
-    WebCoreThreadViolationCheckRoundOne();
-    return static_cast<DOMMutationEvent*>(kit(static_cast<WebCore::Event*>(value)));
-}

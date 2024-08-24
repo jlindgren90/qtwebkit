@@ -923,6 +923,7 @@ sub GenerateDefaultValue
         my $enumerationValueName = GetEnumerationValueName(substr($value, 1, -1));
         $value = $className . "::" . $enumerationValueName;
     }
+    $value = "nullptr" if $value eq "null";
 
     return $value;
 }
@@ -998,11 +999,19 @@ sub GenerateDictionaryImplementationContent
                 $result .= "        return { };\n";
             }
             # FIXME: Eventually we will want this to share a lot more code with JSValueToNative.
-            my $function = $member->isOptional ? "convertOptional" : "convert";
-            $result .= "    auto " . $member->name . " = " . $function . "<" . GetNativeTypeFromSignature($interface, $member) . ">"
-                . "(state, object->get(&state, Identifier::fromString(&state, \"" . $member->name . "\"))"
-                . GenerateConversionRuleWithLeadingComma($interface, $member)
-                . GenerateDefaultValueWithLeadingComma($interface, $member) . ");\n";
+            my $type = $member->type;
+            my $name = $member->name;
+            my $value = "object->get(&state, Identifier::fromString(&state, \"${name}\"))";
+            if ($codeGenerator->IsWrapperType($member->type)) {
+                die "Dictionary member of non-nullable wrapper types are not supported yet" unless $member->isNullable;
+                AddToImplIncludes("JS${type}.h");
+                $result .= "    auto* $name = convertWrapperType<$type, JS${type}>(state, $value, IsNullable::Yes);\n";
+            } else {
+                my $function = $member->isOptional ? "convertOptional" : "convert";
+                $result .= "    auto $name = ${function}<" . GetNativeTypeFromSignature($interface, $member) . ">(state, $value"
+                    . GenerateConversionRuleWithLeadingComma($interface, $member)
+                    . GenerateDefaultValueWithLeadingComma($interface, $member) . ");\n";
+            }
             $needExceptionCheck = 1;
         }
 
@@ -5358,6 +5367,11 @@ sub GenerateConstructorHelperMethods
     if ($interface->parent && !$codeGenerator->getInterfaceExtendedAttributesFromName($interface->parent)->{"NoInterfaceObject"}) {
         my $parentClassName = "JS" . $interface->parent;
         push(@$outputArray, "    return ${parentClassName}::getConstructor(vm, &globalObject);\n");
+    } elsif ($interface->isCallback) {
+        # The internal [[Prototype]] property of an interface object for a callback interface must be the Object.prototype object.
+        AddToImplIncludes("<runtime/ObjectPrototype.h>");
+        push(@$outputArray, "    UNUSED_PARAM(vm);\n");
+        push(@$outputArray, "    return globalObject.objectPrototype();\n");
     } else {
         AddToImplIncludes("<runtime/FunctionPrototype.h>");
         push(@$outputArray, "    UNUSED_PARAM(vm);\n");
