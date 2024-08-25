@@ -1,3 +1,137 @@
+2016-08-21  Youenn Fablet  <youenn@apple.com>
+
+        [Mac] Rebase some failing XMLHttpRequest tests
+        https://bugs.webkit.org/show_bug.cgi?id=161036
+
+        Unreviewed.
+
+        * TestExpectations: Unmarking rebased tests as failing.
+        * platform/ios-simulator/imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-empty-expected.txt: Copied from LayoutTests/imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-empty-expected.txt.
+        * platform/ios-simulator/imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-none-expected.txt: Copied from LayoutTests/imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-none-expected.txt.
+        * platform/ios-simulator/imported/w3c/web-platform-tests/XMLHttpRequest/setrequestheader-content-type-expected.txt: Copied from LayoutTests/imported/w3c/web-platform-tests/XMLHttpRequest/setrequestheader-content-type-expected.txt.
+        * platform/mac/imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-empty-expected.txt: Copied from LayoutTests/imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-empty-expected.txt.
+        * platform/mac/imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-none-expected.txt: Copied from LayoutTests/imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-none-expected.txt.
+        * platform/mac/imported/w3c/web-platform-tests/XMLHttpRequest/setrequestheader-content-type-expected.txt: Copied from LayoutTests/imported/w3c/web-platform-tests/XMLHttpRequest/setrequestheader-content-type-expected.txt.
+
+2016-08-21  Youenn Fablet  <youenn@apple.com>
+
+        cross-origin requests redirected fail or drop author requested headers
+        https://bugs.webkit.org/show_bug.cgi?id=112471
+
+        Reviewed by Alex Christensen.
+
+        * http/tests/xmlhttprequest/redirections-and-user-headers-expected.txt: Added.
+        * http/tests/xmlhttprequest/redirections-and-user-headers.html: Added.
+        * http/tests/xmlhttprequest/resources/access-control-preflight-redirect.php: Added.
+
+2016-08-19  Sam Weinig  <sam@webkit.org>
+
+        Location.ancestorOrigins should return a FrozenArray<USVString>
+        https://bugs.webkit.org/show_bug.cgi?id=161018
+
+        Reviewed by Ryosuke Niwa and Chris Dumez.
+
+        Update existing tests to account for the change in type of Location.ancestorOrigins.
+
+        * fast/dom/Window/Location/ancestor-origins-expected.txt:
+        * fast/dom/Window/Location/ancestor-origins.html:
+        * fast/dom/indexed-getters-returning-string-expected.txt:
+        * fast/dom/indexed-getters-returning-string.html:
+
+2016-08-19  Dean Jackson  <dino@apple.com>
+
+        Implement preferLowPowerToHighPerformance for WebGL
+        https://bugs.webkit.org/show_bug.cgi?id=161017
+        <rdar://problem/26819135>
+
+        Reviewed by Myles Maxfield.
+
+        Now that we implement preferLowPowerToHighPerformance we can
+        retain its value in the context creation attributes object.
+
+        * fast/canvas/webgl/context-creation-attributes-expected.txt:
+
+2016-08-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline imported/w3c/web-platform-tests/html/semantics/interfaces.html for ios-simulator after r204647.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/interfaces-expected.txt:
+
+2016-08-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking editing/deleting/delete-empty-line-breaks-at-end-of-textarea.html as flaky on El Capitan.
+        https://bugs.webkit.org/show_bug.cgi?id=160782
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-08-19  Chris Dumez  <cdumez@apple.com>
+
+        Attr.prefix / Element.prefix attribute should be readonly
+        https://bugs.webkit.org/show_bug.cgi?id=160998
+
+        Reviewed by Daniel Bates.
+
+        Update existing tests to reflect behavior change and drop a few
+        outdated tests.
+
+        * fast/dom/Element/prefix-setter-exception-expected.txt: Removed.
+        * fast/dom/Element/prefix-setter-exception.html: Removed.
+        * fast/dom/Element/setAttributeNode-case-insensitivity.html:
+        * fast/dom/bad-href-attribute-expected.txt: Removed.
+        * fast/dom/bad-href-attribute.html: Removed.
+        * fast/dom/node-prefix-setter-namespace-exception-expected.txt: Removed.
+        * fast/dom/node-prefix-setter-namespace-exception.html: Removed.
+        * fast/dom/script-tests/node-prefix-setter-namespace-exception.js: Removed.
+        * svg/custom/xlink-prefix-generation-in-attributes-expected.txt:
+        * svg/custom/xlink-prefix-generation-in-attributes.html:
+
+2016-08-19  Nan Wang  <n_wang@apple.com>
+
+        AX: iOS, Wrong axLabel on static text if heading has multiple children
+        https://bugs.webkit.org/show_bug.cgi?id=160981
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/ios-simulator/heading-with-aria-label-expected.txt:
+        * accessibility/ios-simulator/heading-with-aria-label.html:
+
+2016-08-19  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] Gardening: Layout tests expectations updates and test rebaselines.
+
+        Unreviewed.
+
+        * TestExpectations: Mark as failing 3 tests from imported/w3c/web-platform-tests/XMLHttpRequest that had wrong results.
+        * platform/gtk/TestExpectations: Update list for imported/w3c/web-platform-tests/XMLHttpRequest and merge repeated results.
+        * platform/gtk/sputnik/Unicode/Unicode_510/S7.6_A3.1-expected.txt: Added. Rebaseline after r201449 (updated version of libicu).
+        * platform/gtk/sputnik/Unicode/Unicode_510/S7.6_A3.2-expected.txt: Added. Rebaseline after r201449 (updated version of libicu).
+        * platform/gtk/sputnik/Unicode/Unicode_510/S7.6_A5.3_T1-expected.txt: Added. Rebaseline after r201449 (updated version of libicu).
+        * platform/gtk/sputnik/Unicode/Unicode_510/S7.6_A5.3_T2-expected.txt: Added. Rebaseline after r201449 (updated version of libicu).
+
+2016-08-19  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Resource Timing: Make PerformanceEntryList a sequence as per spec
+        https://bugs.webkit.org/show_bug.cgi?id=160963
+
+        Reviewed by Alex Christensen.
+
+        Testing that PerformanceEntryList (window.performance.getEntries()) is iterable.
+
+        * http/tests/performance/performance-resource-timing-entries-iterable-expected.txt: Added.
+        * http/tests/performance/performance-resource-timing-entries-iterable.html: Added.
+
+2016-08-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unskip tests that now pass on ios-simulator.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
 2016-08-18  Chris Dumez  <cdumez@apple.com>
 
         Move prefix / namespaceURI / localName attributes from Node to Attr / Element

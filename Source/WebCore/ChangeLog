@@ -1,3 +1,810 @@
+2016-08-21  Youenn Fablet  <youenn@apple.com>
+
+        cross-origin requests redirected fail or drop author requested headers
+        https://bugs.webkit.org/show_bug.cgi?id=112471
+
+        Reviewed by Alex Christensen.
+
+        Test: http/tests/xmlhttprequest/redirections-and-user-headers.html
+
+        Storing original headers in DocumentThreadableLoader.
+        In case of cross-origin redirection in CORS mode, set the new request headers to the original headers.
+        Add a special handling to Authorization header that should not be used when it is already removed by the network layer.
+
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::redirectReceived):
+        (WebCore::DocumentThreadableLoader::loadRequest):
+        * loader/DocumentThreadableLoader.h:
+
+2016-08-21  Frederic Wang  <fwang@igalia.com>
+
+        Introduce a MathMLAnnotationElement class for the annotation/annotation-xml elements
+        https://bugs.webkit.org/show_bug.cgi?id=160540
+
+        Reviewed by Darin Adler.
+
+        The <annotation> element can only contain text whereas the <annotation-xml> element can
+        contain some elements as described in the HTML5 RelaxNG schema. For this reason, they have
+        been implemented in the separate MathMLTextElement and MathMLInlineContainerElement
+        respectively. However, they are actually closer to each other than to token elements or
+        presentation containers. In particular they support very different attributes and are
+        considered by the <semantics> tag. Hence we move their implementations in a new
+        MathMLAnnotation class.
+
+        No new tests, already covered by existing tests.
+
+        * CMakeLists.txt: Add MathMLAnnotationElement.
+        * mathml/MathMLAllInOne.cpp: Ditto.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAnnotationElement.cpp: Added.
+        (WebCore::MathMLAnnotationElement::MathMLAnnotationElement): ASSERT that this class is only
+        for annotation and annotation-xml.
+        (WebCore::MathMLAnnotationElement::create):
+        (WebCore::MathMLAnnotationElement::createElementRenderer): Move implementation from
+        MathMLTextElement and MathMLInlineContainerElement.
+        (WebCore::MathMLAnnotationElement::childShouldCreateRenderer): Move implementation from
+        MathMLTextElement and MathMLElement.
+        (WebCore::MathMLAnnotationElement::attributeChanged): Move implementation from MathMLElement.
+        * mathml/MathMLAnnotationElement.h: Override isSemanticAnnotation and isPresentationMathML
+        to return true.
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::childShouldCreateRenderer): Move the annotation-xml case into
+        MathMLAnnotationElement.
+        (WebCore::MathMLElement::attributeChanged): Deleted. This was only used for semantic
+        annotations and so the code is moved into MathMLAnnotationElement.
+        * mathml/MathMLElement.h:
+        (WebCore::MathMLElement::isMathMLToken): Return false and let derived class override this.
+        (WebCore::MathMLElement::isSemanticAnnotation): Ditto.
+        (WebCore::MathMLElement::updateSelectedChild): Make this public so that is can be used
+        by MathMLAnnotationElement::attributeChanged.
+        * mathml/MathMLInlineContainerElement.cpp:
+        (WebCore::MathMLInlineContainerElement::createElementRenderer): The annotation-xml case is
+        now handled in MathMLAnnotationElement.
+        * mathml/MathMLTextElement.cpp:
+        (WebCore::MathMLTextElement::createElementRenderer): The annotation case is handled is now
+        handled in  MathMLAnnotationElement.
+        (WebCore::MathMLTextElement::childShouldCreateRenderer): Ditto.
+        * mathml/MathMLTextElement.h: Override isToken to return true.
+        * mathml/mathtags.in: Map annotation and annotation-xml to MathMLAnnotationElement.
+
+2016-08-21  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Clean up CursorGtk.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=157794
+
+        Reviewed by Darin Adler.
+
+        We use GdkCursorType extensively in CursorGtk.cpp, but GTK+ does not support this anymore
+        and they're only sure to work under X11. Instead, use supported CSS cursor names. This
+        follows the grand tradition of replacing constants with hardcoded string values, but such
+        is the new best practice in GTK+ world.
+
+        Also, we have a bunch of custom cursors copied from Firefox. Each of these cursors is
+        nowadays guaranteed to be provided by GTK+, so we don't need any of these anymore.
+
+        * platform/gtk/CursorGtk.cpp:
+        (WebCore::createNamedCursor):
+        (WebCore::Cursor::ensurePlatformCursor):
+        * platform/gtk/CursorGtk.h: Removed.
+
+2016-08-20  Sam Weinig  <sam@webkit.org>
+
+        Fix the build.
+
+        * dom/UIEvent.h:
+
+2016-08-20  Darin Adler  <darin@apple.com>
+
+        Removed Objective-C specific attributes from IDL, made conditionals more consistent
+        https://bugs.webkit.org/show_bug.cgi?id=160900
+
+        Reviewed by Sam Weinig.
+
+        Removed all Objective-C-specific attributes from all the various IDL files where
+        they were used. Except, oops, Sam already did that, and so everything just merged!
+        Now that Objective-C is gone, made all the conditionals be based on LANGUAGE_GOBJECT
+        specifically. Later we should cut these down because many were not actually needed
+        for the GObject bindings, actually only for Objective-C. Also made the style of
+        conditional consistent. Also re-sorted attributes in alphabetical order in many cases
+        and made formatting more consistent without fancy indentation. Also removed old comments
+        that tried to document where various operations and attributes were defined; it's not
+        helpful to track "this was part of DOM level 2" at this point. Also fixed a variety of
+        types to explicitly state the values are nullable in cases where the generated code
+        is currently not affected by that; mostly read-only attribute types.
+
+        * Modules/mediasession/HTMLMediaElementMediaSession.idl:
+        * Modules/mediastream/HTMLMediaElementMediaStream.idl:
+        * animation/AnimationTimeline.idl:
+        * animation/DocumentAnimation.idl:
+        * bindings/scripts/IDLAttributes.txt:
+        * css/CSSMediaRule.idl:
+        * css/CSSPrimitiveValue.idl:
+        * css/CSSRule.idl:
+        * css/CSSStyleDeclaration.idl:
+        * css/CSSStyleSheet.idl:
+        * css/CSSValue.idl:
+        * css/RGBColor.idl:
+        * css/StyleSheet.idl:
+        * dom/CharacterData.idl:
+        * dom/DOMCoreException.idl:
+        * dom/DOMImplementation.idl:
+        * dom/Document.idl:
+        * dom/DocumentType.idl:
+        * dom/Element.idl:
+        * dom/Event.idl:
+        * dom/EventListener.idl:
+        * dom/EventTarget.idl:
+        * dom/KeyboardEvent.idl:
+        * dom/MessageEvent.idl:
+        * dom/MessagePort.idl:
+        * dom/MouseEvent.idl:
+        * dom/MutationEvent.idl:
+        * dom/NamedNodeMap.idl:
+        * dom/Node.idl:
+        * dom/NodeFilter.idl:
+        * dom/NonElementParentNode.idl:
+        * dom/Range.idl:
+        * dom/Slotable.idl:
+        * dom/UIEvent.idl:
+        * dom/WheelEvent.idl:
+        * fileapi/FileException.idl:
+        * html/DOMTokenList.idl:
+        * html/HTMLAnchorElement.idl:
+        * html/HTMLAppletElement.idl:
+        * html/HTMLCollection.idl:
+        * html/HTMLDocument.idl:
+        * html/HTMLElement.idl:
+        * html/HTMLEmbedElement.idl:
+        * html/HTMLFormElement.idl:
+        * html/HTMLInputElement.idl:
+        * html/HTMLMediaElement.idl:
+        * html/HTMLOptionElement.idl:
+        * html/HTMLOptionsCollection.idl:
+        * html/HTMLSelectElement.idl:
+        * html/HTMLTableColElement.idl:
+        * html/HTMLVideoElement.idl:
+        * html/ImageData.idl:
+        * html/URLUtils.idl:
+        * html/track/TextTrack.idl:
+        * page/AbstractView.idl:
+        * page/DOMSelection.idl:
+        * page/DOMWindow.idl:
+        * page/Location.idl:
+        * svg/SVGDocument.idl:
+        * svg/SVGElement.idl:
+        * svg/SVGException.idl:
+        * svg/SVGExternalResourcesRequired.idl:
+        * svg/SVGFilterPrimitiveStandardAttributes.idl:
+        * svg/SVGFitToViewBox.idl:
+        * svg/SVGPathSeg.idl:
+        * svg/SVGTests.idl:
+        * svg/SVGURIReference.idl:
+        * svg/SVGZoomAndPan.idl:
+        * workers/DedicatedWorkerGlobalScope.idl:
+        * workers/Worker.idl:
+        * workers/WorkerGlobalScope.idl:
+        * xml/XPathException.idl:
+        * xml/XPathExpression.idl:
+        * xml/XPathNSResolver.idl:
+        See above for summary of changes.
+
+2016-08-20  Sam Weinig  <sam@webkit.org>
+
+        Remove Objective-C specific extended attributes from the bindings
+        https://bugs.webkit.org/show_bug.cgi?id=161034
+
+        Reviewed by Dan Bernstein.
+
+        - Removes ObjCPolymorphic, ObjCProtocol, ObjCLegacyUnnamedParameters and ObjCExplicitAtomicString
+          extended attributes.
+
+        * animation/AnimationTimeline.idl:
+        * css/CSSMediaRule.idl:
+        * css/CSSPrimitiveValue.idl:
+        * css/CSSRule.idl:
+        * css/CSSStyleDeclaration.idl:
+        * css/CSSStyleSheet.idl:
+        * css/CSSValue.idl:
+        * css/StyleSheet.idl:
+        * dom/CharacterData.idl:
+        * dom/DOMImplementation.idl:
+        * dom/Document.idl:
+        * dom/Element.idl:
+        * dom/Event.idl:
+        * dom/EventListener.idl:
+        * dom/EventTarget.idl:
+        * dom/MouseEvent.idl:
+        * dom/MutationEvent.idl:
+        * dom/NamedNodeMap.idl:
+        * dom/Node.idl:
+        * dom/NodeFilter.idl:
+        * dom/NonElementParentNode.idl:
+        * dom/Range.idl:
+        * dom/UIEvent.idl:
+        * html/HTMLCollection.idl:
+        * html/HTMLSelectElement.idl:
+        * svg/SVGExternalResourcesRequired.idl:
+        * svg/SVGFilterPrimitiveStandardAttributes.idl:
+        * svg/SVGFitToViewBox.idl:
+        * svg/SVGPathSeg.idl:
+        * svg/SVGTests.idl:
+        * svg/SVGURIReference.idl:
+        * svg/SVGZoomAndPan.idl:
+        * xml/XPathExpression.idl:
+        * xml/XPathNSResolver.idl:
+
+2016-08-20  Sam Weinig  <sam@webkit.org>
+
+        Roll out r204683.
+
+2016-08-20  Sam Weinig  <sam@webkit.org>
+
+        Remove Objective-C specific extended attributes / features from the bindings
+        https://bugs.webkit.org/show_bug.cgi?id=161034
+
+        Reviewed by Dan Bernstein.
+
+        - Removes ObjCPolymorphic, ObjCProtocol, ObjCLegacyUnnamedParameters and ObjCExplicitAtomicString
+          extended attributes.
+        - Remove support for multiple inheritance from the IDLParser.
+
+        * bindings/scripts/CodeGenerator.pm:
+        * bindings/scripts/IDLParser.pm:
+        * animation/AnimationTimeline.idl:
+        * css/CSSMediaRule.idl:
+        * css/CSSPrimitiveValue.idl:
+        * css/CSSRule.idl:
+        * css/CSSStyleDeclaration.idl:
+        * css/CSSStyleSheet.idl:
+        * css/CSSValue.idl:
+        * css/StyleSheet.idl:
+        * dom/CharacterData.idl:
+        * dom/DOMImplementation.idl:
+        * dom/Document.idl:
+        * dom/Element.idl:
+        * dom/Event.idl:
+        * dom/EventListener.idl:
+        * dom/EventTarget.idl:
+        * dom/MouseEvent.idl:
+        * dom/MutationEvent.idl:
+        * dom/NamedNodeMap.idl:
+        * dom/Node.idl:
+        * dom/NodeFilter.idl:
+        * dom/NonElementParentNode.idl:
+        * dom/Range.idl:
+        * dom/UIEvent.idl:
+        * html/HTMLCollection.idl:
+        * html/HTMLSelectElement.idl:
+        * svg/SVGExternalResourcesRequired.idl:
+        * svg/SVGFilterPrimitiveStandardAttributes.idl:
+        * svg/SVGFitToViewBox.idl:
+        * svg/SVGPathSeg.idl:
+        * svg/SVGTests.idl:
+        * svg/SVGURIReference.idl:
+        * svg/SVGZoomAndPan.idl:
+        * xml/XPathExpression.idl:
+        * xml/XPathNSResolver.idl:
+
+2016-08-20  Sam Weinig  <sam@webkit.org>
+
+        Stop pretending that AbstractView is a thing, it's not
+        https://bugs.webkit.org/show_bug.cgi?id=161032
+
+        Reviewed by Dan Bernstein.
+
+        Remove AbstractView.idl, the AbstractView typedef of DOMWindow, and
+        all special casing of the name AbstractView in the JS code generator.
+
+        No change in behavior.
+
+        * DerivedSources.make:
+        * Modules/indieui/UIRequestEvent.cpp:
+        (WebCore::UIRequestEvent::createForBindings):
+        (WebCore::UIRequestEvent::create):
+        (WebCore::UIRequestEvent::UIRequestEvent):
+        * Modules/indieui/UIRequestEvent.h:
+        (WebCore::UIRequestEvent::receiver):
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/scripts/CodeGeneratorGObject.pm:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (ShouldGenerateToJSDeclaration):
+        (GetImplClassName):
+        * dom/CompositionEvent.cpp:
+        (WebCore::CompositionEvent::CompositionEvent):
+        (WebCore::CompositionEvent::~CompositionEvent):
+        (WebCore::CompositionEvent::initCompositionEvent):
+        * dom/CompositionEvent.h:
+        * dom/FocusEvent.cpp:
+        (WebCore::FocusEvent::isFocusEvent):
+        (WebCore::FocusEvent::FocusEvent):
+        * dom/FocusEvent.h:
+        * dom/KeyboardEvent.cpp:
+        (WebCore::KeyboardEvent::KeyboardEvent):
+        (WebCore::KeyboardEvent::~KeyboardEvent):
+        (WebCore::KeyboardEvent::initKeyboardEvent):
+        * dom/KeyboardEvent.h:
+        * dom/MouseEvent.cpp:
+        (WebCore::MouseEvent::createForBindings):
+        (WebCore::MouseEvent::create):
+        (WebCore::MouseEvent::MouseEvent):
+        (WebCore::MouseEvent::~MouseEvent):
+        (WebCore::MouseEvent::initMouseEvent):
+        * dom/MouseEvent.h:
+        * dom/MouseRelatedEvent.cpp:
+        (WebCore::MouseRelatedEvent::MouseRelatedEvent):
+        (WebCore::contentsScrollOffset):
+        * dom/MouseRelatedEvent.h:
+        * dom/SimulatedClick.cpp:
+        * dom/TextEvent.cpp:
+        (WebCore::TextEvent::createForBindings):
+        (WebCore::TextEvent::create):
+        (WebCore::TextEvent::createForPlainTextPaste):
+        (WebCore::TextEvent::createForFragmentPaste):
+        (WebCore::TextEvent::createForDrop):
+        (WebCore::TextEvent::createForDictation):
+        (WebCore::TextEvent::TextEvent):
+        (WebCore::TextEvent::~TextEvent):
+        (WebCore::TextEvent::initTextEvent):
+        * dom/TextEvent.h:
+        * dom/TouchEvent.h:
+        * dom/UIEvent.cpp:
+        (WebCore::UIEvent::UIEvent):
+        (WebCore::UIEvent::~UIEvent):
+        (WebCore::UIEvent::initUIEvent):
+        * dom/UIEvent.h:
+        (WebCore::UIEvent::create):
+        (WebCore::UIEvent::createForBindings):
+        (WebCore::UIEvent::view):
+        (WebCore::UIEvent::detail):
+        * dom/UIEventWithKeyState.h:
+        (WebCore::UIEventWithKeyState::UIEventWithKeyState):
+        * dom/WheelEvent.cpp:
+        (WebCore::WheelEvent::WheelEvent):
+        (WebCore::WheelEvent::initWheelEvent):
+        (WebCore::WheelEvent::initWebKitWheelEvent):
+        * dom/WheelEvent.h:
+        * page/AbstractView.idl: Removed.
+
+2016-08-19  Sam Weinig  <sam@webkit.org>
+
+        Location.ancestorOrigins should return a FrozenArray<USVString>
+        https://bugs.webkit.org/show_bug.cgi?id=161018
+
+        Reviewed by Ryosuke Niwa and Chris Dumez.
+
+        Updated tests: fast/dom/Window/Location/ancestor-origins.html
+                       fast/dom/indexed-getters-returning-string.html
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::createObjectStore):
+        (WebCore::IDBDatabase::transaction):
+        (WebCore::IDBDatabase::deleteObjectStore):
+        * Modules/indexeddb/IDBDatabase.h:
+        Remove unused ScriptExecutionContext parameter.
+
+        * Modules/indexeddb/IDBDatabase.idl:
+        There is no need for a custom implementation anymore.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        Remove JSDOMStringListCustom.cpp, which is no longer needed.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::jsArray): Deleted.
+        Remove overload of jsArray that took a DOMStringList.
+
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::jsFrozenArray):
+        Add jsFrozenArray which returns an JSArray which has had the moral 
+        equivalent of Object.freeze() called on it. This follows 
+        http://heycam.github.io/webidl/#es-frozen-array.
+
+        * bindings/js/JSDOMStringListCustom.cpp:
+        Removed.
+
+        * bindings/js/JSIDBDatabaseCustom.cpp:
+        (WebCore::JSIDBDatabase::transaction): Deleted.
+        Remove no longer necessary custom implementation of transaction.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (IsRefPtrType):
+        (IsSVGAnimatedType):
+        (IsSequenceType):
+        (GetSequenceType):
+        (IsFrozenArrayType):
+        (GetFrozenArrayInnerType):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AreTypesDistinguishableForOverloadResolution):
+        (GenerateOverloadedFunctionOrConstructor):
+        (GetNativeType):
+        (GetNativeVectorInnerType):
+        (GetNativeTypeForCallbacks):
+        (JSValueToNative):
+        (NativeToJSValue):
+        * bindings/scripts/IDLParser.pm:
+        (parseNonAnyType):
+        Add support for FrozenArray, closely matching the sequence code.
+
+        * bindings/scripts/test/JS/JSTestCallback.cpp:
+        * bindings/scripts/test/JS/JSTestCallback.h:
+        * bindings/scripts/test/JS/JSTestCallbackFunction.cpp:
+        * bindings/scripts/test/JS/JSTestCallbackFunction.h:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        Updated bindings test results.
+
+        * dom/DOMStringList.idl:
+        Remove JSCustomToNativeObject, which is no longer needed.
+
+        * inspector/InspectorIndexedDBAgent.cpp:
+        Update calls to IDBDatabase::transaction.
+
+        * page/Location.cpp:
+        (WebCore::Location::ancestorOrigins):
+        * page/Location.h:
+        Change ancestorOrigins to return a Vector<String> rather than
+        a DOMStringList.
+
+        * page/Location.idl:
+        Change ancestorOrigins to return a FrozenArray<USVString>, matching
+        the HTML5 spec.
+
+2016-08-19  Chris Dumez  <cdumez@apple.com>
+
+        Mark CanvasPath operations' parameters as mandatory when they should be
+        https://bugs.webkit.org/show_bug.cgi?id=161014
+
+        Reviewed by Sam Weinig.
+
+        Mark CanvasPath operations as mandatory when they should be:
+        - https://html.spec.whatwg.org/multipage/scripting.html#canvaspath
+
+        This patch moves the CanvasPath methods from CanvasRenderingContext2D
+        and Path2D to a new CanvasPath interface, to avoid duplication and
+        match the specification.
+
+        The parameters were correctly marked as mandatory in WebKit on
+        CanvasRenderingContext2D but not on Path2D.
+
+        Those parameters are correctly marked as mandatory in Chrome and Firefox.
+
+        No new tests, rebaselined existing test.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * html/canvas/CanvasPath.cpp: Renamed from Source/WebCore/html/canvas/CanvasPathMethods.cpp.
+        (WebCore::CanvasPath::closePath):
+        (WebCore::CanvasPath::moveTo):
+        (WebCore::CanvasPath::lineTo):
+        (WebCore::CanvasPath::quadraticCurveTo):
+        (WebCore::CanvasPath::bezierCurveTo):
+        (WebCore::CanvasPath::arcTo):
+        (WebCore::normalizeAngles):
+        (WebCore::CanvasPath::arc):
+        (WebCore::CanvasPath::ellipse):
+        (WebCore::CanvasPath::rect):
+        * html/canvas/CanvasPath.h: Renamed from Source/WebCore/html/canvas/CanvasPathMethods.h.
+        (WebCore::CanvasPath::~CanvasPath):
+        (WebCore::CanvasPath::CanvasPath):
+        (WebCore::CanvasPath::hasInvertibleTransform):
+        * html/canvas/CanvasPath.idl: Added.
+        * html/canvas/CanvasRenderingContext2D.h:
+        * html/canvas/CanvasRenderingContext2D.idl:
+        * html/canvas/DOMPath.h:
+        * html/canvas/DOMPath.idl:
+
+2016-08-19  Zalan Bujtas  <zalan@apple.com>
+
+        RenderObject::containingBlock() cleanup.
+        https://bugs.webkit.org/show_bug.cgi?id=161013
+
+        Reviewed by Simon Fraser.
+
+        Move ::containingBlockForAbsolutePosition and ::containingBlockForFixedPosition
+        to RenderElement after tightening containingBlock() callsites.
+
+        No change in functionality.
+
+        * dom/Element.cpp:
+        (WebCore::layoutOverflowRectContainsAllDescendants):
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::containingBlockForFixedPosition):
+        (WebCore::RenderElement::containingBlockForAbsolutePosition):
+        * rendering/RenderElement.h:
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::styleWillChange):
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::containingBlock):
+        (WebCore::RenderObject::containingBlockForFixedPosition): Deleted.
+        (WebCore::RenderObject::containingBlockForAbsolutePosition): Deleted.
+        * rendering/RenderObject.h:
+
+2016-08-19  Dean Jackson  <dino@apple.com>
+
+        Implement preferLowPowerToHighPerformance for WebGL
+        https://bugs.webkit.org/show_bug.cgi?id=161017
+        <rdar://problem/26819135>
+
+        Reviewed by Myles Maxfield.
+
+        Implement preferLowPowerToHighPerformance on macOS by
+        passing the correct CGL attribute when creating the
+        pixel format.
+
+        * bindings/js/JSHTMLCanvasElementCustom.cpp:
+        (WebCore::get3DContextAttributes):
+        * platform/graphics/mac/GraphicsContext3DMac.mm:
+        (WebCore::setPixelFormat):
+        (WebCore::GraphicsContext3D::GraphicsContext3D):
+
+2016-08-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove empty files and empty namespace blocks
+        https://bugs.webkit.org/show_bug.cgi?id=160990
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/DOMAllInOne.cpp:
+        * dom/MessagePortChannel.cpp: Removed.
+        * page/DatabaseProvider.h:
+        * platform/mock/mediasource/MockTracks.cpp: Removed.
+
+2016-08-19  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Addressing post-review comments after r204592
+        https://bugs.webkit.org/show_bug.cgi?id=160895
+
+        Unreviewed.
+
+        No new tests because there is no behavior change.
+
+        * page/cocoa/ResourceUsageOverlayCocoa.mm:
+        (WebCore::showText):
+        * platform/graphics/ca/PlatformCALayer.cpp:
+        (WebCore::PlatformCALayer::drawTextAtPoint):
+        * platform/ios/LegacyTileCache.mm:
+        (WebCore::LegacyTileCache::drawLayer):
+
+2016-08-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Attempt to fix the Windows build after r204652.
+
+        Unreviewed build fix.
+
+        * dom/DOMAllInOne.cpp:
+
+2016-08-19  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Migrate from ints to unsigneds in a few more places in rendering code
+        https://bugs.webkit.org/show_bug.cgi?id=161006
+
+        Reviewed by Alex Christensen.
+
+        No new tests because there is no behavior change.
+
+        * platform/graphics/GraphicsContext.cpp:
+        (WebCore::GraphicsContext::drawBidiText):
+        * platform/mock/MockRealtimeVideoSource.cpp:
+        (WebCore::MockRealtimeVideoSource::drawText):
+        * platform/text/BidiResolver.h:
+        (WebCore::BidiCharacterRun::BidiCharacterRun):
+        (WebCore::BidiCharacterRun::start):
+        (WebCore::BidiCharacterRun::stop):
+        * rendering/BidiRun.cpp:
+        (WebCore::BidiRun::BidiRun):
+        * rendering/BidiRun.h:
+        * rendering/RenderBlockLineLayout.cpp:
+        (WebCore::setLogicalWidthForTextRun):
+        (WebCore::RenderBlockFlow::computeInlineDirectionPositionsForSegment):
+        (WebCore::findFirstTrailingSpace):
+        (WebCore::RenderBlockFlow::handleTrailingSpaces):
+        * rendering/line/BreakingContext.h:
+
+2016-08-19  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Migrate RenderText::stringView() to unsigneds
+        https://bugs.webkit.org/show_bug.cgi?id=161005
+
+        Reviewed by Alex Christensen.
+
+        No new tests because there is no behavior change.
+
+        * rendering/RenderBlockLineLayout.cpp:
+        (WebCore::RenderBlockFlow::computeInlineDirectionPositionsForSegment):
+        * rendering/RenderText.cpp:
+        (WebCore::RenderText::stringView):
+        * rendering/RenderText.h:
+
+2016-08-18  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Rename LifecycleCallback to CustomElementReaction
+        https://bugs.webkit.org/show_bug.cgi?id=160991
+
+        Reviewed by Chris Dumez.
+
+        Renamed LifecycleCallbackQueue and CustomElementLifecycleProcessingStack
+        to CustomElementReactionQueue and CustomElementReactionStack per the latest spec:
+        https://html.spec.whatwg.org/#custom-element-reactions
+
+        No new tests since this is just a rename of classes which are not exposed to the Web.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+
+        * bindings/js/JSCustomElementsRegistryCustom.cpp:
+        (WebCore::getCallback): Renamed from getLifecycleCallback.
+        (WebCore::JSCustomElementsRegistry::define):
+        (WebCore::getLifecycleCallback): Deleted.
+
+        * bindings/js/JSMainThreadExecState.h:
+        (WebCore::JSMainThreadNullState):
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+
+        * bindings/scripts/test/JS/JSTestObj.cpp: Rebaselined.
+        * bindings/scripts/test/TestObj.idl:
+
+        * dom/CustomElementReactionQueue.cpp: Moved from Source/WebCore/dom/LifecycleCallbackQueue.cpp.
+        (WebCore::CustomElementReactionQueueItem::CustomElementReactionQueueItem):
+        (WebCore::CustomElementReactionQueue::CustomElementReactionQueue):
+        (WebCore::CustomElementReactionQueue::~CustomElementReactionQueue):
+        (WebCore::CustomElementReactionQueue::enqueueElementUpgrade):
+        (WebCore::CustomElementReactionQueue::enqueueConnectedCallbackIfNeeded):
+        (WebCore::CustomElementReactionQueue::enqueueDisconnectedCallbackIfNeeded):
+        (WebCore::CustomElementReactionQueue::enqueueAttributeChangedCallbackIfNeeded):
+        (WebCore::CustomElementReactionQueue::invokeAll):
+        (WebCore::CustomElementReactionStack::ensureCurrentQueue):
+        (WebCore::CustomElementReactionStack::processQueue):
+
+        * dom/CustomElementReactionQueue.h: Moved from Source/WebCore/dom/LifecycleCallbackQueue.h.
+        (WebCore::CustomElementReactionStack::CustomElementReactionStack):
+        (WebCore::CustomElementReactionStack::~CustomElementReactionStack):
+        (WebCore::CustomElementReactionStack::hasCurrentProcessingStack):
+
+        * dom/Document.cpp:
+        (WebCore::createFallbackHTMLElement):
+
+        * dom/Element.cpp:
+        (WebCore::Element::attributeChanged):
+        (WebCore::Element::insertedInto):
+        (WebCore::Element::removedFrom):
+
+2016-08-19  Chris Dumez  <cdumez@apple.com>
+
+        Attr.prefix / Element.prefix attribute should be readonly
+        https://bugs.webkit.org/show_bug.cgi?id=160998
+
+        Reviewed by Daniel Bates.
+
+        Attr.prefix / Element.prefix attribute should be readonly:
+        - https://dom.spec.whatwg.org/#element
+        - https://dom.spec.whatwg.org/#attr
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Attr.idl:
+        * dom/Element.idl:
+
+2016-08-19  Chris Dumez  <cdumez@apple.com>
+
+        <command> should be an HTMLUnknownElement and <basefont> should be an HTMLElement
+        https://bugs.webkit.org/show_bug.cgi?id=161004
+
+        Reviewed by Daniel Bates.
+
+        <command> should be an HTMLUnknownElement and <basefont> should be an HTMLElement as per:
+        - https://html.spec.whatwg.org/multipage/dom.html#elements-in-the-dom:element-interface
+
+        <basefont> is already an HTMLElement in Firefox and Chrome. <command> is an
+        HTMLUnknownElement in Firefox but an HTMLElement in Chrome.
+
+        No new tests, rebaselined existing test.
+
+        * html/HTMLTagNames.in:
+
+2016-08-19  Nan Wang  <n_wang@apple.com>
+
+        AX: iOS, Wrong axLabel on static text if heading has multiple children
+        https://bugs.webkit.org/show_bug.cgi?id=160981
+
+        Reviewed by Chris Fleizach.
+
+        Headings are using textUnderElement to compute the accessibilityLabel on iOS, so normally it's
+        the concatenation of all the children's accessibilityLabel. Therefore, we shouldn't use accessibilityLabel
+        to check for user defined text on headings. Instead, baseAccessibilityDescription will return the 
+        alternate text we want.
+
+        Changes are covered in the modified test.
+
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper _accessibilityTraitsFromAncestors]):
+
+2016-08-19  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Resource Timing: Make PerformanceEntryList a sequence as per spec
+        https://bugs.webkit.org/show_bug.cgi?id=160963
+
+        Reviewed by Alex Christensen.
+
+        Change PerformanceEntryList to be a sequence of PerformanceEntry instead of an object.
+
+        Test: http/tests/performance/performance-resource-timing-entries-iterable.html
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * PlatformGTK.cmake:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/scripts/CodeGeneratorGObject.pm:
+        Remove references to {JS,}PerformanceEntryList.{cpp,h,idl}.
+
+        * page/Performance.cpp:
+        (WebCore::Performance::getEntries):
+        (WebCore::Performance::getEntriesByType):
+        (WebCore::Performance::getEntriesByName):
+        * page/Performance.h:
+        Methods now operate on a Vector of PerformanceEntry.
+
+        * page/Performance.idl:
+        Typedef PerformanceEntryList as a sequence of PerformanceEntry.
+
+        * page/PerformanceEntryList.cpp: Removed.
+        (WebCore::PerformanceEntryList::PerformanceEntryList): Deleted.
+        (WebCore::PerformanceEntryList::~PerformanceEntryList): Deleted.
+        (WebCore::PerformanceEntryList::length): Deleted.
+        (WebCore::PerformanceEntryList::item): Deleted.
+        (WebCore::PerformanceEntryList::append): Deleted.
+        (WebCore::PerformanceEntryList::appendAll): Deleted.
+        (WebCore::PerformanceEntryList::sort): Deleted.
+        * page/PerformanceEntryList.h: Removed.
+        (WebCore::PerformanceEntryList::create): Deleted.
+        * page/PerformanceEntryList.idl: Removed.
+
+2016-08-19  Eric Carlson  <eric.carlson@apple.com>
+
+        [Mac] fix PiP context menu typos
+        https://bugs.webkit.org/show_bug.cgi?id=160999
+        <rdar://problem/27885070>
+
+        Reviewed by Jer Noble.
+
+        * English.lproj/Localizable.strings: "Picture-in-Picture" -> "Picture in Picture".
+
+        * platform/LocalizedStrings.cpp:
+        (WebCore::contextMenuItemTagEnterVideoEnhancedFullscreen): Ditto.
+        (WebCore::contextMenuItemTagExitVideoEnhancedFullscreen): Ditto.
+
+2016-08-16  Simon Fraser  <simon.fraser@apple.com>
+
+        Rename didLayout(LayoutMilestones) to didReachLayoutMilestone(), and related WK2 functions
+        https://bugs.webkit.org/show_bug.cgi?id=160923
+
+        Reviewed by Tim Horton.
+
+        didLayout(LayoutMilestones) -> didReachLayoutMilestone(LayoutMilestones)
+        dispatchDidLayout(LayoutMilestones) -> dispatchDidReachLayoutMilestone(LayoutMilestones)
+
+        * dom/Document.cpp:
+        (WebCore::Document::setVisualUpdatesAllowed):
+        * loader/EmptyClients.h:
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::didReachLayoutMilestone):
+        (WebCore::FrameLoader::didLayout): Deleted.
+        * loader/FrameLoader.h:
+        * loader/FrameLoaderClient.h:
+        * page/FrameView.cpp:
+        (WebCore::FrameView::fireLayoutRelatedMilestonesIfNeeded):
+        (WebCore::FrameView::firePaintRelatedMilestonesIfNeeded):
+        * page/LayoutMilestones.h: Formatting
+        * page/Page.cpp:
+        (WebCore::Page::addRelevantRepaintedObject):
+
 2016-08-19  Chris Dumez  <cdumez@apple.com>
 
         DumpRenderTree crashed in com.apple.WebCore: WebCore::DOMWindow::resetDOMWindowProperties + 607

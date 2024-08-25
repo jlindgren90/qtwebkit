@@ -147,7 +147,7 @@ class URLRequest;
 }
 
 namespace IPC {
-class ArgumentDecoder;
+class Decoder;
 class Connection;
 }
 
@@ -1128,7 +1128,7 @@ public:
     void clearWheelEventTestTrigger();
     void callAfterNextPresentationUpdate(std::function<void (CallbackBase::Error)>);
 
-    void didLayout(uint32_t layoutMilestones);
+    void didReachLayoutMilestone(uint32_t layoutMilestones);
 
     void didRestoreScrollPosition();
 
@@ -1175,11 +1175,11 @@ private:
 
     // IPC::MessageReceiver
     // Implemented in generated WebPageProxyMessageReceiver.cpp
-    void didReceiveMessage(IPC::Connection&, IPC::MessageDecoder&) override;
-    void didReceiveSyncMessage(IPC::Connection&, IPC::MessageDecoder&, std::unique_ptr<IPC::MessageEncoder>&) override;
+    void didReceiveMessage(IPC::Connection&, IPC::Decoder&) override;
+    void didReceiveSyncMessage(IPC::Connection&, IPC::Decoder&, std::unique_ptr<IPC::Encoder>&) override;
 
     // IPC::MessageSender
-    bool sendMessage(std::unique_ptr<IPC::MessageEncoder>, unsigned messageSendFlags) override;
+    bool sendMessage(std::unique_ptr<IPC::Encoder>, unsigned messageSendFlags) override;
     IPC::Connection* messageSenderConnection() override;
     uint64_t messageSenderDestinationID() override;
 

@@ -26,8 +26,8 @@
 #ifndef Arguments_h
 #define Arguments_h
 
-#include "ArgumentDecoder.h"
-#include "ArgumentEncoder.h"
+#include "Decoder.h"
+#include "Encoder.h"
 
 #include <tuple>
 
@@ -35,13 +35,13 @@ namespace IPC {
 
 template<size_t index, typename... Elements>
 struct TupleCoder {
-    static void encode(ArgumentEncoder& encoder, const std::tuple<Elements...>& tuple)
+    static void encode(Encoder& encoder, const std::tuple<Elements...>& tuple)
     {
         encoder << std::get<sizeof...(Elements) - index>(tuple);
         TupleCoder<index - 1, Elements...>::encode(encoder, tuple);
     }
 
-    static bool decode(ArgumentDecoder& decoder, std::tuple<Elements...>& tuple)
+    static bool decode(Decoder& decoder, std::tuple<Elements...>& tuple)
     {
         if (!decoder.decode(std::get<sizeof...(Elements) - index>(tuple)))
             return false;
@@ -51,23 +51,23 @@ struct TupleCoder {
 
 template<typename... Elements>
 struct TupleCoder<0, Elements...> {
-    static void encode(ArgumentEncoder&, const std::tuple<Elements...>&)
+    static void encode(Encoder&, const std::tuple<Elements...>&)
     {
     }
 
-    static bool decode(ArgumentDecoder&, std::tuple<Elements...>&)
+    static bool decode(Decoder&, std::tuple<Elements...>&)
     {
         return true;
     }
 };
 
 template<typename... Elements> struct ArgumentCoder<std::tuple<Elements...>> {
-    static void encode(ArgumentEncoder& encoder, const std::tuple<Elements...>& tuple)
+    static void encode(Encoder& encoder, const std::tuple<Elements...>& tuple)
     {
         TupleCoder<sizeof...(Elements), Elements...>::encode(encoder, tuple);
     }
 
-    static bool decode(ArgumentDecoder& decoder, std::tuple<Elements...>& tuple)
+    static bool decode(Decoder& decoder, std::tuple<Elements...>& tuple)
     {
         return TupleCoder<sizeof...(Elements), Elements...>::decode(decoder, tuple);
     }
@@ -82,12 +82,12 @@ struct Arguments {
     {
     }
 
-    void encode(ArgumentEncoder& encoder) const
+    void encode(Encoder& encoder) const
     {
         ArgumentCoder<std::tuple<Types...>>::encode(encoder, arguments);
     }
 
-    static bool decode(ArgumentDecoder& decoder, Arguments& result)
+    static bool decode(Decoder& decoder, Arguments& result)
     {
         return ArgumentCoder<std::tuple<Types...>>::decode(decoder, result.arguments);
     }

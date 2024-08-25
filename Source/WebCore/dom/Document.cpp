@@ -44,6 +44,7 @@
 #include "CompositionEvent.h"
 #include "ContentSecurityPolicy.h"
 #include "CookieJar.h"
+#include "CustomElementReactionQueue.h"
 #include "CustomElementsRegistry.h"
 #include "CustomEvent.h"
 #include "DOMImplementation.h"
@@ -105,7 +106,6 @@
 #include "JSModuleLoader.h"
 #include "KeyboardEvent.h"
 #include "Language.h"
-#include "LifecycleCallbackQueue.h"
 #include "LoaderStrategy.h"
 #include "Logging.h"
 #include "MainFrame.h"
@@ -1089,7 +1089,7 @@ static Ref<HTMLElement> createFallbackHTMLElement(Document& document, const Qual
             if (auto* elementInterface = registry->findInterface(name)) {
                 auto element = HTMLElement::create(name, document);
                 element->setIsUnresolvedCustomElement();
-                LifecycleCallbackQueue::enqueueElementUpgrade(element.get(), *elementInterface);
+                CustomElementReactionQueue::enqueueElementUpgrade(element.get(), *elementInterface);
                 return element;
             }
         }
@@ -1301,7 +1301,7 @@ void Document::setVisualUpdatesAllowed(bool visualUpdatesAllowed)
         if (frame()->isMainFrame()) {
             frameView->addPaintPendingMilestones(DidFirstPaintAfterSuppressedIncrementalRendering);
             if (page->requestedLayoutMilestones() & DidFirstLayoutAfterSuppressedIncrementalRendering)
-                frame()->loader().didLayout(DidFirstLayoutAfterSuppressedIncrementalRendering);
+                frame()->loader().didReachLayoutMilestone(DidFirstLayoutAfterSuppressedIncrementalRendering);
         }
     }
 

@@ -34,7 +34,7 @@
 
 namespace WebKit {
 
-void WebGestureEvent::encode(IPC::ArgumentEncoder& encoder) const
+void WebGestureEvent::encode(IPC::Encoder& encoder) const
 {
     WebEvent::encode(encoder);
 
@@ -43,7 +43,7 @@ void WebGestureEvent::encode(IPC::ArgumentEncoder& encoder) const
     encoder << m_gestureRotation;
 }
 
-bool WebGestureEvent::decode(IPC::ArgumentDecoder& decoder, WebGestureEvent& result)
+bool WebGestureEvent::decode(IPC::Decoder& decoder, WebGestureEvent& result)
 {
     if (!WebEvent::decode(decoder, result))
         return false;

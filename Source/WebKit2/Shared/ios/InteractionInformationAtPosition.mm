@@ -39,7 +39,7 @@ namespace WebKit {
 
 #if PLATFORM(IOS)
 
-void InteractionInformationAtPosition::encode(IPC::ArgumentEncoder& encoder) const
+void InteractionInformationAtPosition::encode(IPC::Encoder& encoder) const
 {
     encoder << point;
     encoder << nodeAtPositionIsAssistedNode;
@@ -79,7 +79,7 @@ void InteractionInformationAtPosition::encode(IPC::ArgumentEncoder& encoder) con
 #endif
 }
 
-bool InteractionInformationAtPosition::decode(IPC::ArgumentDecoder& decoder, InteractionInformationAtPosition& result)
+bool InteractionInformationAtPosition::decode(IPC::Decoder& decoder, InteractionInformationAtPosition& result)
 {
     if (!decoder.decode(result.point))
         return false;

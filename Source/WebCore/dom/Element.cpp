@@ -37,6 +37,7 @@
 #include "ClientRectList.h"
 #include "ComposedTreeAncestorIterator.h"
 #include "ContainerNodeAlgorithms.h"
+#include "CustomElementReactionQueue.h"
 #include "CustomElementsRegistry.h"
 #include "DOMTokenList.h"
 #include "Dictionary.h"
@@ -69,7 +70,6 @@
 #include "JSLazyEventListener.h"
 #include "KeyboardEvent.h"
 #include "KeyframeEffect.h"
-#include "LifecycleCallbackQueue.h"
 #include "MainFrame.h"
 #include "MutationObserverInterestGroup.h"
 #include "MutationRecord.h"
@@ -979,37 +979,40 @@ IntRect Element::boundsInRootViewSpace()
     return result;
 }
 
-static bool layoutOverflowRectContainsAllDescendants(const RenderElement& renderer)
+static bool layoutOverflowRectContainsAllDescendants(const RenderBox& renderBox)
 {
-    if (renderer.isRenderView())
+    if (renderBox.isRenderView())
         return true;
 
-    if (!renderer.element())
+    if (!renderBox.element())
         return false;
 
     // If there are any position:fixed inside of us, game over.
-    if (auto viewPositionedObjects = renderer.view().positionedObjects()) {
-        for (RenderBox* it : *viewPositionedObjects) {
-            if (it != &renderer && it->style().position() == FixedPosition && renderer.element()->contains(it->element()))
+    if (auto* viewPositionedObjects = renderBox.view().positionedObjects()) {
+        for (auto* positionedBox : *viewPositionedObjects) {
+            if (positionedBox == &renderBox)
+                continue;
+            if (positionedBox->style().position() == FixedPosition && renderBox.element()->contains(positionedBox->element()))
                 return false;
         }
     }
 
-    if (renderer.canContainAbsolutelyPositionedObjects()) {
+    if (renderBox.canContainAbsolutelyPositionedObjects()) {
         // Our layout overflow will include all descendant positioned elements.
         return true;
     }
 
     // This renderer may have positioned descendants whose containing block is some ancestor.
-    if (auto containingBlock = renderer.containingBlockForAbsolutePosition()) {
-        if (auto positionedObjects = containingBlock->positionedObjects()) {
-            for (RenderBox* it : *positionedObjects) {
-                if (it != &renderer && renderer.element()->contains(it->element()))
+    if (auto* containingBlock = renderBox.containingBlockForAbsolutePosition()) {
+        if (auto* positionedObjects = containingBlock->positionedObjects()) {
+            for (auto* positionedBox : *positionedObjects) {
+                if (positionedBox == &renderBox)
+                    continue;
+                if (renderBox.element()->contains(positionedBox->element()))
                     return false;
             }
         }
     }
-    
     return false;
 }
 
@@ -1293,7 +1296,7 @@ void Element::attributeChanged(const QualifiedName& name, const AtomicString& ol
 
 #if ENABLE(CUSTOM_ELEMENTS)
     if (UNLIKELY(isCustomElement()))
-        LifecycleCallbackQueue::enqueueAttributeChangedCallbackIfNeeded(*this, name, oldValue, newValue);
+        CustomElementReactionQueue::enqueueAttributeChangedCallbackIfNeeded(*this, name, oldValue, newValue);
 #endif
 
     if (valueIsSameAsBefore)
@@ -1598,7 +1601,7 @@ Node::InsertionNotificationRequest Element::insertedInto(ContainerNode& insertio
 
 #if ENABLE(CUSTOM_ELEMENTS)
     if (newDocument && UNLIKELY(isCustomElement()))
-        LifecycleCallbackQueue::enqueueConnectedCallbackIfNeeded(*this);
+        CustomElementReactionQueue::enqueueConnectedCallbackIfNeeded(*this);
 #endif
 
     return InsertionDone;
@@ -1649,7 +1652,7 @@ void Element::removedFrom(ContainerNode& insertionPoint)
 
 #if ENABLE(CUSTOM_ELEMENTS)
         if (oldDocument && UNLIKELY(isCustomElement()))
-            LifecycleCallbackQueue::enqueueDisconnectedCallbackIfNeeded(*this);
+            CustomElementReactionQueue::enqueueDisconnectedCallbackIfNeeded(*this);
 #endif
     }
 

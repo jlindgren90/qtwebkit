@@ -40,14 +40,14 @@ WebTouchEvent::WebTouchEvent(WebEvent::Type type, Vector<WebPlatformTouchPoint>&
     ASSERT(isTouchEventType(type));
 }
 
-void WebTouchEvent::encode(IPC::ArgumentEncoder& encoder) const
+void WebTouchEvent::encode(IPC::Encoder& encoder) const
 {
     WebEvent::encode(encoder);
 
     encoder << m_touchPoints;
 }
 
-bool WebTouchEvent::decode(IPC::ArgumentDecoder& decoder, WebTouchEvent& result)
+bool WebTouchEvent::decode(IPC::Decoder& decoder, WebTouchEvent& result)
 {
     if (!WebEvent::decode(decoder, result))
         return false;

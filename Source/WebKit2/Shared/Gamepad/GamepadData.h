@@ -31,15 +31,15 @@
 #include <wtf/text/WTFString.h>
 
 namespace IPC {
-class ArgumentDecoder;
-class ArgumentEncoder;
+class Decoder;
+class Encoder;
 }
 
 namespace WebKit {
 
 struct GamepadData {
-    void encode(IPC::ArgumentEncoder&) const;
-    static bool decode(IPC::ArgumentDecoder&, GamepadData&);
+    void encode(IPC::Encoder&) const;
+    static bool decode(IPC::Decoder&, GamepadData&);
 
     bool isNull() const;
 

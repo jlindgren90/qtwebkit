@@ -59,7 +59,7 @@ struct WebKitMessageRecord {
 namespace IPC {
 
 class Connection;
-class MessageDecoder;
+class Decoder;
 class MessageEncoder;
 
 class MessageRecorder {
@@ -76,8 +76,8 @@ public:
         WebKitMessageRecord m_record;
     };
 
-    static std::unique_ptr<MessageRecorder::MessageProcessingToken> recordOutgoingMessage(IPC::Connection&, IPC::MessageEncoder&);
-    static void recordIncomingMessage(IPC::Connection&, IPC::MessageDecoder&);
+    static std::unique_ptr<MessageRecorder::MessageProcessingToken> recordOutgoingMessage(IPC::Connection&, IPC::Encoder&);
+    static void recordIncomingMessage(IPC::Connection&, IPC::Decoder&);
 
 private:
     explicit MessageRecorder() { }

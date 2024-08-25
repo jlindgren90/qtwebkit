@@ -1,3 +1,104 @@
+2016-08-20  Brian Burg  <bburg@apple.com>
+
+        Remote Inspector: some methods don't need to be marked virtual anymore
+        https://bugs.webkit.org/show_bug.cgi?id=161033
+
+        Reviewed by Darin Adler.
+
+        This probably happened when this code was last refactored and moved around.
+
+        * inspector/remote/RemoteConnectionToTarget.h:
+
+2016-08-19  Sam Weinig  <sam@webkit.org>
+
+        Location.ancestorOrigins should return a FrozenArray<USVString>
+        https://bugs.webkit.org/show_bug.cgi?id=161018
+
+        Reviewed by Ryosuke Niwa and Chris Dumez.
+
+        * runtime/ObjectConstructor.h:
+        (JSC::objectConstructorFreeze):
+        Export objectConstructorFreeze so it can be used to freeze DOM FrozenArrays.
+
+2016-08-19  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] ArithSqrt should work with any argument type
+        https://bugs.webkit.org/show_bug.cgi?id=160954
+
+        Reviewed by Saam Barati.
+
+        Previsouly, ArithSqrt would always OSR Exit if the argument
+        is not typed Integer, Double, or Boolean.
+        Since we can't recover by generalizing to those, we continuously
+        OSR Exit and recompile the same code over and over again.
+
+        This patch introduces a fallback to handle the remaining types.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+
+        * dfg/DFGMayExit.cpp:
+        This is somewhat unrelated. While discussing the design of this
+        with Filip, we decided not to use ToNumber+ArithSqrt despite
+        the guarantee that ToNumber does not OSR Exit.
+        Since it does not OSR Exit, we should say so in mayExitImpl().
+
+        * dfg/DFGNodeType.h:
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithSqrt):
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::callOperation):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithSqrt):
+
+2016-08-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Make custom Error properties (line, column, sourceURL) configurable and writable
+        https://bugs.webkit.org/show_bug.cgi?id=160984
+        <rdar://problem/27905979>
+
+        Reviewed by Saam Barati.
+
+        * runtime/Error.cpp:
+        (JSC::addErrorInfoAndGetBytecodeOffset):
+        (JSC::addErrorInfo):
+
+2016-08-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove empty files and empty namespace blocks
+        https://bugs.webkit.org/show_bug.cgi?id=160990
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/ValueProfile.cpp: Removed.
+        * runtime/WatchdogMac.cpp: Removed.
+        * runtime/WatchdogNone.cpp: Removed.
+
+        * runtime/StringIteratorPrototype.cpp:
+        Remove empty namespace block.
+
+        * runtime/JSDestructibleObject.h:
+        Drive-by add missing copyright.
+
+2016-08-19  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Warning fix.
+        https://bugs.webkit.org/show_bug.cgi?id=160995
+
+        Avoid setting unknown compile option on source file.
+
+        Reviewed by Anders Carlsson.
+
+        * CMakeLists.txt:
+
 2016-08-18  Mark Lam  <mark.lam@apple.com>
 
         ScopedArguments is using the wrong owner object for a write barrier.

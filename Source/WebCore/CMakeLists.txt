@@ -541,6 +541,7 @@ set(WebCore_NON_SVG_IDL_FILES
 
     html/canvas/ANGLEInstancedArrays.idl
     html/canvas/CanvasGradient.idl
+    html/canvas/CanvasPath.idl
     html/canvas/CanvasPattern.idl
     html/canvas/CanvasProxy.idl
     html/canvas/CanvasRenderingContext.idl
@@ -606,7 +607,6 @@ set(WebCore_NON_SVG_IDL_FILES
 
     loader/appcache/DOMApplicationCache.idl
 
-    page/AbstractView.idl
     page/BarProp.idl
     page/Crypto.idl
     page/DOMSelection.idl
@@ -622,7 +622,6 @@ set(WebCore_NON_SVG_IDL_FILES
     page/NavigatorOnLine.idl
     page/Performance.idl
     page/PerformanceEntry.idl
-    page/PerformanceEntryList.idl
     page/PerformanceMark.idl
     page/PerformanceMeasure.idl
     page/PerformanceNavigation.idl
@@ -1150,7 +1149,6 @@ set(WebCore_SOURCES
     bindings/js/JSDOMPluginArrayCustom.cpp
     bindings/js/JSDOMPluginCustom.cpp
     bindings/js/JSDOMPromise.cpp
-    bindings/js/JSDOMStringListCustom.cpp
     bindings/js/JSDOMStringMapCustom.cpp
     bindings/js/JSDOMWindowBase.cpp
     bindings/js/JSDOMWindowCustom.cpp
@@ -1439,6 +1437,7 @@ set(WebCore_SOURCES
     dom/ContainerNode.cpp
     dom/ContainerNodeAlgorithms.cpp
     dom/ContextDestructionObserver.cpp
+    dom/CustomElementReactionQueue.cpp
     dom/CustomElementsRegistry.cpp
     dom/CustomEvent.cpp
     dom/DOMCoreException.cpp
@@ -1485,12 +1484,10 @@ set(WebCore_SOURCES
     dom/IdTargetObserverRegistry.cpp
     dom/InlineStyleSheetOwner.cpp
     dom/KeyboardEvent.cpp
-    dom/LifecycleCallbackQueue.cpp
     dom/LiveNodeList.cpp
     dom/MessageChannel.cpp
     dom/MessageEvent.cpp
     dom/MessagePort.cpp
-    dom/MessagePortChannel.cpp
     dom/Microtasks.cpp
     dom/MouseEvent.cpp
     dom/MouseRelatedEvent.cpp
@@ -1794,7 +1791,7 @@ set(WebCore_SOURCES
     html/canvas/ANGLEInstancedArrays.cpp
     html/canvas/CanvasContextAttributes.cpp
     html/canvas/CanvasGradient.cpp
-    html/canvas/CanvasPathMethods.cpp
+    html/canvas/CanvasPath.cpp
     html/canvas/CanvasPattern.cpp
     html/canvas/CanvasProxy.cpp
     html/canvas/CanvasRenderingContext.cpp
@@ -2005,6 +2002,7 @@ set(WebCore_SOURCES
     loader/icon/IconRecord.cpp
     loader/icon/PageURLRecord.cpp
 
+    mathml/MathMLAnnotationElement.cpp
     mathml/MathMLElement.cpp
     mathml/MathMLFractionElement.cpp
     mathml/MathMLInlineContainerElement.cpp
@@ -2064,7 +2062,6 @@ set(WebCore_SOURCES
     page/PageVisibilityState.cpp
     page/Performance.cpp
     page/PerformanceEntry.cpp
-    page/PerformanceEntryList.cpp
     page/PerformanceNavigation.cpp
     page/PerformanceResourceTiming.cpp
     page/PerformanceTiming.cpp
@@ -2157,7 +2154,6 @@ set(WebCore_SOURCES
     platform/MainThreadSharedTimer.cpp
     platform/MemoryPressureHandler.cpp
     platform/NotImplemented.cpp
-    platform/PlatformEvent.cpp
     platform/PlatformSpeechSynthesisUtterance.cpp
     platform/PlatformSpeechSynthesisVoice.cpp
     platform/PlatformSpeechSynthesizer.cpp
@@ -3457,7 +3453,6 @@ list(APPEND WebCoreTestSupport_SOURCES
     platform/mock/mediasource/MockMediaPlayerMediaSource.cpp
     platform/mock/mediasource/MockMediaSourcePrivate.cpp
     platform/mock/mediasource/MockSourceBufferPrivate.cpp
-    platform/mock/mediasource/MockTracks.cpp
 
     testing/GCObservation.cpp
     testing/InternalSettings.cpp

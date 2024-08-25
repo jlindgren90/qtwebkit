@@ -599,7 +599,8 @@ class IOSSimulatorDriver(Driver):
         dump_tool_args = cmd[1:]
         product_dir = self._port._build_path()
         relay_args = [
-            '-udid', self._port.testing_device(self._worker_number).udid,
+            '-developerDir', self._port.developer_dir,
+            '-udid', self._port.device_id_for_worker_number(self._worker_number),
             '-productDir', product_dir,
             '-app', dump_tool,
         ]
