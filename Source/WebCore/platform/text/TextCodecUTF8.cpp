@@ -37,7 +37,10 @@ const int nonCharacter = -1;
 
 void TextCodecUTF8::registerEncodingNames(EncodingNameRegistrar registrar)
 {
+    // From https://encoding.spec.whatwg.org.
     registrar("UTF-8", "UTF-8");
+    registrar("utf8", "UTF-8");
+    registrar("unicode-1-1-utf-8", "UTF-8");
 
     // Additional aliases that originally were present in the encoding
     // table in WebKit on Macintosh, and subsequently added by
@@ -45,7 +48,6 @@ void TextCodecUTF8::registerEncodingNames(EncodingNameRegistrar registrar)
     // and remove them.
     registrar("unicode11utf8", "UTF-8");
     registrar("unicode20utf8", "UTF-8");
-    registrar("utf8", "UTF-8");
     registrar("x-unicode20utf8", "UTF-8");
 }
 

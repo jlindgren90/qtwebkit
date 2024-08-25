@@ -1,3 +1,166 @@
+2016-08-18  Mark Lam  <mark.lam@apple.com>
+
+        ScopedArguments is using the wrong owner object for a write barrier.
+        https://bugs.webkit.org/show_bug.cgi?id=160976
+        <rdar://problem/27328506>
+
+        Reviewed by Keith Miller.
+
+        * runtime/ScopedArguments.h:
+        (JSC::ScopedArguments::setIndexQuickly):
+
+2016-08-18  Mark Lam  <mark.lam@apple.com>
+
+        Add LLINT probe() macro for X86_64.
+        https://bugs.webkit.org/show_bug.cgi?id=160968
+
+        Reviewed by Geoffrey Garen.
+
+        * llint/LowLevelInterpreter.asm:
+
+2016-08-18  Mark Lam  <mark.lam@apple.com>
+
+        Remove unused SlotVisitor::append() variant.
+        https://bugs.webkit.org/show_bug.cgi?id=160961
+
+        Reviewed by Saam Barati.
+
+        * heap/SlotVisitor.h:
+        * jit/JITWriteBarrier.h:
+        (JSC::JITWriteBarrier::get):
+        (JSC::SlotVisitor::append): Deleted.
+
+2016-08-18  Saam Barati  <sbarati@apple.com>
+
+        Make @Array(size) a bytecode intrinsic
+        https://bugs.webkit.org/show_bug.cgi?id=160867
+
+        Reviewed by Mark Lam.
+
+        There were a few places in the code where we were emitting `@Array(size)`
+        or `new @Array(size)`. Since we have a bytecode operation that already
+        represents this, called new_array_with_size, it's faster to just make a
+        bytecode intrinsic for the this operation. This patch does that and
+        the intrinsic is called `@newArrayWithSize`. This might be around a
+        1% speedup on ES6 sample bench, but it's within the noise. This is just
+        a good bytecode operation to have because it's common enough to
+        create arrays and it's good to make that fast in all tiers.
+
+        * builtins/ArrayConstructor.js:
+        (of):
+        (from):
+        * builtins/ArrayPrototype.js:
+        (filter):
+        (map):
+        (sort.stringSort):
+        (sort):
+        (concatSlowPath):
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_isObject):
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_newArrayWithSize):
+
+2016-08-18  Rawinder Singh  <rawinder.singh-webkit@cisra.canon.com.au>
+
+        [web-animations] Add Animatable, AnimationEffect, KeyframeEffect and Animation interface
+        https://bugs.webkit.org/show_bug.cgi?id=156096
+
+        Reviewed by Dean Jackson.
+
+        Adds:
+        - Animatable interface and implementation of getAnimations in Element.
+        - Interface and implementation for Document getAnimations method.
+        - AnimationEffect interface and class stub.
+        - KeyframeEffect interface and constructor implementation.
+        - 'Animation' interface, constructor and query methods for effect and timeline.
+        - Remove runtime condition on Web animation interfaces (compile time flag is specified).
+
+        * runtime/CommonIdentifiers.h:
+
+2016-08-17  Keith Miller  <keith_miller@apple.com>
+
+        Add WASM support for i64 simple opcodes.
+        https://bugs.webkit.org/show_bug.cgi?id=160928
+
+        Reviewed by Michael Saboff.
+
+        This patch also removes the unsigned int32 mod operator, which is not supported by B3 yet.
+
+        * wasm/WASMB3IRGenerator.cpp:
+        (JSC::WASM::toB3Op):
+        (JSC::WASM::B3IRGenerator::unaryOp):
+        * wasm/WASMFunctionParser.h:
+        (JSC::WASM::WASMFunctionParser<Context>::parseExpression):
+        * wasm/WASMOps.h:
+
+2016-08-17  JF Bastien  <jfbastien@apple.com>
+
+        We allow assignments to const variables when in a for-in/for-of loop
+        https://bugs.webkit.org/show_bug.cgi?id=156673
+
+        Reviewed by Filip Pizlo.
+
+        for-in and for-of weren't checking whether iteration variable from
+        parent scopes were const. Assigning to such variables should
+        throw, but used not to.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::ForInNode::emitLoopHeader):
+        (JSC::ForOfNode::emitBytecode):
+
+2016-08-17  Geoffrey Garen  <ggaren@apple.com>
+
+        Fixed a potential bug in MarkedArgumentBuffer.
+        https://bugs.webkit.org/show_bug.cgi?id=160948
+        <rdar://problem/27889416>
+
+        Reviewed by Oliver Hunt.
+
+        I haven't been able to produce an observable test case after some trying.
+
+        * runtime/ArgList.cpp:
+        (JSC::MarkedArgumentBuffer::addMarkSet): New helper function -- I broke
+        this out from existing code for clarity, but the behavior is the same.
+
+        (JSC::MarkedArgumentBuffer::expandCapacity): Ditto.
+
+        (JSC::MarkedArgumentBuffer::slowAppend): Always addMarkSet() on the slow
+        path. This is faster than the old linear scan, and I think it might
+        avoid cases the old scan could miss.
+
+        * runtime/ArgList.h:
+        (JSC::MarkedArgumentBuffer::append): Account for the case where someone
+        has called clear() or removeLast().
+
+        (JSC::MarkedArgumentBuffer::mallocBase): No behavior change -- but it's
+        clearer to test the buffers directly instead of inferring what they
+        might be based on capacity.
+
+2016-08-17  Mark Lam  <mark.lam@apple.com>
+
+        Remove an invalid assertion in the DFG backend's GetById emitter.
+        https://bugs.webkit.org/show_bug.cgi?id=160925
+        <rdar://problem/27248961>
+
+        Reviewed by Filip Pizlo.
+
+        The DFG backend's GetById assertion that the node's prediction not be SpecNone
+        is just plain wrong.  It assumes that we can never have a GetById node without a
+        type prediction, but this is not true.  The following test case proves otherwise:
+
+            function foo() {
+                "use strict";
+                return --arguments["callee"];
+            }
+
+        Will remove the assertion.  Nothing else needs to change as the DFG is working
+        correctly without the assertion.
+
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+
 2016-08-16  Mark Lam  <mark.lam@apple.com>
 
         Heap::collectAllGarbage() should work with JSC_useImmortalObjects=true.

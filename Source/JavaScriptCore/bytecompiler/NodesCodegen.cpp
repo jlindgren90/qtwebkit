@@ -953,6 +953,17 @@ RegisterID* BytecodeIntrinsicNode::emit_intrinsic_isObject(BytecodeGenerator& ge
     return generator.moveToDestinationIfNeeded(dst, generator.emitIsObject(generator.tempDestination(dst), src.get()));
 }
 
+RegisterID* BytecodeIntrinsicNode::emit_intrinsic_newArrayWithSize(JSC::BytecodeGenerator& generator, JSC::RegisterID* dst)
+{
+    ArgumentListNode* node = m_args->m_listNode;
+    RefPtr<RegisterID> size = generator.emitNode(node);
+    ASSERT(!node->m_next);
+
+    RefPtr<RegisterID> finalDestination = generator.finalDestination(dst);
+    generator.emitNewArrayWithSize(finalDestination.get(), size.get());
+    return finalDestination.get();
+}
+
 
 #define JSC_DECLARE_BYTECODE_INTRINSIC_CONSTANT_GENERATORS(name) \
     RegisterID* BytecodeIntrinsicNode::emit_intrinsic_##name(BytecodeGenerator& generator, RegisterID* dst) \
@@ -2551,11 +2562,15 @@ void ForInNode::emitLoopHeader(BytecodeGenerator& generator, RegisterID* propert
     if (m_lexpr->isResolveNode()) {
         const Identifier& ident = static_cast<ResolveNode*>(m_lexpr)->identifier();
         Variable var = generator.variable(ident);
-        if (RegisterID* local = var.local())
+        if (RegisterID* local = var.local()) {
+            if (var.isReadOnly())
+                generator.emitReadOnlyExceptionIfNeeded(var);
             generator.emitMove(local, propertyName);
-        else {
+        } else {
             if (generator.isStrictMode())
                 generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
+            if (var.isReadOnly())
+                generator.emitReadOnlyExceptionIfNeeded(var);
             RegisterID* scope = generator.emitResolveScope(nullptr, var);
             generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
             generator.emitPutToScope(scope, var, propertyName, generator.isStrictMode() ? ThrowIfNotFound : DoNotThrowIfNotFound, InitializationMode::NotInitialization);
@@ -2780,11 +2795,15 @@ void ForOfNode::emitBytecode(BytecodeGenerator& generator, RegisterID* dst)
         if (m_lexpr->isResolveNode()) {
             const Identifier& ident = static_cast<ResolveNode*>(m_lexpr)->identifier();
             Variable var = generator.variable(ident);
-            if (RegisterID* local = var.local())
+            if (RegisterID* local = var.local()) {
+                if (var.isReadOnly())
+                    generator.emitReadOnlyExceptionIfNeeded(var);
                 generator.emitMove(local, value);
-            else {
+            } else {
                 if (generator.isStrictMode())
                     generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
+                if (var.isReadOnly())
+                    generator.emitReadOnlyExceptionIfNeeded(var);
                 RegisterID* scope = generator.emitResolveScope(nullptr, var);
                 generator.emitExpressionInfo(divot(), divotStart(), divotEnd());
                 generator.emitPutToScope(scope, var, value, generator.isStrictMode() ? ThrowIfNotFound : DoNotThrowIfNotFound, InitializationMode::NotInitialization);

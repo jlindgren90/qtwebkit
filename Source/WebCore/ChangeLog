@@ -1,3 +1,358 @@
+2016-08-17  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add basic support for connected and disconnected callbacks
+        https://bugs.webkit.org/show_bug.cgi?id=160950
+
+        Reviewed by Chris Dumez.
+
+        Added the basic support for custom elements' connectedCallback and disconnectedCallback. These callbacks
+        are enqueued by inserting and removing a node as spec'ed by https://dom.spec.whatwg.org/#concept-node-insert
+        and https://dom.spec.whatwg.org/#concept-node-remove
+
+        For now, we only support callbacks on appendChild and removeChild to limit the amount of code changes and
+        tests that need to be included in this patch.
+
+        This patch also renames InvokesCustomElementLifecycleCallbacks IDL attribute to CEReactions to match
+        the latest specification: https://html.spec.whatwg.org/multipage/scripting.html#cereactions
+
+        Tests: fast/custom-elements/connected-callbacks.html
+               fast/custom-elements/disconnected-callbacks.html
+
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::invokeCallback): Extracted from invokeAttributeChangedCallback.
+        (WebCore::JSCustomElementInterface::setConnectedCallback): Added.
+        (WebCore::JSCustomElementInterface::invokeConnectedCallback): Added.
+        (WebCore::JSCustomElementInterface::setDisconnectedCallback): Added.
+        (WebCore::JSCustomElementInterface::invokeDisconnectedCallback): Added.
+        (WebCore::JSCustomElementInterface::setAttributeChangedCallback):
+        (WebCore::JSCustomElementInterface::invokeAttributeChangedCallback): Renamed from attributeChanged.
+        * bindings/js/JSCustomElementInterface.h: Added m_connectedCallback and m_disconnectedCallback as instance
+        variables. Also removed the superfluous mutable qualifier from m_constructor m_attributeChangedCallback.
+        * bindings/js/JSCustomElementsRegistryCustom.cpp:
+        (WebCore::JSCustomElementsRegistry::define): Store connectedCallback and disconnectedCallback.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * bindings/scripts/IDLAttributes.txt:
+        * dom/CustomElementsRegistry.idl:
+        * dom/Element.cpp:
+        (WebCore::Element::insertedInto): Call enqueueConnectedCallbackIfNeeded.
+        (WebCore::Element::removedFrom): Call enqueueDisconnectedCallbackIfNeeded.
+        * dom/Element.idl:
+        * dom/LifecycleCallbackQueue.cpp:
+        (WebCore::LifecycleQueueItem::invoke): Added calls to invokeConnectedCallback and invokeDisconnectedCallback.
+        (WebCore::findInterfaceForCustomElement): Extracted from enqueueAttributeChangedCallbackIfNeeded.
+        (WebCore::LifecycleCallbackQueue::enqueueConnectedCallbackIfNeeded): Added.
+        (WebCore::LifecycleCallbackQueue::enqueueDisconnectedCallbackIfNeeded): Added.
+        (WebCore::LifecycleCallbackQueue::enqueueAttributeChangedCallbackIfNeeded):
+        (WebCore::CustomElementLifecycleProcessingStack::ensureCurrentQueue):
+        * dom/LifecycleCallbackQueue.h:
+        * dom/Node.idl:
+
+2016-08-18  Beth Dakin  <bdakin@apple.com>
+
+        Update the accessibility titles for list insertion
+        https://bugs.webkit.org/show_bug.cgi?id=160972
+        -and corresponding-
+        rdar://problem/27750446
+
+        Reviewed by Chris Fleizach.
+
+        Update accessibility titles based on feedback.
+        * English.lproj/Localizable.strings:
+        * platform/LocalizedStrings.cpp:
+        (WebCore::insertListTypeNone):
+        (WebCore::insertListTypeBulleted):
+        (WebCore::insertListTypeBulletedAccessibilityTitle):
+        (WebCore::insertListTypeNumbered):
+        (WebCore::insertListTypeNumberedAccessibilityTitle):
+        (WebCore::insertListTypeNoneAccessibilityTitle): Deleted.
+        * platform/LocalizedStrings.h:
+
+2016-08-18  Chris Dumez  <cdumez@apple.com>
+
+        Align our encoding labels with the encoding specification
+        https://bugs.webkit.org/show_bug.cgi?id=160931
+
+        Reviewed by Darin Adler.
+
+        Align our encoding labels with the encoding specification:
+        - https://encoding.spec.whatwg.org/#names-and-labels
+
+        This also aligns with Firefox and Chrome.
+
+        No new tests, rebaselined existing test.
+
+        * platform/text/TextCodecICU.cpp:
+        (WebCore::TextCodecICU::registerEncodingNames):
+        * platform/text/TextCodecLatin1.cpp:
+        (WebCore::TextCodecLatin1::registerEncodingNames):
+        (WebCore::newStreamingTextDecoderWindowsLatin1): Deleted.
+        (WebCore::TextCodecLatin1::registerCodecs): Deleted.
+        * platform/text/TextCodecUTF8.cpp:
+        (WebCore::TextCodecUTF8::registerEncodingNames):
+
+2016-08-18  Andy Estes  <aestes@apple.com>
+
+        [Cocoa] Add SPI to WKProcessPool for enabling cookie storage partitioning
+        https://bugs.webkit.org/show_bug.cgi?id=160964
+
+        Reviewed by Brent Fulgham.
+
+        * page/Settings.cpp:
+        (WebCore::Settings::setCookieStoragePartitioningEnabled): Deleted.
+        * page/Settings.h:
+        (WebCore::Settings::cookieStoragePartitioningEnabled): Deleted.
+        * platform/network/NetworkStorageSession.h:
+        * platform/network/cf/NetworkStorageSessionCFNet.cpp: Defined cookieStoragePartitioningEnabled.
+        (WebCore::NetworkStorageSession::setCookieStoragePartitioningEnabled): Set cookieStoragePartitioningEnabled.
+        (WebCore::cookieStoragePartition): Used cookieStoragePartitioningEnabled instead of Settings::cookieStoragePartitioningEnabled().
+
+2016-08-18  Eric Carlson  <eric.carlson@apple.com>
+
+        AX: Audio Description tracks are not labeled correctly, causing user confusion
+        https://bugs.webkit.org/show_bug.cgi?id=160652
+        <rdar://problem/27742208>
+
+        Reviewed by Antoine Quint.
+
+        * http/tests/media/hls/hls-accessiblity-describes-video-menu-expected.txt: Added.
+        * http/tests/media/hls/hls-accessiblity-describes-video-menu.html: Added.
+
+        * media/trackmenu-test.js:
+        (clickCCButton): Fail immediately if "video" is null or not a media element. Make failure 
+        logging more descriptive.
+
+        * platform/gtk/TestExpectations: Skip new test.
+
+        * platform/ios-simulator/media/video-controls-captions-trackmenu-expected.txt: Updated for
+        clickCCButton error message change.
+        * platform/ios-simulator/media/video-controls-captions-trackmenu-hide-on-click-expected.txt: Ditto.
+        * platform/ios-simulator/media/video-controls-captions-trackmenu-localized-expected.txt: Ditto.
+        * platform/ios-simulator/media/video-controls-captions-trackmenu-sorted-expected.txt: Ditto.
+
+2016-08-18  Alex Christensen  <achristensen@webkit.org>
+
+        Fix WinCairo build after r204592.
+
+        * PlatformAppleWin.cmake:
+        * PlatformWin.cmake:
+
+2016-08-18  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] cleanup MediaConstraints
+        https://bugs.webkit.org/show_bug.cgi?id=160957
+
+        Reviewed by Antoine Quint.
+
+        No new tests, no behavior change.
+
+        * Modules/mediastream/CaptureDeviceManager.cpp:
+        (CaptureDeviceManager::sessionSupportsConstraint): Use MediaConstraint::type
+
+        * bindings/js/JSMediaDevicesCustom.cpp:
+        (WebCore::initializeStringConstraintWithList): MediaConstraint::create now takes the constraint
+        type, not name.
+        (WebCore::createStringConstraint): Ditto.
+        (WebCore::createBooleanConstraint): Ditto.
+        (WebCore::createDoubleConstraint): Ditto.
+        (WebCore::createIntConstraint): Ditto.
+        (WebCore::parseMediaTrackConstraintSetForKey): Pass constraint type.
+
+        * platform/mediastream/MediaConstraints.cpp:
+        (WebCore::MediaConstraint::create): MediaConstraint constructor now takes the constraint.
+        (WebCore::IntConstraint::create): Take type, not name.
+        (WebCore::IntConstraint::setMin): Ditto.
+        (WebCore::DoubleConstraint::create): Ditto.
+        (WebCore::BooleanConstraint::create): Ditto.
+        (WebCore::StringConstraint::create): Ditto.
+        * platform/mediastream/MediaConstraints.h:
+
+        * platform/mediastream/RealtimeMediaSourceSupportedConstraints.cpp:
+        (WebCore::RealtimeMediaSourceSupportedConstraints::nameForConstraint): Make static.
+        (WebCore::RealtimeMediaSourceSupportedConstraints::constraintFromName): Ditto.
+        * platform/mediastream/RealtimeMediaSourceSupportedConstraints.h:
+
+        * platform/mediastream/mac/AVCaptureDeviceManager.mm:
+        (WebCore::AVCaptureDeviceManager::sessionSupportsConstraint): Use MediaConstraint::type
+
+        * platform/mediastream/mac/AVVideoCaptureSource.mm:
+        (WebCore::AVVideoCaptureSource::applyConstraints): nameForConstraint is a static method. Add
+        error logging.
+
+        * platform/mock/MediaConstraintsMock.cpp:
+        (WebCore::isSatisfiable): Use constraint type.
+
+2016-08-18  Rawinder Singh  <rawinder.singh-webkit@cisra.canon.com.au>
+
+        [web-animations] Add Animatable, AnimationEffect, KeyframeEffect and Animation interface
+        https://bugs.webkit.org/show_bug.cgi?id=156096
+
+        Reviewed by Dean Jackson.
+
+        Adds:
+        - Animatable interface and implementation of getAnimations in Element.
+        - Interface and implementation for Document getAnimations method.
+        - AnimationEffect interface and class stub.
+        - KeyframeEffect interface and constructor implementation.
+        - 'Animation' interface, constructor and query methods for effect and timeline.
+        - Remove runtime condition on Web animation interfaces (compile time flag is specified).
+
+        Test: webanimations/Document.html
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * PlatformGTK.cmake:
+        * WebCore.xcodeproj/project.pbxproj:
+        * animation/Animatable.idl: Copied from Source/WebCore/animation/AnimationTimeline.idl.
+        * animation/AnimationEffect.cpp: Copied from Source/WebCore/animation/AnimationTimeline.cpp.
+        (WebCore::AnimationEffect::AnimationEffect):
+        (WebCore::AnimationEffect::~AnimationEffect):
+        (WebCore::AnimationEffect::setAnimation):
+        (WebCore::AnimationEffect::isCurrent):
+        (WebCore::AnimationEffect::isInEffect):
+        * animation/AnimationEffect.h: Copied from Source/WebCore/animation/DocumentTimeline.cpp.
+        * animation/AnimationEffect.idl: Copied from Source/WebCore/animation/DocumentAnimation.idl.
+        * animation/AnimationTimeline.cpp:
+        (WebCore::AnimationTimeline::destroy):
+        (WebCore::AnimationTimeline::attachAnimation):
+        (WebCore::AnimationTimeline::detachAnimation):
+        * animation/AnimationTimeline.h:
+        * animation/AnimationTimeline.idl:
+        * animation/DocumentAnimation.cpp:
+        (WebCore::DocumentAnimation::timeline):
+        (WebCore::DocumentAnimation::getAnimations):
+        (WebCore::DocumentAnimation::addAnimation):
+        (WebCore::DocumentAnimation::removeAnimation):
+        * animation/DocumentAnimation.h:
+        (WebCore::DocumentAnimation::getAnimations):
+        * animation/DocumentAnimation.idl:
+        * animation/DocumentTimeline.cpp:
+        (WebCore::DocumentTimeline::create):
+        (WebCore::DocumentTimeline::DocumentTimeline):
+        (WebCore::DocumentTimeline::attach):
+        (WebCore::DocumentTimeline::detach):
+        * animation/DocumentTimeline.h:
+        * animation/DocumentTimeline.idl:
+        * animation/KeyframeEffect.cpp: Copied from Source/WebCore/animation/DocumentTimeline.cpp.
+        (WebCore::KeyframeEffect::create):
+        (WebCore::KeyframeEffect::KeyframeEffect):
+        (WebCore::KeyframeEffect::~KeyframeEffect):
+        * animation/KeyframeEffect.h: Copied from Source/WebCore/animation/DocumentTimeline.h.
+        * animation/KeyframeEffect.idl: Copied from Source/WebCore/animation/DocumentTimeline.idl.
+        * animation/WebAnimation.cpp: Copied from Source/WebCore/animation/DocumentAnimation.cpp.
+        (WebCore::WebAnimation::create):
+        (WebCore::WebAnimation::WebAnimation):
+        (WebCore::WebAnimation::~WebAnimation):
+        * animation/WebAnimation.h: Copied from Source/WebCore/animation/DocumentAnimation.h.
+        * animation/WebAnimation.idl: Copied from Source/WebCore/animation/DocumentTimeline.idl.
+        * bindings/scripts/CodeGeneratorGObject.pm:
+        * dom/Element.cpp:
+        (WebCore::Element::getAnimations):
+        * dom/Element.h:
+        * dom/Element.idl:
+
+2016-08-17  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Migrate off of deprecated CoreGraphics API CGContextSelectFont() and CGContextShowTextAtPoint()
+        https://bugs.webkit.org/show_bug.cgi?id=160895
+
+        Reviewed by Dean Jackson.
+
+        Migrate to CTLineDraw() instead.
+
+        This patch also adds support for linking to the existing CoreText framework on Windows.
+
+        No new tests because there is no behavior change.
+
+        * PlatformWin.cmake:
+        * page/cocoa/ResourceUsageOverlayCocoa.mm:
+        (WebCore::showText):
+        * platform/graphics/ca/PlatformCALayer.cpp:
+        (WebCore::PlatformCALayer::drawTextAtPoint):
+        * platform/ios/LegacyTileCache.mm:
+        (WebCore::LegacyTileCache::drawLayer):
+        * platform/spi/win/CoreTextSPIWin.cpp: Added.
+        * platform/spi/win/CoreTextSPIWin.h: Added.
+
+2016-08-17  Benjamin Poulain  <benjamin@webkit.org>
+
+        [CSS] The parser should not get rid of empty namespace specification in front of element name selectors
+        https://bugs.webkit.org/show_bug.cgi?id=160936
+
+        Reviewed by Chris Dumez.
+
+        There are two places where you can specify an empty namespace
+        in selectors:
+            - Element name (e.g. "|name")
+            - Attribute name (e.g. "[|name]")
+        In the first case, if we have an empty namespace, the selector
+        should match that.
+        In the second case, the default namespace of attribute is already
+        empty so it is just the same as "[name]".
+
+        Our code was just discarding any empty namespace. This is fine
+        for attributes but for names that is transforming "|name" into "name"
+        which is invalid.
+
+        This patch updates those cases to differentiate:
+        - Null prefix -> There was no namespace specified.
+        - Empty prefix -> There was a namespace prefix and it is empty.
+
+        Test: fast/selectors/empty-namespace-with-element-selector.html
+
+        * css/CSSGrammar.y.in:
+        * css/CSSParser.cpp:
+        (WebCore::CSSParser::determineNameInNamespace):
+        (WebCore::CSSParser::rewriteSpecifiersWithNamespaceIfNeeded):
+        (WebCore::CSSParser::rewriteSpecifiersWithElementName):
+        * css/CSSParser.h:
+        * css/CSSSelector.cpp:
+        (WebCore::CSSSelector::selectorText):
+        * css/CSSSelectorList.cpp:
+        (WebCore::SelectorNeedsNamespaceResolutionFunctor::operator()):
+        * css/StyleSheetContents.cpp:
+        (WebCore::StyleSheetContents::determineNamespace): Deleted.
+
+2016-08-17  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Add support for dictionary members of dictionary types
+        https://bugs.webkit.org/show_bug.cgi?id=160902
+
+        Reviewed by Sam Weinig.
+
+        Add support for dictionary members of dictionary types.
+
+        No new tests, updated bindings tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDictionaryImplementationContent):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convertDictionary<TestObj::Dictionary>):
+        (WebCore::convertDictionary<TestObj::DictionaryThatShouldNotTolerateNull>):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-08-17  Anders Carlsson  <andersca@apple.com>
+
+        Add support for additional networks
+        https://bugs.webkit.org/show_bug.cgi?id=160951
+        rdar://problem/27807479
+
+        Reviewed by Sam Weinig.
+
+        * Modules/applepay/ApplePaySession.cpp:
+        (WebCore::createSupportedNetworks):
+        (WebCore::createPaymentRequest):
+        (WebCore::ApplePaySession::create):
+        * Modules/applepay/PaymentRequest.cpp:
+        (WebCore::isAdditionalValidSupportedNetwork):
+        (WebCore::PaymentRequest::isValidSupportedNetwork):
+        * Modules/applepay/PaymentRequest.h:
+        (WebCore::PaymentRequest::supportedNetworks):
+        (WebCore::PaymentRequest::setSupportedNetworks):
+        * Modules/applepay/PaymentRequestValidator.cpp:
+        (WebCore::PaymentRequestValidator::validateSupportedNetworks):
+        * Modules/applepay/PaymentRequestValidator.h:
+
 2016-08-17  Anders Carlsson  <andersca@apple.com>
 
         Remove a couple of unused WKSI function pointers

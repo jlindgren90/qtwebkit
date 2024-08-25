@@ -40,6 +40,7 @@
 #include "CustomElementsRegistry.h"
 #include "DOMTokenList.h"
 #include "Dictionary.h"
+#include "DocumentAnimation.h"
 #include "DocumentSharedObjectPool.h"
 #include "ElementIterator.h"
 #include "ElementRareData.h"
@@ -67,6 +68,7 @@
 #include "IdTargetObserverRegistry.h"
 #include "JSLazyEventListener.h"
 #include "KeyboardEvent.h"
+#include "KeyframeEffect.h"
 #include "LifecycleCallbackQueue.h"
 #include "MainFrame.h"
 #include "MutationObserverInterestGroup.h"
@@ -1393,6 +1395,21 @@ ElementStyle Element::resolveStyle(const RenderStyle* parentStyle)
     return styleResolver().styleForElement(*this, parentStyle);
 }
 
+#if ENABLE(WEB_ANIMATIONS)
+WebAnimationVector Element::getAnimations()
+{
+    auto checkTarget = [this](AnimationEffect const& effect)
+    {
+        return (static_cast<KeyframeEffect const&>(effect).target() == this);
+    };
+
+    auto* document = DocumentAnimation::from(&this->document());
+    if (document)
+        return document->getAnimations(checkTarget);
+    return WebAnimationVector();
+}
+#endif
+
 bool Element::hasDisplayContents() const
 {
     return hasRareData() && elementRareData()->hasDisplayContents();
@@ -1579,6 +1596,11 @@ Node::InsertionNotificationRequest Element::insertedInto(ContainerNode& insertio
             updateLabel(*newScope, nullAtom, attributeWithoutSynchronization(forAttr));
     }
 
+#if ENABLE(CUSTOM_ELEMENTS)
+    if (newDocument && UNLIKELY(isCustomElement()))
+        LifecycleCallbackQueue::enqueueConnectedCallbackIfNeeded(*this);
+#endif
+
     return InsertionDone;
 }
 
@@ -1624,6 +1646,11 @@ void Element::removedFrom(ContainerNode& insertionPoint)
             if (oldScope->shouldCacheLabelsByForAttribute())
                 updateLabel(*oldScope, attributeWithoutSynchronization(forAttr), nullAtom);
         }
+
+#if ENABLE(CUSTOM_ELEMENTS)
+        if (oldDocument && UNLIKELY(isCustomElement()))
+            LifecycleCallbackQueue::enqueueDisconnectedCallbackIfNeeded(*this);
+#endif
     }
 
     if (!parentNode()) {
