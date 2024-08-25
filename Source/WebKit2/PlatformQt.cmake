@@ -105,6 +105,7 @@ list(APPEND WebKit2_SOURCES
     Shared/qt/WebEventFactoryQt.cpp
     Shared/qt/WebGestureEvent.cpp
 
+    UIProcess/AcceleratedDrawingAreaProxy.cpp
     UIProcess/BackingStore.cpp
     UIProcess/DefaultUndoController.cpp
     UIProcess/LegacySessionStateCodingNone.cpp
@@ -133,7 +134,6 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/qt/qwebpermissionrequest.cpp
     UIProcess/API/qt/qwebpreferences.cpp
 
-    UIProcess/CoordinatedGraphics/CoordinatedDrawingAreaProxy.cpp
     UIProcess/CoordinatedGraphics/CoordinatedLayerTreeHostProxy.cpp
     UIProcess/CoordinatedGraphics/PageViewportController.cpp
     UIProcess/CoordinatedGraphics/WebPageProxyCoordinatedGraphics.cpp

@@ -20,7 +20,7 @@
 #include "config.h"
 #include "WebFrameNetworkingContext.h"
 
-#include "SessionTracker.h"
+#include "NetworkStorageSession.h"
 #include "WebFrame.h"
 #include "WebPage.h"
 
@@ -52,10 +52,10 @@ void WebFrameNetworkingContext::ensurePrivateBrowsingSession(SessionID sessionID
 {
     ASSERT(isMainThread());
 
-    if (SessionTracker::storageSession(sessionID))
+    if (NetworkStorageSession::storageSession(sessionID))
         return;
 
-    SessionTracker::setSession(sessionID, NetworkStorageSession::createPrivateBrowsingSession(sessionID));
+    NetworkStorageSession::ensurePrivateBrowsingSession(sessionID);
 }
 
 WebFrameLoaderClient* WebFrameNetworkingContext::webFrameLoaderClient() const
@@ -78,7 +78,7 @@ QNetworkAccessManager* WebFrameNetworkingContext::networkAccessManager() const
 WebCore::NetworkStorageSession& WebFrameNetworkingContext::storageSession() const
 {
     if (frame() && frame()->page()->usesEphemeralSession())
-        return *SessionTracker::storageSession(SessionID::legacyPrivateSessionID());
+        return *NetworkStorageSession::storageSession(SessionID::legacyPrivateSessionID());
 
     return NetworkStorageSession::defaultStorageSession();
 

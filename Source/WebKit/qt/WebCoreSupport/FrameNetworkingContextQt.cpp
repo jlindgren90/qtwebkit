@@ -20,6 +20,7 @@
 #include "config.h"
 #include "FrameNetworkingContextQt.h"
 
+#include "NetworkStorageSession.h"
 #include "NotImplemented.h"
 #include "QWebFrameAdapter.h"
 #include "QWebPageAdapter.h"

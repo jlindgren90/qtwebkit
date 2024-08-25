@@ -31,13 +31,12 @@
 #include <CookiesStrategy.h>
 #include <LoaderStrategy.h>
 #include <PlatformStrategies.h>
-#include <PluginStrategy.h>
 
 namespace WebCore {
 class PasteboardStrategy;
 }
 
-class PlatformStrategiesQt : public WebCore::PlatformStrategies, private WebCore::CookiesStrategy, private WebCore::PluginStrategy {
+class PlatformStrategiesQt : public WebCore::PlatformStrategies, private WebCore::CookiesStrategy {
     friend class WTF::NeverDestroyed<PlatformStrategiesQt>;
 public:
     static void initialize();
@@ -49,7 +48,6 @@ private:
     WebCore::CookiesStrategy* createCookiesStrategy() override;
     WebCore::LoaderStrategy* createLoaderStrategy() override;
     WebCore::PasteboardStrategy* createPasteboardStrategy() override;
-    WebCore::PluginStrategy* createPluginStrategy() override;
     
     // WebCore::CookiesStrategy
     String cookiesForDOM(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&) override;
@@ -60,11 +58,6 @@ private:
     bool getRawCookies(const WebCore::NetworkStorageSession&, const WebCore::URL& firstParty, const WebCore::URL&, Vector<WebCore::Cookie>&) override;
     void deleteCookie(const WebCore::NetworkStorageSession&, const WebCore::URL&, const String&) override;
     void addCookie(const WebCore::NetworkStorageSession&, const WebCore::URL&, const WebCore::Cookie&) override;
-
-    // WebCore::PluginStrategy
-    void refreshPlugins() override;
-    void getPluginInfo(const WebCore::Page*, Vector<WebCore::PluginInfo>&) override;
-    void getWebVisiblePluginInfo(const WebCore::Page*, Vector<WebCore::PluginInfo>&) override;
 
     // PlatformStrategies interface
     WebCore::BlobRegistry* createBlobRegistry() override;

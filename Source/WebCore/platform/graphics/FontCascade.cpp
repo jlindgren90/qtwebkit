@@ -318,7 +318,7 @@ float FontCascade::drawText(GraphicsContext& context, const TextRun& run, const 
 
 #if PLATFORM(QT)
     if (codePathToUse == Complex) {
-        drawComplexText(context, run, point, from, to);
+        drawComplexText(context, run, point, from, destination);
         return 0;
     }
 #endif

@@ -31,6 +31,7 @@
 
 #include "Cookie.h"
 #include "URL.h"
+#include "NetworkStorageSession.h"
 #include "NetworkingContext.h"
 #include "NotImplemented.h"
 #include "PlatformCookieJar.h"

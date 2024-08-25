@@ -178,7 +178,7 @@ static inline void appendContextSubtargetsForNode(Node* node, SubtargetGeometryL
         if (textRenderer->selectionState() == RenderObject::SelectionNone)
             return appendBasicSubtargetsForNode(node, subtargets);
         // If selected, make subtargets out of only the selected part of the text.
-        int startPos, endPos;
+        unsigned startPos, endPos;
         switch (textRenderer->selectionState()) {
         case RenderObject::SelectionInside:
             startPos = 0;

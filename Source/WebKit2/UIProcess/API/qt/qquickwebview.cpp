@@ -23,8 +23,8 @@
 #include "config.h"
 #include "qquickwebview_p.h"
 
+#include "AcceleratedDrawingAreaProxy.h"
 #include "APIPageConfiguration.h"
-#include "CoordinatedDrawingAreaProxy.h"
 #include "CoordinatedGraphicsScene.h"
 #include "CoordinatedLayerTreeHostProxy.h"
 #include "DownloadProxy.h"
@@ -662,7 +662,7 @@ void QQuickWebViewPrivate::processDidBecomeResponsive(WKPageRef, const void* cli
 
 std::unique_ptr<DrawingAreaProxy> QQuickWebViewPrivate::createDrawingAreaProxy()
 {
-    return std::make_unique<WebKit::CoordinatedDrawingAreaProxy>(*webPageProxy.get());
+    return std::make_unique<WebKit::AcceleratedDrawingAreaProxy>(*webPageProxy.get());
 }
 
 void QQuickWebViewPrivate::handleDownloadRequest(DownloadProxy* download)
@@ -1016,7 +1016,7 @@ CoordinatedGraphicsScene* QQuickWebViewPrivate::coordinatedGraphicsScene()
 //    if (!webPageProxy)
 //        return nullptr;
 
-    if (CoordinatedDrawingAreaProxy* drawingArea = static_cast<CoordinatedDrawingAreaProxy*>(webPageProxy->drawingArea()))
+    if (AcceleratedDrawingAreaProxy* drawingArea = static_cast<AcceleratedDrawingAreaProxy*>(webPageProxy->drawingArea()))
         return drawingArea->coordinatedLayerTreeHostProxy().coordinatedGraphicsScene();
 
     return nullptr;
@@ -1054,14 +1054,14 @@ void QQuickWebViewLegacyPrivate::updateViewportSize()
 
     pageView->setContentsSize(viewportSize);
 
-    if (CoordinatedDrawingAreaProxy* drawingArea = static_cast<CoordinatedDrawingAreaProxy*>(webPageProxy->drawingArea())) {
+    if (AcceleratedDrawingAreaProxy* drawingArea = static_cast<AcceleratedDrawingAreaProxy*>(webPageProxy->drawingArea())) {
         // The fixed layout is handled by the FrameView and the drawing area doesn't behave differently
         // whether its fixed or not. We still need to tell the drawing area which part of it
         // has to be rendered on tiles, and in desktop mode it's all of it.
         drawingArea->setSize(viewportSize.toSize(), IntSize(), IntSize());
         // The backing store scale factor should already be set to the device pixel ratio
         // of the underlying window, thus we set the effective scale to 1 here.
-        drawingArea->setVisibleContentsRect(FloatRect(FloatPoint(), FloatSize(viewportSize)), FloatPoint());
+        drawingArea->coordinatedLayerTreeHostProxy().setVisibleContentsRect(FloatRect(FloatPoint(), FloatSize(viewportSize)), FloatPoint());
     }
 }
 

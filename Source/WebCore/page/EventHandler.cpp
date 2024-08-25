@@ -100,6 +100,7 @@
 #include <wtf/CurrentTime.h>
 #include <wtf/NeverDestroyed.h>
 #include <wtf/StdLibExtras.h>
+#include <wtf/TemporaryChange.h>
 #include <wtf/WeakPtr.h>
 
 #if ENABLE(QT_GESTURE_EVENTS)

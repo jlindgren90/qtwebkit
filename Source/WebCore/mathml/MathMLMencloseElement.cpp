@@ -63,7 +63,7 @@ void MathMLMencloseElement::parseNotationAttribute()
     }
     auto& value = attributeWithoutSynchronization(notationAttr);
     Vector<String> notationsList;
-    String(value).split(' ', notationsList);
+    value.string().split(' ', notationsList);
     for (auto& notation : notationsList) {
         if (notation == "longdiv") {
             addNotation(LongDiv);

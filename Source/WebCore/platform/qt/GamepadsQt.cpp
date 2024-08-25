@@ -321,7 +321,7 @@ void GamepadsQt::updateGamepadList(GamepadList* into)
             gamepad->axes(gamepadDevice->axesCount(), gamepadDevice->axesData());
             gamepad->buttons(gamepadDevice->buttonsCount(), gamepadDevice->buttonsData());
 
-            into->set(i, gamepad);
+            into->set(i, std::move(gamepad));
         } else
             into->set(i, 0);
     }

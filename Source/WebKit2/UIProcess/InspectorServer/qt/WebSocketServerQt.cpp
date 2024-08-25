@@ -24,7 +24,7 @@
 
 #include "WebSocketServer.h"
 #include "WebSocketServerConnection.h"
-#include <WebCore/SocketStreamHandle.h>
+#include <WebCore/SocketStreamHandleImpl.h>
 
 using namespace WebCore;
 
@@ -56,7 +56,7 @@ void QtTcpServerHandler::handleNewConnection()
     QTcpSocket* socket = m_serverSocket.nextPendingConnection();
     ASSERT(socket);
     auto connection = std::make_unique<WebSocketServerConnection>(m_webSocketServer->client(), m_webSocketServer);
-    connection->setSocketHandle(SocketStreamHandle::create(socket, *connection));
+    connection->setSocketHandle(SocketStreamHandleImpl::create(socket, *connection));
     m_webSocketServer->didAcceptConnection(WTFMove(connection));
 }
 
