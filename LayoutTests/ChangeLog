@@ -1,3 +1,61 @@
+2016-09-02  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Temporarily break customElements.whenDefined to remove flaky crashes
+        https://bugs.webkit.org/show_bug.cgi?id=161555
+
+        Reviewed by Chris Dumez.
+
+        Rebaseline the test now that some test cases are failing due to the partial rollout.
+
+        * fast/custom-elements/CustomElementRegistry-expected.txt:
+
+2016-09-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r205373.
+
+        This change causes LayoutTest crashes under GuardMalloc
+
+        Reverted changeset:
+
+        "[Cocoa] Distinguish between paint advances and base advances"
+        https://bugs.webkit.org/show_bug.cgi?id=160892
+        http://trac.webkit.org/changeset/205373
+
+2016-09-02  Beth Dakin  <bdakin@apple.com>
+
+        Need to updateEditorState if an element change edit-ability without changing 
+        selection
+        https://bugs.webkit.org/show_bug.cgi?id=161546
+        -and corresponding-
+        rdar://problem/27806012
+
+        Reviewed by Ryosuke Niwa.
+
+        This patch seems to have fixed a bug!
+        * editing/secure-input/removed-password-input-expected.txt:
+
+2016-09-02  Jonathan Bedard  <jbedard@apple.com>
+
+        WebKitTestRunner needs layoutTestController.setDashboardCompatibilityMode
+        https://bugs.webkit.org/show_bug.cgi?id=42547
+
+        Reviewed by Darin Adler.
+
+        The addition of setUseDashboardCompatibilityMode to the WebKit2 TestRunner means the set of tests removed from the expected failures list now pass.
+        Note: this bug mistakenly called this function setDashboardCompatibilityMode, it is actually setUseDashboardCompatibilityMode.
+
+        * platform/ios-simulator-wk2/TestExpectations:  Changed reason test was excluded.
+        * platform/wk2/TestExpectations: Remove tests which use setUseDashboardCompatibilityMode from expected failures.
+
+2016-09-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking editing/pasteboard/5478250.html as flaky on mac-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=161366
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
 2016-09-02  Zalan Bujtas  <zalan@apple.com>
 
         ASSERTION FAILED: !m_committedWidth in WebCore::LineWidth::fitBelowFloats

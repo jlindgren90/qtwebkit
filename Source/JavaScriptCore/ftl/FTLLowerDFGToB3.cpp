@@ -2709,11 +2709,9 @@ private:
     
     void compilePutById()
     {
-        Node* node = m_node;
-        
-        // See above; CellUse is easier so we do only that for now.
-        ASSERT(node->child1().useKind() == CellUse);
+        DFG_ASSERT(m_graph, m_node, m_node->child1().useKind() == CellUse);
 
+        Node* node = m_node;
         LValue base = lowCell(node->child1());
         LValue value = lowJSValue(node->child2());
         auto uid = m_graph.identifiers()[node->identifierNumber()];
@@ -2815,7 +2813,8 @@ private:
             setStorage(m_out.loadPtr(m_out.phi(pointerType(), fastResult, slowResult), m_heaps.StringImpl_data));
             return;
         }
-        
+
+        DFG_ASSERT(m_graph, m_node, isTypedView(m_node->arrayMode().typedArrayType()));
         setStorage(m_out.loadPtr(cell, m_heaps.JSArrayBufferView_vector));
     }
     
@@ -6513,6 +6512,8 @@ private:
     
     void compileIn()
     {
+        DFG_ASSERT(m_graph, m_node, m_node->child2().useKind() == CellUse);
+
         Node* node = m_node;
         Edge base = node->child2();
         LValue cell = lowCell(base);
