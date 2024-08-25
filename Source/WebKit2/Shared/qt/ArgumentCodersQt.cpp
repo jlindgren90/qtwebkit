@@ -32,7 +32,7 @@ namespace IPC {
 
 typedef HashMap<String , Vector<uint8_t> > MIMEDataHashMap;
 
-void ArgumentCoder<WebCore::DragData>::encode(ArgumentEncoder& encoder, const DragData& dragData)
+void ArgumentCoder<WebCore::DragData>::encode(Encoder& encoder, const DragData& dragData)
 {
     encoder << dragData.clientPosition();
     encoder << dragData.globalPosition();
@@ -56,7 +56,7 @@ void ArgumentCoder<WebCore::DragData>::encode(ArgumentEncoder& encoder, const Dr
     encoder << map;
 }
 
-bool ArgumentCoder<WebCore::DragData>::decode(ArgumentDecoder& decoder, DragData& dragData)
+bool ArgumentCoder<WebCore::DragData>::decode(Decoder& decoder, DragData& dragData)
 {
     IntPoint clientPosition;
     IntPoint globalPosition;

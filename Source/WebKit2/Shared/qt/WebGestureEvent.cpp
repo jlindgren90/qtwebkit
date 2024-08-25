@@ -28,7 +28,6 @@
 
 #if ENABLE(QT_GESTURE_EVENTS)
 
-#include "Arguments.h"
 #include "WebCoreArgumentCoders.h"
 
 using namespace WebCore;
@@ -44,7 +43,7 @@ WebGestureEvent::WebGestureEvent(Type type, const IntPoint& position, const IntP
     ASSERT(isGestureEventType(type));
 }
 
-void WebGestureEvent::encode(IPC::ArgumentEncoder& encoder) const
+void WebGestureEvent::encode(IPC::Encoder& encoder) const
 {
     WebEvent::encode(encoder);
 
@@ -53,7 +52,7 @@ void WebGestureEvent::encode(IPC::ArgumentEncoder& encoder) const
     encoder << m_area;
 }
 
-bool WebGestureEvent::decode(IPC::ArgumentDecoder& decoder, WebGestureEvent& t)
+bool WebGestureEvent::decode(IPC::Decoder& decoder, WebGestureEvent& t)
 {
     if (!WebEvent::decode(decoder, t))
         return false;

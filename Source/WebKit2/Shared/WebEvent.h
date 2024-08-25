@@ -311,8 +311,8 @@ public:
     const WebCore::IntPoint globalPosition() const { return m_globalPosition; }
     const WebCore::IntSize area() const { return m_area; }
 
-    void encode(IPC::ArgumentEncoder&) const;
-    static bool decode(IPC::ArgumentDecoder&, WebGestureEvent&);
+    void encode(IPC::Encoder&) const;
+    static bool decode(IPC::Decoder&, WebGestureEvent&);
 
 private:
     static bool isGestureEventType(Type);
