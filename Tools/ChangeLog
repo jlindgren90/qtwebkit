@@ -1,3 +1,56 @@
+2016-08-05  Tim Horton  <timothy_horton@apple.com>
+
+        run-api-tests should use a headed simulator
+        https://bugs.webkit.org/show_bug.cgi?id=160611
+
+        Reviewed by Sam Weinig.
+
+        CADisplayLink doesn't work in a headless simulator, but is
+        vital for the proper functioning of WebKit2 painting on iOS.
+        So, we should not use a headless simulator.
+
+        * Scripts/run-api-tests:
+        Launch a simulator app, don't just boot the simulator.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/AnimatedResize.mm:
+        Re-enable a test that works now.
+
+2016-08-05  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] WKRemoteObjectCoder doesn’t handle NSRange
+        https://bugs.webkit.org/show_bug.cgi?id=160589
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/RemoteObjectRegistry.h:
+        (remoteObjectInterface): Fixed a mistake in the set of allowed classes in one of the reply
+          blocks, which wasn’t caught because the test wasn’t run correctly.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/RemoteObjectRegistry.mm:
+        (TEST): Fixed the -selectionAndClickInformationForClickAtPoint:completionHandler: test, and
+          added a test that sends over an NSRange.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/RemoteObjectRegistryPlugIn.mm:
+        (-[RemoteObjectRegistryPlugIn takeRange:completionHandler:]): Added. Calls the completion
+          handler with the range‘s location and length.
+
+2016-08-05  Enrica Casucci  <enrica@apple.com>
+
+        Fixing tests failing after r204175.
+
+        Unreviewed.
+
+        * TestWebKitAPI/Configurations/WebProcessPlugIn.xcconfig:
+
+2016-08-05  Enrica Casucci  <enrica@apple.com>
+
+        Build fix after 204053.
+
+        Unreviewed.
+
+        * TestWebKitAPI/Configurations/Base.xcconfig:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/ContentFilteringPlugIn.mm:
+        (-[MockContentFilterEnabler initWithCoder:]):
+        (-[MockContentFilterEnabler dealloc]):
+
 2016-08-05  Konstantin Tokarev  <annulen@yandex.ru>
 
         Print test name in "Last character read from DRT..." error message.

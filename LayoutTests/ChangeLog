@@ -1,3 +1,202 @@
+2016-08-05  Alexey Proskuryakov  <ap@apple.com>
+
+        Work around broken <Files> directive in some Apache versions
+        https://bugs.webkit.org/show_bug.cgi?id=160610
+
+        Reviewed by Daniel Bates.
+
+        The problem is tracked as rdar://problem/27725655
+
+        * http/tests/misc/.htaccess:
+
+2016-08-05  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaselining compositing/masks/compositing-clip-path-change-no-repaint.html for ios-simulator.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/compositing/masks/compositing-clip-path-change-no-repaint-expected.txt:
+
+2016-08-05  Brent Fulgham  <bfulgham@apple.com>
+
+        ASSERTION FAILED: observer in WebCore::BitmapImage::drawPattern
+        https://bugs.webkit.org/show_bug.cgi?id=141637
+        <rdar://problem/27709864>
+
+        Reviewed by Tim Horton.
+
+        * fast/images/image-source-assert-expected.txt: Added.
+        * fast/images/image-source-assert.html: Added.
+
+2016-08-05  Simon Fraser  <simon.fraser@apple.com>
+
+        marquee with "truespeed" animates at > 60fps, hogging CPU
+        https://bugs.webkit.org/show_bug.cgi?id=160609
+
+        Reviewed by David Hyatt.
+        
+        Convert marquee tests into ref tests, removing all the platform expectations.
+
+        * fast/html/marquee-scroll-expected.html: Copied from LayoutTests/fast/html/marquee-scroll.html.
+        * fast/html/marquee-scroll.html:
+        * fast/html/marquee-scrollamount-expected.html: Added.
+        * fast/html/marquee-set-truespeed.html:
+        * platform/efl/fast/html/marquee-scroll-expected.png: Removed.
+        * platform/efl/fast/html/marquee-scroll-expected.txt: Removed.
+        * platform/efl/fast/html/marquee-scrollamount-expected.png: Removed.
+        * platform/efl/fast/html/marquee-scrollamount-expected.txt: Removed.
+        * platform/gtk/fast/html/marquee-scroll-expected.png: Removed.
+        * platform/gtk/fast/html/marquee-scroll-expected.txt: Removed.
+        * platform/gtk/fast/html/marquee-scrollamount-expected.png: Removed.
+        * platform/gtk/fast/html/marquee-scrollamount-expected.txt: Removed.
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator-wk2/fast/html/marquee-scrollamount-expected.txt: Removed.
+        * platform/ios-simulator/fast/html/marquee-scroll-expected.txt: Removed.
+        * platform/ios-simulator/fast/html/marquee-scrollamount-expected.txt: Removed.
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/fast/html/marquee-scroll-expected.png: Removed.
+        * platform/mac/fast/html/marquee-scroll-expected.txt: Removed.
+        * platform/mac/fast/html/marquee-scrollamount-expected.png: Removed.
+        * platform/mac/fast/html/marquee-scrollamount-expected.txt: Removed.
+        * platform/win/TestExpectations:
+        * platform/win/fast/html/marquee-scroll-expected.txt: Removed.
+        * platform/win/fast/html/marquee-scrollamount-expected.txt: Removed.
+
+2016-08-05  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r204181.
+
+        This change caused an existing LayoutTest to fail on WK1
+
+        Reverted changeset:
+
+        "Don't set document.domain to an IP address fragment"
+        https://bugs.webkit.org/show_bug.cgi?id=126045
+        http://trac.webkit.org/changeset/204181
+
+2016-08-05  Simon Fraser  <simon.fraser@apple.com>
+
+        Sierra WK1: compositing/masks/compositing-clip-path-change-no-repaint.html failing
+        rdar://problem/26789221
+
+        Make this test less sensitive to platform repaint differences.
+
+        * compositing/masks/compositing-clip-path-change-no-repaint-expected.txt:
+        * compositing/masks/compositing-clip-path-change-no-repaint.html:
+        * platform/mac-wk1/TestExpectations:
+
+2016-08-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r204128.
+        https://bugs.webkit.org/show_bug.cgi?id=160607
+
+        Solve the issue by removing the workaround for static files
+        (Requested by jonlee_ on #webkit).
+
+        Reverted changeset:
+
+        "Temporary redirected m3u8 streaming stopped working."
+        https://bugs.webkit.org/show_bug.cgi?id=160472
+        http://trac.webkit.org/changeset/204128
+
+2016-08-05  Jonathan Bedard  <jbedard@apple.com>
+
+        Remove testRunner.handleErrorPages()
+        https://bugs.webkit.org/show_bug.cgi?id=160552
+
+        Reviewed by Daniel Bates.
+
+        handleErrorPages() was implemented by the Qt WebKit port, per
+        https://bugs.webkit.org/show_bug.cgi?id=31509#c0, but never implemented
+        on other ports.  Per https://bugs.webkit.org/show_bug.cgi?id=31555, this
+        feature was never implemented on Mac.
+
+        * fast/history/back-forward-reset-after-error-handling-expected.txt: Removed test expectations.
+        * fast/history/back-forward-reset-after-error-handling.html: Removed test.
+        * platform/efl/TestExpectations: Remove reference to back-forward-reset-after-error-handling.
+        * platform/gtk/TestExpectations: Ditto.
+        * platform/ios-simulator/TestExpectations: Ditto.
+        * platform/mac/TestExpectations: Ditto.
+        * platform/win/TestExpectations: Ditto.
+
+2016-08-05  Brent Fulgham  <bfulgham@apple.com>
+
+        validity assertion fails after removing a child of an <optgroup> element
+        https://bugs.webkit.org/show_bug.cgi?id=155720
+        <rdar://problem/27720746>
+
+        Reviewed by Brent Fulgham.
+
+        Add new test case that triggers a debug assertion when the HTMLSelectElement state
+        is not updated properly.
+
+        * fast/dom/HTMLSelectElement/select-remove-from-optgroup-expected.txt: Added.
+        * fast/dom/HTMLSelectElement/select-remove-from-optgroup.html: Added.
+
+2016-08-05  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r204174.
+
+        The test for this change is failing on WK1
+
+        Reverted changeset:
+
+        "Popups opened from a sandboxed iframe should themselves be
+        sandboxed"
+        https://bugs.webkit.org/show_bug.cgi?id=134850
+        http://trac.webkit.org/changeset/204174
+
+2016-08-05  John Wilander  <wilander@apple.com>
+
+        Don't set document.domain to an IP address fragment
+        https://bugs.webkit.org/show_bug.cgi?id=126045
+        <rdar://problem/27331794>
+
+        Reviewed by Daniel Bates.
+
+        IP address octets should not be treated as subdomains when
+        setting document.domain.
+
+        * http/tests/security/aboutBlank/security-context-alias.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+        * http/tests/security/aboutBlank/security-context-grandchildren-alias.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+        * http/tests/security/postMessage/origin-unaffected-by-document-domain.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+        * http/tests/security/set-domain-remove-subdomain-for-ip-address-expected.txt: Added.
+        * http/tests/security/set-domain-remove-subdomain-for-ip-address.html: Added.
+        * http/tests/workers/worker-document-domain-security.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+        * http/tests/xmlhttprequest/document-domain-set.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+
+2016-08-05  Chris Dumez  <cdumez@apple.com>
+
+        Window's named properties should be exposed on a WindowProperties object in its prototype
+        https://bugs.webkit.org/show_bug.cgi?id=160354
+
+        Reviewed by Gavin Barraclough.
+
+        * fast/dom/Window/es52-globals-expected.txt:
+        Update / Rebaseline test now that named properties are no longer reported as "own"
+        properties on the Window object. I have verified that the test gives the
+        same result in Firefox and Chrome.
+
+        * fast/loader/window-clearing-expected.txt:
+        Rebaseline test that prints one more line because there is one more
+        object in Window's prototype chain.
+
+        * http/tests/security/window-named-proto-expected.txt:
+        * http/tests/security/window-named-valueOf-expected.txt:
+        Rebaseline 2 security tests that give slightly different output. The new
+        output is identical to the one in Firefox and Chrome. The tests are not
+        failing since they are not alert'ing content from the other frame.
+        The reason those tests were logging a security error is because we would
+        previously prevent named property access if the frame name conflicts with
+        a property name in the Window prototype, and we now no longer
+        differentiate this case.
+
 2016-08-05  John Wilander  <wilander@apple.com>
 
         Popups opened from a sandboxed iframe should themselves be sandboxed

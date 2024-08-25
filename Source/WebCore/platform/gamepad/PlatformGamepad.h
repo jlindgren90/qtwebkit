@@ -23,31 +23,40 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GamepadProvider_h
-#define GamepadProvider_h
+#pragma once
 
 #if ENABLE(GAMEPAD)
 
 #include <wtf/Vector.h>
+#include <wtf/text/WTFString.h>
 
 namespace WebCore {
 
-class GamepadProviderClient;
-class PlatformGamepad;
-
-class GamepadProvider {
+class PlatformGamepad {
 public:
-    virtual ~GamepadProvider() { }
+    virtual ~PlatformGamepad() { }
 
-    WEBCORE_EXPORT static GamepadProvider& singleton();
-    WEBCORE_EXPORT static void setSharedProvider(GamepadProvider&);
+    const String& id() const { return m_id; }
+    unsigned index() const { return m_index; }
+    double lastUpdateTime() const { return m_lastUpdateTime; }
+    double connectTime() const { return m_connectTime; }
+    virtual const Vector<double>& axisValues() const = 0;
+    virtual const Vector<double>& buttonValues() const = 0;
 
-    virtual void startMonitoringGamepads(GamepadProviderClient*);
-    virtual void stopMonitoringGamepads(GamepadProviderClient*);
-    virtual const Vector<PlatformGamepad*>& platformGamepads();
+protected:
+    explicit PlatformGamepad(unsigned index)
+        : m_index(index)
+        , m_lastUpdateTime(0.0)
+        , m_connectTime(0.0)
+    {
+    }
+
+    String m_id;
+    unsigned m_index;
+    double m_lastUpdateTime;
+    double m_connectTime;
 };
 
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD)
-#endif // GamepadProvider_h

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,25 +23,57 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef GamepadProviderClient_h
-#define GamepadProviderClient_h
+#include "config.h"
+#include "WebGamepadProvider.h"
 
 #if ENABLE(GAMEPAD)
 
-namespace WebCore {
+#include "WebProcess.h"
+#include "WebProcessPoolMessages.h"
+#include <wtf/NeverDestroyed.h>
 
-class PlatformGamepad;
+using namespace WebCore;
 
-class GamepadProviderClient {
-public:
-    virtual ~GamepadProviderClient() { }
+namespace WebKit {
 
-    virtual void platformGamepadConnected(PlatformGamepad&) = 0;
-    virtual void platformGamepadDisconnected(PlatformGamepad&) = 0;
-    virtual void platformGamepadInputActivity() = 0;
-};
+WebGamepadProvider& WebGamepadProvider::singleton()
+{
+    static NeverDestroyed<WebGamepadProvider> provider;
+    return provider;
+}
 
-} // namespace WebCore
+WebGamepadProvider::WebGamepadProvider()
+{
+}
+
+WebGamepadProvider::~WebGamepadProvider()
+{
+}
+
+void WebGamepadProvider::startMonitoringGamepads(GamepadProviderClient* client)
+{
+    ASSERT(!m_clients.contains(client));
+    m_clients.add(client);
+
+    if (m_clients.size() == 1)
+        WebProcess::singleton().send(Messages::WebProcessPool::StartedUsingGamepads(), 0);
+}
+
+void WebGamepadProvider::stopMonitoringGamepads(GamepadProviderClient* client)
+{
+    ASSERT(m_clients.contains(client));
+    m_clients.remove(client);
+
+    if (m_clients.isEmpty())
+        WebProcess::singleton().send(Messages::WebProcessPool::StoppedUsingGamepads(), 0);
+}
+
+const Vector<PlatformGamepad*>& WebGamepadProvider::platformGamepads()
+{
+    static NeverDestroyed<Vector<PlatformGamepad*>> gamepads;
+    return gamepads;
+}
+
+}
 
 #endif // ENABLE(GAMEPAD)
-#endif // GamepadProviderClient_h

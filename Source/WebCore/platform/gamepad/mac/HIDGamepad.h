@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef HIDGamepad_h
-#define HIDGamepad_h
+#pragma once
 
 #if ENABLE(GAMEPAD)
 
@@ -125,4 +124,3 @@ private:
 } // namespace WebCore
 
 #endif // ENABLE(GAMEPAD)
-#endif // HIDGamepad_h

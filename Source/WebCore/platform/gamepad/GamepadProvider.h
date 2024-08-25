@@ -22,45 +22,29 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-#include "config.h"
-#include "GamepadProvider.h"
+
+#pragma once
 
 #if ENABLE(GAMEPAD)
 
-#include <wtf/NeverDestroyed.h>
+#include <wtf/Vector.h>
 
 namespace WebCore {
 
-static GamepadProvider* sharedProvider = nullptr;
+class GamepadProviderClient;
+class PlatformGamepad;
 
-GamepadProvider& GamepadProvider::singleton()
-{
-    if (!sharedProvider) {
-        static NeverDestroyed<GamepadProvider> defaultProvider;
-        sharedProvider = &defaultProvider.get();
-    }
+class GamepadProvider {
+public:
+    virtual ~GamepadProvider() { }
 
-    return *sharedProvider;
-}
+    WEBCORE_EXPORT static GamepadProvider& singleton();
+    WEBCORE_EXPORT static void setSharedProvider(GamepadProvider&);
 
-void GamepadProvider::setSharedProvider(GamepadProvider& newProvider)
-{
-    sharedProvider = &newProvider;
-}
-
-void GamepadProvider::startMonitoringGamepads(GamepadProviderClient*)
-{
-}
-
-void GamepadProvider::stopMonitoringGamepads(GamepadProviderClient*)
-{
-}
-
-const Vector<PlatformGamepad*>& GamepadProvider::platformGamepads()
-{
-    static NeverDestroyed<Vector<PlatformGamepad*>> defaultGamepads;
-    return defaultGamepads;
-}
+    virtual void startMonitoringGamepads(GamepadProviderClient*) = 0;
+    virtual void stopMonitoringGamepads(GamepadProviderClient*) = 0;
+    virtual const Vector<PlatformGamepad*>& platformGamepads() = 0;
+};
 
 } // namespace WebCore
 

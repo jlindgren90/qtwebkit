@@ -1,3 +1,323 @@
+2016-08-05  Brent Fulgham  <bfulgham@apple.com>
+
+        ASSERTION FAILED: observer in WebCore::BitmapImage::drawPattern
+        https://bugs.webkit.org/show_bug.cgi?id=141637
+        <rdar://problem/27709864>
+
+        Reviewed by Tim Horton.
+
+        Test: fast/images/image-source-assert.html
+
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::drawPattern): Remove invalid assertion.
+
+2016-08-05  Simon Fraser  <simon.fraser@apple.com>
+
+        marquee with "truespeed" animates at > 60fps, hogging CPU
+        https://bugs.webkit.org/show_bug.cgi?id=160609
+
+        Reviewed by David Hyatt.
+        
+        A <marquee truespeed="" scrollDelay="0"> would fire a zero-delay timer and also
+        fail to animate, hogging CPU.
+        
+        Fix to cap the timer at 16ms intervals. We don't believe it's necessary to
+        maintain web compatibility here.
+
+        Tested by existing tests.
+
+        * html/HTMLMarqueeElement.cpp:
+        (WebCore::HTMLMarqueeElement::minimumDelay):
+        * html/HTMLMarqueeElement.h:
+
+2016-08-05  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r204181.
+
+        This change caused an existing LayoutTest to fail on WK1
+
+        Reverted changeset:
+
+        "Don't set document.domain to an IP address fragment"
+        https://bugs.webkit.org/show_bug.cgi?id=126045
+        http://trac.webkit.org/changeset/204181
+
+2016-08-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r204128.
+        https://bugs.webkit.org/show_bug.cgi?id=160607
+
+        Solve the issue by removing the workaround for static files
+        (Requested by jonlee_ on #webkit).
+
+        Reverted changeset:
+
+        "Temporary redirected m3u8 streaming stopped working."
+        https://bugs.webkit.org/show_bug.cgi?id=160472
+        http://trac.webkit.org/changeset/204128
+
+2016-08-05  Brent Fulgham  <bfulgham@apple.com>
+
+        validity assertion fails after removing a child of an <optgroup> element
+        https://bugs.webkit.org/show_bug.cgi?id=155720
+        <rdar://problem/27720746>
+
+        Reviewed by Brent Fulgham.
+
+        All calls to HTMLSelectElement::setRecalcListItems also need to call HTMLSelectElement::updateValidity.
+
+        Test: fast/dom/HTMLSelectElement/select-remove-from-optgroup.html
+
+        * html/HTMLOptGroupElement.cpp:
+        (WebCore::HTMLOptGroupElement::recalcSelectOptions): Call 'updateValidity' after 'setRecalcListItems'.
+        * html/HTMLOptionElement.cpp:
+        (WebCore::HTMLOptionElement::insertedInto): Ditto.
+        * html/HTMLSelectElement.cpp:
+        (WebCore::HTMLSelectElement::parseAttribute): Ditto.
+
+2016-08-05  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r204174.
+
+        The test for this change is failing on WK1
+
+        Reverted changeset:
+
+        "Popups opened from a sandboxed iframe should themselves be
+        sandboxed"
+        https://bugs.webkit.org/show_bug.cgi?id=134850
+        http://trac.webkit.org/changeset/204174
+
+2016-08-05  John Wilander  <wilander@apple.com>
+
+        Don't set document.domain to an IP address fragment
+        https://bugs.webkit.org/show_bug.cgi?id=126045
+        <rdar://problem/27331794>
+
+        Reviewed by Daniel Bates.
+
+        This patch matches the following Blink one:
+        https://chromium.googlesource.com/chromium/blink/+/b19a57fdb323d5a80d3a1cb0a6b343558c4237b0
+
+        IP address octets should not be treated as subdomains when setting
+        document.domain. The specs say:
+        'The domain attribute's setter must run these steps: ...
+        7. If host is not equal to effectiveDomain, then run these substeps:
+            1. If host or effectiveDomain is not a domain, then throw a
+            "SecurityError" DOMException.'
+        https://html.spec.whatwg.org/multipage/browsers.html#relaxing-the-same-origin-restriction
+        Last Updated 5 August 2016
+
+        'A host is a domain, an IPv4 address, or an IPv6 address.'
+        https://url.spec.whatwg.org/#concept-domain
+        Last Updated 28 July 2016
+
+        Test: http/tests/security/set-domain-remove-subdomain-for-ip-address.html
+
+        * dom/Document.cpp:
+        (WebCore::Document::setDomain):
+            Now checks whether the security origin is allowed to remove
+            subdomains. If not, it throws a security error.
+        * page/OriginAccessEntry.cpp:
+        (WebCore::OriginAccessEntry::OriginAccessEntry):
+            Constructor now expects an IP address setting.
+        (WebCore::OriginAccessEntry::matchesOrigin):
+            Now also checks whether the host in an IP address and returns
+            false if IP addresses aren't configured to be treated as domains.
+        * page/OriginAccessEntry.h:
+            Introduced new enum for IP address setting.
+            Constructor now expects an IP address setting.
+        (WebCore::OriginAccessEntry::ipAddressSettings):
+            New getter.
+        (WebCore::operator==):
+            Now also requires IP address settings to match.
+        * page/SecurityPolicy.cpp:
+        (WebCore::SecurityPolicy::addOriginAccessWhitelistEntry):
+            Changes to match OriginAccessEntry's new constructor.
+        (WebCore::SecurityPolicy::removeOriginAccessWhitelistEntry):
+            Changes to match OriginAccessEntry's new constructor.
+        * page/Settings.in:
+            Added a setting to allow IP address octets to be treated as
+            subdomains. This way our existing tests setting document.domain
+            still work.
+
+2016-08-05  Chris Dumez  <cdumez@apple.com>
+
+        Window's named properties should be exposed on a WindowProperties object in its prototype
+        https://bugs.webkit.org/show_bug.cgi?id=160354
+
+        Reviewed by Gavin Barraclough.
+
+        Window's named properties should be exposed on a WindowProperties object
+        in its prototype:
+        - http://heycam.github.io/webidl/#named-properties-object
+
+        Firefox and Chrome both comply with the specification. However, WebKit
+        had no "WindowProperties" object in the Window prototype chain and the
+        named properties are exposed on the Window object itself.
+
+        No new tests, rebaselined existing tests.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::getOwnPropertySlot):
+        (WebCore::JSDOMWindow::getOwnPropertySlotByIndex):
+        (WebCore::jsDOMWindowGetOwnPropertySlotRestrictedAccess): Deleted.
+        (WebCore::JSDOMWindow::put): Deleted.
+        (WebCore::JSDOMWindow::putByIndex): Deleted.
+        (WebCore::JSDOMWindow::getEnumerableLength): Deleted.
+        * bindings/js/JSDOMWindowProperties.cpp: Added.
+        (WebCore::jsDOMWindowPropertiesGetOwnPropertySlotNamedItemGetter):
+        (WebCore::JSDOMWindowProperties::getOwnPropertySlot):
+        (WebCore::JSDOMWindowProperties::getOwnPropertySlotByIndex):
+        * bindings/js/JSDOMWindowProperties.h: Added.
+        (WebCore::JSDOMWindowProperties::create):
+        (WebCore::JSDOMWindowProperties::createStructure):
+        (WebCore::JSDOMWindowProperties::JSDOMWindowProperties):
+        * bindings/js/JSDOMWindowShell.cpp:
+        (WebCore::JSDOMWindowShell::setWindow):
+
+2016-08-05  Brady Eidson  <beidson@apple.com>
+
+        Create platform/gamepad directory, and make GamepadProvider pure virtual (with a default empty implementation).
+        https://bugs.webkit.org/show_bug.cgi?id=160599
+
+        Reviewed by Alex Christensen.
+
+        No new tests (No behavior change).
+
+        Except for the GamepadProvider/EmptyGamepadProvider split, this is just moving files around.
+
+        * CMakeLists.txt:
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/Linux.cmake:
+
+        * platform/gamepad.h: Removed.
+        
+        * platform/gamepad/EmptyGamepadProvider.cpp: 
+        (WebCore::EmptyGamepadProvider::startMonitoringGamepads):
+        (WebCore::EmptyGamepadProvider::stopMonitoringGamepads):
+        (WebCore::EmptyGamepadProvider::platformGamepads):
+        * platform/gamepad/EmptyGamepadProvider.h:
+        
+        * platform/gamepad/GamepadProvider.cpp: Renamed from Source/WebCore/platform/GamepadProvider.cpp.
+        (WebCore::GamepadProvider::singleton):
+        (WebCore::GamepadProvider::setSharedProvider):
+        * platform/gamepad/GamepadProvider.h: Renamed from Source/WebCore/platform/GamepadProvider.h.
+        (WebCore::GamepadProvider::~GamepadProvider):
+        
+        * platform/gamepad/GamepadProviderClient.h: Renamed from Source/WebCore/platform/GamepadProviderClient.h.
+        (WebCore::GamepadProviderClient::~GamepadProviderClient):
+        
+        * platform/gamepad/PlatformGamepad.h: Renamed from Source/WebCore/platform/PlatformGamepad.h.
+        (WebCore::PlatformGamepad::~PlatformGamepad):
+        (WebCore::PlatformGamepad::id):
+        (WebCore::PlatformGamepad::index):
+        (WebCore::PlatformGamepad::lastUpdateTime):
+        (WebCore::PlatformGamepad::connectTime):
+        (WebCore::PlatformGamepad::PlatformGamepad):
+
+        * platform/gamepad/deprecated/Gamepads.h: Renamed from Source/WebCore/platform/Gamepads.h.
+
+        * platform/gamepad/efl/GamepadsEfl.cpp: Renamed from Source/WebCore/platform/efl/GamepadsEfl.cpp.
+        (WebCore::GamepadDeviceEfl::resetFdHandler):
+        (WebCore::GamepadDeviceEfl::deviceFile):
+        (WebCore::GamepadDeviceEfl::GamepadDeviceEfl):
+        (WebCore::GamepadDeviceEfl::~GamepadDeviceEfl):
+        (WebCore::GamepadDeviceEfl::readCallback):
+        (WebCore::GamepadsEfl::onGamePadChange):
+        (WebCore::GamepadsEfl::GamepadsEfl):
+        (WebCore::GamepadsEfl::~GamepadsEfl):
+        (WebCore::GamepadsEfl::registerDevice):
+        (WebCore::GamepadsEfl::unregisterDevice):
+        (WebCore::GamepadsEfl::updateGamepadList):
+        (WebCore::sampleGamepads):
+        
+        * platform/gamepad/glib/GamepadsGlib.cpp: Renamed from Source/WebCore/platform/glib/GamepadsGlib.cpp.
+        (WebCore::GamepadDeviceGlib::GamepadDeviceGlib):
+        (WebCore::GamepadDeviceGlib::~GamepadDeviceGlib):
+        (WebCore::GamepadDeviceGlib::readCallback):
+        (WebCore::GamepadsGlib::GamepadsGlib):
+        (WebCore::GamepadsGlib::~GamepadsGlib):
+        (WebCore::GamepadsGlib::registerDevice):
+        (WebCore::GamepadsGlib::unregisterDevice):
+        (WebCore::GamepadsGlib::updateGamepadList):
+        (WebCore::GamepadsGlib::onUEventCallback):
+        (WebCore::GamepadsGlib::isGamepadDevice):
+        (WebCore::sampleGamepads):
+        
+        * platform/gamepad/linux/GamepadDeviceLinux.cpp: Renamed from Source/WebCore/platform/linux/GamepadDeviceLinux.cpp.
+        (WebCore::GamepadDeviceLinux::GamepadDeviceLinux):
+        (WebCore::GamepadDeviceLinux::~GamepadDeviceLinux):
+        (WebCore::GamepadDeviceLinux::updateForEvent):
+        (WebCore::GamepadDeviceLinux::normalizeAxisValue):
+        (WebCore::GamepadDeviceLinux::normalizeButtonValue):
+        * platform/gamepad/linux/GamepadDeviceLinux.h: Renamed from Source/WebCore/platform/linux/GamepadDeviceLinux.h.
+        (WebCore::GamepadDeviceLinux::connected):
+        (WebCore::GamepadDeviceLinux::id):
+        (WebCore::GamepadDeviceLinux::timestamp):
+        (WebCore::GamepadDeviceLinux::axesCount):
+        (WebCore::GamepadDeviceLinux::axesData):
+        (WebCore::GamepadDeviceLinux::buttonsCount):
+        (WebCore::GamepadDeviceLinux::buttonsData):
+        
+        * platform/gamepad/mac/HIDGamepad.cpp: Renamed from Source/WebCore/platform/mac/HIDGamepad.cpp.
+        (WebCore::HIDGamepad::HIDGamepad):
+        (WebCore::HIDGamepad::getCurrentValueForElement):
+        (WebCore::HIDGamepad::initElements):
+        (WebCore::HIDGamepad::initElementsFromArray):
+        (WebCore::HIDGamepad::maybeAddButton):
+        (WebCore::HIDGamepad::maybeAddAxis):
+        (WebCore::HIDGamepad::valueChanged):
+        * platform/gamepad/mac/HIDGamepad.h: Renamed from Source/WebCore/platform/mac/HIDGamepad.h.
+        (WebCore::HIDGamepadElement::HIDGamepadElement):
+        (WebCore::HIDGamepadElement::~HIDGamepadElement):
+        (WebCore::HIDGamepadElement::isButton):
+        (WebCore::HIDGamepadElement::isAxis):
+        (WebCore::HIDGamepadButton::HIDGamepadButton):
+        (WebCore::HIDGamepadAxis::HIDGamepadAxis):
+        (WebCore::HIDGamepad::hidDevice):
+        
+        * platform/gamepad/mac/HIDGamepadProvider.cpp: Renamed from Source/WebCore/platform/mac/HIDGamepadProvider.cpp.
+        (WebCore::deviceMatchingDictionary):
+        (WebCore::deviceAddedCallback):
+        (WebCore::deviceRemovedCallback):
+        (WebCore::deviceValuesChangedCallback):
+        (WebCore::HIDGamepadProvider::singleton):
+        (WebCore::HIDGamepadProvider::HIDGamepadProvider):
+        (WebCore::HIDGamepadProvider::indexForNewlyConnectedDevice):
+        (WebCore::HIDGamepadProvider::connectionDelayTimerFired):
+        (WebCore::HIDGamepadProvider::openAndScheduleManager):
+        (WebCore::HIDGamepadProvider::closeAndUnscheduleManager):
+        (WebCore::HIDGamepadProvider::startMonitoringGamepads):
+        (WebCore::HIDGamepadProvider::stopMonitoringGamepads):
+        (WebCore::HIDGamepadProvider::deviceAdded):
+        (WebCore::HIDGamepadProvider::deviceRemoved):
+        (WebCore::HIDGamepadProvider::valuesChanged):
+        (WebCore::HIDGamepadProvider::inputNotificationTimerFired):
+        (WebCore::HIDGamepadProvider::removeGamepadForDevice):
+        * platform/gamepad/mac/HIDGamepadProvider.h: Renamed from Source/WebCore/platform/mac/HIDGamepadProvider.h.
+        (WebCore::HIDGamepadProvider::platformGamepads):
+
+2016-08-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r204147.
+        https://bugs.webkit.org/show_bug.cgi?id=160602
+
+        Considering another implementation (Requested by eric_carlson
+        on #webkit).
+
+        Reverted changeset:
+
+        "Add long, boolean, double, and String Media Constraint
+        classes"
+        https://bugs.webkit.org/show_bug.cgi?id=160524
+        http://trac.webkit.org/changeset/204147
+
 2016-08-05  John Wilander  <wilander@apple.com>
 
         Popups opened from a sandboxed iframe should themselves be sandboxed

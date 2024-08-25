@@ -37,6 +37,7 @@ set(WebKit2_INCLUDE_DIRECTORIES
     "${WEBKIT2_DIR}/UIProcess/Automation"
     "${WEBKIT2_DIR}/UIProcess/Databases"
     "${WEBKIT2_DIR}/UIProcess/Downloads"
+    "${WEBKIT2_DIR}/UIProcess/Gamepad"
     "${WEBKIT2_DIR}/UIProcess/InspectorServer"
     "${WEBKIT2_DIR}/UIProcess/Launcher"
     "${WEBKIT2_DIR}/UIProcess/Network"
@@ -56,6 +57,7 @@ set(WebKit2_INCLUDE_DIRECTORIES
     "${WEBKIT2_DIR}/WebProcess/Databases/IndexedDB"
     "${WEBKIT2_DIR}/WebProcess/FileAPI"
     "${WEBKIT2_DIR}/WebProcess/FullScreen"
+    "${WEBKIT2_DIR}/WebProcess/Gamepad"
     "${WEBKIT2_DIR}/WebProcess/Geolocation"
     "${WEBKIT2_DIR}/WebProcess/IconDatabase"
     "${WEBKIT2_DIR}/WebProcess/InjectedBundle"
@@ -485,6 +487,8 @@ set(WebKit2_SOURCES
     UIProcess/Downloads/DownloadProxy.cpp
     UIProcess/Downloads/DownloadProxyMap.cpp
 
+    UIProcess/Gamepad/UIGamepadProvider.cpp
+
     UIProcess/InspectorServer/HTTPRequest.cpp
     UIProcess/InspectorServer/WebInspectorServer.cpp
     UIProcess/InspectorServer/WebSocketServer.cpp
@@ -531,6 +535,9 @@ set(WebKit2_SOURCES
     WebProcess/FileAPI/BlobRegistryProxy.cpp
 
     WebProcess/FullScreen/WebFullScreenManager.cpp
+
+    WebProcess/Gamepad/WebGamepad.cpp
+    WebProcess/Gamepad/WebGamepadProvider.cpp
 
     WebProcess/Geolocation/GeolocationPermissionRequestManager.cpp
     WebProcess/Geolocation/WebGeolocationManager.cpp
