@@ -751,6 +751,7 @@ mathml/opentype/munderover-layout-resize.html
 mathml/presentation/mo-invisible.html
 
 # MathML tests that fail:
+mathml/mathml-in-dashboard.html [ Failure ]
 mathml/presentation/mo-stretch-update.html [ ImageOnlyFailure ]
 
 # SVG tests that fail:
@@ -932,11 +933,9 @@ fast/writing-mode/Kusa-Makura-background-canvas.html [ Failure ]
 http/tests/navigation/page-cache-iframe-no-current-historyItem.html [ Failure ]
 
 # XMLHttpRequest tests that fail
-http/tests/xmlhttprequest/cache-override.html [ Failure ]
 http/tests/xmlhttprequest/cross-origin-cookie-storage.html [ Failure ]
 http/tests/xmlhttprequest/failed-auth.html [ Failure ]
 webkit.org/b/82672 http/tests/xmlhttprequest/range-test.html [ Failure ]
-http/tests/xmlhttprequest/remember-bad-password.html [ Failure ]
 
 # JavaScripts tests that fail:
 js/dom/deep-recursion-test.html [ Failure ]
@@ -1059,6 +1058,7 @@ security/block-test.html
 # Animation tests that fail:
 animations/combo-transform-translate+scale.html [ Pass Failure ]
 animations/suspend-resume-animation-events.html [ Pass Failure ]
+animations/trigger-container-scroll-empty.html [ Failure ]
 
 # IndexedDB is not supported on iOS WK1.
 storage/indexeddb
@@ -1070,7 +1070,6 @@ crypto/subtle/rsa-indexeddb-private.html
 crypto/subtle/rsa-indexeddb.html
 fast/history/page-cache-indexed-closed-db.html
 fast/history/page-cache-indexed-opened-db.html
-http/tests/security/no-indexeddb-from-sandbox.html [ Failure ]
 
 # ShouldOpenExternalURLs not yet supported in WK1
 loader/navigation-policy [ Skip ]
@@ -1129,16 +1128,12 @@ http/tests/incremental/frame-focus-before-load.html
 http/tests/incremental/pause-in-script-element.pl
 http/tests/navigation/metaredirect-frames.html
 http/tests/security/frameNavigation/context-for-location-assign.html
-http/tests/cache/cached-main-resource.html [ Timeout ]
-http/tests/cookies/simple-cookies-expired.html [ Timeout ]
-http/tests/cookies/simple-cookies-max-age.html [ Timeout ]
-http/tests/images/png-partial-load.html [ Timeout ]
-http/tests/images/png-progressive-load.html [ Timeout ]
 
 # HTTP tests that fail:
 http/tests/loading/preload-img-srcset-sizes.html [ Failure ]
 http/tests/loading/progress-finished-callback.html [ Failure ]
 http/tests/misc/acid3.html [ Failure ]
+http/tests/navigation/anchor-frames.html [ Failure ]
 http/tests/navigation/javascriptlink-frames.html [ Failure ]
 http/tests/navigation/postredirect-basic.html [ Failure ]
 http/tests/navigation/postredirect-goback1.html [ Failure ]
@@ -1152,7 +1147,6 @@ http/tests/security/aboutBlank/xss-DENIED-set-opener.html [ Failure ]
 http/tests/security/canvas-remote-read-remote-video-allowed-anonymous.html [ Failure ]
 http/tests/security/canvas-remote-read-remote-video-allowed-with-credentials.html [ Failure ]
 http/tests/security/contentSecurityPolicy/object-src-url-allowed.html [ Failure ]
-http/tests/security/contentSecurityPolicy/object-src-url-blocked.html [ Failure ]
 http/tests/security/cross-origin-indexeddb-allowed.html [ Failure ]
 http/tests/security/cross-origin-indexeddb.html [ Failure ]
 http/tests/security/cross-origin-local-storage-wk1.html [ Failure ]
@@ -1329,7 +1323,6 @@ fast/dom/timer-fire-after-page-pause.html [ Pass ]
 
 # Latest iOS failures as of Sept 1, 2015
 accessibility/ios-simulator/iframe-access.html [ Failure ]
-animations/simultaneous-start-transform.html [ Failure ]
 compositing/iframes/display-none-subframe.html [ Failure ]
 css3/blending/blend-mode-simple-composited.html [ Failure ]
 editing/selection/caret-mode-document-begin-end.html [ Failure ]
@@ -1337,7 +1330,6 @@ fast/events/onchange-passwordfield.html [ Failure ]
 fast/forms/input-text-option-delete.html [ Failure ]
 fast/xsl/xslt-extra-content-at-end.xml [ Failure ]
 fast/xsl/xslt-missing-namespace-in-xslt.xml [ Failure ]
-http/tests/security/video-cross-origin-accesssameorigin.html [ Failure ]
 js/dom/JSON-stringify.html [ Failure ]
 fast/parser/external-entities-in-xslt.xml [ Failure ]
 editing/selection/update-selection-by-style-change.html [ ImageOnlyFailure ]
@@ -1459,3 +1451,42 @@ webkit.org/b/161191 imported/w3c/web-platform-tests/url/url-setters.html [ Skip 
 imported/mozilla/svg/smil/transform/rotate-angle-4.svg [ Pass ]
 imported/mozilla/svg/smil/transform/rotate-angle-5.svg [ Pass ]
 imported/mozilla/svg/text/textLength-6.svg [ Pass ]
+
+# Crashes as of 08/26/2016
+fast/block/nested-renderers.html [ Crash ]
+fast/dom/HTMLObjectElement/beforeload-set-text-crash.xhtml [ Crash ]
+fast/dom/URL-attribute-reflection.html [ Crash ]
+fast/images/large-size-image-crash.html [ Crash ]
+http/tests/security/cross-origin-indexeddb-allowed.html [ Crash ]
+http/tests/security/cross-origin-indexeddb.html [ Crash ]
+imported/blink/storage/indexeddb/blob-delete-objectstore-db.html [ Crash ]
+imported/blink/storage/indexeddb/blob-valid-after-deletion.html [ Crash ]
+imported/blink/storage/indexeddb/blob-valid-before-commit.html [ Crash ]
+
+# Timeout as of 08/26/2016
+fast/dom/Geolocation/window-close-crash.html [ Timeout ]
+fast/events/offsetX-offsetY.html [ Timeout ]
+security/contentSecurityPolicy/image-with-blob-url-allowed-by-img-src-star-with-AllowContentSecurityPolicySourceStarToMatchAnyProtocol-enabled.html [ Timeout ]
+security/contentSecurityPolicy/image-with-blob-url-blocked-by-img-src-star.html [ Timeout ]
+security/contentSecurityPolicy/video-with-blob-url-allowed-by-media-src-star.html [ Timeout ]
+
+# Flaky as of 08/26/2016
+editing/execCommand/indent-no-visible-contents-crash.html [ Crash Pass ]
+fast/canvas/fallback-content.html [ Crash Pass ]
+fast/dom/onerror-img.html [ Crash Pass ]
+fast/events/focus-change-crash2.html [ Crash Pass ]
+fast/events/media-focus-in-standalone-media-document.html [ Crash Pass ]
+fast/forms/implicit-submission.html [ Crash Failure ]
+fast/parser/strip-script-attrs-on-input.html [ Timeout Crash Pass ]
+fast/replaced/replaced-child-of-absolute-with-auto-height.html [ Crash Pass ]
+fast/scrolling/ios/overflow-div-scrolling.html [ Crash Failure ]
+http/tests/loading/multiple-prioritization.html [ Crash Pass ]
+http/tests/navigation/page-cache-iframe-provisional-load.html [ Crash Pass Failure ]
+imported/blink/editing/execCommand/4128080-2.html [ Crash Failure ]
+imported/blink/editing/undo/crash-redo-with-iframes.html [ Crash Pass ]
+imported/blink/paint/deprecatedpaintlayer/non-self-painting-layer-overrides-visibility.html [ Crash Pass ]
+imported/w3c/web-platform-tests/fetch/api/redirect/redirect-location.html [ Crash Pass ]
+platform/ios-simulator/ios/fast/coordinates/document-elementFromPoint.html [ Timeout Failure ]
+platform/ios-simulator/ios/fast/coordinates/touch-event-zoomed.html [ Crash Timeout ]
+platform/ios-simulator/ios/fast/coordinates/touch-event.html [ Crash Timeout ]
+security/contentSecurityPolicy/blocks-video.html [ Crash Pass ]

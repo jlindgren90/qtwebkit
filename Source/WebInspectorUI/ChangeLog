@@ -1,3 +1,116 @@
+2016-08-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Add protocol version for iOS 10
+        https://bugs.webkit.org/show_bug.cgi?id=161266
+        <rdar://problem/28036594>
+
+        Rubber-stamped by Brian Burg.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        Update missing localized strings.
+
+        * Versions/Inspector-iOS-10.0.json: Added.
+        Protocol for iOS 10.
+
+        * UserInterface/Protocol/Legacy/10.0/InspectorBackendCommands.js:
+        * UserInterface/Protocol/Legacy/7.0/InspectorBackendCommands.js:
+        * UserInterface/Protocol/Legacy/8.0/InspectorBackendCommands.js:
+        * UserInterface/Protocol/Legacy/9.0/InspectorBackendCommands.js:
+        * UserInterface/Protocol/Legacy/9.3/InspectorBackendCommands.js:
+        Re-generate the legacy backend commands files.
+
+2016-08-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Show IndexedDB Database/ObjectStore/Index data in a details sidebar
+        https://bugs.webkit.org/show_bug.cgi?id=161180
+        <rdar://problem/28003417>
+
+        Reviewed by Brian Burg.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        * UserInterface/Main.html:
+        New strings and file.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector.contentLoaded):
+        Instantiate the global details sidebar.
+
+        * UserInterface/Views/StorageTabContentView.js:
+        (WebInspector.StorageTabContentView):
+        Include the new details sidebar in the Storage tab.
+
+        * UserInterface/Controllers/StorageManager.js:
+        (WebInspector.StorageManager.prototype._addIndexedDBDatabasesIfNeeded.processKeyPath):
+        Use the protocol generated types.
+
+        * UserInterface/Views/IndexedDatabaseDetailsSidebarPanel.js: Added.
+        (WebInspector.IndexedDatabaseDetailsSidebarPanel):
+        (WebInspector.IndexedDatabaseDetailsSidebarPanel.prototype.inspect):
+        (WebInspector.IndexedDatabaseDetailsSidebarPanel.prototype.layout):
+        (WebInspector.IndexedDatabaseDetailsSidebarPanel.prototype._keyPathString):
+        Show the sidebar for an IndexedDatabase, ObjectStore, or Index.
+        Show each section if we can based on the objects we have.
+
+2016-08-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Provide a way to clear an IndexedDB object store
+        https://bugs.webkit.org/show_bug.cgi?id=161167
+        <rdar://problem/27996932>
+
+        Reviewed by Brian Burg.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        "Clear object store".
+
+        * UserInterface/Controllers/StorageManager.js:
+        (WebInspector.StorageManager.prototype.clearObjectStore):
+        Provide a wrapper for clearing an object store.
+
+        * UserInterface/Views/IndexedDatabaseObjectStoreContentView.js:
+        (WebInspector.IndexedDatabaseObjectStoreContentView):
+        (WebInspector.IndexedDatabaseObjectStoreContentView.prototype.get navigationItems):
+        (WebInspector.IndexedDatabaseObjectStoreContentView.prototype._clearButtonClicked):
+        Add a navigation button on ObjectStore content views to clear the object store.
+
+2016-08-26  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Some CSS selectors in the UI aren't escaped
+        https://bugs.webkit.org/show_bug.cgi?id=151378
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Base/DOMUtilities.js:
+        (WebInspector.displayNameForNode): Deleted.
+        (WebInspector.linkifyNodeReference):
+        Use DOMNode.prototype.displayName instead of WebInspector.displayNameForNode.
+
+        * UserInterface/Models/DOMNode.js:
+        (WebInspector.DOMNode.prototype.get escapedIdSelector):
+        (WebInspector.DOMNode.prototype.get escapedClassSelector):
+        (WebInspector.DOMNode.prototype.get displayName):
+        (WebInspector.DOMNode.prototype.appropriateSelectorFor):
+        Rework escaping of ids and class names into separate public functions using CSS.escape.
+
+        * UserInterface/Views/CSSStyleDeclarationSection.js:
+        (WebInspector.CSSStyleDeclarationSection.prototype.refresh):
+        Use DOMNode.prototype.displayName instead of WebInspector.displayNameForNode.
+
+        * UserInterface/Views/DOMTreeDataGridNode.js:
+        (WebInspector.DOMTreeDataGridNode.prototype._createNameCellDocumentFragment):
+        Use DOMNode.prototype.displayName instead of WebInspector.displayNameForNode.
+
+        * UserInterface/Views/DOMTreeElementPathComponent.js:
+        (WebInspector.DOMTreeElementPathComponent):
+        Use DOMNode.prototype.displayName instead of WebInspector.displayNameForNode.
+
+        * UserInterface/Views/LayerTreeDataGridNode.js:
+        (WebInspector.LayerTreeDataGridNode.prototype.set layer):
+        Use DOMNode.prototype.displayName instead of WebInspector.displayNameForNode.
+
+        * UserInterface/Views/VisualStyleSelectorSection.js:
+        (WebInspector.VisualStyleSelectorSection.prototype.update):
+        Use DOMNode.prototype.displayName instead of WebInspector.displayNameForNode.
+
 2016-08-24  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: unexpected cursor changes while dragging ruler handle in rendering frames timeline

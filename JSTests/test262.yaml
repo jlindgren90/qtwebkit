@@ -19480,9 +19480,9 @@
 - path: test262/test/built-ins/JSON/stringify/value-proxy-revoked.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/JSON/stringify/value-proxy.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/built-ins/JSON/stringify/value-proxy.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Map/Symbol.species/length.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/Map/Symbol.species/length.js
@@ -22974,9 +22974,9 @@
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-139.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-14.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-14.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-140.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-140.js
@@ -23746,9 +23746,9 @@
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-36.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-37.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-37.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-38.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Object/create/15.2.3.5-4-38.js
@@ -34330,9 +34330,9 @@
 - path: test262/test/built-ins/Object/prototype/toString/proxy-revoked.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Object/prototype/toString/proxy.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Object/prototype/toString/proxy.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Object/prototype/toString/symbol-tag-non-str.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Object/prototype/toString/symbol-tag-non-str.js
@@ -73106,13 +73106,13 @@
 - path: test262/test/language/statements/class/definition/early-errors-class-method-arguments-in-formal-parameters.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/class/definition/early-errors-class-method-await-in-formals-default.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/statements/class/definition/early-errors-class-method-await-in-formals-default.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/class/definition/early-errors-class-method-await-in-formals.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/statements/class/definition/early-errors-class-method-await-in-formals.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/class/definition/early-errors-class-method-body-contains-super-call.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/statements/class/definition/early-errors-class-method-body-contains-super-call.js

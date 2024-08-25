@@ -1,3 +1,336 @@
+2016-08-26  Andreas Kling  <akling@apple.com>
+
+        REGRESSION (r204987): fast/canvas-composite-* tests are now flaky assertion failures
+        <https://webkit.org/b/161259>
+
+        Reviewed by Joseph Pecoraro.
+
+        Fix a blunder where HTMLCanvasElement::memoryCost() wasn't forwarding the inquiry
+        to ImageBuffer but HTMLCanvasElement::externalMemoryCost() was.
+
+        This fixes flaky "externalMemorySize() <= extraMemorySize()" assertions on debug bots.
+
+        * html/HTMLCanvasElement.cpp:
+        (WebCore::HTMLCanvasElement::memoryCost):
+
+2016-08-26  Andreas Kling  <akling@apple.com>
+
+        The :enabled/:disabled selectors should only match elements that can be disabled.
+        <https://webkit.org/b/161255>
+
+        Reviewed by Chris Dumez.
+
+        Per the HTML spec, only the following elements can be actually disabled:
+
+            button, input, select, textarea, optgroup, option, menuitem, fieldset
+
+        Since HTMLOutputElement inherits from HTMLFormControlElement, it had some
+        misguided ideas about being disableable. This was causing it to get matched
+        by :enabled and :disabled selectors.
+
+        Test: imported/w3c/web-platform-tests/html/semantics/selectors/pseudo-classes/disabled.html
+
+        * css/SelectorChecker.cpp:
+        (WebCore::SelectorChecker::checkOne):
+        * cssjit/SelectorCompiler.cpp:
+        (WebCore::SelectorCompiler::addPseudoClassType):
+        * css/SelectorCheckerTestFunctions.h:
+        (WebCore::matchesDisabledPseudoClass):
+        (WebCore::matchesEnabledPseudoClass): Renamed from isEnabled/isDisabled. Now only allows
+        :enabled and :disabled selectors to match elements that are actually disableable.
+
+        * html/HTMLElement.h:
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::canBeActuallyDisabled):
+        (WebCore::HTMLElement::isActuallyDisabled): Added supporting functions for the aforementioned selectors.
+
+        * html/HTMLFormControlElement.cpp:
+        (WebCore::HTMLFormControlElement::parseAttribute): Don't care about disabled state
+        changes in elements that are not disableable in the first place.
+
+2016-08-26  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION(r204028): Fix unused-but-set-variable warning in generated JSNavigator.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=161252
+
+        Reviewed by Ryosuke Niwa.
+
+        Improve support for [Conditional] with overloaded operations in the IDL.
+
+        No new tests, updated bindings tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        (GeneratePropertiesHashTable):
+        (getConditionalForFunctionConsideringOverloads):
+        (GenerateOverloadedFunctionOrConstructor):
+        (GenerateImplementation):
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation): Deleted.
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionConditionalOverload1):
+        (WebCore::jsTestObjPrototypeFunctionConditionalOverload2):
+        (WebCore::jsTestObjPrototypeFunctionConditionalOverload):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation): Deleted.
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod1): Deleted.
+        * bindings/scripts/test/TestObj.idl:
+
+2016-08-26  Beth Dakin  <bdakin@apple.com>
+
+        charactersAroundPosition can be wrong because it crosses editing boundaries
+        https://bugs.webkit.org/show_bug.cgi?id=161215
+        -and corresponding-
+        rdar://problem/27933564
+
+        Reviewed by Ryosuke Niwa.
+
+        charactersAroundPosition() should not cross editing boundaries. This patch fixes 
+        that by making nextCharacterBoundaryInDirection() take an 
+        EditingBoundaryCrossingRule parameter to pass onto VisiblePosition::next() and 
+        VisiblePosition::previous().
+
+        * editing/VisibleUnits.cpp:
+        (WebCore::nextCharacterBoundaryInDirection):
+        (WebCore::positionOfNextBoundaryOfGranularity):
+        (WebCore::charactersAroundPosition):
+
+2016-08-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Test and address issues in IndexedDB.requestData
+        https://bugs.webkit.org/show_bug.cgi?id=161178
+        <rdar://problem/28002467>
+
+        Reviewed by Brian Burg.
+
+        Test: inspector/indexeddb/requestData.html
+
+        * inspector/InspectorIndexedDBAgent.cpp:
+        (idbKeyRangeFromKeyRange):
+        Parsing was too strict. "lower" and "upper" keys are optional.
+
+        (WebCore::DataLoader::execute):
+        Ensure the skip count is passed forward.
+
+2016-08-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Provide a way to clear an IndexedDB object store
+        https://bugs.webkit.org/show_bug.cgi?id=161167
+        <rdar://problem/27996932>
+
+        Reviewed by Brian Burg.
+
+        Test: inspector/indexeddb/clearObjectStore.html
+
+        * inspector/InspectorIndexedDBAgent.cpp:
+        Make the transaction for clearing an object store readwrite
+        instead of readonly, and activate it.
+
+2016-08-26  Chris Dumez  <cdumez@apple.com>
+
+        Calling crossOriginWindow.toString() should not be allowed
+        https://bugs.webkit.org/show_bug.cgi?id=161225
+
+        Reviewed by Andreas Kling.
+
+        Calling crossOriginWindow.toString() should not be allowed:
+        - https://html.spec.whatwg.org/#crossoriginproperties-(-o-)
+
+        In WebKit, we were printing a security error in the console but
+        returning "[object Window]" anyway.
+
+        In Firefox and Chrome, it throws an exception.
+
+        No new tests, updated existing test.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::jsDOMWindowGetOwnPropertySlotRestrictedAccess):
+
+2016-08-26  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Some CSS selectors in the UI aren't escaped
+        https://bugs.webkit.org/show_bug.cgi?id=151378
+
+        Reviewed by Joseph Pecoraro.
+
+        No new tests, but logic and results of existing tests updated:
+        * inspector/dom/content-node-region-info.html:
+        * inspector/dom/content-node-region-info-expected.txt:
+        * inspector/dom/highlightNode-expected.txt:
+        * inspector/dom/highlightSelector.html:
+        * inspector/dom/highlightSelector-expected.txt:
+
+        * inspector/InspectorOverlay.cpp:
+        (WebCore::buildObjectForElementData):
+
+        * inspector/InspectorOverlayPage.css:
+        (.pseudo-type):
+        (.tag-name): Deleted.
+
+        * inspector/InspectorOverlayPage.js:
+        (_createElementTitle):
+
+2016-08-25  Brent Fulgham  <bfulgham@apple.com>
+
+        Crash when getting font bounding rect
+        https://bugs.webkit.org/show_bug.cgi?id=161202
+        <rdar://problem/27986981>
+
+        Reviewed by Myles C. Maxfield.
+
+        We should never store GlyphData objects for later use, because they contain raw pointers to Font elements
+        contained in caches, and those font caches get periodically purged.
+
+        Instead, we should hold onto the ‘key’ representing the GlyphData, and simply ask the system for the
+        GlyphData the next time it is needed.
+
+        Tested by existing MathML tests under ASAN and GuardMalloc.
+
+        * rendering/mathml/RenderMathMLToken.cpp:
+        (WebCore::RenderMathMLToken::RenderMathMLToken): Clean up constructors.
+        (WebCore::RenderMathMLToken::computePreferredLogicalWidths): Use keys to get correct GlyphData when needed.
+        (WebCore::RenderMathMLToken::updateMathVariantGlyph): Ditto.
+        (WebCore::RenderMathMLToken::firstLineBaseline): Ditto.
+        (WebCore::RenderMathMLToken::layoutBlock): Ditto.
+        (WebCore::RenderMathMLToken::paint): Ditto.
+        (WebCore::RenderMathMLToken::paintChildren): Ditto.
+        * rendering/mathml/RenderMathMLToken.h:
+
+2016-08-26  Chris Dumez  <cdumez@apple.com>
+
+        HTMLAreaElement's coords attributes parsing does not comply with the HTML specification
+        https://bugs.webkit.org/show_bug.cgi?id=161216
+
+        Reviewed by Andreas Kling.
+
+        HTMLAreaElement's coords attributes parsing does not comply with the HTML specification:
+        - https://html.spec.whatwg.org/#attr-area-coords
+
+        This patch aligns our parsing of this attribute with the specification and Chrome.
+
+        No new tests, rebaselined existing test.
+
+        * html/HTMLAreaElement.cpp:
+        (WebCore::HTMLAreaElement::HTMLAreaElement):
+        (WebCore::HTMLAreaElement::parseAttribute):
+        (WebCore::HTMLAreaElement::getRegion):
+        * html/HTMLAreaElement.h:
+        * html/parser/HTMLParserIdioms.cpp:
+        (WebCore::isHTMLSpaceOrDelimiter):
+        (WebCore::isNumberStart):
+        (WebCore::parseHTMLListOfOfFloatingPointNumberValuesInternal):
+        (WebCore::parseHTMLListOfOfFloatingPointNumberValues):
+        (WebCore::parseHTMLNonNegativeInteger): Deleted.
+        * html/parser/HTMLParserIdioms.h:
+
+2016-08-26  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(WEB_SOCKETS) build
+        https://bugs.webkit.org/show_bug.cgi?id=161251
+
+        Reviewed by Alex Christensen.
+
+        * page/SocketProvider.h:
+
+2016-08-26  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the !ENABLE(WEB_TIMING) build
+        https://bugs.webkit.org/show_bug.cgi?id=161250
+
+        Reviewed by Alex Christensen.
+
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::didFinishLoading):
+        * loader/cache/CachedResourceLoader.h:
+        (WebCore::CachedResourceLoader::resourceTimingInformation):
+
+2016-08-26  Chris Dumez  <cdumez@apple.com>
+
+        Trying to access cross-origin Location properties should throw a SecurityError
+        https://bugs.webkit.org/show_bug.cgi?id=161248
+
+        Reviewed by Alex Christensen.
+
+        Trying to access cross-origin Location properties should throw a SecurityError:
+        - https://html.spec.whatwg.org/#crossorigingetownpropertyhelper-(-o,-p-)
+        - https://html.spec.whatwg.org/#crossoriginproperties-(-o-)
+
+        Firefox and Chrome already throw. However, WebKit was logging an error message
+        and returning undefined.
+
+        No new tests, updated existing tests.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::throwSecurityError):
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::getOwnPropertySlotDelegate):
+
+2016-08-26  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Warning fixes.
+        https://bugs.webkit.org/show_bug.cgi?id=161241
+
+        Reviewed by Brent Fulgham.
+
+        MSVC warns about potential use of uninitialized variables.
+
+        * accessibility/AXObjectCache.cpp:
+        * css/parser/CSSParserValues.cpp:
+
+2016-08-26  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Add support for OverConstrainedErrorEvent
+        https://bugs.webkit.org/show_bug.cgi?id=161199
+        <rdar://problem/28011819>
+
+        Reviewed by Jer Noble.
+
+        Test: fast/events/constructors/overconstrained-error-event-constructor.html
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * Modules/mediastream/OverconstrainedErrorEvent.h: Added.
+        (WebCore::OverconstrainedErrorEvent::~OverconstrainedErrorEvent):
+        (WebCore::OverconstrainedErrorEvent::create):
+        (WebCore::OverconstrainedErrorEvent::createForBindings):
+        (WebCore::OverconstrainedErrorEvent::error):
+        (WebCore::OverconstrainedErrorEvent::eventInterface):
+        (WebCore::OverconstrainedErrorEvent::OverconstrainedErrorEvent):
+        * Modules/mediastream/OverconstrainedErrorEvent.idl: Added.
+
+        * WebCore.xcodeproj/project.pbxproj: Add new files.
+
+        * bindings/js/JSDictionary.cpp:
+        (WebCore::JSDictionary::convertValue): Add OverconstrainedErrorEvent converter.
+        * bindings/js/JSDictionary.h:
+
+        * dom/EventNames.in: Add OverconstrainedErrorEvent.
+
+2016-08-26  Frederic Wang  <fwang@igalia.com>
+
+        The annotation-xml element does not need to be behave as an mrow
+        https://bugs.webkit.org/show_bug.cgi?id=161230
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        In r204779, MathMLAnnotationElement was made a MathMLRowElement just because the
+        annotation-xml element is generating a RenderMathMLRow. This later point is actually not
+        needed since annotation-xml is just a wrapper for foreign elements and so does not need to
+        handle special MathML features like operator spacing or stretching. We can thus move back
+        MathMLAnnotationElement to a generic MathMLPresentationElement and instead make the
+        annotation-xml element generate a generic RenderMathMLBlock renderer.
+
+        No new tests, semantics annotations already covered by existing tests.
+
+        * mathml/MathMLAnnotationElement.cpp: Replace RenderMathMLRow.h with RenderMathMLBlock.h
+        (WebCore::MathMLAnnotationElement::MathMLAnnotationElement): Inherit from
+        MathMLPresentationElement instead of MathMLRowElement.
+        (WebCore::MathMLAnnotationElement::createElementRenderer): Make annotation-xml create a
+        RenderMathMLBlock instead of a RenderMathMLRow.
+        (WebCore::MathMLAnnotationElement::attributeChanged): Inherit from MathMLPresentationElement
+        instead of MathMLRowElement.
+        * mathml/MathMLAnnotationElement.h: Ditto.
+
 2016-08-26  Csaba Osztrogonác  <ossy@webkit.org>
 
         Typo fix after r56209

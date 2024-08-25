@@ -1,3 +1,254 @@
+2016-08-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline fast/dom/focus-contenteditable.html for ios-simulator after r205044.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/fast/dom/focus-contenteditable-expected.txt:
+
+2016-08-26  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update expectations of tests that can either crash or timeout on iOS simulator WK1
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping imported/w3c/web-platform-tests/html/dom/interfaces.html on Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=161142
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-08-26  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rebase iOS simulator WK1 tables tests
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk1/tables/mozilla/bugs/bug30559-expected.txt:
+        * platform/ios-simulator-wk1/tables/mozilla_expected_failures/bugs/bug128876-expected.txt:
+        * platform/ios-simulator-wk1/tables/mozilla_expected_failures/bugs/bug3517-expected.txt: Added.
+        * platform/ios-simulator-wk1/tables/mozilla_expected_failures/bugs/bug8499-expected.txt:
+        * platform/ios-simulator-wk1/transitions/default-timing-function-expected.txt: Added.
+
+2016-08-26  Beth Dakin  <bdakin@apple.com>
+
+        charactersAroundPosition can be wrong because it crosses editing boundaries
+        https://bugs.webkit.org/show_bug.cgi?id=161215
+        -and corresponding-
+        rdar://problem/27933564
+
+        Reviewed by Ryosuke Niwa.
+
+        New test.
+        * editing/mac/spelling/accept-candidate-without-crossing-editing-boundary-expected.txt: Added.
+        * editing/mac/spelling/accept-candidate-without-crossing-editing-boundary.html: Added.
+
+        This test is going back to its pre-https://trac.webkit.org/changeset/195078 state. 
+        That change caused this test to have a different layout because it caused more 
+        layouts to happen. Now that we don’t allow the call to charactersAroundPosition() 
+        to cross editing boundaries, those layouts don’t happen, and we have the old 
+        behavior back.
+        * platform/mac/fast/dom/focus-contenteditable-expected.txt:
+
+2016-08-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Test and address issues in IndexedDB.requestData
+        https://bugs.webkit.org/show_bug.cgi?id=161178
+        <rdar://problem/28002467>
+
+        Reviewed by Brian Burg.
+
+        * inspector/indexeddb/requestData-expected.txt: Added.
+        * inspector/indexeddb/requestData.html: Added.
+
+2016-08-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Provide a way to clear an IndexedDB object store
+        https://bugs.webkit.org/show_bug.cgi?id=161167
+        <rdar://problem/27996932>
+
+        Reviewed by Brian Burg.
+
+        * inspector/indexeddb/clearObjectStore-expected.txt: Added.
+        * inspector/indexeddb/clearObjectStore.html: Added.
+
+2016-08-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Test IndexedDB.requestDatabase
+        https://bugs.webkit.org/show_bug.cgi?id=161122
+
+        Reviewed by Brian Burg.
+
+        * inspector/indexeddb/requestDatabase-expected.txt: Added.
+        * inspector/indexeddb/requestDatabase.html: Added.
+        New tests.
+
+        * inspector/indexeddb/deleteDatabaseNamesWithSpace.html:
+        * inspector/indexeddb/requestDatabaseNames.html:
+        Share code.
+
+        * inspector/indexeddb/resources/utilities.js: Added.
+        (deleteDatabaseNames):
+        (createEmptyDatabase):
+        (createDatabaseWithStores):
+        Helpers that can be used by each test.
+
+2016-08-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Modernize inspector/indexeddb tests
+        https://bugs.webkit.org/show_bug.cgi?id=161113
+
+        Reviewed by Brian Burg.
+
+        * inspector/indexeddb/deleteDatabaseNamesWithSpace-expected.txt:
+        * inspector/indexeddb/deleteDatabaseNamesWithSpace.html:
+        * inspector/indexeddb/requestDatabaseNames-expected.txt:
+        * inspector/indexeddb/requestDatabaseNames.html:
+
+2016-08-26  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rebase iOS simulator WK1 http tests
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk1/animations/trigger-container-scroll-simple-expected.txt: Added.
+        * platform/ios-simulator-wk1/css2.1/t040302-c61-ex-len-00-b-a-expected.txt:
+        * platform/ios-simulator-wk1/http/tests/dom/window-open-about-blank-and-access-document-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/dom/window-open-about-uppercase-blank-and-access-document-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/dom/window-open-about-webkit-org-and-access-document-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/proper-open-window-upgrades-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/security/cross-origin-modal-dialog-base-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/security/insecure-geolocation-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/security/mixedContent/insecure-form-in-main-frame-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/security/mixedContent/insecure-script-in-data-iframe-in-main-frame-blocked-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/security/mixedContent/insecure-xhr-sync-in-main-frame-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/security/mixedcontent-geolocation-block-insecure-content-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/security/mixedcontent-geolocation-expected.txt: Added.
+        * platform/ios-simulator-wk1/http/tests/security/window-opened-from-sandboxed-iframe-should-inherit-sandbox-expected.txt: Added.
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-08-26  Chris Dumez  <cdumez@apple.com>
+
+        Calling crossOriginWindow.toString() should not be allowed
+        https://bugs.webkit.org/show_bug.cgi?id=161225
+
+        Reviewed by Andreas Kling.
+
+        Update existing tests to reflect the behavior change.
+
+        * http/tests/security/cross-frame-access-custom-expected.txt:
+        * http/tests/security/cross-frame-access-custom.html:
+        * http/tests/security/cross-frame-access-object-setPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-setPrototypeOf.html:
+
+2016-08-26  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Some CSS selectors in the UI aren't escaped
+        https://bugs.webkit.org/show_bug.cgi?id=151378
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/dom/content-node-region-info.html:
+        * inspector/dom/content-node-region-info-expected.txt:
+        Use DOMNode.prototype.displayName instead of WebInspector.displayNameForNode.
+
+        * inspector/dom/highlightNode-expected.txt:
+        * inspector/dom/highlightSelector.html:
+        * inspector/dom/highlightSelector-expected.txt:
+        Changed result to replace className with new classes array.
+
+2016-08-26  Chris Dumez  <cdumez@apple.com>
+
+        HTMLAreaElement's coords attributes parsing does not comply with the HTML specification
+        https://bugs.webkit.org/show_bug.cgi?id=161216
+
+        Reviewed by Andreas Kling.
+
+        Unskip web-platform-tests/html/semantics/embedded-content/the-area-element/area-coords.html
+        as it is now passing and not longer crashing in debug builds.
+
+        * TestExpectations:
+
+2016-08-26  Chris Dumez  <cdumez@apple.com>
+
+        Trying to access cross-origin Location properties should throw a SecurityError
+        https://bugs.webkit.org/show_bug.cgi?id=161248
+
+        Reviewed by Alex Christensen.
+
+        Update existing tests to reflect behavior change.
+
+        * http/tests/plugins/cross-frame-object-access-expected.txt:
+        * http/tests/plugins/resources/cross-frame-object-access.html:
+        * http/tests/security/XFrameOptions/x-frame-options-deny-expected.txt:
+        * http/tests/security/XFrameOptions/x-frame-options-deny.html:
+        * http/tests/security/XFrameOptions/x-frame-options-ignore-deny-meta-tag-parent-same-origin-deny-expected.txt:
+        * http/tests/security/XFrameOptions/x-frame-options-ignore-deny-meta-tag-parent-same-origin-deny.html:
+        * http/tests/security/XFrameOptions/x-frame-options-multiple-headers-sameorigin-deny-expected.txt:
+        * http/tests/security/XFrameOptions/x-frame-options-multiple-headers-sameorigin-deny.html:
+        * http/tests/security/XFrameOptions/x-frame-options-parent-same-origin-deny-expected.txt:
+        * http/tests/security/XFrameOptions/x-frame-options-parent-same-origin-deny.html:
+        * http/tests/security/cross-frame-access-callback-explicit-domain-DENY-expected.txt:
+        * http/tests/security/cross-frame-access-child-explicit-domain-expected.txt:
+        * http/tests/security/cross-frame-access-custom-expected.txt:
+        * http/tests/security/cross-frame-access-getOwnPropertyDescriptor-expected.txt:
+        * http/tests/security/cross-frame-access-history-get-expected.txt:
+        * http/tests/security/cross-frame-access-history-get-override-expected.txt:
+        * http/tests/security/cross-frame-access-location-get-expected.txt:
+        * http/tests/security/cross-frame-access-location-get-override-expected.txt:
+        * http/tests/security/cross-frame-access-parent-explicit-domain-expected.txt:
+        * http/tests/security/cross-frame-access-port-expected.txt:
+        * http/tests/security/cross-frame-access-protocol-expected.txt:
+        * http/tests/security/cross-frame-access-protocol-explicit-domain-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-sub-frame-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-sub-frame-uppercase-expected.txt:
+        * http/tests/security/location-cross-origin-expected.txt:
+        * http/tests/security/location-cross-origin.html:
+        * http/tests/security/resources/cross-frame-access.js:
+        (canGet):
+        (canGetDescriptor):
+        (canCall):
+        (toString):
+        * http/tests/security/sandboxed-iframe-blocks-access-from-parent-expected.txt:
+        * http/tests/security/xss-DENIED-defineProperty-expected.txt:
+        * http/tests/security/xss-DENIED-defineProperty.html:
+        * http/tests/security/xssAuditor/block-does-not-leak-location-expected.txt:
+        * http/tests/security/xssAuditor/block-does-not-leak-location.html:
+        * http/tests/security/xssAuditor/full-block-script-tag-cross-domain-expected.txt:
+        * http/tests/security/xssAuditor/full-block-script-tag-cross-domain.html:
+        * http/tests/security/xssAuditor/resources/utilities.js:
+        (checkIfFrameLocationMatchesSrcAndCallDone):
+
+2016-08-26  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Add support for OverConstrainedErrorEvent
+        https://bugs.webkit.org/show_bug.cgi?id=161199
+        <rdar://problem/28011819>
+
+        Reviewed by Jer Noble.
+
+        * fast/events/constructors/overconstrained-error-event-constructor-expected.txt: Added.
+        * fast/events/constructors/overconstrained-error-event-constructor.html: Added.
+        * js/dom/global-constructors-attributes-expected.txt: Updated.
+        * platform/gtk/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+
+2016-08-26  Frederic Wang  <fwang@igalia.com>
+
+        The annotation-xml element does not need to be behave as an mrow
+        https://bugs.webkit.org/show_bug.cgi?id=161230
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        * platform/efl/accessibility/math-foreign-content-expected.txt: Remove the AXGroup from the
+        test expectation, which that was used for annotation-xml.
+        * platform/gtk/accessibility/math-foreign-content-expected.txt: Ditto.
+        * platform/mac/accessibility/math-foreign-content-expected.txt: Ditto.
+
 2016-08-26  Alexey Proskuryakov  <ap@apple.com>
 
         Reinstate flakiness expectations for viewport tests, as they are still flaky.

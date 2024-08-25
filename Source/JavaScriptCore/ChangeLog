@@ -1,3 +1,142 @@
+2016-08-25  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Provide a way to clear an IndexedDB object store
+        https://bugs.webkit.org/show_bug.cgi?id=161167
+        <rdar://problem/27996932>
+
+        Reviewed by Brian Burg.
+
+        * inspector/protocol/IndexedDB.json:
+        Cleanup the protocol file.
+
+2016-08-26  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Some CSS selectors in the UI aren't escaped
+        https://bugs.webkit.org/show_bug.cgi?id=151378
+
+        Reviewed by Joseph Pecoraro.
+
+        Change ElementData from sending a className string to using an array of
+        classes, allowing for proper escaping of each class value.
+
+        * inspector/protocol/OverlayTypes.json:
+
+2016-08-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: ScriptProfilerAgent and HeapAgent should do less work when frontend disconnects
+        https://bugs.webkit.org/show_bug.cgi?id=161213
+        <rdar://problem/28017986>
+
+        Reviewed by Brian Burg.
+
+        * inspector/agents/InspectorHeapAgent.cpp:
+        (Inspector::InspectorHeapAgent::willDestroyFrontendAndBackend):
+        Don't take a final snapshot when disconnecting.
+
+        * inspector/agents/InspectorScriptProfilerAgent.cpp:
+        (Inspector::InspectorScriptProfilerAgent::willDestroyFrontendAndBackend):
+        (Inspector::InspectorScriptProfilerAgent::stopSamplingWhenDisconnecting):
+        * inspector/agents/InspectorScriptProfilerAgent.h:
+        * runtime/SamplingProfiler.h:
+        Don't process samples when disconnecting.
+
+2016-08-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: HeapProfiler/ScriptProfiler do not destruct safely when JSContext is destroyed
+        https://bugs.webkit.org/show_bug.cgi?id=161027
+        <rdar://problem/27871349>
+
+        Reviewed by Mark Lam.
+
+        For JSContext inspection, when a frontend connects keep the target alive.
+        This means ref'ing the JSGlobalObject / VM when the first frontend
+        connects and deref'ing when the last frontend disconnects.
+
+        * inspector/JSGlobalObjectInspectorController.h:
+        * inspector/JSGlobalObjectInspectorController.cpp:
+        (Inspector::JSGlobalObjectInspectorController::globalObjectDestroyed):
+        (Inspector::JSGlobalObjectInspectorController::disconnectAllFrontends): Deleted.
+        Now that frontends keep the global object alive, when the global object
+        is destroyed that must mean that no frontends exist. Remove the now
+        stale code path.
+
+        (Inspector::JSGlobalObjectInspectorController::connectFrontend):
+        (Inspector::JSGlobalObjectInspectorController::disconnectFrontend):
+        Ref the target when the first frontend connects, deref when the last disconnects.
+
+2016-08-26  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] newPromiseCapabilities should check the given argument is constructor
+        https://bugs.webkit.org/show_bug.cgi?id=161226
+
+        Reviewed by Mark Lam.
+
+        Use @isConstructor.
+
+        * builtins/PromiseOperations.js:
+
+2016-08-25  Keith Miller  <keith_miller@apple.com>
+
+        toString called on proxies returns incorrect tag
+        https://bugs.webkit.org/show_bug.cgi?id=161111
+
+        Reviewed by Benjamin Poulain.
+
+        This patch adds a new Method table function toStringName. This function
+        is used by Object.prototype.toString to create the string tag that it
+        inserts. Right now it only changes the stringification of proxy objects.
+        In future patches I plan to make it work for other classes of objects as
+        well.
+
+        * runtime/ClassInfo.h:
+        * runtime/JSCell.cpp:
+        (JSC::JSCell::toStringName):
+        * runtime/JSCell.h:
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::toStringName):
+        * runtime/JSObject.h:
+        * runtime/ObjectPrototype.cpp:
+        (JSC::objectProtoFuncToString):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::toStringName):
+        * runtime/ProxyObject.h:
+
+2016-08-26  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Fix the ENABLE(WEBASSEMBLY) build on Linux
+        https://bugs.webkit.org/show_bug.cgi?id=161197
+
+        Reviewed by Mark Lam.
+
+        * CMakeLists.txt:
+        * b3/B3Common.cpp:
+        (JSC::B3::shouldDumpIR):
+        * shell/CMakeLists.txt:
+        * wasm/JSWASMModule.h:
+        * wasm/WASMB3IRGenerator.cpp:
+        (JSC::WASM::toB3Op):
+        * wasm/WASMB3IRGenerator.h:
+        * wasm/WASMFormat.h:
+        * wasm/WASMFunctionParser.h:
+        * wasm/WASMModuleParser.cpp:
+        (JSC::WASM::WASMModuleParser::parseFunctionTypes):
+        * wasm/WASMModuleParser.h:
+        * wasm/WASMParser.h:
+        * wasm/WASMPlan.cpp:
+        * wasm/WASMPlan.h:
+        * wasm/WASMSections.cpp:
+
+2016-08-26  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Compile fix.
+        https://bugs.webkit.org/show_bug.cgi?id=161235
+
+        Reviewed by Brent Fulgham.
+
+        YarrPattern::errorMessage has inconsistent dll linkage.
+
+        * yarr/YarrPattern.h:
+
 2016-08-25  Alex Christensen  <achristensen@webkit.org>
 
         CMake build fix.

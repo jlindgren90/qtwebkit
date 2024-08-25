@@ -20,25 +20,28 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#if BOS(DARWIN)
-#include <mach/thread_switch.h>
-#endif
-#include <thread>
+#ifndef LargeMap_h
+#define LargeMap_h
+
+#include "LargeRange.h"
+#include "Vector.h"
+#include <algorithm>
 
 namespace bmalloc {
-    
-inline void threadSwitch()
-{
-    // yield() on Darwin will depress your priority to absolute 0 for 10ms,
-    // and possibly clock down the CPU -- so we avoid it.
-#if BOS(DARWIN)
-    swtch();
-#else
-    std::this_thread::yield();
-#endif
-}
+
+class LargeMap {
+public:
+    void add(const LargeRange&);
+    LargeRange remove(size_t alignment, size_t);
+    Vector<LargeRange>& ranges() { return m_free; }
+
+private:
+    Vector<LargeRange> m_free;
+};
 
 } // namespace bmalloc
+
+#endif // LargeMap_h
