@@ -1,3 +1,1084 @@
+2016-08-23  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Reduce uses of CGFonts
+        https://bugs.webkit.org/show_bug.cgi?id=160896
+
+        Reviewed by Darin Adler.
+
+        There are a few places where we unnecessarily use CGFonts instead of
+        CTFonts. We have had an ongoing effort throughout the past few years
+        of elliminating all of our uses of CGFonts, and this patch moves us
+        in that direction.
+
+        Most of the changes in this patch are straightforward (e.g.
+        CGFontGetUnitsPerEm() -> CTFontGetUnitsPerEm()). However, there is
+        one notable change: from CGContextShowGlyphsWithAdvances() to
+        CTFontDrawGlyphs(). This migration does not cause a performance
+        regression.
+
+        No new tests because there is no behavior change.
+
+        * WebCore.xcodeproj/project.pbxproj: Delete unnecessary
+        FontServicesIOS files.
+        * platform/graphics/FontMetrics.h:
+        (WebCore::FontMetrics::xHeight): Migrate to Optional<float>
+        (WebCore::FontMetrics::setXHeight):
+        (WebCore::FontMetrics::hasXHeight):
+        (WebCore::FontMetrics::hasCapHeight): Ditto.
+        (WebCore::FontMetrics::floatCapHeight):
+        (WebCore::FontMetrics::setCapHeight):
+        (WebCore::FontMetrics::capHeight):
+        (WebCore::FontMetrics::setZeroWidth): No one ever used the
+        m_hasZeroWidth variable, so this patch removes it.
+        (WebCore::FontMetrics::reset):
+        (WebCore::FontMetrics::FontMetrics): Deleted.
+        (WebCore::FontMetrics::setHasXHeight): Deleted. No one ever calls
+        this, so this patch removes it.
+        (WebCore::FontMetrics::hasZeroWidth): Deleted.
+        (WebCore::FontMetrics::setHasZeroWidth): Deleted.
+        * platform/graphics/cocoa/FontCascadeCocoa.mm:
+        (WebCore::TextMatrixRestorer::TextMatrixRestorer): Rather than leaving
+        the text matrix stale after using it, this class cleans it up after us.
+        This means that the text matrix doesn't have to be reset in other places
+        which draw text.
+        (WebCore::TextMatrixRestorer::~TextMatrixRestorer):
+        (WebCore::TextMatrixRestorer::savedMatrix):
+        (WebCore::showGlyphsWithAdvances): Migrate from
+        CGContextShowGlyphsWithAdvances() to CTFontDrawGlyphs()
+        (WebCore::FontCascade::drawGlyphs): See above comment about the text
+        matrix.
+        (WebCore::RenderingStyleSaver::RenderingStyleSaver): Deleted.
+        (WebCore::RenderingStyleSaver::~RenderingStyleSaver): Deleted.
+        * platform/graphics/cocoa/FontCocoa.mm:
+        (WebCore::shouldUseAdjustment): Taken from FontServicesIOS.
+        (WebCore::Font::platformInit): Migrate from CG to CT for some direct
+        replacement API calls.
+        (WebCore::Font::platformCharWidthInit): Ditto.
+        (WebCore::Font::determinePitch): Ditto.
+        * platform/graphics/cocoa/FontPlatformDataCocoa.mm:
+        (WebCore::FontPlatformData::openTypeTable): Ditto.
+        (WebCore::FontPlatformData::description): Ditto.
+        * platform/graphics/ios/FontServicesIOS.h: Removed. No longer needed
+        after migrating from CGContextShowGlyphsWithAdvances() to
+        CTFontDrawGlyphs().
+        (WebCore::FontServicesIOS::ascent): Deleted.
+        (WebCore::FontServicesIOS::descent): Deleted.
+        (WebCore::FontServicesIOS::lineGap): Deleted.
+        (WebCore::FontServicesIOS::lineSpacing): Deleted.
+        (WebCore::FontServicesIOS::xHeight): Deleted.
+        (WebCore::FontServicesIOS::capHeight): Deleted.
+        (WebCore::FontServicesIOS::unitsPerEm): Deleted.
+        * platform/graphics/ios/FontServicesIOS.mm: Removed. Moved into
+        Font::platformInit().
+        (WebCore::shouldUseAdjustment): Deleted.
+        (WebCore::isCourier): Deleted.
+        (WebCore::FontServicesIOS::FontServicesIOS): Deleted.
+        * platform/graphics/opentype/OpenTypeCG.cpp:
+        (WebCore::OpenType::tryGetTypoMetrics): Migrate from CG to CT for some
+        direct replacement API calls.
+        * platform/graphics/opentype/OpenTypeCG.h: Ditto.
+        * platform/graphics/win/FontCGWin.cpp:
+        (WebCore::FontCascade::drawGlyphs): Restore the text matrix.
+        * platform/graphics/win/SimpleFontDataCGWin.cpp:
+        (WebCore::Font::platformWidthForGlyph): Deleted.
+        * platform/spi/cg/CoreGraphicsSPI.h:
+        * platform/spi/cocoa/CoreTextSPI.h:
+        * rendering/RenderThemeIOS.mm:
+        (WebCore::paintAttachmentText): Deleted.
+        * rendering/RenderThemeMac.mm:
+        (WebCore::paintAttachmentTitle): Deleted.
+        (WebCore::paintAttachmentSubtitle): Deleted.
+
+2016-08-23  Alex Christensen  <achristensen@webkit.org>
+
+        Fix CMake build after r204852.
+
+        * CMakeLists.txt:
+        There were some non-ASCII characters here causing problems.
+
+2016-08-22  Filip Pizlo  <fpizlo@apple.com>
+
+        Butterflies should be allocated in Auxiliary MarkedSpace instead of CopiedSpace and we should rewrite as much of the GC as needed to make this not a regression
+        https://bugs.webkit.org/show_bug.cgi?id=160125
+
+        Reviewed by Geoffrey Garen.
+
+        No new tests because no new WebCore behavior.
+        
+        Just rewiring #includes.
+
+        * ForwardingHeaders/heap/HeapInlines.h: Added.
+        * ForwardingHeaders/runtime/AuxiliaryBarrierInlines.h: Added.
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        * bindings/js/JSApplePayPaymentAuthorizedEventCustom.cpp:
+        * bindings/js/JSApplePayPaymentMethodSelectedEventCustom.cpp:
+        * bindings/js/JSApplePayShippingContactSelectedEventCustom.cpp:
+        * bindings/js/JSApplePayShippingMethodSelectedEventCustom.cpp:
+        * bindings/js/JSClientRectCustom.cpp:
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSDOMStringListCustom.cpp:
+        * bindings/js/JSErrorEventCustom.cpp:
+        * bindings/js/JSPopStateEventCustom.cpp:
+        * bindings/js/JSWebGL2RenderingContextCustom.cpp:
+        * contentextensions/ContentExtensionParser.cpp:
+        * dom/ErrorEvent.cpp:
+        * inspector/CommandLineAPIModule.cpp:
+        * testing/GCObservation.cpp:
+        (WebCore::GCObservation::GCObservation):
+
+2016-08-23  Brady Eidson  <beidson@apple.com>
+
+        WK2 Gamepad layout test support.
+        https://bugs.webkit.org/show_bug.cgi?id=134671
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Covered by changes to existing tests).
+
+        Add a MockGamepadProvider and expose it in WebCoreTestSupport.
+        
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+
+        * Modules/gamepad/Gamepad.cpp:
+        (WebCore::Gamepad::Gamepad):
+
+        * bindings/generic/RuntimeEnabledFeatures.cpp:
+        (WebCore::RuntimeEnabledFeatures::reset): Deleted. Gamepads should either always be enabled during tests
+          (As in Mac WK2), or never enabled (As in all other platforms).
+        * bindings/generic/RuntimeEnabledFeatures.h:
+
+        * platform/gamepad/GamepadProvider.h:
+        (WebCore::GamepadProvider::isMockGamepadProvider):
+
+        * testing/MockGamepad.cpp: Copied from Source/WebKit2/Shared/Gamepad/GamepadData.cpp.
+        (WebCore::MockGamepad::MockGamepad):
+        (WebCore::MockGamepad::updateDetails):
+        (WebCore::MockGamepad::setAxisValue):
+        (WebCore::MockGamepad::setButtonValue):
+        * testing/MockGamepad.h: Copied from Source/WebKit2/UIProcess/Gamepad/UIGamepad.h.
+
+        * testing/MockGamepadProvider.cpp: Added.
+        (WebCore::MockGamepadProvider::singleton):
+        (WebCore::MockGamepadProvider::MockGamepadProvider):
+        (WebCore::MockGamepadProvider::startMonitoringGamepads):
+        (WebCore::MockGamepadProvider::stopMonitoringGamepads):
+        (WebCore::MockGamepadProvider::setMockGamepadDetails):
+        (WebCore::MockGamepadProvider::connectMockGamepad):
+        (WebCore::MockGamepadProvider::disconnectMockGamepad):
+        (WebCore::MockGamepadProvider::setMockGamepadAxisValue):
+        (WebCore::MockGamepadProvider::setMockGamepadButtonValue):
+        (WebCore::MockGamepadProvider::gamepadInputActivity):
+
+        * testing/MockGamepadProvider.h: Copied from Source/WebKit2/WebProcess/Gamepad/WebGamepadProvider.h.
+        (WebCore::MockGamepadProvider::~MockGamepadProvider):
+
+        * testing/js/WebCoreTestSupport.cpp:
+        (WebCoreTestSupport::installMockGamepadProvider):
+        (WebCoreTestSupport::connectMockGamepad):
+        (WebCoreTestSupport::disconnectMockGamepad):
+        (WebCoreTestSupport::setMockGamepadDetails):
+        (WebCoreTestSupport::setMockGamepadAxisValue):
+        (WebCoreTestSupport::setMockGamepadButtonValue):
+        * testing/js/WebCoreTestSupport.h:
+
+2016-08-23  Dave Hyatt  <hyatt@apple.com>
+
+        Add pref for enabling new CSS parsing and move parser files into subdirectory.
+        https://bugs.webkit.org/show_bug.cgi?id=161095
+
+        Reviewed by Sam Weinig.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/CSSParser.cpp: Removed.
+        * css/CSSParser.h: Removed.
+        * css/CSSParserMode.h: Removed.
+        * css/CSSParserValues.cpp: Removed.
+        * css/CSSParserValues.h: Removed.
+        * css/SVGCSSParser.cpp: Removed.
+        * css/parser: Added.
+        * css/parser/CSSParser.cpp: Copied from css/CSSParser.cpp.
+        * css/parser/CSSParser.h: Copied from css/CSSParser.h.
+        * css/parser/CSSParserMode.h: Copied from css/CSSParserMode.h.
+        * css/parser/CSSParserValues.cpp: Copied from css/CSSParserValues.cpp.
+        * css/parser/CSSParserValues.h: Copied from css/CSSParserValues.h.
+        * css/parser/SVGCSSParser.cpp: Copied from css/SVGCSSParser.cpp.
+        * page/Settings.in:
+
+2016-08-23  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Templatize MediaConstraint
+        https://bugs.webkit.org/show_bug.cgi?id=161092
+
+        Reviewed by Jer Noble.
+
+        No new tests, no functional change.
+
+        * platform/mediastream/MediaConstraints.cpp:
+        (WebCore::BooleanConstraint::getExact):
+        (WebCore::BooleanConstraint::getIdeal):
+        (WebCore::MediaConstraint::getMin): Deleted.
+        (WebCore::MediaConstraint::getMax): Deleted.
+        (WebCore::MediaConstraint::getExact): Deleted.
+        (WebCore::MediaConstraint::getIdeal): Deleted.
+        (WebCore::IntConstraint::create): Deleted.
+        (WebCore::IntConstraint::setMin): Deleted.
+        (WebCore::IntConstraint::setMax): Deleted.
+        (WebCore::IntConstraint::setExact): Deleted.
+        (WebCore::IntConstraint::setIdeal): Deleted.
+        (WebCore::IntConstraint::getMin): Deleted.
+        (WebCore::IntConstraint::getMax): Deleted.
+        (WebCore::IntConstraint::getExact): Deleted.
+        (WebCore::IntConstraint::getIdeal): Deleted.
+        (WebCore::DoubleConstraint::create): Deleted.
+        (WebCore::DoubleConstraint::setMin): Deleted.
+        (WebCore::DoubleConstraint::setMax): Deleted.
+        (WebCore::DoubleConstraint::setExact): Deleted.
+        (WebCore::DoubleConstraint::setIdeal): Deleted.
+        (WebCore::DoubleConstraint::getMin): Deleted.
+        (WebCore::DoubleConstraint::getMax): Deleted.
+        (WebCore::DoubleConstraint::getExact): Deleted.
+        (WebCore::DoubleConstraint::getIdeal): Deleted.
+        (WebCore::BooleanConstraint::create): Deleted.
+        (WebCore::BooleanConstraint::setExact): Deleted.
+        (WebCore::BooleanConstraint::setIdeal): Deleted.
+        (WebCore::StringConstraint::create): Deleted.
+        * platform/mediastream/MediaConstraints.h:
+        (WebCore::MediaConstraint::getMin):
+        (WebCore::MediaConstraint::getMax):
+        (WebCore::MediaConstraint::getExact):
+        (WebCore::MediaConstraint::getIdeal):
+        (WebCore::NumericConstraint::setMin):
+        (WebCore::NumericConstraint::setMax):
+        (WebCore::NumericConstraint::setExact):
+        (WebCore::NumericConstraint::setIdeal):
+        (WebCore::NumericConstraint::setHasMin): Deleted.
+        (WebCore::NumericConstraint::setHasMax): Deleted.
+        (WebCore::NumericConstraint::setHasExact): Deleted.
+        (WebCore::NumericConstraint::setHasIdeal): Deleted.
+        (WebCore::NumericConstraint::hasMin): Deleted.
+        (WebCore::NumericConstraint::hasMax): Deleted.
+        (WebCore::NumericConstraint::hasExact): Deleted.
+        (WebCore::NumericConstraint::hasIdeal): Deleted.
+
+2016-08-23  Anders Carlsson  <andersca@apple.com>
+
+        Add a workaround for iOS Frameworks that expect DOM bindings to be in WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=161093
+
+        Reviewed by Dan Bernstein.
+
+        Create a text-based stub library that looks enough like WebKitLegacy that we can trick the linker
+        into creating a LC_REEXPORT_DYLIB load command in WebCore.
+
+        * Configurations/WebCore.xcconfig:
+        Link against this WebKitLegacyStub tbd file on iOS 9.0, 9.3 and 10.0.
+
+        * Configurations/WebKitLegacyStub.iOS.tbd:
+        Add new tbd file.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Add new files.
+
+2016-08-23  Chris Dumez  <cdumez@apple.com>
+
+        CanvasRenderingContext2D should not have a CanvasRenderingContext parent interface
+        https://bugs.webkit.org/show_bug.cgi?id=161054
+
+        Reviewed by Ryosuke Niwa.
+
+        CanvasRenderingContext2D should not have a CanvasRenderingContext parent interface
+        as per:
+        - https://html.spec.whatwg.org/multipage/scripting.html#canvasrenderingcontext2d
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        * bindings/js/JSCanvasRenderingContext.h: Renamed from Source/WebCore/bindings/js/JSCanvasRenderingContextCustom.cpp.
+        (WebCore::toJS):
+        * bindings/js/JSCanvasRenderingContext2DCustom.cpp:
+        (WebCore::JSCanvasRenderingContext2DOwner::isReachableFromOpaqueRoots):
+        (WebCore::JSCanvasRenderingContext2D::visitAdditionalChildren):
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::getCSSCanvasContext):
+        (WebCore::JSDocument::createTouchList): Deleted.
+        * bindings/js/JSHTMLCanvasElementCustom.cpp:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * dom/Document.idl:
+        * html/canvas/CanvasRenderingContext.idl: Removed.
+        * html/canvas/CanvasRenderingContext2D.idl:
+        * html/canvas/WebGL2RenderingContext.idl:
+        * html/canvas/WebGLRenderingContext.idl:
+        * html/canvas/WebGLRenderingContextBase.idl:
+
+2016-08-03  Frederic Wang  <fwang@igalia.com>
+
+        Share and improve extraction of character for operator and token elements
+        https://bugs.webkit.org/show_bug.cgi?id=160462
+
+        Reviewed by Darin Adler.
+
+        No new tests, already covered by existing tests.
+
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::stripLeadingAndTrailingWhitespace): Make this a protected member of
+        MathMLElement so that it can be used in MathMLTokenElement.
+        (WebCore::skipLeadingAndTrailingWhitespace): Deleted.
+        * mathml/MathMLElement.h: Declare stripLeadingAndTrailingWhitespace.
+        * mathml/MathMLOperatorElement.cpp:
+        (WebCore::MathMLOperatorElement::parseOperatorChar): Use convertToSingleCodePoint to extract
+        a code point more efficiently. For now, we continue to only handle BMP characters.
+        * mathml/MathMLTokenElement.cpp:
+        (WebCore::MathMLTokenElement::convertToSingleCodePoint): Helper function to try and convert a
+        string to a single code point after having removed leading and trailing space.
+        * mathml/MathMLTokenElement.h: Declare convertToSingleCodePoint.
+        * rendering/mathml/RenderMathMLToken.cpp:
+        (WebCore::RenderMathMLToken::updateMathVariantGlyph): Use convertToSingleCodePoint to extract
+        a code point more efficiently.
+
+2016-08-23  Frederic Wang  <fwang@igalia.com>
+
+        Rename MathMLInlineContainerElement to MathMLPresentationElement
+        https://bugs.webkit.org/show_bug.cgi?id=161053
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        MathMLInlineContainerElement sounds a bad name for something that is now going to produce
+        RenderMathMLBlocks. MathML has two kinds of markup (presentation MathML and content MathML).
+        We only implement presentation MathML and most of the MathML elements are currently
+        implemented as MathMLInlineContainerElement. Hence we rename MathMLInlineContainerElement
+        to MathMLPresentationElement and will move more code from MathMLElement into that new class
+        in follow-up bugs. Also, other elements in the MathML namespace could be handled by a
+        separate MathMLUnknownElement class for consistency with SVG and HTML classes.
+
+        No new tests, behavior is unchanged.
+
+        * CMakeLists.txt: Rename MathMLInlineContainerElement to MathMLPresentationElement.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAllInOne.cpp: Ditto.
+        * mathml/MathMLFractionElement.cpp: Ditto.
+        * mathml/MathMLFractionElement.h: Ditto.
+        * mathml/MathMLPresentationElement.cpp: Ditto.
+        * mathml/MathMLPresentationElement.h: Ditto.
+        * mathml/MathMLRowElement.cpp: Ditto.
+        * mathml/MathMLRowElement.h: Ditto.
+        * mathml/MathMLScriptsElement.cpp: Ditto.
+        * mathml/MathMLScriptsElement.h: Ditto.
+        * mathml/mathtags.in: Ditto.
+        * rendering/mathml/RenderMathMLFraction.h: Remove useless include.
+
+2016-08-23  Youenn Fablet  <youenn@apple.com>
+
+        Implement redirect support post CORS-preflight
+        https://bugs.webkit.org/show_bug.cgi?id=159056
+
+        Reviewed by Alex Christensen.
+
+        Tests: imported/w3c/web-platform-tests/fetch/api/cors/cors-redirect-preflight-worker.html
+               imported/w3c/web-platform-tests/fetch/api/cors/cors-redirect-preflight.html
+        Covered also by rebased tests.
+
+        Enabling to follow cross-origin redirections for not-simple requests, through preflight checks.
+        Making sure that same-origin redirections to cross-origin resources use preflight if they are not simple.
+
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::redirectReceived):
+
+2016-08-23  Frederic Wang  <fred.wang@free.fr>
+
+        Introduce a MathMLRowElement class for mrow-like elements
+        https://bugs.webkit.org/show_bug.cgi?id=161050
+
+        Reviewed by Darin Adler.
+
+        We introduce a MathMLRowElement class for elements creating RenderMathMLRow renderers.
+        We also force constructors of the corresponding renderer classes to accept MathMLRowElement.
+        It's not clear whether semantics-xml really needs to create RenderMathMLRow but for now
+        we make MathMLAnnotationElement inherits from MathMLRowElement to preserve that behavior.
+
+        No new tests, behavior is unchanged.
+
+        * CMakeLists.txt: Add MathMLRowElement files.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAllInOne.cpp: Ditto.
+        * mathml/MathMLInlineContainerElement.cpp: Remove unused headers.
+        (WebCore::MathMLInlineContainerElement::createElementRenderer): Handle some mrow-like
+        elements in the MathMLRowElement class.
+        (WebCore::MathMLInlineContainerElement::acceptsDisplayStyleAttribute): Ditto.
+        (WebCore::MathMLInlineContainerElement::childrenChanged): Deleted. We only need to calculate
+        the form for operators inside a MathMLRowElement.
+        (WebCore::MathMLInlineContainerElement::acceptsMathVariantAttribute): Deleted. mstyle is
+        handled in the MathMLRowElement class.
+        * mathml/MathMLInlineContainerElement.h: Update function declarations.
+        * mathml/MathMLMathElement.cpp: Make this class inherits from MathMLRowElement.
+        * mathml/MathMLMathElement.h: Ditto.
+        * mathml/MathMLPaddedElement.cpp: Ditto.
+        * mathml/MathMLPaddedElement.h: Ditto.
+        * mathml/MathMLSelectElement.cpp: Ditto.
+        * mathml/MathMLSelectElement.h: Ditto.
+        * mathml/MathMLAnnotationElement.cpp: Ditto.
+        * mathml/MathMLAnnotationElement.h: Ditto.
+        * mathml/MathMLRowElement.cpp: New class for mrow-like element.
+        (WebCore::MathMLRowElement::MathMLRowElement):
+        (WebCore::MathMLRowElement::create):
+        (WebCore::MathMLRowElement::childrenChanged): Move code from MathMLInlineContainerElement.
+        (WebCore::MathMLRowElement::createElementRenderer): Ditto.
+        (WebCore::MathMLRowElement::acceptsDisplayStyleAttribute): Ditto.
+        (WebCore::MathMLRowElement::acceptsMathVariantAttribute): Ditto.
+        * mathml/MathMLRowElement.h:
+        * mathml/mathtags.in: Map tags creating RenderMathMLRow renderers to MathMLRowElement.
+        * rendering/mathml/RenderMathMLFenced.cpp: Force the constructor to take MathMLRowElement.
+        * rendering/mathml/RenderMathMLFenced.h: Ditto.
+        * rendering/mathml/RenderMathMLMath.cpp: Ditto.
+        * rendering/mathml/RenderMathMLMath.h: Ditto.
+        * rendering/mathml/RenderMathMLMenclose.cpp: Force the constructor to take MathMLMencloseElement.
+        * rendering/mathml/RenderMathMLMenclose.h: Ditto.
+        * rendering/mathml/RenderMathMLRoot.cpp: Force the constructor to take MathMLRowElement.
+        * rendering/mathml/RenderMathMLRoot.h: Ditto.
+        * rendering/mathml/RenderMathMLRow.cpp: Ditto and add an helper function element() to
+        retrieve the MathMLRowElement.
+        * rendering/mathml/RenderMathMLRow.h: Ditto.
+
+2016-08-22  Chris Dumez  <cdumez@apple.com>
+
+        Drop TextTrackCue's constructor as per the latest specification
+        https://bugs.webkit.org/show_bug.cgi?id=161061
+
+        Reviewed by Alex Christensen.
+
+        Drop TextTrackCue's constructor as per the latest specification:
+        - https://html.spec.whatwg.org/#texttrackcue
+
+        Firefox and Chrome do not have this constructor. Web Authors
+        are supposed to use the VTTCue constructor instead.
+
+        No new tests, rebaselined existing tests.
+
+        * html/track/TextTrackCue.cpp:
+        (WebCore::TextTrackCue::TextTrackCue): Deleted.
+        * html/track/TextTrackCue.h:
+        (WebCore::TextTrackCue::cueShadowPseudoId): Deleted.
+        * html/track/TextTrackCue.idl:
+
+2016-08-22  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r204745.
+
+        Broke the Windows build
+
+        Reverted changeset:
+
+        "CanvasRenderingContext2D should not have a
+        CanvasRenderingContext parent interface"
+        https://bugs.webkit.org/show_bug.cgi?id=161054
+        http://trac.webkit.org/changeset/204745
+
+2016-08-22  Chris Dumez  <cdumez@apple.com>
+
+        CanvasRenderingContext2D should not have a CanvasRenderingContext parent interface
+        https://bugs.webkit.org/show_bug.cgi?id=161054
+
+        Reviewed by Ryosuke Niwa.
+
+        CanvasRenderingContext2D should not have a CanvasRenderingContext parent interface
+        as per:
+        - https://html.spec.whatwg.org/multipage/scripting.html#canvasrenderingcontext2d
+
+        Firefox and Chrome agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        * bindings/js/JSCanvasRenderingContext.h: Renamed from Source/WebCore/bindings/js/JSCanvasRenderingContextCustom.cpp.
+        (WebCore::toJS):
+        * bindings/js/JSCanvasRenderingContext2DCustom.cpp:
+        (WebCore::JSCanvasRenderingContext2DOwner::isReachableFromOpaqueRoots):
+        (WebCore::JSCanvasRenderingContext2D::visitAdditionalChildren):
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::getCSSCanvasContext):
+        (WebCore::JSDocument::createTouchList): Deleted.
+        * bindings/js/JSHTMLCanvasElementCustom.cpp:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * dom/Document.idl:
+        * html/canvas/CanvasRenderingContext.idl: Removed.
+        * html/canvas/CanvasRenderingContext2D.idl:
+        * html/canvas/WebGL2RenderingContext.idl:
+        * html/canvas/WebGLRenderingContext.idl:
+        * html/canvas/WebGLRenderingContextBase.idl:
+
+2016-08-22  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Make NetworkLoadTiming use double for higher precision in Resource Timing
+        https://bugs.webkit.org/show_bug.cgi?id=161051
+
+        Reviewed by Alex Christensen.
+
+        Test: http/tests/misc/resource-timing-resolution.html
+
+        * page/Performance.h:
+        * page/Performance.cpp:
+        (WebCore::Performance::now):
+        (WebCore::Performance::reduceTimeResolution):
+        Add new function to reduce time resolution.
+
+        * page/PerformanceResourceTiming.cpp:
+        (WebCore::monotonicTimeToDocumentMilliseconds):
+        (WebCore::PerformanceResourceTiming::resourceTimeToDocumentMilliseconds):
+        Only use the reduced timing resolution for full timestamps and deltas.
+
+        (WebCore::PerformanceResourceTiming::connectStart): Use doubles.
+        * page/PerformanceResourceTiming.h: Use doubles.
+        * page/PerformanceTiming.cpp: Use doubles.
+        (WebCore::toIntegerMilliseconds): Use doubles.
+        (WebCore::PerformanceTiming::connectStart): Use doubles.
+        (WebCore::PerformanceTiming::resourceLoadTimeRelativeToFetchStart): Use doubles.
+        * page/PerformanceTiming.h: Use doubles.
+        * platform/network/NetworkLoadTiming.h: Use doubles.
+        * platform/network/curl/ResourceHandleManager.cpp: Use doubles.
+        (WebCore::milisecondsSinceRequest): Use doubles.
+        (WebCore::calculateWebTimingInformations): Use doubles.
+        * platform/network/soup/ResourceHandleSoup.cpp: Use doubles.
+        (WebCore::milisecondsSinceRequest): Use doubles.
+        (WebCore::networkEventCallback): Use doubles.
+
+2016-08-22  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Mac CMake build after r204717.
+
+        * PlatformMac.cmake:
+
+2016-08-22  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Stretch alignment doesn't work for orthogonal flows
+        https://bugs.webkit.org/show_bug.cgi?id=160076
+
+        Reviewed by Darin Adler.
+
+        After implementing orthogonal flow support for track sizing and basic
+        alignment logic, we can now implement stretching logic in orthogonal
+        scenarios, which was not allowed so far.
+
+        Thanks to the recent changes which made the grid layout code more
+        independent to the grid container's and its children's flow, the
+        implementation of the stretching logic can be done in a clearer way.
+
+        This patch implements the missing logic and performs some refactoring
+        so it became flow direction independent.
+
+        Test: fast/css-grid-layout/grid-align-justify-stretch-with-orthogonal-flows.html
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::applyStretchAlignmentToChildIfNeeded):
+
+
+2016-08-19  Brent Fulgham  <bfulgham@apple.com>
+
+        Invalid resource load statistics iterator when redirecting
+        https://bugs.webkit.org/show_bug.cgi?id=161021
+        <rdar://problem/27856875>
+
+        Reviewed by Dean Jackson.
+
+        If a load is the result of a redirect, an additional entry is added to the HashSet
+        containing the visited domains. This invalidates any existing iterators, so we
+        need to get a new iterator for further updates.
+
+        No change in functionality.
+
+        * loader/ResourceLoadObserver.cpp:
+        (WebCore::ResourceLoadObserver::logSubresourceLoading):
+
+2016-08-22  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Rename CustomElementsRegistry to CustomElementRegistry
+        https://bugs.webkit.org/show_bug.cgi?id=161028
+
+        Reviewed by Darin Adler.
+
+        Renamed CustomElementsRegistry to CustomElementRegistry per https://github.com/w3c/webcomponents/issues/548.
+
+        Also hide window.customElements and CustomElementRegistry interface behind a runtime enabled.
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSCustomElementRegistryCustom.cpp: Renamed from JSCustomElementsRegistryCustom.cpp.
+        (WebCore::getCustomElementCallback):
+        (WebCore::JSCustomElementRegistry::define):
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement):
+        * dom/CustomElementReactionQueue.cpp:
+        (WebCore::findInterfaceForCustomElement):
+        * dom/CustomElementRegistry.cpp: Renamed from CustomElementsRegistry.cpp.
+        (WebCore::CustomElementRegistry::create):
+        (WebCore::CustomElementRegistry::CustomElementRegistry):
+        (WebCore::CustomElementRegistry::~CustomElementRegistry):
+        (WebCore::CustomElementRegistry::addElementDefinition):
+        (WebCore::CustomElementRegistry::addUpgradeCandidate):
+        (WebCore::CustomElementRegistry::findInterface):
+        (WebCore::CustomElementRegistry::containsConstructor):
+        * dom/CustomElementRegistry.h: Renamed from CustomElementsRegistry.h.
+        * dom/CustomElementRegistry.idl: Renamed from CustomElementsRegistry.idl.
+        * dom/Document.cpp:
+        (WebCore::createUpgradeCandidateElement):
+        (WebCore::createHTMLElementWithNameValidation):
+        (WebCore::createFallbackHTMLElement):
+        * dom/Element.cpp:
+        * html/parser/HTMLConstructionSite.cpp:
+        (WebCore::HTMLConstructionSite::createHTMLElementOrFindCustomElementInterface):
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::ensureCustomElementRegistry):
+        * page/DOMWindow.h:
+        * page/DOMWindow.idl:
+
+2016-08-22  Chris Dumez  <cdumez@apple.com>
+
+        Add support for GlobalEventHandlers.oncuechange attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161046
+
+        Reviewed by Alex Christensen.
+
+        Add support for GlobalEventHandlers.oncuechange attribute:
+        - https://html.spec.whatwg.org/#handler-oncuechange
+
+        Test: fast/media/window-oncuechange.html
+
+        * dom/GlobalEventHandlers.idl:
+
+2016-08-22  Alex Christensen  <achristensen@webkit.org>
+
+        Fix bindings tests after r204717.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        There was an extra space.
+
+2016-08-22  Alex Christensen  <achristensen@webkit.org>
+
+        Mostly fix Mac CMake build after r204717.
+
+        * PlatformMac.cmake:
+
+2016-08-22  Antti Koivisto  <antti@apple.com>
+
+        Can't style descendants in shadow tree using the :host pseudo class
+        https://bugs.webkit.org/show_bug.cgi?id=160754
+
+        Reviewed by Darin Adler.
+
+        "The :host pseudo-class, when evaluated in the context of a shadow tree, matches the shadow tree’s shadow host."
+
+        Currently :host() works for styling the host element itself (:host(.foo) { ... }). It should also be usable
+        for styling elements in the shadow tree:
+
+            :host(.foo) div { ... }
+
+        Test: fast/shadow-dom/css-scoping-host-descendant.html
+
+        * css/SelectorChecker.cpp:
+        (WebCore::SelectorChecker::matchHostPseudoClass):
+        (WebCore::localContextForParent):
+
+            Move to shadow host if we are matching :host and are at the root of the shadow tree.
+            Set didMoveToShadowHost bit in the context.
+
+        (WebCore::SelectorChecker::matchRecursively):
+        (WebCore::SelectorChecker::checkOne):
+
+            Call the existing matchHostPseudoClass to do :host matching if didMoveToShadowHost bit has been set.
+
+        * cssjit/SelectorCompiler.cpp:
+        (WebCore::SelectorCompiler::addPseudoClassType):
+
+            Disallow :host in the compiler (cases where it would match didn't reach the compiler before).
+
+2016-08-22  Frederic Wang  <fwang@igalia.com>
+
+        Use memoize pattern for the menclose notation attribute
+        https://bugs.webkit.org/show_bug.cgi?id=160461
+
+        Reviewed by Darin Adler.
+
+        Currently, MathMLMencloseElement::parseAttribute parse the "notation" attribute each time it
+        is changed. We change this to use the memoize pattern as done for other MathML attributes:
+        We store m_notationFlags in an Optional<uint16_t> where Optnull means that the
+        attribute is dirty and must be parsed again.
+
+        No new tests, already covered by existing tests.
+
+        * mathml/MathMLMencloseElement.cpp:
+        (WebCore::MathMLMencloseElement::parseNotationAttribute): Move parsing of the "notation"
+        attribute from parseAttribute into this separate helper function.
+        (WebCore::MathMLMencloseElement::hasNotation): This now check whether the attribute and
+        dirty and parse it if necessary.
+        (WebCore::MathMLMencloseElement::parseAttribute): Just make the attribute dirty rather than
+        parsing it immediately.
+        * mathml/MathMLMencloseElement.h: hasNotation is no longer const as it may update the
+        m_notationsFlags. We declare parseNotationAttribute(). Finally, we wrap m_notationFlags
+        in an Optional<uint16_t> and make addNotation extract the value.
+
+2016-08-22  Daniel Bates  <dabates@apple.com>
+
+        [iOS] <a ping> and <area ping> tests time out
+        https://bugs.webkit.org/show_bug.cgi?id=156857
+
+        Reviewed by Simon Fraser.
+
+        Export HTMLAreaElement::imageElement() so that we can make use of it in WebKit2.
+
+        * html/HTMLAreaElement.h:
+
+2016-08-22  Darin Adler  <darin@apple.com>
+
+        [Cocoa] Move Objective-C DOM bindings from WebCore to legacy WebKit
+        https://bugs.webkit.org/show_bug.cgi?id=160654
+
+        Reviewed by Alex Christensen.
+
+        * DerivedSources.cpp: Removed ExceptionCodeDescription.h from the list here.
+        It will be included by the .cpp files as appropriate and should not be included
+        without including config.h first.
+
+        * WebCore.xcodeproj/project.pbxproj: Removed the Objective-C DOM source files.
+        Added private exports of various headers that are now used directly or indirectly
+        by legacy WebKit to implement the bindings. Moved WebScriptObject.* files from
+        bindings/objc to bridge/objc. Moved WebKitAvailability.h into platform/cocoa; it
+        can be moved to WebKit of we move the Objective-C bridge there too. Also ran
+        sort-Xcode-project-file.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::valueToUSVString): Fixed a comment typo.
+
+        * bindings/js/JSDOMWindowShell.cpp:
+        (WebCore::JSDOMWindowShell::toWrapped): Added.
+        * bindings/js/JSDOMWindowShell.h: Added a toWrapped function for use by the
+        Objective-C bindings.
+
+        * bindings/js/JSMainThreadExecState.h: Exported symbols needed by the Objective-C bindings.
+        * bindings/js/JSNamedNodeMapCustom.cpp: Updated includes since NamedNodeMap.h no longer
+        includes Attr.h.
+
+        * bindings/js/ScriptController.h: Exported symbols needed by the Objective-C bindings.
+
+        * bindings/js/ScriptControllerMac.mm:
+        (WebCore::ScriptController::windowScriptObject): Removed code that asserted the type of the
+        object; this assertion can't be done in WebCore any more and is not critical to keep.
+        (WebCore::ScriptController::disconnectPlatformScriptObjects): Use the new
+        disconnectWindowWrapper function to call up to the Objective-C bindings code in WebKit.
+
+        * bindings/objc/*: Moved all these files to WebKit/mac/DOM, except for a few that were moved
+        to bridge/objc.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader): Added support for the new ExportToWrappedFunction attribute so
+        classes that need to can export what is needed by WebKit.
+
+        * bindings/scripts/IDLAttributes.txt: Added ExportToWrappedFunction.
+
+        * bridge/objc/WebScriptObject.h: Moved from bindings/objc.
+        * bridge/objc/WebScriptObject.mm: Moved from bindings/objc.
+        (WebCore::initializeDOMWrapperHooks): Added. Used by WebKit to add the hooks needed so that
+        WebScriptObject can integrate with the DOM bindings.
+        (WebCore::disconnectWindowWrapper): Added.
+        (+[WebScriptObject scriptObjectForJSObject:originRootObject:rootObject:]): Added code that
+        uses createDOMWrapperFunction to set up wrappers that are found or created by WebKit.
+        * bridge/objc/WebScriptObjectPrivate.h: Moved from bindings/objc.
+
+        * css/CSSFontFaceRule.h: Exported symbols needed by the Objective-C bindings.
+        * css/CSSGroupingRule.h: Ditto.
+        * css/CSSImportRule.h: Ditto.
+        * css/CSSMediaRule.h: Ditto.
+        * css/CSSPageRule.h: Ditto.
+        * css/CSSPrimitiveValue.h: Ditto.
+        * css/CSSRule.h: Ditto.
+        * css/CSSRule.idl: Ditto.
+        * css/CSSRuleList.idl: Ditto.
+        * css/CSSStyleRule.h: Ditto.
+        * css/CSSStyleSheet.h: Ditto.
+        * css/CSSValue.h: Ditto.
+        * css/CSSValue.idl: Ditto.
+        * css/Counter.idl: Ditto.
+        * css/MediaList.h: Ditto.
+        * css/MediaList.idl: Ditto.
+        * css/MediaQueryEvaluator.h: Ditto.
+        * css/RGBColor.h: Ditto.
+        * css/RGBColor.idl: Ditto.
+        * css/Rect.idl: Ditto.
+        * css/StyleSheet.idl: Ditto.
+        * css/StyleSheetList.h: Ditto.
+        * css/StyleSheetList.idl: Ditto.
+        * dom/Attr.h: Ditto.
+        * dom/CharacterData.h: Ditto.
+        * dom/CollectionIndexCache.h: Ditto.
+        * dom/ContainerNode.h: Ditto.
+        * dom/DOMImplementation.cpp: Ditto.
+        * dom/DOMImplementation.h: Ditto.
+        * dom/DOMImplementation.idl: Ditto.
+        * dom/Document.h: Ditto.
+        * dom/DocumentFragment.h: Ditto.
+        * dom/Element.h: Ditto.
+        * dom/Event.h: Ditto.
+        * dom/Event.idl: Ditto.
+        * dom/EventTarget.h: Ditto.
+        * dom/KeyboardEvent.h: Ditto.
+        * dom/LifecycleCallbackQueue.h: Ditto.
+        * dom/MouseEvent.h: Ditto.
+        * dom/MouseRelatedEvent.h: Ditto.
+        * dom/MutationEvent.h: Ditto.
+        * dom/NamedNodeMap.h: Ditto.
+        * dom/NamedNodeMap.idl: Ditto.
+        * dom/NativeNodeFilter.h: Ditto.
+        * dom/Node.h: Ditto.
+        * dom/NodeIterator.h: Ditto.
+        * dom/NodeIterator.idl: Ditto.
+        * dom/NodeList.idl: Ditto.
+        * dom/NodeTraversal.h: Ditto.
+        * dom/OverflowEvent.h: Ditto.
+        * dom/QualifiedName.h: Ditto.
+        * dom/Range.h: Ditto.
+        * dom/ScriptElement.h: Ditto.
+        * dom/Text.h: Ditto.
+        * dom/TextEvent.h: Ditto.
+        * dom/TreeScope.h: Ditto.
+        * dom/TreeWalker.h: Ditto.
+        * dom/TreeWalker.idl: Ditto.
+        * dom/UIEvent.h: Ditto.
+        * dom/WheelEvent.h: Ditto.
+        * dom/make_dom_exceptions.pl: Ditto.
+        * editing/EditingStyle.h: Ditto.
+        * editing/FrameSelection.h: Ditto.
+
+        * editing/ios/EditorIOS.mm: Removed unneeded include of Objective-C DOM header.
+        * editing/mac/EditorMac.mm: Ditto.
+
+        * fileapi/Blob.h: Exported symbols needed by the Objective-C bindings.
+        * fileapi/File.h: Ditto.
+        * fileapi/FileList.h: Ditto.
+        * html/DOMTokenList.h: Ditto.
+        * html/HTMLAnchorElement.h: Ditto.
+        * html/HTMLAreaElement.h: Ditto.
+        * html/HTMLBaseElement.h: Ditto.
+        * html/HTMLButtonElement.h: Ditto.
+        * html/HTMLCanvasElement.h: Ditto.
+        * html/HTMLCollection.h: Ditto.
+        * html/HTMLCollection.idl: Ditto.
+        * html/HTMLDocument.h: Ditto.
+        * html/HTMLElement.h: Ditto.
+        * html/HTMLFormControlElement.h: Ditto.
+        * html/HTMLFormElement.h: Ditto.
+        * html/HTMLFrameElementBase.h: Ditto.
+        * html/HTMLFrameOwnerElement.h: Ditto.
+        * html/HTMLImageElement.h: Ditto.
+        * html/HTMLInputElement.h: Ditto.
+
+        * html/HTMLLabelElement.cpp:
+        (WebCore::HTMLLabelElement::setActive): Tweaked types a bit.
+        (WebCore::HTMLLabelElement::setHovered): Ditto.
+        (WebCore::HTMLLabelElement::defaultEventHandler): Ditto.
+        (WebCore::HTMLLabelElement::willRespondToMouseClickEvents): Ditto.
+        (WebCore::HTMLLabelElement::focus): Ditto.
+        (WebCore::HTMLLabelElement::accessKeyAction): Ditto.
+
+        * html/HTMLLabelElement.h: Exported symbols needed by the Objective-C bindings.
+        * html/HTMLLinkElement.h: Ditto.
+        * html/HTMLMapElement.h: Ditto.
+        * html/HTMLMarqueeElement.h: Ditto.
+        * html/HTMLMediaElement.h: Ditto.
+        * html/HTMLOListElement.h: Ditto.
+        * html/HTMLOptionElement.h: Ditto.
+        * html/HTMLOptionsCollection.h: Ditto.
+        * html/HTMLOptionsCollection.idl: Ditto.
+        * html/HTMLScriptElement.h: Ditto.
+        * html/HTMLSelectElement.h: Ditto.
+        * html/HTMLStyleElement.h: Ditto.
+        * html/HTMLTableCellElement.h: Ditto.
+        * html/HTMLTableColElement.h: Ditto.
+        * html/HTMLTableElement.h: Ditto.
+        * html/HTMLTableRowElement.h: Ditto.
+        * html/HTMLTableSectionElement.h: Ditto.
+        * html/HTMLTextAreaElement.h: Ditto.
+        * html/HTMLTextFormControlElement.h: Ditto.
+        * html/HTMLTitleElement.h: Ditto.
+        * html/HTMLVideoElement.h: Ditto.
+        * html/LabelableElement.h: Ditto.
+
+        * loader/EmptyClients.h: Updated documentFragmentFromDelegate, which was
+        returning a newly created document fragment with a raw pointer. This works
+        because the implementation internally uses Objective-C and autorelease, but
+        is too fragile to rely on for the future.
+
+        * page/DOMWindow.h: Exported symbols needed by the Objective-C bindings.
+
+        * page/EditorClient.h: Updated document fragment functions.
+
+        * page/Frame.h: Removed indexCountOfWordPrecedingSelection, already unused.
+        Removed innerLineHeight and styleAtSelectionStart, formerly used by legacy WebKit,
+        which used Objective-C DOM objects in their interfaces.
+
+        * page/ios/FrameIOS.mm:
+        (WebCore::Frame::indexCountOfWordPrecedingSelection): Deleted.
+        (WebCore::Frame::innerLineHeight): Deleted.
+        (WebCore::Frame::styleAtSelectionStart): Deleted.
+
+        * platform/DragImage.h: Exported symbols needed by the Objective-C bindings.
+        * platform/ScrollView.h: Ditto.
+        * platform/URL.h: Ditto.
+
+        * platform/cocoa/WebKitAvailability.h: Moved from bindings/objc.
+
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.mm: Removed unneeded includes
+        of Objective-C DOM headers.
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.mm: Ditto.
+        * platform/ios/PasteboardIOS.mm: Ditto.
+
+        * platform/ios/wak/WebCoreThread.mm:
+        (StartWebThread): Took out the call to WebCoreObjCDeallocOnWebThread for DOMObject.
+        This class is now defined in legacy WebKit, so we do the code there there along
+        with the other WebKit classes.
+
+        * platform/ios/wak/WebCoreThreadSafe.h: Removed the unwise additional definition of
+        WebScriptObject and DOMObject in this file. Really this entire file needs to go.
+
+        * platform/text/TextEncoding.h: Exported symbols needed by the Objective-C bindings.
+        * rendering/HitTestResult.h: Ditto.
+        * rendering/RenderLayer.h: Ditto.
+        * rendering/RenderObject.h: Ditto.
+
+        * rendering/RenderThemeGtk.cpp: Rewrote code that was unnecessarily using
+        NamedNodeMap and Attr nodes just to get the value of an attribute.
+
+        * rendering/style/RenderStyle.h: Exported symbols needed by the Objective-C bindings.
+
+        * xml/XMLHttpRequest.cpp: Added include needed now that XMLDocument.h is not
+        included by DOMImplementation.h.
+
+        * xml/XPathExpression.h: Exported symbols needed by the Objective-C bindings.
+        * xml/XPathExpression.idl: Ditto.
+        * xml/XPathNSResolver.h: Ditto.
+
+        * xml/XPathResult.cpp:
+        (WebCore::XPathResult::snapshotLength): Use unsigned instead of unsigned long.
+        (WebCore::XPathResult::snapshotItem): Ditto.
+        * xml/XPathResult.h: Exported symbols needed by the Objective-C bindings. Also
+        updated types as above.
+        * xml/XPathResult.idl: Ditto.
+
+2016-08-22  Frederic Wang  <fwang@igalia.com>
+
+        Rename MathMLTextElement to MathMLTokenElement
+        https://bugs.webkit.org/show_bug.cgi?id=160542
+
+        Reviewed by Darin Adler.
+
+        No new tests, behavior is unchanged.
+
+        * CMakeLists.txt: Rename MathMLTextElement to MathMLTokenElement.
+        * WebCore.xcodeproj/project.pbxproj: Ditto.
+        * mathml/MathMLAllInOne.cpp: Ditto.
+        * mathml/MathMLOperatorElement.cpp: Ditto.
+        * mathml/MathMLOperatorElement.h: Ditto.
+        * mathml/MathMLTokenElement.cpp: Ditto. Also remove dead code in childShouldCreateRenderer
+        to handle the case of mspace since that element uses its own class and forbids child creation
+        in RenderMathMLSpace::isChildAllowed.
+        * mathml/MathMLTokenElement.h: Rename MathMLTextElement to MathMLTokenElement.
+        * mathml/mathtags.in: Ditto.
+        * rendering/mathml/RenderMathMLToken.cpp: Move inclusion of MathMLTokenElement.h and
+        implementation of element() here.
+        * rendering/mathml/RenderMathMLToken.h: Do not implement element() in the header so that
+        we only need need to predeclare MathMLTokenElement instead of including its header.
+
+2016-08-21  Alex Christensen  <achristensen@webkit.org>
+
+        Use Document& instead of Document* when getting cookies
+        https://bugs.webkit.org/show_bug.cgi?id=161011
+
+        Reviewed by Darin Adler.
+
+        No change in behavior.
+
+        * Modules/websockets/WebSocketChannel.cpp:
+        (WebCore::WebSocketChannel::processBuffer):
+        * Modules/websockets/WebSocketHandshake.cpp:
+        (WebCore::WebSocketHandshake::clientHandshakeMessage):
+        (WebCore::WebSocketHandshake::clientHandshakeRequest):
+        * dom/Document.cpp:
+        (WebCore::Document::cookie):
+        (WebCore::Document::setCookie):
+        (WebCore::Document::referrer):
+        * inspector/InspectorPageAgent.cpp:
+        (WebCore::InspectorPageAgent::getCookies):
+        (WebCore::InspectorPageAgent::deleteCookie):
+        (WebCore::InspectorPageAgent::getResourceTree):
+        * loader/CookieJar.cpp:
+        (WebCore::networkingContext):
+        (WebCore::storageSession):
+        (WebCore::cookies):
+        (WebCore::setCookies):
+        (WebCore::cookiesEnabled):
+        (WebCore::cookieRequestHeaderFieldValue):
+        (WebCore::getRawCookies):
+        (WebCore::deleteCookie):
+        (WebCore::addCookie):
+        * loader/CookieJar.h:
+        * page/Navigator.cpp:
+        (WebCore::Navigator::cookieEnabled):
+        (WebCore::Navigator::javaEnabled):
+
+2016-08-21  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse IPv4 addresses
+        https://bugs.webkit.org/show_bug.cgi?id=161023
+
+        Reviewed by Darin Adler.
+
+        Covered by new API tests because URLParser isn't used anywhere in WebCore yet.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::authorityEndReached):
+        (WebCore::serializeIPv4):
+        (WebCore::parseIPv4Number):
+        (WebCore::pow256):
+        (WebCore::parseIPv4Host):
+        (WebCore::parseIPv6Host):
+        (WebCore::URLParser::hostEndReached):
+
+2016-08-21  Sam Weinig  <sam@webkit.org>
+
+        Remove a few custom bindings
+        https://bugs.webkit.org/show_bug.cgi?id=161039
+
+        Reviewed by Darin Adler.
+
+        Remove custom bindings for CanvasRenderingContext2D's webkitLineDash attribute and commit function.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Sort files.
+
+        * bindings/js/JSCanvasRenderingContext2DCustom.cpp:
+        (WebCore::JSCanvasRenderingContext2D::commit): Deleted.
+        (WebCore::JSCanvasRenderingContext2D::webkitLineDash): Deleted.
+        (WebCore::JSCanvasRenderingContext2D::setWebkitLineDash): Deleted.
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::webkitLineDashOffset): Deleted.
+        (WebCore::CanvasRenderingContext2D::setWebkitLineDashOffset): Deleted.
+        * html/canvas/CanvasRenderingContext2D.h:
+        * html/canvas/CanvasRenderingContext2D.idl:
+
 2016-08-21  Youenn Fablet  <youenn@apple.com>
 
         cross-origin requests redirected fail or drop author requested headers

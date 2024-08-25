@@ -25,6 +25,7 @@
 
 var emDash = "\u2014";
 var enDash = "\u2013";
+var figureDash = "\u2012";
 var ellipsis = "\u2026";
 
 Object.defineProperty(Object, "shallowCopy",
@@ -466,6 +467,21 @@ Object.defineProperty(Array.prototype, "remove",
                     return;
             }
         }
+    }
+});
+
+Object.defineProperty(Array.prototype, "toggleIncludes",
+{
+    value: function(value, force)
+    {
+        let exists = this.includes(value);
+        if (exists === !!force)
+            return;
+
+        if (exists)
+            this.remove(value);
+        else
+            this.push(value);
     }
 });
 
@@ -1050,6 +1066,15 @@ Object.defineProperty(Number, "abbreviate",
             return WebInspector.UIString("%.1fM").format(Math.round(num / 100000) / 10);
 
         return WebInspector.UIString("%.1fB").format(Math.round(num / 100000000) / 10);
+    }
+});
+
+Object.defineProperty(Number.prototype, "maxDecimals",
+{
+    value(decimals)
+    {
+        let power = 10 ** decimals;
+        return Math.round(this * power) / power;
     }
 });
 

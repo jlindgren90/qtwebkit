@@ -70,6 +70,7 @@
 #include "JSPropertyNameEnumerator.h"
 #include "JSTemplateRegistryKey.h"
 #include "JSWithScope.h"
+#include "LLIntData.h"
 #include "Lexer.h"
 #include "Lookup.h"
 #include "MapData.h"
@@ -107,6 +108,7 @@
 
 #if !ENABLE(JIT)
 #include "CLoopStack.h"
+#include "CLoopStackInlines.h"
 #endif
 
 #if ENABLE(DFG_JIT)
@@ -874,5 +876,17 @@ size_t VM::committedStackByteCount()
     return CLoopStack::committedByteCount();
 #endif
 }
+
+#if !ENABLE(JIT)
+bool VM::ensureStackCapacityForCLoop(Register* newTopOfStack)
+{
+    return interpreter->cloopStack().ensureCapacityFor(newTopOfStack);
+}
+
+bool VM::isSafeToRecurseSoftCLoop() const
+{
+    return interpreter->cloopStack().isSafeToRecurse();
+}
+#endif // !ENABLE(JIT)
 
 } // namespace JSC

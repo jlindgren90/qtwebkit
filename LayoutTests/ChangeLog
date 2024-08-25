@@ -1,3 +1,394 @@
+2016-08-23  Brady Eidson  <beidson@apple.com>
+
+        WK2 Gamepad layout test support.
+        https://bugs.webkit.org/show_bug.cgi?id=134671
+        
+        Reviewed by Alex Christensen.
+
+        * gamepad/gamepad-api-expected.txt:
+        * gamepad/gamepad-api.html:
+        * gamepad/gamepad-out-of-range-crasher-expected.txt: Removed.
+        * gamepad/gamepad-out-of-range-crasher.html: Removed.
+        * gamepad/gamepad-polling-access-expected.txt:
+        * gamepad/gamepad-polling-access.html:
+
+        * platform/mac/TestExpectations:
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac-wk2/fast/dom/navigator-detached-no-crash-expected.txt: Added.
+
+2016-08-23  Alexey Proskuryakov  <ap@apple.com>
+
+        REGRESSION (PHP 5.6): http/tests/misc/bad-charset-alias.html fails
+        https://bugs.webkit.org/show_bug.cgi?id=161047
+        rdar://problem/27434307
+
+        Reviewed by Lucas Forschler.
+
+        * http/conf/php.ini: Added. On macOS at least, there is no global php.ini, so we
+        only need to override this one default setting.
+        * platform/mac/TestExpectations: Unmarked the test.
+
+2016-08-23  Jonathan Bedard  <jbedard@apple.com>
+
+        REGRESSION (r204226): LayoutTest editing/deleting/delete-empty-line-breaks-at-end-of-textarea.html "crashing" without a crashlog
+        https://bugs.webkit.org/show_bug.cgi?id=160782
+
+        Reviewed by Alexey Proskuryakov.
+
+        Rolling out r204650.
+
+        * platform/mac-wk2/TestExpectations: editing/deleting/delete-empty-line-breaks-at-end-of-textarea.html removed from list of flakey tests.
+
+2016-08-23  Chris Dumez  <cdumez@apple.com>
+
+        Import html/browsers web platform tests
+        https://bugs.webkit.org/show_bug.cgi?id=161067
+
+        Reviewed by Youenn Fablet.
+
+        Skip resource files.
+
+        * TestExpectations:
+
+2016-08-23  Youenn Fablet  <youenn@apple.com>
+
+        [WK2] http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html fails
+        https://bugs.webkit.org/show_bug.cgi?id=161052
+        <rdar://problem/27954577>
+
+        Unreviewed.
+
+        * platform/mac-wk2/TestExpectations: Adding Failure/Timeout expectation to
+        http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html
+        * platform/wk2/TestExpectations: Removing Timeout expectation from
+        http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html
+
+2016-08-23  Youenn Fablet  <youenn@apple.com>
+
+        Implement redirect support post CORS-preflight
+        https://bugs.webkit.org/show_bug.cgi?id=159056
+
+        Reviewed by Alex Christensen.
+
+        * TestExpectations: Skipping new fetch worker test in Debug mode as it may crash and disrupt other tests.
+        * http/tests/xmlhttprequest/access-control-and-redirects-async-expected.txt:
+        * http/tests/xmlhttprequest/redirections-and-user-headers-expected.txt:
+        * http/tests/xmlhttprequest/redirections-and-user-headers.html:
+
+2016-08-22  Chris Dumez  <cdumez@apple.com>
+
+        Drop TextTrackCue's constructor as per the latest specification
+        https://bugs.webkit.org/show_bug.cgi?id=161061
+
+        Reviewed by Alex Christensen.
+
+        Update existing tests to use VTTCue's constructor instead of
+        TextTrackCue's.
+
+        * js/dom/constructor-length.html:
+        * media/track/getCueAsHTMLCrash.html:
+        * media/track/opera/interfaces/TextTrack/activeCues.html:
+        * media/track/opera/interfaces/TextTrackCue/getCueAsHTML.html:
+        * media/track/opera/interfaces/TextTrackCue/line.html:
+        * media/track/opera/interfaces/TextTrackCue/onenter.html:
+        * media/track/opera/interfaces/TextTrackCue/onexit.html:
+        * media/track/opera/interfaces/TextTrackCue/snapToLines.html:
+        * media/track/opera/interfaces/TextTrackCue/text.html:
+        * media/track/opera/interfaces/TextTrackCue/vertical.html:
+        * media/track/opera/interfaces/TextTrackCueList/getter.html:
+        * media/track/opera/track/track-element/src-clear-cues.html:
+        * media/track/opera/track/webvtt/rendering/reftest/repaint.html:
+        * media/track/regions-webvtt/text-track-cue-region-attribute.html:
+        * media/track/track-add-remove-cue-expected.txt:
+        * media/track/track-add-remove-cue.html:
+        * media/track/track-cue-empty-cue-text.html:
+        * media/track/track-cue-empty-text-crash.html:
+        * media/track/track-cue-inline-assertion-crash.html:
+        * media/track/track-cue-negative-timestamp-expected.txt:
+        * media/track/track-cue-negative-timestamp.html:
+        * media/track/track-cue-rendering-empty-cue-crash.html:
+        * media/track/track-cue-rendering-mode-changed.html:
+        * media/track/track-disabled-addcue.html:
+        * media/track/track-remove-active-cue-crash.html:
+        * media/track/w3c/interfaces/TextTrack/addCue.html:
+        * media/track/w3c/interfaces/TextTrack/cues.html:
+        * media/track/w3c/interfaces/TextTrack/removeCue.html:
+        * media/track/w3c/interfaces/TextTrackCue/align.html:
+        * media/track/w3c/interfaces/TextTrackCue/endTime.html:
+        * media/track/w3c/interfaces/TextTrackCue/id.html:
+        * media/track/w3c/interfaces/TextTrackCue/pauseOnExit.html:
+        * media/track/w3c/interfaces/TextTrackCue/startTime.html:
+        * media/track/w3c/interfaces/TextTrackCue/track.html:
+        * media/track/w3c/interfaces/TextTrackCueList/getCueById.html:
+        * media/track/w3c/interfaces/TextTrackCueList/length.html:
+        * media/video-controls-captions.html:
+        * platform/mac/js/dom/constructor-length-expected.txt:
+
+2016-08-22  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update failure list of iOS simulator WK1 compositing test.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-22  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, iOS simulator WK1 tests gardening.
+
+        Move the following tests from failure to pass:
+        compositing/iframes/become-composited-nested-iframes.html,
+        compositing/images/clip-on-directly-composited-image.html,
+        compositing/overflow/dynamic-composited-scrolling-status.html.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-08-22  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, iOS simulator WK1 tests rebasing.
+
+        * platform/ios-simulator-wk1/compositing/absolute-inside-out-of-view-fixed-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/backing/backface-visibility-in-3dtransformed-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/backing/border-radius-no-backing-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/backing/filter-no-backing-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/backing/masked-child-no-backing-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/backing/no-backing-for-opacity-0-child-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/backing/replaced-child-no-backing-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/backing/toggle-opacity-0-child-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/bounds-in-flipped-writing-mode-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/clip-child-by-non-stacking-ancestor-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/clipping/border-radius-overflow-hidden-stacking-context-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/columns/ancestor-clipped-in-paginated-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/columns/clipped-in-paginated-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/columns/composited-columns-vertical-rl-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/columns/composited-nested-columns-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/background-clip-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/background-color-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/body-background-painted-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/body-background-skipped-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/filter-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/hidden-with-visible-child-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/hidden-with-visible-text-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/layer-opacity-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/layer-transform-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/opaque-with-scrolled-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/overflow-hidden-child-layers-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/table-parts-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/contents-opaque/visibility-hidden-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/filters/sw-layer-overlaps-hw-shadow-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/filters/sw-nested-shadow-overlaps-hw-nested-shadow-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/filters/sw-shadow-overlaps-hw-layer-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/filters/sw-shadow-overlaps-hw-shadow-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/bounds-clipped-composited-child-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/bounds-ignores-hidden-dynamic-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/bounds-ignores-hidden-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/clip-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/clip-inside-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/fixed-transformed-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/flipped-writing-mode-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/foreground-layer-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/limit-layer-bounds-positioned-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/limit-layer-bounds-positioned-transition-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/limit-layer-bounds-transformed-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/limit-layer-bounds-transformed-overflow-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/geometry/negative-text-indent-with-overflow-hidden-layer-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/iframes/become-overlapped-iframe-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/iframes/invisible-nested-iframe-hide-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/iframes/overlapped-iframe-iframe-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/iframes/resizer-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/mismatched-rotated-transform-animation-overlap-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/multiple-keyframes-animation-overlap-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/no-compositing-for-fixed-position-under-transform-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/overlap-animation-clipping-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/overlap-animation-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/overlap-child-layer-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/overlap-clipping-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/overlap-transformed-3d-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/overlap-transformed-and-clipped-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/overlap-transformed-layer-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/overlap-transformed-preserved-3d-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/overlap-transforms-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/rotate3d-overlap-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/scale-rotation-animation-overlap-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/scroll-partial-update-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/stacking-context-overlap-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/stacking-context-overlap-nested-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/subpixel-adjacent-layers-overlap-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/translate-animation-overlap-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/translate-scale-animation-overlap-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/translatez-overlap-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/layer-creation/will-change-change-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/masks/clip-path-composited-descendent-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/masks/mask-layer-size-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/media-controls-bar-appearance-big-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/media-controls-bar-appearance-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/overflow-trumps-transform-style-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/overflow/content-loses-scrollbars-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/overflow/resize-painting-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/regions/fixed-in-named-flow-clip-descendant-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/regions/fixed-in-named-flow-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/regions/fixed-in-named-flow-from-abs-in-named-flow-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/regions/fixed-in-named-flow-from-outflow-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/regions/fixed-in-named-flow-got-transformed-parent-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/regions/fixed-in-named-flow-lost-transformed-parent-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/regions/fixed-in-named-flow-overlap-composited-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/regions/fixed-in-named-flow-transformed-parent-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/regions/fixed-transformed-in-named-flow-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/repaint/positioned-movement-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/repaint/repaint-on-layer-grouping-change-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/rtl/rtl-relative-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/rtl/rtl-scrolling-with-transformed-descendants-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/tiling/huge-layer-add-remove-child-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/video/video-object-position-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/visibility/layer-visible-content-expected.txt: Removed.
+        * platform/ios-simulator-wk1/compositing/visible-rect/backing-change-height-from-zero-expected.txt: Removed.
+        * platform/ios-simulator-wk2/compositing/layer-creation/overlap-animation-container-expected.txt: Removed.
+        * platform/ios-simulator/compositing/layer-creation/overlap-animation-container-expected.txt:
+
+2016-08-22  Daniel Bates  <dabates@apple.com>
+
+        Skip the test in http/tests/navigation/ping-attribute in iOS WebKit 2
+
+        Touch events are not supported in WebKit for iOS Simulator built with the public iOS SDK.
+        The tests simulate mouse events when run in DumpRenderTree. And simulating mouse events
+        is supported in WebKit for iOS Simulator built with the public iOS SDK.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-08-22  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Make NetworkLoadTiming use double for higher precision in Resource Timing
+        https://bugs.webkit.org/show_bug.cgi?id=161051
+
+        Reviewed by Alex Christensen.
+
+        Test that resources timing information are close deltas to a multiple of expected resolution.
+
+        * http/tests/misc/resource-timing-resolution-expected.txt: Added.
+        * http/tests/misc/resource-timing-resolution.html: Added.
+
+2016-08-22  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Stretch alignment doesn't work for orthogonal flows
+        https://bugs.webkit.org/show_bug.cgi?id=160076
+
+        Reviewed by Darin Adler.
+
+        Additional layout tests to verify the stretching logic works as
+        expected in orthogonal flow scenarios.
+
+        * fast/css-grid-layout/grid-align-justify-stretch-with-orthogonal-flows-expected.txt: Added.
+        * fast/css-grid-layout/grid-align-justify-stretch-with-orthogonal-flows.html: Added.
+
+2016-08-22  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Rename CustomElementsRegistry to CustomElementRegistry
+        https://bugs.webkit.org/show_bug.cgi?id=161028
+
+        Reviewed by Darin Adler.
+
+        Updated the tests and expected results after the rename.
+
+        * fast/custom-elements/CustomElementRegistry-expected.txt: Renamed from LayoutTests/fast/custom-elements/CustomElementsRegistry-expected.txt.
+        * fast/custom-elements/CustomElementRegistry.html: Renamed from LayoutTests/fast/custom-elements/CustomElementsRegistry.html.
+        * platform/efl/js/dom/global-constructors-attributes-expected.txt:
+        * platform/gtk/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * platform/win/js/dom/global-constructors-attributes-expected.txt:
+
+2016-08-22  Daniel Bates  <dabates@apple.com>
+
+        Attempt to fix the iOS 9 Simulator test bots after <https://trac.webkit.org/changeset/204720>
+        (https://bugs.webkit.org/show_bug.cgi?id=156857)
+
+        Fix JavaScript TypeErrors, "undefined is not an object". Both uiController.singleTapAtPoint() and
+        testRunner.runUIScript() expect to be passed a callback function.
+
+        Additionally, explicitly check that window.testRunner is non-null before checking whether
+        testRunner.runUIScript is non-null to avoid a JavaScript TypeError in desktop Safari.
+
+        * http/tests/navigation/ping-attribute/resources/utilities.js:
+        (clickElement):
+
+2016-08-22  Chris Dumez  <cdumez@apple.com>
+
+        Add support for GlobalEventHandlers.oncuechange attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161046
+
+        Reviewed by Alex Christensen.
+
+        Add layout test coverage.
+
+        * fast/media/window-oncuechange-expected.txt: Added.
+        * fast/media/window-oncuechange.html: Added.
+        * js/dom/dom-static-property-for-in-iteration-expected.txt:
+
+2016-08-22  Simon Fraser  <simon.fraser@apple.com>
+
+        <select> menu on iPad causes shifting of hit-testing areas
+        https://bugs.webkit.org/show_bug.cgi?id=150079
+
+        Reviewed by Tim Horton.
+
+        This test:
+        1. Scrolls in the ui process, so that position:fixed kicks in
+        2. Taps on a <select>, which disabled position:fixed behavior
+        3. Chooses a <select> option, dismissing the <select>, which restores position:fixed behavior
+        4. Tries to tap a button inside position:fixed.
+
+        * fast/forms/ios/ipad/unfocus-inside-fixed-hittest-expected.txt: Added.
+        * fast/forms/ios/ipad/unfocus-inside-fixed-hittest.html: Added.
+
+2016-08-22  Antti Koivisto  <antti@apple.com>
+
+        Can't style descendants in shadow tree using the :host pseudo class
+        https://bugs.webkit.org/show_bug.cgi?id=160754
+
+        Reviewed by Darin Adler.
+
+        * fast/shadow-dom/css-scoping-host-descendant-expected.html: Added.
+        * fast/shadow-dom/css-scoping-host-descendant.html: Added.
+
+2016-08-22  Daniel Bates  <dabates@apple.com>
+
+        [iOS] <a ping> and <area ping> tests time out
+        https://bugs.webkit.org/show_bug.cgi?id=156857
+
+        Reviewed by Simon Fraser.
+
+        Update test to use work in WebKitTestRunner and unskip the tests.
+
+        Also remove some unused files.
+
+        * http/tests/navigation/ping-attribute/anchor-cross-origin-from-https.html: Include external JavaScript
+        script resources/utilities.js and write code in terms of clickElement(). Additionally, add HTML5 doctype
+        tag and put <head> on its own line so as to be consistent with the placement of </head> on its own line.
+        * http/tests/navigation/ping-attribute/anchor-cross-origin.html: Ditto.
+        * http/tests/navigation/ping-attribute/anchor-same-origin.html: Ditto.
+        * http/tests/navigation/ping-attribute/resources/check-ping.php: Removed.
+        * http/tests/navigation/ping-attribute/resources/delete-ping.php: Removed.
+        * http/tests/navigation/ping-attribute/resources/ping-file-path.php: Removed.
+        * http/tests/navigation/ping-attribute/resources/save-Ping.php: Removed.
+        * http/tests/navigation/ping-attribute/resources/utilities.js:
+        (clearLastPingResultAndRunTest):
+        (clickElement): Make use of UIScriptController to click the element via a tap on platforms that
+        support touch events and implement UIScriptController (window.uiController).
+        * platform/ios-simulator-wk2/TestExpectations: Unskip ping-attribute tests.
+        * platform/ios-simulator/TestExpectations: Ditto.
+
+2016-08-22  Youenn Fablet  <youenn@apple.com>
+
+        LayoutTest http/tests/fetch/fetch-in-worker-crash.html is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=160510
+
+        Reviewed by Darin Adler.
+
+        * http/tests/fetch/fetch-in-worker.js:
+        (stream.new.ReadableStream): Enqueuing a Uint8Array not a string, so that the fetch promise is not rejected. This should take care of Fail flakiness.
+        Crash flakiness in Debug mode may still happen due to promise use in Worker.
+
 2016-08-21  Youenn Fablet  <youenn@apple.com>
 
         [Mac] Rebase some failing XMLHttpRequest tests

@@ -31,7 +31,6 @@
 // #include "PlugInsResourcesData.cpp"
 // #include "UserAgentStyleSheetsData.cpp"
 
-#include "ExceptionCodeDescription.h"
 #include "HTMLElementFactory.cpp"
 #if ENABLE(WEBGL)
 #include "JSANGLEInstancedArrays.cpp"
@@ -49,7 +48,6 @@
 #include "JSCanvasGradient.cpp"
 #include "JSCanvasPattern.cpp"
 #include "JSCanvasProxy.cpp"
-#include "JSCanvasRenderingContext.cpp"
 #include "JSCanvasRenderingContext2D.cpp"
 #if ENABLE(STREAMS_API)
 #include "JSByteLengthQueuingStrategy.cpp"
@@ -139,7 +137,7 @@
 #include "JSCSSValue.cpp"
 #include "JSCSSValueList.cpp"
 #if ENABLE(CUSTOM_ELEMENTS)
-#include "JSCustomElementsRegistry.cpp"
+#include "JSCustomElementRegistry.cpp"
 #endif
 #include "JSCustomEvent.cpp"
 #include "JSDatabase.cpp"

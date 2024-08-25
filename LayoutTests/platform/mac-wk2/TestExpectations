@@ -379,6 +379,7 @@ webkit.org/b/142726 [ Yosemite ] fast/images/animated-png.html [ Skip ]
 
 # Hitting "The certificate for this server is invalid" loading error (not happening in WK1)
 webkit.org/b/160445 http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-worker.html [ Failure Timeout ]
+webkit.org/b/160445 http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-insecure-fetch-in-main-frame.html [ Failure Timeout ]
 
 ### END OF (3) Unclassified failures
 ########################################
@@ -671,4 +672,3 @@ webkit.org/b/159427 http/tests/loading/basic-credentials-sent-automatically.html
 
 webkit.org/b/160309 fast/dom/Window/child-window-focus.html [ Pass Failure ]
 
-webkit.org/b/160782 [ ElCapitan ] editing/deleting/delete-empty-line-breaks-at-end-of-textarea.html [ Pass Crash ]

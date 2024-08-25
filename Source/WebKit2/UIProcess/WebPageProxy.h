@@ -215,7 +215,7 @@ struct AttributedString;
 struct ColorSpaceData;
 struct EditingRange;
 struct EditorState;
-struct GamepadData;
+class GamepadData;
 struct LoadParameters;
 struct PlatformPopupMenuData;
 struct PrintInfo;

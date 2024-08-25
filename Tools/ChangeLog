@@ -1,3 +1,197 @@
+2016-08-22  Filip Pizlo  <fpizlo@apple.com>
+
+        Butterflies should be allocated in Auxiliary MarkedSpace instead of CopiedSpace and we should rewrite as much of the GC as needed to make this not a regression
+        https://bugs.webkit.org/show_bug.cgi?id=160125
+
+        Reviewed by Geoffrey Garen.
+
+        * DumpRenderTree/TestRunner.cpp: Rewire some #includes.
+        * Scripts/run-jsc-stress-tests: New test flag!
+
+2016-08-23  Brady Eidson  <beidson@apple.com>
+
+        WK2 Gamepad layout test support.
+        https://bugs.webkit.org/show_bug.cgi?id=134671
+
+        Reviewed by Alex Christensen.
+        
+        Have the injected bundle expose the MockGamepadProvider to the UI process, which will then 
+        feed back into the UIGamepadProvider.
+        
+        Also, fool NSApplication into treating the most recently created "isKeyWindow" of the test windows
+        as the actual keyWindow for the test runner, which will allow the view to get gamepad updates.
+
+        * WebKitTestRunner/Configurations/WebKitTestRunner.xcconfig:
+        
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp:
+        (WTR::TestRunner::setMockGamepadDetails):
+        (WTR::TestRunner::setMockGamepadAxisValue):
+        (WTR::TestRunner::setMockGamepadButtonValue):
+        
+        * WebKitTestRunner/PlatformWebView.h:
+        
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::initialize):
+        
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::didReceiveSynchronousMessageFromInjectedBundle):
+        (WTR::TestInvocation::didReceiveMessageFromInjectedBundle): Deleted.
+        
+        * WebKitTestRunner/WebKitTestRunner.xcodeproj/project.pbxproj:
+        
+        * WebKitTestRunner/ios/PlatformWebViewIOS.mm:
+        (-[WebKitTestRunnerWindow initWithFrame:]):
+        (-[WebKitTestRunnerWindow dealloc]):
+        (WTR::PlatformWebView::keyWindow):
+        
+        * WebKitTestRunner/ios/TestControllerIOS.mm:
+        (WTR::wtr_NSApplication_keyWindow):
+        (WTR::TestController::platformInitialize):
+        
+        * WebKitTestRunner/mac/PlatformWebViewMac.mm:
+        (+[WebKitTestRunnerWindow _WTR_keyWindow]):
+        (-[WebKitTestRunnerWindow initWithContentRect:styleMask:backing:defer:]):
+        (-[WebKitTestRunnerWindow dealloc]):
+        (WTR::PlatformWebView::keyWindow):
+        
+        * WebKitTestRunner/mac/TestControllerMac.mm:
+        (WTR::wtr_NSApplication_keyWindow):
+        (WTR::TestController::platformInitialize):
+        * WebKitTestRunner/mac/main.mm:
+
+2016-08-23  Alexey Proskuryakov  <ap@apple.com>
+
+        REGRESSION (PHP 5.6): http/tests/misc/bad-charset-alias.html fails
+        https://bugs.webkit.org/show_bug.cgi?id=161047
+        rdar://problem/27434307
+
+        Reviewed by Lucas Forschler.
+
+        * Scripts/webkitpy/layout_tests/servers/apache_http_server.py: Specify a php.ini file.
+
+2016-08-23  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r204243.
+
+        Caused some layout test failures
+
+        Reverted changeset:
+
+        "Write API test to cover crash fix in r204135"
+        https://bugs.webkit.org/show_bug.cgi?id=160587
+        http://trac.webkit.org/changeset/204243
+
+2016-08-23  Rawinder Singh  <rawinder.singh-webkit@cisra.canon.com.au>
+
+        Order feature option list in FeatureList.pm
+        https://bugs.webkit.org/show_bug.cgi?id=161074
+
+        Reviewed by Michael Catanzaro.
+
+        Reorder features in alphabetical order based on command line option. Also, sort variables in alphabetical order.
+
+        * Scripts/webkitperl/FeatureList.pm:
+
+2016-08-22  Dewei Zhu  <dewei_zhu@apple.com>
+
+        Stop python icon bouncing in the dock while running browser benchmarks.
+        https://bugs.webkit.org/show_bug.cgi?id=161066
+
+        Reviewed by Ryosuke Niwa.
+
+        Bouncing python icon may impact browser benchmark results.
+        * Scripts/webkitpy/benchmark_runner/browser_driver/osx_browser_driver.py:
+        (OSXBrowserDriver.prepare_env):
+        (OSXBrowserDriver.restore_env):
+
+2016-08-22  Simon Fraser  <simon.fraser@apple.com>
+
+        <select> menu on iPad causes shifting of hit-testing areas
+        https://bugs.webkit.org/show_bug.cgi?id=150079
+
+        Reviewed by Tim Horton.
+
+        -isAssistingNode (aka the poorly named isEditable) is input into WebPageProxy::computeCustomFixedPositionRect(),
+        so when it changes we have to update visible rects. We were doing this on focus, but failing
+        to do it on blur.
+
+        Added the ability to test by:
+        1. Making it possible to initiate an animated scroll in the UI process
+        2. Adding callbacks for starting and ending interaction with a form control. Sadly
+        the "ending interaction" for <select> popovers on iPad isn't late enough, since we
+        have no way currently to know when the dimming view behind the popover animates out,
+        so for now the test keeps trying to tap a button.
+
+        * WebKitTestRunner/UIScriptContext/Bindings/UIScriptController.idl:
+        * WebKitTestRunner/UIScriptContext/UIScriptContext.h:
+        * WebKitTestRunner/UIScriptContext/UIScriptController.cpp:
+        (WTR::UIScriptController::setDidStartFormControlInteractionCallback):
+        (WTR::UIScriptController::didStartFormControlInteractionCallback):
+        (WTR::UIScriptController::setDidEndFormControlInteractionCallback):
+        (WTR::UIScriptController::didEndFormControlInteractionCallback):
+        (WTR::UIScriptController::scrollToOffset):
+        (WTR::UIScriptController::platformSetDidStartFormControlInteractionCallback):
+        (WTR::UIScriptController::platformSetDidEndFormControlInteractionCallback):
+        * WebKitTestRunner/UIScriptContext/UIScriptController.h:
+        * WebKitTestRunner/cocoa/TestRunnerWKWebView.h:
+        * WebKitTestRunner/cocoa/TestRunnerWKWebView.mm:
+        (-[TestRunnerWKWebView dealloc]):
+        (-[TestRunnerWKWebView didStartFormControlInteraction]):
+        (-[TestRunnerWKWebView didEndFormControlInteraction]):
+        * WebKitTestRunner/ios/UIScriptControllerIOS.mm:
+        (WTR::contentOffsetBoundedInValidRange):
+        (WTR::UIScriptController::scrollToOffset):
+        (WTR::UIScriptController::platformSetDidStartFormControlInteractionCallback):
+        (WTR::UIScriptController::platformSetDidEndFormControlInteractionCallback):
+
+2016-08-22  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [EFL][GTK] Script process-linux-coredump is not needed, switch back to use the kernel core dumper instead.
+        https://bugs.webkit.org/show_bug.cgi?id=160927
+
+        Reviewed by Daniel Bates.
+
+        * Scripts/process-linux-coredump: Removed.
+        * Scripts/webkitpy/port/efl.py:
+        (EflPort._get_crash_log):
+        * Scripts/webkitpy/port/gtk.py:
+        (GtkPort._get_crash_log):
+        * Scripts/webkitpy/port/linux_get_crash_log.py:
+        (GDBCrashLogGenerator.__init__):
+        (GDBCrashLogGenerator.generate_crash_log):
+        * Scripts/webkitpy/port/linux_get_crash_log_unittest.py:
+        (GDBCrashLogGeneratorTest.test_generate_crash_log):
+
+2016-08-22  Jonathan Bedard  <jbedard@apple.com>
+
+        check-webkit-style does not work with Lambda functions in C++
+        https://bugs.webkit.org/show_bug.cgi?id=160910
+
+        Reviewed by Darin Adler.
+
+        This change eliminates false positives on correctly styled lambda functions and includes a few basic checks on capture list.
+
+        * Scripts/webkitpy/style/checkers/cpp.py:
+        (regex_for_lambda_functions): Added function which checks if a string is the start of a lambda function.
+        (check_for_non_standard_constructs): Added lambda function check.
+        (check_spacing_for_function_call): Added lambda function check.
+        (check_braces): Added lambda function check.
+        * Scripts/webkitpy/style/checkers/cpp_unittest.py:
+        (CppStyleTest.test_lambda_functions): Added test function for lambda function style checks.
+
+2016-08-21  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse IPv4 addresses
+        https://bugs.webkit.org/show_bug.cgi?id=161023
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+        (TestWebKitAPI::checkURLDifferences):
+        We are already getting differences between the old URL::parse and the new URLParser.
+        (TestWebKitAPI::shouldFail):
+
 2016-08-21  Daniel Bates  <dabates@apple.com>
 
         prepare-ChangeLog lists unmodified functions as modified and marks functions with few changes as deleted

@@ -33,6 +33,8 @@ compositing/fixed-positioned-pseudo-content-no-compositing.html [ Failure ]
 compositing/reflections/nested-reflection-on-overflow.html [ Failure ]
 compositing/geometry/limit-layer-bounds-opacity-transition.html [ Failure ]
 
+webkit.org/b/152439 compositing/overflow/dynamic-composited-scrolling-status.html [ Failure ]
+
 webkit.org/b/157105 compositing/contents-scale/incremental-change.html [ Pass ImageOnlyFailure ]
 
 # Compositing test that time out:
@@ -405,9 +407,6 @@ http/tests/navigation/no-referrer-reset.html
 http/tests/navigation/no-referrer-same-window.html
 http/tests/navigation/no-referrer-subframe.html
 http/tests/navigation/no-referrer-target-blank.html
-http/tests/navigation/ping-attribute/anchor-cross-origin-from-https.html
-http/tests/navigation/ping-attribute/anchor-cross-origin.html
-http/tests/navigation/ping-attribute/anchor-same-origin.html
 http/tests/navigation/redirect-preserves-referrer.html
 http/tests/navigation/redirect-to-random-url-versus-memory-cache.html
 http/tests/security/aboutBlank/xss-DENIED-navigate-opener-document-write.html
@@ -1741,7 +1740,6 @@ fast/forms/focus-option-control-on-page.html [ Skip ]
 # Skip timeouts
 fast/dom/Geolocation/startUpdatingOnlyWhenPageVisible.html [ Skip ]
 fast/dom/Geolocation/stopUpdatingForHiddenPage.html [ Skip ]
-http/tests/navigation/ping-attribute/anchor-cookie.html [ Skip ]
 webkit.org/b/148709 fast/events/wheelevent-basic.html [ Skip ]
 webkit.org/b/148709 fast/events/wheelevent-mousewheel-interaction.html [ Skip ]
 
@@ -1764,6 +1762,7 @@ http/tests/contentdispositionattachmentsandbox/referer-header-stripped-with-meta
 http/tests/contentdispositionattachmentsandbox/referer-header-stripped-with-meta-referer-origin.html [ Skip ]
 http/tests/contentdispositionattachmentsandbox/referer-header-stripped-with-meta-referer-unsafe-url.html [ Skip ]
 http/tests/contentdispositionattachmentsandbox/referer-header-stripped.html [ Skip ]
+http/tests/navigation/ping-attribute [ Skip ]
 
 webkit.org/b/153380 webarchive/loading/object.html [ Pass Crash ]
 webkit.org/b/153380 webarchive/loading/missing-data.html [ Pass Crash ]

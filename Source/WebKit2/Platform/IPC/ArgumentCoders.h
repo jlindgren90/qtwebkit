@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ArgumentCoders_h
-#define ArgumentCoders_h
+#pragma once
 
 #include "Decoder.h"
 #include "Encoder.h"
@@ -36,10 +35,6 @@
 #include <wtf/OptionSet.h>
 #include <wtf/Optional.h>
 #include <wtf/Vector.h>
-
-#if HAVE(DTRACE)
-#include <uuid/uuid.h>
-#endif
 
 namespace IPC {
 
@@ -126,6 +121,47 @@ template<typename T, typename U> struct ArgumentCoder<std::pair<T, U>> {
         return true;
     }
 };
+
+template<size_t index, typename... Elements>
+struct TupleCoder {
+    static void encode(Encoder& encoder, const std::tuple<Elements...>& tuple)
+    {
+        encoder << std::get<sizeof...(Elements) - index>(tuple);
+        TupleCoder<index - 1, Elements...>::encode(encoder, tuple);
+    }
+
+    static bool decode(Decoder& decoder, std::tuple<Elements...>& tuple)
+    {
+        if (!decoder.decode(std::get<sizeof...(Elements) - index>(tuple)))
+            return false;
+        return TupleCoder<index - 1, Elements...>::decode(decoder, tuple);
+    }
+};
+
+template<typename... Elements>
+struct TupleCoder<0, Elements...> {
+    static void encode(Encoder&, const std::tuple<Elements...>&)
+    {
+    }
+
+    static bool decode(Decoder&, std::tuple<Elements...>&)
+    {
+        return true;
+    }
+};
+
+template<typename... Elements> struct ArgumentCoder<std::tuple<Elements...>> {
+    static void encode(Encoder& encoder, const std::tuple<Elements...>& tuple)
+    {
+        TupleCoder<sizeof...(Elements), Elements...>::encode(encoder, tuple);
+    }
+
+    static bool decode(Decoder& decoder, std::tuple<Elements...>& tuple)
+    {
+        return TupleCoder<sizeof...(Elements), Elements...>::decode(decoder, tuple);
+    }
+};
+
 
 template<typename Rep, typename Period> struct ArgumentCoder<std::chrono::duration<Rep, Period>> {
     static void encode(Encoder& encoder, const std::chrono::duration<Rep, Period>& duration)
@@ -362,13 +398,4 @@ template<> struct ArgumentCoder<String> {
     static bool decode(Decoder&, String&);
 };
 
-#if HAVE(DTRACE)
-template<> struct ArgumentCoder<uuid_t> {
-    static void encode(Encoder&, const uuid_t&);
-    static bool decode(Decoder&, uuid_t&);
-};
-#endif
-
 } // namespace IPC
-
-#endif // ArgumentCoders_h

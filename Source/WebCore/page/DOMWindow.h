@@ -24,8 +24,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef DOMWindow_h
-#define DOMWindow_h
+#pragma once
 
 #include "Base64Utilities.h"
 #include "ContextDestructionObserver.h"
@@ -49,7 +48,7 @@ namespace WebCore {
     class CSSRuleList;
     class CSSStyleDeclaration;
     class Crypto;
-    class CustomElementsRegistry;
+    class CustomElementRegistry;
     class DOMApplicationCache;
     class DOMSelection;
     class DOMURL;
@@ -229,11 +228,11 @@ namespace WebCore {
 
         // DOM Level 2 Style Interface
 
-        RefPtr<CSSStyleDeclaration> getComputedStyle(Element&, const String& pseudoElt) const;
+        WEBCORE_EXPORT RefPtr<CSSStyleDeclaration> getComputedStyle(Element&, const String& pseudoElt) const;
 
         // WebKit extensions
 
-        RefPtr<CSSRuleList> getMatchedCSSRules(Element*, const String& pseudoElt, bool authorOnly = true) const;
+        WEBCORE_EXPORT RefPtr<CSSRuleList> getMatchedCSSRules(Element*, const String& pseudoElt, bool authorOnly = true) const;
         double devicePixelRatio() const;
 
         RefPtr<WebKitPoint> webkitConvertPointFromPageToNode(Node*, const WebKitPoint*) const;
@@ -306,8 +305,8 @@ namespace WebCore {
         DOMApplicationCache* optionalApplicationCache() const { return m_applicationCache.get(); }
 
 #if ENABLE(CUSTOM_ELEMENTS)
-        CustomElementsRegistry* customElementsRegistry() { return m_customElementsRegistry.get(); }
-        CustomElementsRegistry& ensureCustomElementsRegistry();
+        CustomElementRegistry* customElementRegistry() { return m_customElementRegistry.get(); }
+        CustomElementRegistry& ensureCustomElementRegistry();
 #endif
 
 #if ENABLE(ORIENTATION_EVENTS)
@@ -423,7 +422,7 @@ namespace WebCore {
         mutable RefPtr<DOMApplicationCache> m_applicationCache;
 
 #if ENABLE(CUSTOM_ELEMENTS)
-        RefPtr<CustomElementsRegistry> m_customElementsRegistry;
+        RefPtr<CustomElementRegistry> m_customElementRegistry;
 #endif
 
 #if ENABLE(WEB_TIMING)
@@ -446,5 +445,3 @@ namespace WebCore {
     }
 
 } // namespace WebCore
-
-#endif // DOMWindow_h

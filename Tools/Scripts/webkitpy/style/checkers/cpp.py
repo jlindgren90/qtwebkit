@@ -1281,6 +1281,26 @@ class _EnumState(object):
         return True
 
 
+def regex_for_lambda_functions(line, line_number, error):
+    result = search(r'\s\[.*?\]\s', line)
+    if result:
+        group = result.group()
+
+        targ_error = None
+
+        if search(r'(\[\s|\s\]|\s,)', group):
+            targ_error = [line_number, 'whitespace/brackets', 4,
+              'Extra space in capture list.']
+
+        if targ_error and regex_for_lambda_functions.__last_error != targ_error:
+            error(targ_error[0], targ_error[1], targ_error[2], targ_error[3])
+        regex_for_lambda_functions.__last_error = targ_error
+        return True
+    return False
+
+regex_for_lambda_functions.__last_error = None
+
+
 def check_for_non_standard_constructs(clean_lines, line_number,
                                       class_state, error):
     """Logs an error if we see certain non-ANSI constructs ignored by gcc-2.
@@ -1440,14 +1460,13 @@ def check_spacing_for_function_call(line, line_number, error):
       error: The function to call with any errors found.
     """
 
-    # Since function calls often occur inside if/for/foreach/while/switch
+    # Since function calls often occur inside if/for/while/switch
     # expressions - which have their own, more liberal conventions - we
     # first see if we should be looking inside such an expression for a
     # function call, to which we can apply more strict standards.
     function_call = line    # if there's no control flow construct, look at whole line
     for pattern in (r'\bif\s*\((.*)\)\s*{',
                     r'\bfor\s*\((.*)\)\s*{',
-                    r'\bforeach\s*\((.*)\)\s*{',
                     r'\bwhile\s*\((.*)\)\s*[{;]',
                     r'\bswitch\s*\((.*)\)\s*{'):
         matched = search(pattern, line)
@@ -1455,7 +1474,7 @@ def check_spacing_for_function_call(line, line_number, error):
             function_call = matched.group(1)    # look inside the parens for function calls
             break
 
-    # Except in if/for/foreach/while/switch, there should never be space
+    # Except in if/for/while/switch, there should never be space
     # immediately inside parens (eg "f( 3, 4 )").  We make an exception
     # for nested parens ( (a+b) + c ).  Likewise, there should never be
     # a space before a ( when it's a function argument.  I assume it's a
@@ -1469,7 +1488,9 @@ def check_spacing_for_function_call(line, line_number, error):
     # Note that we assume the contents of [] to be short enough that
     # they'll never need to wrap.
     if (  # Ignore control structures.
-        not search(r'\b(if|for|foreach|while|switch|return|new|delete)\b', function_call)
+        not search(r'\b(if|for|while|switch|return|new|delete)\b', function_call)
+        # Ignore lambda functions
+        and not regex_for_lambda_functions(function_call, line_number, error)
         # Ignore pointers/references to functions.
         and not search(r' \([^)]+\)\([^)]*(\)|,$)', function_call)
         # Ignore pointers/references to arrays.
@@ -1905,17 +1926,17 @@ def check_spacing(file_extension, clean_lines, line_number, error):
               'Extra space for operator %s' % matched.group(1))
 
     # A pet peeve of mine: no spaces after an if, while, switch, or for
-    matched = search(r' (if\(|for\(|foreach\(|while\(|switch\()', line)
+    matched = search(r' (if\(|for\(|while\(|switch\()', line)
     if matched:
         error(line_number, 'whitespace/parens', 5,
               'Missing space before ( in %s' % matched.group(1))
 
-    # For if/for/foreach/while/switch, the left and right parens should be
+    # For if/for/while/switch, the left and right parens should be
     # consistent about how many spaces are inside the parens, and
     # there should either be zero or one spaces inside the parens.
     # We don't want: "if ( foo)" or "if ( foo   )".
     # Exception: "for ( ; foo; bar)" and "for (foo; bar; )" are allowed.
-    matched = search(r'\b(?P<statement>if|for|foreach|while|switch)\s*\((?P<remainder>.*)$', line)
+    matched = search(r'\b(?P<statement>if|for|while|switch)\s*\((?P<remainder>.*)$', line)
     if matched:
         statement = matched.group('statement')
         condition, rest = up_to_unmatched_closing_paren(matched.group('remainder'))
@@ -2432,7 +2453,8 @@ def check_braces(clean_lines, line_number, error):
         # and '- (' and '+ (' for Objective-C methods.
         previous_line = get_previous_non_blank_line(clean_lines, line_number)[0]
         if ((not search(r'[;:}{)=]\s*$|\)\s*((const|override|const override)\s*)?(->\s*\S+)?\s*$', previous_line)
-             or search(r'\b(if|for|foreach|while|switch|else|NS_ENUM)\b', previous_line))
+             or search(r'\b(if|for|while|switch|else|NS_ENUM)\b', previous_line)
+             or regex_for_lambda_functions(previous_line, line_number, error))
             and previous_line.find('#') < 0
             and previous_line.find('- (') != 0
             and previous_line.find('+ (') != 0):
@@ -2440,7 +2462,8 @@ def check_braces(clean_lines, line_number, error):
                   'This { should be at the end of the previous line')
     elif (search(r'\)\s*(((const|override)\s*)*\s*)?{\s*$', line)
           and line.count('(') == line.count(')')
-          and not search(r'(\s*(if|for|foreach|while|switch|NS_ENUM|@synchronized)|} @catch)\b', line)
+          and not search(r'(\s*(if|for|while|switch|NS_ENUM|@synchronized)|} @catch)\b', line)
+          and not regex_for_lambda_functions(line, line_number, error)
           and line.find("](") < 0
           and not match(r'\s+[A-Z_][A-Z_0-9]+\b', line)):
         error(line_number, 'whitespace/braces', 4,
@@ -2452,7 +2475,7 @@ def check_braces(clean_lines, line_number, error):
         previous_line = clean_lines.elided[line_number - 2]
         last_open_brace = previous_line.rfind('{')
         if (last_open_brace != -1 and previous_line.find('}', last_open_brace) == -1
-            and search(r'\b(if|for|foreach|while|else)\b', previous_line)):
+            and search(r'\b(if|for|while|else)\b', previous_line)):
             error(line_number, 'whitespace/braces', 4,
                   'One line control clauses should not use braces.')
 
@@ -2899,13 +2922,6 @@ def _classify_include(filename, include, is_system, include_state):
     if filename.endswith('.h') and filename != include:
         return _OTHER_HEADER
 
-    # Qt's moc files do not follow the naming and ordering rules, so they should be skipped
-    if include.startswith('moc_') and include.endswith('.cpp'):
-        return _MOC_HEADER
-
-    if include.endswith('.moc'):
-        return _MOC_HEADER
-
     # If the target file basename starts with the include we're checking
     # then we consider it the primary header.
     target_base = FileInfo(filename).base_name()
@@ -2914,9 +2930,6 @@ def _classify_include(filename, include, is_system, include_state):
     # If we haven't encountered a primary header, then be lenient in checking.
     if not include_state.visited_primary_section():
         if target_base.find(include_base) != -1:
-            return _PRIMARY_HEADER
-        # Qt private APIs use _p.h suffix.
-        if include_base.find(target_base) != -1 and include_base.endswith('_p'):
             return _PRIMARY_HEADER
 
     # If we already encountered a primary header, perform a strict comparison.
@@ -3027,7 +3040,7 @@ def check_include_line(filename, file_extension, clean_lines, line_number, inclu
                 'You should not add a blank line before implementation file\'s own header.')
 
     # Check to make sure all headers besides config.h and the primary header are
-    # alphabetically sorted. Skip Qt's moc files.
+    # alphabetically sorted.
     if not error_message and header_type == _OTHER_HEADER and not search(r'\A#include.*\.lut\.h', line):
         previous_line_number = line_number - 1
         previous_line = clean_lines.lines[previous_line_number]
@@ -3411,7 +3424,6 @@ def check_identifier_name_in_declaration(filename, line_number, line, file_state
                 and not modified_identifier.startswith('NPN_')
                 and not modified_identifier.startswith('NPP_')
                 and not modified_identifier.startswith('NP_')
-                and not modified_identifier.startswith('qt_')
                 and not modified_identifier.startswith('_q_')
                 and not modified_identifier.startswith('cairo_')
                 and not modified_identifier.startswith('Ecore_')
@@ -3419,7 +3431,6 @@ def check_identifier_name_in_declaration(filename, line_number, line, file_state
                 and not modified_identifier.startswith('Evas_')
                 and not modified_identifier.startswith('Ewk_')
                 and not modified_identifier.startswith('cti_')
-                and not modified_identifier.find('::qt_') >= 0
                 and not modified_identifier.find('::_q_') >= 0
                 and not modified_identifier == "const_iterator"
                 and not modified_identifier == "vm_throw"

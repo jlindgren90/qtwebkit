@@ -45,7 +45,7 @@
 #include "ContentSecurityPolicy.h"
 #include "CookieJar.h"
 #include "CustomElementReactionQueue.h"
-#include "CustomElementsRegistry.h"
+#include "CustomElementRegistry.h"
 #include "CustomEvent.h"
 #include "DOMImplementation.h"
 #include "DOMNamedFlowCollection.h"
@@ -887,7 +887,7 @@ static ALWAYS_INLINE RefPtr<HTMLElement> createUpgradeCandidateElement(Document&
 
     auto element = HTMLElement::create(name, document);
     element->setIsUnresolvedCustomElement();
-    window->ensureCustomElementsRegistry().addUpgradeCandidate(element.get());
+    window->ensureCustomElementRegistry().addUpgradeCandidate(element.get());
     return WTFMove(element);
 }
 #endif
@@ -901,7 +901,7 @@ static RefPtr<Element> createHTMLElementWithNameValidation(Document& document, c
 #if ENABLE(CUSTOM_ELEMENTS)
     auto* window = document.domWindow();
     if (window) {
-        auto* registry = window->customElementsRegistry();
+        auto* registry = window->customElementRegistry();
         if (UNLIKELY(registry)) {
             if (auto* elementInterface = registry->findInterface(localName))
                 return elementInterface->constructElement(localName, JSCustomElementInterface::ShouldClearException::DoNotClear);
@@ -1084,7 +1084,7 @@ static Ref<HTMLElement> createFallbackHTMLElement(Document& document, const Qual
 #if ENABLE(CUSTOM_ELEMENTS)
     auto* window = document.domWindow();
     if (window) {
-        auto* registry = window->customElementsRegistry();
+        auto* registry = window->customElementRegistry();
         if (UNLIKELY(registry)) {
             if (auto* elementInterface = registry->findInterface(name)) {
                 auto element = HTMLElement::create(name, document);
@@ -4437,7 +4437,7 @@ String Document::cookie(ExceptionCode& ec)
         return String();
 
     if (!isDOMCookieCacheValid())
-        setCachedDOMCookies(cookies(this, cookieURL));
+        setCachedDOMCookies(cookies(*this, cookieURL));
 
     return cachedDOMCookies();
 }
@@ -4461,7 +4461,7 @@ void Document::setCookie(const String& value, ExceptionCode& ec)
         return;
 
     invalidateDOMCookieCache();
-    setCookies(this, cookieURL, value);
+    setCookies(*this, cookieURL, value);
 }
 
 String Document::referrer() const

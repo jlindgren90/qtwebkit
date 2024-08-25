@@ -204,6 +204,7 @@ public:
 
     ConstructorKind constructorKind() const { return static_cast<ConstructorKind>(m_constructorKind); }
     SuperBinding superBinding() const { return static_cast<SuperBinding>(m_superBinding); }
+    JSParserCommentMode commentMode() const { return static_cast<JSParserCommentMode>(m_commentMode); }
 
     void shrinkToFit()
     {
@@ -266,8 +267,6 @@ public:
     size_t numberOfExceptionHandlers() const { return m_rareData ? m_rareData->m_exceptionHandlers.size() : 0; }
     void addExceptionHandler(const UnlinkedHandlerInfo& handler) { createRareDataIfNecessary(); return m_rareData->m_exceptionHandlers.append(handler); }
     UnlinkedHandlerInfo& exceptionHandler(int index) { ASSERT(m_rareData); return m_rareData->m_exceptionHandlers[index]; }
-
-    VM* vm() const;
 
     UnlinkedArrayProfile addArrayProfile() { return m_arrayProfileCount++; }
     unsigned numberOfArrayProfiles() { return m_arrayProfileCount; }
@@ -405,13 +404,14 @@ private:
     unsigned m_isConstructor : 1;
     unsigned m_hasCapturedVariables : 1;
     unsigned m_isBuiltinFunction : 1;
-    unsigned m_constructorKind : 2;
     unsigned m_superBinding : 1;
-    unsigned m_derivedContextType : 2;
-    unsigned m_evalContextType : 2;
+    unsigned m_commentMode: 1;
     unsigned m_isArrowFunctionContext : 1;
     unsigned m_isClassContext : 1;
     unsigned m_wasCompiledWithDebuggingOpcodes : 1;
+    unsigned m_constructorKind : 2;
+    unsigned m_derivedContextType : 2;
+    unsigned m_evalContextType : 2;
     unsigned m_firstLine;
     unsigned m_lineCount;
     unsigned m_endColumn;

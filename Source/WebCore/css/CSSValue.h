@@ -18,8 +18,7 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef CSSValue_h
-#define CSSValue_h
+#pragma once
 
 #include "ExceptionCode.h"
 #include "URLHash.h"
@@ -34,6 +33,7 @@ namespace WebCore {
 
 class CachedResource;
 class StyleSheetContents;
+
 enum CSSPropertyID : uint16_t;
 
 // FIXME: The current CSSValue and subclasses should be turned into internal types (StyleValue).
@@ -61,9 +61,9 @@ public:
             destroy();
     }
 
-    Type cssValueType() const;
+    WEBCORE_EXPORT Type cssValueType() const;
 
-    String cssText() const;
+    WEBCORE_EXPORT String cssText() const;
 
     void setCssText(const String&, ExceptionCode&) { } // FIXME: Not implemented.
 
@@ -293,5 +293,3 @@ typedef HashMap<AtomicString, RefPtr<CSSValue>> CustomPropertyValueMap;
 SPECIALIZE_TYPE_TRAITS_BEGIN(WebCore::ToValueTypeName) \
     static bool isType(const WebCore::CSSValue& value) { return value.predicate; } \
 SPECIALIZE_TYPE_TRAITS_END()
-
-#endif // CSSValue_h

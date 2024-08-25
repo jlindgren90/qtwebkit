@@ -147,9 +147,6 @@ fast/forms/month
 fast/forms/time
 fast/forms/week
 
-# ENABLE_GAMEPAD not enabled.
-gamepad/
-
 # X-Content-Type-Options (ENABLE_NOSNIFF) is not enabled.
 webkit.org/b/136452 http/tests/security/contentTypeOptions
 
@@ -1407,9 +1404,6 @@ webkit.org/b/158500 storage/indexeddb/database-close-private.html [ Pass Failure
 webkit.org/b/158640 imported/blink/storage/indexeddb/blob-valid-after-deletion.html [ Pass Failure ]
 
 webkit.org/b/128312 media/video-load-preload-metadata.html [ Pass Failure ]
-
-# rdar://problem/27434307
-[ Sierra+ ] http/tests/misc/bad-charset-alias.html [ Failure ]
 
 # rdar://problem/27475162
 [ Sierra+ ] compositing/video/poster.html [ Pass ImageOnlyFailure ]

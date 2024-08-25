@@ -199,7 +199,7 @@ struct AttributedString;
 struct BackForwardListItemState;
 struct EditingRange;
 struct EditorState;
-struct GamepadData;
+class GamepadData;
 struct InteractionInformationAtPosition;
 struct LoadParameters;
 struct PrintInfo;

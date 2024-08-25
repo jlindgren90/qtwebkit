@@ -322,6 +322,30 @@ EncodedJSValue JIT_OPERATION operationValueDiv(ExecState* exec, EncodedJSValue e
     return JSValue::encode(jsNumber(a / b));
 }
 
+double JIT_OPERATION operationArithCos(ExecState* exec, EncodedJSValue encodedOp1)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue op1 = JSValue::decode(encodedOp1);
+    double a = op1.toNumber(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
+    return cos(a);
+}
+
+double JIT_OPERATION operationArithSin(ExecState* exec, EncodedJSValue encodedOp1)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue op1 = JSValue::decode(encodedOp1);
+    double a = op1.toNumber(exec);
+    if (UNLIKELY(vm->exception()))
+        return JSValue::encode(JSValue());
+    return sin(a);
+}
+
 double JIT_OPERATION operationArithSqrt(ExecState* exec, EncodedJSValue encodedOp1)
 {
     VM* vm = &exec->vm();
@@ -878,7 +902,6 @@ char* JIT_OPERATION operationNewArrayWithSize(ExecState* exec, Structure* arrayS
         return bitwise_cast<char*>(exec->vm().throwException(exec, createRangeError(exec, ASCIILiteral("Array size is not a small enough positive integer."))));
 
     JSArray* result = JSArray::create(*vm, arrayStructure, size);
-    result->butterfly(); // Ensure that the backing store is in to-space.
     return bitwise_cast<char*>(result);
 }
 

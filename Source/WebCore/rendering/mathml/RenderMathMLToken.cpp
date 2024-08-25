@@ -31,6 +31,7 @@
 
 #include "MathMLElement.h"
 #include "MathMLNames.h"
+#include "MathMLTokenElement.h"
 #include "PaintInfo.h"
 #include "RenderElement.h"
 #include "RenderIterator.h"
@@ -51,6 +52,11 @@ RenderMathMLToken::RenderMathMLToken(Document& document, RenderStyle&& style)
     , m_mathVariantGlyph()
     , m_mathVariantGlyphDirty(false)
 {
+}
+
+MathMLTokenElement& RenderMathMLToken::element()
+{
+    return static_cast<MathMLTokenElement&>(nodeForNonAnonymous());
 }
 
 void RenderMathMLToken::updateTokenContent()
@@ -521,14 +527,12 @@ void RenderMathMLToken::updateMathVariantGlyph()
     }
 
     const auto& tokenElement = element();
-    AtomicString textContent = element().textContent().stripWhiteSpace().simplifyWhiteSpace();
-    if (textContent.length() == 1) {
-        UChar32 codePoint = textContent[0];
+    if (auto codePoint = MathMLTokenElement::convertToSingleCodePoint(element().textContent())) {
         MathMLElement::MathVariant mathvariant = mathMLStyle()->mathVariant();
         if (mathvariant == MathMLElement::MathVariant::None)
             mathvariant = tokenElement.hasTagName(MathMLNames::miTag) ? MathMLElement::MathVariant::Italic : MathMLElement::MathVariant::Normal;
-        UChar32 transformedCodePoint = mathVariant(codePoint, mathvariant);
-        if (transformedCodePoint != codePoint)
+        UChar32 transformedCodePoint = mathVariant(codePoint.value(), mathvariant);
+        if (transformedCodePoint != codePoint.value())
             m_mathVariantGlyph = style().fontCascade().glyphDataForCharacter(transformedCodePoint, !style().isLeftToRightDirection());
     }
 }
