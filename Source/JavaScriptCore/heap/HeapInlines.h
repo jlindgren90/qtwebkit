@@ -74,17 +74,6 @@ inline Heap* Heap::heap(const JSValue v)
     return heap(v.asCell());
 }
 
-inline bool Heap::isLive(const void* rawCell)
-{
-    ASSERT(!mayBeGCThread());
-    HeapCell* cell = bitwise_cast<HeapCell*>(rawCell);
-    if (cell->isLargeAllocation())
-        return cell->largeAllocation().isLive();
-    MarkedBlock& block = cell->markedBlock();
-    block.flipIfNecessary(block.vm()->heap.objectSpace().version());
-    return block.handle().isLiveCell(cell);
-}
-
 ALWAYS_INLINE bool Heap::isMarked(const void* rawCell)
 {
     ASSERT(!mayBeGCThread());
@@ -117,18 +106,6 @@ ALWAYS_INLINE bool Heap::testAndSetMarked(HeapVersion version, const void* rawCe
     MarkedBlock& block = cell->markedBlock();
     block.flipIfNecessaryDuringMarking(version);
     return block.testAndSetMarked(cell);
-}
-
-inline void Heap::setMarked(const void* rawCell)
-{
-    HeapCell* cell = bitwise_cast<HeapCell*>(rawCell);
-    if (cell->isLargeAllocation()) {
-        cell->largeAllocation().setMarked();
-        return;
-    }
-    MarkedBlock& block = cell->markedBlock();
-    block.flipIfNecessary(block.vm()->heap.objectSpace().version());
-    block.setMarked(cell);
 }
 
 ALWAYS_INLINE size_t Heap::cellSize(const void* rawCell)

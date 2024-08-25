@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,37 +23,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef CaptureDeviceInfo_h
-#define CaptureDeviceInfo_h
+#include "config.h"
+#include "FloatRect.h"
 
-#if ENABLE(MEDIA_STREAM)
+#if PLATFORM(WIN)
 
-#include <RealtimeMediaSource.h>
-#include <wtf/text/WTFString.h>
+#include "FloatPoint.h"
+#include <d2d1.h>
 
 namespace WebCore {
 
-struct CaptureDeviceInfo {
-    String m_persistentDeviceID;
-    String m_localizedName;
-    String m_groupID;
+FloatRect::FloatRect(const D2D1_RECT_F& r)
+    : m_location(FloatPoint(r.left, r.top))
+    , m_size(FloatSize(r.right - r.left, r.bottom - r.top))
+{
+}
 
-    String m_sourceId;
+FloatRect::operator D2D1_RECT_F() const
+{
+    return D2D1::RectF(x(), y(), maxX(), maxY());
+}
 
-    bool m_enabled { false };
-    RealtimeMediaSource::Type m_sourceType { RealtimeMediaSource::None };
-    RealtimeMediaSourceSettings::VideoFacingMode m_position { RealtimeMediaSourceSettings::Unknown };
-};
+}
 
-class CaptureSessionInfo {
-public:
-    virtual ~CaptureSessionInfo() { }
-    virtual bool supportsVideoSize(const String& /* videoSize */) const { return false; }
-    virtual String bestSessionPresetForVideoDimensions(int /* width */, int /* height */) const { return emptyString(); }
-};
-
-} // namespace WebCore
-
-#endif // ENABLE(MEDIA_STREAM)
-
-#endif /* CaptureDeviceInfo_h */
+#endif // PLATFORM(WIN)

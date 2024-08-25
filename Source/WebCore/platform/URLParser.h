@@ -39,10 +39,16 @@ public:
 
     WEBCORE_EXPORT static bool enabled();
     WEBCORE_EXPORT static void setEnabled(bool);
+    
+    typedef Vector<std::pair<String, String>> URLEncodedForm;
+    static URLEncodedForm parseURLEncodedForm(StringView);
+    static String serialize(const URLEncodedForm&);
+
 private:
     URL m_url;
     StringBuilder m_buffer;
     bool m_urlIsSpecial { false };
+    bool m_hostHasPercentOrNonASCII { false };
     void parseAuthority(StringView::CodePoints::Iterator&, const StringView::CodePoints::Iterator& end);
     bool parseHost(StringView::CodePoints::Iterator&, const StringView::CodePoints::Iterator& end);
     bool parsePort(StringView::CodePoints::Iterator&, const StringView::CodePoints::Iterator& end);

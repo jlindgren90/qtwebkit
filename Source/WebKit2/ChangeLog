@@ -1,3 +1,150 @@
+2016-09-14  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Minor cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=161976
+
+        Reviewed by Youenn Fablet and Dean Jackson.
+
+        * UIProcess/UserMediaPermissionRequestProxy.cpp:
+
+2016-09-14  Beth Dakin  <bdakin@apple.com>
+
+        Add needsHiddenContentEditableQuirk and send it to the UIProcess
+        https://bugs.webkit.org/show_bug.cgi?id=161984
+        -and corresponding-
+        rdar://problem/26013388
+
+        Reviewed by Anders Carlsson.
+
+        Keep track of m_needsHiddenContentEditableQuirk in WebPageProxy.
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::setNeedsHiddenContentEditableQuirk):
+        * UIProcess/WebPageProxy.h:
+        (WebKit::WebPageProxy::needsHiddenContentEditableQuirk):
+        (WebKit::WebPageProxy::hasHadSelectionChangesFromUserInteraction): Deleted.
+        * UIProcess/WebPageProxy.messages.in:
+
+        If m_needsHiddenContentEditableQuirk is true, set it back to false on page 
+        transition.
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::didStartPageTransition):
+
+        Google Docs and iCloud Pages are the sites that need this quirk.
+        (WebKit::needsHiddenContentEditableQuirk):
+        (WebKit::WebPage::didChangeSelection):
+        * WebProcess/WebPage/WebPage.h:
+
+2016-09-14  Megan Gardner  <megan_gardner@apple.com>
+
+        Long tap menu on an image link no longer includes "Save Image" button
+        https://bugs.webkit.org/show_bug.cgi?id=161761
+        <rdar://27202717>
+
+        Reviewed by Beth Dakin.
+
+        * UIProcess/ios/WKActionSheetAssistant.mm:
+        (-[WKActionSheetAssistant defaultActionsForImageSheet:]):
+        Added share to image sheet as to not regress current functionality
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::getPositionInformation):
+        Gather information for images as well as links, and they can be both
+
+2016-09-14  Carlos Garnacho  <carlosg@gnome.org>
+
+        [GTK][Wayland] Implement clipboard support
+        https://bugs.webkit.org/show_bug.cgi?id=146574
+
+        Reviewed by Carlos Garcia Campos.
+
+        Add the necessary plumbing for the GTK+ backend to use the
+        PlatformPasteboard in WebCore. All selection data is transmitted
+        at once through the serialization of PasteboardContentGtk/DataObjectGtk.
+
+        * PlatformGTK.cmake: Add PasteboardContentGtk.cpp and
+        WebPasteboardProxyGtk.cpp
+        * Shared/gtk/ArgumentCodersGtk.cpp:
+        (IPC::encode):
+        (IPC::decode): Renamed from encodeDataObject/decodeDataObject
+        and made public.
+        (IPC::ArgumentCoder<DragData>::encode):
+        (IPC::ArgumentCoder<DragData>::decode): Update DataObjectGtk
+        encode/decode callers. Encode the extra canSmartReplace field.
+        * Shared/gtk/ArgumentCodersGtk.h: Expose encode/decode methods for
+        DataObjectGtk.
+        * Shared/gtk/PasteboardContent.cpp: Added. Wraps a DataObjectGtk
+        so it can be serialized on WebProcess/UIProcess messaging.
+        (WebKit::PasteboardContent::PasteboardContent):
+        (WebKit::PasteboardContent::encode):
+        (WebKit::PasteboardContent::decode): Methods to encode/decode a
+        PasteboardContent.
+        * Shared/gtk/PasteboardContent.h: Added.
+        * UIProcess/WebFrameProxy.cpp:
+        (WebKit::WebFrameProxy::collapseSelection): Added plumbing to allow
+        collapsing the global selection from the UI process side.
+        * UIProcess/WebFrameProxy.h:
+        * UIProcess/WebPasteboardProxy.h:
+        * UIProcess/WebPasteboardProxy.messages.in: Added plumbing for the
+        GTK+ pasteboard proxy functions.
+        * UIProcess/gtk/WebPageProxyGtk.cpp:
+        (WebKit::WebPageProxy::editorStateChanged):
+        * UIProcess/gtk/WebPasteboardProxyGtk.cpp: Added.
+        (WebKit::WebPasteboardProxy::writeToClipboard):
+        (WebKit::WebPasteboardProxy::readFromClipboard): Implemented functions
+        hooking into the PlatformPasteboard. Per-selection (ie.
+        primary/clipboard) PlatformPasteboards are kept at this level, so those
+        are independently set and dealt with.
+        (WebKit::WebPasteboardProxy::setPrimarySelectionOwner):
+        (WebKit::WebPasteboardProxy::didDestroyFrame): Implemented functions
+        to manage the frame currently being currently interacted, so we can
+        signal back when the global selection has been replaced.
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebKit::WebPlatformStrategies::writeToClipboard):
+        (WebKit::WebPlatformStrategies::readFromClipboard): Added methods to
+        send the WebProcess->UIProcess messages.
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h:
+        * WebProcess/WebCoreSupport/gtk/WebEditorClientGtk.cpp:
+        (WebKit::WebEditorClient::updateGlobalSelection): Remove GClosure to
+        get notifications about changes in global selection ownership. This
+        is done through a WebPage message now, as the UI process manages the
+        clipboard.
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/WebPage.messages.in:
+        * WebProcess/WebPage/gtk/WebPageGtk.cpp:
+        (WebKit::WebPage::collapseSelectionInFrame): Added methods to send
+        the UIProcess->WebProcess notification that the global selection has
+        been replaced.
+
+2016-09-13  Tim Horton  <timothy_horton@apple.com>
+
+        Provide a mechanism to specify the maximum size of WKThumbnailView snapshots
+        https://bugs.webkit.org/show_bug.cgi?id=161896
+        <rdar://problem/28229827>
+
+        Reviewed by Simon Fraser.
+
+        Some clients know that their thumbnail views will only be displayed up to
+        a specific size that is significantly smaller than the WKView size. Allow
+        them to avoid wasting lots of memory on unnecessarily large snapshots.
+
+        * UIProcess/API/Cocoa/_WKThumbnailView.h:
+        * UIProcess/API/Cocoa/_WKThumbnailView.mm:
+        (-[_WKThumbnailView requestSnapshot]):
+        (-[_WKThumbnailView _requestSnapshotIfNeeded]):
+        (-[_WKThumbnailView setMaximumSnapshotSize:]):
+        Add a maximumSnapshotSize property which can be changed dynamically.
+
+2016-09-13  Anders Carlsson  <andersca@apple.com>
+
+        REGRESSION (r196321): Amazon Videos are all black in Fullscreen
+        https://bugs.webkit.org/show_bug.cgi?id=161924
+        rdar://problem/28208208
+
+        Reviewed by Dan Bernstein.
+
+        * Shared/EntryPointUtilities/mac/XPCService/XPCServiceMain.mm:
+        (main):
+        Set AppleMagnifiedMode to true.
+
 2016-09-13  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GTK] Get rid of DataObjectGtk::forClipboard and cleanup pasteboard code

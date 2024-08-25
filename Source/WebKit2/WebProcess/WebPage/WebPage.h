@@ -660,6 +660,8 @@ public:
     void setComposition(const String& text, const Vector<WebCore::CompositionUnderline>& underlines, uint64_t selectionStart, uint64_t selectionEnd, uint64_t replacementRangeStart, uint64_t replacementRangeLength);
     void confirmComposition(const String& text, int64_t selectionStart, int64_t selectionLength);
     void cancelComposition();
+
+    void collapseSelectionInFrame(uint64_t frameID);
 #endif
 
 #if PLATFORM (GTK) && HAVE(GTK_GESTURES)
@@ -1441,6 +1443,7 @@ private:
     bool m_userIsInteracting;
     bool m_isAssistingNodeDueToUserInteraction { false };
     bool m_hasEverFocusedElementDueToUserInteractionSincePageTransition { false };
+    bool m_needsHiddenContentEditableQuirk { false };
 
 #if ENABLE(CONTEXT_MENUS)
     bool m_isShowingContextMenu;

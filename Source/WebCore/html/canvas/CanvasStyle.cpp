@@ -90,26 +90,26 @@ bool parseColorOrCurrentColor(RGBA32& parsedColor, const String& colorString, HT
     }
 }
 
-CanvasStyle::CanvasStyle(RGBA32 rgba)
-    : m_rgba(rgba)
+CanvasStyle::CanvasStyle(Color color)
+    : m_color(color)
     , m_type(RGBA)
 {
 }
 
 CanvasStyle::CanvasStyle(float grayLevel, float alpha)
-    : m_rgba(makeRGBA32FromFloats(grayLevel, grayLevel, grayLevel, alpha))
+    : m_color(Color(grayLevel, grayLevel, grayLevel, alpha))
     , m_type(RGBA)
 {
 }
 
 CanvasStyle::CanvasStyle(float r, float g, float b, float a)
-    : m_rgba(makeRGBA32FromFloats(r, g, b, a))
+    : m_color(Color(r, g, b, a))
     , m_type(RGBA)
 {
 }
 
 CanvasStyle::CanvasStyle(float c, float m, float y, float k, float a)
-    : m_cmyka(new CMYKAValues(makeRGBAFromCMYKA(c, m, y, k, a), c, m, y, k, a))
+    : m_cmyka(new CMYKAValues(Color(c, m, y, k, a), c, m, y, k, a))
     , m_type(CMYKA)
 {
 }
@@ -182,7 +182,7 @@ bool CanvasStyle::isEquivalentColor(const CanvasStyle& other) const
 
     switch (m_type) {
     case RGBA:
-        return m_rgba == other.m_rgba;
+        return m_color == other.m_color;
     case CMYKA:
         return m_cmyka->c == other.m_cmyka->c
             && m_cmyka->m == other.m_cmyka->m
@@ -207,7 +207,7 @@ bool CanvasStyle::isEquivalentRGBA(float r, float g, float b, float a) const
     if (m_type != RGBA)
         return false;
 
-    return m_rgba == makeRGBA32FromFloats(r, g, b, a);
+    return m_color == Color(r, g, b, a);
 }
 
 bool CanvasStyle::isEquivalentCMYKA(float c, float m, float y, float k, float a) const
@@ -230,7 +230,7 @@ CanvasStyle::CanvasStyle(const CanvasStyle& other)
     else if (m_type == ImagePattern)
         m_pattern->ref();
     else if (m_type == CMYKA)
-        m_cmyka = new CMYKAValues(other.m_cmyka->rgba, other.m_cmyka->c, other.m_cmyka->m, other.m_cmyka->y, other.m_cmyka->k, other.m_cmyka->a);
+        m_cmyka = new CMYKAValues(other.m_cmyka->color, other.m_cmyka->c, other.m_cmyka->m, other.m_cmyka->y, other.m_cmyka->k, other.m_cmyka->a);
 }
 
 CanvasStyle& CanvasStyle::operator=(const CanvasStyle& other)
@@ -248,7 +248,7 @@ void CanvasStyle::applyStrokeColor(GraphicsContext* context) const
         return;
     switch (m_type) {
     case RGBA:
-        context->setStrokeColor(m_rgba);
+        context->setStrokeColor(m_color);
         break;
     case CMYKA: {
         // FIXME: Do this through platform-independent GraphicsContext API.
@@ -262,7 +262,7 @@ void CanvasStyle::applyStrokeColor(GraphicsContext* context) const
         currentPen.setColor(clr);
         context->platformContext()->setPen(currentPen);
 #else
-        context->setStrokeColor(m_cmyka->rgba);
+        context->setStrokeColor(m_cmyka->color);
 #endif
         break;
     }
@@ -286,7 +286,7 @@ void CanvasStyle::applyFillColor(GraphicsContext* context) const
         return;
     switch (m_type) {
     case RGBA:
-        context->setFillColor(m_rgba);
+        context->setFillColor(m_color);
         break;
     case CMYKA: {
         // FIXME: Do this through platform-independent GraphicsContext API.
@@ -300,7 +300,7 @@ void CanvasStyle::applyFillColor(GraphicsContext* context) const
         currentBrush.setColor(clr);
         context->platformContext()->setBrush(currentBrush);
 #else
-        context->setFillColor(m_cmyka->rgba);
+        context->setFillColor(m_cmyka->color);
 #endif
         break;
     }

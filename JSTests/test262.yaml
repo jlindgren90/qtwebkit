@@ -12686,9 +12686,9 @@
 - path: test262/test/built-ins/Array/prototype/splice/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js", "../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/Array/prototype/splice/set_length_no_args.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Array/prototype/splice/set_length_no_args.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Array/prototype/toLocaleString/S15.4.4.3_A1_T1.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Array/prototype/toLocaleString/S15.4.4.3_A1_T1.js
@@ -13570,9 +13570,9 @@
 - path: test262/test/built-ins/DataView/instance-extensibility.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/DataView/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/DataView/name.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js", "../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/DataView/name.js
@@ -47930,9 +47930,9 @@
 - path: test262/test/built-ins/TypedArrays/Float32Array/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Float32Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Float32Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Float32Array/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Float32Array/name.js
@@ -47970,9 +47970,9 @@
 - path: test262/test/built-ins/TypedArrays/Float64Array/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Float64Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Float64Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Float64Array/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Float64Array/name.js
@@ -48010,9 +48010,9 @@
 - path: test262/test/built-ins/TypedArrays/Int16Array/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Int16Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Int16Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Int16Array/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Int16Array/name.js
@@ -48050,9 +48050,9 @@
 - path: test262/test/built-ins/TypedArrays/Int32Array/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Int32Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Int32Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Int32Array/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Int32Array/name.js
@@ -48090,9 +48090,9 @@
 - path: test262/test/built-ins/TypedArrays/Int8Array/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Int8Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Int8Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Int8Array/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Int8Array/name.js
@@ -48130,9 +48130,9 @@
 - path: test262/test/built-ins/TypedArrays/Uint16Array/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Uint16Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Uint16Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Uint16Array/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Uint16Array/name.js
@@ -48170,9 +48170,9 @@
 - path: test262/test/built-ins/TypedArrays/Uint32Array/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Uint32Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Uint32Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Uint32Array/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Uint32Array/name.js
@@ -48210,9 +48210,9 @@
 - path: test262/test/built-ins/TypedArrays/Uint8Array/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Uint8Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Uint8Array/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Uint8Array/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Uint8Array/name.js
@@ -48250,9 +48250,9 @@
 - path: test262/test/built-ins/TypedArrays/Uint8ClampedArray/constructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Uint8ClampedArray/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Uint8ClampedArray/length.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/built-ins/TypedArrays/Uint8ClampedArray/name.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/built-ins/TypedArrays/Uint8ClampedArray/name.js
@@ -68174,9 +68174,9 @@
 - path: test262/test/language/expressions/tagged-template/member-expression-context.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/tagged-template/tco-call.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/tco-helper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/tco-helper.js"], [:strict]
 - path: test262/test/language/expressions/tagged-template/tco-member.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/tco-helper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/tco-helper.js"], [:strict]
 - path: test262/test/language/expressions/tagged-template/template-object-frozen-non-strict.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/tagged-template/template-object-frozen-strict.js

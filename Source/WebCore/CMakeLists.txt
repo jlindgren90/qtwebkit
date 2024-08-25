@@ -222,7 +222,6 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/mediastream/MediaStreamEvent.idl
     Modules/mediastream/MediaStreamTrack.idl
     Modules/mediastream/MediaStreamTrackEvent.idl
-    Modules/mediastream/MediaStreamTrackSourcesCallback.idl
     Modules/mediastream/MediaTrackConstraint.idl
     Modules/mediastream/MediaTrackConstraintSet.idl
     Modules/mediastream/MediaTrackConstraints.idl
@@ -247,7 +246,6 @@ set(WebCore_NON_SVG_IDL_FILES
     Modules/mediastream/RTCStatsReport.idl
     Modules/mediastream/RTCStatsResponse.idl
     Modules/mediastream/RTCTrackEvent.idl
-    Modules/mediastream/SourceInfo.idl
 
     Modules/navigatorcontentutils/NavigatorContentUtils.idl
 
@@ -538,6 +536,7 @@ set(WebCore_NON_SVG_IDL_FILES
     html/RadioNodeList.idl
     html/TextMetrics.idl
     html/TimeRanges.idl
+    html/URLSearchParams.idl
     html/URLUtils.idl
     html/ValidityState.idl
     html/VoidCallback.idl
@@ -899,7 +898,6 @@ set(WebCore_SOURCES
     Modules/mediastream/RTCStatsResponse.cpp
     Modules/mediastream/RTCTrackEvent.cpp
     Modules/mediastream/SDPProcessor.cpp
-    Modules/mediastream/SourceInfo.cpp
     Modules/mediastream/UserMediaController.cpp
     Modules/mediastream/UserMediaPermissionCheck.cpp
     Modules/mediastream/UserMediaRequest.cpp
@@ -1253,6 +1251,8 @@ set(WebCore_SOURCES
     css/CSSContentDistributionValue.cpp
     css/CSSCrossfadeValue.cpp
     css/CSSCursorImageValue.cpp
+    css/CSSCustomIdentValue.cpp
+    css/CSSCustomPropertyDeclaration.cpp
     css/CSSDefaultStyleSheets.cpp
     css/CSSFilterImageValue.cpp
     css/FontFaceSet.cpp
@@ -1307,7 +1307,9 @@ set(WebCore_SOURCES
     css/CSSValue.cpp
     css/CSSValueList.cpp
     css/CSSValuePool.cpp
+    css/CSSVariableData.cpp
     css/CSSVariableDependentValue.cpp
+    css/CSSVariableReferenceValue.cpp
     css/CSSVariableValue.cpp
     css/DOMCSSNamespace.cpp
     css/DocumentRuleSets.cpp
@@ -1330,7 +1332,6 @@ set(WebCore_SOURCES
     css/SVGCSSComputedStyleDeclaration.cpp
     css/SelectorChecker.cpp
     css/SelectorFilter.cpp
-    css/SourceSizeList.cpp
     css/StyleInvalidationAnalysis.cpp
     css/StyleMedia.cpp
     css/StyleProperties.cpp
@@ -1364,6 +1365,7 @@ set(WebCore_SOURCES
     css/parser/CSSSupportsParser.cpp
     css/parser/CSSTokenizer.cpp
     css/parser/CSSTokenizerInputStream.cpp
+    css/parser/CSSVariableParser.cpp
     css/parser/MediaQueryBlockWatcher.cpp
     css/parser/MediaQueryParser.cpp
     css/parser/SizesAttributeParser.cpp
@@ -1554,6 +1556,7 @@ set(WebCore_SOURCES
     editing/RemoveNodePreservingChildrenCommand.cpp
     editing/RenderedPosition.cpp
     editing/ReplaceNodeWithSpanCommand.cpp
+    editing/ReplaceRangeWithTextCommand.cpp
     editing/ReplaceSelectionCommand.cpp
     editing/SetNodeAttributeCommand.cpp
     editing/SetSelectionCommand.cpp
@@ -1744,6 +1747,7 @@ set(WebCore_SOURCES
     html/TimeRanges.cpp
     html/TypeAhead.cpp
     html/URLInputType.cpp
+    html/URLSearchParams.cpp
     html/ValidationMessage.cpp
     html/WeekInputType.cpp
 

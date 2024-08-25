@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,23 +23,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef CaptureDeviceManager_h
-#define CaptureDeviceManager_h
+#pragma once
 
 #if ENABLE(MEDIA_STREAM)
 
-#include "CaptureDeviceInfo.h"
-#include "MediaStreamTrackSourcesRequestClient.h"
-#include "RealtimeMediaSource.h"
-#include <wtf/text/WTFString.h>
+#include "CaptureDevice.h"
 
 namespace WebCore {
+
+struct CaptureDeviceInfo {
+public:
+    String m_persistentDeviceID;
+    String m_localizedName;
+    String m_groupID;
+
+    String m_sourceId;
+
+    bool m_enabled { false };
+    RealtimeMediaSource::Type m_sourceType { RealtimeMediaSource::None };
+    RealtimeMediaSourceSettings::VideoFacingMode m_position { RealtimeMediaSourceSettings::Unknown };
+};
+
+class CaptureSessionInfo {
+public:
+    virtual ~CaptureSessionInfo() { }
+    virtual bool supportsVideoSize(const String& /* videoSize */) const { return false; }
+    virtual String bestSessionPresetForVideoDimensions(int /* width */, int /* height */) const { return emptyString(); }
+};
 
 class CaptureDeviceManager {
 public:
     virtual Vector<CaptureDeviceInfo>& captureDeviceList() = 0;
     virtual void refreshCaptureDeviceList() { }
-    virtual TrackSourceInfoVector getSourcesInfo(const String&);
+    virtual Vector<CaptureDevice> getSourcesInfo();
     virtual Vector<RefPtr<RealtimeMediaSource>> bestSourcesForTypeAndConstraints(RealtimeMediaSource::Type, MediaConstraints&);
     virtual RefPtr<RealtimeMediaSource> sourceWithUID(const String&, RealtimeMediaSource::Type, MediaConstraints*);
 
@@ -60,5 +76,3 @@ protected:
 } // namespace WebCore
 
 #endif // ENABLE(MEDIA_STREAM)
-
-#endif /* CaptureDeviceManager_h */

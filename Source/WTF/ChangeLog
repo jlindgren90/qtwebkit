@@ -1,3 +1,106 @@
+2016-09-14  JF Bastien  <jfbastien@apple.com>
+
+        Atomics on ARM don't require full-system fencing, and other minutiae
+        https://bugs.webkit.org/show_bug.cgi?id=161928
+
+        Reviewed by Geoffrey Garen.
+
+        Add cmpxchg versions with both success and failure memory
+        ordering. In some interesting cases we can craft code which needs
+        barriers which aren't as strong.
+
+        weakCompareAndSwap is super dubious, its 3 uses seem
+        questionable... but for now I'm just adding debug asserts.
+
+        Rename armv7_dmb* functions to arm_dmb* because they apply to v7
+        and v8 (or more precisely; to ARMv7's ARM and Thumb2, as well as
+        ARMv8's aarch32 A32/T32 and aarch64).
+
+        Use inner-shareability domain for ARM barriers instead of
+        full-system. This is what C++ uses.
+
+        The default case for barriers simply used a compiler barrier. This
+        is generally wrong, e.g. for MIPS.
+
+        * wtf/Atomics.h:
+        (WTF::Atomic::compareExchangeWeak): offer two-order version
+        (WTF::Atomic::compareExchangeStrong): offer two-order version
+        (WTF::weakCompareAndSwap): a few assertions
+        (WTF::arm_dmb): rename since it applies to ARMv7 and v8; make it innser-shareable
+        (WTF::arm_dmb_st): rename since it applies to ARMv7 and v8; make it innser-shareable
+        (WTF::loadLoadFence): incorrect generally
+        (WTF::loadStoreFence): incorrect generally
+        (WTF::storeLoadFence): incorrect generally
+        (WTF::storeStoreFence): incorrect generally
+        (WTF::memoryBarrierAfterLock): incorrect generally
+        (WTF::memoryBarrierBeforeUnlock): incorrect generally
+        (WTF::armV7_dmb): Deleted.
+        (WTF::armV7_dmb_st): Deleted.
+
+2016-09-14  JF Bastien  <jfbastien@apple.com>
+
+        Alwasys inline atomic operations
+        https://bugs.webkit.org/show_bug.cgi?id=155371
+
+        Reviewed by Geoffrey Garen.
+
+        Fixes "build fails with memory model cannot be stronger than
+        success memory model for ‘__atomic_compare_exchange’".
+
+        Pre-5 revisions of GCC at Os only generated an error message
+        related to invalid failure memory ordering. The reason is that
+        libstdc++ tries to be clever about enforcing the C++ standard's
+        clause [atomics.types.operations.req] ¶21 which states:
+
+            Requires: The failure argument shall not be
+            `memory_order_release` nor `memory_order_acq_rel`. The failure
+            argument shall be no stronger than the success argument.
+
+        It fails at doing this because its inlining heuristics are
+        modified by Os, and they're not quite as dumb as O0 but not smart
+        enough to get to the good code at O1. Adding ALWAYS_INLINE fixes
+        the silliness at Os, leaves O1 great, and makes O0 slightly less
+        bad but still pretty bad.
+
+        The other good news is that I'm going to get this particular
+        problem fixed in the version of C++ which will come after C++17:
+
+        https://github.com/jfbastien/papers/blob/master/source/P0418r1.bs
+
+        While we're at it we should always inline all of these wrapped
+        functions because the generated code is horrendous if the memory
+        order isn't known at compile time.
+
+        * wtf/Atomics.h:
+        (WTF::Atomic::load):
+        (WTF::Atomic::store):
+        (WTF::Atomic::compareExchangeWeak):
+        (WTF::Atomic::compareExchangeStrong):
+        (WTF::Atomic::exchangeAndAdd):
+        (WTF::Atomic::exchange):
+
+2016-09-13  Michael Saboff  <msaboff@apple.com>
+
+        Promises aren't resolved properly when making a ObjC API callback
+        https://bugs.webkit.org/show_bug.cgi?id=161929
+
+        Reviewed by Geoffrey Garen.
+
+        Removed resetCurrentAtomicStringTable() which is no longer referenced.
+
+        * wtf/WTFThreadData.h:
+        (WTF::WTFThreadData::resetCurrentAtomicStringTable): Deleted.
+
+2016-09-13  Alex Christensen  <achristensen@webkit.org>
+
+        Implement URLSearchParams
+        https://bugs.webkit.org/show_bug.cgi?id=161920
+
+        Reviewed by Chris Dumez.
+
+        * wtf/text/StringView.h:
+        (WTF::StringView::split): Added.
+
 2016-09-12  Filip Pizlo  <fpizlo@apple.com>
 
         ParkingLot is going to have a bad time with threads dying

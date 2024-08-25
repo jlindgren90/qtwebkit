@@ -1,3 +1,194 @@
+2016-09-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: TypedArray constructors length should be 3 and configurable
+        https://bugs.webkit.org/show_bug.cgi?id=161955
+
+        Reviewed by Mark Lam.
+
+        https://tc39.github.io/ecma262/#sec-ecmascript-standard-built-in-objects
+        Unless otherwise specified, the length property of a built-in Function
+        object has the attributes:
+        { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
+
+        * runtime/JSGenericTypedArrayViewConstructorInlines.h:
+        (JSC::JSGenericTypedArrayViewConstructor<ViewClass>::finishCreation):
+
+2016-09-14  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Make the rounding-related nodes support any type
+        https://bugs.webkit.org/show_bug.cgi?id=161895
+
+        Reviewed by Geoffrey Garen.
+
+        This patch changes ArithRound, ArithFloor, ArithCeil and ArithTrunc
+        to support polymorphic input without exiting on entry.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        The 4 functions ignore any input past the first argument. It is okay
+        to use the nodes with the first argument and let the Phantoms keep
+        the remaining arguments live.
+
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        Our fixup had the issue we have seen on previous nodes: unaryArithShouldSpeculateInt32()
+        prevents us from picking a good type if we do not see any double.
+
+        * dfg/DFGNodeType.h:
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        Prediction propagation of those nodes are fully determined
+        from their flags and results's prediction. They are moved
+        to the invariant processing.
+
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithRounding):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithRound):
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithFloor):
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithCeil):
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithTrunc):
+
+2016-09-14  Filip Pizlo  <fpizlo@apple.com>
+
+        Remove Heap::setMarked()
+
+        Rubber stamped by Keith Miller.
+        
+        Nobody uses this function.
+
+        * heap/Heap.h:
+        * heap/HeapInlines.h:
+        (JSC::Heap::setMarked): Deleted.
+        * heap/LargeAllocation.h:
+        (JSC::LargeAllocation::testAndSetMarked):
+        (JSC::LargeAllocation::setMarked): Deleted.
+        * heap/MarkedBlock.h:
+
+2016-09-14  Mark Lam  <mark.lam@apple.com>
+
+        Use Options::validateExceptionChecks() instead of VM::m_verifyExceptionEvents.
+        https://bugs.webkit.org/show_bug.cgi?id=161975
+
+        Reviewed by Keith Miller.
+
+        This makes it less burdensome (no longer needs a rebuild to enable checks) to do
+        incremental work towards enabling checks all the time.
+
+        * runtime/Options.h:
+        * runtime/VM.cpp:
+        (JSC::VM::verifyExceptionCheckNeedIsSatisfied):
+        * runtime/VM.h:
+
+2016-09-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        TaggedTemplateString function calls should emit tail position calls
+        https://bugs.webkit.org/show_bug.cgi?id=161948
+
+        Reviewed by Yusuke Suzuki.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::TaggedTemplateNode::emitBytecode):
+        The tagged template string function call can be a tail call:
+        https://tc39.github.io/ecma262/#sec-tagged-templates-runtime-semantics-evaluation
+
+2016-09-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: Array.prototype.slice should always set length
+        https://bugs.webkit.org/show_bug.cgi?id=161953
+
+        Reviewed by Mark Lam.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::arrayProtoFuncSplice):
+
+2016-09-13  Michael Saboff  <msaboff@apple.com>
+
+        Promises aren't resolved properly when making a ObjC API callback
+        https://bugs.webkit.org/show_bug.cgi?id=161929
+
+        Reviewed by Geoffrey Garen.
+
+        When we go to call out to an Objective C function registered via the API,
+        we first drop all JSC locks to make the call.  As part of dropping the locks,
+        we drain the microtask queue that is used among other things for handling deferred
+        promise resolution.  The DropAllLocks scope class that drops the locks while in
+        scope, resets the current thread's AtomicStringTable to the default table.  This
+        is wrong for two reasons, first it happens before we drain the microtask queue and
+        second it isn't needed as JSLock::willReleaseLock() restores the current thread's
+        AtomicStringTable to the table before the lock was acquired.
+
+        In fact, the manipulation of the current thread's AtomicStringTable is already 
+        properly handled as a stack in JSLock::didAcquireLock() and willReleaseLock().
+        Therefore the manipulation of the AtomicStringTable in DropAllLocks constructor
+        and destructor should be removed.
+
+        * API/tests/testapi.mm:
+        (testObjectiveCAPIMain): Added a new test.
+        * runtime/JSLock.cpp:
+        (JSC::JSLock::DropAllLocks::DropAllLocks):
+        (JSC::JSLock::DropAllLocks::~DropAllLocks):
+
+2016-09-13  Filip Pizlo  <fpizlo@apple.com>
+
+        Remove Heap::isLive()
+        https://bugs.webkit.org/show_bug.cgi?id=161933
+
+        Reviewed by Mark Lam.
+        
+        Before I put any more effort into maintaining this weird function, I decided to check how it
+        was used. It turns out it's not.
+
+        * heap/Heap.h:
+        * heap/HeapInlines.h:
+        (JSC::Heap::isLive): Deleted.
+
+2016-09-13  Mark Lam  <mark.lam@apple.com>
+
+        DFG NewArrayBuffer node should watch for "have a bad time" state change.
+        https://bugs.webkit.org/show_bug.cgi?id=161927
+        <rdar://problem/27995222>
+
+        Reviewed by Geoffrey Garen.
+
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+
+2016-09-13  JF Bastien  <jfbastien@apple.com>
+
+        Support jsc shell builtin `read`
+        https://bugs.webkit.org/show_bug.cgi?id=161662
+
+        Reviewed by Keith Miller.
+
+        The jsc shell currently supports a `readFile` method which returns
+        a string. SpiderMonkey's js shell and V8's d8 shell both support
+        similar file-to-string functions, as well as a
+        binary-file-to-Uint8Array function. jsc should support a similar
+        binary file method to simplify testing, including testing of
+        WebAssembly blobs.
+
+        Emscripten's shell.js (which is also used for some WebAssembly
+        things) has a polyfill [1] for a builtin called `read`. jsc should
+        therefore have a builtin with the same name if we want things to
+        "Just Work".
+
+          [1]: https://github.com/kripken/emscripten/blob/5f0918409a1407dd168f57cfa34b109cd1770a8a/src/shell.js#L138
+
+        * jsc.cpp:
+        (GlobalObject::finishCreation): add `read`, make `readFile` take up to 2 arguments.
+        (functionReadFile): support binary files, as per SpiderMonkey.
+        * runtime/Error.h:
+        (JSC::throwVMError): convenience function, I'll add more uses in a follow-up
+        * runtime/JSTypedArrays.cpp:
+        (JSC::createUint8TypedArray): JS private export of JSUint8Array::create.
+        * runtime/JSTypedArrays.h: expose private export.
+
 2016-09-12  Skachkov Oleksandr  <gskachkov@gmail.com>
 
         ES6: Classes: Should be allowed to create a static method with name "arguments"

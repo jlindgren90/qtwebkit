@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Google Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -10,10 +10,10 @@
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
  *
- * THIS SOFTWARE IS PROVIDED BY GOOGLE INC. ``AS IS'' AND ANY
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
  * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL GOOGLE INC. OR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
  * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
  * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
  * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
@@ -23,12 +23,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-[
-    ImplementationLacksVTable,
-    NoInterfaceObject,
-    Conditional=MEDIA_STREAM,
-] interface SourceInfo {
-    readonly attribute DOMString sourceId;
-    readonly attribute DOMString kind;
-    readonly attribute DOMString label;
+#pragma once
+
+#include "CompositeEditCommand.h"
+#include "Range.h"
+
+namespace WebCore {
+
+class ReplaceRangeWithTextCommand : public CompositeEditCommand {
+public:
+    static Ref<ReplaceRangeWithTextCommand> create(RefPtr<Range> rangeToBeReplaced, const String& text)
+    {
+        return adoptRef(*new ReplaceRangeWithTextCommand(rangeToBeReplaced, text));
+    }
+
+private:
+    ReplaceRangeWithTextCommand(RefPtr<Range> rangeToBeReplaced, const String& text);
+    void doApply() override;
+
+    RefPtr<Range> m_rangeToBeReplaced;
+    String m_text;
 };
+
+} // namespace WebCore

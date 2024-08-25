@@ -1146,6 +1146,7 @@ public:
     void setUserInterfaceLayoutDirection(WebCore::UserInterfaceLayoutDirection);
 
     bool hasHadSelectionChangesFromUserInteraction() const { return m_hasHadSelectionChangesFromUserInteraction; }
+    bool needsHiddenContentEditableQuirk() const { return m_needsHiddenContentEditableQuirk; }
 
     bool isAlwaysOnLoggingAllowed() const;
 
@@ -1321,6 +1322,7 @@ private:
     void editorStateChanged(const EditorState&);
     void compositionWasCanceled(const EditorState&);
     void setHasHadSelectionChangesFromUserInteraction(bool);
+    void setNeedsHiddenContentEditableQuirk(bool);
 #if PLATFORM(QT)
     void willSetInputMethodState();
 #endif
@@ -1903,6 +1905,7 @@ private:
     bool m_isResourceCachingDisabled { false };
 
     bool m_hasHadSelectionChangesFromUserInteraction { false };
+    bool m_needsHiddenContentEditableQuirk { false };
 
 #if ENABLE(MEDIA_SESSION)
     bool m_hasMediaSessionWithActiveMediaElements { false };

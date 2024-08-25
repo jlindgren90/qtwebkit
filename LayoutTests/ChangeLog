@@ -1,3 +1,325 @@
+2016-09-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: TypedArray constructors length should be 3 and configurable
+        https://bugs.webkit.org/show_bug.cgi?id=161955
+
+        Reviewed by Mark Lam.
+
+        * js/script-tests/typedarray-constructors.js:
+        * js/typedarray-constructors-expected.txt:
+        * js/dom/constructor-length.html:
+        * platform/efl/js/dom/constructor-length-expected.txt:
+        * platform/gtk/js/dom/constructor-length-expected.txt:
+        * platform/ios-simulator/js/dom/constructor-length-expected.txt:
+        * platform/mac/js/dom/constructor-length-expected.txt:
+        * platform/win/js/dom/constructor-length-expected.txt:
+
+2016-09-14  Chris Dumez  <cdumez@apple.com>
+
+        input.type cannot be set to "file" after being set to another type
+        https://bugs.webkit.org/show_bug.cgi?id=161943
+
+        Reviewed by Daniel Bates.
+
+        * fast/dom/HTMLInputElement/input-type-change-to-file-expected.txt: Added.
+        * fast/dom/HTMLInputElement/input-type-change-to-file.html: Added.
+        * fast/dom/HTMLInputElement/input-type-file-security-expected.txt: Added
+        * fast/dom/HTMLInputElement/input-type-file-security.html: Added
+        Add layout test coverage. I have verified that these tests are passing in both
+        Firefox and Chrome.
+
+        * fast/forms/input-type-change3-expected.txt:
+        * fast/forms/input-type-change3.html:
+        * fast/forms/input-valueasnumber-unsupported-expected.txt:
+        * fast/forms/input-valueasnumber-unsupported.html:
+        Update existing tests to reflect behavior change.
+
+2016-09-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline tests added with r205905 for ios-simulator.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/fast/dom/HTMLImageElement/sizes/image-sizes-w3c-1-expected.txt: Added.
+        * platform/ios-simulator/fast/dom/HTMLImageElement/sizes/image-sizes-w3c-2-expected.txt: Added.
+        * platform/ios-simulator/fast/dom/HTMLImageElement/sizes/image-sizes-w3c-3-expected.txt: Added.
+        * platform/ios-simulator/fast/dom/HTMLImageElement/sizes/image-sizes-w3c-4-expected.txt: Added.
+
+2016-09-14  Youenn Fablet  <youenn@apple.com>
+
+        LayoutTest http/tests/security/cross-origin-cached-scripts-parallel.html is a flaky failure
+        https://bugs.webkit.org/show_bug.cgi?id=161912
+
+        Reviewed by Alexey Proskuryakov.
+
+        * TestExpectations: Removing flaky expectation.
+        * http/tests/security/cross-origin-cached-scripts-parallel-expected.txt:
+        * http/tests/security/cross-origin-cached-scripts-parallel.html: Increase timeout to ensure load is made in parallel.
+        Fixed flakiness by doing parallel loads in two shots of two, in lieu of 1 shot of 4.
+
+2016-09-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/console/messagesCleared.html as flaky on mac-debug.
+        https://bugs.webkit.org/show_bug.cgi?id=152025
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-09-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/scrolling/arrow-key-scroll-in-rtl-document.html as flaky on mac-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=161549
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-09-14  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Enable the new sizes parser by default
+        https://bugs.webkit.org/show_bug.cgi?id=161931
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/dom/HTMLImageElement/resources/green-16x16.png: Added.
+        * fast/dom/HTMLImageElement/resources/green-1x1.png: Added.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-invalids-expected.txt:
+        * fast/dom/HTMLImageElement/sizes/image-sizes-invalids.html:
+        * fast/dom/HTMLImageElement/sizes/image-sizes-w3c-1-expected.txt: Added.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-w3c-1.html: Added.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-w3c-2-expected.txt: Added.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-w3c-2.html: Added.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-w3c-3-expected.txt: Added.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-w3c-3.html: Added.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-w3c-4-expected.txt: Added.
+        * fast/dom/HTMLImageElement/sizes/image-sizes-w3c-4.html: Added.
+
+2016-09-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/XMLHttpRequest/response-method.htm as failing on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=161949
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-09-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline imported/w3c/web-platform-tests/XMLHttpRequest/setrequestheader-content-type.htm for ios-simulator.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/imported/w3c/web-platform-tests/XMLHttpRequest/setrequestheader-content-type-expected.txt:
+
+2016-09-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        More unreviewed test gardening for iOS 10.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-09-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed test gardening for iOS 10.
+
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/editing/deleting/delete-emoji-expected.txt:
+        * platform/ios-simulator/fast/text/font-weights-expected.txt:
+        * platform/ios-simulator/fast/text/system-font-weight-expected.txt:
+
+2016-09-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline js/dom/global-constructors-attributes.html for Yosemite.
+
+        Unreviewed test gardening.
+
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+
+2016-09-13  Alex Christensen  <achristensen@webkit.org>
+
+        Implement URLSearchParams
+        https://bugs.webkit.org/show_bug.cgi?id=161920
+
+        Reviewed by Chris Dumez.
+
+        * js/dom/global-constructors-attributes-dedicated-worker-expected.txt:
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/imported/w3c/web-platform-tests/XMLHttpRequest/setrequestheader-content-type-expected.txt:
+
+2016-09-13  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] MediaSource.addSourceBuffer(null) should throw an exception
+        https://bugs.webkit.org/show_bug.cgi?id=161884
+
+        Reviewed by Eric Carlson.
+
+        * platform/mac/TestExpectations:
+        * platform/mac/imported/w3c/web-platform-tests/media-source/mediasource-addsourcebuffer-expected.txt: Added.
+
+2016-09-13  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Unify font's ascent, descent, and x-height between macOS and iOS
+        https://bugs.webkit.org/show_bug.cgi?id=161877
+
+        Reviewed by Simon Fraser.
+
+        Updating expected results.
+
+        * imported/blink/svg/text/obb-paintserver-expected.html: Covered tiny unrelated 1px difference.
+        * imported/blink/svg/text/obb-paintserver.html: Ditto.
+        * platform/ios-simulator/editing/selection/vertical-rl-rtl-extend-line-backward-br-expected.txt:
+        * platform/ios-simulator/editing/selection/vertical-rl-rtl-extend-line-backward-p-expected.txt:
+        * platform/ios-simulator/editing/selection/vertical-rl-rtl-extend-line-forward-br-expected.txt:
+        * platform/ios-simulator/editing/selection/vertical-rl-rtl-extend-line-forward-p-expected.txt:
+        * platform/ios-simulator/fast/text/whitespace/pre-wrap-spaces-after-newline-expected.txt:
+        * platform/ios-simulator/svg/W3C-SVG-1.1-SE/coords-units-03-b-expected.txt:
+        * platform/ios-simulator/svg/custom/glyph-transformation-with-hkern-expected.txt: Copied from LayoutTests/svg/custom/glyph-transformation-with-hkern-expected.txt.
+        * platform/ios-simulator/svg/custom/repaint-shadow-expected.txt: Copied from LayoutTests/svg/custom/repaint-shadow-expected.txt.
+        * platform/ios-simulator/svg/text/text-hkern-on-vertical-text-expected.txt: Copied from LayoutTests/svg/text/text-hkern-on-vertical-text-expected.txt.
+        * platform/ios-simulator/svg/text/text-vkern-on-horizontal-text-expected.txt: Copied from LayoutTests/svg/text/text-vkern-on-horizontal-text-expected.txt.
+        * platform/ios-simulator/tables/mozilla/bugs/bug55527-expected.txt:
+        * platform/mac-yosemite/fast/text/emoji-expected.txt:
+        * platform/mac-yosemite/svg/W3C-SVG-1.1-SE/text-intro-05-t-expected.txt:
+        * platform/mac/css2.1/t1202-counter-04-b-expected.txt:
+        * platform/mac/css2.1/t1202-counters-04-b-expected.txt:
+        * platform/mac/fast/text/emoji-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/color-prop-05-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/coords-dom-01-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/coords-dom-02-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/coords-dom-03-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/coords-dom-04-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/coords-units-03-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/filters-felem-01-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/filters-image-03-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/interact-pointer-03-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/linking-uri-01-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/painting-marker-07-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/paths-dom-02-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/pservers-grad-17-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/pservers-grad-20-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/pservers-pattern-03-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/pservers-pattern-04-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/struct-use-14-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/styling-css-04-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/styling-pres-02-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/svgdom-over-01-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/text-intro-02-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/text-intro-05-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/text-intro-09-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/text-tref-03-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/text-tspan-02-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/types-dom-01-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/types-dom-02-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/types-dom-03-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/types-dom-04-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/types-dom-05-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/types-dom-06-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1-SE/types-dom-07-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/animate-elem-03-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/animate-elem-24-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/animate-elem-36-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/animate-elem-40-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/filters-light-04-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/filters-turb-02-f-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/fonts-elem-05-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/fonts-elem-06-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/fonts-glyph-02-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/fonts-glyph-03-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/fonts-kern-01-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/render-elems-06-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/render-elems-07-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/render-elems-08-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/text-align-08-b-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/text-fonts-03-t-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/text-text-04-t-expected.txt:
+        * platform/mac/svg/batik/text/xmlSpace-expected.txt:
+        * platform/mac/svg/custom/glyph-selection-bidi-mirror-expected.txt:
+        * platform/mac/svg/custom/glyph-setting-d-attribute-expected.txt:
+        * platform/mac/svg/foreignObject/text-tref-02-b-expected.txt:
+        * platform/mac/svg/text/kerning-expected.txt:
+        * platform/mac/svg/text/multichar-glyph-expected.txt:
+        * svg/custom/glyph-transformation-with-hkern-expected.txt:
+        * svg/custom/repaint-shadow-expected.txt:
+        * svg/text/text-hkern-on-vertical-text-expected.txt:
+        * svg/text/text-vkern-on-horizontal-text-expected.txt:
+
+2016-09-13  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Use Array.shallowEqual instead of Object.shallowEqual in more places
+        https://bugs.webkit.org/show_bug.cgi?id=161867
+        <rdar://problem/28261328>
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/unit-tests/array-utilities-expected.txt:
+        * inspector/unit-tests/array-utilities.html:
+        Add test coverage for Array.shallowEqual.
+        Use Array.shallowEqual instead of JSON.stringify in tests.
+        Use expectFalse and expectEqual in tests where appropriate.
+
+2016-09-13  Tim Horton  <timothy_horton@apple.com>
+
+        Undoing a candidate insertion results in the replaced text being selected
+        https://bugs.webkit.org/show_bug.cgi?id=161894
+        <rdar://problem/28225774>
+
+        Reviewed by Simon Fraser.
+
+        * editing/mac/spelling/accept-candidate-allows-autocorrect-on-next-word-expected.txt:
+        * editing/mac/spelling/accept-candidate-replacing-multiple-words-expected.txt:
+        * editing/mac/spelling/accept-candidate-undo-does-not-select-expected.txt: Copied from LayoutTests/editing/mac/spelling/accept-candidate-replacing-multiple-words-expected.txt.
+        * editing/mac/spelling/accept-candidate-undo-does-not-select.html: Added.
+        * editing/mac/spelling/accept-candidate-without-adding-space-expected.txt:
+        * editing/mac/spelling/accept-candidate-without-crossing-editing-boundary-expected.txt:
+        Adjust some test results, and add a new test that ensures that undoing
+        a candidate insertion does not select the replaced text.
+
+2016-09-13  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Should be able to pretty print module code (import / export statements)
+        https://bugs.webkit.org/show_bug.cgi?id=161891
+        <rdar://problem/28272784>
+
+        Reviewed by Yusuke Suzuki.
+
+        * inspector/formatting/formatting-javascript-expected.txt:
+        * inspector/formatting/formatting-javascript.html:
+        * inspector/formatting/resources/javascript-tests/modules-expected.js: Added.
+        * inspector/formatting/resources/javascript-tests/modules.js: Added.
+        Include a new test for modules.
+
+        * inspector/formatting/formatting-json.html:
+        All of these are non-module source code.
+
+        * inspector/formatting/resources/utilities.js:
+        Determine if module or not based on the test name.
+
+2016-09-13  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/security/cross-origin-cached-scripts-parallel.html as flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=161912
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-09-12  Jer Noble  <jer.noble@apple.com>
+
+        Media-source backed elements block load event; cause web-platform-test flakiness
+        https://bugs.webkit.org/show_bug.cgi?id=161881
+
+        Reviewed by Eric Carlson.
+
+        * media/media-source/media-source-delaying-load-event-expected.txt: Added.
+        * media/media-source/media-source-delaying-load-event.html: Added.
+
+2016-09-13  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed gardening; removed duplicate entry for mediasource-config-change-mp4-v-bitrate.html.
+
+        * platform/mac/TestExpectations:
+
 2016-09-12  Zalan Bujtas  <zalan@apple.com>
 
         Input type object and the associated render can go out of sync.

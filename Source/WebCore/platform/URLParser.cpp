@@ -43,6 +43,7 @@ template<typename CharacterType> static bool isInSimpleEncodeSet(CharacterType c
 template<typename CharacterType> static bool isInDefaultEncodeSet(CharacterType character) { return isInSimpleEncodeSet(character) || character == 0x0020 || character == '"' || character == '#' || character == '<' || character == '>' || character == '?' || character == '`' || character == '{' || character == '}'; }
 template<typename CharacterType> static bool isInUserInfoEncodeSet(CharacterType character) { return isInDefaultEncodeSet(character) || character == '/' || character == ':' || character == ';' || character == '=' || character == '@' || character == '[' || character == '\\' || character == ']' || character == '^' || character == '|'; }
 template<typename CharacterType> static bool isInvalidDomainCharacter(CharacterType character) { return character == 0x0000 || character == 0x0009 || character == 0x000A || character == 0x000D || character == 0x0020 || character == '#' || character == '%' || character == '/' || character == ':' || character == '?' || character == '@' || character == '[' || character == '\\' || character == ']'; }
+template<typename CharacterType> static bool isPercentOrNonASCII(CharacterType character) { return !isASCII(character) || character == '%'; }
     
 static bool isWindowsDriveLetter(StringView::CodePoints::Iterator iterator, const StringView::CodePoints::Iterator& end)
 {
@@ -112,10 +113,27 @@ static bool shouldPercentEncodeQueryByte(uint8_t byte)
     return byte == 0x3E;
 }
 
+static void utf8PercentEncodeQuery(UChar32 codePoint, StringBuilder& builder)
+{
+    uint8_t buffer[U8_MAX_LENGTH];
+    int32_t offset = 0;
+    UBool error = false;
+    U8_APPEND(buffer, offset, U8_MAX_LENGTH, codePoint, error);
+    ASSERT_WITH_SECURITY_IMPLICATION(offset <= static_cast<int32_t>(sizeof(buffer)));
+    // FIXME: Check error.
+    for (int32_t i = 0; i < offset; ++i) {
+        auto byte = buffer[i];
+        if (shouldPercentEncodeQueryByte(byte))
+            percentEncode(byte, builder);
+        else
+            builder.append(byte);
+    }
+}
+    
 static void encodeQuery(const StringBuilder& source, StringBuilder& destination, const TextEncoding& encoding)
 {
     // FIXME: It is unclear in the spec what to do when encoding fails. The behavior should be specified and tested.
-    CString encoded = encoding.encode(StringView(source.toStringPreserveCapacity()), URLEncodedEntitiesForUnencodables);
+    CString encoded = encoding.encode(source.toStringPreserveCapacity(), URLEncodedEntitiesForUnencodables);
     const char* data = encoded.data();
     size_t length = encoded.length();
     for (size_t i = 0; i < length; ++i) {
@@ -478,7 +496,7 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
     m_buffer.clear();
     m_buffer.reserveCapacity(input.length());
     
-    // FIXME: We shouldn't need to allocate another buffer for this.
+    bool isUTF8Encoding = encoding == UTF8Encoding();
     StringBuilder queryBuffer;
 
     unsigned endIndex = input.length();
@@ -716,6 +734,7 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
                         ++c;
                     authorityOrHostBegin = c;
                     state = State::Host;
+                    m_hostHasPercentOrNonASCII = false;
                     break;
                 }
                 bool isSlash = *c == '/' || (m_urlIsSpecial && *c == '\\');
@@ -731,6 +750,8 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
                     state = State::Path;
                     break;
                 }
+                if (isPercentOrNonASCII(*c))
+                    m_hostHasPercentOrNonASCII = true;
                 ++c;
             }
             break;
@@ -742,6 +763,8 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
                 state = State::Path;
                 break;
             }
+            if (isPercentOrNonASCII(*c))
+                m_hostHasPercentOrNonASCII = true;
             ++c;
             break;
         case State::File:
@@ -872,6 +895,8 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
                 state = State::PathStart;
                 break;
             }
+            if (isPercentOrNonASCII(*c))
+                m_hostHasPercentOrNonASCII = true;
             ++c;
             break;
         case State::PathStart:
@@ -940,12 +965,16 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
         case State::Query:
             LOG_STATE("Query");
             if (*c == '#') {
-                encodeQuery(queryBuffer, m_buffer, encoding);
+                if (!isUTF8Encoding)
+                    encodeQuery(queryBuffer, m_buffer, encoding);
                 m_url.m_queryEnd = m_buffer.length();
                 state = State::Fragment;
                 break;
             }
-            queryBuffer.append(*c);
+            if (isUTF8Encoding)
+                utf8PercentEncodeQuery(*c, m_buffer);
+            else
+                queryBuffer.append(*c);
             ++c;
             break;
         case State::Fragment:
@@ -1097,7 +1126,8 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
         break;
     case State::Query:
         LOG_FINAL_STATE("Query");
-        encodeQuery(queryBuffer, m_buffer, encoding);
+        if (!isUTF8Encoding)
+            encodeQuery(queryBuffer, m_buffer, encoding);
         m_url.m_queryEnd = m_buffer.length();
         m_url.m_fragmentEnd = m_url.m_queryEnd;
         break;
@@ -1411,20 +1441,18 @@ static Optional<std::array<uint16_t, 8>> parseIPv6Host(StringView::CodePoints::I
     return address;
 }
 
-static String percentDecode(const String& input)
+// FIXME: This should return a CString.
+static String percentDecode(const LChar* input, size_t length)
 {
     StringBuilder output;
-    RELEASE_ASSERT(input.is8Bit());
-    const LChar* inputBytes = input.characters8();
-    size_t length = input.length();
     
     for (size_t i = 0; i < length; ++i) {
-        uint8_t byte = inputBytes[i];
+        uint8_t byte = input[i];
         if (byte != '%')
             output.append(byte);
         else if (i < length - 2) {
-            if (isASCIIHexDigit(inputBytes[i + 1]) && isASCIIHexDigit(inputBytes[i + 2])) {
-                output.append(toASCIIHexValue(inputBytes[i + 1], inputBytes[i + 2]));
+            if (isASCIIHexDigit(input[i + 1]) && isASCIIHexDigit(input[i + 2])) {
+                output.append(toASCIIHexValue(input[i + 1], input[i + 2]));
                 i += 2;
             } else
                 output.append(byte);
@@ -1538,6 +1566,40 @@ bool URLParser::parseHost(StringView::CodePoints::Iterator& iterator, const Stri
             return true;
         }
     }
+    
+    if (!m_hostHasPercentOrNonASCII) {
+        auto hostIterator = iterator;
+        for (; iterator != end; ++iterator) {
+            if (isTabOrNewline(*iterator))
+                continue;
+            if (*iterator == ':')
+                break;
+        }
+        if (auto address = parseIPv4Host(hostIterator, iterator)) {
+            serializeIPv4(address.value(), m_buffer);
+            m_url.m_hostEnd = m_buffer.length();
+            if (iterator == end) {
+                m_url.m_portEnd = m_buffer.length();
+                return true;
+            }
+            ++iterator;
+            return parsePort(iterator, end);
+        }
+        for (; hostIterator != iterator; ++hostIterator) {
+            if (!isTabOrNewline(*hostIterator))
+                m_buffer.append(toASCIILower(*hostIterator));
+        }
+        m_url.m_hostEnd = m_buffer.length();
+        if (hostIterator != end) {
+            ASSERT(*hostIterator == ':');
+            ++hostIterator;
+            while (hostIterator != end && isTabOrNewline(*hostIterator))
+                ++hostIterator;
+            return parsePort(hostIterator, end);
+        }
+        m_url.m_portEnd = m_buffer.length();
+        return true;
+    }
 
     // FIXME: We probably don't need to make so many buffers and String copies.
     StringBuilder utf8Encoded;
@@ -1550,10 +1612,12 @@ bool URLParser::parseHost(StringView::CodePoints::Iterator& iterator, const Stri
         int32_t offset = 0;
         UBool error = false;
         U8_APPEND(buffer, offset, U8_MAX_LENGTH, *iterator, error);
+        ASSERT_WITH_SECURITY_IMPLICATION(offset <= static_cast<int32_t>(sizeof(buffer)));
         // FIXME: Check error.
         utf8Encoded.append(buffer, offset);
     }
-    String percentDecoded = percentDecode(utf8Encoded.toStringPreserveCapacity());
+    RELEASE_ASSERT(utf8Encoded.is8Bit());
+    String percentDecoded = percentDecode(utf8Encoded.characters8(), utf8Encoded.length());
     RELEASE_ASSERT(percentDecoded.is8Bit());
     String domain = String::fromUTF8(percentDecoded.characters8(), percentDecoded.length());
     auto asciiDomain = domainToASCII(domain);
@@ -1583,6 +1647,70 @@ bool URLParser::parseHost(StringView::CodePoints::Iterator& iterator, const Stri
     }
     m_url.m_portEnd = m_buffer.length();
     return true;
+}
+
+static Optional<String> formURLDecode(StringView input)
+{
+    auto utf8 = input.utf8(StrictConversion);
+    if (utf8.isNull())
+        return Nullopt;
+    auto percentDecoded = percentDecode(reinterpret_cast<const LChar*>(utf8.data()), utf8.length());
+    RELEASE_ASSERT(percentDecoded.is8Bit());
+    return String::fromUTF8(percentDecoded.characters8(), percentDecoded.length());
+}
+
+auto URLParser::parseURLEncodedForm(StringView input) -> URLEncodedForm
+{
+    Vector<StringView> sequences = input.split('&');
+
+    URLEncodedForm output;
+    for (auto& bytes : sequences) {
+        auto valueStart = bytes.find('=');
+        if (valueStart == notFound) {
+            if (auto name = formURLDecode(bytes))
+                output.append({name.value().replace('+', 0x20), emptyString()});
+        } else {
+            auto name = formURLDecode(bytes.substring(0, valueStart));
+            auto value = formURLDecode(bytes.substring(valueStart + 1));
+            if (name && value)
+                output.append(std::make_pair(name.value().replace('+', 0x20), value.value().replace('+', 0x20)));
+        }
+    }
+    return output;
+}
+
+static void serializeURLEncodedForm(const String& input, StringBuilder& output)
+{
+    auto utf8 = input.utf8(StrictConversion);
+    const char* data = utf8.data();
+    for (size_t i = 0; i < utf8.length(); ++i) {
+        const char byte = data[i];
+        if (byte == 0x20)
+            output.append(0x2B);
+        else if (byte == 0x2A
+            || byte == 0x2D
+            || byte == 0x2E
+            || (byte >= 0x30 && byte <= 0x39)
+            || (byte >= 0x41 && byte <= 0x5A)
+            || byte == 0x5F
+            || (byte >= 0x61 && byte <= 0x7A))
+            output.append(byte);
+        else
+            percentEncode(byte, output);
+    }
+}
+    
+String URLParser::serialize(const URLEncodedForm& tuples)
+{
+    StringBuilder output;
+    for (auto& tuple : tuples) {
+        if (!output.isEmpty())
+            output.append('&');
+        serializeURLEncodedForm(tuple.first, output);
+        output.append('=');
+        serializeURLEncodedForm(tuple.second, output);
+    }
+    return output.toString();
 }
 
 bool URLParser::allValuesEqual(const URL& a, const URL& b)

@@ -139,7 +139,6 @@ JS_BINDING_IDLS = \
     $(WebCore)/Modules/mediastream/MediaStreamEvent.idl \
     $(WebCore)/Modules/mediastream/MediaStreamTrack.idl \
     $(WebCore)/Modules/mediastream/MediaStreamTrackEvent.idl \
-    $(WebCore)/Modules/mediastream/MediaStreamTrackSourcesCallback.idl \
     $(WebCore)/Modules/mediastream/MediaTrackConstraint.idl \
     $(WebCore)/Modules/mediastream/MediaTrackConstraintSet.idl \
     $(WebCore)/Modules/mediastream/MediaTrackConstraints.idl \
@@ -163,7 +162,6 @@ JS_BINDING_IDLS = \
     $(WebCore)/Modules/mediastream/RTCStatsReport.idl \
     $(WebCore)/Modules/mediastream/RTCStatsResponse.idl \
     $(WebCore)/Modules/mediastream/RTCTrackEvent.idl \
-    $(WebCore)/Modules/mediastream/SourceInfo.idl \
     $(WebCore)/Modules/notifications/DOMWindowNotifications.idl \
     $(WebCore)/Modules/notifications/Notification.idl \
     $(WebCore)/Modules/notifications/NotificationCenter.idl \
@@ -447,6 +445,7 @@ JS_BINDING_IDLS = \
     $(WebCore)/html/RadioNodeList.idl \
     $(WebCore)/html/TextMetrics.idl \
     $(WebCore)/html/TimeRanges.idl \
+    $(WebCore)/html/URLSearchParams.idl \
     $(WebCore)/html/URLUtils.idl \
     $(WebCore)/html/ValidityState.idl \
     $(WebCore)/html/VoidCallback.idl \

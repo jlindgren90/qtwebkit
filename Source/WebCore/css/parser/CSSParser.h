@@ -32,7 +32,6 @@
 #include "CSSValueKeywords.h"
 #include "Color.h"
 #include "MediaQuery.h"
-#include "SourceSizeList.h"
 #include "StyleRuleImport.h"
 #include "WebKitCSSFilterValue.h"
 #include <memory>
@@ -276,7 +275,7 @@ public:
     bool parseCounter(CSSPropertyID, int defaultValue, bool important);
     RefPtr<CSSPrimitiveValue> parseCounterContent(CSSParserValueList& args, bool counters);
 
-    bool parseColorParameters(CSSParserValue&, int* colorValues, bool parseAlpha);
+    bool parseRGBParameters(CSSParserValue&, int* colorValues, bool parseAlpha);
     bool parseHSLParameters(CSSParserValue&, double* colorValues, bool parseAlpha);
     RefPtr<CSSPrimitiveValue> parseColor(CSSParserValue* = nullptr);
     bool parseColorFromValue(CSSParserValue&, RGBA32&);
@@ -427,7 +426,6 @@ public:
     RefPtr<StyleRuleBase> m_rule;
     RefPtr<StyleKeyframe> m_keyframe;
     std::unique_ptr<MediaQuery> m_mediaQuery;
-    std::unique_ptr<Vector<SourceSize>> m_sourceSizeList;
     std::unique_ptr<CSSParserValueList> m_valueList;
     bool m_supportsCondition { false };
 

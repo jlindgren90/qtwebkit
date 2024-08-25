@@ -1142,7 +1142,7 @@ bool RenderView::rootBackgroundIsEntirelyFixed() const
     if (!rootObject)
         return false;
 
-    return rootObject->rendererForRootBackground().hasEntirelyFixedBackground();
+    return rootObject->rendererForRootBackground().style().hasEntirelyFixedBackground();
 }
     
 LayoutRect RenderView::unextendedBackgroundRect() const
