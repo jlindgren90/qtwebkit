@@ -149,6 +149,7 @@ public:
 #endif
     
     const TextCheckerState& textCheckerState() const { return m_textCheckerState; }
+    void setTextCheckerState(const TextCheckerState&);
 
     void clearResourceCaches(ResourceCachesToClear = AllResourceCaches);
     
@@ -195,6 +196,10 @@ public:
 
 #if PLATFORM(IOS)
     void resetAllGeolocationPermissions();
+#endif
+
+#if PLATFORM(WAYLAND)
+    String waylandCompositorDisplayName() const { return m_waylandCompositorDisplayName; }
 #endif
 
     RefPtr<API::Object> transformHandlesToObjects(API::Object*);
@@ -266,8 +271,6 @@ private:
     
     void startMemorySampler(const SandboxExtension::Handle&, const String&, const double);
     void stopMemorySampler();
-
-    void setTextCheckerState(const TextCheckerState&);
     
     void getWebCoreStatistics(uint64_t callbackID);
     void garbageCollectJavaScriptObjects();
@@ -402,6 +405,10 @@ private:
     bool m_suppressMemoryPressureHandler { false };
 
     HashMap<WebCore::UserGestureToken *, uint64_t> m_userGestureTokens;
+
+#if PLATFORM(WAYLAND)
+    String m_waylandCompositorDisplayName;
+#endif
 };
 
 } // namespace WebKit

@@ -1,3 +1,326 @@
+2016-08-29  Aakash Jain  <aakash_jain@apple.com>
+
+        EWS patch status page should indicate bot corresponding to each status message
+        https://bugs.webkit.org/show_bug.cgi?id=161280
+
+        Reviewed by Alexey Proskuryakov.
+
+        * QueueStatusServer/templates/patch.html: Formatting changes.
+
+2016-08-29  Aakash Jain  <aakash_jain@apple.com>
+
+        EWS should indicate which bot processed the patch
+        https://bugs.webkit.org/show_bug.cgi?id=161222
+
+        Reviewed by Alexey Proskuryakov.
+
+        * QueueStatusServer/handlers/statusbubble.py:
+        (StatusBubble._build_bubble): Remove the bot id from bubbles as it is confusing.
+        bot ids are now displayed in patch status page.
+
+2016-08-29  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse about:blank
+        https://bugs.webkit.org/show_bug.cgi?id=161324
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-08-29  JF Bastien  <jfbastien@apple.com>
+
+        Bug 161165 - check-webkit-style doesn't understand macros containing `else` or labels
+        https://bugs.webkit.org/show_bug.cgi?id=161165
+
+        Reviewed by Geoffrey Garen.
+
+        Fix handling of `else` in a macro. Don't handle labels in a macro:
+        the checker is already pretty messy in that area and it should be
+        a rare thing.
+
+        * Scripts/webkitpy/style/checkers/cpp.py:
+        (check_braces):
+        * Scripts/webkitpy/style/checkers/cpp_unittest.py:
+        (CppStyleTest.test_else_clause_not_on_same_line_as_else):
+
+2016-08-29  Alex Christensen  <achristensen@webkit.org>
+
+        API test URLParserTest.ParserFailures failing ASSERT_NOT_REACHED
+        https://bugs.webkit.org/show_bug.cgi?id=161317
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-08-29  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed gardening; only build MiniBrowser against iOS SDK targets.
+
+        * Makefile:
+
+2016-08-29  Jonathan Bedard  <jbedard@apple.com>
+
+        Sample Process on notifyDone timed out
+        https://bugs.webkit.org/show_bug.cgi?id=161063
+
+        Reviewed by Darin Adler.
+
+        * Scripts/webkitpy/port/driver.py:
+        (Driver._check_for_driver_timeout): 
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp: Call sample_process during notifyDone timeouts.
+        (WTR::TestRunner::waitToDumpWatchdogTimerFired):
+        * WebKitTestRunner/InjectedBundle/mac/TestRunnerMac.mm: Log pid and name for testing harness.
+
+2016-08-29  Jonathan Bedard  <jbedard@apple.com>
+
+        Check-webkit-style does not work with Objective-C blocks
+        https://bugs.webkit.org/show_bug.cgi?id=161247
+
+        Reviewed by Darin Adler.
+
+        * Scripts/webkitpy/style/checkers/cpp.py:
+        (regex_for_lambda_functions): Changed to regex_for_lambdas_and_blocks.
+        (regex_for_lambdas_and_blocks): Added check for Objective-C blocks.
+        (check_spacing_for_function_call): Pass file state for lambda check.
+        (check_spacing): Pass file state for lambda check.
+        (check_braces): Pass file state for lambda check.
+        (check_style): Pass file state for lambda check.
+        * Scripts/webkitpy/style/checkers/cpp_unittest.py:
+        (CppStyleTest.test_cpp_lambda_functions): Changed from ‘test_lambda_functions’.
+        (CppStyleTest.test_objective_c_block): Tests Objective-C blocks.
+        (CppStyleTest.test_lambda_functions): Changed to ‘test_cpp_lambda_functions’.
+
+2016-08-29  Aakash Jain  <aakash_jain@apple.com>
+
+        EWS patch status page should indicate bot corresponding to each status message
+        https://bugs.webkit.org/show_bug.cgi?id=161280
+
+        Reviewed by Alexey Proskuryakov.
+
+        * QueueStatusServer/templates/patch.html: Added bot_id in the template so that bot id is displayed
+        for each status message.
+        * QueueStatusServer/stylesheets/common.css:
+        (.status-bot): Added corresponding stylesheet class.
+
+2016-08-29  Per Arne Vollan  <pvollan@apple.com>
+
+        Attempt to fix Windows build after r205090.
+
+        Unreviewed build fix.
+
+        * DumpRenderTree/win/DRTDataObject.cpp:
+        (cfFileNameWFormat):
+        (cfUrlWFormat):
+
+2016-08-27  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse relative URLs
+        https://bugs.webkit.org/show_bug.cgi?id=161282
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Tests/WTF/StringView.cpp:
+        (TestWebKitAPI::TEST):
+        Added some tests for the new operator=.
+        Test saving iterators, restoring iterators, and even assigning iterators to new CodePoints objects.
+        Using the same iterator to iterate multiple objects is bad practice, but it's possible and now tested.
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::TEST_F):
+        (TestWebKitAPI::checkRelativeURL):
+        (TestWebKitAPI::checkURLDifferences):
+        (TestWebKitAPI::shouldFail):
+        Add some relative URL tests.
+
+2016-08-27  Jonathan Bedard  <jbedard@apple.com>
+
+        WTR needs an implementation of setAutomaticLinkDetectionEnabled
+        https://bugs.webkit.org/show_bug.cgi?id=87162
+
+        Reviewed by Darin Adler.
+
+        * WebKitTestRunner/InjectedBundle/Bindings/TestRunner.idl: Added setAutomaticLinkDetectionEnabled binding.
+        * WebKitTestRunner/InjectedBundle/InjectedBundle.cpp:
+        (WTR::InjectedBundle::beginTesting): Set automatic link detection to false by default.
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp:
+        (WTR::TestRunner::setAutomaticLinkDetectionEnabled): Added setAutomaticLinkDetectionEnabled definition.
+        * WebKitTestRunner/InjectedBundle/TestRunner.h: Added setAutomaticLinkDetectionEnabled declaration.
+
+2016-08-27  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Make localizedString.js diff and commit friendly (UTF16 -> UTF8)
+        https://bugs.webkit.org/show_bug.cgi?id=28685
+        <rdar://problem/16460975>
+
+        Reviewed by Darin Adler.
+
+        * Scripts/extract-localizable-js-strings:
+        * Scripts/update-webkit-localizable-strings:
+        WebInspectorUI localizedStrings.js is now UTF-8. Other clients of
+        this script still use UTF-16, so keep that the default.
+
+2016-08-27  Alexey Proskuryakov  <ap@apple.com>
+
+        REGRESSION (r204052): Popovers on bot watcher's dashboard are broken
+        https://bugs.webkit.org/show_bug.cgi?id=161254
+
+        Reviewed by Darin Adler.
+
+        Simplify the CSS. My understanding that the CSS was correct, and the root cause
+        is tracked in bug 160478.
+
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Styles/Popover.css:
+
+2016-08-27  Simon Fraser  <simon.fraser@apple.com>
+
+        Add run-webkit-tests --print-expectations to show expectations for all or a subset of tests
+        https://bugs.webkit.org/show_bug.cgi?id=161217
+
+        Reviewed by Ryosuke Niwa.
+
+        "run-webkit-tests --print-expectations" runs the same logic as running the tests, but
+        dumps out the lists of tests that would be run and skipped, and, for each, the entry
+        in TestExpectations that determines the expected outcome of the test.
+
+        This is an improved version of webkit-patch print-expectations.
+
+        See bug for sample output.
+
+        * Scripts/webkitpy/layout_tests/controllers/manager.py:
+        (Manager._print_expectations_for_subset): Print out the list of tests and expected
+        outcome for some subset of tests.
+        (Manager.print_expectations): Do the same splitting by device class that running tests
+        does, and for each subset of tests, call _print_expectations_for_subset.
+        * Scripts/webkitpy/layout_tests/models/test_expectations.py:
+        (TestExpectationParser.expectation_for_skipped_test): Set the flag
+        expectation_line.not_applicable_to_current_platform
+        (TestExpectationLine.__init__): Init not_applicable_to_current_platform to False
+        (TestExpectationLine.expected_behavior): line.expectation is ['PASS'] by default,
+        even for skipped tests. This function returns a list relevant for display, taking the skipped
+        modifier into account.
+        (TestExpectationLine.create_passing_expectation): expectations is normally a list, not a set.
+        (TestExpectations.readable_filename_and_line_number): Return something printable for 
+        lines with and without filenames
+        * Scripts/webkitpy/layout_tests/run_webkit_tests.py:
+        (main): Handle options.print_expectations
+        (parse_args): Add support for --print-expectations
+        (_print_expectations):
+        * Scripts/webkitpy/port/ios.py:
+        (IOSSimulatorPort.default_child_processes): Make this a debug log.
+
+2016-08-26  Dan Bernstein  <mitz@apple.com>
+
+        Keep trying to fix the build after r205057.
+
+        * MobileMiniBrowser/MobileMiniBrowser.xcodeproj/project.pbxproj:
+
+2016-08-26  Dan Bernstein  <mitz@apple.com>
+
+        Keep trying to fix the build after r205057.
+
+        * MobileMiniBrowser/MobileMiniBrowser/AppDelegate.m: Don’t try to import nonexistent
+          config.h. This file is only meant to be built with Xcode anyway.
+        * MobileMiniBrowser/MobileMiniBrowser/Base.lproj/LaunchScreen.storyboard: Make this compile
+          with Xcode 7.3 and deploy to iOS 9.0.
+        * MobileMiniBrowser/MobileMiniBrowser/Base.lproj/Main.storyboard: Ditto.
+        * MobileMiniBrowser/MobileMiniBrowser/TabViewController.m: Don’t try to import config.h.
+        * MobileMiniBrowser/MobileMiniBrowser/WebViewController.m: Ditto.
+
+2016-08-26  Dan Bernstein  <mitz@apple.com>
+
+        Start trying to fix the build after r205057.
+
+        * MobileMiniBrowser/MobileMiniBrowser.xcodeproj/project.pbxproj:
+
+2016-08-26  Alexey Proskuryakov  <ap@apple.com>
+
+        Remove Yosemite Leaks from the flakiness dashboard
+        https://bugs.webkit.org/show_bug.cgi?id=161253
+
+        Reviewed by Anders Carlsson.
+
+        * TestResultServer/static-dashboards/builders.jsonp:
+
+2016-08-26  Sam Weinig  <sam@webkit.org>
+
+        Remove support for ENABLE_LEGACY_WEB_AUDIO
+        https://bugs.webkit.org/show_bug.cgi?id=161262
+
+        Reviewed by Anders Carlsson.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-08-26  Jer Noble  <jer.noble@apple.com>
+
+        Add a test harness for running UI tests on the iOS Simulator
+        https://bugs.webkit.org/show_bug.cgi?id=161265
+
+        Reviewed by Simon Fraser.
+
+        Add a new iOS Simulator application which uses WKWebView to implement a basic browser, and which
+        can serve as a test harness for WebKit UI tests.
+
+        Also add a basic media playback test which verifies that a <video> element will begin playing in
+        fullscreen on an iPhone device, but will play inline on an iPad device.
+
+        * Makefile: Add MobileMiniBrowser as a Module for iOS builds.
+        * MobileMiniBrowser/Configurations/Base.xcconfig: Added.
+        * MobileMiniBrowser/Configurations/DebugRelease.xcconfig: Added.
+        * MobileMiniBrowser/Configurations/MobileMiniBrowser.xcconfig: Added.
+        * MobileMiniBrowser/Makefile: Added.
+        * MobileMiniBrowser/MobileMiniBrowser.xcodeproj/project.pbxproj: Added.
+        * MobileMiniBrowser/MobileMiniBrowser/AppDelegate.h: Added.
+        * MobileMiniBrowser/MobileMiniBrowser/AppDelegate.m: Added.
+        (-[AppDelegate application:didFinishLaunchingWithOptions:]):
+        (-[AppDelegate applicationWillResignActive:]):
+        (-[AppDelegate applicationDidEnterBackground:]):
+        (-[AppDelegate applicationWillEnterForeground:]):
+        (-[AppDelegate applicationDidBecomeActive:]):
+        (-[AppDelegate applicationWillTerminate:]):
+        * MobileMiniBrowser/MobileMiniBrowser/Assets.xcassets/AppIcon.appiconset/Contents.json: Added.
+        * MobileMiniBrowser/MobileMiniBrowser/Base.lproj/LaunchScreen.storyboard: Added.
+        * MobileMiniBrowser/MobileMiniBrowser/Base.lproj/Main.storyboard: Added.
+        * MobileMiniBrowser/MobileMiniBrowser/Info.plist: Added.
+        * MobileMiniBrowser/MobileMiniBrowser/TabViewController.h: Added.
+        * MobileMiniBrowser/MobileMiniBrowser/TabViewController.m: Added.
+        (-[TabViewController dealloc]):
+        (-[TabViewController viewDidLoad]):
+        (-[TabViewController observeValueForKeyPath:ofObject:change:context:]):
+        (-[TabViewController tableView:cellForRowAtIndexPath:]):
+        (-[TabViewController tableView:numberOfRowsInSection:]):
+        (-[TabViewController numberOfSectionsInTableView:]):
+        (-[TabViewController tableView:canEditRowAtIndexPath:]):
+        (-[TabViewController tableView:canMoveRowAtIndexPath:]):
+        (-[TabViewController tableView:commitEditingStyle:forRowAtIndexPath:]):
+        (-[TabViewController tableView:didSelectRowAtIndexPath:]):
+        * MobileMiniBrowser/MobileMiniBrowser/WebViewController.h: Added.
+        * MobileMiniBrowser/MobileMiniBrowser/WebViewController.m: Added.
+        (-[WebViewController viewDidLoad]):
+        (-[WebViewController didReceiveMemoryWarning]):
+        (-[WebViewController reload:]):
+        (-[WebViewController goBack:]):
+        (-[WebViewController goForward:]):
+        (-[WebViewController urlFieldEditingBegan:]):
+        (-[WebViewController navigateTo:]):
+        (-[WebViewController showTabs:]):
+        (-[WebViewController selectWebViewAtIndex:]):
+        (-[WebViewController removeWebViewAtIndex:]):
+        (-[WebViewController addWebView]):
+        (-[WebViewController createWebView]):
+        (-[WebViewController removeWebView:]):
+        (-[WebViewController setCurrentWebView:]):
+        (-[WebViewController webView:didFailNavigation:withError:]):
+        (-[WebViewController observeValueForKeyPath:ofObject:change:context:]):
+        * MobileMiniBrowser/MobileMiniBrowser/main.m: Added.
+        (main):
+        * MobileMiniBrowser/MobileMiniBrowserUITests/Info.plist: Added.
+        * MobileMiniBrowser/MobileMiniBrowserUITests/MobileMiniBrowserUITests.m: Added.
+        (-[MobileMiniBrowserUITests setUp]):
+        (-[MobileMiniBrowserUITests tearDown]):
+        (-[MobileMiniBrowserUITests testBasicVideoPlayback]):
+
 2016-08-26  Aakash Jain  <aakash_jain@apple.com>
 
         webkit-queues queue-status page should should list more recent statuses

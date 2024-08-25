@@ -1,3 +1,692 @@
+2016-08-30  Gyuyoung Kim  <gyuyoung.kim@navercorp.com>
+
+        [EFL] Gardening on failure tests
+
+        Unreviewed EFL gardening.
+
+        media control and IndexedDB tests have been failed.
+        Mark them to failure.
+
+        * platform/efl/TestExpectations:
+
+2016-08-30  Jiewen Tan  <jiewen_tan@apple.com>
+
+         Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-29  Chris Dumez  <cdumez@apple.com>
+
+        We should throw a SecurityError when denying setting a cross-origin Location property
+        https://bugs.webkit.org/show_bug.cgi?id=161368
+
+        Reviewed by Ryosuke Niwa.
+
+        Update / Rebaseline existing tests to reflect behavior change.
+
+        * http/tests/security/cross-frame-access-location-put-expected.txt:
+        * http/tests/security/location-cross-origin-expected.txt:
+        * http/tests/security/location-cross-origin.html:
+        * http/tests/security/xss-DENIED-assign-location-hash-expected.txt:
+        * http/tests/security/xss-DENIED-assign-location-host-expected.txt:
+        * http/tests/security/xss-DENIED-assign-location-hostname-expected.txt:
+        * http/tests/security/xss-DENIED-assign-location-nonstandardProperty-expected.txt:
+        * http/tests/security/xss-DENIED-assign-location-pathname-expected.txt:
+        * http/tests/security/xss-DENIED-assign-location-protocol-expected.txt:
+        * http/tests/security/xss-DENIED-assign-location-reload-expected.txt:
+        * http/tests/security/xss-DENIED-assign-location-search-expected.txt:
+
+2016-08-29  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Gardening on Aug 30
+
+        Unreviewed gardening. Mark unexpecting passing tests to PASS.
+
+        * platform/efl/TestExpectations:
+
+2016-08-29  Chris Dumez  <cdumez@apple.com>
+
+        Unskip several web-platform-tests that are now passing
+        https://bugs.webkit.org/show_bug.cgi?id=161367
+
+        Reviewed by Geoffrey Garen.
+
+        Unskip several web-platform-tests that are now passing.
+
+        * TestExpectations:
+
+2016-08-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION(r202568): Web Inspector: Expanding Array Prototype in Console shows no properties
+        https://bugs.webkit.org/show_bug.cgi?id=161263
+        <rdar://problem/28035849>
+
+        Reviewed by Matt Baker.
+
+        * inspector/model/remote-object-get-properties-expected.txt:
+        * inspector/model/remote-object-get-properties.html:
+        Include tests for an Array and an Array's proto (which is an Array).
+
+2016-08-29  Dean Jackson  <dino@apple.com>
+
+        JSON.stringify returns empty when used with performance.timing.
+        https://bugs.webkit.org/show_bug.cgi?id=151813
+        <rdar://problem/28066067>
+
+        Reviewed by Sam Weinig.
+
+        * fast/dom/Window/window-properties-performance-expected.txt:
+        * fast/dom/Window/window-properties-performance-resource-timing-expected.txt:
+        * fast/dom/webtiming-document-open-expected.txt:
+        * fast/dom/webtiming-navigate-within-document-expected.txt:
+        * fast/dom/webtiming-performance-timing-stringify-expected.txt: Added.
+        * fast/dom/webtiming-performance-timing-stringify.html: Added.
+        * http/tests/misc/webtiming-cross-origin-and-back1-expected.txt:
+        * http/tests/misc/webtiming-cross-origin-redirect-expected.txt:
+        * http/tests/misc/webtiming-no-origin-expected.txt:
+
+2016-08-29  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r204923): It should be possible to set 'Location.href' cross origin
+        https://bugs.webkit.org/show_bug.cgi?id=161343
+        <rdar://problem/28063361>
+
+        Reviewed by Ryosuke Niwa.
+
+        Add layout test coverage.
+
+        * http/tests/security/location-cross-origin-expected.txt:
+        * http/tests/security/location-cross-origin.html:
+        * http/tests/security/xss-DENIED-assign-location-href-javascript-expected.txt:
+
+2016-08-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-29  Chris Dumez  <cdumez@apple.com>
+
+        We should throw a SecurityError when denying setting a cross-origin Window property
+        https://bugs.webkit.org/show_bug.cgi?id=161339
+
+        Reviewed by Geoffrey Garen.
+
+        Update existing tests to reflect behavior change.
+
+        * http/tests/history/cross-origin-replace-history-object-expected.txt:
+        * http/tests/history/resources/cross-origin-replaces-history-object-iframe.html:
+        * http/tests/security/cross-frame-access-custom-expected.txt:
+        * http/tests/security/cross-frame-access-put-expected.txt:
+
+2016-08-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline imported/w3c/web-platform-tests/dom/events/EventTarget-dispatchEvent.html for ios-simulator after r205138.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/imported/w3c/web-platform-tests/dom/events/EventTarget-dispatchEvent-expected.txt:
+
+2016-08-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, mark editing tests of iOS simulator WK1 release build that have different delegate callback order than those of debug build as failure
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rolling out r205143.
+
+        Needs better description
+
+        Reverted changeset:
+
+        "Unreviewed, mark editing tests of iOS simulator WK1 release
+        build that have different delegate callbacks than those of
+        debug build as failure"
+        http://trac.webkit.org/changeset/205143
+
+2016-08-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, mark editing tests of iOS simulator WK1 release build that have different delegate callbacks than those of debug build as failure
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r205140.
+
+        The changelog entry for this commit is incorrect and
+        misattributed.
+
+        Reverted changeset:
+
+        "Marking media/track/text-track-cue-is-reachable.html as flaky
+        on ios-simulator-wk2."
+        https://bugs.webkit.org/show_bug.cgi?id=161323
+        http://trac.webkit.org/changeset/205140
+
+2016-08-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/track/text-track-cue-is-reachable.html as flaky on ios-simulator-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=161323
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-08-29  Chris Dumez  <cdumez@apple.com>
+
+        We should throw a SecurityError when denying access to cross-origin Window properties
+        https://bugs.webkit.org/show_bug.cgi?id=161316
+
+        Reviewed by Darin Adler.
+
+        Update / rebaselined existing tests to reflect behavior change.
+
+        * fast/frames/sandboxed-iframe-history-denied-expected.txt:
+        * fast/xmlhttprequest/xmlhttprequest-no-file-access-expected.txt:
+        * fast/xmlhttprequest/xmlhttprequest-no-file-access.html:
+        * http/tests/dom/window-open-about-webkit-org-and-access-document-expected.txt:
+        * http/tests/dom/window-open-about-webkit-org-and-access-document.html:
+        * http/tests/history/cross-origin-replace-history-object-child-expected.txt:
+        * http/tests/history/cross-origin-replace-history-object-child.html:
+        * http/tests/plugins/cross-frame-object-access-expected.txt:
+        * http/tests/security/aboutBlank/xss-DENIED-navigate-opener-document-write-expected.txt:
+        * http/tests/security/aboutBlank/xss-DENIED-navigate-opener-javascript-url-expected.txt:
+        * http/tests/security/aboutBlank/xss-DENIED-set-opener-expected.txt:
+        * http/tests/security/contentSecurityPolicy/sandbox-allow-scripts-in-http-header-expected.txt:
+        * http/tests/security/contentSecurityPolicy/sandbox-allow-scripts-in-http-header.html:
+        * http/tests/security/cross-frame-access-call-expected.txt:
+        * http/tests/security/cross-frame-access-call.html:
+        * http/tests/security/cross-frame-access-child-explicit-domain-expected.txt:
+        * http/tests/security/cross-frame-access-custom-expected.txt:
+        * http/tests/security/cross-frame-access-first-time-expected.txt:
+        * http/tests/security/cross-frame-access-first-time.html:
+        * http/tests/security/cross-frame-access-get-custom-property-cached-expected.txt:
+        * http/tests/security/cross-frame-access-get-custom-property-cached.html:
+        * http/tests/security/cross-frame-access-get-expected.txt:
+        * http/tests/security/cross-frame-access-getOwnPropertyDescriptor-expected.txt:
+        * http/tests/security/cross-frame-access-getOwnPropertyDescriptor.html:
+        * http/tests/security/cross-frame-access-history-get-expected.txt:
+        * http/tests/security/cross-frame-access-history-get-override-expected.txt:
+        * http/tests/security/cross-frame-access-history-prototype-expected.txt:
+        * http/tests/security/cross-frame-access-name-getter-expected.txt:
+        * http/tests/security/cross-frame-access-object-getPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-getPrototypeOf.html:
+        * http/tests/security/cross-frame-access-object-prototype-expected.txt:
+        * http/tests/security/cross-frame-access-object-prototype.html:
+        * http/tests/security/cross-frame-access-parent-explicit-domain-expected.txt:
+        * http/tests/security/cross-frame-access-port-expected.txt:
+        * http/tests/security/cross-frame-access-protocol-expected.txt:
+        * http/tests/security/cross-frame-access-protocol-explicit-domain-expected.txt:
+        * http/tests/security/cross-frame-access-selection-expected.txt:
+        * http/tests/security/cross-frame-access-selection.html:
+        * http/tests/security/cross-origin-reified-window-property-access-expected.txt:
+        * http/tests/security/cross-origin-window-property-access-expected.txt:
+        * http/tests/security/dataURL/resources/foreign-domain-data-url-accessor-iframe.html:
+        * http/tests/security/dataURL/resources/foreign-domain-data-url-accessor-opened-frame.html:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-in-foreign-domain-subframe-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-in-foreign-domain-window-open-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-sub-frame-2-level-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-sub-frame-2-level.html:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-sub-frame-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-sub-frame-to-data-url-sub-frame-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-sub-frame-to-data-url-sub-frame.html:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-sub-frame.html:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-to-data-url-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-from-data-url-to-data-url.html:
+        * http/tests/security/dataURL/xss-DENIED-from-javascript-url-window-open-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-from-javascript-url-window-open.html:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-from-data-url-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-from-data-url.html:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-in-foreign-domain-subframe-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-in-foreign-domain-subframe-location-change-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-in-foreign-domain-subframe-location-change.html:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-in-foreign-domain-subframe.html:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-in-foreign-domain-window-open-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-in-foreign-domain-window-open.html:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-sub-frame-2-level-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-sub-frame-2-level.html:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-sub-frame-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-sub-frame-uppercase-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-window-open-expected.txt:
+        * http/tests/security/dataURL/xss-DENIED-to-data-url-window-open.html:
+        * http/tests/security/document-all-expected.txt:
+        * http/tests/security/document-all.html:
+        * http/tests/security/javascriptURL/resources/foreign-domain-javascript-url-accessor-iframe.html:
+        * http/tests/security/javascriptURL/resources/foreign-domain-javascript-url-accessor-opened-frame.html:
+        * http/tests/security/javascriptURL/xss-DENIED-from-javascript-url-in-foreign-domain-subframe-expected.txt:
+        * http/tests/security/javascriptURL/xss-DENIED-from-javascript-url-in-foreign-domain-window-open-expected.txt:
+        * http/tests/security/javascriptURL/xss-DENIED-to-javascript-url-in-foreign-domain-subframe-expected.txt:
+        * http/tests/security/javascriptURL/xss-DENIED-to-javascript-url-in-foreign-domain-subframe.html:
+        * http/tests/security/javascriptURL/xss-DENIED-to-javascript-url-in-foreign-domain-window-open-expected.txt:
+        * http/tests/security/javascriptURL/xss-DENIED-to-javascript-url-in-foreign-domain-window-open.html:
+        * http/tests/security/listener/resources/targetChild-JSTargetNode-onclick-addEventListener.html:
+        * http/tests/security/listener/resources/targetChild-JSTargetNode-onclick-shortcut.html:
+        * http/tests/security/listener/resources/targetChild-XMLHttpRequest-addEventListener.html:
+        * http/tests/security/listener/resources/targetChild-XMLHttpRequest-shortcut.html:
+        * http/tests/security/listener/resources/targetChild-window-onclick-addEventListener.html:
+        * http/tests/security/listener/resources/targetChild-window-onclick-shortcut.html:
+        * http/tests/security/listener/xss-JSTargetNode-onclick-addEventListener-expected.txt:
+        * http/tests/security/listener/xss-JSTargetNode-onclick-shortcut-expected.txt:
+        * http/tests/security/listener/xss-XMLHttpRequest-addEventListener-expected.txt:
+        * http/tests/security/listener/xss-XMLHttpRequest-shortcut-expected.txt:
+        * http/tests/security/listener/xss-window-onclick-addEventListener-expected.txt:
+        * http/tests/security/listener/xss-window-onclick-shortcut-expected.txt:
+        * http/tests/security/resources/cross-frame-access.js:
+        (test):
+        (cannotAccessFrame):
+        * http/tests/security/resources/cross-frame-history-prototype-iframe.html:
+        * http/tests/security/resources/iframe-for-synchronous-form.html:
+        * http/tests/security/resources/sandboxed-iframe-origin-add-step1.html:
+        * http/tests/security/resources/sandboxed-iframe-origin-remove-step2.html:
+        * http/tests/security/sandboxed-iframe-modify-self-expected.txt:
+        * http/tests/security/sandboxed-iframe-origin-add-expected.txt:
+        * http/tests/security/sandboxed-iframe-origin-remove-expected.txt:
+        * http/tests/security/srcdoc-in-sandbox-cannot-access-parent-expected.txt:
+        * http/tests/security/xss-DENIED-defineProperty-expected.txt:
+        * http/tests/security/xss-DENIED-frame-name-expected.txt:
+        * http/tests/security/xss-DENIED-htmlelelment-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-htmlelelment-with-iframe-proto.html:
+        * http/tests/security/xss-DENIED-invalid-domain-change-expected.txt:
+        * http/tests/security/xss-DENIED-invalid-domain-change.html:
+        * http/tests/security/xss-DENIED-method-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-sandboxed-iframe-expected.txt:
+        * http/tests/security/xss-DENIED-synchronous-form-expected.txt:
+        * http/tests/security/xss-DENIED-window-name-navigator-expected.txt:
+        * http/tests/security/xss-DENIED-xsl-document-securityOrigin-expected.txt:
+        * http/tests/security/xss-DENIED-xsl-document-securityOrigin.xml:
+        * http/tests/security/xss-eval-expected.txt:
+        * http/tests/security/xss-eval.html:
+
+2016-08-29  Youenn Fablet  <youenn@apple.com>
+
+        Image Loader should use FetchOptions::mode according its crossOrigin attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161309
+
+        Reviewed by Darin Adler.
+
+        * http/tests/security/load-image-after-redirection-expected.txt: Added.
+        * http/tests/security/load-image-after-redirection.html: Added.
+
+2016-08-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-08-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping http/tests/media/hls/hls-accessiblity-describes-video-menu.html on mac
+        https://bugs.webkit.org/show_bug.cgi?id=161144
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-08-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/html/semantics/document-metadata/the-link-element/document-without-browsing-context.html as flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=161312
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-08-26  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Do not recursively call layout during auto repeat computation
+        https://bugs.webkit.org/show_bug.cgi?id=161234
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        Added a new test case and fixed a few tests inside the imported
+        grid-repeat-auto-fill-fit-001.html which were wrong due to a bug in Firefox. The intrinsic
+        size computation was not considering the existence of definite minimum sizes for some of the
+        grids so the outcome was narrower than expected.
+
+        * fast/css-grid-layout/grid-indefinite-size-auto-repeat-crash-expected.txt: Added.
+        * fast/css-grid-layout/grid-indefinite-size-auto-repeat-crash.html: Added.
+        * fast/css-grid-layout/mozilla/grid-repeat-auto-fill-fit-001-expected.html:
+
+2016-08-25  Frederic Wang  <fwang@igalia.com>
+
+        Add support for non-BMP operators U+1EEF0 and U+1EEF1
+        https://bugs.webkit.org/show_bug.cgi?id=153984
+
+        We add two reftests to check that the non-BMP operators are properly
+        handled by the MathML dictionary (form, properties, direction) as well
+        as the rendering code (spacing, stretching). We test the new horizontal
+        strechy operators U+1EEF0 and U+1EEF1 as well as the letter U+1D400
+        which is not a real mathematical operator. We add a minimal test
+        font which contains a black square for U+005F, U+1EEF0, U+1EEF1, U+1D400
+        and the data that can be used to stretch them horizontally.
+
+        Reviewed by Darin Adler.
+
+        * mathml/presentation/non-bmp-operators-spacing-expected.html: Added.
+        * mathml/presentation/non-bmp-operators-spacing.html: Added.
+        * mathml/presentation/non-bmp-operators-stretching-expected.html: Added.
+        * mathml/presentation/non-bmp-operators-stretching.html: Added.
+        * mathml/presentation/non-bmp-operators.woff: Added.
+
+2016-08-28  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Ensure response cloning works when data is loading
+        https://bugs.webkit.org/show_bug.cgi?id=161137
+
+        Reviewed by Darin Adler.
+
+        * http/tests/fetch/clone-response-body-expected.txt: Added.
+        * http/tests/fetch/clone-response-body.html: Added.
+
+2016-08-28  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-28  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Remove flakiness expectations from switch to threaded compositor
+
+        This is completely hopeless, since there is a seemingly-unlimited number of tests that have
+        been broken. Suppressing an arbitrary subset of the failures is not helping anything. Keep
+        only records for tests that are really flaky.
+
+        Retain expectations for flaky timeouts and crashes.
+
+        * TestExpectations:
+        * platform/gtk/TestExpectations:
+
+2016-08-28  Javier Fernandez  <jfernandez@igalia.com>
+
+        Should never be reached failure in WebCore::RenderFlexibleBox::alignChildren
+        https://bugs.webkit.org/show_bug.cgi?id=151591
+        <rdar://problem/27711829>
+
+        Reviewed by Darin Adler.
+
+        Test to verify that align-self and align-items CSS properties use the old
+        syntax when the Grid Layout feature is not enabled.
+
+        * css3/flexbox/new-alignment-values-invalid-if-grid-not-enabled-expected.txt: Added.
+        * css3/flexbox/new-alignment-values-invalid-if-grid-not-enabled.html: Added.
+
+2016-08-28  Frederic Wang  <fwang@igalia.com>
+
+        Improve parsing of the menclose notation attribute value
+        https://bugs.webkit.org/show_bug.cgi?id=161045
+
+        Reviewed by Darin Adler.
+
+        We add some cases in menclose-notation-equivalence to verify that one can use any sequence of
+        whitespace to separate notation values. We try with 0, 1, 2 or 3 notation values.
+
+        * mathml/presentation/menclose-notation-equivalence-expected.html:
+        * mathml/presentation/menclose-notation-equivalence.html:
+
+2016-08-28  Frederic Wang  <fwang@igalia.com>
+
+        More cleanup for the mpadded implementation
+        https://bugs.webkit.org/show_bug.cgi?id=161136
+
+        We add a test for style change in mpadded.
+
+        Reviewed by Darin Adler.
+
+        * mathml/presentation/mpadded-style-change-expected.html: Added.
+        * mathml/presentation/mpadded-style-change.html: Added.
+
+2016-08-27  Chris Dumez  <cdumez@apple.com>
+
+        Update generated bindings to throw a SecurityError when denying cross-origin access to properties
+        https://bugs.webkit.org/show_bug.cgi?id=161270
+
+        Reviewed by Darin Adler.
+
+        Update / rebaseline existing tests to reflect behavior change.
+
+        * http/tests/security/aboutBlank/xss-DENIED-set-opener-expected.txt:
+        * http/tests/security/cross-frame-access-call-expected.txt:
+        * http/tests/security/cross-frame-access-call.html:
+        * http/tests/security/cross-origin-window-property-access-expected.txt:
+        * http/tests/security/location-cross-origin-expected.txt:
+        * http/tests/security/location-cross-origin.html:
+        * http/tests/security/xss-DENIED-assign-location-href-javascript-expected.txt:
+        * http/tests/security/xss-DENIED-method-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-method-with-iframe-proto.html:
+
+2016-08-27  Jonathan Bedard  <jbedard@apple.com>
+
+        WTR needs an implementation of setAutomaticLinkDetectionEnabled
+        https://bugs.webkit.org/show_bug.cgi?id=87162
+
+        Reviewed by Darin Adler.
+
+        * platform/wk2/TestExpectations: Removed 2 now passing tests.
+
+2016-08-27  Sam Weinig  <sam@webkit.org>
+
+        Remove more custom JavaScript bindings
+        https://bugs.webkit.org/show_bug.cgi?id=161293
+
+        Reviewed by Darin Adler.
+
+        * webaudio/audionode-expected.txt:
+        * webaudio/audionode.html:
+        Update test for correct behavior of the constructor.
+
+2016-08-27  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Race between creating/deleting a database in test
+        https://bugs.webkit.org/show_bug.cgi?id=161285
+
+        Reviewed by Darin Adler.
+
+        Because IndexedDB creation is asynchronous, we were not waiting for the
+        database to be completely open before sending more commands. These
+        could race and give unexpected results. Wait for the database to be
+        successfully created before interacting with it.
+
+        * inspector/indexeddb/resources/utilities.js:
+        (createEmptyDatabase):
+        (createDatabaseWithStores):
+        Send a single when the database creation is completed.
+
+        * inspector/indexeddb/clearObjectStore-expected.txt:
+        * inspector/indexeddb/clearObjectStore.html:
+        * inspector/indexeddb/deleteDatabaseNamesWithSpace.html:
+        * inspector/indexeddb/requestData-expected.txt:
+        * inspector/indexeddb/requestDatabase-expected.txt:
+        * inspector/indexeddb/requestDatabase.html:
+        * inspector/indexeddb/requestDatabaseNames.html:
+        Listen for the database created signal before proceeding
+        with the test.
+
+2016-08-27  Ryosuke Niwa  <rniwa@webkit.org>
+
+        adoptcallback
+
+        Add adopted callback for custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=161284
+
+        Reviewed by Antti Koivisto.
+
+        * fast/custom-elements/adopted-callback-expected.txt: Added.
+        * fast/custom-elements/adopted-callback.html: Added.
+        * fast/custom-elements/resources/document-types.js:
+        (const.DocumentTypes.create):
+
+2016-08-27  Youenn Fablet  <youenn@apple.com>
+
+        html/dom/interfaces.html is flaky due to WebSocket test
+        https://bugs.webkit.org/show_bug.cgi?id=161290
+
+        Unreviewed.
+
+        * platform/mac/TestExpectations: Making html/dom/interfaces.html expectation specific to Release.
+
+2016-08-27  Simon Fraser  <simon.fraser@apple.com>
+
+        Add run-webkit-tests --print-expectations to show expectations for all or a subset of tests
+        https://bugs.webkit.org/show_bug.cgi?id=161217
+
+        Reviewed by Ryosuke Niwa.
+        
+        Explicitly skip fast/viewport
+
+        * platform/mac/TestExpectations:
+
+2016-08-27  Youenn Fablet  <youenn@apple.com>
+
+        html/dom/interfaces.html is flaky due to WebSocket test
+        https://bugs.webkit.org/show_bug.cgi?id=161290
+
+        Unreviewed.
+
+        * platform/mac/TestExpectations: Marking html/dom/interfaces.html expectation from Skip to Pass|Failure.
+
+2016-08-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: inspector/indexeddb/deleteDatabaseNamesWithSpace.html is flakey
+        https://bugs.webkit.org/show_bug.cgi?id=161283
+
+        Reviewed by Alex Christensen.
+
+        * inspector/indexeddb/deleteDatabaseNamesWithSpace.html:
+        Add a short timeout between deleting a database and requesting database names
+        to reduce flakey results.
+
+2016-08-26  Sam Weinig  <sam@webkit.org>
+
+        Remove support for ENABLE_LEGACY_WEB_AUDIO
+        https://bugs.webkit.org/show_bug.cgi?id=161262
+
+        Reviewed by Anders Carlsson.
+
+        * webaudio/audiobuffersource-loop-points.html:
+        * webaudio/audiobuffersource-multi-channels.html:
+        * webaudio/audiobuffersource-playbackState-expected.txt:
+        * webaudio/audiobuffersource-playbackState.html:
+        * webaudio/audiobuffersource-playbackrate.html:
+        * webaudio/audiochannelmerger-stereo.html:
+        * webaudio/audiochannelsplitter.html:
+        * webaudio/audionode-connect-order.html:
+        * webaudio/audionode-expected.txt:
+        * webaudio/audionode.html:
+        * webaudio/audioparam-connect-audioratesignal.html:
+        * webaudio/audioparam-summingjunction.html:
+        * webaudio/audioprocessingevent.html:
+        * webaudio/automatic-pull-node.html:
+        * webaudio/biquad-allpass.html:
+        * webaudio/biquad-bandpass.html:
+        * webaudio/biquad-getFrequencyResponse.html:
+        * webaudio/biquad-highpass.html:
+        * webaudio/biquad-highshelf.html:
+        * webaudio/biquad-lowpass.html:
+        * webaudio/biquad-lowshelf.html:
+        * webaudio/biquad-notch.html:
+        * webaudio/biquad-peaking.html:
+        * webaudio/biquadfilternode-basic-expected.txt:
+        * webaudio/biquadfilternode-basic.html:
+        * webaudio/convolution-mono-mono.html:
+        * webaudio/delaynode-max-default-delay.html:
+        * webaudio/delaynode-max-nondefault-delay.html:
+        * webaudio/delaynode-maxdelay.html:
+        * webaudio/delaynode-scheduling.html:
+        * webaudio/delaynode.html:
+        * webaudio/distance-exponential-expected.txt:
+        * webaudio/distance-exponential.html:
+        * webaudio/distance-inverse-expected.txt:
+        * webaudio/distance-inverse.html:
+        * webaudio/distance-linear-expected.txt:
+        * webaudio/distance-linear.html:
+        * webaudio/gain-basic.html:
+        * webaudio/gain.html:
+        * webaudio/javascriptaudionode-zero-input-channels.html:
+        * webaudio/javascriptaudionode.html:
+        * webaudio/mixing.html:
+        * webaudio/note-grain-on-play-expected.txt: Removed.
+        * webaudio/note-grain-on-play.html: Removed.
+        * webaudio/note-grain-on-timing-expected.txt: Removed.
+        * webaudio/note-grain-on-timing.html: Removed.
+        * webaudio/oscillator-basic-expected.txt:
+        * webaudio/oscillator-basic.html:
+        * webaudio/oscillator-custom.html:
+        * webaudio/oscillator-sawtooth.html:
+        * webaudio/oscillator-sine.html:
+        * webaudio/oscillator-square.html:
+        * webaudio/oscillator-triangle.html:
+        * webaudio/pannernode-basic-expected.txt:
+        * webaudio/pannernode-basic.html:
+        * webaudio/resources/audio-testing.js:
+        * webaudio/resources/audioparam-testing.js:
+        * webaudio/resources/biquad-testing.js:
+        * webaudio/resources/distance-model-testing.js:
+        * webaudio/resources/javascriptaudionode-testing.js:
+        * webaudio/resources/oscillator-testing.js:
+        * webaudio/resources/panner-model-testing.js:
+        * webaudio/sample-accurate-scheduling.html:
+        * webaudio/stereo2mono-down-mixing.html:
+        * webaudio/up-mixing-mono-51.html:
+        * webaudio/up-mixing-mono-stereo.html:
+        * webaudio/up-mixing-stereo-51.html:
+        * webaudio/waveshaper.html:
+        Update tests for removal of ENABLE_LEGACY_WEB_AUDIO.
+
+2016-08-23  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Adopted custom element's callbacks should continue to work
+        https://bugs.webkit.org/show_bug.cgi?id=161065
+
+        Reviewed by Andreas Kling.
+
+        Added test cases for adopting custom elements into various kinds of documents.
+
+        * fast/custom-elements/connected-callbacks-expected.txt:
+        * fast/custom-elements/connected-callbacks.html:
+        * fast/custom-elements/defined-pseudo-class-expected.txt:
+        * fast/custom-elements/defined-pseudo-class.html:
+        * fast/custom-elements/disconnected-callbacks-expected.txt:
+        * fast/custom-elements/disconnected-callbacks.html:
+        * fast/custom-elements/resources/document-types.js: Added.
+        * fast/custom-elements/resources/empty-html-document.html: Added.
+
+2016-08-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking webgl/max-active-contexts-webglcontextlost-prevent-default.html as flaky on mac-wk1.
+        https://bugs.webkit.org/show_bug.cgi?id=161205
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-08-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/media/hls/hls-accessiblity-describes-video-menu.html as flaky on mac-wk1.
+        https://bugs.webkit.org/show_bug.cgi?id=161144
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
 2016-08-26  Zalan Bujtas  <zalan@apple.com>
 
         ASSERT_NOT_REACHED() is touched in WebCore::minimumValueForLength

@@ -112,6 +112,7 @@ public:
     void setAllowFileAccessFromFileURLs(bool);
     void setPluginsEnabled(bool);
     void setJavaScriptCanAccessClipboard(bool);
+    void setAutomaticLinkDetectionEnabled(bool);
     void setPrivateBrowsingEnabled(bool);
     void setPopupBlockingEnabled(bool);
     void setAuthorAndUserStylesEnabled(bool);

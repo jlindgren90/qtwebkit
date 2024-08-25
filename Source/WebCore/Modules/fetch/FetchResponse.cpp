@@ -82,9 +82,9 @@ void FetchResponse::setStatus(int status, const String& statusText, ExceptionCod
 
 void FetchResponse::initializeWith(JSC::ExecState& execState, JSC::JSValue body)
 {
-    m_body = FetchBody::extract(execState, body);
-    if (m_headers->fastGet(HTTPHeaderName::ContentType).isEmpty() && !m_body.mimeType().isEmpty())
-        m_headers->fastSet(HTTPHeaderName::ContentType, m_body.mimeType());
+    ASSERT(scriptExecutionContext());
+    m_body = FetchBody::extract(*scriptExecutionContext(), execState, body);
+    m_body.updateContentType(m_headers);
 }
 
 FetchResponse::FetchResponse(ScriptExecutionContext& context, FetchBody&& body, Ref<FetchHeaders>&& headers, ResourceResponse&& response)
@@ -105,11 +105,6 @@ void FetchResponse::fetch(ScriptExecutionContext& context, FetchRequest& request
 {
     auto response = adoptRef(*new FetchResponse(context, FetchBody::loadingBody(), FetchHeaders::create(FetchHeaders::Guard::Immutable), { }));
 
-    // FIXME: Implement form data upload.
-    if (request.bodyType() == FetchBody::Type::FormData) {
-        promise.reject(TypeError, "Uploading FormData is not yet implemented");
-        return;
-    }
     // Setting pending activity until BodyLoader didFail or didSucceed callback is called.
     response->setPendingActivity(response.ptr());
 
@@ -128,13 +123,16 @@ const String& FetchResponse::url() const
 void FetchResponse::BodyLoader::didSucceed()
 {
     ASSERT(m_response.hasPendingActivity());
+    m_response.m_body.loadingSucceeded();
+
 #if ENABLE(STREAMS_API)
-    if (m_response.m_readableStreamSource) {
+    if (m_response.m_readableStreamSource && m_response.m_body.type() != FetchBody::Type::Loaded) {
+        // We only close the stream if FetchBody already enqueued data.
+        // Otherwise, FetchBody will close the stream when enqueuing data.
         m_response.m_readableStreamSource->close();
         m_response.m_readableStreamSource = nullptr;
     }
 #endif
-    m_response.m_body.loadingSucceeded();
 
     if (m_loader->isStarted())
         m_response.m_bodyLoader = Nullopt;
@@ -176,6 +174,7 @@ void FetchResponse::BodyLoader::didReceiveResponse(const ResourceResponse& resou
 
     m_response.m_response = resourceResponse;
     m_response.m_headers->filterAndFill(resourceResponse.httpHeaderFields(), FetchHeaders::Guard::Response);
+    m_response.m_body.setContentType(m_response.m_headers->fastGet(HTTPHeaderName::ContentType));
 
     std::exchange(m_promise, Nullopt)->resolve(m_response);
 }

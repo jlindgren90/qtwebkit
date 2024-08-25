@@ -1112,10 +1112,8 @@ set(WebCore_SOURCES
     bindings/js/IDBBindingUtilities.cpp
     bindings/js/JSAnimationTimelineCustom.cpp
     bindings/js/JSAttrCustom.cpp
-    bindings/js/JSAudioContextCustom.cpp
     bindings/js/JSAudioTrackCustom.cpp
     bindings/js/JSAudioTrackListCustom.cpp
-    bindings/js/JSBiquadFilterNodeCustom.cpp
     bindings/js/JSBlobCustom.cpp
     bindings/js/JSCSSRuleCustom.cpp
     bindings/js/JSCSSRuleListCustom.cpp
@@ -1142,7 +1140,6 @@ set(WebCore_SOURCES
     bindings/js/JSCustomSQLStatementErrorCallback.cpp
     bindings/js/JSCustomXPathNSResolver.cpp
     bindings/js/JSDOMBinding.cpp
-    bindings/js/JSDOMFormDataCustom.cpp
     bindings/js/JSDOMGlobalObject.cpp
     bindings/js/JSDOMGlobalObjectTask.cpp
     bindings/js/JSDOMMimeTypeArrayCustom.cpp
@@ -1220,9 +1217,8 @@ set(WebCore_SOURCES
     bindings/js/JSNodeIteratorCustom.cpp
     bindings/js/JSNodeOrString.cpp
     bindings/js/JSNodeListCustom.cpp
-    bindings/js/JSOscillatorNodeCustom.cpp
-    bindings/js/JSPannerNodeCustom.cpp
     bindings/js/JSPerformanceEntryCustom.cpp
+    bindings/js/JSPerformanceTimingCustom.cpp
     bindings/js/JSPluginElementFunctions.cpp
     bindings/js/JSPopStateEventCustom.cpp
     bindings/js/JSReadableStreamPrivateConstructors.cpp
@@ -1247,7 +1243,6 @@ set(WebCore_SOURCES
     bindings/js/JSWebGL2RenderingContextCustom.cpp
     bindings/js/JSWebGLRenderingContextBaseCustom.cpp
     bindings/js/JSWebGLRenderingContextCustom.cpp
-    bindings/js/JSWebKitPointCustom.cpp
     bindings/js/JSWebKitSubtleCryptoCustom.cpp
     bindings/js/JSWorkerCustom.cpp
     bindings/js/JSWorkerGlobalScopeBase.cpp
@@ -1263,6 +1258,7 @@ set(WebCore_SOURCES
     bindings/js/ScriptController.cpp
     bindings/js/ScriptGlobalObject.cpp
     bindings/js/ScriptState.cpp
+    bindings/js/StructuredClone.cpp
     bindings/js/SerializedScriptValue.cpp
     bindings/js/WebCoreTypedArrayController.cpp
     bindings/js/WorkerScriptController.cpp
@@ -1343,9 +1339,9 @@ set(WebCore_SOURCES
     css/CSSKeyframeRule.cpp
     css/CSSKeyframesRule.cpp
     css/CSSLineBoxContainValue.cpp
+    css/CSSMarkup.cpp
     css/CSSMediaRule.cpp
     css/CSSNamedImageValue.cpp
-    css/CSSOMUtils.cpp
     css/CSSPageRule.cpp
     css/CSSPrimitiveValue.cpp
     css/CSSProperty.cpp
@@ -1412,7 +1408,15 @@ set(WebCore_SOURCES
     css/WebKitCSSViewportRule.cpp
 
     css/parser/CSSParser.cpp
+    css/parser/CSSParserFastPaths.cpp
+    css/parser/CSSParserObserverWrapper.cpp
+    css/parser/CSSParserToken.cpp
+    css/parser/CSSParserTokenRange.cpp
     css/parser/CSSParserValues.cpp
+    css/parser/CSSPropertyParser.cpp
+    css/parser/CSSPropertyParserHelpers.cpp
+    css/parser/CSSTokenizer.cpp
+    css/parser/CSSTokenizerInputStream.cpp
     css/parser/SVGCSSParser.cpp
 
     cssjit/SelectorCompiler.cpp

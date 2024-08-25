@@ -1,3 +1,318 @@
+2016-08-30  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GTK+ build after r205150.
+
+        * UIProcess/API/gtk/WebKitUserContentManager.cpp:
+
+2016-08-29  Gyuyoung Kim  <gyuyoung.kim@navercorp.com>
+
+        Unreviewed EFL/GTK build fix since r205150
+
+        * CMakeLists.txt: Add Shared/FrameInfoData.cpp.
+
+2016-08-29  Anders Carlsson  <andersca@apple.com>
+
+        Get rid of ChildProcessProxy::fromConnection
+        https://bugs.webkit.org/show_bug.cgi?id=161357
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/ChildProcessProxy.cpp:
+        (WebKit::ChildProcessProxy::fromConnection): Deleted.
+        * UIProcess/ChildProcessProxy.h:
+        * UIProcess/WebProcessProxy.h:
+        (WebKit::WebProcessProxy::fromConnection): Deleted.
+
+2016-08-29  Anders Carlsson  <andersca@apple.com>
+
+        Remove the last uses of WebProcessProxy::fromConnection
+        https://bugs.webkit.org/show_bug.cgi?id=161355
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::webProcessProxyFromConnection):
+        (WebKit::WebProcessPool::handleMessage):
+        (WebKit::WebProcessPool::handleSynchronousMessage):
+        (WebKit::WebProcessPool::startedUsingGamepads):
+        (WebKit::WebProcessPool::stoppedUsingGamepads):
+
+2016-08-29  Anders Carlsson  <andersca@apple.com>
+
+        Get rid of another use of WebProcessProxy::fromConnection
+        https://bugs.webkit.org/show_bug.cgi?id=161331
+
+        Reviewed by Dan Bernstein.
+
+        WebUserContentControllerProxy::didPostMessage uses WebProcessProxy::fromConnection to be able to find a WebFrameProxy from
+        a given frame ID. Since the WebFrameProxy is only used to construct an API::FrameInfo object from, introduce a FrameInfoData object
+        and fill it in on the web process side and send it over to the UI process where an API::FrameInfo object can be created.
+
+        * Shared/FrameInfoData.cpp: Added.
+        (WebKit::FrameInfoData::encode):
+        (WebKit::FrameInfoData::decode):
+        * Shared/FrameInfoData.h: Added.
+        * UIProcess/API/APIFrameInfo.cpp:
+        (API::FrameInfo::create):
+        (API::FrameInfo::FrameInfo):
+        * UIProcess/API/APIFrameInfo.h:
+        * UIProcess/API/Cocoa/WKUserContentController.mm:
+        * UIProcess/UserContent/WebScriptMessageHandler.h:
+        * UIProcess/UserContent/WebUserContentControllerProxy.cpp:
+        (WebKit::WebUserContentControllerProxy::didPostMessage):
+        * UIProcess/UserContent/WebUserContentControllerProxy.h:
+        * UIProcess/UserContent/WebUserContentControllerProxy.messages.in:
+        * WebKit2.xcodeproj/project.pbxproj:
+        * WebProcess/UserContent/WebUserContentController.cpp:
+        * WebProcess/WebPage/WebFrame.cpp:
+        (WebKit::WebFrame::info):
+        * WebProcess/WebPage/WebFrame.h:
+
+2016-08-29  Anders Carlsson  <andersca@apple.com>
+
+        Stop using WebProcessProxy::fromConnection in WebPageProxy
+        https://bugs.webkit.org/show_bug.cgi?id=161322
+
+        Reviewed by Dan Bernstein.
+
+        The WebPageProxy already knows its WebProcessProxy - no need to look it up from the connection.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::handleMessage):
+        (WebKit::WebPageProxy::handleSynchronousMessage):
+
+2016-08-29  Anders Carlsson  <andersca@apple.com>
+
+        Move some structs into Connection.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=161320
+
+        Reviewed by Darin Adler.
+
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::PendingSyncReply::PendingSyncReply):
+        * Platform/IPC/Connection.h:
+        (IPC::Connection::PendingSyncReply::PendingSyncReply): Deleted.
+
+2016-08-26  Anders Carlsson  <andersca@apple.com>
+
+        Remove sync message sending from secondary threads
+        https://bugs.webkit.org/show_bug.cgi?id=161277
+
+        Reviewed by Sam Weinig.
+
+        This codepath hasn't been used for some time, and removing it will make it easier to make IPC::Connection backed by libxpc.
+
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::sendSyncMessage):
+        (IPC::Connection::processIncomingSyncReply):
+        (IPC::Connection::connectionDidClose):
+        (IPC::Connection::sendSyncMessageFromSecondaryThread): Deleted.
+        * Platform/IPC/Connection.h:
+
+2016-08-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Accelerated compositing does not work in Wayland
+        https://bugs.webkit.org/show_bug.cgi?id=115803
+
+        Reviewed by Michael Catanzaro.
+
+        This is the initial implementation of accelerated compositing support in Wayland for the GTK+ port. It's based
+        on previous patches written by Iago Toral, Žan Doberšek, Emanuele Aina and Emilio Pozuelo Monfort.
+
+        The existing WebKitGTK+ Wayland interface previously added for this to WebCore has been moved to the WebKit2
+        layer, since it's actually specific to WebKit2, and it's now actually used. The UI process runs a nested Wayland
+        compositor that web processes connect to. Web processes create a Wayland surface in the nested compositor for
+        the web page, and using the WebKitGTK+ Wayland protocol interface they tell the nested compositor the web page
+        associated to the surface. A Wayland window is created for that surface that is then used as the native window
+        handle for compositing. To communicate with the nested compositor and to ensure all GL operations happen in the
+        nested compositor display, the web process creates a Wayland display that connects to the nested compositor,
+        uses the WebKitGTK+ Wayland interface and it's set as the global shared display for compositing.
+
+        The nested Wayland compositor creates a new display with a unique name that is sent to the web processes at
+        start up. It implements the Wayland surface interface to handle the Wayland buffers created for every surface
+        and scheduling redraws on the web pages when updates are available. It uses the WebKitGTK+ Wayland interface to
+        associate the surfaces to a particular web page. A texture is created for every surface and updated with the
+        Wayland buffer contents using an EGLImageKHR and eglImageTargetTexture2d API.
+
+        To abstract the platform differences and avoid ifdefs as much as possible, new abstract classes have been added
+        to represent the surfaces used in accelerated compositing. AcceleratedSurface is used by the web process and
+        represents the surface where contents are rendered into. The X11 implementation is the redirected XComposite
+        window, and the Wayland implementation is equivalent to the previous Wayland surface added to WebCore but never
+        used. In the UI process the web view creates an abstract AcceleratedBackingStore that is used to render the
+        AcceleratedSurface into the web view using cairo. The X11 implementation creates the cairo surface for the
+        redirected XComposite window pixmap and uses XDamage extension to schedule redraws. The Wayland implementation
+        asks the nested Wayland compositor for the texture associated to the web view page.
+
+        Accelerated compositing is now always enabled by default in both X11 and Wayland, unless it's explicitly
+        disabled by the user using the WEBKIT_DISABLE_COMPOSITING_MODE environment variable, or if any extension or
+        feature required by X11 or Wayland implementations are not available.
+
+        * PlatformGTK.cmake:
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::glContext): Pass the shared display for compositing to GLContext::createContextForWindow()
+        * Shared/WebProcessCreationParameters.cpp:
+        (WebKit::WebProcessCreationParameters::encode): Encode wayland compositor display name.
+        (WebKit::WebProcessCreationParameters::decode): Decode wayland compositor display name.
+        * Shared/WebProcessCreationParameters.h: Add wayland compositor display name initial parameter.
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseDispose):
+        (webkitWebViewBaseDraw):
+        (webkitWebViewBaseCreateWebPage):
+        (webkitWebViewBaseEnterAcceleratedCompositingMode):
+        (webkitWebViewBaseUpdateAcceleratedCompositingMode):
+        (webkitWebViewBaseExitAcceleratedCompositingMode):
+        (webkitWebViewBasePageClosed):
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::createNewWebProcess): Initialize the wayland compositor display name initial parameter.
+        * UIProcess/gtk/AcceleratedBackingStore.cpp: Added.
+        (WebKit::AcceleratedBackingStore::create):
+        (WebKit::AcceleratedBackingStore::AcceleratedBackingStore):
+        (WebKit::AcceleratedBackingStore::~AcceleratedBackingStore):
+        (WebKit::AcceleratedBackingStore::paint):
+        * UIProcess/gtk/AcceleratedBackingStore.h: Added.
+        (WebKit::AcceleratedBackingStore::update):
+        * UIProcess/gtk/AcceleratedBackingStoreWayland.cpp: Added.
+        (WebKit::AcceleratedBackingStoreWayland::create):
+        (WebKit::AcceleratedBackingStoreWayland::AcceleratedBackingStoreWayland):
+        (WebKit::AcceleratedBackingStoreWayland::~AcceleratedBackingStoreWayland):
+        (WebKit::AcceleratedBackingStoreWayland::paint):
+        * UIProcess/gtk/AcceleratedBackingStoreWayland.h: Added.
+        * UIProcess/gtk/AcceleratedBackingStoreX11.cpp: Added.
+        (WebKit::XDamageNotifier::singleton):
+        (WebKit::XDamageNotifier::add):
+        (WebKit::XDamageNotifier::remove):
+        (WebKit::XDamageNotifier::filterXDamageEvent):
+        (WebKit::XDamageNotifier::notify):
+        (WebKit::AcceleratedBackingStoreX11::create):
+        (WebKit::AcceleratedBackingStoreX11::AcceleratedBackingStoreX11):
+        (WebKit::AcceleratedBackingStoreX11::~AcceleratedBackingStoreX11):
+        (WebKit::AcceleratedBackingStoreX11::update):
+        (WebKit::AcceleratedBackingStoreX11::paint):
+        * UIProcess/gtk/AcceleratedBackingStoreX11.h: Added.
+        * UIProcess/gtk/WaylandCompositor.cpp: Added.
+        (WebKit::WaylandCompositor::singleton):
+        (WebKit::WaylandCompositor::Buffer::getOrCreate):
+        (WebKit::WaylandCompositor::Buffer::Buffer):
+        (WebKit::WaylandCompositor::Buffer::~Buffer):
+        (WebKit::WaylandCompositor::Buffer::destroyListenerCallback):
+        (WebKit::WaylandCompositor::Buffer::use):
+        (WebKit::WaylandCompositor::Buffer::unuse):
+        (WebKit::WaylandCompositor::Buffer::createImage):
+        (WebKit::WaylandCompositor::Buffer::size):
+        (WebKit::WaylandCompositor::Surface::Surface):
+        (WebKit::WaylandCompositor::Surface::~Surface):
+        (WebKit::WaylandCompositor::Surface::makePendingBufferCurrent):
+        (WebKit::WaylandCompositor::Surface::attachBuffer):
+        (WebKit::WaylandCompositor::Surface::requestFrame):
+        (WebKit::WaylandCompositor::Surface::prepareTextureForPainting):
+        (WebKit::WaylandCompositor::Surface::commit):
+        (WebKit::WaylandCompositor::initializeEGL):
+        (WebKit::createWaylandLoopSource):
+        (WebKit::WaylandCompositor::WaylandCompositor):
+        (WebKit::WaylandCompositor::getTexture):
+        (WebKit::WaylandCompositor::bindSurfaceToWebPage):
+        (WebKit::WaylandCompositor::registerWebPage):
+        (WebKit::WaylandCompositor::unregisterWebPage):
+        * UIProcess/gtk/WaylandCompositor.h: Added.
+        (WebKit::WaylandCompositor::Buffer::createWeakPtr):
+        (WebKit::WaylandCompositor::Surface::setWebPage):
+        (WebKit::WaylandCompositor::isRunning):
+        (WebKit::WaylandCompositor::displayName):
+        * UIProcess/gtk/WebPreferencesGtk.cpp:
+        (WebKit::WebPreferences::platformInitializeStore):
+        * UIProcess/gtk/XDamageNotifier.cpp: Removed.
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        (WebKit::ThreadedCoordinatedLayerTreeHost::ThreadedCoordinatedLayerTreeHost):
+        (WebKit::ThreadedCoordinatedLayerTreeHost::invalidate):
+        (WebKit::ThreadedCoordinatedLayerTreeHost::deviceOrPageScaleFactorChanged):
+        (WebKit::ThreadedCoordinatedLayerTreeHost::sizeDidChange):
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.h:
+        * WebProcess/WebPage/gtk/AcceleratedSurface.cpp: Added.
+        (WebKit::AcceleratedSurface::create):
+        (WebKit::AcceleratedSurface::AcceleratedSurface):
+        (WebKit::AcceleratedSurface::~AcceleratedSurface):
+        (WebKit::AcceleratedSurface::resize):
+        * WebProcess/WebPage/gtk/AcceleratedSurface.h: Added.
+        (WebKit::AcceleratedSurface::window):
+        (WebKit::AcceleratedSurface::surfaceID):
+        * WebProcess/WebPage/gtk/AcceleratedSurfaceWayland.cpp: Added.
+        (WebKit::waylandCompositorDisplay):
+        (WebKit::AcceleratedSurfaceWayland::create):
+        (WebKit::AcceleratedSurfaceWayland::AcceleratedSurfaceWayland):
+        (WebKit::AcceleratedSurfaceWayland::~AcceleratedSurfaceWayland):
+        (WebKit::AcceleratedSurfaceWayland::resize):
+        * WebProcess/WebPage/gtk/AcceleratedSurfaceWayland.h: Added.
+        * WebProcess/WebPage/gtk/AcceleratedSurfaceX11.cpp: Renamed from Source/WebKit2/WebProcess/WebPage/gtk/RedirectedXCompositeWindow.cpp.
+        (WebKit::AcceleratedSurfaceX11::create):
+        (WebKit::AcceleratedSurfaceX11::AcceleratedSurfaceX11):
+        (WebKit::AcceleratedSurfaceX11::~AcceleratedSurfaceX11):
+        (WebKit::AcceleratedSurfaceX11::resize):
+        * WebProcess/WebPage/gtk/AcceleratedSurfaceX11.h: Renamed from Source/WebKit2/WebProcess/WebPage/gtk/RedirectedXCompositeWindow.h.
+        * WebProcess/WebPage/gtk/LayerTreeHostGtk.cpp:
+        (WebKit::LayerTreeHostGtk::LayerTreeHostGtk):
+        (WebKit::LayerTreeHostGtk::makeContextCurrent):
+        (WebKit::LayerTreeHostGtk::invalidate):
+        (WebKit::LayerTreeHostGtk::sizeDidChange):
+        (WebKit::LayerTreeHostGtk::deviceOrPageScaleFactorChanged):
+        (WebKit::LayerTreeHostGtk::RenderFrameScheduler::RenderFrameScheduler): Deleted.
+        * WebProcess/WebPage/gtk/LayerTreeHostGtk.h:
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess): Initialize the wayland compositor display name.
+        * WebProcess/WebProcess.h:
+        (WebKit::WebProcess::waylandCompositorDisplayName): Return the wayland compositor display name.
+
+2016-08-27  Jonathan Bedard  <jbedard@apple.com>
+
+        WTR needs an implementation of setAutomaticLinkDetectionEnabled
+        https://bugs.webkit.org/show_bug.cgi?id=87162
+
+        Reviewed by Darin Adler
+
+        * WebProcess/InjectedBundle/API/c/WKBundle.cpp:
+        (WKBundleSetAutomaticLinkDetectionEnabled): Added WKBundleSetAutomaticLinkDetectionEnabled definition.
+        * WebProcess/InjectedBundle/API/c/WKBundlePrivate.h: Added WKBundleSetAutomaticLinkDetectionEnabled declaration.
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+        (WebKit::InjectedBundle::setAutomaticLinkDetectionEnabled): Added setAutomaticLinkDetectionEnabled definition.
+        * WebProcess/InjectedBundle/InjectedBundle.h: Added setAutomaticLinkDetectionEnabled declaration.
+        * WebProcess/WebProcess.h: Declared setTextCheckerState public.
+
+2016-08-27  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][Threaded Compositor] Several flaky tests
+        https://bugs.webkit.org/show_bug.cgi?id=161242
+
+        Reviewed by Michael Catanzaro.
+
+        We still have a lot of flaky tests since we switched to the threaded compositor. The UI process might
+        take the screenshot too early, before everything is actually painted. I can't reproduce the problem, so this is
+        actually a speculative fix or workaround. Our implementation of DrawingArea::dispatchAfterEnsuringDrawing() is
+        quite simple, we just dispatch the callback in the next run loop iteration, which doesn't really ensures any
+        drawing at all. So, we can wait for draw events before dispatching the given callback. Since we don't really
+        know if draw events were already processed before dispatchAfterEnsuringDrawing() is called, or if there will be
+        more than one damage event in a short time, this patch waits up to 1 second for draw events, and if a draw
+        happens it stops if there isn't another draw event in the next 100ms. This should ensure a drawing if it was
+        really needed.
+
+        * UIProcess/DrawingAreaProxyImpl.cpp:
+        (WebKit::DrawingAreaProxyImpl::DrawingMonitor::DrawingMonitor):
+        (WebKit::DrawingAreaProxyImpl::DrawingMonitor::~DrawingMonitor):
+        (WebKit::DrawingAreaProxyImpl::DrawingMonitor::webViewDrawCallback):
+        (WebKit::DrawingAreaProxyImpl::DrawingMonitor::start):
+        (WebKit::DrawingAreaProxyImpl::DrawingMonitor::stop):
+        (WebKit::DrawingAreaProxyImpl::DrawingMonitor::didDraw):
+        (WebKit::DrawingAreaProxyImpl::dispatchAfterEnsuringDrawing):
+        * UIProcess/DrawingAreaProxyImpl.h:
+
+2016-08-26  Sam Weinig  <sam@webkit.org>
+
+        Remove support for ENABLE_LEGACY_WEB_AUDIO
+        https://bugs.webkit.org/show_bug.cgi?id=161262
+
+        Reviewed by Anders Carlsson.
+
+        * Configurations/FeatureDefines.xcconfig:
+        Remove ENABLE_LEGACY_WEB_AUDIO.
+
 2016-08-26  Anders Carlsson  <andersca@apple.com>
 
         Get rid of NetworkResourceLoader::sendAbortingOnFailure

@@ -100,6 +100,11 @@
 #include "MemoryPressureMonitor.h"
 #endif
 
+#if PLATFORM(WAYLAND)
+#include "WaylandCompositor.h"
+#include <WebCore/PlatformDisplay.h>
+#endif
+
 #ifndef NDEBUG
 #include <wtf/RefCountedLeakCounter.h>
 #endif
@@ -637,6 +642,11 @@ WebProcessProxy& WebProcessPool::createNewWebProcess()
     parameters.shouldEnableMemoryPressureReliefLogging = true;
     if (MemoryPressureMonitor::isEnabled())
         parameters.memoryPressureMonitorHandle = MemoryPressureMonitor::singleton().createHandle();
+#endif
+
+#if PLATFORM(WAYLAND)
+    if (PlatformDisplay::sharedDisplay().type() == PlatformDisplay::Type::Wayland)
+        parameters.waylandCompositorDisplayName = WaylandCompositor::singleton().displayName();
 #endif
 
     parameters.resourceLoadStatisticsEnabled = resourceLoadStatisticsEnabled();
@@ -1211,9 +1221,20 @@ void WebProcessPool::requestNetworkingStatistics(StatisticsRequest* request)
     m_networkProcess->send(Messages::NetworkProcess::GetNetworkProcessStatistics(requestID), 0);
 }
 
+static WebProcessProxy* webProcessProxyFromConnection(IPC::Connection& connection, const Vector<RefPtr<WebProcessProxy>>& processes)
+{
+    for (auto& process : processes) {
+        if (process->connection() == &connection)
+            return process.get();
+    }
+
+    // FIXME: Can this ever return null?
+    return nullptr;
+}
+
 void WebProcessPool::handleMessage(IPC::Connection& connection, const String& messageName, const WebKit::UserData& messageBody)
 {
-    auto* webProcessProxy = WebProcessProxy::fromConnection(&connection);
+    auto* webProcessProxy = webProcessProxyFromConnection(connection, m_processes);
     if (!webProcessProxy)
         return;
     m_injectedBundleClient.didReceiveMessageFromInjectedBundle(this, messageName, webProcessProxy->transformHandlesToObjects(messageBody.object()).get());
@@ -1221,7 +1242,7 @@ void WebProcessPool::handleMessage(IPC::Connection& connection, const String& me
 
 void WebProcessPool::handleSynchronousMessage(IPC::Connection& connection, const String& messageName, const UserData& messageBody, UserData& returnUserData)
 {
-    auto* webProcessProxy = WebProcessProxy::fromConnection(&connection);
+    auto* webProcessProxy = webProcessProxyFromConnection(connection, m_processes);
     if (!webProcessProxy)
         return;
 
@@ -1245,7 +1266,7 @@ void WebProcessPool::didGetStatistics(const StatisticsData& statisticsData, uint
 
 void WebProcessPool::startedUsingGamepads(IPC::Connection& connection)
 {
-    auto* proxy = WebProcessProxy::fromConnection(&connection);
+    auto* proxy = webProcessProxyFromConnection(connection, m_processes);
     if (!proxy)
         return;
 
@@ -1260,7 +1281,7 @@ void WebProcessPool::startedUsingGamepads(IPC::Connection& connection)
 
 void WebProcessPool::stoppedUsingGamepads(IPC::Connection& connection)
 {
-    auto* proxy = WebProcessProxy::fromConnection(&connection);
+    auto* proxy = webProcessProxyFromConnection(connection, m_processes);
     if (!proxy)
         return;
 

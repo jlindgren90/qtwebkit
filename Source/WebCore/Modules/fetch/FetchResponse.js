@@ -87,8 +87,16 @@ function clone()
         throw new @TypeError("Cannot clone a disturbed Response");
 
     var cloned = @Response.prototype.@cloneForJS.@call(this);
+
+    // Let's create @body if response body is loading to provide data to both clones.
+    if (@Response.prototype.@isLoading.@call(this) && !this.@body) {
+        var source = @Response.prototype.@createReadableStreamSource.@call(this);
+        @assert(!!source);
+        this.@body = new @ReadableStream(source);
+    }
+
     if (this.@body) {
-        var teedReadableStreams = @teeReadableStream(this.@body, false);
+        var teedReadableStreams = @teeReadableStream(this.@body, true);
         this.@body = teedReadableStreams[0];
         cloned.@body = teedReadableStreams[1];
     }

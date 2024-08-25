@@ -54,6 +54,7 @@ namespace WebCore {
     macro(getTracks) \
     macro(initializeWith) \
     macro(isDisturbed) \
+    macro(isLoading) \
     macro(localStreams) \
     macro(makeThisTypeError) \
     macro(makeGetterTypeError) \
@@ -89,6 +90,8 @@ namespace WebCore {
     macro(streamReadable) \
     macro(streamWaiting) \
     macro(streamWritable) \
+    macro(structuredCloneArrayBuffer) \
+    macro(structuredCloneArrayBufferView) \
     macro(underlyingSink) \
     macro(underlyingSource) \
     macro(writing) \

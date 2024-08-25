@@ -1,3 +1,278 @@
+2016-08-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION(r202568): Web Inspector: Expanding Array Prototype in Console shows no properties
+        https://bugs.webkit.org/show_bug.cgi?id=161263
+        <rdar://problem/28035849>
+
+        Reviewed by Matt Baker.
+
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.prototype._propertyDescriptors):
+        Previously we only took the "numeric index fast path" if an object was
+        array like with length > 100. When we dropped the length check we
+        ended up breaking our display of Array prototype, because [].__proto__
+        is an array instance. Get it back by just doing a check of length > 0.
+        We may want to address this differently in the future by knowing if
+        we are getting properties for a prototype or not.
+
+2016-08-29  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Clean up FTL Capabilities for CompareEq
+        https://bugs.webkit.org/show_bug.cgi?id=161353
+
+        Reviewed by Geoffrey Garen.
+
+        It looks like we already have code for every case.
+        This patch removes the tests from FTLCapabilities
+        and move the generic case last as usual.
+
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareEq):
+
+2016-08-29  Keith Miller  <keith_miller@apple.com>
+
+        Fix toStringName for Proxies and add support for normal instances
+        https://bugs.webkit.org/show_bug.cgi?id=161275
+
+        Reviewed by Saam Barati.
+
+        toStringName on proxies needs to follow the chain of proxies until it finds a non-proxy target.
+        Additionally, there are a couple of other classes that need to return "Object" for their
+        toStringName. Since this isn't tested by test262 I will propose a new test there.
+
+        * runtime/ClassInfo.h:
+        * runtime/JSArrayBufferView.cpp:
+        (JSC::JSArrayBufferView::toStringName):
+        * runtime/JSArrayBufferView.h:
+        * runtime/JSCell.cpp:
+        (JSC::JSCell::toStringName):
+        * runtime/JSCell.h:
+        * runtime/JSMap.cpp:
+        (JSC::JSMap::toStringName):
+        * runtime/JSMap.h:
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::toStringName):
+        * runtime/JSObject.h:
+        * runtime/JSSet.cpp:
+        (JSC::JSSet::destroy):
+        (JSC::JSSet::toStringName):
+        * runtime/JSSet.h:
+        * runtime/JSWeakMap.cpp:
+        (JSC::JSWeakMap::toStringName):
+        * runtime/JSWeakMap.h:
+        * runtime/JSWeakSet.cpp:
+        (JSC::JSWeakSet::toStringName):
+        * runtime/JSWeakSet.h:
+        * runtime/ObjectPrototype.cpp:
+        (JSC::objectProtoFuncToString):
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::toStringName):
+        * runtime/ProxyObject.h:
+        * runtime/SymbolObject.cpp:
+        (JSC::SymbolObject::toStringName):
+        * runtime/SymbolObject.h:
+        (JSC::SymbolObject::internalValue):
+
+2016-08-29  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response cloning should structureClone when teeing Response stream
+        https://bugs.webkit.org/show_bug.cgi?id=161147
+
+        Reviewed by Darin Adler.
+
+        * builtins/BuiltinNames.h: Adding ArrayBuffer and isView identifiers.
+        * runtime/JSArrayBufferConstructor.cpp:
+        (JSC::JSArrayBufferConstructor::finishCreation): Adding @isView as private method.
+        * runtime/JSDataView.h: Exporting create method.
+
+2016-08-29  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Improve ArithAbs with polymorphic input
+        https://bugs.webkit.org/show_bug.cgi?id=161286
+
+        Reviewed by Saam Barati.
+
+        This is similar to the previous patches: if we have polymorphic
+        input, do a function call.
+
+        I also discovered a few problems with the tests and fixed them:
+        -I forgot to add NodeMustGenerate to the previous nodes I changed.
+         They could have been eliminated by DCE.
+        -ArithAbs was always exiting if the input types do not include numbers.
+         The cause was the node was using isInt32OrBooleanSpeculationForArithmetic()
+         instead of isInt32OrBooleanSpeculation(). The test of
+         isInt32OrBooleanSpeculationForArithmetic() only verify the input does not
+         contains double or int52. If we were in that case, we were always speculating
+         Int32. That always fails and we were recompiling the same code over and over.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        Now that we have toNumberFromPrimitive(), we can improve constant folding here :)
+
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::hasResult):
+        (JSC::DFG::Node::hasHeapPrediction):
+        (JSC::DFG::Node::hasInt32Result): Deleted.
+        The accessor hasInt32Result() was unused.
+
+        * dfg/DFGNodeType.h:
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithAbs):
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithAbs):
+
+2016-08-28  Saam Barati  <sbarati@apple.com>
+
+        Make SpeculatedType a 64-bit integer
+        https://bugs.webkit.org/show_bug.cgi?id=161268
+
+        Reviewed by Filip Pizlo and Benjamin Poulain.
+
+        I'm going to introduce two new types into this and we only
+        have room for one in 32-bits. So, this patch widens SpeculatedType
+        to 64 bits. This also pulls this information through the DFG where
+        we needed to change DFGNode to support this.
+
+        * bytecode/SpeculatedType.h:
+        * dfg/DFGNode.cpp:
+        (JSC::DFG::Node::convertToPutHint):
+        (JSC::DFG::Node::promotedLocationDescriptor):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::Node):
+        (JSC::DFG::Node::convertToCheckStructure):
+        (JSC::DFG::Node::constant):
+        (JSC::DFG::Node::convertToConstant):
+        (JSC::DFG::Node::convertToConstantStoragePointer):
+        (JSC::DFG::Node::convertToPutStack):
+        (JSC::DFG::Node::convertToGetStack):
+        (JSC::DFG::Node::convertToGetByOffset):
+        (JSC::DFG::Node::convertToMultiGetByOffset):
+        (JSC::DFG::Node::convertToPutByOffset):
+        (JSC::DFG::Node::convertToMultiPutByOffset):
+        (JSC::DFG::Node::convertToPhantomNewObject):
+        (JSC::DFG::Node::convertToPhantomNewFunction):
+        (JSC::DFG::Node::convertToPhantomNewGeneratorFunction):
+        (JSC::DFG::Node::convertToPhantomCreateActivation):
+        (JSC::DFG::Node::convertToGetLocal):
+        (JSC::DFG::Node::lazyJSValue):
+        (JSC::DFG::Node::initializationValueForActivation):
+        (JSC::DFG::Node::tryGetVariableAccessData):
+        (JSC::DFG::Node::variableAccessData):
+        (JSC::DFG::Node::unlinkedLocal):
+        (JSC::DFG::Node::unlinkedMachineLocal):
+        (JSC::DFG::Node::stackAccessData):
+        (JSC::DFG::Node::phi):
+        (JSC::DFG::Node::identifierNumber):
+        (JSC::DFG::Node::getPutInfo):
+        (JSC::DFG::Node::accessorAttributes):
+        (JSC::DFG::Node::newArrayBufferData):
+        (JSC::DFG::Node::indexingType):
+        (JSC::DFG::Node::typedArrayType):
+        (JSC::DFG::Node::inlineCapacity):
+        (JSC::DFG::Node::scopeOffset):
+        (JSC::DFG::Node::capturedArgumentsOffset):
+        (JSC::DFG::Node::variablePointer):
+        (JSC::DFG::Node::callVarargsData):
+        (JSC::DFG::Node::loadVarargsData):
+        (JSC::DFG::Node::targetBytecodeOffsetDuringParsing):
+        (JSC::DFG::Node::targetBlock):
+        (JSC::DFG::Node::branchData):
+        (JSC::DFG::Node::switchData):
+        (JSC::DFG::Node::getHeapPrediction):
+        (JSC::DFG::Node::cellOperand):
+        (JSC::DFG::Node::watchpointSet):
+        (JSC::DFG::Node::storagePointer):
+        (JSC::DFG::Node::uidOperand):
+        (JSC::DFG::Node::typeInfoOperand):
+        (JSC::DFG::Node::transition):
+        (JSC::DFG::Node::structureSet):
+        (JSC::DFG::Node::structure):
+        (JSC::DFG::Node::storageAccessData):
+        (JSC::DFG::Node::multiGetByOffsetData):
+        (JSC::DFG::Node::multiPutByOffsetData):
+        (JSC::DFG::Node::objectMaterializationData):
+        (JSC::DFG::Node::arrayMode):
+        (JSC::DFG::Node::arithMode):
+        (JSC::DFG::Node::arithRoundingMode):
+        (JSC::DFG::Node::setArithRoundingMode):
+        (JSC::DFG::Node::executionCounter):
+        (JSC::DFG::Node::typeLocation):
+        (JSC::DFG::Node::basicBlockLocation):
+        (JSC::DFG::Node::numberOfArgumentsToSkip):
+        (JSC::DFG::Node::OpInfoWrapper::OpInfoWrapper):
+        (JSC::DFG::Node::OpInfoWrapper::operator=):
+        * dfg/DFGOpInfo.h:
+        (JSC::DFG::OpInfo::OpInfo):
+        * dfg/DFGPromotedHeapLocation.h:
+        (JSC::DFG::PromotedLocationDescriptor::imm1):
+        (JSC::DFG::PromotedLocationDescriptor::imm2):
+
+2016-08-27  Don Olmstead  <don.olmstead@am.sony.com>
+
+        Unused cxxabi.h include in JSGlobalObjectInspectorController.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=161120
+
+        Reviewed by Darin Adler.
+
+        * inspector/JSGlobalObjectInspectorController.cpp:
+
+2016-08-26  Sam Weinig  <sam@webkit.org>
+
+        Remove support for ENABLE_LEGACY_WEB_AUDIO
+        https://bugs.webkit.org/show_bug.cgi?id=161262
+
+        Reviewed by Anders Carlsson.
+
+        * Configurations/FeatureDefines.xcconfig:
+        Remove ENABLE_LEGACY_WEB_AUDIO
+
+2016-08-26  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Implement CompareStrictEq(String, Untyped) in FTL
+        https://bugs.webkit.org/show_bug.cgi?id=161229
+
+        Reviewed by Geoffrey Garen.
+
+        Add (String, Untyped) uses to FTL CompareStrictEq.
+        This was the last use type not implemented, the node is fully
+        supported by FTL after this patch.
+
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileCompareStrictEq):
+        (JSC::FTL::DFG::LowerDFGToB3::compileStringToUntypedStrictEquality):
+
+        (JSC::FTL::DFG::LowerDFGToB3::nonSpeculativeCompare):
+        Remove the type checks when possible.
+
+2016-08-26  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Web Inspector: Frontend should have access to Resource Timing information
+        https://bugs.webkit.org/show_bug.cgi?id=160095
+
+        Reviewed by Alex Christensen.
+
+        Rename ResourceTiming property.
+
+        * inspector/protocol/Network.json:
+        Rename navigationStart to startTime so it's applicable
+        for all resources and not just the main resource.
+
 2016-08-25  Joseph Pecoraro  <pecoraro@apple.com>
 
         Web Inspector: Provide a way to clear an IndexedDB object store

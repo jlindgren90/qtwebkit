@@ -36,7 +36,7 @@
 
 namespace IPC {
 
-struct WaitForMessageState {
+struct Connection::WaitForMessageState {
     WaitForMessageState(StringReference messageReceiverName, StringReference messageName, uint64_t destinationID, OptionSet<WaitForOption> waitForOptions)
         : messageReceiverName(messageReceiverName)
         , messageName(messageName)
@@ -97,15 +97,6 @@ private:
     };
     Vector<ConnectionAndIncomingMessage> m_messagesToDispatchWhileWaitingForSyncReply;
 };
-
-class Connection::SecondaryThreadPendingSyncReply {
-public:
-    // The reply decoder, will be null if there was an error processing the sync message on the other side.
-    std::unique_ptr<Decoder> replyDecoder;
-
-    BinarySemaphore semaphore;
-};
-
 
 Connection::SyncMessageState& Connection::SyncMessageState::singleton()
 {
@@ -191,6 +182,26 @@ void Connection::SyncMessageState::dispatchMessageAndResetDidScheduleDispatchMes
 
     dispatchMessages(&connection);
 }
+
+// Represents a sync request for which we're waiting on a reply.
+struct Connection::PendingSyncReply {
+    // The request ID.
+    uint64_t syncRequestID { 0 };
+
+    // The reply decoder, will be null if there was an error processing the sync
+    // message on the other side.
+    std::unique_ptr<Decoder> replyDecoder;
+
+    // Will be set to true once a reply has been received.
+    bool didReceiveReply { false };
+
+    PendingSyncReply() = default;
+
+    explicit PendingSyncReply(uint64_t syncRequestID)
+        : syncRequestID(syncRequestID)
+    {
+    }
+};
 
 Ref<Connection> Connection::createServerConnection(Identifier identifier, Client& client)
 {
@@ -449,12 +460,7 @@ std::unique_ptr<Decoder> Connection::waitForMessage(StringReference messageRecei
 
 std::unique_ptr<Decoder> Connection::sendSyncMessage(uint64_t syncRequestID, std::unique_ptr<Encoder> encoder, std::chrono::milliseconds timeout, OptionSet<SendSyncOption> sendSyncOptions)
 {
-    if (!RunLoop::isMain()) {
-        // No flags are supported for synchronous messages sent from secondary threads.
-        ASSERT(sendSyncOptions.isEmpty());
-
-        return sendSyncMessageFromSecondaryThread(syncRequestID, WTFMove(encoder), timeout);
-    }
+    ASSERT(RunLoop::isMain());
 
     if (!isValid()) {
         didFailToSendSyncMessage();
@@ -495,40 +501,6 @@ std::unique_ptr<Decoder> Connection::sendSyncMessage(uint64_t syncRequestID, std
         didFailToSendSyncMessage();
 
     return reply;
-}
-
-std::unique_ptr<Decoder> Connection::sendSyncMessageFromSecondaryThread(uint64_t syncRequestID, std::unique_ptr<Encoder> encoder, std::chrono::milliseconds timeout)
-{
-    ASSERT(!RunLoop::isMain());
-
-    if (!isValid())
-        return nullptr;
-
-    SecondaryThreadPendingSyncReply pendingReply;
-
-    // Push the pending sync reply information on our stack.
-    {
-        LockHolder locker(m_syncReplyStateMutex);
-        if (!m_shouldWaitForSyncReplies)
-            return nullptr;
-
-        ASSERT(!m_secondaryThreadPendingSyncReplyMap.contains(syncRequestID));
-        m_secondaryThreadPendingSyncReplyMap.add(syncRequestID, &pendingReply);
-    }
-
-    sendMessage(WTFMove(encoder), { });
-
-    timeout = timeoutRespectingIgnoreTimeoutsForTesting(timeout);
-    pendingReply.semaphore.wait(currentTime() + (timeout.count() / 1000.0));
-
-    // Finally, pop the pending sync reply information.
-    {
-        LockHolder locker(m_syncReplyStateMutex);
-        ASSERT(m_secondaryThreadPendingSyncReplyMap.contains(syncRequestID));
-        m_secondaryThreadPendingSyncReplyMap.remove(syncRequestID);
-    }
-
-    return WTFMove(pendingReply.replyDecoder);
 }
 
 std::unique_ptr<Decoder> Connection::waitForSyncReply(uint64_t syncRequestID, std::chrono::milliseconds timeout, OptionSet<SendSyncOption> sendSyncOptions)
@@ -603,15 +575,6 @@ void Connection::processIncomingSyncReply(std::unique_ptr<Decoder> decoder)
             SyncMessageState::singleton().wakeUpClientRunLoop();
 
         return;
-    }
-
-    // If it's not a reply to any primary thread message, check if it is a reply to a secondary thread one.
-    SecondaryThreadPendingSyncReplyMap::iterator secondaryThreadReplyMapItem = m_secondaryThreadPendingSyncReplyMap.find(decoder->destinationID());
-    if (secondaryThreadReplyMapItem != m_secondaryThreadPendingSyncReplyMap.end()) {
-        SecondaryThreadPendingSyncReply* reply = secondaryThreadReplyMapItem->value;
-        ASSERT(!reply->replyDecoder);
-        reply->replyDecoder = WTFMove(decoder);
-        reply->semaphore.signal();
     }
 
     // If we get here, it means we got a reply for a message that wasn't in the sync request stack or map.
@@ -745,9 +708,6 @@ void Connection::connectionDidClose()
 
         if (!m_pendingSyncReplies.isEmpty())
             SyncMessageState::singleton().wakeUpClientRunLoop();
-
-        for (SecondaryThreadPendingSyncReplyMap::iterator iter = m_secondaryThreadPendingSyncReplyMap.begin(); iter != m_secondaryThreadPendingSyncReplyMap.end(); ++iter)
-            iter->value->semaphore.signal();
     }
 
     {

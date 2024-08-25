@@ -1,3 +1,33 @@
+2016-08-28  Andreas Kling  <akling@apple.com>
+
+        document.title setter can't throw.
+        <https://webkit.org/b/161302>
+
+        Reviewed by Antti Koivisto.
+
+        * DOM/DOMDocument.mm:
+        (-[DOMDocument setTitle:]):
+
+2016-08-28  Andreas Kling  <akling@apple.com>
+
+        Clean up some .text attribute setters that don't throw.
+        <https://webkit.org/b/161292>
+
+        Reviewed by Darin Adler.
+
+        * DOM/DOMHTMLTitleElement.mm:
+        (-[DOMHTMLTitleElement setText:]):
+
+2016-08-26  Sam Weinig  <sam@webkit.org>
+
+        Remove support for ENABLE_LEGACY_WEB_AUDIO
+        https://bugs.webkit.org/show_bug.cgi?id=161262
+
+        Reviewed by Anders Carlsson.
+
+        * Configurations/FeatureDefines.xcconfig:
+        Remove ENABLE_LEGACY_WEB_AUDIO
+
 2016-08-25  Anders Carlsson  <andersca@apple.com>
 
         Re-export DOMException NSStrings after r204717
