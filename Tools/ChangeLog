@@ -1,3 +1,66 @@
+2016-08-24  Simon Fraser  <simon.fraser@apple.com>
+
+        Try to fix Production builds.
+        
+        PRODUCTION_FRAMEWORKS_DIR was undefined here.
+
+        * DumpRenderTree/mac/Configurations/Base.xcconfig:
+
+2016-08-24  Dan Bernstein  <mitz@apple.com>
+
+        Add a convenience function for creating a WKFrameHandleRef from a WKFrameRef without going through WKFrameInfoRef
+        https://bugs.webkit.org/show_bug.cgi?id=161152
+
+        Reviewed by Anders Carlsson.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2/FrameHandle.cpp: Added.
+        (TestWebKitAPI::didFinishLoadForFrame):
+        (TestWebKitAPI::TEST):
+
+2016-08-24  Nan Wang  <n_wang@apple.com>
+
+        AX: Add test for line text marker range on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=161108
+        <rdar://problem/27976405>
+
+        Reviewed by Chris Fleizach.
+
+        * DumpRenderTree/ios/AccessibilityUIElementIOS.mm:
+        (AccessibilityUIElement::lineTextMarkerRangeForTextMarker):
+        (AccessibilityUIElement::textMarkerRangeForElement):
+        * WebKitTestRunner/InjectedBundle/ios/AccessibilityUIElementIOS.mm:
+        (WTR::AccessibilityUIElement::lineTextMarkerRangeForTextMarker):
+        (WTR::AccessibilityUIElement::textMarkerRangeForElement):
+
+2016-08-24  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Warning fixes.
+        https://bugs.webkit.org/show_bug.cgi?id=161079
+
+        Reviewed by Brent Fulgham.
+
+        * MiniBrowser/win/WebDownloadDelegate.cpp:
+        * MiniBrowser/win/WinMain.cpp:
+        * TestWebKitAPI/Tests/WTF/WTFString.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-08-23  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix Windows DRT build.
+
+        * DumpRenderTree/win/TestRunnerWin.cpp:
+        (TestRunner::mainFrameJSContext):
+
+2016-08-23  Simon Fraser  <simon.fraser@apple.com>
+
+        Try to fix Windows build.
+        
+        Pass Tools/DumpRenderTree/Bindings as the working directory for the generate_bindings.pl
+        so that perl finds CodeGeneratorDumpRenderTree.pm.
+
+        * DumpRenderTree/CMakeLists.txt:
+
 2016-08-23  Simon Fraser  <simon.fraser@apple.com>
 
         Hook up UIScriptController in DumpRenderTree

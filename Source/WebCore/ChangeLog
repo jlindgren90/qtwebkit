@@ -1,3 +1,121 @@
+2016-08-24  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: childrenInline() in WebCore::RenderBlockFlow::hasLines
+        https://bugs.webkit.org/show_bug.cgi?id=139396
+        <rdar://problem/27704339>
+
+        Reviewed by David Hyatt.
+
+        RenderBlockFlow::hasLines() should be able to handle the block-children case.
+
+        Test: fast/ruby/assert-with-block-rt-child-and-emphasis.html
+
+        * rendering/RenderBlock.h:
+        (WebCore::RenderBlock::hasLines): Deleted.
+        * rendering/RenderBlockFlow.cpp:
+        (WebCore::RenderBlockFlow::hasLines):
+        * rendering/RenderBlockFlow.h:
+
+2016-08-24  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GObject DOM bindings API break after r204624 and r204648.
+
+        prefix, namespaceURI and localName attributes were moved from Node to Attr/Element in r204624 and prefix was
+        also made readonly in r204648.
+
+        * bindings/gobject/WebKitDOMDeprecated.cpp:
+        (webkit_dom_node_get_namespace_uri):
+        (webkit_dom_node_get_prefix):
+        (webkit_dom_node_set_prefix):
+        (webkit_dom_node_get_local_name):
+        * bindings/gobject/WebKitDOMDeprecated.h:
+        * bindings/gobject/WebKitDOMDeprecated.symbols:
+        * bindings/gobject/webkitdom.symbols:
+
+2016-08-23  Simon Fraser  <simon.fraser@apple.com>
+
+        Add some logging for WKSelectionDrawingInfo
+        https://bugs.webkit.org/show_bug.cgi?id=161055
+
+        Reviewed by Tim Horton.
+
+        Add TextStream dumping for SelectionRect.
+
+        * platform/ios/SelectionRect.cpp:
+        (WebCore::operator<<):
+        * platform/ios/SelectionRect.h:
+
+2016-08-23  Frederic Wang  <fwang@igalia.com>
+
+        More consistent header inclusions in the MathML module
+        https://bugs.webkit.org/show_bug.cgi?id=161080
+
+        Reviewed by Darin Adler.
+
+        We adjust header inclusion in the MathML module so that:
+        - implementation file's own header is outside the #if ENABLE(MATHML)
+        - There is always a blank line after the #if ENABLE(MATHML)
+
+        No new tests, behavior is unchanged.
+
+        * mathml/MathMLAnnotationElement.cpp:
+        * mathml/MathMLAnnotationElement.h:
+        * mathml/MathMLElement.cpp:
+        * mathml/MathMLFractionElement.cpp:
+        * mathml/MathMLFractionElement.h:
+        * mathml/MathMLMathElement.cpp:
+        * mathml/MathMLMathElement.h:
+        * mathml/MathMLMencloseElement.cpp:
+        * mathml/MathMLMencloseElement.h:
+        * mathml/MathMLOperatorDictionary.cpp:
+        * mathml/MathMLOperatorElement.cpp:
+        * mathml/MathMLOperatorElement.h:
+        * mathml/MathMLPaddedElement.cpp:
+        * mathml/MathMLPaddedElement.h:
+        * mathml/MathMLPresentationElement.cpp:
+        * mathml/MathMLPresentationElement.h:
+        * mathml/MathMLRowElement.cpp:
+        * mathml/MathMLRowElement.h:
+        * mathml/MathMLScriptsElement.cpp:
+        * mathml/MathMLScriptsElement.h:
+        * mathml/MathMLSelectElement.h:
+        * mathml/MathMLSpaceElement.cpp:
+        * mathml/MathMLSpaceElement.h:
+        * mathml/MathMLTokenElement.cpp:
+        * mathml/MathMLUnderOverElement.cpp:
+        * mathml/MathMLUnderOverElement.h:
+        * rendering/mathml/MathMLStyle.cpp:
+        * rendering/mathml/MathOperator.cpp:
+        * rendering/mathml/MathOperator.h:
+        * rendering/mathml/RenderMathMLBlock.cpp:
+        * rendering/mathml/RenderMathMLFenced.cpp:
+        * rendering/mathml/RenderMathMLFencedOperator.cpp:
+        * rendering/mathml/RenderMathMLFraction.cpp:
+        * rendering/mathml/RenderMathMLMath.cpp:
+        * rendering/mathml/RenderMathMLMenclose.cpp:
+        * rendering/mathml/RenderMathMLMenclose.h:
+        * rendering/mathml/RenderMathMLOperator.cpp:
+        * rendering/mathml/RenderMathMLRoot.cpp:
+        * rendering/mathml/RenderMathMLRow.cpp:
+        * rendering/mathml/RenderMathMLScripts.cpp:
+        * rendering/mathml/RenderMathMLUnderOver.cpp:
+
+2016-08-23  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: !view().layoutStateEnabled() || style().styleType() == FIRST_LETTER in WebCore::RenderInline::clippedOverflowRectForRepaint
+        https://bugs.webkit.org/show_bug.cgi?id=155363
+        <rdar://problem/27720434>
+
+        Reviewed by David Hyatt.
+
+        Loosen ASSERT to include calls when the inline has a self painting layer. It's valid to end up here during layout when
+        the layer's composite state changes.
+
+        Test: fast/layers/assert-on-self-painting-inline-with-scrolling.html
+
+        * rendering/RenderInline.cpp:
+        (WebCore::RenderInline::clippedOverflowRectForRepaint):
+
 2016-08-23  Anders Carlsson  <andersca@apple.com>
 
         Create a phony WebKitLegacy framework that the WebCoreTestSupport dylib can find

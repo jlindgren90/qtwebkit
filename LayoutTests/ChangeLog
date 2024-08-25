@@ -1,3 +1,136 @@
+2016-08-24  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: childrenInline() in WebCore::RenderBlockFlow::hasLines
+        https://bugs.webkit.org/show_bug.cgi?id=139396
+        <rdar://problem/27704339>
+
+        Reviewed by David Hyatt.
+
+        * fast/ruby/assert-with-block-rt-child-and-emphasis-expected.txt: Added.
+        * fast/ruby/assert-with-block-rt-child-and-emphasis.html: Added.
+
+2016-08-24  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] http server is not starting.
+        https://bugs.webkit.org/show_bug.cgi?id=161134
+
+        Reviewed by Alexey Proskuryakov.
+
+        Avoid setting the php ini folder twice, it is not allowed by xampp.
+
+        * http/conf/apache2.4-httpd-win.conf:
+
+2016-08-24  Nan Wang  <n_wang@apple.com>
+
+        AX: Add test for line text marker range on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=161108
+        <rdar://problem/27976405>
+
+        Reviewed by Chris Fleizach.
+
+        Added a new test to test line text marker ranges on iOS.
+
+        * accessibility/ios-simulator/text-marker-range-for-line-expected.txt: Added.
+        * accessibility/ios-simulator/text-marker-range-for-line.html: Added.
+
+2016-08-24  Brady Eidson  <beidson@apple.com>
+
+        Changing gamepad test to try to get more info about the failure mode on the bots.
+
+        Unreviewed.
+
+        * gamepad/gamepad-timestamp.html:
+
+2016-08-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Add ios-simulator baseline for newly imported test.
+        https://bugs.webkit.org/show_bug.cgi?id=161143
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/browsers/browsing-the-web/history-traversal/persisted-user-state-restoration/scroll-restoration-fragment-scrolling-samedoc-expected.txt: Added.
+
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, temporarily mark imported/w3c/web-platform-tests/html/dom/interfaces.html as flaky.
+
+        * TestExpectations:
+
+2016-08-23  Filip Pizlo  <fpizlo@apple.com>
+
+        js/regress/put-by-id-transition-with-indexing-header.html and svg/carto.net/window.svg fail in debug after r204854
+        https://bugs.webkit.org/show_bug.cgi?id=161115
+
+        Reviewed by Keith Miller.
+
+        * TestExpectations:
+
+2016-08-24  Mark Lam  <mark.lam@apple.com>
+
+        Gardening: restoring 2 test expectations removed in r204870 by mistake.
+        https://bugs.webkit.org/show_bug.cgi?id=161096
+
+        Not reviewed.
+
+        * TestExpectations:
+
+2016-08-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Temporarily skip inspector/codemirror tests on mac-wk1 debug.
+        https://bugs.webkit.org/show_bug.cgi?id=161117
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-08-24  Brady Eidson  <beidson@apple.com>
+
+        Get timestamps and ids working in WK2 gamepads (and test them!)
+        https://bugs.webkit.org/show_bug.cgi?id=161112
+
+        Reviewed by Alex Christensen.
+
+        * gamepad/gamepad-polling-access-expected.txt:
+        * gamepad/gamepad-polling-access.html:
+        * gamepad/gamepad-timestamp-expected.txt: Added.
+        * gamepad/gamepad-timestamp.html: Added.
+
+2016-08-24  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES2016] Allow assignment in for-in head in not-strict mode
+        https://bugs.webkit.org/show_bug.cgi?id=160955
+
+        Reviewed by Saam Barati.
+
+        * js/parser-syntax-check-expected.txt:
+        * js/script-tests/parser-syntax-check.js:
+
+2016-08-24  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Test gardening
+        https://bugs.webkit.org/show_bug.cgi?id=161128
+
+        Unreviewed.
+
+        * TestExpectations:
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/basic/request-headers-expected.txt:
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/basic/request-headers-worker-expected.txt:
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/redirect/redirect-location-worker-expected.txt: Added.
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/redirect/redirect-method-worker-expected.txt: Added.
+        * platform/mac-wk2/TestExpectations:
+        * platform/win/TestExpectations:
+
+2016-08-23  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: !view().layoutStateEnabled() || style().styleType() == FIRST_LETTER in WebCore::RenderInline::clippedOverflowRectForRepaint
+        https://bugs.webkit.org/show_bug.cgi?id=155363
+        <rdar://problem/27720434>
+
+        Reviewed by David Hyatt.
+
+        * fast/layers/assert-on-self-painting-inline-with-scrolling-expected.txt: Added.
+        * fast/layers/assert-on-self-painting-inline-with-scrolling.html: Added.
+
 2016-08-23  Chris Dumez  <cdumez@apple.com>
 
         Add support for CanvasRenderingContext2D.resetTransform()

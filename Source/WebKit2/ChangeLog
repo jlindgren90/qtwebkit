@@ -1,3 +1,102 @@
+2016-08-24  Anders Carlsson  <andersca@apple.com>
+
+        In some cases, an IPC::Connection won't know when the other end has gone away
+        https://bugs.webkit.org/show_bug.cgi?id=161153
+        rdar://problem/27896368
+
+        Reviewed by Dan Bernstein.
+
+        When being asked to invalidate a connection that isn't yet connected, make sure to release
+        our send and receive rights so that the other end will get a failure when trying to connect.
+
+        * Platform/IPC/mac/ConnectionMac.mm:
+        (IPC::Connection::platformInvalidate):
+
+2016-08-24  Dan Bernstein  <mitz@apple.com>
+
+        Add a convenience function for creating a WKFrameHandleRef from a WKFrameRef without going through WKFrameInfoRef
+        https://bugs.webkit.org/show_bug.cgi?id=161152
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/API/C/WKFrame.cpp:
+        (WKFrameCreateFrameHandle): Added. Creates a handle with the frame’s frameID.
+        * UIProcess/API/C/WKFrame.h:
+
+2016-08-24  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] Can’t "po" WKObject instances
+        https://bugs.webkit.org/show_bug.cgi?id=161151
+
+        Reviewed by Anders Carlsson.
+
+        * Shared/Cocoa/WKObject.mm:
+        (-[WKObject debugDescription]): Implement and forward to the target or print a generic
+          description.
+
+2016-08-24  Brady Eidson  <beidson@apple.com>
+
+        Get timestamps and ids working in WK2 gamepads (and test them!)
+        https://bugs.webkit.org/show_bug.cgi?id=161112
+
+        Reviewed by Alex Christensen.
+
+        * Shared/Gamepad/GamepadData.cpp:
+        (WebKit::GamepadData::GamepadData):
+        (WebKit::GamepadData::encode):
+        (WebKit::GamepadData::decode):
+        * Shared/Gamepad/GamepadData.h:
+        (WebKit::GamepadData::id):
+        (WebKit::GamepadData::index): Deleted.
+        
+        * UIProcess/Gamepad/UIGamepad.cpp:
+        (WebKit::UIGamepad::UIGamepad):
+        (WebKit::UIGamepad::condensedGamepadData):
+        (WebKit::UIGamepad::fullGamepadData): Include the ID for initial WebGamepad creation.
+        (WebKit::UIGamepad::gamepadData): Deleted.
+        * UIProcess/Gamepad/UIGamepad.h:
+        
+        * UIProcess/Gamepad/UIGamepadProvider.cpp:
+        (WebKit::UIGamepadProvider::snapshotGamepads):
+        
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::gamepadConnected):
+        (WebKit::WebProcessPool::setInitialConnectedGamepads):
+        
+        * WebProcess/Gamepad/WebGamepad.cpp:
+        (WebKit::WebGamepad::WebGamepad):
+        (WebKit::WebGamepad::updateValues):
+
+2016-08-24  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        [EFL] Fix test_ewk2_view
+        https://bugs.webkit.org/show_bug.cgi?id=161131
+
+        Reviewed by Gyuyoung Kim.
+
+        ewk_view_title_changed: null is treated as the string "null" after r203487.
+
+        ewk_view_page_contents_get: aligned encoding labels after r204605.
+
+        * UIProcess/API/efl/tests/resources/resultMHTML.mht:
+        * UIProcess/API/efl/tests/test_ewk2_view.cpp:
+        (TEST_F):
+
+2016-08-23  Simon Fraser  <simon.fraser@apple.com>
+
+        Add some logging for WKSelectionDrawingInfo
+        https://bugs.webkit.org/show_bug.cgi?id=161055
+
+        Reviewed by Tim Horton.
+
+        Add a Selection logging channel for WK2, and dump WKSelectionDrawingInfo when it changes.
+
+        * Platform/Logging.h:
+        * UIProcess/ios/WKContentViewInteraction.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (WebKit::operator<<):
+        (-[WKContentView _updateChangedSelection:]):
+
 2016-08-23  Ryosuke Niwa  <rniwa@webkit.org>
 
         Another CMake build fix attempt after r204852.

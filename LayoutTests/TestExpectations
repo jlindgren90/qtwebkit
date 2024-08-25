@@ -500,9 +500,8 @@ imported/w3c/web-platform-tests/XMLHttpRequest/send-redirect-to-non-cors.htm [ S
 # Failing assertion with dynamic message
 imported/w3c/web-platform-tests/XMLHttpRequest/responsexml-document-properties.htm [ Failure ]
 
-webkit.org/b/160510 http/tests/fetch/fetch-in-worker-crash.html [ Failure Crash Pass ]
 imported/w3c/web-platform-tests/fetch/api/request/request-cache.html [ Skip ]
-[ Release ] imported/w3c/web-platform-tests/fetch/api/cors/cors-cookies-worker.html [ Failure Pass ]
+
 [ Debug ] imported/w3c/web-platform-tests/fetch/api/cors/cors-basic-worker.html [ Skip ]
 [ Debug ] imported/w3c/web-platform-tests/fetch/api/cors/cors-cookies-worker.html [ Skip ]
 [ Debug ] imported/w3c/web-platform-tests/fetch/api/cors/cors-filtering-worker.html [ Skip ]
@@ -528,6 +527,7 @@ imported/w3c/web-platform-tests/fetch/api/request/request-cache.html [ Skip ]
 [ Debug ] imported/w3c/web-platform-tests/fetch/api/redirect/redirect-mode-worker.html [ Skip ]
 [ Debug ] imported/w3c/web-platform-tests/fetch/api/redirect/redirect-origin-worker.html [ Skip ]
 [ Debug ] imported/w3c/web-platform-tests/fetch/nosniff/worker.html [ Skip ]
+webkit.org/b/160510 [ Debug ] http/tests/fetch/fetch-in-worker-crash.html [ Crash ]
 
 webkit.org/b/157068 imported/w3c/web-platform-tests/fetch/nosniff/importscripts.html [ Skip ]
 webkit.org/b/157145 imported/w3c/web-platform-tests/fetch/nosniff/stylesheet.html [ Failure Pass ]
@@ -879,6 +879,8 @@ webkit.org/b/142937 ietestcenter/Javascript/15.2.3.14-1-1.html [ Failure ]
 webkit.org/b/142937 ietestcenter/Javascript/15.2.3.14-1-2.html [ Failure ]
 webkit.org/b/142937 ietestcenter/Javascript/15.2.3.14-1-3.html [ Failure ]
 
+[ Debug ] js/regress-141098.html [ Slow ]
+
 # IDBVersionChangeEvent tests need to be rewritten to use event constructors instead of createEvent,
 # after we implement the IDBVersionChangeEvent constructor.
 webkit.org/b/145390 storage/indexeddb/events.html [ Failure ]
@@ -1210,6 +1212,9 @@ imported/w3c/WebCryptoAPI/generateKey/test_successes.html [ Skip ]
 
 editing/deleting/delete-emoji.html [ Slow ]
 
+# Apparently became flaky after r204844.
+webkit.org/b/161142 imported/w3c/web-platform-tests/html/dom/interfaces.html [ Pass Failure ]
+
 # New emoji requires system support.
 webkit.org/b/159755 fast/text/emoji-num-glyphs.html [ Failure ]
 webkit.org/b/159755 fast/text/emoji-gender-2-3.html [ ImageOnlyFailure ]
@@ -1234,4 +1239,6 @@ webkit.org/b/159755 fast/text/emoji-gender-fe0f-8.html [ ImageOnlyFailure ]
 webkit.org/b/159755 fast/text/emoji-gender-fe0f-9.html [ ImageOnlyFailure ]
 webkit.org/b/159755 fast/text/emoji-gender.html [ ImageOnlyFailure ]
 
-[Debug] webkit.org/b/161114 svg/carto.net/window.svg [ Skip ]
+webkit.org/b/160017 js/regress-139548.html [ Slow ]
+
+
