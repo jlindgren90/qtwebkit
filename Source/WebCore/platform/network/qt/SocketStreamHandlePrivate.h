@@ -44,13 +44,11 @@ class SocketStreamHandleClient;
 class SocketStreamHandlePrivate;
 
 class SocketStreamHandlePrivate final : public QObject {
-    Q_OBJECT
 public:
     SocketStreamHandlePrivate(SocketStreamHandleImpl*, const URL&);
     SocketStreamHandlePrivate(SocketStreamHandleImpl*, QTcpSocket*);
     ~SocketStreamHandlePrivate();
 
-public Q_SLOTS:
     void socketConnected();
     void socketReadyRead();
     Optional<size_t> send(const char* data, size_t len);

@@ -239,5 +239,3 @@ void SocketStreamHandleImpl::receivedCancellation(const AuthenticationChallenge&
 }
 
 } // namespace WebCore
-
-#include "moc_SocketStreamHandlePrivate.cpp"

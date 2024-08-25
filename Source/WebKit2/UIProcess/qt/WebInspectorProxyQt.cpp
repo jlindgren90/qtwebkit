@@ -47,6 +47,11 @@ void WebInspectorProxy::platformDidClose()
     notImplemented();
 }
 
+void WebInspectorProxy::platformDidCloseForCrash()
+{
+    notImplemented();
+}
+
 void WebKit::WebInspectorProxy::platformInvalidate()
 {
     notImplemented();
