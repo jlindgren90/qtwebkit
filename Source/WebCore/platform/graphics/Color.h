@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2003-2006, 2010, 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2003-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,6 +44,13 @@ typedef struct CGColor* CGColorRef;
 QT_BEGIN_NAMESPACE
 class QColor;
 QT_END_NAMESPACE
+#endif
+
+#if PLATFORM(WIN)
+struct _D3DCOLORVALUE;
+typedef _D3DCOLORVALUE D3DCOLORVALUE;
+typedef D3DCOLORVALUE D2D_COLOR_F;
+typedef D2D_COLOR_F D2D1_COLOR_F;
 #endif
 
 #if PLATFORM(GTK)
@@ -186,7 +193,13 @@ public:
     WEBCORE_EXPORT Color(CGColorRef);
 #endif
 
+#if PLATFORM(WIN)
+    WEBCORE_EXPORT Color(D2D1_COLOR_F);
+    WEBCORE_EXPORT operator D2D1_COLOR_F() const;
+#endif
+
     static bool parseHexColor(const String&, RGBA32&);
+    static bool parseHexColor(const StringView&, RGBA32&);
     static bool parseHexColor(const LChar*, unsigned, RGBA32&);
     static bool parseHexColor(const UChar*, unsigned, RGBA32&);
 

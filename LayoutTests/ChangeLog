@@ -1,3 +1,153 @@
+2016-09-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Implement Copy CSS Selector and Copy Xpath Selector context menus
+        https://bugs.webkit.org/show_bug.cgi?id=158881
+        <rdar://problem/8181156>
+
+        Reviewed by Matt Baker.
+
+        * inspector/dom/domutilities-csspath-expected.txt: Added.
+        * inspector/dom/domutilities-csspath.html: Added.
+        * inspector/dom/domutilities-path-dump-expected.txt: Added.
+        * inspector/dom/domutilities-path-dump.html: Added.
+        * inspector/dom/domutilities-xpath-expected.txt: Added.
+        * inspector/dom/domutilities-xpath.html: Added.
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed gardening; enable newly passing media/media-source/ tests.
+
+        * platform/mac/TestExpectations:
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed gardening; enable newly passing imported/w3c/web-platform-tests/media-source/ tests.
+
+        * platform/mac/TestExpectations:
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/mediasource-config-change-mp4-av-audio-bitrate.html
+        https://bugs.webkit.org/show_bug.cgi?id=162052
+
+        Reviewed by Brent Fulgham.
+
+        * platform/mac/TestExpectations:
+
+2016-09-14  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] fix imported/w3c/web-platform-tests/media-source/mediasource-duration.html
+        https://bugs.webkit.org/show_bug.cgi?id=161999
+
+        Reviewed by Eric Carlson.
+
+        * platform/mac/TestExpectations:
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/mediasource-timestamp-offset.html
+        https://bugs.webkit.org/show_bug.cgi?id=162038
+
+        Reviewed by Eric Carlson.
+
+        * platform/mac/TestExpectations:
+
+2016-09-16  Chris Dumez  <cdumez@apple.com>
+
+        Cloning a textarea does not clone the textarea's value
+        https://bugs.webkit.org/show_bug.cgi?id=156637
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect behavior change.
+
+        * fast/forms/checkValidity-cloneNode-crash-expected.txt:
+        * fast/forms/checkValidity-cloneNode-crash.html:
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Headers should be combine with ',' and not ', '
+        https://bugs.webkit.org/show_bug.cgi?id=161736
+
+        Reviewed by Sam Weinig.
+
+        * http/tests/xmlhttprequest/check-combining-headers-expected.txt:
+        * http/tests/xmlhttprequest/check-combining-headers.html: Checking combined headers.
+        * http/tests/xmlhttprequest/resources/print-headers.php: Printing all request headers in a JSON response.
+        * http/tests/xmlhttprequest/web-apps/005.html: Making ',' combination as expected.
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        Custom promise-returning functions should not throw if callee has not the expected type
+        https://bugs.webkit.org/show_bug.cgi?id=162011
+
+        Reviewed by Sam Weinig.
+
+        * fast/mediastream/MediaDevices-getUserMedia-expected.txt:
+        * fast/mediastream/MediaDevices-getUserMedia.html: Enusing calling getUserMedia on something else than MediaDevices does not throw.
+        * http/tests/media/media-stream/disconnected-frame-already-expected.txt:
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        Link loader should use FetchOptions::mode according its crossOrigin attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161859
+
+        Reviewed by Sam Weinig.
+
+        * http/tests/security/cached-cross-origin-preloaded-css-stylesheet-expected.txt: Added.
+        * http/tests/security/cached-cross-origin-preloaded-css-stylesheet.html: Added.
+        * http/tests/security/cached-cross-origin-preloading-css-stylesheet-expected.txt: Added.
+        * http/tests/security/cached-cross-origin-preloading-css-stylesheet.html: Added.
+        * http/tests/security/resources/allow-if-origin.php: Adding support for allowing credentials and setting contentType.
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Referrer and Origin header should not be considered as safe request headers
+        https://bugs.webkit.org/show_bug.cgi?id=161902
+
+        Reviewed by Sam Weinig.
+
+        * http/tests/fetch/fetch-cors-with-referrer-expected.txt: Added.
+        * http/tests/fetch/fetch-cors-with-referrer.html: Added.
+
+2016-09-13  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] web-platform-test/media-source/mediasource-remove.html test failing
+        https://bugs.webkit.org/show_bug.cgi?id=161950
+
+        Reviewed by Eric Carlson.
+
+        * platform/mac/TestExpectations:
+
+2016-09-15  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: willBeComposited == needsToBeComposited(layer) in WebCore::RenderLayerCompositor::computeCompositingRequirements
+        https://bugs.webkit.org/show_bug.cgi?id=151097
+        <rdar://problem/27711678>
+
+        Reviewed by Simon Fraser.
+
+        * compositing/assert-on-will-change-transform-with-composited-descendant-expected.txt: Added.
+        * compositing/assert-on-will-change-transform-with-composited-descendant.html: Added.
+
+2016-09-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking js/date-constructor.html as flaky on ios-simulator-wk2
+        https://bugs.webkit.org/show_bug.cgi?id=162032
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-09-15  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip two crashing media tests, remove flaky expectation for one that was wrongly blamed.
+        https://bugs.webkit.org/show_bug.cgi?id=161323
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
 2016-09-15  Javier Fernandez  <jfernandez@igalia.com>
 
         [GTK] Unreviewed test gardening

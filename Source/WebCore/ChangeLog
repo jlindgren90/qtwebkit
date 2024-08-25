@@ -1,3 +1,983 @@
+2016-09-16  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r206055.
+        https://bugs.webkit.org/show_bug.cgi?id=162110
+
+        broke 32bit ARM build (Requested by anttik on #webkit).
+
+        Reverted changeset:
+
+        "Add size assert for RenderElement"
+        https://bugs.webkit.org/show_bug.cgi?id=162096
+        http://trac.webkit.org/changeset/206055
+
+2016-09-16  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win][Direct2D] Provide Color support for Direct2D
+        https://bugs.webkit.org/show_bug.cgi?id=162090
+
+        Reviewed by Dean Jackson.
+
+        Add casting operations to the Color class to allow easy interoption with
+        native Direct2D operations.
+
+        No new tests. No change in behavior.
+
+        * PlatformWin.cmake: Add new Windows implementation file.
+        * platform/graphics/Color.h:
+        * platform/graphics/win/ColorDirect2D.cpp: Added.
+        (WebCore::Color::Color):
+        (WebCore::Color::operator D2D1_COLOR_F):
+
+2016-09-16  Antti Koivisto  <antti@apple.com>
+
+        Add size assert for RenderElement
+        https://bugs.webkit.org/show_bug.cgi?id=162096
+
+        Reviewed by Simon Fraser.
+
+        Also remove the unused m_visibleInViewportState field.
+
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::unregisterForVisibleInViewportCallback):
+        * rendering/RenderElement.h:
+
+2016-09-16  Antti Koivisto  <antti@apple.com>
+
+        Tighten region style map to use RenderElement instead of RenderObject
+        https://bugs.webkit.org/show_bug.cgi?id=162064
+
+        Reviewed by Zalan Bujtas.
+
+        RenderTexts don't have styles of their own so the map can operate on RenderElements.
+
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::willBeRemovedFromTree):
+        (WebCore::RenderElement::removeFromRenderFlowThread):
+        (WebCore::RenderElement::removeFromRenderFlowThreadIncludingDescendants):
+        (WebCore::RenderElement::invalidateFlowThreadContainingBlockIncludingDescendants):
+        * rendering/RenderElement.h:
+        * rendering/RenderFlowThread.cpp:
+        (WebCore::RenderFlowThread::removeFlowChildInfo):
+        * rendering/RenderFlowThread.h:
+        * rendering/RenderNamedFlowFragment.cpp:
+        (WebCore::RenderNamedFlowFragment::computeChildrenStyleInRegion):
+        (WebCore::RenderNamedFlowFragment::setRendererStyleInRegion):
+        (WebCore::RenderNamedFlowFragment::clearObjectStyleInRegion):
+        (WebCore::RenderNamedFlowFragment::setRegionObjectsRegionStyle):
+        (WebCore::RenderNamedFlowFragment::restoreRegionObjectsOriginalStyle):
+        (WebCore::RenderNamedFlowFragment::setObjectStyleInRegion): Deleted.
+        * rendering/RenderNamedFlowFragment.h:
+        * rendering/RenderNamedFlowThread.cpp:
+        (WebCore::RenderNamedFlowThread::clearRenderObjectCustomStyle):
+        (WebCore::RenderNamedFlowThread::removeFlowChildInfo):
+        * rendering/RenderNamedFlowThread.h:
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::willBeRemovedFromTree):
+        (WebCore::RenderObject::removeFromRenderFlowThread): Deleted.
+        (WebCore::RenderObject::removeFromRenderFlowThreadIncludingDescendants): Deleted.
+        (WebCore::RenderObject::invalidateFlowThreadContainingBlockIncludingDescendants): Deleted.
+
+            These can now move to RenderElement.
+
+        * rendering/RenderObject.h:
+
+2016-09-16  Brent Fulgham  <bfulgham@apple.com>
+
+        CaptionUserPreferences's use of the PageGroup's page map is incorrect
+        https://bugs.webkit.org/show_bug.cgi?id=122194
+        <rdar://problem/27332004>
+
+        Reviewed by Zalan Bujtas.
+
+        Avoid the possibility of dereferencing an unsafe iterator by checking
+        for an empty HashSet before using the result of 'begin()'.
+
+        No new tests because there is no change in behavior.
+
+        * page/CaptionUserPreferences.cpp:
+        (WebCore::CaptionUserPreferences::CaptionUserPreferences): Use new safer
+        accessor to retrieve the current page.
+        (WebCore::CaptionUserPreferences::setCaptionDisplayMode): Ditto.
+        (WebCore::CaptionUserPreferences::currentPage): Added.
+        (WebCore::CaptionUserPreferences::userPrefersCaptions): Use new safer
+        accessor to retrieve the current page.
+        (WebCore::CaptionUserPreferences::setUserPrefersCaptions): Ditto.
+        (WebCore::CaptionUserPreferences::userPrefersSubtitles): Ditto.
+        (WebCore::CaptionUserPreferences::setUserPrefersSubtitles): Ditto.
+        (WebCore::CaptionUserPreferences::userPrefersTextDescriptions): Ditto.
+        (WebCore::CaptionUserPreferences::setUserPrefersTextDescriptions): Ditto.
+        * page/CaptionUserPreferences.h:
+
+2016-09-16  Alex Christensen  <achristensen@webkit.org>
+
+        Use Vector<LChar> instead of StringBuilder for the ASCII parts of URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162035
+
+        Reviewed by Chris Dumez.
+
+        StringBuilder::append checks to see whether its StringBuffer is 8-bit or 16-bit each time it is called.
+        When parsing URLs, almost all of the parsed URL is guaranteed to be 8-bit ASCII.
+        Using a Vector<LChar> for this allows us to use uncheckedAppend in some places, and it always eliminates the 8-bit check.
+        This is a ~20% speedup in url parsing.
+
+        Covered by existing API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::isWindowsDriveLetter):
+        (WebCore::percentEncode):
+        (WebCore::utf8PercentEncode):
+        (WebCore::utf8PercentEncodeQuery):
+        (WebCore::encodeQuery):
+        (WebCore::URLParser::copyURLPartsUntil):
+        (WebCore::URLParser::popPath):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::parseAuthority):
+        (WebCore::appendNumber):
+        (WebCore::serializeIPv4):
+        (WebCore::serializeIPv6Piece):
+        (WebCore::serializeIPv6):
+        (WebCore::URLParser::parsePort):
+        (WebCore::URLParser::parseHost):
+        (WebCore::serializeURLEncodedForm):
+        (WebCore::URLParser::serialize):
+        (WebCore::bufferView): Deleted.
+        * platform/URLParser.h:
+
+2016-09-16  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Get CSSPropertyParserHelpers.cpp compiling
+        https://bugs.webkit.org/show_bug.cgi?id=162078
+
+        Reviewed by Dean Jackson.
+
+        * css/CSSCalculationValue.cpp:
+        (WebCore::hasDoubleValue):
+        (WebCore::checkDepthAndIndex):
+        (WebCore::CSSCalcExpressionNodeParser::parseCalc):
+        (WebCore::CSSCalcExpressionNodeParser::operatorValue):
+        (WebCore::CSSCalcExpressionNodeParser::parseValue):
+        (WebCore::CSSCalcExpressionNodeParser::parseValueTerm):
+        (WebCore::CSSCalcExpressionNodeParser::parseValueMultiplicativeExpression):
+        (WebCore::CSSCalcExpressionNodeParser::parseAdditiveValueExpression):
+        (WebCore::CSSCalcExpressionNodeParser::parseValueExpression):
+        (WebCore::checkDepthAndIndexDeprecated):
+        (WebCore::CSSCalcExpressionNodeParserDeprecated::parseValueTerm):
+        (WebCore::CSSCalcExpressionNodeParserDeprecated::parseValueMultiplicativeExpression):
+        (WebCore::CSSCalcExpressionNodeParserDeprecated::parseAdditiveValueExpression):
+        (WebCore::CSSCalcValue::create):
+        * css/CSSCalculationValue.h:
+        (WebCore::CSSCalcValue::createCalculationValue):
+        (WebCore::CSSCalcValue::setPermittedValueRange):
+        Switch off the permitted calc value range enum, since we can just use the identical ValueRange enum.
+        Deprecate the CSSParserValueList-based parser by renaming it, and add a new parser that operates
+        on tokens.
+
+        * css/CSSPrimitiveValue.cpp:
+        (WebCore::isValidCSSUnitTypeForDoubleConversion):
+        (WebCore::isStringType):
+        (WebCore::CSSPrimitiveValue::cleanup):
+        (WebCore::CSSPrimitiveValue::computeNonCalcLengthDouble):
+        (WebCore::CSSPrimitiveValue::formatNumberForCustomCSSText):
+        (WebCore::CSSPrimitiveValue::cloneForCSSOM):
+        (WebCore::CSSPrimitiveValue::equals):
+        (WebCore::CSSPrimitiveValue::buildParserValue):
+        * css/CSSPrimitiveValue.h:
+        Add support for CSS_QUIRKY_EMS as a unit type. This will let us eliminate the extra m_isQuirkValue boolean
+        eventually.
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParser::validateCalculationUnit):
+        (WebCore::CSSParser::parseCalculation):
+        * css/parser/CSSParser.h:
+        Switch to ValueRange.
+
+        * css/parser/CSSParserIdioms.cpp:
+        (WebCore::completeURL):
+        * css/parser/CSSParserIdioms.h:
+        Make the URL completion function from CSSParser.cpp available to all.
+
+        * css/parser/CSSParserMode.h:
+        (WebCore::isUnitLessValueParsingEnabledForMode):
+        (WebCore::isUnitLessLengthParsingEnabledForMode): Deleted.
+        Rename this to value, since for now we're not supporting Blink's UserUnits. This means we need to support
+        unitless parsing for times and angles in addition to lengths, making the name of the function inappropriate.
+
+        * css/parser/CSSParserToken.cpp:
+        (WebCore::cssPrimitiveValueUnitFromTrie):
+        Turn quirky ems support back on.
+
+        * css/parser/CSSParserValues.cpp:
+        (WebCore::CSSParserValue::createCSSValue):
+        Support quirky ems.
+
+        * css/parser/CSSPropertyParserHelpers.cpp:
+        (WebCore::CSSPropertyParserHelpers::CalcParser::consumeValue):
+        (WebCore::CSSPropertyParserHelpers::CalcParser::consumeNumber):
+        (WebCore::CSSPropertyParserHelpers::consumeInteger):
+        (WebCore::CSSPropertyParserHelpers::consumePositiveInteger):
+        (WebCore::CSSPropertyParserHelpers::consumeNumber):
+        (WebCore::CSSPropertyParserHelpers::shouldAcceptUnitlessValue):
+        (WebCore::CSSPropertyParserHelpers::consumeLength):
+        (WebCore::CSSPropertyParserHelpers::consumePercent):
+        (WebCore::CSSPropertyParserHelpers::canConsumeCalcValue):
+        (WebCore::CSSPropertyParserHelpers::consumeLengthOrPercent):
+        (WebCore::CSSPropertyParserHelpers::consumeAngle):
+        (WebCore::CSSPropertyParserHelpers::consumeTime):
+        (WebCore::CSSPropertyParserHelpers::consumeIdent):
+        (WebCore::CSSPropertyParserHelpers::consumeIdentRange):
+        (WebCore::CSSPropertyParserHelpers::consumeCustomIdent):
+        (WebCore::CSSPropertyParserHelpers::consumeString):
+        (WebCore::CSSPropertyParserHelpers::consumeUrl):
+        (WebCore::CSSPropertyParserHelpers::parseRGBParameters):
+        (WebCore::CSSPropertyParserHelpers::parseHSLParameters):
+        (WebCore::CSSPropertyParserHelpers::consumeColor):
+        (WebCore::CSSPropertyParserHelpers::consumePositionComponent):
+        (WebCore::CSSPropertyParserHelpers::positionFromOneValue):
+        (WebCore::CSSPropertyParserHelpers::positionFromTwoValues):
+        (WebCore::CSSPropertyParserHelpers::createPrimitiveValuePair):
+        (WebCore::CSSPropertyParserHelpers::positionFromThreeOrFourValues):
+        (WebCore::CSSPropertyParserHelpers::consumePosition):
+        (WebCore::CSSPropertyParserHelpers::consumeOneOrTwoValuedPosition):
+        (WebCore::CSSPropertyParserHelpers::consumeDeprecatedGradientPoint):
+        (WebCore::CSSPropertyParserHelpers::consumeDeprecatedGradientStopColor):
+        (WebCore::CSSPropertyParserHelpers::consumeDeprecatedGradientColorStop):
+        (WebCore::CSSPropertyParserHelpers::consumeDeprecatedGradient):
+        (WebCore::CSSPropertyParserHelpers::consumeDeprecatedRadialGradient):
+        (WebCore::CSSPropertyParserHelpers::consumeRadialGradient):
+        (WebCore::CSSPropertyParserHelpers::consumeLinearGradient):
+        (WebCore::CSSPropertyParserHelpers::consumeImageOrNone):
+        (WebCore::CSSPropertyParserHelpers::consumeCrossFade):
+        (WebCore::CSSPropertyParserHelpers::consumeGeneratedImage):
+        (WebCore::CSSPropertyParserHelpers::consumeImageSet):
+        (WebCore::CSSPropertyParserHelpers::consumeImage):
+        * css/parser/CSSPropertyParserHelpers.h:
+        (WebCore::CSSPropertyParserHelpers::isCSSWideKeyword):
+        Lots of changes here. The most important is switching over to RefPtrs and Refs where appropriate, with the
+        requisite WTFMoves. Unit types also have to be converted back to our values, and unitless parsing has
+        to work with consumeTime and consumeAngle.
+
+        * platform/CalculationValue.cpp:
+        (WebCore::CalculationValue::create):
+        * platform/CalculationValue.h:
+        (WebCore::CalculationValue::CalculationValue):
+        Use ValueRange.
+
+        * platform/graphics/Color.cpp:
+        (WebCore::Color::parseHexColor):
+        (WebCore::Color::Color):
+        * platform/graphics/Color.h:
+        Add a StringView-based parseHexColor function.
+
+        * rendering/style/BasicShapes.cpp:
+        (WebCore::BasicShapeCenterCoordinate::updateComputedLength):
+        Use ValueRange
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/mediasource-config-change-mp4-av-audio-bitrate.html
+        https://bugs.webkit.org/show_bug.cgi?id=162052
+
+        Reviewed by Brent Fulgham.
+
+        Fixes tests: imported/w3c/web-platform-tests/media-source/mediasource-config-change-mp4-av-audio-bitrate.html
+                     imported/w3c/web-platform-tests/media-source/mediasource-config-change-mp4-av-video-bitrate.html
+
+        The above tests would throw an assertion while trying to invert a range with an invalid end time. Check the
+        validity of trackBuffer.lastEnqueuedPresentationTime before comparing it and assigning it to a range.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::removeCodedFrames):
+
+2016-09-16  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should percent encode the user and password according to spec
+        https://bugs.webkit.org/show_bug.cgi?id=162049
+
+        Reviewed by Tim Horton.
+
+        Covered by new API tests based on the web platform tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parseAuthority):
+
+2016-09-16  Alex Christensen  <achristensen@webkit.org>
+
+        Fix more edge cases in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162051
+
+        Reviewed by Tim Horton.
+
+        Added new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+        Some edge case handling was wrong. Also, some of the terminal states are not possible
+        to reach because we transition to those states without incrementing the iterator.
+
+2016-09-16  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows clean build after r205929
+
+        * DerivedSources.cpp:
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/mediasource-timestamp-offset.html
+        https://bugs.webkit.org/show_bug.cgi?id=162038
+
+        Reviewed by Eric Carlson.
+
+        The timestampOffset property is no longer specified as an 'unrestricted' double.
+
+        * Modules/mediasource/SourceBuffer.idl:
+
+2016-09-16  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Compile fix.
+        https://bugs.webkit.org/show_bug.cgi?id=162059
+
+        Reviewed by Alex Christensen.
+
+        If an include file exists in two places in the include paths, we can end up including the file twice,
+        since #pragma once will not protect us against this.
+
+        * PlatformWin.cmake: Put WebCore forwarding folder first in include list.
+
+2016-09-16  Chris Dumez  <cdumez@apple.com>
+
+        Cloning a textarea does not clone the textarea's value
+        https://bugs.webkit.org/show_bug.cgi?id=156637
+
+        Reviewed by Ryosuke Niwa.
+
+        Update WebKit so that cloning a textarea element also clones its value.
+        This matches the HTML specification after:
+        - https://github.com/whatwg/html/pull/1784
+
+        The new behavior also matches Chrome and Edge.
+
+        Test: imported/w3c/web-platform-tests/html/semantics/forms/the-textarea-element/cloning-steps.html
+
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::copyNonAttributePropertiesFromElement):
+        * html/HTMLTextAreaElement.cpp:
+        (WebCore::HTMLTextAreaElement::copyNonAttributePropertiesFromElement):
+        * html/HTMLTextAreaElement.h:
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Only fire 'resize' events when new sized frame is displayed, not parsed.
+        https://bugs.webkit.org/show_bug.cgi?id=162039
+
+        Reviewed by Eric Carlson.
+
+        Fixes tests: imported/w3c/web-platform-tests/media-source/mediasource-config-change-mp4-av-framesize.html
+                     imported/w3c/web-platform-tests/media-source/mediasource-config-change-mp4-v-framesize.html
+
+        Currently, the SourceBufferPrivateAVFObjC will signal a size change as soon as the sample is
+        parsed during appendData(). This is incorrect, as the intrinsic size of the video element
+        should be based on when the sample is displayed, and it causes some W3C test cases to fail.
+        Set a boundary time observer on the player's synchronizer at each sample's presentation time
+        where that sample signals a change in intrinsic size. Flush those observers whenever the
+        samples are flushed un-displayed (typically, during a seek). Because the observer callback
+        may have already been issued (but not executed) at a flush, use a separate weak pointer
+        factory, and invalidate all outstanding size change observer weak pointers when flushing.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::reenqueueMediaForTime): When re-enqueing, enqueue the next decodable
+            sample, even if it doesn't include the current time. This handles cases where the current
+            time is 0, and the first video sample starts at 0.033.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::MediaPlayerPrivateMediaSourceAVFObjC):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::~MediaPlayerPrivateMediaSourceAVFObjC):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::naturalSize):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::sizeWillChangeAtTime):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::flushPendingSizeChanges):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::sizeChanged): Deleted.
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.h:
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+        (WebCore::SourceBufferPrivateAVFObjC::processCodedFrame):
+        (WebCore::SourceBufferPrivateAVFObjC::flushAndEnqueueNonDisplayingSamples):
+        (WebCore::SourceBufferPrivateAVFObjC::enqueueSample):
+
+2016-09-16  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows clean build after r205929
+
+        * DerivedSources.cpp:
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] ASAN crash running imported/w3c/web-platform-tests/media-source/mediasource-remove.html
+        https://bugs.webkit.org/show_bug.cgi?id=162050
+
+        Reviewed by Brent Fulgham.
+
+        SampleMap::removeSample() was accessing the passed-in sample after removing it from its own storage. If
+        the SampleMap held the last reference to the sample, it would end up acessing freed memory. Fix the
+        post-removal access, but also ensure that the caller, SourceBuffer::removeCodedFrames(), retains the
+        sample it passes into removeSample().
+
+        * Modules/mediasource/SampleMap.cpp:
+        (WebCore::SampleMap::removeSample):
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::removeCodedFrames):
+
+2016-09-16  Javier Fernandez  <jfernandez@igalia.com>
+
+        [GTK] Unreviewed build fix after r206007.
+        https://bugs.webkit.org/show_bug.cgi?id=162058
+
+        * css/parser/CSSParserFastPaths.cpp:
+        (WebCore::CSSParserFastPaths::isValidKeywordPropertyAndValue):
+
+2016-09-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [TextureMapper] Scrolling through 01.org/dleyna crashes WebKitWebProcess
+        https://bugs.webkit.org/show_bug.cgi?id=162020
+
+        Reviewed by Žan Doberšek.
+
+        The problem is that we are trying to clone a ReferenceFilterOperation, which is not expected to be cloned, from
+        FilterAnimationValue copy constructor, and FilterOperations are never expected to be nullptr, so we end up
+        crashing. We just need to validate the filters before setting then and before creating a TextureMapperAnimation
+        for them.
+
+        * platform/graphics/texmap/GraphicsLayerTextureMapper.cpp:
+        (WebCore::GraphicsLayerTextureMapper::filtersCanBeComposited): Return false if there are reference filters or no
+        filters at all. I don't know if we really support other filters, but at least we won't crash for the others.
+        (WebCore::GraphicsLayerTextureMapper::addAnimation): Check if filters can be composited before creating a
+        TextureMapperAnimation.
+        (WebCore::GraphicsLayerTextureMapper::setFilters): Check if filters can be composited before setting them.
+        * platform/graphics/texmap/GraphicsLayerTextureMapper.h:
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.cpp:
+        (WebCore::CoordinatedGraphicsLayer::filtersCanBeComposited): Return false if there are reference filters or no
+        filters at all. I don't know if we really support other filters, but at least we won't crash for the others.
+        (WebCore::CoordinatedGraphicsLayer::setFilters): Check if filters can be composited before setting them.
+        (WebCore::CoordinatedGraphicsLayer::addAnimation): Check if filters can be composited before creating a
+        TextureMapperAnimation.
+        * platform/graphics/texmap/coordinated/CoordinatedGraphicsLayer.h:
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        CachedFont do not need to be updated according Origin/Fetch mode
+        https://bugs.webkit.org/show_bug.cgi?id=161909
+
+        Reviewed by Sam Weinig.
+
+        No change of behavior.
+
+        * loader/cache/CachedFont.h: Ensuring CachedFont is not reused.
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::updateCachedResourceWithCurrentRequest): Doing direct reuse for CachedFont as WebKit is ignoring CORS for all fonts related stuff.
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        CachedResource should efficiently construct its ResourceRequest
+        https://bugs.webkit.org/show_bug.cgi?id=161609
+
+        Reviewed by Sam Weinig.
+
+        Covered by existing tests.
+
+        Making CachedResourceLoader take a CachedResourceRequest&& when being asked to load resources.
+        Making CachedResource et al take a CachedResourceRequest&& as constructor parameter.
+
+        CachedResource now sets its options at construction time instead of load time.
+        This may change some specific behaviors, for instance when loading manually images.
+
+        Made some refactoring when both the resource and request are needed, for ResourceTimingInformation.
+        Made local copies of some CachedResourceRequest fields so that we do not need it after being WTFMoved.
+        Some of these properties may be put outside CachedResourceRequest in a later refactoring step.
+
+        * css/CSSFontFaceSrcValue.cpp:
+        (WebCore::CSSFontFaceSrcValue::cachedFont):
+        * css/CSSImageSetValue.cpp:
+        (WebCore::CSSImageSetValue::loadBestFitImage):
+        * css/CSSImageValue.cpp:
+        (WebCore::CSSImageValue::loadImage):
+        * css/StyleRuleImport.cpp:
+        (WebCore::StyleRuleImport::requestStyleSheet):
+        * dom/ProcessingInstruction.cpp:
+        (WebCore::ProcessingInstruction::checkStyleSheet):
+        * dom/ScriptElement.cpp:
+        (WebCore::ScriptElement::requestScriptWithCache):
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::process):
+        * html/parser/HTMLResourcePreloader.cpp:
+        (WebCore::HTMLResourcePreloader::preload):
+        * loader/CrossOriginPreflightChecker.cpp:
+        (WebCore::CrossOriginPreflightChecker::startPreflight):
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::startLoadingMainResource):
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::loadRequest):
+        * loader/ImageLoader.cpp:
+        (WebCore::ImageLoader::updateFromElement):
+        * loader/LinkLoader.cpp:
+        (WebCore::LinkLoader::preloadIfNeeded):
+        (WebCore::LinkLoader::loadLink):
+        * loader/MediaResourceLoader.cpp:
+        (WebCore::MediaResourceLoader::requestResource):
+        * loader/ResourceTimingInformation.cpp:
+        (WebCore::ResourceTimingInformation::storeResourceTimingInitiatorInformation):
+        * loader/ResourceTimingInformation.h:
+        * loader/TextTrackLoader.cpp:
+        (WebCore::TextTrackLoader::load):
+        * loader/cache/CachedCSSStyleSheet.cpp:
+        (WebCore::CachedCSSStyleSheet::CachedCSSStyleSheet):
+        * loader/cache/CachedCSSStyleSheet.h:
+        * loader/cache/CachedFont.cpp:
+        (WebCore::CachedFont::CachedFont):
+        (WebCore::CachedFont::load):
+        (WebCore::CachedFont::beginLoadIfNeeded):
+        * loader/cache/CachedFont.h:
+        * loader/cache/CachedImage.cpp:
+        (WebCore::CachedImage::CachedImage):
+        (WebCore::CachedImage::load):
+        * loader/cache/CachedImage.h:
+        * loader/cache/CachedRawResource.cpp:
+        (WebCore::CachedRawResource::CachedRawResource):
+        * loader/cache/CachedRawResource.h:
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::CachedResource):
+        (WebCore::CachedResource::load):
+        (WebCore::CachedResource::loadFrom):
+        * loader/cache/CachedResource.h:
+        (WebCore::CachedResource::resourceRequest):
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::createResource):
+        (WebCore::CachedResourceLoader::requestImage):
+        (WebCore::CachedResourceLoader::requestFont):
+        (WebCore::CachedResourceLoader::requestTextTrack):
+        (WebCore::CachedResourceLoader::requestCSSStyleSheet):
+        (WebCore::CachedResourceLoader::requestUserCSSStyleSheet):
+        (WebCore::CachedResourceLoader::requestScript):
+        (WebCore::CachedResourceLoader::requestXSLStyleSheet):
+        (WebCore::CachedResourceLoader::requestSVGDocument):
+        (WebCore::CachedResourceLoader::requestLinkResource):
+        (WebCore::CachedResourceLoader::requestMedia):
+        (WebCore::CachedResourceLoader::requestRawResource):
+        (WebCore::CachedResourceLoader::requestMainResource):
+        (WebCore::CachedResourceLoader::shouldUpdateCachedResourceWithCurrentRequest):
+        (WebCore::CachedResourceLoader::updateCachedResourceWithCurrentRequest):
+        (WebCore::CachedResourceLoader::requestResource):
+        (WebCore::CachedResourceLoader::revalidateResource):
+        (WebCore::CachedResourceLoader::loadResource):
+        (WebCore::CachedResourceLoader::reloadImagesIfNotDeferred):
+        (WebCore::CachedResourceLoader::preload):
+        (WebCore::CachedResourceLoader::checkForPendingPreloads):
+        (WebCore::CachedResourceLoader::requestPreload):
+        * loader/cache/CachedResourceLoader.h:
+        * loader/cache/CachedSVGDocument.cpp:
+        (WebCore::CachedSVGDocument::CachedSVGDocument):
+        * loader/cache/CachedSVGDocument.h:
+        * loader/cache/CachedSVGDocumentReference.cpp:
+        (WebCore::CachedSVGDocumentReference::load):
+        * loader/cache/CachedSVGFont.cpp:
+        (WebCore::CachedSVGFont::CachedSVGFont):
+        * loader/cache/CachedSVGFont.h:
+        * loader/cache/CachedScript.cpp:
+        (WebCore::CachedScript::CachedScript):
+        * loader/cache/CachedScript.h:
+        * loader/cache/CachedTextTrack.cpp:
+        (WebCore::CachedTextTrack::CachedTextTrack):
+        * loader/cache/CachedTextTrack.h:
+        * loader/cache/CachedXSLStyleSheet.cpp:
+        (WebCore::CachedXSLStyleSheet::CachedXSLStyleSheet):
+        (WebCore::CachedXSLStyleSheet::didAddClient):
+        * loader/cache/CachedXSLStyleSheet.h:
+        * loader/icon/IconLoader.cpp:
+        (WebCore::IconLoader::startLoading):
+        * platform/graphics/avfoundation/cf/WebCoreAVCFResourceLoader.cpp:
+        (WebCore::WebCoreAVCFResourceLoader::startLoading):
+        * platform/graphics/avfoundation/objc/WebCoreAVFResourceLoader.mm:
+        (WebCore::WebCoreAVFResourceLoader::startLoading):
+        * svg/SVGFEImageElement.cpp:
+        (WebCore::SVGFEImageElement::requestImageResource):
+        * svg/SVGFontFaceUriElement.cpp:
+        (WebCore::SVGFontFaceUriElement::loadFont):
+        * svg/SVGUseElement.cpp:
+        (WebCore::SVGUseElement::updateExternalDocument):
+        * xml/XSLImportRule.cpp:
+        (WebCore::XSLImportRule::loadSheet):
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Headers should be combine with ',' and not ', '
+        https://bugs.webkit.org/show_bug.cgi?id=161736
+
+        Reviewed by Sam Weinig.
+
+        Covered by updated tests and http/tests/xmlhttprequest/check-combining-headers.html.
+
+        * loader/CrossOriginAccessControl.cpp:
+        (WebCore::createAccessControlPreflightRequest): Combining with ',' for Access-Control-Request-Headers
+        * platform/network/HTTPHeaderMap.cpp:
+        (HTTPHeaderMap::add): Combining with ','
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        Custom promise-returning functions should not throw if callee has not the expected type
+        https://bugs.webkit.org/show_bug.cgi?id=162011
+
+        Reviewed by Sam Weinig.
+
+        Covered by added test.
+
+        Updating code generator to handle this case.
+        Cleaning related getUserMedia implementation.
+
+        * CMakeLists.txt: Removing Modules/mediastream/MediaDevices.js.
+        * DerivedSources.make: Removing Modules/mediastream/MediaDevices.js.
+        * Modules/mediastream/MediaDevices.idl: Cleaning IDL definition
+        * Modules/mediastream/MediaDevices.js: Removing error throwing and so removing file.
+        * Modules/mediastream/NavigatorUserMedia.js: getUsermMediaFromJS to getUserMedia.
+        * WebCore.xcodeproj/project.pbxproj: Removing Modules/mediastream/MediaDevices.js.
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::createRejectedPromiseWithTypeError): Helper routine.
+        * bindings/js/JSDOMPromise.h:
+        * bindings/js/WebCoreBuiltinNames.h: getUsermMediaFromJS to getUserMedia.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Rejecting promise in case of failing castedThis, but only for custom functions since
+        they are handled differently for non custom methods.
+        (GenerateFunctionCastedThis):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestObj.h:
+        * bindings/scripts/test/TestObj.idl: Adding custom promise test.
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        Link loader should use FetchOptions::mode according its crossOrigin attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161859
+
+        Reviewed by Sam Weinig.
+
+        Tests: http/tests/security/cached-cross-origin-preloaded-css-stylesheet.html
+               http/tests/security/cached-cross-origin-preloading-css-stylesheet.html
+
+        Setting fetch mode according crossorigin attribute for link preload elements.
+        This allows calling onerror callback for CORS failures, which was not the case before the patch.
+
+        Making cached CSS stylesheet reusable accross origins and fetch modes.
+
+        * loader/LinkLoader.cpp:
+        (WebCore::LinkLoader::preloadIfNeeded): Using CachedResourceRequest::setAsPotentiallyCrossOrigin to set fetch mode.
+        * loader/cache/CachedCSSStyleSheet.cpp:
+        (WebCore::CachedCSSStyleSheet::sheetText): clean-up.
+        (WebCore::CachedCSSStyleSheet::setBodyDataFrom): Implementing data init for cached css stylesheets.
+        * loader/cache/CachedCSSStyleSheet.h:
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::updateCachedResourceWithCurrentRequest): Activating update support for stylesheets.
+        (WebCore::CachedResourceLoader::requestResource): Fixing for matching cached resources that need being reloaded due to different origin/fetch mode.
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Referrer and Origin header should not be considered as safe request headers
+        https://bugs.webkit.org/show_bug.cgi?id=161902
+
+        Reviewed by Sam Weinig.
+
+        Test: http/tests/fetch/fetch-cors-with-referrer.html and updated WPT tests.
+
+        Removing Origin and Referrer from safe request headers.
+        Making referrer header setting after preflight for fetch API code path.
+
+        Ensuring that no ThreadableLoader client sets Origin or Referrer headers of the ResourceRequest, as they should use the proper mechanisms for that.
+
+        Handling no-referrer referrer special value by setting the referrer-policy to NoReferrer in FetchLoader.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start): Computing referrer value and handling special "client"and "no-referrer" cases.
+        Passing the value directly to ThreadableLoader.
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::internalRequest): Removing setting of ResourceRequest referrer header.
+        (WebCore::FetchRequest::clone): Removing obsolete FIXME.
+        * Modules/fetch/FetchRequest.h:
+        * loader/CrossOriginAccessControl.cpp:
+        (WebCore::isOnAccessControlSimpleRequestHeaderWhitelist): Removing Origin and Referrer headers.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::create): Updated to take a referrer as parameter.
+        (WebCore::DocumentThreadableLoader::DocumentThreadableLoader): Ditto.
+        * loader/DocumentThreadableLoader.h: Ditto.
+        * loader/ThreadableLoader.cpp: Ditto.
+        (WebCore::ThreadableLoader::create): Ditto.
+        * loader/ThreadableLoader.h: Ditto.
+        * loader/WorkerThreadableLoader.cpp: Ditto.
+        (WebCore::WorkerThreadableLoader::WorkerThreadableLoader): Ditto.
+        (WebCore::WorkerThreadableLoader::loadResourceSynchronously): Ditto.
+        * loader/WorkerThreadableLoader.h: Ditto.
+        (WebCore::WorkerThreadableLoader::create): Ditto.
+        * platform/network/ResourceRequestBase.cpp:
+        (WebCore::ResourceRequestBase::hasHTTPReferrer): Added to enable asserting that no threadable loader client sets the referrer in the request.
+        * platform/network/ResourceRequestBase.h:
+
+2016-09-15  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Get CSSParserFastPaths.cpp compiling
+        https://bugs.webkit.org/show_bug.cgi?id=162033
+
+        Reviewed by Dean Jackson.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        Add new StyleColor.h/.cpp files to the projecty
+
+        * css/CSSFunctionValue.cpp:
+        (WebCore::CSSFunctionValue::CSSFunctionValue):
+        (WebCore::CSSFunctionValue::customCSSText):
+        (WebCore::CSSFunctionValue::append):
+        (WebCore::CSSFunctionValue::buildParserValueSubstitutingVariables):
+        * css/CSSFunctionValue.h:
+        Tweak CSSFunctionValue so that the name can be represented as a keyword ID instead of a String. Eventually we also
+        want to make CSSFunctionValue subclass CSSValueList rather than referencing a separate CSSValueList as a member. For now
+        I left that alone though in order to not change too much in the old parser.
+
+        * css/CSSProperty.cpp:
+        (WebCore::CSSProperty::isDescriptorOnly):
+        Whether or not a property is only a descriptor, e.g., used in viewport and font face stuff.
+
+        * css/CSSProperty.h:
+        * css/CSSValueKeywords.in:
+        Added new keywords for functions that can be used as values. The new parser uses keywords to represent function names.
+
+        * css/StyleColor.cpp: Added.
+        (WebCore::StyleColor::colorFromKeyword):
+        (WebCore::StyleColor::isColorKeyword):
+        (WebCore::StyleColor::isSystemColor):
+        * css/StyleColor.h: Added.
+        (WebCore::StyleColor::StyleColor):
+        (WebCore::StyleColor::currentColor):
+        (WebCore::StyleColor::isCurrentColor):
+        (WebCore::StyleColor::getColor):
+        (WebCore::StyleColor::resolve):
+        (WebCore::operator==):
+        (WebCore::operator!=):
+        New color helper that contains code for checking and looking up colors. This code is similar to some code we already
+        had in the old CSSParser.cpp file, but this way it can be used outside the parser and/or in different files.
+
+        * css/parser/CSSParserFastPaths.cpp:
+        (WebCore::parseSimpleLengthValue):
+        (WebCore::isColorPropertyID):
+        (WebCore::parseColorIntOrPercentage):
+        (WebCore::fastParseColorInternal):
+        (WebCore::CSSParserFastPaths::parseColor):
+        (WebCore::CSSParserFastPaths::isValidKeywordPropertyAndValue):
+        (WebCore::isUniversalKeyword):
+        (WebCore::parseKeywordValue):
+        (WebCore::parseTransformTranslateArguments):
+        (WebCore::parseTransformNumberArguments):
+        (WebCore::parseSimpleTransformValue):
+        (WebCore::transformCanLikelyUseFastPath):
+        (WebCore::parseSimpleTransformList):
+        (WebCore::parseSimpleTransform):
+        (WebCore::CSSParserFastPaths::maybeParseValue):
+        * css/parser/CSSParserFastPaths.h:
+        Get everything compiling in this file. Key changes included reverting to our old unit names, making CSSFunctionValue compatible,
+        adding support for StyleColor, adding support for mode checking of keywords, and fixing up the memory management model so that
+        RefPtrs are used on returns from parsing functions.
+
+        * css/parser/CSSParserIdioms.cpp:
+        (WebCore::isValueAllowedInMode):
+        * css/parser/CSSParserIdioms.h:
+        New helper function for restricting keywords to certain modes only. The -webkit-text color quirk has been moved to this function.
+
+2016-09-15  Brady Eidson  <beidson@apple.com>
+
+        WKWebView.hasOnlySecureContent always returns "YES" after going back to a CachedPage (even if it has http resources).
+        <rdar://problem/27681261> and https://bugs.webkit.org/show_bug.cgi?id=162043
+
+        Reviewed by Brent Fulgham. 
+
+        No new tests (Not possible with current testing infrastructure).
+
+        This adds the infrastructure for WebCore to track whether or not a CachedFrame had insecure content at the time
+        it was cached, and then to report that back to the client when a CachedPage is restored.
+
+        Since "has insecure content" is currently only tracked in the WK2 UI process, that is the only client of this code.
+
+        * history/CachedFrame.cpp:
+        (WebCore::CachedFrame::setHasInsecureContent):
+        * history/CachedFrame.h:
+        (WebCore::CachedFrame::hasInsecureContent):
+
+        * loader/EmptyClients.h:
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::receivedFirstData):
+        (WebCore::FrameLoader::commitProvisionalLoad):
+        (WebCore::FrameLoader::dispatchDidCommitLoad):
+        * loader/FrameLoader.h:
+
+        * loader/FrameLoaderClient.h:
+
+        * loader/FrameLoaderTypes.h:
+
+2016-09-13  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] web-platform-test/media-source/mediasource-remove.html test failing
+        https://bugs.webkit.org/show_bug.cgi?id=161950
+
+        Reviewed by Eric Carlson.
+
+        Fixes test: web-platform-test/media-source/mediasource-remove.html
+
+        The mediasource-remove.html test was failing in a number of ways:
+
+        - Tests with invalid start or end times were not throwing the correct exception
+          code, or not throwing exception codes at all
+
+        - Tests were showing an incorrect start buffered range at the beginning of each test.
+
+        - Tests which removed samples were not getting the expected buffered values at the end
+          each test.
+
+        For the exception failures, update the implementation of abort() and remove() to throw
+        the correct exceptions at the correct times.
+
+        For the incorrect initial buffered range, update our buffered calculations to store
+        individual PlatformTimeRanges on each TrackBuffer, and coalesce them into a single
+        value when an append operation completes, a remove operation completes, or when the
+        MediaSource's ready state changes.
+
+        For the incorrect buffered ranges after removal, this is caused because the "samples"
+        that make up an audio track are actually a collection of a large number of individual
+        samples.  So when we are asked to remove media data in a given range, break these audio
+        meta-samples into two pieces at the removal points. This allows the removal algorithm
+        to operate on a individual audio sample basis. (We should look into using this technique
+        when audio samples are evicted during an append operation.) This requires adding some
+        methods to MediaSample and it's concrete subclasses to "divide" a sample into two at
+        a given presentation time.
+
+        Fixing these behaviors, however, breaks the media-source-end-of-stream-buffered.html
+        test, which expects the buffered range for the entire element to expand to the maximum
+        buffered time of any of the element's MediaSource's active sourceBuffers. To fix this,
+        update the MediaSource's monitorSourceBuffer() implementation to match the current
+        specification. The new spec no longer queries the individual SourceBuffers, but rather
+        queries the already coalesced buffered ranges. So move the helper methods hasCurrentTime()
+        hasFutureTime(), and canPlayThrough() up into MediaSource from SourceBuffer. Also, update
+        seekToTime, since it has the same problem as monitorSourceBuffer().
+
+        However, this breaks the media-source-monitor-source-buffers.html test, which appends
+        10s of movie data instantaneously, then never appends again. The SourceBuffer's
+        monitorBufferingRate() method only re-evaluates the rate after data has been appended,
+        so the SourceBuffer thinks it's buffered data at a prodigious rate forever. Instead,
+        allow the SourceBuffer to continuously re-evalute it's buffering rate by modifying the
+        exponential moving average so that the co-efficient scales based on how frequently the
+        method is called. Call the method more often, and the moving average changes less quickly,
+        and it means that when media is stalled out at the end of a buffered range, the readyState
+        of a video element will eventually drop to HAVE_CURRENT_DATA when the average buffering
+        rate falls below the level where playback would continue uninterrupted.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::seekToTime):
+        (WebCore::MediaSource::currentTimeFudgeFactor):
+        (WebCore::MediaSource::hasBufferedTime):
+        (WebCore::MediaSource::hasCurrentTime):
+        (WebCore::MediaSource::hasFutureTime):
+        (WebCore::MediaSource::monitorSourceBuffers):
+        * Modules/mediasource/MediaSource.h:
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::abort):
+        (WebCore::SourceBuffer::remove):
+        (WebCore::SourceBuffer::abortIfUpdating):
+        (WebCore::SourceBuffer::removeCodedFrames):
+        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
+        (WebCore::SourceBuffer::updateBufferedFromTrackBuffers):
+        (WebCore::SourceBuffer::canPlayThroughRange):
+        (WebCore::SourceBuffer::monitorBufferingRate):
+        (WebCore::currentTimeFudgeFactor): Deleted.
+        (WebCore::SourceBuffer::hasCurrentTime): Deleted.
+        (WebCore::SourceBuffer::hasFutureTime): Deleted.
+        (WebCore::SourceBuffer::canPlayThrough): Deleted.
+        * platform/MediaSample.h:
+        * platform/cf/CoreMediaSoftLink.cpp:
+        * platform/cf/CoreMediaSoftLink.h:
+        * platform/graphics/avfoundation/MediaSampleAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm:
+        (WebCore::MediaSampleAVFObjC::isDivisable):
+        (WebCore::MediaSampleAVFObjC::divide):
+        * platform/mock/mediasource/MockSourceBufferPrivate.cpp:
+
+2016-09-15  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: willBeComposited == needsToBeComposited(layer) in WebCore::RenderLayerCompositor::computeCompositingRequirements
+        https://bugs.webkit.org/show_bug.cgi?id=151097
+        <rdar://problem/27711678>
+
+        Reviewed by Simon Fraser.
+
+        This patch ensures that when will-change property triggers stacking context, we make the associated layer a non-normal flow layer.
+        (This is similar to what any other stacking context-triggering CSS property does.)  
+
+        Test: compositing/assert-on-will-change-transform-with-composited-descendant.html
+
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::calculateClipRects):
+
+2016-09-15  Zalan Bujtas  <zalan@apple.com>
+
+        Move RenderObject::shouldRespectImageOrientation to RenderElement.
+        https://bugs.webkit.org/show_bug.cgi?id=162028
+
+        Reviewed by Antti Koivisto.
+
+        Tighten the type for imageSizeForRenderer/canRender so that RenderObject::shouldRespectImageOrientation could
+        be moved to RenderElement.
+
+        No change in functionality.
+
+        * loader/cache/CachedImage.cpp:
+        (WebCore::CachedImage::imageSizeForRenderer):
+        * loader/cache/CachedImage.h:
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::shouldRespectImageOrientation):
+        * rendering/RenderElement.h:
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::shouldRespectImageOrientation): Deleted.
+        * rendering/RenderObject.h:
+        * rendering/style/StyleCachedImage.cpp:
+        (WebCore::StyleCachedImage::canRender):
+        * rendering/style/StyleCachedImage.h:
+        * rendering/style/StyleImage.h:
+        (WebCore::StyleImage::canRender):
+
+2016-09-15  Anders Carlsson  <andersca@apple.com>
+
+        Fix build.
+
+        * platform/spi/cocoa/PassKitSPI.h:
+
+2016-09-15  Alex Christensen  <achristensen@webkit.org>
+
+        Use character class table in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=161997
+
+        Reviewed by Chris Dumez.
+
+        No change in behavior except a performance improvement.
+        
+        Before this change, URLParser took 1.514x as long to run my URL Parsing benchmark as URL::parse
+        with a standard deviation of the ration of the runtimes of 0.063 after 8 runs with each parser.
+        After this change, URLParser took 1.328x as long with a standard deviation of 0.037.
+        This isn't the cleanest data, but it's enough to convince me that this is a significant improvement.
+
+        * platform/URLParser.cpp:
+        (WebCore::isC0Control):
+        (WebCore::isC0ControlOrSpace):
+        (WebCore::isTabOrNewline):
+        (WebCore::isInSimpleEncodeSet):
+        (WebCore::isInDefaultEncodeSet):
+        (WebCore::isInUserInfoEncodeSet):
+        (WebCore::isInvalidDomainCharacter):
+        (WebCore::isSlashQuestionOrHash):
+        (WebCore::shouldPercentEncodeQueryByte):
+        (WebCore::shouldCopyFileURL):
+        (WebCore::isSingleDotPathSegment):
+        (WebCore::URLParser::parse):
+
 2016-09-15  Keith Miller  <keith_miller@apple.com>
 
         Pragma out undefined-var-template warnings in JSC for JSObjects that are templatized

@@ -793,8 +793,6 @@ public:
         return outlineBoundsForRepaint(nullptr);
     }
 
-    RespectImageOrientationEnum shouldRespectImageOrientation() const;
-
 protected:
     //////////////////////////////////////////
     // Helper functions. Dangerous to use!
@@ -818,7 +816,6 @@ protected:
     void setNeedsSimplifiedNormalFlowLayoutBit(bool b) { m_bitfields.setNeedsSimplifiedNormalFlowLayout(b); }
 
     virtual RenderFlowThread* locateFlowThreadContainingBlock() const;
-    void invalidateFlowThreadContainingBlockIncludingDescendants(RenderFlowThread* = nullptr);
     static void calculateBorderStyleColor(const EBorderStyle&, const BoxSide&, Color&);
 
 private:
@@ -831,8 +828,6 @@ private:
     void setLayerNeedsFullRepaint();
     void setLayerNeedsFullRepaintForPositionedMovementLayout();
 
-    void removeFromRenderFlowThread();
-    void removeFromRenderFlowThreadIncludingDescendants(bool);
     Node* generatingPseudoHostElement() const;
 
     void propagateRepaintToParentWithOutlineAutoIfNeeded(const RenderLayerModelObject& repaintContainer, const LayoutRect& repaintRect) const;

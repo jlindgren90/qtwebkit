@@ -1,3 +1,248 @@
+2016-09-16  Simon Fraser  <simon.fraser@apple.com>
+
+        WKWebViewConfiguration's _incrementalRenderingSuppressionTimeout should be an NSTimeInterval
+        https://bugs.webkit.org/show_bug.cgi?id=162092
+
+        Reviewed by Anders Carlsson.
+        
+        The _incrementalRenderingSuppressionTimeout property should be a NSTimeInterval, not a CGFloat.
+
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration _incrementalRenderingSuppressionTimeout]):
+        (-[WKWebViewConfiguration _setIncrementalRenderingSuppressionTimeout:]):
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+
+2016-09-15  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        [GTK] Surface created for glReadPixels path on Wayland is bigger than needed
+        https://bugs.webkit.org/show_bug.cgi?id=162025
+
+        Reviewed by Carlos Garcia Campos.
+
+        * UIProcess/gtk/AcceleratedBackingStoreWayland.cpp:
+        (WebKit::AcceleratedBackingStoreWayland::paint): the texture created by the Wayland
+        compositor is already scaled, so scaling its size when creating the surface causes it
+        to end up bigger than necessary.
+
+2016-09-16  David Kilzer  <ddkilzer@apple.com>
+
+        ASSERT accidentally commented out in r204916
+        <https://webkit.org/b/162077>
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::terminateProcess): Comment in the ASSERT
+        back in.
+
+2016-09-16  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Inserting a space after inserting an accepted candidate scrolls the document and causes a flicker
+        https://bugs.webkit.org/show_bug.cgi?id=162009
+        <rdar://problem/28086237>
+
+        Reviewed by Tim Horton.
+
+        After inserting a text candidate, if the candidate ended with a soft space, the next space we insert should just
+        replace the soft space. This currently works because we leave the text insertion out of the list of
+        KeypressCommands sent to the web process and instead replace the soft space via WebPage::InsertTextAsync.
+        However, this means when the web process handles this keydown event, the current editor will not handle it,
+        since the list of key commands is empty despite the text and unmodified text being non-empty.
+
+        To fix this, when sending keydown or keyup events where we replace a soft space, we set the key event's text to
+        an empty string instead of a space. This allows us to return early in EventHandler::keyEvent and avoid the
+        codepath that tries to insert text into the current editor and (in the case of inserting a ' ') scrolls the
+        document if necessary. Since we've already handled text insertion via WebPage::InsertTextAsync, there is no need
+        to also dispatch the keypress to the editor.
+
+        Additionally, this patch addresses flickering in the candidates UI due to the fact that we're asynchronously
+        replacing the last soft space. During this operation, we select the range of the soft space and then insert the
+        new text. This causes a momentary range selection which the web process notifies the UI process about, prompting
+        us to hide the candidates list. To address this, we suppress the EditorStateChanged message fired from the web
+        process to the UI process while we're selecting the original range to replace.
+
+        This patch adds 3 new WebKit API tests.
+
+        * Shared/NativeWebKeyboardEvent.h:
+        * Shared/mac/NativeWebKeyboardEventMac.mm:
+        (WebKit::NativeWebKeyboardEvent::NativeWebKeyboardEvent):
+        * Shared/mac/WebEventFactory.h:
+        * Shared/mac/WebEventFactory.mm:
+        (WebKit::textFromEvent):
+        (WebKit::unmodifiedTextFromEvent):
+        (WebKit::WebEventFactory::createWebKeyboardEvent):
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _handleAcceptedCandidate:]):
+        (-[WKWebView _didHandleAcceptedCandidate]):
+        (-[WKWebView _didUpdateCandidateListVisibility:]):
+        (-[WKWebView _forceRequestCandidates]):
+        (-[WKWebView _handleControlledElementIDResponse:]): Deleted.
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h:
+        * UIProcess/API/mac/WKView.mm:
+        (-[WKView _didHandleAcceptedCandidate]):
+        (-[WKView _didUpdateCandidateListVisibility:]):
+        * UIProcess/Cocoa/WebViewImpl.h:
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::forceRequestCandidatesForTesting):
+        (WebKit::WebViewImpl::becomeFirstResponder):
+        (WebKit::WebViewImpl::didHandleAcceptedCandidate):
+        (WebKit::WebViewImpl::insertText):
+        (WebKit::WebViewImpl::performKeyEquivalent):
+        (WebKit::WebViewImpl::keyUp):
+        (WebKit::WebViewImpl::keyDown):
+        (WebKit::WebViewImpl::flagsChanged):
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::insertTextAsync):
+        * UIProcess/WebPageProxy.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::insertTextAsync):
+        (WebKit::WebPage::didChangeSelection):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/WebPage.messages.in:
+
+2016-09-16  Anders Carlsson  <andersca@apple.com>
+
+        Add support for enum class parameters in the message generator
+        https://bugs.webkit.org/show_bug.cgi?id=162036
+
+        Reviewed by Brady Eidson.
+
+        Also, convert the WebPage::SetLayerHostingMode to take an actual enum class.
+
+        * Scripts/webkit/messages.py:
+        (function_parameter_type):
+        Change this to take the parameter kind as well, and use the raw type for enums.
+
+        (arguments_type):
+        (message_to_struct_declaration):
+        Pass the kind to function_parameter_type.
+
+        (forward_declaration):
+        (forward_declarations_for_namespace):
+        Forward declare enums with "enum class".
+
+        (headers_for_type):
+        Add WebKit::LayerHostingMode as a special case.
+
+        (generate_message_handler):
+        Pass the kind to function_parameter_type.
+
+        * Scripts/webkit/parser.py:
+        (parse_parameters_string):
+        Parse 'enum' as well.
+
+        * Shared/LayerTreeContext.h:
+        Add enum traits.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::viewDidEnterWindow):
+        (WebKit::WebPageProxy::layerHostingModeDidChange):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::reinitializeWebPage):
+        (WebKit::WebPage::setLayerHostingMode):
+        * WebProcess/WebPage/WebPage.h:
+        Change unsigned to LayerHostingMode.
+
+        * WebProcess/WebPage/WebPage.messages.in:
+        Change unsigned to LayerHostingMode.
+
+2016-09-16  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r206000.
+        https://bugs.webkit.org/show_bug.cgi?id=162062
+
+        inadvertent GCC requirement bump (Requested by mcatanzaro on
+        #webkit).
+
+        Reverted changeset:
+
+        "Add support for enum class parameters in the message
+        generator"
+        https://bugs.webkit.org/show_bug.cgi?id=162036
+        http://trac.webkit.org/changeset/206000
+
+2016-09-15  Brady Eidson  <beidson@apple.com>
+
+        WKWebView.hasOnlySecureContent always returns "YES" after going back to a CachedPage (even if it has http resources).
+        <rdar://problem/27681261> and https://bugs.webkit.org/show_bug.cgi?id=162043
+
+        Reviewed by Brent Fulgham. 
+
+        * Scripts/webkit/messages.py:
+        (headers_for_type): Add a custom header, and alphabetize existing ones.
+
+        * Shared/WebCoreArgumentCoders.h: Add EnumTraits for HasInsecureContent.
+
+        * UIProcess/PageLoadState.h:
+        (WebKit::PageLoadState::committedHasInsecureContent):
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::hasInsecureContent):
+        (WebKit::WebPageProxy::didCommitLoadForFrame): If the WebProcess included an existing "HasInsecureContent" value, use it.
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/WebPageProxy.messages.in:
+
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::dispatchDidCommitLoad): 
+        (WebKit::WebFrameLoaderClient::savePlatformDataToCachedFrame): Save the "HasInsecureContent" value to the CachedFrame in
+          case we restore it in the future.
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.h:
+
+2016-09-15  Anders Carlsson  <andersca@apple.com>
+
+        Actually assign the decoded enum value to the output value
+        https://bugs.webkit.org/show_bug.cgi?id=162042
+
+        Reviewed by Brady Eidson.
+
+        * Platform/IPC/Decoder.h:
+
+2016-09-15  Anders Carlsson  <andersca@apple.com>
+
+        Add support for enum class parameters in the message generator
+        https://bugs.webkit.org/show_bug.cgi?id=162036
+
+        Reviewed by Brady Eidson.
+
+        Also, convert the WebPage::SetLayerHostingMode to take an actual enum class.
+
+        * Scripts/webkit/messages.py:
+        (function_parameter_type):
+        Change this to take the parameter kind as well, and use the raw type for enums.
+
+        (arguments_type):
+        (message_to_struct_declaration):
+        Pass the kind to function_parameter_type.
+
+        (forward_declaration):
+        (forward_declarations_for_namespace):
+        Forward declare enums with "enum class".
+
+        (headers_for_type):
+        Add WebKit::LayerHostingMode as a special case.
+
+        (generate_message_handler):
+        Pass the kind to function_parameter_type.
+
+        * Scripts/webkit/parser.py:
+        (parse_parameters_string):
+        Parse 'enum' as well.
+
+        * Shared/LayerTreeContext.h:
+        Add enum traits.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::viewDidEnterWindow):
+        (WebKit::WebPageProxy::layerHostingModeDidChange):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::reinitializeWebPage):
+        (WebKit::WebPage::setLayerHostingMode):
+        * WebProcess/WebPage/WebPage.h:
+        Change unsigned to LayerHostingMode.
+
+        * WebProcess/WebPage/WebPage.messages.in:
+        Change unsigned to LayerHostingMode.
+
 2016-09-14  Beth Dakin  <bdakin@apple.com>
 
         dictionaryPopupInfoForRange() can change selection temporarily; updates should not 

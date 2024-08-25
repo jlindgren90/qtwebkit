@@ -1,3 +1,179 @@
+2016-09-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Implement Copy CSS Selector and Copy Xpath Selector context menus
+        https://bugs.webkit.org/show_bug.cgi?id=158881
+        <rdar://problem/8181156>
+
+        Reviewed by Matt Baker.
+
+        This is based off of the Blink implementation (DOMPresentationUtils)
+        with some minor modifications and using our own utility methods.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        New context menu strings.
+
+        * UserInterface/Base/DOMUtilities.js:
+        (WebInspector.cssPath):
+        (WebInspector.cssPathComponent.classNames):
+        (WebInspector.cssPathComponent):
+        (WebInspector.xpath):
+        (WebInspector.xpathIndex.isSimiliarNode):
+        (WebInspector.xpathIndex):
+        Build strings for a CSS selector path or XPath path to a node.
+
+        * UserInterface/Views/DOMTreeElement.js:
+        (WebInspector.DOMTreeElement.prototype._populateNodeContextMenu):
+        * UserInterface/Views/DOMTreeOutline.js:
+        (WebInspector.DOMTreeOutline.prototype.populateContextMenu):
+        Include copy path context menu items on nodes.
+        Pseudo elements do not get Copy XPath.
+        Non-node elements do not get Copy Selector Path.
+
+2016-09-16  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Make console session dividers more pronounced
+        https://bugs.webkit.org/show_bug.cgi?id=161938
+        <rdar://problem/28291166>
+
+        Reviewed by Brian Burg.
+
+        Instead of using a dim dashed line as a console session separator, include time and reason why
+        the new session started, which could be one of the following values:
+        - Console opened (for the first time)
+        - Console cleared
+        - Page reloaded
+        - Page navigated
+
+        * Localizations/en.lproj/localizedStrings.js:
+        * UserInterface/Controllers/JavaScriptLogViewController.js:
+        (WebInspector.JavaScriptLogViewController.prototype.clear):
+        (WebInspector.JavaScriptLogViewController.prototype.startNewSession):
+        Remove previous session if it doesn't have any messages.
+
+        * UserInterface/Controllers/LogManager.js:
+        (WebInspector.LogManager.prototype._mainResourceDidChange):
+        (WebInspector.LogManager):
+        Session separator wasn't appended when navigating to a different web page. Always dispatch
+        SessionStarted events when the main resource changes. Distinguish between reload and navigation.
+
+        * UserInterface/Views/ConsoleSession.js:
+        (WebInspector.ConsoleSession):
+        (WebInspector.ConsoleSession.prototype.addMessageView):
+        (WebInspector.ConsoleSession.prototype.append):
+        (WebInspector.ConsoleSession.prototype.hasMessages):
+        * UserInterface/Views/LogContentView.css:
+        (.console-session-header):
+        (.console-session:first-of-type .console-session-header):
+        (.console-session:not(:first-of-type)):
+        (.console-session:not(:first-of-type) .console-session-header):
+        * UserInterface/Views/LogContentView.js:
+        (WebInspector.LogContentView.prototype._sessionStarted):
+
+2016-09-16  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: make Object.awaitEvent synchronously add an event listener
+        https://bugs.webkit.org/show_bug.cgi?id=162066
+
+         Reviewed by Brian Burg.
+
+        * UserInterface/Base/Object.js:
+        (WebInspector.Object.awaitEvent):
+        Utilize a WebInspector.WrappedPromise to not worry about adding the singleFireEventListener
+        on the next tick due to the promise construction.
+
+        * UserInterface/TestStub.html:
+        Add WebInspector.WrappedPromise.
+
+2016-09-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Include JavaScript completion for ES6 keywords and global variables
+        https://bugs.webkit.org/show_bug.cgi?id=162027
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Controllers/CodeMirrorCompletionController.js:
+        (WebInspector.CodeMirrorCompletionController.prototype._generateJavaScriptCompletions):
+        Include ES6 keywords and provide them when they may be available.
+
+        * UserInterface/Views/ConsolePrompt.js:
+        (WebInspector.ConsolePrompt):
+        * UserInterface/Views/TextEditor.js:
+        (WebInspector.TextEditor.prototype.set mimeType):
+        For editors that might want to provide completion for global variables
+        use the mode with options way of setting the mode for CodeMirror. The
+        only mode that cares about "globalVars" are the JavaScript variants.
+
+2016-09-15  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: support drag and drop of CSS classes and ids onto DOM nodes
+        https://bugs.webkit.org/show_bug.cgi?id=16529
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Models/DOMNode.js:
+        (WebInspector.DOMNode.prototype.toggleClass.resolvedNode.inspectedPage_node_toggleClass):
+        (WebInspector.DOMNode.prototype.toggleClass.resolvedNode):
+        (WebInspector.DOMNode.prototype.toggleClass):
+        Moved from WebInspector.CSSStyleDetailsSidebarPanel.prototype._toggleClass.
+
+        * UserInterface/Views/CSSStyleDetailsSidebarPanel.css:
+        (.sidebar > .panel.details.css-style > .content ~ :matches(.options-container, .class-list-container)):
+        Added z-index to fix overlapping with selector origin.
+
+        * UserInterface/Views/CSSStyleDetailsSidebarPanel.js:
+        (WebInspector.CSSStyleDetailsSidebarPanel):
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype.computedStyleDetailsPanelShowProperty):
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype.initialLayout):
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype._switchPanels):
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype._classToggleButtonClicked):
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype._addClassInputBlur):
+        Added a setting for auto-expanding the Classes toggle list based on the previous state.
+        Also renamed the existing _lastSelectedSectionSetting to _lastSelectedPanelSetting since the
+        setting doesn't have anything to do with the last selected section.
+
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype._createToggleForClassName):
+        (WebInspector.CSSStyleDetailsSidebarPanel.ToggledClassesDragType):
+        Added functionality to allow dragging of a className toggle's text (not the checkbox) by
+        using a custom type, preventing the value from being dropped anywhere except the DOM tree.
+
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype._createToggleForClassName.classNameToggleChanged):
+        Restructured to use arrow function to avoid function binding.
+
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype._toggleClass.resolvedNode.toggleClass): Deleted.
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype._toggleClass.resolvedNode): Deleted.
+        (WebInspector.CSSStyleDetailsSidebarPanel.prototype._toggleClass): Deleted.
+
+        * UserInterface/Views/DOMTreeOutline.js:
+        (WebInspector.DOMTreeOutline.prototype._ondragover):
+        (WebInspector.DOMTreeOutline.prototype._ondrop.callback):
+        (WebInspector.DOMTreeOutline.prototype._ondrop):
+        Allow dragging when the dataTransfer object contains the type specified by
+        WebInspector.CSSStyleDetailsSidebarPanel.ToggledClassesDragType.  The value for that type
+        will be added to the dropped element's classList.
+
+2016-09-15  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Use more global color variables in TreeOutline and DataGrid
+        https://bugs.webkit.org/show_bug.cgi?id=161940
+        <rdar://problem/28292555>
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/DataGrid.css:
+        (.data-grid tr.selected):
+        (.data-grid:matches(:focus, .force-focus) tr.selected):
+        Use global color vars.
+
+        * UserInterface/Views/TreeOutline.css:
+        (.tree-outline .item.selected):
+        Use global color vars.
+        (body.window-inactive .tree-outline .item.selected): Deleted.
+        Not needed. Unfocused color is the same when window is inactive.
+
+        * UserInterface/Views/Variables.css:
+        (:root):
+        Add --selected-background-color-unfocused.
+
 2016-09-14  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: Call frame is sometimes not selected in Debugger sidebar on initial pause

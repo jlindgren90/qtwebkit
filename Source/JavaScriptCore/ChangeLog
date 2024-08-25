@@ -1,3 +1,96 @@
+2016-09-16  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DFG] Introduce ArrayUse
+        https://bugs.webkit.org/show_bug.cgi?id=162063
+
+        Reviewed by Keith Miller.
+
+        ArrayUse is particularly useful: for IsJSArray.
+        We can drop IsJSArray in fixup phase by setting ArrayUse edge filter.
+
+        Since @isJSArray user is limited (Array.prototype.concat), the effect of this patch is small.
+        But later, I'll update {@isArray, Array.isArray} to use @isJSArray[1]. In that patch, we are planning
+        to implement more aggressive optimization like, setting CellUse edge filter to avoid cell check in
+        SpeculativeJIT::compileIsJSArray.
+
+        In the benchmark using Array.prototype.concat, we can see perf improvement since we can drop IsJSArray in fixup phase.
+
+                                                     baseline                  patched
+
+            lazy-array-species-watchpoints       25.0911+-0.0516     ^     24.7687+-0.0767        ^ definitely 1.0130x faster
+
+        [1]: https://bugs.webkit.org/show_bug.cgi?id=162000
+
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::SafeToExecuteEdge::operator()):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::speculateArray):
+        (JSC::DFG::SpeculativeJIT::speculate):
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGUseKind.cpp:
+        (WTF::printInternal):
+        * dfg/DFGUseKind.h:
+        (JSC::DFG::typeFilterFor):
+        (JSC::DFG::isCell):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::speculate):
+        (JSC::FTL::DFG::LowerDFGToB3::speculateArray):
+        (JSC::FTL::DFG::LowerDFGToB3::speculateObject): Deleted.
+
+2016-09-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: Various Constructors length properties should be configurable
+        https://bugs.webkit.org/show_bug.cgi?id=161998
+
+        Reviewed by Saam Barati.
+
+        https://tc39.github.io/ecma262/#sec-ecmascript-standard-built-in-objects
+        Unless otherwise specified, the length property of a built-in Function
+        object has the attributes:
+        { [[Writable]]: false, [[Enumerable]]: false, [[Configurable]]: true }.
+
+        * runtime/ErrorConstructor.cpp:
+        (JSC::ErrorConstructor::finishCreation):
+        * runtime/JSPromiseConstructor.cpp:
+        (JSC::JSPromiseConstructor::finishCreation):
+        * runtime/MapConstructor.cpp:
+        (JSC::MapConstructor::finishCreation):
+        * runtime/NativeErrorConstructor.cpp:
+        (JSC::NativeErrorConstructor::finishCreation):
+        * runtime/ProxyConstructor.cpp:
+        (JSC::ProxyConstructor::finishCreation):
+        * runtime/SetConstructor.cpp:
+        (JSC::SetConstructor::finishCreation):
+        * runtime/WeakMapConstructor.cpp:
+        (JSC::WeakMapConstructor::finishCreation):
+        * runtime/WeakSetConstructor.cpp:
+        (JSC::WeakSetConstructor::finishCreation):
+
+2016-09-16  Youenn Fablet  <youenn@apple.com>
+
+        Custom promise-returning functions should not throw if callee has not the expected type
+        https://bugs.webkit.org/show_bug.cgi?id=162011
+
+        Reviewed by Sam Weinig.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj: Making JSPromiseConstructor.h private
+
+2016-09-15  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION (r205462): Lot of leaks
+        https://bugs.webkit.org/show_bug.cgi?id=161946
+
+        Reviewed by Saam Barati.
+        
+        We were forgetting to delete LargeAllocations on VM exit!
+
+        * heap/MarkedSpace.cpp:
+        (JSC::MarkedSpace::~MarkedSpace):
+
 2016-09-15  Keith Miller  <keith_miller@apple.com>
 
 

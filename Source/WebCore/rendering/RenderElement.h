@@ -227,6 +227,11 @@ public:
     RenderBlock* containingBlockForFixedPosition() const;
     RenderBlock* containingBlockForAbsolutePosition() const;
 
+    RespectImageOrientationEnum shouldRespectImageOrientation() const;
+
+    void removeFromRenderFlowThread();
+    void invalidateFlowThreadContainingBlockIncludingDescendants(RenderFlowThread* = nullptr);
+
 protected:
     enum BaseTypeFlag {
         RenderLayerModelObjectFlag  = 1 << 0,
@@ -281,6 +286,8 @@ protected:
     void paintFocusRing(PaintInfo&, const RenderStyle&, const Vector<LayoutRect>& focusRingRects);
     void paintOutline(PaintInfo&, const LayoutRect&);
     void updateOutlineAutoAncestor(bool hasOutlineAuto);
+
+    void removeFromRenderFlowThreadIncludingDescendants(bool shouldUpdateState);
 
 private:
     RenderElement(ContainerNode&, RenderStyle&&, BaseTypeFlags);
