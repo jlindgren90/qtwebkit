@@ -4372,6 +4372,7 @@ void HTMLMediaElement::mediaPlayerTimeChanged(MediaPlayer*)
     beginProcessingMediaPlayerCallback();
 
     invalidateCachedTime();
+    bool wasSeeking = seeking();
 
     // 4.8.10.9 step 14 & 15.  Needed if no ReadyState change is associated with the seek.
     if (m_seeking && m_readyState >= HAVE_CURRENT_DATA && !m_player->seeking())
@@ -4409,7 +4410,8 @@ void HTMLMediaElement::mediaPlayerTimeChanged(MediaPlayer*)
             if (!m_sentEndEvent) {
                 m_sentEndEvent = true;
                 scheduleEvent(eventNames().endedEvent);
-                m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureToControlControlsManager | MediaElementSession::RequirePlaybackToControlControlsManager);
+                if (!wasSeeking)
+                    addBehaviorRestrictionsOnEndIfNecessary();
             }
             // If the media element has a current media controller, then report the controller state
             // for the media element's current media controller.
@@ -4430,7 +4432,8 @@ void HTMLMediaElement::mediaPlayerTimeChanged(MediaPlayer*)
             if (!m_sentEndEvent && m_player && m_player->ended()) {
                 m_sentEndEvent = true;
                 scheduleEvent(eventNames().endedEvent);
-                m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureToControlControlsManager | MediaElementSession::RequirePlaybackToControlControlsManager);
+                if (!wasSeeking)
+                    addBehaviorRestrictionsOnEndIfNecessary();
                 m_paused = true;
                 setPlaying(false);
             }
@@ -4441,6 +4444,14 @@ void HTMLMediaElement::mediaPlayerTimeChanged(MediaPlayer*)
 
     updatePlayState(UpdateState::Asynchronously);
     endProcessingMediaPlayerCallback();
+}
+
+void HTMLMediaElement::addBehaviorRestrictionsOnEndIfNecessary()
+{
+    if (isFullscreen())
+        return;
+
+    m_mediaSession->addBehaviorRestriction(MediaElementSession::RequirePlaybackToControlControlsManager | MediaElementSession::RequireUserGestureToControlControlsManager);
 }
 
 void HTMLMediaElement::mediaPlayerVolumeChanged(MediaPlayer*)

@@ -1405,7 +1405,7 @@ _llint_op_in:
 _llint_op_try_get_by_id:
     traceExecution()
     callOpcodeSlowPath(_llint_slow_path_try_get_by_id)
-    dispatch(4)
+    dispatch(5)
 
 
 _llint_op_del_by_id:
@@ -1709,16 +1709,8 @@ _llint_op_assert:
     dispatch(3)
 
 
-_llint_op_save:
-    traceExecution()
-    callOpcodeSlowPath(_slow_path_save)
-    dispatch(4)
-
-
-_llint_op_resume:
-    traceExecution()
-    callOpcodeSlowPath(_slow_path_resume)
-    dispatch(3)
+_llint_op_yield:
+    notSupported()
 
 
 _llint_op_create_lexical_environment:

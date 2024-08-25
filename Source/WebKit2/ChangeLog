@@ -1,3 +1,149 @@
+2016-08-26  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [EFL][GTK] REGRESSION(204877): Fix the clean build
+        https://bugs.webkit.org/show_bug.cgi?id=161240
+
+        Reviewed by Carlos Garcia Campos.
+
+        * Scripts/generate-forwarding-headers.pl: Added back multiple include-path support. (removed by r183389)
+
+2016-08-26  Gyuyoung Kim  <gyuyoung.kim@navercorp.com>
+
+        Unreviewed EFL build fix since r204996.
+
+        * UIProcess/efl/WebPageProxyEfl.cpp:
+        (WebKit::WebPageProxy::editorStateChanged):
+        (WebKit::WebPageProxy::setThemePath):
+        (WebKit::WebPageProxy::confirmComposition):
+        (WebKit::WebPageProxy::setComposition):
+        (WebKit::WebPageProxy::cancelComposition):
+
+2016-08-25  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GTK+ build after r204986 and r204996.
+
+        * Platform/IPC/unix/ConnectionUnix.cpp:
+        (IPC::Connection::willSendSyncMessage):
+        (IPC::Connection::didReceiveSyncReply):
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::drawPagesForPrinting):
+
+2016-08-25  Anders Carlsson  <andersca@apple.com>
+
+        Replace all IPC message send flags with OptionSet
+        https://bugs.webkit.org/show_bug.cgi?id=161211
+
+        Reviewed by Tim Horton.
+
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::didFailLoading):
+        (WebKit::NetworkResourceLoader::sendAbortingOnFailure):
+        * NetworkProcess/NetworkResourceLoader.h:
+        * Platform/IPC/Connection.cpp:
+        (IPC::WaitForMessageState::WaitForMessageState):
+        (IPC::Connection::sendMessage):
+        (IPC::Connection::sendSyncReply):
+        (IPC::Connection::waitForMessage):
+        (IPC::Connection::sendSyncMessage):
+        (IPC::Connection::sendSyncMessageFromSecondaryThread):
+        (IPC::Connection::waitForSyncReply):
+        (IPC::Connection::processIncomingMessage):
+        * Platform/IPC/Connection.h:
+        (IPC::Connection::send):
+        (IPC::Connection::sendSync):
+        (IPC::Connection::waitForAndDispatchImmediately):
+        * Platform/IPC/MessageSender.cpp:
+        (IPC::MessageSender::sendMessage):
+        * Platform/IPC/MessageSender.h:
+        (IPC::MessageSender::send):
+        (IPC::MessageSender::sendSync):
+        * Platform/IPC/mac/ConnectionMac.mm:
+        (IPC::Connection::open):
+        (IPC::Connection::willSendSyncMessage):
+        (IPC::Connection::didReceiveSyncReply):
+        * PluginProcess/mac/PluginControllerProxyMac.mm:
+        (WebKit::PluginControllerProxy::setComplexTextInputState):
+        * UIProcess/ChildProcessProxy.cpp:
+        (WebKit::ChildProcessProxy::sendMessage):
+        (WebKit::ChildProcessProxy::didFinishLaunching):
+        * UIProcess/ChildProcessProxy.h:
+        (WebKit::ChildProcessProxy::send):
+        (WebKit::ChildProcessProxy::sendSync):
+        * UIProcess/Databases/DatabaseProcessProxy.cpp:
+        (WebKit::DatabaseProcessProxy::getDatabaseProcessConnection):
+        * UIProcess/Network/NetworkProcessProxy.cpp:
+        (WebKit::NetworkProcessProxy::getNetworkProcessConnection):
+        * UIProcess/Plugins/PluginProcessProxy.cpp:
+        (WebKit::PluginProcessProxy::getPluginProcessConnection):
+        * UIProcess/WebEditCommandProxy.cpp:
+        (WebKit::WebEditCommandProxy::unapply):
+        (WebKit::WebEditCommandProxy::reapply):
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::printingSendOptions):
+        (WebKit::WebPageProxy::preferencesDidChange):
+        (WebKit::WebPageProxy::sendMessage):
+        (WebKit::WebPageProxy::beginPrinting):
+        (WebKit::WebPageProxy::endPrinting):
+        (WebKit::WebPageProxy::computePagesForPrinting):
+        (WebKit::WebPageProxy::drawRectToImage):
+        (WebKit::WebPageProxy::drawPagesToPDF):
+        (WebKit::WebPageProxy::drawPagesForPrinting):
+        (WebKit::WebPageProxy::setMinimumLayoutSize): Deleted.
+        (WebKit::WebPageProxy::setAutoSizingShouldExpandToViewHeight): Deleted.
+        (WebKit::WebPageProxy::handleAlternativeTextUIResult): Deleted.
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/mac/RemoteLayerTreeDrawingAreaProxy.mm:
+        (WebKit::RemoteLayerTreeDrawingAreaProxy::waitForDidUpdateViewState):
+        * UIProcess/mac/TiledCoreAnimationDrawingAreaProxy.mm:
+        (WebKit::TiledCoreAnimationDrawingAreaProxy::waitForDidUpdateViewState):
+        * WebProcess/Plugins/PluginProxy.cpp:
+        (WebKit::PluginProxy::geometryDidChange):
+        * WebProcess/WebCoreSupport/WebChromeClient.cpp:
+        (WebKit::WebChromeClient::runBeforeUnloadConfirmPanel):
+        (WebKit::WebChromeClient::runJavaScriptAlert):
+        (WebKit::WebChromeClient::runJavaScriptConfirm):
+        (WebKit::WebChromeClient::runJavaScriptPrompt):
+        (WebKit::WebChromeClient::print):
+        (WebKit::WebChromeClient::exceededDatabaseQuota):
+        (WebKit::WebChromeClient::reachedApplicationCacheOriginQuota):
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::dispatchDecidePolicyForResponse):
+        * WebProcess/WebPage/WebFrame.cpp:
+        (WebKit::WebFrame::createWithCoreMainFrame):
+        (WebKit::WebFrame::createSubframe):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::sendPostLayoutEditorStateIfNeeded):
+        (WebKit::WebPage::postSynchronousMessageForTesting):
+        * WebProcess/WebPage/mac/RemoteLayerTreeDrawingArea.mm:
+        (WebKit::RemoteLayerTreeDrawingArea::BackingStoreFlusher::flush):
+
+2016-08-25  Anders Carlsson  <andersca@apple.com>
+
+        Remove some more MessageRecorder gunk
+        https://bugs.webkit.org/show_bug.cgi?id=161209
+
+        Reviewed by Tim Horton.
+
+        * DatabaseProcess/DatabaseProcess.h:
+        * DatabaseProcess/DatabaseToWebProcessConnection.h:
+        * NetworkProcess/NetworkConnectionToWebProcess.h:
+        * NetworkProcess/NetworkProcess.h:
+        * Platform/IPC/Connection.h:
+        * Platform/IPC/ProcessType.h: Removed.
+        * PluginProcess/PluginProcess.h:
+        * PluginProcess/WebProcessConnection.h:
+        * UIProcess/Databases/DatabaseProcessProxy.h:
+        * UIProcess/Network/NetworkProcessProxy.h:
+        * UIProcess/Plugins/PluginProcessProxy.h:
+        * UIProcess/WebProcessProxy.h:
+        * WebKit2.xcodeproj/project.pbxproj:
+        * WebProcess/Databases/WebToDatabaseProcessConnection.h:
+        * WebProcess/Network/NetworkProcessConnection.h:
+        * WebProcess/Plugins/PluginProcessConnection.h:
+        * WebProcess/WebPage/WebInspector.h:
+        * WebProcess/WebPage/WebInspectorUI.h:
+        * WebProcess/WebProcess.h:
+
 2016-08-25  Johan K. Jensen  <johan_jensen@apple.com>
 
         Don't store networkLoadTiming in the disk cache

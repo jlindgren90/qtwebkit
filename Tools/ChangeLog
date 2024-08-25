@@ -1,3 +1,133 @@
+2016-08-26  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] run-gtk-tests should use webkitpy.port.gtk and webkitpy.port.xvfbdriver
+        https://bugs.webkit.org/show_bug.cgi?id=160736
+
+        Reviewed by Carlos Garcia Campos.
+
+        This plugs run-gtk-tests into the webkitpy testing infrastructure.
+        As a benefit of this, run-gtk-tests now can be executed over any of
+        the existing supported gtk test display servers (xvfb, weston-over-xvfb,
+        or native xorg). A new command line switch --wayland is added for
+        run-gtk-tests.
+
+        * Scripts/run-gtk-tests:
+        (TestRunner.__init__): Remove the --display command line switch, its not longer useful.
+        Add a --wayland command line switch.
+        (TestRunner._start_accessibility_daemons):
+        (TestRunner):
+        (TestRunner.__init__):
+        (TestRunner._run_xvfb): Deleted.
+        (TestRunner._create_driver):
+        (TestRunner._setup_testing_environment): Delete the environment variable definitions that
+        are now done by driver._setup_environ_for_test().
+        (TestRunner._tear_down_testing_environment):
+        * Scripts/webkitpy/port/driver.py:
+        (Driver.__init__): Define self._server_name in the constructor of the base class.
+        It is used by several functions, so it makes sense to store once the value here.
+        (Driver._setup_environ_for_test): Factorize setting the environment for a given test.
+        (Driver._start): Get the environment from self._setup_environ_for_test()
+        * Scripts/webkitpy/port/driver_unittest.py:
+        (DriverTest):
+        (DriverTest.test_setup_environ_for_test): Add unittest for driver._setup_environ_for_test()
+        * Scripts/webkitpy/port/gtk.py: Move the inspection of the env var USE_NATIVE_XDISPLAY to the constructor.
+        (GtkPort.__init__):
+        (GtkPort._driver_class):
+        * Scripts/webkitpy/port/westondriver.py: Define and use self._setup_environ_for_test()
+        (WestonDriver._setup_environ_for_test):
+        (WestonDriver._start):
+        * Scripts/webkitpy/port/xorgdriver.py: Define and use self._setup_environ_for_test()
+        (XorgDriver._setup_environ_for_test):
+        (XorgDriver._start):
+        * Scripts/webkitpy/port/xvfbdriver.py: Define and use self._setup_environ_for_test()
+        (XvfbDriver._setup_environ_for_test):
+        (XvfbDriver._start):
+
+2016-08-26  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [EFL][GTK] REGRESSION(204877): Fix the clean build
+        https://bugs.webkit.org/show_bug.cgi?id=161240
+
+        Reviewed by Carlos Garcia Campos.
+
+        * WebKitTestRunner/PlatformEfl.cmake:
+        * WebKitTestRunner/PlatformGTK.cmake:
+
+2016-08-26  Aakash Jain  <aakash_jain@apple.com>
+
+        EWS should indicate which bot processed the patch
+        https://bugs.webkit.org/show_bug.cgi?id=161222
+
+        Reviewed by Daniel Bates.
+
+        * QueueStatusServer/handlers/statusbubble.py:
+        (StatusBubble._build_bubble): Display the bot id in status bubble. Also removed "Started processing" message since
+        after bug fix of 161223, bots send the "Started processing patch" message and it would be displayed in Recent messages.
+        Also added "Started processing patch" message to progress_statuses.
+        I might consider displaying bot id in other statuses as well later on.
+
+2016-08-26  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Change homepage url to www.ewebkit.org on MiniBrowser
+        https://bugs.webkit.org/show_bug.cgi?id=161184
+
+        Reviewed by Carlos Garcia Campos.
+
+        * MiniBrowser/efl/main.c: Set www.ewebkit.org.
+
+2016-08-25  Aakash Jain  <aakash_jain@apple.com>
+
+        ews queues should update status server when they start processing patch
+        https://bugs.webkit.org/show_bug.cgi?id=161223
+
+        Reviewed by Daniel Bates.
+
+        * Scripts/webkitpy/tool/commands/queues.py:
+        (AbstractReviewQueue.process_work_item): Update status server that the bot started processing the patch.
+        * Scripts/webkitpy/tool/commands/earlywarningsystem_unittest.py:
+        (EarlyWarningSystemTest._default_expected_logs): Updated the unit test accordingly.
+        * Scripts/webkitpy/tool/commands/queues_unittest.py:
+        (StyleQueueTest.test_style_queue_with_style_exception): Same.
+        (test_style_queue_with_watch_list_exception): Same.
+        (test_non_valid_patch): Same.
+
+2016-08-25  Alex Christensen  <achristensen@webkit.org>
+
+        CMake build fix.
+
+        * DumpRenderTree/PlatformMac.cmake:
+
+2016-08-25  Alex Christensen  <achristensen@webkit.org>
+
+        Fix URLParserTest with GuardMalloc
+        https://bugs.webkit.org/show_bug.cgi?id=161214
+        rdar://problem/28014390
+
+        Reviewed by Tim Horton.
+
+        The CString returned by String::utf8 was going out of scope before we were doing a string comparison on its data.
+        This just does the comparison of the CStrings instead to keep them in scope during the comparison.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::eq):
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::checkURLDifferences):
+        (TestWebKitAPI::s): Deleted.
+
+2016-08-25  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Dragging against the end of the inline media scrubber causes the media scrubber to hide
+        https://bugs.webkit.org/show_bug.cgi?id=161207
+
+        Reviewed by Eric Carlson.
+
+        Tweaks an existing WebKit API test covering this behavior change. After some discussion, rather than hide media
+        controls in this case, we should actually continue showing them. This is because seeking due to user gestures
+        similar to "scrubbing" are indistinguishable from gestures that immediately seek to the end.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        (TestWebKitAPI::TEST):
+
 2016-08-25  Daniel Bates  <dabates@apple.com>
 
         Watch more things.

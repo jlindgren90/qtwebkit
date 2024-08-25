@@ -1,3 +1,242 @@
+2016-08-26  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Typo fix after r56209
+        https://bugs.webkit.org/show_bug.cgi?id=161246
+
+        Reviewed by Gyuyoung Kim.
+
+        * page/FrameView.cpp:
+        (WebCore::FrameView::adjustMediaTypeForPrinting):
+
+2016-08-26  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Warning fixes.
+        https://bugs.webkit.org/show_bug.cgi?id=161077
+
+        Reviewed by Brent Fulgham.
+
+        * css/CSSGrammar.y.includes:
+        * css/RuleFeature.cpp:
+        (WebCore::makeAttributeSelectorKey):
+        * editing/TextIterator.cpp:
+        (WebCore::SearchBuffer::SearchBuffer):
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::textToFragment):
+        * html/MediaElementSession.h:
+        * platform/URL.cpp:
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        * platform/network/HTTPParsers.cpp:
+        (WebCore::parseHTTPHeader):
+        * rendering/InlineIterator.h:
+        (WebCore::InlineIterator::clear):
+        * rendering/RenderDeprecatedFlexibleBox.cpp:
+        (WebCore::FlexBoxIterator::reset):
+        * rendering/RenderText.cpp:
+        (WebCore::RenderText::secureText):
+        * rendering/mathml/RenderMathMLToken.cpp:
+        (WebCore::mathVariant):
+        * style/InlineTextBoxStyle.cpp:
+        (WebCore::visualOverflowForDecorations):
+        * xml/XPathGrammar.y:
+
+2016-08-26  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        Make custom constructors consistent with generated bindings code
+        https://bugs.webkit.org/show_bug.cgi?id=159550
+
+        Reviewed by Youenn Fablet.
+
+        Add assertion to check DOMConstructorObject* passed in ExecState is not null.
+        Rename throwConstructorDocumentUnavailableError to throwConstructorScriptExecutionContextUnavailableError since
+        ScriptExecutionContext is not necessarily a Document.
+        Modify error message in case of argument error to be consistent with generated binding code: replace calls to
+        throwVMError with calls to throwConstructorScriptExecutionContextUnavailableError and throwArgumentTypeError.
+
+        No new test required. Modify tests and tests expectations to align with new error messages.
+
+        * bindings/js/JSAudioContextCustom.cpp:
+        (WebCore::constructJSAudioContext):
+        * bindings/js/JSBlobCustom.cpp:
+        (WebCore::constructJSBlob):
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::throwConstructorScriptExecutionContextUnavailableError):
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSDOMConstructor.h:
+        (WebCore::JSBuiltinConstructor<JSClass>::callConstructor):
+        * bindings/js/JSDOMFormDataCustom.cpp:
+        (WebCore::constructJSDOMFormData):
+        * bindings/js/JSDataCueCustom.cpp:
+        (WebCore::constructJSDataCue):
+        * bindings/js/JSFileCustom.cpp:
+        (WebCore::constructJSFile):
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement):
+        * bindings/js/JSMediaSessionCustom.cpp:
+        (WebCore::constructJSMediaSession):
+        * bindings/js/JSMutationObserverCustom.cpp:
+        (WebCore::constructJSMutationObserver):
+        * bindings/js/JSReadableStreamPrivateConstructors.cpp:
+        (WebCore::constructJSReadableStreamDefaultReader):
+        * bindings/js/JSWorkerCustom.cpp:
+        (WebCore::constructJSWorker):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateCallbackImplementation):
+        (NativeToJSValue):
+        (GenerateHashTableValueArray):
+        (GenerateConstructorDefinition):
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        (WebCore::JSTestEventConstructorConstructor::construct):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::JSTestInterfaceConstructor::construct):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::JSTestNamedConstructorNamedConstructor::construct):
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::JSTestNodeConstructor::construct):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjConstructor::construct):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::constructJSTestOverloadedConstructors1):
+        (WebCore::constructJSTestOverloadedConstructors2):
+        (WebCore::constructJSTestOverloadedConstructors3):
+        (WebCore::constructJSTestOverloadedConstructors4):
+        (WebCore::constructJSTestOverloadedConstructors5):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructorsWithSequence.cpp:
+        (WebCore::constructJSTestOverloadedConstructorsWithSequence1):
+        (WebCore::constructJSTestOverloadedConstructorsWithSequence2):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::JSTestTypedefsConstructor::construct):
+
+2016-08-25  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GTK+ build after r204986 and r204996.
+
+        * page/DOMWindow.idl:
+
+2016-08-25  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Dragging against the end of the inline media scrubber causes the media scrubber to hide
+        https://bugs.webkit.org/show_bug.cgi?id=161207
+
+        Reviewed by Eric Carlson.
+
+        Previously, we would re-enable behavior restrictions when firing an ended event. However, if the ended event is
+        caused by the user seeking to the end of the video, the media controls would be taken away from under the user.
+        To prevent this, we don't add the relevant behavior restrictions upon media ended if media was seeking before
+        firing the event.
+
+        Tweaked an existing WebKit API test to cover this change.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::mediaPlayerTimeChanged):
+        (WebCore::HTMLMediaElement::addBehaviorRestrictionsOnEndIfNecessary):
+        * html/HTMLMediaElement.h:
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canControlControlsManager):
+
+2016-08-25  Andreas Kling  <akling@apple.com>
+
+        REGRESSION: RELEASE_ASSERT in ResourceUsageThread::platformThreadBody when ASan is enabled
+        <https://webkit.org/b/161203>
+        <rdar://problem/28011251>
+
+        Reviewed by Joseph Pecoraro.
+
+        * page/cocoa/ResourceUsageThreadCocoa.mm:
+        (WebCore::ResourceUsageThread::platformThreadBody): Remove overly optimistic assertions about
+        "GC owned" memory never being higher than total malloc memory usage. This accounting is not
+        really exact and pretending otherwise will just lead to crashes.
+
+        * html/HTMLCanvasElement.cpp:
+        (WebCore::HTMLCanvasElement::externalMemoryCost): Hook up HTMLCanvasElement to the ImageBuffer
+        helper for reporting external memory cost. This makes accounting slightly more correct.
+
+2016-08-25  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r203623): Breaks App Store application
+        https://bugs.webkit.org/show_bug.cgi?id=161206
+        <rdar://problem/28015060>
+
+        Reviewed by Ryosuke Niwa.
+
+        Add quirks for the App Store application so that we log an error message
+        when passing a Document node to Window.getComputedStyle() instead of
+        throwing an exception.
+
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::getComputedStyle):
+        * page/DOMWindow.h:
+        * page/DOMWindow.idl:
+        * platform/RuntimeApplicationChecks.h:
+        * platform/RuntimeApplicationChecks.mm:
+        (WebCore::MacApplication::isAppStore):
+
+2016-08-25  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        REGRESSION (r203378): [iOS] The PDF image is rendered stretched if a sub image of it is cached first
+        https://bugs.webkit.org/show_bug.cgi?id=160617
+
+        Reviewed by Tim Horton.
+
+        When caching only a sub-image of the PDF ensure the source rectangle starts
+        at the top-left of the cached sub-image rectangle. When drawing the cached 
+        sub-image to the destination context ensure the destination rectangle is the
+        sub-image rectangle so no stretching or shrinking happens.
+
+        Test: fast/images/cached-clipped-pdf.html
+
+        * page/Settings.cpp:
+        (WebCore::Settings::Settings):
+        (WebCore::Settings::setCachedPDFImageEnabled): Deleted.
+        * page/Settings.h:
+        (WebCore::Settings::isCachedPDFImageEnabled): Deleted.
+        * page/Settings.in:
+        Change the boolean setting CachedPDFImageEnabled to be enum property and
+        rename it PDFImageCachingPolicy. Allow the "PDFImageCachingBelowMemoryLimit"
+        option to be available on a;; platforms. The "PDFImageCachingClipBoundsOnly"
+        option is added for testing purpose. If forces recaching the PDF with each
+        draw and it sets the cached image rectangle to the clipping rectangle.
+        
+        * platform/graphics/cg/PDFDocumentImage.cpp:
+        (WebCore::PDFDocumentImage::setPdfImageCachingPolicy): Take an enum instead of boolean.
+        (WebCore::cachedImageRect): 
+        (WebCore::PDFDocumentImage::decodedSizeChanged): Enable PDFImageCachingBelowMemoryLimit
+        on all platforms.
+        (WebCore::PDFDocumentImage::updateCachedImageIfNeeded): Fix the source rectangle
+        when caching a sub-image of the PDF.
+        (WebCore::PDFDocumentImage::draw): Fix the destination rectangle when drawing
+        a sub-image to the destination context.
+        (WebCore::PDFDocumentImage::setCachedPDFImageEnabled): Deleted.
+        * platform/graphics/cg/PDFDocumentImage.h:
+        
+        * rendering/RenderImage.cpp:
+        (WebCore::RenderImage::paintIntoRect):
+        
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo):
+        (WebCore::InternalSettings::setPDFImageCachingPolicy):
+        (WebCore::InternalSettings::setCachedPDFImageEnabled): Deleted.
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+        Change the internal setting CachedPDFImageEnabled to PDFImageCachingPolicy.
+
+2016-08-25  Zalan Bujtas  <zalan@apple.com>
+
+        Infinite recursion crash in WebCore::RenderBlockFlow::layoutBlock
+        https://bugs.webkit.org/show_bug.cgi?id=139474
+        <rdar://problem/27705190>
+
+        Reviewed by David Hyatt.
+
+        We should just give up trying to avoid widow when the page is too small to break line.
+
+        Test: fast/multicol/assert-on-small-page-height-with-widow.html
+
+        * rendering/RenderBlockFlow.cpp:
+        (WebCore::RenderBlockFlow::clearShouldBreakAtLineToAvoidWidowIfNeeded):
+        (WebCore::RenderBlockFlow::adjustLinePositionForPagination):
+        * rendering/RenderBlockFlow.h:
+
 2016-08-24  Sam Weinig  <sam@webkit.org>
 
         Add the ability to override the implementation name of IDL enums and dictionaries
