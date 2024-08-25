@@ -1,3 +1,39 @@
+2016-08-16  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        Unreviewed, CMake build fix
+
+        * PlatformMac.cmake:
+
+2016-08-15  Anders Carlsson  <andersca@apple.com>
+
+        Remove OldWebAssertions.c
+        https://bugs.webkit.org/show_bug.cgi?id=160862
+
+        Reviewed by Dan Bernstein.
+
+        * WebKit.xcodeproj/project.pbxproj:
+
+2016-08-15  Anders Carlsson  <andersca@apple.com>
+
+        Remove WebKeyGenerator
+        https://bugs.webkit.org/show_bug.cgi?id=160854
+
+        Reviewed by Dan Bernstein.
+
+        * WebKit.xcodeproj/project.pbxproj:
+
+2016-08-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove unused includes of wtf headers
+        https://bugs.webkit.org/show_bug.cgi?id=160839
+
+        Reviewed by Alex Christensen.
+
+        * Storage/StorageSyncManager.h:
+        * Storage/StorageThread.cpp:
+        * Storage/StorageThread.h:
+        * Storage/WebDatabaseProvider.cpp:
+
 2016-08-08  Anders Carlsson  <andersca@apple.com>
 
         Add a new PluginInfoProvider class, to replace PluginStrategy

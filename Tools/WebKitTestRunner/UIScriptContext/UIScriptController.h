@@ -59,6 +59,9 @@ public:
 
     void keyboardAccessoryBarNext();
     void keyboardAccessoryBarPrevious();
+    
+    void dismissFormAccessoryView();
+    void selectFormAccessoryPickerRow(long);
 
     void setWillBeginZoomingCallback(JSValueRef);
     JSValueRef willBeginZoomingCallback() const;
@@ -81,9 +84,6 @@ public:
 
     JSObjectRef contentVisibleRect() const;
     
-    bool forceIPadStyleZoomOnInputFocus() const;
-    void setForceIPadStyleZoomOnInputFocus(bool);
-
     void uiScriptComplete(JSStringRef result);
 
 private:

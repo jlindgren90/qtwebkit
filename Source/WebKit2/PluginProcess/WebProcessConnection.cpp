@@ -38,7 +38,6 @@
 #include "PluginProcessConnectionMessages.h"
 #include "PluginProxyMessages.h"
 #include "WebProcessConnectionMessages.h"
-#include <wtf/RunLoop.h>
 #include <wtf/TemporaryChange.h>
 
 #if OS(UNIX)

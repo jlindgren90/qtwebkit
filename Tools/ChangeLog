@@ -1,3 +1,324 @@
+2016-08-17  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] -[NSString isEqualToString:] returns NO for any WKNSString argument
+        https://bugs.webkit.org/show_bug.cgi?id=160938
+        <rdar://problem/27876652>
+
+        Reviewed by Anders Carlsson.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/WKObject.mm: Added.
+        (TestWebKitAPI::TEST):
+
+2016-08-17  Chris Fleizach  <cfleizach@apple.com>
+
+        AX: Support abbreviations in iOS
+        https://bugs.webkit.org/show_bug.cgi?id=160907
+
+        Reviewed by Joanmarie Diggs.
+
+        * DumpRenderTree/ios/AccessibilityUIElementIOS.mm:
+        (AccessibilityUIElement::stringAttributeValue):
+        * WebKitTestRunner/InjectedBundle/ios/AccessibilityUIElementIOS.mm:
+        (WTR::AccessibilityUIElement::stringAttributeValue):
+
+2016-08-17  Gyuyoung Kim  <gyuyoung.kim@navercorp.com>
+
+        [EFL] Bump efl version from 1.17 to 1.18
+        https://bugs.webkit.org/show_bug.cgi?id=160899
+
+        Reviewed by Antonio Gomes.
+
+        To use efl-1.18, EFL port needs to update install dependencies as well.
+
+        * efl/install-dependencies:
+        * efl/jhbuild.modules:
+
+2016-08-17  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Add tests for linked fonts.
+        https://bugs.webkit.org/show_bug.cgi?id=160898
+
+        Reviewed by Brent Fulgham.
+
+        Add tests for https://trac.webkit.org/changeset/204502.
+
+        * TestWebKitAPI/PlatformWin.cmake:
+        * TestWebKitAPI/Tests/WebCore/win/LinkedFonts.cpp: Added.
+        (TestWebKitAPI::TEST):
+
+2016-08-16  Daniel Bates  <dabates@apple.com>
+
+        prepare-ChangeLog: Extract logic from generateFunctionLists() into a function that takes a delegate object
+        https://bugs.webkit.org/show_bug.cgi?id=160924
+
+        Reviewed by Stephanie Lewis.
+
+        Towards adding unit tests for generateFunctionLists() we move its logic into actuallyGenerateFunctionLists()
+        and have actuallyGenerateFunctionLists() take a delegate object to use to query the file system and SCM.
+        We modify generateFunctionLists() to call actuallyGenerateFunctionLists(). This will make is possible to
+        test the generate function list machinery without requiring a SCM checkout by substituting a delegate
+        object that mocks out the file system and SCM operations.
+
+        * Scripts/VCSUtils.pm:
+        (parseDiffStartLine): Parses an SVN or Git start line and returns the path to the target file.
+        * Scripts/prepare-ChangeLog:
+        (generateFunctionLists): Move functionality to actually generate the function lists to actuallyGenerateFunctionLists(),
+        abstracting the logic to query the file system and SCM into functions on a delegate object that
+        we pass to it.
+        (actuallyGenerateFunctionLists): Extracted from generateFunctionLists().
+        (diffHeaderFormat): Deleted.
+
+2016-08-16  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse URLs without credentials
+        https://bugs.webkit.org/show_bug.cgi?id=160913
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::s):
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::TEST_F):
+
+2016-08-16  Anders Carlsson  <andersca@apple.com>
+
+        Add WTF::ScopeExit
+        https://bugs.webkit.org/show_bug.cgi?id=160908
+
+        Reviewed by Geoffrey Garen.
+
+        * TestWebKitAPI/CMakeLists.txt:
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WTF/Scope.cpp: Added.
+        (TestWebKitAPI::TEST):
+
+2016-08-16  Aakash Jain  <aakash_jain@apple.com>
+
+        EWS logs file are rotated too quickly
+        https://bugs.webkit.org/show_bug.cgi?id=160724
+
+        Reviewed by Daniel Bates.
+
+        Currently we are rotating the log file after 10 iterations of queue. If the queue
+        doesn't have any pending patches, these iterations result in very small amount of 
+        logs (1 KB log file). Even if the queue process some patches, logs are few KBs.
+        This results in a lot of log files in a day. This patch ensures that we rotate the
+        log file when its file size is greater than or equal to 100 KB.
+
+        * EWSTools/start-queue-mac.sh: Added check for file size before rotating log file.
+
+2016-08-16  Daniel Bates  <dabates@apple.com>
+
+        WKSI static library should be named by major iOS revision, not individual updates
+        https://bugs.webkit.org/show_bug.cgi?id=160727
+        <rdar://problem/22274848>
+
+        Reviewed by Alexey Proskuryakov.
+
+        * DumpRenderTree/mac/Configurations/Base.xcconfig:
+        * DumpRenderTree/mac/Configurations/DebugRelease.xcconfig:
+        * Scripts/copy-webkitlibraries-to-product-directory:
+        * WebKitTestRunner/Configurations/Base.xcconfig:
+        * WebKitTestRunner/Configurations/DebugRelease.xcconfig:
+
+2016-08-16  Simon Fraser  <simon.fraser@apple.com>
+
+        Make it possible to test iOS select elements, and add iPhone and iPad tests for them
+        https://bugs.webkit.org/show_bug.cgi?id=160909
+
+        Reviewed by Enrica Casucci.
+        
+        Add functions to UIScriptController to dismiss the form accessory view for iOS,
+        and to programmatically pick a row from a <select> picker.
+
+        * WebKitTestRunner/UIScriptContext/Bindings/UIScriptController.idl:
+        * WebKitTestRunner/UIScriptContext/UIScriptController.cpp:
+        (WTR::UIScriptController::dismissFormAccessoryView):
+        (WTR::UIScriptController::selectFormAccessoryPickerRow):
+        * WebKitTestRunner/UIScriptContext/UIScriptController.h:
+        * WebKitTestRunner/ios/UIScriptControllerIOS.mm:
+        (WTR::UIScriptController::dismissFormAccessoryView):
+        (WTR::UIScriptController::selectFormAccessoryPickerRow):
+
+2016-08-15  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS] Add iPad viewport and form tests, and revert the iPad-testing part of r202132
+        https://bugs.webkit.org/show_bug.cgi?id=160878
+
+        Reviewed by Tim Horton.
+        
+        Remove testing-specific "forceIPadStyleZoomOnInputFocus" behavior added in r202132
+        now that we have the ability to run tests in the iPad simulator.
+
+        * WebKitTestRunner/UIScriptContext/Bindings/UIScriptController.idl:
+        * WebKitTestRunner/UIScriptContext/UIScriptController.cpp:
+        (WTR::UIScriptController::forceIPadStyleZoomOnInputFocus): Deleted.
+        (WTR::UIScriptController::setForceIPadStyleZoomOnInputFocus): Deleted.
+        * WebKitTestRunner/UIScriptContext/UIScriptController.h:
+        * WebKitTestRunner/ios/TestControllerIOS.mm:
+        (WTR::TestController::platformResetStateToConsistentValues): Deleted.
+        * WebKitTestRunner/ios/UIScriptControllerIOS.mm:
+        (WTR::UIScriptController::forceIPadStyleZoomOnInputFocus): Deleted.
+        (WTR::UIScriptController::setForceIPadStyleZoomOnInputFocus): Deleted.
+
+2016-08-15  Anders Carlsson  <andersca@apple.com>
+
+        Add an address-of operator to RetainPtr
+        https://bugs.webkit.org/show_bug.cgi?id=160879
+
+        Reviewed by Tim Horton.
+
+        Test HashMap and HashSet with an object whose operator& is deleted.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        Sort the Xcode project.
+
+        * TestWebKitAPI/Tests/WTF/DeletedAddressOfOperator.h: Added.
+        (DeletedAddressOfOperator::DeletedAddressOfOperator):
+        (DeletedAddressOfOperator::value):
+        (DeletedAddressOfOperator::operator==):
+        (WTF::HashTraits<DeletedAddressOfOperator>::constructDeletedValue):
+        (WTF::HashTraits<DeletedAddressOfOperator>::isDeletedValue):
+        (WTF::DefaultHash<DeletedAddressOfOperator>::Hash::hash):
+        (WTF::DefaultHash<DeletedAddressOfOperator>::Hash::equal):
+        * TestWebKitAPI/Tests/WTF/HashMap.cpp:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WTF/HashSet.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-08-16  Jonathan Bedard  <jbedard@apple.com>
+
+        False crashes in fast/text/emoji-gender-* tests
+        https://bugs.webkit.org/show_bug.cgi?id=160779
+
+        Reviewed by Alexey Proskuryakov.
+
+        Fix from <rdar://problem/27786762>, where timed out tests falsely report as crashed.
+
+        * Scripts/webkitpy/port/driver.py:
+        (Driver._check_for_driver_crash_or_unresponsiveness): Change call to ‘write’ to disable crash flag.
+        * Scripts/webkitpy/port/driver_unittest.py: Added 3 variable to test version of ‘write.’
+        * Scripts/webkitpy/port/server_process.py:
+        (ServerProcess.write): Allow caller to disable crash flag on exception.
+
+2016-08-15  Simon Fraser  <simon.fraser@apple.com>
+
+        webkitpy error in TestRunResults.merge()
+        https://bugs.webkit.org/show_bug.cgi?id=160882
+
+        Reviewed by Daniel Bates.
+        
+        The argument to TestRunResults.merge() can be None if there are no device-specifc
+        initial results or retry results in Manager.run(), so just return early in that case.
+
+        * Scripts/webkitpy/layout_tests/models/test_run_results.py:
+        (TestRunResults.merge):
+
+2016-08-15  Sam Weinig  <sam@webkit.org>
+
+        Speed up compile times by not including wtf/Variant.h so much
+        https://bugs.webkit.org/show_bug.cgi?id=160847
+
+        Reviewed by Alex Christensen and Saam Barati.
+
+        * TestWebKitAPI/Tests/WTF/Variant.cpp:
+        (TestWebKitAPI::TEST):
+        Explicitly use std::experimental::variant.
+
+2016-08-15  Simon Fraser  <simon.fraser@apple.com>
+
+        Allow a port to run tests with a custom device setup
+        https://bugs.webkit.org/show_bug.cgi?id=160833
+
+        Reviewed by Daniel Bates.
+
+        These changes allow the IOSSimulator port to run tests in iPad mode.
+
+        This is made possible by allowing a platform to define CUSTOM_DEVICE_CLASSES,
+        in this case 'ipad'. When specified, any test in a directory with a suffix that matches
+        a custom device will be collected into a set, and run in that device's environment after
+        the other tests have run.
+
+        * Scripts/webkitpy/layout_tests/controllers/manager.py:
+        (Manager._custom_device_for_test): If the test contains a directory matching a
+        custom device suffix, return that custom device.
+        (Manager._set_up_run): Push the custom device class, if any, into options so
+        that the Worker can get to it.
+        (Manager.run): Go through the list of tests, and break it down into device-generic
+        tests, and tests for each device class. _run_test_subset is then called for
+        each collection of tests, and the results merged.
+        (Manager._run_test_subset): Some lines unwrapped.
+        (Manager._end_test_run):
+        (Manager._run_tests):
+        * Scripts/webkitpy/layout_tests/controllers/single_test_runner.py:
+        (SingleTestRunner.__init__): Unwrapped a line.
+        * Scripts/webkitpy/layout_tests/models/test_run_results.py:
+        (TestRunResults.merge): Add this function to merge TestRunResults
+        * Scripts/webkitpy/layout_tests/views/printing.py:
+        (Printer.print_workers_and_shards): Print the custom device, if any.
+        * Scripts/webkitpy/port/base.py:
+        (Port): Base port has empty array of custom devices.
+        (Port.setup_test_run): Add device_class argument.
+        * Scripts/webkitpy/port/driver.py:
+        (DriverInput.__repr__):
+        (Driver.check_driver.implementation):
+        * Scripts/webkitpy/port/efl.py:
+        (EflPort.setup_test_run):
+        * Scripts/webkitpy/port/gtk.py:
+        (GtkPort.setup_test_run):
+        * Scripts/webkitpy/port/ios.py:
+        (IOSSimulatorPort): Add CUSTOM_DEVICE_CLASSES for ipad.
+        (IOSSimulatorPort.__init__):
+        (IOSSimulatorPort.simulator_device_type): Use a device name from the DEVICE_CLASS_MAP
+        based on the custom device class.
+        (IOSSimulatorPort._set_device_class):
+        (IOSSimulatorPort._create_simulators): Factor some code into this function.
+        (IOSSimulatorPort.setup_test_run):
+        (IOSSimulatorPort.testing_device):
+        (IOSSimulatorPort.reset_preferences): This used to create the simulator apps, but that
+        seemed wrong for this function. That was moved to setup_test_run().
+        (IOSSimulatorPort.check_sys_deps): This function used to create testing devices,
+        but this happened too early, before we knew which kind of devices to create. Devices
+        are now created in setup_test_run().
+        * Scripts/webkitpy/port/win.py:
+        (WinPort.setup_test_run):
+
+2016-08-15  Daniel Bates  <dabates@apple.com>
+
+        Cannot build WebKit for iOS device using Xcode 7.3/iOS 9.3 public SDK due to missing
+        private frameworks and libraries
+        https://bugs.webkit.org/show_bug.cgi?id=155931
+        <rdar://problem/25807989>
+
+        Reviewed by Dan Bernstein.
+
+        Add directory WebKitLibraries/WebKitPrivateFrameworkStubs/iOS/X to the framework search path
+        where X is the major version of the active iOS SDK.
+
+        * DumpRenderTree/mac/Configurations/Base.xcconfig:
+        * WebKitTestRunner/Configurations/Base.xcconfig:
+
+2016-08-15  Simon Fraser  <simon.fraser@apple.com>
+
+        Add a setting and preferences to enable visual viewport mode
+        https://bugs.webkit.org/show_bug.cgi?id=160843
+
+        Reviewed by Sam Weinig.
+        
+        Pref and a menu item to toggle visualViewportEnabled for WebKits 1 and 2.
+
+        * MiniBrowser/mac/SettingsController.h:
+        * MiniBrowser/mac/SettingsController.m:
+        (-[SettingsController _populateMenu]):
+        (-[SettingsController validateMenuItem:]):
+        (-[SettingsController visualViewportEnabled]):
+        (-[SettingsController toggleVisualViewportEnabled:]):
+        * MiniBrowser/mac/WK1BrowserWindowController.m:
+        (-[WK1BrowserWindowController didChangeSettings]):
+        * MiniBrowser/mac/WK2BrowserWindowController.m:
+        (-[WK2BrowserWindowController didChangeSettings]):
+
 2016-08-15  Konstantin Tokarev  <annulen@yandex.ru>
 
         Allow using make-dist with non-GTK ports

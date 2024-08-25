@@ -24,8 +24,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef InspectorBackendDispatcher_h
-#define InspectorBackendDispatcher_h
+#pragma once
 
 #include "InspectorFrontendRouter.h"
 #include "InspectorProtocolTypes.h"
@@ -120,5 +119,3 @@ private:
 };
 
 } // namespace Inspector
-
-#endif // !defined(InspectorBackendDispatcher_h)

@@ -980,30 +980,31 @@ sub GenerateDictionaryImplementationContent
             $comma = ", ";
         }
 
-        $result .= "template<> $className convert<$className>(ExecState& state, JSValue value)\n";
+        $result .= "template<> Optional<$className> convertDictionary<$className>(ExecState& state, JSValue value)\n";
         $result .= "{\n";
         $result .= "    if (value.isUndefinedOrNull())\n" if $defaultValues;
-        $result .= "        return { " . $defaultValues . " };\n" if $defaultValues;
+        $result .= "        return $className { " . $defaultValues . " };\n" if $defaultValues;
         $result .= "    auto* object = value.getObject();\n";
         $result .= "    if (UNLIKELY(!object || object->type() == RegExpObjectType)) {\n";
         $result .= "        throwTypeError(&state);\n";
-        $result .= "        return { };\n";
+        $result .= "        return Nullopt;\n";
         $result .= "    }\n";
 
         my $needExceptionCheck = 0;
         foreach my $member (@{$dictionary->members}) {
             if ($needExceptionCheck) {
                 $result .= "    if (UNLIKELY(state.hadException()))\n";
-                $result .= "        return { };\n";
+                $result .= "        return Nullopt;\n";
             }
             # FIXME: Eventually we will want this to share a lot more code with JSValueToNative.
             my $type = $member->type;
             my $name = $member->name;
             my $value = "object->get(&state, Identifier::fromString(&state, \"${name}\"))";
             if ($codeGenerator->IsWrapperType($member->type)) {
-                die "Dictionary member of non-nullable wrapper types are not supported yet" unless $member->isNullable;
                 AddToImplIncludes("JS${type}.h");
-                $result .= "    auto* $name = convertWrapperType<$type, JS${type}>(state, $value, IsNullable::Yes);\n";
+                die "Dictionary members of non-nullable wrapper types must be marked as required" if !$member->isNullable && $member->isOptional;
+                my $nullableParameter = $member->isNullable ? "IsNullable::Yes" : "IsNullable::No";
+                $result .= "    auto* $name = convertWrapperType<$type, JS${type}>(state, $value, $nullableParameter);\n";
             } else {
                 my $function = $member->isOptional ? "convertOptional" : "convert";
                 $result .= "    auto $name = ${function}<" . GetNativeTypeFromSignature($interface, $member) . ">(state, $value"
@@ -1016,11 +1017,17 @@ sub GenerateDictionaryImplementationContent
         my $arguments = "";
         $comma = "";
         foreach my $member (@{$dictionary->members}) {
-            $arguments .= $comma . "WTFMove(" . $member->name . ")";
+            my $value;
+            if ($codeGenerator->IsWrapperType($member->type) && !$member->isNullable) {
+                $value = "*" . $member->name;
+            } else {
+                $value = "WTFMove(" . $member->name . ")";
+            }
+            $arguments .= $comma . $value;
             $comma = ", ";
         }
 
-        $result .= "    return { " . $arguments . " };\n";
+        $result .= "    return $className { " . $arguments . " };\n";
         $result .= "}\n\n";
 
         $result .= "#endif\n\n" if $conditionalString;
@@ -1917,8 +1924,9 @@ END
             $overload = GetOverloadThatMatches($S, $d, \&$isObjectOrCallbackFunctionParameter);
             &$generateOverloadCallIfNecessary($overload, "distinguishingArg.isFunction()");
 
+            # FIXME: Avoid invoking GetMethod(object, Symbol.iterator) again in toNativeArray and toRefPtrNativeArray.
             $overload = GetOverloadThatMatches($S, $d, \&$isSequenceParameter);
-            &$generateOverloadCallIfNecessary($overload, "distinguishingArg.isObject() && isJSArray(distinguishingArg)");
+            &$generateOverloadCallIfNecessary($overload, "hasIteratorMethod(*state, distinguishingArg)");
 
             $overload = GetOverloadThatMatches($S, $d, \&$isDictionaryOrObjectOrCallbackInterfaceParameter);
             &$generateOverloadCallIfNecessary($overload, "distinguishingArg.isObject() && asObject(distinguishingArg)->type() != RegExpObjectType");
@@ -3534,6 +3542,10 @@ END
                 $implIncludes{"Element.h"} = 1;
                 $implIncludes{"JSNodeCustom.h"} = 1;
                 $rootString  = "    void* root = WebCore::root(js${interfaceName}->wrapped().ownerNode());\n";
+            } elsif (GetGenerateIsReachable($interface) eq "ImplScriptExecutionContext") {
+                $rootString  = "    ScriptExecutionContext* root = WTF::getPtr(js${interfaceName}->wrapped().scriptExecutionContext());\n";
+                $rootString .= "    if (!root)\n";
+                $rootString .= "        return false;\n";
             } else {
                 $rootString  = "    void* root = WebCore::root(&js${interfaceName}->wrapped());\n";
             }
@@ -3770,9 +3782,6 @@ sub WillConvertUndefinedToDefaultParameterValue
     my $automaticallyGeneratedDefaultValue = $automaticallyGeneratedDefaultValues{$parameterType};
     return 1 if defined $automaticallyGeneratedDefaultValue && $automaticallyGeneratedDefaultValue eq $defaultValue;
 
-    # toRefPtrNativeArray() will convert undefined to an empty Vector.
-    return 1 if $defaultValue eq "[]" && $codeGenerator->GetSequenceType($parameterType);
-
     return 1 if $defaultValue eq "null" && $codeGenerator->IsWrapperType($parameterType);
 
     return 0;
@@ -4003,6 +4012,8 @@ sub GenerateParametersCheck
 
             if ($codeGenerator->IsTypedArrayType($type) and $parameter->type ne "ArrayBuffer") {
                $value = $shouldPassByReference ? "$name.releaseNonNull()" : "WTFMove($name)";
+            } elsif ($codeGenerator->IsDictionaryType($type)) {
+                $value = "${name}.value()";
             }
         }
 
@@ -4654,7 +4665,7 @@ sub JSValueToNative
     if ($sequenceType) {
         if ($codeGenerator->IsRefPtrType($sequenceType)) {
             AddToImplIncludes("JS${sequenceType}.h");
-            return ("(toRefPtrNativeArray<${sequenceType}, JS${sequenceType}>(state, $value, &JS${sequenceType}::toWrapped))", 1);
+            return ("toRefPtrNativeArray<${sequenceType}, JS${sequenceType}>(*state, $value)", 1);
         }
         return ("toNativeArray<" . GetNativeVectorInnerType($sequenceType) . ">(*state, $value)", 1);
     }
@@ -4674,7 +4685,7 @@ sub JSValueToNative
 
     return ("to$type($value)", 1) if $codeGenerator->IsTypedArrayType($type);
     return ("parse<" . GetEnumerationClassName($interface, $type) . ">(*state, $value)", 1) if $codeGenerator->IsEnumType($type);
-    return ("convert<" . GetDictionaryClassName($interface, $type) . ">(*state, $value)", 1) if $codeGenerator->IsDictionaryType($type);
+    return ("convertDictionary<" . GetDictionaryClassName($interface, $type) . ">(*state, $value)", 1) if $codeGenerator->IsDictionaryType($type);
 
     AddToImplIncludes("JS$type.h", $conditional);
 
@@ -5304,8 +5315,10 @@ END
                 last if $index eq $paramIndex;
                 if (ShouldPassWrapperByReference($parameter, $interface)) {
                     push(@constructorArgList, "*" . $parameter->name);
+                } elsif ($codeGenerator->IsDictionaryType($parameter->type)) {
+                    push(@constructorArgList, $parameter->name . ".value()");
                 } else {
-                    push(@constructorArgList, $parameter->name);
+                    push(@constructorArgList, "WTFMove(" . $parameter->name . ")");
                 }
                 $index++;
             }

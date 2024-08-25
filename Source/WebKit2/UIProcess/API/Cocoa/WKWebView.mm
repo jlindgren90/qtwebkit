@@ -4517,14 +4517,14 @@ static WebCore::UserInterfaceLayoutDirection toUserInterfaceLayoutDirection(UISe
     [_contentView accessoryTab:NO];
 }
 
-- (BOOL)forceIPadStyleZoomOnInputFocus
+- (void)dismissFormAccessoryView
 {
-    return [_contentView forceIPadStyleZoomOnInputFocus];
+    [_contentView accessoryDone];
 }
 
-- (void)setForceIPadStyleZoomOnInputFocus:(BOOL)forceIPadStyleZoom
+- (void)selectFormAccessoryPickerRow:(int)rowIndex
 {
-    [_contentView setForceIPadStyleZoomOnInputFocus:forceIPadStyleZoom];
+    [_contentView selectFormAccessoryPickerRow:rowIndex];
 }
 
 #endif // PLATFORM(IOS)

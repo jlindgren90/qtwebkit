@@ -860,7 +860,7 @@ void InspectorDOMAgent::getEventListeners(Node* node, Vector<EventListenerInfo>&
             EventListenerVector filteredListeners;
             filteredListeners.reserveInitialCapacity(listeners.size());
             for (auto& listener : listeners) {
-                if (listener->listener().type() == EventListener::JSEventListenerType)
+                if (listener->callback().type() == EventListener::JSEventListenerType)
                     filteredListeners.uncheckedAppend(listener);
             }
             if (!filteredListeners.isEmpty())
@@ -1280,14 +1280,14 @@ static bool pseudoElementType(PseudoId pseudoId, Inspector::Protocol::DOM::Pseud
     }
 }
 
-static Inspector::Protocol::DOM::ShadowRootType shadowRootType(ShadowRoot::Type type)
+static Inspector::Protocol::DOM::ShadowRootType shadowRootType(ShadowRoot::Mode mode)
 {
-    switch (type) {
-    case ShadowRoot::Type::UserAgent:
+    switch (mode) {
+    case ShadowRoot::Mode::UserAgent:
         return Inspector::Protocol::DOM::ShadowRootType::UserAgent;
-    case ShadowRoot::Type::Closed:
+    case ShadowRoot::Mode::Closed:
         return Inspector::Protocol::DOM::ShadowRootType::Closed;
-    case ShadowRoot::Type::Open:
+    case ShadowRoot::Mode::Open:
         return Inspector::Protocol::DOM::ShadowRootType::Open;
     }
 
@@ -1407,7 +1407,7 @@ Ref<Inspector::Protocol::DOM::Node> InspectorDOMAgent::buildObjectForNode(Node* 
         value->setValue(attribute.value());
     } else if (is<ShadowRoot>(*node)) {
         ShadowRoot& shadowRoot = downcast<ShadowRoot>(*node);
-        value->setShadowRootType(shadowRootType(shadowRoot.type()));
+        value->setShadowRootType(shadowRootType(shadowRoot.mode()));
     }
 
     // Need to enable AX to get the computed role.
@@ -1477,7 +1477,7 @@ RefPtr<Inspector::Protocol::Array<Inspector::Protocol::DOM::Node>> InspectorDOMA
 
 Ref<Inspector::Protocol::DOM::EventListener> InspectorDOMAgent::buildObjectForEventListener(const RegisteredEventListener& registeredEventListener, const AtomicString& eventType, Node* node, const String* objectGroupId)
 {
-    Ref<EventListener> eventListener = registeredEventListener.listener();
+    Ref<EventListener> eventListener = registeredEventListener.callback();
 
     JSC::ExecState* state = nullptr;
     JSC::JSObject* handler = nullptr;

@@ -1,3 +1,224 @@
+2016-08-17  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: rapid updates to status icons in Visual Styles sidebar causes flicker
+        https://bugs.webkit.org/show_bug.cgi?id=160887
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/VisualStyleBasicInput.js:
+        (WebInspector.VisualStyleBasicInput):
+
+        * UserInterface/Views/VisualStyleColorPicker.js:
+        (WebInspector.VisualStyleColorPicker):
+
+        * UserInterface/Views/VisualStyleNumberInputBox.js:
+        (WebInspector.VisualStyleNumberInputBox):
+        (WebInspector.VisualStyleNumberInputBox.prototype._valueNumberInputKeyDown):
+
+        * UserInterface/Views/VisualStylePropertyNameInput.js:
+        (WebInspector.VisualStylePropertyNameInput):
+
+2016-08-16  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: DOM nodes shift when hovering over them in Console
+        https://bugs.webkit.org/show_bug.cgi?id=160789
+        <rdar://problem/27815600>
+
+        Reviewed by Matt Baker.
+
+        * UserInterface/Views/FormattedValue.css:
+        (.formatted-node > .tree-outline.dom ol): Deleted.
+
+2016-08-16  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Data grid has a double left border when the first column is hidden
+        https://bugs.webkit.org/show_bug.cgi?id=160723
+        <rdar://problem/27778081>
+
+        Reviewed by Timothy Hatcher.
+
+        This patch exploits the fact hiding columns that aren't first in DataGrid don't create double
+        borders.
+
+        * UserInterface/Views/DataGrid.css:
+        (.data-grid table.header,):
+        (.data-grid :matches(th, td):first-child):
+        (@media (-webkit-min-device-pixel-ratio: 2)):
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype._setTypeTokenAnnotatorEnabledState):
+
+2016-08-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Do not request Scope Chain lists if section is collapsed (mainly Global Variables)
+        https://bugs.webkit.org/show_bug.cgi?id=140567
+        <rdar://problem/19504745>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Main.html:
+        New file name.
+
+        * UserInterface/Views/DOMNodeDetailsSidebarPanel.js:
+        (WebInspector.DOMNodeDetailsSidebarPanel.prototype._refreshProperties.fillSection):
+        (WebInspector.DOMNodeDetailsSidebarPanel.prototype._refreshProperties):
+        Avoid fetching object properties until the user expands the section.
+
+        * UserInterface/Views/ScopeChainDetailsSidebarPanel.js:
+        (WebInspector.ScopeChainDetailsSidebarPanel.prototype._generateCallFramesSection):
+        (WebInspector.ScopeChainDetailsSidebarPanel.prototype._generateWatchExpressionsSection):
+        Avoid fetching scope variable properties until the user expands the section.
+
+        * UserInterface/Views/ObjectPropertiesDetailSectionRow.js: Renamed from Source/WebInspectorUI/UserInterface/Views/DetailsSectionPropertiesRow.js.
+        (WebInspector.ObjectPropertiesDetailSectionRow):
+        (WebInspector.ObjectPropertiesDetailSectionRow.prototype.get objectTree):
+        (WebInspector.ObjectPropertiesDetailSectionRow.prototype._detailsSectionCollapsedStateChanged):
+        Rename and simplify the class since it always has an ObjectTreeView.
+        By default the section will auto-expand the ObjectTreeView, however
+        if provided a details section group, it will defer expanion until
+        the group expands.
+
+2016-08-16  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: add "Copy Selected" context menu item to Console
+        https://bugs.webkit.org/show_bug.cgi?id=151836
+
+        Reviewed by Timothy Hatcher.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        * UserInterface/Views/LogContentView.js:
+        (WebInspector.LogContentView.prototype._previousMessageRepeatCountUpdated):
+        (WebInspector.LogContentView.prototype._handleContextMenuEvent):
+        (WebInspector.LogContentView.prototype._mousedown):
+
+2016-08-16  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Visual Styles: "Text -> Content" isn't escaped
+        https://bugs.webkit.org/show_bug.cgi?id=158271
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Base/Utilities.js:
+        (String.prototype.hasMatchingEscapedQuotes):
+        Checks that the given string has property escaped quotes (single or double).
+
+        * UserInterface/Views/VisualStyleBasicInput.js:
+        (WebInspector.VisualStyleBasicInput):
+        (WebInspector.VisualStyleBasicInput.prototype._handleInputElementInput):
+
+2016-08-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Modernize model objects simple getters
+        https://bugs.webkit.org/show_bug.cgi?id=160863
+
+        Reviewed by Timothy Hatcher.
+
+        Simplify the style of many Model objects with basic accessors.
+        We reduce them to a single line and group them together so
+        that they can be more easily read at a glance.
+
+        * UserInterface/Models/AnalyzerMessage.js:
+        * UserInterface/Models/ApplicationCacheFrame.js:
+        * UserInterface/Models/ApplicationCacheManifest.js:
+        * UserInterface/Models/BreakpointAction.js:
+        * UserInterface/Models/CSSMedia.js:
+        * UserInterface/Models/CSSSelector.js:
+        * UserInterface/Models/CollectionEntry.js:
+        * UserInterface/Models/CollectionEntryPreview.js:
+        * UserInterface/Models/DOMStorageObject.js:
+        * UserInterface/Models/DatabaseObject.js:
+        * UserInterface/Models/DatabaseTableObject.js:
+        * UserInterface/Models/ExecutionContext.js:
+        * UserInterface/Models/GarbageCollection.js:
+        * UserInterface/Models/IndexedDatabase.js:
+        * UserInterface/Models/IndexedDatabaseObjectStore.js:
+        * UserInterface/Models/IndexedDatabaseObjectStoreIndex.js:
+        * UserInterface/Models/ObjectPreview.js:
+        * UserInterface/Models/ProbeSet.js:
+        * UserInterface/Models/PropertyDescriptor.js:
+        * UserInterface/Models/PropertyPath.js:
+        * UserInterface/Models/PropertyPreview.js:
+        * UserInterface/Models/SourceCodePosition.js:
+        * UserInterface/Models/SourceCodeSearchMatchObject.js:
+        * UserInterface/Models/SourceCodeTimeline.js:
+        * UserInterface/Models/StructureDescription.js:
+        * UserInterface/Models/TextRange.js:
+        * UserInterface/Models/Timeline.js:
+        * UserInterface/Models/TimelineRecording.js:
+        * UserInterface/Models/TypeDescription.js:
+
+2016-08-15  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Large class lists are not easily discoverable with "Classes" quick-toggle
+        https://bugs.webkit.org/show_bug.cgi?id=160856
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Base/DOMUtilities.js:
+        (WebInspector.linkifyNodeReference):
+        Add option to truncate the text of the linkified node.
+
+        * UserInterface/Views/CSSStyleDetailsSidebarPanel.css:
+        (.sidebar > .panel.details.css-style > .content ~ .class-list-container):
+        Increase the max-height to partially show additional classes if many are set.
+
+        * UserInterface/Views/RulesStyleDetailsPanel.js:
+        (WebInspector.RulesStyleDetailsPanel.prototype.refresh.insertMediaOrInheritanceLabel):
+        Trucate the name of inherited nodes so they don't take up as much space in the sidebar.
+
+        * UserInterface/Views/VisualStyleSelectorSection.css:
+        (.details-section.visual-style-selector-section > .header > .current-selector): Deleted.
+        (.details-section.visual-style-selector-section > .content > .selectors > .selector-list > .section-divider > .titles): Deleted.
+        Removed since they are already inherited.
+
+2016-08-15  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Close button on selected item in Network tab is misaligned
+        https://bugs.webkit.org/show_bug.cgi?id=160884
+
+        Reviewed by Matt Baker.
+
+        * UserInterface/Views/NetworkSidebarPanel.css:
+        (.sidebar > .panel.navigation.network .status .close.status-button):
+
+2016-08-15  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Error/Warning icons are misplaced in the Visual sidebar
+        https://bugs.webkit.org/show_bug.cgi?id=160875
+
+        Reviewed by Matt Baker.
+
+        * UserInterface/Views/VisualStyleCommaSeparatedKeywordEditor.css:
+        (.visual-style-property-container.comma-separated-keyword-editor > .visual-style-property-value-container > .visual-style-special-property-placeholder): Deleted.
+        Reworked to apply more generally to editors without titles.
+
+        * UserInterface/Views/VisualStylePropertyEditor.css:
+        (.visual-style-property-container.missing-dependency > .visual-style-property-editor-warning):
+        (.visual-style-property-container.invalid-value > .visual-style-property-editor-warning):
+        (.visual-style-property-container:matches(.missing-dependency, .invalid-value) > *:first-child:matches(.visual-style-property-value-container)):
+        (.visual-style-property-container > *:first-child:matches(.visual-style-property-value-container) > .visual-style-special-property-placeholder):
+        (.visual-style-property-container > .visual-style-property-editor-warning.missing-dependency): Deleted.
+        (.visual-style-property-container > .visual-style-property-editor-warning.invalid-value): Deleted.
+        Reworked class names to be on the element container instead of the icon.
+
+        * UserInterface/Views/VisualStylePropertyEditor.js:
+        (WebInspector.VisualStylePropertyEditor.prototype.update):
+        (WebInspector.VisualStylePropertyEditor.prototype.updateEditorValues):
+        (WebInspector.VisualStylePropertyEditor.prototype._valueDidChange):
+        (WebInspector.VisualStylePropertyEditor.prototype._checkDependencies):
+
+2016-08-15  Saam Barati  <sbarati@apple.com>
+
+        Web Inspector: Introduce a method to enable code coverage profiler without enabling type profiler
+        https://bugs.webkit.org/show_bug.cgi?id=160750
+        <rdar://problem/27793469>
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector.loaded):
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype._setTypeTokenAnnotatorEnabledState):
+
 2016-08-12  Timothy Hatcher  <timothy@apple.com>
 
         Web Inspector: Add application/vnd.api+json as a valid JSON MIME-type

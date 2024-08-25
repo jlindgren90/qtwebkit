@@ -43,7 +43,6 @@
 #include <wtf/Forward.h>
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
-#include <wtf/NeverDestroyed.h>
 #include <wtf/text/AtomicString.h>
 #include <wtf/text/AtomicStringHash.h>
 
@@ -277,6 +276,7 @@ private:
     void mainThreadPing();
 
 #if ENABLE(GAMEPAD)
+    void setInitialGamepads(const Vector<GamepadData>&);
     void gamepadConnected(const GamepadData&);
     void gamepadDisconnected(unsigned index);
 #endif

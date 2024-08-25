@@ -1,3 +1,328 @@
+2016-08-16  Mark Lam  <mark.lam@apple.com>
+
+        Heap::collectAllGarbage() should work with JSC_useImmortalObjects=true.
+        https://bugs.webkit.org/show_bug.cgi?id=160917
+
+        Reviewed by Filip Pizlo.
+
+        If we do an synchronous GC when JSC_useImmortalObjects=true, we'll get a
+        RELEASE_ASSERT failure:
+
+            $ JSC_useImmortalObjects=true jsc
+            >>> gc()
+            Trace/BPT trap: 5
+
+        This is because Heap::collectAllGarbage() is doing an explicit sweep of the
+        MarkedSpace, and the sweeper is expecting to see no RetiredBlocks.  However, we
+        make objects immortal by retiring their blocks.  As a result, there is a mismatch
+        in expectancy.
+
+        The fix is simply to not run the sweeper when JSC_useImmortalObjects=true.
+
+        * heap/Heap.cpp:
+        (JSC::Heap::collectAllGarbage):
+
+2016-08-16  Keith Miller  <keith_miller@apple.com>
+
+        Add WASM I32 simple operators.
+        https://bugs.webkit.org/show_bug.cgi?id=160914
+
+        Reviewed by Benjamin Poulain.
+
+        This patch adds support for the i32 simple binary operators.
+
+        * wasm/WASMB3IRGenerator.cpp:
+        (JSC::WASM::toB3Op):
+        (JSC::WASM::B3IRGenerator::binaryOp):
+        * wasm/WASMFunctionParser.h:
+        (JSC::WASM::WASMFunctionParser<Context>::parseExpression):
+        * wasm/WASMOps.h:
+
+2016-08-15  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Conversion to sequence<T> is broken for iterable objects
+        https://bugs.webkit.org/show_bug.cgi?id=160801
+
+        Reviewed by Darin Adler.
+
+        Export functions used to iterate over iterable objects.
+
+        * runtime/IteratorOperations.h:
+        (JSC::forEachInIterable):
+
+2016-08-15  Benjamin Poulain  <bpoulain@apple.com>
+
+        [Regression 204203-204210] 32-bit ASSERTION FAILED: !m_data[index].name.isValid()
+        https://bugs.webkit.org/show_bug.cgi?id=160881
+
+        Reviewed by Mark Lam.
+
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        We were trying to set the result of the Identity node to the same
+        value as the source of the Identity.
+        That is pretty messed up.
+
+2016-08-15  Saam Barati  <sbarati@apple.com>
+
+        Web Inspector: Introduce a method to enable code coverage profiler without enabling type profiler
+        https://bugs.webkit.org/show_bug.cgi?id=160750
+        <rdar://problem/27793469>
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/agents/InspectorRuntimeAgent.cpp:
+        (Inspector::InspectorRuntimeAgent::disableTypeProfiler):
+        (Inspector::InspectorRuntimeAgent::enableControlFlowProfiler):
+        (Inspector::InspectorRuntimeAgent::disableControlFlowProfiler):
+        (Inspector::InspectorRuntimeAgent::setTypeProfilerEnabledState):
+        (Inspector::InspectorRuntimeAgent::setControlFlowProfilerEnabledState):
+        * inspector/agents/InspectorRuntimeAgent.h:
+        * inspector/protocol/Runtime.json:
+
+2016-08-15  Saam Barati  <sbarati@apple.com>
+
+        Array.prototype.map builtin should go on the fast path when constructor===@Array
+        https://bugs.webkit.org/show_bug.cgi?id=160836
+
+        Reviewed by Keith Miller.
+
+        In the FTL, we were not compiling the result array in Array.prototype.map
+        efficiently when the result array should use the Array constructor
+        (which is the common case). We used to compile it as:
+        x: JSConstant(Array)
+        y: Construct(@x, ...)
+        instead of
+        y: NewArrayWithSize(...)
+
+        This patch changes the builtin to go down the fast path when certain
+        conditions are met. Often, the check to go down the fast path will
+        be constant folded because we always create a normal array from the
+        Array constructor.
+
+        This is around a 5% speedup on ES6 Sample Bench.
+
+        I also made similar changes for Array.prototype.filter
+        and Array.prototype.concat on its slow path.
+
+        * builtins/ArrayPrototype.js:
+
+2016-08-15  Mark Lam  <mark.lam@apple.com>
+
+        Make JSValue::strictEqual() handle failures to resolve JSRopeStrings.
+        https://bugs.webkit.org/show_bug.cgi?id=160832
+        <rdar://problem/27577556>
+
+        Reviewed by Geoffrey Garen.
+
+        Currently, JSValue::strictEqualSlowCaseInline() (and peers) will blindly try to
+        access the StringImpl of a JSRopeString that fails to resolve its rope.  As a
+        result, we'll crash with null pointer dereferences.
+
+        We can fix this by introducing a JSString::equal() method that will do the
+        equality comparison, but is aware of the potential failures to resolve ropes.
+        JSValue::strictEqualSlowCaseInline() (and peers) will now call JSString::equal()
+        instead of accessing the underlying StringImpl directly.
+
+        Also added some exception checks.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * jit/JITOperations.cpp:
+        * runtime/ArrayPrototype.cpp:
+        (JSC::arrayProtoFuncIndexOf):
+        (JSC::arrayProtoFuncLastIndexOf):
+        * runtime/JSCJSValueInlines.h:
+        (JSC::JSValue::equalSlowCaseInline):
+        (JSC::JSValue::strictEqualSlowCaseInline):
+        * runtime/JSString.cpp:
+        (JSC::JSString::equalSlowCase):
+        * runtime/JSString.h:
+        * runtime/JSStringInlines.h: Added.
+        (JSC::JSString::equal):
+
+2016-08-15  Keith Miller  <keith_miller@apple.com>
+
+        Implement WASM Parser and B3 IR generator
+        https://bugs.webkit.org/show_bug.cgi?id=160681
+
+        Reviewed by Benjamin Poulain.
+
+        This patch adds the skeleton for a WebAssembly pipeline. The
+        pipeline is designed in order to make it easy to have as much of
+        the compilation process threaded as possible. The flow of the
+        pipeline roughly goes as follows:
+
+        1) Create a WASMPlan with the VM and a Vector of the
+        assembly. Currently the plan will process all the work
+        synchronously, however, in the future this can be offloaded to
+        other threads.
+
+        2) The plan will run the WASMModuleParser, which collates all the
+        information needed to compile each module function
+        independently. Since, we are still in the early phases, the only
+        information is the starting and ending byte of the function's
+        body. The module parser, however, still scans both and
+        semi-validates the type and the function sections.
+
+        3) Each function is decoded and compiled. In the future this
+        should also include a opcode validation phase. The
+        WASMFunctionParser is templatized so that a validator should be
+        able to use most of the same code the B3 IR generator does.
+
+        4) When the plan has finished it will fill a Vector of
+        B3::Compilation objects that correspond to the respective function
+        in the WASM module.
+
+
+        The current testing plan for the modules is to inline the the
+        binary generated by the spec's OCaml prototype. The inlined binary
+        is passed to a WASMPlan then invoked to check the result of the
+        function. In the future we should add a more robust testing
+        infrastructure.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * testWASM.cpp:
+        (printUsageStatement):
+        (CommandLine::parseArguments):
+        (invoke):
+        (runWASMTests):
+        (main):
+        * wasm/JSWASMModule.h:
+        (JSC::JSWASMModule::globalVariableTypes):
+        * wasm/WASMB3IRGenerator.cpp: Added.
+        (JSC::WASM::B3IRGenerator::B3IRGenerator):
+        (JSC::WASM::B3IRGenerator::addLocal):
+        (JSC::WASM::B3IRGenerator::binaryOp):
+        (JSC::WASM::B3IRGenerator::addConstant):
+        (JSC::WASM::B3IRGenerator::addBlock):
+        (JSC::WASM::B3IRGenerator::endBlock):
+        (JSC::WASM::B3IRGenerator::addReturn):
+        (JSC::WASM::B3IRGenerator::unify):
+        (JSC::WASM::B3IRGenerator::initializeIncommingTypes):
+        (JSC::WASM::B3IRGenerator::unifyValuesWithLevel):
+        (JSC::WASM::B3IRGenerator::stackForControlLevel):
+        (JSC::WASM::B3IRGenerator::blockForControlLevel):
+        (JSC::WASM::parseAndCompile):
+        * wasm/WASMB3IRGenerator.h: Copied from Source/WTF/wtf/DataLog.h.
+        * wasm/WASMFormat.h:
+        * wasm/WASMFunctionParser.h: Added.
+        (JSC::WASM::WASMFunctionParser<Context>::WASMFunctionParser):
+        (JSC::WASM::WASMFunctionParser<Context>::parse):
+        (JSC::WASM::WASMFunctionParser<Context>::parseBlock):
+        (JSC::WASM::WASMFunctionParser<Context>::parseExpression):
+        * wasm/WASMModuleParser.cpp: Added.
+        (JSC::WASM::WASMModuleParser::parse):
+        (JSC::WASM::WASMModuleParser::parseFunctionTypes):
+        (JSC::WASM::WASMModuleParser::parseFunctionSignatures):
+        (JSC::WASM::WASMModuleParser::parseFunctionDefinitions):
+        * wasm/WASMModuleParser.h: Copied from Source/WTF/wtf/DataLog.h.
+        (JSC::WASM::WASMModuleParser::WASMModuleParser):
+        (JSC::WASM::WASMModuleParser::functionInformation):
+        * wasm/WASMOps.h: Copied from Source/WTF/wtf/DataLog.h.
+        * wasm/WASMParser.h: Added.
+        (JSC::WASM::WASMParser::parseVarUInt32):
+        (JSC::WASM::WASMParser::WASMParser):
+        (JSC::WASM::WASMParser::consumeCharacter):
+        (JSC::WASM::WASMParser::consumeString):
+        (JSC::WASM::WASMParser::parseUInt32):
+        (JSC::WASM::WASMParser::parseUInt7):
+        (JSC::WASM::WASMParser::parseVarUInt1):
+        (JSC::WASM::WASMParser::parseValueType):
+        * wasm/WASMPlan.cpp: Copied from Source/WTF/wtf/DataLog.h.
+        (JSC::WASM::Plan::Plan):
+        * wasm/WASMPlan.h: Copied from Source/WTF/wtf/DataLog.h.
+        * wasm/WASMSections.cpp: Copied from Source/WTF/wtf/DataLog.h.
+        (JSC::WASM::WASMSections::lookup):
+        * wasm/WASMSections.h: Copied from Source/WTF/wtf/DataLog.h.
+        (JSC::WASM::WASMSections::validateOrder):
+
+2016-08-15  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] B3 Neg opcode should support float
+        https://bugs.webkit.org/show_bug.cgi?id=160795
+
+        Reviewed by Geoffrey Garen.
+
+        This is required to implement WASM f32.neg opcode.
+
+        * assembler/MacroAssemblerARM64.h:
+        (JSC::MacroAssemblerARM64::negateFloat):
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::lower):
+        * b3/B3ReduceDoubleToFloat.cpp:
+        * b3/air/AirOpcode.opcodes:
+        * b3/testb3.cpp:
+        (JSC::B3::testNegDouble):
+        (JSC::B3::testNegFloat):
+        (JSC::B3::testNegFloatWithUselessDoubleConversion):
+        (JSC::B3::run):
+
+2016-08-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Use #pragma once in inspector headers
+        https://bugs.webkit.org/show_bug.cgi?id=160861
+
+        Reviewed by Mark Lam.
+
+        * inspector/*.h:
+
+2016-08-15  Daniel Bates  <dabates@apple.com>
+
+        Cannot build WebKit for iOS device using Xcode 7.3/iOS 9.3 public SDK due to missing
+        private frameworks and libraries
+        https://bugs.webkit.org/show_bug.cgi?id=155931
+        <rdar://problem/25807989>
+
+        Reviewed by Dan Bernstein.
+
+        Add directory WebKitLibraries/WebKitPrivateFrameworkStubs/iOS/X to the framework search path
+        where X is the major version of the active iOS SDK.
+
+        * Configurations/Base.xcconfig:
+
+2016-08-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Reduce includes of Debugger.h
+        https://bugs.webkit.org/show_bug.cgi?id=160827
+
+        Reviewed by Mark Lam.
+
+        * API/JSTypedArray.cpp:
+        * bytecode/UnlinkedCodeBlock.h:
+        * bytecode/UnlinkedFunctionExecutable.cpp:
+        * bytecode/UnlinkedFunctionExecutable.h:
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        * dfg/DFGPlan.cpp:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        * dfg/DFGSpeculativeJIT64.cpp:
+        * ftl/FTLJITCode.h:
+        * inspector/ScriptCallStackFactory.cpp:
+        * inspector/agents/InspectorDebuggerAgent.h:
+        * jit/JITOpcodes.cpp:
+        * jit/JITOpcodes32_64.cpp:
+        * jit/JITOperations.cpp:
+        * llint/LLIntOffsetsExtractor.cpp:
+        * parser/Nodes.cpp:
+        * parser/Parser.cpp:
+        * parser/Parser.h:
+        * runtime/Completion.cpp:
+        * runtime/Executable.cpp:
+        * runtime/Executable.h:
+        * runtime/FunctionConstructor.cpp:
+        * runtime/SamplingProfiler.cpp:
+        * runtime/SamplingProfiler.h:
+        * runtime/VMEntryScope.cpp:
+
+2016-08-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove unused includes of wtf headers
+        https://bugs.webkit.org/show_bug.cgi?id=160839
+
+        Reviewed by Alex Christensen.
+
+        * Lots of files.
+
 2016-08-13  Per Arne Vollan  <pvollan@apple.com>
 
         [Win] Warning fixes.

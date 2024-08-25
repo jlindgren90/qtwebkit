@@ -604,6 +604,7 @@ set(WebCore_NON_SVG_IDL_FILES
     page/DOMSelection.idl
     page/DOMWindow.idl
     page/EventSource.idl
+    page/GlobalCrypto.idl
     page/History.idl
     page/Location.idl
     page/Navigator.idl
@@ -1190,6 +1191,7 @@ set(WebCore_SOURCES
     bindings/js/JSLazyEventListener.cpp
     bindings/js/JSLocationCustom.cpp
     bindings/js/JSMainThreadExecState.cpp
+    bindings/js/JSMediaDevicesCustom.cpp
     bindings/js/JSMediaStreamTrackCustom.cpp
     bindings/js/JSMediaTrackSupportedConstraintsCustom.cpp
     bindings/js/JSMessageChannelCustom.cpp
@@ -2313,10 +2315,12 @@ set(WebCore_SOURCES
     platform/graphics/transforms/TransformationMatrix.cpp
     platform/graphics/transforms/TranslateTransformOperation.cpp
 
+    platform/mediastream/MediaConstraints.cpp
     platform/mediastream/MediaEndpoint.cpp
     platform/mediastream/MediaEndpointConfiguration.cpp
     platform/mediastream/MediaStreamPrivate.cpp
     platform/mediastream/MediaStreamTrackPrivate.cpp
+    platform/mediastream/RealtimeMediaSourceSupportedConstraints.cpp
     platform/mediastream/RTCIceCandidateDescriptor.cpp
     platform/mediastream/RTCPeerConnectionHandler.cpp
     platform/mediastream/RTCSessionDescriptionDescriptor.cpp
@@ -2367,7 +2371,7 @@ set(WebCore_SOURCES
     platform/network/ResourceHandleClient.cpp
     platform/network/ResourceRequestBase.cpp
     platform/network/ResourceResponseBase.cpp
-    platform/network/SocketStreamHandleBase.cpp
+    platform/network/SocketStreamHandle.cpp
     platform/network/SynchronousLoaderClient.cpp
 
     platform/sql/SQLValue.cpp
@@ -2408,6 +2412,7 @@ set(WebCore_SOURCES
     rendering/AutoTableLayout.cpp
     rendering/BidiRun.cpp
     rendering/BorderEdge.cpp
+    rendering/BreakLines.cpp
     rendering/ClipRect.cpp
     rendering/CounterNode.cpp
     rendering/EllipsisBox.cpp
@@ -2526,7 +2531,6 @@ set(WebCore_SOURCES
     rendering/TextDecorationPainter.cpp
     rendering/TextPaintStyle.cpp
     rendering/TextPainter.cpp
-    rendering/break_lines.cpp
 
     rendering/line/LineBreaker.cpp
     rendering/line/LineInfo.cpp
@@ -2574,7 +2578,6 @@ set(WebCore_SOURCES
     rendering/style/StyleBackgroundData.cpp
     rendering/style/StyleBoxData.cpp
     rendering/style/StyleCachedImage.cpp
-    rendering/style/StyleCachedImageSet.cpp
     rendering/style/StyleDeprecatedFlexibleBoxData.cpp
     rendering/style/StyleFilterData.cpp
     rendering/style/StyleFlexibleBoxData.cpp

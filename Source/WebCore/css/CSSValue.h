@@ -23,6 +23,7 @@
 
 #include "ExceptionCode.h"
 #include "URLHash.h"
+#include <wtf/HashMap.h>
 #include <wtf/ListHashSet.h>
 #include <wtf/RefCounted.h>
 #include <wtf/RefPtr.h>
@@ -88,9 +89,7 @@ public:
     bool isImageGeneratorValue() const { return m_classType >= CanvasClass && m_classType <= RadialGradientClass; }
     bool isGradientValue() const { return m_classType >= LinearGradientClass && m_classType <= RadialGradientClass; }
     bool isNamedImageValue() const { return m_classType == NamedImageClass; }
-#if ENABLE(CSS_IMAGE_SET)
     bool isImageSetValue() const { return m_classType == ImageSetClass; }
-#endif
     bool isImageValue() const { return m_classType == ImageClass; }
     bool isImplicitInitialValue() const;
     bool isInheritedValue() const { return m_classType == InheritedClass; }
@@ -200,9 +199,7 @@ protected:
 
         // List class types must appear after ValueListClass.
         ValueListClass,
-#if ENABLE(CSS_IMAGE_SET)
         ImageSetClass,
-#endif
         WebKitCSSFilterClass,
         WebKitCSSTransformClass,
 #if ENABLE(CSS_GRID_LAYOUT)

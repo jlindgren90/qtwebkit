@@ -70,9 +70,11 @@
 #include "TouchEvent.h"
 #include "TreeScopeAdopter.h"
 #include "WheelEvent.h"
+#include "XMLNSNames.h"
 #include "XMLNames.h"
 #include <wtf/RefCountedLeakCounter.h>
 #include <wtf/SHA1.h>
+#include <wtf/Variant.h>
 #include <wtf/text/CString.h>
 #include <wtf/text/StringBuilder.h>
 
@@ -441,7 +443,7 @@ bool Node::appendChild(Node& newChild, ExceptionCode& ec)
     return downcast<ContainerNode>(*this).appendChild(newChild, ec);
 }
 
-static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const Vector<std::variant<Ref<Node>, String>>& vector)
+static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const Vector<std::experimental::variant<Ref<Node>, String>>& vector)
 {
     HashSet<RefPtr<Node>> nodeSet;
 
@@ -451,7 +453,7 @@ static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const V
     );
 
     for (const auto& variant : vector)
-        std::visit(visitor, variant);
+        std::experimental::visit(visitor, variant);
 
     return nodeSet;
 }
@@ -474,7 +476,7 @@ static RefPtr<Node> firstFollowingSiblingNotInNodeSet(Node& context, const HashS
     return nullptr;
 }
 
-RefPtr<Node> Node::convertNodesOrStringsIntoNode(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
+RefPtr<Node> Node::convertNodesOrStringsIntoNode(Vector<std::experimental::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
 {
     if (nodeOrStringVector.isEmpty())
         return nullptr;
@@ -488,7 +490,7 @@ RefPtr<Node> Node::convertNodesOrStringsIntoNode(Vector<std::variant<Ref<Node>, 
     );
 
     for (auto& variant : nodeOrStringVector)
-        std::visit(visitor, variant);
+        std::experimental::visit(visitor, variant);
 
     if (nodes.size() == 1)
         return WTFMove(nodes.first());
@@ -501,7 +503,7 @@ RefPtr<Node> Node::convertNodesOrStringsIntoNode(Vector<std::variant<Ref<Node>, 
     return WTFMove(nodeToReturn);
 }
 
-void Node::before(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
+void Node::before(Vector<std::experimental::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
 {
     RefPtr<ContainerNode> parent = parentNode();
     if (!parent)
@@ -522,7 +524,7 @@ void Node::before(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, 
     parent->insertBefore(*node, viablePreviousSibling.get(), ec);
 }
 
-void Node::after(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
+void Node::after(Vector<std::experimental::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
 {
     RefPtr<ContainerNode> parent = parentNode();
     if (!parent)
@@ -538,7 +540,7 @@ void Node::after(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, E
     parent->insertBefore(*node, viableNextSibling.get(), ec);
 }
 
-void Node::replaceWith(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
+void Node::replaceWith(Vector<std::experimental::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
 {
     RefPtr<ContainerNode> parent = parentNode();
     if (!parent)
@@ -1086,7 +1088,7 @@ bool Node::isUnclosedNode(const Node& otherNode) const
                 return true; // treeScopeThatCanAccessOtherNode is a shadow-including inclusive ancestor of this node.
         }
         auto& root = treeScopeThatCanAccessOtherNode->rootNode();
-        if (is<ShadowRoot>(root) && downcast<ShadowRoot>(root).type() != ShadowRoot::Type::Open)
+        if (is<ShadowRoot>(root) && downcast<ShadowRoot>(root).mode() != ShadowRoot::Mode::Open)
             break;
     }
 
@@ -1110,7 +1112,7 @@ HTMLSlotElement* Node::assignedSlot() const
 HTMLSlotElement* Node::assignedSlotForBindings() const
 {
     auto* shadowRoot = parentShadowRoot(*this);
-    if (shadowRoot && shadowRoot->type() == ShadowRoot::Type::Open)
+    if (shadowRoot && shadowRoot->mode() == ShadowRoot::Mode::Open)
         return shadowRoot->findAssignedSlot(*this);
     return nullptr;
 }
@@ -1128,7 +1130,7 @@ ContainerNode* Node::parentInComposedTree() const
 bool Node::isInUserAgentShadowTree() const
 {
     auto* shadowRoot = containingShadowRoot();
-    return shadowRoot && shadowRoot->type() == ShadowRoot::Type::UserAgent;
+    return shadowRoot && shadowRoot->mode() == ShadowRoot::Mode::UserAgent;
 }
 
 Node* Node::nonBoundaryShadowTreeRootNode()
@@ -1312,159 +1314,103 @@ bool Node::isEqualNode(Node* other) const
     return true;
 }
 
-bool Node::isDefaultNamespace(const AtomicString& namespaceURIMaybeEmpty) const
+// https://dom.spec.whatwg.org/#locate-a-namespace
+static const AtomicString& locateDefaultNamespace(const Node& node, const AtomicString& prefix)
 {
-    const AtomicString& namespaceURI = namespaceURIMaybeEmpty.isEmpty() ? nullAtom : namespaceURIMaybeEmpty;
+    switch (node.nodeType()) {
+    case Node::ELEMENT_NODE: {
+        auto& element = downcast<Element>(node);
+        auto& namespaceURI = element.namespaceURI();
+        if (!namespaceURI.isNull() && element.prefix() == prefix)
+            return namespaceURI;
 
-    switch (nodeType()) {
-        case ELEMENT_NODE: {
-            const Element& element = downcast<Element>(*this);
-            
-            if (element.prefix().isNull())
-                return element.namespaceURI() == namespaceURI;
+        if (element.hasAttributes()) {
+            for (auto& attribute : element.attributesIterator()) {
+                if (attribute.namespaceURI() != XMLNSNames::xmlnsNamespaceURI)
+                    continue;
 
-            if (element.hasAttributes()) {
-                for (const Attribute& attribute : element.attributesIterator()) {
-                    if (attribute.localName() == xmlnsAtom)
-                        return attribute.value() == namespaceURI;
+                if ((prefix.isNull() && attribute.prefix().isNull() && attribute.localName() == xmlnsAtom) || (attribute.prefix() == xmlnsAtom && attribute.localName() == prefix)) {
+                    auto& result = attribute.value();
+                    return result.isEmpty() ? nullAtom : result;
                 }
             }
-
-            if (auto* parent = parentElement())
-                return parent->isDefaultNamespace(namespaceURI);
-
-            return false;
         }
-        case DOCUMENT_NODE:
-            if (Element* documentElement = downcast<Document>(*this).documentElement())
-                return documentElement->isDefaultNamespace(namespaceURI);
-            return false;
-        case DOCUMENT_TYPE_NODE:
-        case DOCUMENT_FRAGMENT_NODE:
-            return false;
-        case ATTRIBUTE_NODE: {
-            const Attr* attr = static_cast<const Attr*>(this);
-            if (attr->ownerElement())
-                return attr->ownerElement()->isDefaultNamespace(namespaceURI);
-            return false;
-        }
-        default:
-            if (auto* parent = parentElement())
-                return parent->isDefaultNamespace(namespaceURI);
-            return false;
+        auto* parent = node.parentElement();
+        return parent ? locateDefaultNamespace(*parent, prefix) : nullAtom;
+    }
+    case Node::DOCUMENT_NODE:
+        if (auto* documentElement = downcast<Document>(node).documentElement())
+            return locateDefaultNamespace(*documentElement, prefix);
+        return nullAtom;
+    case Node::DOCUMENT_TYPE_NODE:
+    case Node::DOCUMENT_FRAGMENT_NODE:
+        return nullAtom;
+    case Node::ATTRIBUTE_NODE:
+        if (auto* ownerElement = downcast<Attr>(node).ownerElement())
+            return locateDefaultNamespace(*ownerElement, prefix);
+        return nullAtom;
+    default:
+        if (auto* parent = node.parentElement())
+            return locateDefaultNamespace(*parent, prefix);
+        return nullAtom;
     }
 }
 
-String Node::lookupPrefix(const AtomicString &namespaceURI) const
+// https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace
+bool Node::isDefaultNamespace(const AtomicString& potentiallyEmptyNamespace) const
 {
-    // Implemented according to
-    // http://www.w3.org/TR/2004/REC-DOM-Level-3-Core-20040407/namespaces-algorithms.html#lookupNamespacePrefixAlgo
-    
-    if (namespaceURI.isEmpty())
-        return String();
-    
-    switch (nodeType()) {
-        case ELEMENT_NODE:
-            return lookupNamespacePrefix(namespaceURI, static_cast<const Element *>(this));
-        case DOCUMENT_NODE:
-            if (Element* documentElement = downcast<Document>(*this).documentElement())
-                return documentElement->lookupPrefix(namespaceURI);
-            return String();
-        case DOCUMENT_FRAGMENT_NODE:
-        case DOCUMENT_TYPE_NODE:
-            return String();
-        case ATTRIBUTE_NODE: {
-            const Attr *attr = static_cast<const Attr *>(this);
-            if (attr->ownerElement())
-                return attr->ownerElement()->lookupPrefix(namespaceURI);
-            return String();
-        }
-        default:
-            if (auto* parent = parentElement())
-                return parent->lookupPrefix(namespaceURI);
-            return String();
-    }
+    const AtomicString& namespaceURI = potentiallyEmptyNamespace.isEmpty() ? nullAtom : potentiallyEmptyNamespace;
+    return locateDefaultNamespace(*this, nullAtom) == namespaceURI;
 }
 
-String Node::lookupNamespaceURI(const String &prefix) const
+// https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri
+const AtomicString& Node::lookupNamespaceURI(const AtomicString& potentiallyEmptyPrefix) const
 {
-    // Implemented according to
-    // http://www.w3.org/TR/2004/REC-DOM-Level-3-Core-20040407/namespaces-algorithms.html#lookupNamespaceURIAlgo
-    
-    if (!prefix.isNull() && prefix.isEmpty())
-        return String();
-    
-    switch (nodeType()) {
-        case ELEMENT_NODE: {
-            const Element *elem = static_cast<const Element *>(this);
-            
-            if (!elem->namespaceURI().isNull() && elem->prefix() == prefix)
-                return elem->namespaceURI();
-            
-            if (elem->hasAttributes()) {
-                for (const Attribute& attribute : elem->attributesIterator()) {
-                    
-                    if (attribute.prefix() == xmlnsAtom && attribute.localName() == prefix) {
-                        if (!attribute.value().isEmpty())
-                            return attribute.value();
-                        
-                        return String();
-                    }
-                    if (attribute.localName() == xmlnsAtom && prefix.isNull()) {
-                        if (!attribute.value().isEmpty())
-                            return attribute.value();
-                        
-                        return String();
-                    }
-                }
-            }
-            if (auto* parent = parentElement())
-                return parent->lookupNamespaceURI(prefix);
-            return String();
-        }
-        case DOCUMENT_NODE:
-            if (Element* documentElement = downcast<Document>(*this).documentElement())
-                return documentElement->lookupNamespaceURI(prefix);
-            return String();
-        case DOCUMENT_TYPE_NODE:
-        case DOCUMENT_FRAGMENT_NODE:
-            return String();
-        case ATTRIBUTE_NODE: {
-            const Attr *attr = static_cast<const Attr *>(this);
-            
-            if (attr->ownerElement())
-                return attr->ownerElement()->lookupNamespaceURI(prefix);
-            else
-                return String();
-        }
-        default:
-            if (auto* parent = parentElement())
-                return parent->lookupNamespaceURI(prefix);
-            return String();
-    }
+    const AtomicString& prefix = potentiallyEmptyPrefix.isEmpty() ? nullAtom : potentiallyEmptyPrefix;
+    return locateDefaultNamespace(*this, prefix);
 }
 
-String Node::lookupNamespacePrefix(const AtomicString &_namespaceURI, const Element *originalElement) const
+// https://dom.spec.whatwg.org/#locate-a-namespace-prefix
+static const AtomicString& locateNamespacePrefix(const Element& element, const AtomicString& namespaceURI)
 {
-    if (_namespaceURI.isNull())
-        return String();
-            
-    if (originalElement->lookupNamespaceURI(prefix()) == _namespaceURI)
-        return prefix();
-    
-    ASSERT(is<Element>(*this));
-    const Element& thisElement = downcast<Element>(*this);
-    if (thisElement.hasAttributes()) {
-        for (const Attribute& attribute : thisElement.attributesIterator()) {
-            if (attribute.prefix() == xmlnsAtom && attribute.value() == _namespaceURI
-                && originalElement->lookupNamespaceURI(attribute.localName()) == _namespaceURI)
+    if (element.namespaceURI() == namespaceURI)
+        return element.prefix();
+
+    if (element.hasAttributes()) {
+        for (auto& attribute : element.attributesIterator()) {
+            if (attribute.prefix() == xmlnsAtom && attribute.value() == namespaceURI)
                 return attribute.localName();
         }
     }
+    auto* parent = element.parentElement();
+    return parent ? locateNamespacePrefix(*parent, namespaceURI) : nullAtom;
+}
+
+// https://dom.spec.whatwg.org/#dom-node-lookupprefix
+const AtomicString& Node::lookupPrefix(const AtomicString& namespaceURI) const
+{
+    if (namespaceURI.isEmpty())
+        return nullAtom;
     
-    if (auto* parent = parentElement())
-        return parent->lookupNamespacePrefix(_namespaceURI, originalElement);
-    return String();
+    switch (nodeType()) {
+    case ELEMENT_NODE:
+        return locateNamespacePrefix(downcast<Element>(*this), namespaceURI);
+    case DOCUMENT_NODE:
+        if (auto* documentElement = downcast<Document>(*this).documentElement())
+            return locateNamespacePrefix(*documentElement, namespaceURI);
+        return nullAtom;
+    case DOCUMENT_FRAGMENT_NODE:
+    case DOCUMENT_TYPE_NODE:
+        return nullAtom;
+    case ATTRIBUTE_NODE:
+        if (auto* ownerElement = downcast<Attr>(*this).ownerElement())
+            return locateNamespacePrefix(*ownerElement, namespaceURI);
+        return nullAtom;
+    default:
+        if (auto* parent = parentElement())
+            return locateNamespacePrefix(*parent, namespaceURI);
+        return nullAtom;
+    }
 }
 
 static void appendTextContent(const Node* node, bool convertBRsToNewlines, bool& isNullString, StringBuilder& content)

@@ -1,3 +1,482 @@
+2016-08-17  Anders Carlsson  <andersca@apple.com>
+
+        Remove a couple of unused WKSI function pointers
+        https://bugs.webkit.org/show_bug.cgi?id=160946
+
+        Reviewed by Dan Bernstein.
+
+        * WebProcess/WebCoreSupport/mac/WebSystemInterface.mm:
+        (InitWebCoreSystemInterface): Deleted.
+
+2016-08-17  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] -[NSString isEqualToString:] returns NO for any WKNSString argument
+        https://bugs.webkit.org/show_bug.cgi?id=160938
+        <rdar://problem/27876652>
+
+        Reviewed by Anders Carlsson.
+
+        -[NSString isEqualToString:] calls an internal NSObject method on its argument, which
+        NSString subclasses override to return YES, but WKObject does not override and does not
+        forward to its target NSString.
+
+        To fix this issue and other similar issues, we make WKObject a root class instead of an
+        NSObject subclass.
+
+        Test: TestWebKitAPI/Tests/WebKit2Cocoa/WKObject.mm
+
+        * Platform/spi/Cocoa/objcSPI.h: Added.
+
+        * Shared/Cocoa/WKObject.h: Make WKObject a root class instead of inhereting from NSObject.
+
+        * Shared/Cocoa/WKObject.mm:
+        (+[WKObject class]): Return self.
+        (-[WKObject allowsWeakReference]): Added. Called by the Objective-C runtime.
+        (-[WKObject retainWeakReference]): Ditto.
+        (-[WKObject hash]): If we don’t have a target, return our address.
+        (-[WKObject superclass]): Implement this NSObject protocol method.
+        (-[WKObject class]): Ditto.
+        (-[WKObject self]): Ditto.
+        (-[WKObject performSelector:]): Ditto.
+        (-[WKObject performSelector:withObject:]): Ditto.
+        (-[WKObject performSelector:withObject:withObject:]): Ditto.
+        (-[WKObject isProxy]): Ditto.
+        (-[WKObject respondsToSelector:]): Changed to not call super.
+        (-[WKObject conformsToProtocol:]): Ditto.
+        (-[WKObject description]): Ditto.
+        (-[WKObject retain]): Implement this NSObject protocol method.
+        (-[WKObject release]): Ditto.
+        (-[WKObject autorelease]): Ditto.
+        (-[WKObject retainCount]): Ditto.
+        (-[WKObject zone]): Ditto.
+        (-[WKObject dealloc]): Deleted.
+        (-[WKObject classForCoder]): Deleted.
+        (-[WKObject classForKeyedArchiver]): Deleted.
+        (-[WKObject _cfTypeID]): Deleted.
+
+        * WebKit2.xcodeproj/project.pbxproj: Added reference to new file.
+
+2016-08-17  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        [EFL] Fix test_ewk2_view after r203612 
+        https://bugs.webkit.org/show_bug.cgi?id=160937
+
+        Reviewed by Gyuyoung Kim.
+
+        Default parameter values for window.alert() / prompt() / confirm() was
+        changed from "undefined" to the empty string after r203612.
+
+        * UIProcess/API/efl/tests/test_ewk2_view.cpp:
+        (TEST_F):
+
+2016-08-16  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Don't throw touchMove events on the floor
+        https://bugs.webkit.org/show_bug.cgi?id=160935
+
+        Reviewed by Tim Horton.
+        
+        EventDispatcher claimed to coalesce touchMove events, but actually threw away any
+        touchMove if there was one in the queue when the next non-move event came along.
+        
+        Fix to strictly coalesce touchMove events, so a start/move/end stream always fires
+        a move event. This is necessary for move-based interaction to work in testing,
+        for example the added range slider test.
+        
+        Test: fast/forms/ios/drag-range-thumb.html
+
+        * WebProcess/WebPage/EventDispatcher.cpp:
+        (WebKit::EventDispatcher::touchEvent):
+
+2016-08-16  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Clean up form select code
+        https://bugs.webkit.org/show_bug.cgi?id=160915
+
+        Reviewed by Enrica Casucci.
+        
+        Some minor forms-related cleanup:
+        1. Give WKFormSelectPopover and WKFormSelectPicker their own header files, making
+        things easier to find.
+        
+        2. Remove WKContentView *_view member variables from classes which also stored
+        the view in their base classes.
+        
+        Sort the project file.
+
+        * UIProcess/ios/forms/WKFormPopover.h:
+        * UIProcess/ios/forms/WKFormPopover.mm:
+        (-[WKFormRotatingAccessoryPopover accessoryDone]):
+        (-[WKFormRotatingAccessoryPopover initWithView:]): Deleted.
+        * UIProcess/ios/forms/WKFormSelectControl.h:
+        * UIProcess/ios/forms/WKFormSelectControl.mm:
+        * UIProcess/ios/forms/WKFormSelectPicker.h: Copied from Source/WebKit2/UIProcess/ios/forms/WKFormSelectControl.h.
+        * UIProcess/ios/forms/WKFormSelectPicker.mm:
+        * UIProcess/ios/forms/WKFormSelectPopover.h: Copied from Source/WebKit2/UIProcess/ios/forms/WKFormSelectControl.h.
+        * UIProcess/ios/forms/WKFormSelectPopover.mm:
+        (-[WKSelectPopover initWithView:hasGroups:]):
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-08-16  Daniel Bates  <dabates@apple.com>
+
+        WKSI static library should be named by major iOS revision, not individual updates
+        https://bugs.webkit.org/show_bug.cgi?id=160727
+        <rdar://problem/22274848>
+
+        Reviewed by Alexey Proskuryakov.
+
+        * Configurations/Base.xcconfig:
+        * Configurations/BaseTarget.xcconfig:
+        * Configurations/DebugRelease.xcconfig:
+
+2016-08-16  Simon Fraser  <simon.fraser@apple.com>
+
+        Make it possible to test iOS select elements, and add iPhone and iPad tests for them
+        https://bugs.webkit.org/show_bug.cgi?id=160909
+
+        Reviewed by Enrica Casucci.
+        
+        Hook up form-related UIScriptController functions, and plumb through the various
+        <select> pickers the ability to select a row.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView dismissFormAccessoryView]):
+        (-[WKWebView selectFormAccessoryPickerRow:]):
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h:
+        * UIProcess/ios/WKContentViewInteraction.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView selectFormAccessoryPickerRow:]):
+        * UIProcess/ios/forms/WKFormSelectControl.h:
+        * UIProcess/ios/forms/WKFormSelectControl.mm:
+        (-[WKFormSelectControl selectRow:inComponent:extendingSelection:]):
+        * UIProcess/ios/forms/WKFormSelectPicker.mm:
+        (-[WKMultipleSelectPicker selectRow:inComponent:extendingSelection:]):
+        (-[WKSelectSinglePicker selectRow:inComponent:extendingSelection:]):
+        * UIProcess/ios/forms/WKFormSelectPopover.mm:
+        (-[WKSelectPopover selectRow:inComponent:extendingSelection:]):
+
+2016-08-16  Brady Eidson  <beidson@apple.com>
+
+        Cleanup WK2 platform gamepad handling.
+        https://bugs.webkit.org/show_bug.cgi?id=160871
+
+        Reviewed by Alex Christensen.
+
+        This patch does a few things:
+        1 - Separates the concepts of "monitoring gamepads" and "monitoring gamepad inputs"
+        2 - Uses this new concept to much more cleanly handle the case where we are not currently
+            monitoring gamepad inputs because an interested WKWebView is not front and center.
+        3 - Pre-populates the "initial set of gamepads" in WebProcesses that start listening for gamepads.
+        
+        * Platform/Logging.h:
+        
+        * UIProcess/Gamepad/UIGamepadProvider.cpp:
+        (WebKit::UIGamepadProvider::gamepadSyncTimerFired):
+        (WebKit::UIGamepadProvider::setInitialConnectedGamepads):
+        (WebKit::UIGamepadProvider::processPoolStoppedUsingGamepads):
+        (WebKit::UIGamepadProvider::viewBecameActive):
+        (WebKit::UIGamepadProvider::viewBecameInactive):
+        (WebKit::UIGamepadProvider::stopMonitoringGamepads):
+        (WebKit::UIGamepadProvider::snapshotGamepads):
+        (WebKit::UIGamepadProvider::platformStopMonitoringInput):
+        (WebKit::UIGamepadProvider::platformStartMonitoringInput):
+        (WebKit::UIGamepadProvider::UIGamepadProvider): Deleted.
+        (WebKit::UIGamepadProvider::scheduleDisableGamepadMonitoring): Deleted.
+        (WebKit::UIGamepadProvider::disableMonitoringTimerFired): Deleted.
+        * UIProcess/Gamepad/UIGamepadProvider.h:
+        
+        * UIProcess/Gamepad/mac/UIGamepadProviderHID.cpp:
+        (WebKit::UIGamepadProvider::platformStopMonitoringInput):
+        (WebKit::UIGamepadProvider::platformStartMonitoringInput):
+        
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::setInitialConnectedGamepads):
+        * UIProcess/WebProcessPool.h:
+        
+        * WebProcess/Gamepad/WebGamepadProvider.cpp:
+        (WebKit::WebGamepadProvider::setInitialGamepads):
+        * WebProcess/Gamepad/WebGamepadProvider.h:
+        
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::setInitialGamepads):
+        * WebProcess/WebProcess.h:
+        * WebProcess/WebProcess.messages.in:
+
+2016-08-15  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS] Add iPad viewport and form tests, and revert the iPad-testing part of r202132
+        https://bugs.webkit.org/show_bug.cgi?id=160878
+
+        Reviewed by Tim Horton.
+
+        Remove testing-specific "forceIPadStyleZoomOnInputFocus" behavior added in r202132
+        now that we have the ability to run tests in the iPad simulator.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView forceIPadStyleZoomOnInputFocus]): Deleted.
+        (-[WKWebView setForceIPadStyleZoomOnInputFocus:]): Deleted.
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h:
+        * UIProcess/ios/WKContentViewInteraction.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _displayFormNodeInputView]):
+        (-[WKContentView requiresAccessoryView]):
+        (-[WKContentView inputAccessoryView]):
+        (-[WKContentView requiresAccessoryView:]): Deleted.
+        (-[WKContentView forceIPadStyleZoomOnInputFocus]): Deleted.
+        (-[WKContentView setForceIPadStyleZoomOnInputFocus:]): Deleted.
+
+2016-08-16  Alex Christensen  <achristensen@webkit.org>
+
+        Clean up WebSockets
+        https://bugs.webkit.org/show_bug.cgi?id=160889
+
+        Reviewed by Darin Adler.
+
+        * UIProcess/InspectorServer/WebSocketServerConnection.cpp:
+        (WebKit::WebSocketServerConnection::didCloseSocketStream):
+        (WebKit::WebSocketServerConnection::didReceiveSocketStreamData):
+        * UIProcess/InspectorServer/WebSocketServerConnection.h:
+
+2016-08-16  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r204506.
+
+        Broke the build
+
+        Reverted changeset:
+
+        "Cleanup WK2 platform gamepad handling."
+        https://bugs.webkit.org/show_bug.cgi?id=160871
+        http://trac.webkit.org/changeset/204506
+
+2016-08-16  Darin Adler  <darin@apple.com>
+
+        [Cocoa] Remove dependency on Objective-C bindings in WebKit2 editing code
+        https://bugs.webkit.org/show_bug.cgi?id=160891
+
+        Reviewed by Anders Carlsson.
+
+        * WebProcess/WebCoreSupport/WebEditorClient.h: Removed documentFragmentFromAttributedString.
+        * WebProcess/WebCoreSupport/ios/WebEditorClientIOS.mm:
+        (WebKit::WebEditorClient::documentFragmentFromAttributedString): Deleted.
+        * WebProcess/WebCoreSupport/mac/WebEditorClientMac.mm:
+        (WebKit::createExcludedElementsForAttributedStringConversion): Deleted.
+        (WebKit::WebEditorClient::documentFragmentFromAttributedString): Deleted.
+
+2016-08-16  Brady Eidson  <beidson@apple.com>
+
+        Cleanup WK2 platform gamepad handling.
+        https://bugs.webkit.org/show_bug.cgi?id=160871
+
+        Reviewed by Alex Christensen.
+
+        This patch does a few things:
+        1 - Separates the concepts of "monitoring gamepads" and "monitoring gamepad inputs"
+        2 - Uses this new concept to much more cleanly handle the case where we are not currently
+            monitoring gamepad inputs because an interested WKWebView is not front and center.
+        3 - Pre-populates the "initial set of gamepads" in WebProcesses that start listening for gamepads.
+        
+        * Platform/Logging.h:
+        
+        * UIProcess/Gamepad/UIGamepadProvider.cpp:
+        (WebKit::UIGamepadProvider::gamepadSyncTimerFired):
+        (WebKit::UIGamepadProvider::setInitialConnectedGamepads):
+        (WebKit::UIGamepadProvider::processPoolStoppedUsingGamepads):
+        (WebKit::UIGamepadProvider::viewBecameActive):
+        (WebKit::UIGamepadProvider::viewBecameInactive):
+        (WebKit::UIGamepadProvider::stopMonitoringGamepads):
+        (WebKit::UIGamepadProvider::snapshotGamepads):
+        (WebKit::UIGamepadProvider::platformStopMonitoringInput):
+        (WebKit::UIGamepadProvider::platformStartMonitoringInput):
+        (WebKit::UIGamepadProvider::UIGamepadProvider): Deleted.
+        (WebKit::UIGamepadProvider::scheduleDisableGamepadMonitoring): Deleted.
+        (WebKit::UIGamepadProvider::disableMonitoringTimerFired): Deleted.
+        * UIProcess/Gamepad/UIGamepadProvider.h:
+        
+        * UIProcess/Gamepad/mac/UIGamepadProviderHID.cpp:
+        (WebKit::UIGamepadProvider::platformStopMonitoringInput):
+        (WebKit::UIGamepadProvider::platformStartMonitoringInput):
+        
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::setInitialConnectedGamepads):
+        * UIProcess/WebProcessPool.h:
+        
+        * WebProcess/Gamepad/WebGamepadProvider.cpp:
+        (WebKit::WebGamepadProvider::setInitialGamepads):
+        * WebProcess/Gamepad/WebGamepadProvider.h:
+        
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::setInitialGamepads):
+        * WebProcess/WebProcess.h:
+        * WebProcess/WebProcess.messages.in:
+
+2016-08-15  Alex Christensen  <achristensen@webkit.org>
+
+        Rename SocketStreamHandleBase to SocketStreamHandle and SocketStreamHandle to SocketStreamHandleImpl
+        https://bugs.webkit.org/show_bug.cgi?id=160858
+
+        Reviewed by Brady Eidson.
+
+        * WebProcess/Network/WebSocketProvider.cpp:
+        (WebKit::WebSocketProvider::createSocketStreamHandle):
+
+2016-08-15  Anders Carlsson  <andersca@apple.com>
+
+        Fix iOS build.
+
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::webGLPolicyForURL):
+        (WebKit::WebPage::resolveWebGLPolicyForURL):
+
+2016-08-15  Keith Rollin  <krollin@apple.com>
+
+        Rename LOG_ALWAYS
+        https://bugs.webkit.org/show_bug.cgi?id=160768
+
+        Rename LOG_ALWAYS and friends, given that the first parameter to it is
+        a boolean expression that determines whether or not logging should be
+        performed.
+
+        Reviewed by Chris Dumez.
+
+        * NetworkProcess/Downloads/Download.cpp:
+        (WebKit::Download::didReceiveResponse):
+        (WebKit::Download::didReceiveData):
+        (WebKit::Download::didFinish):
+        (WebKit::Download::didFail):
+        (WebKit::Download::didCancel):
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::prepareToSuspend):
+        (WebKit::NetworkProcess::cancelPrepareToSuspend):
+        (WebKit::NetworkProcess::processDidResume):
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::startNetworkLoad):
+        (WebKit::NetworkResourceLoader::didFinishLoading):
+        (WebKit::NetworkResourceLoader::didFailLoading):
+        (WebKit::NetworkResourceLoader::continueWillSendRequest):
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::waitForSyncReply):
+        * Shared/ChildProcess.cpp:
+        (WebKit::didCloseOnConnectionWorkQueue):
+        * UIProcess/Cocoa/NavigationState.mm:
+        (WebKit::NavigationState::didChangeIsLoading):
+        * UIProcess/Network/NetworkProcessProxy.cpp:
+        (WebKit::NetworkProcessProxy::fetchWebsiteData):
+        (WebKit::NetworkProcessProxy::deleteWebsiteData):
+        (WebKit::NetworkProcessProxy::deleteWebsiteDataForOrigins):
+        (WebKit::NetworkProcessProxy::setIsHoldingLockedFiles):
+        * UIProcess/ProcessThrottler.cpp:
+        (WebKit::ProcessThrottler::updateAssertionNow):
+        (WebKit::ProcessThrottler::updateAssertion):
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::updateActivityToken):
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::fetchWebsiteData):
+        (WebKit::WebProcessProxy::deleteWebsiteData):
+        (WebKit::WebProcessProxy::deleteWebsiteDataForOrigins):
+        (WebKit::WebProcessProxy::didSetAssertionState):
+        (WebKit::WebProcessProxy::setIsHoldingLockedFiles):
+        * UIProcess/ios/ProcessAssertionIOS.mm:
+        (-[WKProcessAssertionBackgroundTaskManager _updateBackgroundTask]):
+        (WebKit::ProcessAssertion::ProcessAssertion):
+        * WebProcess/Network/WebLoaderStrategy.cpp:
+        (WebKit::WebLoaderStrategy::scheduleLoad):
+        * WebProcess/Network/WebResourceLoader.cpp:
+        (WebKit::WebResourceLoader::willSendRequest):
+        (WebKit::WebResourceLoader::didReceiveResponse):
+        (WebKit::WebResourceLoader::didReceiveData):
+        (WebKit::WebResourceLoader::didFinishResourceLoad):
+        (WebKit::WebResourceLoader::didFailResourceLoad):
+        (WebKit::WebResourceLoader::didReceiveResource):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::layerVolatilityTimerFired):
+        (WebKit::WebPage::markLayersVolatile):
+        (WebKit::WebPage::cancelMarkLayersVolatile):
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::actualPrepareToSuspend):
+        (WebKit::WebProcess::processWillSuspendImminently):
+        (WebKit::WebProcess::prepareToSuspend):
+        (WebKit::WebProcess::cancelPrepareToSuspend):
+        (WebKit::WebProcess::markAllLayersVolatile):
+        (WebKit::WebProcess::processDidResume):
+
+2016-08-15  Daniel Bates  <dabates@apple.com>
+
+        Cannot build WebKit for iOS device using Xcode 7.3/iOS 9.3 public SDK due to missing
+        private frameworks and libraries
+        https://bugs.webkit.org/show_bug.cgi?id=155931
+        <rdar://problem/25807989>
+
+        Reviewed by Dan Bernstein.
+
+        Add directory WebKitLibraries/WebKitPrivateFrameworkStubs/iOS/X to the framework search path
+        where X is the major version of the active iOS SDK.
+
+        * Configurations/BaseTarget.xcconfig:
+
+2016-08-15  Simon Fraser  <simon.fraser@apple.com>
+
+        Add a setting and preferences to enable visual viewport mode
+        https://bugs.webkit.org/show_bug.cgi?id=160843
+
+        Reviewed by Sam Weinig.
+        
+        Hook up the visualViewportEnabled setting for WebKit2.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * UIProcess/API/Cocoa/WKPreferences.mm:
+        (-[WKPreferences _visualViewportEnabled]):
+        (-[WKPreferences _setVisualViewportEnabled:]):
+        * UIProcess/API/Cocoa/WKPreferencesPrivate.h:
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+        (WebKit::InjectedBundle::overrideBoolPreferenceForTestRunner):
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-08-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove unused includes of wtf headers
+        https://bugs.webkit.org/show_bug.cgi?id=160839
+
+        Reviewed by Alex Christensen.
+
+        * Lots of files.
+
+2016-08-12  Anders Carlsson  <andersca@apple.com>
+
+        Move the plug-in and WebGL blacklist code to WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=160831
+
+        Reviewed by Sam Weinig.
+
+        Adopt the plug-in and WebGL blacklist code from WebCore instead of using the code from WebKitSystemInterface.
+
+        * Shared/Plugins/Netscape/mac/PluginInformationMac.mm:
+        (WebKit::getPlatformPluginModuleInformation):
+        * Shared/Plugins/PluginModuleInfo.h:
+        * UIProcess/API/C/mac/WKContextPrivateMac.mm:
+        (WKContextIsPlugInUpdateAvailable):
+        (WKContextShouldBlockWebGL):
+        (WKContextShouldSuggestBlockWebGL):
+        * UIProcess/Plugins/PluginInfoStore.h:
+        * UIProcess/Plugins/mac/PluginInfoStoreMac.mm:
+        (WebKit::shouldBlockPlugin):
+        (WebKit::PluginInfoStore::defaultLoadPolicyForPlugin):
+        (WebKit::WKPlugInModuleLoadPolicyToPluginModuleLoadPolicy): Deleted.
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::findPlugin):
+
+2016-08-10  Brent Fulgham  <bfulgham@apple.com>
+
+        Add Sandbox profile for Enterprise support version of Flash Player
+        https://bugs.webkit.org/show_bug.cgi?id=160753
+        <rdar://problem/17614483>
+
+        Reviewed by Andy Estes.
+
+        * Resources/PlugInSandboxProfiles/com.macromedia.Flash Player ESR.plugin.sb: Added.
+        * WebKit2.xcodeproj/project.pbxproj: Add reference to new sandbox profile.
+
 2016-08-14  Dan Bernstein  <mitz@apple.com>
 
         [Cocoa] Remove deprecated _WKFormDelegate

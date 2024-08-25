@@ -66,10 +66,6 @@
 #define ENABLE_CONTEXT_MENUS 0
 #endif
 
-#if !defined(ENABLE_CSS_IMAGE_SET)
-#define ENABLE_CSS_IMAGE_SET 1
-#endif
-
 #if !defined(ENABLE_CURSOR_SUPPORT)
 #define ENABLE_CURSOR_SUPPORT 0
 #endif
@@ -157,7 +153,11 @@ the public iOS SDK. We will also need to update the FeatureDefines.xcconfig file
 #endif
 
 #if !defined(ENABLE_WEBASSEMBLY)
+#if defined(ENABLE_B3_JIT)
+#define ENABLE_WEBASSEMBLY ENABLE_B3_JIT
+#else
 #define ENABLE_WEBASSEMBLY 0
+#endif
 #endif
 
 #if !defined(ENABLE_WEBGL)
@@ -175,10 +175,6 @@ the public iOS SDK. We will also need to update the FeatureDefines.xcconfig file
 
 #if !defined(ENABLE_CONTENT_EXTENSIONS)
 #define ENABLE_CONTENT_EXTENSIONS 1
-#endif
-
-#if !defined(ENABLE_CSS_IMAGE_SET)
-#define ENABLE_CSS_IMAGE_SET 1
 #endif
 
 #if !defined(ENABLE_DASHBOARD_SUPPORT)
@@ -223,7 +219,11 @@ the public iOS SDK. We will also need to update the FeatureDefines.xcconfig file
 #endif
 
 #if !defined(ENABLE_WEBASSEMBLY)
+#if defined(ENABLE_B3_JIT)
+#define ENABLE_WEBASSEMBLY ENABLE_B3_JIT
+#else
 #define ENABLE_WEBASSEMBLY 0
+#endif
 #endif
 
 #if !defined(ENABLE_WEB_ARCHIVE)
@@ -414,10 +414,6 @@ the public iOS SDK. We will also need to update the FeatureDefines.xcconfig file
 
 #if !defined(ENABLE_CSS_IMAGE_RESOLUTION)
 #define ENABLE_CSS_IMAGE_RESOLUTION 0
-#endif
-
-#if !defined(ENABLE_CSS_IMAGE_SET)
-#define ENABLE_CSS_IMAGE_SET 0
 #endif
 
 #if !defined(ENABLE_CURSOR_SUPPORT)
