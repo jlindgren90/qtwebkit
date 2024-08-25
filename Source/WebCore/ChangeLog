@@ -1,3 +1,24 @@
+2016-08-10  Nan Wang  <n_wang@apple.com>
+
+        AX: Media controls timeline should have percentage value description
+        https://bugs.webkit.org/show_bug.cgi?id=160619
+
+        Reviewed by Eric Carlson.
+
+        Added aria-valuetext attribute to the timeline slider and set its value to
+        the percentage format. Also formatted the elapsed/remaining timer's description
+        so that it's more human readable.
+
+        Test: http/tests/media/hls/video-duration-accessibility.html
+
+        * English.lproj/mediaControlsLocalizedStrings.js:
+        * Modules/mediacontrols/mediaControlsApple.js:
+        (Controller.prototype.drawVolumeBackground):
+        (Controller.prototype.formatTimeDescription):
+        (Controller.prototype.formatTime):
+        (Controller.prototype.updateTime):
+        (Controller.prototype.updateControlsWhileScrubbing):
+
 2016-08-10  Anders Carlsson  <andersca@apple.com>
 
         Revert back to the old style member function state machine for callbacks
