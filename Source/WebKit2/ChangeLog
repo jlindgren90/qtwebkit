@@ -1,3 +1,116 @@
+2016-09-09  Tim Horton  <timothy_horton@apple.com>
+
+        WKThumbnailView should expose a mode where it can be reparented without resnapshotting
+        https://bugs.webkit.org/show_bug.cgi?id=161828
+        <rdar://problem/28229756>
+
+        Reviewed by Alex Christensen.
+
+        * UIProcess/API/Cocoa/_WKThumbnailView.h:
+        * UIProcess/API/Cocoa/_WKThumbnailView.mm:
+        (-[_WKThumbnailView initWithFrame:fromWKView:]):
+        (-[_WKThumbnailView _viewWasUnparented]):
+        Add such a mode. Bail from snapshot teardown when unparented if it is on.
+
+2016-09-08  Dean Jackson  <dino@apple.com>
+
+        Expose Apple Pencil data to Touch events
+        https://bugs.webkit.org/show_bug.cgi?id=161783
+        <rdar://problem/28218898>
+
+        Reviewed by Beth Dakin.
+
+        * Platform/spi/ios/UIKitSPI.h: Expose the new SPI. Since this is only used
+        on public builds, guard it against everything that is <= iOS 10.0.
+        * Shared/WebEvent.h: New properties.
+        (WebKit::WebPlatformTouchPoint::setAltitudeAngle):
+        (WebKit::WebPlatformTouchPoint::altitudeAngle):
+        (WebKit::WebPlatformTouchPoint::setAzimuthAngle):
+        (WebKit::WebPlatformTouchPoint::azimuthAngle):
+        (WebKit::WebPlatformTouchPoint::setTouchType):
+        (WebKit::WebPlatformTouchPoint::touchType):
+        (WebKit::WebPlatformTouchPoint::force): Deleted.
+        * Shared/WebEventConversion.cpp:
+        (WebKit::webPlatformTouchTypeToPlatform):
+        (WebKit::WebKit2PlatformTouchPoint::WebKit2PlatformTouchPoint): More
+        parameters sent to parent constructor.
+        * Shared/ios/NativeWebTouchEventIOS.mm:
+        (WebKit::convertTouchType):
+        (WebKit::NativeWebTouchEvent::extractWebTouchPoint):
+        * Shared/ios/WebPlatformTouchPointIOS.cpp:
+        (WebKit::WebPlatformTouchPoint::encode):
+        (WebKit::WebPlatformTouchPoint::decode):
+
+2016-09-09  Tim Horton  <timothy_horton@apple.com>
+
+        Text replacement candidates don't always overwrite the entire original string
+        https://bugs.webkit.org/show_bug.cgi?id=161779
+        <rdar://problem/28033492>
+
+        Reviewed by Simon Fraser.
+
+        * WebProcess/WebPage/mac/WebPageMac.mm:
+        (WebKit::WebPage::platformEditorState):
+        Make use of the shared implementation of contextRangeForCandidateRequest.
+
+2016-09-08  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GTK+ build after r205689.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLOListElement.cpp:
+        (webkit_dom_html_o_list_element_set_start):
+
+2016-09-08  Dan Bernstein  <mitz@apple.com>
+
+        Re-landing the fix for
+
+        [Mac] .tbd files for the shims end up installed when building with GENERATE_TEXT_BASED_STUBS=YES
+        https://bugs.webkit.org/show_bug.cgi?id=161722
+
+        without reintroducing https://webkit.org/b/161782
+
+        * Configurations/Shim.xcconfig: Don’t install the shims. The Copy Shims build phase in the
+          WebKit target will copy them into place without bringing their .tbd files along. Keep the
+          install path set, though, because it determines the dylibs’ install names.
+
+2016-09-08  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205576.
+        https://bugs.webkit.org/show_bug.cgi?id=161782
+
+        Introduced a crash at launch and broke all our Mac perf
+        testing (Requested by rniwa on #webkit).
+
+        Reverted changeset:
+
+        "[Mac] .tbd files for the shims end up installed when building
+        with GENERATE_TEXT_BASED_STUBS=YES"
+        https://bugs.webkit.org/show_bug.cgi?id=161722
+        http://trac.webkit.org/changeset/205576
+
+2016-09-08  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Move the BitmapImage platform dependent code to a new file named NativeImage[CG|Cairo].cpp
+        https://bugs.webkit.org/show_bug.cgi?id=158684
+
+        Reviewed by Simon Fraser.
+
+        * UIProcess/API/C/cg/WKIconDatabaseCG.cpp:
+        (WKIconDatabaseTryGetCGImageForURL):
+        (WKIconDatabaseTryCopyCGImageArrayForURL):
+        It was the only place in the code which uses BitmapImage::getCGImageArray().
+        Call BitmapImage::framesNativeImages() instead and form the returned
+        Vector<NativeImagePtr> build the CFArrayRef.
+
+        * UIProcess/WebIconDatabase.h:
+        Include "NativeImage.h" instead of "NativeImagePtr.h".
+        
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _presentationSnapshotForPreviewItemController:]):
+        * WebProcess/Plugins/PluginView.cpp:
+        (WebKit::isAlmostSolidColor):
+        Call BitmapImage::getCGImageRef() instead of calling BitmapImage::nativeImage().
+
 2016-09-08  Zan Dobersek  <zdobersek@igalia.com>
 
         Move webkit2gtk.pc.in, webkit2gtk-web-extension.pc.in files under Source/WebKit2/gtk/

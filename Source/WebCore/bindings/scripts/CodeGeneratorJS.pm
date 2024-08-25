@@ -3409,13 +3409,13 @@ sub GenerateImplementation
                 AddToImplIncludes("JSDOMPromise.h");
 
                 push(@implContent, <<END);
-static EncodedJSValue ${functionName}Promise(ExecState*, JSPromiseDeferred*);
+static EncodedJSValue ${functionName}Promise(ExecState*, Ref<DeferredWrapper>&&);
 ${functionReturn} ${functionName}(ExecState* state)
 {
     return JSValue::encode(callPromiseFunction(*state, ${functionName}Promise));
 }
 
-static inline EncodedJSValue ${functionName}Promise(ExecState* state, JSPromiseDeferred* promiseDeferred)
+static inline EncodedJSValue ${functionName}Promise(ExecState* state, Ref<DeferredWrapper>&&  deferredWrapper)
 END
             }
             else {
@@ -4122,11 +4122,7 @@ sub GenerateReturnParameters
     my @arguments;
 
     if (IsReturningPromise($function)) {
-        if ($function->isStatic) {
-            push(@arguments, "DeferredWrapper::create(state, jsCast<JSDOMGlobalObject*>(state->lexicalGlobalObject()), promiseDeferred)");
-        } else {
-            push(@arguments, "DeferredWrapper::create(state, castedThis->globalObject(), promiseDeferred)");
-        }
+        push(@arguments, "WTFMove(deferredWrapper)");
     }
     push(@arguments, "ec") if $function->signature->extendedAttributes->{"RaisesException"} || $function->signature->extendedAttributes->{"RaisesExceptionWithMessage"};
     return @arguments;
@@ -4806,10 +4802,8 @@ sub NativeToJSValue
     return "jsBoolean($value)" if $type eq "boolean";
 
     if ($type eq "Date") {
-        my $handlingForNaN = $signature->extendedAttributes->{"TreatReturnedNaNDateAs"};
-        return "jsDateOrNull(state, $value)" if !defined $handlingForNaN || $handlingForNaN eq "Null";
-        return "jsDateOrNaN(state, $value)" if $handlingForNaN eq "NaN";
-        die "Unknown value for TreatReturnedNaNDateAs extended attribute";
+        return "jsDateOrNull(state, $value)" if $signature->isNullable;
+        return "jsDate(state, $value)";
     }
 
     if ($codeGenerator->IsNumericType($type) or $type eq "DOMTimeStamp") {

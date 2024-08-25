@@ -1,3 +1,242 @@
+2016-09-10  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Mark new media source tests to failure
+
+        Unreviewed EFL gardening.
+
+        * platform/efl/TestExpectations: New added media source tests are failing.
+
+2016-09-09  Jer Noble  <jer.noble@apple.com>
+
+        [Media Source] Import updated w3c/web-platform-tests and rebaseline
+        https://bugs.webkit.org/show_bug.cgi?id=161723
+
+        Reviewed by Youenn Fablet.
+
+        * http/tests/media/media-source/mediasource-append-buffer.html: Removed.
+        * http/tests/media/media-source/mediasource-buffered-expected.txt: Removed.
+        * http/tests/media/media-source/mediasource-closed.html: Removed.
+        * http/tests/media/media-source/mediasource-config-changes.js:
+        (resolutionFromFilename): Deleted.
+        (appendBuffer): Deleted.
+        (mediaSourceConfigChangeTest): Deleted.
+        * http/tests/media/media-source/mediasource-util.js:
+        (EventExpectationsManager): Deleted.
+        (EventExpectationsManager.prototype.expectEvent): Deleted.
+        (EventExpectationsManager.prototype.waitForExpectedEvents): Deleted.
+        (EventExpectationsManager.prototype.expectingEvents): Deleted.
+        (EventExpectationsManager.prototype.handleWaitCallback_): Deleted.
+        (EventExpectationsManager.prototype.getExpectations_): Deleted.
+        (loadData_): Deleted.
+        (onSourceOpen): Deleted.
+        (openMediaSource_): Deleted.
+        (MediaSourceUtil.loadTextData): Deleted.
+        (MediaSourceUtil.loadBinaryData): Deleted.
+        (MediaSourceUtil.fetchManifestAndData): Deleted.
+        (MediaSourceUtil.extractSegmentData): Deleted.
+        (MediaSourceUtil.getMediaDataForPlaybackTime): Deleted.
+        (getFirstSupportedType): Deleted.
+        (getSegmentInfo): Deleted.
+        (MediaSourceUtil.getSubType): Deleted.
+        (addExtraTestMethods.test.failOnEvent): Deleted.
+        (addExtraTestMethods.test.endOnEvent): Deleted.
+        (addExtraTestMethods.test.expectEvent): Deleted.
+        (addExtraTestMethods.test.waitForExpectedEvents): Deleted.
+        (addExtraTestMethods.test.waitForCurrentTimeChange): Deleted.
+        (addExtraTestMethods.test.done): Deleted.
+        (addExtraTestMethods): Deleted.
+        (window.string_appeared_here): Deleted.
+        * http/tests/media/media-source/mp4/test-a-128k-44100Hz-1ch.mp4: Removed.
+        * http/tests/media/media-source/mp4/test-a-192k-44100Hz-1ch.mp4: Removed.
+        * http/tests/media/media-source/webm/segment-info.js: Removed.
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+        * platform/mac/imported/w3c/web-platform-tests/media-source/SourceBuffer-abort-expected.txt: Added.
+        * platform/mac/imported/w3c/web-platform-tests/media-source/SourceBuffer-abort-readyState-expected.txt: Added.
+        * platform/mac/imported/w3c/web-platform-tests/media-source/SourceBuffer-abort-removed-expected.txt: Added.
+        * platform/mac/imported/w3c/web-platform-tests/media-source/SourceBuffer-abort-updating-expected.txt: Added.
+
+2016-09-08  Dean Jackson  <dino@apple.com>
+
+        Expose Apple Pencil data to Touch events
+        https://bugs.webkit.org/show_bug.cgi?id=161783
+        <rdar://problem/28218898>
+
+        Reviewed by Beth Dakin.
+
+        Four new tests that check data coming out of an Apple Pencil.
+
+        * fast/events/touch/ios/pencil-data-change-does-not-give-touchmove-expected.txt: Added.
+        * fast/events/touch/ios/pencil-data-change-does-not-give-touchmove.html: Added.
+        * fast/events/touch/ios/pencil-data-change-gives-touchforcechange-expected.txt: Added.
+        * fast/events/touch/ios/pencil-data-change-gives-touchforcechange.html: Added.
+        * fast/events/touch/ios/pencil-move-provides-stylus-data-expected.txt: Added.
+        * fast/events/touch/ios/pencil-move-provides-stylus-data.html: Added.
+        * fast/events/touch/ios/pencil-touch-registered-as-pencil-expected.txt: Added.
+        * fast/events/touch/ios/pencil-touch-registered-as-pencil.html: Added.
+
+2016-09-09  Tim Horton  <timothy_horton@apple.com>
+
+        Text replacement candidates don't always overwrite the entire original string
+        https://bugs.webkit.org/show_bug.cgi?id=161779
+        <rdar://problem/28033492>
+
+        Reviewed by Simon Fraser.
+
+        * editing/mac/spelling/accept-candidate-without-crossing-editing-boundary.html:
+        * editing/mac/spelling/accept-misspelled-candidate.html:
+        Adjust tests to send the correct replacement range.
+
+        * editing/mac/spelling/accept-candidate-replacing-multiple-words.html:
+        Add a test that ensures that we will replace the entire string for a
+        candidate that replaces multiple words.
+
+2016-09-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline js/dom/global-constructors-attributes.html for mac-wk1  after r205755.
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+
+2016-09-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking tiled-drawing/scrolling/fixed/four-bars-zoomed.html as flaky on mac-wk2 debug.
+        https://bugs.webkit.org/show_bug.cgi?id=161547
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-09-09  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Rename Key to CryptoKey
+        https://bugs.webkit.org/show_bug.cgi?id=161665
+        <rdar://problem/28083391>
+
+        Reviewed by Brent Fulgham.
+
+        * crypto/subtle/aes-cbc-unwrap-rsa-expected.txt:
+        * crypto/subtle/aes-cbc-unwrap-rsa.html:
+        * crypto/subtle/aes-kw-key-manipulation-expected.txt:
+        * crypto/subtle/aes-kw-key-manipulation.html:
+        * crypto/subtle/aes-kw-wrap-unwrap-aes-expected.txt:
+        * crypto/subtle/aes-kw-wrap-unwrap-aes.html:
+        * crypto/subtle/rsa-oaep-wrap-unwrap-aes-expected.txt:
+        * crypto/subtle/rsa-oaep-wrap-unwrap-aes.html:
+        * crypto/subtle/rsaes-pkcs1-v1_5-wrap-unwrap-aes-expected.txt:
+        * crypto/subtle/rsaes-pkcs1-v1_5-wrap-unwrap-aes.html:
+        * crypto/subtle/rsassa-pkcs1-v1_5-import-jwk-expected.txt:
+        * crypto/subtle/rsassa-pkcs1-v1_5-import-jwk.html:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+
+2016-09-09  Youenn Fablet  <youenn@apple.com>
+
+        TextTrackLoader should use FetchOptions::mode according its crossOrigin attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161792
+
+        Reviewed by Eric Carlson.
+
+        * http/tests/security/text-track-crossorigin-expected.txt:
+        * http/tests/security/text-track-crossorigin.html: Updating test to be more robust against timeout.
+        Updated test to succeed doing no-cors loading of cross-origin resources.
+
+2016-09-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/IndexedDB/keyorder.htm as flaky on mac-wk2 debug.
+        https://bugs.webkit.org/show_bug.cgi?id=161742
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-09-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/debugger/breakpoint-columns.html as flaky on mac-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=161774
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-09-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/text/emoji-num-glyphs.html as a flaky timeout.
+        https://bugs.webkit.org/show_bug.cgi?id=161799
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-09-09  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r186020): Null dereference in getStartDate()
+        https://bugs.webkit.org/show_bug.cgi?id=161733
+
+        Reviewed by Eric Carlson.
+
+        Add layout test coverage.
+
+        * fast/media/getStartDate-NaN-expected.txt: Added.
+        * fast/media/getStartDate-NaN.html: Added.
+
+2016-09-09  Youenn Fablet  <youenn@apple.com>
+
+        Sync web-platform-tests up to revision 6d9c836
+        https://bugs.webkit.org/show_bug.cgi?id=161738
+
+        Reviewed by Alex Christensen.
+
+        * platform/wk2/TestExpectations:
+        * platform/wk2/imported/w3c/web-platform-tests/html/semantics/document-metadata/styling/LinkStyle-expected.txt:
+
+2016-09-09  Youenn Fablet  <youenn@apple.com>
+
+        ASSERTION FAILED: promise.inherits(JSPromise::info())
+        https://bugs.webkit.org/show_bug.cgi?id=161632
+        <rdar://problem/28184743>
+
+        Reviewed by Mark Lam.
+
+        * TestExpectations: Reenabling skipped tests.
+        * fetch/fetch-worker-crash-expected.txt: Added.
+        * fetch/fetch-worker-crash.html: Added.
+        * fetch/fetch-worker-crash.js: Added.
+
+2016-09-08  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        ScriptRunner should be driven by PendingScript rather than ScriptElement
+        https://bugs.webkit.org/show_bug.cgi?id=161726
+
+        Reviewed by Ryosuke Niwa.
+
+        * js/dom/document-write-in-error-event-expected.txt: Added.
+        * js/dom/document-write-in-error-event.html: Added.
+        * js/dom/document-write-in-load-event-expected.txt: Added.
+        * js/dom/document-write-in-load-event.html: Added.
+        * js/dom/script-tests/dummy.js: Added.
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        Add support for HTMLIframeElement.allowFullscreen attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161757
+
+        Reviewed by Sam Weinig.
+
+        Add layout test coverage.
+
+        * fullscreen/full-screen-iframe-allowFullscreen-expected.txt: Added.
+        * fullscreen/full-screen-iframe-allowFullscreen.html: Added.
+
+2016-09-08  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Remove pass expectation for fast/text/emoji-num-glyphs.html after r205657.
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
 2016-09-08  Chris Dumez  <cdumez@apple.com>
 
         Align proto getter / setter behavior with other browsers

@@ -1,3 +1,540 @@
+2016-09-09  Jer Noble  <jer.noble@apple.com>
+
+        [Media Source] Import updated w3c/web-platform-tests and rebaseline
+        https://bugs.webkit.org/show_bug.cgi?id=161723
+
+        Reviewed by Youenn Fablet.
+
+        * web-platform-tests/media-source/OWNERS: Added.
+        * web-platform-tests/media-source/SourceBuffer-abort-expected.txt: Added.
+        * web-platform-tests/media-source/SourceBuffer-abort-readyState-expected.txt: Added.
+        * web-platform-tests/media-source/SourceBuffer-abort-readyState.html: Renamed from LayoutTests/http/tests/media/media-source/SourceBuffer-abort-readyState.html.
+        * web-platform-tests/media-source/SourceBuffer-abort-removed-expected.txt: Added.
+        * web-platform-tests/media-source/SourceBuffer-abort-removed.html: Renamed from LayoutTests/http/tests/media/media-source/SourceBuffer-abort-removed.html.
+        * web-platform-tests/media-source/SourceBuffer-abort-updating-expected.txt: Added.
+        * web-platform-tests/media-source/SourceBuffer-abort-updating.html: Renamed from LayoutTests/http/tests/media/media-source/SourceBuffer-abort-updating.html.
+        * web-platform-tests/media-source/SourceBuffer-abort.html: Renamed from LayoutTests/http/tests/media/media-source/SourceBuffer-abort.html.
+        * web-platform-tests/media-source/URL-createObjectURL-expected.txt: Added.
+        * web-platform-tests/media-source/URL-createObjectURL-null-expected.txt: Added.
+        * web-platform-tests/media-source/URL-createObjectURL-null.html: Added.
+        * web-platform-tests/media-source/URL-createObjectURL-revoke-expected.txt: Added.
+        * web-platform-tests/media-source/URL-createObjectURL-revoke.html: Added.
+        * web-platform-tests/media-source/URL-createObjectURL.html: Added.
+        * web-platform-tests/media-source/import_tests.sh: Added.
+        * web-platform-tests/media-source/interfaces-expected.txt: Added.
+        * web-platform-tests/media-source/interfaces.html: Added.
+        * web-platform-tests/media-source/manifest.txt: Added.
+        * web-platform-tests/media-source/mediasource-activesourcebuffers-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-activesourcebuffers.html: Added.
+        * web-platform-tests/media-source/mediasource-addsourcebuffer-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-addsourcebuffer-expected.txt.
+        * web-platform-tests/media-source/mediasource-addsourcebuffer-mode-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-addsourcebuffer-mode.html: Added.
+        * web-platform-tests/media-source/mediasource-addsourcebuffer.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-addsourcebuffer.html.
+        * web-platform-tests/media-source/mediasource-append-buffer-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-append-buffer-expected.txt.
+        * web-platform-tests/media-source/mediasource-append-buffer.html: Added.
+        * web-platform-tests/media-source/mediasource-appendbuffer-quota-exceeded-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-appendbuffer-quota-exceeded.html: Added.
+        * web-platform-tests/media-source/mediasource-appendwindow-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-appendwindow-expected.txt.
+        * web-platform-tests/media-source/mediasource-appendwindow.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-appendwindow.html.
+        * web-platform-tests/media-source/mediasource-avtracks-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-avtracks.html: Added.
+        * web-platform-tests/media-source/mediasource-buffered-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-buffered.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-buffered.html.
+        * web-platform-tests/media-source/mediasource-closed-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-closed-expected.txt.
+        * web-platform-tests/media-source/mediasource-closed.html: Added.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-a-bitrate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-a-bitrate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-a-bitrate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-a-bitrate.html.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-av-audio-bitrate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-av-audio-bitrate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-av-audio-bitrate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-av-audio-bitrate.html.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-av-framesize-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-av-framesize-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-av-framesize.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-av-framesize.html.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-av-video-bitrate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-av-video-bitrate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-av-video-bitrate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-av-video-bitrate.html.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-v-bitrate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-v-bitrate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-v-bitrate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-v-bitrate.html.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-v-framerate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-v-framerate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-v-framerate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-v-framerate.html.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-v-framesize-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-v-framesize-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-mp4-v-framesize.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-mp4-v-framesize.html.
+        * web-platform-tests/media-source/mediasource-config-change-webm-a-bitrate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-a-bitrate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-webm-a-bitrate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-a-bitrate.html.
+        * web-platform-tests/media-source/mediasource-config-change-webm-av-audio-bitrate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-av-audio-bitrate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-webm-av-audio-bitrate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-av-audio-bitrate.html.
+        * web-platform-tests/media-source/mediasource-config-change-webm-av-framesize-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-av-framesize-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-webm-av-framesize.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-av-framesize.html.
+        * web-platform-tests/media-source/mediasource-config-change-webm-av-video-bitrate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-av-video-bitrate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-webm-av-video-bitrate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-av-video-bitrate.html.
+        * web-platform-tests/media-source/mediasource-config-change-webm-v-bitrate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-v-bitrate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-webm-v-bitrate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-v-bitrate.html.
+        * web-platform-tests/media-source/mediasource-config-change-webm-v-framerate-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-v-framerate-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-webm-v-framerate.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-v-framerate.html.
+        * web-platform-tests/media-source/mediasource-config-change-webm-v-framesize-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-v-framesize-expected.txt.
+        * web-platform-tests/media-source/mediasource-config-change-webm-v-framesize.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-change-webm-v-framesize.html.
+        * web-platform-tests/media-source/mediasource-config-changes.js: Renamed from LayoutTests/http/tests/media/media-source/mediasource-config-changes.js.
+        (resolutionFromFilename):
+        (appendBuffer):
+        (mediaSourceConfigChangeTest):
+        * web-platform-tests/media-source/mediasource-detach-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-detach.html: Added.
+        * web-platform-tests/media-source/mediasource-duration-boundaryconditions-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-duration-boundaryconditions.html: Added.
+        * web-platform-tests/media-source/mediasource-duration-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-duration-expected.txt.
+        * web-platform-tests/media-source/mediasource-duration.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-duration.html.
+        * web-platform-tests/media-source/mediasource-endofstream-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-endofstream-invaliderror-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-endofstream-invaliderror-expected.txt.
+        * web-platform-tests/media-source/mediasource-endofstream-invaliderror.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-endofstream-invaliderror.html.
+        * web-platform-tests/media-source/mediasource-endofstream.html: Added.
+        * web-platform-tests/media-source/mediasource-errors-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-errors.html: Added.
+        * web-platform-tests/media-source/mediasource-getvideoplaybackquality-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-getvideoplaybackquality-expected.txt.
+        * web-platform-tests/media-source/mediasource-getvideoplaybackquality.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-getvideoplaybackquality.html.
+        * web-platform-tests/media-source/mediasource-is-type-supported-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-is-type-supported-expected.txt.
+        * web-platform-tests/media-source/mediasource-is-type-supported.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-is-type-supported.html.
+        * web-platform-tests/media-source/mediasource-liveseekable-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-liveseekable.html: Added.
+        * web-platform-tests/media-source/mediasource-multiple-attach-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-multiple-attach-expected.txt.
+        * web-platform-tests/media-source/mediasource-multiple-attach.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-multiple-attach.html.
+        * web-platform-tests/media-source/mediasource-play-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-play-expected.txt.
+        * web-platform-tests/media-source/mediasource-play-then-seek-back-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-play-then-seek-back-expected.txt.
+        * web-platform-tests/media-source/mediasource-play-then-seek-back.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-play-then-seek-back.html.
+        * web-platform-tests/media-source/mediasource-play.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-play.html.
+        * web-platform-tests/media-source/mediasource-preload-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-preload.html: Added.
+        * web-platform-tests/media-source/mediasource-redundant-seek-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-redundant-seek-expected.txt.
+        * web-platform-tests/media-source/mediasource-redundant-seek.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-redundant-seek.html.
+        * web-platform-tests/media-source/mediasource-remove-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-remove-expected.txt.
+        * web-platform-tests/media-source/mediasource-remove.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-remove.html.
+        * web-platform-tests/media-source/mediasource-removesourcebuffer-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-removesourcebuffer.html: Added.
+        * web-platform-tests/media-source/mediasource-seek-beyond-duration-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-seek-beyond-duration-expected.txt.
+        * web-platform-tests/media-source/mediasource-seek-beyond-duration.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-seek-beyond-duration.html.
+        * web-platform-tests/media-source/mediasource-seek-during-pending-seek-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-seek-during-pending-seek-expected.txt.
+        * web-platform-tests/media-source/mediasource-seek-during-pending-seek.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-seek-during-pending-seek.html.
+        * web-platform-tests/media-source/mediasource-seekable-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-seekable.html: Added.
+        * web-platform-tests/media-source/mediasource-sequencemode-append-buffer-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-sequencemode-append-buffer.html: Added.
+        * web-platform-tests/media-source/mediasource-sourcebuffer-mode-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-sourcebuffer-mode-expected.txt.
+        * web-platform-tests/media-source/mediasource-sourcebuffer-mode.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-sourcebuffer-mode.html.
+        * web-platform-tests/media-source/mediasource-sourcebuffer-trackdefaults-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-sourcebuffer-trackdefaults.html: Added.
+        * web-platform-tests/media-source/mediasource-sourcebufferlist-expected.txt: Renamed from LayoutTests/http/tests/media/media-source/mediasource-sourcebufferlist-expected.txt.
+        * web-platform-tests/media-source/mediasource-sourcebufferlist.html: Renamed from LayoutTests/http/tests/media/media-source/mediasource-sourcebufferlist.html.
+        * web-platform-tests/media-source/mediasource-timestamp-offset-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-timestamp-offset.html: Added.
+        * web-platform-tests/media-source/mediasource-trackdefault-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-trackdefault.html: Added.
+        * web-platform-tests/media-source/mediasource-trackdefaultlist-expected.txt: Added.
+        * web-platform-tests/media-source/mediasource-trackdefaultlist.html: Added.
+        * web-platform-tests/media-source/mediasource-util.js: Renamed from LayoutTests/http/tests/media/media-source/mediasource-util.js.
+        (EventExpectationsManager):
+        (EventExpectationsManager.prototype.expectEvent):
+        (EventExpectationsManager.prototype.waitForExpectedEvents):
+        (EventExpectationsManager.prototype.expectingEvents):
+        (EventExpectationsManager.prototype.handleWaitCallback_):
+        (EventExpectationsManager.prototype.getExpectations_):
+        (loadData_):
+        (onSourceOpen):
+        (openMediaSource_):
+        (MediaSourceUtil.loadTextData):
+        (MediaSourceUtil.loadBinaryData):
+        (MediaSourceUtil.fetchManifestAndData):
+        (MediaSourceUtil.extractSegmentData):
+        (MediaSourceUtil.getMediaDataForPlaybackTime):
+        (getFirstSupportedType):
+        (getSegmentInfo):
+        (MediaSourceUtil.getSubType):
+        (MediaSourceUtil.append):
+        (onEvent):
+        (onAppendDone):
+        (MediaSourceUtil.appendUntilEventFires):
+        (addExtraTestMethods.test.expectEvent):
+        (addExtraTestMethods.test.waitForExpectedEvents):
+        (addExtraTestMethods.test.waitForCurrentTimeChange):
+        (addExtraTestMethods.test.done):
+        (addExtraTestMethods):
+        (window.string_appeared_here):
+        * web-platform-tests/media-source/mp4/test-a-128k-44100Hz-1ch-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-a-128k-44100Hz-1ch-manifest.json.
+        * web-platform-tests/media-source/mp4/test-a-128k-44100Hz-1ch.mp4: Added.
+        * web-platform-tests/media-source/mp4/test-a-192k-44100Hz-1ch-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-a-192k-44100Hz-1ch-manifest.json.
+        * web-platform-tests/media-source/mp4/test-a-192k-44100Hz-1ch.mp4: Added.
+        * web-platform-tests/media-source/mp4/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/mp4/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.mp4: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.mp4.
+        * web-platform-tests/media-source/mp4/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/mp4/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr.mp4: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr.mp4.
+        * web-platform-tests/media-source/mp4/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/mp4/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr.mp4: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr.mp4.
+        * web-platform-tests/media-source/mp4/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/mp4/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr.mp4: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr.mp4.
+        * web-platform-tests/media-source/mp4/test-v-128k-320x240-24fps-8kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-v-128k-320x240-24fps-8kfr-manifest.json.
+        * web-platform-tests/media-source/mp4/test-v-128k-320x240-24fps-8kfr.mp4: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-v-128k-320x240-24fps-8kfr.mp4.
+        * web-platform-tests/media-source/mp4/test-v-128k-320x240-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-v-128k-320x240-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/mp4/test-v-128k-320x240-30fps-10kfr.mp4: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-v-128k-320x240-30fps-10kfr.mp4.
+        * web-platform-tests/media-source/mp4/test-v-128k-640x480-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-v-128k-640x480-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/mp4/test-v-128k-640x480-30fps-10kfr.mp4: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-v-128k-640x480-30fps-10kfr.mp4.
+        * web-platform-tests/media-source/mp4/test-v-256k-320x240-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-v-256k-320x240-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/mp4/test-v-256k-320x240-30fps-10kfr.mp4: Renamed from LayoutTests/http/tests/media/media-source/mp4/test-v-256k-320x240-30fps-10kfr.mp4.
+        * web-platform-tests/media-source/mp4/test.mp4: Renamed from LayoutTests/http/tests/media/media-source/mp4/test.mp4.
+        * web-platform-tests/media-source/webm/test-a-128k-44100Hz-1ch-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-a-128k-44100Hz-1ch-manifest.json.
+        * web-platform-tests/media-source/webm/test-a-128k-44100Hz-1ch.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-a-128k-44100Hz-1ch.webm.
+        * web-platform-tests/media-source/webm/test-a-192k-44100Hz-1ch-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-a-192k-44100Hz-1ch-manifest.json.
+        * web-platform-tests/media-source/webm/test-a-192k-44100Hz-1ch.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-a-192k-44100Hz-1ch.webm.
+        * web-platform-tests/media-source/webm/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/webm/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-av-384k-44100Hz-1ch-320x240-30fps-10kfr.webm.
+        * web-platform-tests/media-source/webm/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/webm/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-av-384k-44100Hz-1ch-640x480-30fps-10kfr.webm.
+        * web-platform-tests/media-source/webm/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/webm/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-av-448k-44100Hz-1ch-640x480-30fps-10kfr.webm.
+        * web-platform-tests/media-source/webm/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/webm/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-av-640k-44100Hz-1ch-640x480-30fps-10kfr.webm.
+        * web-platform-tests/media-source/webm/test-v-128k-320x240-24fps-8kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-v-128k-320x240-24fps-8kfr-manifest.json.
+        * web-platform-tests/media-source/webm/test-v-128k-320x240-24fps-8kfr.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-v-128k-320x240-24fps-8kfr.webm.
+        * web-platform-tests/media-source/webm/test-v-128k-320x240-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-v-128k-320x240-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/webm/test-v-128k-320x240-30fps-10kfr.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-v-128k-320x240-30fps-10kfr.webm.
+        * web-platform-tests/media-source/webm/test-v-128k-640x480-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-v-128k-640x480-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/webm/test-v-128k-640x480-30fps-10kfr.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-v-128k-640x480-30fps-10kfr.webm.
+        * web-platform-tests/media-source/webm/test-v-256k-320x240-30fps-10kfr-manifest.json: Renamed from LayoutTests/http/tests/media/media-source/webm/test-v-256k-320x240-30fps-10kfr-manifest.json.
+        * web-platform-tests/media-source/webm/test-v-256k-320x240-30fps-10kfr.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-v-256k-320x240-30fps-10kfr.webm.
+        * web-platform-tests/media-source/webm/test-vp8-vorbis-webvtt.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test-vp8-vorbis-webvtt.webm.
+        * web-platform-tests/media-source/webm/test.webm: Renamed from LayoutTests/http/tests/media/media-source/webm/test.webm.
+
+2016-09-09  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Rename Key to CryptoKey
+        https://bugs.webkit.org/show_bug.cgi?id=161665
+        <rdar://problem/28083391>
+
+        Reviewed by Brent Fulgham.
+
+        * WebCryptoAPI/idlharness-expected.txt:
+
+2016-09-09  Youenn Fablet  <youenn@apple.com>
+
+        TextTrackLoader should use FetchOptions::mode according its crossOrigin attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161792
+
+        Reviewed by Eric Carlson.
+
+        Rebaseline W3C test now that more checks are passing.
+
+        * web-platform-tests/html/semantics/embedded-content/media-elements/interfaces/TextTrack/addCue-expected.txt:
+        * web-platform-tests/html/semantics/embedded-content/media-elements/interfaces/TextTrack/removeCue-expected.txt:
+        * web-platform-tests/html/semantics/embedded-content/media-elements/interfaces/TextTrackCue/endTime-expected.txt:
+        * web-platform-tests/html/semantics/embedded-content/media-elements/interfaces/TextTrackCue/id-expected.txt:
+        * web-platform-tests/html/semantics/embedded-content/media-elements/interfaces/TextTrackCue/pauseOnExit-expected.txt:
+        * web-platform-tests/html/semantics/embedded-content/media-elements/interfaces/TextTrackCue/startTime-expected.txt:
+        * web-platform-tests/html/semantics/embedded-content/media-elements/interfaces/TextTrackCue/track-expected.txt:
+
+2016-09-09  Youenn Fablet  <youenn@apple.com>
+
+        Sync web-platform-tests up to revision 6d9c836
+        https://bugs.webkit.org/show_bug.cgi?id=161738
+
+        Reviewed by Alex Christensen.
+
+        * resources/ImportExpectations:
+        * resources/TestRepositories:
+        * resources/resource-files.json:
+        * resources/web-platform-tests-modules.json:
+        * web-platform-tests/2dcontext/transformations/w3c-import.log: Copied from LayoutTests/imported/w3c/web-platform-tests/html/syntax/parsing/template/additions-to-the-in-table-insertion-mode/w3c-import.log.
+        * web-platform-tests/IndexedDB/idbindex-multientry-big-expected.txt:
+        * web-platform-tests/WebIDL/ecmascript-binding/es-exceptions/w3c-import.log: Added.
+        * web-platform-tests/WebIDL/ecmascript-binding/w3c-import.log: Copied from LayoutTests/imported/w3c/web-platform-tests/html/syntax/parsing/template/additions-to-the-in-frameset-insertion-mode/w3c-import.log.
+        * web-platform-tests/WebIDL/readme.txt: Added.
+        * web-platform-tests/WebIDL/testable_assertions.txt: Added.
+        * web-platform-tests/WebIDL/w3c-import.log: Copied from LayoutTests/imported/w3c/web-platform-tests/html/syntax/parsing/template/appending-to-a-template/w3c-import.log.
+        * web-platform-tests/XMLHttpRequest/responsexml-document-properties-expected.txt:
+        * web-platform-tests/XMLHttpRequest/send-entity-body-document-expected.txt:
+        * web-platform-tests/XMLHttpRequest/send-non-same-origin.sub-expected.txt:
+        * web-platform-tests/XMLHttpRequest/send-non-same-origin.sub.htm:
+        * web-platform-tests/XMLHttpRequest/w3c-import.log:
+        * web-platform-tests/common/canvas-tests.js:
+        (addCrossOriginYellowImage):
+        * web-platform-tests/common/get-host-info.sub.js:
+        (get_host_info):
+        * web-platform-tests/config.json: Added.
+        * web-platform-tests/dom/historical-expected.txt:
+        * web-platform-tests/dom/historical.html:
+        * web-platform-tests/dom/interfaces-expected.txt:
+        * web-platform-tests/dom/interfaces.html:
+        * web-platform-tests/dom/nodes/DOMImplementation-createDocument-expected.txt:
+        * web-platform-tests/dom/nodes/DOMImplementation-createDocument.html:
+        * web-platform-tests/dom/nodes/DOMImplementation-hasFeature-expected.txt:
+        * web-platform-tests/dom/nodes/DOMImplementation-hasFeature.html:
+        * web-platform-tests/dom/nodes/Document-createElement-namespace-tests/w3c-import.log:
+        * web-platform-tests/dom/nodes/Document-createElementNS-expected.txt:
+        * web-platform-tests/dom/nodes/Document-createElementNS.html:
+        * web-platform-tests/dom/nodes/Document-createElementNS.js:
+        * web-platform-tests/domparsing/w3c-import.log:
+        * web-platform-tests/fetch/api/basic/mode-same-origin.html:
+        * web-platform-tests/fetch/api/basic/mode-same-origin.js:
+        * web-platform-tests/fetch/api/basic/referrer.html:
+        * web-platform-tests/fetch/api/basic/referrer.js:
+        (runTest):
+        * web-platform-tests/fetch/api/basic/request-headers-worker-expected.txt:
+        * web-platform-tests/fetch/api/basic/request-headers.js:
+        (requestHeaders):
+        * web-platform-tests/fetch/api/basic/scheme-blob-expected.txt:
+        * web-platform-tests/fetch/api/basic/scheme-blob-worker-expected.txt:
+        * web-platform-tests/fetch/api/basic/scheme-blob-worker.html:
+        * web-platform-tests/fetch/api/basic/scheme-blob.html:
+        * web-platform-tests/fetch/api/basic/scheme-blob.js:
+        (invalidRequestMethods.forEach):
+        * web-platform-tests/fetch/api/basic/w3c-import.log:
+        * web-platform-tests/fetch/api/cors/cors-basic.html:
+        * web-platform-tests/fetch/api/cors/cors-basic.js:
+        * web-platform-tests/fetch/api/cors/cors-cookies.html:
+        * web-platform-tests/fetch/api/cors/cors-cookies.js:
+        * web-platform-tests/fetch/api/cors/cors-no-preflight.html:
+        * web-platform-tests/fetch/api/cors/cors-no-preflight.js:
+        * web-platform-tests/fetch/api/cors/cors-origin.html:
+        * web-platform-tests/fetch/api/cors/cors-origin.js:
+        * web-platform-tests/fetch/api/cors/cors-preflight-redirect.html:
+        * web-platform-tests/fetch/api/cors/cors-preflight-redirect.js:
+        * web-platform-tests/fetch/api/cors/cors-preflight-referrer.html:
+        * web-platform-tests/fetch/api/cors/cors-preflight-referrer.js:
+        * web-platform-tests/fetch/api/cors/cors-preflight-status.html:
+        * web-platform-tests/fetch/api/cors/cors-preflight-status.js:
+        * web-platform-tests/fetch/api/cors/cors-preflight.html:
+        * web-platform-tests/fetch/api/cors/cors-preflight.js:
+        * web-platform-tests/fetch/api/cors/cors-redirect-credentials.html:
+        * web-platform-tests/fetch/api/cors/cors-redirect-credentials.js:
+        * web-platform-tests/fetch/api/cors/cors-redirect-preflight.html:
+        * web-platform-tests/fetch/api/cors/cors-redirect-preflight.js:
+        * web-platform-tests/fetch/api/cors/cors-redirect.html:
+        * web-platform-tests/fetch/api/cors/cors-redirect.js:
+        * web-platform-tests/fetch/api/cors/w3c-import.log:
+        * web-platform-tests/fetch/api/headers/headers-combine-expected.txt:
+        * web-platform-tests/fetch/api/headers/headers-combine.html:
+        * web-platform-tests/fetch/api/redirect/redirect-mode.html:
+        * web-platform-tests/fetch/api/redirect/redirect-mode.js:
+        * web-platform-tests/fetch/api/redirect/redirect-origin.html:
+        * web-platform-tests/fetch/api/redirect/redirect-origin.js:
+        * web-platform-tests/fetch/api/redirect/w3c-import.log:
+        * web-platform-tests/fetch/api/request/request-cache-expected.txt:
+        * web-platform-tests/fetch/api/request/request-cache.html:
+        * web-platform-tests/fetch/api/request/request-disturbed.html:
+        * web-platform-tests/fetch/api/resources/get-host-info.sub.js: Removed.
+        * web-platform-tests/fetch/api/resources/w3c-import.log:
+        * web-platform-tests/fetch/api/response/response-init-001.html:
+        * web-platform-tests/html/browsers/browsing-the-web/history-traversal/w3c-import.log:
+        * web-platform-tests/html/browsers/history/the-history-interface/w3c-import.log:
+        * web-platform-tests/html/browsers/history/the-location-interface/w3c-import.log:
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-expected.txt: Added.
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-on-new-window-expected.txt: Added.
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects-on-new-window.html: Added.
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/cross-origin-objects.html: Added.
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/frame.html:
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/w3c-import.log:
+        * web-platform-tests/html/browsers/origin/cross-origin-objects/win-documentdomain.sub.html:
+        * web-platform-tests/html/browsers/the-window-object/security-window/window-security.sub.html:
+        * web-platform-tests/html/browsers/windows/nested-browsing-contexts/frameElement.sub-expected.txt:
+        * web-platform-tests/html/browsers/windows/w3c-import.log:
+        * web-platform-tests/html/dom/dynamic-markup-insertion/opening-the-input-stream/010-expected.txt:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-EN-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-EN-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-N-EN-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-N-EN-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-N-EN-ref-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-N-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-N-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-bdi-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-bdi-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-dir-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-dir-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-dir_auto-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-dir_auto-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-script-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-script-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-style-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-style-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-textarea-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-contained-textarea-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-EN-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-EN-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-N-EN-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-N-EN-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-N-EN-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-N-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-N-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-script-EN-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-script-EN-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-script-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-script-N-EN-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-script-N-EN-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-script-N-EN-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-script-N-L-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-script-N-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-input-script-R-expected.html:
+        * web-platform-tests/html/dom/elements/global-attributes/dir_auto-isolate-expected.html:
+        * web-platform-tests/html/dom/interfaces-expected.txt:
+        * web-platform-tests/html/dom/interfaces.html:
+        * web-platform-tests/html/semantics/document-metadata/the-link-element/document-without-browsing-context-expected.txt:
+        * web-platform-tests/html/semantics/document-metadata/the-meta-element/pragma-directives/attr-meta-http-equiv-refresh/parsing-expected.txt:
+        * web-platform-tests/html/semantics/document-metadata/the-meta-element/pragma-directives/attr-meta-http-equiv-refresh/support/refresh.sub.html: Removed.
+        * web-platform-tests/html/semantics/document-metadata/the-meta-element/pragma-directives/attr-meta-http-equiv-refresh/support/w3c-import.log: Added.
+        * web-platform-tests/html/semantics/document-metadata/the-meta-element/pragma-directives/attr-meta-http-equiv-refresh/w3c-import.log: Copied from LayoutTests/imported/w3c/web-platform-tests/html/syntax/parsing/template/additions-to-the-in-table-insertion-mode/w3c-import.log.
+        * web-platform-tests/html/semantics/embedded-content/the-area-element/area-shape-expected.txt:
+        * web-platform-tests/html/semantics/embedded-content/the-area-element/area-shape.html:
+        * web-platform-tests/html/semantics/embedded-content/the-audio-element/audio_constructor-expected.txt:
+        * web-platform-tests/html/semantics/embedded-content/the-audio-element/audio_constructor.html:
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.drawImage.canvas-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.drawImage.canvas.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.drawImage.canvas.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.drawImage.canvas.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.drawImage.image-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.drawImage.image.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.drawImage.image.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.drawImage.image.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.fillStyle-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.fillStyle.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.fillStyle.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.fillStyle.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.strokeStyle-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.strokeStyle.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.strokeStyle.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.strokeStyle.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.timing-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.timing.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.timing.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.canvas.timing.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.create-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.create.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.create.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.create.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.cross-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.cross.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.cross.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.cross.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.image.fillStyle-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.image.fillStyle.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.image.fillStyle.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.image.fillStyle.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.image.strokeStyle-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.image.strokeStyle.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.image.strokeStyle.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.pattern.image.strokeStyle.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.reset-expected.txt: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.reset.sub-expected.txt.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.reset.html: Renamed from LayoutTests/imported/w3c/web-platform-tests/html/semantics/embedded-content/the-canvas-element/security.reset.sub.html.
+        * web-platform-tests/html/semantics/embedded-content/the-canvas-element/w3c-import.log:
+        * web-platform-tests/html/semantics/embedded-content/the-img-element/environment-changes/viewport-change-expected.txt:
+        * web-platform-tests/html/semantics/grouping-content/the-li-element/grouping-li-reftest-001-expected.html:
+        * web-platform-tests/html/semantics/grouping-content/the-li-element/grouping-li-reftest-001-ref-expected.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-li-element/grouping-li-reftest-001-ref.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-li-element/grouping-li-reftest-002-expected.html:
+        * web-platform-tests/html/semantics/grouping-content/the-li-element/w3c-import.log:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-expected.txt:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-rev-reftest-001-expected.html:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-rev-reftest-001-ref-expected.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-rev-reftest-001-ref.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-start-reftest-001-expected.html:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-start-reftest-001-ref-expected.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-start-reftest-001-ref.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-start-reftest-002-expected.html:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-start-reftest-002-ref-expected.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-start-reftest-002-ref.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-001-expected.html:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-001-ref-expected.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-001-ref.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-002-expected.html:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-002-ref-expected.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-002-ref.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-003-expected.html:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-003-ref-expected.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-type-reftest-003-ref.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol.html:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/w3c-import.log:
+        * web-platform-tests/html/semantics/grouping-content/the-pre-element/grouping-pre-reftest-001-expected.html:
+        * web-platform-tests/html/semantics/grouping-content/the-pre-element/grouping-pre-reftest-001-ref-expected.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-pre-element/grouping-pre-reftest-001-ref.html: Removed.
+        * web-platform-tests/html/semantics/grouping-content/the-pre-element/w3c-import.log:
+        * web-platform-tests/html/semantics/links/linktypes/alternate-css-expected.html:
+        * web-platform-tests/html/semantics/tabular-data/the-table-element/tFoot.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-foster-parenting/template-is-a-foster-parent-element.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-foster-parenting/template-is-not-a-foster-parent-element.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-foster-parenting/w3c-import.log:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/generating-of-implied-end-tags.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-body-token.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-frameset-token.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-head-token.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/ignore-html-token.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/start-tag-body.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/start-tag-html.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/template-end-tag-without-start-one.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-body-insertion-mode/w3c-import.log:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-frameset-insertion-mode/end-tag-frameset.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-frameset-insertion-mode/w3c-import.log:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-head-insertion-mode/generating-of-implied-end-tags.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-head-insertion-mode/template-end-tag-without-start-one.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-head-insertion-mode/w3c-import.log:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-table-insertion-mode/end-tag-table.html:
+        * web-platform-tests/html/syntax/parsing/template/additions-to-the-in-table-insertion-mode/w3c-import.log:
+        * web-platform-tests/html/syntax/parsing/template/appending-to-a-template/template-child-nodes.html:
+        * web-platform-tests/html/syntax/parsing/template/appending-to-a-template/w3c-import.log:
+        * web-platform-tests/html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-body-context.html:
+        * web-platform-tests/html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-context.html:
+        * web-platform-tests/html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/clearing-stack-back-to-a-table-row-context.html:
+        * web-platform-tests/html/syntax/parsing/template/clearing-the-stack-back-to-a-given-context/w3c-import.log:
+        * web-platform-tests/html/syntax/parsing/template/creating-an-element-for-the-token/template-owner-document.html:
+        * web-platform-tests/html/syntax/parsing/template/creating-an-element-for-the-token/w3c-import.log:
+        * web-platform-tests/lint.whitelist:
+        * web-platform-tests/resource-timing/SyntheticResponse.py:
+        (main):
+        * web-platform-tests/resource-timing/resource-timing-expected.txt:
+        * web-platform-tests/resource-timing/resource-timing.html:
+        * web-platform-tests/resource-timing/resource-timing.js:
+        (logResourceEntry): Deleted.
+        (window.onload): Deleted.
+        * web-platform-tests/resource-timing/resources/resource_timing_test0.xml:
+        * web-platform-tests/resource-timing/resources/w3c-import.log: Copied from LayoutTests/imported/w3c/web-platform-tests/html/browsers/origin/cross-origin-objects/w3c-import.log.
+        * web-platform-tests/resource-timing/w3c-import.log: Copied from LayoutTests/imported/w3c/web-platform-tests/html/browsers/origin/cross-origin-objects/w3c-import.log.
+        * web-platform-tests/url/interfaces-expected.txt:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        HTMLObjectElement.hspace / vspace attributes should be unsigned
+        https://bugs.webkit.org/show_bug.cgi?id=161766
+
+        Reviewed by Ryosuke Niwa.
+
+        Rebaseline W3C test now that more checks are passing.
+
+        * web-platform-tests/html/dom/reflection-embedded-expected.txt:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        HTMLObjectElement.codebase attribute should reflect as a URL
+        https://bugs.webkit.org/show_bug.cgi?id=161768
+
+        Reviewed by Alex Christensen.
+
+        Rebaseline existing test now that more checks are passing.
+
+        * web-platform-tests/html/dom/reflection-embedded-expected.txt:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        ol.start may return incorrect value for reversed lists when not explicitly set
+        https://bugs.webkit.org/show_bug.cgi?id=161713
+
+        Reviewed by Zalan Bujtas.
+
+        Rebaseline several W3C tests now that more checks are passing.
+
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/grouping-ol-expected.txt:
+        * web-platform-tests/html/semantics/grouping-content/the-ol-element/ol.start-reflection-2-expected.txt:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        Add support for HTMLIframeElement.allowFullscreen attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161757
+
+        Reviewed by Sam Weinig.
+
+        Rebaseline W3C test now that more checks are passing.
+
+        * web-platform-tests/html/dom/reflection-embedded-expected.txt:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        frame.longDesc / iframe.longDesc should reflect as a URL
+        https://bugs.webkit.org/show_bug.cgi?id=161764
+
+        Reviewed by Alex Christensen.
+
+        Rebaseline several W3C tests now that more checks are passing.
+
+        * web-platform-tests/html/dom/reflection-embedded-expected.txt:
+        * web-platform-tests/html/dom/reflection-obsolete-expected.txt:
+
 2016-09-08  Chris Dumez  <cdumez@apple.com>
 
         HTMLImageElement.hspace / vspace attributes should be unsigned

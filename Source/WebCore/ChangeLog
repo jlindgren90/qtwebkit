@@ -1,3 +1,712 @@
+2016-09-10  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Apple.com keynote does not display media controls
+        https://bugs.webkit.org/show_bug.cgi?id=161833
+        <rdar://problem/28230123>
+
+        Reviewed by Tim Horton.
+
+        Tweaks the main content check so that we can distinguish between main content for the purposes of determining
+        autoplay policy vs. main content for the purposes of showing media controls. Namely, we make the latter less
+        restrictive than the former in terms of the maximum aspect ratio a video can have to be considered the right
+        size for main content.
+
+        New unit test in TestWebKitAPI.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::mediaElementSessionInfoForSession):
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canShowControlsManager):
+        (WebCore::MediaElementSession::isLargeEnoughForMainContent):
+        (WebCore::MediaElementSession::wantsToObserveViewportVisibilityForMediaControls):
+        (WebCore::isMainContentForPurposesOfAutoplay):
+        (WebCore::isElementLargeEnoughForMainContent):
+        (WebCore::MediaElementSession::updateIsMainContent):
+        (WebCore::isMainContent): Deleted.
+        * html/MediaElementSession.h:
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Keep track of cannot-be-a-base-url according to spec
+        https://bugs.webkit.org/show_bug.cgi?id=161830
+
+        Reviewed by Tim Horton.
+
+        Covered by new API tests.
+
+        * platform/URL.cpp:
+        (WebCore::URL::invalidate):
+        * platform/URL.h:
+        Add a boolean required by the spec.
+        This will not add to sizeof(URL) because we already have some bit fields.
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::allValuesEqual):
+
+2016-09-09  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205771.
+        https://bugs.webkit.org/show_bug.cgi?id=161823
+
+        Broke Windows build (Requested by litherum on #webkit).
+
+        Reverted changeset:
+
+        "Remove unused member of GlyphBuffer"
+        https://bugs.webkit.org/show_bug.cgi?id=161814
+        http://trac.webkit.org/changeset/205771
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should convert ASCII hosts to lowercase
+        https://bugs.webkit.org/show_bug.cgi?id=161820
+
+        Reviewed by Geoffrey Garen.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::domainToASCII):
+        The fast path for domains that are already ASCII and do not need punycode encoding
+        should convert the domain to lowercase.
+        This matches behavior in URL::parse if isCanonicalHostnameLowercaseForScheme is true,
+        and RFC 5890.
+
+2016-09-09  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Remove unused member of GlyphBuffer
+        https://bugs.webkit.org/show_bug.cgi?id=161814
+
+        Reviewed by Simon Fraser.
+
+        This m_offsets member never actually affected anything. It just made
+        FontCascade::drawGlyphBuffer() slower.
+
+        No new tests because there is no behavior change.
+
+        * platform/graphics/FontCascade.cpp:
+        (WebCore::FontCascade::drawGlyphBuffer):
+        * platform/graphics/GlyphBuffer.h:
+        (WebCore::GlyphBuffer::clear):
+        (WebCore::GlyphBuffer::advanceAt):
+        (WebCore::GlyphBuffer::add):
+        (WebCore::GlyphBuffer::shrink):
+        (WebCore::GlyphBuffer::swap):
+        (WebCore::GlyphBuffer::offsetAt): Deleted.
+        * platform/graphics/win/UniscribeController.cpp:
+        (WebCore::UniscribeController::shapeAndPlaceItem):
+
+2016-09-09  Tim Horton  <timothy_horton@apple.com>
+
+        Text replacement candidates don't always overwrite the entire original string
+        https://bugs.webkit.org/show_bug.cgi?id=161779
+        <rdar://problem/28033492>
+
+        Reviewed by Simon Fraser.
+
+        New test: editing/mac/spelling/accept-candidate-replacing-multiple-words.html.
+
+        * editing/Editor.cpp:
+        (WebCore::Editor::contextRangeForCandidateRequest):
+        Factor contextRangeForCandidateRequest out of the WebKits, into Editor.
+        This just expands to paragraph boundaries from the cursor.
+
+        (WebCore::Editor::selectTextCheckingResult):
+        Add selectTextCheckingResult, which, given a TextCheckingResult,
+        selects the range represented by the result's location and length, which
+        indicate the portion of the context string that the result refers to.
+        In the case of accepting a candidate, we want to select that range
+        so that our insertion will overwrite it.
+
+        (WebCore::Editor::handleAcceptedCandidate):
+        Make use of selectTextCheckingResult instead of just assuming that we want
+        to replace the word to the left of the insertion point.
+
+        (WebCore::Editor::stringForCandidateRequest): Deleted.
+        * editing/Editor.h:
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::handleAcceptedCandidate):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+        Internals' handleAcceptedCandidate assumed (wrongly) that the length
+        of a TextCheckerResult was the length of the candidate, when really it is
+        the length of the text that the candidate would replace. Adjust this,
+        and expose the replacement range to JavaScript, so we can test this.
+
+2016-09-09  Brady Eidson  <beidson@apple.com>
+
+        Soft-link GameController.framework.
+        <rdar://problem/28219953> and https://bugs.webkit.org/show_bug.cgi?id=161802
+
+        Reviewed by Brian Burg.
+
+        No new tests (No change in behavior).
+
+        * Configurations/WebCore.xcconfig:
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/gamepad/cocoa/GameControllerGamepadProvider.mm:
+        (WebCore::GameControllerGamepadProvider::startMonitoringGamepads):
+
+2016-09-09  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Rename Key to CryptoKey
+        https://bugs.webkit.org/show_bug.cgi?id=161665
+        <rdar://problem/28083391>
+
+        Reviewed by Brent Fulgham.
+
+        A link to the spec: https://www.w3.org/TR/WebCryptoAPI/#cryptokey-interface
+
+        * crypto/CryptoKey.idl:
+        Remove some unnecessary IDL attributes and reorder KeyType enum to match the spec.
+        * crypto/CryptoKeyType.h:
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Fix and optimize parsing file URLs ending with a host but no slash
+        https://bugs.webkit.org/show_bug.cgi?id=161815
+
+        Reviewed by Geoffrey Garen.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::bufferView):
+        (WebCore::URLParser::copyURLPartsUntil):
+        (WebCore::URLParser::parse):
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Handle \ in path according to spec
+        https://bugs.webkit.org/show_bug.cgi?id=161805
+
+        Reviewed by Andy Estes.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+
+2016-09-09  Youenn Fablet  <youenn@apple.com>
+
+        TextTrackLoader should use FetchOptions::mode according its crossOrigin attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161792
+
+        Reviewed by Eric Carlson.
+
+        Covered by existing and updated tests.
+
+        Updating text track loader to use fetch mode according crossOrigin value.
+
+        Removed the check done in the case the crossOrigin value is not set.
+        Previously cross-origin loads were forbidden, now this is authorized.
+        This change allows aligning with the spec.
+        Also, this check could be bypassed in the case of a same-origin URL redirecting to a cross-origin one.
+
+        * loader/TextTrackLoader.cpp:
+        (WebCore::TextTrackLoader::notifyFinished): Checking resource error in lieu of doing CORS checks on its own.
+        (WebCore::TextTrackLoader::load): Using CachedResourceRequest::setAsPotentiallyCrossOrigin
+        * loader/TextTrackLoader.h:
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::loadFrom): Setting loading and status values as would be done when load is finished.
+        (WebCore::CachedResource::setBodyDataFrom): Default implementation is to copy the shared buffer.
+        * loader/cache/CachedResource.h:
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::updateCachedResourceWithCurrentRequest): Enabling resource update when mode or origin is different for TextTrack resources.
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse URLs with non-special schemes
+        https://bugs.webkit.org/show_bug.cgi?id=161786
+
+        Reviewed by Andy Estes.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+        There's no reason for a SchemeEndCheckForSlashes state now that we can copy iterators.
+        It's not in the spec and not needed.
+        Also, move things around a little so parsing special or non-special schemes
+        followed by one or two slashes works correctly.
+
+2016-09-09  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r186020): Null dereference in getStartDate()
+        https://bugs.webkit.org/show_bug.cgi?id=161733
+
+        Reviewed by Eric Carlson.
+
+        Update HTMLMediaElement::getStartDate() to return NaN if m_player is null,
+        instead of crashing.
+
+        Test: fast/media/getStartDate-NaN.html
+
+        * bindings/js/IDBBindingUtilities.cpp:
+        (WebCore::toJS):
+        Add a FIXME comment as this code is using jsDateOrNull() but should
+        probably be using jsDate() as per:
+        - http://w3c.github.io/IndexedDB/#request-convert-a-key-to-a-value
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::jsDate):
+        (WebCore::jsDateOrNull):
+        * bindings/js/JSDOMBinding.h:
+        - Rename jsDateOrNaN() to jsDate() as this is the default behavior. Also,
+          return new Date(NaN) instead of NaN if the implementation returns NaN.
+          The IDL says we should return a Date, not a number.
+        - Update jsDateOrNull() to only return jsNull() if the native value is
+          NaN, instead of doing so for every value that is not finite. Our
+          convention is to use NaN as special value to represent null in JS.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (NativeToJSValue):
+        When converting a native value (double) into a Date, rely on the fact
+        that the type is nullable when deciding if we should call jsDate() or
+        jsDateOrNull() to convert. This way, we no longe need a WebKit specific
+        [TreatReturnedDateAs=Null|NaN] IDL extended attribute.
+
+        * bindings/scripts/IDLAttributes.txt:
+        * html/HTMLInputElement.idl:
+        Mark valueAsDate attribute as nullable, as per the specification:
+        - https://html.spec.whatwg.org/#htmlinputelement
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::getStartDate):
+        Return NaN if m_player is null instead of crashing. The reason I decided
+        to return NaN is because the specification [1] says to return a new Date
+        object representing the current timeline offset. The spec of timeline
+        offset [2] says that the initial timeline offset value is NaN.
+        [1] https://html.spec.whatwg.org/#dom-media-getstartdate
+        [2] https://html.spec.whatwg.org/#timeline-offset
+
+        * bindings/scripts/IDLAttributes.txt:
+        * html/HTMLMediaElement.idl:
+        Drop [TreatReturnedDateAs] attribute as it is no longer supported.
+
+2016-09-09  Youenn Fablet  <youenn@apple.com>
+
+        ASSERTION FAILED: promise.inherits(JSPromise::info())
+        https://bugs.webkit.org/show_bug.cgi?id=161632
+        <rdar://problem/28184743>
+
+        Reviewed by Mark Lam.
+
+        Test: fetch/fetch-worker-crash.html
+
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::callPromiseFunction): Returning early if created promise is null.
+        Passing directly a DeferredWrapper to the generated code.
+        * bindings/scripts/CodeGeneratorJS.pm: Updated to take a DeferredWrapper.
+        (GenerateImplementation):
+        (GenerateReturnParameters):
+        * bindings/scripts/test/JS/JSTestObj.cpp: Rebasing expectations.
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise):
+
+2016-09-09  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Improve performance of glyph advance metrics gathering
+        https://bugs.webkit.org/show_bug.cgi?id=161119
+
+        Reviewed by Simon Fraser.
+
+        Most of the glyphs in a GlyphPage are never read from. Therefore, we can get a performance boost
+        by not populating as many items in the GlyphPage. Because of the performance characteristics of
+        CTFontGetGlyphsForCharacters(), a better size for a GlyphPage is 16 items. This, coupled with
+        using CTFontGetUnsummedAdvancesForGlyphsAndStyle(), causes between a 0.01%-0.5% speedup on PLT.
+
+        No new tests because there is no behavior change.
+
+        * platform/graphics/Font.cpp:
+        (WebCore::Font::initCharWidths):
+        (WebCore::Font::platformGlyphInit):
+        (WebCore::createAndFillGlyphPage):
+        * platform/graphics/Font.h:
+        (WebCore::Font::widthForGlyph):
+        * platform/graphics/GlyphMetricsMap.h:
+        * platform/graphics/GlyphPage.h:
+        * platform/graphics/cocoa/FontCocoa.mm:
+        * platform/spi/cocoa/CoreTextSPI.h:
+        (WebCore::Font::platformWidthForGlyph):
+        (WebCore::canUseFastGlyphAdvanceGetter): Deleted.
+
+2016-09-09  Antti Koivisto  <antti@apple.com>
+
+        v3: WebContent crash due to RELEASE_ASSERT in WebCore: WebCore::StyleResolver::styleForElement
+        https://bugs.webkit.org/show_bug.cgi?id=161689
+
+        Reviewed by Andreas Kling.
+
+        These crashes happen because synchronously triggered resource loads generate callbacks that may end up
+        deleting the resource loader.
+
+        Stop triggering resource loads from StyleResolver. Instead trigger them when applying style to render tree.
+
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::~StyleResolver):
+
+            Replace the RELEASE_ASSERT against deletion during resource loads by a general isDeleted assert.
+
+        (WebCore::StyleResolver::styleForElement):
+        (WebCore::StyleResolver::styleForKeyframe):
+        (WebCore::StyleResolver::pseudoStyleForElement):
+        (WebCore::StyleResolver::styleForPage):
+        (WebCore::StyleResolver::applyMatchedProperties):
+        (WebCore::StyleResolver::loadPendingResources): Deleted.
+        * css/StyleResolver.h:
+        * page/animation/KeyframeAnimation.cpp:
+        (WebCore::KeyframeAnimation::KeyframeAnimation):
+        (WebCore::KeyframeAnimation::resolveKeyframeStyles):
+
+            Ensure resource load for all animation frames.
+
+        * page/animation/KeyframeAnimation.h:
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::createFor):
+        (WebCore::RenderElement::initializeStyle):
+
+            Load resources when renderer initializes a style.
+
+        (WebCore::RenderElement::setStyle):
+        (WebCore::RenderElement::getUncachedPseudoStyle):
+
+            Load resources for pseudo styles.
+
+        * rendering/RenderImage.cpp:
+        (WebCore::RenderImage::RenderImage):
+        (WebCore::RenderImage::styleWillChange):
+
+            Shuffle image resource initialization out from constructor so initializeStyle gets called before.
+
+        * rendering/RenderImage.h:
+        * rendering/style/StyleCachedImage.cpp:
+        (WebCore::StyleCachedImage::StyleCachedImage):
+
+            Track pending status with a bit instead of implicitly by the existence of CachedResource.
+            This is useful for asserts.
+
+        (WebCore::StyleCachedImage::load):
+        (WebCore::StyleCachedImage::isPending):
+        (WebCore::StyleCachedImage::addClient):
+        (WebCore::StyleCachedImage::removeClient):
+        (WebCore::StyleCachedImage::image):
+        * rendering/style/StyleCachedImage.h:
+
+2016-09-08  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        ScriptRunner should be driven by PendingScript rather than ScriptElement
+        https://bugs.webkit.org/show_bug.cgi?id=161726
+
+        Reviewed by Ryosuke Niwa.
+
+        Tests: js/dom/document-write-in-error-event.html
+               js/dom/document-write-in-load-event.html
+
+        ScriptRunner is driven by ScriptElement::notifyFinished. While ScriptRunner is driven by this,
+        HTMLScriptRunner does not use it. Instead, HTMLScriptRunner uses PendingScriptClient. As a result,
+        ScriptElement::notifyFinished is used only when the script is annotated with "defer" or "async"
+        while all the external script will load the LoadableScript. It is confusing.
+        This patch removes ScriptElement::notifyFinished and use PendingScript's observability
+        in ScriptRunner instead.
+
+        This patch also fixes the behavior about ignore-destructive-writes counter[1]. When dispatching
+        the load and error events, this ignore-destructive-writes counter should not be incremeneted by
+        this execution. The added tests ensure this behavior.
+
+        [1]: https://html.spec.whatwg.org/multipage/scripting.html#execute-the-script-block
+
+        * dom/ScriptElement.cpp: Drop LoadableScriptClient interface.
+        (WebCore::ScriptElement::prepareScript): Do not use addClient. ScriptRunner use PendingScript::{setClient,clearClient} instead.
+        (WebCore::ScriptElement::executeScriptForScriptRunner): IgnoreDestructiveWriteCountIncrementer will be done in ScriptElement::executeScript.
+        So no need to do it here, that's duplicated.
+        (WebCore::ScriptElement::~ScriptElement): Deleted. ScriptElement does not use addClient/removeClient.
+        (WebCore::ScriptElement::stopLoadRequest): Deleted.
+        (WebCore::ScriptElement::executeScriptForHTMLScriptRunner): Deleted. executeScriptForHTMLScriptRunner and executeScriptForScriptRunner are
+        merged into executeScriptForRunner.
+        (WebCore::ScriptElement::notifyFinished): Deleted.
+        * dom/ScriptElement.h:
+        (WebCore::ScriptElement::~ScriptElement):
+        (WebCore::ScriptElement::willExecuteInOrder): Used in ScriptRunner to determine whether the script is async or defer.
+        (WebCore::ScriptElement::willExecuteWhenDocumentFinishedParsing): Deleted.
+        * dom/ScriptRunner.cpp:
+        (WebCore::ScriptRunner::~ScriptRunner): HashSet's iterator will return `const PendingScript&`.
+        Another option is using HashSet<RefPtr<PendingScript>>. Here, we use a little bit weired const_cast.
+        (WebCore::ScriptRunner::queueScriptForExecution): Use PendingScript::setClient to wait loading.
+        (WebCore::ScriptRunner::notifyFinished): Notify the script ready here.
+        (WebCore::ScriptRunner::timerFired): Use executeScriptForScriptRunner.
+        (WebCore::ScriptRunner::notifyScriptReady): Deleted.
+        * dom/ScriptRunner.h:
+        * html/parser/HTMLScriptRunner.cpp:
+        (WebCore::HTMLScriptRunner::executePendingScriptAndDispatchEvent): Use executeScriptForScriptRunner.
+
+2016-09-08  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [WTF] HashTable's rehash is not compatible to Ref<T> and ASan
+        https://bugs.webkit.org/show_bug.cgi?id=161763
+
+        Reviewed by Mark Lam.
+
+        Include wtf/text/StringHash.h to avoid linking errors in EFL port.
+
+        * loader/ResourceLoadStatistics.h:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        HTMLObjectElement.hspace / vspace attributes should be unsigned
+        https://bugs.webkit.org/show_bug.cgi?id=161766
+
+        Reviewed by Ryosuke Niwa.
+
+        HTMLObjectElement.hspace / vspace attributes should be unsigned:
+        - https://html.spec.whatwg.org/#HTMLObjectElement-partial
+
+        Firefox agrees with the specification but those were signed in WebKit.
+
+        No new tests, rebaselined existing test.
+
+        * html/HTMLObjectElement.idl:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        HTMLObjectElement.codebase attribute should reflect as a URL
+        https://bugs.webkit.org/show_bug.cgi?id=161768
+
+        Reviewed by Alex Christensen.
+
+        HTMLObjectElement.codebase attribute should reflect as a URL:
+        - https://html.spec.whatwg.org/#dom-applet-codebase
+
+        Chrome and Firefox agree with the specification.
+
+        No new test, rebaselined existing test.
+
+        * html/HTMLObjectElement.idl:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        ol.start may return incorrect value for reversed lists when not explicitly set
+        https://bugs.webkit.org/show_bug.cgi?id=161713
+
+        Reviewed by Zalan Bujtas.
+
+        ol.start may return incorrect value for reversed lists when not explicitly set.
+        This is because we're supposed to return the number of rendered <li> child
+        elements, which relies on layout. However, we did not make sure the layout is
+        up-to-date before counting the number of li child elements. This patch fixes
+        the issue.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLOListElement.h:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        Add support for HTMLIframeElement.allowFullscreen attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161757
+
+        Reviewed by Sam Weinig.
+
+        Add support for HTMLIframeElement.allowFullscreen attribute:
+        - https://html.spec.whatwg.org/#dom-iframe-allowfullscreen
+
+        Firefox and Chrome already support it, unprefixed.
+
+        Note that the HTMLIframeElement.allowFullscreen attribute reflects the
+        allowfullscreen content attribute which we already support.
+
+        Test: fullscreen/full-screen-iframe-allowFullscreen.html
+
+        * html/HTMLIFrameElement.idl:
+
+2016-09-08  Chris Dumez  <cdumez@apple.com>
+
+        frame.longDesc / iframe.longDesc should reflect as a URL
+        https://bugs.webkit.org/show_bug.cgi?id=161764
+
+        Reviewed by Alex Christensen.
+
+        frame.longDesc / iframe.longDesc should reflect as a URL:
+        - https://html.spec.whatwg.org/#dom-iframe-longdesc
+        - https://html.spec.whatwg.org/#dom-frame-longdesc
+
+        They already do in Chrome and Firefox.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLFrameElement.idl:
+        * html/HTMLIFrameElement.idl:
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Handle \ in paths of special URLs according to spec
+        https://bugs.webkit.org/show_bug.cgi?id=161781
+
+        Reviewed by Tim Horton.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::bufferView):
+        (WebCore::URLParser::copyURLPartsUntil):
+        (WebCore::URLParser::parse):
+        * platform/URLParser.h:
+
+2016-09-08  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Move the BitmapImage platform dependent code to a new file named NativeImage[CG|Cairo].cpp
+        https://bugs.webkit.org/show_bug.cgi?id=158684
+
+        Reviewed by Simon Fraser.
+
+        This is a refactoring patch. It moves the BitmapImage platform dependent
+        code from BitmapImage to NativeImage[CG|Cairo].cpp. The new APIs are
+        responsible of drawing a NativeImagePtr and answering some metadata queries.
+
+        No new tests -- Code refactoring, no behavior change.
+
+        * PlatformAppleWin.cmake:
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * PlatformMac.cmake:
+        * PlatformWinCairo.cmake:
+        * WebCore.xcodeproj/project.pbxproj:
+        * loader/cache/MemoryCache.h:
+        * loader/icon/IconDatabaseBase.h:
+        * page/mac/TextIndicatorWindow.mm:
+        (-[WebTextIndicatorView initWithFrame:textIndicator:margin:offset:]):
+        (createContentCrossfadeAnimation):
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::BitmapImage):
+        (WebCore::BitmapImage::destroyDecodedData):
+        (WebCore::BitmapImage::destroyDecodedDataIfNecessary):
+        (WebCore::BitmapImage::dataChanged):
+        (WebCore::BitmapImage::ensureFrameAtIndexIsCached):
+        (WebCore::BitmapImage::frameImageAtIndex):
+        (WebCore::BitmapImage::nativeImage):
+        (WebCore::BitmapImage::nativeImageForCurrentFrame):
+        (WebCore::BitmapImage::nativeImageOfSize):
+        (WebCore::BitmapImage::framesNativeImages):
+        (WebCore::BitmapImage::frameIsCompleteAtIndex):
+        (WebCore::BitmapImage::frameDurationAtIndex):
+        (WebCore::BitmapImage::frameHasAlphaAtIndex):
+        (WebCore::BitmapImage::frameOrientationAtIndex):
+        (WebCore::BitmapImage::singlePixelSolidColor):
+        (WebCore::BitmapImage::draw):
+        (WebCore::BitmapImage::drawPattern):
+        (WebCore::BitmapImage::canAnimate):
+        (WebCore::BitmapImage::clearTimer):
+        (WebCore::BitmapImage::startTimer):
+        (WebCore::BitmapImage::stopAnimation):
+        (WebCore::BitmapImage::resetAnimation):
+        (WebCore::BitmapImage::hasSingleSecurityOrigin): Deleted.
+        (WebCore::BitmapImage::filenameExtension): Deleted.
+        (WebCore::BitmapImage::ensureFrameIsCached): Deleted.
+        * platform/graphics/BitmapImage.h:
+        (WebCore::FrameData::FrameData):
+        m_hasAlpha can be initialized with false because it is accessed only in
+        BitmapImage::frameHasAlphaAtIndex() and it is guarded by m_haveMetadata.
+        Both m_haveMetadata and m_hasAlpha are set in BitmapImage constructor
+        and in BitmapImage::cacheFrame().
+        
+        (WebCore::FrameData::~FrameData):
+        (WebCore::FrameData::clear):
+        * platform/graphics/Icon.h:
+        * platform/graphics/Image.h:
+        (WebCore::Image::nativeImage):
+        (WebCore::Image::nativeImageOfSize):
+        (WebCore::Image::framesNativeImages):
+        (WebCore::Image::orientationForCurrentFrame): Deleted.
+        (WebCore::Image::getCGImageRef): Deleted.
+        (WebCore::Image::getFirstCGImageRefOfSize): Deleted.
+        (WebCore::Image::getCGImageArray): Deleted.
+        * platform/graphics/ImageSource.cpp:
+        (WebCore::ImageSource::calculateMaximumSubsamplingLevel):
+        (WebCore::ImageSource::size):
+        (WebCore::ImageSource::sizeRespectingOrientation):
+        * platform/graphics/ImageSource.h:
+        * platform/graphics/MediaPlayer.h:
+        * platform/graphics/NativeImage.h: Added.
+        * platform/graphics/NativeImagePtr.h: Removed.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::updatePausedImage):
+        * platform/graphics/cairo/BitmapImageCairo.cpp: Removed.
+        * platform/graphics/cairo/NativeImageCairo.cpp: Added.
+        (WebCore::nativeImageSize):
+        (WebCore::nativeImageHasAlpha):
+        (WebCore::nativeImageSinglePixelSolidColor):
+        (WebCore::subsamplingScale):
+        (WebCore::drawNativeImage):
+        (WebCore::clearNativeImageSubImages):
+        * platform/graphics/cg/BitmapImageCG.cpp: Removed.
+        * platform/graphics/cg/ImageDecoderCG.cpp:
+        (WebCore::ImageDecoder::size):
+        * platform/graphics/cg/ImageDecoderCG.h:
+        * platform/graphics/cg/NativeImageCG.cpp: Added.
+        (WebCore::nativeImageSize):
+        (WebCore::nativeImageHasAlpha):
+        (WebCore::nativeImageSinglePixelSolidColor):
+        (WebCore::subsamplingScale):
+        (WebCore::drawNativeImage):
+        (WebCore::clearNativeImageSubImages):
+        * platform/graphics/cg/PatternCG.cpp:
+        (WebCore::Pattern::createPlatformPattern):
+        * platform/graphics/cocoa/TextTrackRepresentationCocoa.mm:
+        (TextTrackRepresentationCocoa::update):
+        * platform/graphics/mac/ImageMac.mm:
+        (WebCore::BitmapImage::getTIFFRepresentation):
+        * platform/mediastream/mac/MockRealtimeVideoSourceMac.mm:
+        (WebCore::MockRealtimeVideoSourceMac::updatePlatformLayer):
+        (WebCore::MockRealtimeVideoSourceMac::updateSampleBuffer):
+        * platform/win/DragImageCGWin.cpp:
+        (WebCore::createDragImageFromImage):
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Parsing empty URLs with a base URL should return the base URL
+        https://bugs.webkit.org/show_bug.cgi?id=161777
+
+        Reviewed by Tim Horton.
+
+        Covered by an API test and progress towards passing all web platform tests when using URLParser.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser failures should preserve the original input string
+        https://bugs.webkit.org/show_bug.cgi?id=161769
+
+        Reviewed by Tim Horton.
+
+        No new tests, but covered by updates to API tests.
+        This also represents many newly passing web platform tests when using URLParser.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::failure):
+        (WebCore::URLParser::parse):
+        * platform/URLParser.h:
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse URLs with a user but no password
+        https://bugs.webkit.org/show_bug.cgi?id=161773
+
+        Reviewed by Brady Eidson.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parseAuthority):
+
 2016-09-08  Alex Christensen  <achristensen@webkit.org>
 
         Fix URLs after r205669.

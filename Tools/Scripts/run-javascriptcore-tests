@@ -276,7 +276,8 @@ sub runJSCStressTests
             "JSTests/typeProfiler.yaml",
             "JSTests/controlFlowProfiler.yaml",
             "JSTests/es6.yaml",
-            "JSTests/modules.yaml");
+            "JSTests/modules.yaml",
+            "JSTests/ChakraCore.yaml");
     }
 
     if ($runMozillaTests) {

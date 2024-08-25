@@ -1,3 +1,243 @@
+2016-09-10  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Apple.com keynote does not display media controls
+        https://bugs.webkit.org/show_bug.cgi?id=161833
+        <rdar://problem/28230123>
+
+        Reviewed by Tim Horton.
+
+        New unit test verifying that wide videos (~2 aspect ratio) still get media controls.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/wide-autoplaying-video-with-audio.html: Added.
+
+2016-09-09  Tim Horton  <timothy_horton@apple.com>
+
+        WKThumbnailView should expose a mode where it can be reparented without resnapshotting
+        https://bugs.webkit.org/show_bug.cgi?id=161828
+        <rdar://problem/28229756>
+
+        Reviewed by Alex Christensen.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2/WKThumbnailView.mm: Added.
+        (-[SnapshotSizeObserver observeValueForKeyPath:ofObject:change:context:]):
+        (TestWebKitAPI::didFinishLoadForFrame):
+        (TestWebKitAPI::setPageLoaderClient):
+        (TestWebKitAPI::TEST):
+        Add a test ensuring that this behaves correctly.
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Keep track of cannot-be-a-base-url according to spec
+        https://bugs.webkit.org/show_bug.cgi?id=161830
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        Fix API tests after r205774.
+        https://bugs.webkit.org/show_bug.cgi?id=161820
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+        I had committed the wrong expected path in one case. The functionality is correct.
+
+2016-09-09  Michael Saboff  <msaboff@apple.com>
+
+        Unreviewed, rolling r205759 back in with a fix.
+
+        An expectation file, JSTests/ChakraCore/test/Lib/tostring.baseline-jsc,
+        should be named "toString.baseline-jsc".  For systems with case-insensitive
+        filesystems, the wrong name isn't an issue.  That rename is part of this
+        fix.
+
+        * Scripts/run-javascriptcore-tests:
+        (runJSCStressTests):
+
+2016-09-09  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Unreviewed. Added myself to the list of committers.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should convert ASCII hosts to lowercase
+        https://bugs.webkit.org/show_bug.cgi?id=161820
+
+        Reviewed by Geoffrey Garen.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r205759.
+
+        This change broke all JSC tests
+
+        Reverted changeset:
+
+        "Add ChakraCore tests to run-javascriptcore-tests"
+        https://bugs.webkit.org/show_bug.cgi?id=161808
+        http://trac.webkit.org/changeset/205759
+
+2016-09-09  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Revert r205770 because Ricky is already a committer.
+
+        Unreviewed.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-09-09  Ricky Mondello  <rmondello@apple.com>
+
+        Unreviewed. Added myself to the list of committers.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Fix and optimize parsing file URLs ending with a host but no slash
+        https://bugs.webkit.org/show_bug.cgi?id=161815
+
+        Reviewed by Geoffrey Garen.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-08  Dean Jackson  <dino@apple.com>
+
+        Expose Apple Pencil data to Touch events
+        https://bugs.webkit.org/show_bug.cgi?id=161783
+        <rdar://problem/28218898>
+
+        Reviewed by Beth Dakin.
+
+        The values that IOHID expects are different from their
+        documentation, and from what UITouch interprets. Tweak
+        incoming data so it will produce the output we expect.
+
+        * WebKitTestRunner/ios/HIDEventGenerator.mm:
+        (-[HIDEventGenerator stylusDownAtPoint:azimuthAngle:altitudeAngle:pressure:]):
+        (-[HIDEventGenerator stylusMoveToPoint:azimuthAngle:altitudeAngle:pressure:]):
+
+2016-09-09  JF Bastien  <jfbastien@apple.com>
+
+        Unreviewed. Added myself to the list of committers.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-09-09  Michael Saboff  <msaboff@apple.com>
+
+        Add ChakraCore tests to run-javascriptcore-tests
+        https://bugs.webkit.org/show_bug.cgi?id=161808
+
+        Reviewed by Saam Barati.
+
+        Added ChakraCore tests to the default list of tests to run.
+
+        * Scripts/run-javascriptcore-tests:
+        (runJSCStressTests):
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Handle \ in path according to spec
+        https://bugs.webkit.org/show_bug.cgi?id=161805
+
+        Reviewed by Andy Estes.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse URLs with non-special schemes
+        https://bugs.webkit.org/show_bug.cgi?id=161786
+
+        Reviewed by Andy Estes.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-08  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [WTF] HashTable's rehash is not compatible to Ref<T> and ASan
+        https://bugs.webkit.org/show_bug.cgi?id=161763
+
+        Reviewed by Mark Lam.
+
+        Add tests that inserts many Ref<>s. It incurs HashTable::rehash, and we can ensure
+        that ASan crash does not occur with this patch.
+
+        * TestWebKitAPI/Tests/WTF/HashMap.cpp:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WTF/HashSet.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Handle \ in paths of special URLs according to spec
+        https://bugs.webkit.org/show_bug.cgi?id=161781
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-08  Simon Fraser  <simon.fraser@apple.com>
+
+        Update the content-animation.plan file to run css-accelerated-animation.html
+        and pull SVN revision r205680.
+
+        * Scripts/webkitpy/benchmark_runner/data/plans/content-animation.plan:
+
+2016-09-08  Simon Fraser  <simon.fraser@apple.com>
+
+        Add a content-animation test with accelerated CSS animations
+        https://bugs.webkit.org/show_bug.cgi?id=161776
+
+        Reviewed by Dean Jackson.
+
+        * Scripts/webkitpy/benchmark_runner/data/patches/ContentAnimation.patch:
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Parsing empty URLs with a base URL should return the base URL
+        https://bugs.webkit.org/show_bug.cgi?id=161777
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser failures should preserve the original input string
+        https://bugs.webkit.org/show_bug.cgi?id=161769
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+        (TestWebKitAPI::shouldFail):
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse URLs with a user but no password
+        https://bugs.webkit.org/show_bug.cgi?id=161773
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
 2016-09-08  Alex Christensen  <achristensen@webkit.org>
 
         URLParser should parse ports after IPv4 and IPv6 hosts

@@ -1,3 +1,206 @@
+2016-09-08  Keith Miller  <keith_miller@apple.com>
+
+        WASM should support if-then-else
+        https://bugs.webkit.org/show_bug.cgi?id=161778
+
+        Reviewed by Michael Saboff.
+
+        This patch makes some major changes to the way that the WASM
+        function parser works. First, the control stack has been moved
+        from the parser's context to the parser itself. This simplifies
+        the way that the parser works and allows us to make the decoder
+        iterative rather than recursive. Since the control stack has been
+        moved to the parser, any context operation that refers to some
+        block now receives that block by reference.
+
+        For any if block, regardless of whether or not it is an
+        if-then-else or not, we will allocate both the entire control flow
+        diamond. This is not a major issue in the if-then case since B3
+        will immediately cleanup these blocks. In order to support if-then
+        and if-then-else we needed to be able to distinguish what the type
+        of the top block on the control stack is. This will be necessary
+        when validating the else opcode in the future. In the B3 IR
+        generator we decide to the type of the block strictly by the
+        shape.
+
+        Currently, if blocks don't handle passed and returned stack values
+        correctly. I plan to fix this when I add support for the block
+        signatures. See: https://github.com/WebAssembly/design/pull/765
+
+        * testWASM.cpp:
+        (runWASMTests):
+        * wasm/WASMB3IRGenerator.cpp:
+        (dumpProcedure):
+        (JSC::WASM::parseAndCompile):
+        * wasm/WASMB3IRGenerator.h:
+        * wasm/WASMFunctionParser.h:
+        (JSC::WASM::FunctionParser<Context>::parseBlock):
+        (JSC::WASM::FunctionParser<Context>::parseExpression):
+        (JSC::WASM::FunctionParser<Context>::parseUnreachableExpression):
+        * wasm/WASMOps.h:
+
+2016-09-09  Filip Pizlo  <fpizlo@apple.com>
+
+        jsc.cpp should call initializeMainThread() to make sure that GC thread assertions work
+        https://bugs.webkit.org/show_bug.cgi?id=161801
+
+        Reviewed by Keith Miller.
+        
+        The GC has debug assertions that certain things don't happen on GC threads. Those assertions
+        are no-ops unless initializeGCThreads() is called, and I think the most canonical way to do
+        that is to call initializeMainThread().
+
+        * jsc.cpp:
+        (jscmain):
+
+2016-09-09  Saam Barati  <sbarati@apple.com>
+
+        Make hasOwnProperty ALWAYS_INLINE
+        https://bugs.webkit.org/show_bug.cgi?id=161775
+
+        Reviewed by Ryosuke Niwa.
+
+        Speedometer spends around 2.5% of its time in hasOwnProperty.
+        Let's reduce the overhead of calling that function by marking
+        it as inline. Also, it's likely that the function will call into
+        JSObject::getOwnPropertySlot. I added a check to see if that's
+        the function we're calling, if it is, we do a direct call instead
+        of an indirect call.
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::hasOwnProperty): Deleted.
+        * runtime/JSObjectInlines.h:
+        (JSC::JSObject::hasOwnProperty):
+
+2016-09-09  Filip Pizlo  <fpizlo@apple.com>
+
+        HashMapImpl needs to m_buffer.clear() in its constructor
+        https://bugs.webkit.org/show_bug.cgi?id=161796
+
+        Reviewed by Keith Miller.
+        
+        This is the second time that I'm fixing a bug because AuxiliaryBarrier does not initialize
+        itself. That seemed like a good idea because maybe sometimes the user knows better how to
+        initialize it. But, it's not worth it if it's a constant source of bugs.
+        
+        So, I'm fixing it for good by making AuxiliaryBarrier::AuxiliaryBarrier() initialize its
+        m_value.
+
+        * runtime/AuxiliaryBarrier.h:
+        (JSC::AuxiliaryBarrier::AuxiliaryBarrier):
+        * runtime/DirectArguments.cpp:
+        (JSC::DirectArguments::DirectArguments):
+
+2016-09-09  Youenn Fablet  <youenn@apple.com>
+
+        ASSERTION FAILED: promise.inherits(JSPromise::info())
+        https://bugs.webkit.org/show_bug.cgi?id=161632
+        <rdar://problem/28184743>
+
+        Reviewed by Mark Lam.
+
+        * runtime/JSPromiseDeferred.cpp:
+        (JSC::JSPromiseDeferred::create): Returning null if promise object is not created.
+
+2016-09-08  Filip Pizlo  <fpizlo@apple.com>
+
+        Heap::isMarked() shouldn't pay the price of concurrent lazy flipping
+        https://bugs.webkit.org/show_bug.cgi?id=161760
+
+        Reviewed by Mark Lam.
+        
+        To fix a race condition in marking, I made Heap::isMarked() and Heap::isLive() atomic by
+        using flipIfNecessaryConcurrently() instead of flipIfNecessary().
+        
+        This introduces three unnecessary overheads:
+        
+        - isLive() is not called by marking, so that change was not necessary.
+        
+        - isMarked() gets calls many times outside of marking, so it shouldn't always do the
+          concurrent thing. This adds isMarkedConcurrently() for use in marking, and reverts
+          isMarked().
+        
+        - isMarked() and isMarkedConcurrently() don't actually have to do the lazy flip. They can
+          return false if the flip is necessary.
+        
+        I added a bunch of debug assertions to make sure that isLive() and isMarked() are not called
+        during marking.
+        
+        If we needed to, we could remove most of the calls to isMarkedConcurrently(). As a kind of
+        optimization, CodeBlock does an initial fixpoint iteration during marking, and so all of the
+        code called from CodeBlock's fixpoint iterator needs to use isMarkedConcurrently(). But we
+        could probably arrange for CodeBlock only do fixpoint iterating during the weak reference
+        thing.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::visitWeakly):
+        (JSC::CodeBlock::shouldJettisonDueToOldAge):
+        (JSC::shouldMarkTransition):
+        (JSC::CodeBlock::propagateTransitions):
+        (JSC::CodeBlock::determineLiveness):
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::propagateTransitions):
+        * heap/Heap.h:
+        * heap/HeapInlines.h:
+        (JSC::Heap::isLive):
+        (JSC::Heap::isMarked):
+        (JSC::Heap::isMarkedConcurrently):
+        * heap/MarkedBlock.cpp:
+        (JSC::MarkedBlock::flipIfNecessarySlow):
+        (JSC::MarkedBlock::flipIfNecessaryConcurrentlySlow):
+        (JSC::MarkedBlock::needsFlip):
+        * heap/MarkedBlock.h:
+        (JSC::MarkedBlock::needsFlip):
+        (JSC::MarkedBlock::flipIfNecessary):
+        (JSC::MarkedBlock::flipIfNecessaryConcurrently):
+        * heap/SlotVisitor.cpp:
+        (JSC::SlotVisitor::appendToMarkStack):
+        (JSC::SlotVisitor::markAuxiliary):
+        (JSC::SlotVisitor::visitChildren):
+        * runtime/Structure.cpp:
+        (JSC::Structure::isCheapDuringGC):
+        (JSC::Structure::markIfCheap):
+
+2016-09-08  Saam Barati  <sbarati@apple.com>
+
+        We should inline operationConvertJSValueToBoolean into JIT code
+        https://bugs.webkit.org/show_bug.cgi?id=161729
+
+        Reviewed by Filip Pizlo.
+
+        This patch introduces an AssemblyHelpers emitter function
+        that replaces operationConvertJSValueToBoolean. This operation
+        was showing up when I was doing performance analysis for the
+        speedometer benchmark. I saw that it was spending about 1% of
+        its time in this function. Hopefully this patch can help us speedup
+        up speedometer by a little bit.
+
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compileLogicalNot):
+        (JSC::DFG::SpeculativeJIT::emitBranch):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compileLogicalNot):
+        (JSC::DFG::SpeculativeJIT::emitBranch):
+        * jit/AssemblyHelpers.cpp:
+        (JSC::AssemblyHelpers::emitConvertValueToBoolean):
+        * jit/AssemblyHelpers.h:
+        (JSC::AssemblyHelpers::emitAllocateDestructibleObject): Deleted.
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileSlowCases):
+        * jit/JIT.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_jfalse):
+        (JSC::JIT::emit_op_jtrue):
+        (JSC::JIT::emitSlow_op_jfalse): Deleted.
+        (JSC::JIT::emitSlow_op_jtrue): Deleted.
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_jfalse):
+        (JSC::JIT::emit_op_jtrue):
+        (JSC::JIT::emitSlow_op_jfalse): Deleted.
+        (JSC::JIT::emitSlow_op_jtrue): Deleted.
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+
 2016-09-08  Chris Dumez  <cdumez@apple.com>
 
         Align proto getter / setter behavior with other browsers

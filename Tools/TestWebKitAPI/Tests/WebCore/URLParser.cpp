@@ -157,12 +157,17 @@ TEST_F(URLParserTest, Basic)
     checkURL("file:////", {"file", "", "", "", 0, "//", "", "", "file:////"}); // This matches Firefox and URL::parse which I believe are correct, but not Chrome.
     checkURL("file:/path", {"file", "", "", "", 0, "/path", "", "", "file:///path"});
     checkURL("file://host/path", {"file", "", "", "host", 0, "/path", "", "", "file://host/path"});
+    checkURL("file://host", {"file", "", "", "host", 0, "/", "", "", "file://host/"});
+    checkURL("file://host/", {"file", "", "", "host", 0, "/", "", "", "file://host/"});
     checkURL("file:///path", {"file", "", "", "", 0, "/path", "", "", "file:///path"});
     checkURL("file:////path", {"file", "", "", "", 0, "//path", "", "", "file:////path"});
     checkURL("file://localhost/path", {"file", "", "", "", 0, "/path", "", "", "file:///path"});
     checkURL("file://localhost/", {"file", "", "", "", 0, "/", "", "", "file:///"});
     checkURL("file://localhost", {"file", "", "", "", 0, "/", "", "", "file:///"});
-    // FIXME: check file://lOcAlHoSt etc.
+    checkURL("file://lOcAlHoSt", {"file", "", "", "", 0, "/", "", "", "file:///"});
+    checkURL("file://lOcAlHoSt/", {"file", "", "", "", 0, "/", "", "", "file:///"});
+    checkURL("file:/pAtH/", {"file", "", "", "", 0, "/pAtH/", "", "", "file:///pAtH/"});
+    checkURL("file:/pAtH", {"file", "", "", "", 0, "/pAtH", "", "", "file:///pAtH"});
     checkURL("file:?query", {"file", "", "", "", 0, "/", "query", "", "file:///?query"});
     checkURL("file:#fragment", {"file", "", "", "", 0, "/", "", "fragment", "file:///#fragment"});
     checkURL("file:?query#fragment", {"file", "", "", "", 0, "/", "query", "fragment", "file:///?query#fragment"});
@@ -192,6 +197,11 @@ TEST_F(URLParserTest, Basic)
     checkURL("http://host:123", {"http", "", "", "host", 123, "/", "", "", "http://host:123/"});
     checkURL("http://host:", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
     checkURL("http://hos\tt\n:\t1\n2\t3\t/\npath", {"http", "", "", "host", 123, "/path", "", "", "http://host:123/path"});
+    checkURL("http://user@example.org/path3", {"http", "user", "", "example.org", 0, "/path3", "", "", "http://user@example.org/path3"});
+    checkURL("sc:/pa/pa", {"sc", "", "", "", 0, "/pa/pa", "", "", "sc:/pa/pa"});
+    checkURL("sc:/pa", {"sc", "", "", "", 0, "/pa", "", "", "sc:/pa"});
+    checkURL("sc:/pa/", {"sc", "", "", "", 0, "/pa/", "", "", "sc:/pa/"});
+    checkURL("sc://pa/", {"sc", "", "", "pa", 0, "/", "", "", "sc://pa/"});
 
     // This disagrees with the web platform test for http://:@www.example.com but agrees with Chrome and URL::parse,
     // and Firefox fails the web platform test differently. Maybe the web platform test ought to be changed.
@@ -252,6 +262,16 @@ TEST_F(URLParserTest, ParseRelative)
     checkRelativeURL("http://:@host", "about:blank", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
     checkRelativeURL("http://foo.com/\\@", "http://example.org/foo/bar", {"http", "", "", "foo.com", 0, "//@", "", "", "http://foo.com//@"});
     checkRelativeURL("\\@", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/@", "", "", "http://example.org/@"});
+    checkRelativeURL("/path3", "http://user@example.org/path1/path2", {"http", "user", "", "example.org", 0, "/path3", "", "", "http://user@example.org/path3"});
+    checkRelativeURL("", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "", "", "http://example.org/foo/bar"});
+    checkRelativeURL("  \a  \t\n", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "", "", "http://example.org/foo/bar"});
+    checkRelativeURL(":foo.com\\", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/:foo.com/", "", "", "http://example.org/foo/:foo.com/"});
+    checkRelativeURL("http:/example.com/", "about:blank", {"http", "", "", "example.com", 0, "/", "", "", "http://example.com/"});
+    checkRelativeURL("http:example.com/", "about:blank", {"http", "", "", "example.com", 0, "/", "", "", "http://example.com/"});
+    checkRelativeURL("http:\\\\foo.com\\", "http://example.org/foo/bar", {"http", "", "", "foo.com", 0, "/", "", "", "http://foo.com/"});
+    checkRelativeURL("http:\\\\foo.com/", "http://example.org/foo/bar", {"http", "", "", "foo.com", 0, "/", "", "", "http://foo.com/"});
+    checkRelativeURL("http:\\\\foo.com", "http://example.org/foo/bar", {"http", "", "", "foo.com", 0, "/", "", "", "http://foo.com/"});
+    checkRelativeURL("http://ExAmPlE.CoM", "http://other.com", {"http", "", "", "example.com", 0, "/", "", "", "http://example.com/"});
 }
 
 static void checkURLDifferences(const String& urlString, const ExpectedParts& partsNew, const ExpectedParts& partsOld)
@@ -376,36 +396,45 @@ TEST_F(URLParserTest, ParserDifferences)
     checkRelativeURLDifferences(wideString(L"#β"), "http://example.org/foo/bar",
         {"http", "", "", "example.org", 0, "/foo/bar", "", wideString(L"β"), wideString(L"http://example.org/foo/bar#β")},
         {"http", "", "", "example.org", 0, "/foo/bar", "", "%CE%B2", "http://example.org/foo/bar#%CE%B2"});
-    checkURLDifferences("http://@",
-        {"", "", "", "", 0, "", "", "", ""},
-        {"", "", "", "", 0, "", "", "", "http://@"});
     checkURLDifferences("http://",
-        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://"},
         {"http", "", "", "", 0, "/", "", "", "http:/"});
     checkRelativeURLDifferences("//", "https://www.webkit.org/path",
-        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "//"},
         {"https", "", "", "", 0, "/", "", "", "https:/"});
     checkURLDifferences("http://127.0.0.1:65536/path",
-        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://127.0.0.1:65536/path"},
         {"http", "", "", "127.0.0.1", 65535, "/path", "", "", "http://127.0.0.1:65536/path"});
-    checkURLDifferences("http://host:abc",
-        {"", "", "", "", 0, "", "", "", ""},
-        {"", "", "", "", 0, "", "", "", "http://host:abc"});
     checkURLDifferences("http://host:65536",
-        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://host:65536"},
         {"http", "", "", "host", 65535, "/", "", "", "http://host:65536/"});
-    checkURLDifferences("http://127.0.0.1:abc",
-        {"", "", "", "", 0, "", "", "", ""},
-        {"", "", "", "", 0, "", "", "", "http://127.0.0.1:abc"});
     checkURLDifferences("http://127.0.0.1:65536",
-        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://127.0.0.1:65536"},
         {"http", "", "", "127.0.0.1", 65535, "/", "", "", "http://127.0.0.1:65536/"});
-    checkURLDifferences("http://[0:f::f:f:0:0]:abc",
-        {"", "", "", "", 0, "", "", "", ""},
-        {"", "", "", "", 0, "", "", "", "http://[0:f::f:f:0:0]:abc"});
     checkURLDifferences("http://[0:f::f:f:0:0]:65536",
-        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://[0:f::f:f:0:0]:65536"},
         {"http", "", "", "[0:f::f:f:0:0]", 65535, "/", "", "", "http://[0:f::f:f:0:0]:65536/"});
+    checkRelativeURLDifferences(":foo.com\\", "notspecial://example.org/foo/bar",
+        {"notspecial", "", "", "example.org", 0, "/foo/:foo.com\\", "", "", "notspecial://example.org/foo/:foo.com\\"},
+        {"notspecial", "", "", "example.org", 0, "/foo/:foo.com/", "", "", "notspecial://example.org/foo/:foo.com/"});
+    checkURLDifferences("sc://pa",
+        {"sc", "", "", "pa", 0, "/", "", "", "sc://pa/"},
+        {"sc", "", "", "pa", 0, "", "", "", "sc://pa"});
+    checkRelativeURLDifferences("notspecial:\\\\foo.com\\", "http://example.org/foo/bar",
+        {"notspecial", "", "", "", 0, "\\\\foo.com\\", "", "", "notspecial:\\\\foo.com\\"},
+        {"notspecial", "", "", "foo.com", 0, "/", "", "", "notspecial://foo.com/"});
+    checkRelativeURLDifferences("notspecial:\\\\foo.com/", "http://example.org/foo/bar",
+        {"notspecial", "", "", "", 0, "\\\\foo.com/", "", "", "notspecial:\\\\foo.com/"},
+        {"notspecial", "", "", "foo.com", 0, "/", "", "", "notspecial://foo.com/"});
+    checkRelativeURLDifferences("notspecial:\\\\foo.com", "http://example.org/foo/bar",
+        {"notspecial", "", "", "", 0, "\\\\foo.com", "", "", "notspecial:\\\\foo.com"},
+        {"notspecial", "", "", "foo.com", 0, "", "", "", "notspecial://foo.com"});
+    checkURLDifferences("file://notuser:notpassword@test",
+        {"", "", "", "", 0, "", "", "", "file://notuser:notpassword@test"},
+        {"file", "notuser", "notpassword", "test", 0, "/", "", "", "file://notuser:notpassword@test/"});
+    checkURLDifferences("file://notuser:notpassword@test/",
+        {"", "", "", "", 0, "", "", "", "file://notuser:notpassword@test/"},
+        {"file", "notuser", "notpassword", "test", 0, "/", "", "", "file://notuser:notpassword@test/"});
     
     // This behavior matches Chrome and Firefox, but not WebKit using URL::parse.
     // The behavior of URL::parse is clearly wrong because reparsing file://path would make path the host.
@@ -413,6 +442,12 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("file:path",
         {"file", "", "", "", 0, "/path", "", "", "file:///path"},
         {"file", "", "", "", 0, "path", "", "", "file://path"});
+    checkURLDifferences("file:pAtH",
+        {"file", "", "", "", 0, "/pAtH", "", "", "file:///pAtH"},
+        {"file", "", "", "", 0, "pAtH", "", "", "file://pAtH"});
+    checkURLDifferences("file:pAtH/",
+        {"file", "", "", "", 0, "/pAtH/", "", "", "file:///pAtH/"},
+        {"file", "", "", "", 0, "pAtH/", "", "", "file://pAtH/"});
     
     // FIXME: Fix and test incomplete percent encoded characters in the middle and end of the input string.
     // FIXME: Fix and test percent encoded upper case characters in the host.
@@ -480,39 +515,60 @@ TEST_F(URLParserTest, DefaultPort)
     checkURLDifferences("wss://host:444",
         {"wss", "", "", "host", 444, "/", "", "", "wss://host:444/"},
         {"wss", "", "", "host", 444, "", "", "", "wss://host:444"});
-    
-    // FIXME: Fix and check unknown schemes with ports, as well as ftps.
 
-    // Firefox returns http://a:@/ Chrome fails, URL::parse fails
-    checkRelativeURLDifferences("http://a:@", "about:blank",
-        {"", "", "", "", 0, "", "", "", ""},
-        {"", "", "", "", 0, "", "", "", "http://a:@"});
-    
-    checkRelativeURLDifferences("http://:@", "about:blank",
-        {"", "", "", "", 0, "", "", "", ""},
-        {"", "", "", "", 0, "", "", "", "http://:@"});
-    checkRelativeURLDifferences("http://:b@", "about:blank",
-        {"", "", "", "", 0, "", "", "", ""},
-        {"", "", "", "", 0, "", "", "", "http://:b@"});
-    checkURLDifferences("http://a:@",
-        {"", "", "", "", 0, "", "", "", ""},
-        {"", "", "", "", 0, "", "", "", "http://a:@"});
-    checkURLDifferences("http://:b@",
-        {"", "", "", "", 0, "", "", "", ""},
-        {"", "", "", "", 0, "", "", "", "http://:b@"});
+    // 990 is the default ftps port in URL::parse, but it's not in the URL spec. Maybe it should be.
+    checkURL("ftps://host:990/", {"ftps", "", "", "host", 990, "/", "", "", "ftps://host:990/"});
+    checkURL("ftps://host:991/", {"ftps", "", "", "host", 991, "/", "", "", "ftps://host:991/"});
+    checkURLDifferences("ftps://host:990",
+        {"ftps", "", "", "host", 990, "/", "", "", "ftps://host:990/"},
+        {"ftps", "", "", "host", 990, "", "", "", "ftps://host:990"});
+    checkURLDifferences("ftps://host:991",
+        {"ftps", "", "", "host", 991, "/", "", "", "ftps://host:991/"},
+        {"ftps", "", "", "host", 991, "", "", "", "ftps://host:991"});
+
+    checkURL("unknown://host:80/", {"unknown", "", "", "host", 80, "/", "", "", "unknown://host:80/"});
+    checkURL("unknown://host:81/", {"unknown", "", "", "host", 81, "/", "", "", "unknown://host:81/"});
+    checkURLDifferences("unknown://host:80",
+        {"unknown", "", "", "host", 80, "/", "", "", "unknown://host:80/"},
+        {"unknown", "", "", "host", 80, "", "", "", "unknown://host:80"});
+    checkURLDifferences("unknown://host:81",
+        {"unknown", "", "", "host", 81, "/", "", "", "unknown://host:81/"},
+        {"unknown", "", "", "host", 81, "", "", "", "unknown://host:81"});
 }
     
 static void shouldFail(const String& urlString)
 {
     URLParser parser;
     auto invalidURL = parser.parse(urlString);
-    EXPECT_TRUE(URLParser::allValuesEqual(invalidURL, { }));
+    checkURL(urlString, {"", "", "", "", 0, "", "", "", urlString});
+}
+
+static void shouldFail(const String& urlString, const String& baseString)
+{
+    URLParser parser;
+    auto invalidURL = parser.parse(urlString);
+    checkRelativeURL(urlString, baseString, {"", "", "", "", 0, "", "", "", urlString});
 }
     
 TEST_F(URLParserTest, ParserFailures)
 {
     shouldFail("    ");
     shouldFail("");
+    shouldFail("http://127.0.0.1:abc");
+    shouldFail("http://host:abc");
+    shouldFail("http://a:@", "about:blank");
+    shouldFail("http://:b@", "about:blank");
+    shouldFail("http://:@", "about:blank");
+    shouldFail("http://a:@");
+    shouldFail("http://:b@");
+    shouldFail("http://@");
+    shouldFail("http://[0:f::f:f:0:0]:abc");
+    shouldFail("../i", "sc:sd");
+    shouldFail("../i", "sc:sd/sd");
+    shouldFail("/i", "sc:sd");
+    shouldFail("/i", "sc:sd/sd");
+    shouldFail("?i", "sc:sd");
+    shouldFail("?i", "sc:sd/sd");
 }
 
 } // namespace TestWebKitAPI

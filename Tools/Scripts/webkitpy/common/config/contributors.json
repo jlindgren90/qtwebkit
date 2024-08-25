@@ -1464,6 +1464,18 @@
             "jeez_"
          ]
       },
+      "JF Bastien" : {
+         "emails" : [
+            "jfbastien@apple.com",
+            "jfb@chromium.org"
+         ],
+         "expertise" : "JavaScript/ECMAScript",
+         "nicks" : [
+             "jfb",
+             "jfb_",
+             "jfbastien"
+         ]
+      },
       "Jia Pu" : {
          "emails" : [
             "jiapu.mail@gmail.com",
@@ -1503,6 +1515,15 @@
          ],
          "nicks" : [
             "joethomas"
+         ]
+      },
+      "Johan K. Jensen" : {
+         "emails" : [
+            "webkit@johanjensen.dk",
+            "johan_jensen@apple.com"
+         ],
+         "nicks" : [
+            "johankj"
          ]
       },
       "John Abd-El-Malek" : {

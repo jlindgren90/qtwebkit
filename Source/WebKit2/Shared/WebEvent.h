@@ -336,6 +336,11 @@ public:
         TouchCancelled
     };
 
+    enum class TouchType {
+        Direct,
+        Stylus
+    };
+
     WebPlatformTouchPoint() { }
     WebPlatformTouchPoint(unsigned identifier, WebCore::IntPoint location, TouchPointState phase)
         : m_identifier(identifier)
@@ -352,6 +357,12 @@ public:
 #if ENABLE(IOS_TOUCH_EVENTS)
     void setForce(double force) { m_force = force; }
     double force() const { return m_force; }
+    void setAltitudeAngle(double altitudeAngle) { m_altitudeAngle = altitudeAngle; }
+    double altitudeAngle() const { return m_altitudeAngle; }
+    void setAzimuthAngle(double azimuthAngle) { m_azimuthAngle = azimuthAngle; }
+    double azimuthAngle() const { return m_azimuthAngle; }
+    void setTouchType(TouchType touchType) { m_touchType = static_cast<uint32_t>(touchType); }
+    TouchType touchType() const { return static_cast<TouchType>(m_touchType); }
 #endif
 
     void encode(IPC::Encoder&) const;
@@ -363,6 +374,9 @@ private:
     uint32_t m_phase;
 #if ENABLE(IOS_TOUCH_EVENTS)
     double m_force { 0 };
+    double m_altitudeAngle { 0 };
+    double m_azimuthAngle { 0 };
+    uint32_t m_touchType { static_cast<uint32_t>(TouchType::Direct) };
 #endif
 };
 
