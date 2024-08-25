@@ -1,3 +1,105 @@
+2016-08-23  Anders Carlsson  <andersca@apple.com>
+
+        Create a phony WebKitLegacy framework that the WebCoreTestSupport dylib can find
+        https://bugs.webkit.org/show_bug.cgi?id=161123
+
+        Reviewed by Dan Bernstein.
+
+        * Configurations/WebCore.xcconfig:
+        Use the WebKitLegacy.tbd file from the phony framework.
+
+        * Configurations/WebCoreTestSupport.xcconfig:
+        Look for WebKitLegacy.framework in the phony framework path.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Add a new phase that creates a phony WebKitLegacy framework.
+
+2016-08-23  Chris Dumez  <cdumez@apple.com>
+
+        Add support for CanvasRenderingContext2D.resetTransform()
+        https://bugs.webkit.org/show_bug.cgi?id=161089
+
+        Reviewed by Simon Fraser.
+
+        Add support for CanvasRenderingContext2D.resetTransform():
+        - https://html.spec.whatwg.org/#dom-context-2d-resettransform
+
+        Firefox and Chrome already support this.
+
+        Tests:
+        imported/blink/fast/canvas/canvas-resetTransform.html
+        imported/w3c/web-platform-tests/2dcontext/transformations/canvas_transformations_reset_001.html
+
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::setTransform):
+        (WebCore::CanvasRenderingContext2D::resetTransform):
+        * html/canvas/CanvasRenderingContext2D.h:
+        * html/canvas/CanvasRenderingContext2D.idl:
+
+2016-08-23  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        REGRESSION: SVG clip-path doesn't work on root <svg>
+        https://bugs.webkit.org/show_bug.cgi?id=129180
+
+        Reviewed by Tim Horton.
+
+        Build the resources cache for the RenderSVGRoot element when it's been
+        inserted in the render tree. Remove the resources cache before removing
+        the RenderSVGRoot from the render tree. No worries for the child <svg>
+        elements since their renderers are of type RenderSVGViewportContainer.
+
+        Tests: svg/clip-path/clip-path-on-svg-003.svg
+               svg/clip-path/clip-path-on-svg-004.svg
+
+        * rendering/svg/RenderSVGRoot.cpp:
+        (WebCore::RenderSVGRoot::insertedIntoTree):
+        (WebCore::RenderSVGRoot::willBeRemovedFromTree):
+        * rendering/svg/RenderSVGRoot.h:
+        These changes are very similar to what we do for adding and removing the
+        child SVG elements in RenderSVGRoot::addChild() and removeChild().
+
+2016-08-23  Chris Dumez  <cdumez@apple.com>
+
+        HTMLAreaElement should have a stringifier
+        https://bugs.webkit.org/show_bug.cgi?id=161105
+
+        Reviewed by Geoffrey Garen.
+
+        HTMLAreaElement should have a stringifier:
+        - https://html.spec.whatwg.org/multipage/embedded-content.html#htmlareaelement
+        - https://html.spec.whatwg.org/multipage/semantics.html#htmlhyperlinkelementutils
+        - http://heycam.github.io/webidl/#idl-stringifiers
+        - http://heycam.github.io/webidl/#es-stringifier
+
+        Chrome and Firefox already support this.
+
+        This patch does the following:
+        - Add support for stringifier on attributes to our bindings generator.
+        - Add stringifier to the HTMLHyperlinkElementUtils.href attribute as
+          per the specification
+        - Drops the explicit toString on HTMLAnchorElement as HTMLAnchorElement
+          implements HTMLHyperlinkElementUtils.
+
+        Test: fast/dom/toString_attributes.html
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateInterface):
+        (AddStringifierOperationIfNeeded):
+        * bindings/scripts/IDLParser.pm:
+        (parseAttributeOrOperationOrIterator):
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::toString): Deleted.
+        * html/HTMLAnchorElement.h:
+        * html/HTMLAnchorElement.idl:
+        * html/HTMLHyperlinkElementUtils.idl:
+
+2016-08-23  Alex Christensen  <achristensen@webkit.org>
+
+        Fix clean Windows build.
+
+        * PlatformWin.cmake:
+        Add another forwarding headers directory.
+
 2016-08-23  Zalan Bujtas  <zalan@apple.com>
 
         ASSERTION FAILED: hasOverflowingCell == this->hasOverflowingCell() in WebCore::RenderTableSection::computeOverflowFromCells
