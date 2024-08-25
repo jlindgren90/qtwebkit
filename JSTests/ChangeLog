@@ -1,3 +1,114 @@
+2016-09-22  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: Function length should be number of parameters before parameters with default values
+        https://bugs.webkit.org/show_bug.cgi?id=162377
+
+        Reviewed by Saam Barati.
+
+        * stress/es6-default-parameters.js:
+        Add our own tests for function lengths with default parameters.
+
+        * test262.yaml:
+        We now pass all dflt-length tests.
+
+2016-09-20  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Do not use EagerRun on tests counting recompilation
+        https://bugs.webkit.org/show_bug.cgi?id=162248
+
+        Reviewed by Geoffrey Garen.
+
+        This patch adds defaultNoEagerRun to all the tests
+        for which recompilation is the symptom of a bug.
+        The reason is that an OSR Exit can be unrelated to the tested
+        nodes when we are running in Eager mode.
+
+        * stress/arith-abs-on-various-types.js:
+        * stress/arith-ceil-on-various-types.js:
+        * stress/arith-clz32-on-various-types.js:
+        * stress/arith-cos-on-various-types.js:
+        * stress/arith-floor-on-various-types.js:
+        * stress/arith-fround-on-various-types.js:
+        * stress/arith-log-on-various-types.js:
+        * stress/arith-round-on-various-types.js:
+        * stress/arith-sin-on-various-types.js:
+        * stress/arith-sqrt-on-various-types.js:
+        * stress/arith-tan-on-various-types.js:
+        * stress/arith-trunc-on-various-types.js:
+
+        * stress/compare-strict-eq-on-various-types.js:
+        (testAllTypesCall):
+        The value 2 came from the other tests.
+        CompareStrictEq supports many more cases, the worst case
+        is bool->int->int52->number->polymorphic.
+
+2016-09-20  Filip Pizlo  <fpizlo@apple.com>
+
+        Make MarkedBlock state tracking support overlapped allocation and marking state
+        https://bugs.webkit.org/show_bug.cgi?id=161581
+
+        Reviewed by Geoffrey Garen.
+        
+        Add a microbenchmark for why we want to reclaim empty blocks from other allocators.
+
+        * microbenchmarks/switching-size-classes.js: Added.
+
+2016-09-20  Saam Barati  <sbarati@apple.com>
+
+        Unreviewed, added test for x86 32-bit failure for HasOwnProperty node in DFG.
+
+        * stress/has-own-property-called-on-non-object.js: Added.
+        (let.objs):
+        (new.String):
+        (foo):
+
+2016-09-20  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Add `typeof value === "symbol"` handling to bytecode compiler
+        https://bugs.webkit.org/show_bug.cgi?id=162253
+
+        Reviewed by Sam Weinig.
+
+        * microbenchmarks/is-symbol-mixed.js: Added.
+        (isSymbol):
+        (i.let.pair.of.list.String):
+        * microbenchmarks/is-symbol.js: Added.
+        (isSymbol):
+
+2016-09-19  Saam Barati  <sbarati@apple.com>
+
+        Make HasOwnProperty faster
+        https://bugs.webkit.org/show_bug.cgi?id=161708
+
+        Reviewed by Geoffrey Garen.
+
+        * microbenchmarks/has-own-property-name-cache.js: Added.
+        (foo):
+        * stress/has-own-property-cache-basics.js: Added.
+        (assert):
+        (foo):
+        * stress/has-own-property-name-cache-string-keys.js: Added.
+        (assert):
+        (foo):
+        * stress/has-own-property-name-cache-symbol-keys.js: Added.
+        (assert):
+        (foo):
+        * stress/has-own-property-name-cache-symbols-and-strings.js: Added.
+        (assert):
+        (foo):
+
+2016-09-19  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Make the rounding-related nodes support any type
+        https://bugs.webkit.org/show_bug.cgi?id=161895
+
+        Reviewed by Geoffrey Garen.
+
+        * stress/arith-ceil-on-various-types.js: Added.
+        * stress/arith-floor-on-various-types.js: Added.
+        * stress/arith-round-on-various-types.js: Added.
+        * stress/arith-trunc-on-various-types.js: Added.
+
 2016-09-18  Yusuke Suzuki  <utatane.tea@gmail.com>
 
         [JSC] Do not need to use defineProperty to define methods for object literals

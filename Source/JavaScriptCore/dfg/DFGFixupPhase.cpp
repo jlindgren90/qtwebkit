@@ -376,24 +376,28 @@ private:
         case ArithFloor:
         case ArithCeil:
         case ArithTrunc: {
-            if (m_graph.unaryArithShouldSpeculateInt32(node, FixupPass)) {
+            if (node->child1()->shouldSpeculateInt32OrBoolean() && m_graph.roundShouldSpeculateInt32(node, FixupPass)) {
                 fixIntOrBooleanEdge(node->child1());
                 insertCheck<Int32Use>(m_indexInBlock, node->child1().node());
                 node->convertToIdentity();
                 break;
             }
-            fixDoubleOrBooleanEdge(node->child1());
+            if (node->child1()->shouldSpeculateNotCell()) {
+                fixDoubleOrBooleanEdge(node->child1());
 
-            if (isInt32OrBooleanSpeculation(node->getHeapPrediction()) && m_graph.roundShouldSpeculateInt32(node, FixupPass)) {
-                node->setResult(NodeResultInt32);
-                if (bytecodeCanIgnoreNegativeZero(node->arithNodeFlags()))
-                    node->setArithRoundingMode(Arith::RoundingMode::Int32);
-                else
-                    node->setArithRoundingMode(Arith::RoundingMode::Int32WithNegativeZeroCheck);
-            } else {
-                node->setResult(NodeResultDouble);
-                node->setArithRoundingMode(Arith::RoundingMode::Double);
-            }
+                if (isInt32OrBooleanSpeculation(node->getHeapPrediction()) && m_graph.roundShouldSpeculateInt32(node, FixupPass)) {
+                    node->setResult(NodeResultInt32);
+                    if (bytecodeCanIgnoreNegativeZero(node->arithNodeFlags()))
+                        node->setArithRoundingMode(Arith::RoundingMode::Int32);
+                    else
+                        node->setArithRoundingMode(Arith::RoundingMode::Int32WithNegativeZeroCheck);
+                } else {
+                    node->setResult(NodeResultDouble);
+                    node->setArithRoundingMode(Arith::RoundingMode::Double);
+                }
+                node->clearFlags(NodeMustGenerate);
+            } else
+                fixEdge<UntypedUse>(node->child1());
             break;
         }
 
@@ -1304,6 +1308,22 @@ private:
             // case we would be able to turn this into a kind of GetByVal.
             
             fixEdge<CellUse>(node->child2());
+            break;
+        }
+
+        case HasOwnProperty: {
+            fixEdge<ObjectUse>(node->child1());
+#if CPU(X86) && USE(JSVALUE32_64)
+            // We don't have enough registers to do anything interesting on x86.
+            fixEdge<UntypedUse>(node->child2());
+#else
+            if (node->child2()->shouldSpeculateString())
+                fixEdge<StringUse>(node->child2());
+            else if (node->child2()->shouldSpeculateSymbol())
+                fixEdge<SymbolUse>(node->child2());
+            else
+                fixEdge<UntypedUse>(node->child2());
+#endif
             break;
         }
 

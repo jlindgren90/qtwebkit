@@ -49,13 +49,9 @@ class FunctionCodeBlock;
 class JSScope;
 class JSWASMModule;
 class LLIntOffsetsExtractor;
+class ModuleProgramCodeBlock;
 class ProgramCodeBlock;
-class ModuleProgramCodeBlock;
-class JSScope;
 class WebAssemblyCodeBlock;
-class ModuleProgramCodeBlock;
-class JSModuleRecord;
-class JSScope;
 
 enum CompilationKind { FirstCompilation, OptimizingCompilation };
 
@@ -661,7 +657,8 @@ public:
     const Identifier& name() { return m_unlinkedExecutable->name(); }
     const Identifier& ecmaName() { return m_unlinkedExecutable->ecmaName(); }
     const Identifier& inferredName() { return m_unlinkedExecutable->inferredName(); }
-    size_t parameterCount() const { return m_unlinkedExecutable->parameterCount(); } // Excluding 'this'!
+    unsigned parameterCount() const { return m_unlinkedExecutable->parameterCount(); } // Excluding 'this'!
+    unsigned functionLength() const { return m_unlinkedExecutable->functionLength(); }
     SourceParseMode parseMode() const { return m_unlinkedExecutable->parseMode(); }
     JSParserCommentMode commentMode() const { return m_unlinkedExecutable->commentMode(); }
     const SourceCode& classSource() const { return m_unlinkedExecutable->classSource(); }

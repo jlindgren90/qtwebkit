@@ -1,3 +1,347 @@
+2016-09-22  Daniel Bates  <dabates@apple.com>
+
+        Remove more ENABLE(TEXT_AUTOSIZING) code
+        https://bugs.webkit.org/show_bug.cgi?id=162456
+
+        Reviewed by Simon Fraser.
+
+        * UIProcess/API/efl/ewk_settings.cpp:
+        (ewk_settings_text_autosizing_enabled_set):
+        (ewk_settings_text_autosizing_enabled_get):
+        * UIProcess/API/efl/tests/test_ewk2_settings.cpp:
+        (TEST_F):
+
+2016-09-22  Jonathan Bedard  <jbedard@apple.com>
+
+        Automatic Text Replacement Testing in WebKit2
+        https://bugs.webkit.org/show_bug.cgi?id=161919
+
+        Reviewed by Ryosuke Niwa.
+
+        Implemented test hooks for text replacement for WebKit2.
+        Note that spell checking has not been implemented, so most tests which use text replacement still fail.
+
+        * UIProcess/API/C/WKTextChecker.cpp: Added #ifdefs to include file for iOS and Mac.
+        (WKTextCheckerSetTestingMode): Added.
+        * UIProcess/API/C/WKTextChecker.h: Added #ifdefs to include file for iOS and Mac.
+        * UIProcess/TextChecker.h: Added hooks to bypass writing to NSUserDefaults.
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::toggleSmartInsertDelete):  New message to toggle TextChecker flag.
+        (WebKit::WebPageProxy::toggleAutomaticQuoteSubstitution): Ditto.
+        (WebKit::WebPageProxy::toggleAutomaticLinkDetection): Ditto.
+        (WebKit::WebPageProxy::toggleAutomaticDashSubstitution): Ditto.
+        (WebKit::WebPageProxy::toggleAutomaticTextReplacement): Ditto.
+        * UIProcess/WebPageProxy.h: Added messages to toggle TextChecker flags.
+        * UIProcess/WebPageProxy.messages.in: Ditto.
+        * UIProcess/efl/TextCheckerEfl.cpp: Implemented new TextChecker hooks for non-Cocoa platforms.
+        * UIProcess/gtk/TextCheckerGtk.cpp: Ditto.
+        (WebKit::TextChecker::mutableState): Ditto.
+        * UIProcess/ios/TextCheckerIOS.mm: Implemented new TextChecker hooks.
+        (WebKit::TextChecker::mutableState): Allow modification of text checker without writing to NSUserDefaults.
+        (WebKit::TextChecker::state): Call mutableState.
+        (WebKit::TextChecker::accessSmartInsertDeleteEnabled): Dummy function.
+        * UIProcess/mac/TextCheckerMac.mm:
+        (WebKit::refresh): Reload TextChecker configuration from NSUserDefaults.
+        (WebKit::TextChecker::mutableState): Allow modification of text checker without writing to NSUserDefaults.
+        (WebKit::TextChecker::state): Call mutableState().
+        (WebKit::TextChecker::accessSmartInsertDeleteEnabled): Allow toggling of smartInsertDeleteEnabled without writing to NSUserDefaults.
+        (WebKit::initializeState): Deleted.
+        * WebProcess/InjectedBundle/API/c/WKBundle.cpp:
+        (WKBundleSetAutomaticLinkDetectionEnabled): Deleted.
+        * WebProcess/InjectedBundle/API/c/WKBundlePrivate.h: Removed WKBundleSetAutomaticLinkDetectionEnabled.
+        * WebProcess/InjectedBundle/InjectedBundle.cpp:
+        (WebKit::InjectedBundle::setAutomaticLinkDetectionEnabled): Deleted.
+        * WebKit2.xcodeproj/project.pbxproj: Added WKTextChecker to Mac and iOS.
+        * WebProcess/InjectedBundle/InjectedBundle.h: Remove setAutomaticLinkDetectionEnabled.
+        * WebProcess/WebCoreSupport/mac/WebEditorClientMac.mm:
+        (WebKit::WebEditorClient::toggleSmartInsertDelete): Send message to UI process to toggle TextChecker.
+        (WebKit::WebEditorClient::toggleAutomaticQuoteSubstitution): Ditto.
+        (WebKit::WebEditorClient::toggleAutomaticLinkDetection): Ditto.
+        (WebKit::WebEditorClient::toggleAutomaticDashSubstitution): Ditto.
+        (WebKit::WebEditorClient::toggleAutomaticTextReplacement): Ditto.
+
+2016-09-22  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Rename DataObjectGtk as SelectionData
+        https://bugs.webkit.org/show_bug.cgi?id=162380
+
+        Reviewed by Žan Doberšek.
+
+        * PlatformGTK.cmake:
+        * Shared/gtk/ArgumentCodersGtk.cpp:
+        (IPC::ArgumentCoder<SelectionData>::encode):
+        (IPC::ArgumentCoder<SelectionData>::decode):
+        * Shared/gtk/ArgumentCodersGtk.h:
+        * Shared/gtk/WebSelectionData.cpp: Renamed from Source/WebKit2/Shared/gtk/PasteboardContent.cpp.
+        (WebKit::WebSelectionData::WebSelectionData):
+        (WebKit::WebSelectionData::encode):
+        (WebKit::WebSelectionData::decode):
+        * Shared/gtk/WebSelectionData.h: Renamed from Source/WebKit2/Shared/gtk/PasteboardContent.h.
+        * UIProcess/API/gtk/PageClientImpl.cpp:
+        (WebKit::PageClientImpl::startDrag):
+        * UIProcess/API/gtk/PageClientImpl.h:
+        * UIProcess/PageClient.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::performDragControllerAction):
+        (WebKit::WebPageProxy::startDrag):
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/WebPageProxy.messages.in:
+        * UIProcess/WebPasteboardProxy.h:
+        * UIProcess/WebPasteboardProxy.messages.in:
+        * UIProcess/gtk/DragAndDropHandler.cpp:
+        (WebKit::DragAndDropHandler::DroppingContext::DroppingContext):
+        (WebKit::DragAndDropHandler::startDrag):
+        (WebKit::DragAndDropHandler::fillDragData):
+        (WebKit::DragAndDropHandler::finishDrag):
+        (WebKit::DragAndDropHandler::dropDataSelection):
+        (WebKit::DragAndDropHandler::dragEntered):
+        (WebKit::DragAndDropHandler::dragDataSelection):
+        (WebKit::DragAndDropHandler::dragMotion):
+        (WebKit::DragAndDropHandler::dragLeave):
+        (WebKit::DragAndDropHandler::drop):
+        * UIProcess/gtk/DragAndDropHandler.h:
+        * UIProcess/gtk/WebPasteboardProxyGtk.cpp:
+        (WebKit::WebPasteboardProxy::writeToClipboard):
+        (WebKit::WebPasteboardProxy::readFromClipboard):
+        (WebKit::WebPasteboardProxy::setPrimarySelectionOwner): Deleted.
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebKit::WebPlatformStrategies::writeToClipboard):
+        (WebKit::WebPlatformStrategies::readFromClipboard):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h:
+        * WebProcess/WebCoreSupport/gtk/WebDragClientGtk.cpp:
+        (WebKit::WebDragClient::startDrag):
+        * WebProcess/WebCoreSupport/gtk/WebEditorClientGtk.cpp:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::performDragControllerAction):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/WebPage.messages.in:
+
+2016-09-21  Dan Bernstein  <mitz@apple.com>
+
+        [macOS] Upon layout, _webView:renderingProgressDidChange: fires before the intrinsic content size is updated
+        https://bugs.webkit.org/show_bug.cgi?id=162359
+        <rdar://problem/27776454>
+
+        Reviewed by Tim Horton.
+
+        Test: added to TestWebKitAPI/Tests/WebKit2Cocoa/AutoLayoutIntegration.mm
+
+        * WebProcess/WebPage/mac/RemoteLayerTreeDrawingArea.h: Fixed a bug where
+          m_pendingNewlyReachedLayoutMilestones was never initialized.
+
+        * WebProcess/WebPage/mac/TiledCoreAnimationDrawingArea.h: Added
+          m_pendingNewlyReachedLayoutMilestones member variable to this derived class as well.
+        * WebProcess/WebPage/mac/TiledCoreAnimationDrawingArea.mm:
+        (WebKit::TiledCoreAnimationDrawingArea::flushLayers): If we have pending milestones, notify
+          the WebPageProxy now, after any content size changes have been sent.
+        (WebKit::TiledCoreAnimationDrawingArea::dispatchDidReachLayoutMilestone): New override that
+          accumulates the milestones into m_pendingNewlyReachedLayoutMilestones and returns true,
+          so that the caller won’t notify the WebPageProxy immediately.
+
+2016-09-21  Anders Carlsson  <andersca@apple.com>
+
+        support openPaymentSetup API on ApplePaySession object
+        https://bugs.webkit.org/show_bug.cgi?id=162357
+        rdar://problem/26776939
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/ApplePay/WebPaymentCoordinatorProxy.cpp:
+        (WebKit::WebPaymentCoordinatorProxy::openPaymentSetup):
+        Call through to platformOpenPaymentSetup, and in the completion handler, send back a OpenPaymentSetupReply message.
+
+        * UIProcess/ApplePay/WebPaymentCoordinatorProxy.h:
+        Add new members.
+
+        * UIProcess/ApplePay/WebPaymentCoordinatorProxy.messages.in:
+        Add OpenPaymentSetup message.
+
+        * UIProcess/ApplePay/cocoa/WebPaymentCoordinatorProxyCocoa.mm:
+        (WebKit::WebPaymentCoordinatorProxy::platformOpenPaymentSetup):
+        Allocate a PKPassLibrary and call openPaymentSetupForMerchantIdentifier:domain:completion: on it.
+
+        * WebProcess/ApplePay/WebPaymentCoordinator.cpp:
+        (WebKit::generateOpenPaymentSetupReplyID):
+        New helper function to generate a reply ID.
+
+        (WebKit::WebPaymentCoordinator::openPaymentSetup):
+        Add the completion handler to m_pendingOpenPaymentSetupCallbacks and send a OpenPaymentSetup message to the UI process.
+
+        (WebKit::WebPaymentCoordinator::openPaymentSetupReply):
+        Grab the callback given its ID and invoke it.
+
+        * WebProcess/ApplePay/WebPaymentCoordinator.h:
+        Add new members.
+
+        * WebProcess/ApplePay/WebPaymentCoordinator.messages.in:
+        Add OpenPaymentSetupReply message.
+
+2016-09-21  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        Unreviewed, build fix.
+
+        * UIProcess/gtk/AcceleratedBackingStoreWayland.cpp:
+        (WebKit::AcceleratedBackingStoreWayland::paint): fix usage of deviceScaleFactor variable which was
+        removed.
+
+2016-09-20  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Clean up DataObjectGtk handling
+        https://bugs.webkit.org/show_bug.cgi?id=162267
+
+        Reviewed by Michael Catanzaro.
+
+        In some cases the ownership of DataObjectGtk instances is not clear enough, and we have hacks to avoid memory
+        leaks because of that.
+
+        * Shared/gtk/ArgumentCodersGtk.cpp:
+        (IPC::encodeImage): Use Image instead of GdkPixbuf.
+        (IPC::decodeImage): Ditto.
+        (IPC::ArgumentCoder<DataObjectGtk>::encode):
+        (IPC::ArgumentCoder<DataObjectGtk>::decode):
+        (IPC::encode): Deleted.
+        (IPC::decode): Deleted.
+        (IPC::ArgumentCoder<DragData>::encode): Deleted.
+        (IPC::ArgumentCoder<DragData>::decode): Deleted.
+        * Shared/gtk/ArgumentCodersGtk.h:
+        * Shared/gtk/PasteboardContent.cpp:
+        (WebKit::PasteboardContent::PasteboardContent): Add empty constructor that creates a new DataObjectGtk, a
+        constructor that receives a const reference and another one that takes the ownership of the given DataObjectGtk.
+        (WebKit::PasteboardContent::encode):
+        (WebKit::PasteboardContent::decode):
+        * Shared/gtk/PasteboardContent.h: Use Ref instead of RefPtr for the DataObjectGtk member.
+        * UIProcess/API/gtk/PageClientImpl.cpp:
+        (WebKit::PageClientImpl::startDrag): Transfer the DataObjectGtk to the DragAndDropHandler, instead of using DragData.
+        * UIProcess/API/gtk/PageClientImpl.h:
+        * UIProcess/PageClient.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::performDragControllerAction): Instead of sending a DragData object to the web process,
+        send the DataObjectGtk and DragData members needed as parameters.
+        (WebKit::WebPageProxy::startDrag): Transfer the received DataObjectGtk to page client, instead of using
+        DragData. Also notify the web process that drag started.
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/WebPageProxy.messages.in: Update StartDrag message parameters.
+        * UIProcess/gtk/DragAndDropHandler.cpp:
+        (WebKit::DragAndDropHandler::DragAndDropHandler): Remove unneeded initialization.
+        (WebKit::DragAndDropHandler::startDrag): Take ownership of the given DataObjectGtk.
+        * UIProcess/gtk/DragAndDropHandler.h:
+        * UIProcess/gtk/WebPasteboardProxyGtk.cpp:
+        (WebKit::WebPasteboardProxy::writeToClipboard):
+        (WebKit::WebPasteboardProxy::readFromClipboard):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.cpp:
+        (WebKit::WebPlatformStrategies::writeToClipboard):
+        (WebKit::WebPlatformStrategies::readFromClipboard):
+        * WebProcess/WebCoreSupport/WebPlatformStrategies.h:
+        * WebProcess/WebCoreSupport/gtk/WebDragClientGtk.cpp:
+        (WebKit::convertCairoSurfaceToShareableBitmap):
+        (WebKit::WebDragClient::startDrag): Do not create a DragData and pass the DataObjectGtk directly to the
+        message. Also notify the WebPage that drag is about to start.
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::performDragControllerAction): Remove explicit DataObjectGtk derefs and simply create a
+        DragData using the DataObjectGtk pointer as platform data.
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/WebPage.messages.in: Update PerformDragControllerAction message parameters.
+
+2016-09-20  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        [EFL] ewk_context_menu_item_select test have been failed
+        https://bugs.webkit.org/show_bug.cgi?id=162143
+
+        Reviewed by Gyuyoung Kim.
+
+        ewk_context_menu_item_select has been waited until test page loading is finished, but it is
+        unnecessary to wait the loading is finished. It would be good to pass if *testFinished*
+        flag is true.
+
+        * UIProcess/API/efl/tests/test_ewk2_context_menu.cpp:
+        (EWK2ContextMenuTest::checkBasicContextMenuItem):
+        (EWK2ContextMenuTest::testContextMenu):
+        (TEST_F):
+
+2016-09-20  Keith Rollin  <krollin@apple.com>
+
+        Add new logging for network resource loading
+        https://bugs.webkit.org/show_bug.cgi?id=162237
+
+        Reviewed by Antti Koivisto.
+
+        Add new logging along the non-main path for resource loading. This
+        logging should allow us to differentiate between lack-of-logging due
+        execution along a path that doesn't have logging statements and
+        lack-of-logging due to a hung process.
+
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::start):
+        (WebKit::NetworkResourceLoader::startNetworkLoad):
+        (WebKit::NetworkResourceLoader::setDefersLoading):
+        (WebKit::NetworkResourceLoader::abort):
+        (WebKit::NetworkResourceLoader::didReceiveBuffer):
+        * NetworkProcess/NetworkResourceLoader.h:
+        * WebProcess/Network/WebLoaderStrategy.cpp:
+        (WebKit::WebLoaderStrategy::loadResource):
+        (WebKit::WebLoaderStrategy::scheduleLoad):
+
+2016-09-20  Anders Carlsson  <andersca@apple.com>
+
+        Can't present a payment sheet if a sheet is already active in another window
+        https://bugs.webkit.org/show_bug.cgi?id=162314
+        rdar://problem/27643511
+
+        Reviewed by Tim Horton.
+
+        Instead of keeping track of whether a sheet is active or not, keep track of its underlying payment coordinator proxy,
+        so we can hide it and send a cancel event to WebCore if another sheet is being presented.
+
+        * UIProcess/ApplePay/WebPaymentCoordinatorProxy.cpp:
+        (WebKit::WebPaymentCoordinatorProxy::~WebPaymentCoordinatorProxy):
+        (WebKit::WebPaymentCoordinatorProxy::showPaymentUI):
+        (WebKit::WebPaymentCoordinatorProxy::didReachFinalState):
+
+2016-09-20  Keith Rollin  <krollin@apple.com>
+
+        Adjust current networking logging
+        https://bugs.webkit.org/show_bug.cgi?id=162235
+
+        Reviewed by Antti Koivisto.
+
+        Update the "always on" network logging in order to better track the
+        loading of a particular resource and to better bind together the
+        resources downloaded for a particular page and frame. Do this by
+        consistently logging pageID, frameID, and resourceID.
+
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::didFinishLoading):
+        (WebKit::NetworkResourceLoader::didFailLoading):
+        (WebKit::NetworkResourceLoader::continueWillSendRequest):
+        * WebProcess/Network/WebLoaderStrategy.cpp:
+        (WebKit::WebLoaderStrategy::scheduleLoad):
+        (WebKit::WebLoaderStrategy::startLocalLoad):
+        * WebProcess/Network/WebResourceLoader.cpp:
+        (WebKit::WebResourceLoader::create):
+        (WebKit::WebResourceLoader::WebResourceLoader):
+        (WebKit::WebResourceLoader::willSendRequest):
+        (WebKit::WebResourceLoader::didReceiveResponse):
+        (WebKit::WebResourceLoader::didReceiveData):
+        (WebKit::WebResourceLoader::didFinishResourceLoad):
+        (WebKit::WebResourceLoader::didFailResourceLoad):
+        (WebKit::WebResourceLoader::didReceiveResource):
+        * WebProcess/Network/WebResourceLoader.h:
+
+2016-09-19  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Add a unit test covering <https://trac.webkit.org/changeset/205983>
+        https://bugs.webkit.org/show_bug.cgi?id=162112
+
+        Reviewed by Beth Dakin.
+
+        Adds some a test support method as SPI on WKWebView to determine whether to request candidates. See
+        Tools/ChangeLog for more details.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _shouldRequestCandidates]):
+        (-[WKWebView _forceRequestCandidates]): Deleted.
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h:
+
 2016-09-19  Anders Carlsson  <andersca@apple.com>
 
         Suppress JavaScript prompts early on in certain cases

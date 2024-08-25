@@ -26,6 +26,7 @@
 #include "config.h"
 #include <WebCore/URLParser.h>
 #include <wtf/MainThread.h>
+#include <wtf/text/StringBuilder.h>
 
 using namespace WebCore;
 
@@ -58,8 +59,13 @@ static bool eq(const String& s1, const String& s2)
 
 static void checkURL(const String& urlString, const ExpectedParts& parts)
 {
-    URLParser parser;
-    auto url = parser.parse(urlString);
+    bool wasEnabled = URLParser::enabled();
+    URLParser::setEnabled(true);
+    auto url = URL(URL(), urlString);
+    URLParser::setEnabled(false);
+    auto oldURL = URL(URL(), urlString);
+    URLParser::setEnabled(wasEnabled);
+    
     EXPECT_TRUE(eq(parts.protocol, url.protocol()));
     EXPECT_TRUE(eq(parts.user, url.user()));
     EXPECT_TRUE(eq(parts.password, url.pass()));
@@ -70,7 +76,6 @@ static void checkURL(const String& urlString, const ExpectedParts& parts)
     EXPECT_TRUE(eq(parts.fragment, url.fragmentIdentifier()));
     EXPECT_TRUE(eq(parts.string, url.string()));
     
-    auto oldURL = URL(URL(), urlString);
     EXPECT_TRUE(eq(parts.protocol, oldURL.protocol()));
     EXPECT_TRUE(eq(parts.user, oldURL.user()));
     EXPECT_TRUE(eq(parts.password, oldURL.pass()));
@@ -82,6 +87,8 @@ static void checkURL(const String& urlString, const ExpectedParts& parts)
     EXPECT_TRUE(eq(parts.string, oldURL.string()));
     
     EXPECT_TRUE(URLParser::allValuesEqual(url, oldURL));
+    EXPECT_TRUE(URLParser::internalValuesConsistent(url));
+    EXPECT_TRUE(URLParser::internalValuesConsistent(oldURL));
 }
 
 template<size_t length>
@@ -201,16 +208,20 @@ TEST_F(URLParserTest, Basic)
     checkURL("sc:/pa/pa", {"sc", "", "", "", 0, "/pa/pa", "", "", "sc:/pa/pa"});
     checkURL("sc:/pa", {"sc", "", "", "", 0, "/pa", "", "", "sc:/pa"});
     checkURL("sc:/pa/", {"sc", "", "", "", 0, "/pa/", "", "", "sc:/pa/"});
+    checkURL("notspecial:/notuser:notpassword@nothost", {"notspecial", "", "", "", 0, "/notuser:notpassword@nothost", "", "", "notspecial:/notuser:notpassword@nothost"});
     checkURL("sc://pa/", {"sc", "", "", "pa", 0, "/", "", "", "sc://pa/"});
     checkURL("http://host   \a   ", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
-    checkURL("notspecial:/", {"notspecial", "", "", "", 0, "/", "", "", "notspecial:/"});
     checkURL("notspecial:/a", {"notspecial", "", "", "", 0, "/a", "", "", "notspecial:/a"});
     checkURL("notspecial:", {"notspecial", "", "", "", 0, "", "", "", "notspecial:"});
     checkURL("http:/a", {"http", "", "", "a", 0, "/", "", "", "http://a/"});
     checkURL("http://256/", {"http", "", "", "256", 0, "/", "", "", "http://256/"});
     checkURL("http://256./", {"http", "", "", "256.", 0, "/", "", "", "http://256./"});
     checkURL("http://123.256/", {"http", "", "", "123.256", 0, "/", "", "", "http://123.256/"});
-    // FIXME: Fix and add a test with an invalid surrogate pair at the end with a space as the second code unit.
+    checkURL("notspecial:/a", {"notspecial", "", "", "", 0, "/a", "", "", "notspecial:/a"});
+    checkURL("notspecial:", {"notspecial", "", "", "", 0, "", "", "", "notspecial:"});
+    checkURL("notspecial:/", {"notspecial", "", "", "", 0, "/", "", "", "notspecial:/"});
+    checkURL("data:image/png;base64,encoded-data-follows-here", {"data", "", "", "", 0, "image/png;base64,encoded-data-follows-here", "", "", "data:image/png;base64,encoded-data-follows-here"});
+    checkURL("data:image/png;base64,encoded/data-with-slash", {"data", "", "", "", 0, "image/png;base64,encoded/data-with-slash", "", "", "data:image/png;base64,encoded/data-with-slash"});
 
     // This disagrees with the web platform test for http://:@www.example.com but agrees with Chrome and URL::parse,
     // and Firefox fails the web platform test differently. Maybe the web platform test ought to be changed.
@@ -219,11 +230,13 @@ TEST_F(URLParserTest, Basic)
 
 static void checkRelativeURL(const String& urlString, const String& baseURLString, const ExpectedParts& parts)
 {
-    URLParser baseParser;
-    auto base = baseParser.parse(baseURLString);
+    bool wasEnabled = URLParser::enabled();
+    URLParser::setEnabled(true);
+    auto url = URL(URL(URL(), baseURLString), urlString);
+    URLParser::setEnabled(false);
+    auto oldURL = URL(URL(URL(), baseURLString), urlString);
+    URLParser::setEnabled(wasEnabled);
 
-    URLParser parser;
-    auto url = parser.parse(urlString, base);
     EXPECT_TRUE(eq(parts.protocol, url.protocol()));
     EXPECT_TRUE(eq(parts.user, url.user()));
     EXPECT_TRUE(eq(parts.password, url.pass()));
@@ -234,7 +247,6 @@ static void checkRelativeURL(const String& urlString, const String& baseURLStrin
     EXPECT_TRUE(eq(parts.fragment, url.fragmentIdentifier()));
     EXPECT_TRUE(eq(parts.string, url.string()));
 
-    auto oldURL = URL(URL(URL(), baseURLString), urlString);
     EXPECT_TRUE(eq(parts.protocol, oldURL.protocol()));
     EXPECT_TRUE(eq(parts.user, oldURL.user()));
     EXPECT_TRUE(eq(parts.password, oldURL.pass()));
@@ -246,6 +258,8 @@ static void checkRelativeURL(const String& urlString, const String& baseURLStrin
     EXPECT_TRUE(eq(parts.string, oldURL.string()));
 
     EXPECT_TRUE(URLParser::allValuesEqual(url, oldURL));
+    EXPECT_TRUE(URLParser::internalValuesConsistent(url));
+    EXPECT_TRUE(URLParser::internalValuesConsistent(oldURL));
 }
 
 TEST_F(URLParserTest, ParseRelative)
@@ -287,12 +301,20 @@ TEST_F(URLParserTest, ParseRelative)
     checkRelativeURL("  foo.com  ", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/foo.com", "", "", "http://example.org/foo/foo.com"});
     checkRelativeURL(" \a baz", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/baz", "", "", "http://example.org/foo/baz"});
     checkRelativeURL("~", "http://example.org", {"http", "", "", "example.org", 0, "/~", "", "", "http://example.org/~"});
-    checkRelativeURL("notspecial:/", "about:blank", {"notspecial", "", "", "", 0, "/", "", "", "notspecial:/"});
     checkRelativeURL("notspecial:", "about:blank", {"notspecial", "", "", "", 0, "", "", "", "notspecial:"});
-    checkRelativeURL("notspecial:/", "http://host", {"notspecial", "", "", "", 0, "/", "", "", "notspecial:/"});
     checkRelativeURL("notspecial:", "http://host", {"notspecial", "", "", "", 0, "", "", "", "notspecial:"});
     checkRelativeURL("http:", "http://host", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
-    
+    checkRelativeURL("i", "sc:/pa/po", {"sc", "", "", "", 0, "/pa/i", "", "", "sc:/pa/i"});
+    checkRelativeURL("i    ", "sc:/pa/po", {"sc", "", "", "", 0, "/pa/i", "", "", "sc:/pa/i"});
+    checkRelativeURL("i\t\n  ", "sc:/pa/po", {"sc", "", "", "", 0, "/pa/i", "", "", "sc:/pa/i"});
+    checkRelativeURL("i", "sc://ho/pa", {"sc", "", "", "ho", 0, "/i", "", "", "sc://ho/i"});
+    checkRelativeURL("!", "sc://ho/pa", {"sc", "", "", "ho", 0, "/!", "", "", "sc://ho/!"});
+    checkRelativeURL("!", "sc:/ho/pa", {"sc", "", "", "", 0, "/ho/!", "", "", "sc:/ho/!"});
+    checkRelativeURL("notspecial:/", "about:blank", {"notspecial", "", "", "", 0, "/", "", "", "notspecial:/"});
+    checkRelativeURL("notspecial:/", "http://host", {"notspecial", "", "", "", 0, "/", "", "", "notspecial:/"});
+    checkRelativeURL("foo:/", "http://example.org/foo/bar", {"foo", "", "", "", 0, "/", "", "", "foo:/"});
+    checkRelativeURL("://:0/", "http://webkit.org/", {"http", "", "", "webkit.org", 0, "/://:0/", "", "", "http://webkit.org/://:0/"});
+
     // The checking of slashes in SpecialAuthoritySlashes needed to get this to pass contradicts what is in the spec,
     // but it is included in the web platform tests.
     checkRelativeURL("http:\\\\host\\foo", "about:blank", {"http", "", "", "host", 0, "/foo", "", "", "http://host/foo"});
@@ -300,8 +322,13 @@ TEST_F(URLParserTest, ParseRelative)
 
 static void checkURLDifferences(const String& urlString, const ExpectedParts& partsNew, const ExpectedParts& partsOld)
 {
-    URLParser parser;
-    auto url = parser.parse(urlString);
+    bool wasEnabled = URLParser::enabled();
+    URLParser::setEnabled(true);
+    auto url = URL(URL(), urlString);
+    URLParser::setEnabled(false);
+    auto oldURL = URL(URL(), urlString);
+    URLParser::setEnabled(wasEnabled);
+
     EXPECT_TRUE(eq(partsNew.protocol, url.protocol()));
     EXPECT_TRUE(eq(partsNew.user, url.user()));
     EXPECT_TRUE(eq(partsNew.password, url.pass()));
@@ -312,7 +339,6 @@ static void checkURLDifferences(const String& urlString, const ExpectedParts& pa
     EXPECT_TRUE(eq(partsNew.fragment, url.fragmentIdentifier()));
     EXPECT_TRUE(eq(partsNew.string, url.string()));
     
-    auto oldURL = URL(URL(), urlString);
     EXPECT_TRUE(eq(partsOld.protocol, oldURL.protocol()));
     EXPECT_TRUE(eq(partsOld.user, oldURL.user()));
     EXPECT_TRUE(eq(partsOld.password, oldURL.pass()));
@@ -324,15 +350,19 @@ static void checkURLDifferences(const String& urlString, const ExpectedParts& pa
     EXPECT_TRUE(eq(partsOld.string, oldURL.string()));
     
     EXPECT_FALSE(URLParser::allValuesEqual(url, oldURL));
+    EXPECT_TRUE(URLParser::internalValuesConsistent(url));
+    EXPECT_TRUE(URLParser::internalValuesConsistent(oldURL));
 }
 
 static void checkRelativeURLDifferences(const String& urlString, const String& baseURLString, const ExpectedParts& partsNew, const ExpectedParts& partsOld)
 {
-    URLParser baseParser;
-    auto base = baseParser.parse(baseURLString);
-    
-    URLParser parser;
-    auto url = parser.parse(urlString, base);
+    bool wasEnabled = URLParser::enabled();
+    URLParser::setEnabled(true);
+    auto url = URL(URL(URL(), baseURLString), urlString);
+    URLParser::setEnabled(false);
+    auto oldURL = URL(URL(URL(), baseURLString), urlString);
+    URLParser::setEnabled(wasEnabled);
+
     EXPECT_TRUE(eq(partsNew.protocol, url.protocol()));
     EXPECT_TRUE(eq(partsNew.user, url.user()));
     EXPECT_TRUE(eq(partsNew.password, url.pass()));
@@ -343,7 +373,6 @@ static void checkRelativeURLDifferences(const String& urlString, const String& b
     EXPECT_TRUE(eq(partsNew.fragment, url.fragmentIdentifier()));
     EXPECT_TRUE(eq(partsNew.string, url.string()));
     
-    auto oldURL = URL(URL(URL(), baseURLString), urlString);
     EXPECT_TRUE(eq(partsOld.protocol, oldURL.protocol()));
     EXPECT_TRUE(eq(partsOld.user, oldURL.user()));
     EXPECT_TRUE(eq(partsOld.password, oldURL.pass()));
@@ -355,6 +384,8 @@ static void checkRelativeURLDifferences(const String& urlString, const String& b
     EXPECT_TRUE(eq(partsOld.string, oldURL.string()));
     
     EXPECT_FALSE(URLParser::allValuesEqual(url, oldURL));
+    EXPECT_TRUE(URLParser::internalValuesConsistent(url));
+    EXPECT_TRUE(URLParser::internalValuesConsistent(oldURL));
 }
 
 // These are differences between the new URLParser and the old URL::parse which make URLParser more standards compliant.
@@ -474,6 +505,9 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("http:",
         {"http", "", "", "", 0, "", "", "", "http:"},
         {"http", "", "", "", 0, "/", "", "", "http:/"});
+    checkRelativeURLDifferences("http:/example.com/", "http://example.org/foo/bar",
+        {"http", "", "", "example.org", 0, "/example.com/", "", "", "http://example.org/example.com/"},
+        {"http", "", "", "example.com", 0, "/", "", "", "http://example.com/"});
     
     // This behavior matches Chrome and Firefox, but not WebKit using URL::parse.
     // The behavior of URL::parse is clearly wrong because reparsing file://path would make path the host.
@@ -526,6 +560,30 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("http://123.234.12",
         {"http", "", "", "123.234.0.12", 0, "/", "", "", "http://123.234.0.12/"},
         {"http", "", "", "123.234.12", 0, "/", "", "", "http://123.234.12/"});
+    checkRelativeURLDifferences("file:c:\\foo\\bar.html", "file:///tmp/mock/path",
+        {"file", "", "", "", 0, "/c:/foo/bar.html", "", "", "file:///c:/foo/bar.html"},
+        {"file", "", "", "", 0, "/tmp/mock/c:/foo/bar.html", "", "", "file:///tmp/mock/c:/foo/bar.html"});
+    checkRelativeURLDifferences("  File:c|////foo\\bar.html", "file:///tmp/mock/path",
+        {"file", "", "", "", 0, "/c:////foo/bar.html", "", "", "file:///c:////foo/bar.html"},
+        {"file", "", "", "", 0, "/tmp/mock/c|////foo/bar.html", "", "", "file:///tmp/mock/c|////foo/bar.html"});
+    checkRelativeURLDifferences("  Fil\t\n\te\n\t\n:\t\n\tc\t\n\t|\n\t\n/\t\n\t/\n\t\n//foo\\bar.html", "file:///tmp/mock/path",
+        {"file", "", "", "", 0, "/c:////foo/bar.html", "", "", "file:///c:////foo/bar.html"},
+        {"file", "", "", "", 0, "/tmp/mock/c|////foo/bar.html", "", "", "file:///tmp/mock/c|////foo/bar.html"});
+    checkRelativeURLDifferences("C|/foo/bar", "file:///tmp/mock/path",
+        {"file", "", "", "", 0, "/C:/foo/bar", "", "", "file:///C:/foo/bar"},
+        {"file", "", "", "", 0, "/tmp/mock/C|/foo/bar", "", "", "file:///tmp/mock/C|/foo/bar"});
+    checkRelativeURLDifferences("/C|/foo/bar", "file:///tmp/mock/path",
+        {"file", "", "", "", 0, "/C:/foo/bar", "", "", "file:///C:/foo/bar"},
+        {"file", "", "", "", 0, "/C|/foo/bar", "", "", "file:///C|/foo/bar"});
+    checkRelativeURLDifferences("https://@test@test@example:800/", "http://doesnotmatter/",
+        {"https", "@test@test", "", "example", 800, "/", "", "", "https://%40test%40test@example:800/"},
+        {"", "", "", "", 0, "", "", "", "https://@test@test@example:800/"});
+    checkRelativeURLDifferences("foo://", "http://example.org/foo/bar",
+        {"foo", "", "", "", 0, "/", "", "", "foo:///"},
+        {"foo", "", "", "", 0, "//", "", "", "foo://"});
+    checkURLDifferences(wideString(L"http://host?ß😍#ß😍"),
+        {"http", "", "", "host", 0, "/", "%C3%9F%F0%9F%98%8D", wideString(L"ß😍"), wideString(L"http://host/?%C3%9F%F0%9F%98%8D#ß😍")},
+        {"http", "", "", "host", 0, "/", "%C3%9F%F0%9F%98%8D", "%C3%9F%F0%9F%98%8D", "http://host/?%C3%9F%F0%9F%98%8D#%C3%9F%F0%9F%98%8D"});
 }
 
 TEST_F(URLParserTest, DefaultPort)
@@ -606,22 +664,24 @@ TEST_F(URLParserTest, DefaultPort)
     checkURLDifferences("unknown://host:81",
         {"unknown", "", "", "host", 81, "/", "", "", "unknown://host:81/"},
         {"unknown", "", "", "host", 81, "", "", "", "unknown://host:81"});
+    checkURLDifferences("http://%48OsT",
+        {"http", "", "", "host", 0, "/", "", "", "http://host/"},
+        {"http", "", "", "%48ost", 0, "/", "", "", "http://%48ost/"});
+    checkURLDifferences("http://host/`",
+        {"http", "", "", "host", 0, "/%60", "", "", "http://host/%60"},
+        {"http", "", "", "host", 0, "/`", "", "", "http://host/`"});
 }
     
 static void shouldFail(const String& urlString)
 {
-    URLParser parser;
-    auto invalidURL = parser.parse(urlString);
     checkURL(urlString, {"", "", "", "", 0, "", "", "", urlString});
 }
 
 static void shouldFail(const String& urlString, const String& baseString)
 {
-    URLParser parser;
-    auto invalidURL = parser.parse(urlString);
     checkRelativeURL(urlString, baseString, {"", "", "", "", 0, "", "", "", urlString});
 }
-    
+
 TEST_F(URLParserTest, ParserFailures)
 {
     shouldFail("    ");
@@ -653,6 +713,9 @@ TEST_F(URLParserTest, ParserFailures)
     shouldFail("~");
     shouldFail("~", "about:blank");
     shouldFail("~~~");
+    shouldFail("://:0/");
+    shouldFail("://:0/", "");
+    shouldFail("://:0/", "about:blank");
 }
 
 // These are in the spec but not in the web platform tests.
@@ -668,6 +731,50 @@ TEST_F(URLParserTest, AdditionalTests)
         {"ws", "", "", "", 0, "", "", "", "ws:"},
         {"ws", "", "", "", 0, "s:", "", "", "ws:s:"});
     checkRelativeURL("notspecial:", "http://example.org/foo/bar", {"notspecial", "", "", "", 0, "", "", "", "notspecial:"});
+    
+    const wchar_t surrogateBegin = 0xD800;
+    const wchar_t validSurrogateEnd = 0xDD55;
+    const wchar_t invalidSurrogateEnd = 'A';
+    checkURL(wideString<12>({'h', 't', 't', 'p', ':', '/', '/', 'w', '/', surrogateBegin, validSurrogateEnd, '\0'}),
+        {"http", "", "", "w", 0, "/%F0%90%85%95", "", "", "http://w/%F0%90%85%95"});
+    
+    // URLParser matches Chrome and Firefox but not URL::parse.
+    checkURLDifferences(wideString<12>({'h', 't', 't', 'p', ':', '/', '/', 'w', '/', surrogateBegin, invalidSurrogateEnd}),
+        {"http", "", "", "w", 0, "/%EF%BF%BDA", "", "", "http://w/%EF%BF%BDA"},
+        {"http", "", "", "w", 0, "/%ED%A0%80A", "", "", "http://w/%ED%A0%80A"});
+    checkURLDifferences(wideString<13>({'h', 't', 't', 'p', ':', '/', '/', 'w', '/', '?', surrogateBegin, invalidSurrogateEnd, '\0'}),
+        {"http", "", "", "w", 0, "/", "%EF%BF%BDA", "", "http://w/?%EF%BF%BDA"},
+        {"http", "", "", "w", 0, "/", "%ED%A0%80A", "", "http://w/?%ED%A0%80A"});
+    checkURLDifferences(wideString<11>({'h', 't', 't', 'p', ':', '/', '/', 'w', '/', surrogateBegin, '\0'}),
+        {"http", "", "", "w", 0, "/%EF%BF%BD", "", "", "http://w/%EF%BF%BD"},
+        {"http", "", "", "w", 0, "/%ED%A0%80", "", "", "http://w/%ED%A0%80"});
+    checkURLDifferences(wideString<12>({'h', 't', 't', 'p', ':', '/', '/', 'w', '/', '?', surrogateBegin, '\0'}),
+        {"http", "", "", "w", 0, "/", "%EF%BF%BD", "", "http://w/?%EF%BF%BD"},
+        {"http", "", "", "w", 0, "/", "%ED%A0%80", "", "http://w/?%ED%A0%80"});
+    checkURLDifferences(wideString<13>({'h', 't', 't', 'p', ':', '/', '/', 'w', '/', '?', surrogateBegin, ' ', '\0'}),
+        {"http", "", "", "w", 0, "/", "%EF%BF%BD", "", "http://w/?%EF%BF%BD"},
+        {"http", "", "", "w", 0, "/", "%ED%A0%80", "", "http://w/?%ED%A0%80"});
+}
+
+static void checkURL(const String& urlString, const TextEncoding& encoding, const ExpectedParts& parts)
+{
+    URLParser parser;
+    auto url = parser.parse(urlString, { }, encoding);
+    EXPECT_TRUE(eq(parts.protocol, url.protocol()));
+    EXPECT_TRUE(eq(parts.user, url.user()));
+    EXPECT_TRUE(eq(parts.password, url.pass()));
+    EXPECT_TRUE(eq(parts.host, url.host()));
+    EXPECT_EQ(parts.port, url.port());
+    EXPECT_TRUE(eq(parts.path, url.path()));
+    EXPECT_TRUE(eq(parts.query, url.query()));
+    EXPECT_TRUE(eq(parts.fragment, url.fragmentIdentifier()));
+    EXPECT_TRUE(eq(parts.string, url.string()));
+}
+
+TEST_F(URLParserTest, QueryEncoding)
+{
+    checkURL(wideString(L"http://host?ß😍#ß😍"), UTF8Encoding(), {"http", "", "", "host", 0, "/", "%C3%9F%F0%9F%98%8D", wideString(L"ß😍"), wideString(L"http://host/?%C3%9F%F0%9F%98%8D#ß😍")});
+    // FIXME: Add tests with other encodings.
 }
 
 } // namespace TestWebKitAPI

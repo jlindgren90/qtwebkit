@@ -35,7 +35,8 @@
 @end
 
 @interface TestWKWebView : WKWebView
-- (void)mouseDownAtPoint:(NSPoint)point;
+// Simulates clicking with a pressure-sensitive device, if possible.
+- (void)mouseDownAtPoint:(NSPoint)point simulatePressure:(BOOL)simulatePressure;
 - (void)performAfterReceivingMessage:(NSString *)message action:(dispatch_block_t)action;
 - (void)loadTestPageNamed:(NSString *)pageName;
 - (void)typeCharacter:(char)character;

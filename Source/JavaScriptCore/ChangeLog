@@ -1,3 +1,916 @@
+2016-09-22  Filip Pizlo  <fpizlo@apple.com>
+
+        Fences on x86 should be a lot cheaper
+        https://bugs.webkit.org/show_bug.cgi?id=162417
+
+        Reviewed by Mark Lam and Geoffrey Garen.
+
+        It turns out that:
+        
+            lock; orl $0, (%rsp)
+        
+        does everything that we wanted from:
+        
+            mfence
+        
+        And it's a lot faster. When I tried mfence for making object visiting concurrent-GC-TSO-
+        friendly, it was a 9% regression on Octane/splay. But when I tried ortop, it was neutral.
+        So, we should use ortop from now on.
+        
+        This part of the change is for the JITs. MacroAssembler::memoryFence() appears to always
+        mean something like an acqrel fence, so it's safe to make this use ortop. Since B3's Fence
+        compiles to Air MemoryFence, which is just MacroAssembler::memoryFence(), this also changes
+        B3 codegen.
+
+        * assembler/MacroAssemblerX86Common.h:
+        (JSC::MacroAssemblerX86Common::memoryFence):
+        * assembler/X86Assembler.h:
+        (JSC::X86Assembler::lock):
+        * b3/testb3.cpp:
+        (JSC::B3::testX86MFence):
+        (JSC::B3::testX86CompilerFence):
+
+2016-09-22  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: Function length should be number of parameters before parameters with default values
+        https://bugs.webkit.org/show_bug.cgi?id=162377
+
+        Reviewed by Saam Barati.
+
+        https://tc39.github.io/ecma262/#sec-function-definitions-static-semantics-expectedargumentcount
+
+        > NOTE: The ExpectedArgumentCount of a FormalParameterList is the number of
+        > FormalParameters to the left of either the rest parameter or the first
+        > FormalParameter with an Initializer. A FormalParameter without an
+        > initializer is allowed after the first parameter with an initializer
+        > but such parameters are considered to be optional with undefined as
+        > their default value.
+
+        Alongside the parameterCount value, maintain a separate count,
+        functionLength, which will be the count before seeing a rest parameter
+        or parameter with a default value. This will be the function's length.
+
+        * bytecode/UnlinkedCodeBlock.h:
+        * bytecode/UnlinkedFunctionExecutable.cpp:
+        (JSC::UnlinkedFunctionExecutable::UnlinkedFunctionExecutable):
+        * bytecode/UnlinkedFunctionExecutable.h:
+        * parser/ASTBuilder.h:
+        (JSC::ASTBuilder::createFunctionMetadata):
+        * parser/Nodes.cpp:
+        (JSC::FunctionMetadataNode::FunctionMetadataNode):
+        * parser/Nodes.h:
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::isArrowFunctionParameters):
+        (JSC::Parser<LexerType>::parseGeneratorFunctionSourceElements):
+        (JSC::Parser<LexerType>::parseFormalParameters):
+        (JSC::Parser<LexerType>::parseFunctionBody):
+        (JSC::Parser<LexerType>::parseFunctionParameters):
+        (JSC::Parser<LexerType>::parseFunctionInfo):
+        * parser/Parser.h:
+        * parser/ParserFunctionInfo.h:
+        * parser/SourceProviderCacheItem.h:
+        (JSC::SourceProviderCacheItem::SourceProviderCacheItem):
+        * parser/SyntaxChecker.h:
+        (JSC::SyntaxChecker::createFunctionMetadata):
+        * runtime/Executable.h:
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::createBuiltinFunction):
+        (JSC::JSFunction::reifyLength):
+
+2016-09-22  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove a bunch of unnecessary includes
+        https://bugs.webkit.org/show_bug.cgi?id=162376
+
+        Reviewed by Mark Lam.
+
+2016-09-21  Keith Miller  <keith_miller@apple.com>
+
+        Fix build for future versions of Clang.
+        https://bugs.webkit.org/show_bug.cgi?id=162346
+
+        Reviewed by Filip Pizlo.
+
+        This fixes issues with the WebCore build where inline
+        template-class function definitions are marked as exported. This
+        genereates a weak external symobl that our build does not like.
+
+
+        * runtime/VM.h:
+        (JSC::VM::setGlobalConstRedeclarationShouldThrow):
+
+2016-09-21  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Inline function only used in one place
+        https://bugs.webkit.org/show_bug.cgi?id=162363
+
+        Reviewed by Saam Barati.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::ForInNode::emitBytecode):
+        (JSC::ForInNode::emitMultiLoopBytecode):
+        * parser/Nodes.h:
+        No need for the extra function, it adds no clarification.
+
+2016-09-21  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r206222 and r206227.
+        https://bugs.webkit.org/show_bug.cgi?id=162361
+
+        "broke the windows build" (Requested by keith_mi_ on #webkit).
+
+        Reverted changesets:
+
+        "Fix build for future versions of Clang."
+        https://bugs.webkit.org/show_bug.cgi?id=162346
+        http://trac.webkit.org/changeset/206222
+
+        "Attempt to fix windows build after r206222."
+        http://trac.webkit.org/changeset/206227
+
+2016-09-21  Filip Pizlo  <fpizlo@apple.com>
+
+        Add a Fence opcode to B3
+        https://bugs.webkit.org/show_bug.cgi?id=162343
+
+        Reviewed by Geoffrey Garen.
+        
+        This adds the most basic fence support to B3. Currently, this is optimal on x86 and correct
+        on ARM. It also happens to be sufficient and optimal for what we'll do in the concurrent GC.
+        
+        The idea of Fence is that it can represent any standalone fence instruction by having two
+        additional params: a read range and a write range. If the write range is empty, this is
+        taken to be a store-store fence, which turns into zero code on x86 and a cheaper fence on
+        ARM.
+        
+        It turns out that this is powerful enough to express store-load and store-store fences. For
+        load-store and load-load fences, you wouldn't have wanted to use any code on x86 and you
+        wouldn't have wanted a standalone barrier on ARM. For those cases, you'd want either a
+        fenced load (load acquire) or a dependency. See bug 162349 and bug 162350, respectively.
+        
+        This isn't yet optimized for store-store fences on ARM because we don't have the
+        MacroAssembler support. Also, the support for "dmb ish" is not really what we want (it seems
+        to use a heavier fence). I don't think that this is urgent because of how the concurrent GC
+        will use this facility. I've left that to bug 162342.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * assembler/MacroAssemblerCodeRef.cpp:
+        (JSC::MacroAssemblerCodeRef::tryToDisassemble):
+        (JSC::MacroAssemblerCodeRef::disassembly):
+        * assembler/MacroAssemblerCodeRef.h:
+        (JSC::MacroAssemblerCodeRef::size): Deleted.
+        (JSC::MacroAssemblerCodeRef::tryToDisassemble): Deleted.
+        * b3/B3Compilation.h:
+        (JSC::B3::Compilation::codeRef):
+        (JSC::B3::Compilation::disassembly):
+        (JSC::B3::Compilation::code): Deleted.
+        * b3/B3Effects.h:
+        * b3/B3FenceValue.cpp: Added.
+        (JSC::B3::FenceValue::~FenceValue):
+        (JSC::B3::FenceValue::cloneImpl):
+        (JSC::B3::FenceValue::FenceValue):
+        * b3/B3FenceValue.h: Added.
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::lower):
+        * b3/B3Opcode.cpp:
+        (WTF::printInternal):
+        * b3/B3Opcode.h:
+        * b3/B3Validate.cpp:
+        * b3/B3Value.cpp:
+        (JSC::B3::Value::effects):
+        * b3/air/AirOpcode.opcodes:
+        * b3/testb3.cpp:
+        (JSC::B3::checkUsesInstruction):
+        (JSC::B3::checkDoesNotUseInstruction):
+        (JSC::B3::testX86MFence):
+        (JSC::B3::testX86CompilerFence):
+        (JSC::B3::run):
+
+2016-09-21  Keith Miller  <keith_miller@apple.com>
+
+        Fix build for future versions of Clang.
+        https://bugs.webkit.org/show_bug.cgi?id=162346
+
+        Reviewed by Filip Pizlo.
+
+        This fixes issues with the WebCore build where inline
+        template-class function definitions are marked as exported. This
+        genereates a weak external symobl that our build does not like.
+
+
+        * runtime/VM.h:
+        (JSC::VM::setGlobalConstRedeclarationShouldThrow):
+
+2016-09-21  Chris Dumez  <cdumez@apple.com>
+
+        Object.getOwnPropertyDescriptor() does not work correctly cross origin
+        https://bugs.webkit.org/show_bug.cgi?id=162311
+
+        Reviewed by Gavin Barraclough.
+
+        Add a CustomGetterSetter field to PropertySlot that gets populated
+        by getOwnPropertySlot() and use it in getOwnPropertyDescriptor()
+        to properly populate the descriptor. We used to rely on reifying
+        the properties and then call getDirect() in order to get the
+        CustomGetterSetter. However, this hack was insufficient to support
+        the cross-origin case because we need to control more precisely
+        the visibility of the getter and the setter. For example, Location's
+        href property has both a getter and a setter in the same origin
+        case but only has a setter in the cross-origin case.
+
+        In the future, we can extend the use of PropertySlot's
+        customGetterSetter field to the same origin case and get rid of the
+        reification + getDirect() hack in getOwnPropertyDescriptor().
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::getOwnPropertyDescriptor):
+        * runtime/PropertySlot.cpp:
+        (JSC::PropertySlot::customAccessorGetter):
+        * runtime/PropertySlot.h:
+
+2016-09-21  Michael Saboff  <msaboff@apple.com>
+
+        FTL needs to reserve callee stack space in bytes
+        https://bugs.webkit.org/show_bug.cgi?id=162324
+
+        Reviewed by Geoffrey Garen.
+
+        Changed two instances where we call B3::Procedure::requestCallArgAreaSize() with the
+        number of JSValue sized objects of stack space instead of bytes.  The correct units
+        to use is bytes.
+
+        Renamed both the Air and B3 related callArgAreaSize() to callArgAreaSizeInBytes().
+
+        No new tests as this doesn't surface as an issue when arguments are passed on the stack.
+
+        * b3/B3Procedure.cpp:
+        (JSC::B3::Procedure::callArgAreaSizeInBytes):
+        (JSC::B3::Procedure::requestCallArgAreaSizeInBytes):
+        (JSC::B3::Procedure::callArgAreaSize): Deleted.
+        (JSC::B3::Procedure::requestCallArgAreaSize): Deleted.
+        * b3/B3Procedure.h:
+        * b3/air/AirAllocateStack.cpp:
+        (JSC::B3::Air::allocateStack):
+        * b3/air/AirCCallingConvention.cpp:
+        (JSC::B3::Air::computeCCallingConvention):
+        * b3/air/AirCode.h:
+        (JSC::B3::Air::Code::callArgAreaSizeInBytes):
+        (JSC::B3::Air::Code::requestCallArgAreaSizeInBytes):
+        (JSC::B3::Air::Code::callArgAreaSize): Deleted.
+        (JSC::B3::Air::Code::requestCallArgAreaSize): Deleted.
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallOrConstruct):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallOrConstructVarargs):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallEval):
+
+2016-09-21  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [ARM] Unreviewed buildfix after r206136.
+
+        * assembler/MacroAssembler.h:
+        * assembler/MacroAssemblerARM.h:
+        (JSC::MacroAssemblerARM::branchPtr): Added.
+
+2016-09-20  Alex Christensen  <achristensen@webkit.org>
+
+        Require WTFMove for String::adopt
+        https://bugs.webkit.org/show_bug.cgi?id=162313
+
+        Reviewed by Yusuke Suzuki.
+
+        * runtime/JSStringBuilder.h:
+        (JSC::JSStringBuilder::build):
+
+2016-09-20  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION(r205692): Minified builds have broken inspector
+        https://bugs.webkit.org/show_bug.cgi?id=162327
+        <rdar://problem/28370137>
+
+        Reviewed by Matt Baker.
+
+        * Scripts/cssmin.py:
+        (cssminify):
+        Converge on the newer cssmin that we mistakenly dropped in r205692.
+        This knows how to handle more cases.
+
+2016-09-20  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG::StoreBarrierInsertionPhase should assume that any epoch increment may make objects older
+        https://bugs.webkit.org/show_bug.cgi?id=162319
+
+        Reviewed by Saam Barati.
+        
+        The store barrier phase needs to be aware of the fact that an object that is not in the
+        OldBlack state may be concurrently brought into that state. That means that:
+        
+        - We cannot reason about the relative ages of objects. An object is either new, in which
+          case we can store to it without barriers, or it's not in which case it needs a barrier.
+        
+        - After we insert a barrier on an object, the object is no longer new, because now the GC
+          knows about it and the GC may do things to it, like make it OldBlack.
+        
+        This is a perf-neutral change. These optimizations were never particularly profitable.
+
+        * dfg/DFGStoreBarrierInsertionPhase.cpp:
+
+2016-09-20  Filip Pizlo  <fpizlo@apple.com>
+
+        Rename MarkedSpace::version/MarkedBlock::version to MarkedSpace::markingVersion/MarkedBlock::markingVersion
+        https://bugs.webkit.org/show_bug.cgi?id=162310
+
+        Reviewed by Geoffrey Garen.
+        
+        In bug 162309, which is part of my concurrent GC work, I'll need to introduce a second
+        version-based flip. This one will be for newlyAllocated bits. This will allow me to
+        cheaply preserve per-object live state during marking. MarkedBlock::aboutToMarkSlow() will
+        do this instead of clearMarks():
+        
+            - Walk the mark bits, simultaneously counting the number of set bits and clearing
+              them.
+            - If the count is zero, then we're done.
+            - If the count is equal to the max number of cells in the block, then set the
+              allocated bit for the block.
+            - If the count is something else, create a newlyAllocated vector.
+        
+        The hope is that the last mode is going to be rare, since most blocks are not fragmented
+        at end of GC. Usually, we will fill them in with objects by allocating! But if we do
+        create newlyAllocated bits then we need to have some way of blowing them away later.
+        
+        This is where a second version comes in. We can have a version for newlyAllocated bits,
+        which we increment at the end of marking, at around the same time that we clear all
+        allocated bits.
+        
+        This means that the MarkedBlock will have two different version-based flips, so terms like
+        "flip" and "version" aren't enough.
+        
+        This patch gets rid of the term "flip" entirely. It's a term of art in GCs that refers to
+        the state change at the beginning or end of GC. It refers to the logical state change, not
+        the physical one. It doesn't actually make sense to speak of a block being flipped
+        independently of other blocks. It's true that our implementation of the flip makes some
+        state updates happen lazily, but the block updating itself in some way (like clearing mark
+        bits) isn't the flip - the flip already happened when the version was incremented.
+        
+        We no longer refer to a version without qualifying what kind of version it is. The type is
+        HeapVersion. All of the version members were renamed to markingVersion, to reflect the
+        fact that this version is just used for doing things to marking state. Instead of asking
+        if the block needsFlip(), we ask if areMarksStale().
+        
+        This will let us introduce a second version for newlyAllocated, and will let us speak of
+        the two versions unambiguously.
+
+        * heap/CellContainer.h:
+        * heap/CellContainerInlines.h:
+        (JSC::CellContainer::isMarked):
+        (JSC::CellContainer::isMarkedOrNewlyAllocated):
+        (JSC::CellContainer::aboutToMark):
+        (JSC::CellContainer::areMarksStale):
+        (JSC::CellContainer::needsFlip): Deleted.
+        * heap/ConservativeRoots.cpp:
+        (JSC::ConservativeRoots::genericAddPointer):
+        (JSC::ConservativeRoots::genericAddSpan):
+        * heap/HeapInlines.h:
+        (JSC::Heap::isMarked):
+        (JSC::Heap::isMarkedConcurrently):
+        (JSC::Heap::testAndSetMarked):
+        * heap/HeapUtil.h:
+        (JSC::HeapUtil::findGCObjectPointersForMarking):
+        * heap/MarkedAllocator.cpp:
+        (JSC::MarkedAllocator::isPagedOut):
+        * heap/MarkedBlock.cpp:
+        (JSC::MarkedBlock::MarkedBlock):
+        (JSC::MarkedBlock::Handle::specializedSweep):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectSweepMode):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectMarksMode):
+        (JSC::MarkedBlock::aboutToMarkSlow):
+        (JSC::MarkedBlock::clearMarks):
+        (JSC::MarkedBlock::assertMarksNotStale):
+        (JSC::MarkedBlock::areMarksStale):
+        (JSC::MarkedBlock::Handle::areMarksStale):
+        (JSC::MarkedBlock::isMarked):
+        (JSC::MarkedBlock::Handle::isMarkedOrNewlyAllocated):
+        (JSC::MarkedBlock::isMarkedOrNewlyAllocated):
+        (JSC::MarkedBlock::markCount):
+        (JSC::MarkedBlock::Handle::isLive):
+        (JSC::MarkedBlock::Handle::isLiveCell):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectFlipMode): Deleted.
+        (JSC::MarkedBlock::assertFlipped): Deleted.
+        (JSC::MarkedBlock::needsFlip): Deleted.
+        (JSC::MarkedBlock::Handle::needsFlip): Deleted.
+        * heap/MarkedBlock.h:
+        (JSC::MarkedBlock::areMarksStale):
+        (JSC::MarkedBlock::aboutToMark):
+        (JSC::MarkedBlock::assertMarksNotStale):
+        (JSC::MarkedBlock::Handle::assertMarksNotStale):
+        (JSC::MarkedBlock::isMarked):
+        (JSC::MarkedBlock::isMarkedConcurrently):
+        (JSC::MarkedBlock::testAndSetMarked):
+        (JSC::MarkedBlock::Handle::isMarkedOrNewlyAllocated):
+        (JSC::MarkedBlock::isMarkedOrNewlyAllocated):
+        (JSC::MarkedBlock::needsFlip): Deleted.
+        (JSC::MarkedBlock::assertFlipped): Deleted.
+        (JSC::MarkedBlock::Handle::assertFlipped): Deleted.
+        * heap/MarkedBlockInlines.h:
+        (JSC::MarkedBlock::Handle::isLive):
+        (JSC::MarkedBlock::Handle::isLiveCell):
+        (JSC::MarkedBlock::resetMarkingVersion):
+        (JSC::MarkedBlock::resetVersion): Deleted.
+        * heap/MarkedSpace.cpp:
+        (JSC::MarkedSpace::beginMarking):
+        * heap/MarkedSpace.h:
+        (JSC::MarkedSpace::markingVersion):
+        (JSC::MarkedSpace::version): Deleted.
+        * heap/SlotVisitor.cpp:
+        (JSC::SlotVisitor::SlotVisitor):
+        (JSC::SlotVisitor::didStartMarking):
+        (JSC::SlotVisitor::appendJSCellOrAuxiliary):
+        (JSC::SlotVisitor::setMarkedAndAppendToMarkStack):
+        (JSC::SlotVisitor::markAuxiliary):
+        * heap/SlotVisitor.h:
+        (JSC::SlotVisitor::markingVersion):
+        (JSC::SlotVisitor::version): Deleted.
+        * heap/WeakBlock.cpp:
+        (JSC::WeakBlock::specializedVisit):
+        (JSC::WeakBlock::reap):
+
+2016-09-20  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline builtins generator tests after r206155.
+
+        Unreviewed test gardening.
+
+        * Scripts/tests/builtins/expected/WebCoreJSBuiltins.h-result:
+
+2016-09-20  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, fix cloop build.
+
+        * runtime/VM.h:
+
+2016-09-20  Filip Pizlo  <fpizlo@apple.com>
+
+        Make MarkedBlock state tracking support overlapped allocation and marking state
+        https://bugs.webkit.org/show_bug.cgi?id=161581
+
+        Reviewed by Geoffrey Garen.
+        
+        Concurrent GCs must allow for mutation and allocation during collection. We already know
+        how to mutate during collection. We have a write barrier for that. Allocation during
+        collection is more involved: the collector modifies the the mark bits, as well as other
+        kinds of MarkedBlock state, in-place during a collection. The allocator uses that same
+        MarkedBlock state to decide which regions of memory are free. This works if the allocator
+        never runs while the collector is running, but if we want to allow them to run at the same
+        time, then we need to have two versions of the state: one version built up by the
+        collector and another consumed by the allocator. We clear the collector state at the
+        beginning of collection, and splat the collector state onto the allocator state after
+        collection.
+        
+        This could be super expensive, but we can make it cheap with some cleverness. The biggest
+        observation is just that most of the state is a handful of bits per block: is the block
+        free-listed? is it completely full? completely empty? in the incremental sweeper's
+        snapshot? is it retired? is it in eden? There is also state inside blocks, like the mark
+        bits, but I have a solid plan there and I'll save it for another patch. Once we view the
+        state of blocks as bits, we can put that state into bitvectors, so that if the collector
+        needs to transform the state of some blocks, it can do it with a single operation over
+        bitvectors. I like to think of this as 32-way parallelizing block operations, since
+        doing one operation on a 32-bit word in one of those bitvectors instantly affects 32
+        blocks.
+        
+        This change converts all previous collections of MarkedBlocks, along with the MarkedBlock
+        state, into 8 bitvectors (live, empty, allocated, canAllocateButNotEmpty, eden, unswept,
+        markingNotEmpty, and markingRetired). The bitvectors separate allocator state (empty,
+        allocated, canAllocateButNotEmpty) from marking state (markingNotEmpty, markingRetired).
+        
+        As a nice side-effect of switching to bitvectors, we get size class rebalancing for free.
+        It used to be that if a MarkedAllocator had an empty block, we would only allow that
+        memory to be reused by a different MarkedAllocator if we did an incremental sweep or a
+        full eager sweep. Now we hunt down all destructorless empty blocks before allocating new
+        MarkedBlocks. It would be relatively easy to also hunt down destructor empty blocks, but
+        the theory is that those might be expensive to sweep, so it might still be better to leave
+        those to the incremental sweeper.
+        
+        This change is perf-neutral all around. I did some tests with two different kinds of
+        allocation strategies - something that is somewhat easier to do now that you can look for
+        blocks that are candidates for allocation by just scanning some bitvectors. I tried two
+        variants:
+        
+        - Allocate out of non-empty blocks first, leaving empty blocks for last in case a
+          different allocator needed them. This is sort of a best-fit strategy. I tried this
+          first, and it can be expressed as:
+          
+          m_allocationCursor = m_canAllocateButNotEmpty.findBit(m_allocationCursor, true)
+        
+        - Allocate out of lower-indexed blocks first, treating empty and canAllocateButNotEmpty
+          blocks equally. This is sort of a first-fit strategy. This is what I ended up settling
+          on, and it can be expressed as:
+          
+          m_allocationCursor = (m_canAllocateButNotEmpty | m_empty).findBit(m_allocationCursor, true)
+        
+        The best-fit strategy meant 1% regressions in LongSpider and Octane overall, and a 11%
+        regression on Octane/earley. First-fit means perf-neutrality. Most great allocators skew
+        towards first-fit because it's empirically better, so this result is not surprising.
+        
+        Overall, the performance of this patch on my machine is as follows, where "neutral" means
+        less than 1% and not statistically significant.
+        
+        run-jsc-benchmarks:
+            SunSpider: neutral
+            LongSpider: 0.6% slower
+            V8Spider: neutral
+            Octane: neutral
+            Kraken: neutral
+            Microbenchmarks: 0.37% slower
+            AsmBench: neutral
+            CompressionBench: maybe 1% faster
+        
+        For browser benchmarks, I report the ratio of means (bigger / smaller) along with a T-test
+        from Mathematica reported as % chance of not [sic] the null hypothesis. Note that we
+        normally consider anything less than 95% confidence to be inconclusive.
+        
+        Browser benchmarks:
+            PLT3: 0.3% faster with 67% confidence
+            membuster:
+                Snap2FinishedLoadingPost: 0.68% more memory with 50% confidence
+                Snap3EndPost: 2.4% more memory with 61% confidence
+            JetStream: 0.2% slower with 32% confidence
+            Speedometer: 0.7% faster with 82% confidence
+        
+        Additionally, Octane/splay's heap capacity goes down to ~180KB from ~200KB, so about a 10%
+        progression. This is due to the allocator rebalancing feature.
+        
+        Finally, this breaks --useImmortalObjects. It was already broken as far as I can tell. I
+        filed a bug to reimplement it (bug 162296). Unless someone urgently needs this internal
+        tool, it's probably best to reimplement it after I'm done refactoring MarkedSpace. 
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * debugger/Debugger.cpp:
+        * heap/CellContainer.h:
+        * heap/CellContainerInlines.h:
+        (JSC::CellContainer::vm):
+        (JSC::CellContainer::heap):
+        (JSC::CellContainer::isMarkedOrNewlyAllocated):
+        (JSC::CellContainer::aboutToMark):
+        (JSC::CellContainer::isMarked): Deleted.
+        (JSC::CellContainer::flipIfNecessary): Deleted.
+        * heap/ConservativeRoots.cpp:
+        * heap/Heap.cpp:
+        (JSC::Heap::beginMarking):
+        (JSC::Heap::endMarking):
+        (JSC::Heap::collectAllGarbage):
+        (JSC::Heap::collectImpl):
+        (JSC::Heap::snapshotMarkedSpace):
+        (JSC::Heap::prepareForAllocation):
+        (JSC::Heap::zombifyDeadObjects):
+        (JSC::MarkedBlockSnapshotFunctor::MarkedBlockSnapshotFunctor): Deleted.
+        (JSC::MarkedBlockSnapshotFunctor::operator()): Deleted.
+        (JSC::Heap::resetAllocators): Deleted.
+        * heap/Heap.h:
+        * heap/HeapInlines.h:
+        (JSC::Heap::isMarked):
+        (JSC::Heap::isMarkedConcurrently):
+        (JSC::Heap::testAndSetMarked):
+        * heap/HeapStatistics.cpp:
+        * heap/HeapUtil.h:
+        (JSC::HeapUtil::findGCObjectPointersForMarking):
+        (JSC::HeapUtil::isPointerGCObjectJSCell):
+        * heap/HeapVerifier.cpp:
+        * heap/IncrementalSweeper.cpp:
+        (JSC::IncrementalSweeper::IncrementalSweeper):
+        (JSC::IncrementalSweeper::doSweep):
+        (JSC::IncrementalSweeper::sweepNextBlock):
+        (JSC::IncrementalSweeper::startSweeping):
+        (JSC::IncrementalSweeper::willFinishSweeping):
+        * heap/IncrementalSweeper.h:
+        * heap/LargeAllocation.h:
+        (JSC::LargeAllocation::isMarked):
+        (JSC::LargeAllocation::isMarkedConcurrently):
+        (JSC::LargeAllocation::isMarkedOrNewlyAllocated):
+        (JSC::LargeAllocation::aboutToMark):
+        (JSC::LargeAllocation::isMarkedDuringWeakVisiting): Deleted.
+        (JSC::LargeAllocation::flipIfNecessary): Deleted.
+        (JSC::LargeAllocation::flipIfNecessaryDuringMarking): Deleted.
+        * heap/MarkedAllocator.cpp:
+        (JSC::MarkedAllocator::MarkedAllocator):
+        (JSC::MarkedAllocator::isPagedOut):
+        (JSC::MarkedAllocator::findEmptyBlock):
+        (JSC::MarkedAllocator::tryAllocateWithoutCollectingImpl):
+        (JSC::MarkedAllocator::allocateIn):
+        (JSC::MarkedAllocator::tryAllocateIn):
+        (JSC::MarkedAllocator::allocateSlowCaseImpl):
+        (JSC::MarkedAllocator::tryAllocateBlock):
+        (JSC::MarkedAllocator::addBlock):
+        (JSC::MarkedAllocator::removeBlock):
+        (JSC::MarkedAllocator::stopAllocating):
+        (JSC::MarkedAllocator::prepareForAllocation):
+        (JSC::MarkedAllocator::lastChanceToFinalize):
+        (JSC::MarkedAllocator::resumeAllocating):
+        (JSC::MarkedAllocator::beginMarkingForFullCollection):
+        (JSC::MarkedAllocator::endMarking):
+        (JSC::MarkedAllocator::snapshotForEdenCollection):
+        (JSC::MarkedAllocator::snapshotForFullCollection):
+        (JSC::MarkedAllocator::findBlockToSweep):
+        (JSC::MarkedAllocator::sweep):
+        (JSC::MarkedAllocator::shrink):
+        (JSC::MarkedAllocator::assertSnapshotEmpty):
+        (JSC::MarkedAllocator::dump):
+        (JSC::MarkedAllocator::dumpBits):
+        (JSC::MarkedAllocator::retire): Deleted.
+        (JSC::MarkedAllocator::filterNextBlock): Deleted.
+        (JSC::MarkedAllocator::setNextBlockToSweep): Deleted.
+        (JSC::MarkedAllocator::reset): Deleted.
+        * heap/MarkedAllocator.h:
+        (JSC::MarkedAllocator::forEachBitVector):
+        (JSC::MarkedAllocator::forEachBitVectorWithName):
+        (JSC::MarkedAllocator::nextAllocator):
+        (JSC::MarkedAllocator::setNextAllocator):
+        (JSC::MarkedAllocator::forEachBlock):
+        (JSC::MarkedAllocator::resumeAllocating): Deleted.
+        * heap/MarkedBlock.cpp:
+        (JSC::MarkedBlock::tryCreate):
+        (JSC::MarkedBlock::Handle::Handle):
+        (JSC::MarkedBlock::Handle::~Handle):
+        (JSC::MarkedBlock::MarkedBlock):
+        (JSC::MarkedBlock::Handle::specializedSweep):
+        (JSC::MarkedBlock::Handle::sweep):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectScribbleMode):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectEmptyMode):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectHasNewlyAllocated):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectSweepMode):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectFlipMode):
+        (JSC::MarkedBlock::Handle::unsweepWithNoNewlyAllocated):
+        (JSC::MarkedBlock::Handle::setIsFreeListed):
+        (JSC::MarkedBlock::Handle::stopAllocating):
+        (JSC::MarkedBlock::Handle::lastChanceToFinalize):
+        (JSC::MarkedBlock::Handle::resumeAllocating):
+        (JSC::MarkedBlock::aboutToMarkSlow):
+        (JSC::MarkedBlock::clearMarks):
+        (JSC::MarkedBlock::isMarked):
+        (JSC::MarkedBlock::Handle::isMarkedOrNewlyAllocated):
+        (JSC::MarkedBlock::isMarkedOrNewlyAllocated):
+        (JSC::MarkedBlock::Handle::didConsumeFreeList):
+        (JSC::MarkedBlock::markCount):
+        (JSC::MarkedBlock::Handle::isEmpty):
+        (JSC::MarkedBlock::noteMarkedSlow):
+        (JSC::MarkedBlock::Handle::removeFromAllocator):
+        (JSC::MarkedBlock::Handle::didAddToAllocator):
+        (JSC::MarkedBlock::Handle::didRemoveFromAllocator):
+        (JSC::MarkedBlock::Handle::isLive):
+        (JSC::MarkedBlock::Handle::isLiveCell):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectStateAndSweepMode): Deleted.
+        (JSC::MarkedBlock::flipIfNecessary): Deleted.
+        (JSC::MarkedBlock::Handle::flipIfNecessary): Deleted.
+        (JSC::MarkedBlock::flipIfNecessarySlow): Deleted.
+        (JSC::MarkedBlock::flipIfNecessaryDuringMarkingSlow): Deleted.
+        (JSC::MarkedBlock::Handle::willRemoveBlock): Deleted.
+        (WTF::printInternal): Deleted.
+        * heap/MarkedBlock.h:
+        (JSC::MarkedBlock::Handle::isFreeListed):
+        (JSC::MarkedBlock::Handle::index):
+        (JSC::MarkedBlock::aboutToMark):
+        (JSC::MarkedBlock::isMarked):
+        (JSC::MarkedBlock::isMarkedConcurrently):
+        (JSC::MarkedBlock::Handle::isMarkedOrNewlyAllocated):
+        (JSC::MarkedBlock::isMarkedOrNewlyAllocated):
+        (JSC::MarkedBlock::Handle::isOnBlocksToSweep): Deleted.
+        (JSC::MarkedBlock::Handle::setIsOnBlocksToSweep): Deleted.
+        (JSC::MarkedBlock::Handle::state): Deleted.
+        (JSC::MarkedBlock::flipIfNecessary): Deleted.
+        (JSC::MarkedBlock::flipIfNecessaryDuringMarking): Deleted.
+        (JSC::MarkedBlock::Handle::flipIfNecessary): Deleted.
+        (JSC::MarkedBlock::Handle::flipIfNecessaryDuringMarking): Deleted.
+        (JSC::MarkedBlock::Handle::flipForEdenCollection): Deleted.
+        (JSC::MarkedBlock::isMarkedDuringWeakVisiting): Deleted.
+        (JSC::MarkedBlock::Handle::isLive): Deleted.
+        (JSC::MarkedBlock::Handle::isLiveCell): Deleted.
+        (JSC::MarkedBlock::Handle::forEachLiveCell): Deleted.
+        (JSC::MarkedBlock::Handle::forEachDeadCell): Deleted.
+        (JSC::MarkedBlock::Handle::needsSweeping): Deleted.
+        (JSC::MarkedBlock::Handle::isAllocated): Deleted.
+        (JSC::MarkedBlock::Handle::isMarked): Deleted.
+        * heap/MarkedBlockInlines.h: Added.
+        (JSC::MarkedBlock::Handle::isLive):
+        (JSC::MarkedBlock::Handle::isLiveCell):
+        (JSC::MarkedBlock::Handle::forEachLiveCell):
+        (JSC::MarkedBlock::Handle::forEachDeadCell):
+        (JSC::MarkedBlock::resetVersion):
+        * heap/MarkedSpace.cpp:
+        (JSC::MarkedSpace::MarkedSpace):
+        (JSC::MarkedSpace::allocate):
+        (JSC::MarkedSpace::tryAllocate):
+        (JSC::MarkedSpace::sweep):
+        (JSC::MarkedSpace::prepareForAllocation):
+        (JSC::MarkedSpace::shrink):
+        (JSC::MarkedSpace::clearNewlyAllocated):
+        (JSC::MarkedSpace::beginMarking):
+        (JSC::MarkedSpace::endMarking):
+        (JSC::MarkedSpace::didAllocateInBlock):
+        (JSC::MarkedSpace::findEmptyBlock):
+        (JSC::MarkedSpace::snapshot):
+        (JSC::MarkedSpace::assertSnapshotEmpty):
+        (JSC::MarkedSpace::dumpBits):
+        (JSC::MarkedSpace::zombifySweep): Deleted.
+        (JSC::MarkedSpace::resetAllocators): Deleted.
+        (JSC::VerifyMarked::operator()): Deleted.
+        (JSC::MarkedSpace::flip): Deleted.
+        * heap/MarkedSpace.h:
+        (JSC::MarkedSpace::nextVersion):
+        (JSC::MarkedSpace::firstAllocator):
+        (JSC::MarkedSpace::allocatorForEmptyAllocation):
+        (JSC::MarkedSpace::forEachAllocator):
+        (JSC::MarkedSpace::blocksWithNewObjects): Deleted.
+        (JSC::MarkedSpace::setIsMarking): Deleted.
+        (JSC::MarkedSpace::forEachLiveCell): Deleted.
+        (JSC::MarkedSpace::forEachDeadCell): Deleted.
+        * heap/MarkedSpaceInlines.h: Added.
+        (JSC::MarkedSpace::forEachLiveCell):
+        (JSC::MarkedSpace::forEachDeadCell):
+        * heap/SlotVisitor.cpp:
+        (JSC::SlotVisitor::setMarkedAndAppendToMarkStack):
+        (JSC::SlotVisitor::markAuxiliary):
+        (JSC::SlotVisitor::visitChildren):
+        * heap/Weak.h:
+        (WTF::HashTraits<JSC::Weak<T>>::emptyValue):
+        (WTF::HashTraits<JSC::Weak<T>>::peek):
+        * heap/WeakBlock.cpp:
+        (JSC::WeakBlock::specializedVisit):
+        (JSC::WeakBlock::reap):
+        * heap/WeakInlines.h:
+        (WTF::HashTraits<JSC::Weak<T>>::emptyValue): Deleted.
+        (WTF::HashTraits<JSC::Weak<T>>::peek): Deleted.
+        * jit/JITThunks.h:
+        * runtime/JSGlobalObject.cpp:
+        * runtime/PrototypeMap.h:
+        * runtime/SamplingProfiler.cpp:
+        * runtime/WeakGCMap.h:
+        * tools/JSDollarVMPrototype.cpp:
+
+2016-09-20  Jonathan Bedard  <jbedard@apple.com>
+
+        Undefined behavior: Left shift negative number
+        https://bugs.webkit.org/show_bug.cgi?id=161866
+
+        Reviewed by Keith Miller.
+
+        Left shifting a negative number is undefined behavior in C/C++, although most implementations do define it. Explicitly clarifying the intended behavior due to shifting negative number in some cases.
+
+        * dfg/DFGAbstractHeap.h:
+        (JSC::DFG::AbstractHeap::encode): Explicitly cast signed integer for left shift.
+
+2016-09-20  Saam Barati  <sbarati@apple.com>
+
+        Unreviewed fix for 32-bit DFG x86 implementation of HasOwnProperty.
+
+        Fixup phase is always setting ObjectUse on child1() of HasOwnProperty.
+        However, on x86 32-bit, I omitted a call to speculateObject() on child1().
+
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+
+2016-09-20  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Add `typeof value === "symbol"` handling to bytecode compiler
+        https://bugs.webkit.org/show_bug.cgi?id=162253
+
+        Reviewed by Sam Weinig.
+
+        Add `typeof value === "symbol"` handling to the bytecode compiler.
+        The effect is tiny, but it keeps consistency since the bytecode compiler
+        already has the similar optimization for "string" case.
+
+        * bytecode/SpeculatedType.cpp:
+        (JSC::speculationFromJSType):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitEqualityOp):
+
+2016-09-19  Saam Barati  <sbarati@apple.com>
+
+        Make HasOwnProperty faster
+        https://bugs.webkit.org/show_bug.cgi?id=161708
+
+        Reviewed by Geoffrey Garen.
+
+        This patch adds a cache for HasOwnProperty. The cache holds tuples
+        of {StructureID, UniquedStringImpl*, boolean} where the boolean indicates
+        the result of performing hasOwnProperty on an object with StructureID and
+        UniquedStringImpl*. If the cache contains an item, we can be guaranteed
+        that it contains the same result as performing hasOwnProperty on an
+        object O with a given structure and key. To guarantee this, we only add
+        items into the cache when the Structure of the given item is cacheable.
+
+        The caching strategy is simple: when adding new items into the cache,
+        we will evict any item that was in the location that the new item
+        is hashed into. We also clear the cache on every GC. This strategy
+        proves to be successful on speedometer, which sees a cache hit rate
+        over 90%. This caching strategy is now inlined into the DFG/FTL JITs
+        by now recognizing hasOwnProperty as an intrinsic with the corresponding
+        HasOwnProperty node. The goal of the node is to emit inlined code for
+        the cache lookup to prevent the overhead of the call for the common
+        case where we get a cache hit.
+
+        I'm seeing around a 1% to 1.5% percent improvement on Speedometer on
+        my machine. Hopefully the perf bots agree with my machine.
+
+        This patch also speeds up the microbenchmark I added by 2.5x.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::callOperation):
+        (JSC::DFG::SpeculateCellOperand::SpeculateCellOperand):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGValidate.cpp:
+        * ftl/FTLAbstractHeapRepository.h:
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileHasOwnProperty):
+        * heap/Heap.cpp:
+        (JSC::Heap::collectImpl):
+        * jit/JITOperations.h:
+        * runtime/HasOwnPropertyCache.h: Added.
+        (JSC::HasOwnPropertyCache::Entry::offsetOfStructureID):
+        (JSC::HasOwnPropertyCache::Entry::offsetOfImpl):
+        (JSC::HasOwnPropertyCache::Entry::offsetOfResult):
+        (JSC::HasOwnPropertyCache::operator delete):
+        (JSC::HasOwnPropertyCache::create):
+        (JSC::HasOwnPropertyCache::hash):
+        (JSC::HasOwnPropertyCache::get):
+        (JSC::HasOwnPropertyCache::tryAdd):
+        (JSC::HasOwnPropertyCache::clear):
+        (JSC::VM::ensureHasOwnPropertyCache):
+        * runtime/Intrinsic.h:
+        * runtime/JSObject.h:
+        * runtime/JSObjectInlines.h:
+        (JSC::JSObject::hasOwnProperty):
+        * runtime/ObjectPrototype.cpp:
+        (JSC::ObjectPrototype::finishCreation):
+        (JSC::objectProtoFuncHasOwnProperty):
+        * runtime/Symbol.h:
+        * runtime/VM.cpp:
+        * runtime/VM.h:
+        (JSC::VM::hasOwnPropertyCache):
+
+2016-09-19  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Make the rounding-related nodes support any type
+        https://bugs.webkit.org/show_bug.cgi?id=161895
+
+        Reviewed by Geoffrey Garen.
+
+        This patch changes ArithRound, ArithFloor, ArithCeil and ArithTrunc
+        to support polymorphic input without exiting on entry.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        The 4 functions ignore any input past the first argument. It is okay
+        to use the nodes with the first argument and let the Phantoms keep
+        the remaining arguments live.
+
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        Our fixup had the issue we have seen on previous nodes: unaryArithShouldSpeculateInt32()
+        prevents us from picking a good type if we do not see any double.
+
+        * dfg/DFGNodeType.h:
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        Prediction propagation of those nodes are fully determined
+        from their flags and results's prediction. They are moved
+        to the invariant processing.
+
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithRounding):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithRound):
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithFloor):
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithCeil):
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithTrunc):
+
 2016-09-19  Yusuke Suzuki  <utatane.tea@gmail.com>
 
         Unreviewed, build fix for Win64

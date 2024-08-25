@@ -945,7 +945,7 @@ bool FrameLoader::checkIfFormActionAllowedByCSP(const URL& url, bool didReceiveR
         return true;
 
     auto redirectResponseReceived = didReceiveRedirectResponse ? ContentSecurityPolicy::RedirectResponseReceived::Yes : ContentSecurityPolicy::RedirectResponseReceived::No;
-    return m_frame.document()->contentSecurityPolicy()->allowFormAction(url, false /* overrideContentSecurityPolicy */, redirectResponseReceived);
+    return m_frame.document()->contentSecurityPolicy()->allowFormAction(url, redirectResponseReceived);
 }
 
 Frame* FrameLoader::opener()
@@ -2312,7 +2312,7 @@ void FrameLoader::checkLoadCompleteForThisFrame()
                 m_client.dispatchDidFailLoad(error);
                 loadingEvent = AXObjectCache::AXLoadingFailed;
             } else {
-                RELEASE_LOG_IF_ALLOWED("checkLoadCompleteForThisFrame: Finished frame load without error (frame = %p, main = %d)", &m_frame, m_frame.isMainFrame());
+                RELEASE_LOG_IF_ALLOWED("checkLoadCompleteForThisFrame: Finished frame load (frame = %p, main = %d)", &m_frame, m_frame.isMainFrame());
 #if ENABLE(DATA_DETECTION)
                 auto* document = m_frame.document();
                 if (m_frame.settings().dataDetectorTypes() != DataDetectorTypeNone && document) {
@@ -2363,12 +2363,16 @@ void FrameLoader::continueLoadAfterWillSubmitForm()
     
     // The load might be cancelled inside of prepareForLoadStart(), nulling out the m_provisionalDocumentLoader, 
     // so we need to null check it again.
-    if (!m_provisionalDocumentLoader)
+    if (!m_provisionalDocumentLoader) {
+        RELEASE_LOG_IF_ALLOWED("continueLoadAfterWillSubmitForm: Frame load canceled (frame = %p, main = %d)", &m_frame, m_frame.isMainFrame());
         return;
+    }
 
     DocumentLoader* activeDocLoader = activeDocumentLoader();
-    if (activeDocLoader && activeDocLoader->isLoadingMainResource())
+    if (activeDocLoader && activeDocLoader->isLoadingMainResource()) {
+        RELEASE_LOG_IF_ALLOWED("continueLoadAfterWillSubmitForm: Main frame already being loaded (frame = %p, main = %d)", &m_frame, m_frame.isMainFrame());
         return;
+    }
 
     m_loadingFromCachedPage = false;
     m_provisionalDocumentLoader->startLoadingMainResource();

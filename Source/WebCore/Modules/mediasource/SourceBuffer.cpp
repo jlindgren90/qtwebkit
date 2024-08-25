@@ -192,19 +192,20 @@ double SourceBuffer::appendWindowStart() const
 void SourceBuffer::setAppendWindowStart(double newValue, ExceptionCode& ec)
 {
     // Section 3.1 appendWindowStart attribute setter steps.
-    // http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendWindowStart
+    // W3C Editor's Draft 16 September 2016
+    // https://rawgit.com/w3c/media-source/45627646344eea0170dd1cbc5a3d508ca751abb8/media-source-respec.html#dom-sourcebuffer-appendwindowstart
     // 1. If this object has been removed from the sourceBuffers attribute of the parent media source,
-    //    then throw an INVALID_STATE_ERR exception and abort these steps.
-    // 2. If the updating attribute equals true, then throw an INVALID_STATE_ERR exception and abort these steps.
+    //    then throw an InvalidStateError  exception and abort these steps.
+    // 2. If the updating attribute equals true, then throw an InvalidStateError exception and abort these steps.
     if (isRemoved() || m_updating) {
         ec = INVALID_STATE_ERR;
         return;
     }
 
     // 3. If the new value is less than 0 or greater than or equal to appendWindowEnd then
-    //    throw an INVALID_ACCESS_ERR exception and abort these steps.
+    //    throw an TypeError exception and abort these steps.
     if (newValue < 0 || newValue >= m_appendWindowEnd.toDouble()) {
-        ec = INVALID_ACCESS_ERR;
+        ec = TypeError;
         return;
     }
 
@@ -220,20 +221,21 @@ double SourceBuffer::appendWindowEnd() const
 void SourceBuffer::setAppendWindowEnd(double newValue, ExceptionCode& ec)
 {
     // Section 3.1 appendWindowEnd attribute setter steps.
-    // http://www.w3.org/TR/media-source/#widl-SourceBuffer-appendWindowEnd
+    // W3C Editor's Draft 16 September 2016
+    // https://rawgit.com/w3c/media-source/45627646344eea0170dd1cbc5a3d508ca751abb8/media-source-respec.html#dom-sourcebuffer-appendwindowend
     // 1. If this object has been removed from the sourceBuffers attribute of the parent media source,
-    //    then throw an INVALID_STATE_ERR exception and abort these steps.
-    // 2. If the updating attribute equals true, then throw an INVALID_STATE_ERR exception and abort these steps.
+    //    then throw an InvalidStateError exception and abort these steps.
+    // 2. If the updating attribute equals true, then throw an InvalidStateError exception and abort these steps.
     if (isRemoved() || m_updating) {
         ec = INVALID_STATE_ERR;
         return;
     }
 
-    // 3. If the new value equals NaN, then throw an INVALID_ACCESS_ERR and abort these steps.
-    // 4. If the new value is less than or equal to appendWindowStart then throw an INVALID_ACCESS_ERR exception
+    // 3. If the new value equals NaN, then throw an TypeError and abort these steps.
+    // 4. If the new value is less than or equal to appendWindowStart then throw an TypeError exception
     //    and abort these steps.
     if (std::isnan(newValue) || newValue <= m_appendWindowStart.toDouble()) {
-        ec = INVALID_ACCESS_ERR;
+        ec = TypeError;
         return;
     }
 
@@ -1697,20 +1699,23 @@ void SourceBuffer::videoTrackSelectedChanged(VideoTrack* track)
     // If the selected video track changes, then run the following steps:
     // 1. If the SourceBuffer associated with the previously selected video track is not associated with
     // any other enabled tracks, run the following steps:
-    if (track->selected()
+    if (!track->selected()
         && (!m_videoTracks || !m_videoTracks->isAnyTrackEnabled())
         && (!m_audioTracks || !m_audioTracks->isAnyTrackEnabled())
         && (!m_textTracks || !m_textTracks->isAnyTrackEnabled())) {
         // 1.1 Remove the SourceBuffer from activeSourceBuffers.
         // 1.2 Queue a task to fire a simple event named removesourcebuffer at activeSourceBuffers
         setActive(false);
-    } else if (!track->selected()) {
+    } else if (track->selected()) {
         // 2. If the SourceBuffer associated with the newly selected video track is not already in activeSourceBuffers,
         // run the following steps:
         // 2.1 Add the SourceBuffer to activeSourceBuffers.
         // 2.2 Queue a task to fire a simple event named addsourcebuffer at activeSourceBuffers
         setActive(true);
     }
+
+    if (m_videoTracks && m_videoTracks->contains(*track))
+        m_videoTracks->scheduleChangeEvent();
 
     if (!isRemoved())
         m_source->mediaElement()->videoTrackSelectedChanged(track);
@@ -1721,20 +1726,23 @@ void SourceBuffer::audioTrackEnabledChanged(AudioTrack* track)
     // 2.4.5 Changes to selected/enabled track state
     // If an audio track becomes disabled and the SourceBuffer associated with this track is not
     // associated with any other enabled or selected track, then run the following steps:
-    if (track->enabled()
+    if (!track->enabled()
         && (!m_videoTracks || !m_videoTracks->isAnyTrackEnabled())
         && (!m_audioTracks || !m_audioTracks->isAnyTrackEnabled())
         && (!m_textTracks || !m_textTracks->isAnyTrackEnabled())) {
         // 1. Remove the SourceBuffer associated with the audio track from activeSourceBuffers
         // 2. Queue a task to fire a simple event named removesourcebuffer at activeSourceBuffers
         setActive(false);
-    } else if (!track->enabled()) {
+    } else if (track->enabled()) {
         // If an audio track becomes enabled and the SourceBuffer associated with this track is
         // not already in activeSourceBuffers, then run the following steps:
         // 1. Add the SourceBuffer associated with the audio track to activeSourceBuffers
         // 2. Queue a task to fire a simple event named addsourcebuffer at activeSourceBuffers
         setActive(true);
     }
+
+    if (m_audioTracks && m_audioTracks->contains(*track))
+        m_audioTracks->scheduleChangeEvent();
 
     if (!isRemoved())
         m_source->mediaElement()->audioTrackEnabledChanged(track);
@@ -1759,6 +1767,9 @@ void SourceBuffer::textTrackModeChanged(TextTrack* track)
         // 2. Queue a task to fire a simple event named addsourcebuffer at activeSourceBuffers
         setActive(true);
     }
+
+    if (m_textTracks && m_textTracks->contains(*track))
+        m_textTracks->scheduleChangeEvent();
 
     if (!isRemoved())
         m_source->mediaElement()->textTrackModeChanged(track);

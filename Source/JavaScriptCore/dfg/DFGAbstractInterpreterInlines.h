@@ -905,19 +905,23 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     case ArithCeil:
     case ArithTrunc: {
         JSValue operand = forNode(node->child1()).value();
-        if (operand && operand.isNumber()) {
+        if (Optional<double> number = operand.toNumberFromPrimitive()) {
             double roundedValue = 0;
             if (node->op() == ArithRound)
-                roundedValue = jsRound(operand.asNumber());
+                roundedValue = jsRound(*number);
             else if (node->op() == ArithFloor)
-                roundedValue = floor(operand.asNumber());
+                roundedValue = floor(*number);
             else if (node->op() == ArithCeil)
-                roundedValue = ceil(operand.asNumber());
+                roundedValue = ceil(*number);
             else {
                 ASSERT(node->op() == ArithTrunc);
-                roundedValue = trunc(operand.asNumber());
+                roundedValue = trunc(*number);
             }
 
+            if (node->child1().useKind() == UntypedUse) {
+                setConstant(node, jsNumber(roundedValue));
+                break;
+            }
             if (producesInteger(node->arithRoundingMode())) {
                 int32_t roundedValueAsInt32 = static_cast<int32_t>(roundedValue);
                 if (roundedValueAsInt32 == roundedValue) {
@@ -936,10 +940,15 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
                 break;
             }
         }
-        if (producesInteger(node->arithRoundingMode()))
-            forNode(node).setType(SpecInt32Only);
-        else
-            forNode(node).setType(typeOfDoubleRounding(forNode(node->child1()).m_type));
+        if (node->child1().useKind() == DoubleRepUse) {
+            if (producesInteger(node->arithRoundingMode()))
+                forNode(node).setType(SpecInt32Only);
+            else if (node->child1().useKind() == DoubleRepUse)
+                forNode(node).setType(typeOfDoubleRounding(forNode(node->child1()).m_type));
+        } else {
+            DFG_ASSERT(m_graph, node, node->child1().useKind() == UntypedUse);
+            forNode(node).setType(SpecFullNumber);
+        }
         break;
     }
             
@@ -2652,6 +2661,12 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
     case In: {
         // FIXME: We can determine when the property definitely exists based on abstract
         // value information.
+        clobberWorld(node->origin.semantic, clobberLimit);
+        forNode(node).setType(SpecBoolean);
+        break;
+    }
+
+    case HasOwnProperty: {
         clobberWorld(node->origin.semantic, clobberLimit);
         forNode(node).setType(SpecBoolean);
         break;

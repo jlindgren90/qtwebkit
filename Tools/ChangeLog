@@ -1,3 +1,361 @@
+2016-09-22  Jonathan Bedard  <jbedard@apple.com>
+
+        Automatic Text Replacement Testing in WebKit2
+        https://bugs.webkit.org/show_bug.cgi?id=161919
+
+        Reviewed by Ryosuke Niwa.
+
+        Implemented test hooks for text replacement for WebKit2.
+        Note that spell checking has not been implemented, so most tests which use text replacement still fail.
+
+        * WebKitTestRunner/InjectedBundle/Bindings/TestRunner.idl: Removed setAutomaticLinkDetectionEnabled from TestRunner, moved to Internals.
+        * WebKitTestRunner/InjectedBundle/InjectedBundle.cpp: Ditto.
+        (WTR::InjectedBundle::beginTesting): Ditto.
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp: Ditto.
+        * WebKitTestRunner/InjectedBundle/TestRunner.h: Ditto.
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::runTest): Place TextChecker into testing mode.
+
+2016-09-21  Dan Bernstein  <mitz@apple.com>
+
+        [macOS] Upon layout, _webView:renderingProgressDidChange: fires before the intrinsic content size is updated
+        https://bugs.webkit.org/show_bug.cgi?id=162359
+        <rdar://problem/27776454>
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/AutoLayoutIntegration.mm:
+        (TEST):
+
+2016-09-21  Keith Miller  <keith_miller@apple.com>
+
+        Fix build for future versions of Clang.
+        https://bugs.webkit.org/show_bug.cgi?id=162346
+
+        Reviewed by Filip Pizlo.
+
+        * TestWebKitAPI/Counters.cpp:
+        * TestWebKitAPI/Counters.h:
+        (DeleterCounter::deleterCount):
+        (DeleterCounter::TestingScope::TestingScope):
+        (DeleterCounter::operator()):
+        * TestWebKitAPI/Tests/WTF/HashCountedSet.cpp:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WTF/HashMap.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-09-21  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r206222 and r206227.
+        https://bugs.webkit.org/show_bug.cgi?id=162361
+
+        "broke the windows build" (Requested by keith_mi_ on #webkit).
+
+        Reverted changesets:
+
+        "Fix build for future versions of Clang."
+        https://bugs.webkit.org/show_bug.cgi?id=162346
+        http://trac.webkit.org/changeset/206222
+
+        "Attempt to fix windows build after r206222."
+        http://trac.webkit.org/changeset/206227
+
+2016-09-21  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should match URL::parse when parsing data urls with slashes in them
+        https://bugs.webkit.org/show_bug.cgi?id=162352
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-21  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should fail when parsing invalid relative URLs with no schemes
+        https://bugs.webkit.org/show_bug.cgi?id=162355
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-21  Keith Miller  <keith_miller@apple.com>
+
+        Fix build for future versions of Clang.
+        https://bugs.webkit.org/show_bug.cgi?id=162346
+
+        Reviewed by Filip Pizlo.
+
+        * TestWebKitAPI/Counters.cpp:
+        * TestWebKitAPI/Counters.h:
+        (DeleterCounter::deleterCount):
+        (DeleterCounter::TestingScope::TestingScope):
+        (DeleterCounter::operator()):
+        * TestWebKitAPI/Tests/WTF/HashCountedSet.cpp:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WTF/HashMap.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-09-21  Alex Christensen  <achristensen@webkit.org>
+
+        Prepare API tests for enabling URLParser by default
+        https://bugs.webkit.org/show_bug.cgi?id=162341
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::checkRelativeURL):
+        (TestWebKitAPI::checkURLDifferences):
+        (TestWebKitAPI::checkRelativeURLDifferences):
+        (TestWebKitAPI::shouldFail):
+
+2016-09-21  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Correctly parse URLs that are just nonspecialscheme:/
+        https://bugs.webkit.org/show_bug.cgi?id=162340
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-21  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: correctly parse relative URLs that are just one character
+        https://bugs.webkit.org/show_bug.cgi?id=162344
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-20  Alex Christensen  <achristensen@webkit.org>
+
+        Optimize URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162105
+
+        Reviewed by Geoffrey Garen.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-20  Aakash Jain  <aakash_jain@apple.com>
+
+        enable remote_api (for debugging) in flakiness dashboard app
+        https://bugs.webkit.org/show_bug.cgi?id=162325
+
+        Reviewed by Alexey Proskuryakov.
+
+        * TestResultServer/app.yaml: enabled remote_api and datastore_admin.
+
+2016-09-20  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r206180.
+
+        Roll r206178 back in as the necessary changes have been made
+        on the build master.
+
+        Reverted changeset:
+
+        "Unreviewed, rolling out r206178."
+        https://bugs.webkit.org/show_bug.cgi?id=162249
+        http://trac.webkit.org/changeset/206180
+
+2016-09-20  Alexey Proskuryakov  <ap@apple.com>
+
+        Use a hardcoded patch for sRGB color profile
+        https://bugs.webkit.org/show_bug.cgi?id=162320
+        rdar://problem/28387318
+
+        Reviewed by Simon Fraser.
+
+        This is a workaround for rdar://problem/28392768
+
+        * DumpRenderTree/mac/LayoutTestHelper.m:
+        (installLayoutTestColorProfile):
+
+2016-09-20  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r206178.
+
+        This change caused buildbot config issues.
+
+        Reverted changeset:
+
+        "Add Sierra bots to buildbot and dashboard."
+        https://bugs.webkit.org/show_bug.cgi?id=162249
+        http://trac.webkit.org/changeset/206178
+
+2016-09-20  Dean Johnson  <dean_johnson@apple.com>
+
+        Add Sierra bots to buildbot and dashboard.
+        https://bugs.webkit.org/show_bug.cgi?id=162249
+
+        Reviewed by Alexey Proskuryakov.
+
+        * BuildSlaveSupport/build.webkit.org-config/config.json:
+        * BuildSlaveSupport/build.webkit.org-config/mastercfg_unittest.py:
+        * BuildSlaveSupport/build.webkit.org-config/public_html/dashboard/Scripts/WebKitBuildbot.js:
+        (WebKitBuildbot):
+
+2016-09-20  Alex Christensen  <achristensen@webkit.org>
+
+        Reduce allocations in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162241
+
+        Reviewed by Chris Dumez.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+        (TestWebKitAPI::checkURL):
+
+2016-09-20  Alex Christensen  <achristensen@webkit.org>
+
+        Align URLParser with web platform tests when parsing non-special relative URLs ending in AuthorityOrHost state
+        https://bugs.webkit.org/show_bug.cgi?id=162251
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::TEST_F):
+        (TestWebKitAPI::checkRelativeURL):
+        (TestWebKitAPI::checkURLDifferences):
+        (TestWebKitAPI::checkRelativeURLDifferences):
+
+2016-09-20  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should allow '@' in user
+        https://bugs.webkit.org/show_bug.cgi?id=162272
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-20  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Fix parsing relative URLs with one slash after the scheme:
+        https://bugs.webkit.org/show_bug.cgi?id=162294
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-20  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows file URL quirks in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162303
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-20  Filip Pizlo  <fpizlo@apple.com>
+
+        Make MarkedBlock state tracking support overlapped allocation and marking state
+        https://bugs.webkit.org/show_bug.cgi?id=161581
+
+        Reviewed by Geoffrey Garen.
+        
+        Remove the always-trigger-copy-phase configuration.
+
+        * Scripts/run-jsc-stress-tests:
+
+2016-09-20  Don Olmstead  <don.olmstead@am.sony.com>
+
+        [WinCairo] Use find_package cairo in build
+        https://bugs.webkit.org/show_bug.cgi?id=162239
+
+        Reviewed by Alex Christensen.
+
+        * DumpRenderTree/PlatformWin.cmake:
+        * TestWebKitAPI/PlatformWin.cmake:
+
+2016-09-20  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Unreviewed build fix on 10.10 bots.
+
+        * TestWebKitAPI/mac/TestWKWebViewMac.h:
+
+2016-09-20  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        VideoControlsManager.VideoControlsManagerSingleLargeVideo fails intermittently on the Mac WK2 bot
+        https://bugs.webkit.org/show_bug.cgi?id=162255
+
+        Reviewed by Jer Noble.
+
+        This is reproducible by running the test repeatedly in a for loop (locally, I observed that running the test
+        back-to-back would result in the second one failing). This suggests that even on the runloop after the video
+        starts playing, the state of the playback controls manager may not be up to date in the UI process. Instead, we
+        can just spin the runloop until the playback controls are shown, which makes back-to-back tests to succeed and
+        will probably address flakiness on the bots for this test.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-video-with-audio.html:
+
+2016-09-20  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Run layout tests in parallel.
+        https://bugs.webkit.org/show_bug.cgi?id=162145
+
+        Reviewed by Brent Fulgham.
+
+        To speed up layout tests, try running them in parallel.
+
+        * Scripts/webkitpy/port/win.py:
+        (WinPort.default_child_processes): Deleted.
+
+2016-09-19  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Unreviewed build fix after r206135
+
+        NSEventMaskLeftMouseDown and friends are only available on 10.12.
+
+        * TestWebKitAPI/mac/TestWKWebViewMac.mm:
+        (__simulated_forceClickAssociatedEventsMask):
+
+2016-09-19  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Add a unit test covering <https://trac.webkit.org/changeset/205983>
+        https://bugs.webkit.org/show_bug.cgi?id=162112
+
+        Reviewed by Beth Dakin.
+
+        Adds a new unit test covering the changes in r205983 along with the infrastructure needed to support it. Also
+        further refactors the TestWKWebView used by VideoControlsManager and WKWebViewCandidateTests so that in both
+        cases, we add the WKWebView to a visible key window, and when sending a mouse down event, we propagate the event
+        at the window level rather than the view level, allowing greater flexibility to simulate behaviors such as
+        pressure-sensitive events that are needed for the new test.
+
+        Also rewrites currently disabled unit tests in CandidateTests as WebKit2 unit tests in WKWebViewCandidateTests,
+        checking whether or not to should be requesting candidates in password and non-password fields.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        (TestWebKitAPI::setUpWebViewForTestingVideoControlsManager):
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/WKWebViewCandidateTests.mm:
+        (-[CandidateTestWebView typeString:inputMessage:]):
+        (+[CandidateTestWebView setUpWithFrame:testPage:]):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-input-field-focus-onload.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/text-and-password-inputs.html: Added.
+        * TestWebKitAPI/mac/TestWKWebViewMac.h:
+        * TestWebKitAPI/mac/TestWKWebViewMac.mm:
+        (__simulated_forceClickAssociatedEventsMask):
+        (-[TestWKWebViewHostWindow _mouseDownAtPoint:simulatePressure:]):
+        (-[TestWKWebView initWithFrame:]):
+        (-[TestWKWebView initWithFrame:configuration:]):
+        (-[TestWKWebView _setUpTestWindow:]):
+        (-[TestWKWebView mouseDownAtPoint:simulatePressure:]):
+        (-[TestWKWebView typeCharacter:]):
+        (-[TestWKWebView mouseDownAtPoint:]): Deleted.
+
 2016-09-19  Alex Christensen  <achristensen@webkit.org>
 
         URLParser can read memory out of bounds

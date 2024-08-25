@@ -160,6 +160,10 @@
 #include <WebCore/TextIndicatorWindow.h>
 #endif
 
+#if PLATFORM(GTK)
+#include "WebSelectionData.h"
+#endif
+
 #if USE(CAIRO)
 #include <WebCore/CairoUtilities.h>
 #endif
@@ -1797,7 +1801,10 @@ void WebPageProxy::performDragControllerAction(DragControllerAction action, Drag
     String url = dragData.asURL();
     if (!url.isEmpty())
         m_process->assumeReadAccessToBaseURL(url);
-    m_process->send(Messages::WebPage::PerformDragControllerAction(action, dragData), m_pageID);
+
+    ASSERT(dragData.platformData());
+    WebSelectionData selection(*dragData.platformData());
+    m_process->send(Messages::WebPage::PerformDragControllerAction(action, dragData.clientPosition(), dragData.globalPosition(), dragData.draggingSourceOperationMask(), selection, dragData.flags()), m_pageID);
 #else
     m_process->send(Messages::WebPage::PerformDragControllerAction(action, dragData.clientPosition(), dragData.globalPosition(), dragData.draggingSourceOperationMask(), dragStorageName, dragData.flags(), sandboxExtensionHandle, sandboxExtensionsForUpload), m_pageID);
 #endif
@@ -1813,16 +1820,12 @@ void WebPageProxy::didPerformDragControllerAction(uint64_t dragOperation, bool m
 }
 
 #if PLATFORM(QT) || PLATFORM(GTK)
-void WebPageProxy::startDrag(const DragData& dragData, const ShareableBitmap::Handle& dragImageHandle)
+void WebPageProxy::startDrag(WebSelectionData&& selection, uint64_t dragOperation, const ShareableBitmap::Handle& dragImageHandle)
 {
-    RefPtr<ShareableBitmap> dragImage = 0;
-    if (!dragImageHandle.isNull()) {
-        dragImage = ShareableBitmap::create(dragImageHandle);
-        if (!dragImage)
-            return;
-    }
+    RefPtr<ShareableBitmap> dragImage = !dragImageHandle.isNull() ? ShareableBitmap::create(dragImageHandle) : nullptr;
+    m_pageClient.startDrag(WTFMove(selection.selectionData), static_cast<WebCore::DragOperation>(dragOperation), WTFMove(dragImage));
 
-    m_pageClient.startDrag(dragData, dragImage.release());
+    m_process->send(Messages::WebPage::DidStartDrag(), m_pageID);
 }
 #endif
 
@@ -6044,6 +6047,40 @@ void WebPageProxy::setAutoSizingShouldExpandToViewHeight(bool shouldExpand)
 
     m_process->send(Messages::WebPage::SetAutoSizingShouldExpandToViewHeight(shouldExpand), m_pageID);
 }
+
+#if USE(AUTOMATIC_TEXT_REPLACEMENT)
+
+void WebPageProxy::toggleSmartInsertDelete()
+{
+    if (TextChecker::isTestingMode())
+        TextChecker::setSmartInsertDeleteEnabled(!TextChecker::isSmartInsertDeleteEnabled());
+}
+
+void WebPageProxy::toggleAutomaticQuoteSubstitution()
+{
+    if (TextChecker::isTestingMode())
+        TextChecker::setAutomaticQuoteSubstitutionEnabled(!TextChecker::state().isAutomaticQuoteSubstitutionEnabled);
+}
+
+void WebPageProxy::toggleAutomaticLinkDetection()
+{
+    if (TextChecker::isTestingMode())
+        TextChecker::setAutomaticLinkDetectionEnabled(!TextChecker::state().isAutomaticLinkDetectionEnabled);
+}
+
+void WebPageProxy::toggleAutomaticDashSubstitution()
+{
+    if (TextChecker::isTestingMode())
+        TextChecker::setAutomaticDashSubstitutionEnabled(!TextChecker::state().isAutomaticDashSubstitutionEnabled);
+}
+
+void WebPageProxy::toggleAutomaticTextReplacement()
+{
+    if (TextChecker::isTestingMode())
+        TextChecker::setAutomaticTextReplacementEnabled(!TextChecker::state().isAutomaticTextReplacementEnabled);
+}
+
+#endif
 
 #if PLATFORM(MAC)
 

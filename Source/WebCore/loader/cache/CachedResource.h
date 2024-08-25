@@ -211,7 +211,7 @@ public:
     bool isClean() const;
     ResourceResponse::Tainting responseTainting() const { return m_responseTainting; }
 
-    void loadFrom(const CachedResource&, CachedResourceLoader&);
+    void loadFrom(const CachedResource&);
 
     SecurityOrigin* origin() const { return m_origin.get(); }
 
@@ -219,11 +219,6 @@ public:
     bool hasOneHandle() const { return m_handleCount == 1; }
 
     bool isExpired() const;
-
-    // List of acceptable MIME types separated by ",".
-    // A MIME type may contain a wildcard, e.g. "text/*".
-    String accept() const { return m_accept; }
-    void setAccept(const String& accept) { m_accept = accept; }
 
     void cancelLoad();
     bool wasCanceled() const { return m_error.isCancellation(); }
@@ -314,12 +309,10 @@ private:
     std::chrono::microseconds freshnessLifetime(const ResourceResponse&) const;
 
     void addAdditionalRequestHeaders(CachedResourceLoader&);
-    void computeOrigin(CachedResourceLoader&);
     void failBeforeStarting();
 
     HashMap<CachedResourceClient*, std::unique_ptr<Callback>> m_clientsAwaitingCallback;
     SessionID m_sessionID;
-    String m_accept;
     ResourceLoadPriority m_loadPriority;
     std::chrono::system_clock::time_point m_responseTimestamp;
 

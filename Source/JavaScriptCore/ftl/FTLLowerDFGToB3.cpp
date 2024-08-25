@@ -634,6 +634,9 @@ private:
         case In:
             compileIn();
             break;
+        case HasOwnProperty:
+            compileHasOwnProperty();
+            break;
         case PutById:
         case PutByIdDirect:
         case PutByIdFlush:
@@ -2262,67 +2265,91 @@ private:
 
     void compileArithRound()
     {
-        LValue result = nullptr;
+        if (m_node->child1().useKind() == DoubleRepUse) {
+            LValue result = nullptr;
+            if (producesInteger(m_node->arithRoundingMode()) && !shouldCheckNegativeZero(m_node->arithRoundingMode())) {
+                LValue value = lowDouble(m_node->child1());
+                result = m_out.doubleFloor(m_out.doubleAdd(value, m_out.constDouble(0.5)));
+            } else {
+                LBasicBlock realPartIsMoreThanHalf = m_out.newBlock();
+                LBasicBlock continuation = m_out.newBlock();
 
-        if (producesInteger(m_node->arithRoundingMode()) && !shouldCheckNegativeZero(m_node->arithRoundingMode())) {
-            LValue value = lowDouble(m_node->child1());
-            result = m_out.doubleFloor(m_out.doubleAdd(value, m_out.constDouble(0.5)));
-        } else {
-            LBasicBlock realPartIsMoreThanHalf = m_out.newBlock();
-            LBasicBlock continuation = m_out.newBlock();
+                LValue value = lowDouble(m_node->child1());
+                LValue integerValue = m_out.doubleCeil(value);
+                ValueFromBlock integerValueResult = m_out.anchor(integerValue);
 
-            LValue value = lowDouble(m_node->child1());
-            LValue integerValue = m_out.doubleCeil(value);
-            ValueFromBlock integerValueResult = m_out.anchor(integerValue);
+                LValue realPart = m_out.doubleSub(integerValue, value);
 
-            LValue realPart = m_out.doubleSub(integerValue, value);
+                m_out.branch(m_out.doubleGreaterThanOrUnordered(realPart, m_out.constDouble(0.5)), unsure(realPartIsMoreThanHalf), unsure(continuation));
 
-            m_out.branch(m_out.doubleGreaterThanOrUnordered(realPart, m_out.constDouble(0.5)), unsure(realPartIsMoreThanHalf), unsure(continuation));
+                LBasicBlock lastNext = m_out.appendTo(realPartIsMoreThanHalf, continuation);
+                LValue integerValueRoundedDown = m_out.doubleSub(integerValue, m_out.constDouble(1));
+                ValueFromBlock integerValueRoundedDownResult = m_out.anchor(integerValueRoundedDown);
+                m_out.jump(continuation);
+                m_out.appendTo(continuation, lastNext);
 
-            LBasicBlock lastNext = m_out.appendTo(realPartIsMoreThanHalf, continuation);
-            LValue integerValueRoundedDown = m_out.doubleSub(integerValue, m_out.constDouble(1));
-            ValueFromBlock integerValueRoundedDownResult = m_out.anchor(integerValueRoundedDown);
-            m_out.jump(continuation);
-            m_out.appendTo(continuation, lastNext);
+                result = m_out.phi(Double, integerValueResult, integerValueRoundedDownResult);
+            }
 
-            result = m_out.phi(Double, integerValueResult, integerValueRoundedDownResult);
+            if (producesInteger(m_node->arithRoundingMode())) {
+                LValue integerValue = convertDoubleToInt32(result, shouldCheckNegativeZero(m_node->arithRoundingMode()));
+                setInt32(integerValue);
+            } else
+                setDouble(result);
+            return;
         }
 
-        if (producesInteger(m_node->arithRoundingMode())) {
-            LValue integerValue = convertDoubleToInt32(result, shouldCheckNegativeZero(m_node->arithRoundingMode()));
-            setInt32(integerValue);
-        } else
-            setDouble(result);
+        DFG_ASSERT(m_graph, m_node, m_node->child1().useKind() == UntypedUse);
+        LValue argument = lowJSValue(m_node->child1());
+        setJSValue(vmCall(Int64, m_out.operation(operationArithRound), m_callFrame, argument));
     }
 
     void compileArithFloor()
     {
-        LValue value = lowDouble(m_node->child1());
-        LValue integerValue = m_out.doubleFloor(value);
-        if (producesInteger(m_node->arithRoundingMode()))
-            setInt32(convertDoubleToInt32(integerValue, shouldCheckNegativeZero(m_node->arithRoundingMode())));
-        else
-            setDouble(integerValue);
+        if (m_node->child1().useKind() == DoubleRepUse) {
+            LValue value = lowDouble(m_node->child1());
+            LValue integerValue = m_out.doubleFloor(value);
+            if (producesInteger(m_node->arithRoundingMode()))
+                setInt32(convertDoubleToInt32(integerValue, shouldCheckNegativeZero(m_node->arithRoundingMode())));
+            else
+                setDouble(integerValue);
+            return;
+        }
+        DFG_ASSERT(m_graph, m_node, m_node->child1().useKind() == UntypedUse);
+        LValue argument = lowJSValue(m_node->child1());
+        setJSValue(vmCall(Int64, m_out.operation(operationArithFloor), m_callFrame, argument));
     }
 
     void compileArithCeil()
     {
-        LValue value = lowDouble(m_node->child1());
-        LValue integerValue = m_out.doubleCeil(value);
-        if (producesInteger(m_node->arithRoundingMode()))
-            setInt32(convertDoubleToInt32(integerValue, shouldCheckNegativeZero(m_node->arithRoundingMode())));
-        else
-            setDouble(integerValue);
+        if (m_node->child1().useKind() == DoubleRepUse) {
+            LValue value = lowDouble(m_node->child1());
+            LValue integerValue = m_out.doubleCeil(value);
+            if (producesInteger(m_node->arithRoundingMode()))
+                setInt32(convertDoubleToInt32(integerValue, shouldCheckNegativeZero(m_node->arithRoundingMode())));
+            else
+                setDouble(integerValue);
+            return;
+        }
+        DFG_ASSERT(m_graph, m_node, m_node->child1().useKind() == UntypedUse);
+        LValue argument = lowJSValue(m_node->child1());
+        setJSValue(vmCall(Int64, m_out.operation(operationArithCeil), m_callFrame, argument));
     }
 
     void compileArithTrunc()
     {
-        LValue value = lowDouble(m_node->child1());
-        LValue result = m_out.doubleTrunc(value);
-        if (producesInteger(m_node->arithRoundingMode()))
-            setInt32(convertDoubleToInt32(result, shouldCheckNegativeZero(m_node->arithRoundingMode())));
-        else
-            setDouble(result);
+        if (m_node->child1().useKind() == DoubleRepUse) {
+            LValue value = lowDouble(m_node->child1());
+            LValue result = m_out.doubleTrunc(value);
+            if (producesInteger(m_node->arithRoundingMode()))
+                setInt32(convertDoubleToInt32(result, shouldCheckNegativeZero(m_node->arithRoundingMode())));
+            else
+                setDouble(result);
+            return;
+        }
+        DFG_ASSERT(m_graph, m_node, m_node->child1().useKind() == UntypedUse);
+        LValue argument = lowJSValue(m_node->child1());
+        setJSValue(vmCall(Int64, m_out.operation(operationArithTrunc), m_callFrame, argument));
     }
 
     void compileArithSqrt()
@@ -5268,8 +5295,8 @@ private:
 
         LValue jsCallee = lowJSValue(m_graph.varArgChild(node, 0));
 
-        unsigned frameSize = CallFrame::headerSizeInRegisters + numArgs;
-        unsigned alignedFrameSize = WTF::roundUpToMultipleOf(stackAlignmentRegisters(), frameSize);
+        unsigned frameSize = (CallFrame::headerSizeInRegisters + numArgs) * sizeof(EncodedJSValue);
+        unsigned alignedFrameSize = WTF::roundUpToMultipleOf(stackAlignmentBytes(), frameSize);
 
         // JS->JS calling convention requires that the caller allows this much space on top of stack to
         // get trashed by the callee, even if not all of that space is used to pass arguments. We tell
@@ -5279,7 +5306,7 @@ private:
         // - The trashed stack guarantee is logically separate from the act of passing arguments, so we
         //   shouldn't rely on Air to infer the trashed stack property based on the arguments it ends
         //   up seeing.
-        m_proc.requestCallArgAreaSize(alignedFrameSize);
+        m_proc.requestCallArgAreaSizeInBytes(alignedFrameSize);
 
         // Collect the arguments, since this can generate code and we want to generate it before we emit
         // the call.
@@ -5529,7 +5556,7 @@ private:
             sizeof(CallerFrameAndPC) +
             WTF::roundUpToMultipleOf(stackAlignmentBytes(), 5 * sizeof(EncodedJSValue));
 
-        m_proc.requestCallArgAreaSize(minimumJSCallAreaSize);
+        m_proc.requestCallArgAreaSizeInBytes(minimumJSCallAreaSize);
         
         CodeOrigin codeOrigin = codeOriginDescriptionOfCallSite();
         State* state = &m_ftlState;
@@ -5755,10 +5782,10 @@ private:
         
         LValue jsCallee = lowJSValue(m_graph.varArgChild(node, 0));
         
-        unsigned frameSize = CallFrame::headerSizeInRegisters + numArgs;
-        unsigned alignedFrameSize = WTF::roundUpToMultipleOf(stackAlignmentRegisters(), frameSize);
+        unsigned frameSize = (CallFrame::headerSizeInRegisters + numArgs) * sizeof(EncodedJSValue);
+        unsigned alignedFrameSize = WTF::roundUpToMultipleOf(stackAlignmentBytes(), frameSize);
         
-        m_proc.requestCallArgAreaSize(alignedFrameSize);
+        m_proc.requestCallArgAreaSizeInBytes(alignedFrameSize);
         
         Vector<ConstrainedValue> arguments;
         arguments.append(ConstrainedValue(jsCallee, ValueRep::reg(GPRInfo::regT0)));
@@ -6748,6 +6775,108 @@ private:
         } 
 
         setJSValue(vmCall(Int64, m_out.operation(operationGenericIn), m_callFrame, cell, lowJSValue(m_node->child1())));
+    }
+
+    void compileHasOwnProperty()
+    {
+        LBasicBlock slowCase = m_out.newBlock();
+        LBasicBlock continuation = m_out.newBlock();
+        LBasicBlock lastNext = nullptr;
+
+        LValue object = lowObject(m_node->child1());
+        LValue uniquedStringImpl;
+        LValue keyAsValue = nullptr;
+        switch (m_node->child2().useKind()) {
+        case StringUse: {
+            LBasicBlock isNonEmptyString = m_out.newBlock();
+            LBasicBlock isAtomicString = m_out.newBlock();
+
+            keyAsValue = lowString(m_node->child2());
+            uniquedStringImpl = m_out.loadPtr(keyAsValue, m_heaps.JSString_value);
+            m_out.branch(m_out.notNull(uniquedStringImpl), usually(isNonEmptyString), rarely(slowCase));
+
+            lastNext = m_out.appendTo(isNonEmptyString, isAtomicString);
+            LValue isNotAtomic = m_out.testIsZero32(m_out.load32(uniquedStringImpl, m_heaps.StringImpl_hashAndFlags), m_out.constInt32(StringImpl::flagIsAtomic()));
+            m_out.branch(isNotAtomic, rarely(slowCase), usually(isAtomicString));
+
+            m_out.appendTo(isAtomicString, slowCase);
+            break;
+        }
+        case SymbolUse: {
+            keyAsValue = lowSymbol(m_node->child2());
+            uniquedStringImpl = m_out.loadPtr(keyAsValue, m_heaps.Symbol_symbolImpl);
+            lastNext = m_out.insertNewBlocksBefore(slowCase);
+            break;
+        }
+        case UntypedUse: {
+            LBasicBlock isCellCase = m_out.newBlock();
+            LBasicBlock isStringCase = m_out.newBlock();
+            LBasicBlock notStringCase = m_out.newBlock();
+            LBasicBlock isNonEmptyString = m_out.newBlock();
+            LBasicBlock isSymbolCase = m_out.newBlock();
+            LBasicBlock hasUniquedStringImpl = m_out.newBlock();
+
+            keyAsValue = lowJSValue(m_node->child2());
+            m_out.branch(isCell(keyAsValue), usually(isCellCase), rarely(slowCase));
+
+            lastNext = m_out.appendTo(isCellCase, isStringCase);
+            m_out.branch(isString(keyAsValue), unsure(isStringCase), unsure(notStringCase));
+
+            m_out.appendTo(isStringCase, isNonEmptyString);
+            LValue implFromString = m_out.loadPtr(keyAsValue, m_heaps.JSString_value);
+            ValueFromBlock stringResult = m_out.anchor(implFromString);
+            m_out.branch(m_out.notNull(implFromString), usually(isNonEmptyString), rarely(slowCase));
+
+            m_out.appendTo(isNonEmptyString, notStringCase);
+            LValue isNotAtomic = m_out.testIsZero32(m_out.load32(implFromString, m_heaps.StringImpl_hashAndFlags), m_out.constInt32(StringImpl::flagIsAtomic()));
+            m_out.branch(isNotAtomic, rarely(slowCase), usually(hasUniquedStringImpl));
+
+            m_out.appendTo(notStringCase, isSymbolCase);
+            m_out.branch(isSymbol(keyAsValue), unsure(isSymbolCase), unsure(slowCase));
+
+            m_out.appendTo(isSymbolCase, hasUniquedStringImpl);
+            ValueFromBlock symbolResult = m_out.anchor(m_out.loadPtr(keyAsValue, m_heaps.Symbol_symbolImpl));
+            m_out.jump(hasUniquedStringImpl);
+
+            m_out.appendTo(hasUniquedStringImpl, slowCase);
+            uniquedStringImpl = m_out.phi(pointerType(), stringResult, symbolResult);
+            break;
+        }
+        default:
+            RELEASE_ASSERT_NOT_REACHED();
+        }
+
+        ASSERT(keyAsValue);
+
+        // Note that we don't test if the hash is zero here. AtomicStringImpl's can't have a zero
+        // hash, however, a SymbolImpl may. But, because this is a cache, we don't care. We only
+        // ever load the result from the cache if the cache entry matches what we are querying for.
+        // So we either get super lucky and use zero for the hash and somehow collide with the entity
+        // we're looking for, or we realize we're comparing against another entity, and go to the
+        // slow path anyways.
+        LValue hash = m_out.lShr(m_out.load32(uniquedStringImpl, m_heaps.StringImpl_hashAndFlags), m_out.constInt32(StringImpl::s_flagCount));
+
+        LValue structureID = m_out.load32(object, m_heaps.JSCell_structureID);
+        LValue index = m_out.add(hash, structureID);
+        index = m_out.zeroExtPtr(m_out.bitAnd(index, m_out.constInt32(HasOwnPropertyCache::mask)));
+        ASSERT(vm().hasOwnPropertyCache());
+        LValue cache = m_out.constIntPtr(vm().hasOwnPropertyCache());
+
+        IndexedAbstractHeap& heap = m_heaps.HasOwnPropertyCache;
+        LValue sameStructureID = m_out.equal(structureID, m_out.load32(m_out.baseIndex(heap, cache, index, JSValue(), HasOwnPropertyCache::Entry::offsetOfStructureID())));
+        LValue sameImpl = m_out.equal(uniquedStringImpl, m_out.loadPtr(m_out.baseIndex(heap, cache, index, JSValue(), HasOwnPropertyCache::Entry::offsetOfImpl())));
+        ValueFromBlock fastResult = m_out.anchor(m_out.load8ZeroExt32(m_out.baseIndex(heap, cache, index, JSValue(), HasOwnPropertyCache::Entry::offsetOfResult())));
+        LValue cacheHit = m_out.bitAnd(sameStructureID, sameImpl);
+
+        m_out.branch(m_out.notZero32(cacheHit), usually(continuation), rarely(slowCase));
+
+        m_out.appendTo(slowCase, continuation);
+        ValueFromBlock slowResult;
+        slowResult = m_out.anchor(vmCall(Int32, m_out.operation(operationHasOwnProperty), m_callFrame, object, keyAsValue));
+        m_out.jump(continuation);
+
+        m_out.appendTo(continuation, lastNext);
+        setBoolean(m_out.phi(Int32, fastResult, slowResult));
     }
 
     void compileOverridesHasInstance()

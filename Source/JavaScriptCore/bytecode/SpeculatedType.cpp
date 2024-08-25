@@ -30,12 +30,13 @@
 #include "SpeculatedType.h"
 
 #include "DirectArguments.h"
-#include "JSCInlines.h"
 #include "JSArray.h"
+#include "JSCInlines.h"
 #include "JSFunction.h"
 #include "JSMap.h"
 #include "JSSet.h"
 #include "ProxyObject.h"
+#include "RegExpObject.h"
 #include "ScopedArguments.h"
 #include "StringObject.h"
 #include "ValueProfile.h"
@@ -476,6 +477,8 @@ SpeculatedType speculationFromJSType(JSType type)
     switch (type) {
     case StringType:
         return SpecString;
+    case SymbolType:
+        return SpecSymbol;
     case ArrayType:
         return SpecArray;
     case DerivedArrayType:

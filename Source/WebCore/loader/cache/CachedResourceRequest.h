@@ -31,6 +31,7 @@
 #include "ResourceLoadPriority.h"
 #include "ResourceLoaderOptions.h"
 #include "ResourceRequest.h"
+#include "SecurityOrigin.h"
 #include <wtf/RefPtr.h>
 #include <wtf/text/AtomicString.h>
 
@@ -42,9 +43,7 @@ public:
     enum DeferOption { NoDefer, DeferredByClient };
 
     explicit CachedResourceRequest(const ResourceRequest&, const String& charset = String(), Optional<ResourceLoadPriority> = Nullopt);
-    CachedResourceRequest(ResourceRequest&&, const ResourceLoaderOptions&);
-    CachedResourceRequest(const ResourceRequest&, Optional<ResourceLoadPriority>);
-    ~CachedResourceRequest();
+    CachedResourceRequest(ResourceRequest&&, const ResourceLoaderOptions&, Optional<ResourceLoadPriority> = Nullopt);
 
     ResourceRequest& mutableResourceRequest() { return m_resourceRequest; }
     const ResourceRequest& resourceRequest() const { return m_resourceRequest; }
@@ -64,6 +63,9 @@ public:
     void setCachingPolicy(CachingPolicy policy) { m_options.cachingPolicy = policy; }
 
     void setAsPotentiallyCrossOrigin(const String&, Document&);
+    void setOrigin(RefPtr<SecurityOrigin>&& origin) { ASSERT(!m_origin); m_origin = WTFMove(origin); }
+    RefPtr<SecurityOrigin> releaseOrigin() { return WTFMove(m_origin); }
+    SecurityOrigin* origin() const { return m_origin.get(); }
 
 private:
     ResourceRequest m_resourceRequest;
@@ -74,6 +76,7 @@ private:
     DeferOption m_defer;
     RefPtr<Element> m_initiatorElement;
     AtomicString m_initiatorName;
+    RefPtr<SecurityOrigin> m_origin;
 };
 
 } // namespace WebCore

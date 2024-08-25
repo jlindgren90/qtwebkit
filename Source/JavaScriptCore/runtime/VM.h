@@ -29,6 +29,7 @@
 #ifndef VM_h
 #define VM_h
 
+#include "CallData.h"
 #include "ConcurrentJITLock.h"
 #include "ControlFlowProfiler.h"
 #include "DateInstanceCache.h"
@@ -89,6 +90,7 @@ class ExceptionScope;
 class HandleStack;
 class TypeProfiler;
 class TypeProfilerLog;
+class HasOwnPropertyCache;
 class HeapProfiler;
 class Identifier;
 class Interpreter;
@@ -554,6 +556,10 @@ public:
     BumpPointerAllocator m_regExpAllocator;
     ConcurrentJITLock m_regExpAllocatorLock;
 
+    std::unique_ptr<HasOwnPropertyCache> m_hasOwnPropertyCache;
+    ALWAYS_INLINE HasOwnPropertyCache* hasOwnPropertyCache() { return m_hasOwnPropertyCache.get(); }
+    HasOwnPropertyCache* ensureHasOwnPropertyCache();
+
 #if ENABLE(REGEXP_TRACING)
     typedef ListHashSet<RegExp*> RTTraceList;
     RTTraceList* m_rtTraceList;
@@ -610,7 +616,7 @@ public:
 
     JS_EXPORT_PRIVATE void queueMicrotask(JSGlobalObject*, PassRefPtr<Microtask>);
     JS_EXPORT_PRIVATE void drainMicrotasks();
-    JS_EXPORT_PRIVATE void setGlobalConstRedeclarationShouldThrow(bool globalConstRedeclarationThrow) { m_globalConstRedeclarationShouldThrow = globalConstRedeclarationThrow; }
+    void setGlobalConstRedeclarationShouldThrow(bool globalConstRedeclarationThrow) { m_globalConstRedeclarationShouldThrow = globalConstRedeclarationThrow; }
     ALWAYS_INLINE bool globalConstRedeclarationShouldThrow() const { return m_globalConstRedeclarationShouldThrow; }
 
     inline bool shouldTriggerTermination(ExecState*);

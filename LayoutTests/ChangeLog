@@ -1,3 +1,498 @@
+2016-09-22  Daniel Bates  <dabates@apple.com>
+
+        [CSP] Violation report may be sent to wrong domain on frame-ancestors violation
+        https://bugs.webkit.org/show_bug.cgi?id=162079
+        <rdar://problem/28321575>
+
+        Reviewed by Andy Estes.
+
+        Modified http/tests/security/contentSecurityPolicy/resources/save-report.php to print the HTTP Host header as a means
+        to validate that the CSP violation report was sent to the appropriate host. Update test expectations.
+
+        Note that the presence of "localhost" in the HTTP Host header in the test results for tests
+        security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin.html and
+        security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin-https.html
+        verify that we resolve a relative URL CSP report URI with respect to the blocked URL.
+
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin-https-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin-https.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-cross-origin.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin-https-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin-https.html:
+        * http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/report-frame-ancestors-same-origin.html:
+        * http/tests/security/contentSecurityPolicy/1.1/report-uri-effective-directive-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/script-blocked-sends-multiple-reports-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-enforced-policy-and-blocked-by-report-policy-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-enforced-policy-and-blocked-by-report-policy2-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-allowed-by-legacy-enforced-policy-and-blocked-by-report-policy2-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-enforced-policy-and-allowed-by-report-policy-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scripthash-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy2-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-enforced-policy-and-allowed-by-report-policy-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-allowed-by-report-policy-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy-expected.txt:
+        * http/tests/security/contentSecurityPolicy/1.1/scriptnonce-blocked-by-legacy-enforced-policy-and-blocked-by-report-policy2-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-and-enforce-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-blocked-data-uri-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-blocked-file-uri-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-blocked-uri-cross-origin-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-blocked-uri-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-cross-origin-no-cookies-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-cross-origin-no-cookies-when-private-browsing-enabled-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-cross-origin-no-cookies-when-private-browsing-toggled-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-only-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-only-from-header-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-only-upgrade-insecure-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-same-origin-no-cookies-when-private-browsing-toggled-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-same-origin-with-cookies-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-same-origin-with-cookies-when-private-browsing-enabled-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-status-code-zero-when-using-https-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-uri-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-uri-from-child-frame-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-uri-from-inline-javascript-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-uri-from-javascript-expected.txt:
+        * http/tests/security/contentSecurityPolicy/report-uri-scheme-relative-expected.txt:
+        * http/tests/security/contentSecurityPolicy/resources/save-report.php:
+        * http/tests/security/xssAuditor/report-script-tag-expected.txt:
+        * http/tests/security/xssAuditor/report-script-tag-full-block-expected.txt:
+        * http/tests/security/xssAuditor/report-script-tag-replace-state-expected.txt:
+
+2016-09-22  Daniel Bates  <dabates@apple.com>
+
+        [XSS Auditor] HTML5 entities can bypass XSS Auditor
+        https://bugs.webkit.org/show_bug.cgi?id=161939
+        <rdar://problem/25819815>
+
+        Reviewed by David Kilzer.
+
+        * http/tests/security/xssAuditor/script-tag-with-source-data-url5-expected.txt: Added.
+        * http/tests/security/xssAuditor/script-tag-with-source-data-url5.html: Added.
+
+2016-09-22  Daniel Bates  <dabates@apple.com>
+
+        [XSS Auditor] Truncate data URLs at quotes
+        https://bugs.webkit.org/show_bug.cgi?id=161937
+
+        Reviewed by David Kilzer.
+
+        * http/tests/security/xssAuditor/resources/echo-property.pl:
+        * http/tests/security/xssAuditor/script-tag-with-source-data-url4-expected.txt: Added.
+        * http/tests/security/xssAuditor/script-tag-with-source-data-url4.html: Added.
+
+2016-09-22  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/media-source/mediasource-duration.html as flaky on mac.
+        https://bugs.webkit.org/show_bug.cgi?id=162308
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-09-22  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r206112.
+
+        This change made inspector/network/xhr-json-blob-has-
+        content.html very flaky.
+
+        Reverted changeset:
+
+        "Web Inspector: adopt Object.awaitEvent in
+        LayoutTests/inspector/network"
+        https://bugs.webkit.org/show_bug.cgi?id=162099
+        http://trac.webkit.org/changeset/206112
+
+2016-09-22  Youenn Fablet  <youenn@apple.com>
+
+        imported/w3c/web-platform-tests/resource-timing/idlharness.html is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=162414
+
+        Unreviewed.
+
+        * TestExpectations:
+
+2016-09-22  Jonathan Bedard  <jbedard@apple.com>
+
+        Automatic Text Replacement Testing in WebKit2
+        https://bugs.webkit.org/show_bug.cgi?id=161919
+
+        Reviewed by Ryosuke Niwa.
+
+        Implemented test hooks for text replacement for WebKit2.
+        Note that spell checking has not been implemented, so most tests which use text replacement still fail.
+
+        * editing/inserting/smart-link-when-caret-is-moved-before-URL.html: Use internals instead of TestRunner.
+        * editing/inserting/typing-space-to-trigger-smart-link.html: Ditto.
+        * platform/efl/TestExpectations: Added port specific tests.
+        * platform/gtk/TestExpectations: Added port specific tests.
+        * platform/ios-simulator/TestExpectations: Added port specific tests.
+        * platform/ios-simulator-wk1/TestExpectations: Moved skipped tests to ios-simulator.
+        * platform/ios-simulator-wk2/TestExpectations: Moved skipped tests to ios-simulator.
+        * platform/mac-wk2/TestExpectations: Removed passing test.
+        * platform/win/TestExpectations: Added port specific tests.
+        * platform/wk2/TestExpectations: Added better explanation for failing test.
+
+2016-09-22  Youenn Fablet  <youenn@apple.com>
+
+        Sync web-platform-tests up to revision 3801ab5
+        https://bugs.webkit.org/show_bug.cgi?id=162375
+
+        Reviewed by Chris Dumez.
+
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/dom/reflection-embedded-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-checkValidity-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-reportValidity-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-rangeOverflow-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-rangeUnderflow-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-stepMismatch-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-valid-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-validity-valueMissing-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/constraints/form-validation-willValidate-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/textfieldselection/selection-not-application-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/the-input-element/month-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/the-input-element/type-change-state-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/the-input-element/valueMode-expected.txt: Added.
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/resource-timing/idlharness-expected.txt: Added.
+        * platform/wk2/imported/w3c/web-platform-tests/html/semantics/document-metadata/styling/LinkStyle-expected.txt:
+        * tests-options.json:
+
+2016-09-22  Nan Wang  <n_wang@apple.com>
+
+        AX: aria-pressed state not correctly conveyed to VoiceOver iOS on <button> unless role=button added
+        https://bugs.webkit.org/show_bug.cgi?id=162269
+
+        Reviewed by Chris Fleizach.
+
+        Added test cases and also fixed a wrong expected output.
+
+        * accessibility/ios-simulator/aria-pressed-state-expected.txt:
+        * accessibility/ios-simulator/aria-pressed-state.html:
+
+2016-09-22  Youenn Fablet  <youenn@apple.com>
+
+        CachedResourceRequest should store a SecurityOrigin
+        https://bugs.webkit.org/show_bug.cgi?id=162258
+
+        Reviewed by Sam Weinig.
+
+        Updated test to expect load even though CORS checks should fail as the document origin has universal access.
+
+        * http/tests/local/script-crossorigin-loads-fail-origin-expected.txt: Removed.
+        * http/tests/local/script-crossorigin-loads-file-scheme-expected.txt: Added.
+        * http/tests/local/script-crossorigin-loads-file-scheme.html: Renamed from LayoutTests/http/tests/local/script-crossorigin-loads-fail-origin.html.
+
+2016-09-19  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Remove the x2 computation of row sizes with indefinite heights
+        https://bugs.webkit.org/show_bug.cgi?id=162150
+
+        Reviewed by Darin Adler.
+
+        Added a new reftest to check the behavior of grids acting also as grid items and how the
+        track sizing of rows depend on that. It includes tests for grids which stretch their
+        children and grids which do not.
+
+        Apart from that some expected results were updated so that they no longer fail.
+
+        * fast/css-grid-layout/maximize-tracks-definite-indefinite-height.html: Updated expectations.
+        * fast/css-grid-layout/nested-grid-expected.html: Added.
+        * fast/css-grid-layout/nested-grid.html: Added.
+        * fast/css-grid-layout/percent-track-breadths-regarding-container-size.html: Removed FIXME.
+        * fast/css-grid-layout/percent-track-breadths-regarding-container-size-expected.txt: Fixed 2
+        failing tests.
+
+2016-09-21  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update ios-simulator-wk1 test expectations
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-09-21  Chris Dumez  <cdumez@apple.com>
+
+        Setting HTMLMeterElement's attributes to non-finite values throws wrong exception type
+        https://bugs.webkit.org/show_bug.cgi?id=162364
+
+        Reviewed by Darin Adler.
+
+        Update existing test to reflect behavior change.
+
+        * fast/dom/HTMLMeterElement/script-tests/set-meter-properties.js:
+        * fast/dom/HTMLMeterElement/set-meter-properties-expected.txt:
+
+2016-09-21  Chris Dumez  <cdumez@apple.com>
+
+        Fix serialization of HTML Element attributes
+        https://bugs.webkit.org/show_bug.cgi?id=162356
+
+        Reviewed by Alex Christensen.
+
+        Rebaseline test to reflect behavior change.
+
+        * editing/pasteboard/paste-noscript-expected.txt:
+
+2016-09-21  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Improve output of TestHarness.expect* failures
+        https://bugs.webkit.org/show_bug.cgi?id=162177
+        <rdar://problem/28367186>
+
+        Reviewed by Joseph Pecoraro.
+
+        Extend coverage to more TestHarness messages by omitting the optional
+        `message` parameter when calling expect* functions.
+
+        Other improvements:
+        - expectEqual/expectNotEqual should test WebInspector object instances,
+          to cover more TestHarness message formatting cases.
+        - expectEqual/expectNotEqual should test shallow equal arrays, since the
+          test is for strict equality.
+
+        * inspector/indexeddb/requestData-expected.txt:
+        * inspector/unit-tests/number-utilities-expected.txt:
+        Updated expectations for new TestHarness output.
+
+        * inspector/unit-tests/test-harness-expect-functions-expected.txt:
+        * inspector/unit-tests/test-harness-expect-functions.html:
+
+2016-09-21  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/css/manager-preferredInspectorStyleSheetForFrame.html as flaky on mac.
+        https://bugs.webkit.org/show_bug.cgi?id=162305
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-09-21  Chris Dumez  <cdumez@apple.com>
+
+        Object.getOwnPropertyDescriptor() does not work correctly cross origin
+        https://bugs.webkit.org/show_bug.cgi?id=162311
+
+        Reviewed by Gavin Barraclough.
+
+        Add layout test coverage.
+
+        * http/tests/security/cross-origin-descriptors-expected.txt: Added.
+        * http/tests/security/cross-origin-descriptors.html: Added.
+
+2016-09-21  Daniel Bates  <dabates@apple.com>
+
+        REGRESSION (r201090): Setting style.webkitTextSizeAdjust does not change text change on iPad
+        https://bugs.webkit.org/show_bug.cgi?id=162227
+        <rdar://problem/27201529>
+
+        Reviewed by Simon Fraser.
+
+        Add tests to ensure setting the CSS property -webkit-text-size-adjust in a stylesheet or
+        programmatically is respected on iPhone and iPad. Also added a test to ensure that this
+        CSS property is ignored on macOS by default.
+
+        Note that we have existing tests that ensure that -webkit-text-size-adjust is respected
+        on macOS when the internal setting Settings::textAutosizingEnabled() is enabled.
+
+        * fast/text-autosizing/ios/ipad/programmatic-text-size-adjust-expected.txt: Added.
+        * fast/text-autosizing/ios/ipad/programmatic-text-size-adjust.html: Added.
+        * fast/text-autosizing/ios/ipad/text-size-adjust-inline-style-expected.html: Added.
+        * fast/text-autosizing/ios/ipad/text-size-adjust-inline-style.html: Added.
+        * fast/text-autosizing/ios/programmatic-text-size-adjust-expected.txt: Added.
+        * fast/text-autosizing/ios/programmatic-text-size-adjust.html: Added.
+        * fast/text-autosizing/ios/text-size-adjust-inline-style-expected.html: Added.
+        * fast/text-autosizing/ios/text-size-adjust-inline-style.html: Added.
+        * fast/text-autosizing/text-size-adjust-inline-style-expected.html: Added.
+        * fast/text-autosizing/text-size-adjust-inline-style.html: Added.
+        * platform/mac/TestExpectations: Skip the iOS and iPad tests on Mac. Otherwise, they will fail
+        because these tests intentionally do not call window.internal.settings.setTextAutosizingEnabled(true)
+        so as to test the default port behavior. And on Mac automatic text size adjustment is disabled
+        by default.
+
+2016-09-21  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed gardening; after r206208, update url-null.html test to reflect current (specced) behavior.
+
+        * fast/files/url-null-expected.txt:
+        * fast/files/url-null.html:
+
+2016-09-21  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed gardening; mark imported/w3c/web-platform-tests/media-source/ tests as passing by default
+        and mark specific tests to skip or fail (rather than vice versa).
+
+        * platform/mac/TestExpectations:
+
+2016-09-19  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/mediasource-activesourcebuffers.html
+        https://bugs.webkit.org/show_bug.cgi?id=162257
+
+        Reviewed by Eric Carlson.
+
+        * platform/mac/TestExpectations:
+
+2016-09-20  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/URL-createObjectURL-null.html
+        https://bugs.webkit.org/show_bug.cgi?id=162299
+
+        Reviewed by Eric Carlson.
+
+        * platform/mac/TestExpectations:
+
+2016-09-21  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch] Align Accept header default values with fetch spec
+        https://bugs.webkit.org/show_bug.cgi?id=162260
+
+        Reviewed by Sam Weinig.
+
+        * http/tests/misc/resources/image-checks-for-accept.php: Updated according new image Accept header value.
+
+2016-09-21  Chris Dumez  <cdumez@apple.com>
+
+        Import html/syntax web platform tests
+        https://bugs.webkit.org/show_bug.cgi?id=162331
+
+        Reviewed by Youenn Fablet.
+
+        * tests-options.json:
+
+2016-09-20  Nan Wang  <n_wang@apple.com>
+
+        AX: AppleVisUser: VO can't navigate web dialogs iOS10
+        https://bugs.webkit.org/show_bug.cgi?id=162322
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/ios-simulator/dialog-did-become-focused-expected.txt: Added.
+        * accessibility/ios-simulator/dialog-did-become-focused.html: Added.
+
+2016-09-20  Zalan Bujtas  <zalan@apple.com>
+
+        REGRESSION (r204552): Athlete search on Strava gives bad rendering.
+        https://bugs.webkit.org/show_bug.cgi?id=162250
+
+        Reviewed by Simon Fraser.
+
+        While computing the size of a particular layer, we unite the content size and the descendant layers' size.
+        If a descendant layer is positioned far off, the computed rectangle might not fully cover the original rectangles.
+        This happens when the 2 rectangles' distance is close to the maximum LayoutUnit value.
+        It's fairly common technic to put some content offscreen (top: -99999999px;). In order to keep the main content
+        visible, we need to ensure that the parent layer never gets cut off, while uniting it with the descendant layers.
+
+        * fast/layers/blank-content-when-child-layer-is-at-negative-big-number-expected.html: Added.
+        * fast/layers/blank-content-when-child-layer-is-at-negative-big-number.html: Added.
+
+2016-09-20  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/mediasource-appendwindow.html
+        https://bugs.webkit.org/show_bug.cgi?id=162306
+
+        Reviewed by Darin Adler.
+
+        * platform/mac/TestExpectations:
+
+2016-09-20  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/mediasource-preload.html
+        https://bugs.webkit.org/show_bug.cgi?id=162304
+
+        Reviewed by Darin Adler.
+
+        * platform/mac/TestExpectations:
+
+2016-09-20  Nan Wang  <n_wang@apple.com>
+
+        AX: voiceover does not read contents of input role="spinbutton"
+        https://bugs.webkit.org/show_bug.cgi?id=162137
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/ios-simulator/spinbutton-expected.txt:
+        * accessibility/ios-simulator/spinbutton.html:
+
+2016-09-20  Alex Christensen  <achristensen@webkit.org>
+
+        Non-special URLs should have an opaque origin
+        https://bugs.webkit.org/show_bug.cgi?id=162254
+
+        Reviewed by Sam Weinig.
+
+        * http/tests/security/postMessage/invalid-origin-throws-exception-expected.txt:
+        * http/tests/security/postMessage/invalid-origin-throws-exception.html:
+
+2016-09-20  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] The 'grid' shorthand has a new syntax.
+        https://bugs.webkit.org/show_bug.cgi?id=161954
+
+        Reviewed by Darin Adler.
+
+        Adapted the already defined test cases to the new syntax of the
+        'grid' shorthand. Also added a few additional test cases.
+
+        * fast/css-grid-layout/grid-shorthand-get-set-expected.txt:
+        * fast/css-grid-layout/grid-shorthand-get-set.html:
+
+2016-09-20  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking js/regress-139548.html as a flaky timeout on mac-wk2 debug.
+        https://bugs.webkit.org/show_bug.cgi?id=160017
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-09-20  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/inspector/model
+        https://bugs.webkit.org/show_bug.cgi?id=162074
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * inspector/model/frame-extra-scripts.html:
+        * inspector/model/scope-chain-node.html:
+        * inspector/model/script-resource-relationship-expected.txt:
+        * inspector/model/script-resource-relationship.html:
+        * inspector/model/stack-trace.html:
+
+2016-09-20  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Support MediaSource.setLiveSeekableRanges()
+        https://bugs.webkit.org/show_bug.cgi?id=162252
+
+        Reviewed by Sam Weinig.
+
+        * platform/mac/TestExpectations:
+        * platform/mac/imported/w3c/web-platform-tests/media-source/interfaces-expected.txt:
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+
+2016-09-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/inspector/css
+        https://bugs.webkit.org/show_bug.cgi?id=162071
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * inspector/css/createStyleSheet.html:
+        * inspector/css/generate-css-rule-string.html:
+        * inspector/css/manager-preferredInspectorStyleSheetForFrame-expected.txt:
+        * inspector/css/manager-preferredInspectorStyleSheetForFrame.html:
+        * inspector/css/stylesheet-events-basic.html:
+        * inspector/css/stylesheet-events-inspector-stylesheet.html:
+        * inspector/css/stylesheet-events-multiple-documents.html:
+
 2016-09-19  Chris Dumez  <cdumez@apple.com>
 
         Align HTMLAppletElement with the specification

@@ -449,6 +449,14 @@ Internals::Internals(Document& document)
         document.page()->setMockMediaPlaybackTargetPickerEnabled(true);
 #endif
     RuntimeEnabledFeatures::sharedFeatures().reset();
+
+    if (contextDocument() && contextDocument()->frame()) {
+        setAutomaticSpellingCorrectionEnabled(true);
+        setAutomaticQuoteSubstitutionEnabled(false);
+        setAutomaticDashSubstitutionEnabled(false);
+        setAutomaticLinkDetectionEnabled(false);
+        setAutomaticTextReplacementEnabled(true);
+    }
 }
 
 Document* Internals::contextDocument() const
@@ -1725,7 +1733,7 @@ bool Internals::hasAutocorrectedMarker(int from, int length, ExceptionCode&)
     return document->frame()->editor().selectionStartHasMarkerFor(DocumentMarker::Autocorrected, from, length);
 }
 
-void Internals::setContinuousSpellCheckingEnabled(bool enabled, ExceptionCode&)
+void Internals::setContinuousSpellCheckingEnabled(bool enabled)
 {
     if (!contextDocument() || !contextDocument()->frame())
         return;
@@ -1734,7 +1742,7 @@ void Internals::setContinuousSpellCheckingEnabled(bool enabled, ExceptionCode&)
         contextDocument()->frame()->editor().toggleContinuousSpellChecking();
 }
 
-void Internals::setAutomaticQuoteSubstitutionEnabled(bool enabled, ExceptionCode&)
+void Internals::setAutomaticQuoteSubstitutionEnabled(bool enabled)
 {
     if (!contextDocument() || !contextDocument()->frame())
         return;
@@ -1747,7 +1755,7 @@ void Internals::setAutomaticQuoteSubstitutionEnabled(bool enabled, ExceptionCode
 #endif
 }
 
-void Internals::setAutomaticLinkDetectionEnabled(bool enabled, ExceptionCode&)
+void Internals::setAutomaticLinkDetectionEnabled(bool enabled)
 {
     if (!contextDocument() || !contextDocument()->frame())
         return;
@@ -1760,7 +1768,7 @@ void Internals::setAutomaticLinkDetectionEnabled(bool enabled, ExceptionCode&)
 #endif
 }
 
-void Internals::setAutomaticDashSubstitutionEnabled(bool enabled, ExceptionCode&)
+void Internals::setAutomaticDashSubstitutionEnabled(bool enabled)
 {
     if (!contextDocument() || !contextDocument()->frame())
         return;
@@ -1773,7 +1781,7 @@ void Internals::setAutomaticDashSubstitutionEnabled(bool enabled, ExceptionCode&
 #endif
 }
 
-void Internals::setAutomaticTextReplacementEnabled(bool enabled, ExceptionCode&)
+void Internals::setAutomaticTextReplacementEnabled(bool enabled)
 {
     if (!contextDocument() || !contextDocument()->frame())
         return;
@@ -1786,7 +1794,7 @@ void Internals::setAutomaticTextReplacementEnabled(bool enabled, ExceptionCode&)
 #endif
 }
 
-void Internals::setAutomaticSpellingCorrectionEnabled(bool enabled, ExceptionCode&)
+void Internals::setAutomaticSpellingCorrectionEnabled(bool enabled)
 {
     if (!contextDocument() || !contextDocument()->frame())
         return;

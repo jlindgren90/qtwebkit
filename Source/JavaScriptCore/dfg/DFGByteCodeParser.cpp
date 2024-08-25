@@ -44,7 +44,6 @@
 #include "GetByIdStatus.h"
 #include "Heap.h"
 #include "JSCInlines.h"
-#include "JSLexicalEnvironment.h"
 #include "JSModuleEnvironment.h"
 #include "NumberConstructor.h"
 #include "ObjectConstructor.h"
@@ -2441,25 +2440,22 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
             set(VirtualRegister(resultOperand), addToGraph(JSConstant, OpInfo(m_constantNaN)));
             return true;
         }
-        if (argumentCountIncludingThis == 2) {
-            insertChecks();
-            Node* operand = get(virtualRegisterForArgument(1, registerOffset));
-            NodeType op;
-            if (intrinsic == RoundIntrinsic)
-                op = ArithRound;
-            else if (intrinsic == FloorIntrinsic)
-                op = ArithFloor;
-            else if (intrinsic == CeilIntrinsic)
-                op = ArithCeil;
-            else {
-                ASSERT(intrinsic == TruncIntrinsic);
-                op = ArithTrunc;
-            }
-            Node* roundNode = addToGraph(op, OpInfo(0), OpInfo(prediction), operand);
-            set(VirtualRegister(resultOperand), roundNode);
-            return true;
+        insertChecks();
+        Node* operand = get(virtualRegisterForArgument(1, registerOffset));
+        NodeType op;
+        if (intrinsic == RoundIntrinsic)
+            op = ArithRound;
+        else if (intrinsic == FloorIntrinsic)
+            op = ArithFloor;
+        else if (intrinsic == CeilIntrinsic)
+            op = ArithCeil;
+        else {
+            ASSERT(intrinsic == TruncIntrinsic);
+            op = ArithTrunc;
         }
-        return false;
+        Node* roundNode = addToGraph(op, OpInfo(0), OpInfo(prediction), operand);
+        set(VirtualRegister(resultOperand), roundNode);
+        return true;
     }
     case IMulIntrinsic: {
         if (argumentCountIncludingThis != 3)
@@ -2560,6 +2556,26 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
         UseKind useKind = intrinsic == JSSetHasIntrinsic ? SetObjectUse : MapObjectUse;
         Node* bucket = addToGraph(GetMapBucket, OpInfo(0), Edge(mapOrSet, useKind), Edge(key), Edge(hash));
         Node* result = addToGraph(IsNonEmptyMapBucket, bucket);
+        set(VirtualRegister(resultOperand), result);
+        return true;
+    }
+
+    case HasOwnPropertyIntrinsic: {
+        if (argumentCountIncludingThis != 2)
+            return false;
+
+        // This can be racy, that's fine. We know that once we observe that this is created,
+        // that it will never be destroyed until the VM is destroyed. It's unlikely that
+        // we'd ever get to the point where we inline this as an intrinsic without the
+        // cache being created, however, it's possible if we always throw exceptions inside
+        // hasOwnProperty.
+        if (!m_vm->hasOwnPropertyCache())
+            return false;
+
+        insertChecks();
+        Node* object = get(virtualRegisterForArgument(0, registerOffset));
+        Node* key = get(virtualRegisterForArgument(1, registerOffset));
+        Node* result = addToGraph(HasOwnProperty, object, key);
         set(VirtualRegister(resultOperand), result);
         return true;
     }

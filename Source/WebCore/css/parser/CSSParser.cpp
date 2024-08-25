@@ -1000,15 +1000,6 @@ static inline bool isValidKeywordPropertyAndValue(CSSPropertyID propertyId, int 
         if (valueID == CSSValueNormal || valueID == CSSValueReset)
             return true;
         break;
-#if ENABLE(IOS_TEXT_AUTOSIZING)
-    case CSSPropertyWebkitTextSizeAdjust:
-        if (!parserContext.textAutosizingEnabled)
-            return false;
-
-        if (valueID == CSSValueAuto || valueID == CSSValueNone)
-            return true;
-        break;
-#endif
 #if PLATFORM(IOS)
     // Apple specific property. These will never be standardized and is purely to
     // support custom WebKit-based Apple applications.
@@ -1065,8 +1056,8 @@ static inline bool isValidKeywordPropertyAndValue(CSSPropertyID propertyId, int 
         if (valueID == CSSValueWhite || valueID == CSSValueWhiteOutline || valueID == CSSValueBlack)
             return true;
         break;
-    case CSSPropertyApplePayButtonType: // plain | buy | set-up | in-store
-        if (valueID == CSSValuePlain || valueID == CSSValueBuy || valueID == CSSValueSetUp || valueID == CSSValueInStore)
+    case CSSPropertyApplePayButtonType: // plain | buy | set-up
+        if (valueID == CSSValuePlain || valueID == CSSValueBuy || valueID == CSSValueSetUp)
             return true;
         break;
 #endif
@@ -2788,8 +2779,14 @@ bool CSSParser::parseValue(CSSPropertyID propId, bool important)
         break;
 #if ENABLE(IOS_TEXT_AUTOSIZING)
     case CSSPropertyWebkitTextSizeAdjust:
+        // FIXME: Support toggling the validation of this property via a runtime setting that is independent of
+        // whether isTextAutosizingEnabled() is true. We want to enable this property on iOS, when simulating
+        // a iOS device in Safari's responsive design mode and when optionally enabled in DRT/WTR. Otherwise,
+        // this property should be disabled by default.
+#if !PLATFORM(IOS)
         if (!isTextAutosizingEnabled())
             return false;
+#endif
 
         if (id == CSSValueAuto || id == CSSValueNone)
             validPrimitive = true;
@@ -5501,6 +5498,33 @@ bool CSSParser::parseGridTemplateShorthand(bool important)
     return parseGridTemplateRowsAndAreasAndColumns(important);
 }
 
+static RefPtr<CSSValue> parseImplicitAutoFlow(CSSParserValueList& inputList, Ref<CSSPrimitiveValue>&& flowDirection)
+{
+    // [ auto-flow && dense? ]
+    auto value = inputList.current();
+    if (!value)
+        return nullptr;
+    auto list = CSSValueList::createSpaceSeparated();
+    list->append(WTFMove(flowDirection));
+    if (value->id == CSSValueAutoFlow) {
+        value = inputList.next();
+        if (value && value->id == CSSValueDense) {
+            list->append(CSSValuePool::singleton().createIdentifierValue(CSSValueDense));
+            inputList.next();
+        }
+    } else {
+        if (value->id != CSSValueDense)
+            return nullptr;
+        value = inputList.next();
+        if (!value || value->id != CSSValueAutoFlow)
+            return nullptr;
+        list->append(CSSValuePool::singleton().createIdentifierValue(CSSValueDense));
+        inputList.next();
+    }
+
+    return WTFMove(list);
+}
+
 bool CSSParser::parseGridShorthand(bool important)
 {
     ASSERT(isCSSGridLayoutEnabled());
@@ -5522,45 +5546,72 @@ bool CSSParser::parseGridShorthand(bool important)
 
     // Need to rewind parsing to explore the alternative syntax of this shorthand.
     m_valueList->setCurrentIndex(0);
-
-    // 2- <grid-auto-flow> [ <grid-auto-columns> [ / <grid-auto-rows> ]? ]
-    if (!parseValue(CSSPropertyGridAutoFlow, important))
+    auto value = m_valueList->current();
+    if (!value)
         return false;
 
     RefPtr<CSSValue> autoColumnsValue;
     RefPtr<CSSValue> autoRowsValue;
-
-    if (m_valueList->current()) {
-        autoRowsValue = parseGridTrackList(GridAuto);
-        if (!autoRowsValue)
+    RefPtr<CSSValue> templateRows;
+    RefPtr<CSSValue> templateColumns;
+    RefPtr<CSSValue> gridAutoFlow;
+    if (value->id == CSSValueDense || value->id == CSSValueAutoFlow) {
+        // 2- [ auto-flow && dense? ] <grid-auto-rows>? / <grid-template-columns>
+        gridAutoFlow = parseImplicitAutoFlow(*m_valueList, CSSValuePool::singleton().createIdentifierValue(CSSValueRow));
+        if (!gridAutoFlow)
             return false;
-        if (m_valueList->current()) {
-            if (!isForwardSlashOperator(*m_valueList->current()) || !m_valueList->next())
+        if (!m_valueList->current())
+            return false;
+        if (isForwardSlashOperator(*m_valueList->current()))
+            autoRowsValue = CSSValuePool::singleton().createImplicitInitialValue();
+        else {
+            autoRowsValue = parseGridTrackList(GridAuto);
+            if (!autoRowsValue)
                 return false;
+            if (!(m_valueList->current() && isForwardSlashOperator(*m_valueList->current())))
+                return false;
+        }
+        if (!m_valueList->next())
+            return false;
+        templateColumns = parseGridTrackList(GridTemplate);
+        if (!templateColumns)
+            return false;
+        templateRows = CSSValuePool::singleton().createImplicitInitialValue();
+        autoColumnsValue = CSSValuePool::singleton().createImplicitInitialValue();
+    } else {
+        // 3- <grid-template-rows> / [ auto-flow && dense? ] <grid-auto-columns>?
+        templateRows = parseGridTrackList(GridTemplate);
+        if (!templateRows)
+            return false;
+        if (!(m_valueList->current() && isForwardSlashOperator(*m_valueList->current())))
+            return false;
+        if (!m_valueList->next())
+            return false;
+        gridAutoFlow = parseImplicitAutoFlow(*m_valueList, CSSValuePool::singleton().createIdentifierValue(CSSValueColumn));
+        if (!gridAutoFlow)
+            return false;
+        if (!m_valueList->current())
+            autoColumnsValue = CSSValuePool::singleton().createImplicitInitialValue();
+        else {
             autoColumnsValue = parseGridTrackList(GridAuto);
             if (!autoColumnsValue)
                 return false;
         }
-        if (m_valueList->current())
-            return false;
-    } else {
-        // Other omitted values are set to their initial values.
-        autoColumnsValue = CSSValuePool::singleton().createImplicitInitialValue();
+        templateColumns = CSSValuePool::singleton().createImplicitInitialValue();
         autoRowsValue = CSSValuePool::singleton().createImplicitInitialValue();
     }
 
-    // if <grid-auto-rows> value is omitted, it is set to the value specified for grid-auto-columns.
-    if (!autoColumnsValue)
-        autoColumnsValue = autoRowsValue;
-
-    addProperty(CSSPropertyGridAutoColumns, autoColumnsValue.releaseNonNull(), important);
-    addProperty(CSSPropertyGridAutoRows, autoRowsValue.releaseNonNull(), important);
+    if (m_valueList->current())
+        return false;
 
     // It can only be specified the explicit or the implicit grid properties in a single grid declaration.
     // The sub-properties not specified are set to their initial value, as normal for shorthands.
-    addProperty(CSSPropertyGridTemplateColumns, CSSValuePool::singleton().createImplicitInitialValue(), important);
-    addProperty(CSSPropertyGridTemplateRows, CSSValuePool::singleton().createImplicitInitialValue(), important);
+    addProperty(CSSPropertyGridTemplateColumns, templateColumns.releaseNonNull(), important);
+    addProperty(CSSPropertyGridTemplateRows, templateRows.releaseNonNull(), important);
     addProperty(CSSPropertyGridTemplateAreas, CSSValuePool::singleton().createImplicitInitialValue(), important);
+    addProperty(CSSPropertyGridAutoFlow, gridAutoFlow.releaseNonNull(), important);
+    addProperty(CSSPropertyGridAutoColumns, autoColumnsValue.releaseNonNull(), important);
+    addProperty(CSSPropertyGridAutoRows, autoRowsValue.releaseNonNull(), important);
     addProperty(CSSPropertyGridColumnGap, CSSValuePool::singleton().createImplicitInitialValue(), important);
     addProperty(CSSPropertyGridRowGap, CSSValuePool::singleton().createImplicitInitialValue(), important);
 
@@ -13590,7 +13641,7 @@ static inline String quoteCSSStringInternal(const CharacterType* characters, uns
     buffer[index++] = '\'';
 
     ASSERT(quotedStringSize == index);
-    return String::adopt(buffer);
+    return String::adopt(WTFMove(buffer));
 }
 
 // We use single quotes for now because markup.cpp uses double quotes.

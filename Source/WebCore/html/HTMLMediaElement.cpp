@@ -1095,7 +1095,7 @@ void HTMLMediaElement::setSrcObject(ScriptExecutionContext& context, MediaStream
 
     m_mediaStreamSrcObject = mediaStream;
     if (mediaStream)
-        setSrc(DOMURL::createPublicURL(context, mediaStream));
+        setSrc(DOMURL::createPublicURL(context, *mediaStream));
 }
 #endif
 
@@ -1989,6 +1989,16 @@ void HTMLMediaElement::textTrackRemoveCue(TextTrack*, TextTrackCue& cue)
 
 #endif
 
+static inline bool isAllowedToLoadMediaURL(HTMLMediaElement& element, const URL& url, bool isInUserAgentShadowTree)
+{
+    // Elements in user agent show tree should load whatever the embedding document policy is.
+    if (isInUserAgentShadowTree)
+        return true;
+
+    ASSERT(element.document().contentSecurityPolicy());
+    return element.document().contentSecurityPolicy()->allowMediaFromSource(url);
+}
+
 bool HTMLMediaElement::isSafeToLoadURL(const URL& url, InvalidURLAction actionIfInvalid)
 {
     if (!url.isValid()) {
@@ -2004,7 +2014,7 @@ bool HTMLMediaElement::isSafeToLoadURL(const URL& url, InvalidURLAction actionIf
         return false;
     }
 
-    if (!document().contentSecurityPolicy()->allowMediaFromSource(url, isInUserAgentShadowTree())) {
+    if (!isAllowedToLoadMediaURL(*this, url, isInUserAgentShadowTree())) {
         LOG(Media, "HTMLMediaElement::isSafeToLoadURL(%p) - %s -> rejected by Content Security Policy", this, urlForLoggingMedia(url).utf8().data());
         return false;
     }
@@ -4843,6 +4853,11 @@ Ref<TimeRanges> HTMLMediaElement::played()
 
 Ref<TimeRanges> HTMLMediaElement::seekable() const
 {
+#if ENABLE(MEDIA_SOURCE)
+    if (m_mediaSource)
+        return m_mediaSource->seekable();
+#endif
+
     if (m_player)
         return TimeRanges::create(*m_player->seekable());
 
@@ -6366,8 +6381,8 @@ Vector<RefPtr<PlatformTextTrack>> HTMLMediaElement::outOfBandTrackSources()
         URL url = trackElement.getNonEmptyURLAttribute(srcAttr);
         if (url.isEmpty())
             continue;
-        
-        if (!document().contentSecurityPolicy()->allowMediaFromSource(url, trackElement.isInUserAgentShadowTree()))
+
+        if (!isAllowedToLoadMediaURL(*this, url, trackElement.isInUserAgentShadowTree()))
             continue;
 
         auto& track = *trackElement.track();
@@ -6520,7 +6535,7 @@ bool HTMLMediaElement::mediaPlayerShouldWaitForResponseToAuthenticationChallenge
     return true;
 }
 
-String HTMLMediaElement::mediaPlayerSourceApplicationIdentifier() const
+String HTMLMediaElement::sourceApplicationIdentifier() const
 {
     if (Frame* frame = document().frame()) {
         if (NetworkingContext* networkingContext = frame->loader().networkingContext())

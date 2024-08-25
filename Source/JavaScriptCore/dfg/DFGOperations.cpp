@@ -41,7 +41,7 @@
 #include "DirectArguments.h"
 #include "FTLForOSREntryJITCode.h"
 #include "FTLOSREntry.h"
-#include "GetterSetter.h"
+#include "HasOwnPropertyCache.h"
 #include "HostCallReturnValue.h"
 #include "Interpreter.h"
 #include "JIT.h"
@@ -52,6 +52,7 @@
 #include "JSMap.h"
 #include "JSSet.h"
 #include "ObjectConstructor.h"
+#include "RegExpObject.h"
 #include "Repatch.h"
 #include "ScopedArguments.h"
 #include "StringConstructor.h"
@@ -440,6 +441,58 @@ double JIT_OPERATION operationArithTan(ExecState* exec, EncodedJSValue encodedOp
     if (UNLIKELY(scope.exception()))
         return JSValue::encode(JSValue());
     return tan(a);
+}
+
+EncodedJSValue JIT_OPERATION operationArithRound(ExecState* exec, EncodedJSValue encodedArgument)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+    auto scope = DECLARE_THROW_SCOPE(*vm);
+
+    JSValue argument = JSValue::decode(encodedArgument);
+    double valueOfArgument = argument.toNumber(exec);
+    if (UNLIKELY(scope.exception()))
+        return JSValue::encode(JSValue());
+    return JSValue::encode(jsNumber(jsRound(valueOfArgument)));
+}
+
+EncodedJSValue JIT_OPERATION operationArithFloor(ExecState* exec, EncodedJSValue encodedArgument)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+    auto scope = DECLARE_THROW_SCOPE(*vm);
+
+    JSValue argument = JSValue::decode(encodedArgument);
+    double valueOfArgument = argument.toNumber(exec);
+    if (UNLIKELY(scope.exception()))
+        return JSValue::encode(JSValue());
+    return JSValue::encode(jsNumber(floor(valueOfArgument)));
+}
+
+EncodedJSValue JIT_OPERATION operationArithCeil(ExecState* exec, EncodedJSValue encodedArgument)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+    auto scope = DECLARE_THROW_SCOPE(*vm);
+
+    JSValue argument = JSValue::decode(encodedArgument);
+    double valueOfArgument = argument.toNumber(exec);
+    if (UNLIKELY(scope.exception()))
+        return JSValue::encode(JSValue());
+    return JSValue::encode(jsNumber(ceil(valueOfArgument)));
+}
+
+EncodedJSValue JIT_OPERATION operationArithTrunc(ExecState* exec, EncodedJSValue encodedArgument)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+    auto scope = DECLARE_THROW_SCOPE(*vm);
+
+    JSValue argument = JSValue::decode(encodedArgument);
+    double truncatedValueOfArgument = argument.toIntegerPreserveNaN(exec);
+    if (UNLIKELY(scope.exception()))
+        return JSValue::encode(JSValue());
+    return JSValue::encode(jsNumber(truncatedValueOfArgument));
 }
 
 static ALWAYS_INLINE EncodedJSValue getByVal(ExecState* exec, JSCell* base, uint32_t index)
@@ -1619,6 +1672,28 @@ int32_t JIT_OPERATION operationSizeOfVarargs(ExecState* exec, EncodedJSValue enc
     JSValue arguments = JSValue::decode(encodedArguments);
     
     return sizeOfVarargs(exec, arguments, firstVarArgOffset);
+}
+
+int32_t JIT_OPERATION operationHasOwnProperty(ExecState* exec, JSObject* thisObject, EncodedJSValue encodedKey)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
+    JSValue key = JSValue::decode(encodedKey);
+    Identifier propertyName = key.toPropertyKey(exec);
+    if (UNLIKELY(scope.exception()))
+        return false;
+
+    PropertySlot slot(thisObject, PropertySlot::InternalMethodType::GetOwnProperty);
+    bool result = thisObject->hasOwnProperty(exec, propertyName.impl(), slot);
+    if (UNLIKELY(scope.exception()))
+        return false;
+
+    HasOwnPropertyCache* hasOwnPropertyCache = vm.hasOwnPropertyCache();
+    ASSERT(hasOwnPropertyCache);
+    hasOwnPropertyCache->tryAdd(vm, slot, thisObject, propertyName.impl(), result);
+    return result;
 }
 
 void JIT_OPERATION operationLoadVarargs(ExecState* exec, int32_t firstElementDest, EncodedJSValue encodedArguments, int32_t offset, int32_t length, int32_t mandatoryMinimum)
