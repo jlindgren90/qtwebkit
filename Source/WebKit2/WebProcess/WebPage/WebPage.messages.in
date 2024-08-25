@@ -440,6 +440,10 @@ messages -> WebPage LegacyReceiver {
     SetResourceCachingDisabled(bool disabled)
 
     SetUserInterfaceLayoutDirection(uint32_t direction)
+
+#if ENABLE(GAMEPAD)
+    GamepadActivity(Vector<WebKit::GamepadData> gamepadDatas)
+#endif
     RegisterURLSchemeHandler(uint64_t identifier, String scheme)
 
     URLSchemeHandlerTaskDidReceiveResponse(uint64_t providerIdentifier, uint64_t taskIdentifier, WebCore::ResourceResponse response)

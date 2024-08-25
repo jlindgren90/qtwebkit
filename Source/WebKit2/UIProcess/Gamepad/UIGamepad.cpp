@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,40 +24,41 @@
  */
 
 #include "config.h"
-#include "NodeOrString.h"
+#include "UIGamepad.h"
 
-#include "DocumentFragment.h"
-#include "Text.h"
+#if ENABLE(GAMEPAD)
 
-namespace WebCore {
+#include "GamepadData.h"
+#include <WebCore/PlatformGamepad.h>
 
-RefPtr<Node> convertNodesOrStringsIntoNode(Node& context, Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
+using namespace WebCore;
+
+namespace WebKit {
+
+UIGamepad::UIGamepad(WebCore::PlatformGamepad& platformGamepad)
+    : m_index(platformGamepad.index())
 {
-    if (nodeOrStringVector.isEmpty())
-        return nullptr;
+    m_axisValues.resize(platformGamepad.axisValues().size());
+    m_buttonValues.resize(platformGamepad.buttonValues().size());
 
-    Vector<Ref<Node>> nodes;
-    nodes.reserveInitialCapacity(nodeOrStringVector.size());
-    for (auto& nodeOrString : nodeOrStringVector) {
-        switch (nodeOrString.type()) {
-        case NodeOrString::Type::String:
-            nodes.uncheckedAppend(Text::create(context.document(), nodeOrString.string()));
-            break;
-        case NodeOrString::Type::Node:
-            nodes.uncheckedAppend(nodeOrString.node());
-            break;
-        }
-    }
-
-    if (nodes.size() == 1)
-        return WTFMove(nodes.first());
-
-    auto nodeToReturn = DocumentFragment::create(context.document());
-    for (auto& node : nodes) {
-        if (!nodeToReturn->appendChild(node, ec))
-            return nullptr;
-    }
-    return WTFMove(nodeToReturn);
+    updateFromPlatformGamepad(platformGamepad);
 }
 
-} // namespace WebCore
+void UIGamepad::updateFromPlatformGamepad(WebCore::PlatformGamepad& platformGamepad)
+{
+    ASSERT(m_index == platformGamepad.index());
+    ASSERT(m_axisValues.size() == platformGamepad.axisValues().size());
+    ASSERT(m_buttonValues.size() == platformGamepad.buttonValues().size());
+
+    m_axisValues = platformGamepad.axisValues();
+    m_buttonValues = platformGamepad.buttonValues();
+}
+
+GamepadData UIGamepad::gamepadData() const
+{
+    return { m_index, m_axisValues, m_buttonValues };
+}
+
+}
+
+#endif // ENABLE(GAMEPAD)

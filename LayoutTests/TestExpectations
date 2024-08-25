@@ -338,7 +338,7 @@ imported/w3c/web-platform-tests/XMLHttpRequest/send-redirect-to-non-cors.htm [ S
 # Failing assertion with dynamic message
 imported/w3c/web-platform-tests/XMLHttpRequest/responsexml-document-properties.htm [ Failure ]
 
-webkit.org/b/160510 http/tests/fetch/fetch-in-worker-crash.html [ Failure Pass ]
+webkit.org/b/160510 http/tests/fetch/fetch-in-worker-crash.html [ Failure Crash Pass ]
 imported/w3c/web-platform-tests/fetch/api/request/request-cache.html [ Skip ]
 [ Release ] imported/w3c/web-platform-tests/fetch/api/cors/cors-cookies-worker.html [ Failure Pass ]
 [ Debug ] imported/w3c/web-platform-tests/fetch/api/cors/cors-basic-worker.html [ Skip ]
@@ -1009,6 +1009,9 @@ media/pip-video-going-into-fullscreen.html [ WontFix ]
 media/video-contained-in-fullscreen-element-going-into-pip.html [ WontFix ]
 
 [ Debug ] js/regress/misc-bugs-847389-jpeg2000.html [ Skip ]
+
+# This runs slowly in debug.
+[ Debug ] js/regress/bound-function-construction-performance.html [ Skip ]
 
 webkit.org/b/159678 http/tests/preload/single_download_preload_runner.html [ Timeout ]
 

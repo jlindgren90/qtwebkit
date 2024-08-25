@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,29 +23,33 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PluginStrategy_h
-#define PluginStrategy_h
+#import "config.h"
+#import "UIGamepadProvider.h"
 
-#include "PluginData.h"
+#if ENABLE(GAMEPAD)
 
-namespace WebCore {
+#import "WebPageProxy.h"
+#import "WKAPICast.h"
+#import "WKViewInternal.h"
+#import "WKWebViewInternal.h"
 
-class Page;
+namespace WebKit {
 
-class PluginStrategy {
-public:
-    virtual void refreshPlugins() = 0;
-    virtual void getPluginInfo(const Page*, Vector<PluginInfo>&) = 0;
-    virtual void getWebVisiblePluginInfo(const Page*, Vector<PluginInfo>&) = 0;
-#if PLATFORM(MAC)
-    virtual void setPluginLoadClientPolicy(PluginLoadClientPolicy, const String& host, const String& bundleIdentifier, const String& versionString) = 0;
-    virtual void clearPluginClientPolicies() = 0;
+WebPageProxy* UIGamepadProvider::platformWebPageProxyForGamepadInput()
+{
+    auto responder = [[NSApp keyWindow] firstResponder];
+
+#if WK_API_ENABLED
+    if ([responder isKindOfClass:[WKWebView class]])
+        return ((WKWebView *)responder)->_page.get();
 #endif
 
-protected:
-    virtual ~PluginStrategy() { }
-};
+    if ([responder isKindOfClass:[WKView class]])
+        return toImpl(((WKView *)responder).pageRef);
 
-} // namespace WebCore
+    return nullptr;
+}
 
-#endif // PluginStrategy_h
+}
+
+#endif // ENABLE(GAMEPAD)

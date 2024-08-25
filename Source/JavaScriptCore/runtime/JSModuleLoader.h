@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2015 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2016 Yusuke Suzuki <utatane.tea@gmail.com>.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,8 +24,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef ModuleLoaderObject_h
-#define ModuleLoaderObject_h
+#pragma once
 
 #include "JSObject.h"
 
@@ -32,12 +32,11 @@ namespace JSC {
 
 class JSInternalPromise;
 
-class ModuleLoaderObject : public JSNonFinalObject {
+class JSModuleLoader : public JSNonFinalObject {
 private:
-    ModuleLoaderObject(VM&, Structure*);
+    JSModuleLoader(VM&, Structure*);
 public:
     typedef JSNonFinalObject Base;
-    static const unsigned StructureFlags = Base::StructureFlags | HasStaticPropertyTable;
 
     enum Status {
         Fetch = 1,
@@ -48,9 +47,9 @@ public:
         Ready = 6,
     };
 
-    static ModuleLoaderObject* create(VM& vm, JSGlobalObject* globalObject, Structure* structure)
+    static JSModuleLoader* create(VM& vm, JSGlobalObject* globalObject, Structure* structure)
     {
-        ModuleLoaderObject* object = new (NotNull, allocateCell<ModuleLoaderObject>(vm.heap)) ModuleLoaderObject(vm, structure);
+        JSModuleLoader* object = new (NotNull, allocateCell<JSModuleLoader>(vm.heap)) JSModuleLoader(vm, structure);
         object->finishCreation(vm, globalObject);
         return object;
     }
@@ -82,5 +81,3 @@ protected:
 };
 
 } // namespace JSC
-
-#endif // ModuleLoaderObject_h

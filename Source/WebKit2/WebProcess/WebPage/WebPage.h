@@ -199,6 +199,7 @@ struct AttributedString;
 struct BackForwardListItemState;
 struct EditingRange;
 struct EditorState;
+struct GamepadData;
 struct InteractionInformationAtPosition;
 struct LoadParameters;
 struct PrintInfo;
@@ -964,6 +965,10 @@ public:
 
 #if USE(OS_STATE)
     std::chrono::system_clock::time_point loadCommitTime() const { return m_loadCommitTime; }
+#endif
+
+#if ENABLE(GAMEPAD)
+    void gamepadActivity(const Vector<GamepadData>&);
 #endif
 
     WebURLSchemeHandlerProxy* urlSchemeHandlerForScheme(const String&);

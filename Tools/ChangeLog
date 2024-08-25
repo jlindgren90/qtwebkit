@@ -1,3 +1,172 @@
+2016-08-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Sort the feature flags in the FEATURE_DEFINES lines
+        https://bugs.webkit.org/show_bug.cgi?id=160742
+
+        Reviewed by Anders Carlsson.
+        
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-08-09  Simon Fraser  <simon.fraser@apple.com>
+
+        Logging and other minor improvements to iOS webkitpy
+        https://bugs.webkit.org/show_bug.cgi?id=160722
+
+        Reviewed by Dan Bates.
+
+        Fix --debug-rwt-logging to log all the calls to simctl as well as device state information,
+        to make it easier to debug launching issues.
+
+        Have reset_preferences() reset the device, rather than just nuking the data
+        directory (which broke some versions of the simulator).
+
+        Make the Simulator.app launch in the background with open -g.
+
+        Wait for the simulator device to be in a known state in some more places.
+
+        * Scripts/webkitpy/port/ios.py:
+        (IOSSimulatorPort.setup_test_run):
+        (IOSSimulatorPort._quit_ios_simulator):
+        (IOSSimulatorPort.clean_up_test_run):
+        (IOSSimulatorPort.setup_environ_for_server):
+        (IOSSimulatorPort.reset_preferences):
+        * Scripts/webkitpy/xcode/simulator.py:
+        (Device.create):
+        (Device.delete):
+        (Device):
+        (Device.reset):
+        (Simulator.wait_until_device_is_booted):
+        (Simulator.wait_until_device_is_in_state):
+        (Simulator):
+        (Simulator.delete_device):
+        (Simulator.reset_device):
+        (Simulator.lookup_or_create_device):
+
+2016-08-10  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK][EFL] ALSA_CARD environment variable is not passed for layout tests.
+        https://bugs.webkit.org/show_bug.cgi?id=160697
+
+        Reviewed by Antonio Gomes.
+
+        * Scripts/webkitpy/port/base.py:
+        (Port.to.setup_environ_for_server): Add ALSA_CARD and sort the Linux
+        list of environment variables to copy.
+
+2016-08-09  George Ruan  <gruan@apple.com>
+
+        Implement functionality of media capture on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=158945
+        <rdar://problem/26893343>
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig: Enable Media
+        Capture feature on iOS.
+
+2016-08-09  Saam Barati  <sbarati@apple.com>
+
+        Parser<LexerType>::parseFunctionInfo() has the wrong info about captured vars when a function is not cached.
+        https://bugs.webkit.org/show_bug.cgi?id=160671
+        <rdar://problem/27756112>
+
+        Reviewed by Mark Lam.
+
+        * Scripts/run-jsc-stress-tests:
+
+2016-08-09  Alexey Proskuryakov  <ap@apple.com>
+
+        Make directory reading code in iOSSimulatorDevices() more strict
+        https://bugs.webkit.org/show_bug.cgi?id=160702
+
+        Reviewed by Tim Horton.
+
+        * Scripts/webkitdirs.pm:
+        (iOSSimulatorDevices):
+
+2016-08-06  Sam Weinig  <sam@webkit.org>
+
+        Replace NodeOrString with std::variant<RefPtr<Node>, String>
+        https://bugs.webkit.org/show_bug.cgi?id=160638
+
+        Reviewed by Anders Carlsson.
+
+        * TestWebKitAPI/CMakeLists.txt:
+        * TestWebKitAPI/Tests/WTF/Variant.cpp:
+        Add additional tests for the initial state of std::variant and using
+        makeVisitor for visiting.
+
+2016-08-09  Aakash Jain  <aakash_jain@apple.com>
+
+        EWS logging should ensure the logging to file is stopped on queue termination
+        https://bugs.webkit.org/show_bug.cgi?id=160698
+        rdar://problem/24464570
+
+        Reviewed by Daniel Bates.
+
+        * Scripts/webkitpy/tool/bot/queueengine.py:
+        (QueueEngine._stopping): Stop logging to file on queue termination.
+        (QueueEngine._begin_logging): Configure the Python logger to log to file.
+        * Scripts/webkitpy/common/system/logutils.py:
+        (configure_logger_to_log_to_file): Return the handler so as to enable caller to remove it later.
+        * Scripts/webkitpy/tool/bot/queueengine_unittest.py:
+        (QueueEngineTest._run_engine): Removed extra newline character to improve log readability.
+        * Scripts/webkitpy/tool/commands/queues.py:
+        (AbstractQueue._log_directory): Reverting to os.path.join as we don't have host object.
+        (AbstractQueue.queue_log_path): Same.
+        (AbstractQueue.begin_work_queue): Removed logging initialization, it is now being done in QueueEngine.
+        (AbstractQueue.__init__): Removed host parameter, not required anymore, it was required by logging initialization
+        which moved to QueueEngine now.
+        (PatchProcessingQueue.__init__): Same.
+        (CommitQueue.__init__): Same.
+        (AbstractReviewQueue.__init__): Same.
+        (StyleQueue.__init__): Same.
+        * Scripts/webkitpy/tool/commands/queues_unittest.py:
+        (TestCommitQueue): Removed host parameter.
+        (TestCommitQueue.__init__): Same.
+        (AbstractPatchQueueTest.test_next_patch): Same.
+        (PatchProcessingQueueTest.test_upload_results_archive_for_patch): Same.
+        (test_commit_queue_failure): Same.
+        (mock_run_webkit_patch):
+        (MockCommitQueueTask.results_from_patch_test_run): Same.
+        (test_rollout_lands): Same.
+        (test_non_valid_patch): Same.
+        (test_auto_retry): Same.
+        (test_style_queue_with_watch_list_exception): Same.
+        (TestQueue.__init__): Deleted.
+        (TestReviewQueue.__init__): Deleted.
+        (TestFeederQueue.__init__): Deleted.
+
+2016-08-09  Konstantin Tokarev  <annulen@yandex.ru>
+
+        webkit-gtk tarball fails to build due to missing files
+        https://bugs.webkit.org/show_bug.cgi?id=160684
+
+        Reviewed by Alex Christensen.
+
+        * gtk/manifest.txt.in: Added back spi directories.
+
+2016-08-09  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] Build the jhbuild with -O2 optimization level by default
+        https://bugs.webkit.org/show_bug.cgi?id=160544
+
+        Reviewed by Michael Catanzaro.
+
+        * gtk/jhbuildrc: Pass -O2 when building the JHBuild, as also -g1
+        which don't increases the required disk space significatively and
+        provides better debug information than no passing it.
+
+2016-08-09  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Allow more --cmakeargs option in build-jsc and build-webkit
+        https://bugs.webkit.org/show_bug.cgi?id=160340
+
+        Reviewed by Michael Catanzaro.
+
+        * Scripts/build-jsc:
+        * Scripts/build-webkit:
+
 2016-08-09  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
 
         Do not check if WebKitLibraries folder exists on EFL and GTK

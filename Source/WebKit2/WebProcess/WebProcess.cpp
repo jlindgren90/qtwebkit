@@ -56,6 +56,7 @@
 #include "WebPage.h"
 #include "WebPageGroupProxy.h"
 #include "WebPlatformStrategies.h"
+#include "WebPluginInfoProvider.h"
 #include "WebProcessCreationParameters.h"
 #include "WebProcessMessages.h"
 #include "WebProcessPoolMessages.h"
@@ -85,6 +86,7 @@
 #include <WebCore/MainFrame.h>
 #include <WebCore/MemoryCache.h>
 #include <WebCore/MemoryPressureHandler.h>
+#include <WebCore/NetworkStorageSession.h>
 #include <WebCore/Page.h>
 #include <WebCore/PageCache.h>
 #include <WebCore/PageGroup.h>
@@ -400,7 +402,7 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
     for (auto hostIter = parameters.pluginLoadClientPolicies.begin(); hostIter != parameters.pluginLoadClientPolicies.end(); ++hostIter) {
         for (auto bundleIdentifierIter = hostIter->value.begin(); bundleIdentifierIter != hostIter->value.end(); ++bundleIdentifierIter) {
             for (auto versionIter = bundleIdentifierIter->value.begin(); versionIter != bundleIdentifierIter->value.end(); ++versionIter)
-                platformStrategies()->pluginStrategy()->setPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(versionIter->value), hostIter->key, bundleIdentifierIter->key, versionIter->key);
+                WebPluginInfoProvider::singleton().setPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(versionIter->value), hostIter->key, bundleIdentifierIter->key, versionIter->key);
         }
     }
 #endif
@@ -920,14 +922,14 @@ void WebProcess::plugInDidReceiveUserInteraction(const String& pageOrigin, const
 void WebProcess::setPluginLoadClientPolicy(uint8_t policy, const String& host, const String& bundleIdentifier, const String& versionString)
 {
 #if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
-    platformStrategies()->pluginStrategy()->setPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(policy), host, bundleIdentifier, versionString);
+    WebPluginInfoProvider::singleton().setPluginLoadClientPolicy(static_cast<PluginLoadClientPolicy>(policy), host, bundleIdentifier, versionString);
 #endif
 }
 
 void WebProcess::clearPluginClientPolicies()
 {
 #if ENABLE(NETSCAPE_PLUGIN_API) && PLATFORM(MAC)
-    platformStrategies()->pluginStrategy()->clearPluginClientPolicies();
+    WebPluginInfoProvider::singleton().clearPluginClientPolicies();
 #endif
 }
 
@@ -1033,6 +1035,20 @@ void WebProcess::mainThreadPing()
 {
     parentProcessConnection()->send(Messages::WebProcessProxy::DidReceiveMainThreadPing(), 0);
 }
+
+#if ENABLE(GAMEPAD)
+
+void WebProcess::gamepadConnected(const GamepadData& gamepadData)
+{
+    WebGamepadProvider::singleton().gamepadConnected(gamepadData);
+}
+
+void WebProcess::gamepadDisconnected(unsigned index)
+{
+    WebGamepadProvider::singleton().gamepadDisconnected(index);
+}
+
+#endif
 
 void WebProcess::setJavaScriptGarbageCollectorTimerEnabled(bool flag)
 {

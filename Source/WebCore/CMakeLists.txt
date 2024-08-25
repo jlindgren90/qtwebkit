@@ -1487,7 +1487,6 @@ set(WebCore_SOURCES
     dom/Node.cpp
     dom/NodeFilterCondition.cpp
     dom/NodeIterator.cpp
-    dom/NodeOrString.cpp
     dom/NodeRareData.cpp
     dom/NodeTraversal.cpp
     dom/OverflowEvent.cpp
@@ -2356,6 +2355,7 @@ set(WebCore_SOURCES
     platform/network/HTTPParsers.cpp
     platform/network/MIMEHeader.cpp
     platform/network/NetworkStateNotifier.cpp
+    platform/network/NetworkStorageSession.cpp
     platform/network/ParsedContentRange.cpp
     platform/network/ParsedContentType.cpp
     platform/network/ProtectionSpaceBase.cpp

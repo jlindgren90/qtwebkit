@@ -44,7 +44,6 @@
 #include "MutationEvent.h"
 #include "NameNodeList.h"
 #include "NoEventDispatchAssertion.h"
-#include "NodeOrString.h"
 #include "NodeRareData.h"
 #include "NodeRenderStyle.h"
 #include "RadioNodeList.h"
@@ -403,19 +402,17 @@ bool ContainerNode::replaceChild(Node& newChild, Node& oldChild, ExceptionCode& 
         return false;
     }
 
-    if (&oldChild == &newChild) // nothing to do
-        return true;
-
-    ChildListMutationScope mutation(*this);
-
     RefPtr<Node> refChild = oldChild.nextSibling();
     if (refChild.get() == &newChild)
         refChild = refChild->nextSibling();
 
     NodeVector targets;
-    collectChildrenAndRemoveFromOldParent(newChild, targets, ec);
-    if (ec)
-        return false;
+    {
+        ChildListMutationScope mutation(*this);
+        collectChildrenAndRemoveFromOldParent(newChild, targets, ec);
+        if (ec)
+            return false;
+    }
 
     // Does this one more time because collectChildrenAndRemoveFromOldParent() fires a MutationEvent.
     if (!checkPreReplacementValidity(*this, newChild, oldChild, ec))
@@ -423,13 +420,19 @@ bool ContainerNode::replaceChild(Node& newChild, Node& oldChild, ExceptionCode& 
 
     // Remove the node we're replacing.
     Ref<Node> protectOldChild(oldChild);
-    removeChild(oldChild, ec);
-    if (ec)
-        return false;
 
-    // Does this one more time because removeChild() fires a MutationEvent.
-    if (!checkPreReplacementValidity(*this, newChild, oldChild, ec))
-        return false;
+    ChildListMutationScope mutation(*this);
+
+    // If oldChild == newChild then oldChild no longer has a parent at this point.
+    if (oldChild.parentNode()) {
+        removeChild(oldChild, ec);
+        if (ec)
+            return false;
+
+        // Does this one more time because removeChild() fires a MutationEvent.
+        if (!checkPreReplacementValidity(*this, newChild, oldChild, ec))
+            return false;
+    }
 
     InspectorInstrumentation::willInsertDOMNode(document(), *this);
 
@@ -648,9 +651,6 @@ bool ContainerNode::appendChild(Node& newChild, ExceptionCode& ec)
     // Make sure adding the new child is ok
     if (!ensurePreInsertionValidity(newChild, nullptr, ec))
         return false;
-
-    if (&newChild == m_lastChild) // nothing to do
-        return true;
 
     NodeVector targets;
     collectChildrenAndRemoveFromOldParent(newChild, targets, ec);
@@ -873,18 +873,18 @@ unsigned ContainerNode::childElementCount() const
     return std::distance(children.begin(), children.end());
 }
 
-void ContainerNode::append(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
+void ContainerNode::append(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
 {
-    RefPtr<Node> node = convertNodesOrStringsIntoNode(*this, WTFMove(nodeOrStringVector), ec);
+    RefPtr<Node> node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
     if (ec || !node)
         return;
 
     appendChild(*node, ec);
 }
 
-void ContainerNode::prepend(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
+void ContainerNode::prepend(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
 {
-    RefPtr<Node> node = convertNodesOrStringsIntoNode(*this, WTFMove(nodeOrStringVector), ec);
+    RefPtr<Node> node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
     if (ec || !node)
         return;
 

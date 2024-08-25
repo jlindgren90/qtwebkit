@@ -79,11 +79,13 @@ class PageConfiguration;
 namespace WebKit {
 
 class DownloadProxy;
+class UIGamepad;
 class WebAutomationSession;
 class WebContextSupplement;
 class WebIconDatabase;
 class WebPageGroup;
 class WebPageProxy;
+struct GamepadData;
 struct NetworkProcessCreationParameters;
 struct StatisticsData;
 struct WebProcessCreationParameters;
@@ -98,9 +100,6 @@ int webProcessThroughputQOS();
 #endif
 
 class WebProcessPool final : public API::ObjectImpl<API::Object::Type::ProcessPool>, private IPC::MessageReceiver
-#if ENABLE(NETSCAPE_PLUGIN_API)
-    , private PluginInfoStoreClient
-#endif
     {
 public:
     static Ref<WebProcessPool> create(API::ProcessPoolConfiguration&);
@@ -369,6 +368,11 @@ public:
     bool resourceLoadStatisticsEnabled() { return m_resourceLoadStatisticsEnabled; }
     void setResourceLoadStatisticsEnabled(bool enabled) { m_resourceLoadStatisticsEnabled = enabled; }
 
+#if ENABLE(GAMEPAD)
+    void gamepadConnected(const UIGamepad&);
+    void gamepadDisconnected(const UIGamepad&);
+#endif
+
 private:
     void platformInitialize();
 
@@ -424,11 +428,6 @@ private:
     void plugInDidReceiveUserInteraction(unsigned plugInOriginHash, WebCore::SessionID);
 
     void setAnyPageGroupMightHavePrivateBrowsingEnabled(bool);
-
-#if ENABLE(NETSCAPE_PLUGIN_API)
-    // PluginInfoStoreClient:
-    void pluginInfoStoreDidLoadPlugins(PluginInfoStore*) override;
-#endif
 
     Ref<API::ProcessPoolConfiguration> m_configuration;
 

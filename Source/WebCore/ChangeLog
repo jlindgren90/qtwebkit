@@ -1,3 +1,712 @@
+2016-08-10  Anders Carlsson  <andersca@apple.com>
+
+        Revert back to the old style member function state machine for callbacks
+        https://bugs.webkit.org/show_bug.cgi?id=160756
+
+        Reviewed by Tim Horton.
+
+        This is another step towards merging SQLTransactionBackend and SQLTransaction,
+        and using a single state machine for both sides.
+
+        * Modules/webdatabase/SQLTransaction.cpp:
+        (WebCore::SQLTransaction::SQLTransaction):
+        (WebCore::SQLTransaction::performPendingCallback):
+        (WebCore::SQLTransaction::checkAndHandleClosedDatabase):
+        (WebCore::SQLTransaction::scheduleCallback):
+        (WebCore::SQLTransaction::openTransactionAndPreflight):
+        (WebCore::SQLTransaction::runCurrentStatement):
+        (WebCore::SQLTransaction::handleCurrentStatementError):
+        (WebCore::SQLTransaction::handleTransactionError):
+        (WebCore::SQLTransaction::postflightAndCommit):
+        (WebCore::SQLTransaction::debugStepName):
+        * Modules/webdatabase/SQLTransaction.h:
+
+2016-08-09  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES2016] Implement Object.values
+        https://bugs.webkit.org/show_bug.cgi?id=160410
+
+        Reviewed by Saam Barati, Yusuke Suzuki.
+
+        No new tests because all tests are implemented in JavaScriptCore 
+        and there is no behavior change.
+
+        * ForwardingHeaders/runtime/IterationKind.h: Added.
+        * bindings/js/SerializedScriptValue.cpp:
+        (WebCore::CloneSerializer::serialize):
+
+2016-08-10  Anders Carlsson  <andersca@apple.com>
+
+        Move more functions to from SQLTransactionBackend to SQLTransaction
+        https://bugs.webkit.org/show_bug.cgi?id=160752
+
+        Reviewed by Tim Horton.
+
+        * Modules/webdatabase/SQLTransaction.cpp:
+        (WebCore::SQLTransaction::acquireLock):
+        (WebCore::SQLTransaction::openTransactionAndPreflight):
+        (WebCore::SQLTransaction::runStatements):
+        (WebCore::SQLTransaction::cleanupAndTerminate):
+        (WebCore::SQLTransaction::cleanupAfterTransactionErrorCallback):
+        * Modules/webdatabase/SQLTransaction.h:
+        * Modules/webdatabase/SQLTransactionBackend.cpp:
+        (WebCore::SQLTransactionBackend::acquireLock):
+        (WebCore::SQLTransactionBackend::openTransactionAndPreflight):
+        (WebCore::SQLTransactionBackend::runStatements):
+        (WebCore::SQLTransactionBackend::cleanupAndTerminate):
+        (WebCore::SQLTransactionBackend::cleanupAfterTransactionErrorCallback):
+
+2016-08-10  Anders Carlsson  <andersca@apple.com>
+
+        Begin moving member functions from SQLTransactionBackend to SQLTransaction
+        https://bugs.webkit.org/show_bug.cgi?id=160747
+
+        Reviewed by Tim Horton.
+
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::performClose):
+        * Modules/webdatabase/DatabaseTask.cpp:
+        (WebCore::DatabaseTransactionTask::~DatabaseTransactionTask):
+        (WebCore::DatabaseTransactionTask::doPerformTask):
+        * Modules/webdatabase/SQLTransaction.cpp:
+        (WebCore::SQLTransaction::executeSQL):
+        (WebCore::SQLTransaction::lockAcquired):
+        (WebCore::SQLTransaction::performNextStep):
+        (WebCore::SQLTransaction::performPendingCallback):
+        (WebCore::SQLTransaction::notifyDatabaseThreadIsShuttingDown):
+        (WebCore::SQLTransaction::enqueueStatement):
+        (WebCore::SQLTransaction::getNextStatement):
+        (WebCore::SQLTransaction::runCurrentStatement):
+        (WebCore::SQLTransaction::handleCurrentStatementError):
+        (WebCore::SQLTransaction::handleTransactionError):
+        (WebCore::SQLTransaction::postflightAndCommit):
+        (WebCore::SQLTransaction::acquireOriginLock):
+        (WebCore::SQLTransaction::releaseOriginLockIfNeeded):
+        * Modules/webdatabase/SQLTransaction.h:
+        (WebCore::SQLTransaction::backend): Deleted.
+        * Modules/webdatabase/SQLTransactionBackend.cpp:
+        (WebCore::SQLTransactionBackend::doCleanup):
+        (WebCore::SQLTransactionBackend::openTransactionAndPreflight):
+        (WebCore::SQLTransactionBackend::runStatements):
+        (WebCore::SQLTransactionBackend::cleanupAfterTransactionErrorCallback):
+        (WebCore::SQLTransactionBackend::enqueueStatement): Deleted.
+        (WebCore::SQLTransactionBackend::performNextStep): Deleted.
+        (WebCore::SQLTransactionBackend::executeSQL): Deleted.
+        (WebCore::SQLTransactionBackend::lockAcquired): Deleted.
+        (WebCore::SQLTransactionBackend::getNextStatement): Deleted.
+        (WebCore::SQLTransactionBackend::runCurrentStatement): Deleted.
+        (WebCore::SQLTransactionBackend::handleCurrentStatementError): Deleted.
+        (WebCore::SQLTransactionBackend::handleTransactionError): Deleted.
+        (WebCore::SQLTransactionBackend::postflightAndCommit): Deleted.
+        (WebCore::SQLTransactionBackend::acquireOriginLock): Deleted.
+        (WebCore::SQLTransactionBackend::releaseOriginLockIfNeeded): Deleted.
+        * Modules/webdatabase/SQLTransactionBackend.h:
+        * Modules/webdatabase/SQLTransactionCoordinator.cpp:
+        (WebCore::SQLTransactionCoordinator::processPendingTransactions):
+        (WebCore::SQLTransactionCoordinator::shutdown):
+
+2016-08-10  Anders Carlsson  <andersca@apple.com>
+
+        Move all SQLTransactionBackend member variables to SQLTransaction
+        https://bugs.webkit.org/show_bug.cgi?id=160745
+
+        Reviewed by Tim Horton.
+
+        * Modules/webdatabase/ChangeVersionWrapper.cpp:
+        (WebCore::ChangeVersionWrapper::performPreflight):
+        (WebCore::ChangeVersionWrapper::performPostflight):
+        (WebCore::ChangeVersionWrapper::handleCommitFailedAfterPostflight):
+        * Modules/webdatabase/ChangeVersionWrapper.h:
+        (WebCore::ChangeVersionWrapper::sqlError): Deleted.
+        * Modules/webdatabase/SQLTransaction.cpp:
+        (WebCore::SQLTransaction::SQLTransaction):
+        (WebCore::SQLTransaction::deliverTransactionErrorCallback):
+        (WebCore::SQLTransaction::deliverStatementCallback):
+        (WebCore::SQLTransaction::deliverQuotaIncreaseCallback):
+        (WebCore::SQLTransaction::hasCallback): Deleted.
+        (WebCore::SQLTransaction::hasSuccessCallback): Deleted.
+        (WebCore::SQLTransaction::hasErrorCallback): Deleted.
+        * Modules/webdatabase/SQLTransaction.h:
+        (WebCore::SQLTransaction::isReadOnly):
+        * Modules/webdatabase/SQLTransactionBackend.cpp:
+        (WebCore::SQLTransactionBackend::SQLTransactionBackend):
+        (WebCore::SQLTransactionBackend::~SQLTransactionBackend):
+        (WebCore::SQLTransactionBackend::doCleanup):
+        (WebCore::SQLTransactionBackend::enqueueStatement):
+        (WebCore::SQLTransactionBackend::computeNextStateAndCleanupIfNeeded):
+        (WebCore::SQLTransactionBackend::executeSQL):
+        (WebCore::SQLTransactionBackend::notifyDatabaseThreadIsShuttingDown):
+        (WebCore::SQLTransactionBackend::acquireLock):
+        (WebCore::SQLTransactionBackend::lockAcquired):
+        (WebCore::SQLTransactionBackend::openTransactionAndPreflight):
+        (WebCore::SQLTransactionBackend::runStatements):
+        (WebCore::SQLTransactionBackend::getNextStatement):
+        (WebCore::SQLTransactionBackend::runCurrentStatement):
+        (WebCore::SQLTransactionBackend::handleCurrentStatementError):
+        (WebCore::SQLTransactionBackend::handleTransactionError):
+        (WebCore::SQLTransactionBackend::postflightAndCommit):
+        (WebCore::SQLTransactionBackend::cleanupAndTerminate):
+        (WebCore::SQLTransactionBackend::cleanupAfterTransactionErrorCallback):
+        (WebCore::SQLTransactionBackend::requestTransitToState):
+        (WebCore::SQLTransactionBackend::acquireOriginLock):
+        (WebCore::SQLTransactionBackend::releaseOriginLockIfNeeded):
+        (WebCore::SQLTransactionBackend::currentStatement): Deleted.
+        (WebCore::SQLTransactionBackend::transactionError): Deleted.
+        (WebCore::SQLTransactionBackend::setShouldRetryCurrentStatement): Deleted.
+        (WebCore::SQLTransactionBackend::enqueueStatementBackend): Deleted.
+        * Modules/webdatabase/SQLTransactionBackend.h:
+        (WebCore::SQLTransactionBackend::database): Deleted.
+        (WebCore::SQLTransactionBackend::isReadOnly): Deleted.
+        * Modules/webdatabase/SQLTransactionCoordinator.cpp:
+        (WebCore::SQLTransactionCoordinator::processPendingTransactions):
+        (WebCore::SQLTransactionCoordinator::releaseLock):
+
+2016-08-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Sort the project file.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-08-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Sort the feature flags in the FEATURE_DEFINES lines
+        https://bugs.webkit.org/show_bug.cgi?id=160742
+
+        Reviewed by Anders Carlsson.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-08-10  Anders Carlsson  <andersca@apple.com>
+
+        Make SQLTransactionBackend a member of SQLTransaction
+        https://bugs.webkit.org/show_bug.cgi?id=160741
+
+        Reviewed by Tim Horton.
+
+        This is another step towards merging SQLTransaction and SQLTransactionBackend.
+
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::performClose):
+        (WebCore::Database::scheduleTransaction):
+        (WebCore::Database::scheduleTransactionStep):
+        (WebCore::Database::runTransaction):
+        * Modules/webdatabase/Database.h:
+        * Modules/webdatabase/DatabaseTask.cpp:
+        (WebCore::DatabaseTransactionTask::DatabaseTransactionTask):
+        (WebCore::DatabaseTransactionTask::~DatabaseTransactionTask):
+        (WebCore::DatabaseTransactionTask::doPerformTask):
+        * Modules/webdatabase/DatabaseTask.h:
+        (WebCore::DatabaseTransactionTask::transaction):
+        * Modules/webdatabase/DatabaseThread.cpp:
+        * Modules/webdatabase/SQLTransaction.cpp:
+        (WebCore::SQLTransaction::SQLTransaction):
+        (WebCore::SQLTransaction::deliverTransactionCallback):
+        (WebCore::SQLTransaction::deliverTransactionErrorCallback):
+        (WebCore::SQLTransaction::deliverStatementCallback):
+        (WebCore::SQLTransaction::deliverQuotaIncreaseCallback):
+        (WebCore::SQLTransaction::deliverSuccessCallback):
+        (WebCore::SQLTransaction::executeSQL):
+        (WebCore::SQLTransaction::computeNextStateAndCleanupIfNeeded):
+        (WebCore::SQLTransaction::setBackend): Deleted.
+        * Modules/webdatabase/SQLTransaction.h:
+        (WebCore::SQLTransaction::backend):
+        * Modules/webdatabase/SQLTransactionBackend.cpp:
+        (WebCore::SQLTransactionBackend::SQLTransactionBackend):
+        (WebCore::SQLTransactionBackend::doCleanup):
+        (WebCore::SQLTransactionBackend::computeNextStateAndCleanupIfNeeded):
+        (WebCore::SQLTransactionBackend::acquireLock):
+        (WebCore::SQLTransactionBackend::lockAcquired):
+        (WebCore::SQLTransactionBackend::openTransactionAndPreflight):
+        (WebCore::SQLTransactionBackend::runCurrentStatement):
+        (WebCore::SQLTransactionBackend::handleCurrentStatementError):
+        (WebCore::SQLTransactionBackend::handleTransactionError):
+        (WebCore::SQLTransactionBackend::postflightAndCommit):
+        (WebCore::SQLTransactionBackend::requestTransitToState):
+        (WebCore::SQLTransactionBackend::create): Deleted.
+        * Modules/webdatabase/SQLTransactionBackend.h:
+        * Modules/webdatabase/SQLTransactionCoordinator.cpp:
+        (WebCore::getDatabaseIdentifier):
+        (WebCore::SQLTransactionCoordinator::processPendingTransactions):
+        (WebCore::SQLTransactionCoordinator::acquireLock):
+        (WebCore::SQLTransactionCoordinator::releaseLock):
+        (WebCore::SQLTransactionCoordinator::shutdown):
+        * Modules/webdatabase/SQLTransactionCoordinator.h:
+
+2016-08-08  Simon Fraser  <simon.fraser@apple.com>
+
+        child-transform-with-anchor-point-expected.html renders incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=160616
+
+        Reviewed by Zalan Bujtas.
+        
+        If a layer has perspective, we need to ensure that its bounds don't collapse to 0x0 when clipped out,
+        otherwise the sublayerTransform geometry gets messed up.
+
+        Test: compositing/geometry/clipped-out-perspective.html
+
+        * rendering/RenderLayerBacking.cpp:
+        (WebCore::RenderLayerBacking::updateCompositedBounds):
+
+2016-08-09  Sam Weinig  <sam@webkit.org>
+
+        Remove support for array types in IDLs
+        https://bugs.webkit.org/show_bug.cgi?id=160729
+
+        Reviewed by Anders Carlsson.
+
+        Array types have been removed from WebIDL in favor of sequence<> and FrozenArray<>.
+
+        - Replace all current uses of Array types with sequences. This causes
+          no functional change.
+
+        * bindings/scripts/CodeGenerator.pm:
+        * bindings/scripts/CodeGeneratorGObject.pm:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        * bindings/scripts/IDLParser.pm:
+        Remove array support from the generators.
+
+        * Modules/gamepad/Gamepad.idl:
+        * Modules/gamepad/NavigatorGamepad.idl:
+        * Modules/gamepad/deprecated/Gamepad.idl:
+        * Modules/mediacontrols/MediaControlsHost.idl:
+        * Modules/mediastream/MediaStream.idl:
+        * Modules/mediastream/MediaTrackConstraints.idl:
+        * Modules/mediastream/RTCConfiguration.idl:
+        * Modules/mediastream/RTCIceServer.idl:
+        * Modules/mediastream/RTCTrackEvent.idl:
+        * crypto/CryptoKey.idl:
+        * dom/MessageEvent.idl:
+        * testing/Internals.idl:
+        Switch from array to sequence.
+
+2016-08-10  Alex Christensen  <achristensen@webkit.org>
+
+        Use unsigned for locations in URL
+        https://bugs.webkit.org/show_bug.cgi?id=160706
+
+        Reviewed by Sam Weinig.
+
+        No change in behavior.
+
+        * platform/URL.cpp:
+        (WebCore::isSchemeFirstChar):
+        (WebCore::findFirstOf):
+        (WebCore::checkEncodedString):
+        (WebCore::URL::host):
+        (WebCore::URL::protocolIs):
+        (WebCore::URL::setPort):
+        (WebCore::URL::setUser):
+        (WebCore::URL::setPass):
+        (WebCore::escapeAndAppendNonHierarchicalPart):
+        (WebCore::copyPathRemovingDots):
+        (WebCore::URL::serialize):
+        (WebCore::isDefaultPortForScheme):
+        (WebCore::hostPortIsEmptyButCredentialsArePresent):
+        (WebCore::URL::parse):
+        (WebCore::protocolHostAndPortAreEqual):
+        (WebCore::hostsAreEqual):
+        (WebCore::protocolIs):
+        (WebCore::findHostnamesInMailToURL):
+        (WebCore::findHostnameInHierarchicalURL):
+        (WebCore::encodeHostnames):
+        (WebCore::encodeRelativeString):
+        * platform/URL.h:
+
+2016-08-09  Anders Carlsson  <andersca@apple.com>
+
+        Move SQLTransactionBackend construction inside SQLTransaction
+        https://bugs.webkit.org/show_bug.cgi?id=160726
+
+        Reviewed by Tim Horton.
+
+        This is the first step towards re-merging SQLTransactionBackend and SQLTransaction and clean up the code.
+
+        * Modules/webdatabase/ChangeVersionWrapper.cpp:
+        * Modules/webdatabase/ChangeVersionWrapper.h:
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::performClose):
+        (WebCore::Database::scheduleTransactionStep):
+        (WebCore::Database::changeVersion):
+        (WebCore::Database::transaction):
+        (WebCore::Database::readTransaction):
+        (WebCore::Database::runTransaction):
+        * Modules/webdatabase/Database.h:
+        * Modules/webdatabase/DatabaseTask.cpp:
+        * Modules/webdatabase/SQLTransaction.cpp:
+        (WebCore::SQLTransaction::create):
+        (WebCore::SQLTransaction::SQLTransaction):
+        * Modules/webdatabase/SQLTransaction.h:
+        (WebCore::SQLTransactionWrapper::~SQLTransactionWrapper):
+        (WebCore::SQLTransaction::backend):
+        * Modules/webdatabase/SQLTransactionBackend.cpp:
+        (WebCore::SQLTransactionBackend::lockAcquired):
+        (WebCore::SQLTransactionBackend::requestTransitToState):
+        * Modules/webdatabase/SQLTransactionBackend.h:
+        (WebCore::SQLTransactionWrapper::~SQLTransactionWrapper): Deleted.
+
+2016-08-10  Chris Dumez  <cdumez@apple.com>
+
+        It should be possible to re-initialize a MutationEvent after it's been dispatched
+        https://bugs.webkit.org/show_bug.cgi?id=160703
+
+        Reviewed by Sam Weinig.
+
+        It should be possible to re-initialize a MutationEvent after it's been dispatched,
+        similarly to Event:
+        - https://www.w3.org/TR/2015/WD-uievents-20151215/#widl-MutationEvent-initMutationEvent
+
+        Test: fast/events/initMutationEvent-after-dispatch.html
+
+        * dom/MutationEvent.cpp:
+        (WebCore::MutationEvent::initMutationEvent):
+
+2016-08-10  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Add ModuleLoaderPrototype and move methods to it
+        https://bugs.webkit.org/show_bug.cgi?id=160633
+
+        Reviewed by Saam Barati.
+
+        No behavior change.
+
+        * ForwardingHeaders/runtime/JSModuleLoader.h: Added.
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::JSDOMWindowBase::moduleLoaderResolve):
+        (WebCore::JSDOMWindowBase::moduleLoaderFetch):
+        (WebCore::JSDOMWindowBase::moduleLoaderEvaluate):
+        * bindings/js/JSDOMWindowBase.h:
+        * bindings/js/JSModuleLoader.cpp:
+        (WebCore::JSModuleLoader::resolve):
+        (WebCore::JSModuleLoader::fetch):
+        (WebCore::JSModuleLoader::evaluate):
+        * bindings/js/JSModuleLoader.h:
+
+2016-08-10  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Warning fix.
+        https://bugs.webkit.org/show_bug.cgi?id=160687
+
+        Reviewed by Sam Weinig.
+
+        Avoid forward declarations with different dll linkage.
+
+        * platform/spi/cf/CFNetworkSPI.h:
+
+2016-08-10  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Warning fix.
+        https://bugs.webkit.org/show_bug.cgi?id=160690
+
+        Reviewed by Sam Weinig.
+
+        Use static cast to convert from enum to unsigned.
+
+        * platform/network/ProtectionSpaceHash.h:
+        (WebCore::ProtectionSpaceHash::hash):
+
+2016-08-09  Alex Christensen  <achristensen@webkit.org>
+
+        Move NetworkStorageSession management to WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=160173
+
+        Reviewed by Brady Eidson.
+
+        No new tests.  No change in behaviour.
+        Just moving the mapping from SessionID to NetworkStorageSession so we can use it from WebCore.
+        I need this so we can get to the NetworkStorageSession from SocketStreamHandle without requiring a NetworkingContext.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * loader/CookieJar.cpp:
+        * platform/network/NetworkStorageSession.cpp: Added.
+        (WebCore::globalSessionMap):
+        (WebCore::NetworkStorageSession::storageSession):
+        (WebCore::NetworkStorageSession::destroySession):
+        (WebCore::NetworkStorageSession::forEach):
+        Moved from forEachNetworkStorageSession and fixed the FIXME.  This function now includes the default NetworkStorageSession.
+        * platform/network/NetworkStorageSession.h:
+        * platform/network/NetworkingContext.h:
+        * platform/network/cf/NetworkStorageSessionCFNet.cpp:
+        (WebCore::NetworkStorageSession::defaultStorageSession):
+        (WebCore::NetworkStorageSession::ensurePrivateBrowsingSession):
+        (WebCore::NetworkStorageSession::cookieStorage):
+        (WebCore::NetworkStorageSession::createPrivateBrowsingSession): Deleted.
+        * platform/network/cf/SocketStreamHandleCFNet.cpp:
+        * platform/network/soup/CookieJarSoup.cpp:
+        * platform/network/soup/NetworkStorageSessionSoup.cpp:
+        (WebCore::NetworkStorageSession::defaultStorageSession):
+        (WebCore::NetworkStorageSession::ensurePrivateBrowsingSession):
+        (WebCore::NetworkStorageSession::switchToNewTestingSession):
+        (WebCore::NetworkStorageSession::createPrivateBrowsingSession): Deleted.
+        * platform/network/soup/ResourceHandleSoup.cpp:
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        Optimization in Node.replaceChild() is not spec-compliant
+        https://bugs.webkit.org/show_bug.cgi?id=160730
+
+        Reviewed by Ryosuke Niwa.
+
+        We have an optimization in Node.replaceChild() to avoid doing any work
+        when the reference child and the new child are the same node. This
+        optimization is not spec-compliant:
+        - https://dom.spec.whatwg.org/#concept-node-replace
+
+        This is an issue because it is observable via Mutation observers /
+        listeners or DOM ranges.
+
+        To address the issue, this patch drops the optimization. This is
+        probably not common enough to be worth optimizing for. However,
+        if it turns out to regress performance of things we care about,
+        we can fall back to do the optimization only in cases where it
+        is not observable.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::replaceChild):
+        1. Drop the oldChild == newChild optimization which is not in the
+           specification.
+        2. Add a null check for oldChild.parentNode() before trying to
+           remove it from its parent, as per step 12 of the specification.
+           oldChild.parentNode() is null when oldChild is newChild.
+        3. Make sure we enqueue separate mutation records for the adoption
+           of newNode into parent's node document and for the removal of
+           oldChild / insertion of newChild. This is mandated by the
+           specification (steps 10 and 15). Without this change, the
+           following test would still not pass after dropping the
+           optimization:
+           imported/w3c/web-platform-tests/dom/nodes/MutationObserver-childList.html
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        Optimization in Node::appendChild() is not spec-compliant
+        https://bugs.webkit.org/show_bug.cgi?id=160728
+
+        Reviewed by Ryosuke Niwa.
+
+        We have an optimization in Node::appendChild() that avoid doing any work
+        if the node to be appended is already the last child. This optimization
+        is not spec-compliant:
+        - https://dom.spec.whatwg.org/#dom-node-appendchild
+
+        The issue is that this is observable via DOM Mutation observers / listeners
+        or DOM ranges.
+
+        To address the issue, this patch drops the optimization in appendChild().
+        This seems like an odd case to optimize for as I am not convinced it is
+        common to call parent.appendChild(parent.lastChild). If it turns out to
+        regress the performance of things we care about though, we could fall
+        back to do the optimization only when it is not observable.
+
+        Test: fast/dom/Node/appendChild-no-op-mutationobserver.html
+
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::appendChild): Deleted.
+
+2016-08-09  Anders Carlsson  <andersca@apple.com>
+
+        Instantiate WebKit plug-ins at layout time, instead of at style resolution time
+        https://bugs.webkit.org/show_bug.cgi?id=160715
+
+        Reviewed by Tim Horton.
+
+        This gets rid of the differentiation of WebKit plug-ins and Netscape plug-ins, and
+        always instantiates plug-ins at layout time.
+        
+        Initially, plug-ins were always instantiated after style recalc, but that lead to bugs
+        where plug-ins wouldn't be instantiated with their correct size. Fixing that bug lead
+        to a regression in the Web Clip widget which is why the special casing was introduced.
+        
+        The Web Clip widget has now been fixed, so we can get rid of the special case.
+
+        * html/HTMLAppletElement.cpp:
+        (WebCore::HTMLAppletElement::updateWidget):
+        * html/HTMLAppletElement.h:
+        * html/HTMLEmbedElement.cpp:
+        (WebCore::HTMLEmbedElement::updateWidget):
+        * html/HTMLEmbedElement.h:
+        * html/HTMLObjectElement.cpp:
+        (WebCore::HTMLObjectElement::updateWidget):
+        * html/HTMLObjectElement.h:
+        * html/HTMLPlugInImageElement.cpp:
+        (WebCore::HTMLPlugInImageElement::isImageType):
+        (WebCore::HTMLPlugInImageElement::wouldLoadAsPlugIn):
+        (WebCore::HTMLPlugInImageElement::updateWidgetIfNecessary):
+        (WebCore::HTMLPlugInImageElement::wouldLoadAsNetscapePlugin): Deleted.
+        * html/HTMLPlugInImageElement.h:
+        * loader/EmptyClients.h:
+        * loader/FrameLoaderTypes.h:
+        * loader/SubframeLoader.cpp:
+        (WebCore::SubframeLoader::shouldUsePlugin):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::updateEmbeddedObject):
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, fix assertions after r204311.
+
+        Range::textNodeSplit() can now get called with a node that
+        does not have a nextSibling(), in the case where this node
+        does not have a parent.
+
+        * dom/Range.cpp:
+        (WebCore::Range::textNodeSplit):
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        CharacterData.data setter optimization is not spec-compliant and is observable
+        https://bugs.webkit.org/show_bug.cgi?id=160712
+
+        Reviewed by Ryosuke Niwa.
+
+        We have an optimization in CharacterData.setData() that avoid doing any
+        work if the new data is identical to the old data. However, this
+        optimization is not spec-compliant:
+        - https://dom.spec.whatwg.org/#dom-characterdata-data
+
+        This is an issue because this is observable using DOM mutation observer
+        or ranges.
+
+        To address the issue, we now:
+        1. Only use the optimization if there are not DOM mutation observers /
+           listeners on the page.
+        2. We now update the associated range when we use the fast path as well.
+
+        Test: fast/dom/Text/setData-no-op-mutation.html
+
+        * dom/CharacterData.cpp:
+        (WebCore::canUseSetDataOptimization):
+        (WebCore::CharacterData::setData):
+
+2016-08-09  George Ruan  <gruan@apple.com>
+
+        Implement functionality of media capture on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=158945
+        <rdar://problem/26893343>
+
+        Reviewed by Tim Horton.
+
+        No new tests, feature requires user gesture which we are unable to
+        test currently.
+
+        * Configurations/FeatureDefines.xcconfig: Enable Media Capture feature
+        for iOS.
+        * html/FileInputType.cpp:
+        (WebCore::FileInputType::handleDOMActivateEvent): Modified call for
+        mediaCaptureType property.
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::mediaCaptureType): Returns
+        MediaCaptureType according to the value of the capture attribute on
+        the HTMLInputElement.
+        (WebCore::HTMLInputElement::shouldUseMediaCapture): Deleted.
+        * html/HTMLInputElement.h:
+        * html/HTMLInputElement.idl: As the capture attribute is specified as
+        a boolean attribute in the Media Capture spec, this is a non-standard
+        web-facing change with accordance to the proposal #1102. We would like
+        to be able to specify a capture device to pull up upon interaction
+        with the input type file element. In favor of not introducing a new
+        attribute to specify the capture device, we reuse the capture
+        attribute with a set of enumerated values (user, environment, none) to
+        specify the desired media capture behavior.
+        * platform/FileChooser.h: Created enum MediaCaptureType representing
+        whether the front or rear camera shoul dbe shown when the capture
+        attribute is specified.
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        Calling splitText() on a parent-less Text node should update associated ranges
+        https://bugs.webkit.org/show_bug.cgi?id=160710
+
+        Reviewed by Ryosuke Niwa.
+
+        Calling splitText() on a parent-less Text node should update associated ranges:
+        - https://dom.spec.whatwg.org/#concept-text-split (Step 9)
+
+        Previously, we would only update ranges for Text nodes that have a parent.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Range.cpp:
+        (WebCore::boundaryTextNodesSplit):
+        (WebCore::Range::textNodeSplit): Deleted.
+        * dom/Text.cpp:
+        (WebCore::Text::splitText):
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        Drop unused NodeListsNodeData::isEmpty()
+        https://bugs.webkit.org/show_bug.cgi?id=160704
+
+        Reviewed by Ryosuke Niwa.
+
+        Drop unused NodeListsNodeData::isEmpty(). Its implementation is incorrect
+        anyway because it fails to check if the m_childNodeList / m_emptyChildNodeList
+        members are null.
+
+        * dom/NodeRareData.h:
+        (WebCore::NodeListsNodeData::isEmpty): Deleted.
+
+2016-08-06  Sam Weinig  <sam@webkit.org>
+
+        Replace NodeOrString with std::variant<Ref<Node>, String>
+        https://bugs.webkit.org/show_bug.cgi?id=160638
+
+        Reviewed by Anders Carlsson.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Remove NodeOrString.h/cpp
+
+        * bindings/js/JSNodeOrString.cpp:
+        * bindings/js/JSNodeOrString.h:
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::append):
+        (WebCore::ContainerNode::prepend):
+        * dom/ContainerNode.h:
+        * dom/Node.cpp:
+        (WebCore::nodeSetPreTransformedFromNodeOrStringVector):
+        (WebCore::firstFollowingSiblingNotInNodeSet):
+        (WebCore::Node::convertNodesOrStringsIntoNode):
+        (WebCore::Node::before):
+        (WebCore::Node::after):
+        (WebCore::Node::replaceWith):
+        * dom/Node.h:
+        Replace NodeOrString with std::variant<Ref<Node>, String> and move convertNodesOrStringsIntoNode
+        into Node.
+
+        * dom/NodeOrString.cpp: Removed.
+        * dom/NodeOrString.h: Removed.
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        It should be possible to re-initialize a CustomEvent after it's been dispatched
+        https://bugs.webkit.org/show_bug.cgi?id=160664
+
+        Reviewed by Darin Adler.
+
+        It should be possible to re-initialize a CustomEvent after it's been dispatched:
+        - https://dom.spec.whatwg.org/#dom-customevent-initcustomevent
+
+        Test: fast/events/initCustomEvent-after-dispatch.html
+
+        * dom/CustomEvent.cpp:
+        (WebCore::CustomEvent::initCustomEvent):
+
+2016-08-09  Anders Carlsson  <andersca@apple.com>
+
+        Get rid of PluginStrategy
+        https://bugs.webkit.org/show_bug.cgi?id=160696
+
+        Reviewed by Dan Bernstein.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * loader/EmptyClients.cpp:
+        * platform/PlatformStrategies.h:
+        (WebCore::PlatformStrategies::pluginStrategy): Deleted.
+        * plugins/PluginInfoProvider.h:
+        * plugins/PluginStrategy.h: Removed.
+        (WebCore::PluginStrategy::~PluginStrategy): Deleted.
+
 2016-08-08  Myles C. Maxfield  <mmaxfield@apple.com>
 
         Ensure StringView lifetime is correct inside InlineTextBox

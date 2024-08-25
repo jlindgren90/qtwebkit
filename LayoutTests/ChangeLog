@@ -1,3 +1,163 @@
+2016-08-09  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES2016] Implement Object.values
+        https://bugs.webkit.org/show_bug.cgi?id=160410
+
+        Reviewed by Saam Barati, Yusuke Suzuki.
+
+        * js/Object-getOwnPropertyNames-expected.txt:
+        * js/script-tests/Object-getOwnPropertyNames.js:
+
+2016-08-10  Saam Barati  <sbarati@apple.com>
+
+        Web Inspector: rebase inspector/model/remote-object-get-properties.html and unskip
+        https://bugs.webkit.org/show_bug.cgi?id=160738
+        <rdar://problem/27788116>
+
+        Reviewed by Joseph Pecoraro.
+
+        * TestExpectations:
+        * inspector/model/remote-object-get-properties-expected.txt:
+
+2016-08-10  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/fetch/fetch-in-worker-crash.html as a flaky crash.
+        https://bugs.webkit.org/show_bug.cgi?id=160510
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-08-10  Brent Fulgham  <bfulgham@apple.com>
+
+        Add JS array sort test case
+        https://bugs.webkit.org/show_bug.cgi?id=160680
+
+        Incorporate a test case related to a improper JavaScript Array
+        sorting behavior. The actual bug was fixed more than a year ago,
+        as a side effect of Bug 144013, but no test case was provided.
+
+        * js/array-sort-crash-expected.txt: Added.
+        * js/array-sort-crash.html: Added.
+
+2016-08-10  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/model/remote-object-get-properties.html as failing
+        https://bugs.webkit.org/show_bug.cgi?id=160738
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-08-08  Simon Fraser  <simon.fraser@apple.com>
+
+        child-transform-with-anchor-point-expected.html renders incorrectly
+        https://bugs.webkit.org/show_bug.cgi?id=160616
+
+        Reviewed by Zalan Bujtas.
+
+        * compositing/geometry/clipped-out-perspective-expected.html: Added.
+        * compositing/geometry/clipped-out-perspective.html: Added.
+        * compositing/layer-creation/overlap-transformed-preserved-3d-expected.txt: Rebaseline.
+        * platform/mac-wk1/TestExpectations:
+
+2016-08-10  Saam Barati  <sbarati@apple.com>
+
+        Unreviewed. Skip a JSC test that's timing out and an inspector test that needs to be rebased after r204321
+
+        * TestExpectations:
+        * js/regress/script-tests/bound-function-construction-performance.js:
+        (makeBoundFunc):
+
+2016-08-10  Chris Dumez  <cdumez@apple.com>
+
+        It should be possible to re-initialize a MutationEvent after it's been dispatched
+        https://bugs.webkit.org/show_bug.cgi?id=160703
+
+        Reviewed by Sam Weinig.
+
+        Add layout test coverage.
+
+        * fast/events/initMutationEvent-after-dispatch-expected.txt: Added.
+        * fast/events/initMutationEvent-after-dispatch.html: Added.
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        Optimization in Node::appendChild() is not spec-compliant
+        https://bugs.webkit.org/show_bug.cgi?id=160728
+
+        Reviewed by Ryosuke Niwa.
+
+        Add layout test to make sure that mutation events are always fired
+        when calling Node::appendChild(), even if the new node is already
+        the last child.
+
+        * fast/dom/Node/appendChild-no-op-mutationobserver-expected.txt: Added.
+        * fast/dom/Node/appendChild-no-op-mutationobserver.html: Added.
+
+2016-08-09  Saam Barati  <sbarati@apple.com>
+
+        JSBoundFunction should lazily generate its name string
+        https://bugs.webkit.org/show_bug.cgi?id=160678
+        <rdar://problem/27043194>
+
+        Reviewed by Mark Lam.
+
+        * js/regress/bound-function-construction-performance-expected.txt: Added.
+        * js/regress/bound-function-construction-performance.html: Added.
+        * js/regress/script-tests/bound-function-construction-performance.js: Added.
+        (makeBoundFunc):
+        (foo.f):
+        (foo):
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        CharacterData.data setter optimization is not spec-compliant and is observable
+        https://bugs.webkit.org/show_bug.cgi?id=160712
+
+        Reviewed by Ryosuke Niwa.
+
+        Add test coverage to make sure that DOM Mutation observers get notified
+        when CharacterData.data is set to the same data.
+
+        * fast/dom/Text/setData-no-op-mutation-expected.txt: Added.
+        * fast/dom/Text/setData-no-op-mutation.html: Added.
+
+2016-08-09  Ada Chan  <adachan@apple.com>
+
+        [macOS Sierra] Fix flaky test: media/controls/picture-in-picture.html
+        https://bugs.webkit.org/show_bug.cgi?id=160707
+
+        Reviewed by Eric Carlson.
+
+        This test became flaky after r201474 when we started to delay showing
+        the inline placeholder until we are sure the video layer has been moved
+        into the video fullscreen layer. This means we can't guarantee that the
+        placeholder is visible right away after the video's presentation mode
+        changes to "picture-in-picture".
+
+        To fix this, we'll update the test so that we'll wait until the placeholder
+        becomes visible before testing its visibility without the "controls" attribute.
+
+        * media/controls/picture-in-picture.html:
+        * platform/mac-wk2/TestExpectations:
+
+2016-08-09  Chris Dumez  <cdumez@apple.com>
+
+        It should be possible to re-initialize a CustomEvent after it's been dispatched
+        https://bugs.webkit.org/show_bug.cgi?id=160664
+
+        Reviewed by Darin Adler.
+
+        * fast/events/initCustomEvent-after-dispatch-expected.txt: Copied from LayoutTests/fast/events/initEvent-after-dispatch-expected.txt.
+        * fast/events/initCustomEvent-after-dispatch.html: Copied from LayoutTests/fast/events/initEvent-after-dispatch.html.
+        Add layout test coverage.
+
+        * fast/events/initEvent-after-dispatch-expected.txt:
+        * fast/events/initEvent-after-dispatch.html:
+        Fix related layout test.
+
 2016-08-08  Ryan Haddad  <ryanhaddad@apple.com>
 
         Update test expectations for rdar://problem/27711048.

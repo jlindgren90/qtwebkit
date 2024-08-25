@@ -53,7 +53,6 @@
 #include "Logging.h"
 #include "MutationEvent.h"
 #include "NoEventDispatchAssertion.h"
-#include "NodeOrString.h"
 #include "NodeRenderStyle.h"
 #include "ProcessingInstruction.h"
 #include "ProgressEvent.h"
@@ -442,18 +441,17 @@ bool Node::appendChild(Node& newChild, ExceptionCode& ec)
     return downcast<ContainerNode>(*this).appendChild(newChild, ec);
 }
 
-static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const Vector<NodeOrString>& nodeOrStringVector)
+static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const Vector<std::variant<Ref<Node>, String>>& vector)
 {
     HashSet<RefPtr<Node>> nodeSet;
-    for (auto& nodeOrString : nodeOrStringVector) {
-        switch (nodeOrString.type()) {
-        case NodeOrString::Type::String:
-            break;
-        case NodeOrString::Type::Node:
-            nodeSet.add(&nodeOrString.node());
-            break;
-        }
-    }
+
+    auto visitor = WTF::makeVisitor(
+        [&](const Ref<Node>& node) { nodeSet.add(const_cast<Node*>(node.ptr())); },
+        [](const String&) { }
+    );
+
+    for (const auto& variant : vector)
+        std::visit(visitor, variant);
 
     return nodeSet;
 }
@@ -476,7 +474,34 @@ static RefPtr<Node> firstFollowingSiblingNotInNodeSet(Node& context, const HashS
     return nullptr;
 }
 
-void Node::before(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
+RefPtr<Node> Node::convertNodesOrStringsIntoNode(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
+{
+    if (nodeOrStringVector.isEmpty())
+        return nullptr;
+
+    Vector<Ref<Node>> nodes;
+    nodes.reserveInitialCapacity(nodeOrStringVector.size());
+
+    auto visitor = WTF::makeVisitor(
+        [&](Ref<Node>& node) { nodes.uncheckedAppend(node.copyRef()); },
+        [&](String& string) { nodes.uncheckedAppend(Text::create(document(), string)); }
+    );
+
+    for (auto& variant : nodeOrStringVector)
+        std::visit(visitor, variant);
+
+    if (nodes.size() == 1)
+        return WTFMove(nodes.first());
+
+    auto nodeToReturn = DocumentFragment::create(document());
+    for (auto& node : nodes) {
+        if (!nodeToReturn->appendChild(node, ec))
+            return nullptr;
+    }
+    return WTFMove(nodeToReturn);
+}
+
+void Node::before(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
 {
     RefPtr<ContainerNode> parent = parentNode();
     if (!parent)
@@ -485,7 +510,7 @@ void Node::before(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
     auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
     auto viablePreviousSibling = firstPrecedingSiblingNotInNodeSet(*this, nodeSet);
 
-    auto node = convertNodesOrStringsIntoNode(*this, WTFMove(nodeOrStringVector), ec);
+    auto node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
     if (ec || !node)
         return;
 
@@ -497,7 +522,7 @@ void Node::before(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
     parent->insertBefore(*node, viablePreviousSibling.get(), ec);
 }
 
-void Node::after(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
+void Node::after(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
 {
     RefPtr<ContainerNode> parent = parentNode();
     if (!parent)
@@ -506,14 +531,14 @@ void Node::after(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
     auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
     auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
 
-    auto node = convertNodesOrStringsIntoNode(*this, WTFMove(nodeOrStringVector), ec);
+    auto node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
     if (ec || !node)
         return;
 
     parent->insertBefore(*node, viableNextSibling.get(), ec);
 }
 
-void Node::replaceWith(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
+void Node::replaceWith(Vector<std::variant<Ref<Node>, String>>&& nodeOrStringVector, ExceptionCode& ec)
 {
     RefPtr<ContainerNode> parent = parentNode();
     if (!parent)
@@ -522,7 +547,7 @@ void Node::replaceWith(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode&
     auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
     auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
 
-    auto node = convertNodesOrStringsIntoNode(*this, WTFMove(nodeOrStringVector), ec);
+    auto node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
     if (ec)
         return;
 

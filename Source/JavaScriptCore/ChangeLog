@@ -1,3 +1,317 @@
+2016-08-09  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES2016] Implement Object.values
+        https://bugs.webkit.org/show_bug.cgi?id=160410
+
+        Reviewed by Saam Barati, Yusuke Suzuki.
+
+        This patch adds values function to Object that return list of 
+        own values of the object. Patch did according to the point of 
+        spec http://tc39.github.io/ecma262/#sec-object.values
+        
+        Also patch adds generic builtin intrinsic constants: 
+        @IterationKindKey/@IterationKindValue/@IterationKindKeyValue 
+        that is used in  EnumerableOwnProperties to set Kind of operation  
+        and replace own IterationKind enums in following iterators: 
+        ArrayIterator, MapIterator, and SetIterator 
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * builtins/ObjectConstructor.js:
+        (globalPrivate.enumerableOwnProperties):
+        (values):
+        * bytecode/BytecodeIntrinsicRegistry.cpp:
+        (JSC::BytecodeIntrinsicRegistry::BytecodeIntrinsicRegistry):
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::getInternalProperties):
+        * runtime/ArrayIteratorPrototype.h:
+        * runtime/IterationKind.h: Copied from Source/JavaScriptCore/builtins/ObjectConstructor.js.
+        * runtime/JSMapIterator.h:
+        (JSC::JSMapIterator::create):
+        (JSC::JSMapIterator::next):
+        (JSC::JSMapIterator::kind):
+        (JSC::JSMapIterator::JSMapIterator):
+        * runtime/JSSetIterator.h:
+        (JSC::JSSetIterator::create):
+        (JSC::JSSetIterator::next):
+        (JSC::JSSetIterator::kind):
+        (JSC::JSSetIterator::JSSetIterator):
+        * runtime/MapPrototype.cpp:
+        (JSC::mapProtoFuncValues):
+        (JSC::mapProtoFuncEntries):
+        (JSC::mapProtoFuncKeys):
+        (JSC::privateFuncMapIterator):
+        * runtime/ObjectConstructor.cpp:
+        * runtime/SetPrototype.cpp:
+        (JSC::setProtoFuncValues):
+        (JSC::setProtoFuncEntries):
+        (JSC::privateFuncSetIterator):
+
+2016-08-10  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Speed up SparseCollection & related maps
+        https://bugs.webkit.org/show_bug.cgi?id=160733
+
+        Reviewed by Saam Barati.
+
+        On MBA, Graph::addNode() shows up in profiles due to SparseCollection::add().
+        This is unfortunate.
+
+        The first improvement is to build the new unique_ptr in the empty slot
+        instead of moving a new value into it.
+
+        Previously, the code would load the previous value, test if it is null
+        then invoke the destructor and finally fastFree(). The initial test
+        obviously fails so that's a whole bunch of code that is never executed.
+
+        With the new code, we just have a store.
+
+        I also removed the bounds checking on our maps based on node index.
+        Those bounds checks are never eliminated by clang because the index
+        is always loaded from memory instead of being computed.
+        There are unfortunately too many nodes processed and the bounds checks
+        get costly.
+
+        * b3/B3SparseCollection.h:
+        (JSC::B3::SparseCollection::add):
+        * dfg/DFGGraph.h:
+        (JSC::DFG::Graph::abstractValuesCache):
+        * dfg/DFGInPlaceAbstractState.h:
+
+2016-08-10  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Remove some useless code I left when rewriting CSE's large maps
+        https://bugs.webkit.org/show_bug.cgi?id=160720
+
+        Reviewed by Michael Saboff.
+
+        * dfg/DFGCSEPhase.cpp:
+        The maps m_worldMap && m_sideStateMap are useless. They come from the previous
+        iteration that had weaker constraints.
+
+        Also move m_heapMap after m_fallbackStackMap since that is the order
+        in which they are used in the algorithm.
+
+2016-08-10  Benjamin Poulain  <bpoulain@apple.com>
+
+        Remove AbstractInterpreter::executeEdges(unsigned), it is no longer used anywhere
+        https://bugs.webkit.org/show_bug.cgi?id=160708
+
+        Reviewed by Mark Lam.
+
+        * dfg/DFGAbstractInterpreter.h:
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEdges): Deleted.
+
+2016-08-10  Simon Fraser  <simon.fraser@apple.com>
+
+        Sort the feature flags in the FEATURE_DEFINES lines
+        https://bugs.webkit.org/show_bug.cgi?id=160742
+
+        Reviewed by Anders Carlsson.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-08-10  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Add ModuleLoaderPrototype and move methods to it
+        https://bugs.webkit.org/show_bug.cgi?id=160633
+
+        Reviewed by Saam Barati.
+
+        In the future, we need to add the ability to create the new Loader object (by users).
+        So rather than holding all the methods in the ModuleLoaderObject instance, moving them
+        to ModuleLoaderPrototype and create the default JSModuleLoader instance is better.
+
+        No behavior change.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * builtins/ModuleLoaderObject.js:
+        (setStateToMax): Deleted.
+        (newRegistryEntry): Deleted.
+        (ensureRegistered): Deleted.
+        (forceFulfillPromise): Deleted.
+        (fulfillFetch): Deleted.
+        (fulfillTranslate): Deleted.
+        (fulfillInstantiate): Deleted.
+        (commitInstantiated): Deleted.
+        (instantiation): Deleted.
+        (requestFetch): Deleted.
+        (requestTranslate): Deleted.
+        (requestInstantiate): Deleted.
+        (requestResolveDependencies.): Deleted.
+        (requestResolveDependencies): Deleted.
+        (requestInstantiateAll): Deleted.
+        (requestLink): Deleted.
+        (requestReady): Deleted.
+        (link): Deleted.
+        (moduleEvaluation): Deleted.
+        (provide): Deleted.
+        (loadAndEvaluateModule): Deleted.
+        (loadModule): Deleted.
+        (linkAndEvaluateModule): Deleted.
+        * builtins/ModuleLoaderPrototype.js: Renamed from Source/JavaScriptCore/builtins/ModuleLoaderObject.js.
+        (setStateToMax):
+        (newRegistryEntry):
+        (ensureRegistered):
+        (forceFulfillPromise):
+        (fulfillFetch):
+        (fulfillTranslate):
+        (fulfillInstantiate):
+        (commitInstantiated):
+        (instantiation):
+        (requestFetch):
+        (requestTranslate):
+        (requestInstantiate):
+        (requestResolveDependencies.):
+        (requestResolveDependencies):
+        (requestInstantiateAll):
+        (requestLink):
+        (requestReady):
+        (link):
+        (moduleEvaluation):
+        (provide):
+        (loadAndEvaluateModule):
+        (loadModule):
+        (linkAndEvaluateModule):
+        * bytecode/BytecodeIntrinsicRegistry.cpp:
+        (JSC::BytecodeIntrinsicRegistry::BytecodeIntrinsicRegistry):
+        * jsc.cpp:
+        (GlobalObject::moduleLoaderResolve):
+        (GlobalObject::moduleLoaderFetch):
+        * runtime/Completion.cpp:
+        (JSC::loadAndEvaluateModule):
+        (JSC::loadModule):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        (JSC::JSGlobalObject::visitChildren):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::moduleLoader):
+        (JSC::JSGlobalObject::moduleLoaderStructure):
+        * runtime/JSModuleLoader.cpp: Added.
+        (JSC::JSModuleLoader::JSModuleLoader):
+        (JSC::JSModuleLoader::finishCreation):
+        (JSC::printableModuleKey):
+        (JSC::JSModuleLoader::provide):
+        (JSC::JSModuleLoader::loadAndEvaluateModule):
+        (JSC::JSModuleLoader::loadModule):
+        (JSC::JSModuleLoader::linkAndEvaluateModule):
+        (JSC::JSModuleLoader::resolve):
+        (JSC::JSModuleLoader::fetch):
+        (JSC::JSModuleLoader::translate):
+        (JSC::JSModuleLoader::instantiate):
+        (JSC::JSModuleLoader::evaluate):
+        * runtime/JSModuleLoader.h: Copied from Source/JavaScriptCore/runtime/ModuleLoaderObject.h.
+        (JSC::JSModuleLoader::create):
+        (JSC::JSModuleLoader::createStructure):
+        * runtime/JSModuleRecord.h:
+        * runtime/ModuleLoaderObject.cpp: Removed.
+        (JSC::ModuleLoaderObject::ModuleLoaderObject): Deleted.
+        (JSC::ModuleLoaderObject::finishCreation): Deleted.
+        (JSC::printableModuleKey): Deleted.
+        (JSC::ModuleLoaderObject::provide): Deleted.
+        (JSC::ModuleLoaderObject::loadAndEvaluateModule): Deleted.
+        (JSC::ModuleLoaderObject::loadModule): Deleted.
+        (JSC::ModuleLoaderObject::linkAndEvaluateModule): Deleted.
+        (JSC::ModuleLoaderObject::resolve): Deleted.
+        (JSC::ModuleLoaderObject::fetch): Deleted.
+        (JSC::ModuleLoaderObject::translate): Deleted.
+        (JSC::ModuleLoaderObject::instantiate): Deleted.
+        (JSC::ModuleLoaderObject::evaluate): Deleted.
+        (JSC::moduleLoaderObjectParseModule): Deleted.
+        (JSC::moduleLoaderObjectRequestedModules): Deleted.
+        (JSC::moduleLoaderObjectModuleDeclarationInstantiation): Deleted.
+        (JSC::moduleLoaderObjectResolve): Deleted.
+        (JSC::moduleLoaderObjectFetch): Deleted.
+        (JSC::moduleLoaderObjectTranslate): Deleted.
+        (JSC::moduleLoaderObjectInstantiate): Deleted.
+        (JSC::moduleLoaderObjectEvaluate): Deleted.
+        * runtime/ModuleLoaderObject.h:
+        (JSC::ModuleLoaderObject::create): Deleted.
+        (JSC::ModuleLoaderObject::createStructure): Deleted.
+        * runtime/ModuleLoaderPrototype.cpp: Added.
+        (JSC::ModuleLoaderPrototype::ModuleLoaderPrototype):
+        (JSC::moduleLoaderPrototypeParseModule):
+        (JSC::moduleLoaderPrototypeRequestedModules):
+        (JSC::moduleLoaderPrototypeModuleDeclarationInstantiation):
+        (JSC::moduleLoaderPrototypeResolve):
+        (JSC::moduleLoaderPrototypeFetch):
+        (JSC::moduleLoaderPrototypeTranslate):
+        (JSC::moduleLoaderPrototypeInstantiate):
+        (JSC::moduleLoaderPrototypeEvaluate):
+        * runtime/ModuleLoaderPrototype.h: Renamed from Source/JavaScriptCore/runtime/ModuleLoaderObject.h.
+        (JSC::ModuleLoaderPrototype::create):
+        (JSC::ModuleLoaderPrototype::createStructure):
+
+2016-08-09  Saam Barati  <sbarati@apple.com>
+
+        JSBoundFunction should lazily generate its name string
+        https://bugs.webkit.org/show_bug.cgi?id=160678
+        <rdar://problem/27043194>
+
+        Reviewed by Mark Lam.
+
+        We were eagerly allocating the BoundFunction's 'name' string
+        by prepending the "bound " prefix. This patch makes the 'name'
+        string creation lazy like we do with ordinary JSFunctions.
+
+        This is a 25% speedup on the microbenchmark I added that measures
+        bound function creation speed. Hopefully this also helps us recover
+        from a 1% Speedometer regression that was introduced in the original
+        bound function "bound " prefixing patch.
+
+        * runtime/JSBoundFunction.cpp:
+        (JSC::JSBoundFunction::create):
+        (JSC::JSBoundFunction::JSBoundFunction):
+        (JSC::JSBoundFunction::finishCreation):
+        * runtime/JSBoundFunction.h:
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::finishCreation):
+        (JSC::JSFunction::getOwnPropertySlot):
+        (JSC::JSFunction::getOwnNonIndexPropertyNames):
+        (JSC::JSFunction::put):
+        (JSC::JSFunction::deleteProperty):
+        (JSC::JSFunction::defineOwnProperty):
+        (JSC::JSFunction::reifyLazyPropertyIfNeeded):
+        (JSC::JSFunction::reifyBoundNameIfNeeded):
+        * runtime/JSFunction.h:
+
+2016-08-09  George Ruan  <gruan@apple.com>
+
+        Implement functionality of media capture on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=158945
+        <rdar://problem/26893343>
+
+        Reviewed by Tim Horton.
+
+        * Configurations/FeatureDefines.xcconfig: Enable media capture feature
+        for iOS.
+
+2016-08-09  Saam Barati  <sbarati@apple.com>
+
+        Parser<LexerType>::parseFunctionInfo() has the wrong info about captured vars when a function is not cached.
+        https://bugs.webkit.org/show_bug.cgi?id=160671
+        <rdar://problem/27756112>
+
+        Reviewed by Mark Lam.
+
+        There was a bug in our captured variable analysis when a function has a default
+        parameter expression that is a function that captures something from the parent scope.
+        The bug was that we were relying on the SourceProviderCache to succeed for the
+        analysis to work. This is obviously wrong. I've fixed this to work regardless
+        of getting a cache hit. To prevent future bugs that rely on the success of the
+        SourceProviderCache, I've made the validate testing mode disable the SourceProviderCache
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseFunctionInfo):
+        * parser/Parser.h:
+        (JSC::Scope::setInnerArrowFunctionUsesEvalAndUseArgumentsIfNeeded):
+        (JSC::Scope::addClosedVariableCandidateUnconditionally):
+        (JSC::Scope::collectFreeVariables):
+        * runtime/Options.h:
+
 2016-08-08  Mark Lam  <mark.lam@apple.com>
 
         ASSERTION FAILED: hasInlineStorage() in JSFinalObject::visitChildren().

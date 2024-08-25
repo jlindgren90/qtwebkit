@@ -28,12 +28,17 @@
 #if ENABLE(GAMEPAD)
 
 #include <WebCore/GamepadProviderClient.h>
+#include <WebCore/Timer.h>
 #include <wtf/HashSet.h>
 #include <wtf/NeverDestroyed.h>
+#include <wtf/Vector.h>
 
 namespace WebKit {
 
+class UIGamepad;
+class WebPageProxy;
 class WebProcessPool;
+struct GamepadData;
 
 class UIGamepadProvider : public WebCore::GamepadProviderClient {
 public:
@@ -42,6 +47,8 @@ public:
     void processPoolStartedUsingGamepads(WebProcessPool&);
     void processPoolStoppedUsingGamepads(WebProcessPool&);
 
+    Vector<GamepadData> gamepadStates() const;
+
 private:
     friend NeverDestroyed<UIGamepadProvider>;
     UIGamepadProvider();
@@ -49,12 +56,22 @@ private:
 
     void platformStartMonitoringGamepads();
     void platformStopMonitoringGamepads();
+    const Vector<WebCore::PlatformGamepad*>& platformGamepads();
+    WebPageProxy* platformWebPageProxyForGamepadInput();
 
     void platformGamepadConnected(WebCore::PlatformGamepad&) final;
     void platformGamepadDisconnected(WebCore::PlatformGamepad&) final;
     void platformGamepadInputActivity() final;
 
+    void startOrStopSynchingGamepadState();
+    void updateTimerFired();
+
     HashSet<WebProcessPool*> m_processPoolsUsingGamepads;
+
+    Vector<std::unique_ptr<UIGamepad>> m_gamepads;
+
+    WebCore::Timer m_timer;
+    bool m_hadActivitySinceLastSynch { false };
 };
 
 }
