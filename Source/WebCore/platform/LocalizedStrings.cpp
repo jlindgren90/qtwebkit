@@ -1211,6 +1211,11 @@ String insertListTypeNumberedAccessibilityTitle()
 {
     return WEB_UI_STRING("Numbered list", "Option in segmented control for inserting a numbered list in text editing");
 }
+
+String exitFullScreenButtonAccessibilityTitle()
+{
+    return WEB_UI_STRING("Exit Fullscreen", "Button for exiting fullscreen when in fullscreen media playback");
+}
 #endif // PLATFORM(MAC)
 
 } // namespace WebCore

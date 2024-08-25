@@ -1,3 +1,2044 @@
+2016-08-31  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: !flow->layer() && !flow->isInlineElementContinuation() in WebCore::RenderBlock::addContinuationWithOutline
+        https://bugs.webkit.org/show_bug.cgi?id=151022
+        <rdar://problem/27710993>
+
+        Reviewed by Simon Fraser.
+
+        Certain CSS properties like opacity, mask etc (graphical group members) require the layer to be a non-normal flow,
+        self painting layer so that we can manage painting properly. However in addition to those CSS properties, some of the will-change
+        values (again, graphical group members) also require the layer to be non-normal flow, self painting.
+        This patch ensures that when deciding whether a layer should be a normal flow layer, we take the will-change values into account as well.
+
+        Tests: compositing/layer-creation/assert-on-inline-element-with-will-change.html
+               compositing/layer-creation/will-change-on-normal-flow-content.html
+
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::calculateClipRects):
+        * rendering/style/WillChangeData.cpp:
+        (WebCore::propertyCreatesGraphicalGroup):
+        (WebCore::WillChangeData::addFeature):
+        * rendering/style/WillChangeData.h:
+        (WebCore::WillChangeData::canCreateGraphicalGroup):
+        (WebCore::WillChangeData::canTriggerCompositingOnInline): Deleted.
+
+2016-08-31  Keith Rollin  <krollin@apple.com>
+
+        WebKit should set a subsystem for os_log so it's easier to filter for WebKit log messages
+        https://bugs.webkit.org/show_bug.cgi?id=160969
+        <rdar://problem/26068734>
+
+        Reviewed by Simon Fraser.
+
+        - Specify a channel when using RELEASE_LOG macros
+        - Add a new channel so that we have something to pass to the
+          RELEASE_LOG macros (Layers).
+        - Enable subsystem- and channel-related data and functions when using
+          RELEASE_LOG macros.
+        - Use the DECLARE_LOG_CHANNEL, DEFINE_LOG_CHANNEL, and
+          LOG_CHANNEL_ADDRESS macros that are now defined in WTF.
+
+        No new tests. There are no tests for logging.
+
+        * loader/FrameLoader.cpp:
+        * platform/LogInitialization.h:
+        * platform/LogMacros.h:
+        * platform/Logging.cpp:
+        * platform/Logging.h:
+        * platform/MemoryPressureHandler.cpp:
+        (WebCore::MemoryPressureHandler::ReliefLogger::logMemoryUsageChange):
+        * platform/graphics/cg/GraphicsContextCG.cpp:
+        (WebCore::GraphicsContext::drawNativeImage):
+        * platform/graphics/cocoa/IOSurface.mm:
+        (WebCore::IOSurface::IOSurface):
+        * platform/mac/LoggingMac.mm:
+        * platform/unix/LoggingUnix.cpp:
+        * platform/win/LoggingWin.cpp:
+        * testing/js/WebCoreTestSupport.cpp:
+        (WebCoreTestSupport::initializeLogChannelsIfNecessary):
+
+2016-08-31  Ricky Mondello  <rmondello@apple.com>
+
+        Enable the YouTube Flash plug-in replacement behavior on all Cocoa ports
+        https://bugs.webkit.org/show_bug.cgi?id=161453
+        <rdar://problem/28050847>
+
+        Reviewed by Eric Carlson.
+
+        Now that we have some tests for the URL transformation logic (r205212) and the ability to enable the YouTube
+        Flash plug-in replacement behavior independently from the QuickTime plug-in replacement behavior (r205214 and
+        r205271), enable the YouTube Flash plug-in replacement behavior for Cocoa ports. We can and will continue to
+        improve it.
+
+        * page/Settings.cpp: Enable the feature for PLATFORM(COCOA), rather than just PLATFORM(IOS).
+
+2016-08-31  Alex Christensen  <achristensen@webkit.org>
+
+        Implement IPv6 parsing in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=161390
+
+        Reviewed by Darin Adler.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::zeroSequenceLength):
+        (WebCore::findLongestZeroSequence):
+        (WebCore::nibbleToHex):
+        (WebCore::serializeIPv6Piece):
+        (WebCore::serializeIPv6):
+        (WebCore::parseIPv6Host):
+        (WebCore::URLParser::hostEndReached):
+
+2016-08-31  Ricky Mondello  <rmondello@apple.com>
+
+        Break pluginReplacementEnabled into youTubeFlashPluginReplacementEnabled and quickTimePluginReplacementEnabled
+        https://bugs.webkit.org/show_bug.cgi?id=161424
+        <rdar://problem/28050847>
+
+        Reviewed by Dean Jackson.
+
+        Replace the single pluginReplacementEnabled setting with individual settings for the YouTube Flash plug-in
+        behavior and the QuickTime plug-in behavior. Unless otherwise noted, this change copies the existing plumbing
+        for pluginReplacementEnabled and renames it twice. The default values for these settings remain the same.
+
+        * Modules/plugins/PluginReplacement.h:
+        (WebCore::ReplacementPlugin::ReplacementPlugin): Augment the constructor.
+        (WebCore::ReplacementPlugin::isEnabledBySettings): Added.
+        * Modules/plugins/QuickTimePluginReplacement.h: Declare a static member function.
+        * Modules/plugins/QuickTimePluginReplacement.mm:
+        (WebCore::QuickTimePluginReplacement::registerPluginReplacement): Properly create a ReplacementPlugin instance.
+        (WebCore::QuickTimePluginReplacement::isEnabledBySettings): Added.
+        * Modules/plugins/YouTubePluginReplacement.cpp:
+        (WebCore::YouTubePluginReplacement::registerPluginReplacement): Properly create a ReplacementPlugin instance.
+        (WebCore::YouTubePluginReplacement::isEnabledBySettings): Added.
+        * Modules/plugins/YouTubePluginReplacement.h: Declare a static member function.
+        * html/HTMLPlugInElement.cpp:
+        (WebCore::HTMLPlugInElement::requestObject): Ask the ReplacementPlugin whether it's enabled, rather than assume
+            all plug-in replacement is guarded by a single run-time setting.
+        * page/Settings.cpp: Declare values for defaults for both settings.
+        * page/Settings.in: Declare two settings.
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup): Handle both settings.
+        (WebCore::InternalSettings::Backup::restoreTo): Ditto.
+        (WebCore::InternalSettings::setQuickTimePluginReplacementEnabled): Added.
+        (WebCore::InternalSettings::setYouTubeFlashPluginReplacementEnabled): Added.
+        (WebCore::InternalSettings::setPluginReplacementEnabled): Deleted.
+        * testing/InternalSettings.h: Duplicate and rename.
+        * testing/InternalSettings.idl: Ditto.
+
+2016-08-31  Yoav Weiss  <yoav@yoav.ws>
+
+        Add event support for link preload.
+        https://bugs.webkit.org/show_bug.cgi?id=158466
+
+        Reviewed by Alex Christensen.
+
+        Add onload/onerror support for link rel preload to align it with the spec
+        and enable various resource loading use-cases.
+        This patch also fixes XHR matching issues by replacing LinkPreload with RawResource.
+
+        Tests: http/tests/misc/script_onload_delays_window_onload.html
+               http/tests/preload/delaying_onload_link_preload_after_discovery.html
+               http/tests/preload/delaying_onload_link_preload_after_discovery_image.html
+               http/tests/preload/not_delaying_window_onload_before_discovery.html
+               http/tests/preload/onerror_event.html
+               http/tests/preload/onload_event.html
+
+        * CMakeLists.txt: Add LinkPreloadResourceClients.{h,cpp}
+        * WebCore.xcodeproj/project.pbxproj: Add LinkPreloadResourceClients.{h,cpp}.
+        * html/HTMlLinkElement.cpp:
+        (WebCore::linkErrorEventSender): Add an eventSender for the error event.
+        (WebCore::HTMLLinkElement::HTMLLinkElement): s/m_loadedSheet/m_loadedResource/
+        (WebCore::HTMLLinkElement::~HTMLLinkElement): Cancel the error event when the element gets destructed.
+        (WebCore::HTMLLinkElement::linkLoaded): dispatch the event in an async manner.
+        (WebCore::HTMLLinkElement::linkLoadingErrored): dispatch the event in an async manner.
+        (WebCore::HTMLLinkElement::dispatchPendingEvent): Call dispatchEvent directly.
+        (WebCore::HTMLLinkElement::notifyLoadedSheetAndAllCriticalSubresources): s/m_loadedSheet/m_loadedResource/
+        * html/HTMLLinkElement.h: s/m_loadedSheet/m_loadedResource/
+        * html/parser/HTMLResourcePreloader.cpp:
+        (WebCore::HTMLResourcePreloader::preload): Call preload as ImplicitPreload, to distinguish it from declarative preload.
+        * loader/LinkLoader.cpp:
+        (WebCore::LinkLoader::LinkLoader): Get rid of unnecessary event timers and add a weakPtrFactory.
+        (WebCore::LinkLoader::triggerEvents): Add a triggerEvents function that can be called from notifyFinished as well as the
+        LinkPreloadResourceClients.
+        (WebCore::LinkLoader::notifyFinished): Call the triggerEvents function.
+        (WebCore::LinkLoader::resourceTypeFromAsAttribute): Replace LinkPreload with RawResource to avoid XHR resource matching issues.
+        (WebCore::createLinkPreloadResourceClient): Create a resource client for link preload.
+        (WebCore::LinkLoader::preloadIfNeeded): Trigger an error when `as` is unknown. Make sure that preload resources don't delay window.onload
+        before discovery. Get the resource back from calling preload and create a client for that resource.
+        (WebCore::LinkLoader::linkLoadTimerFired): Deleted.
+        (WebCore::LinkLoader::linkLoadingErrorTimerFired): Deleted.
+        (WebCore::preloadIfNeeded): Deleted.
+        * loader/LinkLoader.h:
+        (WebCore::LinkLoader::createWeakPtr):
+        * loader/LinkPreloadResourceClients.cpp: Added.
+        (WebCore::LinkPreloadResourceClient::LinkPreloadResourceClient): Create a LinkPreloadResourceClient and assign with with a weakPtr of
+        LinkLoader.
+        (WebCore::LinkPreloadResourceClient::triggerEvents): Call LinkLoader's triggerEvents.
+        * loader/LinkPreloadResourceClients.h: Added.
+        (WebCore::LinkPreloadResourceClient::~LinkPreloadResourceClient):
+        (WebCore::LinkPreloadResourceClient::addResource): Add as resource's client.
+        (WebCore::LinkPreloadResourceClient::clearResource): Remove as resource's client and clear ref to resource.
+        (WebCore::LinkPreloadResourceClient::ownedResource): Return ref to resource.
+        * loader/ResourceLoadInfo.cpp:
+        (WebCore::toResourceType): Removed LinkPreload.
+        * loader/SubresourceLoader.cpp:
+        (WebCore::logResourceLoaded): Removed LinkPreload.
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::defaultPriorityForResourceType): Removed LinkPreload.
+        * loader/cache/CachedResource.h: Removed LinkPreload.
+        (WebCore::CachedResource::ignoreForRequestCount): Don't delay window.onload for requests that opted out of that.
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::checkInsecureContent): Removed LinkPreload.
+        (WebCore::CachedResourceLoader::requestResource): Make sure that discovered preload resources do block window.onload.
+        (WebCore::CachedResourceLoader::preload): Make sure that explicitly preloaded subresources can be fetched even if there are parser
+        blocking resources still in flight. Return the preloaded resource.
+        (WebCore::CachedResourceLoader::requestPreload): Make sure that preloaded fonts get requested. Return preloaded resource.
+        (WebCore::createResource): Removed LinkPreload.
+        (WebCore::contentTypeFromResourceType): Removed LinkPreload.
+        (WebCore::CachedResourceLoader::canRequest): Removed LinkPreload.
+        * loader/cache/CachedResourceLoader.h:
+        * platform/network/ResourceRequestBase.h:
+        (WebCore::ResourceRequestBase::ignoreForRequestCount): Get the flag saying if a resource should block window.onload.
+        (WebCore::ResourceRequestBase::setIgnoreForRequestCount): Set the flag saying if a resource should block window.onload.
+
+2016-08-31  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: XHR with text but responseType = "blob" shows blank content
+        https://bugs.webkit.org/show_bug.cgi?id=161422
+        <rdar://problem/28066869>
+
+        Reviewed by Brian Burg.
+
+        Test: inspector/network/xhr-json-blob-has-content.html
+
+        When an XMLHttpRequest finished loading it was always setting the Inspector's
+        content for that load at the end. However, if the XHR was loading binary data
+        then it was passing an empty string to the inspector and overwriting the
+        data the inspector already had for the resource. Avoid this overwriting.
+
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::didFinishLoading):
+        When loading binary content we have no decoded text to send to the inspector.
+
+        * inspector/InspectorInstrumentation.cpp:
+        (WebCore::InspectorInstrumentation::didFinishXHRLoadingImpl):
+        * inspector/InspectorInstrumentation.h:
+        (WebCore::InspectorInstrumentation::didFinishXHRLoading):
+        Switch to an Optional string, and if it is not available don't
+        call through to the NetworkAgent expecting decoded text.
+
+        * inspector/InspectorNetworkAgent.cpp:
+        (WebCore::InspectorNetworkAgent::didFinishXHRLoading):
+        * inspector/InspectorNetworkAgent.h:
+        Improve variable name.
+
+2016-08-31  Alex Christensen  <achristensen@webkit.org>
+
+        Add runtime flag for using URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=161363
+
+        Reviewed by Sam Weinig.
+
+        No new tests.  No change in default behavior.
+
+        * PlatformMac.cmake:
+        * platform/URL.cpp:
+        (WebCore::URL::URL):
+        (WebCore::URL::init):
+        (WebCore::URL::setProtocol):
+        (WebCore::URL::setHost):
+        (WebCore::URL::removePort):
+        (WebCore::URL::setPort):
+        (WebCore::URL::setHostAndPort):
+        (WebCore::URL::setUser):
+        (WebCore::URL::setPass):
+        (WebCore::URL::setFragmentIdentifier):
+        (WebCore::URL::removeFragmentIdentifier):
+        (WebCore::URL::setQuery):
+        (WebCore::URL::setPath):
+        (WebCore::URL::parse):
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::setEnabled):
+        (WebCore::URLParser::enabled):
+        * platform/URLParser.h:
+        * platform/cf/URLCF.cpp:
+        (WebCore::URL::URL):
+        * platform/cocoa/URLParserCocoa.mm: Added.
+        (WebCore::URLParser::URLParserEnabled):
+        * platform/mac/URLMac.mm:
+        (WebCore::URL::URL):
+
+2016-08-31  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Fetch API should be able to load data URL in Same Origin mode
+        https://bugs.webkit.org/show_bug.cgi?id=161434
+
+        Reviewed by Sam Weinig.
+
+        Tests: imported/w3c/web-platform-tests/fetch/api/redirect/redirect-to-dataurl-worker.html
+               imported/w3c/web-platform-tests/fetch/api/redirect/redirect-to-dataurl.html
+        Covered also by added sub-test.
+
+        Moving SameDataURLOrigin option from ThreadableLoaderOptions to ResourceLoaderOptions.
+        This allows doing some of the checks in CachedResourceLoader/CachedResource.
+        This also allows setting this options in CachedResourceLoader clients, ImageLoader in that case.
+
+        * Modules/fetch/FetchLoader.cpp:
+        (WebCore::FetchLoader::start): Setting sameOriginDataURL as ResourceLoader option.
+        * loader/ImageLoader.cpp:
+        (WebCore::ImageLoader::updateFromElement): Setting sameOriginDataURL as specificied in
+        https://html.spec.whatwg.org/multipage/embedded-content.html#the-img-element.
+        * loader/ResourceLoaderOptions.h: Adding sameOriginDataURL as ResourceLoader option.
+        * loader/ThreadableLoader.cpp:
+        (WebCore::ThreadableLoaderOptions::ThreadableLoaderOptions): Removing sameOriginDataURL option.
+        * loader/ThreadableLoader.h:
+        * loader/WorkerThreadableLoader.cpp: Setting sameOriginDataURL as ResourceLoader option.
+        (WebCore::LoaderTaskOptions::LoaderTaskOptions):
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::load): If resource URL is a data url, we previously marked the resource as same origin.
+        We only do that now if the sameOriginDataURL flag is set as per fetch specification.
+        See https://fetch.spec.whatwg.org/#main-fetch.
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::isSameOriginDataURL): Helper function.
+        (WebCore::CachedResourceLoader::canRequest): Allowing same origin loads of data URLs if flag is set and no redirection happens.
+        See https://fetch.spec.whatwg.org/#http-redirect-fetch for why we check redirection.
+
+2016-08-31  Ryosuke Niwa  <rniwa@webkit.org>
+
+        HTML constructor must throw when newTarget is itself
+        https://bugs.webkit.org/show_bug.cgi?id=161430
+
+        Reviewed by Antti Koivisto.
+
+        Per https://github.com/w3c/webcomponents/issues/541, we must throw a TypeError when the HTMLElement constructor
+        is called with new.target set to itself (i.e. new HTMLElement after registering it with a custom element).
+
+        Note that we can't check this at the time of customElements.define because it could be a Proxy object.
+
+        Also see: https://html.spec.whatwg.org/#html-element-constructors
+
+        Tests: fast/custom-elements/CustomElementRegistry.html
+               fast/custom-elements/HTMLElement-constructor.html
+
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement): Throw a TypeError when NewTarget is HTMLElement constructor itself.
+
+2016-08-31  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Rebaseline binding tests after r205257.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise):
+
+2016-08-31  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add the check for reentrancy to CustomElementRegistry
+        https://bugs.webkit.org/show_bug.cgi?id=161423
+
+        Reviewed by Antti Koivisto.
+
+        Added the "element definition is running" flag to JSCustomElementRegistry:
+        https://html.spec.whatwg.org/multipage/scripting.html#element-definition-is-running
+
+        And added an exception for when this flag is set during JSCustomElementRegistry::define:
+        https://html.spec.whatwg.org/multipage/scripting.html#dom-customelementregistry-define
+
+        Tests: fast/custom-elements/CustomElementRegistry.html
+
+        * bindings/js/JSCustomElementRegistryCustom.cpp:
+        (WebCore::JSCustomElementRegistry::define): Throw NotSupportedError when m_elementDefinitionIsRunning is true.
+        * dom/CustomElementRegistry.h:
+        (WebCore::CustomElementRegistry::elementDefinitionIsRunning): Added.
+
+2016-08-30  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Avoid using strong reference in JSDOMPromise’s DeferredWrapper
+        https://bugs.webkit.org/show_bug.cgi?id=161426
+        <rdar://problem/28091123>
+
+        Reviewed by Geoffrey Garen.
+
+        Replace JSC::Strong in DeferredWrapper by JSC::Weak, and make the global object own JSPromiseDeferred.
+
+        DeferredWrapper adds itself to JSDOMGlobalObject's newly added HashSet when it's created and clears itself
+        from the HashSet inside its destructor as well as when the promise is resolved or rejected.
+        This is so that JSDOMGlobalObject's visitChildren can visit every live DeferredWrapper.
+
+        Because this operation is rather expense, this patch turns DeferredWrapper into a RefCounted object to avoid
+        HashMap churns. Most of code changes in this patch is due to this type change, and the fact lambda cannot
+        capture Ref<DeferredWrapper> since its copy constructor doesn't exist.
+
+        We also create a write barrier from the global object to JSPromiseDeferred so that they won't be collected
+        during an eden collection when it happens before JSDOMGlobalObject's visitChildren is invoked.
+
+        Note that it's possible for the entire DOM wrapper world of the promise to go away before the promise is
+        resolved or rejected by a ref-counted C++ object. In this case, m_deferred and m_globalObject become dead.
+        Various member resolve* and reject functions of DeferredWrapper have been modified to check this condition.
+
+        Because JSDOMGlobalObject can be finalized before DeferredWrapper is finalized. DeferredWrapper's destructor,
+        which calls DeferredWrapper::clear, should only remove itself from m_globalObject when m_globalObject is alive.
+
+        Finally, this patch makes DeferredWrapper inherit from ActiveDOMCallback so that it won't try to execute scripts
+        when the active DOM objects have been suspended; e.g. after a page navigation.
+
+        No new tests since there should be no author/user visible behavioral change.
+
+        * Modules/applepay/ApplePaySession.cpp:
+        (WebCore::ApplePaySession::canMakePaymentsWithActiveCard):
+        * Modules/applepay/ApplePaySession.h:
+        * Modules/fetch/DOMWindowFetch.cpp:
+        (WebCore::DOMWindowFetch::fetch):
+        * Modules/fetch/DOMWindowFetch.h:
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::arrayBuffer):
+        (WebCore::FetchBody::blob):
+        (WebCore::FetchBody::json):
+        (WebCore::FetchBody::text):
+        (WebCore::FetchBody::consume):
+        (WebCore::FetchBody::consumeArrayBuffer):
+        (WebCore::FetchBody::consumeArrayBufferView):
+        (WebCore::FetchBody::consumeText):
+        (WebCore::FetchBody::consumeBlob):
+        (WebCore::FetchBody::loadingFailed):
+        (WebCore::FetchBody::loadingSucceeded):
+        * Modules/fetch/FetchBody.h:
+        (WebCore::FetchBody::formData):
+        (WebCore::FetchBody::cleanConsumePromise):
+        (WebCore::FetchBody): Use RefPtr<DeferredWrapper> instead of Optional<DeferredWrapper> now that DeferredWrapper
+        is ref counted. Perhaps we could use Optional<Ref<DeferredWrapper>> here but that seemed rather verbose.
+        * Modules/fetch/FetchBodyConsumer.cpp:
+        (WebCore::FetchBodyConsumer::resolveWithData):
+        (WebCore::FetchBodyConsumer::resolve):
+        * Modules/fetch/FetchBodyConsumer.h:
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::arrayBuffer):
+        (WebCore::FetchBodyOwner::blob):
+        (WebCore::FetchBodyOwner::formData):
+        (WebCore::FetchBodyOwner::json):
+        (WebCore::FetchBodyOwner::text):
+        * Modules/fetch/FetchBodyOwner.h:
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::consume):
+        (WebCore::FetchResponse::finishConsumingStream):
+        * Modules/fetch/FetchResponse.h:
+        * Modules/fetch/WorkerGlobalScopeFetch.cpp:
+        (WebCore::WorkerGlobalScopeFetch::fetch):
+        * Modules/fetch/WorkerGlobalScopeFetch.h:
+        * Modules/mediastream/UserMediaPermissionCheck.h:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSDOMGlobalObject.cpp:
+        (WebCore::JSDOMGlobalObject::~JSDOMGlobalObject): Added.
+        (WebCore::JSDOMGlobalObject::visitChildren): Added visits to each JSPromiseDeferred owned by this global object.
+        * bindings/js/JSDOMGlobalObject.h:
+        (WebCore::JSDOMGlobalObject::deferredWrappers): Added. This map is only used by JSDOMGlobalObject's visitChildren.
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::DeferredWrapper::DeferredWrapper):
+        (WebCore::DeferredWrapper::~DeferredWrapper): Calls clear. When the global object has already been finalized,
+        m_globalObject is dead. In that case, there is no need to remove itself from the global object. When m_deferred
+        has been cleared, either clear() has already been called (1) or the callback is dead (2). Since (2) happens only
+        when the global object itself is dead (as its visitChildren would have visited m_deferred otherwise), again, there
+        is no need to remove itself from global object.
+        (WebCore::DeferredWrapper::clear): Added. Clears m_deferred and removes itself from JSDOMGlobalObject.
+        (WebCore::DeferredWrapper::contextDestroyed): ScriptExecutionContext has been destroyed. We must call clear().
+        (WebCore::DeferredWrapper::callFunction): Check canInvokeCallback in ActiveDOMCallback.
+        (WebCore::DeferredWrapper::reject): Exit early when isSuspended() is true. See below.
+        (WebCore::rejectPromiseWithExceptionIfAny):
+        (WebCore::fulfillPromiseWithJSON):
+        (WebCore::fulfillPromiseWithArrayBuffer):
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::DeferredWrapper::create): Added.
+        (WebCore::DeferredWrapper::isSuspended): Added. Returns true iff the DOM wrapper world has gone away or active DOM
+        objects have been suspended.
+        (WebCore::DeferredWrapper::globalObject): Made this inline.
+        (WebCore::DeferredWrapper::visitAggregate): Added. Called by JSDOMGlobalObject::visitChildren.
+        (WebCore::DOMPromise::resolve):
+        (WebCore::DOMPromise::reject):
+        (WebCore::DeferredWrapper::resolveWithValue): Exit early when isSuspended() is true.
+        (WebCore::DeferredWrapper::resolveWithNewlyCreated): Ditto.
+        (WebCore::DeferredWrapper::rejectWithValue): Ditto.
+        (WebCore::DeferredWrapper::resolve): Ditto.
+        (WebCore::DeferredWrapper::reject): Ditto.
+        * bindings/js/JSFontFaceCustom.cpp:
+        (WebCore::JSFontFace::loaded):
+        * bindings/js/JSFontFaceSetCustom.cpp:
+        (WebCore::JSFontFaceSet::ready):
+        * bindings/js/JSMediaDevicesCustom.cpp:
+        (WebCore::JSMediaDevices::getUserMedia):
+        * bindings/js/JSReadableStreamSourceCustom.cpp:
+        (WebCore::JSReadableStreamSource::start):
+        * bindings/js/JSWebKitSubtleCryptoCustom.cpp:
+        (WebCore::JSWebKitSubtleCrypto::encrypt):
+        (WebCore::JSWebKitSubtleCrypto::decrypt):
+        (WebCore::JSWebKitSubtleCrypto::sign):
+        (WebCore::JSWebKitSubtleCrypto::verify):
+        (WebCore::JSWebKitSubtleCrypto::digest):
+        (WebCore::JSWebKitSubtleCrypto::generateKey):
+        (WebCore::JSWebKitSubtleCrypto::importKey):
+        (WebCore::JSWebKitSubtleCrypto::exportKey):
+        (WebCore::JSWebKitSubtleCrypto::wrapKey):
+        (WebCore::JSWebKitSubtleCrypto::unwrapKey):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateReturnParameters):
+
+2016-08-31  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Request construction failure should not set "bodyUsed"
+        https://bugs.webkit.org/show_bug.cgi?id=161432
+
+        Reviewed by Alex Christensen.
+
+        Covered by added sub-test coming from chromium fetch test suite.
+
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::methodCanHaveBody):
+        (WebCore::FetchRequest::setBody): Check whether request can have a body before disturbing the passed request.
+        (WebCore::validateBodyAndMethod): Deleted.
+
+2016-08-31  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response bodyUsed should check for its body disturbed state
+        https://bugs.webkit.org/show_bug.cgi?id=161429
+
+        Reviewed by Alex Christensen.
+
+        Test: http/tests/fetch/bodyUsed-worker.html
+
+        Implementing bodyUsed as a JS Builtin.
+        This allows using directly @isReadableStreamDisturbed if response has a body.
+
+        Renaming isDisturbed to isDisturbedOrLocked to better match fetch spec terminology.
+
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::isDisturbedOrLocked): Renaming isDisturbed to isDisturbedOrLocked.
+        (WebCore::FetchBodyOwner::arrayBuffer): Ditto.
+        (WebCore::FetchBodyOwner::blob): Ditto.
+        (WebCore::FetchBodyOwner::formData): Ditto.
+        (WebCore::FetchBodyOwner::json): Ditto.
+        (WebCore::FetchBodyOwner::text): Ditto.
+        (WebCore::FetchBodyOwner::isDisturbed): Ditto.
+        * Modules/fetch/FetchBodyOwner.h:
+        (WebCore::FetchBodyOwner::isDisturbed): Ditto.
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::initializeWith): Ditto.
+        (WebCore::FetchRequest::clone): Ditto.
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::cloneForJS): Ditto.
+        (WebCore::FetchResponse::createReadableStreamSource): Only asserting for isDisturbed.
+        * Modules/fetch/FetchResponse.idl: Marking bodyUsed as JS builtin.
+        * Modules/fetch/FetchResponse.js: Adding bodyUsed.
+        (bodyUsed):
+        (clone):
+
+2016-08-31  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Blob type should be correctly set in case of empty body
+        https://bugs.webkit.org/show_bug.cgi?id=161431
+
+        Reviewed by Alex Christensen.
+
+        Tests: http/tests/fetch/fetch-as-blob-worker.html
+               http/tests/fetch/fetch-as-blob.html
+
+        * Modules/fetch/FetchBodyConsumer.cpp:
+        (WebCore::FetchBodyConsumer::takeAsBlob): Set blob type with contentType even if blob has no data.
+        * Modules/fetch/FetchBodyOwner.cpp:
+        (WebCore::FetchBodyOwner::blob): Ditto for empty bodies.
+
+2016-08-31  Andreas Kling  <akling@apple.com>
+
+        DOM event handling should pass Event around by reference.
+        <https://webkit.org/b/161398>
+
+        Reviewed by Chris Dumez.
+
+        Start with making Node::defaultEventHandler() take an Event& instead of an Event*,
+        and then spread out from there, propagating the referenceness.
+
+        * dom/Element.cpp:
+        (WebCore::Element::isKeyboardFocusable):
+        * dom/Element.h:
+        * dom/EventDispatcher.cpp:
+        (WebCore::callDefaultEventHandlersInTheBubblingOrder):
+        * dom/Node.cpp:
+        (WebCore::Node::dispatchDOMActivateEvent):
+        (WebCore::Node::defaultEventHandler):
+        * dom/Node.h:
+        * editing/Editor.cpp:
+        (WebCore::Editor::handleKeyboardEvent):
+        (WebCore::Editor::handleInputMethodKeydown):
+        (WebCore::Editor::handleTextEvent):
+        * editing/Editor.h:
+        * html/BaseCheckableInputType.cpp:
+        (WebCore::BaseCheckableInputType::handleKeydownEvent):
+        (WebCore::BaseCheckableInputType::handleKeypressEvent):
+        * html/BaseCheckableInputType.h:
+        * html/BaseChooserOnlyDateAndTimeInputType.cpp:
+        (WebCore::BaseChooserOnlyDateAndTimeInputType::handleDOMActivateEvent):
+        (WebCore::BaseChooserOnlyDateAndTimeInputType::handleKeydownEvent):
+        (WebCore::BaseChooserOnlyDateAndTimeInputType::handleKeypressEvent):
+        (WebCore::BaseChooserOnlyDateAndTimeInputType::handleKeyupEvent):
+        * html/BaseChooserOnlyDateAndTimeInputType.h:
+        * html/BaseClickableWithKeyInputType.cpp:
+        (WebCore::BaseClickableWithKeyInputType::handleKeydownEvent):
+        (WebCore::BaseClickableWithKeyInputType::handleKeypressEvent):
+        (WebCore::BaseClickableWithKeyInputType::handleKeyupEvent):
+        * html/BaseClickableWithKeyInputType.h:
+        * html/BaseDateAndTimeInputType.cpp:
+        (WebCore::BaseDateAndTimeInputType::isKeyboardFocusable):
+        * html/BaseDateAndTimeInputType.h:
+        * html/CheckboxInputType.cpp:
+        (WebCore::CheckboxInputType::handleKeyupEvent):
+        * html/CheckboxInputType.h:
+        * html/ColorInputType.cpp:
+        (WebCore::ColorInputType::handleDOMActivateEvent):
+        * html/ColorInputType.h:
+        * html/FileInputType.cpp:
+        (WebCore::FileInputType::handleDOMActivateEvent):
+        * html/FileInputType.h:
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::isKeyboardFocusable):
+        (WebCore::HTMLAnchorElement::defaultEventHandler):
+        (WebCore::HTMLAnchorElement::handleClick):
+        (WebCore::HTMLAnchorElement::eventType):
+        (WebCore::isEnterKeyKeydownEvent):
+        * html/HTMLAnchorElement.h:
+        * html/HTMLAreaElement.cpp:
+        (WebCore::HTMLAreaElement::isKeyboardFocusable):
+        * html/HTMLAreaElement.h:
+        * html/HTMLButtonElement.cpp:
+        (WebCore::HTMLButtonElement::defaultEventHandler):
+        * html/HTMLButtonElement.h:
+        * html/HTMLFormControlElement.cpp:
+        (WebCore::HTMLFormControlElement::isKeyboardFocusable):
+        * html/HTMLFormControlElement.h:
+        * html/HTMLFormElement.cpp:
+        (WebCore::HTMLFormElement::submitImplicitly):
+        (WebCore::submitElementFromEvent):
+        (WebCore::HTMLFormElement::validateInteractively):
+        (WebCore::HTMLFormElement::prepareForSubmission):
+        * html/HTMLFormElement.h:
+        * html/HTMLFrameOwnerElement.cpp:
+        (WebCore::HTMLFrameOwnerElement::isKeyboardFocusable):
+        * html/HTMLFrameOwnerElement.h:
+        * html/HTMLFrameSetElement.cpp:
+        (WebCore::HTMLFrameSetElement::defaultEventHandler):
+        * html/HTMLFrameSetElement.h:
+        * html/HTMLIFrameElement.h:
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::isKeyboardFocusable):
+        (WebCore::HTMLInputElement::isTextFormControlKeyboardFocusable):
+        (WebCore::HTMLInputElement::willDispatchEvent):
+        (WebCore::HTMLInputElement::defaultEventHandler):
+        * html/HTMLInputElement.h:
+        * html/HTMLLabelElement.cpp:
+        (WebCore::HTMLLabelElement::defaultEventHandler):
+        * html/HTMLLabelElement.h:
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::defaultEventHandler):
+        * html/HTMLLinkElement.h:
+        * html/HTMLPlugInElement.cpp:
+        (WebCore::HTMLPlugInElement::defaultEventHandler):
+        (WebCore::HTMLPlugInElement::isKeyboardFocusable):
+        * html/HTMLPlugInElement.h:
+        * html/HTMLPlugInImageElement.cpp:
+        (WebCore::HTMLPlugInImageElement::defaultEventHandler):
+        * html/HTMLPlugInImageElement.h:
+        * html/HTMLSelectElement.cpp:
+        (WebCore::HTMLSelectElement::isKeyboardFocusable):
+        (WebCore::HTMLSelectElement::menuListDefaultEventHandler):
+        (WebCore::HTMLSelectElement::listBoxDefaultEventHandler):
+        (WebCore::HTMLSelectElement::defaultEventHandler):
+        * html/HTMLSelectElement.h:
+        * html/HTMLSummaryElement.cpp:
+        (WebCore::HTMLSummaryElement::defaultEventHandler):
+        * html/HTMLSummaryElement.h:
+        * html/HTMLTextAreaElement.cpp:
+        (WebCore::HTMLTextAreaElement::isKeyboardFocusable):
+        (WebCore::HTMLTextAreaElement::defaultEventHandler):
+        (WebCore::HTMLTextAreaElement::handleBeforeTextInsertedEvent):
+        * html/HTMLTextAreaElement.h:
+        * html/HTMLTextFormControlElement.cpp:
+        (WebCore::HTMLTextFormControlElement::forwardEvent):
+        * html/HTMLTextFormControlElement.h:
+        * html/ImageInputType.cpp:
+        (WebCore::ImageInputType::handleDOMActivateEvent):
+        * html/ImageInputType.h:
+        * html/InputType.cpp:
+        (WebCore::InputType::handleClickEvent):
+        (WebCore::InputType::handleMouseDownEvent):
+        (WebCore::InputType::handleDOMActivateEvent):
+        (WebCore::InputType::handleKeydownEvent):
+        (WebCore::InputType::handleKeypressEvent):
+        (WebCore::InputType::handleKeyupEvent):
+        (WebCore::InputType::handleBeforeTextInsertedEvent):
+        (WebCore::InputType::handleTouchEvent):
+        (WebCore::InputType::forwardEvent):
+        (WebCore::InputType::shouldSubmitImplicitly):
+        (WebCore::InputType::dispatchSimulatedClickIfActive):
+        (WebCore::InputType::isKeyboardFocusable):
+        * html/InputType.h:
+        * html/MediaDocument.cpp:
+        (WebCore::MediaDocument::defaultEventHandler):
+        * html/MediaDocument.h:
+        * html/NumberInputType.cpp:
+        (WebCore::NumberInputType::handleKeydownEvent):
+        * html/NumberInputType.h:
+        * html/RadioInputType.cpp:
+        (WebCore::RadioInputType::handleClickEvent):
+        (WebCore::RadioInputType::handleKeydownEvent):
+        (WebCore::RadioInputType::handleKeyupEvent):
+        (WebCore::RadioInputType::isKeyboardFocusable):
+        * html/RadioInputType.h:
+        * html/RangeInputType.cpp:
+        (WebCore::RangeInputType::handleMouseDownEvent):
+        (WebCore::RangeInputType::handleTouchEvent):
+        (WebCore::RangeInputType::handleKeydownEvent):
+        * html/RangeInputType.h:
+        * html/ResetInputType.cpp:
+        (WebCore::ResetInputType::handleDOMActivateEvent):
+        * html/ResetInputType.h:
+        * html/SearchInputType.cpp:
+        (WebCore::SearchInputType::handleKeydownEvent):
+        * html/SearchInputType.h:
+        * html/SubmitInputType.cpp:
+        (WebCore::SubmitInputType::handleDOMActivateEvent):
+        * html/SubmitInputType.h:
+        * html/TextFieldInputType.cpp:
+        (WebCore::TextFieldInputType::isKeyboardFocusable):
+        (WebCore::TextFieldInputType::handleKeydownEvent):
+        (WebCore::TextFieldInputType::handleKeydownEventForSpinButton):
+        (WebCore::TextFieldInputType::forwardEvent):
+        (WebCore::TextFieldInputType::shouldSubmitImplicitly):
+        (WebCore::TextFieldInputType::handleBeforeTextInsertedEvent):
+        * html/TextFieldInputType.h:
+        * html/shadow/AutoFillButtonElement.cpp:
+        (WebCore::AutoFillButtonElement::defaultEventHandler):
+        * html/shadow/AutoFillButtonElement.h:
+        * html/shadow/MediaControlElementTypes.cpp:
+        (WebCore::MediaControlMuteButtonElement::defaultEventHandler):
+        (WebCore::MediaControlSeekButtonElement::defaultEventHandler):
+        (WebCore::MediaControlVolumeSliderElement::defaultEventHandler):
+        * html/shadow/MediaControlElementTypes.h:
+        * html/shadow/MediaControlElements.cpp:
+        (WebCore::MediaControlPanelElement::defaultEventHandler):
+        (WebCore::MediaControlVolumeSliderContainerElement::defaultEventHandler):
+        (WebCore::MediaControlPanelMuteButtonElement::defaultEventHandler):
+        (WebCore::MediaControlPlayButtonElement::defaultEventHandler):
+        (WebCore::MediaControlOverlayPlayButtonElement::defaultEventHandler):
+        (WebCore::MediaControlRewindButtonElement::defaultEventHandler):
+        (WebCore::MediaControlReturnToRealtimeButtonElement::defaultEventHandler):
+        (WebCore::MediaControlToggleClosedCaptionsButtonElement::defaultEventHandler):
+        (WebCore::MediaControlClosedCaptionsTrackListElement::defaultEventHandler):
+        (WebCore::MediaControlTimelineElement::defaultEventHandler):
+        (WebCore::MediaControlFullscreenButtonElement::defaultEventHandler):
+        (WebCore::MediaControlFullscreenVolumeMinButtonElement::defaultEventHandler):
+        (WebCore::MediaControlFullscreenVolumeMaxButtonElement::defaultEventHandler):
+        * html/shadow/MediaControlElements.h:
+        * html/shadow/MediaControls.cpp:
+        (WebCore::MediaControls::defaultEventHandler):
+        (WebCore::MediaControls::containsRelatedTarget):
+        * html/shadow/MediaControls.h:
+        * html/shadow/MediaControlsApple.cpp:
+        (WebCore::MediaControlsApple::defaultEventHandler):
+        (WebCore::MediaControlsApple::handleClickEvent):
+        (WebCore::MediaControlsAppleEventListener::handleEvent):
+        * html/shadow/MediaControlsApple.h:
+        * html/shadow/SliderThumbElement.cpp:
+        (WebCore::SliderThumbElement::defaultEventHandler):
+        (WebCore::SliderThumbElement::handleTouchStart):
+        (WebCore::SliderThumbElement::handleTouchMove):
+        (WebCore::SliderThumbElement::handleTouchEndAndCancel):
+        (WebCore::SliderThumbElement::handleTouchEvent):
+        * html/shadow/SliderThumbElement.h:
+        * html/shadow/SpinButtonElement.cpp:
+        (WebCore::SpinButtonElement::defaultEventHandler):
+        (WebCore::SpinButtonElement::forwardEvent):
+        * html/shadow/SpinButtonElement.h:
+        * html/shadow/TextControlInnerElements.cpp:
+        (WebCore::TextControlInnerTextElement::defaultEventHandler):
+        (WebCore::SearchFieldResultsButtonElement::defaultEventHandler):
+        (WebCore::SearchFieldCancelButtonElement::defaultEventHandler):
+        * html/shadow/TextControlInnerElements.h:
+        * html/shadow/mac/ImageControlsButtonElementMac.cpp:
+        (WebCore::ImageControlsButtonElementMac::defaultEventHandler):
+        * html/shadow/mac/ImageControlsButtonElementMac.h:
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::dispatchBeforeUnloadEvent):
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::defaultEventHandler):
+        (WebCore::MathMLElement::isKeyboardFocusable):
+        * mathml/MathMLElement.h:
+        * mathml/MathMLSelectElement.cpp:
+        (WebCore::MathMLSelectElement::defaultEventHandler):
+        * mathml/MathMLSelectElement.h:
+        * page/EventHandler.cpp:
+        (WebCore::didScrollInScrollableArea):
+        (WebCore::handleWheelEventInAppropriateEnclosingBox):
+        (WebCore::EventHandler::defaultWheelEventHandler):
+        (WebCore::EventHandler::keyEvent):
+        (WebCore::handleKeyboardSelectionMovement):
+        (WebCore::EventHandler::handleKeyboardSelectionMovementForAccessibility):
+        (WebCore::EventHandler::defaultKeyboardEventHandler):
+        (WebCore::EventHandler::defaultTextInputEventHandler):
+        (WebCore::EventHandler::defaultSpaceEventHandler):
+        (WebCore::EventHandler::defaultBackspaceEventHandler):
+        (WebCore::EventHandler::defaultArrowEventHandler):
+        (WebCore::EventHandler::defaultTabEventHandler):
+        * page/EventHandler.h:
+        * page/FocusController.cpp:
+        (WebCore::isFocusableElementOrScopeOwner):
+        (WebCore::isNonFocusableScopeOwner):
+        (WebCore::isFocusableScopeOwner):
+        (WebCore::FocusController::advanceFocusInDocumentOrder):
+        (WebCore::FocusController::findFocusCandidateInContainer):
+        * rendering/RenderFrameSet.cpp:
+        (WebCore::RenderFrameSet::userResize):
+        * rendering/RenderFrameSet.h:
+        * svg/SVGAElement.cpp:
+        (WebCore::SVGAElement::defaultEventHandler):
+        (WebCore::SVGAElement::isKeyboardFocusable):
+        * svg/SVGAElement.h:
+
+2016-08-31  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Streams API] Align getReader() with spec
+        https://bugs.webkit.org/show_bug.cgi?id=160508
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Aligned getReader() with spec following replacement of ReadableStreamReader by
+        ReadableStreamDefaultReader.
+
+        Test: streams/readable-stream-getReader.html
+
+        * Modules/streams/ReadableStream.js:
+        (getReader):
+
+2016-08-31  Brady Eidson  <beidson@apple.com>
+
+        WK2 Gamepad provider on iOS.
+        https://bugs.webkit.org/show_bug.cgi?id=161412
+
+        Reviewed by Tim Horton.
+
+        No new tests (Native framework backends not directly testable)
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-08-31  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r201701): Unable to copy from CodeMirror editor version used in Jenkins install website
+        https://bugs.webkit.org/show_bug.cgi?id=161386
+        <rdar://problem/27590077>
+
+        Reviewed by Dan Bernstein.
+
+        This CodeMirror version uses a hidden <textarea> to implement copy/paste. The textarea has width:1px; border-width:1px.
+        Jenkins page has also has a stylesheet that contains * { box-sizing:border-box } and as a result the textarea content
+        width gets computed as 0. With r201701 we use content size instead of box size for clipping and the textarea content is
+        (correctly) considered invisible.
+
+        Add a quirk that allows this to continue working.
+
+        Test: editing/text-iterator/hidden-textarea-selection-quirk.html
+
+        * editing/TextIterator.cpp:
+        (WebCore::fullyClipsContents):
+
+2016-08-31  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove unused member variable in WebCore::File
+        https://bugs.webkit.org/show_bug.cgi?id=161420
+
+        Reviewed by Alex Christensen.
+
+        * fileapi/File.h:
+
+2016-08-30  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add "get" to CustomElementsRegistry
+        https://bugs.webkit.org/show_bug.cgi?id=161421
+
+        Reviewed by Yusuke Suzuki.
+
+        Add the support for "get" method on CustomElementsRegistry, which returns the constructor
+        of the custom element with the given name:
+        https://html.spec.whatwg.org/multipage/scripting.html#dom-customelementregistry-get
+
+        Tests: fast/custom-elements/CustomElementRegistry.html
+
+        * dom/CustomElementRegistry.cpp:
+        (WebCore::CustomElementRegistry::get): Added.
+        * dom/CustomElementRegistry.h:
+        * dom/CustomElementRegistry.idl:
+
+2016-08-30  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Make PendingScript as ref-counted
+        https://bugs.webkit.org/show_bug.cgi?id=161350
+
+        Reviewed by Ryosuke Niwa.
+
+        Currently, while PendingScript is copyable, PendingScript is also CachedResourceClient.
+        So when copying this, the client registration is done in PendingScript's operator= etc.
+        However, this copying functionality is not effectively used.
+        In this patch, we change this PendingScript to ref-counted class and make it noncopyable.
+        This change makes things simple (dropping this copying functionality), and drops unnecessary
+        addClient / removeClient calls. And we also simplify PendingScript class. Since we can offer
+        all the members at the construction time, we do not need any setters like setCachedScript,
+        setElement etc. This prevents us from accidentally generating the half-baked pending script.
+
+        Furthermore, by changing PendingScript noncopyable & ref-counted, we easily make it
+        observable. In this patch, we add PendingScriptClient to receive the notification from
+        PendingScript. Previously, we directly used CachedScript in PendingScript to receive the
+        notification. When introducing ScriptModuleGraph and making this PendingScript the container
+        of the both CachedScript and ScriptModuleGraph, hiding the raw CachedScript operations is
+        useful.
+
+        No behavior changes.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/PendingScript.cpp:
+        (WebCore::PendingScript::create): These factory functions take all the information needed
+        to construct the PendingScript. So the setters of PendingScript are dropped. This is better
+        since we now do not expose any half-baked pending script accidentally.
+        (WebCore::PendingScript::PendingScript):
+        (WebCore::PendingScript::~PendingScript):
+        (WebCore::PendingScript::notifyClientFinished):
+        (WebCore::PendingScript::notifyFinished):
+        (WebCore::PendingScript::isLoaded): When introducing ScriptModuleGraph, this will query to
+        either CachedScript or ScriptModuleGraph. PendingScript will become the container for the
+        both types.
+        (WebCore::PendingScript::setClient):
+        (WebCore::PendingScript::clearClient): PendingScript is now observable by PendingScriptClient.
+        This avoids touching CachedScript in PendingScript directly. That is good when we introduce
+        ScriptModuleGraph and make PendingScript the container of the both CachedScript and ScriptModuleGraph.
+        (WebCore::PendingScript::releaseElementAndClear): Deleted. Previously, PendingScript is not ref-counted.
+        So when we would like to say "this pending script is empty", we used the pending script with
+        `m_element = nullptr`. This releaseElementAndClear cleared this m_element and made the pending
+        script empty. Now, we use RefPtr<PendingScript> and empty one is just represented by the nullptr.
+        This function is no longer necessary. Dropped.
+        (WebCore::PendingScript::setCachedScript): Deleted. The fields are set in the constructor.
+        So this setter is no longer necessary. Dropped.
+        * dom/PendingScript.h:
+        * dom/PendingScriptClient.h: Copied from Source/WebCore/html/parser/HTMLScriptRunnerHost.h.
+        (WebCore::PendingScriptClient::~PendingScriptClient):
+        * dom/ScriptRunner.cpp:
+        (WebCore::ScriptRunner::queueScriptForExecution):
+        (WebCore::ScriptRunner::notifyScriptReady):
+        (WebCore::ScriptRunner::timerFired): We use `std::exchange` to retrieve the RefPtr<PendingScript>
+        and make the original vector element nullptr. Without this, all the PendingScript is held until
+        the iteration finishes. We keep the original semantics here that the pending script can be
+        released per iteration.
+        * dom/ScriptRunner.h:
+        * html/parser/HTMLDocumentParser.cpp:
+        (WebCore::HTMLDocumentParser::watchForLoad):
+        (WebCore::HTMLDocumentParser::stopWatchingForLoad): Use PendingScript instead of touching
+        CachedScript directly.
+        (WebCore::HTMLDocumentParser::notifyFinished):
+        * html/parser/HTMLDocumentParser.h:
+        * html/parser/HTMLScriptRunner.cpp:
+        (WebCore::HTMLScriptRunner::~HTMLScriptRunner):
+        (WebCore::HTMLScriptRunner::sourceFromPendingScript):
+        (WebCore::HTMLScriptRunner::isPendingScriptReady):
+        (WebCore::HTMLScriptRunner::executeParsingBlockingScript):
+        (WebCore::HTMLScriptRunner::executePendingScriptAndDispatchEvent): As the previous comment describes,
+        we used releaseElementAndClear to make the current pending script empty. Instead of doing so, we now
+        explicitly clear executeParsingBlockingScript (by assigning nullptr to m_parserBlockingScript).
+        (WebCore::HTMLScriptRunner::watchForLoad):
+        (WebCore::HTMLScriptRunner::stopWatchingForLoad): Previously, we used CachedScript::addClient directly
+        in the m_host.watchForLoad. This means that we did not have a quick way to query whether the pending
+        script is watched. In the old implementation, we have the `m_watchingForLoad : bool` flag in PendingScript
+        to hold the watching status for the given pending script. This `pendingScript.setWatchingForLoad(true)`
+        just made this flag `true`. But now, we do not use CachedScript::addClient directly. Instead, we have
+        the PendingScriptClient and PendingScript::{setClient,clearClient}. We can know whether this pending
+        script is watched by checking `m_client != nullptr`. This makes `m_watchingForLoad` unnecessary.
+        So this patch drops `m_watchingForLoad` and `pendingScript.setWatchingForLoad(true)` call.
+        (WebCore::HTMLScriptRunner::hasParserBlockingScript):
+        (WebCore::HTMLScriptRunner::executeParsingBlockingScripts): We clear the m_parserBlockingScript here
+        instead of the middle of the executePendingScriptAndDispatchEvent.
+        (WebCore::HTMLScriptRunner::executeScriptsWaitingForLoad):
+        (WebCore::HTMLScriptRunner::executeScriptsWaitingForParsing):
+        (WebCore::requestPendingScript):
+        (WebCore::HTMLScriptRunner::requestParsingBlockingScript): Setting m_parsingBlockingScript is now done
+        in this caller side.
+        (WebCore::HTMLScriptRunner::requestDeferredScript):
+        (WebCore::HTMLScriptRunner::runScript):
+        (WebCore::HTMLScriptRunner::requestPendingScript): Instead of configuring the passed PendingScript&,
+        we return the pending script and the caller sets it to m_parserBlockingScript or holds it. And we now
+        change this function to static location one and drop the member function. Previously, we always make
+        PendingScript& valid by always calling `setElement(...)`. I think this is the bug since we accidentally
+        exposed the half-baked pending script. But this bug is not shown since `!cachedScript` path is dead code!
+        This requestPendingScript is called from two places, requestDeferredScript and requestParsingBlockingScript.
+        And these functions are called if the script has `willBeParserExecuted` flag. In the case of the script
+        tag having "src" attribute, this flag is only set if `cachedScript` is correctly instantiated. So when
+        these functions are called, we can ensure that `cachedScript` is correctly instantiated for the given script.
+        In the case of the script tag not having "src" attribute, these functions are won't be called. This is
+        because if such a script tag has `willBeParserExecuted` flag, it also has `m_readyToBeParserExecuted`
+        and it does not have `m_willExecuteWhenDocumentFinishedParsing` flag, and in that case the both
+        functions are never called. So we drop that path and insert the assertion to ensure the above conditions.
+        * html/parser/HTMLScriptRunner.h:
+        * html/parser/HTMLScriptRunnerHost.h:
+
+2016-08-30  Ricky Mondello  <rmondello@apple.com>
+
+        "pluginReplacementEnabled" should be a Setting, not a RuntimeEnabledFeature
+        https://bugs.webkit.org/show_bug.cgi?id=161416
+        <rdar://problem/28050847>
+
+        Reviewed by Simon Fraser.
+
+        Mostly mechanical. Tested by running LayoutTests/plugins/quicktime-plugin-replacement.html and manually toggling
+        defaultPluginReplacementEnabled and observing a behavior change.
+
+        * bindings/generic/RuntimeEnabledFeatures.cpp:
+        (WebCore::RuntimeEnabledFeatures::reset): Purged of the pluginReplacementEnabled setting.
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::setPluginReplacementEnabled): Deleted.
+        (WebCore::RuntimeEnabledFeatures::pluginReplacementEnabled): Deleted.
+        * html/HTMLPlugInElement.cpp:
+        (WebCore::HTMLPlugInElement::requestObject): Use the setting.
+        * page/Settings.cpp: Supply different values for iOS and other platforms, matching the RuntimeEnabledFeature values,
+            enabled for iOS and disabled otherwise.
+        * page/Settings.in: Declare the setting.
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup): Use the setting.
+        (WebCore::InternalSettings::Backup::restoreTo): Ditto.
+        (WebCore::InternalSettings::setPluginReplacementEnabled): Ditto.
+        * testing/InternalSettings.h: Can now throw an exception, like other Settings-backed members.
+        * testing/InternalSettings.idl: Declare this as possibly throwing an exception.
+
+2016-08-30  Ricky Mondello  <rmondello@apple.com>
+
+        YouTubePluginReplacementTest's URL transformation logic should have tests
+        https://bugs.webkit.org/show_bug.cgi?id=161406
+        <rdar://problem/28050847>
+
+        Reviewed by Eric Carlson.
+
+        Refactor most of YouTubePluginReplacement::youTubeURL into a static method that can be used by TestWebKitAPI.
+
+        * Modules/plugins/YouTubePluginReplacement.cpp:
+        (WebCore::YouTubePluginReplacement::youTubeURL): Now implemented in terms of youTubeURLFromAbsoluteURL.
+        (WebCore::YouTubePluginReplacement::youTubeURLFromAbsoluteURL): Absorbs most of youTubeURL.
+        * Modules/plugins/YouTubePluginReplacement.h: Declare a public method, for the benefit of testing.
+        * WebCore.xcodeproj/project.pbxproj: Make some heads private for TestWebKitAPI's benefit.
+
+2016-08-30  Frederic Wang  <fwang@igalia.com>
+
+        Move some code from MathMLElement to MathMLPresentationElement
+        https://bugs.webkit.org/show_bug.cgi?id=161377
+
+        Reviewed by Darin Adler.
+
+        The following code is only used in presentation MathML classes. We then move it from
+        MathMLElement to MathMLPresentationElement:
+        - testing whether a child is a phrasing/flow element.
+        - parsing of length attributes.
+        - parsing of boolean attributes.
+        - parsing of mathvariant attributes.
+
+        No new tests, already covered by existing tests.
+
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::isPhrasingContent): Deleted.
+        (WebCore::MathMLElement::isFlowContent): Deleted.
+        (WebCore::MathMLElement::parseNumberAndUnit): Deleted.
+        (WebCore::MathMLElement::parseNamedSpace): Deleted.
+        (WebCore::MathMLElement::parseMathMLLength): Deleted.
+        (WebCore::MathMLElement::cachedMathMLLength): Deleted.
+        (WebCore::MathMLElement::cachedBooleanAttribute): Deleted.
+        (WebCore::MathMLElement::parseMathVariantAttribute): Deleted.
+        (WebCore::MathMLElement::specifiedDisplayStyle): Deleted.
+        (WebCore::MathMLElement::specifiedMathVariant): Deleted.
+        * mathml/MathMLElement.h:
+        (WebCore::MathMLElement::specifiedDisplayStyle):
+        (WebCore::MathMLElement::specifiedMathVariant):
+        (WebCore::MathMLElement::acceptsDisplayStyleAttribute): Deleted.
+        (WebCore::MathMLElement::acceptsMathVariantAttribute): Deleted.
+        (WebCore::MathMLElement::toOptionalBool): Deleted.
+        * mathml/MathMLPresentationElement.cpp:
+        (WebCore::MathMLPresentationElement::isPhrasingContent):
+        (WebCore::MathMLPresentationElement::isFlowContent):
+        (WebCore::MathMLPresentationElement::cachedBooleanAttribute):
+        (WebCore::MathMLPresentationElement::parseNumberAndUnit):
+        (WebCore::MathMLPresentationElement::parseNamedSpace):
+        (WebCore::MathMLPresentationElement::parseMathMLLength):
+        (WebCore::MathMLPresentationElement::cachedMathMLLength):
+        (WebCore::MathMLPresentationElement::specifiedDisplayStyle):
+        (WebCore::MathMLPresentationElement::parseMathVariantAttribute):
+        (WebCore::MathMLPresentationElement::specifiedMathVariant):
+        * mathml/MathMLPresentationElement.h:
+        (WebCore::MathMLPresentationElement::toOptionalBool):
+        (WebCore::MathMLPresentationElement::acceptsMathVariantAttribute):
+
+2016-08-30  Frederic Wang  <fwang@igalia.com>
+
+        Introduce a MathMLUnknownElement class
+        https://bugs.webkit.org/show_bug.cgi?id=161298
+
+        Reviewed by Darin Adler.
+
+        For consistency with SVG and HTML, we make MathML elements use a
+        fallback MathMLUnknownElement class. Like SVG, we ensure that unknown
+        MathML elements do not create any renderer.
+
+        Test: mathml/mathml-unknown.xhtml
+
+        * mathml/MathMLUnknownElement.h: Added. This is a simple class for
+        unknown MathML elements, preventing the creation of renderers.
+        * mathml/mathtags.in: Map fallbackInterfaceName to MathMLUnknownElement.
+
+2016-08-30  Chris Dumez  <cdumez@apple.com>
+
+        [[Delete]] should throw for cross-origin Window / Location objects
+        https://bugs.webkit.org/show_bug.cgi?id=161397
+
+        Reviewed by Ryosuke Niwa.
+
+        [[Delete]] should throw for cross-origin Window / Location objects:
+        - https://github.com/whatwg/html/pull/1728
+
+        Firefox and Chrome already throw. Previously, WebKit was merely
+        ignoring the call and logging an error message.
+
+        No new tests, updated existing test.
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::deleteProperty):
+        (WebCore::JSDOMWindow::deletePropertyByIndex):
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::deleteProperty):
+        (WebCore::JSLocation::deletePropertyByIndex):
+
+2016-08-30  Brady Eidson  <beidson@apple.com>
+
+        GameController.framework backend for gamepad API.
+        https://bugs.webkit.org/show_bug.cgi?id=161086
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Native framework backends not directly testable)
+
+        * WebCore.xcodeproj/project.pbxproj:
+        
+        * platform/gamepad/cocoa/GameControllerGamepad.h: Copied from Source/WebKit2/UIProcess/Gamepad/mac/UIGamepadProviderHID.cpp.
+        * platform/gamepad/cocoa/GameControllerGamepad.mm: Added.
+        (WebCore::GameControllerGamepad::GameControllerGamepad):
+        (WebCore::GameControllerGamepad::setupAsExtendedGamepad):
+        (WebCore::GameControllerGamepad::setupAsGamepad):
+        
+        * platform/gamepad/cocoa/GameControllerGamepadProvider.h: Added.
+        * platform/gamepad/cocoa/GameControllerGamepadProvider.mm: Added.
+        (WebCore::GameControllerGamepadProvider::singleton):
+        (WebCore::GameControllerGamepadProvider::GameControllerGamepadProvider):
+        (WebCore::GameControllerGamepadProvider::controllerDidConnect):
+        (WebCore::GameControllerGamepadProvider::controllerDidDisconnect):
+        (WebCore::GameControllerGamepadProvider::startMonitoringGamepads):
+        (WebCore::GameControllerGamepadProvider::stopMonitoringGamepads):
+        (WebCore::GameControllerGamepadProvider::indexForNewlyConnectedDevice):
+        (WebCore::GameControllerGamepadProvider::gamepadHadInput):
+        (WebCore::GameControllerGamepadProvider::makeInvisibileGamepadsVisible):
+        (WebCore::GameControllerGamepadProvider::inputNotificationTimerFired):
+
+2016-08-30  Mark Lam  <mark.lam@apple.com>
+
+        Introduce the ThrowScope and force every throw site to instantiate a ThrowScope.
+        https://bugs.webkit.org/show_bug.cgi?id=161171
+
+        Reviewed by Filip Pizlo and Geoffrey Garen.
+
+        No new tests because this is only an internal API change. If it builds, it should be good.
+
+        * bindings/js/JSApplePaySessionCustom.cpp:
+        (WebCore::JSApplePaySession::completeShippingMethodSelection):
+        (WebCore::JSApplePaySession::completeShippingContactSelection):
+        (WebCore::JSApplePaySession::completePaymentMethodSelection):
+        * bindings/js/JSBlobCustom.cpp:
+        (WebCore::constructJSBlob):
+        * bindings/js/JSCSSStyleDeclarationCustom.cpp:
+        (WebCore::JSCSSStyleDeclaration::getPropertyCSSValue):
+        * bindings/js/JSCryptoAlgorithmDictionary.cpp:
+        (WebCore::JSCryptoAlgorithmDictionary::getAlgorithmIdentifier):
+        (WebCore::createAesCbcParams):
+        (WebCore::createAesKeyGenParams):
+        (WebCore::createHmacParams):
+        (WebCore::createHmacKeyParams):
+        (WebCore::createRsaKeyGenParams):
+        (WebCore::createRsaOaepParams):
+        (WebCore::createRsaSsaParams):
+        * bindings/js/JSCryptoCustom.cpp:
+        (WebCore::JSCrypto::getRandomValues):
+        * bindings/js/JSCryptoKeySerializationJWK.cpp:
+        (WebCore::getJSArrayFromJSON):
+        (WebCore::getStringFromJSON):
+        (WebCore::getBooleanFromJSON):
+        (WebCore::getBigIntegerVectorFromJSON):
+        (WebCore::JSCryptoKeySerializationJWK::JSCryptoKeySerializationJWK):
+        (WebCore::JSCryptoKeySerializationJWK::reconcileAlgorithm):
+        (WebCore::tryJWKKeyOpsValue):
+        (WebCore::JSCryptoKeySerializationJWK::reconcileUsages):
+        (WebCore::JSCryptoKeySerializationJWK::keyDataOctetSequence):
+        (WebCore::JSCryptoKeySerializationJWK::keyDataRSAComponents):
+        (WebCore::JSCryptoKeySerializationJWK::keyData):
+        (WebCore::addJWKAlgorithmToJSON):
+        (WebCore::JSCryptoKeySerializationJWK::serialize):
+        * bindings/js/JSCryptoOperationData.cpp:
+        (WebCore::cryptoOperationDataFromJSValue):
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::upgradeElement):
+        * bindings/js/JSCustomElementRegistryCustom.cpp:
+        (WebCore::getCustomElementCallback):
+        (WebCore::JSCustomElementRegistry::define):
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::setDOMException):
+        (WebCore::enforceRange):
+        (WebCore::toSmallerInt):
+        (WebCore::toSmallerUInt):
+        (WebCore::canAccessDocument):
+        (WebCore::throwTypeError):
+        (WebCore::throwNotSupportedError):
+        (WebCore::throwInvalidStateError):
+        (WebCore::throwSecurityError):
+        (WebCore::throwArgumentMustBeEnumError):
+        (WebCore::throwArgumentMustBeFunctionError):
+        (WebCore::throwArgumentTypeError):
+        (WebCore::throwArrayElementTypeError):
+        (WebCore::throwAttributeTypeError):
+        (WebCore::throwConstructorScriptExecutionContextUnavailableError):
+        (WebCore::throwSequenceTypeError):
+        (WebCore::throwNonFiniteTypeError):
+        (WebCore::throwGetterTypeError):
+        (WebCore::throwSetterTypeError):
+        (WebCore::throwThisTypeError):
+        (WebCore::callThrowTypeError):
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::toJSSequence):
+        (WebCore::toRefPtrNativeArray):
+        (WebCore::toNativeArray):
+        * bindings/js/JSDOMConstructor.h:
+        (WebCore::JSDOMConstructorNotConstructable::callThrowTypeError):
+        (WebCore::JSBuiltinConstructor<JSClass>::callConstructor):
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::convertWrapperType):
+        * bindings/js/JSDOMIterator.h:
+        (WebCore::iteratorCreate):
+        (WebCore::iteratorForEach):
+        (WebCore::JSDOMIteratorPrototype<JSWrapper>::next):
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::jsDOMWindowGetOwnPropertySlotRestrictedAccess):
+        (WebCore::JSDOMWindow::put):
+        (WebCore::JSDOMWindow::showModalDialog):
+        (WebCore::handlePostMessage):
+        (WebCore::JSDOMWindow::setTimeout):
+        (WebCore::JSDOMWindow::setInterval):
+        * bindings/js/JSDataCueCustom.cpp:
+        (WebCore::constructJSDataCue):
+        * bindings/js/JSDictionary.cpp:
+        (WebCore::JSDictionary::convertValue):
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::createTouchList):
+        (WebCore::JSDocument::getCSSCanvasContext):
+        * bindings/js/JSFileCustom.cpp:
+        (WebCore::constructJSFile):
+        * bindings/js/JSHTMLAllCollectionCustom.cpp:
+        (WebCore::JSHTMLAllCollection::item):
+        * bindings/js/JSHTMLCanvasElementCustom.cpp:
+        (WebCore::JSHTMLCanvasElement::getContext):
+        (WebCore::JSHTMLCanvasElement::probablySupportsContext):
+        * bindings/js/JSHTMLDocumentCustom.cpp:
+        (WebCore::JSHTMLDocument::open):
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement):
+        * bindings/js/JSHTMLFormControlsCollectionCustom.cpp:
+        (WebCore::JSHTMLFormControlsCollection::namedItem):
+        * bindings/js/JSHTMLInputElementCustom.cpp:
+        (WebCore::JSHTMLInputElement::selectionStart):
+        (WebCore::JSHTMLInputElement::setSelectionStart):
+        (WebCore::JSHTMLInputElement::selectionEnd):
+        (WebCore::JSHTMLInputElement::setSelectionEnd):
+        (WebCore::JSHTMLInputElement::selectionDirection):
+        (WebCore::JSHTMLInputElement::setSelectionDirection):
+        (WebCore::JSHTMLInputElement::setSelectionRange):
+        * bindings/js/JSHistoryCustom.cpp:
+        (WebCore::JSHistory::pushState):
+        (WebCore::JSHistory::replaceState):
+        * bindings/js/JSIDBDatabaseCustom.cpp:
+        (WebCore::JSIDBDatabase::createObjectStore):
+        * bindings/js/JSImageConstructor.cpp:
+        (WebCore::JSImageConstructor::construct):
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::getOwnPropertySlotDelegate):
+        * bindings/js/JSMediaDevicesCustom.cpp:
+        (WebCore::JSMediaDevices::getUserMedia):
+        * bindings/js/JSMediaStreamTrackCustom.cpp:
+        (WebCore::JSMediaStreamTrack::getSettings):
+        (WebCore::JSMediaStreamTrack::getCapabilities):
+        * bindings/js/JSMessagePortCustom.cpp:
+        (WebCore::fillMessagePortArray):
+        * bindings/js/JSMessagePortCustom.h:
+        (WebCore::handlePostMessage):
+        * bindings/js/JSMockContentFilterSettingsCustom.cpp:
+        (WebCore::JSMockContentFilterSettings::setDecisionPoint):
+        (WebCore::toDecision):
+        * bindings/js/JSModuleLoader.cpp:
+        (WebCore::JSModuleLoader::evaluate):
+        * bindings/js/JSMutationObserverCustom.cpp:
+        (WebCore::constructJSMutationObserver):
+        * bindings/js/JSNodeCustom.cpp:
+        (WebCore::JSNode::insertBefore):
+        (WebCore::JSNode::replaceChild):
+        (WebCore::JSNode::removeChild):
+        (WebCore::JSNode::appendChild):
+        * bindings/js/JSNodeFilterCustom.cpp:
+        (WebCore::JSNodeFilter::acceptNode):
+        * bindings/js/JSPluginElementFunctions.cpp:
+        (WebCore::pluginElementPropertyGetter):
+        * bindings/js/JSReadableStreamPrivateConstructors.cpp:
+        (WebCore::constructJSReadableStreamDefaultController):
+        (WebCore::constructJSReadableStreamDefaultReader):
+        * bindings/js/JSSVGLengthCustom.cpp:
+        (WebCore::JSSVGLength::setValue):
+        (WebCore::JSSVGLength::convertToSpecifiedUnits):
+        * bindings/js/JSWebGL2RenderingContextCustom.cpp:
+        (WebCore::JSWebGL2RenderingContext::getIndexedParameter):
+        * bindings/js/JSWebGLRenderingContextBaseCustom.cpp:
+        (WebCore::getObjectParameter):
+        (WebCore::JSWebGLRenderingContextBase::getAttachedShaders):
+        (WebCore::JSWebGLRenderingContextBase::getExtension):
+        (WebCore::JSWebGLRenderingContextBase::getFramebufferAttachmentParameter):
+        (WebCore::JSWebGLRenderingContextBase::getParameter):
+        (WebCore::JSWebGLRenderingContextBase::getProgramParameter):
+        (WebCore::JSWebGLRenderingContextBase::getShaderParameter):
+        (WebCore::JSWebGLRenderingContextBase::getUniform):
+        (WebCore::dataFunctionf):
+        (WebCore::dataFunctioni):
+        (WebCore::dataFunctionMatrix):
+        * bindings/js/JSWebKitSubtleCryptoCustom.cpp:
+        (WebCore::cryptoKeyFormatFromJSValue):
+        (WebCore::cryptoKeyUsagesFromJSValue):
+        (WebCore::JSWebKitSubtleCrypto::encrypt):
+        (WebCore::JSWebKitSubtleCrypto::decrypt):
+        (WebCore::JSWebKitSubtleCrypto::sign):
+        (WebCore::JSWebKitSubtleCrypto::verify):
+        (WebCore::JSWebKitSubtleCrypto::digest):
+        (WebCore::JSWebKitSubtleCrypto::generateKey):
+        (WebCore::importKey):
+        (WebCore::JSWebKitSubtleCrypto::importKey):
+        (WebCore::exportKey):
+        (WebCore::JSWebKitSubtleCrypto::exportKey):
+        (WebCore::JSWebKitSubtleCrypto::wrapKey):
+        (WebCore::JSWebKitSubtleCrypto::unwrapKey):
+        * bindings/js/JSWorkerCustom.cpp:
+        (WebCore::constructJSWorker):
+        * bindings/js/JSWorkerGlobalScopeCustom.cpp:
+        (WebCore::JSWorkerGlobalScope::setTimeout):
+        (WebCore::JSWorkerGlobalScope::setInterval):
+        * bindings/js/ReadableStreamDefaultController.cpp:
+        (WebCore::ReadableStreamDefaultController::invoke):
+        * bindings/js/SerializedScriptValue.cpp:
+        (WebCore::CloneBase::throwStackOverflow):
+        (WebCore::CloneDeserializer::throwValidationError):
+        (WebCore::SerializedScriptValue::maybeThrowExceptionIfSerializationFailed):
+        * bindings/js/WorkerScriptController.cpp:
+        (WebCore::WorkerScriptController::evaluate):
+        (WebCore::WorkerScriptController::setException):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateEnumerationImplementationContent):
+        (GenerateDictionaryImplementationContent):
+        (GenerateOverloadedFunctionOrConstructor):
+        (GenerateImplementation):
+        (GenerateFunctionCastedThis):
+        (GenerateArgumentsCountCheck):
+        (GenerateParametersCheck):
+        (GenerateConstructorDefinition):
+        * bindings/scripts/test/JS/JSInterfaceName.cpp:
+        (WebCore::jsInterfaceNameConstructor):
+        (WebCore::setJSInterfaceNameConstructor):
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        (WebCore::jsTestActiveDOMObjectExcitingAttr):
+        (WebCore::jsTestActiveDOMObjectConstructor):
+        (WebCore::setJSTestActiveDOMObjectConstructor):
+        (WebCore::jsTestActiveDOMObjectPrototypeFunctionExcitingFunction):
+        (WebCore::jsTestActiveDOMObjectPrototypeFunctionPostMessage):
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.cpp:
+        (WebCore::jsTestClassWithJSBuiltinConstructorConstructor):
+        (WebCore::setJSTestClassWithJSBuiltinConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.cpp:
+        (WebCore::jsTestCustomConstructorWithNoInterfaceObjectConstructor):
+        (WebCore::setJSTestCustomConstructorWithNoInterfaceObjectConstructor):
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        (WebCore::jsTestCustomNamedGetterConstructor):
+        (WebCore::setJSTestCustomNamedGetterConstructor):
+        (WebCore::jsTestCustomNamedGetterPrototypeFunctionAnotherFunction):
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        (WebCore::JSTestEventConstructorConstructor::construct):
+        (WebCore::jsTestEventConstructorAttr1):
+        (WebCore::jsTestEventConstructorAttr2):
+        (WebCore::jsTestEventConstructorAttr3):
+        (WebCore::jsTestEventConstructorConstructor):
+        (WebCore::setJSTestEventConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestEventTarget.cpp:
+        (WebCore::jsTestEventTargetConstructor):
+        (WebCore::setJSTestEventTargetConstructor):
+        (WebCore::jsTestEventTargetPrototypeFunctionItem):
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        (WebCore::jsTestExceptionName):
+        (WebCore::jsTestExceptionConstructor):
+        (WebCore::setJSTestExceptionConstructor):
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.cpp:
+        (WebCore::jsTestGenerateIsReachableConstructor):
+        (WebCore::setJSTestGenerateIsReachableConstructor):
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::jsTestGlobalObjectRegularAttribute):
+        (WebCore::jsTestGlobalObjectPublicAndPrivateAttribute):
+        (WebCore::jsTestGlobalObjectPublicAndPrivateConditionalAttribute):
+        (WebCore::jsTestGlobalObjectEnabledAtRuntimeAttribute):
+        (WebCore::jsTestGlobalObjectConstructor):
+        (WebCore::setJSTestGlobalObjectConstructor):
+        (WebCore::setJSTestGlobalObjectRegularAttribute):
+        (WebCore::setJSTestGlobalObjectPublicAndPrivateAttribute):
+        (WebCore::setJSTestGlobalObjectPublicAndPrivateConditionalAttribute):
+        (WebCore::setJSTestGlobalObjectEnabledAtRuntimeAttribute):
+        (WebCore::jsTestGlobalObjectInstanceFunctionRegularOperation):
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation1):
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation2):
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation):
+        (WebCore::jsTestGlobalObjectInstanceFunctionTestPrivateFunction):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::JSTestInterfaceConstructor::construct):
+        (WebCore::jsTestInterfaceConstructorImplementsStaticReadOnlyAttr):
+        (WebCore::jsTestInterfaceConstructorImplementsStaticAttr):
+        (WebCore::jsTestInterfaceImplementsStr1):
+        (WebCore::jsTestInterfaceImplementsStr2):
+        (WebCore::jsTestInterfaceImplementsStr3):
+        (WebCore::jsTestInterfaceImplementsNode):
+        (WebCore::jsTestInterfaceConstructorSupplementalStaticReadOnlyAttr):
+        (WebCore::jsTestInterfaceConstructorSupplementalStaticAttr):
+        (WebCore::jsTestInterfaceSupplementalStr1):
+        (WebCore::jsTestInterfaceSupplementalStr2):
+        (WebCore::jsTestInterfaceSupplementalStr3):
+        (WebCore::jsTestInterfaceSupplementalNode):
+        (WebCore::jsTestInterfaceConstructor):
+        (WebCore::setJSTestInterfaceConstructor):
+        (WebCore::setJSTestInterfaceConstructorImplementsStaticAttr):
+        (WebCore::setJSTestInterfaceImplementsStr2):
+        (WebCore::setJSTestInterfaceImplementsStr3):
+        (WebCore::setJSTestInterfaceImplementsNode):
+        (WebCore::setJSTestInterfaceConstructorSupplementalStaticAttr):
+        (WebCore::setJSTestInterfaceSupplementalStr2):
+        (WebCore::setJSTestInterfaceSupplementalStr3):
+        (WebCore::setJSTestInterfaceSupplementalNode):
+        (WebCore::jsTestInterfacePrototypeFunctionImplementsMethod1):
+        (WebCore::jsTestInterfacePrototypeFunctionImplementsMethod2):
+        (WebCore::jsTestInterfacePrototypeFunctionImplementsMethod3):
+        (WebCore::jsTestInterfaceConstructorFunctionImplementsMethod4):
+        (WebCore::jsTestInterfacePrototypeFunctionSupplementalMethod1):
+        (WebCore::jsTestInterfacePrototypeFunctionSupplementalMethod2):
+        (WebCore::jsTestInterfacePrototypeFunctionSupplementalMethod3):
+        (WebCore::jsTestInterfaceConstructorFunctionSupplementalMethod4):
+        * bindings/scripts/test/JS/JSTestIterable.cpp:
+        (WebCore::jsTestIterableConstructor):
+        (WebCore::setJSTestIterableConstructor):
+        * bindings/scripts/test/JS/JSTestJSBuiltinConstructor.cpp:
+        (WebCore::jsTestJSBuiltinConstructorTestAttributeCustom):
+        (WebCore::jsTestJSBuiltinConstructorTestAttributeRWCustom):
+        (WebCore::jsTestJSBuiltinConstructorConstructor):
+        (WebCore::setJSTestJSBuiltinConstructorConstructor):
+        (WebCore::setJSTestJSBuiltinConstructorTestAttributeRWCustom):
+        (WebCore::jsTestJSBuiltinConstructorPrototypeFunctionTestCustomFunction):
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp:
+        (WebCore::jsTestMediaQueryListListenerConstructor):
+        (WebCore::setJSTestMediaQueryListListenerConstructor):
+        (WebCore::jsTestMediaQueryListListenerPrototypeFunctionMethod):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::JSTestNamedConstructorNamedConstructor::construct):
+        (WebCore::jsTestNamedConstructorConstructor):
+        (WebCore::setJSTestNamedConstructorConstructor):
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::JSTestNodeConstructor::construct):
+        (WebCore::jsTestNodeName):
+        (WebCore::jsTestNodeConstructor):
+        (WebCore::setJSTestNodeConstructor):
+        (WebCore::setJSTestNodeName):
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        (WebCore::jsTestNondeterministicNondeterministicReadonlyAttr):
+        (WebCore::jsTestNondeterministicNondeterministicWriteableAttr):
+        (WebCore::jsTestNondeterministicNondeterministicExceptionAttr):
+        (WebCore::jsTestNondeterministicNondeterministicGetterExceptionAttr):
+        (WebCore::jsTestNondeterministicNondeterministicSetterExceptionAttr):
+        (WebCore::jsTestNondeterministicConstructor):
+        (WebCore::setJSTestNondeterministicConstructor):
+        (WebCore::setJSTestNondeterministicNondeterministicWriteableAttr):
+        (WebCore::setJSTestNondeterministicNondeterministicExceptionAttr):
+        (WebCore::setJSTestNondeterministicNondeterministicGetterExceptionAttr):
+        (WebCore::setJSTestNondeterministicNondeterministicSetterExceptionAttr):
+        (WebCore::jsTestNondeterministicPrototypeFunctionNondeterministicZeroArgFunction):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convert<TestObj::EnumType>):
+        (WebCore::convert<TestObj::Optional>):
+        (WebCore::convert<AlternateEnumName>):
+        (WebCore::convert<TestObj::EnumA>):
+        (WebCore::convert<TestObj::EnumB>):
+        (WebCore::convert<TestObj::EnumC>):
+        (WebCore::convert<TestObj::Kind>):
+        (WebCore::convert<TestObj::Size>):
+        (WebCore::convert<TestObj::Confidence>):
+        (WebCore::convertDictionary<TestObj::Dictionary>):
+        (WebCore::convertDictionary<TestObj::DictionaryThatShouldNotTolerateNull>):
+        (WebCore::convertDictionary<TestObj::DictionaryThatShouldTolerateNull>):
+        (WebCore::convertDictionary<AlternateDictionaryName>):
+        (WebCore::JSTestObjConstructor::construct):
+        (WebCore::jsTestObjReadOnlyLongAttr):
+        (WebCore::jsTestObjReadOnlyStringAttr):
+        (WebCore::jsTestObjReadOnlyTestObjAttr):
+        (WebCore::jsTestObjConstructorStaticReadOnlyLongAttr):
+        (WebCore::jsTestObjConstructorStaticStringAttr):
+        (WebCore::jsTestObjConstructorTestSubObj):
+        (WebCore::jsTestObjTestSubObjEnabledBySettingConstructor):
+        (WebCore::jsTestObjEnumAttr):
+        (WebCore::jsTestObjByteAttr):
+        (WebCore::jsTestObjOctetAttr):
+        (WebCore::jsTestObjShortAttr):
+        (WebCore::jsTestObjClampedShortAttr):
+        (WebCore::jsTestObjEnforceRangeShortAttr):
+        (WebCore::jsTestObjUnsignedShortAttr):
+        (WebCore::jsTestObjLongAttr):
+        (WebCore::jsTestObjLongLongAttr):
+        (WebCore::jsTestObjUnsignedLongLongAttr):
+        (WebCore::jsTestObjStringAttr):
+        (WebCore::jsTestObjUsvstringAttr):
+        (WebCore::jsTestObjTestObjAttr):
+        (WebCore::jsTestObjTestNullableObjAttr):
+        (WebCore::jsTestObjLenientTestObjAttr):
+        (WebCore::jsTestObjUnforgeableAttr):
+        (WebCore::jsTestObjStringAttrTreatingNullAsEmptyString):
+        (WebCore::jsTestObjUsvstringAttrTreatingNullAsEmptyString):
+        (WebCore::jsTestObjImplementationEnumAttr):
+        (WebCore::jsTestObjXMLObjAttr):
+        (WebCore::jsTestObjCreate):
+        (WebCore::jsTestObjReflectedStringAttr):
+        (WebCore::jsTestObjReflectedUSVStringAttr):
+        (WebCore::jsTestObjReflectedIntegralAttr):
+        (WebCore::jsTestObjReflectedUnsignedIntegralAttr):
+        (WebCore::jsTestObjReflectedBooleanAttr):
+        (WebCore::jsTestObjReflectedURLAttr):
+        (WebCore::jsTestObjReflectedUSVURLAttr):
+        (WebCore::jsTestObjReflectedCustomIntegralAttr):
+        (WebCore::jsTestObjReflectedCustomBooleanAttr):
+        (WebCore::jsTestObjReflectedCustomURLAttr):
+        (WebCore::jsTestObjEnabledAtRuntimeAttribute):
+        (WebCore::jsTestObjTypedArrayAttr):
+        (WebCore::jsTestObjAttrWithGetterException):
+        (WebCore::jsTestObjAttrWithGetterExceptionWithMessage):
+        (WebCore::jsTestObjAttrWithSetterException):
+        (WebCore::jsTestObjAttrWithSetterExceptionWithMessage):
+        (WebCore::jsTestObjStringAttrWithGetterException):
+        (WebCore::jsTestObjStringAttrWithSetterException):
+        (WebCore::jsTestObjCustomAttr):
+        (WebCore::jsTestObjOnfoo):
+        (WebCore::jsTestObjOnwebkitfoo):
+        (WebCore::jsTestObjWithScriptStateAttribute):
+        (WebCore::jsTestObjWithCallWithAndSetterCallWithAttribute):
+        (WebCore::jsTestObjWithScriptExecutionContextAttribute):
+        (WebCore::jsTestObjWithScriptStateAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateAttribute):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute):
+        (WebCore::jsTestObjWithScriptArgumentsAndCallStackAttribute):
+        (WebCore::jsTestObjConditionalAttr1):
+        (WebCore::jsTestObjConditionalAttr2):
+        (WebCore::jsTestObjConditionalAttr3):
+        (WebCore::jsTestObjConditionalAttr4Constructor):
+        (WebCore::jsTestObjConditionalAttr5Constructor):
+        (WebCore::jsTestObjConditionalAttr6Constructor):
+        (WebCore::jsTestObjCachedAttribute1):
+        (WebCore::jsTestObjCachedAttribute2):
+        (WebCore::jsTestObjAnyAttribute):
+        (WebCore::jsTestObjContentDocument):
+        (WebCore::jsTestObjMutablePoint):
+        (WebCore::jsTestObjImmutablePoint):
+        (WebCore::jsTestObjStrawberry):
+        (WebCore::jsTestObjDescription):
+        (WebCore::jsTestObjId):
+        (WebCore::jsTestObjHash):
+        (WebCore::jsTestObjReplaceableAttribute):
+        (WebCore::jsTestObjNullableDoubleAttribute):
+        (WebCore::jsTestObjNullableLongAttribute):
+        (WebCore::jsTestObjNullableBooleanAttribute):
+        (WebCore::jsTestObjNullableStringAttribute):
+        (WebCore::jsTestObjNullableLongSettableAttribute):
+        (WebCore::jsTestObjNullableStringSettableAttribute):
+        (WebCore::jsTestObjNullableUSVStringSettableAttribute):
+        (WebCore::jsTestObjNullableStringValue):
+        (WebCore::jsTestObjAttribute):
+        (WebCore::jsTestObjAttributeWithReservedEnumType):
+        (WebCore::jsTestObjPutForwardsAttribute):
+        (WebCore::jsTestObjPutForwardsNullableAttribute):
+        (WebCore::jsTestObjStringifierAttribute):
+        (WebCore::jsTestObjConstructor):
+        (WebCore::setJSTestObjConstructor):
+        (WebCore::setJSTestObjConstructorStaticStringAttr):
+        (WebCore::setJSTestObjTestSubObjEnabledBySettingConstructor):
+        (WebCore::setJSTestObjEnumAttr):
+        (WebCore::setJSTestObjByteAttr):
+        (WebCore::setJSTestObjOctetAttr):
+        (WebCore::setJSTestObjShortAttr):
+        (WebCore::setJSTestObjClampedShortAttr):
+        (WebCore::setJSTestObjEnforceRangeShortAttr):
+        (WebCore::setJSTestObjUnsignedShortAttr):
+        (WebCore::setJSTestObjLongAttr):
+        (WebCore::setJSTestObjLongLongAttr):
+        (WebCore::setJSTestObjUnsignedLongLongAttr):
+        (WebCore::setJSTestObjStringAttr):
+        (WebCore::setJSTestObjUsvstringAttr):
+        (WebCore::setJSTestObjTestObjAttr):
+        (WebCore::setJSTestObjTestNullableObjAttr):
+        (WebCore::setJSTestObjLenientTestObjAttr):
+        (WebCore::setJSTestObjStringAttrTreatingNullAsEmptyString):
+        (WebCore::setJSTestObjUsvstringAttrTreatingNullAsEmptyString):
+        (WebCore::setJSTestObjImplementationEnumAttr):
+        (WebCore::setJSTestObjXMLObjAttr):
+        (WebCore::setJSTestObjCreate):
+        (WebCore::setJSTestObjReflectedStringAttr):
+        (WebCore::setJSTestObjReflectedUSVStringAttr):
+        (WebCore::setJSTestObjReflectedIntegralAttr):
+        (WebCore::setJSTestObjReflectedUnsignedIntegralAttr):
+        (WebCore::setJSTestObjReflectedBooleanAttr):
+        (WebCore::setJSTestObjReflectedURLAttr):
+        (WebCore::setJSTestObjReflectedUSVURLAttr):
+        (WebCore::setJSTestObjReflectedCustomIntegralAttr):
+        (WebCore::setJSTestObjReflectedCustomBooleanAttr):
+        (WebCore::setJSTestObjReflectedCustomURLAttr):
+        (WebCore::setJSTestObjEnabledAtRuntimeAttribute):
+        (WebCore::setJSTestObjTypedArrayAttr):
+        (WebCore::setJSTestObjAttrWithGetterException):
+        (WebCore::setJSTestObjAttrWithGetterExceptionWithMessage):
+        (WebCore::setJSTestObjAttrWithSetterException):
+        (WebCore::setJSTestObjAttrWithSetterExceptionWithMessage):
+        (WebCore::setJSTestObjStringAttrWithGetterException):
+        (WebCore::setJSTestObjStringAttrWithSetterException):
+        (WebCore::setJSTestObjCustomAttr):
+        (WebCore::setJSTestObjOnfoo):
+        (WebCore::setJSTestObjOnwebkitfoo):
+        (WebCore::setJSTestObjWithScriptStateAttribute):
+        (WebCore::setJSTestObjWithCallWithAndSetterCallWithAttribute):
+        (WebCore::setJSTestObjWithScriptExecutionContextAttribute):
+        (WebCore::setJSTestObjWithScriptStateAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateAttribute):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateAttributeRaises):
+        (WebCore::setJSTestObjWithScriptExecutionContextAndScriptStateWithSpacesAttribute):
+        (WebCore::setJSTestObjWithScriptArgumentsAndCallStackAttribute):
+        (WebCore::setJSTestObjConditionalAttr1):
+        (WebCore::setJSTestObjConditionalAttr2):
+        (WebCore::setJSTestObjConditionalAttr3):
+        (WebCore::setJSTestObjConditionalAttr4Constructor):
+        (WebCore::setJSTestObjConditionalAttr5Constructor):
+        (WebCore::setJSTestObjConditionalAttr6Constructor):
+        (WebCore::setJSTestObjAnyAttribute):
+        (WebCore::setJSTestObjMutablePoint):
+        (WebCore::setJSTestObjImmutablePoint):
+        (WebCore::setJSTestObjStrawberry):
+        (WebCore::setJSTestObjId):
+        (WebCore::setJSTestObjReplaceableAttribute):
+        (WebCore::setJSTestObjNullableLongSettableAttribute):
+        (WebCore::setJSTestObjNullableStringSettableAttribute):
+        (WebCore::setJSTestObjNullableUSVStringSettableAttribute):
+        (WebCore::setJSTestObjNullableStringValue):
+        (WebCore::setJSTestObjAttributeWithReservedEnumType):
+        (WebCore::setJSTestObjPutForwardsAttribute):
+        (WebCore::setJSTestObjPutForwardsNullableAttribute):
+        (WebCore::setJSTestObjStringifierAttribute):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation1):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation2):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation):
+        (WebCore::jsTestObjPrototypeFunctionVoidMethod):
+        (WebCore::jsTestObjPrototypeFunctionVoidMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionByteMethod):
+        (WebCore::jsTestObjPrototypeFunctionByteMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionOctetMethod):
+        (WebCore::jsTestObjPrototypeFunctionOctetMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionLongMethod):
+        (WebCore::jsTestObjPrototypeFunctionLongMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionObjMethod):
+        (WebCore::jsTestObjPrototypeFunctionObjMethodWithArgs):
+        (WebCore::jsTestObjInstanceFunctionUnforgeableMethod):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithArgTreatingNullAsEmptyString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithXPathNSResolverParameter):
+        (WebCore::jsTestObjPrototypeFunctionNullableStringMethod):
+        (WebCore::jsTestObjConstructorFunctionNullableStringStaticMethod):
+        (WebCore::jsTestObjPrototypeFunctionNullableStringSpecialMethod):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithEnumArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalEnumArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalEnumArgAndDefaultValue):
+        (WebCore::jsTestObjPrototypeFunctionMethodThatRequiresAllArgsAndThrows):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithUSVStringArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNullableUSVStringArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithUSVStringArgTreatingNullAsEmptyString):
+        (WebCore::jsTestObjPrototypeFunctionSerializedValue):
+        (WebCore::jsTestObjPrototypeFunctionOptionsObject):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithException):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithExceptionWithMessage):
+        (WebCore::jsTestObjPrototypeFunctionCustomMethod):
+        (WebCore::jsTestObjPrototypeFunctionCustomMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionPrivateMethod):
+        (WebCore::jsTestObjPrototypeFunctionPublicAndPrivateMethod):
+        (WebCore::jsTestObjPrototypeFunctionAddEventListener):
+        (WebCore::jsTestObjPrototypeFunctionRemoveEventListener):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptStateVoid):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptStateObj):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptStateVoidException):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptStateObjException):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContext):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContextAndScriptState):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContextAndScriptStateObjException):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContextAndScriptStateWithSpaces):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptArgumentsAndCallStack):
+        (WebCore::jsTestObjPrototypeFunctionWithDocumentArgument):
+        (WebCore::jsTestObjPrototypeFunctionWithCallerDocumentArgument):
+        (WebCore::jsTestObjPrototypeFunctionWithCallerWindowArgument):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalArgAndDefaultValue):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonOptionalArgAndOptionalArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonOptionalArgAndTwoOptionalArgs):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalUSVString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalAtomicString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalStringAndDefaultValue):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalAtomicStringAndDefaultValue):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalStringIsNull):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalStringIsUndefined):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalAtomicStringIsNull):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalStringIsEmptyString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalUSVStringIsEmptyString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalAtomicStringIsEmptyString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalDoubleIsNaN):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalFloatIsNaN):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalLongLong):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalLongLongIsZero):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalUnsignedLongLong):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalUnsignedLongLongIsZero):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalSequence):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalSequenceIsEmpty):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalBoolean):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalBooleanIsFalse):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalAny):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalNullableWrapper):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalNullableWrapperIsNull):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithOptionalXPathNSResolver):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackAndOptionalArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackFunctionArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackFunctionArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackFunctionAndOptionalArg):
+        (WebCore::jsTestObjConstructorFunctionStaticMethodWithCallbackAndOptionalArg):
+        (WebCore::jsTestObjConstructorFunctionStaticMethodWithCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionConditionalMethod1):
+        (WebCore::jsTestObjPrototypeFunctionConditionalMethod2):
+        (WebCore::jsTestObjPrototypeFunctionConditionalMethod3):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod2):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod3):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod4):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod5):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod6):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod7):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod8):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod9):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod10):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod11):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod12):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter2):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter):
+        (WebCore::jsTestObjConstructorFunctionClassMethod):
+        (WebCore::jsTestObjConstructorFunctionClassMethodWithOptional):
+        (WebCore::jsTestObjConstructorFunctionClassMethod2):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod11):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod12):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod1):
+        (WebCore::jsTestObjPrototypeFunctionClassMethodWithClamp):
+        (WebCore::jsTestObjPrototypeFunctionClassMethodWithEnforceRange):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithUnsignedLongSequence):
+        (WebCore::jsTestObjPrototypeFunctionStringArrayFunction):
+        (WebCore::jsTestObjPrototypeFunctionDomStringListFunction):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithAndWithoutNullableSequence):
+        (WebCore::jsTestObjPrototypeFunctionGetElementById):
+        (WebCore::jsTestObjPrototypeFunctionGetSVGDocument):
+        (WebCore::jsTestObjPrototypeFunctionConvert1):
+        (WebCore::jsTestObjPrototypeFunctionConvert2):
+        (WebCore::jsTestObjPrototypeFunctionConvert3):
+        (WebCore::jsTestObjPrototypeFunctionConvert4):
+        (WebCore::jsTestObjPrototypeFunctionMutablePointFunction):
+        (WebCore::jsTestObjPrototypeFunctionImmutablePointFunction):
+        (WebCore::jsTestObjPrototypeFunctionOrange):
+        (WebCore::jsTestObjPrototypeFunctionVariadicStringMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicDoubleMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicNodeMethod):
+        (WebCore::jsTestObjPrototypeFunctionAny):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNeedsCustomElementReactionStack):
+        (WebCore::jsTestObjPrototypeFunctionConditionalOverload1):
+        (WebCore::jsTestObjPrototypeFunctionConditionalOverload2):
+        (WebCore::jsTestObjPrototypeFunctionConditionalOverload):
+        (WebCore::jsTestObjPrototypeFunctionSingleConditionalOverload1):
+        (WebCore::jsTestObjPrototypeFunctionSingleConditionalOverload2):
+        (WebCore::jsTestObjPrototypeFunctionSingleConditionalOverload):
+        (WebCore::jsTestObjPrototypeFunctionAttachShadowRoot):
+        (WebCore::jsTestObjPrototypeFunctionToString):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::constructJSTestOverloadedConstructors1):
+        (WebCore::constructJSTestOverloadedConstructors2):
+        (WebCore::constructJSTestOverloadedConstructors3):
+        (WebCore::constructJSTestOverloadedConstructors4):
+        (WebCore::constructJSTestOverloadedConstructors5):
+        (WebCore::JSTestOverloadedConstructorsConstructor::construct):
+        (WebCore::jsTestOverloadedConstructorsConstructor):
+        (WebCore::setJSTestOverloadedConstructorsConstructor):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructorsWithSequence.cpp:
+        (WebCore::constructJSTestOverloadedConstructorsWithSequence1):
+        (WebCore::constructJSTestOverloadedConstructorsWithSequence2):
+        (WebCore::JSTestOverloadedConstructorsWithSequenceConstructor::construct):
+        (WebCore::jsTestOverloadedConstructorsWithSequenceConstructor):
+        (WebCore::setJSTestOverloadedConstructorsWithSequenceConstructor):
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        (WebCore::jsTestOverrideBuiltinsConstructor):
+        (WebCore::setJSTestOverrideBuiltinsConstructor):
+        (WebCore::jsTestOverrideBuiltinsPrototypeFunctionNamedItem):
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        (WebCore::jsTestSerializedScriptValueInterfaceValue):
+        (WebCore::jsTestSerializedScriptValueInterfaceReadonlyValue):
+        (WebCore::jsTestSerializedScriptValueInterfaceCachedValue):
+        (WebCore::jsTestSerializedScriptValueInterfacePorts):
+        (WebCore::jsTestSerializedScriptValueInterfaceCachedReadonlyValue):
+        (WebCore::jsTestSerializedScriptValueInterfaceConstructor):
+        (WebCore::setJSTestSerializedScriptValueInterfaceConstructor):
+        (WebCore::setJSTestSerializedScriptValueInterfaceValue):
+        (WebCore::setJSTestSerializedScriptValueInterfaceCachedValue):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::JSTestTypedefsConstructor::construct):
+        (WebCore::jsTestTypedefsUnsignedLongLongAttr):
+        (WebCore::jsTestTypedefsImmutableSerializedScriptValue):
+        (WebCore::jsTestTypedefsConstructorTestSubObj):
+        (WebCore::jsTestTypedefsAttrWithGetterException):
+        (WebCore::jsTestTypedefsAttrWithSetterException):
+        (WebCore::jsTestTypedefsStringAttrWithGetterException):
+        (WebCore::jsTestTypedefsStringAttrWithSetterException):
+        (WebCore::jsTestTypedefsConstructor):
+        (WebCore::setJSTestTypedefsConstructor):
+        (WebCore::setJSTestTypedefsUnsignedLongLongAttr):
+        (WebCore::setJSTestTypedefsImmutableSerializedScriptValue):
+        (WebCore::setJSTestTypedefsAttrWithGetterException):
+        (WebCore::setJSTestTypedefsAttrWithSetterException):
+        (WebCore::setJSTestTypedefsStringAttrWithGetterException):
+        (WebCore::setJSTestTypedefsStringAttrWithSetterException):
+        (WebCore::jsTestTypedefsPrototypeFunctionFunc):
+        (WebCore::jsTestTypedefsPrototypeFunctionSetShadow):
+        (WebCore::jsTestTypedefsPrototypeFunctionMethodWithSequenceArg):
+        (WebCore::jsTestTypedefsPrototypeFunctionNullableSequenceArg):
+        (WebCore::jsTestTypedefsPrototypeFunctionFuncWithClamp):
+        (WebCore::jsTestTypedefsPrototypeFunctionImmutablePointFunction):
+        (WebCore::jsTestTypedefsPrototypeFunctionStringSequenceFunction):
+        (WebCore::jsTestTypedefsPrototypeFunctionStringSequenceFunction2):
+        (WebCore::jsTestTypedefsPrototypeFunctionCallWithSequenceThatRequiresInclude):
+        (WebCore::jsTestTypedefsPrototypeFunctionMethodWithException):
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        (WebCore::jsattributeReadonly):
+        (WebCore::jsattributeConstructor):
+        (WebCore::setJSattributeConstructor):
+        * bindings/scripts/test/JS/JSreadonly.cpp:
+        (WebCore::jsreadonlyConstructor):
+        (WebCore::setJSreadonlyConstructor):
+        * bridge/c/c_instance.cpp:
+        (JSC::Bindings::CInstance::moveGlobalExceptionToExecState):
+        (JSC::Bindings::CInstance::invokeMethod):
+        (JSC::Bindings::CInstance::invokeDefaultMethod):
+        (JSC::Bindings::CInstance::invokeConstruct):
+        (JSC::Bindings::CInstance::toJSPrimitive):
+        * bridge/objc/objc_instance.mm:
+        (ObjcInstance::moveGlobalExceptionToExecState):
+        (ObjcInstance::invokeMethod):
+        * bridge/objc/objc_runtime.mm:
+        (JSC::Bindings::ObjcField::valueFromInstance):
+        (JSC::Bindings::ObjcField::setValueToInstance):
+        (JSC::Bindings::ObjcArray::setValueAt):
+        (JSC::Bindings::ObjcArray::valueAt):
+        (JSC::Bindings::callObjCFallbackObject):
+        * bridge/objc/objc_utility.h:
+        * bridge/objc/objc_utility.mm:
+        (JSC::Bindings::throwError):
+        * bridge/runtime_array.cpp:
+        (JSC::RuntimeArray::lengthGetter):
+        (JSC::RuntimeArray::put):
+        (JSC::RuntimeArray::putByIndex):
+        * bridge/runtime_method.cpp:
+        (JSC::RuntimeMethod::lengthGetter):
+        (JSC::callRuntimeMethod):
+        * bridge/runtime_object.cpp:
+        (JSC::Bindings::RuntimeObject::fallbackObjectGetter):
+        (JSC::Bindings::RuntimeObject::fieldGetter):
+        (JSC::Bindings::RuntimeObject::methodGetter):
+        (JSC::Bindings::RuntimeObject::getOwnPropertySlot):
+        (JSC::Bindings::RuntimeObject::put):
+        (JSC::Bindings::RuntimeObject::defaultValue):
+        (JSC::Bindings::RuntimeObject::getOwnPropertyNames):
+        (JSC::Bindings::RuntimeObject::throwInvalidAccessError):
+        * bridge/runtime_object.h:
+
+2016-08-30  Brent Fulgham  <bfulgham@apple.com>
+
+        Use of uninitialised memory in TransformationMatrx::blend4()
+        https://bugs.webkit.org/show_bug.cgi?id=134621
+        <rdar://problem/27337539>
+
+        Reviewed by Dean Jackson.
+
+        Change is based on the Blink change (patch by <alancutter@chromium.org>):
+        <https://src.chromium.org/viewvc/blink?revision=177453&view=revision>
+
+        TransformationMatrix::blend() was attempting to blend between non-invertable
+        matricies. This resulted in garbage stack variables being used.
+        This patch ensures that blend() will fall back to a 50% step interpolation
+        when one of the sides are not invertable.
+
+        Tested by new TransformationMatrix test in TestWebKitAPI.
+
+        * platform/graphics/transforms/TransformationMatrix.cpp:
+        (WebCore::TransformationMatrix::blend2): Properly handle failure in the
+        decompose method calls.
+        (WebCore::TransformationMatrix::blend4): Ditto.
+
+2016-08-30  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should handle relative URLs that start with //
+        https://bugs.webkit.org/show_bug.cgi?id=161364
+
+        Reviewed by Darin Adler.
+
+        Covered by an API test.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+
+2016-08-30  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Fix a typo introduced in r205184.
+        https://bugs.webkit.org/show_bug.cgi?id=161380
+
+        Reviewed by Tim Horton.
+
+        Fixes a typo in an accessibility string: "Exit fullscreen" => "Exit Fullscreen"
+
+        * platform/LocalizedStrings.cpp:
+        (WebCore::exitFullScreenButtonAccessibilityTitle):
+
+2016-08-30  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Blob not found URL should result in a network error
+        https://bugs.webkit.org/show_bug.cgi?id=161381
+
+        Reviewed by Sam Weinig.
+
+        Covered by rebased and updated tests.
+
+        Raising a network error if no blob can be found from the URL.
+        It is no longer notified by a 404 response.
+
+        Updated FileReaderLoader to generate the correct exception.
+
+        Made some clean-up in the code, in particular adding an enum class for BlobResourceHandle errors.
+
+        * fileapi/FileReaderLoader.cpp:
+        (WebCore::FileReaderLoader::didFail):
+        (WebCore::FileReaderLoader::toErrorCode):
+        (WebCore::FileReaderLoader::httpStatusCodeToErrorCode):
+        * fileapi/FileReaderLoader.h:
+        * platform/network/BlobResourceHandle.cpp:
+        (WebCore::BlobResourceHandle::loadResourceSynchronously):
+        (WebCore::BlobResourceHandle::doStart):
+        (WebCore::BlobResourceHandle::didGetSize):
+        (WebCore::BlobResourceHandle::readSync):
+        (WebCore::BlobResourceHandle::readFileSync):
+        (WebCore::BlobResourceHandle::readAsync):
+        (WebCore::BlobResourceHandle::didOpen):
+        (WebCore::BlobResourceHandle::didRead):
+        (WebCore::BlobResourceHandle::failed):
+        (WebCore::BlobResourceHandle::notifyResponse):
+        (WebCore::BlobResourceHandle::notifyResponseOnError):
+        (WebCore::BlobResourceHandle::notifyFail):
+        * platform/network/BlobResourceHandle.h:
+
+2016-08-30  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Body mix-in text() should decode data as UTF-8
+        https://bugs.webkit.org/show_bug.cgi?id=161372
+
+        Reviewed by Sam Weinig.
+
+        Test: imported/w3c/web-platform-tests/fetch/api/basic/text-utf8.html
+
+        UsingTextResourceDecoder to decode data as UTF-8.
+        Making sure to prepend BOM if there is none, as specified in https://encoding.spec.whatwg.org/#utf-8-decode.
+
+        * Modules/fetch/FetchBodyConsumer.cpp:
+        (WebCore::shouldPrependBOM):
+        (WebCore::textFromUTF8):
+        (WebCore::FetchBodyConsumer::resolveWithData):
+        (WebCore::FetchBodyConsumer::takeAsText):
+
+2016-08-30  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: opportunitiesInRun <= expansionOpportunityCount in WebCore::computeExpansionForJustifiedText
+        https://bugs.webkit.org/show_bug.cgi?id=139393
+        <rdar://problem/27704243>
+
+        Reviewed by Myles C. Maxfield.
+
+        This patch ensures that we always remove a valid 'after expansion' opportunity (even when the last entry
+        in the opportunities list is 0).
+
+        Test: fast/text/assert-on-expansion-opportunity.html
+
+        * rendering/RenderBlockLineLayout.cpp:
+        (WebCore::RenderBlockFlow::computeInlineDirectionPositionsForSegment):
+
+2016-08-30  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Exit fullscreen button in fullscreen media playback needs an accessibility string
+        https://bugs.webkit.org/show_bug.cgi?id=161380
+
+        Reviewed by Beth Dakin.
+
+        Adds an accessibility string for the exit fullscreen button.
+
+        * English.lproj/Localizable.strings:
+        * platform/LocalizedStrings.cpp:
+        (WebCore::exitFullScreenButtonAccessibilityTitle):
+        * platform/LocalizedStrings.h:
+
 2016-08-30  Antti Koivisto  <antti@apple.com>
 
         Remove StylePendingImage

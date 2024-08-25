@@ -29,17 +29,20 @@
 
 #include "QualifiedName.h"
 #include <wtf/HashMap.h>
+#include <wtf/TemporaryChange.h>
 #include <wtf/text/AtomicString.h>
 #include <wtf/text/AtomicStringHash.h>
 
 namespace JSC {
 
 class JSObject;
+class JSValue;
     
 }
 
 namespace WebCore {
 
+class CustomElementRegistry;
 class Element;
 class JSCustomElementInterface;
 class QualifiedName;
@@ -52,10 +55,14 @@ public:
     void addElementDefinition(Ref<JSCustomElementInterface>&&);
     void addUpgradeCandidate(Element&);
 
+    bool& elementDefinitionIsRunning() { return m_elementDefinitionIsRunning; }
+
     JSCustomElementInterface* findInterface(const QualifiedName&) const;
     JSCustomElementInterface* findInterface(const AtomicString&) const;
     JSCustomElementInterface* findInterface(const JSC::JSObject*) const;
     bool containsConstructor(const JSC::JSObject*) const;
+
+    JSC::JSValue get(const AtomicString&);
 
 private:
     CustomElementRegistry();
@@ -63,8 +70,12 @@ private:
     HashMap<AtomicString, Vector<RefPtr<Element>>> m_upgradeCandidatesMap;
     HashMap<AtomicString, Ref<JSCustomElementInterface>> m_nameMap;
     HashMap<const JSC::JSObject*, JSCustomElementInterface*> m_constructorMap;
+
+    bool m_elementDefinitionIsRunning { false };
+
+    friend class ElementDefinitionIsRunningTemporaryChange;
 };
-    
+
 }
 
 #endif

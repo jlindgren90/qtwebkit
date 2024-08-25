@@ -24,37 +24,12 @@
  */
 
 #include "config.h"
-#include "UIGamepadProvider.h"
-
-#if ENABLE(GAMEPAD)
-
-#include <WebCore/HIDGamepadProvider.h>
-#include <WebCore/MockGamepadProvider.h>
-
-using namespace WebCore;
+#include "WebKit2Initialize.h"
 
 namespace WebKit {
 
-void UIGamepadProvider::platformSetDefaultGamepadProvider()
+void platformInitializeWebKit2(ProcessType)
 {
-    if (GamepadProvider::singleton().isMockGamepadProvider())
-        return;
-
-    GamepadProvider::setSharedProvider(HIDGamepadProvider::singleton());
-}
-
-void UIGamepadProvider::platformStopMonitoringInput()
-{
-    // No effect when the MockGamepadProvider is being used.
-    return HIDGamepadProvider::singleton().stopMonitoringInput();
-}
-
-void UIGamepadProvider::platformStartMonitoringInput()
-{
-    // No effect when the MockGamepadProvider is being used.
-    return HIDGamepadProvider::singleton().startMonitoringInput();
 }
 
 }
-
-#endif // ENABLE(GAMEPAD)

@@ -1,3 +1,351 @@
+2016-08-31  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: !flow->layer() && !flow->isInlineElementContinuation() in WebCore::RenderBlock::addContinuationWithOutline
+        https://bugs.webkit.org/show_bug.cgi?id=151022
+        <rdar://problem/27710993>
+
+        Reviewed by Simon Fraser.
+
+        * compositing/layer-creation/assert-on-inline-element-with-will-change-expected.txt: Added.
+        * compositing/layer-creation/assert-on-inline-element-with-will-change.html: Added.
+        * compositing/layer-creation/will-change-on-normal-flow-content-expected.txt: Added.
+        * compositing/layer-creation/will-change-on-normal-flow-content.html: Added.
+
+2016-08-31  Ricky Mondello  <rmondello@apple.com>
+
+        Break pluginReplacementEnabled into youTubeFlashPluginReplacementEnabled and quickTimePluginReplacementEnabled
+        https://bugs.webkit.org/show_bug.cgi?id=161424
+        <rdar://problem/28050847>
+
+        Reviewed by Dean Jackson.
+
+        * plugins/quicktime-plugin-replacement.html: Updated for the internal setting rename.
+        * security/contentSecurityPolicy/object-src-none-blocks-quicktime-plugin-replacement.html: Ditto.
+        * security/contentSecurityPolicy/object-src-none-blocks-youtube-plugin-replacement.html: Ditto.
+        * security/contentSecurityPolicy/plugins-types-allows-quicktime-plugin-replacement.html: Ditto.
+        * security/contentSecurityPolicy/plugins-types-allows-youtube-plugin-replacement.html: Ditto.
+        * security/contentSecurityPolicy/plugins-types-blocks-quicktime-plugin-replacement-without-mime-type.html: Ditto.
+        * security/contentSecurityPolicy/plugins-types-blocks-quicktime-plugin-replacement.html: Ditto.
+        * security/contentSecurityPolicy/plugins-types-blocks-youtube-plugin-replacement-without-mime-type.html: Ditto.
+        * security/contentSecurityPolicy/plugins-types-blocks-youtube-plugin-replacement.html: Ditto.
+
+2016-08-31  Mark Lam  <mark.lam@apple.com>
+
+        Gardening: skipping a flaky test from the JSC test suite.
+        https://bugs.webkit.org/show_bug.cgi?id=161437
+
+        Not reviewed.
+
+        * js/script-tests/regress-141098.js:
+
+2016-08-31  Yoav Weiss  <yoav@yoav.ws>
+
+        Add event support for link preload.
+        https://bugs.webkit.org/show_bug.cgi?id=158466
+
+        Reviewed by Alex Christensen.
+
+        Add tests that make sure that event handling with regarding to link preload
+        is working as it should.
+
+        * http/tests/misc/script_onload_delays_window_onload-expected.txt: Added.
+        * http/tests/misc/script_onload_delays_window_onload.html: Added.
+        * http/tests/preload/delaying_onload_link_preload_after_discovery-expected.txt: Added.
+        * http/tests/preload/delaying_onload_link_preload_after_discovery.html: Added.
+        * http/tests/preload/delaying_onload_link_preload_after_discovery_image-expected.txt: Added.
+        * http/tests/preload/delaying_onload_link_preload_after_discovery_image.html: Added.
+        * http/tests/preload/dynamic_remove_preload_href-expected.txt:
+        * http/tests/preload/dynamic_remove_preload_href.html:
+        * http/tests/preload/not_delaying_window_onload_before_discovery-expected.txt: Added.
+        * http/tests/preload/not_delaying_window_onload_before_discovery.html: Added.
+        * http/tests/preload/onerror_event-expected.txt: Added.
+        * http/tests/preload/onerror_event.html: Added.
+        * http/tests/preload/onload_event-expected.txt: Added.
+        * http/tests/preload/onload_event.html: Added.
+        * http/tests/preload/resources/single_download_preload.html:
+        * http/tests/resources/dummy.css: Added.
+        * http/tests/resources/dummy.js: Added.
+        * http/tests/resources/dummy.xml: Added.
+        * http/tests/resources/slow-image.php: Added.
+
+2016-08-31  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: XHR with text but responseType = "blob" shows blank content
+        https://bugs.webkit.org/show_bug.cgi?id=161422
+        <rdar://problem/28066869>
+
+        Reviewed by Brian Burg.
+
+        * inspector/network/resources/data.json: Added.
+        * inspector/network/xhr-json-blob-has-content-expected.txt: Added.
+        * inspector/network/xhr-json-blob-has-content.html: Added.
+
+2016-08-31  Ryosuke Niwa  <rniwa@webkit.org>
+
+        HTML constructor must throw when newTarget is itself
+        https://bugs.webkit.org/show_bug.cgi?id=161430
+
+        Reviewed by Antti Koivisto.
+
+        Added test cases for defining a custom element with the HTMLElement constructor,
+        and making sure the HTMLElement constructor throws an exception when newTarget is itself.
+
+        * fast/custom-elements/CustomElementRegistry-expected.txt:
+        * fast/custom-elements/CustomElementRegistry.html:
+        * fast/custom-elements/HTMLElement-constructor-expected.txt:
+        * fast/custom-elements/HTMLElement-constructor.html:
+
+2016-08-31  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add the check for reentrancy to CustomElementRegistry
+        https://bugs.webkit.org/show_bug.cgi?id=161423
+
+        Reviewed by Antti Koivisto.
+
+        Add test cases for reentrancy during customElements.define.
+
+        * fast/custom-elements/CustomElementRegistry-expected.txt:
+        * fast/custom-elements/CustomElementRegistry.html:
+
+2016-08-31  Chris Dumez  <cdumez@apple.com>
+
+        Object.getPrototypeOf() should return null cross-origin
+        https://bugs.webkit.org/show_bug.cgi?id=161393
+
+        Reviewed by Geoffrey Garen.
+
+        Add layout test coverage.
+
+        * http/tests/security/cross-frame-access-object-getPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-getPrototypeOf.html:
+
+2016-08-31  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-31  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/media/media-source/mediasource-config-change-mp4-v-framerate.html as flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=161391
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-08-31  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Response bodyUsed should check for its body disturbed state
+        https://bugs.webkit.org/show_bug.cgi?id=161429
+
+        Reviewed by Alex Christensen.
+
+        * http/tests/fetch/bodyUsed-expected.txt: Added.
+        * http/tests/fetch/bodyUsed-worker-expected.txt: Added.
+        * http/tests/fetch/bodyUsed-worker.html: Added.
+        * http/tests/fetch/bodyUsed.js: Added.
+        * http/tests/fetch/window/body-mixin-expected.txt:
+
+2016-08-31  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Blob type should be correctly set in case of empty body
+        https://bugs.webkit.org/show_bug.cgi?id=161431
+
+        Reviewed by Alex Christensen.
+
+        * http/tests/fetch/fetch-as-blob-expected.txt: Added.
+        * http/tests/fetch/fetch-as-blob-worker-expected.txt: Added.
+        * http/tests/fetch/fetch-as-blob-worker.html: Added.
+        * http/tests/fetch/fetch-as-blob.html: Added.
+        * http/tests/fetch/fetch-as-blob.js: Added.
+        (promise_test):
+
+2016-08-31  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Streams API] Align getReader() with spec
+        https://bugs.webkit.org/show_bug.cgi?id=160508
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        * streams/readable-stream-getReader-expected.txt: Added.
+        * streams/readable-stream-getReader.html: Added.
+
+2016-08-31  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION (r201701): Unable to copy from CodeMirror editor version used in Jenkins install website
+        https://bugs.webkit.org/show_bug.cgi?id=161386
+        <rdar://problem/27590077>
+
+        Reviewed by Dan Bernstein.
+
+        * editing/text-iterator/hidden-textarea-selection-quirk-expected.txt: Added.
+        * editing/text-iterator/hidden-textarea-selection-quirk.html: Added.
+        * platform/ios-simulator/editing/text-iterator/hidden-textarea-selection-quirk-expected.txt: Added.
+
+            textarea.select() doesn't select the text content on iOS.
+
+2016-08-30  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-30  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add "get" to CustomElementsRegistry
+        https://bugs.webkit.org/show_bug.cgi?id=161421
+
+        Reviewed by Yusuke Suzuki.
+
+        Added test cases for "get" method on CustomElementsRegistry.
+
+        * fast/custom-elements/CustomElementRegistry-expected.txt:
+        * fast/custom-elements/CustomElementRegistry.html:
+
+2016-08-30  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-30  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/debugger/breakpoint-action-with-exception.html as flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=161387
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-08-30  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Web Inspector: Add resource timing model with timing information
+        https://bugs.webkit.org/show_bug.cgi?id=161314
+
+        Reviewed by Joseph Pecoraro.
+
+        Add tests for the Resource Timing Data model.
+
+        * http/tests/inspector/network/resource-timing-expected.txt: Added.
+        * http/tests/inspector/network/resource-timing.html: Added.
+
+2016-08-30  Chris Dumez  <cdumez@apple.com>
+
+        Object.setPrototypeOf() should throw when used on a cross-origin Window / Location object
+        https://bugs.webkit.org/show_bug.cgi?id=161396
+
+        Reviewed by Ryosuke Niwa.
+
+        Update / rebaseline existing test to reflect behavior change.
+
+        * http/tests/security/cross-frame-access-object-setPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-setPrototypeOf.html:
+
+2016-08-30  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-30  Frederic Wang  <fwang@igalia.com>
+
+        Introduce a MathMLUnknownElement class
+        https://bugs.webkit.org/show_bug.cgi?id=161298
+
+        Reviewed by Darin Adler.
+
+        We add a test to check that non-standard or content MathML elements
+        are handled by MathMLUnknownElement and so do not create renderers.
+
+        * mathml/mathml-unknown-expected.txt: Added.
+        * mathml/mathml-unknown.xhtml: Added.
+
+2016-08-30  Chris Dumez  <cdumez@apple.com>
+
+        [[Delete]] should throw for cross-origin Window / Location objects
+        https://bugs.webkit.org/show_bug.cgi?id=161397
+
+        Reviewed by Ryosuke Niwa.
+
+        Update / rebaseline existing test to reflect behavior change.
+
+        * http/tests/security/cross-frame-access-delete-expected.txt:
+        * http/tests/security/cross-frame-access-delete.html:
+        * http/tests/security/resources/cross-frame-iframe-for-delete-test.html:
+
+2016-08-30  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking js/dom/prototype-chain-caching-with-impure-get-own-property-slot-traps-5.html as flaky on mac.
+        https://bugs.webkit.org/show_bug.cgi?id=161156
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-08-30  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking svg/animations/reinserting-svg-into-document.html as flaky on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=161395
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-08-30  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-08-30  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Blob not found URL should result in a network error
+        https://bugs.webkit.org/show_bug.cgi?id=161381
+
+        Reviewed by Sam Weinig.
+
+        * fast/files/apply-blob-url-to-xhr-expected.txt:
+        * fast/files/workers/worker-apply-blob-url-to-xhr-expected.txt:
+
+2016-08-30  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/html/browsers/browsing-the-web/scroll-to-fragid/scroll-to-top.html as flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=161359
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-08-30  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking editing/pasteboard/5478250.html as flaky on mac-wk2 debug.
+        https://bugs.webkit.org/show_bug.cgi?id=161366
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-08-30  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: opportunitiesInRun <= expansionOpportunityCount in WebCore::computeExpansionForJustifiedText
+        https://bugs.webkit.org/show_bug.cgi?id=139393
+        <rdar://problem/27704243>
+
+        Reviewed by Myles C. Maxfield.
+
+        * fast/text/assert-on-expansion-opportunity-expected.txt: Added.
+        * fast/text/assert-on-expansion-opportunity.html: Added.
+
+2016-08-30  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/unit-tests/yieldable-task.html as a flaky failure.
+        https://bugs.webkit.org/show_bug.cgi?id=161361
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
 2016-08-30  Gyuyoung Kim  <gyuyoung.kim@navercorp.com>
 
         [EFL] Gardening on failure tests
@@ -11,7 +359,7 @@
 
 2016-08-30  Jiewen Tan  <jiewen_tan@apple.com>
 
-         Unreviewed, update iOS simulator WK1 flaky tests.
+        Unreviewed, update iOS simulator WK1 flaky tests.
 
         * platform/ios-simulator-wk1/TestExpectations:
 

@@ -50,7 +50,12 @@ struct ExpectedParts {
     String string;
 };
 
-static bool eq(const String& s1, const String& s2) { return s1.utf8() == s2.utf8(); }
+static bool eq(const String& s1, const String& s2)
+{
+    EXPECT_STREQ(s1.utf8().data(), s2.utf8().data());
+    return s1.utf8() == s2.utf8();
+}
+
 static void checkURL(const String& urlString, const ExpectedParts& parts)
 {
     URLParser parser;
@@ -94,6 +99,9 @@ TEST_F(URLParserTest, Parse)
     checkURL("about:blank", {"about", "", "", "", 0, "blank", "", "", "about:blank"});
     checkURL("about:blank?query", {"about", "", "", "", 0, "blank", "query", "", "about:blank?query"});
     checkURL("about:blank#fragment", {"about", "", "", "", 0, "blank", "", "fragment", "about:blank#fragment"});
+    checkURL("http://[0:f::f:f:0:0]", {"http", "", "", "[0:f::f:f:0:0]", 0, "/", "", "", "http://[0:f::f:f:0:0]/"});
+    checkURL("http://[0:f:0:0:f::]", {"http", "", "", "[0:f:0:0:f::]", 0, "/", "", "", "http://[0:f:0:0:f::]/"});
+    checkURL("http://[::f:0:0:f:0:0]", {"http", "", "", "[::f:0:0:f:0:0]", 0, "/", "", "", "http://[::f:0:0:f:0:0]/"});
 }
 
 static void checkRelativeURL(const String& urlString, const String& baseURLString, const ExpectedParts& parts)
@@ -132,6 +140,7 @@ TEST_F(URLParserTest, ParseRelative)
     checkRelativeURL("/index.html", "http://webkit.org/path1/path2/", {"http", "", "", "webkit.org", 0, "/index.html", "", "", "http://webkit.org/index.html"});
     checkRelativeURL("http://whatwg.org/index.html", "http://webkit.org/path1/path2/", {"http", "", "", "whatwg.org", 0, "/index.html", "", "", "http://whatwg.org/index.html"});
     checkRelativeURL("index.html", "http://webkit.org/path1/path2/page.html?query#fragment", {"http", "", "", "webkit.org", 0, "/path1/path2/index.html", "", "", "http://webkit.org/path1/path2/index.html"});
+    checkRelativeURL("//whatwg.org/index.html", "https://www.webkit.org/path", {"https", "", "", "whatwg.org", 0, "/index.html", "", "", "https://whatwg.org/index.html"});
 }
 
 static void checkURLDifferences(const String& urlString, const ExpectedParts& partsNew, const ExpectedParts& partsOld)
@@ -162,6 +171,37 @@ static void checkURLDifferences(const String& urlString, const ExpectedParts& pa
     EXPECT_FALSE(URLParser::allValuesEqual(url, oldURL));
 }
 
+static void checkRelativeURLDifferences(const String& urlString, const String& baseURLString, const ExpectedParts& partsNew, const ExpectedParts& partsOld)
+{
+    URLParser baseParser;
+    auto base = baseParser.parse(baseURLString);
+    
+    URLParser parser;
+    auto url = parser.parse(urlString, base);
+    EXPECT_TRUE(eq(partsNew.protocol, url.protocol()));
+    EXPECT_TRUE(eq(partsNew.user, url.user()));
+    EXPECT_TRUE(eq(partsNew.password, url.pass()));
+    EXPECT_TRUE(eq(partsNew.host, url.host()));
+    EXPECT_EQ(partsNew.port, url.port());
+    EXPECT_TRUE(eq(partsNew.path, url.path()));
+    EXPECT_TRUE(eq(partsNew.query, url.query()));
+    EXPECT_TRUE(eq(partsNew.fragment, url.fragmentIdentifier()));
+    EXPECT_TRUE(eq(partsNew.string, url.string()));
+    
+    auto oldURL = URL(URL(URL(), baseURLString), urlString);
+    EXPECT_TRUE(eq(partsOld.protocol, oldURL.protocol()));
+    EXPECT_TRUE(eq(partsOld.user, oldURL.user()));
+    EXPECT_TRUE(eq(partsOld.password, oldURL.pass()));
+    EXPECT_TRUE(eq(partsOld.host, oldURL.host()));
+    EXPECT_EQ(partsOld.port, oldURL.port());
+    EXPECT_TRUE(eq(partsOld.path, oldURL.path()));
+    EXPECT_TRUE(eq(partsOld.query, oldURL.query()));
+    EXPECT_TRUE(eq(partsOld.fragment, oldURL.fragmentIdentifier()));
+    EXPECT_TRUE(eq(partsOld.string, oldURL.string()));
+    
+    EXPECT_FALSE(URLParser::allValuesEqual(url, oldURL));
+}
+
 TEST_F(URLParserTest, ParserDifferences)
 {
     checkURLDifferences("http://127.0.1",
@@ -170,6 +210,24 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("http://011.11.0X11.0x011",
         {"http", "", "", "9.11.17.17", 0, "/", "", "", "http://9.11.17.17/"},
         {"http", "", "", "011.11.0x11.0x011", 0, "/", "", "", "http://011.11.0x11.0x011/"});
+    checkURLDifferences("http://[1234:0078:90AB:CdEf:0123:0007:89AB:0000]",
+        {"http", "", "", "[1234:78:90ab:cdef:123:7:89ab:0]", 0, "/", "", "", "http://[1234:78:90ab:cdef:123:7:89ab:0]/"},
+        {"http", "", "", "[1234:0078:90ab:cdef:0123:0007:89ab:0000]", 0, "/", "", "", "http://[1234:0078:90ab:cdef:0123:0007:89ab:0000]/"});
+    checkURLDifferences("http://[0:f:0:0:f:f:0:0]",
+        {"http", "", "", "[0:f::f:f:0:0]", 0, "/", "", "", "http://[0:f::f:f:0:0]/"},
+        {"http", "", "", "[0:f:0:0:f:f:0:0]", 0, "/", "", "", "http://[0:f:0:0:f:f:0:0]/"});
+    checkURLDifferences("http://[0:f:0:0:f:0:0:0]",
+        {"http", "", "", "[0:f:0:0:f::]", 0, "/", "", "", "http://[0:f:0:0:f::]/"},
+        {"http", "", "", "[0:f:0:0:f:0:0:0]", 0, "/", "", "", "http://[0:f:0:0:f:0:0:0]/"});
+    checkURLDifferences("http://[0:0:f:0:0:f:0:0]",
+        {"http", "", "", "[::f:0:0:f:0:0]", 0, "/", "", "", "http://[::f:0:0:f:0:0]/"},
+        {"http", "", "", "[0:0:f:0:0:f:0:0]", 0, "/", "", "", "http://[0:0:f:0:0:f:0:0]/"});
+
+    // FIXME: This behavior ought to be specified in the standard.
+    // With the existing URL::parse, WebKit returns "https:/", Firefox returns "https:///", and Chrome throws an error.
+    checkRelativeURLDifferences("//", "https://www.webkit.org/path",
+        {"https", "", "", "", 0, "", "", "", "https://"},
+        {"https", "", "", "", 0, "/", "", "", "https:/"});
 }
 
 static void shouldFail(const String& urlString)

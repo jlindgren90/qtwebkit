@@ -130,6 +130,7 @@ void URLParser::copyURLPartsUntil(const URL& base, URLPart part)
     
 URL URLParser::parse(const String& input, const URL& base, const TextEncoding&)
 {
+    LOG(URLParser, "Parsing URL <%s> base <%s>", input.utf8().data(), base.string().utf8().data());
     m_url = { };
     m_buffer.clear();
     m_authorityOrHostBuffer.clear();
@@ -297,6 +298,8 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding&)
             LOG_STATE("RelativeSlash");
             if (*c == '/' || *c == '\\') {
                 ++c;
+                copyURLPartsUntil(base, URLPart::SchemeEnd);
+                m_buffer.append("://");
                 state = State::SpecialAuthorityIgnoreSlashes;
             } else {
                 copyURLPartsUntil(base, URLPart::PortEnd);
@@ -525,6 +528,7 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding&)
 
     m_url.m_string = m_buffer.toString();
     m_url.m_isValid = true;
+    LOG(URLParser, "Parsed URL <%s>", m_url.m_string.utf8().data());
     return m_url;
 }
 
@@ -559,6 +563,74 @@ static void serializeIPv4(uint32_t address, StringBuilder& buffer)
     buffer.appendNumber(address & 0xFF);
 }
     
+static size_t zeroSequenceLength(const std::array<uint16_t, 8>& address, size_t begin)
+{
+    size_t end = begin;
+    for (; end < 8; end++) {
+        if (address[end])
+            break;
+    }
+    return end - begin;
+}
+
+static Optional<size_t> findLongestZeroSequence(const std::array<uint16_t, 8>& address)
+{
+    Optional<size_t> longest;
+    size_t longestLength = 0;
+    for (size_t i = 0; i < 8; i++) {
+        size_t length = zeroSequenceLength(address, i);
+        if (length) {
+            if (length > 1 && (!longest || longestLength < length)) {
+                longest = i;
+                longestLength = length;
+            }
+            i += length;
+        }
+    }
+    return longest;
+}
+    
+static void serializeIPv6Piece(uint16_t piece, StringBuilder& buffer)
+{
+    bool printed = false;
+    if (auto nibble0 = piece >> 12) {
+        buffer.append(lowerNibbleToLowercaseASCIIHexDigit(nibble0));
+        printed = true;
+    }
+    auto nibble1 = piece >> 8 & 0xF;
+    if (printed || nibble1) {
+        buffer.append(lowerNibbleToLowercaseASCIIHexDigit(nibble1));
+        printed = true;
+    }
+    auto nibble2 = piece >> 4 & 0xF;
+    if (printed || nibble2)
+        buffer.append(lowerNibbleToLowercaseASCIIHexDigit(nibble2));
+    buffer.append(lowerNibbleToLowercaseASCIIHexDigit(piece & 0xF));
+}
+
+static void serializeIPv6(std::array<uint16_t, 8> address, StringBuilder& buffer)
+{
+    buffer.append('[');
+    auto compressPointer = findLongestZeroSequence(address);
+    for (size_t piece = 0; piece < 8; piece++) {
+        if (compressPointer && compressPointer.value() == piece) {
+            ASSERT(!address[piece]);
+            if (piece)
+                buffer.append(':');
+            else
+                buffer.append("::");
+            while (!address[piece])
+                piece++;
+            if (piece == 8)
+                break;
+        }
+        serializeIPv6Piece(address[piece], buffer);
+        if (piece < 7)
+            buffer.append(':');
+    }
+    buffer.append(']');
+}
+
 static Optional<uint32_t> parseIPv4Number(StringView::CodePoints::Iterator& iterator, const StringView::CodePoints::Iterator& end)
 {
     // FIXME: Check for overflow.
@@ -656,10 +728,96 @@ static Optional<uint32_t> parseIPv4Host(StringView::CodePoints::Iterator iterato
     return ipv4;
 }
 
-static Optional<std::array<uint16_t, 8>> parseIPv6Host(StringView::CodePoints::Iterator, StringView::CodePoints::Iterator)
+static Optional<std::array<uint16_t, 8>> parseIPv6Host(StringView::CodePoints::Iterator c, StringView::CodePoints::Iterator end)
 {
-    notImplemented();
-    return Nullopt;
+    if (c == end)
+        return Nullopt;
+
+    std::array<uint16_t, 8> address = {{0, 0, 0, 0, 0, 0, 0, 0}};
+    size_t piecePointer = 0;
+    Optional<size_t> compressPointer;
+
+    if (*c == ':') {
+        ++c;
+        if (c == end)
+            return Nullopt;
+        if (*c != ':')
+            return Nullopt;
+        ++c;
+        ++piecePointer;
+        compressPointer = piecePointer;
+    }
+    
+    while (c != end) {
+        if (piecePointer == 8)
+            return Nullopt;
+        if (*c == ':') {
+            if (compressPointer)
+                return Nullopt;
+            ++c;
+            ++piecePointer;
+            compressPointer = piecePointer;
+            continue;
+        }
+        uint16_t value = 0;
+        for (size_t length = 0; length < 4; length++) {
+            if (c == end)
+                break;
+            if (!isASCIIHexDigit(*c))
+                break;
+            value = value * 0x10 + toASCIIHexValue(*c);
+            ++c;
+        }
+        address[piecePointer++] = value;
+        if (c == end)
+            break;
+        if (*c != ':')
+            return Nullopt;
+        ++c;
+    }
+    
+    if (c != end) {
+        if (piecePointer > 6)
+            return Nullopt;
+        size_t dotsSeen = 0;
+        while (c != end) {
+            Optional<uint16_t> value;
+            if (!isASCIIDigit(*c))
+                return Nullopt;
+            while (isASCIIDigit(*c)) {
+                auto number = *c - '0';
+                if (!value)
+                    value = number;
+                else if (!value.value())
+                    return Nullopt;
+                else
+                    value = value.value() * 10 + number;
+                ++c;
+                if (c == end)
+                    return Nullopt;
+                if (value.value() > 255)
+                    return Nullopt;
+            }
+            if (dotsSeen < 3 && *c != '.')
+                return Nullopt;
+            address[piecePointer] = address[piecePointer] * 0x100 + value.valueOr(0);
+            if (dotsSeen == 1 || dotsSeen == 3)
+                piecePointer++;
+            if (c != end)
+                ++c;
+            if (dotsSeen == 3 && c != end)
+                return Nullopt;
+            dotsSeen++;
+        }
+    }
+    if (compressPointer) {
+        size_t swaps = piecePointer - compressPointer.value();
+        piecePointer = 7;
+        while (swaps)
+            std::swap(address[piecePointer--], address[compressPointer.value() + swaps-- - 1]);
+    } else if (piecePointer != 8)
+        return Nullopt;
+    return address;
 }
 
 void URLParser::hostEndReached()
@@ -671,8 +829,16 @@ void URLParser::hostEndReached()
         return;
     if (*iterator == '[') {
         ++iterator;
-        parseIPv6Host(iterator, end);
-        return;
+        auto ipv6End = iterator;
+        while (ipv6End != end && *ipv6End != ']')
+            ++ipv6End;
+        if (auto address = parseIPv6Host(iterator, ipv6End)) {
+            serializeIPv6(address.value(), m_buffer);
+            m_url.m_hostEnd = m_buffer.length();
+            // FIXME: Handle the port correctly.
+            m_url.m_portEnd = m_buffer.length();            
+            return;
+        }
     }
     if (auto address = parseIPv4Host(iterator, end)) {
         serializeIPv4(address.value(), m_buffer);
@@ -741,6 +907,18 @@ bool URLParser::allValuesEqual(const URL& a, const URL& b)
         && a.m_pathEnd == b.m_pathEnd
         && a.m_queryEnd == b.m_queryEnd
         && a.m_fragmentEnd == b.m_fragmentEnd;
+}
+
+static bool urlParserEnabled = false;
+
+void URLParser::setEnabled(bool enabled)
+{
+    urlParserEnabled = enabled;
+}
+
+bool URLParser::enabled()
+{
+    return urlParserEnabled;
 }
 
 } // namespace WebCore

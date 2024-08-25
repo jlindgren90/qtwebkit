@@ -1,3 +1,372 @@
+2016-08-31  Keith Rollin  <krollin@apple.com>
+
+        WebKit should set a subsystem for os_log so it's easier to filter for WebKit log messages
+        https://bugs.webkit.org/show_bug.cgi?id=160969
+        <rdar://problem/26068734>
+
+        Reviewed by Simon Fraser.
+
+        - Specify a channel when using RELEASE_LOG macros.
+        - Add some new channels so that we have something to pass to the
+          RELEASE_LOG macros (ProcessSuspension, IPC, Layers).
+        - Enable subsystem- and channel-related data and functions when using
+          RELEASE_LOG macros.
+        - Use the DECLARE_LOG_CHANNEL, DEFINE_LOG_CHANNEL, and
+          LOG_CHANNEL_ADDRESS macros that are now defined in WTF.
+
+        * NetworkProcess/Downloads/Download.cpp:
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::prepareToSuspend):
+        (WebKit::NetworkProcess::cancelPrepareToSuspend):
+        (WebKit::NetworkProcess::processDidResume):
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::waitForSyncReply):
+        * Platform/LogInitialization.h:
+        * Platform/Logging.cpp:
+        (WebKit::initializeLogChannelsIfNecessary):
+        * Platform/Logging.h:
+        * Platform/foundation/LoggingFoundation.mm:
+        * Platform/unix/LoggingUnix.cpp:
+        * Shared/ChildProcess.cpp:
+        (WebKit::didCloseOnConnectionWorkQueue):
+        * Shared/WebKit2Initialize.cpp:
+        (WebKit::InitializeWebKit2):
+        * UIProcess/Cocoa/NavigationState.mm:
+        (WebKit::NavigationState::releaseNetworkActivityToken):
+        (WebKit::NavigationState::didChangeIsLoading):
+        * UIProcess/Network/NetworkProcessProxy.cpp:
+        (WebKit::NetworkProcessProxy::fetchWebsiteData):
+        (WebKit::NetworkProcessProxy::deleteWebsiteData):
+        (WebKit::NetworkProcessProxy::deleteWebsiteDataForOrigins):
+        (WebKit::NetworkProcessProxy::setIsHoldingLockedFiles):
+        * UIProcess/ProcessThrottler.cpp:
+        (WebKit::ProcessThrottler::updateAssertionNow):
+        (WebKit::ProcessThrottler::updateAssertion):
+        * UIProcess/WebPageProxy.cpp:
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::m_hiddenPageThrottlingTimer):
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::fetchWebsiteData):
+        (WebKit::WebProcessProxy::deleteWebsiteData):
+        (WebKit::WebProcessProxy::deleteWebsiteDataForOrigins):
+        (WebKit::WebProcessProxy::didSetAssertionState):
+        (WebKit::WebProcessProxy::setIsHoldingLockedFiles):
+        * UIProcess/ios/ProcessAssertionIOS.mm:
+        (-[WKProcessAssertionBackgroundTaskManager _updateBackgroundTask]):
+        (WebKit::ProcessAssertion::ProcessAssertion):
+        * WebProcess/Network/WebLoaderStrategy.cpp:
+        * WebProcess/Network/WebResourceLoader.cpp:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::layerVolatilityTimerFired):
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::actualPrepareToSuspend):
+        (WebKit::WebProcess::processWillSuspendImminently):
+        (WebKit::WebProcess::prepareToSuspend):
+        (WebKit::WebProcess::cancelPrepareToSuspend):
+        (WebKit::WebProcess::markAllLayersVolatile):
+        (WebKit::WebProcess::processDidResume):
+
+2016-08-31  Yoav Weiss  <yoav@yoav.ws>
+
+        Add event support for link preload.
+        https://bugs.webkit.org/show_bug.cgi?id=158466
+
+        Reviewed by Alex Christensen.
+
+        * WebProcess/Network/WebLoaderStrategy.cpp:
+        (WebKit::maximumBufferingTime): Removed LinkPreload.
+
+2016-08-31  Alex Christensen  <achristensen@webkit.org>
+
+        Add runtime flag for using URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=161363
+
+        Reviewed by Sam Weinig.
+
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::initializeNetworkProcess):
+        * NetworkProcess/NetworkProcessCreationParameters.cpp:
+        (WebKit::NetworkProcessCreationParameters::encode):
+        (WebKit::NetworkProcessCreationParameters::decode):
+        * NetworkProcess/NetworkProcessCreationParameters.h:
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * PlatformMac.cmake:
+        * Shared/Cocoa/WebKit2InitializeCocoa.mm: Added.
+        (WebKit::platformInitializeWebKit2):
+        * Shared/EntryPointUtilities/mac/XPCService/XPCServiceEntryPoint.h:
+        (WebKit::XPCServiceInitializer):
+        * Shared/WebKit2Initialize.cpp:
+        (WebKit::InitializeWebKit2):
+        * Shared/WebKit2Initialize.h:
+        * Shared/WebProcessCreationParameters.cpp:
+        (WebKit::WebProcessCreationParameters::encode):
+        (WebKit::WebProcessCreationParameters::decode):
+        * Shared/WebProcessCreationParameters.h:
+        * Shared/efl/WebKit2InitializeEFL.cpp: Added.
+        (WebKit::platformInitializeWebKit2):
+        * Shared/gtk/WebKit2InitializeGTK.cpp: Added.
+        (WebKit::platformInitializeWebKit2):
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::ensureNetworkProcess):
+        (WebKit::WebProcessPool::createNewWebProcess):
+        * WebKit2.xcodeproj/project.pbxproj:
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess):
+
+2016-08-30  Anders Carlsson  <andersca@apple.com>
+
+        Use Connection::sendWithReply for the SecItem shim messages
+        https://bugs.webkit.org/show_bug.cgi?id=161419
+
+        Reviewed by Tim Horton.
+
+        * DerivedSources.make:
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::initializeConnection):
+        * NetworkProcess/mac/NetworkProcessMac.mm:
+        (WebKit::NetworkProcess::platformInitializeNetworkProcess):
+        * Shared/mac/SecItemShim.cpp:
+        (WebKit::workQueue):
+        (WebKit::sendSecItemRequest):
+        (WebKit::webSecItemCopyMatching):
+        (WebKit::webSecItemAdd):
+        (WebKit::webSecItemUpdate):
+        (WebKit::webSecItemDelete):
+        (WebKit::initializeSecItemShim):
+        (WebKit::responseMap): Deleted.
+        (WebKit::SecItemShim::singleton): Deleted.
+        (WebKit::SecItemShim::SecItemShim): Deleted.
+        (WebKit::generateSecItemRequestID): Deleted.
+        (WebKit::SecItemShim::secItemResponse): Deleted.
+        (WebKit::SecItemShim::initialize): Deleted.
+        (WebKit::SecItemShim::initializeConnection): Deleted.
+        * Shared/mac/SecItemShim.h:
+        * Shared/mac/SecItemShim.messages.in: Removed.
+        * UIProcess/mac/SecItemShimProxy.cpp:
+        (WebKit::SecItemShimProxy::didReceiveMessage):
+        (WebKit::SecItemShimProxy::secItemRequest):
+        * UIProcess/mac/SecItemShimProxy.h:
+        * UIProcess/mac/SecItemShimProxy.messages.in:
+        * WebKit2.xcodeproj/project.pbxproj:
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeConnection):
+        * WebProcess/cocoa/WebProcessCocoa.mm:
+        (WebKit::WebProcess::platformInitializeProcess):
+
+2016-08-31  Andreas Kling  <akling@apple.com>
+
+        DOM event handling should pass Event around by reference.
+        <https://webkit.org/b/161398>
+
+        Reviewed by Chris Dumez.
+
+        * WebProcess/WebPage/mac/WebPageMac.mm:
+        (WebKit::WebPage::performNonEditingBehaviorForSelector):
+
+2016-08-31  Brady Eidson  <beidson@apple.com>
+
+        WK2 Gamepad provider on iOS.
+        https://bugs.webkit.org/show_bug.cgi?id=161412
+
+        Reviewed by Tim Horton.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+        * Platform/spi/ios/UIKitSPI.h:
+
+        * UIProcess/Gamepad/UIGamepadProvider.cpp:
+
+        * UIProcess/Gamepad/ios/UIGamepadProviderIOS.mm: Copied from Source/WebKit2/UIProcess/Gamepad/mac/UIGamepadProviderMac.mm.
+        (WebKit::UIGamepadProvider::platformWebPageProxyForGamepadInput):
+
+        * UIProcess/Gamepad/mac/UIGamepadProviderMac.mm:
+
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-08-30  Anders Carlsson  <andersca@apple.com>
+
+        Try to fix the 32-bit build.
+
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::deleteWebsiteData):
+        (WebKit::WebProcessProxy::deleteWebsiteDataForOrigins):
+        * UIProcess/WebProcessProxy.h:
+
+2016-08-30  Anders Carlsson  <andersca@apple.com>
+
+        Switch more messages over to Connection::sendWithReply
+        https://bugs.webkit.org/show_bug.cgi?id=161415
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::~WebProcessProxy):
+        (WebKit::WebProcessProxy::processWillShutDown):
+        (WebKit::WebProcessProxy::canTerminateChildProcess):
+        (WebKit::WebProcessProxy::deleteWebsiteData):
+        (WebKit::WebProcessProxy::deleteWebsiteDataForOrigins):
+        (WebKit::generateCallbackID): Deleted.
+        (WebKit::WebProcessProxy::didDeleteWebsiteData): Deleted.
+        (WebKit::WebProcessProxy::didDeleteWebsiteDataForOrigins): Deleted.
+        * UIProcess/WebProcessProxy.h:
+        * UIProcess/WebProcessProxy.messages.in:
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::deleteWebsiteData):
+        (WebKit::WebProcess::deleteWebsiteDataForOrigins):
+        * WebProcess/WebProcess.h:
+        * WebProcess/WebProcess.messages.in:
+
+2016-08-30  Anders Carlsson  <andersca@apple.com>
+
+        Add Connection::sendWithReply
+        https://bugs.webkit.org/show_bug.cgi?id=161399
+
+        Reviewed by Tim Horton.
+
+        Connection::sendWithReply makes it easy to send a message and process its reply asynchronously on a given WorkQueue or RunLoop.
+        The reply handler is guaranteed to be called. If the reply is successfully received, it will consist of an std::tuple with the arguments,
+        otherwise it will be called with Nullopt.
+
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::invalidate):
+        Go through all reply handlers and dispatch them with a null Decoder.
+
+        (IPC::Connection::sendMessageWithReply):
+        Add the reply handler to the m_replyHandlers hash map, and send the message.
+
+        (IPC::Connection::processIncomingSyncReply):
+        Check if the incoming reply has an entry in m_replyHandlers. If it does, dispatch its handler using the given dispatcher.
+
+        (IPC::Connection::connectionDidClose):
+        Go through all reply handlers and dispatch them with a null Decoder.
+
+        * Platform/IPC/Connection.h:
+        (IPC::Connection::sendWithReply):
+        Encode the message (we use the sync message ID infrastructure for this), then call sendMessageWithReply with a reply handler that
+        decodes the reply and calls the real reply handler.
+
+        * Platform/IPC/HandleMessage.h:
+        Forward declare Connection.
+
+        * UIProcess/Databases/DatabaseProcessProxy.h:
+        * UIProcess/Network/NetworkProcessProxy.h:
+        Forward declare WebsiteData.
+
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::~WebProcessProxy):
+        (WebKit::WebProcessProxy::processWillShutDown):
+        Remove m_pendingFetchWebsiteDataCallbacks.
+
+        (WebKit::WebProcessProxy::fetchWebsiteData):
+        Use Connection::sendWithReply.
+
+        (WebKit::WebProcessProxy::didFetchWebsiteData): Deleted.
+
+        * UIProcess/WebProcessProxy.h:
+        Remove members.
+
+        * UIProcess/WebProcessProxy.messages.in:
+        Remove DidFetchWebsiteData.
+
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::fetchWebsiteData):
+        * WebProcess/WebProcess.h:
+        * WebProcess/WebProcess.messages.in:
+        Update the FetchWebsiteData message to have a reply parameter.
+
+2016-08-30  Brady Eidson  <beidson@apple.com>
+
+        Fix runtime error caused by missing export after https://bugs.webkit.org/show_bug.cgi?id=160846
+
+        Rubberstamped by Dan Bernstein.
+
+        * UIProcess/API/Cocoa/_WKVisitedLinkProvider.mm:
+
+2016-08-30  Brady Eidson  <beidson@apple.com>
+
+        GameController.framework backend for gamepad API.
+        https://bugs.webkit.org/show_bug.cgi?id=161086
+
+        Reviewed by Alex Christensen.
+
+        * UIProcess/API/Cocoa/WKProcessPool.mm:
+        (+[WKProcessPool _forceGameControllerFramework]):
+        * UIProcess/API/Cocoa/WKProcessPoolPrivate.h:
+
+        * UIProcess/Gamepad/UIGamepadProvider.h:
+
+        * UIProcess/Gamepad/cocoa/UIGamepadProviderCocoa.mm: Renamed from Source/WebKit2/UIProcess/Gamepad/mac/UIGamepadProviderHID.cpp.
+        (WebKit::UIGamepadProvider::setUsesGameControllerFramework):
+        (WebKit::UIGamepadProvider::platformSetDefaultGamepadProvider):
+        (WebKit::UIGamepadProvider::platformStopMonitoringInput):
+        (WebKit::UIGamepadProvider::platformStartMonitoringInput):
+
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-08-30  Mark Lam  <mark.lam@apple.com>
+
+        Introduce the ThrowScope and force every throw site to instantiate a ThrowScope.
+        https://bugs.webkit.org/show_bug.cgi?id=161171
+
+        Reviewed by Filip Pizlo and Geoffrey Garen.
+
+        * WebProcess/Plugins/Netscape/JSNPMethod.cpp:
+        (WebKit::callMethod):
+        * WebProcess/Plugins/Netscape/JSNPObject.cpp:
+        (WebKit::JSNPObject::callMethod):
+        (WebKit::JSNPObject::callObject):
+        (WebKit::JSNPObject::callConstructor):
+        (WebKit::JSNPObject::getOwnPropertySlot):
+        (WebKit::JSNPObject::put):
+        (WebKit::JSNPObject::deleteProperty):
+        (WebKit::JSNPObject::getOwnPropertyNames):
+        (WebKit::JSNPObject::propertyGetter):
+        (WebKit::JSNPObject::methodGetter):
+        (WebKit::JSNPObject::throwInvalidAccessError):
+        * WebProcess/Plugins/Netscape/JSNPObject.h:
+        * WebProcess/Plugins/Netscape/NPRuntimeObjectMap.cpp:
+        (WebKit::NPRuntimeObjectMap::moveGlobalExceptionToExecState):
+
+2016-08-29  Anders Carlsson  <andersca@apple.com>
+
+        Stop using m_client to indicate whether an IPC::Connection is valid
+        https://bugs.webkit.org/show_bug.cgi?id=161362
+
+        Reviewed by Andreas Kling.
+
+        Instead, add an std::atomic<bool> so we can reliably check the state from other threads.
+
+        * Platform/IPC/Connection.cpp:
+        (IPC::Connection::Connection):
+        (IPC::Connection::invalidate):
+        (IPC::Connection::connectionDidClose):
+        (IPC::Connection::dispatchSyncMessage):
+        (IPC::Connection::dispatchDidReceiveInvalidMessage):
+        (IPC::Connection::dispatchMessage):
+        * Platform/IPC/Connection.h:
+        (IPC::Connection::client):
+        (IPC::Connection::isValid):
+        (IPC::Connection::waitForAndDispatchImmediately):
+        * UIProcess/WebGeolocationManagerProxy.cpp:
+        (WebKit::WebGeolocationManagerProxy::startUpdating):
+        (WebKit::WebGeolocationManagerProxy::stopUpdating):
+        (WebKit::WebGeolocationManagerProxy::setEnableHighAccuracy):
+
+2016-08-30  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r194846): [GTK] UI process crash visiting sites protected with HTTP auth when using GTK+ < 3.14
+        https://bugs.webkit.org/show_bug.cgi?id=161385
+
+        Reviewed by Antonio Gomes.
+
+        Since r194846, we are chaining up webkitWebViewBaseMotionNotifyEvent, but before GTK+ 3.14
+        GtkWidget::motion_notify_event was nullptr, so it can't be used unconditionally.
+
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseMotionNotifyEvent):
+
 2016-08-30  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         Unreviewed. Fix GTK+ build after r205150.

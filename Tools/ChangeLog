@@ -1,3 +1,81 @@
+2016-08-31  Alex Christensen  <achristensen@webkit.org>
+
+        Implement IPv6 parsing in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=161390
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+        (TestWebKitAPI::checkURLDifferences):
+
+2016-08-31  Brady Eidson  <beidson@apple.com>
+
+        WK2 Gamepad provider on iOS.
+        https://bugs.webkit.org/show_bug.cgi?id=161412
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-08-30  Ricky Mondello  <rmondello@apple.com>
+
+        YouTubePluginReplacementTest's URL transformation logic should have tests
+        https://bugs.webkit.org/show_bug.cgi?id=161406
+        <rdar://problem/28050847>
+
+        Reviewed by Eric Carlson.
+
+        Add some very basic tests. Future patches should expand on these to find and fix bugs.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj: Add YouTubePluginReplacement.cpp.
+        * TestWebKitAPI/Tests/WebCore/YouTubePluginReplacement.cpp: Added.
+        (TestWebKitAPI::test): Added.
+        (TestWebKitAPI::TEST_F): Added.
+
+2016-08-30  Brady Eidson  <beidson@apple.com>
+
+        GameController.framework backend for gamepad API.
+        https://bugs.webkit.org/show_bug.cgi?id=161086
+
+        Reviewed by Alex Christensen.
+
+        * MiniBrowser/mac/AppDelegate.m:
+        (-[BrowserAppDelegate awakeFromNib]):
+
+        * MiniBrowser/mac/SettingsController.h:
+        * MiniBrowser/mac/SettingsController.m:
+        (-[SettingsController _populateMenu]):
+        (-[SettingsController validateMenuItem:]):
+        (-[SettingsController usesGameControllerFramework]):
+        (-[SettingsController toggleUsesGameControllerFramework:]):
+
+2016-08-30  Brent Fulgham  <bfulgham@apple.com>
+
+        Use of uninitialised memory in TransformationMatrx::blend4()
+        https://bugs.webkit.org/show_bug.cgi?id=134621
+        <rdar://problem/27337539>
+
+        Reviewed by Dean Jackson.
+
+        Change is based on the Blink change (patch by <alancutter@chromium.org>):
+        <https://src.chromium.org/viewvc/blink?revision=177453&view=revision>
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebCore/TransformationMatrix.cpp: Added.
+        (TestWebKitAPI::TEST):
+
+2016-08-30  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should handle relative URLs that start with //
+        https://bugs.webkit.org/show_bug.cgi?id=161364
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::checkRelativeURL):
+        (TestWebKitAPI::TEST_F):
+
 2016-08-29  Aakash Jain  <aakash_jain@apple.com>
 
         EWS patch status page should indicate bot corresponding to each status message

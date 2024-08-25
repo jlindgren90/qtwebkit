@@ -107,8 +107,6 @@ static CachedResource* createResource(CachedResource::Type type, ResourceRequest
     case CachedResource::XSLStyleSheet:
         return new CachedXSLStyleSheet(request, sessionID);
 #endif
-    case CachedResource::LinkPreload:
-        return new CachedResource(request, CachedResource::LinkPreload, sessionID);
 #if ENABLE(LINK_PREFETCH)
     case CachedResource::LinkPrefetch:
         return new CachedResource(request, CachedResource::LinkPrefetch, sessionID);
@@ -316,7 +314,6 @@ static MixedContentChecker::ContentType contentTypeFromResourceType(CachedResour
         return MixedContentChecker::ContentType::Active;
 #endif
 
-    case CachedResource::LinkPreload:
 #if ENABLE(LINK_PREFETCH)
     case CachedResource::LinkPrefetch:
     case CachedResource::LinkSubresource:
@@ -361,8 +358,7 @@ bool CachedResourceLoader::checkInsecureContent(CachedResource::Type type, const
 #if ENABLE(SVG_FONTS)
     case CachedResource::SVGFontResource:
 #endif
-    case CachedResource::FontResource:
-    case CachedResource::LinkPreload: {
+    case CachedResource::FontResource: {
         // These resources can corrupt only the frame's pixels.
         if (Frame* f = frame()) {
             Frame& topFrame = f->tree().top();
@@ -382,6 +378,11 @@ bool CachedResourceLoader::checkInsecureContent(CachedResource::Type type, const
     return true;
 }
 
+static inline bool isSameOriginDataURL(const URL& url, const ResourceLoaderOptions& options, bool didReceiveRedirectResponse)
+{
+    return !didReceiveRedirectResponse && url.protocolIsData() && options.sameOriginDataURLFlag == SameOriginDataURLFlag::Set;
+}
+
 bool CachedResourceLoader::canRequest(CachedResource::Type type, const URL& url, const ResourceLoaderOptions& options, bool forPreload, bool didReceiveRedirectResponse)
 {
     if (document() && !document()->securityOrigin()->canDisplay(url)) {
@@ -394,9 +395,8 @@ bool CachedResourceLoader::canRequest(CachedResource::Type type, const URL& url,
     bool skipContentSecurityPolicyCheck = options.contentSecurityPolicyImposition == ContentSecurityPolicyImposition::SkipPolicyCheck;
     ContentSecurityPolicy::RedirectResponseReceived redirectResponseReceived = didReceiveRedirectResponse ? ContentSecurityPolicy::RedirectResponseReceived::Yes : ContentSecurityPolicy::RedirectResponseReceived::No;
 
-    // Some types of resources can be loaded only from the same origin.  Other
-    // types of resources, like Images, Scripts, and CSS, can be loaded from
-    // any URL.
+    // Some types of resources can be loaded only from the same origin. Other types of resources, like Images, Scripts, and CSS, can be loaded from any URL.
+    // FIXME: We should remove that check and handle it by setting the correct ResourceLoaderOptions::mode.
     switch (type) {
     case CachedResource::MainResource:
     case CachedResource::ImageResource:
@@ -408,7 +408,6 @@ bool CachedResourceLoader::canRequest(CachedResource::Type type, const URL& url,
     case CachedResource::MediaResource:
     case CachedResource::FontResource:
     case CachedResource::RawResource:
-    case CachedResource::LinkPreload:
 #if ENABLE(LINK_PREFETCH)
     case CachedResource::LinkPrefetch:
     case CachedResource::LinkSubresource:
@@ -416,7 +415,7 @@ bool CachedResourceLoader::canRequest(CachedResource::Type type, const URL& url,
 #if ENABLE(VIDEO_TRACK)
     case CachedResource::TextTrackResource:
 #endif
-        if (options.mode == FetchOptions::Mode::SameOrigin && !m_document->securityOrigin()->canRequest(url)) {
+        if (options.mode == FetchOptions::Mode::SameOrigin && !isSameOriginDataURL(url, options, didReceiveRedirectResponse) &&!m_document->securityOrigin()->canRequest(url)) {
             printAccessDeniedMessage(url);
             return false;
         }
@@ -464,8 +463,6 @@ bool CachedResourceLoader::canRequest(CachedResource::Type type, const URL& url,
     }
     case CachedResource::MainResource:
     case CachedResource::RawResource:
-    // FIXME: Preload should be subject to connect-src.
-    case CachedResource::LinkPreload:
 #if ENABLE(LINK_PREFETCH)
     case CachedResource::LinkPrefetch:
     case CachedResource::LinkSubresource:
@@ -659,6 +656,11 @@ CachedResourceHandle<CachedResource> CachedResourceLoader::requestResource(Cache
 
     if (!request.forPreload() || policy != Use)
         resource->setLoadPriority(request.priority());
+
+    if (!request.forPreload() && resource->loader() && resource->resourceRequest().ignoreForRequestCount()) {
+        resource->resourceRequest().setIgnoreForRequestCount(false);
+        incrementRequestCount(*resource);
+    }
 
     if ((policy != Use || resource->stillNeedsLoad()) && CachedResourceRequest::NoDefer == request.defer()) {
         resource->load(*this, request.options());
@@ -1066,7 +1068,7 @@ void CachedResourceLoader::decrementRequestCount(const CachedResource& resource)
     ASSERT(m_requestCount > -1);
 }
 
-void CachedResourceLoader::preload(CachedResource::Type type, CachedResourceRequest& request, const String& charset)
+CachedResourceHandle<CachedResource> CachedResourceLoader::preload(CachedResource::Type type, CachedResourceRequest& request, const String& charset, PreloadType preloadType)
 {
     // We always preload resources on iOS. See <https://bugs.webkit.org/show_bug.cgi?id=91276>.
     // FIXME: We should consider adding a setting to toggle aggressive preloading behavior as opposed
@@ -1074,15 +1076,17 @@ void CachedResourceLoader::preload(CachedResource::Type type, CachedResourceRequ
 #if !PLATFORM(IOS)
     bool hasRendering = m_document->bodyOrFrameset() && m_document->renderView();
     bool canBlockParser = type == CachedResource::Script || type == CachedResource::CSSStyleSheet;
-    if (!hasRendering && !canBlockParser) {
+    if (!hasRendering && !canBlockParser && preloadType == ImplicitPreload) {
         // Don't preload subresources that can't block the parser before we have something to draw.
         // This helps prevent preloads from delaying first display when bandwidth is limited.
         PendingPreload pendingPreload = { type, request, charset };
         m_pendingPreloads.append(pendingPreload);
-        return;
+        return nullptr;
     }
+#else
+    UNUSED_PARAM(preloadType);
 #endif
-    requestPreload(type, request, charset);
+    return requestPreload(type, request, charset);
 }
 
 void CachedResourceLoader::checkForPendingPreloads() 
@@ -1107,7 +1111,7 @@ void CachedResourceLoader::checkForPendingPreloads()
     m_pendingPreloads.clear();
 }
 
-void CachedResourceLoader::requestPreload(CachedResource::Type type, CachedResourceRequest& request, const String& charset)
+CachedResourceHandle<CachedResource> CachedResourceLoader::requestPreload(CachedResource::Type type, CachedResourceRequest& request, const String& charset)
 {
     String encoding;
     if (type == CachedResource::Script || type == CachedResource::CSSStyleSheet)
@@ -1118,7 +1122,10 @@ void CachedResourceLoader::requestPreload(CachedResource::Type type, CachedResou
 
     CachedResourceHandle<CachedResource> resource = requestResource(type, request);
     if (!resource || (m_preloads && m_preloads->contains(resource.get())))
-        return;
+        return nullptr;
+    // Fonts need special treatment since just creating the resource doesn't trigger a load.
+    if (type == CachedResource::FontResource)
+        downcast<CachedFont>(resource.get())->beginLoadIfNeeded(*this);
     resource->increasePreloadCount();
 
     if (!m_preloads)
@@ -1128,6 +1135,7 @@ void CachedResourceLoader::requestPreload(CachedResource::Type type, CachedResou
 #if PRELOAD_DEBUG
     printf("PRELOADING %s\n",  resource->url().latin1().data());
 #endif
+    return resource;
 }
 
 bool CachedResourceLoader::isPreloaded(const String& urlString) const

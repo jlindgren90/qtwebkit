@@ -1,3 +1,70 @@
+2016-08-31  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Fetch API should be able to load data URL in Same Origin mode
+        https://bugs.webkit.org/show_bug.cgi?id=161434
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/fetch/api/basic/scheme-data-expected.txt:
+        * web-platform-tests/fetch/api/basic/scheme-data-worker-expected.txt:
+        * web-platform-tests/fetch/api/basic/scheme-data.js:
+        (checkFetchResponse):
+        * web-platform-tests/fetch/api/redirect/redirect-to-dataurl-expected.txt: Added.
+        * web-platform-tests/fetch/api/redirect/redirect-to-dataurl-worker-expected.txt: Added.
+        * web-platform-tests/fetch/api/redirect/redirect-to-dataurl-worker.html: Added.
+        * web-platform-tests/fetch/api/redirect/redirect-to-dataurl.html: Added.
+        * web-platform-tests/fetch/api/redirect/redirect-to-dataurl.js: Added.
+        (redirectDataURL):
+
+2016-08-31  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Request construction failure should not set "bodyUsed"
+        https://bugs.webkit.org/show_bug.cgi?id=161432
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/fetch/api/request/request-disturbed-expected.txt:
+        * web-platform-tests/fetch/api/request/request-disturbed.html:
+
+2016-08-31  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Streams API] Align getReader() with spec
+        https://bugs.webkit.org/show_bug.cgi?id=160508
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Changed 2 expectations, 1 that passes thanks to patch, the other that
+        now fails as getReader() has 1 parameter (0 expected, bug to be filed).
+
+        * web-platform-tests/streams/readable-streams/general.https-expected.txt:
+        * web-platform-tests/streams/readable-streams/templated.https-expected.txt:
+
+2016-08-30  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Blob not found URL should result in a network error
+        https://bugs.webkit.org/show_bug.cgi?id=161381
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/fetch/api/basic/scheme-blob-expected.txt:
+        * web-platform-tests/fetch/api/basic/scheme-blob-worker-expected.txt:
+        * web-platform-tests/fetch/api/basic/scheme-blob-worker.html:
+        * web-platform-tests/fetch/api/basic/scheme-blob.html:
+        * web-platform-tests/fetch/api/basic/scheme-blob.js:
+        (invalidRequestMethods.forEach):
+
+2016-08-30  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Body mix-in text() should decode data as UTF-8
+        https://bugs.webkit.org/show_bug.cgi?id=161372
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/fetch/api/basic/text-utf8-expected.txt: Added.
+        * web-platform-tests/fetch/api/basic/text-utf8.html: Added.
+        * web-platform-tests/fetch/api/resources/status.py: Added.
+        (main):
+
 2016-08-29  Chris Dumez  <cdumez@apple.com>
 
         Unskip several web-platform-tests that are now passing

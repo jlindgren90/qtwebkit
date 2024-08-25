@@ -287,3 +287,6 @@ treatIPAddressAsDomain initial=false
 
 # Runtime-enabled features
 visualViewportEnabled initial=false
+
+quickTimePluginReplacementEnabled initial=defaultQuickTimePluginReplacementEnabled
+youTubeFlashPluginReplacementEnabled initial=defaultYouTubeFlashPluginReplacementEnabled
