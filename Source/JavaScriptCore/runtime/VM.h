@@ -254,7 +254,7 @@ public:
     JS_EXPORT_PRIVATE Watchdog& ensureWatchdog();
     Watchdog* watchdog() { return m_watchdog.get(); }
 
-    JS_EXPORT_PRIVATE HeapProfiler* heapProfiler() const { return m_heapProfiler.get(); }
+    HeapProfiler* heapProfiler() const { return m_heapProfiler.get(); }
     JS_EXPORT_PRIVATE HeapProfiler& ensureHeapProfiler();
 
 #if ENABLE(SAMPLING_PROFILER)
