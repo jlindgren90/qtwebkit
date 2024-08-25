@@ -1,3 +1,86 @@
+2016-09-02  Zalan Bujtas  <zalan@apple.com>
+
+        Should never be reached failure in WebCore::floatValueForLength
+        https://bugs.webkit.org/show_bug.cgi?id=139397
+        <rdar://problem/27704376>
+
+        Reviewed by Simon Fraser.
+
+        floatValueForLength can't resolve unspecified Length types. Filter them out and return 0 as if they were auto.
+
+        Test: svg/css/assert-on-non-resolvable-dimension.html
+
+        * svg/SVGLengthContext.cpp:
+        (WebCore::SVGLengthContext::valueForLength):
+
+2016-09-02  Joseph Pecoraro  <pecoraro@apple.com>
+
+        [Mac] Remove unnecessary RetainPtr in NeverDestroyed value
+        https://bugs.webkit.org/show_bug.cgi?id=161553
+
+        Reviewed by Daniel Bates.
+
+        * platform/ios/WebCoreMotionManager.mm:
+        (+[WebCoreMotionManager sharedManager]):
+
+2016-09-02  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse file URLs
+        https://bugs.webkit.org/show_bug.cgi?id=161556
+
+        Reviewed by Tim Horton.
+
+        Added new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::isWindowsDriveLetter):
+        (WebCore::shouldCopyFileURL):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::parseHost):
+        * platform/URLParser.h:
+
+2016-09-02  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add validations for a synchronously constructed custom element
+        https://bugs.webkit.org/show_bug.cgi?id=161528
+
+        Reviewed by Yusuke Suzuki.
+
+        The latest DOM specification has sanity checks when creating an element with the synchronous custom elements flag set
+        in 6.1.3 through 10:
+        3. If result does not implement the HTMLElement interface, throw a TypeError.
+        4. If result's attribute list is not empty, then throw a NotSupportedError.
+        5. If result has children, then throw a NotSupportedError.
+        6. If result's parent is not null, then throw a NotSupportedError.
+        7. If result's node document is not document, then throw a NotSupportedError.
+        8. If result's namespace is not the HTML namespace, then throw a NotSupportedError.
+        9. If result's local name is not equal to localName, then throw a NotSupportedError.
+
+        Add all these checks to JSCustomElementInterface::constructElement.
+
+        Tests: fast/custom-elements/Document-createElement.html
+
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::constructElement): Report the exception thrown during parsing instead of just
+        clearing and ignoring it.
+        (WebCore::constructCustomElementSynchronously): Extracted out of constructElement so that we can also catch TypeError
+        and NotSupportedError we throw in constructElement for the parser.
+
+2016-09-02  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERT_NOT_REACHED() is touched in WebCore::valueForLength
+        https://bugs.webkit.org/show_bug.cgi?id=123337
+        <rdar://problem/27684121>
+
+        Reviewed by Simon Fraser.
+
+        Do not try to use unspecified height value while resolving logical height for table row.
+
+        Test: fast/table/assert-on-non-resolvable-row-dimension.html
+
+        * rendering/RenderTableCell.h:
+        (WebCore::RenderTableCell::logicalHeightForRowSizing):
+
 2016-09-02  Ryosuke Niwa  <rniwa@webkit.org>
 
         Temporarily break customElements.whenDefined to remove flaky crashes
