@@ -57,13 +57,13 @@ namespace WebCore {
 
     class SocketStreamHandleImpl final : public SocketStreamHandle {
     public:
-        static Ref<SocketStreamHandleImpl> create(const URL& url, SocketStreamHandleClient& client, NetworkingContext&, SessionID) { return adoptRef(*new SocketStreamHandleImpl(url, client)); }
+        static Ref<SocketStreamHandleImpl> create(const URL& url, SocketStreamHandleClient& client, SessionID) { return adoptRef(*new SocketStreamHandleImpl(url, client)); }
         static Ref<SocketStreamHandleImpl> create(QTcpSocket* socket, SocketStreamHandleClient& client) { return adoptRef(*new SocketStreamHandleImpl(socket, client)); }
 
         ~SocketStreamHandleImpl();
 
     protected:
-        int platformSend(const char* data, int length) final;
+        Optional<size_t> platformSend(const char* data, size_t length) final;
         void platformClose() final;
 
     private:

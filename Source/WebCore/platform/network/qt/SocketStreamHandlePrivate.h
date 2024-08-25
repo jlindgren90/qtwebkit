@@ -31,7 +31,7 @@
 #ifndef SocketStreamHandlePrivate_h
 #define SocketStreamHandlePrivate_h
 
-#include "SocketStreamHandleBase.h"
+#include "SocketStreamHandleImpl.h"
 
 #include <QSslSocket>
 #include <QTcpSocket>
@@ -46,14 +46,14 @@ class SocketStreamHandlePrivate;
 class SocketStreamHandlePrivate final : public QObject {
     Q_OBJECT
 public:
-    SocketStreamHandlePrivate(SocketStreamHandle*, const URL&);
-    SocketStreamHandlePrivate(SocketStreamHandle*, QTcpSocket*);
+    SocketStreamHandlePrivate(SocketStreamHandleImpl*, const URL&);
+    SocketStreamHandlePrivate(SocketStreamHandleImpl*, QTcpSocket*);
     ~SocketStreamHandlePrivate();
 
 public Q_SLOTS:
     void socketConnected();
     void socketReadyRead();
-    int send(const char* data, int len);
+    Optional<size_t> send(const char* data, size_t len);
     void close();
     void socketSentData();
     void socketClosed();
@@ -66,7 +66,7 @@ public Q_SLOTS:
 public:
     void initConnections();
     QTcpSocket* m_socket;
-    SocketStreamHandle* m_streamHandle;
+    SocketStreamHandleImpl* m_streamHandle;
 };
 
 }

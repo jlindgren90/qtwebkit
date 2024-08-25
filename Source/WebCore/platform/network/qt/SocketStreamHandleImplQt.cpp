@@ -104,7 +104,7 @@ void SocketStreamHandlePrivate::socketConnected()
 {
     if (m_streamHandle) {
         m_streamHandle->m_state = SocketStreamHandle::Open;
-        m_streamHandle->client().didOpenSocketStream(*m_streamHandle);
+        m_streamHandle->m_client.didOpenSocketStream(*m_streamHandle);
     }
 }
 
@@ -112,14 +112,14 @@ void SocketStreamHandlePrivate::socketReadyRead()
 {
     if (m_streamHandle) {
         QByteArray data = m_socket->read(m_socket->bytesAvailable());
-        m_streamHandle->client().didReceiveSocketStreamData(*m_streamHandle, data.constData(), data.size());
+        m_streamHandle->m_client.didReceiveSocketStreamData(*m_streamHandle, data.constData(), data.size());
     }
 }
 
-int SocketStreamHandlePrivate::send(const char* data, int len)
+Optional<size_t> SocketStreamHandlePrivate::send(const char* data, size_t len)
 {
     if (!m_socket || m_socket->state() != QAbstractSocket::ConnectedState)
-        return 0;
+        return Nullopt;
     quint64 sentSize = m_socket->write(data, len);
     QMetaObject::invokeMethod(this, "socketSentData", Qt::QueuedConnection);
     return sentSize;
@@ -129,7 +129,7 @@ void SocketStreamHandlePrivate::close()
 {
     if (m_socket && m_streamHandle && m_streamHandle->m_state == SocketStreamHandle::Connecting) {
         m_socket->abort();
-        m_streamHandle->client().didCloseSocketStream(*m_streamHandle);
+        m_streamHandle->m_client.didCloseSocketStream(*m_streamHandle);
         return;
     }
     if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState)
@@ -158,7 +158,7 @@ void SocketStreamHandlePrivate::socketClosedCallback()
         SocketStreamHandleImpl* streamHandle = m_streamHandle;
         m_streamHandle = 0;
         // This following call deletes _this_. Nothing should be after it.
-        streamHandle->client().didCloseSocketStream(*streamHandle);
+        streamHandle->m_client.didCloseSocketStream(*streamHandle);
     }
 }
 
@@ -169,10 +169,10 @@ void SocketStreamHandlePrivate::socketErrorCallback(int error)
         SocketStreamHandleImpl* streamHandle = m_streamHandle;
         m_streamHandle = 0;
 
-        streamHandle->client().didFailSocketStream(*streamHandle, SocketStreamError(error, m_socket->errorString()));
+        streamHandle->m_client.didFailSocketStream(*streamHandle, SocketStreamError(error, streamHandle->m_url, m_socket->errorString()));
 
         // This following call deletes _this_. Nothing should be after it.
-        streamHandle->client().didCloseSocketStream(*streamHandle);
+        streamHandle->m_client.didCloseSocketStream(*streamHandle);
     }
 }
 
@@ -205,7 +205,7 @@ SocketStreamHandleImpl::~SocketStreamHandleImpl()
     delete m_p;
 }
 
-int SocketStreamHandleImpl::platformSend(const char* data, int len)
+Optional<size_t> SocketStreamHandleImpl::platformSend(const char* data, size_t len)
 {
     LOG(Network, "SocketStreamHandleImpl %p platformSend", this);
     return m_p->send(data, len);
