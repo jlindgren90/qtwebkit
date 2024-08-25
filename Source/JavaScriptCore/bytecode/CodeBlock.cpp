@@ -1102,12 +1102,12 @@ void CodeBlock::dumpBytecode(
             printUnaryOp(out, exec, location, it, "is_number");
             break;
         }
-        case op_is_string: {
-            printUnaryOp(out, exec, location, it, "is_string");
-            break;
-        }
-        case op_is_jsarray: {
-            printUnaryOp(out, exec, location, it, "is_jsarray");
+        case op_is_cell_with_type: {
+            int r0 = (++it)->u.operand;
+            int r1 = (++it)->u.operand;
+            int type = (++it)->u.operand;
+            printLocationAndOp(out, exec, location, it, "is_cell_with_type");
+            out.printf("%s, %s, %d", registerName(r0).data(), registerName(r1).data(), type);
             break;
         }
         case op_is_object: {

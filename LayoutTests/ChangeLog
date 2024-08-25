@@ -1,3 +1,369 @@
+2016-09-19  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLAppletElement with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=162240
+
+        Reviewed by Alex Christensen.
+
+        Drop outdated tests. Update existing tests to reflect behavior change.
+
+        * dom/html/level2/html/HTMLAppletElement11-expected.txt: Removed.
+        * dom/html/level2/html/HTMLAppletElement11.html: Removed.
+        * dom/html/level2/html/HTMLAppletElement11.js: Removed.
+        * dom/xhtml/level2/html/HTMLAppletElement11-expected.txt: Removed.
+        * dom/xhtml/level2/html/HTMLAppletElement11.js: Removed.
+        * dom/xhtml/level2/html/HTMLAppletElement11.xhtml: Removed.
+        * fast/dom/element-attribute-js-null-expected.txt:
+        * fast/dom/element-attribute-js-null.html:
+
+2016-09-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/http/tests/inspector
+        https://bugs.webkit.org/show_bug.cgi?id=162069
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * http/tests/inspector/dom/disconnect-dom-tree-after-main-frame-navigation.html:
+        * http/tests/inspector/network/copy-as-curl.html:
+        * http/tests/inspector/network/resource-timing-expected.txt:
+        * http/tests/inspector/network/resource-timing.html:
+        * http/tests/inspector/network/xhr-request-data-encoded-correctly.html:
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/mediasource-avtracks.html
+        https://bugs.webkit.org/show_bug.cgi?id=162104
+
+        Reviewed by Eric Carlson.
+
+        * imported/w3c/web-platform-tests/media-source/mediasource-avtracks-expected.txt
+        * platform/mac/TestExpectations:
+
+2016-09-19  Daniel Bates  <dabates@apple.com>
+
+        Remove ENABLE(TEXT_AUTOSIZING) automatic text size adjustment code
+        https://bugs.webkit.org/show_bug.cgi?id=162167
+
+        Reviewed by Simon Fraser.
+
+        * TestExpectations:
+        * fast/text-autosizing/cluster-inline-block-or-table-expected.html: Removed.
+        * fast/text-autosizing/cluster-inline-block-or-table.html: Removed.
+        * fast/text-autosizing/cluster-inline-grid-flex-box-expected.html: Removed.
+        * fast/text-autosizing/cluster-inline-grid-flex-box.html: Removed.
+        * fast/text-autosizing/cluster-list-item-expected.html: Removed.
+        * fast/text-autosizing/cluster-list-item.html: Removed.
+        * fast/text-autosizing/cluster-narrow-in-wide-expected.html: Removed.
+        * fast/text-autosizing/cluster-narrow-in-wide-ohidden-expected.html: Removed.
+        * fast/text-autosizing/cluster-narrow-in-wide-ohidden.html: Removed.
+        * fast/text-autosizing/cluster-narrow-in-wide.html: Removed.
+        * fast/text-autosizing/cluster-wide-in-narrow-expected.html: Removed.
+        * fast/text-autosizing/cluster-wide-in-narrow.html: Removed.
+        * fast/text-autosizing/cluster-with-narrow-lca-and-cluster-expected.html: Removed.
+        * fast/text-autosizing/cluster-with-narrow-lca-and-cluster.html: Removed.
+        * fast/text-autosizing/cluster-with-narrow-lca-expected.html: Removed.
+        * fast/text-autosizing/cluster-with-narrow-lca.html: Removed.
+        * fast/text-autosizing/cluster-with-wide-lca-expected.html: Removed.
+        * fast/text-autosizing/cluster-with-wide-lca.html: Removed.
+        * fast/text-autosizing/clusters-insufficient-text-expected.html: Removed.
+        * fast/text-autosizing/clusters-insufficient-text.html: Removed.
+        * fast/text-autosizing/clusters-insufficient-width-expected.html: Removed.
+        * fast/text-autosizing/clusters-insufficient-width.html: Removed.
+        * fast/text-autosizing/clusters-sufficient-text-except-in-root-expected.html: Removed.
+        * fast/text-autosizing/clusters-sufficient-text-except-in-root.html: Removed.
+        * fast/text-autosizing/clusters-sufficient-width-expected.html: Removed.
+        * fast/text-autosizing/clusters-sufficient-width.html: Removed.
+        * fast/text-autosizing/constrained-and-overflow-auto-ancestor-expected.html: Removed.
+        * fast/text-autosizing/constrained-and-overflow-auto-ancestor.html: Removed.
+        * fast/text-autosizing/constrained-and-overflow-hidden-ancestor-expected.html: Removed.
+        * fast/text-autosizing/constrained-and-overflow-hidden-ancestor.html: Removed.
+        * fast/text-autosizing/constrained-and-overflow-paged-x-ancestor-expected.html: Removed.
+        * fast/text-autosizing/constrained-and-overflow-paged-x-ancestor.html: Removed.
+        * fast/text-autosizing/constrained-and-overflow-scroll-ancestor-expected.html: Removed.
+        * fast/text-autosizing/constrained-and-overflow-scroll-ancestor.html: Removed.
+        * fast/text-autosizing/constrained-height-ancestor-expected.html: Removed.
+        * fast/text-autosizing/constrained-height-ancestor.html: Removed.
+        * fast/text-autosizing/constrained-height-body-expected.html: Removed.
+        * fast/text-autosizing/constrained-height-body.html: Removed.
+        * fast/text-autosizing/constrained-maxheight-ancestor-expected.html: Removed.
+        * fast/text-autosizing/constrained-maxheight-ancestor.html: Removed.
+        * fast/text-autosizing/constrained-maxheight-expected.html: Removed.
+        * fast/text-autosizing/constrained-maxheight.html: Removed.
+        * fast/text-autosizing/constrained-out-of-flow-expected.html: Removed.
+        * fast/text-autosizing/constrained-out-of-flow.html: Removed.
+        * fast/text-autosizing/constrained-percent-maxheight-expected.html: Removed.
+        * fast/text-autosizing/constrained-percent-maxheight.html: Removed.
+        * fast/text-autosizing/constrained-percent-of-viewport-maxheight-expected.html: Removed.
+        * fast/text-autosizing/constrained-percent-of-viewport-maxheight.html: Removed.
+        * fast/text-autosizing/constrained-then-float-ancestors-expected.html: Removed.
+        * fast/text-autosizing/constrained-then-float-ancestors.html: Removed.
+        * fast/text-autosizing/constrained-then-overflow-ancestors-expected.html: Removed.
+        * fast/text-autosizing/constrained-then-overflow-ancestors.html: Removed.
+        * fast/text-autosizing/constrained-then-position-absolute-ancestors-expected.html: Removed.
+        * fast/text-autosizing/constrained-then-position-absolute-ancestors.html: Removed.
+        * fast/text-autosizing/constrained-then-position-fixed-ancestors-expected.html: Removed.
+        * fast/text-autosizing/constrained-then-position-fixed-ancestors.html: Removed.
+        * fast/text-autosizing/constrained-within-overflow-ancestor-expected.html: Removed.
+        * fast/text-autosizing/constrained-within-overflow-ancestor.html: Removed.
+        * fast/text-autosizing/em-margin-border-padding-expected.html: Removed.
+        * fast/text-autosizing/em-margin-border-padding.html: Removed.
+        * fast/text-autosizing/font-scale-factor-expected.html: Removed.
+        * fast/text-autosizing/font-scale-factor.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-button-input-elements-expected.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-button-input-elements.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-checkbox-input-element-expected.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-checkbox-input-element.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-radio-input-element-expected.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-radio-input-element.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-select-element-expected.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-select-element.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-textfield-input-elements-expected.html: Removed.
+        * fast/text-autosizing/form-controls-autosizing-textfield-input-elements.html: Removed.
+        * fast/text-autosizing/header-li-links-autosizing-expected.html: Removed.
+        * fast/text-autosizing/header-li-links-autosizing.html: Removed.
+        * fast/text-autosizing/header-links-autosizing-different-fontsize-expected.html: Removed.
+        * fast/text-autosizing/header-links-autosizing-different-fontsize.html: Removed.
+        * fast/text-autosizing/header-links-autosizing-expected.html: Removed.
+        * fast/text-autosizing/header-links-autosizing.html: Removed.
+        * fast/text-autosizing/narrow-child-expected.html: Removed.
+        * fast/text-autosizing/narrow-child.html: Removed.
+        * fast/text-autosizing/narrow-descendants-combined-expected.html: Removed.
+        * fast/text-autosizing/narrow-descendants-combined.html: Removed.
+        * fast/text-autosizing/narrow-iframe-expected.html: Removed.
+        * fast/text-autosizing/narrow-iframe-flattened-expected.html: Removed.
+        * fast/text-autosizing/narrow-iframe-flattened.html: Removed.
+        * fast/text-autosizing/narrow-iframe.html: Removed.
+        * fast/text-autosizing/nested-child-expected.html: Removed.
+        * fast/text-autosizing/nested-child.html: Removed.
+        * fast/text-autosizing/nested-em-line-height-expected.html: Removed.
+        * fast/text-autosizing/nested-em-line-height.html: Removed.
+        * fast/text-autosizing/oscillation-javascript-fontsize-change-expected.html: Removed.
+        * fast/text-autosizing/oscillation-javascript-fontsize-change.html: Removed.
+        * fast/text-autosizing/simple-paragraph-expected.html: Removed.
+        * fast/text-autosizing/simple-paragraph.html: Removed.
+        * fast/text-autosizing/span-child-expected.html: Removed.
+        * fast/text-autosizing/span-child.html: Removed.
+        * fast/text-autosizing/unwrappable-blocks-expected.html: Removed.
+        * fast/text-autosizing/unwrappable-blocks.html: Removed.
+        * fast/text-autosizing/unwrappable-inlines-expected.html: Removed.
+        * fast/text-autosizing/unwrappable-inlines.html: Removed.
+        * fast/text-autosizing/various-font-sizes-expected.html: Removed.
+        * fast/text-autosizing/various-font-sizes.html: Removed.
+        * fast/text-autosizing/wide-block-expected.html: Removed.
+        * fast/text-autosizing/wide-block.html: Removed.
+        * fast/text-autosizing/wide-child-expected.html: Removed.
+        * fast/text-autosizing/wide-child.html: Removed.
+        * fast/text-autosizing/wide-iframe-expected.html: Removed.
+        * fast/text-autosizing/wide-iframe.html: Removed.
+        * fast/text-autosizing/wide-in-narrow-overflow-scroll-expected.html: Removed.
+        * fast/text-autosizing/wide-in-narrow-overflow-scroll.html: Removed.
+        * platform/efl/TestExpectations:
+        * platform/gtk/TestExpectations:
+        * platform/ios-simulator-wk1/TestExpectations: Move Failure entry for test
+        fast/text-autosizing/ios/line-height-text-autosizing.html from here to platform/ios-simulator/TestExpectations.
+        * platform/ios-simulator-wk2/TestExpectations: Ditto.
+        * platform/ios-simulator/TestExpectations: Associated failure of test
+        fast/text-autosizing/ios/line-height-text-autosizing.html with <https://bugs.webkit.org/show_bug.cgi?id=162236>.
+        * platform/mac-wk2/TestExpectations:
+        * platform/mac/TestExpectations:
+        * platform/win/TestExpectations:
+        * platform/wk2/TestExpectations:
+
+2016-09-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/inspector/unit-tests
+        https://bugs.webkit.org/show_bug.cgi?id=162103
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * inspector/unit-tests/inspector-test-dispatch-event-to-frontend.html:
+        * inspector/unit-tests/protocol-test-dispatch-event-to-frontend.html:
+
+2016-09-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/inspector/console
+        https://bugs.webkit.org/show_bug.cgi?id=162070
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * inspector/console/clearMessages.html:
+        * inspector/console/command-line-api.html:
+        * inspector/console/console-time.html:
+        * inspector/console/messageAdded-from-named-evaluations.html:
+        * inspector/console/messageAdded-from-worker.html:
+        * inspector/console/messageRepeatCountUpdated.html:
+        * inspector/console/messagesCleared.html:
+
+2016-09-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/inspector/script-profiler
+        https://bugs.webkit.org/show_bug.cgi?id=162101
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * inspector/script-profiler/event-type-Other.html:
+
+2016-09-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/inspector/page
+        https://bugs.webkit.org/show_bug.cgi?id=162100
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * inspector/page/searchInResources.html:
+
+2016-09-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/inspector/storage
+        https://bugs.webkit.org/show_bug.cgi?id=162102
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * inspector/storage/domStorage-events.html:
+
+2016-09-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/inspector/network
+        https://bugs.webkit.org/show_bug.cgi?id=162099
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * inspector/network/client-blocked-load-expected.txt:
+        * inspector/network/client-blocked-load.html:
+        * inspector/network/xhr-json-blob-has-content.html:
+
+2016-09-19  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: adopt Object.awaitEvent in LayoutTests/inspector/indexeddb
+        https://bugs.webkit.org/show_bug.cgi?id=162073
+
+        Reviewed by Brian Burg.
+
+        Replace instances of singleFireEventListener with awaitEvent and use promise logic to make
+        tests more readable.
+
+        * inspector/indexeddb/clearObjectStore.html:
+        * inspector/indexeddb/deleteDatabaseNamesWithSpace.html:
+        * inspector/indexeddb/requestDatabase.html:
+        * inspector/indexeddb/requestDatabaseNames.html:
+
+2016-09-19  Chris Dumez  <cdumez@apple.com>
+
+        Window's pageXOffset / pageYOffset attributes should be replaceable
+        https://bugs.webkit.org/show_bug.cgi?id=162046
+
+        Reviewed by Darin Adler.
+
+        Update existing tests to reflect behavior change.
+
+        * fast/dom/Window/get-set-properties-expected.txt:
+        * fast/dom/Window/get-set-properties.html:
+        * js/dom/var-declarations-shadowing-expected.txt:
+        * js/dom/var-declarations-shadowing.html:
+
+2016-09-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Scope sidebar shows "Closure" instead of "Local" when paused in anonymous function
+        https://bugs.webkit.org/show_bug.cgi?id=162113
+        <rdar://problem/28348954>
+
+        Reviewed by Brian Burg.
+
+        * inspector/debugger/paused-scopes-expected.txt:
+        * inspector/debugger/paused-scopes.html:
+        * inspector/debugger/resources/paused-scopes.js:
+        Add a third pause to test behavior paused inside an
+        unnamed anonymous function.
+
+2016-09-19  Nan Wang  <n_wang@apple.com>
+
+        AX: Add accessibility support for details element on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=162041
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/ios-simulator/detail-summary-ios-expected.txt: Added.
+        * accessibility/ios-simulator/detail-summary-ios.html: Added.
+
+2016-09-19  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: clipRectsContext.rootLayer == m_clipRectsCache->m_clipRectsRoot[clipRectsType] while loading guardian.co.uk
+        https://bugs.webkit.org/show_bug.cgi?id=162129
+        <rdar://problem/28353350>
+
+        Reviewed by Antti Koivisto.
+
+        * fast/multicol/assert-on-cliprect-caching-when-paginated-expected.txt: Added.
+        * fast/multicol/assert-on-cliprect-caching-when-paginated.html: Added.
+
+2016-09-18  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Add test coverage for all array utility functions
+        https://bugs.webkit.org/show_bug.cgi?id=162044
+        <rdar://problem/28330846>
+
+        Reviewed by Joseph Pecoraro.
+
+        New test cases and expectations for Array utility functions.
+
+        * inspector/unit-tests/array-utilities-expected.txt:
+        * inspector/unit-tests/array-utilities.html:
+
+2016-09-16  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Unreviewed cleanup of some inspector tests.
+
+        * TestExpectations:
+        Start skipping some debugger stepping test flakeyness on
+        Debug builds until that bug is addressed.
+
+        * inspector/debugger/break-on-exception-throw-in-promise.html:
+        Remove debug only.
+
+        * inspector/debugger/paused-scopes.html: Added.
+        This test was missing for 3 months. Its expectations got added
+        but the test itself got lost after a rollout and re-land.
+
+2016-09-16  Chris Dumez  <cdumez@apple.com>
+
+        Cancelling one frame's load cancels load in other frames that have the same URL as well
+        https://bugs.webkit.org/show_bug.cgi?id=162094
+
+        Reviewed by Antti Koivisto.
+
+        Add layout test coverage.
+
+        * http/tests/cache/iframe-detach-expected.txt: Added.
+        * http/tests/cache/iframe-detach.html: Added.
+        * http/tests/cache/resources/slow-iframe.php: Added.
+        Import Alex Christensen's test from Bug 157563.
+
+        * http/tests/navigation/frames-same-url-cancel-load-expected.txt: Added.
+        * http/tests/navigation/frames-same-url-cancel-load.html: Added.
+        * http/tests/navigation/resources/success.html: Added.
+        * http/tests/security/XFrameOptions/x-frame-options-deny-multiple-clients-expected.txt:
+
 2016-09-16  Joseph Pecoraro  <pecoraro@apple.com>
 
         Web Inspector: Implement Copy CSS Selector and Copy Xpath Selector context menus

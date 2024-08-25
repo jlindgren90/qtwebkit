@@ -1,3 +1,166 @@
+2016-09-19  Anders Carlsson  <andersca@apple.com>
+
+        Suppress JavaScript prompts early on in certain cases
+        https://bugs.webkit.org/show_bug.cgi?id=162243
+        rdar://problem/27661602
+
+        Reviewed by Geoffrey Garen.
+
+        * WebProcess/WebCoreSupport/WebChromeClient.cpp:
+        (WebKit::shouldSuppressJavaScriptDialogs):
+        Add helper function.
+
+        (WebKit::WebChromeClient::runJavaScriptAlert):
+        (WebKit::WebChromeClient::runJavaScriptConfirm):
+        (WebKit::WebChromeClient::runJavaScriptPrompt):
+        Call helper function and return early if we should supress dialogs.
+
+2016-09-19  Keith Rollin  <krollin@apple.com>
+
+        Reduce logging from WebResourceLoader::didReceiveData
+        https://bugs.webkit.org/show_bug.cgi?id=162233
+
+        Reviewed by Antti Koivisto.
+
+        Only log once even if called multiple times for a single resource.
+
+        * WebProcess/Network/WebResourceLoader.cpp:
+        (WebKit::WebResourceLoader::didReceiveData):
+        * WebProcess/Network/WebResourceLoader.h:
+
+2016-09-19  Daniel Bates  <dabates@apple.com>
+
+        Remove ENABLE(TEXT_AUTOSIZING) automatic text size adjustment code
+        https://bugs.webkit.org/show_bug.cgi?id=162167
+
+        Reviewed by Simon Fraser.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-09-19  Alex Christensen  <achristensen@webkit.org>
+
+        Only override URLParser::enabled if NSUserDefaults object exists
+        https://bugs.webkit.org/show_bug.cgi?id=162131
+
+        Reviewed by Sam Weinig.
+
+        * Shared/Cocoa/WebKit2InitializeCocoa.mm:
+        (WebKit::platformInitializeWebKit2):
+        * Shared/WebKit2Initialize.cpp:
+        When I enable URLParser by default, I will want the default to only be overwritten if there is a
+        NSUserDefaults key for URLParserEnabled.  Right now it is setting URLParser::enabled to false always,
+        which isn't a problem because the default is also false.  When the default is true, that will overwrite the default.
+
+2016-09-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Bring the inspected page's window forward when activating element search
+        https://bugs.webkit.org/show_bug.cgi?id=162114
+        <rdar://problem/28349357>
+
+        Reviewed by Brian Burg.
+
+        * UIProcess/WebInspectorProxy.h:
+        * UIProcess/WebInspectorProxy.cpp:
+        (WebKit::WebInspectorProxy::elementSelectionChanged):
+        When element search is activated allow the platform to bring
+        the window containing the inspected page to the foreground.
+
+        (WebKit::WebInspectorProxy::platformBringInspectedPageToFront):
+        * UIProcess/efl/WebInspectorProxyEfl.cpp:
+        (WebKit::WebInspectorProxy::platformBringInspectedPageToFront):
+        * UIProcess/gtk/WebInspectorProxyGtk.cpp:
+        (WebKit::WebInspectorProxy::platformBringInspectedPageToFront):
+        Default empty implementation for ports.
+
+        * UIProcess/mac/WebInspectorProxyMac.mm:
+        (WebKit::WebInspectorProxy::platformBringInspectedPageToFront):
+        Bring the window containing the inspected page to the foreground.
+
+2016-09-18  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Empty referer header after WebKit session state restoration trips Bad Behavior Wordpress plugin
+        https://bugs.webkit.org/show_bug.cgi?id=159606
+
+        Reviewed by Carlos Garcia Campos.
+
+        Leave the referrer member of FrameState unset when restoring from session state, unless
+        there is actually a nonempty referrer saved in the state. If we set it to an empty string,
+        then an empty referrer gets sent to the server, which some servers do not accept. It
+        triggers the Bad Behavior plugin on my WordPress blog, for instance. It also breaks vox.com.
+
+        * UIProcess/API/gtk/WebKitWebViewSessionState.cpp:
+        (decodeFrameState):
+
+2016-09-18  Chelsea Pugh  <cpugh@apple.com>
+
+        [iOS] Remove unused methods from _WKInputDelegate
+        https://bugs.webkit.org/show_bug.cgi?id=162098
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/API/Cocoa/_WKInputDelegate.h:
+
+2016-09-18  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        [GTK] Stop using glReadPixels() to blit AC surfaces in the UIProcess under Wayland
+        https://bugs.webkit.org/show_bug.cgi?id=161530
+
+        Reviewed by Carlos Garcia Campos.
+
+        Use gdk_cairo_draw_from_gl when all necessary conditions exist.
+
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::create): take TextureMapper::PaintFlags as optional argument.
+        (WebKit::ThreadedCompositor::ThreadedCompositor): ditto.
+        (WebKit::ThreadedCompositor::renderLayerTree): relay paint flags to TextureMapper::beginPaint.
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.h:
+        * UIProcess/gtk/AcceleratedBackingStoreWayland.cpp:
+        (WebKit::AcceleratedBackingStoreWayland::paint): use the faster gdk_cairo_draw_from_gl when a new
+        enough GTK+ is in use.
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        (WebKit::ThreadedCoordinatedLayerTreeHost::ThreadedCoordinatedLayerTreeHost): create compositor
+        with PaintingMirrored flag if we have recent GTK+ and are running under Wayland.
+        * WebProcess/WebPage/gtk/AcceleratedSurfaceX11.h: implement shouldPaintMirrored by always
+        returning false.
+        * WebProcess/WebPage/gtk/AcceleratedSurfaceWayland.h: implement shouldPaintMirrored by always
+        returning true.
+        * WebProcess/WebPage/gtk/LayerTreeHostGtk.cpp:
+        (WebKit::LayerTreeHostGtk::compositeLayersToContext): pass PaintingMirror flag to TextureMapper
+        when under a recent enough GTK+ and Wayland.
+
+2016-09-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Move the rendering of auth dialog shadow to the auth dialog widget
+        https://bugs.webkit.org/show_bug.cgi?id=162061
+
+        Reviewed by Michael Catanzaro.
+
+        Instead of rendering the shadow in the web view, we can let the auth dialog do it. This fixes the rendering of
+        the shadow in Wayland when using gdk_cairo_draw_from_gl().
+
+        * UIProcess/API/gtk/WebKitAuthenticationDialog.cpp:
+        (webkitAuthenticationDialogDraw): Draw the shadow before rendering the child.
+        (webkitAuthenticationDialogSizeAllocate): Center the child on the allocated space.
+        (webkit_authentication_dialog_class_init): Add size_allocate implementation.
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseDraw): Do not draw the shadow when auth dialog is present.
+        (webkitWebViewBaseSizeAllocate): Give the whole web view allocation to the auth dialog.
+
+2016-09-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [ThreadedCompositor] Scrolling artifacts on accelerated subframes
+        https://bugs.webkit.org/show_bug.cgi?id=149060
+
+        Reviewed by Michael Catanzaro.
+
+        The problem is that we are scrolling the main frame even when scrolling is not delegated.
+
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        (WebKit::ThreadedCoordinatedLayerTreeHost::scrollNonCompositedContents): Return early if main frame view doesn't
+        delegate scrolling.
+
 2016-09-16  Simon Fraser  <simon.fraser@apple.com>
 
         WKWebViewConfiguration's _incrementalRenderingSuppressionTimeout should be an NSTimeInterval

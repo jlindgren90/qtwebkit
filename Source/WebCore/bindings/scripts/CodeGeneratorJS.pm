@@ -4002,6 +4002,7 @@ sub GenerateParametersCheck
             }
             $value = "WTFMove($name)";
         } elsif ($parameter->isVariadic) {
+            AddToImplIncludes("JS${type}.h", $function->signature->extendedAttributes->{"Conditional"}) unless $codeGenerator->SkipIncludeHeader($type) or !$codeGenerator->IsWrapperType($type);
             my ($wrapperType, $wrappedType) = GetVariadicType($interface, $type);
             push(@$outputArray, "    auto $name = toArguments<VariadicHelper<$wrapperType, $wrappedType>>(*state, $argumentIndex);\n");
 
@@ -4010,10 +4011,10 @@ sub GenerateParametersCheck
                 push(@$outputArray, "        return JSValue::encode(jsUndefined());\n");
             }
             else {
-                push(@$outputArray, "    if (!$name.second)\n");
-                push(@$outputArray, "        return throwArgumentTypeError(*state, throwScope, $name.first, \"$name\", \"$visibleInterfaceName\", $quotedFunctionName, \"$type\");\n");
+                push(@$outputArray, "    if (!$name.arguments)\n");
+                push(@$outputArray, "        return throwArgumentTypeError(*state, throwScope, $name.argumentIndex, \"$name\", \"$visibleInterfaceName\", $quotedFunctionName, \"$type\");\n");
             }
-            $value = "WTFMove(*$name.second)";
+            $value = "WTFMove($name.arguments.value())";
 
         } elsif ($codeGenerator->IsEnumType($type)) {
             my $className = GetEnumerationClassName($interface, $type);

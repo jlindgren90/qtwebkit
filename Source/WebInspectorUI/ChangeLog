@@ -1,3 +1,81 @@
+2016-09-19  Matt Baker  <mattbaker@apple.com>
+
+        Unreviewed, reverting changeset https://trac.webkit.org/changeset/206101.
+
+        Revert https://bugs.webkit.org/show_bug.cgi?id=162165:
+        Web Inspector: Make it easier to create a view from an existing DOM element.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector.contentLoaded):
+        * UserInterface/Views/View.js:
+        (WebInspector.View):
+
+2016-09-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Scope sidebar shows "Closure" instead of "Local" when paused in anonymous function
+        https://bugs.webkit.org/show_bug.cgi?id=162113
+        <rdar://problem/28348954>
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Models/CallFrame.js:
+        (WebInspector.CallFrame):
+        Default the functionName to the empty string. This will compare
+        favorably against other empty function names instead of null.
+
+2016-09-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Color picker in Style sidebar stops working after 1st color change
+        https://bugs.webkit.org/show_bug.cgi?id=162115
+        <rdar://problem/28349875>
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/CSSStyleDeclarationTextEditor.js:
+        (WebInspector.CSSStyleDeclarationTextEditor):
+        (WebInspector.CSSStyleDeclarationTextEditor.prototype._updateTextMarkers):
+        (WebInspector.CSSStyleDeclarationTextEditor.prototype._updateTextMarkers.createSwatch):
+        (WebInspector.CSSStyleDeclarationTextEditor.prototype._inlineSwatchActivated):
+        (WebInspector.CSSStyleDeclarationTextEditor.prototype._inlineSwatchDeactivated):
+        Listen for swatch activated / inactivated events to set some state.
+
+        (WebInspector.CSSStyleDeclarationTextEditor.prototype._propertiesChanged):
+        Do not wipe markers if there is an active inline swatch. That
+        would break behavior for that active swatch.
+
+        (WebInspector.CSSStyleDeclarationTextEditor.prototype._inlineSwatchValueChanged):
+        Eliminate old, incorrect, and now unnecessary code for trying to recover
+        a textMarker for an inline swatch if the textMarker went away. Besides being
+        incorrect, if an inline swatch's textMarker goes away, then we will already
+        have issues, because any active popover will still be connected to the
+        original marker and swatch element that no longer appear in the editor.
+
+        * UserInterface/Views/ColorPicker.js:
+        (WebInspector.ColorPicker):
+        (WebInspector.ColorPicker.prototype.set color):
+        * UserInterface/Views/InlineSwatch.js:
+        (WebInspector.InlineSwatch.prototype.didDismissPopover):
+        (WebInspector.InlineSwatch.prototype._swatchElementClicked):
+
+2016-09-18  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Uncaught Exception: null is not an object (evaluating 'this.listItemElement.classList')
+        https://bugs.webkit.org/show_bug.cgi?id=162123
+        <rdar://problem/28352900>
+
+        Reviewed by Matt Baker.
+
+        * UserInterface/Views/DOMTreeElement.js:
+        (WebInspector.DOMTreeElement.prototype.onexpand):
+        If not attached yet, don't update title. We will update title
+        when attaching, so this avoids work and avoids doing that
+        work when the tree element is not fully setup.
+
+        (WebInspector.DOMTreeElement.prototype._startEditing):
+        (WebInspector.DOMTreeElement.prototype._nodeTitleInfo):
+        (WebInspector.DOMTreeElement.prototype._nodePseudoClassesDidChange):
+        Switch to the public name instead of the private name.
+
 2016-09-16  Joseph Pecoraro  <pecoraro@apple.com>
 
         Web Inspector: Implement Copy CSS Selector and Copy Xpath Selector context menus

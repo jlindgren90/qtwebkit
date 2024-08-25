@@ -1,3 +1,568 @@
+2016-09-19  Anders Carlsson  <andersca@apple.com>
+
+        Suppress JavaScript prompts early on in certain cases
+        https://bugs.webkit.org/show_bug.cgi?id=162243
+        rdar://problem/27661602
+
+        Reviewed by Geoffrey Garen.
+
+        Export symbols needed by WebKit2.
+
+        * loader/FrameLoader.h:
+        * loader/FrameLoaderStateMachine.h:
+
+2016-09-19  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLAppletElement with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=162240
+
+        Reviewed by Alex Christensen.
+
+        Align HTMLAppletElement with the specification:
+        - https://html.spec.whatwg.org/#htmlappletelement
+
+        In particular:
+        - space / vspace should be of type "unsigned long", not DOMString
+        - codeBase and object should reflect as URLs
+
+        Firefox agree with the specification. Chrome does not have
+        HTMLAppletElement anymore.
+
+        No new tests, rebaselined existing test.
+
+        * html/HTMLAppletElement.cpp:
+        (WebCore::HTMLAppletElement::isURLAttribute):
+        * html/HTMLAppletElement.h:
+        * html/HTMLAppletElement.idl:
+
+2016-09-16  Jer Noble  <jer.noble@apple.com>
+
+        [media-source] Fix imported/w3c/web-platform-tests/media-source/mediasource-avtracks.html
+        https://bugs.webkit.org/show_bug.cgi?id=162104
+
+        Reviewed by Eric Carlson.
+
+        Fixes test: imported/w3c/web-platform-tests/media-source/mediasource-avtracks.html
+
+        Multiple overlapping issues are causing this test to fail:
+
+        - When a MediaSource object is not attached from a HTMLMediaElement, it's SourceBuffer
+          objects will return `null` from .videoTracks and .audioTracks, foiling the tests ability
+          to assert that sourceBuffer.videoTracks.length == 0.
+
+        - When a MediaSource object is detached from a HTMLMediaElement, it's tracks are removed
+          but do not generate 'removedtrack' events.
+
+        When these bugs were fixed, a few more popped up:
+
+        - The HTMLMediaElement removes its tracks before it closes the MediaSource, which causes an
+          assertion when the MediaSource tells the HTMLMediaElement to remove its copy of the 
+          source's tracks (which have already been removed).
+
+        - When the HTMLMediaElement is stop()-ed due to its ScriptExecutionContext being destroyed,
+          it tries to close its MediaSource, which has itself already been stop()-ed and thus asserts.
+
+        To eliminate all these bugs and make the code more self explanatory, we will rename the 
+        HTMLMediaElement's closeMediaSource() method to detachMediaSource(), and the MediaSource's
+        close() method to detachFromElement(). The only way to close a MediaSource is now by calling
+        detachMediaSource() from the HTMLMediaElement.  The parts of the "Detaching from a media
+        element" algorithm which were previously spread across setReadyState() and onReadyStateChange()
+        are now unified in the newly renamed detachFromElement() method. The HTMLMediaElement will
+        first detach its MediaSource, and only after that remove all its tracks.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::setReadyState): Move steps into detachFromElement().
+        (WebCore::MediaSource::onReadyStateChange): Ditto.
+        (WebCore::MediaSource::detachFromElement): Perform the steps as specified.
+        (WebCore::MediaSource::attachToElement): Takes a reference rather than a bare pointer.
+        (WebCore::MediaSource::stop): Ask the media elemnet to detach.
+        (WebCore::MediaSource::close): Renamed to detachFromElement().
+        * Modules/mediasource/MediaSource.h:
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::videoTracks): Always return a valid TrackList object.
+        (WebCore::SourceBuffer::audioTracks): Ditto.
+        (WebCore::SourceBuffer::textTracks): Ditto.
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::~HTMLMediaElement): Renamed closeMediaSource() -> detachMediaSource().
+        (WebCore::HTMLMediaElement::prepareForLoad): Ditto.
+        (WebCore::HTMLMediaElement::loadResource): Ditto.
+        (WebCore::HTMLMediaElement::noneSupported): Ditto.
+        (WebCore::HTMLMediaElement::mediaLoadingFailedFatally): Ditto.
+        (WebCore::HTMLMediaElement::detachMediaSource): Ditto.
+        (WebCore::HTMLMediaElement::userCancelledLoad): Ditto.
+        (WebCore::HTMLMediaElement::createMediaPlayer): Ditto.
+        (WebCore::HTMLMediaElement::clearMediaPlayer): Ditto. Also, detach from the MediaSource before
+            removing tracks.
+        (WebCore::HTMLMediaElement::closeMediaSource): Deleted.
+        * html/HTMLMediaElement.h:
+        * html/track/TrackListBase.cpp:
+        (TrackListBase::remove): Only try to clear the media element from Tracks that have one.
+
+2016-09-19  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser can read memory out of bounds
+        https://bugs.webkit.org/show_bug.cgi?id=162206
+
+        Reviewed by Geoff Garen.
+
+        Covered by new API tests.
+        URLParser is disabled by default still.
+
+        * platform/URLParser.cpp:
+        (WebCore::parseIPv4Host):
+        If there are fewer than two numbers in an ipv4 address, we would subtract two from the Vector's size, 
+        causing us to read memory up to std::numeric_limits<size_t>::max() - 2.  Added a bounds check and many tests.
+
+2016-09-19  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse serialized valid URLs faster than unknown input
+        https://bugs.webkit.org/show_bug.cgi?id=162228
+
+        Reviewed by Chris Dumez.
+
+        The URL constructor with ParsedURLStringTag is almost twice as fast as the other URL constructors.
+        Assuming there are no tabs or newlines, and assuming characters are already encoded decreases the URLParser
+        runtime by over 25% and adds infrastructure for more optimizations.
+
+        No new tests. No change in behaviour.
+
+        * platform/URL.cpp:
+        (WebCore::URL::URL):
+        * platform/URLParser.cpp:
+        (WebCore::utf8PercentEncode):
+        (WebCore::utf8PercentEncodeQuery):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::parseSerializedURL):
+        (WebCore::incrementIterator):
+        (WebCore::URLParser::parseAuthority):
+        (WebCore::URLParser::parsePort):
+        (WebCore::URLParser::parseHost):
+        * platform/URLParser.h:
+        (WebCore::URLParser::parse): Deleted.
+
+2016-09-19  Daniel Bates  <dabates@apple.com>
+
+        Cleanup: Remove an extraneous copy of SecurityOrigin
+        https://bugs.webkit.org/show_bug.cgi?id=162118
+
+        Reviewed by Youenn Fablet.
+
+        Share one isolated copy of the SecurityOrigin between the ContentSecurityPolicy and
+        LoaderTaskOptions objects instead of creating two isolated copies of the SecurityOrigin.
+        This is safe because both ContentSecurityPolicy and LoaderTaskOptions are instantiated
+        in WorkerThreadableLoader::MainThreadBridge for use on the main thread only.
+
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::LoaderTaskOptions::LoaderTaskOptions):
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::MainThreadBridge):
+
+2016-09-19  Antti Koivisto  <antti@apple.com>
+
+        Add size assert for RenderElement
+        https://bugs.webkit.org/show_bug.cgi?id=162096
+
+        Reviewed by Simon Fraser.
+
+        Also remove the unused m_visibleInViewportState field.
+
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::unregisterForVisibleInViewportCallback):
+        * rendering/RenderElement.h:
+
+2016-09-19  Keith Rollin  <krollin@apple.com>
+
+        REGRESSION (r205275): LOG_WITH_STREAM() macros are all compiled in release builds now
+        https://bugs.webkit.org/show_bug.cgi?id=162180
+
+        Reviewed by Simon Fraser.
+
+        Disable LOG_WITH_STREAM in release mode. Along with this, remove a
+        local variable in GraphcsContextCG.cpp in release mode that's no
+        longer referenced. And adjust logFunctionResult so that it gets
+        defined only in debug mode, too, to match its declaration in
+        LogMacros.h.
+
+        No new tests -- there are no tests for logging.
+
+        * platform/LogMacros.h:
+        * platform/Logging.cpp:
+        * platform/graphics/cg/GraphicsContextCG.cpp:
+        (WebCore::GraphicsContext::drawNativeImage):
+
+2016-09-19  Daniel Bates  <dabates@apple.com>
+
+        Remove ENABLE(TEXT_AUTOSIZING) automatic text size adjustment code
+        https://bugs.webkit.org/show_bug.cgi?id=162167
+
+        Reviewed by Simon Fraser.
+
+        Remove the automatic text size adjustment code guarded by ENABLE(TEXT_AUTOSIZING)
+        because it is not used by any port. On Mac and iOS, analogous code guarded by
+        ENABLE(IOS_TEXT_AUTOSIZING) is used.
+
+        * CMakeLists.txt:
+        * Configurations/FeatureDefines.xcconfig:
+        * dom/Document.cpp:
+        (WebCore::Document::Document):
+        * dom/Document.h:
+        (WebCore::Document::textAutosizer): Deleted.
+        * page/FrameView.cpp:
+        (WebCore::FrameView::setFrameRect):
+        (WebCore::FrameView::layout):
+        * page/Settings.cpp:
+        (WebCore::Settings::Settings):
+        (WebCore::Settings::setTextAutosizingFontScaleFactor): Deleted.
+        * page/Settings.h:
+        (WebCore::Settings::textAutosizingFontScaleFactor): Deleted.
+        * page/animation/CSSPropertyAnimation.cpp:
+        (WebCore::CSSPropertyAnimationWrapperMap::CSSPropertyAnimationWrapperMap):
+        * rendering/RenderingAllInOne.cpp:
+        * rendering/TextAutosizer.cpp: Removed.
+        * rendering/TextAutosizer.h: Removed.
+        * rendering/style/RenderStyle.cpp:
+        (WebCore::RenderStyle::changeRequiresLayout):
+        (WebCore::RenderStyle::lineHeight):
+        (WebCore::RenderStyle::setFontSize):
+        * rendering/style/RenderStyle.h:
+        (WebCore::RenderStyle::textAutosizingMultiplier): Deleted.
+        (WebCore::RenderStyle::setTextAutosizingMultiplier): Deleted.
+        * rendering/style/StyleVisualData.cpp:
+        (WebCore::StyleVisualData::StyleVisualData):
+        * rendering/style/StyleVisualData.h:
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo):
+        (WebCore::InternalSettings::setTextAutosizingEnabled):
+        (WebCore::InternalSettings::setTextAutosizingWindowSizeOverride):
+        (WebCore::InternalSettings::setTextAutosizingFontScaleFactor): Deleted.
+        * testing/InternalSettings.h:
+        * testing/InternalSettings.idl:
+
+2016-09-19  Chris Dumez  <cdumez@apple.com>
+
+        Update XHTMLParser to recognize "-//W3C//DTD MathML 2.0//EN" public identifier
+        https://bugs.webkit.org/show_bug.cgi?id=162166
+
+        Reviewed by Alex Christensen.
+
+        Update XHTMLParser to recognize "-//W3C//DTD MathML 2.0//EN" public identifier as
+        per the latest HTML specification.
+        - https://html.spec.whatwg.org/#parsing-xhtml-documents
+
+        Firefox already recognizes it properly.
+
+        Test: imported/w3c/web-platform-tests/html/the-xhtml-syntax/parsing-xhtml-documents/xhtml-mathml-dtd-entity-support.htm
+
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+        (WebCore::convertUTF16EntityToUTF8):
+        Fix assertion that was causing the new test to crash in debug. The input '\u0026'
+        gets converted to '&' which is only 1 character. However, the assertion wrongly
+        expected WTF::Unicode::convertUTF16ToUTF8() to generate more than 1 character.
+
+        (WebCore::externalSubsetHandler):
+        Add "-//W3C//DTD MathML 2.0//EN" to the list.
+
+2016-09-19  Chris Dumez  <cdumez@apple.com>
+
+        Window's pageXOffset / pageYOffset attributes should be replaceable
+        https://bugs.webkit.org/show_bug.cgi?id=162046
+
+        Reviewed by Darin Adler.
+
+        Window's pageXOffset / pageYOffset attributes should be replaceable as per:
+        - https://drafts.csswg.org/cssom-view/#extensions-to-the-window-interface
+
+        Firefox agrees with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * page/DOMWindow.h:
+        * page/DOMWindow.idl:
+
+2016-09-19  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r206107.
+        https://bugs.webkit.org/show_bug.cgi?id=162229
+
+        still failing on armv7 for some reason (Requested by anttik on
+        #webkit).
+
+        Reverted changeset:
+
+        "Add size assert for RenderElement"
+        https://bugs.webkit.org/show_bug.cgi?id=162096
+        http://trac.webkit.org/changeset/206107
+
+2016-09-19  Antti Koivisto  <antti@apple.com>
+
+        Add size assert for RenderElement
+        https://bugs.webkit.org/show_bug.cgi?id=162096
+
+        Reviewed by Simon Fraser.
+
+        Also remove the unused m_visibleInViewportState field.
+
+        * rendering/RenderElement.cpp:
+        (WebCore::RenderElement::unregisterForVisibleInViewportCallback):
+        * rendering/RenderElement.h:
+
+2016-09-19  Nan Wang  <n_wang@apple.com>
+
+        AX: Add accessibility support for details element on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=162041
+
+        Reviewed by Chris Fleizach.
+
+        The details and summary elements are poorly supported on iOS.
+        Two major issues:
+            1. Assistive technologies taking focus onto details/summary elements will cause unexpected behavior.
+            2. VoiceOver is not speaking the expanded status of the details element.
+        Fixed them by not setting focus onto elements inside details and exposing the details element's expanded
+        status to its summary's accessible children.
+
+        Test: accessibility/ios-simulator/detail-summary-ios.html
+
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (matchedParent):
+        (-[WebAccessibilityObjectWrapper _accessibilityListAncestor]):
+        (-[WebAccessibilityObjectWrapper _accessibilityLandmarkAncestor]):
+        (-[WebAccessibilityObjectWrapper _accessibilityTableAncestor]):
+        (-[WebAccessibilityObjectWrapper _accessibilityFieldsetAncestor]):
+        (-[WebAccessibilityObjectWrapper tableCellParent]):
+        (-[WebAccessibilityObjectWrapper tableParent]):
+        (-[WebAccessibilityObjectWrapper convertPointToScreenSpace:]):
+        (-[WebAccessibilityObjectWrapper convertRectToScreenSpace:]):
+        (-[WebAccessibilityObjectWrapper detailParentForSummaryObject:]):
+        (-[WebAccessibilityObjectWrapper detailParentForObject:]):
+        (-[WebAccessibilityObjectWrapper accessibilityElementDidBecomeFocused]):
+        (-[WebAccessibilityObjectWrapper accessibilitySupportsARIAExpanded]):
+        (-[WebAccessibilityObjectWrapper accessibilityIsExpanded]):
+
+2016-09-19  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: clipRectsContext.rootLayer == m_clipRectsCache->m_clipRectsRoot[clipRectsType] while loading guardian.co.uk
+        https://bugs.webkit.org/show_bug.cgi?id=162129
+        <rdar://problem/28353350>
+
+        Reviewed by Antti Koivisto.
+
+        Neither ::localClipRect() nor ::selfClipRect() accounts for paginated context while computing the cliprects (See FIXMEs).
+        This patch ensures that we don't end up caching these invalid cliprects.
+
+        Test: fast/multicol/assert-on-cliprect-caching-when-paginated.html
+
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::calculateClipRects):
+
+2016-09-19  Youenn Fablet  <youenn@apple.com>
+
+        Clean-up after r206014
+        https://bugs.webkit.org/show_bug.cgi?id=162140
+
+        Reviewed by Sam Weinig.
+
+        Covered by existing tests.
+
+        * platform/network/HTTPHeaderMap.cpp:
+        (WebCore::HTTPHeaderMap::add):
+
+2016-09-19  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        If a host object is only used as a variadic argument, its bindings header isn't properly included
+        https://bugs.webkit.org/show_bug.cgi?id=150121
+
+        Reviewed by Youenn Fablet.
+
+        Modify JS binding generator to include binding headers of objects passed
+        as variadic argument.
+
+        * Modules/mediastream/RTCPeerConnection.h: Remove workaround.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AddVariadicToImplIncludes):
+        (GenerateParametersCheck):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+
+2016-09-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: ⇧⌘C should highlight node under cursor without re-moving mouse
+        https://bugs.webkit.org/show_bug.cgi?id=162128
+
+        Reviewed by Brian Burg.
+
+        * inspector/InspectorDOMAgent.h:
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::willDestroyFrontendAndBackend):
+        (WebCore::InspectorDOMAgent::mouseDidMoveOverElement):
+        (WebCore::InspectorDOMAgent::highlightMousedOverNode):
+        (WebCore::InspectorDOMAgent::setSearchingForNode):
+        When the inspector is connected, remember the last moused over node.
+        This produces far more consistent results of highlighting under
+        the cursor when pressing and releasing the keyboard shortcut keys,
+        without having to move the mouse. Even when using the shortcut to
+        first connect the inspector this produces far more consistent
+        results because releasing the keys for the shortcut produce new
+        mouseDidMoveOverElement events.
+
+2016-09-19  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        JSDOMBindings' toArguments() should return a more descriptive object
+        https://bugs.webkit.org/show_bug.cgi?id=161793
+
+        Reviewed by Youenn Fablet.
+
+        Replace std::pair with new VariadicHelperResult class with more
+        readable members names.
+
+        No additional tests required.
+
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::VariadicHelper::Result::Result):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod12):
+        (WebCore::jsTestObjPrototypeFunctionVariadicStringMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicDoubleMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicNodeMethod):
+
+2016-09-18  Alex Christensen  <achristensen@webkit.org>
+
+        Remove unnecessary String allocations in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162089
+
+        Reviewed by Chris Dumez.
+
+        No change in behavior except a performance improvement.
+
+        * platform/URL.cpp:
+        (WebCore::assertProtocolIsGood):
+        (WebCore::URL::protocolIs):
+        (WebCore::protocolIs):
+        * platform/URL.h:
+        Added a new protocolIs for non-null-terminated strings from user input.
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+        Don't make a String to compare protocols.
+
+2016-09-17  Alex Christensen  <achristensen@webkit.org>
+
+        Inline functions in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162106
+
+        Reviewed by Antti Koivisto.
+
+        No change in behavior. Just make URLParser faster.
+
+        * platform/URLParser.cpp:
+        (WebCore::isC0Control):
+        (WebCore::isC0ControlOrSpace):
+        (WebCore::isTabOrNewline):
+        (WebCore::isInSimpleEncodeSet):
+        (WebCore::isInDefaultEncodeSet):
+        (WebCore::isInUserInfoEncodeSet):
+        (WebCore::isInvalidDomainCharacter):
+        (WebCore::isPercentOrNonASCII):
+        (WebCore::isSlashQuestionOrHash):
+        (WebCore::isWindowsDriveLetter):
+        (WebCore::shouldCopyFileURL):
+        (WebCore::percentEncode):
+        (WebCore::utf8PercentEncode):
+        (WebCore::utf8PercentEncodeQuery):
+        (WebCore::encodeQuery):
+        (WebCore::isDefaultPort):
+        (WebCore::isSpecialScheme):
+        (WebCore::copyASCIIStringUntil):
+        (WebCore::isPercentEncodedDot):
+        (WebCore::isSingleDotPathSegment):
+        (WebCore::isDoubleDotPathSegment):
+        (WebCore::consumeSingleDotPathSegment):
+        (WebCore::consumeDoubleDotPathSegment):
+        (WebCore::serializeIPv4):
+        (WebCore::zeroSequenceLength):
+        (WebCore::findLongestZeroSequence):
+        (WebCore::serializeIPv6Piece):
+        (WebCore::serializeIPv6):
+        (WebCore::parseIPv4Number):
+        (WebCore::pow256):
+        (WebCore::parseIPv4Host):
+        (WebCore::parseIPv6Host):
+        (WebCore::percentDecode):
+        (WebCore::containsOnlyASCII):
+        (WebCore::domainToASCII):
+        (WebCore::hasInvalidDomainCharacter):
+        (WebCore::formURLDecode):
+        (WebCore::serializeURLEncodedForm):
+
+2016-09-17  David Kilzer  <ddkilzer@apple.com>
+
+        MainThreadBridge needs an isolatedCopy() of SecurityOrigin
+        <https://webkit.org/b/162116>
+        <rdar://problem/27525870>
+
+        Reviewed by Carlos Garcia Campos.
+
+        Covered by existing tests.
+
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::MainThreadBridge):
+        Make an isolatedCopy() of SecurityOrigin here since that's the
+        correct idiom to use when the object is passed from a worker
+        thread back to the main thread.  Fix suggested by Daniel Bates.
+
+2016-09-16  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DFG] Introduce IsCellWithType node and unify IsJSArray, IsRegExpObject and newly added IsProxyObject
+        https://bugs.webkit.org/show_bug.cgi?id=162000
+
+        Reviewed by Filip Pizlo.
+
+        * bridge/runtime_array.h:
+        (JSC::RuntimeArray::createStructure):
+
+2016-09-16  Chris Dumez  <cdumez@apple.com>
+
+        Cancelling one frame's load cancels load in other frames that have the same URL as well
+        https://bugs.webkit.org/show_bug.cgi?id=162094
+
+        Reviewed by Antti Koivisto.
+
+        Cancelling one frame's load cancels load in other frames that have the same URL as well.
+
+        So if you have several frames that are loading URL X and you navigate one of the frames
+        to Y, then the load of X will be cancelled and this frame will navigate to Y. All other
+        frames will not load URL X even though they should.
+
+        The issue is that all the DocumentLoaders share the same CachedResource because of the
+        memoryCache. When we call DocumentLoader::stopLoading(), it will cancel the
+        CachedResource's load even though there are several clients for this CachedResource
+        and other clients still want the load.
+
+        The approach chosen in this patch is to not reuse CachedResources that are still
+        loading when trying to load a main resource. This is not the most efficient approach.
+        I still chose this approach because:
+        - It is very unlikely to introduce new bugs.
+        - The change is very simple.
+        - This is a corner case (several iframes having the same URL and cancelling the load in
+          one of them).
+
+        Test: http/tests/navigation/frames-same-url-cancel-load.html
+
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::determineRevalidationPolicy):
+
+2016-09-16  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        ASSERTION FAILED: The string being removed is atomic in the string table of an other thread! iterator != atomicStringTable.end() at Source/WTF/wtf/text/AtomicStringImpl.cpp(453)
+        https://bugs.webkit.org/show_bug.cgi?id=161800
+
+        Reviewed by Žan Doberšek.
+
+        Speculative fix. These strings are created as static objects on a secondary thread, but all
+        static objects are destroyed in exit handlers on the main thread, and AtomicStrings must
+        always be destroyed on the same thread they are created.
+
+        * platform/graphics/texmap/TextureMapperShaderProgram.h:
+
 2016-09-16  Commit Queue  <commit-queue@webkit.org>
 
         Unreviewed, rolling out r206055.

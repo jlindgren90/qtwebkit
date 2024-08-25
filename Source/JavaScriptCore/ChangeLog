@@ -1,3 +1,449 @@
+2016-09-19  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, build fix for Win64
+        https://bugs.webkit.org/show_bug.cgi?id=162132
+
+        In Windows 64bit, t3 register in LLInt is not r[a-d]x.
+        It means that this cannot be used for byte operation.
+
+        * llint/LowLevelInterpreter64.asm:
+
+2016-09-19  Daniel Bates  <dabates@apple.com>
+
+        Remove ENABLE(TEXT_AUTOSIZING) automatic text size adjustment code
+        https://bugs.webkit.org/show_bug.cgi?id=162167
+
+        Reviewed by Simon Fraser.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-09-19  Keith Miller  <keith_miller@apple.com>
+
+        Update WASM towards 0xc
+        https://bugs.webkit.org/show_bug.cgi?id=162067
+
+        Reviewed by Geoffrey Garen.
+
+        This patch updates some of the core parts of the WASM frontend to the 0xc standard.
+        First, it changes the section names from strings to bytecodes. It also adds support
+        for inline block signatures. This is a change from the old version that used to have
+        each branch indicate the arity. Finally, this patch updates all the tests and deletes
+        a duplicate test.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * testWASM.cpp:
+        (runWASMTests):
+        * wasm/WASMB3IRGenerator.cpp:
+        * wasm/WASMFormat.h:
+        * wasm/WASMFunctionParser.h:
+        (JSC::WASM::FunctionParser<Context>::FunctionParser):
+        (JSC::WASM::FunctionParser<Context>::parseBlock):
+        (JSC::WASM::FunctionParser<Context>::parseExpression):
+        * wasm/WASMModuleParser.cpp:
+        (JSC::WASM::ModuleParser::parse):
+        * wasm/WASMSections.cpp: Removed.
+        (JSC::WASM::Sections::lookup): Deleted.
+        * wasm/WASMSections.h:
+        (JSC::WASM::Sections::validateOrder):
+
+2016-09-19  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Use is_cell_with_type for @isRegExpObject, @isMap, and @isSet
+        https://bugs.webkit.org/show_bug.cgi?id=162142
+
+        Reviewed by Michael Saboff.
+
+        Use is_cell_with_type for @isRegExpObject, @isMap and @isSet.
+        Previously, they were implemented as functions and only @isRegExpObject was handled in the DFG and FTL.
+        The recently added op_is_cell_with_type bytecode and DFG IsCellWithType node allows us to simplify the above checks in all JIT tiers.
+        Changed these checks to bytecode intrinsics using op_is_cell_with_type.
+
+        * builtins/BuiltinNames.h:
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * bytecode/SpeculatedType.cpp:
+        (JSC::speculationFromJSType):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::emitIsRegExpObject):
+        (JSC::BytecodeGenerator::emitIsMap):
+        (JSC::BytecodeGenerator::emitIsSet):
+        (JSC::BytecodeGenerator::emitIsProxyObject): Deleted.
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_isRegExpObject):
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_isMap):
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_isSet):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        * runtime/ECMAScriptSpecInternalFunctions.cpp:
+        (JSC::esSpecIsRegExpObject): Deleted.
+        * runtime/ECMAScriptSpecInternalFunctions.h:
+        * runtime/Intrinsic.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/MapPrototype.cpp:
+        (JSC::privateFuncIsMap): Deleted.
+        * runtime/MapPrototype.h:
+        * runtime/SetPrototype.cpp:
+        (JSC::privateFuncIsSet): Deleted.
+        * runtime/SetPrototype.h:
+
+2016-09-19  Brian Burg  <bburg@apple.com>
+
+        Web Replay: teach the replay inputs generator to encode and decode OptionSet<T>
+        https://bugs.webkit.org/show_bug.cgi?id=162107
+
+        Reviewed by Anders Carlsson.
+
+        Add a new type flag OPTION_SET. This means that the type is a typechecked enum class
+        declaration, but it's stored in an OptionSet object and can contain multiple
+        distinct enumeration values like an untyped enum declaration.
+
+        Do some cleanup since the generator now supports three different enumerable types:
+        'enum', 'enum class', and 'OptionSet<T>' where T is an enum class.
+
+        Also clean up some sloppy variable names. Using an 'enum_' prefix is really confusing now.
+
+        * replay/scripts/CodeGeneratorReplayInputs.py:
+        (Type.is_enum_declaration):
+        (Type.is_enum_class_declaration):
+        (Type.is_option_set):
+        (Type):
+        (Type.is_enumerable):
+        When we want all enumerable types, this property includes all three variants.
+
+        (Type.declaration_kind): Forward-declare OptionSet's type parameter as an enum class.
+        (VectorType.is_enum_declaration): Renamed from is_enum().
+        (VectorType.is_enum_class_declaration): Renamed from is_enum_class().
+        (VectorType.is_option_set): Added.
+        (InputsModel.enumerable_types): Added.
+        (InputsModel.parse_type_with_framework):
+        (Generator.generate_header):
+        (Generator.generate_implementation):
+        (Generator.generate_includes):
+        (Generator.generate_type_forward_declarations):
+        (Generator.generate_enumerable_type_trait_declaration):
+        (Generator.generate_enum_trait_declaration): Renamed.
+        (Generator.generate_enum_trait_implementation): Renamed.
+
+        * replay/scripts/CodeGeneratorReplayInputsTemplates.py:
+        Add new templates for OptionSet types. Clean up parameter names and simplify the
+        enumerable type declaration template, which is the same for all enumerable type variants.
+
+        * replay/scripts/tests/expected/fail-on-c-style-enum-no-storage.json-error:
+        * replay/scripts/tests/expected/generate-enum-encoding-helpers.json-TestReplayInputs.cpp:
+        (JSC::EncodingTraits<Test::PlatformEvent::OtherType>::encodeValue):
+        (JSC::EncodingTraits<Test::PlatformEvent::OtherType>::decodeValue):
+        * replay/scripts/tests/expected/generate-enum-encoding-helpers.json-TestReplayInputs.h:
+        * replay/scripts/tests/expected/generate-enum-with-guard.json-TestReplayInputs.h:
+        Rebaseline test results.
+
+        * replay/scripts/tests/generate-enum-encoding-helpers.json:
+        Add a new type for OptionSet<PlatformEvent::Modifier> to capture generated encode/decode methods.
+
+2016-09-19  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC][LLInt] Introduce is_cell_with_type
+        https://bugs.webkit.org/show_bug.cgi?id=162132
+
+        Reviewed by Sam Weinig.
+
+        In this patch, we introduce is_cell_with_type bytecode. This bytecode can unify the following predicates,
+        op_is_string, op_is_jsarray, op_is_proxy_object, and op_is_derived_array!
+        And we now drop DFG node IsString since we can use IsCellWithType instead.
+        This automatically offers optimization to previous IsString node: dropping cell check by using CellUse edge filter.
+
+        Later, we are planning to use this is_cell_with_type to optimize @isRegExpObject, @isSet, and @isMap[1].
+
+        The performance results are neutral.
+
+        [1]: https://bugs.webkit.org/show_bug.cgi?id=162142
+
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        * bytecode/SpeculatedType.cpp:
+        (JSC::speculationFromJSType):
+        * bytecode/SpeculatedType.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitEqualityOp):
+        (JSC::BytecodeGenerator::emitIsCellWithType):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::emitIsJSArray):
+        (JSC::BytecodeGenerator::emitIsProxyObject):
+        (JSC::BytecodeGenerator::emitIsDerivedArray):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        (JSC::DFG::FixupPhase::fixupIsCellWithType):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::speculatedTypeForQuery):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileIsString): Deleted.
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        * jit/JIT.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emit_op_is_cell_with_type):
+        (JSC::JIT::emitIsCellWithType): Deleted.
+        (JSC::JIT::emit_op_is_string): Deleted.
+        (JSC::JIT::emit_op_is_jsarray): Deleted.
+        (JSC::JIT::emit_op_is_proxy_object): Deleted.
+        (JSC::JIT::emit_op_is_derived_array): Deleted.
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emit_op_is_cell_with_type):
+        (JSC::JIT::emitIsCellWithType): Deleted.
+        (JSC::JIT::emit_op_is_string): Deleted.
+        (JSC::JIT::emit_op_is_jsarray): Deleted.
+        (JSC::JIT::emit_op_is_proxy_object): Deleted.
+        (JSC::JIT::emit_op_is_derived_array): Deleted.
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::Data::performAssertions):
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+
+2016-09-18  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Assert length of LLInt opcodes using isCellWithType is 3
+        https://bugs.webkit.org/show_bug.cgi?id=162134
+
+        Reviewed by Saam Barati.
+
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::Data::performAssertions):
+
+2016-09-18  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Do not need to use defineProperty to define methods for object literals
+        https://bugs.webkit.org/show_bug.cgi?id=162111
+
+        Reviewed by Saam Barati.
+
+        When we receive the following code,
+
+            var object = { method() { } };
+
+        currently, we use defineProperty to define "method" function for "object".
+        This patch replaces it with the ordinary put_by_id_direct / put_by_val_direct
+        because the following 2 conditions are met.
+
+        1. While methods in classes have special attributes ({configurable: true, writable: true, enumerable: false}),
+           the attributes of methods in object literals is just the same to the other normal properties ({configurable: true, writable: true, enumerable: true}).
+           This means that we can use the usual put_by_id_direct / put_by_val_direct to define method properties for object literals.
+
+        2. Furthermore, all the own properties that can reside in objects created by object literals have {configurable: true}.
+           So there is no need to check conflict by defineProperty. Always overwriting is OK.
+
+                let name = 'method';
+                var object = { get [name]() { }, method() { } };
+                // Latter method wins.
+
+            On the other hand, in class syntax, conflict check is necessary since "prototype" own property is defined as {configurable: false}.
+
+                class Hello { static prototype() { } }  // Should throw error by defineProperty's check.
+
+            This means that conflict check done in defneProperty is not necessary for object literals' properties.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::PropertyListNode::emitPutConstantProperty):
+
+2016-09-16  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DFG] Introduce IsCellWithType node and unify IsJSArray, IsRegExpObject and newly added IsProxyObject
+        https://bugs.webkit.org/show_bug.cgi?id=162000
+
+        Reviewed by Filip Pizlo.
+
+        Sampling profiler tells that ES6SampleBench/Basic frequently calls Array.isArray(). This function is introduced in
+        ES5 and it is well-used to distinguish Array from the other objects. Moreover, this function is used in Array.prototype.xxx
+        methods as @isArray. So it's worth optimizing.
+
+        The difference between Array.isArray and @isJSArray is that Array.isArray need to consider about ProxyObject while
+        @isJSArray builtin intrinsic does not. So in this patch, we leverage the existing @isJSArray to implement Array.isArray.
+        Array.isArray is written in builtin JS code using @isJSArray and newly added @isProxyObject(). That allow us to inline
+        Array.isArray() code and the inlined code uses existing DFG nodes well.
+
+        Another problem is RuntimeArray and ArrayPrototype. They inherit JSArray and their JSType is ObjectType. But Array.isArray need
+        to return true for those types. While optimizing type checking in generic way by type display is nice, RuntimeArray and
+        ArrayPrototype are a bit tricky and it is super rare that these functions are passed to Array.isArray(). So instead of introducing
+        type display in this patch, we just introduce a new JSType, DerivedArrayType and use it in the above 2 use classes. Since
+        Array.isArray is specially handled in the spec (while we don't have any Date.isDate() like functions, only Array.isArray
+        is specified in the spec because we frequently want to distinguish Arrays from other Objects), optimizing Array.isArray specially
+        by introducing special DerivedArrayType is reasonable.
+
+        In LLInt level, we add a new opcode, op_is_proxy_object and op_is_derived_array. This works similar to op_is_jsarray.
+        And we also perform LLInt code cleanup by introducing a macro isCellWithType.
+
+        In baseline, we perform some clean up for op_is_proxy_object etc. Now duplicate code is reduced.
+
+        In DFG, we unify IsJSArray, IsRegExpObject, IsProxyObject, and IsDerivedArray into one IsCellWithType node. And we clean up
+        some AI code related to IsJSArray and IsRegExpObject since SpeculatedType now recognizes ProxyObject. IsJSArray and IsRegExpObject
+        does not do anything special for proxy objects.
+
+        The above change simplify things to create a new IsXXX DFG handling and paves the way for optimizing @isMap & @isSet in DFG.
+        Furthermore, introducing @isProxyObject() is nice for the first step to optimize ProxyObject handling.
+
+        Here is microbenchmark result. We can see stable performance improvement (Even if we use Proxies!).
+
+                                                    baseline                  patched
+
+            is-array-for-array                   2.5156+-0.0288     ^      2.0668+-0.0285        ^ definitely 1.2171x faster
+            is-array-for-mixed-case              4.7787+-0.0755     ^      4.4722+-0.0789        ^ definitely 1.0686x faster
+            is-array-for-non-array-object        2.3596+-0.0368     ^      1.8178+-0.0262        ^ definitely 1.2980x faster
+            is-array-for-proxy                   4.0469+-0.0437     ^      3.3845+-0.0404        ^ definitely 1.1957x faster
+
+        And ES6SampleBench/Basic reports 5.2% perf improvement. And now sampling result in ES6SampleBench/Basic does not pose Array.isArray.
+
+            Benchmark             First Iteration        Worst 2%               Steady State
+            baseline:Basic        28.59 ms +- 1.03 ms    15.08 ms +- 0.28 ms    1656.96 ms +- 18.02 ms
+            patched:Basic         27.82 ms +- 0.44 ms    14.59 ms +- 0.16 ms    1574.65 ms +- 8.44 ms
+
+        * builtins/ArrayConstructor.js:
+        (isArray):
+        (from): Deleted.
+        * builtins/BuiltinNames.h:
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * bytecode/BytecodeList.json:
+        * bytecode/BytecodeUseDef.h:
+        (JSC::computeUsesForBytecodeOffset):
+        (JSC::computeDefsForBytecodeOffset):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        * bytecode/SpeculatedType.cpp:
+        (JSC::dumpSpeculation):
+        (JSC::speculationFromClassInfo):
+        (JSC::speculationFromStructure):
+        * bytecode/SpeculatedType.h:
+        (JSC::isProxyObjectSpeculation):
+        (JSC::isDerivedArraySpeculation):
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::emitIsProxyObject):
+        (JSC::BytecodeGenerator::emitIsDerivedArray):
+        (JSC::BytecodeGenerator::emitIsJSArray): Deleted.
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_isProxyObject):
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_isDerivedArray):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGCapabilities.cpp:
+        (JSC::DFG::capabilityLevel):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        (JSC::DFG::FixupPhase::fixupIsCellWithType):
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::dump):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::hasQueriedType):
+        (JSC::DFG::Node::queriedType):
+        (JSC::DFG::Node::hasSpeculatedTypeForQuery):
+        (JSC::DFG::Node::speculatedTypeForQuery):
+        (JSC::DFG::Node::shouldSpeculateProxyObject):
+        (JSC::DFG::Node::shouldSpeculateDerivedArray):
+        (JSC::DFG::Node::loadVarargsData): Deleted.
+        (JSC::DFG::Node::shouldSpeculateArray): Deleted.
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::SafeToExecuteEdge::operator()):
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileIsCellWithType):
+        (JSC::DFG::SpeculativeJIT::speculateProxyObject):
+        (JSC::DFG::SpeculativeJIT::speculateDerivedArray):
+        (JSC::DFG::SpeculativeJIT::speculate):
+        (JSC::DFG::SpeculativeJIT::compileIsJSArray): Deleted.
+        (JSC::DFG::SpeculativeJIT::compileIsRegExpObject): Deleted.
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGUseKind.cpp:
+        (WTF::printInternal):
+        * dfg/DFGUseKind.h:
+        (JSC::DFG::typeFilterFor):
+        (JSC::DFG::isCell):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileIsCellWithType):
+        (JSC::FTL::DFG::LowerDFGToB3::speculate):
+        (JSC::FTL::DFG::LowerDFGToB3::isCellWithType):
+        (JSC::FTL::DFG::LowerDFGToB3::speculateProxyObject):
+        (JSC::FTL::DFG::LowerDFGToB3::speculateDerivedArray):
+        (JSC::FTL::DFG::LowerDFGToB3::compileIsJSArray): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::compileIsRegExpObject): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::isArray): Deleted.
+        (JSC::FTL::DFG::LowerDFGToB3::isRegExpObject): Deleted.
+        * jit/JIT.cpp:
+        (JSC::JIT::privateCompileMainPass):
+        * jit/JIT.h:
+        * jit/JITOpcodes.cpp:
+        (JSC::JIT::emitIsCellWithType):
+        (JSC::JIT::emit_op_is_string):
+        (JSC::JIT::emit_op_is_jsarray):
+        (JSC::JIT::emit_op_is_proxy_object):
+        (JSC::JIT::emit_op_is_derived_array):
+        * jit/JITOpcodes32_64.cpp:
+        (JSC::JIT::emitIsCellWithType):
+        (JSC::JIT::emit_op_is_string):
+        (JSC::JIT::emit_op_is_jsarray):
+        (JSC::JIT::emit_op_is_proxy_object):
+        (JSC::JIT::emit_op_is_derived_array):
+        * jsc.cpp:
+        (WTF::RuntimeArray::createStructure):
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::Data::performAssertions):
+        * llint/LowLevelInterpreter.asm:
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+        * runtime/ArrayConstructor.cpp:
+        (JSC::ArrayConstructor::finishCreation):
+        (JSC::isArraySlowInline):
+        (JSC::isArraySlow):
+        (JSC::arrayConstructorPrivateFuncIsArraySlow):
+        (JSC::arrayConstructorIsArray): Deleted.
+        * runtime/ArrayConstructor.h:
+        (JSC::isArray):
+        * runtime/ArrayPrototype.h:
+        (JSC::ArrayPrototype::createStructure):
+        * runtime/JSArray.h:
+        (JSC::JSArray::finishCreation):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        * runtime/JSType.h:
+
 2016-09-16  Yusuke Suzuki  <utatane.tea@gmail.com>
 
         [DFG] Introduce ArrayUse
