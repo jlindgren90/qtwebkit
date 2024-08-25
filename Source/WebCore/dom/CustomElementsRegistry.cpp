@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,7 +24,7 @@
  */
 
 #include "config.h"
-#include "CustomElementDefinitions.h"
+#include "CustomElementsRegistry.h"
 
 #if ENABLE(CUSTOM_ELEMENTS)
 
@@ -39,7 +39,18 @@
 
 namespace WebCore {
 
-void CustomElementDefinitions::addElementDefinition(Ref<JSCustomElementInterface>&& elementInterface)
+Ref<CustomElementsRegistry> CustomElementsRegistry::create()
+{
+    return adoptRef(*new CustomElementsRegistry());
+}
+
+CustomElementsRegistry::CustomElementsRegistry()
+{ }
+
+CustomElementsRegistry::~CustomElementsRegistry()
+{ }
+
+void CustomElementsRegistry::addElementDefinition(Ref<JSCustomElementInterface>&& elementInterface)
 {
     AtomicString localName = elementInterface->name().localName();
     ASSERT(!m_nameMap.contains(localName));
@@ -63,7 +74,7 @@ void CustomElementDefinitions::addElementDefinition(Ref<JSCustomElementInterface
     ASSERT(!m_upgradeCandidatesMap.contains(localName));
 }
 
-void CustomElementDefinitions::addUpgradeCandidate(Element& candidate)
+void CustomElementsRegistry::addUpgradeCandidate(Element& candidate)
 {
     auto result = m_upgradeCandidatesMap.ensure(candidate.localName(), [] {
         return Vector<RefPtr<Element>>();
@@ -73,23 +84,23 @@ void CustomElementDefinitions::addUpgradeCandidate(Element& candidate)
     nodeVector.append(&candidate);
 }
 
-JSCustomElementInterface* CustomElementDefinitions::findInterface(const QualifiedName& name) const
+JSCustomElementInterface* CustomElementsRegistry::findInterface(const QualifiedName& name) const
 {
     auto it = m_nameMap.find(name.localName());
-    return it == m_nameMap.end() || it->value->name() != name ? nullptr : it->value.get();
+    return it == m_nameMap.end() || it->value->name() != name ? nullptr : const_cast<JSCustomElementInterface*>(it->value.ptr());
 }
 
-JSCustomElementInterface* CustomElementDefinitions::findInterface(const AtomicString& name) const
+JSCustomElementInterface* CustomElementsRegistry::findInterface(const AtomicString& name) const
 {
     return m_nameMap.get(name);
 }
 
-JSCustomElementInterface* CustomElementDefinitions::findInterface(const JSC::JSObject* constructor) const
+JSCustomElementInterface* CustomElementsRegistry::findInterface(const JSC::JSObject* constructor) const
 {
     return m_constructorMap.get(constructor);
 }
 
-bool CustomElementDefinitions::containsConstructor(const JSC::JSObject* constructor) const
+bool CustomElementsRegistry::containsConstructor(const JSC::JSObject* constructor) const
 {
     return m_constructorMap.contains(constructor);
 }

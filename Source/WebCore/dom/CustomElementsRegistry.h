@@ -23,16 +23,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "JSCustomElementInterface.h"
+#pragma once
+
+#if ENABLE(CUSTOM_ELEMENTS)
+
 #include "QualifiedName.h"
 #include <wtf/HashMap.h>
 #include <wtf/text/AtomicString.h>
 #include <wtf/text/AtomicStringHash.h>
-
-#ifndef CustomElementDefinitions_h
-#define CustomElementDefinitions_h
-
-#if ENABLE(CUSTOM_ELEMENTS)
 
 namespace JSC {
 
@@ -43,11 +41,14 @@ class JSObject;
 namespace WebCore {
 
 class Element;
+class JSCustomElementInterface;
 class QualifiedName;
 
-class CustomElementDefinitions {
-    WTF_MAKE_FAST_ALLOCATED;
+class CustomElementsRegistry : public RefCounted<CustomElementsRegistry> {
 public:
+    static Ref<CustomElementsRegistry> create();
+    ~CustomElementsRegistry();
+
     void addElementDefinition(Ref<JSCustomElementInterface>&&);
     void addUpgradeCandidate(Element&);
 
@@ -57,13 +58,13 @@ public:
     bool containsConstructor(const JSC::JSObject*) const;
 
 private:
+    CustomElementsRegistry();
+
     HashMap<AtomicString, Vector<RefPtr<Element>>> m_upgradeCandidatesMap;
-    HashMap<AtomicString, RefPtr<JSCustomElementInterface>> m_nameMap;
+    HashMap<AtomicString, Ref<JSCustomElementInterface>> m_nameMap;
     HashMap<const JSC::JSObject*, JSCustomElementInterface*> m_constructorMap;
 };
     
 }
 
 #endif
-
-#endif /* CustomElementDefinitions_h */

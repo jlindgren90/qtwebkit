@@ -1,3 +1,60 @@
+2016-08-10  Alex Christensen  <achristensen@webkit.org>
+
+        Fix crash when changing cookie accept policy after r204327
+        https://bugs.webkit.org/show_bug.cgi?id=160758
+
+        Reviewed by Simon Fraser.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/CookieAcceptPolicy.mm: Added.
+        (-[CookieAcceptPolicyMessageHandler userContentController:didReceiveScriptMessage:]):
+        (TEST):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/CookieMessage.html: Added.
+
+2016-08-10  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Have WebKitTestRunnerApp.app use a UIViewController, and fix to avoid the status bar
+        https://bugs.webkit.org/show_bug.cgi?id=160757
+
+        Reviewed by Tim Horton.
+
+        When programmatically creating the test UIWindow, make a root UIViewController and parent
+        the WKWebView in its view. This makes the app more like a normal UIKit application.
+        
+        Move the WKWebView down 20px to avoid the status bar.
+        
+        Give the UIWindow a gray background so it's obvious where the window and view positioned.
+
+        Sorted the project file. Removed the link to UIKit which showed red, and wasn't necessary.
+        
+        Remove duplicate references to Launch.storyboard.
+
+        * WebKitTestRunner/WebKitTestRunner.xcodeproj/project.pbxproj:
+        * WebKitTestRunner/WebKitTestRunnerApp/AppDelegate.h: Add license.
+        * WebKitTestRunner/WebKitTestRunnerApp/AppDelegate.m: Add license.
+        (-[AppDelegate applicationWillResignActive:]): Deleted.
+        (-[AppDelegate applicationDidEnterBackground:]): Deleted.
+        (-[AppDelegate applicationWillEnterForeground:]): Deleted.
+        (-[AppDelegate applicationDidBecomeActive:]): Deleted.
+        (-[AppDelegate applicationWillTerminate:]): Deleted.
+        * WebKitTestRunner/ios/PlatformWebViewIOS.mm:
+        (WTR::viewRectForWindowRect):
+        (WTR::PlatformWebView::PlatformWebView):
+        (WTR::PlatformWebView::setWindowFrame):
+
+2016-08-10  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Use the simulated device's screen size, rather than a harcoded size
+        https://bugs.webkit.org/show_bug.cgi?id=160748
+
+        Reviewed by Tim Horton.
+        
+        Use the main UIScreen's bounds for the window size if we're using a flexible viewport. This
+        opens the door for tests using other device sizes.
+
+        * WebKitTestRunner/ios/TestControllerIOS.mm:
+        (WTR::TestController::platformConfigureViewForTest):
+
 2016-08-10  Simon Fraser  <simon.fraser@apple.com>
 
         Sort the feature flags in the FEATURE_DEFINES lines

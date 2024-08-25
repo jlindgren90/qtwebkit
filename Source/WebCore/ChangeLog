@@ -1,3 +1,119 @@
+2016-08-10  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Should be able to Edit Node Attributes and Styles for non-UserAgent Shadow DOM nodes
+        https://bugs.webkit.org/show_bug.cgi?id=160762
+        <rdar://problem/27798271>
+
+        Reviewed by Ryosuke Niwa.
+
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::assertEditableNode):
+        (WebCore::InspectorDOMAgent::assertEditableElement):
+        * inspector/PageConsoleAgent.cpp:
+        (WebCore::PageConsoleAgent::addInspectedNode):
+        Allow editing shadow DOM nodes as long as they are not in a UserAgent shadow tree.
+
+2016-08-10  Chris Dumez  <cdumez@apple.com>
+
+        Optimization in Node.insertBefore() is not spec-compliant
+        https://bugs.webkit.org/show_bug.cgi?id=160746
+
+        Reviewed by Ryosuke Niwa.
+
+        We have an optimization in Node.insertBefore(newNode, refChild) to avoid
+        doing any work when newNode == refChild or newNode.nextSibling == refChild.
+
+        This optimization is not in the specification:
+        - https://dom.spec.whatwg.org/#concept-node-replace
+
+        The issue is that this optimization is observable with DOM mutation
+        observers / listeners or DOM ranges.
+
+        This patch addresses the issue by dropping the optimization. This case
+        does not seem common enough to be worth optimizing for. However, if it
+        turns out to regress the performance of things we care about, we could
+        fallback to doing the optimization only when it is not observable.
+
+        Test: fast/dom/Node/insertBefore-no-op-mutationobserver.html
+
+        * dom/ContainerNode.cpp:
+        (WebCore::checkAcceptChild):
+        Move refChild->parent() == parent check from insertBefore() to our
+        pre-insertion check function, right after checking if newNode contains
+        parent. This was done in order to match more closely the specification
+        and to make sure that exception are thrown in the correct order:
+        - https://dom.spec.whatwg.org/#concept-node-ensure-pre-insertion-validity (steps 2 and 3)
+
+        (WebCore::ContainerNode::insertBefore):
+        1. Drop the (refChild->previousSibling() == &newChild || refChild == &newChild)
+           optimization as it is not spc-compliant.
+        2. If refChild is newNode, then set refChild to newChild.nextSibling as per:
+           - https://dom.spec.whatwg.org/#concept-node-pre-insert (step 3)
+
+2016-08-10  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Move document.defineElement to customElements.define
+        https://bugs.webkit.org/show_bug.cgi?id=160731
+
+        Reviewed by Chris Dumez.
+
+        Replaced Document.prototype.defineElement by CustomElementsRegistry.prototype.define to match
+        the latest HTML specification: https://html.spec.whatwg.org/#custom-elements-api 
+
+        This patch renames the existing CustomElementDefinitions to CustomElementsRegistry and exposes
+        it on window.customElements. CustomElementDefinitions is now owned by DOMWindow instead of
+        Document to match the spec's new semantics.
+
+        No new tests. The existing tests have been updated to reflect the change.
+
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSCustomElementsRegistryCustom.cpp: Added.
+        (WebCore::JSCustomElementsRegistry::define): Moved from JSDocumentCustom. Removed the check for
+        the existence of DOMWindow since CustomElementsRegistry is an attribute on DOMWindow itself.
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::defineElement): Deleted.
+        * bindings/js/JSHTMLElementCustom.cpp: Added the code to check the existence of DOMWindow since
+        the registry is associated with DOMWindow, not Document.
+        (WebCore::constructJSHTMLElement):
+        * dom/CustomElementsRegistry.cpp: Renamed from Source/WebCore/dom/CustomElementDefinitions.cpp.
+        (WebCore::CustomElementsRegistry::create): Added.
+        (WebCore::CustomElementsRegistry::CustomElementsRegistry): Added.
+        (WebCore::CustomElementsRegistry::~CustomElementsRegistry): Added.
+        (WebCore::CustomElementsRegistry::addElementDefinition): Moved from CustomElementDefinitions.
+        (WebCore::CustomElementsRegistry::addUpgradeCandidate): Ditto.
+        (WebCore::CustomElementsRegistry::findInterface): Ditto.
+        (WebCore::CustomElementsRegistry::containsConstructor): Ditto.
+        * dom/CustomElementsRegistry.h: Renamed from Source/WebCore/dom/CustomElementDefinitions.h.
+        * dom/CustomElementsRegistry.idl: Added.
+        * dom/Document.cpp:
+        (WebCore::createUpgradeCandidateElement): Extracted out of createHTMLElementWithNameValidation
+        and createFallbackHTMLElement to share code.
+        (WebCore::createHTMLElementWithNameValidation):
+        (WebCore::createFallbackHTMLElement): This function was missing a check for the runtime flag.
+        Sharing code with createHTMLElementWithNameValidation via createUpgradeCandidateElement fixes it.
+        (WebCore::Document::ensureCustomElementDefinitions): Deleted.
+        * dom/Document.h:
+        (WebCore::Document::customElementDefinitions): Deleted.
+        * dom/Document.idl:
+        * dom/Element.cpp:
+        (WebCore::Element::attributeChanged):
+        * html/parser/HTMLConstructionSite.cpp:
+        (WebCore::HTMLConstructionSite::createHTMLElementOrFindCustomElementInterface):
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::ensureCustomElementsRegistry): Added. Moved from Document.
+        * page/DOMWindow.h:
+        * page/DOMWindow.idl: Added customElements on DOMWindow.
+
+2016-08-10  Alex Christensen  <achristensen@webkit.org>
+
+        Fix WinCairo build after r204327.
+
+        * platform/network/NetworkStorageSessionStub.cpp:
+        (WebCore::NetworkStorageSession::ensurePrivateBrowsingSession): Renamed from create...
+        (WebCore::NetworkStorageSession::createPrivateBrowsingSession): Deleted.
+
 2016-08-10  Nan Wang  <n_wang@apple.com>
 
         AX: Media controls timeline should have percentage value description

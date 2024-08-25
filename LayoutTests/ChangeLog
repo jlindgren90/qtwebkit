@@ -1,3 +1,95 @@
+2016-08-11  Antoine Quint  <graouts@apple.com>
+
+        Test 2d.gradient.interpolate.colouralpha.html is broken on macOS Sierra
+        https://bugs.webkit.org/show_bug.cgi?id=160689
+        <rdar://problem/24025664>
+
+        Reviewed by Dean Jackson.
+
+        When the test samples 25th pixel it expect the value to be exactly 25% interpolation of the color values.
+        However, the sampling location is the center of the pixel, i.e. it should correspond to 25.5% interpolation,
+        which would expect the color of (189.975, 189.75, 65.25, 65.25). The new values are a rounded values of
+        interpolation “by hand” at steps of 25.5%, 50.5% and 75.5%.
+
+        * canvas/philip/tests/2d.gradient.interpolate.colouralpha.html:
+
+2016-08-10  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Should be able to Edit Node Attributes and Styles for non-UserAgent Shadow DOM nodes
+        https://bugs.webkit.org/show_bug.cgi?id=160762
+        <rdar://problem/27798271>
+
+        Reviewed by Ryosuke Niwa.
+
+        * inspector/dom/shadowRootType-expected.txt:
+        * inspector/dom/shadowRootType.html:
+        Add tests for DOMNode.prototype.isInUserAgentShadowTree.
+
+2016-08-10  Chris Dumez  <cdumez@apple.com>
+
+        Optimization in Node.insertBefore() is not spec-compliant
+        https://bugs.webkit.org/show_bug.cgi?id=160746
+
+        Reviewed by Ryosuke Niwa.
+
+        Add layout test to make sure mutation observers / listeners are always
+        notified when Node.insertBefore() is called.
+
+        * fast/dom/Node/insertBefore-no-op-mutationobserver-expected.txt: Added.
+        * fast/dom/Node/insertBefore-no-op-mutationobserver.html: Added.
+
+2016-08-10  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Move document.defineElement to customElements.define
+        https://bugs.webkit.org/show_bug.cgi?id=160731
+
+        Reviewed by Chris Dumez.
+
+        Updated the tests and their expected results to reflect the move of Document.prototype.defineElement to
+        CustomElementsRegistry.prototype.define. I'm going to rename tests in a follow up.
+
+        * fast/custom-elements/Document-createElement.html:
+        * fast/custom-elements/Document-defineElement-expected.txt:
+        * fast/custom-elements/Document-defineElement.html: Removed test cases for testing defining elements
+        in a viewless/windowless document since those documents don't have a corresponding window object.
+        * fast/custom-elements/HTMLElement-constructor.html:
+        * fast/custom-elements/attribute-changed-callback.html:
+        * fast/custom-elements/defined-pseudo-class.html:
+        * fast/custom-elements/defined-rule.html:
+        * fast/custom-elements/lifecycle-callback-timing.html:
+        * fast/custom-elements/parser/parser-constructs-custom-element-in-document-write.html:
+        * fast/custom-elements/parser/parser-constructs-custom-element-synchronously.html:
+        * fast/custom-elements/parser/parser-constructs-custom-elements-expected.txt:
+        * fast/custom-elements/parser/parser-constructs-custom-elements.html:
+        * fast/custom-elements/parser/parser-fallsback-to-unknown-element.html:
+        * fast/custom-elements/parser/parser-sets-attributes-and-children.html:
+        * fast/custom-elements/parser/parser-uses-constructed-element.html:
+        * fast/custom-elements/parser/parser-uses-registry-of-owner-document.html:
+        * fast/custom-elements/upgrading/Node-cloneNode.html:
+        * fast/custom-elements/upgrading/upgrading-parser-created-element.html:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+
+2016-08-10  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS WK2] Use the simulated device's screen size, rather than a harcoded size
+        https://bugs.webkit.org/show_bug.cgi?id=160748
+
+        Reviewed by Tim Horton.
+        
+        Move fast/viewport/ios skipping to ios-simulator-wk2/TestExpectations since the tests
+        are WK2-only.
+
+        * fast/viewport/ios/width-is-device-width-expected.txt:
+        * fast/viewport/ios/width-is-device-width-overflowing-no-shrink-to-fit-expected.txt:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+        * platform/ios-simulator/fast/scrolling/ios/clipping-ancestor-with-accelerated-scrolling-ancestor-expected.txt:
+        * platform/ios-simulator/fast/scrolling/ios/overflow-scrolling-ancestor-clip-expected.txt:
+        * platform/ios-simulator/fast/scrolling/ios/overflow-scrolling-ancestor-clip-size-expected.txt:
+        * platform/ios-simulator/fast/scrolling/ios/scrolling-content-clip-to-viewport-expected.txt:
+        * platform/ios-simulator/fast/scrolling/ios/touch-stacking-expected.txt:
+        * platform/ios-simulator/fast/viewport/ios/width-is-device-width-overflowing-no-shrink-to-fit-expected.txt: Removed.
+
 2016-08-10  Nan Wang  <n_wang@apple.com>
 
         AX: Media controls timeline should have percentage value description
