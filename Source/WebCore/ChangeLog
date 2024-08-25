@@ -1,3 +1,169 @@
+2016-08-19  Chris Dumez  <cdumez@apple.com>
+
+        WebKit should unset event propagation flags after dispatch
+        https://bugs.webkit.org/show_bug.cgi?id=160853
+
+        Reviewed by Ryosuke Niwa.
+
+        WebKit should unset event propagation flags after dispatch to reflect
+        the latest DOM specification:
+        - https://github.com/whatwg/dom/commit/806d4aab584f6fc38c21f8e088b51b8ba3e27e20
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Event.h:
+        (WebCore::Event::resetPropagationFlags):
+        * dom/EventDispatcher.cpp:
+        (WebCore::EventDispatcher::dispatchEvent):
+        * dom/EventTarget.cpp:
+        (WebCore::EventTarget::dispatchEvent):
+
+2016-08-18  Daniel Bates  <dabates@apple.com>
+
+        Ld warns of non-existent PrivateFrameworks directory when building WebKit with the public iOS 9.3 SDK
+        https://bugs.webkit.org/show_bug.cgi?id=160979
+
+        Rubber-stamped by Simon Fraser.
+
+        Only add the SDK PrivateFrameworks directory to the FRAMEWORK_SEARCH_PATH when building for
+        iOS Simulator, building with an iOS SDK that does not support text-based stubs, or building
+        an Apple-internal build.
+
+        * Configurations/Base.xcconfig: Define WK_TARGET_IOS_VERSION_MAJOR.
+        * Configurations/WebCore.xcconfig:
+
+2016-08-18  Sam Weinig  <sam@webkit.org>
+
+        Re-landing:
+
+        Support WebIDL unions (Part 1)
+        https://bugs.webkit.org/show_bug.cgi?id=160769
+
+        Reviewed by Chris Dumez.
+
+        This is the first part of an effort to add support for union types
+        in our code generators. This change:
+        - Adds a domType struct to hold the parsed type information. For now, we only
+          use it temporarily while parsing, and don't expose it to the code generators,
+          but that will change in a later patch.
+        - Remove support for scoped identifiers for types. They are not supported by WebIDL.
+        - Make debugging the parser easier by providing backtraces when asserting.
+
+        There should be no observable changes.
+
+        * bindings/scripts/IDLParser.pm:
+
+2016-08-18  Chris Dumez  <cdumez@apple.com>
+
+        Move prefix / namespaceURI / localName attributes from Node to Attr / Element
+        https://bugs.webkit.org/show_bug.cgi?id=160988
+
+        Reviewed by Ryosuke Niwa.
+
+        Move prefix / namespaceURI / localName attributes from Node to Attr / Element
+        as per the latest DOM specification:
+        - https://dom.spec.whatwg.org/#element
+        - https://dom.spec.whatwg.org/#attr
+
+        Firefox and Chrome match the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Attr.h:
+        * dom/Attr.idl:
+        * dom/Element.h:
+        * dom/Element.idl:
+        * dom/Node.idl:
+
+2016-08-18  Jonathan Bedard  <jbedard@apple.com>
+
+        Binding NULL pointer to reference in WebCore::RenderObject
+        https://bugs.webkit.org/show_bug.cgi?id=160830
+
+        Reviewed by Myles C. Maxfield.
+
+        No new tests needed, existing functionality not changed.
+
+        Fixes a dereferenced NULL pointer bound to a reference through a minor re-factor.
+
+        * rendering/InlineIterator.h:
+        (WebCore::InlineIterator::clear): Explicit clear occurs, instead of a call to moveTo.
+        (WebCore::InlineIterator::moveToStartOf): Swapped pointer for reference.
+        (WebCore::InlineIterator::moveTo): Swapped pointer for reference.
+        (WebCore::InlineIterator::increment): Explicitly call clear for clarity.
+        * rendering/line/BreakingContext.h:
+        (WebCore::BreakingContext::commitLineBreakClear): Commit a line break and clear the iterator.
+        (WebCore::BreakingContext::commitLineBreakAtCurrentWidth): Swapped pointer for reference.
+        (WebCore::BreakingContext::InlineIteratorHistory::moveTo): Swapped pointer for reference.
+        (WebCore::BreakingContext::increment): Explicitly call clear for clarity.
+        (WebCore::BreakingContext::handleBR): Swapped pointer for passed reference.
+        (WebCore::BreakingContext::handleReplaced): Explicitly call clear for clarity.
+        (WebCore::tryHyphenating): Swapped pointer for passed reference.
+        (WebCore::BreakingContext::handleText): Replaced all render object passing with references.  Note that the caller explicitly checks if m_current.renderer() exists before calling this function.
+        (WebCore::BreakingContext::commitAndUpdateLineBreakIfNeeded): Explicitly call clear for clarity.
+        (WebCore::BreakingContext::handleEndOfLine): Explicitly call clear for clarity.
+
+2016-08-18  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Windows build fix after r204611. Use the fully qualified name to avoid the ambiguity in VC++.
+
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::invokeCallback):
+        * bindings/js/JSCustomElementInterface.h:
+        (WebCore::JSCustomElementInterface::invokeCallback):
+
+2016-08-18  Dean Jackson  <dino@apple.com>
+
+        Support passing preferLowPowerToHighPerformance and failIfMajorPerformanceCaveat
+        https://bugs.webkit.org/show_bug.cgi?id=160982
+        <rdar://problem/27915946>
+
+        Reviewed by Simon Fraser.
+
+        Update WebGLContextAttributes to be compliant with the specification,
+        by adding preferLowPowerToHighPerformance and failIfMajorPerformanceCaveat.
+        They are not implemented yet, so asking the created context what
+        values it used should give the default.
+
+        Test: fast/canvas/webgl/context-creation-attributes.html
+
+        * html/canvas/WebGLContextAttributes.cpp:
+        (WebCore::WebGLContextAttributes::preferLowPowerToHighPerformance):
+        (WebCore::WebGLContextAttributes::setPreferLowPowerToHighPerformance):
+        (WebCore::WebGLContextAttributes::failIfMajorPerformanceCaveat):
+        (WebCore::WebGLContextAttributes::setFailIfMajorPerformanceCaveat):
+        * html/canvas/WebGLContextAttributes.h:
+        * html/canvas/WebGLContextAttributes.idl:
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::create): Deleted.
+        * platform/graphics/GraphicsContext3D.h:
+        (WebCore::GraphicsContext3D::Attributes::Attributes): Deleted.
+
+2016-08-18  Anders Carlsson  <andersca@apple.com>
+
+        Move an NPAPI-only function from WebCore to WebKit
+        https://bugs.webkit.org/show_bug.cgi?id=160967
+
+        Reviewed by Sam Weinig.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/ScriptController.cpp:
+        (WebCore::ScriptController::createScriptObjectForPluginElement): Deleted.
+        * bindings/js/ScriptController.h:
+        * bridge/NP_jsobject.h:
+
+2016-08-18  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Binding test fix after r204611.
+
+        * bindings/scripts/test/TestObj.idl:
+
+2016-08-18  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, nit fix after r204605 reported by Darin.
+
+        * platform/text/TextCodecICU.cpp:
+
 2016-08-17  Ryosuke Niwa  <rniwa@webkit.org>
 
         Add basic support for connected and disconnected callbacks

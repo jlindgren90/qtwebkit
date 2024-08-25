@@ -148,7 +148,7 @@ public:
     void updatePlatformScriptObjects();
 
     RefPtr<JSC::Bindings::Instance>  createScriptInstanceForWidget(Widget*);
-    JSC::Bindings::RootObject* bindingRootObject();
+    WEBCORE_EXPORT JSC::Bindings::RootObject* bindingRootObject();
     JSC::Bindings::RootObject* cacheableBindingRootObject();
 
     WEBCORE_EXPORT RefPtr<JSC::Bindings::RootObject> createRootObject(void* nativeHandle);
@@ -163,7 +163,6 @@ public:
     WEBCORE_EXPORT JSC::JSObject* jsObjectForPluginElement(HTMLPlugInElement*);
     
 #if ENABLE(NETSCAPE_PLUGIN_API)
-    NPObject* createScriptObjectForPluginElement(HTMLPlugInElement*);
     WEBCORE_EXPORT NPObject* windowScriptNPObject();
 #endif
 
