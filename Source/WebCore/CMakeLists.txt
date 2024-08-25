@@ -1653,7 +1653,6 @@ set(WebCore_SOURCES
     html/HTMLAudioElement.cpp
     html/HTMLBRElement.cpp
     html/HTMLBaseElement.cpp
-    html/HTMLBaseFontElement.cpp
     html/HTMLBodyElement.cpp
     html/HTMLButtonElement.cpp
     html/HTMLCanvasElement.cpp
@@ -2402,6 +2401,7 @@ set(WebCore_SOURCES
     plugins/DOMPlugin.cpp
     plugins/DOMPluginArray.cpp
     plugins/PluginData.cpp
+    plugins/PluginInfoProvider.cpp
 
     rendering/AutoTableLayout.cpp
     rendering/BidiRun.cpp

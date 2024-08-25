@@ -108,6 +108,7 @@ class PageGroup;
 class PageThrottler;
 class PlugInClient;
 class PluginData;
+class PluginInfoProvider;
 class PluginViewBase;
 class PointerLockController;
 class ProgressTracker;
@@ -155,7 +156,7 @@ public:
     WEBCORE_EXPORT ViewportArguments viewportArguments() const;
 
     static void refreshPlugins(bool reload);
-    WEBCORE_EXPORT PluginData& pluginData() const;
+    WEBCORE_EXPORT PluginData& pluginData();
 
     WEBCORE_EXPORT void setCanStartMedia(bool);
     bool canStartMedia() const { return m_canStartMedia; }
@@ -470,6 +471,8 @@ public:
     StorageNamespaceProvider& storageNamespaceProvider() { return m_storageNamespaceProvider.get(); }
     void setStorageNamespaceProvider(Ref<StorageNamespaceProvider>&&);
 
+    PluginInfoProvider& pluginInfoProvider();
+
     UserContentProvider& userContentProvider();
     WEBCORE_EXPORT void setUserContentProvider(Ref<UserContentProvider>&&);
 
@@ -589,7 +592,7 @@ private:
     const std::unique_ptr<BackForwardController> m_backForwardController;
     Ref<MainFrame> m_mainFrame;
 
-    mutable RefPtr<PluginData> m_pluginData;
+    RefPtr<PluginData> m_pluginData;
 
     RefPtr<RenderTheme> m_theme;
 
@@ -703,6 +706,7 @@ private:
     Ref<SocketProvider> m_socketProvider;
     Ref<ApplicationCacheStorage> m_applicationCacheStorage;
     Ref<DatabaseProvider> m_databaseProvider;
+    Ref<PluginInfoProvider> m_pluginInfoProvider;
     Ref<StorageNamespaceProvider> m_storageNamespaceProvider;
     Ref<UserContentProvider> m_userContentProvider;
     Ref<VisitedLinkStore> m_visitedLinkStore;

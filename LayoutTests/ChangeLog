@@ -1,3 +1,107 @@
+2016-08-08  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Update test expectations for rdar://problem/27711048.
+
+        * platform/mac/TestExpectations:
+
+2016-08-08  John Wilander  <wilander@apple.com>
+
+        Popups opened from a sandboxed iframe should themselves be sandboxed
+        https://bugs.webkit.org/show_bug.cgi?id=134850
+        <rdar://problem/27375388>
+
+        Reviewed by Brent Fulgham.
+
+        * http/tests/security/resources/anchor-tag-with-blank-target.html: Added.
+        * http/tests/security/resources/page-executing-javascript.html: Added.
+        * http/tests/security/window-opened-from-sandboxed-iframe-should-inherit-sandbox-expected.txt: Added.
+        * http/tests/security/window-opened-from-sandboxed-iframe-should-inherit-sandbox.html: Added.
+
+2016-08-08  Chris Dumez  <cdumez@apple.com>
+
+        Align Selection API with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160663
+
+        Reviewed by Ryosuke Niwa.
+
+        * editing/selection/bad-input-expected.txt: Added.
+        * editing/selection/bad-input.html: Added.
+        Add new layout test to cover passing bad input to the Selection API.
+        This new test is passing completely in Firefox and Chrome.
+
+        * editing/execCommand/apply-style-text-decoration-crash.html:
+        * editing/execCommand/applyblockelement-visiblepositionforindex-crash.html:
+        * editing/execCommand/ident-crashes-topnode-is-text.html:
+        * editing/execCommand/indent-pre-expected.txt:
+        * editing/execCommand/indent-pre.html:
+        * editing/execCommand/overtype.html:
+        * editing/selection/containsNode-expected.txt:
+        * editing/selection/containsNode.html:
+        * editing/selection/move-by-line-003.html:
+        * editing/selection/script-tests/DOMSelection-DocumentType.js:
+        * editing/selection/script-tests/DOMSelection-crossing-document.js:
+        (clear):
+        * editing/selection/selection-invalid-offset-expected.txt:
+        * fast/block/float/float-list-changed-before-layout-crash.html:
+        * fast/dom/non-numeric-values-numeric-parameters-expected.txt:
+        * fast/dom/script-tests/non-numeric-values-numeric-parameters.js:
+        * fast/events/selectstart-by-arrow-keys.html:
+        * fast/html/nav-element.html:
+        * fast/html/script-tests/article-element.js:
+        * fast/html/script-tests/aside-element.js:
+        * fast/html/script-tests/footer-element.js:
+        * fast/html/script-tests/header-element.js:
+        * fast/html/script-tests/hgroup-element.js:
+        * fast/html/script-tests/main-element.js:
+        * fast/html/script-tests/section-element.js:
+        * imported/blink/accessibility/event-on-deleted-iframe-causes-crash.html:
+        * imported/blink/editing/apply-inline-style-to-element-with-no-renderer-crash.html:
+        * svg/custom/unicode-in-tspan-multi-svg-crash.html:
+        Update existing tests to use the Selection API properly.
+
+2016-08-08  John Wilander  <wilander@apple.com>
+
+        Don't set document.domain to an IP address fragment
+        https://bugs.webkit.org/show_bug.cgi?id=126045
+        <rdar://problem/27331794>
+
+        Reviewed by Daniel Bates.
+
+        IP address octets should not be treated as subdomains when setting document.domain.
+
+        * http/tests/security/aboutBlank/security-context-alias.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+        * http/tests/security/aboutBlank/security-context-grandchildren-alias.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+        * http/tests/security/postMessage/origin-unaffected-by-document-domain.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+        * http/tests/security/set-domain-remove-subdomain-for-ip-address-expected.txt: Added.
+        * http/tests/security/set-domain-remove-subdomain-for-ip-address.html: Added.
+        * http/tests/security/setDomainRelaxationForbiddenForURLScheme.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+        * http/tests/workers/worker-document-domain-security.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+        * http/tests/xmlhttprequest/document-domain-set.html:
+            Now enables the new setting treatIPAddressesAsDomains.
+
+2016-08-08  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Land test expectations for rdar://problem/27711048.
+
+        * platform/mac/TestExpectations:
+
+2016-08-08  Chris Dumez  <cdumez@apple.com>
+
+        It should be possible to re-initialize an Event after it's been dispatched
+        https://bugs.webkit.org/show_bug.cgi?id=160651
+
+        Reviewed by Darin Adler.
+
+        Add layout test coverage.
+
+        * fast/events/initEvent-after-dispatch-expected.txt: Added.
+        * fast/events/initEvent-after-dispatch.html: Added.
+
 2016-08-07  Chris Dumez  <cdumez@apple.com>
 
         Node.baseURI should not be nullable

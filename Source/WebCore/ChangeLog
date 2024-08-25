@@ -1,3 +1,422 @@
+2016-08-08  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Ensure StringView lifetime is correct inside InlineTextBox
+        https://bugs.webkit.org/show_bug.cgi?id=160584
+
+        Reviewed by Darin Adler.
+
+        A TextRun contains a StringView. Previously, we had a helper function which
+        could possibly create a new string, and then create a TextRun whose StringView
+        pointed inside this new string. Then, the string would be destroyed because it
+        was on the stack.
+
+        Luckily, this is benign because this new string would always share a
+        StringImpl with the string passed into the function (and the StringView
+        would point into this StringImpl). However, relying on this is dangerous
+        and we are trying to enforce StringView lifetime checks in
+        https://bugs.webkit.org/show_bug.cgi?id=160384.
+
+        The solution is to make a helper function which returns this built string
+        so that the caller can own this built string, thereby extending its lifetime.
+        Unfortunately, this built string can't be a StringView because the same
+        mechanism must be used for text-combine, which returns originalText(), which
+        may return a built string if it is a RenderCounter. Perhaps it would be
+        valuable to migrate RenderCounter::originalText() to something else, or to
+        divorce text-combine from originalText(), but that is out of scope for this
+        patch. Similarly, hyphenation uses this same mechanism, but because the
+        hyphenated string needs to be created, we must own the string storage (so
+        StringView is incorrect here).
+
+        Another reason is for performance: StringView::substring() is faster to use
+        than String::substringSharingImpl(), since it does not allocate and destroy a
+        StringImpl on the heap. This patch migrates away from
+        String::substringSharingImpl() and onto StringView::substring().
+
+        No new tests because there is no behavior change.
+
+        * rendering/InlineTextBox.cpp:
+        (WebCore::InlineTextBox::localSelectionRect):
+        (WebCore::InlineTextBox::paint):
+        (WebCore::InlineTextBox::selectionStartEnd):
+        (WebCore::InlineTextBox::paintSelection):
+        (WebCore::InlineTextBox::hyphenatedStringForTextRun):
+        (WebCore::InlineTextBox::constructTextRun):
+        * rendering/InlineTextBox.h:
+        * rendering/RenderCombineText.cpp:
+        (WebCore::RenderCombineText::maybeGetCombinedStringForRendering):
+        (WebCore::RenderCombineText::getStringToRender): Deleted.
+        * rendering/RenderCombineText.h:
+
+2016-08-08  Jeremy Jones  <jeremyj@apple.com>
+
+        Clear fullscreen mode state after exiting fullscreen mode to keep state in sync.
+        https://bugs.webkit.org/show_bug.cgi?id=160668
+
+        Reviewed by Jon Lee.
+
+        When exiting fullscreen while in auto picture in picture mode, fullscreen mode gets
+        out of sync, causing exit fullscreen to fail. This change updates the state 
+        to keep it correct.
+
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (WebVideoFullscreenInterfaceAVKit::exitFullscreen):
+
+2016-08-08  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] We should resolve typedefs for dictionary members
+        https://bugs.webkit.org/show_bug.cgi?id=160675
+
+        Reviewed by Sam Weinig.
+
+        Resolve typedefs for dictionary member types.
+
+        Added bindings test coverage.
+
+        * bindings/scripts/IDLParser.pm:
+        (applyTypedefs):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convert<TestObj::Dictionary>):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-08-08  Anders Carlsson  <andersca@apple.com>
+
+        Fix the Windows build.
+
+        * plugins/PluginInfoProvider.h:
+
+2016-08-08  Anders Carlsson  <andersca@apple.com>
+
+        Add a new PluginInfoProvider class, to replace PluginStrategy
+        https://bugs.webkit.org/show_bug.cgi?id=160670
+
+        Reviewed by Sam Weinig.
+
+        Add a per page PluginInfoProvider class that's going to ultimately replace the plug-in strategy.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * loader/EmptyClients.cpp:
+        (WebCore::fillWithEmptyClients):
+        * page/Page.cpp:
+        (WebCore::Page::Page):
+        (WebCore::Page::~Page):
+        (WebCore::Page::refreshPlugins):
+        (WebCore::Page::pluginData):
+        (WebCore::Page::pluginInfoProvider):
+        * page/Page.h:
+        * page/PageConfiguration.cpp:
+        * page/PageConfiguration.h:
+        * plugins/DOMPluginArray.cpp:
+        (WebCore::DOMPluginArray::refresh):
+        * plugins/DOMPluginArray.h:
+        * plugins/PluginData.cpp:
+        (WebCore::PluginData::PluginData):
+        (WebCore::PluginData::webVisiblePlugins):
+        (WebCore::PluginData::publiclyVisiblePlugins):
+        (WebCore::PluginData::initPlugins):
+        (WebCore::PluginData::refresh): Deleted.
+        * plugins/PluginData.h:
+        (WebCore::PluginData::create):
+        (WebCore::PluginData::PluginData): Deleted.
+        * plugins/PluginInfoProvider.cpp: Added.
+        (WebCore::PluginInfoProvider::~PluginInfoProvider):
+        (WebCore::PluginInfoProvider::addPage):
+        (WebCore::PluginInfoProvider::removePage):
+        * plugins/PluginInfoProvider.h: Added.
+        * replay/SerializationMethods.cpp:
+        (JSC::EncodingTraits<PluginData>::decodeValue):
+        (JSC::DeserializedPluginData::DeserializedPluginData): Deleted.
+
+2016-08-08  John Wilander  <wilander@apple.com>
+
+        Popups opened from a sandboxed iframe should themselves be sandboxed
+        https://bugs.webkit.org/show_bug.cgi?id=134850
+        <rdar://problem/27375388>
+
+        Reviewed by Brent Fulgham.
+
+        Test: http/tests/security/window-opened-from-sandboxed-iframe-should-inherit-sandbox.html
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::continueLoadAfterNewWindowPolicy):
+            Now copies the opener's frame loader effective sandbox flags to the
+            new frame loader.
+
+2016-08-08  Chris Dumez  <cdumez@apple.com>
+
+        Align Selection API with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160663
+
+        Reviewed by Ryosuke Niwa.
+
+        Align Selection API with the specification:
+        - https://www.w3.org/TR/selection-api/#idl-def-Selection
+
+        In particular, the following changes were made:
+        - Mark parameters as non-nullable when they should be.
+        - Mark parameters as mandatory when they should be.
+        - Use "unsigned long" type for offsets instead of "long".
+
+        This aligns our behavior with Firefox and Chrome.
+
+        Note that the Node parameters to setBaseAndExtent() operation were kept
+        nullable, which does not match the specification. This is intentional
+        as I worry about compatibility risk, especially considering they are
+        still nullable in Chrome. Only Firefox marks them as non-nullable.
+
+        Test: editing/selection/bad-input.html
+
+        * dom/Position.h:
+        (WebCore::Position::LegacyEditingOffset::value):
+        (WebCore::Position::LegacyEditingOffset::LegacyEditingOffset):
+        (WebCore::createLegacyEditingPosition):
+        * page/DOMSelection.cpp:
+        (WebCore::DOMSelection::anchorOffset):
+        (WebCore::DOMSelection::focusOffset):
+        (WebCore::DOMSelection::baseOffset):
+        (WebCore::DOMSelection::extentOffset):
+        (WebCore::DOMSelection::rangeCount):
+        (WebCore::DOMSelection::collapse):
+        (WebCore::DOMSelection::setBaseAndExtent):
+        (WebCore::DOMSelection::setPosition):
+        (WebCore::DOMSelection::extend):
+        (WebCore::DOMSelection::getRangeAt):
+        (WebCore::DOMSelection::addRange):
+        (WebCore::DOMSelection::deleteFromDocument):
+        (WebCore::DOMSelection::containsNode):
+        (WebCore::DOMSelection::selectAllChildren):
+        (WebCore::DOMSelection::shadowAdjustedOffset):
+        (WebCore::DOMSelection::modify): Deleted.
+        (WebCore::DOMSelection::shadowAdjustedNode): Deleted.
+        (WebCore::DOMSelection::isValidForPosition): Deleted.
+        * page/DOMSelection.h:
+        * page/DOMSelection.idl:
+
+2016-08-08  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r204239): Caused flaky crashes under ~Database()
+        https://bugs.webkit.org/show_bug.cgi?id=160665
+        <rdar://problem/27748065>
+
+        Reviewed by Brady Eidson.
+
+        Make sure the scriptExecution context only gets ref'd / deref'd
+        on the context thread. Document / WorkerGlobalScope are not
+        ThreadSafeRefCounted.
+
+        No new tests, already covered by:
+        storage/websql/open-database-creation-callback.html
+
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::~Database):
+
+2016-08-08  John Wilander  <wilander@apple.com>
+
+        Don't set document.domain to an IP address fragment
+        https://bugs.webkit.org/show_bug.cgi?id=126045
+        <rdar://problem/27331794>
+
+        Reviewed by Daniel Bates.
+
+        This patch matches the following Blink one:
+        https://chromium.googlesource.com/chromium/blink//b19a57fdb323d5a80d3a1cb0a6b343558c4237b0
+
+        IP address octets should not be treated as subdomains when setting
+        document.domain. The specs say:
+        'The domain attribute's setter must run these steps: ...
+        7. If host is not equal to effectiveDomain, then run these substeps:
+            1. If host or effectiveDomain is not a domain, then throw a
+            "SecurityError" DOMException.'
+        https://html.spec.whatwg.org/multipage/browsers.html#relaxing-the-same-origin-restriction
+        Last Updated 5 August 2016
+
+        'A host is a domain, an IPv4 address, or an IPv6 address.'
+        https://url.spec.whatwg.org/#concept-domain
+        Last Updated 28 July 2016
+
+        Test: http/tests/security/set-domain-remove-subdomain-for-ip-address.html
+
+        * dom/Document.cpp:
+        (WebCore::Document::setDomain):
+            Now checks whether the security origin is allowed to remove
+            subdomains. If not, it throws a security error.
+        * page/OriginAccessEntry.cpp:
+        (WebCore::OriginAccessEntry::OriginAccessEntry):
+            Constructor now expects an IP address setting.
+        (WebCore::OriginAccessEntry::matchesOrigin):
+            Now also checks whether the host in an IP address and returns
+            false if IP addresses aren't configured to be treated as domains.
+        * page/OriginAccessEntry.h:
+            Introduced new enum for IP address setting.
+            Constructor now expects an IP address setting.
+        (WebCore::OriginAccessEntry::ipAddressSettings):
+            New getter.
+        (WebCore::operator==):
+            Now also requires IP address settings to match.
+        * page/SecurityPolicy.cpp:
+        (WebCore::SecurityPolicy::addOriginAccessWhitelistEntry):
+            Changes to match OriginAccessEntry's new constructor.
+        (WebCore::SecurityPolicy::removeOriginAccessWhitelistEntry):
+            Changes to match OriginAccessEntry's new constructor.
+        * page/Settings.in:
+            Added a setting to allow IP address octets to be treated as
+            subdomains. This way our existing tests setting document.domain
+            still work.
+
+2016-08-04  Anders Carlsson  <andersca@apple.com>
+
+        Remove more unused bindings code
+        https://bugs.webkit.org/show_bug.cgi?id=160568
+
+        Reviewed by Sam Weinig.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/objc/DOMDocument.mm:
+        (-[DOMDocument execCommand:userInterface:]):
+        (-[DOMDocument execCommand:]):
+        (-[DOMDocument getMatchedCSSRules:pseudoElement:]):
+        * bindings/objc/DOMHTMLBaseFontElement.mm:
+        * bindings/objc/DOMHTMLCollection.mm:
+        (-[DOMHTMLCollection tags:]):
+        * bindings/objc/DOMWheelEvent.mm:
+        (-[DOMWheelEvent isHorizontal]):
+        * css/RGBColor.idl:
+        * dom/Attr.idl:
+        * dom/DOMImplementation.idl:
+        * dom/Document.h:
+        * dom/Document.idl:
+        * dom/Element.idl:
+        * dom/EventException.h: Removed.
+        (WebCore::EventException::EventException): Deleted.
+        * dom/EventException.idl: Removed.
+        * dom/KeyboardEvent.idl:
+        * dom/MessageEvent.cpp:
+        (WebCore::MessageEvent::messagePort): Deleted.
+        (WebCore::MessageEvent::initMessageEvent): Deleted.
+        * dom/MessageEvent.h:
+        * dom/MessagePort.cpp:
+        (WebCore::MessagePort::postMessage): Deleted.
+        * dom/MessagePort.h:
+        * dom/Node.idl:
+        * dom/NodeFilter.idl:
+        * dom/OverflowEvent.idl:
+        * dom/WheelEvent.h:
+        * dom/WheelEvent.idl:
+        * html/HTMLAllCollection.cpp:
+        (WebCore::HTMLAllCollection::tags):
+        * html/HTMLAllCollection.h:
+        * html/HTMLAnchorElement.idl:
+        * html/HTMLAreaElement.idl:
+        * html/HTMLBaseFontElement.cpp: Removed.
+        (WebCore::HTMLBaseFontElement::HTMLBaseFontElement): Deleted.
+        * html/HTMLBaseFontElement.h: Removed.
+        * html/HTMLBaseFontElement.idl: Removed.
+        * html/HTMLButtonElement.idl:
+        * html/HTMLCanvasElement.idl:
+        * html/HTMLCollection.cpp:
+        (WebCore::HTMLCollection::tags): Deleted.
+        * html/HTMLCollection.h:
+        * html/HTMLCollection.idl:
+        * html/HTMLElement.idl:
+        * html/HTMLFieldSetElement.idl:
+        * html/HTMLFormElement.idl:
+        * html/HTMLHyperlinkElementUtils.idl:
+        * html/HTMLIFrameElement.idl:
+        * html/HTMLImageElement.idl:
+        * html/HTMLInputElement.idl:
+        * html/HTMLLabelElement.idl:
+        * html/HTMLLegendElement.idl:
+        * html/HTMLLinkElement.idl:
+        * html/HTMLMediaElement.idl:
+        * html/HTMLObjectElement.idl:
+        * html/HTMLOptionsCollection.idl:
+        * html/HTMLSelectElement.idl:
+        * html/HTMLTableCellElement.idl:
+        * html/HTMLTextAreaElement.idl:
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::postMessage): Deleted.
+        * page/DOMWindow.h:
+        * workers/DedicatedWorkerGlobalScope.cpp:
+        (WebCore::DedicatedWorkerGlobalScope::postMessage): Deleted.
+        * workers/DedicatedWorkerGlobalScope.h:
+        * workers/Worker.cpp:
+        (WebCore::Worker::postMessage): Deleted.
+        * workers/Worker.h:
+
+2016-08-08  Brady Eidson  <beidson@apple.com>
+
+        Addressing late review feedback in bug 160605
+        https://bugs.webkit.org/show_bug.cgi?id=160605
+
+        Reviewed by Darin's suggestions.
+
+        * Modules/gamepad/GamepadManager.cpp:
+        (WebCore::GamepadManager::maybeStartMonitoringGamepads):
+        (WebCore::GamepadManager::maybeStopMonitoringGamepads):
+        
+        * platform/gamepad/EmptyGamepadProvider.cpp:
+        (WebCore::EmptyGamepadProvider::startMonitoringGamepads):
+        (WebCore::EmptyGamepadProvider::stopMonitoringGamepads):
+        * platform/gamepad/EmptyGamepadProvider.h:
+        
+        * platform/gamepad/GamepadProvider.h:
+        
+        * platform/gamepad/mac/HIDGamepadProvider.cpp:
+        (WebCore::HIDGamepadProvider::startMonitoringGamepads):
+        (WebCore::HIDGamepadProvider::stopMonitoringGamepads):
+        * platform/gamepad/mac/HIDGamepadProvider.h:
+        (WebCore::HIDGamepadProvider::platformGamepads): Deleted.
+
+2016-08-08  Chris Dumez  <cdumez@apple.com>
+
+        It should be possible to re-initialize an Event after it's been dispatched
+        https://bugs.webkit.org/show_bug.cgi?id=160651
+
+        Reviewed by Darin Adler.
+
+        Allow re-initialization of an Event that's already been dispatched, as
+        per the latest DOM specification:
+        - https://dom.spec.whatwg.org/#dom-event-initevent
+
+        Firefox already follows the specification here.
+
+        No new tests, rebaselined existing test.
+
+        Test: fast/events/initEvent-after-dispatch.html
+
+        * dom/Event.cpp:
+        (WebCore::Event::initEvent):
+        - Replace dispatched() check with isBeingDispatched() in order to
+          allow initialization of an already dispatched event but prevent
+          initialization of an event that is currently being dispatched
+          as per:
+          https://dom.spec.whatwg.org/#dom-event-initevent (step 1)
+        - Reset target to null as per:
+          https://dom.spec.whatwg.org/#concept-event-initialize (step 4)
+
+2016-08-07  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GObject DOM bindings API break after r204236.
+
+        Text.replaceWholeText was removed from DOM API.
+
+        * bindings/gobject/WebKitDOMDeprecated.cpp:
+        (webkit_dom_text_replace_whole_text):
+        * bindings/gobject/WebKitDOMDeprecated.h:
+        * bindings/gobject/WebKitDOMDeprecated.symbols:
+
+2016-08-07  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GObject DOM bindings API break after r204113.
+
+        Document.defaultCharset was removed from DOM API.
+
+        * bindings/gobject/WebKitDOMDeprecated.cpp:
+        (webkit_dom_document_get_default_charset):
+        * bindings/gobject/WebKitDOMDeprecated.h:
+        * bindings/gobject/WebKitDOMDeprecated.symbols:
+
 2016-08-07  Chris Dumez  <cdumez@apple.com>
 
         Node.baseURI should not be nullable

@@ -1,3 +1,71 @@
+2016-08-08  Anders Carlsson  <andersca@apple.com>
+
+        Add a new PluginInfoProvider class, to replace PluginStrategy
+        https://bugs.webkit.org/show_bug.cgi?id=160670
+
+        Reviewed by Sam Weinig.
+
+        Add a new WebPluginInfoProvider - it just calls through to the plug-in strategy for now.
+
+        * WebKit2.xcodeproj/project.pbxproj:
+        * WebProcess/Plugins/WebPluginInfoProvider.cpp: Added.
+        (WebKit::WebPluginInfoProvider::singleton):
+        (WebKit::WebPluginInfoProvider::WebPluginInfoProvider):
+        (WebKit::WebPluginInfoProvider::~WebPluginInfoProvider):
+        (WebKit::WebPluginInfoProvider::refreshPlugins):
+        (WebKit::WebPluginInfoProvider::getPluginInfo):
+        (WebKit::WebPluginInfoProvider::getWebVisiblePluginInfo):
+        (WebKit::WebPluginInfoProvider::setPluginLoadClientPolicy):
+        (WebKit::WebPluginInfoProvider::clearPluginClientPolicies):
+        * WebProcess/Plugins/WebPluginInfoProvider.h: Added.
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::m_userInterfaceLayoutDirection):
+
+2016-08-08  Brady Eidson  <beidson@apple.com>
+
+        Addressing late review feedback in bug 160605
+        https://bugs.webkit.org/show_bug.cgi?id=160605
+
+        Reviewed by Darin's suggestions.
+
+        * UIProcess/Gamepad/UIGamepadProvider.cpp:
+        (WebKit::UIGamepadProvider::processPoolStartedUsingGamepads):
+        (WebKit::UIGamepadProvider::processPoolStoppedUsingGamepads):
+        * UIProcess/Gamepad/UIGamepadProvider.h:
+        
+        * UIProcess/Gamepad/mac/UIGamepadProviderHID.cpp:
+        (WebKit::UIGamepadProvider::platformStartMonitoringGamepads):
+        (WebKit::UIGamepadProvider::platformStopMonitoringGamepads):
+        
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::disconnectProcess):
+        (WebKit::WebProcessPool::startedUsingGamepads):
+        (WebKit::WebProcessPool::stoppedUsingGamepads):
+        (WebKit::WebProcessPool::processStoppedUsingGamepads):
+        * UIProcess/WebProcessPool.h:
+        
+        * WebProcess/Gamepad/WebGamepadProvider.cpp:
+        (WebKit::WebGamepadProvider::startMonitoringGamepads):
+        (WebKit::WebGamepadProvider::stopMonitoringGamepads):
+        * WebProcess/Gamepad/WebGamepadProvider.h:
+
+2016-08-07  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Bad performance in accelerated compositing mode with the modesetting intel driver and DRI3 enabled
+        https://bugs.webkit.org/show_bug.cgi?id=160491
+
+        Reviewed by Michael Catanzaro.
+
+        This is becoming the default in several linux distributions and it makes WebKitGTK+ unusable in accelerated
+        compositing mode, which is now always enabled because since we switched to use the threaded compositor. The
+        problem seems to be an optimization of the intel driver for windows that are offscreen, and our redirected
+        window is always positioned at ScreenWidth + 1, 0. Using negative coordinates to position the redirected window
+        offscreen fixes the problem.
+        See also https://bugs.freedesktop.org/show_bug.cgi?id=85064.
+
+        * WebProcess/WebPage/gtk/RedirectedXCompositeWindow.cpp:
+        (WebKit::RedirectedXCompositeWindow::RedirectedXCompositeWindow): Position the parent window at -1, -1.
+
 2016-08-07  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         Duplicated code in DrawingAreaProxyImpl and CoordinatedDrawingAreaProxy
