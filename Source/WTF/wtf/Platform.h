@@ -926,8 +926,8 @@
 #define ENABLE_MASM_PROBE 0
 #endif
 
-#ifndef ENABLE_THROW_SCOPE_VERIFICATION
-#define ENABLE_THROW_SCOPE_VERIFICATION (!defined(NDEBUG))
+#ifndef ENABLE_EXCEPTION_SCOPE_VERIFICATION
+#define ENABLE_EXCEPTION_SCOPE_VERIFICATION (!defined(NDEBUG))
 #endif
 
 /* Pick which allocator to use; we only need an executable allocator if the assembler is compiled in.
@@ -1246,6 +1246,11 @@
 
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
 #define USE_MEDIAREMOTE 1
+#endif
+
+#if COMPILER(MSVC)
+/* Enable strict runtime stack buffer checks. */
+#pragma strict_gs_check(on)
 #endif
 
 #endif /* WTF_Platform_h */

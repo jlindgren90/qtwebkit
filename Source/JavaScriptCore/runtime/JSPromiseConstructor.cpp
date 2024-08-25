@@ -32,14 +32,12 @@
 #include "GetterSetter.h"
 #include "IteratorOperations.h"
 #include "JSCBuiltins.h"
-#include "JSCJSValueInlines.h"
-#include "JSCellInlines.h"
+#include "JSCInlines.h"
 #include "JSFunction.h"
 #include "JSPromise.h"
 #include "JSPromisePrototype.h"
 #include "Lookup.h"
 #include "NumberObject.h"
-#include "StructureInlines.h"
 
 namespace JSC {
 
@@ -105,7 +103,7 @@ static EncodedJSValue JSC_HOST_CALL constructPromise(ExecState* exec)
         return throwVMTypeError(exec, scope);
 
     Structure* promiseStructure = InternalFunction::createSubclassStructure(exec, exec->newTarget(), globalObject->promiseStructure());
-    if (exec->hadException())
+    if (UNLIKELY(scope.exception()))
         return JSValue::encode(JSValue());
     JSPromise* promise = JSPromise::create(vm, promiseStructure);
     promise->initialize(exec, globalObject, exec->argument(0));

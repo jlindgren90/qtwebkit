@@ -124,6 +124,7 @@ my (
     $promiseSupport,
     $proximityEventsSupport,
     $quotaSupport,
+    $readableStreamAPISupport,
     $registerProtocolHandlerSupport,
     $requestAnimationFrameSupport,
     $resolutionMediaQuerySupport,
@@ -131,7 +132,6 @@ my (
     $samplingProfilerSupport,
     $scriptedSpeechSupport,
     $shadowDOMSupport,
-    $streamsAPISupport,
     $styleScopedSupport,
     $subtleCrypto,
     $svgDOMObjCBindingsSupport,
@@ -157,6 +157,7 @@ my (
     $webReplaySupport,
     $webSocketsSupport,
     $webTimingSupport,
+    $writableStreamAPISupport,
     $webglSupport,
     $xsltSupport,
 );
@@ -382,6 +383,9 @@ my @features = (
     { option => "request-animation-frame", desc => "Toggle Request Animation Frame support",
       define => "ENABLE_REQUEST_ANIMATION_FRAME", default => 1, value => \$requestAnimationFrameSupport },
 
+    { option => "readableStreamAPI", desc => "Toggle ReadableStream API support",
+      define => "ENABLE_READABLE_STREAM_API", default => 1, value => \$readableStreamAPISupport },
+
     { option => "resolution-media-query", desc => "Toggle resolution media query support",
       define => "ENABLE_RESOLUTION_MEDIA_QUERY", default => isEfl(), value => \$resolutionMediaQuerySupport },
 
@@ -393,9 +397,6 @@ my @features = (
 
     { option => "scripted-speech", desc => "Toggle Scripted Speech support",
       define => "ENABLE_SCRIPTED_SPEECH", default => 0, value => \$scriptedSpeechSupport },
-
-    { option => "streams-api", desc => "Toggle Streams API support",
-      define => "ENABLE_STREAMS_API", default => 1, value => \$streamsAPISupport },
 
     { option => "subtle-crypto", desc => "Toggle WebCrypto Subtle-Crypto support",
       define => "ENABLE_SUBTLE_CRYPTO", default => (isGtk() || isEfl() || isAppleMacWebKit() || isIOSWebKit()), value => \$subtleCrypto },
@@ -456,6 +457,9 @@ my @features = (
 
     { option => "webgl", desc => "Toggle WebGL support",
       define => "ENABLE_WEBGL", default => (isAppleMacWebKit() || isIOSWebKit() || isGtk() || isEfl()), value => \$webglSupport },
+
+    { option => "writableStreamAPI", desc => "Toggle WritableStream API support",
+      define => "ENABLE_WRITABLE_STREAM_API", default => 1, value => \$writableStreamAPISupport },
 
     { option => "xslt", desc => "Toggle XSLT support",
       define => "ENABLE_XSLT", default => 1, value => \$xsltSupport },

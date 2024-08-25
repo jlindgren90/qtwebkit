@@ -58,11 +58,7 @@ size_t JSCell::estimatedSizeInBytes() const
 
 size_t JSCell::estimatedSize(JSCell* cell)
 {
-    return MarkedBlock::blockFor(cell)->cellSize();
-}
-
-void JSCell::copyBackingStore(JSCell*, CopyVisitor&, CopyToken)
-{
+    return cell->cellSize();
 }
 
 void JSCell::heapSnapshot(JSCell*, HeapSnapshotBuilder&)

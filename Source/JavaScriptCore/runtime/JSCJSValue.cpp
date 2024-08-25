@@ -29,11 +29,10 @@
 #include "Error.h"
 #include "ExceptionHelpers.h"
 #include "GetterSetter.h"
-#include "JSCJSValueInlines.h"
+#include "JSCInlines.h"
 #include "JSFunction.h"
 #include "JSGlobalObject.h"
 #include "NumberObject.h"
-#include "StructureInlines.h"
 #include <wtf/MathExtras.h>
 #include <wtf/StringExtras.h>
 
@@ -193,7 +192,7 @@ bool JSValue::putToPrimitive(ExecState* exec, PropertyName propertyName, JSValue
         }
 
         prototype = obj->getPrototype(vm, exec);
-        if (vm.exception())
+        if (UNLIKELY(scope.exception()))
             return false;
         if (prototype.isNull())
             break;
@@ -216,7 +215,7 @@ bool JSValue::putToPrimitiveByIndex(ExecState* exec, unsigned propertyName, JSVa
     
     JSObject* prototype = synthesizePrototype(exec);
     if (UNLIKELY(!prototype)) {
-        ASSERT(exec->hadException());
+        ASSERT(scope.exception());
         return false;
     }
     bool putResult = false;
@@ -278,7 +277,11 @@ void JSValue::dumpInContextAssumingStructure(
             out.print("Symbol: ", RawPointer(asCell()));
         else if (structure->classInfo()->isSubClassOf(Structure::info()))
             out.print("Structure: ", inContext(*jsCast<Structure*>(asCell()), context));
-        else {
+        else if (structure->classInfo()->isSubClassOf(JSObject::info())) {
+            out.print("Object: ", RawPointer(asCell()));
+            out.print(" with butterfly ", RawPointer(asObject(asCell())->butterfly()));
+            out.print(" (", inContext(*structure, context), ")");
+        } else {
             out.print("Cell: ", RawPointer(asCell()));
             out.print(" (", inContext(*structure, context), ")");
         }
@@ -378,11 +381,11 @@ JSString* JSValue::toStringSlowCase(ExecState* exec, bool returnEmptyStringOnErr
 
     ASSERT(isCell());
     JSValue value = asCell()->toPrimitive(exec, PreferString);
-    if (vm.exception())
+    if (UNLIKELY(scope.exception()))
         return errorValue();
     ASSERT(!value.isObject());
     JSString* result = value.toString(exec);
-    if (vm.exception())
+    if (UNLIKELY(scope.exception()))
         return errorValue();
     return result;
 }

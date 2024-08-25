@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,15 +28,11 @@
 
 #include "Error.h"
 #include "Executable.h"
-#include "IdentifierInlines.h"
-#include "JSCJSValueInlines.h"
-#include "JSCellInlines.h"
+#include "Interpreter.h"
+#include "JSCInlines.h"
 #include "JSMap.h"
 #include "JSModuleEnvironment.h"
 #include "JSModuleNamespaceObject.h"
-#include "JSObjectInlines.h"
-#include "SlotVisitorInlines.h"
-#include "StructureInlines.h"
 
 namespace JSC {
 
@@ -48,14 +44,17 @@ void JSModuleRecord::destroy(JSCell* cell)
     thisObject->JSModuleRecord::~JSModuleRecord();
 }
 
-void JSModuleRecord::finishCreation(VM& vm)
+void JSModuleRecord::finishCreation(ExecState* exec, VM& vm)
 {
     Base::finishCreation(vm);
     ASSERT(inherits(info()));
     putDirect(vm, Identifier::fromString(&vm, ASCIILiteral("registryEntry")), jsUndefined());
     putDirect(vm, Identifier::fromString(&vm, ASCIILiteral("evaluated")), jsBoolean(false));
 
-    m_dependenciesMap.set(vm, this, JSMap::create(vm, globalObject()->mapStructure()));
+    auto scope = DECLARE_THROW_SCOPE(vm);
+    JSMap* map = JSMap::create(exec, vm, globalObject()->mapStructure());
+    RELEASE_ASSERT(!scope.exception());
+    m_dependenciesMap.set(vm, this, map);
     putDirect(vm, Identifier::fromString(&vm, ASCIILiteral("dependenciesMap")), m_dependenciesMap.get());
 }
 
@@ -779,7 +778,7 @@ void JSModuleRecord::instantiateDeclarations(ExecState* exec, ModuleProgramExecu
         JSModuleRecord* importedModule = hostResolveImportedModule(exec, importEntry.moduleRequest);
         if (importEntry.isNamespace(vm)) {
             JSModuleNamespaceObject* namespaceObject = importedModule->getModuleNamespace(exec);
-            if (exec->hadException())
+            if (UNLIKELY(scope.exception()))
                 return;
             bool putResult = false;
             symbolTablePutTouchWatchpointSet(moduleEnvironment, exec, importEntry.localName, namespaceObject, /* shouldThrowReadOnlyError */ false, /* ignoreReadOnlyErrors */ true, putResult);

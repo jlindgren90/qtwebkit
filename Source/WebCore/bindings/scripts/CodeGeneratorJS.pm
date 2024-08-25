@@ -1024,7 +1024,7 @@ sub GenerateDictionaryImplementationContent
         my $needExceptionCheck = 0;
         foreach my $member (@{$dictionary->members}) {
             if ($needExceptionCheck) {
-                $result .= "    if (UNLIKELY(state.hadException()))\n";
+                $result .= "    if (UNLIKELY(throwScope.exception()))\n";
                 $result .= "        return Nullopt;\n";
             }
             # FIXME: Eventually we will want this to share a lot more code with JSValueToNative.
@@ -1322,6 +1322,10 @@ sub GenerateHeader
     # Custom defineOwnProperty function
     push(@headerContent, "    static bool defineOwnProperty(JSC::JSObject*, JSC::ExecState*, JSC::PropertyName, const JSC::PropertyDescriptor&, bool shouldThrow);\n") if $interface->extendedAttributes->{"JSCustomDefineOwnProperty"};
 
+    # Custom getPrototype / setPrototype functions.
+    push (@headerContent, "    static JSC::JSValue getPrototype(JSC::JSObject*, JSC::ExecState*);\n") if $interface->extendedAttributes->{"CustomGetPrototype"};
+    push (@headerContent, "    static bool setPrototype(JSC::JSObject*, JSC::ExecState*, JSC::JSValue, bool shouldThrowIfCantSet);\n") if $interface->extendedAttributes->{"CustomSetPrototype"};
+
     # Custom preventExtensions function.
     push(@headerContent, "    static bool preventExtensions(JSC::JSObject*, JSC::ExecState*);\n") if $interface->extendedAttributes->{"CustomPreventExtensions"};
     
@@ -1580,6 +1584,12 @@ sub GenerateHeader
 
     if ($codeGenerator->IsConstructorTemplate($interface, "Event")) {
         push(@headerContent, "bool fill${interfaceName}Init(${interfaceName}Init&, JSDictionary&);\n\n");
+    }
+
+    if (NeedsImplementationClass($interface)) {
+        push(@headerContent, "template<> struct JSDOMWrapperConverterTraits<${implType}> {\n");
+        push(@headerContent, "    using WrapperClass = ${className};\n");
+        push(@headerContent, "};\n");
     }
 
     my $conditionalString = $codeGenerator->GenerateConditionalString($interface);
@@ -3127,7 +3137,7 @@ sub GenerateImplementation
             push(@implContent, "{\n");
             push(@implContent, "    VM& vm = state->vm();\n");
             push(@implContent, "    auto throwScope = DECLARE_THROW_SCOPE(vm);\n");
-            push(@implContent, "    UNUSED_PARAM(throwScope);");
+            push(@implContent, "    UNUSED_PARAM(throwScope);\n");
             push(@implContent, "    JSValue value = JSValue::decode(encodedValue);\n");
             push(@implContent, "    UNUSED_PARAM(thisValue);\n") if !$attribute->isStatic;
             if (!$attribute->isStatic) {
@@ -3225,7 +3235,7 @@ sub GenerateImplementation
                     push(@implContent, "    if (!value.isUndefinedOrNull()) {\n");
                     push(@implContent, "        nativeValue = $nativeValue;\n");
                     if ($mayThrowException) {
-                        push(@implContent, "        if (UNLIKELY(state->hadException()))\n");
+                        push(@implContent, "        if (UNLIKELY(throwScope.exception()))\n");
                         push(@implContent, "            return false;\n");
                     }
                     push(@implContent, "        if (UNLIKELY(!nativeValue)) {\n");
@@ -3236,7 +3246,7 @@ sub GenerateImplementation
                 } else {
                     push(@implContent, "    auto nativeValue = $nativeValue;\n");
                     if ($mayThrowException) {
-                        push(@implContent, "    if (UNLIKELY(state->hadException()))\n");
+                        push(@implContent, "    if (UNLIKELY(throwScope.exception()))\n");
                         push(@implContent, "        return false;\n");
                     }
                 }
@@ -3708,7 +3718,7 @@ END
     globalObject->vm().heap.reportExtraMemoryAllocated(impl->memoryCost());
 END
 
-        push(@implContent, "    return createWrapper<$className, $implType>(globalObject, WTFMove(impl));\n");
+        push(@implContent, "    return createWrapper<$implType>(globalObject, WTFMove(impl));\n");
         push(@implContent, "}\n\n");
 
         push(@implContent, "JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, $implType& impl)\n");
@@ -3893,7 +3903,7 @@ sub GenerateParametersCheck
     } else {
         $functionName = "impl.${functionImplementationName}";
     }
-    
+
     my $quotedFunctionName;
     if (!$function->signature->extendedAttributes->{"Constructor"}) {
         my $name = $function->signature->name;
@@ -3969,23 +3979,19 @@ sub GenerateParametersCheck
             }
             $value = "WTFMove($name)";
         } elsif ($parameter->isVariadic) {
-            my $nativeElementType = GetNativeType($interface, $type);
-            if (!IsNativeType($type)) {
-                push(@$outputArray, "    Vector<$nativeElementType> $name;\n");
-                push(@$outputArray, "    ASSERT($argumentIndex <= state->argumentCount());\n");
-                push(@$outputArray, "    $name.reserveInitialCapacity(state->argumentCount() - $argumentIndex);\n");
-                push(@$outputArray, "    for (unsigned i = $argumentIndex, count = state->argumentCount(); i < count; ++i) {\n");
-                push(@$outputArray, "        auto* item = JS${type}::toWrapped(state->uncheckedArgument(i));\n");
-                push(@$outputArray, "        if (!item)\n");
-                push(@$outputArray, "            return throwArgumentTypeError(*state, throwScope, i, \"$name\", \"$visibleInterfaceName\", $quotedFunctionName, \"$type\");\n");
-                push(@$outputArray, "        $name.uncheckedAppend(item);\n");
-                push(@$outputArray, "    }\n")
-            } else {
-                push(@$outputArray, "    Vector<$nativeElementType> $name = toNativeArguments<$nativeElementType>(*state, $argumentIndex);\n");
-                push(@$outputArray, "    if (UNLIKELY(state->hadException()))\n");
+            my ($wrapperType, $wrappedType) = GetVariadicType($interface, $type);
+            push(@$outputArray, "    auto $name = toArguments<VariadicHelper<$wrapperType, $wrappedType>>(*state, $argumentIndex);\n");
+
+            if (IsNativeType($type)) {
+                push(@$outputArray, "    if (UNLIKELY(throwScope.exception()))\n");
                 push(@$outputArray, "        return JSValue::encode(jsUndefined());\n");
             }
-            $value = "WTFMove($name)";
+            else {
+                push(@$outputArray, "    if (!$name.second)\n");
+                push(@$outputArray, "        return throwArgumentTypeError(*state, throwScope, $name.first, \"$name\", \"$visibleInterfaceName\", $quotedFunctionName, \"$type\");\n");
+            }
+            $value = "WTFMove(*$name.second)";
+
         } elsif ($codeGenerator->IsEnumType($type)) {
             my $className = GetEnumerationClassName($interface, $type);
 
@@ -4017,7 +4023,7 @@ sub GenerateParametersCheck
             }
 
             push(@$outputArray, "$indent    $defineOptionalValue = parse<$className>(*state, ${name}Value);\n");
-            push(@$outputArray, "$indent    if (UNLIKELY(state->hadException()))\n");
+            push(@$outputArray, "$indent    if (UNLIKELY(throwScope.exception()))\n");
             push(@$outputArray, "$indent        return JSValue::encode(jsUndefined());\n");
             push(@$outputArray, "$indent    if (UNLIKELY(!$optionalValue))\n");
             push(@$outputArray, "$indent        return throwArgumentMustBeEnumError(*state, throwScope, $argumentIndex, \"$name\", \"$visibleInterfaceName\", $quotedFunctionName, expectedEnumerationValues<$className>());\n");
@@ -4040,7 +4046,7 @@ sub GenerateParametersCheck
                 push(@$outputArray, "    if (!$checkedArgument.isUndefinedOrNull()) {\n");
                 push(@$outputArray, "        $name = $nativeValue;\n");
                 if ($mayThrowException) {
-                    push(@$outputArray, "        if (UNLIKELY(state->hadException()))\n");
+                    push(@$outputArray, "        if (UNLIKELY(throwScope.exception()))\n");
                     push(@$outputArray, "            return JSValue::encode(jsUndefined());\n");
                 }
                 push(@$outputArray, "        if (UNLIKELY(!$name))\n");
@@ -4050,7 +4056,7 @@ sub GenerateParametersCheck
             } else {
                 if ($parameter->isOptional && defined($parameter->default) && !WillConvertUndefinedToDefaultParameterValue($type, $parameter->default)) {
                     my $defaultValue = $parameter->default;
-    
+
                     # String-related optimizations.
                     if ($codeGenerator->IsStringType($type)) {
                         my $useAtomicString = $parameter->extendedAttributes->{"AtomicString"};
@@ -4067,7 +4073,7 @@ sub GenerateParametersCheck
                         $defaultValue = "$nativeType()" if $defaultValue eq "[]";
                         $defaultValue = "JSValue::JSUndefined" if $defaultValue eq "undefined";
                     }
-    
+
                     $outer = "state->argument($argumentIndex).isUndefined() ? $defaultValue : ";
                     $inner = "state->uncheckedArgument($argumentIndex)";
                 } elsif ($parameter->isOptional && !defined($parameter->default)) {
@@ -4083,7 +4089,7 @@ sub GenerateParametersCheck
                 push(@$outputArray, "    auto $name = ${outer}${nativeValue};\n");
                 $value = "WTFMove($name)";
                 if ($mayThrowException) {
-                    push(@$outputArray, "    if (UNLIKELY(state->hadException()))\n");
+                    push(@$outputArray, "    if (UNLIKELY(throwScope.exception()))\n");
                     push(@$outputArray, "        return JSValue::encode(jsUndefined());\n");
                 }
             }
@@ -4341,7 +4347,7 @@ sub GenerateCallbackImplementation
                 push(@implContent, "    args.append(" . NativeToJSValue($param, 1, $interface, $paramName, "m_data") . ");\n");
             }
 
-            push(@implContent, "\n    NakedPtr<Exception> returnedException;\n");
+            push(@implContent, "\n    NakedPtr<JSC::Exception> returnedException;\n");
 
             my $propertyToLookup = "Identifier::fromString(state, \"${functionName}\")";
             my $invokeMethod = "JSCallbackData::CallbackType::FunctionOrObject";
@@ -4464,7 +4470,7 @@ sub GenerateImplementationFunctionCall()
         push(@implContent, "\n" . $indent . "setDOMException(state, ec);\n") if $raisesException;
 
         if ($codeGenerator->ExtendedAttributeContains($function->signature->extendedAttributes->{"CallWith"}, "ScriptState")) {
-            push(@implContent, $indent . "if (UNLIKELY(state->hadException()))\n");
+            push(@implContent, $indent . "if (UNLIKELY(throwScope.exception()))\n");
             push(@implContent, $indent . "    return JSValue::encode(jsUndefined());\n");
         }
 
@@ -4597,6 +4603,16 @@ my %nativeType = (
     "unsigned long" => "uint32_t",
     "unsigned short" => "uint16_t",
 );
+
+sub GetVariadicType
+{
+    my ($interface, $type) = @_;
+
+    my $wrappedType = IsNativeType($type) ? GetNativeType($interface, $type) : $type;
+    my $wrapperType = IsNativeType($type) ? "JSC::JSValue" : "JS$wrappedType";
+
+    return ($wrapperType, $wrappedType);
+}
 
 sub GetNativeType
 {
@@ -5278,7 +5294,7 @@ template<> EncodedJSValue JSC_HOST_CALL ${constructorClassName}::construct(ExecS
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
 
     AtomicString eventType = state->uncheckedArgument(0).toString(state)->toAtomicString(state);
-    if (UNLIKELY(state->hadException()))
+    if (UNLIKELY(throwScope.exception()))
         return JSValue::encode(jsUndefined());
 
     ${interfaceName}Init eventInit;
@@ -5287,7 +5303,7 @@ template<> EncodedJSValue JSC_HOST_CALL ${constructorClassName}::construct(ExecS
     if (!initializerValue.isUndefinedOrNull()) {
         // Given the above test, this will always yield an object.
         JSObject* initializerObject = initializerValue.toObject(state);
-        ASSERT(!state->hadException());
+        ASSERT(!throwScope.exception());
 
         // Create the dictionary wrapper from the initializer object.
         JSDictionary dictionary(state, initializerObject);
@@ -5298,7 +5314,7 @@ template<> EncodedJSValue JSC_HOST_CALL ${constructorClassName}::construct(ExecS
     }
 
     Ref<${interfaceName}> event = ${interfaceName}::createForBindings(eventType, eventInit);
-    return JSValue::encode(CREATE_DOM_WRAPPER(jsConstructor->globalObject(), ${interfaceName}, WTFMove(event)));
+    return JSValue::encode(createWrapper<${interfaceName}>(jsConstructor->globalObject(), WTFMove(event)));
 }
 
 bool fill${interfaceName}Init(${interfaceName}Init& eventInit, JSDictionary& dictionary)
@@ -5430,7 +5446,7 @@ END
             }
 
             if ($codeGenerator->ExtendedAttributeContains($interface->extendedAttributes->{"ConstructorCallWith"}, "ScriptState")) {
-                 push(@$outputArray, "    if (UNLIKELY(state->hadException()))\n");
+                 push(@$outputArray, "    if (UNLIKELY(throwScope.exception()))\n");
                  push(@$outputArray, "        return JSValue::encode(jsUndefined());\n");
             }
 

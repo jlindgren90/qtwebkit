@@ -59,6 +59,7 @@ void DeferredWrapper::clear()
 
 void DeferredWrapper::contextDestroyed()
 {
+    ActiveDOMCallback::contextDestroyed();
     clear();
 }
 
@@ -99,11 +100,14 @@ void DeferredWrapper::reject(ExceptionCode ec, const String& message)
 
 void rejectPromiseWithExceptionIfAny(JSC::ExecState& state, JSDOMGlobalObject& globalObject, JSPromiseDeferred& promiseDeferred)
 {
-    if (!state.hadException())
+    VM& vm = state.vm();
+    auto scope = DECLARE_CATCH_SCOPE(vm);
+
+    if (!scope.exception())
         return;
 
-    JSValue error = state.exception()->value();
-    state.clearException();
+    JSValue error = scope.exception()->value();
+    scope.clearException();
 
     DeferredWrapper::create(&state, &globalObject, &promiseDeferred)->reject(error);
 }

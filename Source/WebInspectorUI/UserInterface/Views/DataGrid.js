@@ -39,6 +39,7 @@ WebInspector.DataGrid = class DataGrid extends WebInspector.View
         this._sortOrderSetting = null;
         this._hiddenColumnSetting = null;
         this._columnChooserEnabled = false;
+        this._headerVisible = true;
 
         this._rows = [];
 
@@ -207,6 +208,17 @@ WebInspector.DataGrid = class DataGrid extends WebInspector.View
         dataGrid.sortColumnIdentifier = columnNames[0];
 
         return dataGrid;
+    }
+
+    get headerVisible() { return this._headerVisible; }
+
+    set headerVisible(x)
+    {
+        if (x === this._headerVisible)
+            return;
+
+        this._headerVisible = x;
+        this.element.classList.toggle("no-header", !this._headerVisible);
     }
 
     get columnChooserEnabled() { return this._columnChooserEnabled; }
@@ -726,7 +738,7 @@ WebInspector.DataGrid = class DataGrid extends WebInspector.View
         if (column["collapsesGroup"]) {
             console.assert(column["group"] !== column["collapsesGroup"]);
 
-            var dividerElement = headerCellElement.createChild("div", "divider");
+            headerCellElement.createChild("div", "divider");
 
             var collapseDiv = headerCellElement.createChild("div", "collapser-button");
             collapseDiv.title = this._collapserButtonCollapseColumnsToolTip();
@@ -872,7 +884,7 @@ WebInspector.DataGrid = class DataGrid extends WebInspector.View
         var result = {};
         for (var [identifier, column] of this.columns) {
             var width = this._headerTableColumnGroupElement.children[column["ordinal"]].style.width;
-            result[columnIdentifier] = parseFloat(width);
+            result[identifier] = parseFloat(width);
         }
         return result;
     }
@@ -1763,7 +1775,7 @@ WebInspector.DataGrid = class DataGrid extends WebInspector.View
     resizerDragging(resizer, positionDelta)
     {
         console.assert(resizer === this._currentResizer, resizer, this._currentResizer);
-        if (resizer != this._currentResizer)
+        if (resizer !== this._currentResizer)
             return;
 
         // Constrain the dragpoint to be within the containing div of the
@@ -1801,7 +1813,7 @@ WebInspector.DataGrid = class DataGrid extends WebInspector.View
         this._dataTableColumnGroupElement.children[leftCellIndex].style.width = percentLeftColumn;
 
         var percentRightColumn = (((rightEdgeOfNextColumn - dragPoint) / this._dataTableElement.offsetWidth) * 100) + "%";
-        this._headerTableColumnGroupElement.children[rightCellIndex].style.width =  percentRightColumn;
+        this._headerTableColumnGroupElement.children[rightCellIndex].style.width = percentRightColumn;
         this._dataTableColumnGroupElement.children[rightCellIndex].style.width = percentRightColumn;
 
         this._positionResizerElements();
@@ -1812,7 +1824,7 @@ WebInspector.DataGrid = class DataGrid extends WebInspector.View
     resizerDragEnded(resizer)
     {
         console.assert(resizer === this._currentResizer, resizer, this._currentResizer);
-        if (resizer != this._currentResizer)
+        if (resizer !== this._currentResizer)
             return;
 
         this._currentResizer = null;

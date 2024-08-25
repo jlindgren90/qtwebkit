@@ -45,7 +45,6 @@
 #include "ChromeClient.h"
 #include "ContentFilter.h"
 #include "ContentSecurityPolicy.h"
-#include "DOMImplementation.h"
 #include "DOMWindow.h"
 #include "DatabaseManager.h"
 #include "DiagnosticLoggingClient.h"
@@ -658,7 +657,7 @@ void FrameLoader::receivedFirstData()
 
     double delay;
     String urlString;
-    if (!parseHTTPRefresh(m_documentLoader->response().httpHeaderField(HTTPHeaderName::Refresh), false, delay, urlString))
+    if (!parseHTTPRefresh(m_documentLoader->response().httpHeaderField(HTTPHeaderName::Refresh), delay, urlString))
         return;
     URL completedURL;
     if (urlString.isEmpty())

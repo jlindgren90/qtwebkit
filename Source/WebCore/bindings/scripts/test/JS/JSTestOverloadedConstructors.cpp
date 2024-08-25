@@ -75,7 +75,7 @@ static inline EncodedJSValue constructJSTestOverloadedConstructors1(ExecState* s
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
     auto arrayBuffer = toArrayBuffer(state->argument(0));
-    if (UNLIKELY(state->hadException()))
+    if (UNLIKELY(throwScope.exception()))
         return JSValue::encode(jsUndefined());
     if (UNLIKELY(!arrayBuffer))
         return throwArgumentTypeError(*state, throwScope, 0, "arrayBuffer", "TestOverloadedConstructors", nullptr, "ArrayBuffer");
@@ -93,7 +93,7 @@ static inline EncodedJSValue constructJSTestOverloadedConstructors2(ExecState* s
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
     auto arrayBufferView = toArrayBufferView(state->argument(0));
-    if (UNLIKELY(state->hadException()))
+    if (UNLIKELY(throwScope.exception()))
         return JSValue::encode(jsUndefined());
     if (UNLIKELY(!arrayBufferView))
         return throwArgumentTypeError(*state, throwScope, 0, "arrayBufferView", "TestOverloadedConstructors", nullptr, "ArrayBufferView");
@@ -127,7 +127,7 @@ static inline EncodedJSValue constructJSTestOverloadedConstructors4(ExecState* s
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
     auto string = state->argument(0).toWTFString(state);
-    if (UNLIKELY(state->hadException()))
+    if (UNLIKELY(throwScope.exception()))
         return JSValue::encode(jsUndefined());
     auto object = TestOverloadedConstructors::create(WTFMove(string));
     return JSValue::encode(toJSNewlyCreated(state, castedThis->globalObject(), WTFMove(object)));
@@ -140,8 +140,8 @@ static inline EncodedJSValue constructJSTestOverloadedConstructors5(ExecState* s
     UNUSED_PARAM(throwScope);
     auto* castedThis = jsCast<JSTestOverloadedConstructorsConstructor*>(state->callee());
     ASSERT(castedThis);
-    Vector<int32_t> longArgs = toNativeArguments<int32_t>(*state, 0);
-    if (UNLIKELY(state->hadException()))
+    auto longArgs = toArguments<VariadicHelper<JSC::JSValue, int32_t>>(*state, 0);
+    if (UNLIKELY(throwScope.exception()))
         return JSValue::encode(jsUndefined());
     auto object = TestOverloadedConstructors::create(WTFMove(longArgs));
     return JSValue::encode(toJSNewlyCreated(state, castedThis->globalObject(), WTFMove(object)));
@@ -297,7 +297,7 @@ JSC::JSValue toJSNewlyCreated(JSC::ExecState*, JSDOMGlobalObject* globalObject, 
     // by adding the SkipVTableValidation attribute to the interface IDL definition
     RELEASE_ASSERT(actualVTablePointer == expectedVTablePointer);
 #endif
-    return createWrapper<JSTestOverloadedConstructors, TestOverloadedConstructors>(globalObject, WTFMove(impl));
+    return createWrapper<TestOverloadedConstructors>(globalObject, WTFMove(impl));
 }
 
 JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestOverloadedConstructors& impl)

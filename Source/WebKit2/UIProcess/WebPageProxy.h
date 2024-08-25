@@ -1059,6 +1059,8 @@ public:
 #if PLATFORM(MAC)
     void videoControlsManagerDidChange();
     bool hasActiveVideoForControlsManager() const;
+    void requestControlledElementID() const;
+    void handleControlledElementIDResponse(const String&) const;
     bool isPlayingVideoInEnhancedFullscreen() const;
 #endif
 

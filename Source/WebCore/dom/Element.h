@@ -136,6 +136,16 @@ public:
     WEBCORE_EXPORT void scrollIntoViewIfNeeded(bool centerIfNeeded = true);
     WEBCORE_EXPORT void scrollIntoViewIfNotVisible(bool centerIfNotVisible = true);
 
+    struct ScrollToOptions {
+        Optional<double> left;
+        Optional<double> top;
+    };
+
+    void scrollBy(const ScrollToOptions&);
+    void scrollBy(double x, double y);
+    virtual void scrollTo(const ScrollToOptions&);
+    void scrollTo(double x, double y);
+
     WEBCORE_EXPORT void scrollByLines(int lines);
     WEBCORE_EXPORT void scrollByPages(int pages);
 
@@ -157,6 +167,7 @@ public:
     WEBCORE_EXPORT double clientTop();
     WEBCORE_EXPORT double clientWidth();
     WEBCORE_EXPORT double clientHeight();
+
     virtual int scrollLeft();
     virtual int scrollTop();
     virtual void setScrollLeft(int);
@@ -274,7 +285,9 @@ public:
     WEBCORE_EXPORT ShadowRoot& ensureUserAgentShadowRoot();
 
 #if ENABLE(CUSTOM_ELEMENTS)
-    void setCustomElementIsResolved(JSCustomElementInterface&);
+    void setIsDefinedCustomElement(JSCustomElementInterface&);
+    void setIsFailedCustomElement(JSCustomElementInterface&);
+    void setIsCustomElementUpgradeCandidate();
     JSCustomElementInterface* customElementInterface() const;
 #endif
 
@@ -499,7 +512,6 @@ public:
     bool dispatchWheelEvent(const PlatformWheelEvent&);
     bool dispatchKeyEvent(const PlatformKeyboardEvent&);
     void dispatchSimulatedClick(Event* underlyingEvent, SimulatedClickMouseEventOptions = SendNoEvents, SimulatedClickVisualOptions = ShowPressedLook);
-    void dispatchSimulatedClickForBindings(Event* underlyingEvent);
     void dispatchFocusInEvent(const AtomicString& eventType, RefPtr<Element>&& oldFocusedElement);
     void dispatchFocusOutEvent(const AtomicString& eventType, RefPtr<Element>&& newFocusedElement);
     virtual void dispatchFocusEvent(RefPtr<Element>&& oldFocusedElement, FocusDirection);

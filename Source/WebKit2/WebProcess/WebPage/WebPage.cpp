@@ -1476,12 +1476,12 @@ void WebPage::setSize(const WebCore::IntSize& viewSize)
 
 #if USE(COORDINATED_GRAPHICS)
     if (view->useFixedLayout())
-        sendViewportAttributesChanged();
+        sendViewportAttributesChanged(m_page->viewportArguments());
 #endif
 }
 
 #if USE(COORDINATED_GRAPHICS)
-void WebPage::sendViewportAttributesChanged()
+void WebPage::sendViewportAttributesChanged(const ViewportArguments& viewportArguments)
 {
     FrameView* view = m_page->mainFrame().view();
     ASSERT(view && view->useFixedLayout());
@@ -1499,7 +1499,7 @@ void WebPage::sendViewportAttributesChanged()
     int deviceWidth = (settings.deviceWidth() > 0) ? settings.deviceWidth() : m_viewSize.width();
     int deviceHeight = (settings.deviceHeight() > 0) ? settings.deviceHeight() : m_viewSize.height();
 
-    ViewportAttributes attr = computeViewportAttributes(m_page->viewportArguments(), minimumLayoutFallbackWidth, deviceWidth, deviceHeight, 1, m_viewSize);
+    ViewportAttributes attr = computeViewportAttributes(viewportArguments, minimumLayoutFallbackWidth, deviceWidth, deviceHeight, 1, m_viewSize);
 
     // If no layout was done yet set contentFixedOrigin to (0,0).
     IntPoint contentFixedOrigin = view->didFirstLayout() ? view->fixedVisibleContentRect().location() : IntPoint();
@@ -1826,6 +1826,28 @@ IntSize WebPage::fixedLayoutSize() const
     if (!view)
         return IntSize();
     return view->fixedLayoutSize();
+}
+
+void WebPage::viewportPropertiesDidChange(const ViewportArguments& viewportArguments)
+{
+#if PLATFORM(IOS)
+    if (m_viewportConfiguration.setViewportArguments(viewportArguments))
+        viewportConfigurationChanged();
+#endif
+
+#if USE(COORDINATED_GRAPHICS)
+    FrameView* view = m_page->mainFrame().view();
+    if (view && view->useFixedLayout())
+        sendViewportAttributesChanged(viewportArguments);
+#if USE(COORDINATED_GRAPHICS_THREADED)
+    else if (auto* layerTreeHost = m_drawingArea->layerTreeHost())
+        layerTreeHost->didChangeViewportProperties(ViewportAttributes());
+#endif
+#endif
+
+#if !PLATFORM(IOS) && !USE(COORDINATED_GRAPHICS)
+    UNUSED_PARAM(viewportArguments);
+#endif
 }
 
 void WebPage::listenForLayoutMilestones(uint32_t milestones)
@@ -2315,7 +2337,7 @@ static bool handleMouseEvent(const WebMouseEvent& mouseEvent, WebPage* page, boo
 
 void WebPage::mouseEvent(const WebMouseEvent& mouseEvent)
 {
-    m_userIsInteracting = true;
+    TemporaryChange<bool> userIsInteractingChange { m_userIsInteracting, true };
 
     m_page->pageThrottler().didReceiveUserInput();
 
@@ -2333,7 +2355,6 @@ void WebPage::mouseEvent(const WebMouseEvent& mouseEvent)
 
     if (!shouldHandleEvent) {
         send(Messages::WebPageProxy::DidReceiveEvent(static_cast<uint32_t>(mouseEvent.type()), false));
-        m_userIsInteracting = false;
         return;
     }
 
@@ -2359,7 +2380,6 @@ void WebPage::mouseEvent(const WebMouseEvent& mouseEvent)
     }
 
     send(Messages::WebPageProxy::DidReceiveEvent(static_cast<uint32_t>(mouseEvent.type()), handled));
-    m_userIsInteracting = false;
 }
 
 static bool handleWheelEvent(const WebWheelEvent& wheelEvent, Page* page)
@@ -2395,7 +2415,7 @@ static bool handleKeyEvent(const WebKeyboardEvent& keyboardEvent, Page* page)
 
 void WebPage::keyEvent(const WebKeyboardEvent& keyboardEvent)
 {
-    m_userIsInteracting = true;
+    TemporaryChange<bool> userIsInteractingChange { m_userIsInteracting, true };
 
     m_page->pageThrottler().didReceiveUserInput();
 
@@ -2407,8 +2427,6 @@ void WebPage::keyEvent(const WebKeyboardEvent& keyboardEvent)
         handled = performDefaultBehaviorForKeyEvent(keyboardEvent);
 
     send(Messages::WebPageProxy::DidReceiveEvent(static_cast<uint32_t>(keyboardEvent.type()), handled));
-
-    m_userIsInteracting = false;
 }
 
 void WebPage::validateCommand(const String& commandName, uint64_t callbackID)
@@ -2505,13 +2523,11 @@ static bool handleTouchEvent(const WebTouchEvent& touchEvent, Page* page)
 #if ENABLE(IOS_TOUCH_EVENTS)
 void WebPage::dispatchTouchEvent(const WebTouchEvent& touchEvent, bool& handled)
 {
-    m_userIsInteracting = true;
+    TemporaryChange<bool> userIsInteractingChange { m_userIsInteracting, true };
 
     m_lastInteractionLocation = touchEvent.position();
     CurrentEvent currentEvent(touchEvent);
     handled = handleTouchEvent(touchEvent, m_page.get());
-
-    m_userIsInteracting = false;
 }
 
 void WebPage::touchEventSync(const WebTouchEvent& touchEvent, bool& handled)

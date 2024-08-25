@@ -29,13 +29,11 @@
 #include "Error.h"
 #include "GetterSetter.h"
 #include "IteratorOperations.h"
-#include "JSCJSValueInlines.h"
-#include "JSCellInlines.h"
+#include "JSCInlines.h"
 #include "JSGlobalObject.h"
 #include "JSMap.h"
 #include "JSObjectInlines.h"
 #include "MapPrototype.h"
-#include "StructureInlines.h"
 
 namespace JSC {
 
@@ -63,15 +61,17 @@ static EncodedJSValue JSC_HOST_CALL constructMap(ExecState* exec)
 
     JSGlobalObject* globalObject = asInternalFunction(exec->callee())->globalObject();
     Structure* mapStructure = InternalFunction::createSubclassStructure(exec, exec->newTarget(), globalObject->mapStructure());
-    if (exec->hadException())
+    if (UNLIKELY(scope.exception()))
         return JSValue::encode(JSValue());
-    JSMap* map = JSMap::create(exec, mapStructure);
+    JSMap* map = JSMap::create(exec, vm, mapStructure);
+    if (UNLIKELY(scope.exception()))
+        return JSValue::encode(JSValue());
     JSValue iterable = exec->argument(0);
     if (iterable.isUndefinedOrNull())
         return JSValue::encode(map);
 
     JSValue adderFunction = map->JSObject::get(exec, exec->propertyNames().set);
-    if (exec->hadException())
+    if (UNLIKELY(scope.exception()))
         return JSValue::encode(jsUndefined());
 
     CallData adderFunctionCallData;
@@ -80,17 +80,18 @@ static EncodedJSValue JSC_HOST_CALL constructMap(ExecState* exec)
         return JSValue::encode(throwTypeError(exec, scope));
 
     forEachInIterable(exec, iterable, [&](VM& vm, ExecState* exec, JSValue nextItem) {
+        auto scope = DECLARE_THROW_SCOPE(vm);
         if (!nextItem.isObject()) {
             throwTypeError(exec, scope);
             return;
         }
 
         JSValue key = nextItem.get(exec, static_cast<unsigned>(0));
-        if (vm.exception())
+        if (UNLIKELY(scope.exception()))
             return;
 
         JSValue value = nextItem.get(exec, static_cast<unsigned>(1));
-        if (vm.exception())
+        if (UNLIKELY(scope.exception()))
             return;
 
         MarkedArgumentBuffer arguments;

@@ -220,6 +220,27 @@ webkit_dom_html_link_element_set_type_attr(WebKitDOMHTMLLinkElement* self, const
 WEBKIT_API WebKitDOMStyleSheet*
 webkit_dom_html_link_element_get_sheet(WebKitDOMHTMLLinkElement* self);
 
+/**
+ * webkit_dom_html_link_element_get_sizes:
+ * @self: A #WebKitDOMHTMLLinkElement
+ *
+ * Returns: (transfer full): A #WebKitDOMDOMTokenList
+ *
+ * Since: 2.16
+**/
+WEBKIT_API WebKitDOMDOMTokenList*
+webkit_dom_html_link_element_get_sizes(WebKitDOMHTMLLinkElement* self);
+
+/**
+ * webkit_dom_html_link_element_set_sizes:
+ * @self: A #WebKitDOMHTMLLinkElement
+ * @value: a #gchar
+ *
+ * Since: 2.16
+**/
+WEBKIT_API void
+webkit_dom_html_link_element_set_sizes(WebKitDOMHTMLLinkElement* self, const gchar* value);
+
 G_END_DECLS
 
 #endif /* WebKitDOMHTMLLinkElement_h */

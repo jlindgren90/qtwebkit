@@ -142,7 +142,7 @@ namespace JSC { namespace DFG {
     /* this is only true if we do the overflow check - hence the need to keep it alive. More */\
     /* generally, we need to keep alive any operation whose checks cause filtration in AI. */\
     macro(ArithAdd, NodeResultNumber | NodeMustGenerate) \
-    macro(ArithClz32, NodeResultInt32) \
+    macro(ArithClz32, NodeResultInt32 | NodeMustGenerate) \
     macro(ArithSub, NodeResultNumber | NodeMustGenerate) \
     macro(ArithNegate, NodeResultNumber | NodeMustGenerate) \
     macro(ArithMul, NodeResultNumber | NodeMustGenerate) \
@@ -388,7 +388,12 @@ namespace JSC { namespace DFG {
     macro(GetPropertyEnumerator, NodeMustGenerate | NodeResultJS) \
     macro(GetEnumeratorStructurePname, NodeMustGenerate | NodeResultJS) \
     macro(GetEnumeratorGenericPname, NodeMustGenerate | NodeResultJS) \
-    macro(ToIndexString, NodeResultJS)
+    macro(ToIndexString, NodeResultJS) \
+    /* Nodes for JSMap and JSSet */ \
+    macro(MapHash, NodeResultInt32) \
+    macro(GetMapBucket, NodeResultJS) \
+    macro(LoadFromJSMapBucket, NodeResultJS) \
+    macro(IsNonEmptyMapBucket, NodeResultBoolean) \
 
 // This enum generates a monotonically increasing id for all Node types,
 // and is used by the subsequent enum to fill out the id (as accessed via the NodeIdMask).

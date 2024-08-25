@@ -1,3 +1,570 @@
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse ports after IPv4 and IPv6 hosts
+        https://bugs.webkit.org/show_bug.cgi?id=161731
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should correctly handle \ in path
+        https://bugs.webkit.org/show_bug.cgi?id=161762
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should handle URLs with empty authority
+        https://bugs.webkit.org/show_bug.cgi?id=161711
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-08  Alex Christensen  <achristensen@webkit.org>
+
+        Re-land r205580 after r205649 fixed the test failures
+        https://bugs.webkit.org/show_bug.cgi?id=161668
+
+        Re-landing changesets:
+
+        "Punycode encode non-ascii hosts in URLParser"
+        https://bugs.webkit.org/show_bug.cgi?id=161655
+        http://trac.webkit.org/changeset/205521
+
+        "Fix query-only and fragment-only relative URLs when using
+        URLParser"
+        https://bugs.webkit.org/show_bug.cgi?id=161657
+        http://trac.webkit.org/changeset/205526
+
+        "URLParser should parse / as a relative URL"
+        https://bugs.webkit.org/show_bug.cgi?id=161667
+        http://trac.webkit.org/changeset/205532
+
+2016-09-08  Dean Jackson  <dino@apple.com>
+
+        Expose Apple Pencil input to testing system
+        https://bugs.webkit.org/show_bug.cgi?id=161670
+        <rdar://problem/28183327>
+
+        I fixed the internal builds, now try to fix the public builds.
+
+        * WebKitTestRunner/ios/IOKitSPI.h: Add new enum values.
+
+2016-09-07  Dean Jackson  <dino@apple.com>
+
+        Expose Apple Pencil input to testing system
+        https://bugs.webkit.org/show_bug.cgi?id=161670
+        <rdar://problem/28183327>
+
+        Attempt to fix iOS 9 builds.
+
+        * WebKitTestRunner/ios/HIDEventGenerator.mm:
+        (-[HIDEventGenerator _createIOHIDEventType:]):
+
+2016-09-07  Alex Christensen  <achristensen@webkit.org>
+
+        Roll out r205580 and r205582.
+        https://bugs.webkit.org/show_bug.cgi?id=161668
+
+        I need to figure out why this is failing on the bots before landing any more URLParser progress.
+
+2016-09-07  Alex Christensen  <achristensen@webkit.org>
+
+        Unreviewed, revert r205533.
+        https://bugs.webkit.org/show_bug.cgi?id=161668
+
+        Re-landing changesets:
+
+        "Punycode encode non-ascii hosts in URLParser"
+        https://bugs.webkit.org/show_bug.cgi?id=161655
+        http://trac.webkit.org/changeset/205521
+
+        "Fix query-only and fragment-only relative URLs when using
+        URLParser"
+        https://bugs.webkit.org/show_bug.cgi?id=161657
+        http://trac.webkit.org/changeset/205526
+
+        "URLParser should parse / as a relative URL"
+        https://bugs.webkit.org/show_bug.cgi?id=161667
+        http://trac.webkit.org/changeset/205532
+
+2016-09-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Enable the <meter> element on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=161714
+        rdar://problem/8978410
+
+        Reviewed by Tim Horton.
+
+        Define ENABLE_METER_ELEMENT unconditionally now.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-09-07  Jonathan Bedard  <jbedard@apple.com>
+
+        Run spindumps on timeout on iOS 9 Simulator Release WK2 (Tests)
+        https://bugs.webkit.org/show_bug.cgi?id=161699
+
+        Reviewed by Alexey Proskuryakov.
+
+        This change does not have testing associated with it because the testing infrastructure does not exists, we cannot currently mock build-bot variables.
+
+        * BuildSlaveSupport/build.webkit.org-config/master.cfg:
+        (RunWebKitTests): Enable sample on timeout for everything.
+        (RunWebKitTests.start): Disable sample on timeout for everything except iOS 9 WK2 release simulators.
+
+2016-09-06  Dean Jackson  <dino@apple.com>
+
+        Expose Apple Pencil input to testing system
+        https://bugs.webkit.org/show_bug.cgi?id=161670
+        <rdar://problem/28183327>
+
+        Reviewed by Simon Fraser.
+
+        Add API to UIScriptController that allows a test to emulate
+        stylus input, such as from the Apple Pencil.
+
+        The code is only implemented for WebKitTestRunner.
+
+        There are also four new tests that ensure an Apple Pencil
+        operates similarly to a regular touch. The main difference
+        is that you can't have multiple touches when using an Apple Pencil.
+
+        * DumpRenderTree/ios/UIScriptControllerIOS.mm: New methods. Empty implementations.
+        (WTR::UIScriptController::stylusDownAtPoint):
+        (WTR::UIScriptController::stylusMoveToPoint):
+        (WTR::UIScriptController::stylusUpAtPoint):
+        (WTR::UIScriptController::stylusTapAtPoint):
+        * TestRunnerShared/UIScriptContext/Bindings/UIScriptController.idl: New methods.
+        * TestRunnerShared/UIScriptContext/UIScriptController.cpp: Empty implementations.
+        (WTR::UIScriptController::stylusDownAtPoint):
+        (WTR::UIScriptController::stylusMoveToPoint):
+        (WTR::UIScriptController::stylusUpAtPoint):
+        (WTR::UIScriptController::stylusTapAtPoint):
+        * TestRunnerShared/UIScriptContext/UIScriptController.h:
+
+        * WebKitTestRunner/ios/HIDEventGenerator.h:
+        * WebKitTestRunner/ios/HIDEventGenerator.mm: New StylusEvent types. Add some properties
+        to SyntheticEventDigitizerInfo.
+        (-[HIDEventGenerator _createIOHIDEventType:]): Add support for StylusEvent types.
+        (-[HIDEventGenerator touchDownAtPoints:touchCount:]): Clear any old stylus info.
+        (-[HIDEventGenerator stylusDownAtPoint:azimuthAngle:altitudeAngle:pressure:]):
+        (-[HIDEventGenerator stylusMoveToPoint:azimuthAngle:altitudeAngle:pressure:]):
+        (-[HIDEventGenerator stylusUpAtPoint:]):
+        (-[HIDEventGenerator stylusDownAtPoint:azimuthAngle:altitudeAngle:pressure:completionBlock:]):
+        (-[HIDEventGenerator stylusMoveToPoint:azimuthAngle:altitudeAngle:pressure:completionBlock:]):
+        (-[HIDEventGenerator stylusUpAtPoint:completionBlock:]):
+        (-[HIDEventGenerator stylusTapAtPoint:azimuthAngle:altitudeAngle:pressure:completionBlock:]):
+        * WebKitTestRunner/ios/IOKitSPI.h: Add new include, and new SPI.
+        * WebKitTestRunner/ios/UIScriptControllerIOS.mm: Calls into the HIDEventGenerator for the new API.
+        (WTR::UIScriptController::stylusDownAtPoint):
+        (WTR::UIScriptController::stylusMoveToPoint):
+        (WTR::UIScriptController::stylusUpAtPoint):
+        (WTR::UIScriptController::stylusTapAtPoint):
+
+2016-09-07  Daniel Bates  <dabates@apple.com>
+
+        Update WebKitSystemInterface
+
+        Rubber-stamped by Dean Jackson.
+
+        Copy WebKitSystemInterface for iOS 10 to the built products directory.
+
+        * Scripts/copy-webkitlibraries-to-product-directory:
+
+2016-09-07  Youenn Fablet  <youenn@apple.com>
+
+        [Streams API] Separate compile flag for ReadableStream and WritableStream
+        https://bugs.webkit.org/show_bug.cgi?id=161044
+
+        Reviewed by Alex Christensen.
+
+        Moving from STREAMS_API to READABLE_STREAM_API and WRITABLE_STREAM_API compilation flags.
+
+        * Scripts/webkitperl/FeatureList.pm:
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-09-07  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Move some GObject DOM unstable API to stable
+        https://bugs.webkit.org/show_bug.cgi?id=161681
+
+        Reviewed by Žan Doberšek.
+
+        Do not use user message handler unstable API in the tests, since we have stable convenient API for that.
+
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestWebKitUserContentManager.cpp:
+        (testUserContentManagerScriptMessageFromDOMBindings):
+        (serverCallback): Deleted.
+        (beforeAll): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Gtk/WebExtensionTest.cpp:
+        (documentLoadedCallback):
+        (emitURIChanged): Deleted.
+
+2016-09-07  Youenn Fablet  <youenn@apple.com>
+
+        Using tests-options.json to compute whether tests are slow
+        https://bugs.webkit.org/show_bug.cgi?id=161626
+
+        Reviewed by Darin Adler.
+
+        * Scripts/webkitpy/layout_tests/controllers/manager_unittest.py: Updated first test to use a MockHost.
+        * Scripts/webkitpy/layout_tests/controllers/manager.py:
+        (Manager.__init__): Loading tests-options.json
+        (Manager._test_is_slow): Computing timeout value based on tests-options.json.
+
+2016-09-07  Hunseop Jeong  <hs85.jeong@samsung.com>
+
+        [EFL] Need the libosmesa to support the software backend drawing.
+        https://bugs.webkit.org/show_bug.cgi?id=147065
+
+        Reviewed by Gyuyoung Kim.
+
+        Added the libosmesa to support the software backend drawing.
+
+        * efl/install-dependencies:
+
+2016-09-06  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205521, r205526, and r205532.
+        https://bugs.webkit.org/show_bug.cgi?id=161668
+
+        broke API tests (Requested by alexchristensen on #webkit).
+
+        Reverted changesets:
+
+        "Punycode encode non-ascii hosts in URLParser"
+        https://bugs.webkit.org/show_bug.cgi?id=161655
+        http://trac.webkit.org/changeset/205521
+
+        "Fix query-only and fragment-only relative URLs when using
+        URLParser"
+        https://bugs.webkit.org/show_bug.cgi?id=161657
+        http://trac.webkit.org/changeset/205526
+
+        "URLParser should parse / as a relative URL"
+        https://bugs.webkit.org/show_bug.cgi?id=161667
+        http://trac.webkit.org/changeset/205532
+
+2016-09-06  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should parse / as a relative URL
+        https://bugs.webkit.org/show_bug.cgi?id=161667
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-06  Daniel Bates  <dabates@apple.com>
+
+        [iOS] DumpRenderTree and WebKitTestRunner fail to build - "Ad Hoc code signing is not allowed with SDK 'Simulator - iOS 10.0'"
+        https://bugs.webkit.org/show_bug.cgi?id=161661
+
+        Reviewed by Darin Adler.
+
+        Allow ad-hoc code signing when building the dummy DumpRenderTree and WebKitTestRunner
+        command line tools for simulator with the iOS 10 beta SDK.
+
+        * DumpRenderTree/mac/Configurations/Base.xcconfig:
+        * WebKitTestRunner/Configurations/Base.xcconfig:
+
+2016-09-06  Alex Christensen  <achristensen@webkit.org>
+
+        Fix query-only and fragment-only relative URLs when using URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=161657
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-06  Alex Christensen  <achristensen@webkit.org>
+
+        Punycode encode non-ascii hosts in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=161655
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::wideString):
+        (TestWebKitAPI::TEST_F):
+
+2016-09-05  Alex Christensen  <achristensen@webkit.org>
+
+        Implement relative file urls and begin implementing character encoding in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=161618
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-06  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205480.
+        https://bugs.webkit.org/show_bug.cgi?id=161630
+
+        tests-options.json is not known from knockout filesystem
+        (Requested by youenn on #webkit).
+
+        Reverted changeset:
+
+        "Using tests-options.json to compute whether tests are slow"
+        https://bugs.webkit.org/show_bug.cgi?id=161626
+        http://trac.webkit.org/changeset/205480
+
+2016-09-06  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        "Redundant argument in sprintf" warning spam from prepare-ChangeLog
+        https://bugs.webkit.org/show_bug.cgi?id=161606
+
+        Reviewed by Darin Adler.
+
+        Avoid extra arguments in call to sprintf, hopefully without introducing new warnings this
+        time.
+
+        * Scripts/prepare-ChangeLog:
+        (statusDescription):
+
+2016-09-06  Youenn Fablet  <youenn@apple.com>
+
+        Using tests-options.json to compute whether tests are slow
+        https://bugs.webkit.org/show_bug.cgi?id=161626
+
+        Reviewed by Darin Adler.
+
+        * Scripts/webkitpy/layout_tests/controllers/manager.py:
+        (Manager.__init__): Loading tests-options.json
+        (Manager._test_is_slow): Computing timeout value based on tests-options.json.
+
+2016-09-06  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205461.
+        https://bugs.webkit.org/show_bug.cgi?id=161628
+
+        Introduced "Use of uninitialized value $original in sprintf"
+        warning (Requested by mcatanzaro on #webkit).
+
+        Reverted changeset:
+
+        ""Redundant argument in sprintf" warning spam from prepare-
+        ChangeLog"
+        https://bugs.webkit.org/show_bug.cgi?id=161606
+        http://trac.webkit.org/changeset/205461
+
+2016-09-06  Youenn Fablet  <youenn@apple.com>
+
+        W3C test importer should be able to identify slow test
+        https://bugs.webkit.org/show_bug.cgi?id=161601
+
+        Reviewed by Darin Adler.
+
+        Test parser is now identifying slow tests based on "meta element name=timeout content=long" elements.
+        Test importer is updating test-options.json file according that information.
+
+        In case of clean import, the test-options.json is cleaned from 'slow' options for all W3C tests.
+
+        * Scripts/webkitpy/w3c/test_importer.py:
+        (TestImporter.__init__):
+        (TestImporter.find_importable_tests):
+        (TestImporter.import_tests):
+        (TestImporter.update_test_options):
+        (TestImporter):
+        (TestImporter.remove_slow_from_w3c_test_options):
+        * Scripts/webkitpy/w3c/test_parser.py:
+        (TestParser.analyze_test):
+        (TestParser.is_slow_test):
+        (TestParser.potential_ref_filename):
+
+2016-09-06  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Crash logs have incorrect symbols.
+        https://bugs.webkit.org/show_bug.cgi?id=161603
+
+        Reviewed by Darin Adler.
+
+        Add build path to _NT_SYMBOL_PATH environment variable.
+
+        * Scripts/webkitpy/port/win.py:
+        (WinPort.setup_crash_log_saving):
+
+2016-08-31  Filip Pizlo  <fpizlo@apple.com>
+
+        Butterflies should be allocated in Auxiliary MarkedSpace instead of CopiedSpace and we should rewrite as much of the GC as needed to make this not a regression
+        https://bugs.webkit.org/show_bug.cgi?id=160125
+
+        Reviewed by Geoffrey Garen and Keith Miller.
+
+        * DumpRenderTree/TestRunner.cpp:
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (DumpRenderTreeMain):
+        * Scripts/run-jsc-stress-tests:
+        * TestWebKitAPI/Tests/WTF/Vector.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-09-05  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        "Redundant argument in sprintf" warning spam from prepare-ChangeLog
+        https://bugs.webkit.org/show_bug.cgi?id=161606
+
+        Reviewed by Darin Adler.
+
+        Avoid extra arguments in call to sprintf.
+
+        * Scripts/prepare-ChangeLog:
+        (statusDescription):
+
+2016-09-05  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Skip several failing API tests
+
+        Unfortunately we don't have any form of test expectations for API tests, so we'll just skip
+        them after bugs are filed.
+
+        * Scripts/run-gtk-tests:
+        (TestRunner):
+
+2016-09-05  Youenn Fablet  <youenn@apple.com>
+
+        Fix W3C test importer unit tests after r205447
+        https://bugs.webkit.org/show_bug.cgi?id=161604
+
+        Unreviewed.
+
+        * Scripts/webkitpy/w3c/test_importer.py:
+        (TestImporter.__init__): Skip cleaning test_resource_files files if resource-files.json cannot be read.
+
+2016-09-05  Philippe Normand  <pnormand@igalia.com>
+
+        WebRTC: Several media stream tests crashing
+        https://bugs.webkit.org/show_bug.cgi?id=161582
+
+        Reviewed by Alejandro G. Castro.
+
+        * gtk/jhbuild.modules: Bump to latest OpenWebRTC master fixing the crash on missing
+        glvideoflip GStreamer element.
+
+2016-09-05  Youenn Fablet  <youenn@apple.com>
+
+        W3C test importer should generate the list of resource files
+        https://bugs.webkit.org/show_bug.cgi?id=161578
+
+        Reviewed by Ryosuke Niwa.
+
+        Generating LayoutTests/imported/w3c/resources/resource-files.json when importing tests.
+
+        * Scripts/webkitpy/w3c/test_importer.py:
+        (TestImporter.__init__): Reading test resource files configuration file.
+        (TestImporter.find_importable_tests):
+        (TestImporter.import_tests): Update the test resource files based on test parsed files.
+        (TestImporter):
+        (TestImporter._already_identified_as_resource_file): Helper routine to know whether a file is already set as a resource file.
+        (TestImporter._is_in_resources_directory: Helper routine to know whether a file is in a resources directory.
+
+2016-09-03  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls behave strangely when videos mute from within a playing handler
+        https://bugs.webkit.org/show_bug.cgi?id=161559
+        <rdar://problem/28018438>
+
+        Reviewed by Darin Adler.
+
+        Accounts for changes when determining whether or not to show media controls for autoplaying videos that have not
+        begun playing yet. Rather than check for a controlled media element upon page load, we force tests to wait until
+        all autoplaying videos have actually begun playing. This extends to tests that involve interaction, such as
+        clicking or scrolling.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        (-[VideoControlsManagerTestWebView callJavascriptFunction:]):
+        (-[VideoControlsManagerTestWebView expectControlsManager:afterReceivingMessage:]):
+        (-[VideoControlsManagerTestWebView performAfterReceivingMessage:action:]):
+        (-[VideoControlsManagerTestWebView waitForPageToLoadWithAutoplayingVideos:]):
+        (TestWebKitAPI::TEST):
+        (-[VideoControlsManagerTestWebView loadTestPageNamed:andExpectControlsManager:afterReceivingMessage:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/autoplaying-video-with-audio.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-video-hides-controls-after-seek-to-end.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-video-playing-scroll-away.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-autoplaying-click-to-pause.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-autoplaying-scroll-to-video.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-paused-video-hides-controls.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-playing-muted-video-hides-controls.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-playing-video-keeps-controls.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-with-audio-autoplay.html:
+
+2016-09-03  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Refactor the heuristic for showing media controls to take all media sessions into account
+        https://bugs.webkit.org/show_bug.cgi?id=161503
+        <rdar://problem/28033783>
+
+        Reviewed by Darin Adler.
+
+        Adds new unit tests verifying the behavior of media playback controls when scrolling another video into view.
+        Please see the WebCore ChangeLog for more details about this change. Also refactors existing
+        VideoControlsManager tests by folding duplicated setup and testing logic into helper methods to make the unit
+        tests more readable.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        (-[MessageHandler initWithMessage:handler:]):
+        (-[MessageHandler userContentController:didReceiveScriptMessage:]):
+        (-[VideoControlsManagerTestWebView performAfterLoading:]):
+        (-[VideoControlsManagerTestWebView loadTestPageNamed:]):
+        (-[VideoControlsManagerTestWebView loadTestPageNamed:andExpectControlsManager:afterReceivingMessage:]):
+        (-[VideoControlsManagerTestWebView performAfterReceivingMessage:action:]):
+        (-[VideoControlsManagerTestWebView controlledElementID]):
+        (-[VideoControlsManagerTestWebView _handleControlledElementIDResponse:]):
+        (TestWebKitAPI::setUpWebViewForTestingVideoControlsManager):
+        (TestWebKitAPI::TEST):
+        (-[MediaPlaybackMessageHandler initWithWKWebView:finalMessageString:]): Deleted.
+        (-[MediaPlaybackMessageHandler userContentController:didReceiveScriptMessage:]): Deleted.
+        (-[OnLoadMessageHandler initWithWKWebView:handler:]): Deleted.
+        (-[OnLoadMessageHandler userContentController:didReceiveScriptMessage:]): Deleted.
+        (-[WKWebView performAfterLoading:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-video-playing-scroll-away.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-autoplaying-click-to-pause.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-autoplaying-scroll-to-video.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-paused-video-hides-controls.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-playing-muted-video-hides-controls.html: Added.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-videos-playing-video-keeps-controls.html: Added.
+
+2016-09-03  Youenn Fablet  <youenn@apple.com>
+
+        run-webkit-tests should detect w3c test resource files
+        https://bugs.webkit.org/show_bug.cgi?id=161307
+
+        Reviewed by Ryosuke Niwa.
+
+        * Scripts/webkitpy/port/base.py:
+        (Port.__init__): Adding self._w3c_resource_files to store the list of resource files.
+        (Port.potential_test_names_from_expected_file):
+        (Port._real_tests):
+        (Port.is_w3c_resource_file): Computing whether a file is a resource file based on imported/w3c/resources/resource-files.json.
+        (Port._is_test_file): Updated to call Port.is_w3c_resource_file. _is_test_file is no longer static.
+        (Port): Deleted.
+        * Scripts/webkitpy/port/base_unittest.py:
+        (PortTest.test_additional_platform_directory):
+        (PortTest.test_find_no_paths_specified):
+        (PortTest.test_is_test_file): Updated to use non-static version of _is_test_file.
+        (PortTest.test_is_w3c_resource_file): Adding tests.
+
+2016-09-02  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix archive-built-product step in GTK+ bots after r205280.
+
+        * BuildSlaveSupport/built-product-archive:
+        (archiveBuiltProduct): Do not copy to the archive the files needed to run GObject DOM bindings API breaks tests
+        that no longer exist.
+
 2016-09-02  Alex Christensen  <achristensen@webkit.org>
 
         URLParser should parse file URLs

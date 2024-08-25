@@ -57,11 +57,11 @@ static inline JSValue createNewDocumentWrapper(ExecState& state, JSDOMGlobalObje
     auto& document = passedDocument.get();
     JSObject* wrapper;
     if (document.isHTMLDocument())
-        wrapper = CREATE_DOM_WRAPPER(&globalObject, HTMLDocument, WTFMove(passedDocument));
+        wrapper = createWrapper<HTMLDocument>(&globalObject, WTFMove(passedDocument));
     else if (document.isXMLDocument())
-        wrapper = CREATE_DOM_WRAPPER(&globalObject, XMLDocument, WTFMove(passedDocument));
+        wrapper = createWrapper<XMLDocument>(&globalObject, WTFMove(passedDocument));
     else
-        wrapper = CREATE_DOM_WRAPPER(&globalObject, Document, WTFMove(passedDocument));
+        wrapper = createWrapper<Document>(&globalObject, WTFMove(passedDocument));
 
     reportMemoryForDocumentIfFrameless(state, document);
 
@@ -153,16 +153,16 @@ JSValue JSDocument::getCSSCanvasContext(JSC::ExecState& state)
     if (UNLIKELY(state.argumentCount() < 4))
         return throwException(&state, scope, createNotEnoughArgumentsError(&state));
     auto contextId = state.uncheckedArgument(0).toWTFString(&state);
-    if (UNLIKELY(state.hadException()))
+    if (UNLIKELY(scope.exception()))
         return jsUndefined();
     auto name = state.uncheckedArgument(1).toWTFString(&state);
-    if (UNLIKELY(state.hadException()))
+    if (UNLIKELY(scope.exception()))
         return jsUndefined();
     auto width = convert<int32_t>(state, state.uncheckedArgument(2), NormalConversion);
-    if (UNLIKELY(state.hadException()))
+    if (UNLIKELY(scope.exception()))
         return jsUndefined();
     auto height = convert<int32_t>(state, state.uncheckedArgument(3), NormalConversion);
-    if (UNLIKELY(state.hadException()))
+    if (UNLIKELY(scope.exception()))
         return jsUndefined();
 
     auto* context = wrapped().getCSSCanvasContext(WTFMove(contextId), WTFMove(name), WTFMove(width), WTFMove(height));

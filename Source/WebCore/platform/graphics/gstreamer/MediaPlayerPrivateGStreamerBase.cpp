@@ -685,10 +685,7 @@ void MediaPlayerPrivateGStreamerBase::paintToTextureMapper(TextureMapper& textur
 #if USE(GSTREAMER_GL)
 NativeImagePtr MediaPlayerPrivateGStreamerBase::nativeImageForCurrentTime()
 {
-#if !USE(CAIRO) || !ENABLE(ACCELERATED_2D_CANVAS)
-    return nullptr;
-#endif
-
+#if USE(CAIRO) && ENABLE(ACCELERATED_2D_CANVAS)
     if (m_usingFallbackVideoSink)
         return nullptr;
 
@@ -747,6 +744,9 @@ NativeImagePtr MediaPlayerPrivateGStreamerBase::nativeImageForCurrentTime()
     gst_video_frame_unmap(&videoFrame);
 
     return rotatedSurface;
+#else
+    return nullptr;
+#endif
 }
 #endif
 

@@ -22,6 +22,7 @@
 #include "NativeErrorConstructor.h"
 
 #include "ErrorInstance.h"
+#include "Interpreter.h"
 #include "JSFunction.h"
 #include "JSString.h"
 #include "NativeErrorPrototype.h"
@@ -62,9 +63,11 @@ void NativeErrorConstructor::visitChildren(JSCell* cell, SlotVisitor& visitor)
 
 EncodedJSValue JSC_HOST_CALL Interpreter::constructWithNativeErrorConstructor(ExecState* exec)
 {
+    VM& vm = exec->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
     JSValue message = exec->argument(0);
     Structure* errorStructure = InternalFunction::createSubclassStructure(exec, exec->newTarget(), jsCast<NativeErrorConstructor*>(exec->callee())->errorStructure());
-    if (exec->hadException())
+    if (UNLIKELY(scope.exception()))
         return JSValue::encode(JSValue());
     ASSERT(errorStructure);
     return JSValue::encode(ErrorInstance::create(exec, errorStructure, message, nullptr, TypeNothing, false));

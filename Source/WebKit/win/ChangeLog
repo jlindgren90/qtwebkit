@@ -1,3 +1,45 @@
+2016-09-07  Mark Lam  <mark.lam@apple.com>
+
+        Add CatchScope and force all exception checks to be via ThrowScope or CatchScope.
+        https://bugs.webkit.org/show_bug.cgi?id=161498
+
+        Reviewed by Geoffrey Garen.
+
+        * Plugins/PluginPackage.cpp:
+        (WebCore::NPN_Evaluate):
+        (WebCore::NPN_Invoke):
+
+2016-09-06  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Null pointer crash under WebView::scrollOffset.
+        https://bugs.webkit.org/show_bug.cgi?id=161620
+
+        Reviewed by Darin Adler.
+
+        Added null pointer checks.
+
+        * WebView.cpp:
+        (WebView::scrollOffset):
+        (WebView::scrollBy):
+        (WebView::visibleContentRect):
+
+2016-09-03  Darin Adler  <darin@apple.com>
+
+        Streamline DOMImplementation, and move it to our new DOM exception system
+        https://bugs.webkit.org/show_bug.cgi?id=161295
+
+        Reviewed by Ryosuke Niwa.
+
+        * WebFrame.cpp:
+        (WebFrame::canProvideDocumentSource): Updated to use isXMLMIMEType in its new
+        location in MIMETypeRegistry instead of in DOMImplementation.
+
+2016-09-02  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Build fix attempt after r205381.
+
+        * WebCoreSupport/WebEditorClient.h:
+
 2016-08-31  Keith Rollin  <krollin@apple.com>
 
         WebKit should set a subsystem for os_log so it's easier to filter for WebKit log messages

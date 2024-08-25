@@ -1,3 +1,1394 @@
+2016-09-08  Zan Dobersek  <zdobersek@igalia.com>
+
+        Move webkit2gtk.pc.in, webkit2gtk-web-extension.pc.in files under Source/WebKit2/gtk/
+        https://bugs.webkit.org/show_bug.cgi?id=161703
+
+        Reviewed by Carlos Garcia Campos.
+
+        Move the pkg-config input files that are specific to the GTK+ port
+        under the Source/WebKit2/gtk/ directory. Build rules are updated
+        accordingly.
+
+        * PlatformGTK.cmake:
+        * gtk/webkit2gtk-web-extension.pc.in: Renamed from Source/WebKit2/webkit2gtk-web-extension.pc.in.
+        * gtk/webkit2gtk.pc.in: Renamed from Source/WebKit2/webkit2gtk.pc.in.
+
+2016-09-07  Joseph Pecoraro  <pecoraro@apple.com>
+
+        [Mac] Address some clang static analyzer warnings in WebKit
+        https://bugs.webkit.org/show_bug.cgi?id=161597
+
+        Reviewed by Darin Adler.
+
+        * UIProcess/Cocoa/WebVideoFullscreenManagerProxy.mm:
+        (-[WKLayerHostView makeBackingLayer]):
+        * UIProcess/mac/WKSharingServicePickerDelegate.mm:
+        (-[WKSharingServicePickerDelegate sharingServicePicker:sharingServicesForItems:mask:proposedSharingServices:]):
+        * WebProcess/InjectedBundle/API/mac/WKDOMRange.mm:
+        (-[WKDOMRange rangeByExpandingToWordBoundaryByCharacters:inDirection:]):
+        Address leaks caught by the static analyzer.
+
+2016-09-07  Zan Dobersek  <zdobersek@igalia.com>
+
+        [GTK] Remove stale WebSoupRequestManager headers
+        https://bugs.webkit.org/show_bug.cgi?id=161691
+
+        Reviewed by Sergio Villar Senin.
+
+        WebSoupRequestManager, WebSoupRequestManagerProxy and WebSoupRequestManagerClient
+        classes were used to implement custom URI scheme support for Soup. This API and
+        the implementations of these classes were removed in r174584, but curiously the
+        headers went unnoticed. This patch removes them, as well as the
+        WebSoupRequestManagerProxy forwarding declaration in WKAPICastSoup.h.
+
+        * UIProcess/API/C/soup/WKAPICastSoup.h:
+        * UIProcess/soup/WebSoupRequestManagerClient.h: Removed.
+        * UIProcess/soup/WebSoupRequestManagerProxy.h: Removed.
+        (WebKit::WebSoupRequestManagerProxy::registeredURISchemes): Deleted.
+        * WebProcess/soup/WebSoupRequestManager.h: Removed.
+
+2016-09-07  Simon Fraser  <simon.fraser@apple.com>
+
+        Enable the <meter> element on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=161714
+        rdar://problem/8978410
+
+        Reviewed by Tim Horton.
+
+        Define ENABLE_METER_ELEMENT unconditionally now.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-09-07  Dan Bernstein  <mitz@apple.com>
+
+        [Mac] .tbd files for the shims end up installed when building with GENERATE_TEXT_BASED_STUBS=YES
+        https://bugs.webkit.org/show_bug.cgi?id=161722
+
+        Reviewed by Anders Carlsson.
+
+        * Configurations/Shim.xcconfig: Don’t install the shims. The Copy Shims build phase in the
+          WebKit target will copy them into place without bringing their .tbd files along.
+
+2016-09-07  Mark Lam  <mark.lam@apple.com>
+
+        Add CatchScope and force all exception checks to be via ThrowScope or CatchScope.
+        https://bugs.webkit.org/show_bug.cgi?id=161498
+
+        Reviewed by Geoffrey Garen.
+
+        * WebProcess/Plugins/Netscape/NPJSObject.cpp:
+        (WebKit::NPJSObject::hasMethod):
+        (WebKit::NPJSObject::hasProperty):
+        (WebKit::NPJSObject::getProperty):
+        (WebKit::NPJSObject::setProperty):
+        (WebKit::NPJSObject::removeProperty):
+        (WebKit::NPJSObject::construct):
+        (WebKit::NPJSObject::invoke):
+
+2016-09-07  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [GTK] Make inspection of Inspector conditional on DEVELOPER_MODE
+        https://bugs.webkit.org/show_bug.cgi?id=161702
+
+        Reviewed by Michael Catanzaro.
+
+        * UIProcess/gtk/WebInspectorProxyGtk.cpp:
+        (WebKit::WebInspectorProxy::platformCreateInspectorPage):
+
+2016-09-07  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] Update availability attributes per the macOS Sierra and iOS 10 GM seeds
+        https://bugs.webkit.org/show_bug.cgi?id=161704
+
+        Reviewed by Anders Carlsson.
+
+        * Shared/API/Cocoa/_WKHitTestResult.h:
+        * UIProcess/API/Cocoa/WKErrorPrivate.h:
+        * UIProcess/API/Cocoa/WKFrameInfoPrivate.h:
+        * UIProcess/API/Cocoa/WKMenuItemIdentifiersPrivate.h:
+        * UIProcess/API/Cocoa/WKNavigationDelegatePrivate.h:
+        * UIProcess/API/Cocoa/WKOpenPanelParameters.h:
+        * UIProcess/API/Cocoa/WKPreferencesPrivate.h:
+        * UIProcess/API/Cocoa/WKPreviewActionItem.h:
+        * UIProcess/API/Cocoa/WKPreviewActionItemIdentifiers.h:
+        * UIProcess/API/Cocoa/WKPreviewElementInfo.h:
+        * UIProcess/API/Cocoa/WKProcessPoolPrivate.h:
+        * UIProcess/API/Cocoa/WKUIDelegate.h:
+        * UIProcess/API/Cocoa/WKUIDelegatePrivate.h:
+        * UIProcess/API/Cocoa/WKUserContentControllerPrivate.h:
+        * UIProcess/API/Cocoa/WKUserScriptPrivate.h:
+        * UIProcess/API/Cocoa/WKWebView.h:
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.h:
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h:
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h:
+        * UIProcess/API/Cocoa/WKWebsiteDataRecordPrivate.h:
+        * UIProcess/API/Cocoa/WKWebsiteDataStorePrivate.h:
+        * UIProcess/API/Cocoa/_WKActivatedElementInfo.h:
+        * UIProcess/API/Cocoa/_WKAutomationSession.h:
+        * UIProcess/API/Cocoa/_WKContextMenuElementInfo.h:
+        * UIProcess/API/Cocoa/_WKElementAction.h:
+        * UIProcess/API/Cocoa/_WKExperimentalFeature.h:
+        * UIProcess/API/Cocoa/_WKFormInputSession.h:
+        * UIProcess/API/Cocoa/_WKInputDelegate.h:
+        * UIProcess/API/Cocoa/_WKProcessPoolConfiguration.h:
+        * UIProcess/API/Cocoa/_WKUserContentExtensionStore.h:
+        * UIProcess/API/Cocoa/_WKUserContentWorld.h:
+        * UIProcess/API/Cocoa/_WKUserInitiatedAction.h:
+        * UIProcess/API/Cocoa/_WKUserStyleSheet.h:
+        * UIProcess/API/Cocoa/_WKWebsiteDataSize.h:
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInFormDelegatePrivate.h:
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInFrame.h:
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInScriptWorld.h:
+
+2016-09-07  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [EFL] Switch to ENABLE_NETWORK_CACHE
+        https://bugs.webkit.org/show_bug.cgi?id=152676
+
+        Reviewed by Alex Christensen.
+
+        Nowadays GTK+ always uses the network cache, and never the soup cache. Remove support for
+        using the soup cache, and switch the EFL port to use network cache.
+
+        * NetworkProcess/cache/NetworkCacheBlobStorage.cpp:
+        (WebKit::NetworkCache::BlobStorage::add): Check return value of link to placate
+        -Werror=unused-result on EFL builder
+        * NetworkProcess/efl/NetworkProcessMainEfl.cpp:
+        * NetworkProcess/soup/NetworkProcessSoup.cpp:
+        (WebKit::getCacheDiskFreeSize):
+        (WebKit::NetworkProcess::platformInitializeNetworkProcess):
+        (WebKit::NetworkProcess::platformSetCacheModel):
+        (WebKit::NetworkProcess::clearDiskCache):
+        * PlatformEfl.cmake: Add files to build.
+        * UIProcess/API/efl/APIWebsiteDataStoreEfl.cpp:
+        (API::WebsiteDataStore::defaultNetworkCacheDirectory): Use a saner location.
+        * UIProcess/API/gtk/APIWebsiteDataStoreGtk.cpp:
+        (API::WebsiteDataStore::defaultNetworkCacheDirectory):
+        * UIProcess/API/gtk/WebKitPrivate.h:
+        * UIProcess/soup/WebProcessPoolSoup.cpp:
+        (WebKit::WebProcessPool::platformInitializeNetworkProcess):
+        * WebProcess/efl/WebProcessMainEfl.cpp:
+        * config.h:
+
+2016-09-07  Youenn Fablet  <youenn@apple.com>
+
+        [Streams API] Separate compile flag for ReadableStream and WritableStream
+        https://bugs.webkit.org/show_bug.cgi?id=161044
+
+        Reviewed by Alex Christensen.
+
+        Moving from STREAMS_API to READABLE_STREAM_API and WRITABLE_STREAM_API compilation flags.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-09-07  Emanuele Aina  <emanuele.aina@collabora.com>
+
+        [GTK] Clarify frame callbacks behaviour in Wayland compositor
+        https://bugs.webkit.org/show_bug.cgi?id=161683
+
+        Reviewed by Carlos Garcia Campos.
+
+        The way we fire frame callbacks in the nested Wayland compositor can
+        be puzzling to developers expecting Wayland semantics, but since we
+        have our own mechanism to handle synchronization we don't care much
+        about them. Add a comment to avoid surprised Wayland developers.
+
+        * UIProcess/gtk/WaylandCompositor.cpp:
+        (WebKit::WaylandCompositor::Surface::commit):
+
+2016-09-07  Csaba Osztrogonác  <ossy@webkit.org>
+
+        URTBF after r205369, just for fun.
+
+        * PlatformMac.cmake: Added new files.
+
+2016-09-07  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Remove unused GObject DOM unstable API
+        https://bugs.webkit.org/show_bug.cgi?id=161440
+
+        Reviewed by Philippe Normand.
+
+        Remove unstable GObject DOM API now that we no longer auto-generate the bindings.
+
+        * PlatformGTK.cmake:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAnimatable.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAnimatable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAnimationEffect.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAnimationEffect.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAnimationEffectPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAnimationTimeline.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAnimationTimeline.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAnimationTimelinePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAttr.cpp:
+        (webkit_dom_attr_get_property):
+        (webkit_dom_attr_class_init):
+        (webkit_dom_attr_get_prefix): Deleted.
+        (webkit_dom_attr_get_local_name): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAttrUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAudioTrack.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAudioTrack.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAudioTrackList.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAudioTrackList.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAudioTrackListPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMAudioTrackPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMBarProp.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMBarProp.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMBarPropPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMBatteryManager.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMBatteryManager.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMBatteryManagerPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMBlob.cpp:
+        (webkit_dom_blob_get_property):
+        (webkit_dom_blob_class_init):
+        (webkit_dom_blob_get_size):
+        (webkit_dom_blob_init): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMBlobUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCSSRule.cpp:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCSSRuleUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCharacterData.cpp:
+        (webkit_dom_character_data_get_property):
+        (webkit_dom_character_data_class_init):
+        (webkit_dom_character_data_get_length):
+        (webkit_dom_character_data_set_property): Deleted.
+        (webkit_dom_character_data_substring_data): Deleted.
+        (webkit_dom_character_data_append_data): Deleted.
+        (webkit_dom_character_data_insert_data): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCharacterDataUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMApplicationCache.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMApplicationCache.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMApplicationCachePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMCSSNamespace.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMCSSNamespace.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMCSSNamespacePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMMimeType.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMMimeType.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMMimeTypeArray.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMMimeTypeArray.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMMimeTypeArrayPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMMimeTypePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMNamedFlowCollection.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMNamedFlowCollection.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMNamedFlowCollectionPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMPlugin.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMPlugin.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMPluginArray.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMPluginArray.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMPluginArrayPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMPluginPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMStringList.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMStringList.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMStringListPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMStringMap.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMStringMap.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMStringMapPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMTokenList.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMWindowSpeechSynthesis.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMWindowSpeechSynthesis.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDataCue.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDataCue.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDataCuePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDatabase.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDatabase.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDatabasePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentAnimation.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentAnimation.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentTimeline.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentTimeline.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentTimelinePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentType.cpp:
+        (webkit_dom_document_type_get_name): Deleted.
+        (webkit_dom_document_type_get_entities): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentTypeUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMEvent.cpp:
+        (webkit_dom_event_get_property):
+        (webkit_dom_event_class_init):
+        (webkit_dom_event_init): Deleted.
+        (webkit_dom_event_stop_propagation): Deleted.
+        (webkit_dom_event_get_bubbles): Deleted.
+        (webkit_dom_event_get_cancelable): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMEventUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMFile.cpp:
+        (webkit_dom_file_get_property):
+        (webkit_dom_file_class_init):
+        (webkit_dom_file_get_name):
+        (webkit_dom_file_init): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMFileUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMGamepad.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMGamepad.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMGamepadList.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMGamepadList.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMGeolocation.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMGeolocation.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMGeolocationPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLAnchorElement.cpp:
+        (webkit_dom_html_anchor_element_set_property):
+        (webkit_dom_html_anchor_element_get_property):
+        (webkit_dom_html_anchor_element_class_init):
+        (webkit_dom_html_anchor_element_init): Deleted.
+        (webkit_dom_html_anchor_element_get_charset): Deleted.
+        (webkit_dom_html_anchor_element_set_charset): Deleted.
+        (webkit_dom_html_anchor_element_get_coords): Deleted.
+        (webkit_dom_html_anchor_element_set_coords): Deleted.
+        (webkit_dom_html_anchor_element_get_target): Deleted.
+        (webkit_dom_html_anchor_element_set_target): Deleted.
+        (webkit_dom_html_anchor_element_get_type_attr): Deleted.
+        (webkit_dom_html_anchor_element_set_type_attr): Deleted.
+        (webkit_dom_html_anchor_element_set_href): Deleted.
+        (webkit_dom_html_anchor_element_get_protocol): Deleted.
+        (webkit_dom_html_anchor_element_set_protocol): Deleted.
+        (webkit_dom_html_anchor_element_set_hash): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLAnchorElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLAnchorElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLAreaElement.cpp:
+        (webkit_dom_html_area_element_set_property):
+        (webkit_dom_html_area_element_get_property):
+        (webkit_dom_html_area_element_class_init):
+        (webkit_dom_html_area_element_init): Deleted.
+        (webkit_dom_html_area_element_get_alt): Deleted.
+        (webkit_dom_html_area_element_set_alt): Deleted.
+        (webkit_dom_html_area_element_get_coords): Deleted.
+        (webkit_dom_html_area_element_set_coords): Deleted.
+        (webkit_dom_html_area_element_get_hostname): Deleted.
+        (webkit_dom_html_area_element_set_hostname): Deleted.
+        (webkit_dom_html_area_element_get_port): Deleted.
+        (webkit_dom_html_area_element_set_port): Deleted.
+        (webkit_dom_html_area_element_get_pathname): Deleted.
+        (webkit_dom_html_area_element_get_hash): Deleted.
+        (webkit_dom_html_area_element_set_hash): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLAreaElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLAreaElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLAudioElement.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLAudioElement.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLAudioElementPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLButtonElement.cpp:
+        (webkit_dom_html_button_element_set_property):
+        (webkit_dom_html_button_element_get_property):
+        (webkit_dom_html_button_element_class_init):
+        (webkit_dom_html_button_element_get_will_validate):
+        (webkit_dom_html_button_element_get_autofocus): Deleted.
+        (webkit_dom_html_button_element_set_autofocus): Deleted.
+        (webkit_dom_html_button_element_get_disabled): Deleted.
+        (webkit_dom_html_button_element_set_disabled): Deleted.
+        (webkit_dom_html_button_element_get_form): Deleted.
+        (webkit_dom_html_button_element_get_button_type): Deleted.
+        (webkit_dom_html_button_element_set_button_type): Deleted.
+        (webkit_dom_html_button_element_get_name): Deleted.
+        (webkit_dom_html_button_element_set_value): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLButtonElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLDetailsElement.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLDetailsElement.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLDetailsElementPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLFieldSetElement.cpp:
+        (webkit_dom_html_field_set_element_get_property):
+        (webkit_dom_html_field_set_element_class_init):
+        (webkit_dom_html_field_set_element_get_form):
+        (webkit_dom_html_field_set_element_init): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLFieldSetElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLFormElement.cpp:
+        (webkit_dom_html_form_element_set_property):
+        (webkit_dom_html_form_element_get_property):
+        (webkit_dom_html_form_element_class_init):
+        (webkit_dom_html_form_element_get_length):
+        (webkit_dom_html_form_element_submit): Deleted.
+        (webkit_dom_html_form_element_reset): Deleted.
+        (webkit_dom_html_form_element_get_action): Deleted.
+        (webkit_dom_html_form_element_set_action): Deleted.
+        (webkit_dom_html_form_element_get_enctype): Deleted.
+        (webkit_dom_html_form_element_set_encoding): Deleted.
+        (webkit_dom_html_form_element_get_method): Deleted.
+        (webkit_dom_html_form_element_set_method): Deleted.
+        (webkit_dom_html_form_element_set_target): Deleted.
+        (webkit_dom_html_form_element_get_elements): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLFormElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLHtmlElement.cpp:
+        (webkit_dom_html_html_element_set_property):
+        (webkit_dom_html_html_element_get_property):
+        (webkit_dom_html_html_element_class_init):
+        (webkit_dom_html_html_element_set_version):
+        (webkit_dom_html_html_element_get_version): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLHtmlElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLIFrameElement.cpp:
+        (webkit_dom_html_iframe_element_set_property):
+        (webkit_dom_html_iframe_element_get_property):
+        (webkit_dom_html_iframe_element_class_init):
+        (webkit_dom_html_iframe_element_init): Deleted.
+        (webkit_dom_html_iframe_element_set_src): Deleted.
+        (webkit_dom_html_iframe_element_get_width): Deleted.
+        (webkit_dom_html_iframe_element_set_width): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLIFrameElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLImageElement.cpp:
+        (webkit_dom_html_image_element_set_property):
+        (webkit_dom_html_image_element_get_property):
+        (webkit_dom_html_image_element_class_init):
+        (webkit_dom_html_image_element_set_long_desc): Deleted.
+        (webkit_dom_html_image_element_get_src): Deleted.
+        (webkit_dom_html_image_element_set_src): Deleted.
+        (webkit_dom_html_image_element_get_natural_height): Deleted.
+        (webkit_dom_html_image_element_get_natural_width): Deleted.
+        (webkit_dom_html_image_element_get_x): Deleted.
+        (webkit_dom_html_image_element_get_y): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLImageElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLInputElement.cpp:
+        (webkit_dom_html_input_element_set_property):
+        (webkit_dom_html_input_element_get_property):
+        (webkit_dom_html_input_element_class_init):
+        (webkit_dom_html_input_element_set_capture_type):
+        (webkit_dom_html_input_element_init): Deleted.
+        (webkit_dom_html_input_element_select): Deleted.
+        (webkit_dom_html_input_element_get_accept): Deleted.
+        (webkit_dom_html_input_element_set_accept): Deleted.
+        (webkit_dom_html_input_element_get_alt): Deleted.
+        (webkit_dom_html_input_element_set_alt): Deleted.
+        (webkit_dom_html_input_element_get_default_checked): Deleted.
+        (webkit_dom_html_input_element_set_default_checked): Deleted.
+        (webkit_dom_html_input_element_get_checked): Deleted.
+        (webkit_dom_html_input_element_set_checked): Deleted.
+        (webkit_dom_html_input_element_get_disabled): Deleted.
+        (webkit_dom_html_input_element_get_files): Deleted.
+        (webkit_dom_html_input_element_set_files): Deleted.
+        (webkit_dom_html_input_element_set_height): Deleted.
+        (webkit_dom_html_input_element_get_indeterminate): Deleted.
+        (webkit_dom_html_input_element_get_max_length): Deleted.
+        (webkit_dom_html_input_element_set_max_length): Deleted.
+        (webkit_dom_html_input_element_get_name): Deleted.
+        (webkit_dom_html_input_element_set_name): Deleted.
+        (webkit_dom_html_input_element_get_size): Deleted.
+        (webkit_dom_html_input_element_set_size): Deleted.
+        (webkit_dom_html_input_element_get_src): Deleted.
+        (webkit_dom_html_input_element_set_input_type): Deleted.
+        (webkit_dom_html_input_element_get_default_value): Deleted.
+        (webkit_dom_html_input_element_set_default_value): Deleted.
+        (webkit_dom_html_input_element_set_value): Deleted.
+        (webkit_dom_html_input_element_get_width): Deleted.
+        (webkit_dom_html_input_element_set_width): Deleted.
+        (webkit_dom_html_input_element_get_will_validate): Deleted.
+        (webkit_dom_html_input_element_get_align): Deleted.
+        (webkit_dom_html_input_element_set_align): Deleted.
+        (webkit_dom_html_input_element_get_use_map): Deleted.
+        (webkit_dom_html_input_element_set_use_map): Deleted.
+        (webkit_dom_html_input_element_get_capture_type): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLInputElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLInputElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLKeygenElement.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLKeygenElement.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLKeygenElementPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLLabelElement.cpp:
+        (webkit_dom_html_label_element_get_property):
+        (webkit_dom_html_label_element_class_init):
+        (webkit_dom_html_label_element_init): Deleted.
+        (webkit_dom_html_label_element_get_form): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLLabelElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLLinkElement.cpp:
+        (webkit_dom_html_link_element_set_property):
+        (webkit_dom_html_link_element_get_property):
+        (webkit_dom_html_link_element_class_init):
+        (webkit_dom_html_link_element_get_disabled): Deleted.
+        (webkit_dom_html_link_element_set_disabled): Deleted.
+        (webkit_dom_html_link_element_get_charset): Deleted.
+        (webkit_dom_html_link_element_set_charset): Deleted.
+        (webkit_dom_html_link_element_get_href): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLLinkElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLLinkElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLMarqueeElement.cpp:
+        (webkit_dom_html_marquee_element_class_init):
+        (webkit_dom_html_marquee_element_stop):
+        (webkit_dom_html_marquee_element_init): Deleted.
+        (webkit_dom_html_marquee_element_start): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLMarqueeElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLMediaElement.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLMediaElement.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLMediaElementPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLOListElement.cpp:
+        (webkit_dom_html_o_list_element_set_property):
+        (webkit_dom_html_o_list_element_get_property):
+        (webkit_dom_html_o_list_element_class_init):
+        (webkit_dom_html_o_list_element_init): Deleted.
+        (webkit_dom_html_o_list_element_get_compact): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLOListElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLObjectElement.cpp:
+        (webkit_dom_html_object_element_get_property):
+        (webkit_dom_html_object_element_class_init):
+        (webkit_dom_html_object_element_set_property): Deleted.
+        (webkit_dom_html_object_element_get_form): Deleted.
+        (webkit_dom_html_object_element_get_code): Deleted.
+        (webkit_dom_html_object_element_set_code): Deleted.
+        (webkit_dom_html_object_element_get_align): Deleted.
+        (webkit_dom_html_object_element_set_align): Deleted.
+        (webkit_dom_html_object_element_get_archive): Deleted.
+        (webkit_dom_html_object_element_set_archive): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLObjectElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLOptionsCollection.cpp:
+        (webkit_dom_html_options_collection_get_selected_index): Deleted.
+        (webkit_dom_html_options_collection_set_selected_index): Deleted.
+        (webkit_dom_html_options_collection_get_length): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLOptionsCollectionUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLPrivate.cpp:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLScriptElement.cpp:
+        (webkit_dom_html_script_element_set_property):
+        (webkit_dom_html_script_element_get_property):
+        (webkit_dom_html_script_element_class_init):
+        (webkit_dom_html_script_element_set_type_attr):
+        (webkit_dom_html_script_element_init): Deleted.
+        (webkit_dom_html_script_element_get_html_for): Deleted.
+        (webkit_dom_html_script_element_set_html_for): Deleted.
+        (webkit_dom_html_script_element_get_event): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLScriptElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLScriptElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLSelectElement.cpp:
+        (webkit_dom_html_select_element_set_property):
+        (webkit_dom_html_select_element_get_property):
+        (webkit_dom_html_select_element_class_init):
+        (webkit_dom_html_select_element_get_will_validate):
+        (webkit_dom_html_select_element_named_item): Deleted.
+        (webkit_dom_html_select_element_get_autofocus): Deleted.
+        (webkit_dom_html_select_element_set_autofocus): Deleted.
+        (webkit_dom_html_select_element_get_disabled): Deleted.
+        (webkit_dom_html_select_element_set_disabled): Deleted.
+        (webkit_dom_html_select_element_get_form): Deleted.
+        (webkit_dom_html_select_element_set_size): Deleted.
+        (webkit_dom_html_select_element_get_select_type): Deleted.
+        (webkit_dom_html_select_element_get_options): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLSelectElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLStyleElement.cpp:
+        (webkit_dom_html_style_element_set_property):
+        (webkit_dom_html_style_element_get_property):
+        (webkit_dom_html_style_element_class_init):
+        (webkit_dom_html_style_element_get_sheet):
+        (webkit_dom_html_style_element_get_disabled): Deleted.
+        (webkit_dom_html_style_element_set_disabled): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLStyleElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLTableElement.cpp:
+        (webkit_dom_html_table_element_set_property):
+        (webkit_dom_html_table_element_get_property):
+        (webkit_dom_html_table_element_class_init):
+        (webkit_dom_html_table_element_insert_row): Deleted.
+        (webkit_dom_html_table_element_set_summary): Deleted.
+        (webkit_dom_html_table_element_get_width): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLTableElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLTextAreaElement.cpp:
+        (webkit_dom_html_text_area_element_set_property):
+        (webkit_dom_html_text_area_element_get_property):
+        (webkit_dom_html_text_area_element_class_init):
+        (webkit_dom_html_text_area_element_init): Deleted.
+        (webkit_dom_html_text_area_element_set_selection_range): Deleted.
+        (webkit_dom_html_text_area_element_set_autofocus): Deleted.
+        (webkit_dom_html_text_area_element_get_disabled): Deleted.
+        (webkit_dom_html_text_area_element_get_form): Deleted.
+        (webkit_dom_html_text_area_element_get_name): Deleted.
+        (webkit_dom_html_text_area_element_get_rows): Deleted.
+        (webkit_dom_html_text_area_element_set_rows): Deleted.
+        (webkit_dom_html_text_area_element_get_cols): Deleted.
+        (webkit_dom_html_text_area_element_set_cols): Deleted.
+        (webkit_dom_html_text_area_element_get_area_type): Deleted.
+        (webkit_dom_html_text_area_element_get_default_value): Deleted.
+        (webkit_dom_html_text_area_element_get_value): Deleted.
+        (webkit_dom_html_text_area_element_set_value): Deleted.
+        (webkit_dom_html_text_area_element_get_will_validate): Deleted.
+        (webkit_dom_html_text_area_element_get_selection_start): Deleted.
+        (webkit_dom_html_text_area_element_set_selection_start): Deleted.
+        (webkit_dom_html_text_area_element_get_selection_end): Deleted.
+        (webkit_dom_html_text_area_element_set_selection_end): Deleted.
+        (webkit_dom_html_text_area_element_is_edited): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLTextAreaElementUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLVideoElement.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLVideoElement.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLVideoElementPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHistory.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHistory.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHistoryPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMKeyframeEffect.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMKeyframeEffect.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMKeyframeEffectPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMLocation.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMLocation.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMLocationPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaController.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaController.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaControllerPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaDevices.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaDevices.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaDevicesPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaError.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaError.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaErrorPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaQueryList.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaQueryList.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaQueryListPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaTrackSupportedConstraints.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaTrackSupportedConstraints.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaTrackSupportedConstraintsPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMessagePort.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMessagePort.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMessagePortPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMouseEvent.cpp:
+        (webkit_dom_mouse_event_get_property):
+        (webkit_dom_mouse_event_class_init):
+        (webkit_dom_mouse_event_get_y): Deleted.
+        (webkit_dom_mouse_event_get_from_element): Deleted.
+        (webkit_dom_mouse_event_get_to_element): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMouseEventUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMNavigator.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMNavigator.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMNavigatorMediaDevices.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMNavigatorMediaDevices.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMNavigatorPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMNode.cpp:
+        (webkit_dom_node_get_property):
+        (webkit_dom_node_class_init):
+        (webkit_dom_node_init): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMNodeUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformance.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformance.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformanceEntry.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformanceEntry.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformanceEntryPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformanceNavigation.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformanceNavigation.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformanceNavigationPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformancePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformanceTiming.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformanceTiming.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPerformanceTimingPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPrivate.cpp:
+        (WebKit::wrap): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMPrivate.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMScreen.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMScreen.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMScreenPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesis.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesis.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisEvent.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisEvent.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisEventPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisUtterance.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisUtterance.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisUtterancePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisVoice.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisVoice.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMSpeechSynthesisVoicePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStorage.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStorage.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStorageInfo.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStorageInfo.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStoragePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStorageQuota.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStorageQuota.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStyleMedia.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStyleMedia.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMStyleMediaPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrack.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrack.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackCue.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackCue.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackCueList.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackCueList.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackCueListPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackCuePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackList.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackList.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackListPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTextTrackPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTimeRanges.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTimeRanges.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTimeRangesPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTouch.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTouch.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTouchPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTrackEvent.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTrackEvent.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMTrackEventPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUIEvent.cpp:
+        (webkit_dom_ui_event_get_property):
+        (webkit_dom_ui_event_class_init):
+        (webkit_dom_ui_event_get_page_y):
+        (webkit_dom_ui_event_init): Deleted.
+        (webkit_dom_ui_event_init_ui_event): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUIEventUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUserMessageHandler.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUserMessageHandler.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUserMessageHandlerPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUserMessageHandlersNamespace.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUserMessageHandlersNamespace.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUserMessageHandlersNamespacePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVTTCue.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVTTCue.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVTTCuePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMValidityState.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMValidityState.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMValidityStatePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVideoPlaybackQuality.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVideoPlaybackQuality.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVideoPlaybackQualityPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVideoTrack.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVideoTrack.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVideoTrackList.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVideoTrackList.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVideoTrackListPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMVideoTrackPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebAnimation.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebAnimation.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebAnimationPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebKitNamedFlow.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebKitNamedFlow.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebKitNamedFlowPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebKitNamespace.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebKitNamespace.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebKitNamespacePrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebKitPoint.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebKitPoint.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWebKitPointPrivate.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWheelEvent.cpp:
+        (webkit_dom_wheel_event_get_property):
+        (webkit_dom_wheel_event_class_init):
+        (webkit_dom_wheel_event_get_wheel_delta):
+        (webkit_dom_wheel_event_init): Deleted.
+        (webkit_dom_wheel_event_init_wheel_event): Deleted.
+        (webkit_dom_wheel_event_get_wheel_delta_x): Deleted.
+        (webkit_dom_wheel_event_get_wheel_delta_y): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMWheelEventUnstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/docs/webkitdomgtk-4.0-sections.txt:
+        * WebProcess/InjectedBundle/API/gtk/DOM/webkitdomautocleanups-unstable.h: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/webkitdomdefines-unstable.h: Removed.
+
+2016-09-07  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Move some GObject DOM unstable API to stable
+        https://bugs.webkit.org/show_bug.cgi?id=161681
+
+        Reviewed by Žan Doberšek.
+
+        Move unstable API currently used by applications to the stable API in preparation for removing all unused
+        unstable API.
+
+        * PlatformGTK.cmake:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCustom.cpp: Removed.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCustom.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCustomUnstable.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMSelection.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMTokenList.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMWindow.cpp:
+        (webkit_dom_dom_window_get_property):
+        (webkit_dom_dom_window_class_init):
+        (webkit_dom_dom_window_webkit_message_handlers_post_message):
+        (webkit_dom_dom_window_set_property): Deleted.
+        (webkit_dom_dom_window_get_computed_style): Deleted.
+        (webkit_dom_dom_window_capture_events): Deleted.
+        (webkit_dom_dom_window_get_frame_element): Deleted.
+        (webkit_dom_dom_window_get_offscreen_buffering): Deleted.
+        (webkit_dom_dom_window_get_outer_height): Deleted.
+        (webkit_dom_dom_window_get_outer_width): Deleted.
+        (webkit_dom_dom_window_get_inner_height): Deleted.
+        (webkit_dom_dom_window_get_inner_width): Deleted.
+        (webkit_dom_dom_window_get_screen_x): Deleted.
+        (webkit_dom_dom_window_set_status): Deleted.
+        (webkit_dom_dom_window_get_default_status): Deleted.
+        (webkit_dom_dom_window_get_window): Deleted.
+        (webkit_dom_dom_window_get_frames): Deleted.
+        (webkit_dom_dom_window_get_parent): Deleted.
+        (webkit_dom_dom_window_get_top): Deleted.
+        (webkit_dom_dom_window_get_document): Deleted.
+        (webkit_dom_dom_window_get_device_pixel_ratio): Deleted.
+        (webkit_dom_dom_window_get_orientation): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMWindow.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMWindowUnstable.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocument.cpp:
+        (webkit_dom_document_get_property):
+        (webkit_dom_document_webkit_cancel_fullscreen):
+        (webkit_dom_document_get_webkit_is_fullscreen):
+        (webkit_dom_document_get_webkit_fullscreen_keyboard_input_allowed):
+        (webkit_dom_document_get_webkit_current_fullscreen_element):
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocument.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentFragment.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentFragmentUnstable.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentUnstable.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMElement.cpp:
+        (webkit_dom_element_webkit_request_fullscreen): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMElementUnstable.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLElementUnstable.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLInputElement.cpp:
+        (webkit_dom_html_input_element_is_edited):
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLInputElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLLinkElement.cpp:
+        (webkit_dom_html_link_element_set_sizes):
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLLinkElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLTextAreaElement.cpp:
+        (webkit_dom_html_text_area_element_is_edited):
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLTextAreaElement.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMRange.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMRangeUnstable.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUserMessageHandlersNamespace.cpp:
+        (webkit_dom_user_message_handlers_namespace_get_handler):
+        (webkit_dom_user_message_handlers_namespace_init): Deleted.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMUserMessageHandlersNamespace.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/docs/webkitdomgtk-4.0-sections.txt:
+        * WebProcess/InjectedBundle/API/gtk/DOM/docs/webkitdomgtk-docs.sgml:
+        * WebProcess/InjectedBundle/API/gtk/DOM/webkitdomdefines-unstable.h:
+        * WebProcess/InjectedBundle/API/gtk/DOM/webkitdomdefines.h:
+
+2016-09-06  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][Threaded Compositor] Several flaky tests
+        https://bugs.webkit.org/show_bug.cgi?id=161242
+
+        Reviewed by Michael Catanzaro.
+
+        Reset the viewport attributes on SimpleViewportController when viewport attributes change and fixed layout is
+        not used. We were only updating the viewport attributes when fixed layout was used, but not resetting them again
+        when it's no longer used. That caused that reference tests run after fast/fixed-layout/fixed-layout.html or
+        compositing/fixed-with-fixed-layout.html in the same worker thread were incorrectly rendered.
+
+        * WebProcess/WebCoreSupport/WebChromeClient.cpp:
+        (WebKit::WebChromeClient::dispatchViewportPropertiesDidChange): Remove ifdefs and call
+        WebPage::viewportPropertiesDidChange() unconditionally.
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::setSize): Pass current page viewport arguments to sendViewportAttributesChanged().
+        (WebKit::WebPage::sendViewportAttributesChanged): It now receives the viewport arguments.
+        (WebKit::WebPage::viewportPropertiesDidChange): Move the iOS implementation from WebPageIOS.mm and for
+        coordinated graphics call sendViewportAttributesChanged() when fixed layout is used or reset the viewport
+        attributes when not used in case of threaded compositor.
+        * WebProcess/WebPage/WebPage.h:
+        (WebKit::WebPage::viewportPropertiesDidChange): Moved out of iOS ifdef.
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::viewportPropertiesDidChange): Deleted.
+
+2016-09-06  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix the GTK+ build after r205524.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLInputElement.cpp:
+        (webkit_dom_html_input_element_get_max_length):
+        (webkit_dom_html_input_element_set_max_length):
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLTextAreaElement.cpp:
+        (webkit_dom_html_text_area_element_get_max_length):
+        (webkit_dom_html_text_area_element_set_max_length):
+
+2016-09-06  Daniel Bates  <dabates@apple.com>
+
+        [iOS] WebKit2 fails to build with iOS 10 beta SDK - "'UIWKTextInteractionAssistant' may not respond to 'selectAll:'"
+        https://bugs.webkit.org/show_bug.cgi?id=161663
+
+        Reviewed by Darin Adler.
+
+        The UIResponderStandardEditActions extensions, including the selectAll: message, are now
+        part of a formal protocol by the same name as of the iOS 10 beta SDK.
+
+        * Platform/spi/ios/UIKitSPI.h:
+
+2016-09-06  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Enable custom elements API in Safari Technology Preview
+        https://bugs.webkit.org/show_bug.cgi?id=161518
+
+        Reviewed by Chris Dumez.
+
+        Re-enable custom elements API in Safari Technology Preview after r203296
+        now that our implementation has caught up to the latest specification changes.
+
+        * Shared/WebPreferencesDefinitions.h:
+
+2016-09-01  Simon Fraser  <simon.fraser@apple.com>
+
+        Use TemporaryChange<> to maintain m_userIsInteracting
+        https://bugs.webkit.org/show_bug.cgi?id=161497
+
+        Reviewed by Tim Horton.
+
+        Replace some error-prone manual set/clear of m_userIsInteracting with
+        TemporaryChange<>.
+
+        No behavior change.
+
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::mouseEvent):
+        (WebKit::WebPage::keyEvent):
+        (WebKit::WebPage::dispatchTouchEvent):
+
+2016-09-06  Tim Horton  <timothy_horton@apple.com>
+
+        Remove SwipeTransitionStyle; only Overlap has ever been used
+        https://bugs.webkit.org/show_bug.cgi?id=161617
+
+        Reviewed by Alex Christensen.
+
+        * UIProcess/mac/ViewGestureController.h:
+        * UIProcess/mac/ViewGestureControllerMac.mm:
+        (WebKit::ViewGestureController::beginSwipeGesture):
+        (WebKit::ViewGestureController::handleSwipeGesture):
+        Remove SwipeTransitionStyle::Push, and SwipeTransitionStyle itself entirely,
+        because we've never used it and it is only supported by the Mac
+        implementation of ViewGestureController.
+
+2016-09-06  Daniel Bates  <dabates@apple.com>
+
+        Remove EXTERN_C from WTF
+        https://bugs.webkit.org/show_bug.cgi?id=161090
+
+        Reviewed by Brent Fulgham.
+
+        Guard external C declarations in WTF_EXTERN_C_BEGIN, WTF_EXTERN_C_END.
+
+        * Platform/spi/ios/ManagedConfigurationSPI.h:
+
+2016-09-06  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r205407.
+
+        Not the correct way to implement this functionality
+
+        Reverted changeset:
+
+        "Consult with the FrameLoaderClient about whether or not
+        content extensions should be enabled when loading this URL."
+        https://bugs.webkit.org/show_bug.cgi?id=161441
+        http://trac.webkit.org/changeset/205407
+
+2016-09-06  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][Wayland] evince-browser-plugin prevents viewing PDFs
+        https://bugs.webkit.org/show_bug.cgi?id=158697
+
+        Reviewed by Michael Catanzaro.
+
+        Use a different cache file for plugins depending on the current platform display. Plugins can claim to work on
+        X11 but not on Wayland, for example, if they need XEmebed to work. That's the case of the evince browser plugin.
+
+        * UIProcess/Plugins/gtk/PluginInfoCache.cpp:
+        (WebKit::cacheFilenameForCurrentDisplay):
+        (WebKit::PluginInfoCache::PluginInfoCache):
+
+2016-09-06  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Threaded Compositor] Update timer should have lower priority than tasks scheduled in compositing thread
+        https://bugs.webkit.org/show_bug.cgi?id=161625
+
+        Reviewed by Sergio Villar Senin.
+
+        This way, if a resize is scheduled, for example, and there are pending updates, the resize will happen first,
+        and then the updates will happen at the right size.
+
+        * Shared/CoordinatedGraphics/threadedcompositor/CompositingRunLoop.cpp:
+        (WebKit::CompositingRunLoop::CompositingRunLoop): Use G_PRIORITY_HIGH_IDLE as update timer priority. The actual
+        priority doesn't really matter as long as it's lower than G_PRIORITY_DEFAULT, because there are only two
+        possible sources in the compositing run loop, one for the tasks scheduled, and another one for the update timer.
+
+2016-09-06  Emanuele Aina  <emanuele.aina@collabora.com>
+
+        [GTK] glImageTargetTexture2D() is a GL function, rename accordingly
+        https://bugs.webkit.org/show_bug.cgi?id=161622
+
+        Reviewed by Carlos Garcia Campos.
+
+        glImageTargetTexture2D() is a GL function, not EGL, using the 'egl'
+        prefix is misleading.
+
+        * UIProcess/gtk/WaylandCompositor.cpp:
+        (WebKit::WaylandCompositor::Surface::prepareTextureForPainting):
+        (WebKit::WaylandCompositor::initializeEGL):
+
+2016-09-06  Emanuele Aina  <emanuele.aina@collabora.com>
+
+        [GTK][EFL] Make *_PROCESS_CMD_PREFIX conditional on DEVELOPER_MODE
+        https://bugs.webkit.org/show_bug.cgi?id=161621
+
+        Reviewed by Carlos Garcia Campos.
+
+        Instead of enabling support for the *_PROCESS_CMD_PREFIX set of
+        environment valiables (eg. WEB_PROCESS_CMD_PREFIX) on debug builds
+        only, enable it when DEVELOPER_MODE is enabled as it already guards
+        similar features (eg. WEBKIT_EXEC_PATH).
+
+        * UIProcess/ChildProcessProxy.cpp:
+        (WebKit::ChildProcessProxy::getLaunchOptions):
+        * UIProcess/Launcher/ProcessLauncher.h:
+        * UIProcess/Launcher/efl/ProcessLauncherEfl.cpp:
+        (WebKit::ProcessLauncher::launchProcess):
+        * UIProcess/Launcher/gtk/ProcessLauncherGtk.cpp:
+        (WebKit::ProcessLauncher::launchProcess):
+
+2016-09-05  Zan Dobersek  <zdobersek@igalia.com>
+
+        Fix ENABLE(GAMEPAD) build errors on non-Cocoa platforms
+        https://bugs.webkit.org/show_bug.cgi?id=161596
+
+        Reviewed by Darin Adler.
+
+        This patch fixes build errors popping up when enabling Gamepad
+        feature on non-Cocoa platforms.
+
+        * CMakeLists.txt: Add the Source/WebCore/platform/gamepad/ directory to
+        WebKit2_INCLUDE_DIRECTORIES. Add GamepadData.cpp, UIGamepad.cpp files to the build.
+        * UIProcess/Gamepad/UIGamepadProvider.cpp: Don't include Cocoa-specific
+        HIDGamepadProvider.h file. Update methods for the UIGamepadProvider class.
+        (WebKit::UIGamepadProvider::platformWebPageProxyForGamepadInput):
+        (WebKit::UIGamepadProvider::platformStartMonitoringGamepads): Deleted.
+        (WebKit::UIGamepadProvider::platformStopMonitoringGamepads): Deleted.
+        (WebKit::UIGamepadProvider::platformGamepads): Deleted.
+        (WebKit::UIGamepadProvider::platformWebProcessProxyForGamepadInput): Deleted.
+
+2016-09-05  Tim Horton  <timothy_horton@apple.com>
+
+        Remove some dead code in ViewGestureControllerMac
+        https://bugs.webkit.org/show_bug.cgi?id=161616
+
+        Reviewed by Darin Adler.
+
+        * UIProcess/mac/ViewGestureControllerMac.mm:
+        (WebKit::ViewGestureController::endSwipeGesture):
+        All other LEGACY_SWIPE_SHADOW_STYLE code has been removed, except for this.
+
+2016-09-05  Darin Adler  <darin@apple.com>
+
+        More bindings improvements, particularly things not needed for JavaScript bindings
+        https://bugs.webkit.org/show_bug.cgi?id=161572
+
+        Reviewed by Sam Weinig.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMImplementation.cpp:
+        (webkit_dom_dom_implementation_has_feature): Call SVGTests::hasFeatureForLegacyBindings
+        instead of DOMImplementation::hasFeature. Also removed JSMainThreadNullState
+        since this does not do anything that can invoke JavaScript.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDeprecated.cpp:
+        (webkit_dom_document_get_default_charset): Call defaultCharsetForLegacyBindings.
+        Also removed JSMainThreadNullState.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocumentType.cpp:
+        (webkit_dom_document_type_get_entities): Changed to simply return nullptr; same behavior
+        as before, but with no dependency on WebCore. Also removed JSMainThreadNullState.
+        (webkit_dom_document_type_get_notations): Ditto.
+        (webkit_dom_document_type_get_internal_subset): Ditto.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMNode.cpp:
+        (webkit_dom_node_is_supported): Call SVGTests::hasFeatureForLegacyBindings
+        instead of Node::isSupportedForBindings. Also removed JSMainThreadNullState.
+
+2016-09-05  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed, update stale variable name
+
+        * UIProcess/API/gtk/WebKitWebViewBase.cpp:
+        (webkitWebViewBaseCreateWebPage):
+
+2016-08-31  Filip Pizlo  <fpizlo@apple.com>
+
+        Butterflies should be allocated in Auxiliary MarkedSpace instead of CopiedSpace and we should rewrite as much of the GC as needed to make this not a regression
+        https://bugs.webkit.org/show_bug.cgi?id=160125
+
+        Reviewed by Geoffrey Garen and Keith Miller.
+        
+        Just rewiring some #includes.
+
+        * UIProcess/ViewGestureController.cpp:
+        * UIProcess/WebPageProxy.cpp:
+        * UIProcess/WebProcessPool.cpp:
+        * UIProcess/WebProcessProxy.cpp:
+        * WebProcess/InjectedBundle/DOM/InjectedBundleRangeHandle.cpp:
+        * WebProcess/Plugins/Netscape/JSNPObject.cpp:
+
+2016-09-05  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed error message typo fix
+
+        * WebProcess/UserContent/WebUserContentController.cpp:
+        (WebKit::WebUserContentController::removeUserContentWorlds):
+
+2016-09-05  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] Drop ".Development" suffix from XPC service bundle IDs, leave it only on the executable
+        https://bugs.webkit.org/show_bug.cgi?id=161575
+
+        Reviewed by Sam Weinig.
+
+        Append the ".Development" suffix to the executable names, but not to the bundle names and
+        bundle IDs.
+
+        * Configurations/BaseTarget.xcconfig: No need for a preprocessor definition anymore.
+        * Configurations/BaseXPCService.xcconfig: Set EXECUTABLE_SUFFIX.
+        * Configurations/DatabaseService.xcconfig: No need to suffix the service name and bundle ID.
+        * Configurations/NetworkService.xcconfig: Ditto.
+        * Configurations/PluginService.32.xcconfig: Ditto.
+        * Configurations/PluginService.64.xcconfig: Ditto.
+        * Configurations/WebContentService.xcconfig: Ditto.
+        * UIProcess/Launcher/mac/ProcessLauncherMac.mm:
+        (WebKit::serviceName): Service names are no longer suffixed.
+        * WebKit2.xcodeproj/project.pbxproj: Ditto.
+
+2016-09-05  Gustavo Noronha Silva  <gustavo.noronha@collabora.co.uk>
+
+        [GTK] GL_PACK_ROW_LENGTH is not available in GLES2
+        https://bugs.webkit.org/show_bug.cgi?id=161484
+
+        Reviewed by Carlos Garcia Campos.
+
+        * UIProcess/gtk/AcceleratedBackingStoreWayland.cpp:
+        (WebKit::AcceleratedBackingStoreWayland::paint): when under GLES2 we cannot rely on
+        GL_PACK_ROW_LENGTH; use glReadPixel directly when stride matches width, read line
+        by line manually otherwise. Colour conversion is also required to get the data out
+        correctly.
+
+2016-09-05  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] SetNativeSurfaceHandleForCompositing should not be compiled in for wayland build
+        https://bugs.webkit.org/show_bug.cgi?id=161483
+
+        Reviewed by Žan Doberšek.
+
+        SetNativeSurfaceHandleForCompositing and DestroyNativeSurfaceHandleForCompositing messages should only be used
+        for GTK+ port when compiled with OpenGL and X11 enabled and redirected XComposite window disabled. So, we should
+        use USE(TEXTURE_MAPPER) && PLATFORM(GTK) && PLATFORM(X11) && !USE(REDIRECTED_XCOMPOSITE_WINDOW) consistently.
+        This fixes the build when building the GTK+ port with Wayland enabled and X11 disabled.
+
+        * UIProcess/AcceleratedDrawingAreaProxy.cpp:
+        (WebKit::AcceleratedDrawingAreaProxy::didUpdateBackingStoreState):
+        * UIProcess/AcceleratedDrawingAreaProxy.h:
+        * WebProcess/WebPage/AcceleratedDrawingArea.cpp:
+        (WebKit::AcceleratedDrawingArea::enterAcceleratedCompositingMode):
+        * WebProcess/WebPage/AcceleratedDrawingArea.h:
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.h:
+        * WebProcess/WebPage/DrawingArea.h:
+        * WebProcess/WebPage/DrawingArea.messages.in:
+        * WebProcess/WebPage/gtk/LayerTreeHostGtk.cpp:
+        * WebProcess/WebPage/gtk/LayerTreeHostGtk.h:
+
+2016-09-05  Zan Dobersek  <zdobersek@igalia.com>
+
+        [GObject bindings] override handleEvent() method in GObjectEventListener
+        https://bugs.webkit.org/show_bug.cgi?id=161593
+
+        Reviewed by Carlos Garcia Campos.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/GObjectEventListener.h: Override
+        the handleMethod() which is inherited from the WebCore EventListener class.
+        Suppresses the -Winconsistent-missing-override warning that Clang propagates.
+
+2016-09-04  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove unnecessary RetainPtr.
+
+        Review comments on earlier change.
+
+        * UIProcess/mac/WKImmediateActionController.mm:
+        (-[WKImmediateActionController _defaultAnimationController]):
+
+2016-09-04  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] Wrapping XPC service execution in os_activity is no longer needed
+        https://bugs.webkit.org/show_bug.cgi?id=161577
+
+        Reviewed by Sam Weinig.
+
+        Removed code that created an os_activity around the execution of the XPC service
+        code, because this workaround is no longer needed.
+
+        * DatabaseProcess/EntryPoint/mac/XPCService/DatabaseServiceEntryPoint.mm:
+        (DatabaseServiceInitializer):
+        * NetworkProcess/EntryPoint/mac/XPCService/NetworkServiceEntryPoint.mm:
+        (NetworkServiceInitializer):
+        * PluginProcess/EntryPoint/mac/XPCService/PluginServiceEntryPoint.mm:
+        (PluginServiceInitializer):
+        * WebProcess/EntryPoint/mac/XPCService/WebContentServiceEntryPoint.mm:
+        (WebContentServiceInitializer):
+
+2016-09-04  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205415.
+        https://bugs.webkit.org/show_bug.cgi?id=161573
+
+        Many bots see inspector test failures, rolling out now and
+        investigating later. (Requested by brrian on #webkit).
+
+        Reverted changeset:
+
+        "Web Inspector: unify Main.html and Test.html sources and
+        generate different copies with the preprocessor"
+        https://bugs.webkit.org/show_bug.cgi?id=161212
+        http://trac.webkit.org/changeset/205415
+
+2016-09-01  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: unify Main.html and Test.html sources and generate different copies with the preprocessor
+        https://bugs.webkit.org/show_bug.cgi?id=161212
+        <rdar://problem/28017961>
+
+        Reviewed by Joseph Pecoraro.
+
+        Rearrange CMake rules so that most Inspector UI work is done in WebInspectorUI.
+
+        * PlatformGTK.cmake:
+        - Move the list of Inspector resources into WebInspectorUI/CMakeLists.txt.
+        - Move generation of InspectorGResourceBundle into WebInspectorUI.
+        - Copy over InspectorGResourceBundle.c into WebKit2's Derived Sources before compiling.
+
+2016-09-03  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Refactor the heuristic for showing media controls to take all media sessions into account
+        https://bugs.webkit.org/show_bug.cgi?id=161503
+        <rdar://problem/28033783>
+
+        Reviewed by Darin Adler.
+
+        Adds an SPI testing hook for sending the element ID of the currently controlled video element from the web
+        process to the UI process. See VideoControlsManager.mm in Tools/TestWebKitAPI/ for usage.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _requestControlledElementID]):
+        (-[WKWebView _handleControlledElementIDResponse:]):
+        (-[WKWebView _hasActiveVideoForControlsManager]): Deleted.
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h:
+        * UIProcess/Cocoa/WebPlaybackSessionManagerProxy.h:
+        * UIProcess/Cocoa/WebPlaybackSessionManagerProxy.messages.in:
+        * UIProcess/Cocoa/WebPlaybackSessionManagerProxy.mm:
+        (WebKit::WebPlaybackSessionManagerProxy::handleControlledElementIDResponse):
+        (WebKit::WebPlaybackSessionManagerProxy::requestControlledElementID):
+        * UIProcess/PageClient.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::requestControlledElementID):
+        (WebKit::WebPageProxy::handleControlledElementIDResponse):
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/mac/PageClientImpl.h:
+        * UIProcess/mac/PageClientImpl.mm:
+        (WebKit::PageClientImpl::handleControlledElementIDResponse):
+        * WebProcess/cocoa/WebPlaybackSessionManager.h:
+        * WebProcess/cocoa/WebPlaybackSessionManager.messages.in:
+        * WebProcess/cocoa/WebPlaybackSessionManager.mm:
+        (WebKit::WebPlaybackSessionManager::handleControlledElementIDRequest):
+
+2016-09-03  Darin Adler  <darin@apple.com>
+
+        Streamline DOMImplementation, and move it to our new DOM exception system
+        https://bugs.webkit.org/show_bug.cgi?id=161295
+
+        Reviewed by Ryosuke Niwa.
+
+        * UIProcess/WebFrameProxy.cpp:
+        (WebKit::WebFrameProxy::isDisplayingMarkupDocument): Use isXMLMIMEType in its
+        new location in MIMETypeRegistry rather than in DOMImplementation.
+        (WebKit::WebFrameProxy::isDisplayingPDFDocument): Removed unneeded redundant
+        check for empty string, already done by MIMETypeRegistry.
+
+2016-09-03  Brian Weinstein  <bweinstein@apple.com>
+
+        Implement WebFrameLoaderClient::shouldUseContentExtensionsForURL and consult the InjectedBundlePageLoaderClient.
+        https://bugs.webkit.org/show_bug.cgi?id=161441
+
+        Reviewed by Darin Adler.
+
+        WebFrameLoaderClient::shouldUseContentExtensionsForURL only consults the injected bundle, because we don't want to
+        defer the loading of every main resource to consult with the UI Process about whether or not we should use content
+        extensions for the load.
+
+        * WebProcess/InjectedBundle/API/c/WKBundlePageLoaderClient.h: Bump the latest version to WKBundlePageLoaderClientV9 and
+        add WKBundlePageShouldUseContentExtensionsForURLCallback.
+        * WebProcess/InjectedBundle/InjectedBundlePageLoaderClient.cpp:
+        (WebKit::InjectedBundlePageLoaderClient::shouldUseContentExtensionsForURL): Ask the client if we should use content
+        extensions for this URL.
+        * WebProcess/InjectedBundle/InjectedBundlePageLoaderClient.h:
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.cpp:
+        (WebKit::WebFrameLoaderClient::shouldUseContentExtensionsForURL): Only consult with the injected bundle about whether
+        or not we should use content extensions for this URL.
+        * WebProcess/WebCoreSupport/WebFrameLoaderClient.h:
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMImplementation.cpp:
+        (webkit_dom_dom_implementation_create_document_type): Updated to work with ExceptionOr.
+        (webkit_dom_dom_implementation_create_document): Updated to work with ExceptionOr.
+        (webkit_dom_dom_implementation_create_css_style_sheet): Updated since this function
+        can no longer raise an exception.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocument.cpp:
+        (webkit_dom_document_set_xml_standalone): Updated since this function can no longer
+        raise an exception.
+
+2016-09-03  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Move WebKit2 WebInspector files to #pragma once
+        https://bugs.webkit.org/show_bug.cgi?id=161550
+
+        Reviewed by Darin Adler.
+
+        * UIProcess/InspectorServer/WebInspectorServer.h:
+        * UIProcess/WebInspectorProxy.h:
+        * UIProcess/gtk/WebInspectorClientGtk.h:
+        * WebProcess/WebCoreSupport/WebInspectorClient.h:
+        * WebProcess/WebPage/WebInspector.h:
+        * WebProcess/WebPage/WebInspectorFrontendAPIDispatcher.h:
+        * WebProcess/WebPage/WebInspectorUI.h:
+
+2016-09-02  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] -Wmissing-field-initializers on WaylandCompositor.cpp:295
+        https://bugs.webkit.org/show_bug.cgi?id=161524
+
+        Reviewed by Carlos Garcia Campos.
+
+        * UIProcess/gtk/WaylandCompositor.cpp:
+
+2016-09-02  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [Threaded Compositor] Move the viewport controller off the compositing thread
+        https://bugs.webkit.org/show_bug.cgi?id=161532
+
+        Reviewed by Michael Catanzaro.
+
+        While working on bug #161242 I've realized that having the view port controller in the compositing thread makes
+        everything more complex. The viewport controller receives changes about things like contents size, viewport
+        size, etc. and uses that information to compute the visible contents rect and page scale factor. Then it
+        notifies back to main thread about the computed visible contents rect and page scale. Those computations are not
+        heave at all, so they could be done in the main thread and we would avoid communications between the main and
+        compositing thread in both directions. The main thread needs the visible contents rect to notify the compositing
+        coordinator and the page cale to scale the page in case of pixed layout. But the compositing thread only needs
+        to know the effective scale and scroll position. So, instead of going to the compositing thread after every
+        change that might update the visible contents rect and page scale factor, we could do those calculations in the
+        main thread and only notify the compositing thread about the actual changes in the scroll position and effective scale.
+
+        * Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp:
+        (WebKit::CoordinatedGraphicsScene::createTilesIfNeeded): Return early if backingStore is nullptr, which can
+        happen if the layer shouldn't have a backing store and was removed by the previous call to prepareContentBackingStore().
+        (WebKit::CoordinatedGraphicsScene::updateTilesIfNeeded): Ditto.
+        * Shared/CoordinatedGraphics/SimpleViewportController.cpp:
+        (WebKit::SimpleViewportController::SimpleViewportController): Remove the client since we no longer need to
+        notify about changes.
+        (WebKit::SimpleViewportController::didChangeViewportSize): Remove call to syncVisibleContents().
+        (WebKit::SimpleViewportController::didChangeContentsSize): Ditto.
+        (WebKit::SimpleViewportController::didChangeViewportAttributes): Ditto.
+        (WebKit::SimpleViewportController::didScroll): Removed unused scrollBy methods and renamed scrollTo as
+        didiScroll for consistency. Save the position without calling boundContentsPosition, because that's already
+        donde when the position is used to compute the contents visible rectangle.
+        (WebKit::SimpleViewportController::visibleContentsRect): No need to notify about the changes.
+        (WebKit::SimpleViewportController::visibleContentsSize): Deleted.
+        * Shared/CoordinatedGraphics/SimpleViewportController.h:
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp:
+        (WebKit::ThreadedCompositor::create): Pass a reference to the client instead of a pointer. It's no longer
+        possible to have a valid pointer when the object has been destroyed, so we can better use a reference now.
+        (WebKit::ThreadedCompositor::ThreadedCompositor): Ditto.
+        (WebKit::ThreadedCompositor::~ThreadedCompositor): Remove assert.
+        (WebKit::ThreadedCompositor::invalidate): No need to invalidate the client.
+        (WebKit::ThreadedCompositor::setScaleFactor): Set the effective scale factor that should be used for rendering.
+        (WebKit::ThreadedCompositor::setScrollPosition): Set the current scroll position and effective scale factor.
+        (WebKit::ThreadedCompositor::setViewportSize): Set the viewport size and effective scale factor.
+        (WebKit::ThreadedCompositor::renderNextFrame): Update m_client use that is no longer a pointer.
+        (WebKit::ThreadedCompositor::commitScrollOffset): Ditto.
+        (WebKit::ThreadedCompositor::renderLayerTree): Call glViewport after a resize and use m_viewportSize,
+        m_scrollPosition and m_scaleFactor members.
+        (WebKit::ThreadedCompositor::didChangeVisibleRect): Deleted.
+        * Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.h:
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        (WebKit::ThreadedCoordinatedLayerTreeHost::ThreadedCoordinatedLayerTreeHost): Pass the compositor client as a
+        reference to ThreadedCompositor constructor.
+        (WebKit::ThreadedCoordinatedLayerTreeHost::scrollNonCompositedContents): Update the viewport and call didChangeViewport().
+        (WebKit::ThreadedCoordinatedLayerTreeHost::contentsSizeChanged): Ditto.
+        (WebKit::ThreadedCoordinatedLayerTreeHost::deviceOrPageScaleFactorChanged): Pass the effective scale factor to
+        the compositor.
+        (WebKit::ThreadedCoordinatedLayerTreeHost::sizeDidChange): Update the viewport, the compositor and call didChangeViewport().
+        (WebKit::ThreadedCoordinatedLayerTreeHost::didChangeViewportProperties): Update the viewport and call didChangeViewport().
+        (WebKit::ThreadedCoordinatedLayerTreeHost::didChangeViewport): Notify the compositing coordinator about the new
+        visible contents rectangle, and update the threaded compositor if needed.
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.h:
+
 2016-09-02  Beth Dakin  <bdakin@apple.com>
 
         Need to updateEditorState if an element change edit-ability without changing 

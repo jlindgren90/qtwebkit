@@ -60,7 +60,7 @@ CustomElementRegistry::~CustomElementRegistry()
 static void enqueueUpgradeInShadowIncludingTreeOrder(ContainerNode& node, JSCustomElementInterface& elementInterface)
 {
     for (Element* element = ElementTraversal::firstWithin(node); element; element = ElementTraversal::next(*element)) {
-        if (element->isUnresolvedCustomElement() && element->tagQName() == elementInterface.name())
+        if (element->isCustomElementUpgradeCandidate() && element->tagQName() == elementInterface.name())
             CustomElementReactionQueue::enqueueElementUpgrade(*element, elementInterface);
         if (auto* shadowRoot = element->shadowRoot()) {
             if (shadowRoot->mode() != ShadowRoot::Mode::UserAgent)
@@ -78,6 +78,9 @@ void CustomElementRegistry::addElementDefinition(Ref<JSCustomElementInterface>&&
 
     if (auto* document = m_window.document())
         enqueueUpgradeInShadowIncludingTreeOrder(*document, elementInterface.get());
+
+    if (auto promise = m_promiseMap.take(localName))
+        promise.value()->resolve(nullptr);
 }
 
 JSCustomElementInterface* CustomElementRegistry::findInterface(const Element& element) const

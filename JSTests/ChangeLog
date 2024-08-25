@@ -1,3 +1,214 @@
+2016-09-08  Mark Lam  <mark.lam@apple.com>
+
+        REGRESSION (r205569?): 32-bit JSC test timeout: stress/rest-parameter-many-arguments.js.dfg-maximal-flush-validate-no-cjit
+        https://bugs.webkit.org/show_bug.cgi?id=161756
+
+        Reviewed by Saam Barati.
+
+        It looks like the 32-bit JSC bot is just too slow at running this test with the
+        dfg-maximal-flush-validate-no-cjit configuration.  We'll try excluding that
+        configuration.
+
+        * stress/rest-parameter-many-arguments.js:
+
+2016-09-08  JF Bastien  <jfbastien@apple.com>
+
+        Delete older WebAssembly tests
+        https://bugs.webkit.org/show_bug.cgi?id=161758
+
+        Reviewed by Filip Pizlo.
+
+        They're not running, rely on the older polyfill prototype, and the older code was deleted in: https://trac.webkit.org/changeset/204180
+
+        * stress/wasm-arithmetic-float32.js: Removed.
+        * stress/wasm-arithmetic-float64.js: Removed.
+        * stress/wasm-arithmetic-int32.js: Removed.
+        * stress/wasm-calls.js: Removed.
+        * stress/wasm-comma.js: Removed.
+        * stress/wasm-control-flow.js: Removed.
+        * stress/wasm-globals.js: Removed.
+        * stress/wasm-linear-memory.js: Removed.
+        * stress/wasm-locals.js: Removed.
+        * stress/wasm-relational.js: Removed.
+        * stress/wasm-type-conversion.js: Removed.
+        * stress/wasm/arithmetic-float32.wasm: Removed.
+        * stress/wasm/arithmetic-float64.wasm: Removed.
+        * stress/wasm/arithmetic-int32.wasm: Removed.
+        * stress/wasm/calls.wasm: Removed.
+        * stress/wasm/comma.wasm: Removed.
+        * stress/wasm/control-flow.wasm: Removed.
+        * stress/wasm/globals.wasm: Removed.
+        * stress/wasm/linear-memory.wasm: Removed.
+        * stress/wasm/locals.wasm: Removed.
+        * stress/wasm/relational.wasm: Removed.
+        * stress/wasm/type-conversion.wasm: Removed.
+
+2016-09-08  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Exception fuzz tests fail
+        https://bugs.webkit.org/show_bug.cgi?id=140928
+
+        Reviewed by Mark Lam.
+
+        Unskip tests.
+
+        * exceptionFuzz.yaml:
+
+2016-09-06  Saam Barati  <sbarati@apple.com>
+
+        ProxyObject's structure should not have ObjectPrototype as its prototype and it should not have special behavior for intercepting "__proto__"
+        https://bugs.webkit.org/show_bug.cgi?id=161558
+
+        Reviewed by Benjamin Poulain.
+
+        * stress/proxy-get-prototype-of.js:
+        * stress/proxy-set-prototype-of.js:
+        (let.handler.setPrototypeOf): Deleted.
+        * stress/proxy-underscore-proto.js: Added.
+        (assert):
+
+2016-09-06  Saam Barati  <sbarati@apple.com>
+
+        Make JSMap and JSSet faster
+        https://bugs.webkit.org/show_bug.cgi?id=160989
+
+        Reviewed by Filip Pizlo.
+
+        * microbenchmarks/dense-set.js: Added.
+        (bench):
+        * microbenchmarks/large-map-iteration-with-additions.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/large-map-iteration-with-mutation.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/large-map-iteration.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/map-get-get-cse.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/map-has-get-cse-opportunity.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/sparse-set.js: Added.
+        (bench):
+        * stress/map-cse-correctness.js: Added.
+        (assert):
+        (testHas):
+        (testGet):
+        (foo):
+        * stress/map-iteration.js: Added.
+        (assert):
+        (test1):
+        (test2):
+        (test3):
+        (test4):
+        (test5):
+        (test6):
+        (test7):
+        (test8):
+        (test9):
+        (test10):
+        (test11):
+        (test12):
+        (test13):
+        (test14):
+        (test15):
+        (test16):
+        (test17):
+        (test18):
+
+2016-09-06  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Make ArithClz32 work with Cell arguments
+        https://bugs.webkit.org/show_bug.cgi?id=161369
+
+        Reviewed by Geoffrey Garen.
+
+        * stress/arith-clz32-on-various-types.js: Added.
+
+2016-09-06  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205504.
+        https://bugs.webkit.org/show_bug.cgi?id=161645
+
+        Broke the iOS device build (Requested by ryanhaddad on
+        #webkit).
+
+        Reverted changeset:
+
+        "Make JSMap and JSSet faster"
+        https://bugs.webkit.org/show_bug.cgi?id=160989
+        http://trac.webkit.org/changeset/205504
+
+2016-09-06  Saam Barati  <sbarati@apple.com>
+
+        Make JSMap and JSSet faster
+        https://bugs.webkit.org/show_bug.cgi?id=160989
+
+        Reviewed by Filip Pizlo.
+
+        * microbenchmarks/dense-set.js: Added.
+        (bench):
+        * microbenchmarks/large-map-iteration-with-additions.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/large-map-iteration-with-mutation.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/large-map-iteration.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/map-get-get-cse.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/map-has-get-cse-opportunity.js: Added.
+        (bar):
+        (foo):
+        * microbenchmarks/sparse-set.js: Added.
+        (bench):
+        * stress/map-cse-correctness.js: Added.
+        (assert):
+        (testHas):
+        (testGet):
+        (foo):
+        * stress/map-iteration.js: Added.
+        (assert):
+        (test1):
+        (test2):
+        (test3):
+        (test4):
+        (test5):
+        (test6):
+        (test7):
+        (test8):
+        (test9):
+        (test10):
+        (test11):
+        (test12):
+        (test13):
+        (test14):
+        (test15):
+        (test16):
+        (test17):
+        (test18):
+
+2016-08-31  Filip Pizlo  <fpizlo@apple.com>
+
+        Butterflies should be allocated in Auxiliary MarkedSpace instead of CopiedSpace and we should rewrite as much of the GC as needed to make this not a regression
+        https://bugs.webkit.org/show_bug.cgi?id=160125
+
+        Reviewed by Geoffrey Garen and Keith Miller.
+        
+        Most of the things I did properly covered by existing tests, but I found some simple cases of
+        unshifting that had sketchy coverage.
+
+        * stress/array-storage-array-unshift.js: Added.
+        * stress/contiguous-array-unshift.js: Added.
+        * stress/double-array-unshift.js: Added.
+        * stress/int32-array-unshift.js: Added.
+
 2016-09-02  Michael Saboff  <msaboff@apple.com>
 
         Unreviewed fix after importing Chakra test

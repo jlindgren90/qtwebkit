@@ -886,7 +886,7 @@ static ALWAYS_INLINE RefPtr<HTMLElement> createUpgradeCandidateElement(Document&
         return nullptr;
 
     auto element = HTMLElement::create(name, document);
-    element->setIsUnresolvedCustomElement();
+    element->setIsCustomElementUpgradeCandidate();
     return WTFMove(element);
 }
 #endif
@@ -1087,7 +1087,7 @@ static Ref<HTMLElement> createFallbackHTMLElement(Document& document, const Qual
         if (UNLIKELY(registry)) {
             if (auto* elementInterface = registry->findInterface(name)) {
                 auto element = HTMLElement::create(name, document);
-                element->setIsUnresolvedCustomElement();
+                element->setIsCustomElementUpgradeCandidate();
                 CustomElementReactionQueue::enqueueElementUpgrade(element.get(), *elementInterface);
                 return element;
             }
@@ -1343,7 +1343,7 @@ String Document::characterSetWithUTF8Fallback() const
     return UTF8Encoding().domName();
 }
 
-String Document::defaultCharsetForBindings() const
+String Document::defaultCharsetForLegacyBindings() const
 {
     if (Settings* settings = this->settings())
         return settings->defaultTextEncodingName();
@@ -1369,11 +1369,6 @@ void Document::setContentLanguage(const String& language)
 
 void Document::setXMLVersion(const String& version, ExceptionCode& ec)
 {
-    if (!implementation().hasFeature("XML", String())) {
-        ec = NOT_SUPPORTED_ERR;
-        return;
-    }
-
     if (!XMLDocumentParser::supportsXMLVersion(version)) {
         ec = NOT_SUPPORTED_ERR;
         return;
@@ -1382,13 +1377,8 @@ void Document::setXMLVersion(const String& version, ExceptionCode& ec)
     m_xmlVersion = version;
 }
 
-void Document::setXMLStandalone(bool standalone, ExceptionCode& ec)
+void Document::setXMLStandalone(bool standalone)
 {
-    if (!implementation().hasFeature("XML", String())) {
-        ec = NOT_SUPPORTED_ERR;
-        return;
-    }
-
     m_xmlStandalone = standalone ? Standalone : NotStandalone;
 }
 
@@ -3269,7 +3259,7 @@ void Document::processHttpEquiv(const String& equiv, const String& content, bool
     case HTTPHeaderName::Refresh: {
         double delay;
         String urlString;
-        if (frame && parseHTTPRefresh(content, true, delay, urlString)) {
+        if (frame && parseMetaHTTPEquivRefresh(content, delay, urlString)) {
             URL completedURL;
             if (urlString.isEmpty())
                 completedURL = m_url;

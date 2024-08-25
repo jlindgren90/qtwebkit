@@ -28,6 +28,7 @@
 
 #include "CallFrame.h"
 #include "CodeBlock.h"
+#include "Interpreter.h"
 #include "JITExceptions.h"
 #include "LLIntCommon.h"
 #include "JSCInlines.h"
@@ -42,7 +43,7 @@ void interpreterThrowInCaller(ExecState* exec, JSObject* error)
 
     throwException(exec, scope, error);
 #if LLINT_SLOW_PATH_TRACING
-    dataLog("Throwing exception ", vm->exception(), ".\n");
+    dataLog("Throwing exception ", scope.exception(), ".\n");
 #endif
 }
 

@@ -23,16 +23,18 @@
 
 #pragma once
 
+#include "DOMWrapperWorld.h"
 #include "JSDOMGlobalObject.h"
 #include "JSDOMWrapper.h"
-#include "DOMWrapperWorld.h"
 #include "ScriptWrappable.h"
 #include "ScriptWrappableInlines.h"
 #include "WebCoreTypedArrayController.h"
 #include <cstddef>
+#include <heap/HeapInlines.h>
 #include <heap/SlotVisitorInlines.h>
 #include <heap/Weak.h>
 #include <heap/WeakInlines.h>
+#include <runtime/AuxiliaryBarrierInlines.h>
 #include <runtime/Error.h>
 #include <runtime/IteratorOperations.h>
 #include <runtime/JSArray.h>
@@ -69,7 +71,9 @@ class Node;
 
 struct ExceptionCodeWithMessage;
 
-typedef int ExceptionCode;
+template<typename> class ExceptionOr;
+
+using ExceptionCode = int;
 
 struct ExceptionDetails {
     String message;
@@ -160,14 +164,12 @@ bool clearInlineCachedWrapper(DOMWrapperWorld&, void*, JSDOMObject*);
 bool clearInlineCachedWrapper(DOMWrapperWorld&, ScriptWrappable*, JSDOMObject* wrapper);
 bool clearInlineCachedWrapper(DOMWrapperWorld&, JSC::ArrayBuffer*, JSC::JSArrayBuffer* wrapper);
 
-template<typename DOMClass, typename T> Ref<DOMClass> inline castDOMObjectForWrapperCreation(Ref<T>&& object) { return static_reference_cast<DOMClass>(WTFMove(object)); }
-#define CREATE_DOM_WRAPPER(globalObject, className, object) createWrapper<JS##className, className>(globalObject, castDOMObjectForWrapperCreation<className>(object))
-
 template<typename DOMClass> JSC::JSObject* getCachedWrapper(DOMWrapperWorld&, DOMClass&);
 template<typename DOMClass> inline JSC::JSObject* getCachedWrapper(DOMWrapperWorld& world, Ref<DOMClass>& object) { return getCachedWrapper(world, object.get()); }
 template<typename DOMClass, typename WrapperClass> void cacheWrapper(DOMWrapperWorld&, DOMClass*, WrapperClass*);
 template<typename DOMClass, typename WrapperClass> void uncacheWrapper(DOMWrapperWorld&, DOMClass*, WrapperClass*);
-template<typename WrapperClass, typename DOMClass> WrapperClass* createWrapper(JSDOMGlobalObject*, Ref<DOMClass>&&);
+template<typename DOMClass, typename T> auto createWrapper(JSDOMGlobalObject*, Ref<T>&&) -> typename std::enable_if<std::is_same<DOMClass, T>::value, typename JSDOMWrapperConverterTraits<DOMClass>::WrapperClass*>::type;
+template<typename DOMClass, typename T> auto createWrapper(JSDOMGlobalObject*, Ref<T>&&) -> typename std::enable_if<!std::is_same<DOMClass, T>::value, typename JSDOMWrapperConverterTraits<DOMClass>::WrapperClass*>::type;
 
 template<typename DOMClass> JSC::JSValue wrap(JSC::ExecState*, JSDOMGlobalObject*, DOMClass&);
 
@@ -185,6 +187,9 @@ JSC::JSValue createDOMException(JSC::ExecState*, ExceptionCode, const String&);
 // Convert a DOM implementation exception code into a JavaScript exception in the execution state.
 WEBCORE_EXPORT void setDOMException(JSC::ExecState*, ExceptionCode);
 void setDOMException(JSC::ExecState*, const ExceptionCodeWithMessage&);
+
+template<typename T> inline JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject*, ExceptionOr<T>&&);
+template<typename T> inline JSC::JSValue toJSNewlyCreated(JSC::ExecState*, JSDOMGlobalObject*, ExceptionOr<T>&&);
 
 JSC::JSValue jsString(JSC::ExecState*, const URL&); // empty if the URL is null
 
@@ -291,7 +296,6 @@ RefPtr<JSC::Float64Array> toFloat64Array(JSC::JSValue);
 
 template<typename T, typename JSType> Vector<RefPtr<T>> toRefPtrNativeArray(JSC::ExecState*, JSC::JSValue);
 template<typename T> Vector<T> toNativeArray(JSC::ExecState&, JSC::JSValue);
-template<typename T> Vector<T> toNativeArguments(JSC::ExecState&, size_t startIndex = 0);
 bool hasIteratorMethod(JSC::ExecState&, JSC::JSValue);
 
 bool shouldAllowAccessToNode(JSC::ExecState*, Node*);
@@ -318,6 +322,45 @@ String propertyNameToString(JSC::PropertyName);
 AtomicString propertyNameToAtomicString(JSC::PropertyName);
 
 template<JSC::NativeFunction, int length> JSC::EncodedJSValue nonCachingStaticFunctionGetter(JSC::ExecState*, JSC::EncodedJSValue, JSC::PropertyName);
+
+template<typename T> struct NativeValueTraits;
+
+template<typename JSClass, typename DOMClass, typename Enable = void>
+struct VariadicHelperBase {
+    using Item = DOMClass;
+
+    static Optional<Item> convert(JSC::ExecState& state, JSC::JSValue jsValue)
+    {
+        typedef NativeValueTraits<DOMClass> TraitsType;
+        DOMClass indexValue;
+        if (!TraitsType::nativeValue(state, jsValue, indexValue))
+            return Nullopt;
+        return indexValue;
+    }
+};
+
+template<typename JSClass, typename DOMClass>
+struct VariadicHelperBase<JSClass, DOMClass, typename std::enable_if<!JSDOMObjectInspector<JSClass>::isBuiltin>::type> {
+    using Class = typename std::remove_reference<decltype(std::declval<JSClass>().wrapped())>::type;
+    using Item = std::reference_wrapper<Class>;
+
+    static Optional<Item> convert(JSC::ExecState&, JSC::JSValue jsValue)
+    {
+        auto* value = JSClass::toWrapped(jsValue);
+        if (!value)
+            return Nullopt;
+        return Optional<Item>(*value);
+    }
+};
+
+template<typename JSClass, typename DOMClass>
+struct VariadicHelper : public VariadicHelperBase<JSClass, DOMClass> {
+    using Item = typename VariadicHelperBase<JSClass, DOMClass>::Item;
+    using Container = Vector<Item>;
+    using Result = typename std::pair<size_t, Optional<Container>>;
+};
+
+template<typename VariadicHelper> typename VariadicHelper::Result toArguments(JSC::ExecState&, size_t startIndex = 0);
 
 // Inline functions and template definitions.
 
@@ -466,13 +509,20 @@ template<typename DOMClass, typename WrapperClass> inline void uncacheWrapper(DO
     weakRemove(world.m_wrappers, wrapperKey(domObject), wrapper);
 }
 
-template<typename WrapperClass, typename DOMClass> inline WrapperClass* createWrapper(JSDOMGlobalObject* globalObject, Ref<DOMClass>&& node)
+template<typename DOMClass, typename T> inline auto createWrapper(JSDOMGlobalObject* globalObject, Ref<T>&& domObject) -> typename std::enable_if<std::is_same<DOMClass, T>::value, typename JSDOMWrapperConverterTraits<DOMClass>::WrapperClass*>::type
 {
-    ASSERT(!getCachedWrapper(globalObject->world(), node));
-    auto* nodePtr = node.ptr();
-    WrapperClass* wrapper = WrapperClass::create(getDOMStructure<WrapperClass>(globalObject->vm(), *globalObject), globalObject, WTFMove(node));
-    cacheWrapper(globalObject->world(), nodePtr, wrapper);
+    using WrapperClass = typename JSDOMWrapperConverterTraits<DOMClass>::WrapperClass;
+
+    ASSERT(!getCachedWrapper(globalObject->world(), domObject));
+    auto* domObjectPtr = domObject.ptr();
+    auto* wrapper = WrapperClass::create(getDOMStructure<WrapperClass>(globalObject->vm(), *globalObject), globalObject, WTFMove(domObject));
+    cacheWrapper(globalObject->world(), domObjectPtr, wrapper);
     return wrapper;
+}
+
+template<typename DOMClass, typename T> inline auto createWrapper(JSDOMGlobalObject* globalObject, Ref<T>&& domObject) -> typename std::enable_if<!std::is_same<DOMClass, T>::value, typename JSDOMWrapperConverterTraits<DOMClass>::WrapperClass*>::type
+{
+    return createWrapper<DOMClass>(globalObject, static_reference_cast<DOMClass>(WTFMove(domObject)));
 }
 
 template<typename DOMClass> inline JSC::JSValue wrap(JSC::ExecState* state, JSDOMGlobalObject* globalObject, DOMClass& domObject)
@@ -502,7 +552,7 @@ inline JSC::JSObject* toJSSequence(JSC::ExecState& exec, JSC::JSValue value, uns
     }
 
     JSC::JSValue lengthValue = object->get(&exec, exec.propertyNames().length);
-    if (exec.hadException())
+    if (UNLIKELY(scope.exception()))
         return nullptr;
 
     if (lengthValue.isUndefinedOrNull()) {
@@ -511,7 +561,7 @@ inline JSC::JSObject* toJSSequence(JSC::ExecState& exec, JSC::JSValue value, uns
     }
 
     length = lengthValue.toUInt32(&exec);
-    if (exec.hadException())
+    if (UNLIKELY(scope.exception()))
         return nullptr;
 
     return object;
@@ -554,8 +604,11 @@ template<typename T> inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalO
 
 template<typename T> inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalObject* globalObject, const Vector<T>& vector)
 {
+    JSC::VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
     JSC::JSArray* array = constructEmptyArray(exec, nullptr, vector.size());
-    if (UNLIKELY(exec->hadException()))
+    if (UNLIKELY(scope.exception()))
         return JSC::jsUndefined();
     for (size_t i = 0; i < vector.size(); ++i)
         array->putDirectIndex(exec, i, toJS(exec, globalObject, vector[i]));
@@ -564,8 +617,11 @@ template<typename T> inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalO
 
 template<typename T> inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalObject* globalObject, const Vector<RefPtr<T>>& vector)
 {
+    JSC::VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
     JSC::JSArray* array = constructEmptyArray(exec, nullptr, vector.size());
-    if (UNLIKELY(exec->hadException()))
+    if (UNLIKELY(scope.exception()))
         return JSC::jsUndefined();
     for (size_t i = 0; i < vector.size(); ++i)
         array->putDirectIndex(exec, i, toJS(exec, globalObject, vector[i].get()));
@@ -649,14 +705,17 @@ template<typename T, size_t inlineCapacity> inline JSC::JSValue jsArray(JSC::Exe
 
 template<typename T, size_t inlineCapacity> JSC::JSValue jsFrozenArray(JSC::ExecState* exec, JSDOMGlobalObject* globalObject, const Vector<T, inlineCapacity>& vector)
 {
+    JSC::VM& vm = globalObject->vm();
+    auto scope = DECLARE_THROW_SCOPE(vm);
+
     JSC::MarkedArgumentBuffer list;
     for (auto& element : vector) {
         list.append(JSValueTraits<T>::arrayJSValue(exec, globalObject, element));
-        if (UNLIKELY(exec->hadException()))
+        if (UNLIKELY(scope.exception()))
             return JSC::jsUndefined();
     }
     auto* array = JSC::constructArray(exec, nullptr, globalObject, list);
-    if (UNLIKELY(exec->hadException()))
+    if (UNLIKELY(scope.exception()))
         return JSC::jsUndefined();
     return JSC::objectConstructorFreeze(exec, array);
 }
@@ -692,37 +751,43 @@ inline RefPtr<JSC::Uint32Array> toUint32Array(JSC::JSValue value) { return JSC::
 inline RefPtr<JSC::Float32Array> toFloat32Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Float32Adaptor>(value); }
 inline RefPtr<JSC::Float64Array> toFloat64Array(JSC::JSValue value) { return JSC::toNativeTypedView<JSC::Float64Adaptor>(value); }
 
-template<typename T> struct NativeValueTraits;
-
 template<> struct NativeValueTraits<String> {
     static inline bool nativeValue(JSC::ExecState& exec, JSC::JSValue jsValue, String& indexedValue)
     {
+        JSC::VM& vm = exec.vm();
+        auto scope = DECLARE_THROW_SCOPE(vm);
         indexedValue = jsValue.toWTFString(&exec);
-        return !exec.hadException();
+        return !scope.exception();
     }
 };
 
 template<> struct NativeValueTraits<unsigned> {
     static inline bool nativeValue(JSC::ExecState& exec, JSC::JSValue jsValue, unsigned& indexedValue)
     {
+        JSC::VM& vm = exec.vm();
+        auto scope = DECLARE_THROW_SCOPE(vm);
         indexedValue = jsValue.toUInt32(&exec);
-        return !exec.hadException();
+        return !scope.exception();
     }
 };
 
 template<> struct NativeValueTraits<float> {
     static inline bool nativeValue(JSC::ExecState& exec, JSC::JSValue jsValue, float& indexedValue)
     {
+        JSC::VM& vm = exec.vm();
+        auto scope = DECLARE_THROW_SCOPE(vm);
         indexedValue = jsValue.toFloat(&exec);
-        return !exec.hadException();
+        return !scope.exception();
     }
 };
 
 template<> struct NativeValueTraits<double> {
     static inline bool nativeValue(JSC::ExecState& exec, JSC::JSValue jsValue, double& indexedValue)
     {
+        JSC::VM& vm = exec.vm();
+        auto scope = DECLARE_THROW_SCOPE(vm);
         indexedValue = jsValue.toNumber(&exec);
-        return !exec.hadException();
+        return !scope.exception();
     }
 };
 
@@ -759,31 +824,15 @@ template<typename T> Vector<T> toNativeArray(JSC::ExecState& exec, JSC::JSValue 
     }
 
     Vector<T> result;
-    forEachInIterable(&exec, value, [&result](JSC::VM&, JSC::ExecState* state, JSC::JSValue jsValue) {
+    forEachInIterable(&exec, value, [&result](JSC::VM& vm, JSC::ExecState* state, JSC::JSValue jsValue) {
+        auto scope = DECLARE_THROW_SCOPE(vm);
         T convertedValue;
-        if (!NativeValueTraits<T>::nativeValue(*state, jsValue, convertedValue))
+        bool success = NativeValueTraits<T>::nativeValue(*state, jsValue, convertedValue);
+        ASSERT_UNUSED(scope, scope.exception() || success);
+        if (!success)
             return;
-        ASSERT(!state->hadException());
         result.append(convertedValue);
     });
-    return result;
-}
-
-template<typename T> Vector<T> toNativeArguments(JSC::ExecState& exec, size_t startIndex)
-{
-    size_t length = exec.argumentCount();
-    ASSERT(startIndex <= length);
-
-    Vector<T> result;
-    result.reserveInitialCapacity(length - startIndex);
-    typedef NativeValueTraits<T> TraitsType;
-
-    for (size_t i = startIndex; i < length; ++i) {
-        T indexValue;
-        if (!TraitsType::nativeValue(exec, exec.uncheckedArgument(i), indexValue))
-            return Vector<T>();
-        result.uncheckedAppend(indexValue);
-    }
     return result;
 }
 
@@ -798,6 +847,24 @@ inline AtomicString propertyNameToAtomicString(JSC::PropertyName propertyName)
     return AtomicString(propertyName.uid() ? propertyName.uid() : propertyName.publicName());
 }
 
+template<typename VariadicHelper> typename VariadicHelper::Result toArguments(JSC::ExecState& state, size_t startIndex)
+{
+    size_t length = state.argumentCount();
+    if (startIndex > length)
+        return { 0, Nullopt };
+
+    typename VariadicHelper::Container result;
+    result.reserveInitialCapacity(length - startIndex);
+
+    for (size_t i = startIndex; i < length; ++i) {
+        auto value = VariadicHelper::convert(state, state.uncheckedArgument(i));
+        if (!value)
+            return { i, Nullopt };
+        result.uncheckedAppend(WTFMove(value.value()));
+    }
+    return { length, WTFMove(result) };
+}
+
 template<JSC::NativeFunction nativeFunction, int length> JSC::EncodedJSValue nonCachingStaticFunctionGetter(JSC::ExecState* exec, JSC::EncodedJSValue, JSC::PropertyName propertyName)
 {
     return JSC::JSValue::encode(JSC::JSFunction::create(exec->vm(), exec->lexicalGlobalObject(), length, propertyName.publicName(), nativeFunction));
@@ -806,6 +873,25 @@ template<JSC::NativeFunction nativeFunction, int length> JSC::EncodedJSValue non
 template<typename T> inline JSC::JSValue toNullableJSNumber(Optional<T> optionalNumber)
 {
     return optionalNumber ? JSC::jsNumber(optionalNumber.value()) : JSC::jsNull();
+}
+
+template<typename T> inline JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, ExceptionOr<T>&& value)
+{
+    if (UNLIKELY(value.hasException())) {
+        setDOMException(state, value.exceptionCode());
+        return JSC::jsUndefined();
+    }
+    return toJS(state, globalObject, value.takeReturnValue());
+}
+
+template<typename T> inline JSC::JSValue toJSNewlyCreated(JSC::ExecState* state, JSDOMGlobalObject* globalObject, ExceptionOr<T>&& value)
+{
+    // FIXME: It's really annoying to have two of these functions. Should find a way to combine toJS and toJSNewlyCreated.
+    if (UNLIKELY(value.hasException())) {
+        setDOMException(state, value.exceptionCode());
+        return JSC::jsUndefined();
+    }
+    return toJSNewlyCreated(state, globalObject, value.takeReturnValue());
 }
 
 } // namespace WebCore

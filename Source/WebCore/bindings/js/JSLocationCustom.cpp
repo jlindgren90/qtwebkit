@@ -108,12 +108,21 @@ bool JSLocation::deletePropertyByIndex(JSCell* cell, ExecState* exec, unsigned p
     return Base::deletePropertyByIndex(thisObject, exec, propertyName);
 }
 
+static void addCrossOriginLocationPropertyNames(ExecState& state, PropertyNameArray& propertyNames)
+{
+    // https://html.spec.whatwg.org/#crossoriginproperties-(-o-)
+    static const Identifier* const properties[] = { &state.propertyNames().href, &state.propertyNames().replace };
+    for (auto* property : properties)
+        propertyNames.add(*property);
+}
+
 void JSLocation::getOwnPropertyNames(JSObject* object, ExecState* exec, PropertyNameArray& propertyNames, EnumerationMode mode)
 {
     JSLocation* thisObject = jsCast<JSLocation*>(object);
-    // Only allow the location object to enumerated by frames in the same origin.
-    if (!shouldAllowAccessToFrame(exec, thisObject->wrapped().frame()))
+    if (!BindingSecurity::shouldAllowAccessToFrame(exec, thisObject->wrapped().frame(), DoNotReportSecurityError)) {
+        addCrossOriginLocationPropertyNames(*exec, propertyNames);
         return;
+    }
     Base::getOwnPropertyNames(thisObject, exec, propertyNames, mode);
 }
 
@@ -126,6 +135,25 @@ bool JSLocation::defineOwnProperty(JSObject* object, ExecState* exec, PropertyNa
     if (descriptor.isAccessorDescriptor() && (propertyName == exec->propertyNames().toString || propertyName == exec->propertyNames().valueOf))
         return false;
     return Base::defineOwnProperty(object, exec, propertyName, descriptor, throwException);
+}
+
+bool JSLocation::setPrototype(JSObject*, ExecState* exec, JSValue, bool shouldThrowIfCantSet)
+{
+    auto scope = DECLARE_THROW_SCOPE(exec->vm());
+
+    if (shouldThrowIfCantSet)
+        throwTypeError(exec, scope, ASCIILiteral("Cannot set prototype of this object"));
+
+    return false;
+}
+
+JSValue JSLocation::getPrototype(JSObject* object, ExecState* exec)
+{
+    JSLocation* thisObject = jsCast<JSLocation*>(object);
+    if (!BindingSecurity::shouldAllowAccessToFrame(exec, thisObject->wrapped().frame(), DoNotReportSecurityError))
+        return jsNull();
+
+    return Base::getPrototype(object, exec);
 }
 
 bool JSLocation::preventExtensions(JSObject* object, ExecState* exec)

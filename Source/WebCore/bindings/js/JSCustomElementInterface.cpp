@@ -68,6 +68,7 @@ RefPtr<Element> JSCustomElementInterface::constructElement(const AtomicString& l
 
     VM& vm = m_isolatedWorld->vm();
     JSLockHolder lock(vm);
+    auto scope = DECLARE_CATCH_SCOPE(vm);
 
     if (!m_constructor)
         return nullptr;
@@ -79,17 +80,16 @@ RefPtr<Element> JSCustomElementInterface::constructElement(const AtomicString& l
 
     auto& state = *context->execState();
     RefPtr<Element> element = constructCustomElementSynchronously(downcast<Document>(*context), vm, state, m_constructor.get(), localName);
+    ASSERT(!!scope.exception() == !element);
     if (!element) {
-        auto* exception = vm.exception();
-        ASSERT(exception);
         if (shouldClearException == ShouldClearException::Clear) {
-            state.clearException();
+            auto* exception = scope.exception();
+            scope.clearException();
             reportException(&state, exception);
         }
         return nullptr;
     }
 
-    element->setCustomElementIsResolved(*this);
     return element;
 }
 
@@ -111,7 +111,7 @@ static RefPtr<Element> constructCustomElementSynchronously(Document& document, V
     InspectorInstrumentationCookie cookie = JSMainThreadExecState::instrumentFunctionConstruct(&document, constructType, constructData);
     JSValue newElement = construct(&state, constructor, constructType, constructData, args);
     InspectorInstrumentation::didCallFunction(cookie, &document);
-    if (vm.exception())
+    if (UNLIKELY(scope.exception()))
         return nullptr;
 
     ASSERT(!newElement.isEmpty());
@@ -149,7 +149,7 @@ static RefPtr<Element> constructCustomElementSynchronously(Document& document, V
 void JSCustomElementInterface::upgradeElement(Element& element)
 {
     ASSERT(element.tagQName() == name());
-    ASSERT(element.isUnresolvedCustomElement());
+    ASSERT(element.isCustomElementUpgradeCandidate());
     if (!canInvokeCallback())
         return;
 
@@ -167,7 +167,7 @@ void JSCustomElementInterface::upgradeElement(Element& element)
     ASSERT(context->isDocument());
     JSDOMGlobalObject* globalObject = toJSDOMGlobalObject(context, *m_isolatedWorld);
     ExecState* state = globalObject->globalExec();
-    if (state->hadException())
+    if (UNLIKELY(scope.exception()))
         return;
 
     ConstructData constructData;
@@ -186,15 +186,18 @@ void JSCustomElementInterface::upgradeElement(Element& element)
 
     m_constructionStack.removeLast();
 
-    if (state->hadException())
+    if (UNLIKELY(scope.exception())) {
+        element.setIsFailedCustomElement(*this);
         return;
+    }
 
     Element* wrappedElement = JSElement::toWrapped(returnedElement);
     if (!wrappedElement || wrappedElement != &element) {
+        element.setIsFailedCustomElement(*this);
         throwInvalidStateError(*state, scope, "Custom element constructor failed to upgrade an element");
         return;
     }
-    wrappedElement->setCustomElementIsResolved(*this);
+    element.setIsDefinedCustomElement(*this);
 }
 
 void JSCustomElementInterface::invokeCallback(Element& element, JSObject* callback, const WTF::Function<void(ExecState*, JSDOMGlobalObject*, MarkedArgumentBuffer&)>& addArguments)

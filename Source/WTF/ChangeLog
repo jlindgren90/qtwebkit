@@ -1,3 +1,136 @@
+2016-09-08  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Support new emoji group candidates
+        https://bugs.webkit.org/show_bug.cgi?id=161664
+        <rdar://problem/24802695>
+        <rdar://problem/27666433>
+
+        Reviewed by Simon Fraser.
+
+        Update breaking rules.
+
+        * wtf/text/TextBreakIterator.cpp:
+        (WTF::cursorMovementIterator):
+
+2016-09-07  JF Bastien  <jfbastien@apple.com>
+
+        bitwise_cast: allow const destination type
+        https://bugs.webkit.org/show_bug.cgi?id=161719
+
+        Reviewed by Saam Barati.
+
+        * wtf/StdLibExtras.h:
+        (WTF::bitwise_cast): allow `const To to = bitwise_cast<const To>(from);`
+
+2016-09-07  Mark Lam  <mark.lam@apple.com>
+
+        Add CatchScope and force all exception checks to be via ThrowScope or CatchScope.
+        https://bugs.webkit.org/show_bug.cgi?id=161498
+
+        Reviewed by Geoffrey Garen.
+
+        * wtf/Platform.h:
+
+2016-09-07  Youenn Fablet  <youenn@apple.com>
+
+        [Streams API] Separate compile flag for ReadableStream and WritableStream
+        https://bugs.webkit.org/show_bug.cgi?id=161044
+
+        Reviewed by Alex Christensen.
+
+        * wtf/FeatureDefines.h:
+
+2016-09-06  Saam Barati  <sbarati@apple.com>
+
+        Make JSMap and JSSet faster
+        https://bugs.webkit.org/show_bug.cgi?id=160989
+
+        Reviewed by Filip Pizlo.
+
+        I made s_flagCount public in StringImpl since JSC's JITs now use this field.
+
+        * wtf/text/StringImpl.h:
+
+2016-09-06  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205504.
+        https://bugs.webkit.org/show_bug.cgi?id=161645
+
+        Broke the iOS device build (Requested by ryanhaddad on
+        #webkit).
+
+        Reverted changeset:
+
+        "Make JSMap and JSSet faster"
+        https://bugs.webkit.org/show_bug.cgi?id=160989
+        http://trac.webkit.org/changeset/205504
+
+2016-09-06  Saam Barati  <sbarati@apple.com>
+
+        Make JSMap and JSSet faster
+        https://bugs.webkit.org/show_bug.cgi?id=160989
+
+        Reviewed by Filip Pizlo.
+
+        I made s_flagCount public since JSC's JITs now use this field.
+
+        * wtf/text/StringImpl.h:
+
+2016-09-06  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Enable strict runtime stack buffer checks.
+        https://bugs.webkit.org/show_bug.cgi?id=161629
+
+        Reviewed by Brent Fulgham.
+
+        * wtf/Platform.h:
+
+2016-09-06  Daniel Bates  <dabates@apple.com>
+
+        Remove EXTERN_C from WTF
+        https://bugs.webkit.org/show_bug.cgi?id=161090
+
+        Reviewed by Brent Fulgham.
+
+        Guard external C declarations in WTF_EXTERN_C_BEGIN, WTF_EXTERN_C_END.
+
+        * wtf/Compiler.h: Remove macro definition EXTERN_C.
+        * wtf/spi/cf/CFBundleSPI.h:
+        * wtf/spi/cocoa/NSMapTableSPI.h:
+        * wtf/spi/cocoa/SecuritySPI.h:
+        * wtf/spi/darwin/CommonCryptoSPI.h:
+        * wtf/spi/darwin/SandboxSPI.h:
+        * wtf/spi/darwin/XPCSPI.h:
+        * wtf/spi/darwin/dyldSPI.h:
+
+2016-08-31  Filip Pizlo  <fpizlo@apple.com>
+
+        Butterflies should be allocated in Auxiliary MarkedSpace instead of CopiedSpace and we should rewrite as much of the GC as needed to make this not a regression
+        https://bugs.webkit.org/show_bug.cgi?id=160125
+
+        Reviewed by Geoffrey Garen and Keith Miller.
+        
+        I needed tryFastAlignedMalloc() so I added it.
+
+        * wtf/FastMalloc.cpp:
+        (WTF::tryFastAlignedMalloc):
+        * wtf/FastMalloc.h:
+        * wtf/ParkingLot.cpp:
+        (WTF::ParkingLot::forEachImpl):
+        (WTF::ParkingLot::forEach): Deleted.
+        * wtf/ParkingLot.h:
+        (WTF::ParkingLot::parkConditionally):
+        (WTF::ParkingLot::unparkOne):
+        (WTF::ParkingLot::forEach):
+        * wtf/ScopedLambda.h:
+        (WTF::scopedLambdaRef):
+        * wtf/SentinelLinkedList.h:
+        (WTF::SentinelLinkedList::forEach):
+        (WTF::RawNode>::takeFrom):
+        * wtf/SimpleStats.h:
+        (WTF::SimpleStats::operator bool):
+        (WTF::SimpleStats::operator!): Deleted.
+
 2016-09-02  JF Bastien  <jfbastien@apple.com>
 
         bitwise_cast infinite loops if called from the default constructor in ToType

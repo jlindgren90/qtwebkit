@@ -29,11 +29,9 @@
 #include "DebuggerScope.h"
 #include "Error.h"
 #include "IdentifierInlines.h"
-#include "JSCJSValue.h"
-#include "JSCellInlines.h"
+#include "JSCInlines.h"
 #include "JSJavaScriptCallFramePrototype.h"
 #include "ObjectConstructor.h"
-#include "StructureInlines.h"
 
 using namespace JSC;
 
@@ -85,7 +83,7 @@ JSValue JSJavaScriptCallFrame::evaluateWithScopeExtension(ExecState* exec)
         return throwTypeError(exec, scope, ASCIILiteral("JSJavaScriptCallFrame.evaluateWithScopeExtension first argument must be a string."));
 
     String script = scriptValue.toString(exec)->value(exec);
-    if (exec->hadException())
+    if (UNLIKELY(scope.exception()))
         return jsUndefined();
 
     NakedPtr<Exception> exception;

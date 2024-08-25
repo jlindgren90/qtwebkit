@@ -53,8 +53,8 @@ namespace WebCore {
 JSValue toJSNewlyCreated(JSC::ExecState*, JSDOMGlobalObject* globalObject, Ref<Blob>&& blob)
 {
     if (is<File>(blob))
-        return CREATE_DOM_WRAPPER(globalObject, File, WTFMove(blob));
-    return createWrapper<JSBlob>(globalObject, WTFMove(blob));
+        return createWrapper<File>(globalObject, WTFMove(blob));
+    return createWrapper<Blob>(globalObject, WTFMove(blob));
 }
 
 JSValue toJS(ExecState* state, JSDOMGlobalObject* globalObject, Blob& blob)
@@ -75,12 +75,12 @@ EncodedJSValue JSC_HOST_CALL constructJSBlob(ExecState& exec)
         return throwConstructorScriptExecutionContextUnavailableError(exec, scope, "Blob");
 
     if (!exec.argumentCount()) {
-        return JSValue::encode(CREATE_DOM_WRAPPER(jsConstructor->globalObject(), Blob, Blob::create()));
+        return JSValue::encode(createWrapper<Blob>(jsConstructor->globalObject(), Blob::create()));
     }
 
     unsigned blobPartsLength = 0;
     JSObject* blobParts = toJSSequence(exec, exec.uncheckedArgument(0), blobPartsLength);
-    if (exec.hadException())
+    if (UNLIKELY(scope.exception()))
         return JSValue::encode(jsUndefined());
     ASSERT(blobParts);
 
@@ -101,7 +101,7 @@ EncodedJSValue JSC_HOST_CALL constructJSBlob(ExecState& exec)
 
         // Attempt to get the endings property and validate it.
         bool containsEndings = dictionary.get("endings", endings);
-        if (exec.hadException())
+        if (UNLIKELY(scope.exception()))
             return JSValue::encode(jsUndefined());
 
         if (containsEndings) {
@@ -111,7 +111,7 @@ EncodedJSValue JSC_HOST_CALL constructJSBlob(ExecState& exec)
 
         // Attempt to get the type property.
         dictionary.get("type", type);
-        if (exec.hadException())
+        if (UNLIKELY(scope.exception()))
             return JSValue::encode(jsUndefined());
     }
 
@@ -121,7 +121,7 @@ EncodedJSValue JSC_HOST_CALL constructJSBlob(ExecState& exec)
 
     for (unsigned i = 0; i < blobPartsLength; ++i) {
         JSValue item = blobParts->get(&exec, i);
-        if (exec.hadException())
+        if (UNLIKELY(scope.exception()))
             return JSValue::encode(jsUndefined());
 
         if (ArrayBuffer* arrayBuffer = toArrayBuffer(item))
@@ -132,14 +132,14 @@ EncodedJSValue JSC_HOST_CALL constructJSBlob(ExecState& exec)
             blobBuilder.append(blob);
         else {
             String string = item.toWTFString(&exec);
-            if (exec.hadException())
+            if (UNLIKELY(scope.exception()))
                 return JSValue::encode(jsUndefined());
             blobBuilder.append(string, endings);
         }
     }
 
     auto blob = Blob::create(blobBuilder.finalize(), Blob::normalizedContentType(type));
-    return JSValue::encode(CREATE_DOM_WRAPPER(jsConstructor->globalObject(), Blob, WTFMove(blob)));
+    return JSValue::encode(createWrapper<Blob>(jsConstructor->globalObject(), WTFMove(blob)));
 }
 
 } // namespace WebCore

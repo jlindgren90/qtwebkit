@@ -27,10 +27,8 @@
 #include "MapIteratorPrototype.h"
 
 #include "IteratorOperations.h"
-#include "JSCJSValueInlines.h"
-#include "JSCellInlines.h"
+#include "JSCInlines.h"
 #include "JSMapIterator.h"
-#include "StructureInlines.h"
 
 namespace JSC {
 
@@ -60,7 +58,6 @@ EncodedJSValue JSC_HOST_CALL MapIteratorPrototypeFuncNext(CallFrame* callFrame)
     JSValue result;
     if (iterator->next(callFrame, result))
         return JSValue::encode(createIteratorResultObject(callFrame, result, false));
-    iterator->finish();
     return JSValue::encode(createIteratorResultObject(callFrame, jsUndefined(), true));
 }
 

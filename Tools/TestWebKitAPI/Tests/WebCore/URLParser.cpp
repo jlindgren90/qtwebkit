@@ -84,6 +84,16 @@ static void checkURL(const String& urlString, const ExpectedParts& parts)
     EXPECT_TRUE(URLParser::allValuesEqual(url, oldURL));
 }
 
+template<size_t length>
+static String wideString(const wchar_t (&url)[length])
+{
+    StringBuilder builder;
+    builder.reserveCapacity(length - 1);
+    for (size_t i = 0; i < length - 1; ++i)
+        builder.append(url[i]);
+    return builder.toString();
+}
+
 TEST_F(URLParserTest, Basic)
 {
     checkURL("http://user:pass@webkit.org:123/path?query#fragment", {"http", "user", "pass", "webkit.org", 123, "/path", "query", "fragment", "http://user:pass@webkit.org:123/path?query#fragment"});
@@ -165,6 +175,27 @@ TEST_F(URLParserTest, Basic)
     checkURL("file:///#fragment", {"file", "", "", "", 0, "/", "", "fragment", "file:///#fragment"});
     checkURL("file:////?query", {"file", "", "", "", 0, "//", "query", "", "file:////?query"});
     checkURL("file:////#fragment", {"file", "", "", "", 0, "//", "", "fragment", "file:////#fragment"});
+    checkURL("http://host/A b", {"http", "", "", "host", 0, "/A%20b", "", "", "http://host/A%20b"});
+    checkURL("http://host/a%20B", {"http", "", "", "host", 0, "/a%20B", "", "", "http://host/a%20B"});
+    checkURL("http://host?q=@ <>!#fragment", {"http", "", "", "host", 0, "/", "q=@%20%3C%3E!", "fragment", "http://host/?q=@%20%3C%3E!#fragment"});
+    checkURL("http://user:@host", {"http", "user", "", "host", 0, "/", "", "", "http://user@host/"});
+    checkURL("http://127.0.0.1:10100/path", {"http", "", "", "127.0.0.1", 10100, "/path", "", "", "http://127.0.0.1:10100/path"});
+    checkURL("http://127.0.0.1:/path", {"http", "", "", "127.0.0.1", 0, "/path", "", "", "http://127.0.0.1/path"});
+    checkURL("http://127.0.0.1:123", {"http", "", "", "127.0.0.1", 123, "/", "", "", "http://127.0.0.1:123/"});
+    checkURL("http://127.0.0.1:", {"http", "", "", "127.0.0.1", 0, "/", "", "", "http://127.0.0.1/"});
+    checkURL("http://[0:f::f:f:0:0]:123/path", {"http", "", "", "[0:f::f:f:0:0]", 123, "/path", "", "", "http://[0:f::f:f:0:0]:123/path"});
+    checkURL("http://[0:f::f:f:0:0]:123", {"http", "", "", "[0:f::f:f:0:0]", 123, "/", "", "", "http://[0:f::f:f:0:0]:123/"});
+    checkURL("http://[0:f::f:f:0:0]:/path", {"http", "", "", "[0:f::f:f:0:0]", 0, "/path", "", "", "http://[0:f::f:f:0:0]/path"});
+    checkURL("http://[0:f::f:f:0:0]:", {"http", "", "", "[0:f::f:f:0:0]", 0, "/", "", "", "http://[0:f::f:f:0:0]/"});
+    checkURL("http://host:10100/path", {"http", "", "", "host", 10100, "/path", "", "", "http://host:10100/path"});
+    checkURL("http://host:/path", {"http", "", "", "host", 0, "/path", "", "", "http://host/path"});
+    checkURL("http://host:123", {"http", "", "", "host", 123, "/", "", "", "http://host:123/"});
+    checkURL("http://host:", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
+    checkURL("http://hos\tt\n:\t1\n2\t3\t/\npath", {"http", "", "", "host", 123, "/path", "", "", "http://host:123/path"});
+
+    // This disagrees with the web platform test for http://:@www.example.com but agrees with Chrome and URL::parse,
+    // and Firefox fails the web platform test differently. Maybe the web platform test ought to be changed.
+    checkURL("http://:@host", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
 }
 
 static void checkRelativeURL(const String& urlString, const String& baseURLString, const ExpectedParts& parts)
@@ -204,6 +235,23 @@ TEST_F(URLParserTest, ParseRelative)
     checkRelativeURL("http://whatwg.org/index.html", "http://webkit.org/path1/path2/", {"http", "", "", "whatwg.org", 0, "/index.html", "", "", "http://whatwg.org/index.html"});
     checkRelativeURL("index.html", "http://webkit.org/path1/path2/page.html?query#fragment", {"http", "", "", "webkit.org", 0, "/path1/path2/index.html", "", "", "http://webkit.org/path1/path2/index.html"});
     checkRelativeURL("//whatwg.org/index.html", "https://www.webkit.org/path", {"https", "", "", "whatwg.org", 0, "/index.html", "", "", "https://whatwg.org/index.html"});
+    checkRelativeURL("http://example\t.\norg", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/", "", "", "http://example.org/"});
+    checkRelativeURL("test", "file:///path1/path2", {"file", "", "", "", 0, "/path1/test", "", "", "file:///path1/test"});
+    checkRelativeURL(wideString(L"http://www.foo。bar.com"), "http://other.com/", {"http", "", "", "www.foo.bar.com", 0, "/", "", "", "http://www.foo.bar.com/"});
+    checkRelativeURL(wideString(L"sc://ñ.test/"), "about:blank", {"sc", "", "", "xn--ida.test", 0, "/", "", "", "sc://xn--ida.test/"});
+    checkRelativeURL("#fragment", "http://host/path", {"http", "", "", "host", 0, "/path", "", "fragment", "http://host/path#fragment"});
+    checkRelativeURL("?query", "http://host/path", {"http", "", "", "host", 0, "/path", "query", "", "http://host/path?query"});
+    checkRelativeURL("?query#fragment", "http://host/path", {"http", "", "", "host", 0, "/path", "query", "fragment", "http://host/path?query#fragment"});
+    checkRelativeURL(wideString(L"?β"), "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "%CE%B2", "", "http://example.org/foo/bar?%CE%B2"});
+    checkRelativeURL("?", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "", "", "http://example.org/foo/bar?"});
+    checkRelativeURL("#", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "", "", "http://example.org/foo/bar#"});
+    checkRelativeURL("?#", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "", "", "http://example.org/foo/bar?#"});
+    checkRelativeURL("#?", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "", "?", "http://example.org/foo/bar#?"});
+    checkRelativeURL("/", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/", "", "", "http://example.org/"});
+    checkRelativeURL("http://@host", "about:blank", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
+    checkRelativeURL("http://:@host", "about:blank", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
+    checkRelativeURL("http://foo.com/\\@", "http://example.org/foo/bar", {"http", "", "", "foo.com", 0, "//@", "", "", "http://foo.com//@"});
+    checkRelativeURL("\\@", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/@", "", "", "http://example.org/@"});
 }
 
 static void checkURLDifferences(const String& urlString, const ExpectedParts& partsNew, const ExpectedParts& partsOld)
@@ -325,12 +373,39 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("file://[0:a:0:0:b:c:0:0]/path",
         {"file", "", "", "[0:a::b:c:0:0]", 0, "/path", "", "", "file://[0:a::b:c:0:0]/path"},
         {"file", "", "", "[0:a:0:0:b:c:0:0]", 0, "/path", "", "", "file://[0:a:0:0:b:c:0:0]/path"});
-
-    // FIXME: This behavior ought to be specified in the standard.
-    // With the existing URL::parse, WebKit returns "https:/", Firefox returns "https:///", and Chrome throws an error.
+    checkRelativeURLDifferences(wideString(L"#β"), "http://example.org/foo/bar",
+        {"http", "", "", "example.org", 0, "/foo/bar", "", wideString(L"β"), wideString(L"http://example.org/foo/bar#β")},
+        {"http", "", "", "example.org", 0, "/foo/bar", "", "%CE%B2", "http://example.org/foo/bar#%CE%B2"});
+    checkURLDifferences("http://@",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://@"});
+    checkURLDifferences("http://",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"http", "", "", "", 0, "/", "", "", "http:/"});
     checkRelativeURLDifferences("//", "https://www.webkit.org/path",
-        {"https", "", "", "", 0, "", "", "", "https://"},
+        {"", "", "", "", 0, "", "", "", ""},
         {"https", "", "", "", 0, "/", "", "", "https:/"});
+    checkURLDifferences("http://127.0.0.1:65536/path",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"http", "", "", "127.0.0.1", 65535, "/path", "", "", "http://127.0.0.1:65536/path"});
+    checkURLDifferences("http://host:abc",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://host:abc"});
+    checkURLDifferences("http://host:65536",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"http", "", "", "host", 65535, "/", "", "", "http://host:65536/"});
+    checkURLDifferences("http://127.0.0.1:abc",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://127.0.0.1:abc"});
+    checkURLDifferences("http://127.0.0.1:65536",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"http", "", "", "127.0.0.1", 65535, "/", "", "", "http://127.0.0.1:65536/"});
+    checkURLDifferences("http://[0:f::f:f:0:0]:abc",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://[0:f::f:f:0:0]:abc"});
+    checkURLDifferences("http://[0:f::f:f:0:0]:65536",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"http", "", "", "[0:f::f:f:0:0]", 65535, "/", "", "", "http://[0:f::f:f:0:0]:65536/"});
     
     // This behavior matches Chrome and Firefox, but not WebKit using URL::parse.
     // The behavior of URL::parse is clearly wrong because reparsing file://path would make path the host.
@@ -338,8 +413,95 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("file:path",
         {"file", "", "", "", 0, "/path", "", "", "file:///path"},
         {"file", "", "", "", 0, "path", "", "", "file://path"});
+    
+    // FIXME: Fix and test incomplete percent encoded characters in the middle and end of the input string.
+    // FIXME: Fix and test percent encoded upper case characters in the host.
+    checkURLDifferences("http://host%73",
+        {"http", "", "", "hosts", 0, "/", "", "", "http://hosts/"},
+        {"http", "", "", "host%73", 0, "/", "", "", "http://host%73/"});
+    
+    // URLParser matches Chrome and the spec, but not URL::parse or Firefox.
+    checkURLDifferences(wideString(L"http://０Ｘｃ０．０２５０．０１"),
+        {"http", "", "", "192.168.0.1", 0, "/", "", "", "http://192.168.0.1/"},
+        {"http", "", "", "0xc0.0250.01", 0, "/", "", "", "http://0xc0.0250.01/"});
+    checkURLDifferences("http://host/path%2e.%2E",
+        {"http", "", "", "host", 0, "/path...", "", "", "http://host/path..."},
+        {"http", "", "", "host", 0, "/path%2e.%2E", "", "", "http://host/path%2e.%2E"});
 }
 
+TEST_F(URLParserTest, DefaultPort)
+{
+    checkURL("ftp://host:21/", {"ftp", "", "", "host", 0, "/", "", "", "ftp://host/"});
+    checkURL("ftp://host:22/", {"ftp", "", "", "host", 22, "/", "", "", "ftp://host:22/"});
+    checkURLDifferences("ftp://host:21",
+        {"ftp", "", "", "host", 0, "/", "", "", "ftp://host/"},
+        {"ftp", "", "", "host", 0, "", "", "", "ftp://host"});
+    checkURLDifferences("ftp://host:22",
+        {"ftp", "", "", "host", 22, "/", "", "", "ftp://host:22/"},
+        {"ftp", "", "", "host", 22, "", "", "", "ftp://host:22"});
+    
+    checkURL("gopher://host:70/", {"gopher", "", "", "host", 0, "/", "", "", "gopher://host/"});
+    checkURL("gopher://host:71/", {"gopher", "", "", "host", 71, "/", "", "", "gopher://host:71/"});
+    // Spec, Chrome, Firefox, and URLParser have "/", URL::parse does not.
+    // Spec, Chrome, URLParser, URL::parse recognize gopher default port, Firefox does not.
+    checkURLDifferences("gopher://host:70",
+        {"gopher", "", "", "host", 0, "/", "", "", "gopher://host/"},
+        {"gopher", "", "", "host", 0, "", "", "", "gopher://host"});
+    checkURLDifferences("gopher://host:71",
+        {"gopher", "", "", "host", 71, "/", "", "", "gopher://host:71/"},
+        {"gopher", "", "", "host", 71, "", "", "", "gopher://host:71"});
+    
+    checkURL("http://host:80", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
+    checkURL("http://host:80/", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
+    checkURL("http://host:81", {"http", "", "", "host", 81, "/", "", "", "http://host:81/"});
+    checkURL("http://host:81/", {"http", "", "", "host", 81, "/", "", "", "http://host:81/"});
+    
+    checkURL("https://host:443", {"https", "", "", "host", 0, "/", "", "", "https://host/"});
+    checkURL("https://host:443/", {"https", "", "", "host", 0, "/", "", "", "https://host/"});
+    checkURL("https://host:444", {"https", "", "", "host", 444, "/", "", "", "https://host:444/"});
+    checkURL("https://host:444/", {"https", "", "", "host", 444, "/", "", "", "https://host:444/"});
+    
+    checkURL("ws://host:80/", {"ws", "", "", "host", 0, "/", "", "", "ws://host/"});
+    checkURL("ws://host:81/", {"ws", "", "", "host", 81, "/", "", "", "ws://host:81/"});
+    // URLParser matches Chrome and Firefox, but not URL::parse
+    checkURLDifferences("ws://host:80",
+        {"ws", "", "", "host", 0, "/", "", "", "ws://host/"},
+        {"ws", "", "", "host", 0, "", "", "", "ws://host"});
+    checkURLDifferences("ws://host:81",
+        {"ws", "", "", "host", 81, "/", "", "", "ws://host:81/"},
+        {"ws", "", "", "host", 81, "", "", "", "ws://host:81"});
+    
+    checkURL("wss://host:443/", {"wss", "", "", "host", 0, "/", "", "", "wss://host/"});
+    checkURL("wss://host:444/", {"wss", "", "", "host", 444, "/", "", "", "wss://host:444/"});
+    // URLParser matches Chrome and Firefox, but not URL::parse
+    checkURLDifferences("wss://host:443",
+        {"wss", "", "", "host", 0, "/", "", "", "wss://host/"},
+        {"wss", "", "", "host", 0, "", "", "", "wss://host"});
+    checkURLDifferences("wss://host:444",
+        {"wss", "", "", "host", 444, "/", "", "", "wss://host:444/"},
+        {"wss", "", "", "host", 444, "", "", "", "wss://host:444"});
+    
+    // FIXME: Fix and check unknown schemes with ports, as well as ftps.
+
+    // Firefox returns http://a:@/ Chrome fails, URL::parse fails
+    checkRelativeURLDifferences("http://a:@", "about:blank",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://a:@"});
+    
+    checkRelativeURLDifferences("http://:@", "about:blank",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://:@"});
+    checkRelativeURLDifferences("http://:b@", "about:blank",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://:b@"});
+    checkURLDifferences("http://a:@",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://a:@"});
+    checkURLDifferences("http://:b@",
+        {"", "", "", "", 0, "", "", "", ""},
+        {"", "", "", "", 0, "", "", "", "http://:b@"});
+}
+    
 static void shouldFail(const String& urlString)
 {
     URLParser parser;

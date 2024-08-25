@@ -547,8 +547,8 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
 
     case ArithClz32: {
         JSValue operand = forNode(node->child1()).value();
-        if (operand && operand.isNumber()) {
-            uint32_t value = toUInt32(operand.asNumber());
+        if (Optional<double> number = operand.toNumberFromPrimitive()) {
+            uint32_t value = toUInt32(*number);
             setConstant(node, jsNumber(clz32(value)));
             break;
         }
@@ -976,6 +976,22 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         }
         break;
     }
+
+    case MapHash:
+        forNode(node).setType(SpecInt32Only);
+        break;
+
+    case LoadFromJSMapBucket:
+        forNode(node).makeHeapTop();
+        break;
+
+    case GetMapBucket:
+        forNode(node).setType(m_graph, SpecCellOther);
+        break;
+
+    case IsNonEmptyMapBucket:
+        forNode(node).setType(SpecBoolean);
+        break;
 
     case IsEmpty:
     case IsJSArray:
@@ -1949,15 +1965,7 @@ bool AbstractInterpreter<AbstractStateType>::executeEffects(unsigned clobberLimi
         break;
         
     case MaterializeNewObject: {
-        StructureSet set;
-        
-        m_phiChildren->forAllTransitiveIncomingValues(
-            m_graph.varArgChild(node, 0).node(),
-            [&] (Node* incoming) {
-                set.add(incoming->castConstant<Structure*>());
-            });
-        
-        forNode(node).set(m_graph, set);
+        forNode(node).set(m_graph, node->structureSet());
         break;
     }
 
@@ -2883,7 +2891,7 @@ template<typename AbstractStateType>
 bool AbstractInterpreter<AbstractStateType>::execute(unsigned indexInBlock)
 {
     Node* node = m_state.block()->at(indexInBlock);
-    
+
     startExecuting();
     executeEdges(node);
     return executeEffects(indexInBlock, node);

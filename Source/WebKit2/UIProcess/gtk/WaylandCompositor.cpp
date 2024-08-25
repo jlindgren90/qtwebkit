@@ -77,7 +77,7 @@ static PFNEGLUNBINDWAYLANDDISPLAYWL eglUnbindWaylandDisplay;
 static PFNEGLQUERYWAYLANDBUFFERWL eglQueryWaylandBuffer;
 static PFNEGLCREATEIMAGEKHRPROC eglCreateImage;
 static PFNEGLDESTROYIMAGEKHRPROC eglDestroyImage;
-static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC eglImageTargetTexture2D;
+static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC glImageTargetTexture2D;
 
 WaylandCompositor& WaylandCompositor::singleton()
 {
@@ -211,7 +211,7 @@ bool WaylandCompositor::Surface::prepareTextureForPainting(unsigned& texture, In
         return false;
 
     glBindTexture(GL_TEXTURE_2D, m_texture);
-    eglImageTargetTexture2D(GL_TEXTURE_2D, m_image);
+    glImageTargetTexture2D(GL_TEXTURE_2D, m_image);
 
     texture = m_texture;
     textureSize = m_buffer->size();
@@ -231,6 +231,10 @@ bool WaylandCompositor::Surface::commit()
     if (m_webPage)
         m_webPage->setViewNeedsDisplay(IntRect(IntPoint::zero(), m_webPage->viewSize()));
 
+    // From a Wayland point-of-view frame callbacks should be fired where the
+    // compositor knows it has *used* the committed contents, so firing them here
+    // can be surprising but we don't need them as a throttling mechanism because
+    // rendering synchronization is handled elsewhere by WebKit.
     auto list = WTFMove(m_frameCallbackList);
     for (auto* resource : list) {
         wl_callback_send_done(resource, 0);
@@ -291,7 +295,11 @@ static const struct wl_surface_interface surfaceInterface = {
     // setBufferTransformCallback
     [](struct wl_client*, struct wl_resource*, int32_t) { },
     // setBufferScaleCallback
-    [](struct wl_client*, struct wl_resource*, int32_t) { }
+    [](struct wl_client*, struct wl_resource*, int32_t) { },
+#if WAYLAND_VERSION_MAJOR > 1 || (WAYLAND_VERSION_MAJOR == 1 && WAYLAND_VERSION_MINOR >= 10)
+    // damageBufferCallback
+    [](struct wl_client*, struct wl_resource*, int32_t, int32_t, int32_t, int32_t) { },
+#endif
 };
 
 static const struct wl_compositor_interface compositorInterface = {
@@ -341,9 +349,9 @@ bool WaylandCompositor::initializeEGL()
         return false;
     }
 
-    eglImageTargetTexture2D = reinterpret_cast<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>(eglGetProcAddress("glEGLImageTargetTexture2DOES"));
-    if (!eglImageTargetTexture2D) {
-        WTFLogAlways("WaylandCompositor requires glEGLImageTargetTexture.");
+    glImageTargetTexture2D = reinterpret_cast<PFNGLEGLIMAGETARGETTEXTURE2DOESPROC>(eglGetProcAddress("glEGLImageTargetTexture2DOES"));
+    if (!glImageTargetTexture2D) {
+        WTFLogAlways("WaylandCompositor requires glEGLImageTargetTexture2D.");
         return false;
     }
 

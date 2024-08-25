@@ -28,6 +28,7 @@
 #if ENABLE(WEBGL) && ENABLE(WEBGL2)
 #include "JSWebGL2RenderingContext.h"
 
+#include <heap/HeapInlines.h>
 #include <runtime/Error.h>
 #include "NotImplemented.h"
 #include "WebGL2RenderingContext.h"
@@ -105,10 +106,10 @@ JSValue JSWebGL2RenderingContext::getIndexedParameter(ExecState& exec)
 
     WebGL2RenderingContext& context = wrapped();
     unsigned pname = exec.uncheckedArgument(0).toInt32(&exec);
-    if (exec.hadException())
+    if (UNLIKELY(scope.exception()))
         return jsUndefined();
     unsigned index = exec.uncheckedArgument(1).toInt32(&exec);
-    if (exec.hadException())
+    if (UNLIKELY(scope.exception()))
         return jsUndefined();
     WebGLGetInfo info = context.getIndexedParameter(pname, index);
     return toJS(&exec, globalObject(), info);

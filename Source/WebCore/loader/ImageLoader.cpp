@@ -250,7 +250,7 @@ void ImageLoader::updateFromElement()
         m_hasPendingErrorEvent = true;
         errorEventSender().dispatchEventSoon(*this);
     }
-    
+
     CachedImage* oldImage = m_image.get();
     if (newImage != oldImage) {
         if (m_hasPendingBeforeLoadEvent) {
@@ -322,7 +322,7 @@ void ImageLoader::notifyFinished(CachedResource* resource)
     if (!m_hasPendingLoadEvent)
         return;
 
-    if (element().hasAttributeWithoutSynchronization(HTMLNames::crossoriginAttr) && !resource->passesSameOriginPolicyCheck(*element().document().securityOrigin())) {
+    if (resource->resourceError().isAccessControl()) {
         clearImageWithoutConsideringPendingLoadEvent();
 
         m_hasPendingErrorEvent = true;
