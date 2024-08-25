@@ -1,3 +1,153 @@
+2016-08-07  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Module namespace object should not allow unset IC
+        https://bugs.webkit.org/show_bug.cgi?id=160553
+
+        Reviewed by Saam Barati.
+
+        Previously, module namespace object accidentally allow "unset IC". But this "unsetness" does not rely on
+        the structure. We should disable inline caching onto the namespace object. Once it is needed, we should
+        create the special caching for namespace object like the following: it should be similar to monomorphic IC,
+        but it caches the object itself instead of the structure. It checks the object itself (And in DFG, it should be
+        CheckCell) and loads the value from the target module environment directly[1].
+
+        And this patch also set setIsTaintedByProxy for the module namespace object to notify to the caller that
+        this object has impure ::getOwnPropertySlot. Then this function is now renamed to setIsTaintedByOpaqueObject.
+
+        We drop the hack in JSModuleNamespaceObject::getOwnPropertySlot since we already introduced InternalMethodType
+        for ProxyObject. Previously we cannot distinguish ::HasProperty and ::GetOwnProperty. So not to throw any
+        errors for ::HasProperty case, we used slot.setCustom to delay the observable operation.
+        But, this hack lacks the support for hasOwnProperty: hasOwnProperty uses [[GetOwnProperty]], so it should throw an error.
+        However the previous implementation does not throw an error since the delayed observable part (custom function part) is
+        skipped in hasOwnProperty implementation. We now remove this custom property hack and fix the corresponding failure
+        in test262.
+
+        [1]: https://bugs.webkit.org/show_bug.cgi?id=160590
+
+        * jit/JITOperations.cpp:
+        * runtime/ArrayPrototype.cpp:
+        (JSC::getProperty):
+        * runtime/JSGenericTypedArrayViewConstructorInlines.h:
+        (JSC::constructGenericTypedArrayViewWithArguments):
+        * runtime/JSModuleNamespaceObject.cpp:
+        (JSC::JSModuleNamespaceObject::getOwnPropertySlot):
+        (JSC::callbackGetter): Deleted.
+        * runtime/JSModuleNamespaceObject.h:
+        * runtime/PropertySlot.cpp:
+        (JSC::PropertySlot::getPureResult):
+        * runtime/PropertySlot.h:
+        (JSC::PropertySlot::PropertySlot):
+        (JSC::PropertySlot::setIsTaintedByOpaqueObject):
+        (JSC::PropertySlot::isTaintedByOpaqueObject):
+        (JSC::PropertySlot::setIsTaintedByProxy): Deleted.
+        (JSC::PropertySlot::isTaintedByProxy): Deleted.
+        * runtime/ProxyObject.cpp:
+        (JSC::ProxyObject::getOwnPropertySlotCommon):
+
+2016-08-05  Keith Miller  <keith_miller@apple.com>
+
+        Add LEBDecoder and tests
+        https://bugs.webkit.org/show_bug.cgi?id=160625
+
+        Reviewed by Benjamin Poulain.
+
+        Adds a new target testWASM that is currently used to test the LEB decoder.
+        In the future, if we add more support for WASM we will put more tests
+        here.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * testWASM.cpp: Added.
+        (CommandLine::CommandLine):
+        (printUsageStatement):
+        (CommandLine::parseArguments):
+        (runLEBTests):
+        (main):
+
+2016-08-05  Keith Miller  <keith_miller@apple.com>
+
+        32-bit JSC test failure: stress/instanceof-late-constant-folding.js
+        https://bugs.webkit.org/show_bug.cgi?id=160620
+
+        Reviewed by Filip Pizlo.
+
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+
+2016-08-05  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Remove the first LocalCSE
+        https://bugs.webkit.org/show_bug.cgi?id=160615
+
+        Reviewed by Saam Barati.
+
+        LocalCSE is the most expensive phase in DFG (excluding FTL).
+
+        The combination of two LocalCSEs does not seem to pay for its cost.
+        Doing a single LocalCSE is always after ConstantFolding and StrengthReduction
+        is always a win on my machine.
+
+        * dfg/DFGCleanUpPhase.cpp:
+        (JSC::DFG::CleanUpPhase::run):
+        * dfg/DFGPlan.cpp:
+        (JSC::DFG::Plan::compileInThreadImpl):
+
+2016-08-05  Saam Barati  <sbarati@apple.com>
+
+        various math operations don't properly check for an exception after calling toNumber() on the lhs
+        https://bugs.webkit.org/show_bug.cgi?id=160154
+
+        Reviewed by Mark Lam.
+
+        We must check for an exception after calling toNumber() on the lhs
+        because this can throw an exception. If we called toNumber() on
+        the rhs without first checking for an exception after the toNumber()
+        on the lhs, this can lead us to execute effectful code or deviate
+        from the standard in subtle ways. I fixed this bug in various places
+        by always checking for an exception after calling toNumber() on the
+        lhs for the various bit and arithmetic operations.
+
+        This patch also found a commutativity bug inside DFGStrengthReduction.
+        We could end up commuting the lhs and rhs of say an "|" expression
+        even when the lhs/rhs may not be numbers. This is wrong because
+        executing toNumber() on the lhs/rhs has strict ordering guarantees
+        by the specification and is observable by user programs.
+
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGStrengthReductionPhase.cpp:
+        (JSC::DFG::StrengthReductionPhase::handleCommutativity):
+        * jit/JITOperations.cpp:
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::SLOW_PATH_DECL):
+        * runtime/Operations.cpp:
+        (JSC::jsAddSlowCase):
+
+2016-08-05  Michael Saboff  <msaboff@apple.com>
+
+        compilePutByValForIntTypedArray() has a slow path in the middle of its processing
+        https://bugs.webkit.org/show_bug.cgi?id=160614
+
+        Reviewed by Keith Miller.
+
+        In compilePutByValForIntTypedArray() we were calling out to the slow path
+        operationToInt32() and then returning back to the middle of code to finish
+        the processing of writing the value to the array.  When we make the slow
+        path call, we trash any temporary registers that have been allocated.
+        In general slow path calls should finish the operation in progress and
+        continue processing at the beginning of the next node.
+
+        This was discovered while working on the register argument changes, when
+        we SpeculateStrictInt32Operand on the value child node.  That child node's
+        value was live in register with a spill format of DataFormatJSInt32.  In that
+        case we allocate a new temporary register and copy just the lower 32 bits from
+        the child register to the new temp register.  That temp register gets trashed
+        when we make the operationToInt32() slow path call.
+
+        I spent some time trying to devise a test with the current code base and wasn't
+        successful.  This case is tested with the register argument changes in progress.
+
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compilePutByValForIntTypedArray):
+
 2016-08-05  Saam Barati  <sbarati@apple.com>
 
         Assertion failure when accessing TDZ variable in catch through eval

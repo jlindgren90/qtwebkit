@@ -71274,7 +71274,7 @@
 - path: test262/test/language/module-code/namespace/internals/get-own-property-str-found-init.js
   cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-own-property-str-found-uninit.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-own-property-str-not-found.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:module]
 - path: test262/test/language/module-code/namespace/internals/get-own-property-sym.js

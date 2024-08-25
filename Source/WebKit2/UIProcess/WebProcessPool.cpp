@@ -760,7 +760,8 @@ void WebProcessPool::disconnectProcess(WebProcessProxy* process)
     m_processes.removeFirst(process);
 
 #if ENABLE(GAMEPAD)
-    processStoppedUsingGamepads(process);
+    if (m_processesUsingGamepads.contains(process))
+        processStoppedUsingGamepads(process);
 #endif
 }
 
@@ -1273,6 +1274,7 @@ void WebProcessPool::stoppedUsingGamepads(IPC::Connection& connection)
 
 void WebProcessPool::processStoppedUsingGamepads(WebProcessProxy* webProcessProxy)
 {
+    ASSERT(m_processesUsingGamepads.contains(webProcessProxy));
     m_processesUsingGamepads.remove(webProcessProxy);
 
     if (m_processesUsingGamepads.isEmpty())

@@ -1,3 +1,590 @@
+2016-08-07  Chris Dumez  <cdumez@apple.com>
+
+        Node.baseURI should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=160649
+
+        Reviewed by Darin Adler.
+
+        Node.baseURI should not be nullable as per the latest DOM specification:
+        - https://dom.spec.whatwg.org/#dom-node-baseuri
+
+        It is not nullable in Firefox. It is supposed to fallback to using the
+        document's URL. The document's URL is "about:blank" by default so
+        baseURI() now returns "about:blank" in the internal URL is null,
+        similarly to what we do for Document.URL (c.g. urlForBindings()).
+
+        No new tests, rebaselined existing test.
+
+        * dom/Node.cpp:
+        (WebCore::Node::baseURI):
+        * dom/Node.h:
+        * dom/Node.idl:
+
+2016-08-07  Chris Dumez  <cdumez@apple.com>
+
+        Drop SVGDocument as per the SVG2 specification
+        https://bugs.webkit.org/show_bug.cgi?id=160361
+
+        Reviewed by Darin Adler.
+
+        Drop SVGDocument as per the SVG2 specification:
+        - https://www.w3.org/TR/SVG2/struct.html#InterfaceDocumentExtensions
+
+        SVGDocument has been merged into Document.
+
+        Chrome and Edge have dropped SVGDocument already, Firefox has not.
+
+        No new tests, rebaselined existing test.
+
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::remoteSVGRootElement):
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::createNewDocumentWrapper): Deleted.
+        * bindings/js/JSXMLDocumentCustom.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS): Deleted.
+        * page/DOMWindow.idl:
+        * page/FrameView.cpp:
+        (WebCore::FrameView::scrollToAnchor):
+        * svg/SVGDocument.cpp:
+        (WebCore::SVGDocument::rootElement):
+        (WebCore::SVGDocument::zoomAndPanEnabled):
+        (WebCore::SVGDocument::startPan):
+        (WebCore::SVGDocument::updatePan):
+        * svg/SVGDocument.h:
+        * svg/SVGDocument.idl:
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::rootElement):
+
+2016-08-07  Chris Dumez  <cdumez@apple.com>
+
+        Un-expose DOMSettableTokenList
+        https://bugs.webkit.org/show_bug.cgi?id=160643
+
+        Reviewed by Darin Adler.
+
+        Un-expose DOMSettableTokenList. We merged DOMSettableTokenList into
+        DOMTokenList a while back, as per the specification. At the time, we
+        kept DOMSettableTokenList on Window, as an alias to DOMTokenList.
+        However, Firefox and Chrome dropped DOMSettableTokenList completely.
+        We now do the same as other browsers.
+
+        No new tests, rebaselined existing test.
+
+        * page/DOMWindow.idl:
+
+2016-08-07  Andreas Kling  <akling@apple.com>
+
+        DocumentRuleSets::collectFeatures() should shrink-to-fit.
+        <https://webkit.org/b/160646>
+
+        Reviewed by Darin Adler.
+
+        We forgot to shrink-wrap the RuleFeatureSet in DocumentRuleSets
+        after collecting the document-wide features.
+
+        * css/DocumentRuleSets.cpp:
+        (WebCore::DocumentRuleSets::collectFeatures):
+
+2016-08-06  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Purge all uses of PassRefPtr in WebCore/Modules
+        https://bugs.webkit.org/show_bug.cgi?id=159965
+
+        Reviewed by Chris Dumez.
+
+        Final clean up in Modules directory.
+
+        No new tests, no behavior changes.
+
+        * Modules/gamepad/deprecated/GamepadList.cpp:
+        (WebCore::GamepadList::set):
+        * Modules/gamepad/deprecated/GamepadList.h:
+        * Modules/indexeddb/IDBGetResult.h:
+        (WebCore::IDBGetResult::IDBGetResult):
+        * Modules/indieui/UIRequestEvent.cpp:
+        (WebCore::UIRequestEvent::create):
+        (WebCore::UIRequestEvent::UIRequestEvent):
+        * Modules/indieui/UIRequestEvent.h:
+        (WebCore::UIRequestEvent::receiver):
+        * Modules/mediasource/MediaSourceRegistry.h:
+        * Modules/mediasource/SampleMap.cpp:
+        (WebCore::SampleMap::addSample):
+        * Modules/mediasource/SampleMap.h:
+        (WebCore::SampleMap::addRange):
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
+        (WebCore::SourceBuffer::textTrackAddCue):
+        (WebCore::SourceBuffer::textTrackRemoveCue):
+        * Modules/mediasource/SourceBuffer.h:
+        * Modules/mediastream/CaptureDeviceManager.cpp:
+        (CaptureDeviceManager::bestSourcesForTypeAndConstraints):
+        * Modules/mediastream/CaptureDeviceManager.h:
+        * Modules/mediastream/MediaDevicesRequest.h:
+        * Modules/mediastream/MediaStream.cpp:
+        (WebCore::MediaStream::internalAddTrack):
+        (WebCore::MediaStream::internalRemoveTrack):
+        * Modules/mediastream/MediaStreamRegistry.h:
+        * Modules/mediastream/MediaStreamTrackEvent.cpp:
+        (WebCore::MediaStreamTrackEvent::create):
+        (WebCore::MediaStreamTrackEvent::MediaStreamTrackEvent):
+        (WebCore::MediaStreamTrackEvent::track):
+        * Modules/mediastream/MediaStreamTrackEvent.h:
+        * Modules/mediastream/MediaTrackConstraints.cpp:
+        (WebCore::MediaTrackConstraints::create):
+        (WebCore::MediaTrackConstraints::MediaTrackConstraints):
+        (WebCore::MediaTrackConstraints::optional):
+        * Modules/mediastream/MediaTrackConstraints.h:
+        * Modules/mediastream/RTCDTMFSender.cpp:
+        (WebCore::RTCDTMFSender::create):
+        (WebCore::RTCDTMFSender::RTCDTMFSender):
+        * Modules/mediastream/RTCDTMFSender.h:
+        * Modules/mediastream/RTCDataChannelEvent.cpp:
+        (WebCore::RTCDataChannelEvent::create):
+        (WebCore::RTCDataChannelEvent::RTCDataChannelEvent):
+        (WebCore::RTCDataChannelEvent::channel):
+        * Modules/mediastream/RTCDataChannelEvent.h:
+        * Modules/mediastream/RTCIceServer.h:
+        * Modules/mediastream/RTCStatsReport.h:
+        * Modules/mediastream/SourceInfo.cpp:
+        (WebCore::SourceInfo::create):
+        (WebCore::SourceInfo::SourceInfo):
+        * Modules/mediastream/SourceInfo.h:
+        * Modules/mediastream/UserMediaClient.h:
+        * Modules/mediastream/UserMediaRequest.cpp:
+        (WebCore::UserMediaRequest::UserMediaRequest):
+        (WebCore::UserMediaRequest::didCreateStream):
+        * Modules/mediastream/UserMediaRequest.h:
+        * Modules/webdatabase/Database.cpp:
+        (WebCore::Database::~Database):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::textTrackAddCue):
+        (WebCore::HTMLMediaElement::textTrackRemoveCue):
+        * html/HTMLMediaElement.h:
+        * html/HTMLTrackElement.cpp:
+        (WebCore::HTMLTrackElement::textTrackAddCue):
+        (WebCore::HTMLTrackElement::textTrackRemoveCue):
+        * html/HTMLTrackElement.h:
+        * html/track/TextTrack.h:
+        * platform/graphics/SourceBufferPrivateClient.h:
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+        (WebCore::SourceBufferPrivateAVFObjC::processCodedFrame):
+        * platform/mediastream/MediaStreamCreationClient.h:
+        * platform/mediastream/mac/AVCaptureDeviceManager.h:
+        * platform/mediastream/mac/AVCaptureDeviceManager.mm:
+        (WebCore::AVCaptureDeviceManager::bestSourcesForTypeAndConstraints):
+        * platform/mediastream/mac/RealtimeMediaSourceCenterMac.cpp:
+        (WebCore::RealtimeMediaSourceCenterMac::validateRequestConstraints):
+        * platform/mock/mediasource/MockSourceBufferPrivate.cpp:
+        (WebCore::MockSourceBufferPrivate::didReceiveSample):
+
+2016-08-06  Chris Dumez  <cdumez@apple.com>
+
+        a.replaceChild(a, a) should throw a HierarchyRequestError
+        https://bugs.webkit.org/show_bug.cgi?id=160640
+
+        Reviewed by Darin Adler.
+
+        a.replaceChild(a, a) should throw a HierarchyRequestError, because 'a'
+        is a host-including inclusive ancestor of 'a':
+        - https://dom.spec.whatwg.org/#concept-node-replace
+
+        However, the call is merely ignored in WebKit.
+
+        No new tests, rebaselined existing test.
+
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::replaceChild):
+
+2016-08-06  Chris Dumez  <cdumez@apple.com>
+
+        Drop legacy Text.replaceWholeText() API
+        https://bugs.webkit.org/show_bug.cgi?id=160641
+
+        Reviewed by Darin Adler.
+
+        Drop legacy Text.replaceWholeText() API, which is no longer in the
+        specification:
+        - https://dom.spec.whatwg.org/#interface-text
+
+        Firefox and Chrome already dropped support for it.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Text.idl:
+
+2016-08-06  Chris Dumez  <cdumez@apple.com>
+
+        Align Range.createContextualFragment() input validation with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160634
+
+        Reviewed by Darin Adler.
+
+        Align Range.createContextualFragment() input validation with the specification:
+        - https://w3c.github.io/DOM-Parsing/#idl-def-range-createcontextualfragment(domstring) (Step 2)
+
+        In particular, we were throwing a NOT_SUPPORTED_ERR when element had localname
+        "html" but was not in the HTML namespace. We should not throw in this case.
+
+        Firefox complies with the specification here.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Range.cpp:
+        (WebCore::Range::createContextualFragment): Deleted.
+
+2016-08-06  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Add support for [Unscopable] extended attribute
+        https://bugs.webkit.org/show_bug.cgi?id=160637
+
+        Reviewed by Darin Adler.
+
+        Add support for [Unscopable] extended attribute:
+        - http://heycam.github.io/webidl/#Unscopable
+
+        No new tests, rebaselined existing test.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (addUnscopableProperties):
+        (GenerateImplementation):
+        * bindings/scripts/IDLAttributes.txt:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjPrototype::finishCreation):
+        * bindings/scripts/test/TestObj.idl:
+        * dom/ChildNode.idl:
+        * dom/ParentNode.idl:
+
+2016-08-06  Darin Adler  <darin@apple.com>
+
+        Simplify valueToUSVString
+        https://bugs.webkit.org/show_bug.cgi?id=160628
+
+        Reviewed by Sam Weinig.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::isUnmatchedSurrogatePair): Deleted. This function was incorrectly named,
+        since it actually returned true if any surrogate code unit was passed.
+        (WebCore::valueToUSVString): Added a fast path for 8-bit characters that doesn't
+        bother iterating the string at all. Changed the fast path to actually check for
+        surrogate pairs. Use StringView::codePoints rather than writing our own loop that
+        does the same thing. In the slow path, use StringView::codePoints to make the logic
+        clear rather than writing out exactly what the specification says. This gets rid of
+        all the many constants the old version of the function contained.
+
+2016-08-06  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Fetching with a FormData body should reject until it is implemented
+        https://bugs.webkit.org/show_bug.cgi?id=160595
+
+        Reviewed by Alex Christensen.
+
+        Covered by updated tests.
+
+        This patch ensures that fetch will throw if trying to upload something that is not supported.
+        This is the case of BufferSource (FetchBody does not yet extract it) and FormData (no upload support yet).
+
+        * Modules/fetch/FetchBody.cpp:
+        (WebCore::FetchBody::extract): Added a FIXME.
+        * Modules/fetch/FetchBodyOwner.h:
+        (WebCore::FetchBodyOwner::bodyType): Getter used by FetchResponse.
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::setBody): Throwing if given body parameter cannot be extracted by FetchBody.
+        This ensures that a fetch with a body that cannot be uploaded will fail.
+        This is the case of BufferSource which is not yet supported.
+        * Modules/fetch/FetchResponse.cpp:
+        (WebCore::FetchResponse::fetch): Rejecting fetch promise if trying to upload a FormData as it is not implemented.
+
+2016-08-06  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Fetch API should strip fragment and credentials from URLs used as referrer
+        https://bugs.webkit.org/show_bug.cgi?id=160593
+
+        Reviewed by Alex Christensen.
+
+        Covered by updated tests.
+
+        Stripping of referrer value before sending a load request.
+
+        Fixing bug in workers as referrer value was overwritten by WorkerThreadableLoader.
+        The current handling of referrer values as HTTP header is not great as this may trigger unnecessary preflighting.
+        Refactoring should allow passing it as a separate parameter and setting it after preflighting as per
+        https://fetch.spec.whatwg.org/#http-network-or-cache-fetch.
+
+        Also a newly added test is failing, as SubresourceLoader is removing the referer header in case of a cross-origin redirection.
+        But none is added back.
+
+        * Modules/fetch/FetchRequest.cpp:
+        (WebCore::FetchRequest::internalRequest): Stripping referrer value.
+        * loader/WorkerThreadableLoader.cpp:
+        (WebCore::WorkerThreadableLoader::MainThreadBridge::MainThreadBridge): Do not override referrer value if one is defined.
+        * page/SecurityPolicy.cpp:
+        (WebCore::SecurityPolicy::generateReferrerHeader): Adding assertion to ensure referrer value does not contain
+        credentials and/or fragment identifiers.
+
+2016-08-05  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Add ScriptElement::determineScriptType
+        https://bugs.webkit.org/show_bug.cgi?id=149576
+
+        Reviewed by Ryosuke Niwa.
+
+        Change ScriptElement::isScriptTypeSupported to ScriptElement::determineScriptType.
+        And introduce ScriptType, which is either "classic" or "module".
+        And support "module" type in ScriptElement[1, 2].
+        But this patch does not contain any module tag support code.
+        This will be implemented in the subsequent patch.
+
+        [1]: https://html.spec.whatwg.org/multipage/webappapis.html#integration-with-the-javascript-module-system
+        [2]: https://html.spec.whatwg.org/multipage/scripting.html#attr-script-type
+
+        * dom/ScriptElement.cpp:
+        (WebCore::ScriptElement::determineScriptType):
+        (WebCore::ScriptElement::prepareScript):
+        (WebCore::ScriptElement::isScriptTypeSupported): Deleted.
+        * dom/ScriptElement.h:
+
+2016-08-05  Jonathan Bedard  <jbedard@apple.com>
+
+        NULL Reference Error in ElementRuleCollector
+        https://bugs.webkit.org/show_bug.cgi?id=160362
+
+        Reviewed by Darin Adler.
+
+        No new tests, existing CSS tests cover this change.
+
+        Undefined behavior sanitizer found a reference bound to a NULL pointer.
+        The root cause of this issue was a discrepancy between whether an author style needed to be defined.  In some logic, an undefined author style was considered acceptable, but in other logic, author style was always assumed to be defined.  To fix this, a variable was added so that while author style is always defined, there is a flag indicating if this definition occurred in the constructor for use by functions which allow an undefined author style.
+
+        * css/DocumentRuleSets.cpp:
+        (WebCore::DocumentRuleSets::DocumentRuleSets): Define author style by default.
+        (WebCore::DocumentRuleSets::resetAuthorStyle): Switch author style flag.
+        * css/DocumentRuleSets.h: Added author style flag, changed authorStyle accessor to reference from pointer.
+        * css/ElementRuleCollector.cpp:
+        (WebCore::ElementRuleCollector::ElementRuleCollector): Original location of undefined behavior.
+        (WebCore::ElementRuleCollector::matchHostPseudoClassRules): Changed pointer to reference.
+        (WebCore::ElementRuleCollector::matchSlottedPseudoElementRules): Changed pointer to reference.
+        * css/PageRuleCollector.cpp:
+        (WebCore::PageRuleCollector::matchAllPageRules): Check new flag, changed pointer to reference.
+
+        * css/StyleResolver.cpp: Changed pointer to reference.
+        * dom/Document.cpp: Dito.
+        * style/AttributeChangeInvalidation.cpp: Dito.
+        * style/ClassChangeInvalidation.cpp: Dito.
+        * style/IdChangeInvalidation.cpp: Dito.
+        * style/StyleSharingResolver.cpp: Dito.
+
+2016-08-05  Chris Dumez  <cdumez@apple.com>
+
+        DOMException should be constructible
+        https://bugs.webkit.org/show_bug.cgi?id=160626
+
+        Reviewed by Darin Adler.
+
+        DOMException should be constructible:
+        - http://heycam.github.io/webidl/#dfn-DOMException
+        - http://heycam.github.io/webidl/#es-DOMException-constructor-object
+
+        DOMException already has a constructor in Firefox and Chrome so this
+        aligns our behavior with other browsers.
+
+        Test: imported/w3c/web-platform-tests/WebIDL/ecmascript-binding/es-exceptions/DOMException-constructor.html
+
+        * dom/DOMCoreException.cpp:
+        (WebCore::errorCodeFromName):
+        (WebCore::DOMCoreException::create):
+        (WebCore::DOMCoreException::DOMCoreException):
+        * dom/DOMCoreException.h:
+        * dom/DOMCoreException.idl:
+        * dom/ExceptionBase.cpp:
+        (WebCore::ExceptionBase::ExceptionBase):
+        * dom/ExceptionBase.h:
+
+2016-08-05  Chris Dumez  <cdumez@apple.com>
+
+        Align Range.insertNode() input validation with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=160624
+
+        Reviewed by Sam Weinig.
+
+        Align Range.insertNode() input validation with the specification:
+        - https://dom.spec.whatwg.org/#dom-range-insertnode
+        - https://dom.spec.whatwg.org/#concept-range-insert (step 1)
+
+        In particular, if range’s start node is a ProcessingInstruction or
+        Comment node, is a Text node whose parent is null, or is node, then
+        we should throw a HierarchyRequestError.
+
+        Chrome behaves according to the specification.
+
+        No new tests, rebaselined existing test.
+
+        * dom/Range.cpp:
+        (WebCore::Range::insertNode):
+
+2016-08-05  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Add support for 'any' type in dictionaries
+        https://bugs.webkit.org/show_bug.cgi?id=160511
+
+        Reviewed by Sam Weinig.
+
+        Add support for 'any' type in dictionaries. It will pass the value as
+        a JSValue to the implementation. If the member is not present, it will
+        pass jsUndefined() to the implementation.
+
+        Having 'any' support in dictionaries is a convenient workaround for
+        types we don't support yet (e.g. union types).
+
+        No new tests, updated bindings tests.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::Converter<JSC::JSValue>::convert):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convert<TestObj::Dictionary>):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-08-05  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Add support for USVString type
+        https://bugs.webkit.org/show_bug.cgi?id=160608
+
+        Reviewed by Sam Weinig.
+
+        Add support for USVString type in our bindings generator:
+        - http://heycam.github.io/webidl/#idl-USVString
+
+        Also start using USVString instead of DOMString when suitable as per
+        the following specifications:
+        - http://dom.spec.whatwg.org
+        - http://html.spec.whatwg.org
+        - http://url.spec.whatwg.org
+
+        Test: js/dom/webidl-type-mapping.html
+
+        * Modules/websockets/CloseEvent.idl:
+        * Modules/websockets/WebSocket.idl:
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::isUnmatchedSurrogatePair):
+        (WebCore::valueToUSVString):
+        (WebCore::valueToUSVStringTreatingNullAsEmptyString):
+        (WebCore::valueToUSVStringWithUndefinedOrNullCheck):
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::open):
+        (WebCore::handlePostMessage):
+        * bindings/js/JSHistoryCustom.cpp:
+        (WebCore::JSHistory::pushState):
+        (WebCore::JSHistory::replaceState):
+        * bindings/js/JSMessageEventCustom.cpp:
+        (WebCore::handleInitMessageEvent):
+        * bindings/js/JSWorkerGlobalScopeCustom.cpp:
+        (WebCore::JSWorkerGlobalScope::importScripts):
+        * bindings/scripts/CodeGenerator.pm:
+        (SkipIncludeHeader):
+        (IsStringOrEnumType):
+        (IsStringType):
+        (IsRefPtrType):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        (JSValueToNative):
+        (NativeToJSValue):
+        * bindings/scripts/IDLParser.pm:
+        (parseNonAnyType):
+        * dom/Document.idl:
+        * dom/ErrorEvent.idl:
+        * dom/HashChangeEvent.idl:
+        * dom/MessageEvent.idl:
+        * dom/Node.idl:
+        * html/DOMFormData.idl:
+        * html/DOMURL.idl:
+        * html/HTMLAnchorElement.idl:
+        * html/HTMLAppletElement.idl:
+        * html/HTMLAreaElement.idl:
+        * html/HTMLBaseElement.idl:
+        * html/HTMLButtonElement.idl:
+        * html/HTMLEmbedElement.idl:
+        * html/HTMLFormElement.idl:
+        * html/HTMLFrameElement.idl:
+        * html/HTMLHyperlinkElementUtils.idl:
+        * html/HTMLIFrameElement.idl:
+        * html/HTMLImageElement.idl:
+        * html/HTMLInputElement.idl:
+        * html/HTMLLinkElement.idl:
+        * html/HTMLMediaElement.idl:
+        * html/HTMLModElement.idl:
+        * html/HTMLObjectElement.idl:
+        * html/HTMLQuoteElement.idl:
+        * html/HTMLScriptElement.idl:
+        * html/HTMLSourceElement.idl:
+        * html/HTMLTrackElement.idl:
+        * html/HTMLVideoElement.idl:
+        * html/URLUtils.idl:
+        * page/DOMWindow.idl:
+        * page/EventSource.idl:
+        * page/History.idl:
+        * page/Location.idl:
+        * storage/StorageEvent.idl:
+        * testing/TypeConversions.h:
+        (WebCore::TypeConversions::testString):
+        (WebCore::TypeConversions::setTestString):
+        (WebCore::TypeConversions::testUSVString):
+        (WebCore::TypeConversions::setTestUSVString):
+        * testing/TypeConversions.idl:
+        * workers/Worker.idl:
+        * workers/WorkerGlobalScope.idl:
+
+2016-08-05  Jeremy Jones  <jeremyj@apple.com>
+
+        revert r202466 r202546 this causes regressions in media loading with temporary redirects.
+        https://bugs.webkit.org/show_bug.cgi?id=160613
+
+        Reviewed by Jon Lee.
+
+        No new tests. Skipping two tests.
+
+        This reverts a change that attempted to fix temporary redirects with media loading.
+        The change introduced problems. Reverting this to require media stack to properly
+        handle redirects.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::hasSingleSecurityOrigin):
+        * platform/network/cocoa/WebCoreNSURLSession.h:
+        * platform/network/cocoa/WebCoreNSURLSession.mm:
+        (-[WebCoreNSURLSession initWithResourceLoader:delegate:delegateQueue:]): Deleted.
+        (-[WebCoreNSURLSession updateHasSingleSecurityOrigin:]): Deleted.
+        (-[WebCoreNSURLSession dataTaskWithRequest:]): Deleted.
+        (-[WebCoreNSURLSession dataTaskWithURL:]): Deleted.
+        (-[WebCoreNSURLSessionDataTask resource:receivedResponse:]): Deleted.
+        (-[WebCoreNSURLSessionDataTask resource:receivedRedirect:request:]): Deleted.
+
+2016-08-05  Simon Fraser  <simon.fraser@apple.com>
+
+        Add a tiny bit more image logging
+        https://bugs.webkit.org/show_bug.cgi?id=160621
+
+        Reviewed by Tim Horton.
+
+        Add logging related to image subsampling.
+
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::frameImageAtIndex):
+
+2016-08-05  Nan Wang  <n_wang@apple.com>
+
+        AX: Asking for group members of radio button that has no name attribute will cause crash
+        https://bugs.webkit.org/show_bug.cgi?id=160583
+
+        Reviewed by Chris Fleizach.
+
+        The NameToGroupMap is null when there's no name attribute on the radio buttons. Added a 
+        check so that we don't try to get a value from a null HashSet.
+
+        Test: accessibility/mac/radio-button-no-name-crash.html
+
+        * dom/RadioButtonGroups.cpp:
+        (WebCore::RadioButtonGroups::groupMembers):
+
 2016-08-05  Brent Fulgham  <bfulgham@apple.com>
 
         ASSERTION FAILED: observer in WebCore::BitmapImage::drawPattern

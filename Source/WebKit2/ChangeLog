@@ -1,3 +1,230 @@
+2016-08-07  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Duplicated code in DrawingAreaProxyImpl and CoordinatedDrawingAreaProxy
+        https://bugs.webkit.org/show_bug.cgi?id=160506
+
+        Reviewed by Michael Catanzaro.
+
+        Same logic as in r202855 but in the UI process. CoordinatedDrawingAreaProxy is just a copy paste of
+        DrawingAreaProxyImpl with non-accelerated code path removed. There's actually nothing (or very little) specific
+        to coordinated graphics in the CoordinatedDrawingAreaProxy implementation. This patch renames
+        CoordinatedDrawingAreaProxy as AcceleratedDrawingAreaProxy and makes DrawingAreaProxyImpl inherit from it, so
+        that in case of accelerated compositing the parent class is used, and DrawingAreaProxyImpl only adds the non
+        accelerated code path.
+        To simplify the common API of AcceleratedDrawingAreaProxy, I have changed CoordinatedLayerTreeHostProxy to
+        receive a WebPageProxy in the constructor instead of a drawing area, since the drawing area was used just to get
+        the page proxy.
+
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * UIProcess/AcceleratedDrawingAreaProxy.cpp: Renamed from Source/WebKit2/UIProcess/CoordinatedGraphics/CoordinatedDrawingAreaProxy.cpp.
+        (WebKit::AcceleratedDrawingAreaProxy::AcceleratedDrawingAreaProxy):
+        (WebKit::AcceleratedDrawingAreaProxy::~AcceleratedDrawingAreaProxy):
+        (WebKit::AcceleratedDrawingAreaProxy::alwaysUseCompositing):
+        (WebKit::AcceleratedDrawingAreaProxy::dispatchAfterEnsuringDrawing):
+        (WebKit::AcceleratedDrawingAreaProxy::sizeDidChange):
+        (WebKit::AcceleratedDrawingAreaProxy::deviceScaleFactorDidChange):
+        (WebKit::AcceleratedDrawingAreaProxy::visibilityDidChange):
+        (WebKit::AcceleratedDrawingAreaProxy::waitForBackingStoreUpdateOnNextPaint):
+        (WebKit::AcceleratedDrawingAreaProxy::didUpdateBackingStoreState):
+        (WebKit::AcceleratedDrawingAreaProxy::enterAcceleratedCompositingMode):
+        (WebKit::AcceleratedDrawingAreaProxy::exitAcceleratedCompositingMode):
+        (WebKit::AcceleratedDrawingAreaProxy::updateAcceleratedCompositingMode):
+        (WebKit::AcceleratedDrawingAreaProxy::backingStoreStateDidChange):
+        (WebKit::AcceleratedDrawingAreaProxy::sendUpdateBackingStoreState):
+        (WebKit::AcceleratedDrawingAreaProxy::waitForAndDispatchDidUpdateBackingStoreState):
+        (WebKit::AcceleratedDrawingAreaProxy::setNativeSurfaceHandleForCompositing):
+        (WebKit::AcceleratedDrawingAreaProxy::destroyNativeSurfaceHandleForCompositing):
+        * UIProcess/AcceleratedDrawingAreaProxy.h: Renamed from Source/WebKit2/UIProcess/CoordinatedGraphics/CoordinatedDrawingAreaProxy.h.
+        (WebKit::AcceleratedDrawingAreaProxy::isInAcceleratedCompositingMode):
+        (WebKit::AcceleratedDrawingAreaProxy::coordinatedLayerTreeHostProxy):
+        * UIProcess/CoordinatedGraphics/CoordinatedLayerTreeHostProxy.cpp:
+        (WebKit::CoordinatedLayerTreeHostProxy::CoordinatedLayerTreeHostProxy):
+        (WebKit::CoordinatedLayerTreeHostProxy::~CoordinatedLayerTreeHostProxy):
+        (WebKit::CoordinatedLayerTreeHostProxy::updateViewport):
+        (WebKit::CoordinatedLayerTreeHostProxy::commitCoordinatedGraphicsState):
+        (WebKit::CoordinatedLayerTreeHostProxy::setVisibleContentsRect):
+        (WebKit::CoordinatedLayerTreeHostProxy::renderNextFrame):
+        (WebKit::CoordinatedLayerTreeHostProxy::commitScrollOffset):
+        * UIProcess/CoordinatedGraphics/CoordinatedLayerTreeHostProxy.h:
+        * UIProcess/CoordinatedGraphics/PageViewportController.cpp:
+        (WebKit::PageViewportController::syncVisibleContents):
+        * UIProcess/DrawingAreaProxyImpl.cpp:
+        (WebKit::DrawingAreaProxyImpl::DrawingAreaProxyImpl):
+        (WebKit::DrawingAreaProxyImpl::paint):
+        (WebKit::DrawingAreaProxyImpl::didUpdateBackingStoreState):
+        (WebKit::DrawingAreaProxyImpl::exitAcceleratedCompositingMode):
+        (WebKit::DrawingAreaProxyImpl::enterAcceleratedCompositingMode):
+        (WebKit::DrawingAreaProxyImpl::~DrawingAreaProxyImpl): Deleted.
+        (WebKit::DrawingAreaProxyImpl::update): Deleted.
+        (WebKit::DrawingAreaProxyImpl::incorporateUpdate): Deleted.
+        (WebKit::DrawingAreaProxyImpl::discardBackingStoreSoon): Deleted.
+        (WebKit::DrawingAreaProxyImpl::discardBackingStore): Deleted.
+        * UIProcess/DrawingAreaProxyImpl.h:
+        * UIProcess/efl/WebView.cpp:
+        (WebKit::WebView::setVisible):
+        (WebKit::WebView::coordinatedGraphicsScene):
+        (WebKit::WebView::updateViewportSize):
+        (WebKit::WebView::createDrawingAreaProxy):
+
+2016-08-07  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] Reply block leaks if the remote object doesn’t call it
+        https://bugs.webkit.org/show_bug.cgi?id=160642
+
+        Reviewed by Sam Weinig.
+
+        * Shared/API/Cocoa/RemoteObjectRegistry.h: Declared new member functions.
+        * Shared/API/Cocoa/RemoteObjectRegistry.messages.in: Added ReleaseUnusedReplyBlock message.
+        * Shared/API/Cocoa/RemoteObjectRegistry.mm:
+        (WebKit::RemoteObjectRegistry::sendUnusedReply): Send the ReleaseUnusedReplyBlock message.
+        (WebKit::RemoteObjectRegistry::releaseUnusedReplyBlock): Message receiver that call through
+          to -_releaseReplyWithID:.
+
+        * Shared/API/Cocoa/_WKRemoteObjectRegistry.mm:
+        (-[_WKRemoteObjectRegistry _invokeMethod:]): Define a ReplyBlockCallChecker object and
+          capture an instance of it in the reply block we pass to the exported object. Have that
+          block set a flag on the checker when it’s called. If the checker gets destroyed without
+          the block having been called, which means that the block got destroyed without being
+          called, call sendUnusedReply to let the other side know that the block will not be invoked.
+        (-[_WKRemoteObjectRegistry _releaseReplyWithID:]): Added. Removed the pending reply from the
+          map, which release the block.
+        * Shared/API/Cocoa/_WKRemoteObjectRegistryInternal.h:
+
+2016-08-07  Chris Dumez  <cdumez@apple.com>
+
+        Write API test to cover crash fix in r204135
+        https://bugs.webkit.org/show_bug.cgi?id=160587
+
+        Reviewed by Darin Adler.
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::terminateProcess):
+        Stop calling resetStateAfterProcessExited() after calling
+        requestTermination() because requestTermination() now calls
+        didClose() which calls processDidCrash() which already calls
+        resetStateAfterProcessExited(). Because the processDidCrash()
+        delegates may start new loads, we really do not want to
+        reset the state again after calling the delegates.
+
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::requestTermination):
+        - Call didClose() in WebProcessProxy::requestTermination() so that
+          the processDidCrash() delegates get called in API tests whenever
+          a WebContent process is terminated to simulate a crash.
+        - Stop calling shutDown() and webConnection()->didClose() because
+          didClose() already does this for us.
+
+2016-08-06  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r204226.
+
+        Broke some API tests
+
+        Reverted changeset:
+
+        "Write API test to cover crash fix in r204135"
+        https://bugs.webkit.org/show_bug.cgi?id=160587
+        http://trac.webkit.org/changeset/204226
+
+2016-08-06  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] -[_WKRemoteObjectRegistry() _invokeMethod:] leaks a block
+        https://bugs.webkit.org/show_bug.cgi?id=160636
+
+        Reviewed by Darin Adler.
+
+        * Shared/API/Cocoa/_WKRemoteObjectRegistry.mm:
+        (-[_WKRemoteObjectRegistry _invokeMethod:]): Release the block returned from
+          __NSMakeSpecialForwardingCaptureBlock.
+
+2016-08-06  Chris Dumez  <cdumez@apple.com>
+
+        Write API test to cover crash fix in r204135
+        https://bugs.webkit.org/show_bug.cgi?id=160587
+
+        Reviewed by Darin Adler.
+
+        Call didClose() in WebProcessProxy::requestTermination() so that
+        the processDidCrash() delegates get called in API tests whenever
+        a WebContent process is terminated to simulate a crash.
+
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::requestTermination):
+
+2016-08-06  Brady Eidson  <beidson@apple.com>
+
+        Lay WebProcess/UIProcess groundwork for an IPC GamepadProvider.
+        https://bugs.webkit.org/show_bug.cgi?id=160605
+
+        Reviewed by Alex Christensen.
+
+        This patch:
+          - Introduces the GamepadProvider that the WebProcess will use (WebGamepadProvider)
+          - Has that provider message to the UIProcess notifying interest in gamepad state
+          - Introduces a GamepadProviderClient in the UIProcess (UIGamepadProvider) that will use
+            one of the existing GamepadProviders to pass gamepad state along to WebProcesses.
+          - Adds an empty skeleton for the soon-to-be-used WebGamepad, which will be the 
+            "PlatformGamepad" for WebProcesses.
+
+        * CMakeLists.txt:
+        * WebKit2.xcodeproj/project.pbxproj:
+
+        * UIProcess/Gamepads/UIGamepadProvider.cpp: Added.
+        (WebKit::UIGamepadProvider::singleton):
+        (WebKit::UIGamepadProvider::UIGamepadProvider):
+        (WebKit::UIGamepadProvider::~UIGamepadProvider):
+        (WebKit::UIGamepadProvider::platformGamepadConnected):
+        (WebKit::UIGamepadProvider::platformGamepadDisconnected):
+        (WebKit::UIGamepadProvider::platformGamepadInputActivity):
+        (WebKit::UIGamepadProvider::processPoolStartedUsingGamepads):
+        (WebKit::UIGamepadProvider::processPoolStoppedUsingGamepads):
+        (WebKit::UIGamepadProvider::platformStartMonitoringGamepads):
+        (WebKit::UIGamepadProvider::platformStopMonitoringGamepads):
+        * UIProcess/Gamepads/UIGamepadProvider.h: Added.
+
+        * UIProcess/Gamepads/mac/UIGamepadProviderHID.cpp: Added.
+        (WebKit::UIGamepadProvider::platformStartMonitoringGamepads):
+        (WebKit::UIGamepadProvider::platformStopMonitoringGamepads):
+
+        * UIProcess/WebProcessPool.cpp:
+        (WebKit::WebProcessPool::~WebProcessPool):
+        (WebKit::WebProcessPool::disconnectProcess):
+        (WebKit::WebProcessPool::startedUsingGamepads):
+        (WebKit::WebProcessPool::stoppedUsingGamepads):
+        (WebKit::WebProcessPool::processStoppedUsingGamepads):
+        * UIProcess/WebProcessPool.h:
+        * UIProcess/WebProcessPool.messages.in:
+                
+        * WebProcess/Gamepad/WebGamepad.cpp: Added.
+        * WebProcess/Gamepad/WebGamepad.h: Added.
+        
+        * WebProcess/Gamepad/WebGamepadProvider.cpp: Added.
+        (WebKit::WebGamepadProvider::singleton):
+        (WebKit::WebGamepadProvider::WebGamepadProvider):
+        (WebKit::WebGamepadProvider::~WebGamepadProvider):
+        (WebKit::WebGamepadProvider::startMonitoringGamepads):
+        (WebKit::WebGamepadProvider::stopMonitoringGamepads):
+        (WebKit::WebGamepadProvider::platformGamepads):
+        * WebProcess/Gamepad/WebGamepadProvider.h: Added.
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess):
+
+2016-08-05  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r204195.
+        https://bugs.webkit.org/show_bug.cgi?id=160623
+
+        This change causes assertion failures in LayoutTests and API
+        tests. (Requested by ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "Lay WebProcess/UIProcess groundwork for an IPC
+        GamepadProvider."
+        https://bugs.webkit.org/show_bug.cgi?id=160605
+        http://trac.webkit.org/changeset/204195
+
 2016-08-05  Brady Eidson  <beidson@apple.com>
 
         Lay WebProcess/UIProcess groundwork for an IPC GamepadProvider.
