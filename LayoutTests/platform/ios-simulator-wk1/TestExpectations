@@ -725,13 +725,17 @@ css2.1/t1508-c527-font-07-b.html [ Failure ]
 css2.1/t1508-c527-font-08-b.html [ Failure ]
 css2.1/t1508-c527-font-09-b.html [ Failure ]
 css2.1/t1508-c527-font-10-c.html [ Failure ]
+css3/blending/blend-mode-isolation-flags-turn-off-blending.html [ Failure ]
+css3/blending/blend-mode-isolation-flags-turn-on-stacking-context.html [ Failure ]
 css3/filters/remove-filter-repaint.html [ ImageOnlyFailure ]
 css3/flexbox/content-height-with-scrollbars.html [ ImageOnlyFailure ]
 css3/masking/mask-repeat-space-border.html [ ImageOnlyFailure ]
-css3/shapes/shape-outside/supported-shapes/circle/shape-outside-circle-030.html [ ImageOnlyFailure ]
-css3/shapes/shape-outside/supported-shapes/circle/shape-outside-circle-031.html [ ImageOnlyFailure ]
-css3/shapes/shape-outside/supported-shapes/ellipse/shape-outside-ellipse-030.html [ ImageOnlyFailure ]
-css3/shapes/shape-outside/supported-shapes/ellipse/shape-outside-ellipse-031.html [ ImageOnlyFailure ]
+
+# CSS tests that pass:
+css3/flexbox/csswg/flexbox_flex-natural-mixed-basis-auto.html [ Pass ]
+css3/flexbox/csswg/ttwf-reftest-flex-wrap-reverse.html [ Pass ]
+css3/flexbox/csswg/ttwf-reftest-flex-wrap.html [ Pass ]
+css3/flexbox/image-percent-max-height.html [ Pass ]
 
 # Perf tests that fail:
 perf/show-hide-table-rows.html [ Failure ]
@@ -872,11 +876,18 @@ fast/shapes/shape-outside-floats/shape-outside-floats-inset-rounded-top-left.htm
 fast/shapes/shape-outside-floats/shape-outside-floats-inset-rounded-top-right.html [ ImageOnlyFailure ]
 fast/shapes/shape-outside-floats/shape-outside-insert-svg-shape.html [ ImageOnlyFailure ]
 fast/sub-pixel/simple-clipping.html [ ImageOnlyFailure ]
-fast/table/caption-encloses-overhanging-float.html [ ImageOnlyFailure ]
+fast/text/ascent-adjustment-webfont.html [ ImageOnlyFailure ]
+fast/text/crash-complex-unknown-font.html [ ImageOnlyFailure ]
+fast/text/decorations-with-text-combine.html [ Failure ]
 fast/text/delete-hard-break-character.html [ Failure ]
-fast/text/simple-lines-hover-after.html [ ImageOnlyFailure ]
-fast/text/small-line-height.html [ ImageOnlyFailure ]
+fast/text/hyphenate-limit-before-after.html [ Failure ]
+fast/text/international/text-combine-image-test.html [ Failure ]
+fast/text/khmer-lao-font.html [ Failure ]
+fast/text/multiple-text-shadow-overflow-layout-rect.html [ ImageOnlyFailure ]
+fast/text/svg-small-caps.html [ ImageOnlyFailure ]
+fast/text/text-combine-placement.html [ ImageOnlyFailure ]
 fast/text/text-rendering-with-input-selection.html [ ImageOnlyFailure ]
+fast/text/undefined-glyph-with-ligature.html [ ImageOnlyFailure ]
 fast/text/word-space-between-inlines.html [ ImageOnlyFailure ]
 fast/transforms/transformed-caret.html [ Failure ]
 fast/transforms/transformed-focused-text-input.html [ Failure ]
@@ -1390,3 +1401,8 @@ webkit.org/b/158237 fast/scrolling/scroll-container-horizontally.html [ Timeout 
 
 # FIXME: Many media tests fail
 media
+
+# fast tests that pass
+fast/text/emoji-gender.html [ Pass ]
+
+webkit.org/b/161191 imported/w3c/web-platform-tests/url/url-setters.html [ Failure ]

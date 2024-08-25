@@ -2367,16 +2367,9 @@ void SpeculativeJIT::compile(Node* node)
         compileArithSqrt(node);
         break;
 
-    case ArithFRound: {
-        SpeculateDoubleOperand op1(this, node->child1());
-        FPRTemporary result(this, op1);
-        
-        m_jit.convertDoubleToFloat(op1.fpr(), result.fpr());
-        m_jit.convertFloatToDouble(result.fpr(), result.fpr());
-        
-        doubleResult(result.fpr(), node);
+    case ArithFRound:
+        compileArithFRound(node);
         break;
-    }
 
     case ArithRandom:
         compileArithRandom(node);
@@ -3991,7 +3984,8 @@ void SpeculativeJIT::compile(Node* node)
         GPRFlushedCallResult resultPayload(this);
         GPRFlushedCallResult2 resultTag(this);
         
-        callOperation(operationNewRegexp, JSValueRegs(resultTag.gpr(), resultPayload.gpr()), m_jit.codeBlock()->regexp(node->regexpIndex()));
+        RegExp* regexp = node->castOperand<RegExp*>();
+        callOperation(operationNewRegexp, JSValueRegs(resultTag.gpr(), resultPayload.gpr()), regexp);
         m_jit.exceptionCheck();
         
         // FIXME: make the callOperation above explicitly return a cell result, or jitAssert the tag is a cell tag.

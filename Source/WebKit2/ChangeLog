@@ -1,3 +1,58 @@
+2016-08-25  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Don't store networkLoadTiming in the disk cache
+        https://bugs.webkit.org/show_bug.cgi?id=161161
+
+        Reviewed by Antti Koivisto.
+
+        * NetworkProcess/cache/NetworkCacheStorage.h: Updated version to 10.
+        * NetworkProcess/cache/NetworkCacheDecoder.h:
+        * NetworkProcess/cache/NetworkCacheEncoder.h:
+        * Platform/IPC/Decoder.h:
+        * Platform/IPC/Encoder.h:
+        Added isIPCDecoder/isIPCEncoder static members.
+
+2016-08-25  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK][Threaded Compositor] Several flaky tests due to differences in scrollbars
+        https://bugs.webkit.org/show_bug.cgi?id=160450
+
+        Reviewed by Michael Catanzaro.
+
+        The issue is that ThreadedCompositor::didChangeVisibleRect() dispatches the setVisibleContentsRect() call that
+        ends up in CompositingCoordinator. Since we're compositing the scrollbars as well, this visible contents rect
+        needs to encompass the complete width of the view, but that's not happening.
+        In case of non-overlay scrollbars, the scrollbars are clipped from this rect, but that doesn't prevent the
+        scrollbar overlay layers to be flushed and rendered. What does happen is that during tile creation in the
+        backing store the tiles that would normally intersect the visible rect of the view (if it were spanning over the
+        whole actual visible area) are sorted by distance to the visible rect.
+        The top of the two tiles used for the scrollbar is closer to the visible rect, so that gets created and filled
+        in first. The second tile is stored as pending for creation, and does get rendered at the point of the next
+        layer flush.
+
+        * WebProcess/WebPage/CoordinatedGraphics/ThreadedCoordinatedLayerTreeHost.cpp:
+        (WebKit::ThreadedCoordinatedLayerTreeHost::setVisibleContentsRect): Update the visible rect taking into account
+        the non-overlay scrollbars before passing it to the compositor.
+
+2016-08-24  JF Bastien  <jfbastien@apple.com>
+
+        cmake build broken by MessageRecorder removal
+        https://bugs.webkit.org/show_bug.cgi?id=161175
+
+        Reviewed by Dean Jackson.
+
+        * PlatformMac.cmake:
+
+2016-08-24  Jonathan Bedard  <jbedard@apple.com>
+
+        FocusController multiple dereferenced NULL pointers
+        https://bugs.webkit.org/show_bug.cgi?id=160808
+
+        Reviewed by Darin Adler.
+
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::setInitialFocus): Should use nullptr, not 0 to initialize NULL pointer.
+
 2016-08-23  Anders Carlsson  <andersca@apple.com>
 
         Add enum traits and use them in the IPC::Decoder

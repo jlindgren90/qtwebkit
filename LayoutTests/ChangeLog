@@ -1,3 +1,288 @@
+2016-08-25  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Update the Resource Timing implementation
+        https://bugs.webkit.org/show_bug.cgi?id=161068
+
+        Reviewed by Alex Christensen.
+
+        * TestExpectations:
+        Skip resource outside of resource-folder.
+        Mark one test as flaky (see bug 161088).
+
+        * resources/testharnessreport.js:
+        (self.testRunner.add_completion_callback):
+        Updated completion callback to wait for any other completion callbacks
+        before finishing, so the Resource Timing tests can cleanup first.
+        Enabled the ResourceTiming runtime flag.
+
+2016-08-25  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rebase iOS simulator WK1 fast/multicol tests
+
+        * platform/ios-simulator-wk1/fast/multicol/overflow-unsplittable-expected.txt: Added.
+        * platform/ios-simulator-wk1/fast/multicol/pagination/BottomToTop-bt-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/pagination/BottomToTop-lr-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/pagination/BottomToTop-rl-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/pagination/BottomToTop-tb-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/pagination/RightToLeft-bt-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/pagination/RightToLeft-lr-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/pagination/RightToLeft-rl-dynamic-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/pagination/RightToLeft-rl-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/pagination/RightToLeft-tb-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/vertical-rl/column-break-with-balancing-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/vertical-rl/column-rules-expected.txt:
+        * platform/ios-simulator-wk1/fast/multicol/vertical-rl/float-paginate-complex-expected.txt:
+
+2016-08-25  Simon Fraser  <simon.fraser@apple.com>
+
+        TestExpectations cleanup
+        
+        Remove references to non-existant JS tests.
+
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-08-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline js/dom/global-constructors-attributes.html for mac-wk1 after r204935
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+
+2016-08-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip svg/animations/animate-text-nested-transforms.html on ios-simulator
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-08-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/url/url-setters.html as failing on mac and ios-simulator wk1.
+        https://bugs.webkit.org/show_bug.cgi?id=161191
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/mac-wk1/TestExpectations:
+
+2016-08-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline js/dom/global-constructors-attributes.html for mac after r204935
+
+        Unreviewed test gardening.
+
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+
+2016-08-25  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking gamepad/gamepad-timestamp.html as flaky on mac-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=161148
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-08-25  Per Arne Vollan  <pvollan@apple.com>
+
+        Unreviewed test gardening.
+        
+        Update test expectations on Windows for failing tests. These failures are tracked in
+        https://bugs.webkit.org/show_bug.cgi?id=160447.
+
+        * platform/win/TestExpectations:
+        
+2016-08-25  Per Arne Vollan  <pvollan@apple.com>
+
+        Unreviewed test gardening.
+        
+        Update test expectations on Windows for failing tests. These failures are tracked in
+        https://bugs.webkit.org/show_bug.cgi?id=160447.
+
+        * platform/win/TestExpectations:
+        
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        WorkerLocation.prototype.toString() should be enumerable
+        https://bugs.webkit.org/show_bug.cgi?id=161183
+
+        Reviewed by Ryosuke Niwa.
+
+        Add layout test coverage.
+
+        * fast/workers/resources/worker-location.js:
+        * fast/workers/worker-location-expected.txt:
+
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        Location.toString() should be enumerable
+        https://bugs.webkit.org/show_bug.cgi?id=161179
+
+        Reviewed by Geoffrey Garen.
+
+        Update existing tests and add layout test coverage.
+
+        * fast/dom/Window/window-appendages-cleared-expected.txt:
+        * fast/dom/toString_attributes-expected.txt:
+        * fast/dom/toString_attributes.html:
+        * js/dom/toString-dontEnum-expected.txt:
+        * js/dom/toString-dontEnum.html:
+
+2016-08-24  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Implement `CSS.escape` as per CSSOM
+        https://bugs.webkit.org/show_bug.cgi?id=126337
+
+        Reviewed by Dean Jackson.
+
+        CSS.escape is part of the CSSOM Spec:
+        https://drafts.csswg.org/cssom/#the-css.escape%28%29-method
+
+        Tests:
+        https://github.com/mathiasbynens/CSS.escape/blob/master/tests/tests.js
+
+        Change is based on the Blink change (patch by <rob.buis@samsung.com>) and follow-ups:
+        <https://chromium.googlesource.com/chromium/blink/+/c1a5ffdc924b089e70cd33ad2726b58cc8312abe>
+
+        * css3/escape-dom-api-expected.txt: Added.
+        * css3/escape-dom-api.html: Added.
+        New tests, taken from the polyfill.
+
+        * fast/css/parsing-css-nonascii-expected.txt:
+        * fast/css/parsing-css-nonascii.html:
+        * fast/css/selector-text-escape.html:
+        Update existing tests now that 0x7f is escaped.
+
+        * js/dom/function-removed-after-parsing-expected.txt:
+        * js/dom/function-removed-after-parsing.html:
+        Rename use of `CSS.escape` here now that `CSS.escape` exists.
+
+2016-08-24  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: contentSize >= 0 in WebCore::RenderFlexibleBox::adjustChildSizeForMinAndMax
+        https://bugs.webkit.org/show_bug.cgi?id=155700
+        <rdar://problem/27720727>
+
+        Reviewed by David Hyatt.
+
+        * fast/ruby/assert-when-content-size-is-negative-expected.txt: Added.
+        * fast/ruby/assert-when-content-size-is-negative.html: Added.
+
+2016-08-24  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rebase iOS simulator WK1 fast/text tests
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk1/fast/text/atsui-multiple-renderers-expected.txt:
+        * platform/ios-simulator-wk1/fast/text/atsui-negative-spacing-features-expected.txt:
+        * platform/ios-simulator-wk1/fast/text/atsui-spacing-features-expected.txt:
+        * platform/ios-simulator-wk1/fast/text/font-weights-expected.txt: Added.
+        * platform/ios-simulator-wk1/fast/text/international/khmer-selection-expected.txt: Added.
+        * platform/ios-simulator-wk1/fast/text/system-font-weight-expected.txt: Added.
+        * platform/ios-simulator-wk1/fast/text/tatechuyoko-expected.txt: Added.
+        * platform/ios-simulator-wk1/fast/text/textIteratorNilRenderer-expected.txt:
+        * platform/ios-simulator-wk1/fast/text/wbr-expected.txt:
+        * platform/ios-simulator-wk1/fast/text/word-space-expected.txt: Added.
+        * platform/ios-simulator-wk2/fast/text/decorations-with-text-combine-expected.txt: Removed.
+        * platform/ios-simulator/fast/text/decorations-with-text-combine-expected.txt:
+
+2016-08-24  Alex Christensen  <achristensen@webkit.org>
+
+        Import w3c URL tests
+        https://bugs.webkit.org/show_bug.cgi?id=161177
+
+        Reviewed by Tim Horton.
+
+        * TestExpectations:
+        Skip asserting test.
+
+2016-08-24  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS DRT] Hook up uiController.zoomToScale() for DRT
+        https://bugs.webkit.org/show_bug.cgi?id=161173
+
+        Reviewed by Tim Horton.
+        
+        The one test in fast/zooming/ios works in DRT and WTR now.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-08-24  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rebase iOS simulator WK1 fast/table tests
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk1/fast/table/003-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/024-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/031-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/032-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/004-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/004-vertical-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/bug14274-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-cell-append-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-cell-remove-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-cell-border-color-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-cell-sl-border-color-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-col-border-color-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-col-border-width-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-colgroup-border-color-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-colgroup-border-width-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-row-border-color-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-table-border-color-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-table-border-width-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/cached-change-tbody-border-color-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/collapsed-borders-adjoining-sections-vertical-rl-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/border-collapsing/collapsed-borders-painted-once-on-inner-cells-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/colspan-with-all-percent-cells-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/edge-offsets-expected.txt: Added.
+        * platform/ios-simulator-wk1/fast/table/overflowHidden-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/percent-widths-stretch-vertical-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/simple_paint-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/table-anonymous-cell-bug-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/table-anonymous-row-bug-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/table-anonymous-section-bug-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/table-cell-split-expected.txt:
+        * platform/ios-simulator-wk1/fast/table/table-insert-before-non-anonymous-block-expected.txt:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-08-24  Nan Wang  <n_wang@apple.com>
+
+        AX: VoiceOver on iOS ignores aria-checked on menuitemradio and menuitemcheckbox
+        https://bugs.webkit.org/show_bug.cgi?id=161118
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/ios-simulator/menuitem-checked-expected.txt: Added.
+        * accessibility/ios-simulator/menuitem-checked.html: Added.
+
+2016-08-24  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update expectations of iOS simulator WK1 css3 tests
+
+        * TestExpectations:
+        * platform/gtk/TestExpectations:
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        Assertion hit: ASSERT(!m_parserScheduler) in ~HTMLDocumentParser()
+        https://bugs.webkit.org/show_bug.cgi?id=161083
+        <rdar://problem/27986937>
+
+        Reviewed by Darin Adler.
+
+        Unskip html/browsers/browsing-the-web/unloading-documents/004.html as
+        it is no longer crashing.
+
+        * TestExpectations:
+
 2016-08-24  Eric Carlson  <eric.carlson@apple.com>
 
         [MediaStream] Add support for OverConstrained Error

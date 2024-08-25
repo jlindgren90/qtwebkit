@@ -1,3 +1,380 @@
+2016-08-24  Sam Weinig  <sam@webkit.org>
+
+        Add the ability to override the implementation name of IDL enums and dictionaries
+        https://bugs.webkit.org/show_bug.cgi?id=161185
+
+        Reviewed by Anders Carlsson.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (ProcessDocument):
+        Build a dictionary of IDL name -> implementation name overrides
+        for enums and dictionaries up front based on ImplementedAs extended
+        attribute.
+
+        (HasEnumImplementationNameOverride):
+        (GetEnumImplementationNameOverride):
+        (HasDictionaryImplementationNameOverride):
+        (GetDictionaryImplementationNameOverride):
+        Expose predicate and getter for name overrides.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetEnumerationClassName):
+        (GetDictionaryClassName):
+        Use the override names as necessary.
+
+        * bindings/scripts/test/TestObj.idl:
+        Add tests for enums and dictionaries with ImplementedAs extended
+        attributes.
+
+2016-08-25  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Don't store networkLoadTiming in the disk cache
+        https://bugs.webkit.org/show_bug.cgi?id=161161
+
+        Reviewed by Antti Koivisto.
+
+        No functionality changed. So, no new tests.
+
+        * platform/network/ResourceResponseBase.h:
+        (WebCore::ResourceResponseBase::encode):
+        (WebCore::ResourceResponseBase::decode):
+
+2016-08-25  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Update the Resource Timing implementation
+        https://bugs.webkit.org/show_bug.cgi?id=161068
+
+        Reviewed by Alex Christensen.
+
+        Tests: imported/w3c/web-platform-tests/resource-timing/resource-timing.html
+               imported/w3c/web-platform-tests/resource-timing/test_resource_timing.html
+
+        Update the Resource Timing implementation for better compatibility with the Resource Timing API spec.
+        Use LoadTiming for general timing information about a resources load timeline.
+        Mark timestamps for newly loaded resources as well as cached resources.
+
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::startLoadingMainResource):
+        StartTime and fetchStart should be equal initially.
+
+        * loader/LoadTiming.cpp:
+        (WebCore::LoadTiming::LoadTiming): Moved member initialization out. Removed constructor.
+        * loader/LoadTiming.h:
+        (WebCore::LoadTiming::markStartTimeAndFetchStart):
+        Mark startTime and fetchStart simultaneously.
+
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::init):
+        Mark the start time of resources.
+
+        * loader/ResourceLoader.h:
+        (WebCore::ResourceLoader::loadTiming):
+        Add LoadTiming info to handle a resources load timing.
+
+        * loader/ResourceTimingInformation.cpp:
+        (WebCore::ResourceTimingInformation::addResourceTiming):
+        * loader/ResourceTimingInformation.h:
+        Only pass in the URL from the ResourceRequest.
+        Pass LoadTiming instead of timestamps.
+
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::willSendRequestInternal):
+        Mark redirects.
+
+        (WebCore::SubresourceLoader::didFinishLoading):
+        Mark the responseEnd timestamp.
+        Add the ResourceEntry to the timeline before notifyDone is called.
+
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::requestResource):
+        (WebCore::CachedResourceLoader::revalidateResource):
+        (WebCore::CachedResourceLoader::loadDone):
+        Mark timestamps for cached resources and use them instead of a cached LoadTiming.
+
+        * loader/cache/CachedResourceLoader.h:
+        (WebCore::CachedResourceLoader::resourceTimingInformation):
+        Add ResourceTimingInformation getter so SubresourceLoader.cpp can add entries before callbacks.
+
+        * page/Performance.cpp:
+        (WebCore::Performance::addResourceTiming):
+        * page/Performance.h:
+        Update signature: URLs and LoadTiming instead of timestamps.
+
+        * page/PerformanceResourceTiming.cpp:
+        (WebCore::PerformanceResourceTiming::PerformanceResourceTiming):
+        (WebCore::PerformanceResourceTiming::redirectStart):
+        (WebCore::PerformanceResourceTiming::redirectEnd):
+        (WebCore::PerformanceResourceTiming::fetchStart):
+        (WebCore::PerformanceResourceTiming::domainLookupStart):
+        (WebCore::PerformanceResourceTiming::domainLookupEnd):
+        (WebCore::PerformanceResourceTiming::connectStart):
+        (WebCore::PerformanceResourceTiming::connectEnd):
+        (WebCore::PerformanceResourceTiming::requestStart):
+        (WebCore::PerformanceResourceTiming::responseStart):
+        (WebCore::PerformanceResourceTiming::responseEnd):
+        (WebCore::PerformanceResourceTiming::resourceTimeToDocumentMilliseconds):
+        * page/PerformanceResourceTiming.h:
+        Update signatures and properties to use LoadTiming.
+        Use LoadTiming’s redirectStart/End, fetchStart, responseStart/End.
+        Make sure dns and connection timestamps are in increasing order, even when cached.
+
+        * page/PerformanceResourceTiming.idl:
+        Add responseStart.
+
+2016-08-24  Anders Carlsson  <andersca@apple.com>
+
+        Simplify createMouseEvent in DragController
+        https://bugs.webkit.org/show_bug.cgi?id=161168
+
+        Reviewed by Dan Bernstein.
+
+        * page/DragController.cpp:
+        (WebCore::createMouseEvent):
+        * platform/DragData.cpp:
+        (WebCore::DragData::modifierKeyState): Deleted.
+        * platform/DragData.h:
+
+2016-08-25  Chris Dumez  <cdumez@apple.com>
+
+        DOMTokenList.value should be a stringifier attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161195
+
+        Reviewed by Darin Adler.
+
+        DOMTokenList.value should be a stringifier attribute:
+        - https://dom.spec.whatwg.org/#domtokenlist
+
+        No new tests, this change is not observable from the Web.
+
+        * html/DOMTokenList.h:
+        (WebCore::DOMTokenList::toString): Deleted.
+        * html/DOMTokenList.idl:
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::iconSizes): Deleted.
+        * html/HTMLLinkElement.h:
+
+2016-08-25  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [Mac][cmake] Unreviewed speculative buildfix after r204852, just for fun.
+
+        * PlatformMac.cmake:
+
+2016-08-24  Frederic Wang  <fwang@igalia.com>
+
+        Do not store layout parameters on the RenderMathMLRoot class
+        https://bugs.webkit.org/show_bug.cgi?id=161132
+
+        Reviewed by Darin Adler.
+
+        Storing layout parameters on the RenderMathMLRoot class is not really needed since reading
+        the parameters from the MATH table is not too expensive and updateStyle() is currently always
+        called in layoutBlock() and computePreferredLogicalWidths(). Most of these parameters are
+        actually only used in layoutBlock(). We separate horizontal and vertical parameters since
+        the latter are not needed for preferred width calculations. This removes the need for calling
+        an updateStyle functions and may also fix update issues when zooming in or out.
+
+        No new tests, already covered by existing tests.
+
+        * rendering/mathml/MathMLStyle.cpp:
+        (WebCore::MathMLStyle::updateStyleIfNeeded): No need to update layout parameters for the
+        RenderMathMLRoot class.
+        * rendering/mathml/RenderMathMLRoot.cpp:
+        (WebCore::RenderMathMLRoot::styleDidChange): No need to update layout parameters.
+        (WebCore::RenderMathMLRoot::horizontalParameters): Move code from updateStyle to retrieve the
+        horizontal parameters.
+        (WebCore::RenderMathMLRoot::verticalParameters): Ditto for vertical parameters.
+        (WebCore::RenderMathMLRoot::computePreferredLogicalWidths): Call horizontalParameters() to
+        get the kernings of the index instead of calling updateStyle().
+        (WebCore::RenderMathMLRoot::layoutBlock): Call horizontalParameters() and
+        verticalParameters() to get the layout parameters instead of calling updateStyle().
+        (WebCore::RenderMathMLRoot::paint): Call horizontalParameters() and verticalParameters()
+        to get the layout parameters.
+        (WebCore::RenderMathMLRoot::updateFromElement): Deleted. No need to call updateStyle().
+        (WebCore::RenderMathMLRoot::updateStyle): Deleted.
+        * rendering/mathml/RenderMathMLRoot.h: Do not override updateFromElement(). Replace some
+        layout parameters stored on the class with struct and helper functions to manipulate them.
+
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        WorkerLocation.prototype.toString() should be enumerable
+        https://bugs.webkit.org/show_bug.cgi?id=161183
+
+        Reviewed by Ryosuke Niwa.
+
+        WorkerLocation.prototype.toString() should be enumerable:
+        - https://html.spec.whatwg.org/#workerlocation
+        - http://heycam.github.io/webidl/#es-stringifier
+
+        No new tests, updated existing test.
+
+        * workers/WorkerLocation.h:
+        (WebCore::WorkerLocation::toString): Deleted.
+        * workers/WorkerLocation.idl:
+        Also use USVString string type instead of DOMString to match the
+        specification. There is no behavior change because those attributes
+        are readonly.
+
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        Location.toString() should be enumerable
+        https://bugs.webkit.org/show_bug.cgi?id=161179
+
+        Reviewed by Geoffrey Garen.
+
+        Location.toString() should be enumerable as per:
+        - https://html.spec.whatwg.org/#location
+        - http://heycam.github.io/webidl/#es-stringifier
+
+        This patch stops hard-coding the toString() operation on the Location
+        interface and makes the 'href' attribute a stringifier attribute instead,
+        as per the specification. The generated toString() has the same behavior
+        as it used to but it is now enumerable, as it should.
+
+        No new tests, updated existing test.
+
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::toStringFunction): Deleted.
+        * page/Location.idl:
+
+2016-08-24  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Implement `CSS.escape` as per CSSOM
+        https://bugs.webkit.org/show_bug.cgi?id=126337
+
+        Reviewed by Dean Jackson.
+
+        Test: css3/escape-dom-api.html
+
+        * css/CSSOMUtils.cpp:
+        (WebCore::serializeIdentifier):
+        Update serialization to match the latest version of the spec:
+        <https://drafts.csswg.org/cssom/#serialize-an-identifier>
+        New handling for 0x0, 0x7f, just "-", and "--" is now allowed.
+
+        * css/DOMCSSNamespace.cpp:
+        (WebCore::DOMCSSNamespace::escape):
+        * css/DOMCSSNamespace.h:
+        * css/DOMCSSNamespace.idl:
+        New CSS.escape method.
+
+2016-08-24  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: contentSize >= 0 in WebCore::RenderFlexibleBox::adjustChildSizeForMinAndMax
+        https://bugs.webkit.org/show_bug.cgi?id=155700
+        <rdar://problem/27720727>
+
+        Reviewed by David Hyatt.
+
+        RenderBox::m_minPreferredLogicalWidth/m_maxPreferredLogicalWidth don't need special initial value since
+        preferredLogicalWidthsDirty flag guards them. -1 as initial value can cause problems for renderers that don't
+        override RenderBox::computePreferredLogicalWidths().    
+
+        Test: fast/ruby/assert-when-content-size-is-negative.html
+
+        * rendering/RenderBox.cpp:
+        (WebCore::RenderBox::RenderBox):
+        (WebCore::RenderBox::dirtyLineBoxes):
+        (WebCore::RenderBox::deleteLineBoxWrapper):
+        * rendering/RenderBox.h:
+
+2016-08-24  Alex Christensen  <achristensen@webkit.org>
+
+        Import w3c URL tests
+        https://bugs.webkit.org/show_bug.cgi?id=161177
+
+        Reviewed by Tim Horton.
+
+        Tests: imported/w3c/web-platform-tests/url/a-element-xhtml.xhtml
+               imported/w3c/web-platform-tests/url/a-element.html
+               imported/w3c/web-platform-tests/url/historical.html
+               imported/w3c/web-platform-tests/url/interfaces.html
+               imported/w3c/web-platform-tests/url/url-constructor.html
+               imported/w3c/web-platform-tests/url/url-domainToUnicode.html
+               imported/w3c/web-platform-tests/url/url-setters.html
+               imported/w3c/web-platform-tests/url/urlsearchparams-append.html
+               imported/w3c/web-platform-tests/url/urlsearchparams-constructor.html
+               imported/w3c/web-platform-tests/url/urlsearchparams-delete.html
+               imported/w3c/web-platform-tests/url/urlsearchparams-get.html
+               imported/w3c/web-platform-tests/url/urlsearchparams-getall.html
+               imported/w3c/web-platform-tests/url/urlsearchparams-has.html
+               imported/w3c/web-platform-tests/url/urlsearchparams-set.html
+               imported/w3c/web-platform-tests/url/urlsearchparams-stringifier.html
+
+        * platform/URL.cpp:
+        (WebCore::URL::setQuery):
+
+2016-08-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline bindings tests after r204923.
+
+        Unreviewed test gardening.
+
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        (WebCore::jsTestActiveDOMObjectExcitingAttr):
+        (WebCore::jsTestActiveDOMObjectPrototypeFunctionExcitingFunction):
+
+2016-08-24  Jonathan Bedard  <jbedard@apple.com>
+
+        FocusController multiple dereferenced NULL pointers
+        https://bugs.webkit.org/show_bug.cgi?id=160808
+
+        Reviewed by Darin Adler.
+
+        No new tests needed, fix does not change functionality.
+
+        This change fixes a number of NULL pointer dereferences which occur in FocusController.
+
+        * page/FocusController.cpp:
+        (WebCore::isFocusableElementOrScopeOwner): Changed KeyboardEvent reference to pointer.
+        (WebCore::isNonFocusableScopeOwner): Ditto.
+        (WebCore::isFocusableScopeOwner): Ditto.
+        (WebCore::shadowAdjustedTabIndex): Ditto.
+
+        (WebCore::FocusController::findFocusableElementAcrossFocusScope): Pass pointer instead of reference to KeyboardEvent.
+        (WebCore::FocusController::nextFocusableElementWithinScope): Ditto.
+        (WebCore::FocusController::previousFocusableElementWithinScope): Ditto.
+        (WebCore::FocusController::findElementWithExactTabIndex): Ditto.
+        (WebCore::nextElementWithGreaterTabIndex): Ditto.
+        (WebCore::previousElementWithLowerTabIndex): Ditto.
+        (WebCore::FocusController::nextFocusableElementOrScopeOwner): Ditto.
+        (WebCore::FocusController::previousFocusableElementOrScopeOwner): Ditto.
+        (WebCore::relinquishesEditingFocus): Ditto.
+
+2016-08-24  Nan Wang  <n_wang@apple.com>
+
+        AX: VoiceOver on iOS ignores aria-checked on menuitemradio and menuitemcheckbox
+        https://bugs.webkit.org/show_bug.cgi?id=161118
+
+        Reviewed by Chris Fleizach.
+
+        Added checkboxOrRadioValue and toggle trait to menuitemradio and menuitemcheckbox.
+
+        Test: accessibility/ios-simulator/menuitem-checked.html
+
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper accessibilityTraits]):
+        (-[WebAccessibilityObjectWrapper accessibilityValue]):
+
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        Assertion hit: ASSERT(!m_parserScheduler) in ~HTMLDocumentParser()
+        https://bugs.webkit.org/show_bug.cgi?id=161083
+        <rdar://problem/27986937>
+
+        Reviewed by Darin Adler.
+
+        Call cancelParsing() right before re-creating the new parser in
+        Document::implicitOpen(). We would previously call removeChildren()
+        in between which is was an issue because it can cause JS to be
+        executed and therefore the parser to be re-created after we have
+        cancelled parsing.
+
+        No new tests, unskipped html/browsers/browsing-the-web/unloading-documents/004.html
+        which was consistently crashing.
+
+        * dom/Document.cpp:
+        (WebCore::Document::implicitOpen):
+
 2016-08-24  Eric Carlson  <eric.carlson@apple.com>
 
         [MediaStream] Add support for OverConstrained Error

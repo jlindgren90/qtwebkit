@@ -1,3 +1,106 @@
+2016-08-25  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Update the Resource Timing implementation
+        https://bugs.webkit.org/show_bug.cgi?id=161068
+
+        Reviewed by Alex Christensen.
+
+        Added W3C Web Platform Tests for Resource Timing.
+
+        * web-platform-tests/resource-timing/OWNERS: Added.
+        * web-platform-tests/resource-timing/SyntheticResponse.py: Added.
+        (main):
+        * web-platform-tests/resource-timing/iframe-setdomain.sub.html: Added.
+        * web-platform-tests/resource-timing/resource-timing.html: Added.
+        * web-platform-tests/resource-timing/resource-timing.js: Added.
+        (testCases.test):
+        (test):
+        (runNextCase):
+        (assertInvariants):
+        (assertResourceEntryInvariants):
+        (canonicalize):
+        (createUniqueQueryArgument):
+        (getSyntheticUrl):
+        (initiateFetch):
+        (window.onload):
+        * web-platform-tests/resource-timing/resources/resource_timing_test0.css: Added.
+        (div#resource_link_css):
+        * web-platform-tests/resource-timing/resources/resource_timing_test0.html: Added.
+        * web-platform-tests/resource-timing/resources/resource_timing_test0.js: Added.
+        * web-platform-tests/resource-timing/resources/resource_timing_test0.png: Added.
+        * web-platform-tests/resource-timing/resources/resource_timing_test0.xml: Added.
+        * web-platform-tests/resource-timing/resources/webperftestharness.js: Added.
+        (wp_test):
+        (test_namespace):
+        (test_timing_order):
+        (test_timing_equals):
+        (sleep_milliseconds):
+        (test_true):
+        (test_equals):
+        (test_greater_than):
+        (test_greater_or_equals):
+        * web-platform-tests/resource-timing/test_resource_timing.html: Added.
+        * web-platform-tests/resource-timing/test_resource_timing.js: Added.
+        (setup):
+        (resolve):
+        (switch.):
+        (switch.case.string_appeared_here.xmlhttp.onload):
+        (switch.default.element.onload):
+        (onload):
+        (poll_for_stylesheet_load.inner):
+        (poll_for_stylesheet_load):
+        (resource_load):
+
+2016-08-24  Alex Christensen  <achristensen@webkit.org>
+
+        Import w3c URL tests
+        https://bugs.webkit.org/show_bug.cgi?id=161177
+
+        Reviewed by Tim Horton.
+
+        * web-platform-tests/url: Added.
+        * web-platform-tests/url/OWNERS: Added.
+        * web-platform-tests/url/README.md: Added.
+        * web-platform-tests/url/a-element-expected.txt: Added.
+        * web-platform-tests/url/a-element-xhtml-expected.txt: Added.
+        * web-platform-tests/url/a-element-xhtml.xhtml: Added.
+        * web-platform-tests/url/a-element.html: Added.
+        * web-platform-tests/url/a-element.js: Added.
+        (setup.async_test.string_appeared_here.setup.step):
+        (setBase):
+        (bURL):
+        (runURLTests):
+        * web-platform-tests/url/historical-expected.txt: Added.
+        * web-platform-tests/url/historical.html: Added.
+        * web-platform-tests/url/historical.worker.js: Added.
+        (test):
+        * web-platform-tests/url/interfaces-expected.txt: Added.
+        * web-platform-tests/url/interfaces.html: Added.
+        * web-platform-tests/url/setters_tests.json: Added.
+        * web-platform-tests/url/url-constructor-expected.txt: Added.
+        * web-platform-tests/url/url-constructor.html: Added.
+        * web-platform-tests/url/url-domainToUnicode-expected.txt: Added.
+        * web-platform-tests/url/url-domainToUnicode.html: Added.
+        * web-platform-tests/url/url-setters-expected.txt: Added.
+        * web-platform-tests/url/url-setters.html: Added.
+        * web-platform-tests/url/urlsearchparams-append-expected.txt: Added.
+        * web-platform-tests/url/urlsearchparams-append.html: Added.
+        * web-platform-tests/url/urlsearchparams-constructor-expected.txt: Added.
+        * web-platform-tests/url/urlsearchparams-constructor.html: Added.
+        * web-platform-tests/url/urlsearchparams-delete-expected.txt: Added.
+        * web-platform-tests/url/urlsearchparams-delete.html: Added.
+        * web-platform-tests/url/urlsearchparams-get-expected.txt: Added.
+        * web-platform-tests/url/urlsearchparams-get.html: Added.
+        * web-platform-tests/url/urlsearchparams-getall-expected.txt: Added.
+        * web-platform-tests/url/urlsearchparams-getall.html: Added.
+        * web-platform-tests/url/urlsearchparams-has-expected.txt: Added.
+        * web-platform-tests/url/urlsearchparams-has.html: Added.
+        * web-platform-tests/url/urlsearchparams-set-expected.txt: Added.
+        * web-platform-tests/url/urlsearchparams-set.html: Added.
+        * web-platform-tests/url/urlsearchparams-stringifier-expected.txt: Added.
+        * web-platform-tests/url/urlsearchparams-stringifier.html: Added.
+        * web-platform-tests/url/urltestdata.json: Added.
+
 2016-08-23  Chris Dumez  <cdumez@apple.com>
 
         Add support for CanvasRenderingContext2D.resetTransform()
