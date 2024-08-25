@@ -25,27 +25,43 @@
 
 #pragma once
 
-#include "AuxiliaryBarrier.h"
-#include "Heap.h"
-#include "VM.h"
+#include <type_traits>
 
-namespace JSC {
+namespace WTF {
 
-template<typename T>
-template<typename U>
-AuxiliaryBarrier<T>::AuxiliaryBarrier(VM& vm, JSCell* owner, U&& value)
+template<typename> struct EnumTraits;
+
+template<typename E, E...> struct EnumValues;
+
+template<typename T, typename E> struct EnumValueChecker;
+
+template<typename T, typename E, E e, E... es>
+struct EnumValueChecker<T, EnumValues<E, e, es...>> {
+    static constexpr bool isValidEnum(T t)
+    {
+        if (static_cast<T>(e) == t)
+            return true;
+
+        return EnumValueChecker<T, EnumValues<E, es...>>::isValidEnum(t);
+    }
+};
+
+template<typename T, typename E>
+struct EnumValueChecker<T, EnumValues<E>> {
+    static constexpr bool isValidEnum(T t)
+    {
+        return false;
+    }
+};
+
+template<typename E, typename T>
+constexpr auto isValidEnum(T t) -> std::enable_if_t<std::is_enum<E>::value, bool>
 {
-    m_value = std::forward<U>(value);
-    vm.heap.writeBarrier(owner);
+    static_assert(sizeof(T) >= std::underlying_type_t<E>(), "Integral type must be at least the size of the underlying enum type");
+
+    return EnumValueChecker<T, typename EnumTraits<E>::values>::isValidEnum(t);
 }
 
-template<typename T>
-template<typename U>
-void AuxiliaryBarrier<T>::set(VM& vm, JSCell* owner, U&& value)
-{
-    m_value = std::forward<U>(value);
-    vm.heap.writeBarrier(owner);
 }
 
-} // namespace JSC
-
+using WTF::isValidEnum;

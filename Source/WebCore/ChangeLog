@@ -1,3 +1,115 @@
+2016-08-24  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Add support for OverConstrained Error
+        https://bugs.webkit.org/show_bug.cgi?id=160790
+        <rdar://problem/27815715>
+
+        Reviewed by Jer Noble.
+
+        Existing tests updated.
+
+        * DerivedSources.make:
+        * Modules/mediastream/OverconstrainedError.h: Added.
+        (WebCore::OverconstrainedError::create):
+        (WebCore::OverconstrainedError::constraint):
+        (WebCore::OverconstrainedError::message):
+        (WebCore::OverconstrainedError::OverconstrainedError):
+        * Modules/mediastream/OverconstrainedError.idl: Added.
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-08-24  Anders Carlsson  <andersca@apple.com>
+
+        Build the platform name dynamically for the phony WebKitLegacy framework
+        https://bugs.webkit.org/show_bug.cgi?id=161163
+
+        Reviewed by Dan Bernstein.
+
+        * Configurations/WebKitLegacyStub.iOS.tbd:
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        It should not be possible to access Location attributes cross origin
+        https://bugs.webkit.org/show_bug.cgi?id=161125
+        <rdar://problem/27982472>
+
+        Reviewed by Brent Fulgham.
+
+        It should not be possible to access Location attributes cross origin:
+        - https://html.spec.whatwg.org/#crossoriginproperties-(-o-)
+
+        We allow access to replace() as per the specification and consistently
+        with Firefox. The specification seems to indicate we should allow access
+        to 'href' but Firefox does not and we previously did not so I am not
+        allowing it in this patch.
+
+        Test: http/tests/security/location-cross-origin.html
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * page/Location.idl:
+
+2016-08-24  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Add User Timing to the feature status page
+        https://bugs.webkit.org/show_bug.cgi?id=161154
+
+        Reviewed by Darin Adler.
+
+        * features.json:
+
+2016-08-24  Andreas Kling  <akling@apple.com>
+
+        Leaks bot hits an assertion in ResourceUsageThread::platformThreadBody
+        <https://webkit.org/b/160534>
+
+        Reviewed by Joseph Pecoraro.
+
+        Use the correct malloc bucket when bmalloc is disabled (which is the case on leaks bots.)
+
+        * page/cocoa/ResourceUsageThreadCocoa.mm:
+        (WebCore::ResourceUsageThread::platformThreadBody):
+
+2016-08-24  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, roll out r204901, r204897, r204866, r204856, r204854.
+
+        * ForwardingHeaders/heap/HeapInlines.h: Removed.
+        * ForwardingHeaders/interpreter/Interpreter.h: Added.
+        * ForwardingHeaders/runtime/AuxiliaryBarrierInlines.h: Removed.
+        * Modules/indexeddb/IDBCursorWithValue.cpp:
+        * Modules/indexeddb/client/TransactionOperation.cpp:
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        * bindings/js/JSApplePayPaymentAuthorizedEventCustom.cpp:
+        * bindings/js/JSApplePayPaymentMethodSelectedEventCustom.cpp:
+        * bindings/js/JSApplePayShippingContactSelectedEventCustom.cpp:
+        * bindings/js/JSApplePayShippingMethodSelectedEventCustom.cpp:
+        * bindings/js/JSClientRectCustom.cpp:
+        * bindings/js/JSDOMBinding.cpp:
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSDeviceMotionEventCustom.cpp:
+        * bindings/js/JSDeviceOrientationEventCustom.cpp:
+        * bindings/js/JSErrorEventCustom.cpp:
+        * bindings/js/JSIDBCursorWithValueCustom.cpp:
+        * bindings/js/JSIDBIndexCustom.cpp:
+        * bindings/js/JSPopStateEventCustom.cpp:
+        * bindings/js/JSWebGL2RenderingContextCustom.cpp:
+        * bindings/js/JSWorkerGlobalScopeCustom.cpp:
+        * bindings/js/WorkerScriptController.cpp:
+        * contentextensions/ContentExtensionParser.cpp:
+        * dom/ErrorEvent.cpp:
+        * html/HTMLCanvasElement.cpp:
+        * html/MediaDocument.cpp:
+        * inspector/CommandLineAPIModule.cpp:
+        * loader/EmptyClients.cpp:
+        * page/CaptionUserPreferences.cpp:
+        * page/Frame.cpp:
+        * page/PageGroup.cpp:
+        * page/UserContentController.cpp:
+        * platform/mock/mediasource/MockBox.cpp:
+        * testing/GCObservation.cpp:
+
 2016-08-24  Zalan Bujtas  <zalan@apple.com>
 
         ASSERTION FAILED: childrenInline() in WebCore::RenderBlockFlow::hasLines

@@ -1,6 +1,7 @@
+// Copyright (c) 2005, 2007, Google Inc. All rights reserved.
+
 /*
- * Copyright (c) 2005, 2007, Google Inc. All rights reserved.
- * Copyright (C) 2005-2009, 2011, 2015-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2005-2009, 2011, 2015 Apple Inc. All rights reserved.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -80,6 +81,11 @@ TryMallocReturnValue tryFastZeroedMalloc(size_t n)
 
 namespace WTF {
 
+bool isFastMallocEnabled()
+{
+    return false;
+}
+
 size_t fastMallocGoodSize(size_t bytes)
 {
 #if OS(DARWIN)
@@ -96,11 +102,6 @@ void* fastAlignedMalloc(size_t alignment, size_t size)
     return _aligned_malloc(size, alignment);
 }
 
-void* tryFastAlignedMalloc(size_t alignment, size_t size) 
-{
-    return _aligned_malloc(size, alignment);
-}
-
 void fastAlignedFree(void* p) 
 {
     _aligned_free(p);
@@ -109,13 +110,6 @@ void fastAlignedFree(void* p)
 #else
 
 void* fastAlignedMalloc(size_t alignment, size_t size) 
-{
-    void* p = nullptr;
-    posix_memalign(&p, alignment, size);
-    return p;
-}
-
-void* tryFastAlignedMalloc(size_t alignment, size_t size) 
 {
     void* p = nullptr;
     posix_memalign(&p, alignment, size);
@@ -199,6 +193,11 @@ size_t fastMallocSize(const void* p)
 
 namespace WTF {
 
+bool isFastMallocEnabled()
+{
+    return bmalloc::api::isEnabled();
+}
+
 void* fastMalloc(size_t size)
 {
     return bmalloc::api::malloc(size);
@@ -240,11 +239,6 @@ size_t fastMallocGoodSize(size_t size)
 void* fastAlignedMalloc(size_t alignment, size_t size) 
 {
     return bmalloc::api::memalign(alignment, size);
-}
-
-void* tryFastAlignedMalloc(size_t alignment, size_t size) 
-{
-    return bmalloc::api::tryMemalign(alignment, size);
 }
 
 void fastAlignedFree(void* p) 

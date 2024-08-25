@@ -23,41 +23,33 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
+#include "config.h"
 
-namespace JSC {
+#include <wtf/EnumTraits.h>
 
-class JSCell;
-class VM;
-
-// An Auxiliary barrier is a barrier that does not try to reason about the value being stored into
-// it, other than interpreting a falsy value as not needing a barrier. It's OK to use this for either
-// JSCells or any other kind of data, so long as it responds to operator!().
-template<typename T>
-class AuxiliaryBarrier {
-public:
-    AuxiliaryBarrier() { }
-    
-    template<typename U>
-    AuxiliaryBarrier(VM&, JSCell*, U&&);
-    
-    void clear() { m_value = T(); }
-    
-    template<typename U>
-    void set(VM&, JSCell*, U&&);
-    
-    const T& get() const { return m_value; }
-    
-    T* slot() { return &m_value; }
-    
-    explicit operator bool() const { return !!m_value; }
-    
-    template<typename U>
-    void setWithoutBarrier(U&& value) { m_value = std::forward<U>(value); }
-    
-private:
-    T m_value;
+enum class TestEnum {
+    A,
+    B,
+    C,
 };
 
-} // namespace JSC
+namespace WTF {
+template<> struct EnumTraits<TestEnum> {
+    using values = EnumValues<TestEnum, TestEnum::A, TestEnum::B, TestEnum::C>;
+};
+}
 
+namespace TestWebKitAPI {
+
+static_assert(WTF::isValidEnum<TestEnum>(0), "");
+static_assert(!WTF::isValidEnum<TestEnum>(-1), "");
+static_assert(!WTF::isValidEnum<TestEnum>(3), "");
+
+TEST(WTF_EnumTraits, IsValidEnum)
+{
+    EXPECT_TRUE(isValidEnum<TestEnum>(0));
+    EXPECT_FALSE(isValidEnum<TestEnum>(-1));
+    EXPECT_FALSE(isValidEnum<TestEnum>(3));
+}
+
+}

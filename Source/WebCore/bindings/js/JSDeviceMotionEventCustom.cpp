@@ -32,8 +32,6 @@
 #include "DeviceMotionData.h"
 #include "DeviceMotionEvent.h"
 #include "JSDOMBinding.h"
-#include <heap/HeapInlines.h>
-#include <runtime/AuxiliaryBarrierInlines.h>
 #include <runtime/IdentifierInlines.h>
 #include <runtime/JSCJSValueInlines.h>
 #include <runtime/ObjectConstructor.h>

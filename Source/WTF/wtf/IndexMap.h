@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,46 +23,60 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#include "config.h"
-#include "MacroAssemblerCodeRef.h"
+#pragma once
 
-#include "JSCInlines.h"
-#include "LLIntData.h"
+#include <wtf/Vector.h>
 
-namespace JSC {
+namespace WTF {
 
-MacroAssemblerCodePtr MacroAssemblerCodePtr::createLLIntCodePtr(OpcodeID codeId)
-{
-    return createFromExecutableAddress(LLInt::getCodePtr(codeId));
-}
+// This is a map for keys that have an index(). It's super efficient for BasicBlocks. It's only
+// efficient for Values if you don't create too many of these maps, since Values can have very
+// sparse indices and there are a lot of Values.
 
-void MacroAssemblerCodePtr::dumpWithName(const char* name, PrintStream& out) const
-{
-    if (!m_value) {
-        out.print(name, "(null)");
-        return;
+template<typename Key, typename Value>
+class IndexMap {
+public:
+    explicit IndexMap(size_t size = 0)
+    {
+        m_vector.fill(Value(), size);
     }
-    if (executableAddress() == dataLocation()) {
-        out.print(name, "(", RawPointer(executableAddress()), ")");
-        return;
+
+    void resize(size_t size)
+    {
+        m_vector.fill(Value(), size);
     }
-    out.print(name, "(executable = ", RawPointer(executableAddress()), ", dataLocation = ", RawPointer(dataLocation()), ")");
-}
 
-void MacroAssemblerCodePtr::dump(PrintStream& out) const
-{
-    dumpWithName("CodePtr", out);
-}
+    void clear()
+    {
+        m_vector.fill(Value(), m_vector.size());
+    }
 
-MacroAssemblerCodeRef MacroAssemblerCodeRef::createLLIntCodeRef(OpcodeID codeId)
-{
-    return createSelfManagedCodeRef(MacroAssemblerCodePtr::createFromExecutableAddress(LLInt::getCodePtr(codeId)));
-}
+    size_t size() const { return m_vector.size(); }
 
-void MacroAssemblerCodeRef::dump(PrintStream& out) const
-{
-    m_codePtr.dumpWithName("CodeRef", out);
-}
+    Value& operator[](size_t index)
+    {
+        return m_vector[index];
+    }
 
-} // namespace JSC
+    const Value& operator[](size_t index) const
+    {
+        return m_vector[index];
+    }
+    
+    Value& operator[](Key* key)
+    {
+        return m_vector[key->index()];
+    }
+    
+    const Value& operator[](Key* key) const
+    {
+        return m_vector[key->index()];
+    }
 
+private:
+    Vector<Value> m_vector;
+};
+
+} // namespace WTF
+
+using WTF::IndexMap;

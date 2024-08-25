@@ -1,3 +1,108 @@
+2016-08-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Attempt to fix Windows build after r204918.
+
+        Unreviewed build fix.
+
+        * DumpRenderTree/win/ResourceLoadDelegate.cpp:
+        (ResourceLoadDelegate::willSendRequest):
+
+2016-08-24  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS DRT] Get basic viewport tests working in DRT
+        https://bugs.webkit.org/show_bug.cgi?id=161160
+
+        Reviewed by Tim Horton.
+        
+        Hook up enough of UIScriptController in iOS DRT to be able to read viewport
+        scale, and get the contentVisibleRect.
+        
+        Requires exposing a bit of UIWebBrowserView SPI from UIKit, which in turn
+        requires typing the gWebBrowserView as a DumpRenderTreeBrowserView * everywhere.
+        
+        One test has different results between DRT and WTR, but DRT behavior seems to differ
+        from UIWebView here, so just give it a WK1-specific result.
+
+        * DumpRenderTree/ios/DumpRenderTreeBrowserView.h:
+        * DumpRenderTree/ios/DumpRenderTreeBrowserView.mm:
+        (-[DumpRenderTreeBrowserView documentVisibleRect]):
+        * DumpRenderTree/ios/PixelDumpSupportIOS.mm:
+        * DumpRenderTree/ios/UIScriptControllerIOS.mm:
+        (WTR::UIScriptController::zoomScale):
+        (WTR::UIScriptController::minimumZoomScale):
+        (WTR::UIScriptController::maximumZoomScale):
+        (WTR::UIScriptController::contentVisibleRect):
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (createWebViewAndOffscreenWindow):
+        * DumpRenderTree/mac/DumpRenderTreeMac.h:
+
+2016-08-24  Simon Fraser  <simon.fraser@apple.com>
+
+        Minor project rearrangement.
+
+        * DumpRenderTree/DumpRenderTree.xcodeproj/project.pbxproj:
+
+2016-08-24  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS DRT] Make iOS DRT use the same window size as WebKitTestRunner for flexible viewport tests
+        https://bugs.webkit.org/show_bug.cgi?id=161124
+
+        Reviewed by Daniel Bates.
+        
+        Use the main UIScreen's bounds for the size of the window in flexible viewport mode,
+        and remove the 'phoneBrowserAddressBarOffset' hack, so that it matches WTR.
+        
+        Remove some unnecessary zero initializations of static variables.
+        
+        Change _setVisibleSize to use the window size, which should not be a behavior change
+        because this it just used for text autosizing, which is disabled by default,
+        and only the width is consulted.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (adjustWebDocumentForFlexibleViewport):
+        (adjustWebDocumentForStandardViewport):
+        (createWebViewAndOffscreenWindow):
+
+2016-08-24  Jonathan Bedard  <jbedard@apple.com>
+
+        WebKit2 needs layoutTestController.setDeferMainResourceDataLoad
+        https://bugs.webkit.org/show_bug.cgi?id=42777
+
+        Reviewed by Darin Adler.
+
+        The setDeferMainResourceDataLoad method was not correctly tested in DumpRenderTree and would pass even when setDeterMainResourceDataLoad was not called.  Removed function and test.
+
+        * DumpRenderTree/TestRunner.cpp:
+        (setDeferMainResourceDataLoadCallback): Removed setDeferMainResourceDataLoad.
+        * DumpRenderTree/TestRunner.h:
+        (TestRunner::deferMainResourceDataLoad): Ditto.
+        (TestRunner::setDeferMainResourceDataLoad): Ditto.
+        * DumpRenderTree/mac/ResourceLoadDelegate.mm: Ditto.
+
+2016-08-23  Anders Carlsson  <andersca@apple.com>
+
+        Add enum traits and use them in the IPC::Decoder
+        https://bugs.webkit.org/show_bug.cgi?id=161103
+
+        Reviewed by Sam Weinig.
+
+        Add API test.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WTF/EnumTraits.cpp: Added.
+        (TestWebKitAPI::TEST):
+
+2016-08-24  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, roll out r204901, r204897, r204866, r204856, r204854.
+
+        * DumpRenderTree/TestRunner.cpp:
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (DumpRenderTreeMain):
+        * Scripts/run-jsc-stress-tests:
+        * TestWebKitAPI/Tests/WTF/Vector.cpp:
+        (TestWebKitAPI::TEST):
+
 2016-08-24  Simon Fraser  <simon.fraser@apple.com>
 
         Try to fix Production builds.

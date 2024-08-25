@@ -20,68 +20,62 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef B3IndexMap_h
-#define B3IndexMap_h
+#pragma once
 
-#if ENABLE(B3_JIT)
+#include <type_traits>
 
-#include <wtf/Vector.h>
+namespace WTF {
 
-namespace JSC { namespace B3 {
-
-// This is a map for keys that have an index(). It's super efficient for BasicBlocks. It's only
-// efficient for Values if you don't create too many of these maps, since Values can have very
-// sparse indices and there are a lot of Values.
-
-template<typename Key, typename Value>
-class IndexMap {
+template<class Container>
+class IndexedContainerIterator {
 public:
-    explicit IndexMap(size_t size = 0)
+    IndexedContainerIterator()
+        : m_container(nullptr)
+        , m_index(0)
     {
-        m_vector.fill(Value(), size);
     }
 
-    void resize(size_t size)
+    IndexedContainerIterator(const Container& container, unsigned index)
+        : m_container(&container)
+        , m_index(findNext(index))
     {
-        m_vector.fill(Value(), size);
     }
 
-    void clear()
+    auto operator*() -> typename std::result_of<decltype(&Container::at)(const Container, unsigned)>::type
     {
-        m_vector.fill(Value(), m_vector.size());
+        return m_container->at(m_index);
     }
 
-    size_t size() const { return m_vector.size(); }
-
-    Value& operator[](size_t index)
+    IndexedContainerIterator& operator++()
     {
-        return m_vector[index];
+        m_index = findNext(m_index + 1);
+        return *this;
     }
 
-    const Value& operator[](size_t index) const
+    bool operator==(const IndexedContainerIterator& other) const
     {
-        return m_vector[index];
+        ASSERT(m_container == other.m_container);
+        return m_index == other.m_index;
     }
-    
-    Value& operator[](Key* key)
+
+    bool operator!=(const IndexedContainerIterator& other) const
     {
-        return m_vector[key->index()];
-    }
-    
-    const Value& operator[](Key* key) const
-    {
-        return m_vector[key->index()];
+        return !(*this == other);
     }
 
 private:
-    Vector<Value> m_vector;
+    unsigned findNext(unsigned index)
+    {
+        while (index < m_container->size() && !m_container->at(index))
+            index++;
+        return index;
+    }
+
+    const Container* m_container;
+    unsigned m_index;
 };
 
-} } // namespace JSC::B3
-
-#endif // ENABLE(B3_JIT)
-
-#endif // B3IndexMap_h
+} // namespace WTF

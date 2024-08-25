@@ -1,3 +1,118 @@
+2016-08-24  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Add support for OverConstrained Error
+        https://bugs.webkit.org/show_bug.cgi?id=160790
+        <rdar://problem/27815715>
+
+        Reviewed by Jer Noble.
+
+        * fast/dom/Window/get-set-properties-expected.txt:
+        * fast/dom/Window/get-set-properties.html:
+        * fast/dom/Window/resources/window-properties.js:
+        * fast/dom/Window/window-property-shadowing-expected.txt:
+        * fast/dom/Window/window-property-shadowing.html:
+        * platform/mac/fast/dom/Window/window-lookup-precedence-expected.txt:
+
+2016-08-24  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rebase iOS simulator WK1 css3 tests
+
+        * platform/ios-simulator-wk1/css3/blending/blend-mode-accelerated-with-multiple-stacking-contexts-expected.txt: Removed.
+        * platform/ios-simulator-wk1/css3/blending/blend-mode-ancestor-clipping-layer-expected.txt: Removed.
+        * platform/ios-simulator-wk1/css3/blending/blend-mode-blended-element-overlapping-composited-sibling-should-have-compositing-layer-expected.txt: Removed.
+        * platform/ios-simulator-wk1/css3/blending/blend-mode-isolation-accelerated-overflow-hidden-expected.txt: Removed.
+        * platform/ios-simulator-wk1/css3/blending/blend-mode-with-accelerated-sibling-expected.txt: Removed.
+        * platform/ios-simulator-wk1/css3/blending/blend-mode-with-composited-descendant-should-have-layer-expected.txt: Removed.
+        * platform/ios-simulator-wk1/css3/filters/backdrop/backdrop-filter-does-not-size-properly-border-and-padding-expected.txt: Removed.
+        * platform/ios-simulator-wk1/css3/filters/filtered-compositing-descendant-expected.txt: Removed.
+
+2016-08-24  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS DRT] Get basic viewport tests working in DRT
+        https://bugs.webkit.org/show_bug.cgi?id=161160
+
+        Reviewed by Tim Horton.
+        
+        Enable some fast/viewport/ios/ tests for ios-simulator-wk1 that work now.
+        
+        "body-overflow-hidden" tests should pass everywhere now since the behavior of overflow:hidden
+        on the body was reverted.
+
+        * fast/viewport/ios/width-is-device-width-overflowing-body-overflow-hidden-expected.txt:
+        * fast/viewport/ios/width-is-device-width-overflowing-body-overflow-hidden-tall-expected.txt:
+        * fast/viewport/ios/width-is-device-width-overflowing-expected.txt:
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk1/fast/viewport/ios/width-is-device-width-overflowing-body-overflow-hidden-tall-expected.txt: Renamed from LayoutTests/platform/ios-simulator/fast/viewport/ios/width-is-device-width-overflowing-expected.txt.
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/fast/viewport/ios/width-is-device-width-overflowing-body-overflow-hidden-expected.txt: Removed.
+        * platform/ios-simulator/fast/viewport/ios/width-is-device-width-overflowing-body-overflow-hidden-tall-expected.txt: Removed.
+
+2016-08-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking wpt LayoutTest scroll-restoration-fragment-scrolling-samedoc.html as flaky on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=161143
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-08-24  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update expectations of iOS simulator WK1 svg tests
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-08-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unskip inspector/codemirror tests on mac-wk1 debug.
+        https://bugs.webkit.org/show_bug.cgi?id=161117
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        It should not be possible to access Location attributes cross origin
+        https://bugs.webkit.org/show_bug.cgi?id=161125
+        <rdar://problem/27982472>
+
+        Reviewed by Brent Fulgham.
+
+        Add layout test coverage.
+
+        * http/tests/security/location-cross-origin-expected.txt: Added.
+        * http/tests/security/location-cross-origin.html: Added.
+
+2016-08-24  Jonathan Bedard  <jbedard@apple.com>
+
+        WebKit2 needs layoutTestController.setDeferMainResourceDataLoad
+        https://bugs.webkit.org/show_bug.cgi?id=42777
+
+        Reviewed by Darin Adler.
+
+        The setDeferMainResourceDataLoad method was not correctly tested in DumpRenderTree and would pass even when setDeterMainResourceDataLoad was not called.  Removed function and test.
+
+        * fast/loader/non-deferred-substitute-load-expected.txt: Removed fast/loader/non-deferred-substitute-load.html.
+        * fast/loader/non-deferred-substitute-load.html: Ditto.
+        * platform/ios-simulator-wk2/TestExpectations: Ditto.
+        * platform/win/TestExpectations: Ditto.
+        * platform/wk2/TestExpectations: Ditto.
+
+2016-08-24  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, temporarily skipping W3C tests trying to load www1.localhost.
+
+        * TestExpectations:
+
+2016-08-24  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, roll out r204901, r204897, r204866, r204856, r204854.
+
+        * TestExpectations:
+
 2016-08-24  Zalan Bujtas  <zalan@apple.com>
 
         ASSERTION FAILED: childrenInline() in WebCore::RenderBlockFlow::hasLines

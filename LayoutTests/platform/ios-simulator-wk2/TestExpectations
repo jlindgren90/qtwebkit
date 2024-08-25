@@ -128,7 +128,6 @@ svg/animations/animate-path-animation-lL-vV-hH-inverse.html
 svg/animations/animate-path-animation-qQ-tT-inverse.html
 svg/animations/animate-path-nested-transforms.html
 svg/animations/animate-path-to-animation.html
-svg/animations/animate-text-nested-transforms.html
 svg/animations/animateTransform-pattern-transform.html
 svg/animations/animateTransform-translate-attributetype-auto.html
 svg/animations/animateTransform-translate-invalid-attributetype.html
@@ -297,6 +296,7 @@ svg/hixie/intrinsic/003.html [ Failure ]
 svg/text/foreignObject-repaint.xml [ Failure ]
 svg/zoom/page/absolute-sized-document-no-scrollbars.svg [ Failure ]
 svg/zoom/page/relative-sized-document-scrollbars.svg [ Failure ]
+svg/zoom/page/zoom-background-image-tiled.html [ Failure ]
 svg/zoom/page/zoom-foreign-content.svg [ Failure ]
 svg/zoom/page/zoom-hixie-mixed-008.xml [ Failure ]
 svg/zoom/page/zoom-hixie-mixed-009.xml [ Failure ]
@@ -522,7 +522,6 @@ fast/images/image-map-multiple.html [ Failure ]
 fast/images/image-map-zoom.html [ Failure ]
 fast/images/imagemap-dynamic-area-updates.html [ Failure ]
 fast/inline/relative-positioned-overflow.html [ Failure ]
-fast/loader/non-deferred-substitute-load.html [ Failure ]
 fast/loader/policy-delegate-action-hit-test-zoomed.html [ Failure ]
 fast/loader/repeat-same-document-navigation.html [ Failure ]
 fast/regions/assert-hit-test-image.html [ Failure ]
@@ -1770,11 +1769,6 @@ webkit.org/b/155201 storage/domstorage/events/basic-body-attribute.html [ Pass F
 
 # Forcing always allow user scalable is not supported on certain OS version.
 webkit.org/b/155056 fast/viewport/ios/force-always-user-scalable.html [ Skip ]
-webkit.org/b/153110 fast/viewport/ios/width-is-device-width-overflowing.html [ Pass Failure ]
-webkit.org/b/153110 fast/viewport/ios/width-is-device-width-overflowing-body-overflow-hidden.html [ Pass Failure ]
-webkit.org/b/153110 fast/viewport/ios/width-is-device-width-overflowing-body-overflow-hidden-tall.html [ Pass Failure ]
-fast/viewport/ios/width-is-device-width.html [ Pass ]
-fast/viewport/ios/width-is-device-width-overflowing-no-shrink-to-fit.html [ Pass ]
 
 webkit.org/b/155501 animations/3d/transform-origin-vs-functions.html [ Pass Failure ]
 
