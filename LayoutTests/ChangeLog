@@ -1,3 +1,142 @@
+2016-08-13  Chris Dumez  <cdumez@apple.com>
+
+        'compatMode' property should be on Document, not HTMLDocument
+        https://bugs.webkit.org/show_bug.cgi?id=160819
+
+        Reviewed by Sam Weinig.
+
+        Add layout test coverage.
+
+        * fast/dom/Document/compatMode-location-expected.txt: Added.
+        * fast/dom/Document/compatMode-location.html: Added.
+
+2016-08-12  Chris Dumez  <cdumez@apple.com>
+
+        getElementsByTagName() should take a qualifiedName in parameter
+        https://bugs.webkit.org/show_bug.cgi?id=160682
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing tests to reflect behavior change.
+
+        * fast/dom/getElementsByClassName/010.xml:
+        * fast/dom/getElementsByClassName/011.xml:
+
+2016-08-12  Saam Barati  <sbarati@apple.com>
+
+        Inline store loop for CopyRest in DFG and FTL for certain array modes
+        https://bugs.webkit.org/show_bug.cgi?id=159612
+
+        Reviewed by Filip Pizlo.
+
+        * js/regress/rest-parameter-construction-performance-expected.txt: Added.
+        * js/regress/rest-parameter-construction-performance.html: Added.
+        * js/regress/script-tests/rest-parameter-construction-performance.js: Added.
+        (foo):
+        (test1):
+        (test2.foo):
+        (test2):
+
+2016-08-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Add mac-wk1 baseline for js/dom/global-constructors-attributes.html after r204396.
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt: Added.
+
+2016-08-12  Pranjal Jumde  <pjumde@apple.com>
+
+        ASSERTION FAILED: : line >= firstLine in BytecodeGenerator::emitExpressionInfo.
+        https://bugs.webkit.org/show_bug.cgi?id=160535
+        <rdar://problem/27328151>
+
+        Reviewed by Saam Barati.
+
+        lineNumber from the savePoint was not being restored before calling next() causing discrepancy in the offset and line for the token
+
+        * js/multiline-function-crash-expected.txt: Added.
+        * js/multiline-function-crash.html: Added.
+        * js/script-tests/multiline-function-crash.js: Added.
+
+2016-08-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r204416.
+
+        This test fails with a debug assertion
+
+        Reverted changeset:
+
+        "ASSERTION FAILED: : line >= firstLine in
+        BytecodeGenerator::emitExpressionInfo."
+        https://bugs.webkit.org/show_bug.cgi?id=160535
+        http://trac.webkit.org/changeset/204416
+
+2016-08-12  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES2016] Implement Object.entries
+        https://bugs.webkit.org/show_bug.cgi?id=160412
+
+        Reviewed by Saam Barati.
+
+        * js/Object-getOwnPropertyNames-expected.txt:
+        * js/script-tests/Object-getOwnPropertyNames.js:
+
+2016-08-12  Pranjal Jumde  <pjumde@apple.com>
+
+        ASSERTION FAILED: : line >= firstLine in BytecodeGenerator::emitExpressionInfo.
+        https://bugs.webkit.org/show_bug.cgi?id=160535
+        <rdar://problem/27328151>
+
+        Reviewed by Saam Barati.
+
+        lineNumber from the savePoint was not being restored before calling next() causing discrepancy in the offset and line for the token
+
+        * js/multiline-function-crash-expected.txt: Added.
+        * js/multiline-function-crash.html: Added.
+        * js/script-tests/multiline-function-crash.js: Added.
+
+2016-08-12  Brent Fulgham  <bfulgham@apple.com>
+
+        Add test for fixed nullptr deref error
+        https://bugs.webkit.org/show_bug.cgi?id=160807
+        <rdar://problem/15576693>
+
+        Unreviewed test gardening.
+
+        * mathml/row-clone-crash-expected.txt: Added.
+        * mathml/row-clone-crash.html: Added.
+
+2016-08-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline js/dom/global-constructors-attributes.html after r204396.
+
+        Unreviewed test gardening.
+
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+
+2016-08-11  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking transitions/clip-path-transitions.html and transitions/clip-path-path-transitions.html as flaky on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=153809
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-08-11  Chris Dumez  <cdumez@apple.com>
+
+        Align Range.surroundContents() with the latest DOM specification
+        https://bugs.webkit.org/show_bug.cgi?id=160777
+
+        Reviewed by Ryosuke Niwa.
+
+        Rebaseline existing due to behavior change.
+
+        * fast/dom/Range/surroundContents-1-expected.txt:
+        * fast/dom/Range/surroundContents-1.html:
+
 2016-08-11  Ryan Haddad  <ryanhaddad@apple.com>
 
         Rebaseline more iOS tests after r204363.

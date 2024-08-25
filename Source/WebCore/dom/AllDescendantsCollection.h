@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,12 +23,26 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#import <WebKit/_WKVisitedLinkStore.h>
+#pragma once
 
-#if WK_API_ENABLED
+#include "CachedHTMLCollection.h"
 
-WK_CLASS_DEPRECATED_WITH_REPLACEMENT("_WKVisitedLinkStore", macosx(10.10, WK_MAC_TBA), ios(8.0, WK_IOS_TBA))
-@interface _WKVisitedLinkProvider : _WKVisitedLinkStore
-@end
+namespace WebCore {
 
-#endif
+class AllDescendantsCollection : public CachedHTMLCollection<AllDescendantsCollection, CollectionTypeTraits<AllDescendants>::traversalType> {
+public:
+    static Ref<AllDescendantsCollection> create(ContainerNode& rootNode, CollectionType type)
+    {
+        ASSERT_UNUSED(type, type == AllDescendants);
+        return adoptRef(*new AllDescendantsCollection(rootNode, type));
+    }
+
+    bool elementMatches(Element&) const { return true; }
+
+protected:
+    AllDescendantsCollection(ContainerNode& rootNode, CollectionType type)
+        : CachedHTMLCollection<AllDescendantsCollection, CollectionTypeTraits<AllDescendants>::traversalType>(rootNode, type)
+    { }
+};
+
+}

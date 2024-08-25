@@ -1,3 +1,160 @@
+2016-08-13  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] Install script lacks gstreamer related dependencies
+        https://bugs.webkit.org/show_bug.cgi?id=160814
+
+        Reviewed by Carlos Garcia Campos.
+
+        * gtk/install-dependencies: Fedora case had already listed this dependencies,
+        but both Arch and Debian/Ubuntu were missing them.
+
+2016-08-13  Konstantin Tokarev  <annulen@yandex.ru>
+
+        make-dist.py should not allow unknown rules in manifest
+        https://bugs.webkit.org/show_bug.cgi?id=160841
+
+        Reviewed by Carlos Garcia Campos.
+
+        * gtk/make-dist.py:
+        (Manifest.process_line):
+
+2016-08-13  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [EFL][GTK] Install script not working on Debian 9 (testing) and Ubuntu 16.10
+        https://bugs.webkit.org/show_bug.cgi?id=160809
+
+        Reviewed by Carlos Garcia Campos.
+
+        * efl/install-dependencies: Factorize the previous logic for handling the php5/7
+        case, and use it also for the new package names of libpng and libgeoclue.
+        * gtk/install-dependencies: Ditto.
+
+2016-08-12  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        Skip to check directories existence in build-webkit
+        https://bugs.webkit.org/show_bug.cgi?id=160691
+
+        Reviewed by Alex Christensen.
+
+        CMake checks if directories are there itself. So CMake ports
+        don't need to check it in the build-webkit script.
+
+        * Scripts/build-webkit:
+        * Scripts/webkitdirs.pm:
+        (determineSourceDir):
+        (isCMakeBuild):
+
+2016-08-12  Alex Christensen  <achristensen@webkit.org>
+
+        Make URLParser work with URLs missing URL parts
+        https://bugs.webkit.org/show_bug.cgi?id=160824
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::s):
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::TEST_F):
+        (TestWebKitAPI::eq): Deleted.
+
+2016-08-12  John Wilander  <wilander@apple.com>
+
+        Add HashCountedSet API tests to TestWTFLibrary target
+        https://bugs.webkit.org/show_bug.cgi?id=160815
+
+        Reviewed by Alex Christensen.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+            Added HashCountedSet.cpp and sorted the file reference section
+            according to UNIX sort.
+
+2016-08-12  Ryosuke Niwa  <rniwa@webkit.org>
+
+        run-benchmark should run JetStream 1.1 instead of 1.0.1
+        https://bugs.webkit.org/show_bug.cgi?id=160816
+
+        Reviewed by Filip Pizlo.
+
+        Use the latest JetStream 1.1 in run-benchmark.
+
+        * Scripts/webkitpy/benchmark_runner/benchmark_builder.py:
+        (BenchmarkBuilder.__exit__):
+        * Scripts/webkitpy/benchmark_runner/data/patches/JetStream.patch: Updated to apply against 1.1 directory.
+        * Scripts/webkitpy/benchmark_runner/data/plans/jetstream.plan: Updated to use r190897, which is the last
+        change to JetStream directory.
+
+2016-08-12  Alex Christensen  <achristensen@webkit.org>
+
+        Initial URLParser implementation
+        https://bugs.webkit.org/show_bug.cgi?id=160811
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::eq):
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::TEST_F):
+
+2016-08-12  Brady Eidson  <beidson@apple.com>
+
+        Fix the 32-bit Mac build after:
+        Add WK2 ExperimentalFeature support to MiniBrowser
+        https://bugs.webkit.org/show_bug.cgi?id=160788
+
+        Unreviewed.
+
+        Sprinkle "#if WK_API_ENABLED"s liberally.
+        
+        * MiniBrowser/mac/AppDelegate.m:
+        (defaultConfiguration):
+        * MiniBrowser/mac/SettingsController.m:
+        (-[SettingsController _populateMenu]):
+        (-[SettingsController validateMenuItem:]):
+
+2016-08-12  Philippe Normand  <pnormand@igalia.com>
+
+        [GStreamer][OWR] Video rendering fixes
+        https://bugs.webkit.org/show_bug.cgi?id=160764
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        * gtk/jhbuild.modules: Bump to current OpenWebRTC master.
+
+2016-08-12  Per Arne Vollan  <pvollan@apple.com>
+
+        Add missing return statement in convertFast function added in r204376.
+
+        Unreviewed.
+
+        * Scripts/webkitpy/common/system/path.py:
+        (_CygPath.convertFast):
+
+2016-08-11  Brady Eidson  <beidson@apple.com>
+
+        Add WK2 ExperimentalFeature support to MiniBrowser.
+        https://bugs.webkit.org/show_bug.cgi?id=160788
+
+        Reviewed by Alex Christensen.
+
+        * MiniBrowser/mac/AppDelegate.h:
+        * MiniBrowser/mac/AppDelegate.m:
+        (defaultConfiguration):
+        (defaultPreferences):
+        
+        * MiniBrowser/mac/SettingsController.m:
+        (-[SettingsController _populateMenu]):
+        (-[SettingsController validateMenuItem:]):
+        (-[SettingsController toggleExperimentalFeature:]):
+
+2016-08-11  Aakash Jain  <aakash_jain@apple.com>
+
+        Keep EWS logs for longer
+        https://bugs.webkit.org/show_bug.cgi?id=160776
+
+        Reviewed by Daniel Bates.
+
+        * EWSTools/start-queue-mac.sh: Keep logs for 30 days instead of 14 days.
+
 2016-08-11  Simon Fraser  <simon.fraser@apple.com>
 
         iOS DRT/WTR project cleanup

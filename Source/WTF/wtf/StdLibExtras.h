@@ -335,7 +335,7 @@ struct Visitor<A> : A {
 };
  
 template <class... F>
-auto makeVisitor(F... f)
+Visitor<F...> makeVisitor(F... f)
 {
     return Visitor<F...>(f...);
 }
@@ -403,6 +403,8 @@ ALWAYS_INLINE constexpr typename remove_reference<T>::type&& move(T&& value)
     return move(forward<T>(value));
 }
 
+#if !COMPILER(CLANG) || WTF_CPP_STD_VER >= 14
+
 template<typename... Types>
 using variant = std::experimental::variant<Types...>;
 
@@ -410,6 +412,8 @@ using std::experimental::get;
 using std::experimental::get_if;
 using std::experimental::holds_alternative;
 using std::experimental::visit;
+
+#endif
 
 } // namespace std
 

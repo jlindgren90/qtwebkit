@@ -1,3 +1,186 @@
+2016-08-14  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] Remove deprecated _WKFormDelegate
+        https://bugs.webkit.org/show_bug.cgi?id=160848
+
+        Reviewed by Anders Carlsson.
+
+        * Shared/API/Cocoa/WebKitPrivate.h: Removed #import.
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _formDelegate]): Moved into WKBinaryCompatibilityIOS10 cateogry implementation,
+          chaged type to id <_WKInputDelegate>.
+        (-[WKWebView _setFormDelegate:]): Ditto.
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h: Removed property declaration.
+        * UIProcess/API/Cocoa/_WKFormDelegate.h: Removed.
+        * WebKit2.xcodeproj/project.pbxproj: Removed reference to header.
+        * WebProcess/InjectedBundle/API/Cocoa/WKWebProcessPlugInFormDelegatePrivate.h: Fixed comment.
+
+2016-08-14  Daniel Bates  <dabates@apple.com>
+
+        Fix compiler errors when building iOS WebKit using the iOS 10 beta SDK
+        https://bugs.webkit.org/show_bug.cgi?id=160725
+
+        Reviewed by Sam Weinig.
+
+        * Platform/spi/ios/UIKitSPI.h: Add SPI for UITextInputSuggestionDelegate.
+        * UIProcess/ApplePay/ios/WebPaymentCoordinatorProxyIOS.mm: Remove unnecessary include of PKPaymentMerchantSession.h.
+
+2016-08-14  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] Remove deprecated _WKVisitedLinkProvider declarations that aren’t needed
+        https://bugs.webkit.org/show_bug.cgi?id=160846
+
+        Reviewed by Darin Adler.
+
+        * UIProcess/API/Cocoa/WKWebViewConfiguration.mm:
+        (-[WKWebViewConfiguration _visitedLinkProvider]): Moved into WKBinaryCompatibilityIOS10
+          cateogry implementation, changed type to _WKVisitedLinkStore.
+        (-[WKWebViewConfiguration _setVisitedLinkProvider:]): Ditto.
+        * UIProcess/API/Cocoa/WKWebViewConfigurationPrivate.h: Removed property declaration.
+
+        * UIProcess/API/Cocoa/_WKVisitedLinkProvider.h: Removed.
+        * UIProcess/API/Cocoa/_WKVisitedLinkProvider.mm: Moved declaration in here.
+
+        * WebKit2.xcodeproj/project.pbxproj: Updated for header removal.
+
+2016-08-12  Dan Bernstein  <mitz@apple.com>
+
+        [Cocoa] Instances of WKObject subclasses don’t work correctly with CFGetTypeID()
+        https://bugs.webkit.org/show_bug.cgi?id=160820
+        <rdar://problem/27825875>
+
+        Reviewed by Anders Carlsson.
+
+        * Shared/Cocoa/WKObject.mm:
+        (-[WKObject _cfTypeID]): Override this internal method and forward to the target object.
+
+2016-08-12  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Rename DocumentLoadTiming and ResourceLoadTiming
+        https://bugs.webkit.org/show_bug.cgi?id=160821
+
+        Reviewed by Alex Christensen.
+
+        Rename ResourceLoadTiming to NetworkLoadTiming.
+
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:dataTask:didReceiveResponse:completionHandler:]):
+
+2016-08-12  Anders Carlsson  <andersca@apple.com>
+
+        message loading never finishes in Mail
+        https://bugs.webkit.org/show_bug.cgi?id=160806
+        rdar://problem/27624095
+
+        Reviewed by Dan Bernstein.
+
+        Add more checks for when a process goes away before we've established a proper connection to it.
+
+        * Platform/IPC/mac/ConnectionMac.mm:
+        (IPC::Connection::receiveSourceEventHandler):
+        Handle the MACH_NOTIFY_NO_SENDERS and MACH_NOTIFY_SEND_ONCE messages here. Also, once we receive a send
+        right from the other side, stop listening for the MACH_NOTIFY_NO_SENDERS notification.
+
+        * UIProcess/ChildProcessProxy.cpp:
+        (WebKit::ChildProcessProxy::didFinishLaunching):
+        Null check the connection identifier.
+
+        * UIProcess/Launcher/ProcessLauncher.cpp:
+        (WebKit::ProcessLauncher::ProcessLauncher):
+        (WebKit::processLauncherWorkQueue): Deleted.
+        Get rid of the process launcher queue - we're not doing any blocking work here.
+
+        * UIProcess/Launcher/ProcessLauncher.h:
+        Add a weak factory.
+
+        * UIProcess/Launcher/mac/ProcessLauncherMac.mm:
+        (WebKit::systemDirectoryPath):
+        Move this before launchProcess().
+
+        (WebKit::ProcessLauncher::launchProcess):
+        Merge createService and connectToService into launchProcess. Also make the following changes:
+        - Use mach_port_request_notification to get a notification for when our receive right loses all its senders.
+        This lets us listen for the other process going away before we have a send right for it.
+        - Use xpc_connection_set_event_handler to listen for errors, so we can detect the process going away before
+        we've sent a message to it.
+        
+        (WebKit::connectToService): Deleted.
+        (WebKit::createService): Deleted.
+
+        * UIProcess/Network/NetworkProcessProxy.cpp:
+        (WebKit::NetworkProcessProxy::didFinishLaunching):
+        If we failed to launch, call networkProcessCrashedOrFailedToLaunch so we'll unblock any waiting web processes.
+
+        * UIProcess/WebProcessProxy.cpp:
+        (WebKit::WebProcessProxy::didFinishLaunching):
+        Null check the connection and XPC connection before trying to get its pid.
+
+2016-08-11  Brady Eidson  <beidson@apple.com>
+
+        [WK2] Don't monitor gamepads at all unless an interested WebPageProxy is in the active window.
+        https://bugs.webkit.org/show_bug.cgi?id=160760
+
+        Reviewed by Tim Horton.
+        
+        This patch makes it such that the UIProcess will only listen to the platform gamepad mechanism
+        if a WebPageProxy that is interested in gamepads is in the active window.
+
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::windowDidBecomeKey):
+        (WebKit::WebViewImpl::windowDidResignKey):
+
+        * UIProcess/Gamepad/UIGamepadProvider.cpp:
+        (WebKit::UIGamepadProvider::UIGamepadProvider):
+        (WebKit::UIGamepadProvider::gamepadSyncTimerFired):
+        (WebKit::UIGamepadProvider::scheduleGamepadStateSync):
+        (WebKit::UIGamepadProvider::platformGamepadConnected):
+        (WebKit::UIGamepadProvider::platformGamepadDisconnected):
+        (WebKit::UIGamepadProvider::platformGamepadInputActivity):
+        (WebKit::UIGamepadProvider::processPoolStartedUsingGamepads):
+        (WebKit::UIGamepadProvider::processPoolStoppedUsingGamepads):
+        (WebKit::UIGamepadProvider::viewBecameActive):
+        (WebKit::UIGamepadProvider::viewBecameInactive):
+        (WebKit::UIGamepadProvider::scheduleDisableGamepadMonitoring):
+        (WebKit::UIGamepadProvider::disableMonitoringTimerFired):
+        (WebKit::UIGamepadProvider::startMonitoringGamepads):
+        (WebKit::UIGamepadProvider::stopMonitoringGamepads):
+        (WebKit::UIGamepadProvider::updateTimerFired): Deleted.
+        (WebKit::UIGamepadProvider::startOrStopSynchingGamepadState): Deleted.
+        * UIProcess/Gamepad/UIGamepadProvider.h:
+
+2016-08-11  Brady Eidson  <beidson@apple.com>
+
+        Make Gamepads be a WK2 ExperimentalFeature.
+        https://bugs.webkit.org/show_bug.cgi?id=160788
+
+        Reviewed by Alex Christensen.
+
+        * Shared/WebPreferencesDefinitions.h:
+
+2016-08-11  Alex Christensen  <achristensen@webkit.org>
+
+        Don't use a NetworkingContext when creating SocketStreamHandles
+        https://bugs.webkit.org/show_bug.cgi?id=160732
+
+        Reviewed by Brady Eidson.
+
+        * WebProcess/Network/WebSocketProvider.cpp:
+        (WebKit::WebSocketProvider::createSocketStreamHandle):
+        * WebProcess/Network/WebSocketProvider.h:
+
+2016-08-11  Alex Christensen  <achristensen@webkit.org>
+
+        Use StringBuilder::appendLiteral when possible don't append result of makeString
+        https://bugs.webkit.org/show_bug.cgi?id=160772
+
+        Reviewed by Sam Weinig.
+
+        * Shared/Gamepad/GamepadData.cpp:
+        (WebKit::GamepadData::isNull):
+        (WebKit::GamepadData::loggingString):
+        * Shared/Gamepad/GamepadData.h:
+        * UIProcess/WebProcessPool.h:
+
 2016-08-10  Alex Christensen  <achristensen@webkit.org>
 
         Fix crash when changing cookie accept policy after r204327

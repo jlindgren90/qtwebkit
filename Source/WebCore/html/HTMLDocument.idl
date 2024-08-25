@@ -30,10 +30,6 @@
     [Custom] void write(optional DOMString text);
     [Custom] void writeln(optional DOMString text);
 
-    readonly attribute HTMLCollection embeds;
-    readonly attribute HTMLCollection plugins;
-    readonly attribute HTMLCollection scripts;
-
     // Extensions
 
 #if defined(LANGUAGE_JAVASCRIPT) && LANGUAGE_JAVASCRIPT
@@ -51,9 +47,6 @@
     readonly attribute long height;
     attribute DOMString dir;
 #endif
-
-    attribute DOMString designMode;
-    readonly attribute DOMString compatMode;
 
     // Deprecated attributes.
     [TreatNullAs=EmptyString] attribute DOMString bgColor;

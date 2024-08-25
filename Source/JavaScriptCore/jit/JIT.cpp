@@ -231,7 +231,7 @@ void JIT::privateCompileMainPass()
         DEFINE_OP(op_create_scoped_arguments)
         DEFINE_OP(op_create_cloned_arguments)
         DEFINE_OP(op_argument_count)
-        DEFINE_OP(op_copy_rest)
+        DEFINE_OP(op_create_rest)
         DEFINE_OP(op_get_rest_length)
         DEFINE_OP(op_check_tdz)
         DEFINE_OP(op_assert)
@@ -661,7 +661,7 @@ void JIT::compileWithoutLinking(JITCompilationEffort effort)
 
     m_linkBuffer = std::unique_ptr<LinkBuffer>(new LinkBuffer(*m_vm, *this, m_codeBlock, effort));
 
-    double after;
+    double after = 0;
     if (UNLIKELY(computeCompileTimes())) {
         after = monotonicallyIncreasingTimeMS();
 

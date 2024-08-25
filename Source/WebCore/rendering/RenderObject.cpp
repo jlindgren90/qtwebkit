@@ -1210,7 +1210,7 @@ SelectionSubtreeRoot& RenderObject::selectionRoot() const
     return view();
 }
 
-void RenderObject::selectionStartEnd(int& spos, int& epos) const
+void RenderObject::selectionStartEnd(unsigned& spos, unsigned& epos) const
 {
     selectionRoot().selectionData().selectionStartEndPositions(spos, epos);
 }
@@ -1381,7 +1381,7 @@ LayoutSize RenderObject::offsetFromAncestorContainer(RenderElement& container) c
     return offset;
 }
 
-LayoutRect RenderObject::localCaretRect(InlineBox*, int, LayoutUnit* extraWidthToEndOfLine)
+LayoutRect RenderObject::localCaretRect(InlineBox*, unsigned, LayoutUnit* extraWidthToEndOfLine)
 {
     if (extraWidthToEndOfLine)
         *extraWidthToEndOfLine = 0;
