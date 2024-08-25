@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,16 +23,17 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#import "AppDelegate.h"
+#pragma once
 
-@implementation AppDelegate
+#include "TextEncoding.h"
+#include "URL.h"
+#include <wtf/Forward.h>
 
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
-{
-    self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
-    self.window.backgroundColor = [UIColor whiteColor];
-    [self.window makeKeyAndVisible];
-    return YES;
+namespace WebCore {
+    
+class URLParser {
+public:
+    WEBCORE_EXPORT static Optional<URL> parse(const String&, const URL& = { }, const TextEncoding& = UTF8Encoding());
+};
+
 }
-
-@end

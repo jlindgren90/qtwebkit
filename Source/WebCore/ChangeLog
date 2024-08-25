@@ -1,3 +1,47 @@
+2016-08-11  Alex Christensen  <achristensen@webkit.org>
+
+        Add URLParser stub
+        https://bugs.webkit.org/show_bug.cgi?id=160770
+
+        Reviewed by Sam Weinig.
+
+        Added API test stub.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/URL.h:
+        * platform/URLParser.cpp: Added.
+        (WebCore::URLParser::parse):
+        * platform/URLParser.h: Added.
+        (WebCore::URLParser::parse):
+
+2016-08-11  Chris Dumez  <cdumez@apple.com>
+
+        Move dataset attribute from Element to HTMLElement / SVGElement
+        https://bugs.webkit.org/show_bug.cgi?id=160766
+
+        Reviewed by Alex Christensen.
+
+        Move dataset attribute from Element to HTMLElement / SVGElement as per
+        the specifications:
+        - https://html.spec.whatwg.org/multipage/dom.html#htmlelement
+        - https://svgwg.org/svg2-draft/types.html#InterfaceSVGElement
+
+        Firefox and Chrome seem to have dataset on HTMLElement but not on
+        SVGElement (yet).
+
+        No new tests, rebaselined existing test.
+
+        * dom/Element.idl:
+        * html/HTMLElement.idl:
+        * svg/SVGElement.idl:
+
+2016-08-11  Eric Carlson  <eric.carlson@apple.com>
+
+        Unreviewed, update MediaRemoteSPI.h after r204082.
+
+        * platform/spi/mac/MediaRemoteSPI.h:
+
 2016-08-10  Joseph Pecoraro  <pecoraro@apple.com>
 
         Web Inspector: Should be able to Edit Node Attributes and Styles for non-UserAgent Shadow DOM nodes

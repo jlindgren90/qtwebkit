@@ -1,3 +1,125 @@
+2016-08-11  Simon Fraser  <simon.fraser@apple.com>
+
+        iOS DRT/WTR project cleanup
+        https://bugs.webkit.org/show_bug.cgi?id=160778
+
+        Reviewed by Tim Horton.
+
+        Move TARGETED_DEVICE_FAMILY from the project to an xcconfig file.
+
+        Remove AppDelegate.* which were unused.
+
+        Exclude ios/Launch.storyboard on more platforms.
+
+        * DumpRenderTree/DumpRenderTree.xcodeproj/project.pbxproj:
+        * DumpRenderTree/mac/Configurations/DumpRenderTreeApp.xcconfig:
+        * WebKitTestRunner/Configurations/WebKitTestRunnerApp.xcconfig:
+        * WebKitTestRunner/WebKitTestRunner.xcodeproj/project.pbxproj:
+        * WebKitTestRunner/WebKitTestRunnerApp/AppDelegate.h: Removed.
+        * WebKitTestRunner/WebKitTestRunnerApp/AppDelegate.m: Removed.
+        (-[AppDelegate application:didFinishLaunchingWithOptions:]): Deleted.
+
+2016-08-11  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Yosemite bots' cookie accept policies after r204365.
+        https://bugs.webkit.org/show_bug.cgi?id=160758
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/CookieAcceptPolicy.mm:
+        (TEST):
+        This makes the test fully clean up after itself.
+
+2016-08-11  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Yosemite bots' cookie accept policies after r204365.
+        https://bugs.webkit.org/show_bug.cgi?id=160758
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/CookieAcceptPolicy.mm:
+        (TEST):
+        I didn't restore the cookieAcceptPolicy of the sharedHTTPCookieStorage after changing it with this API test.
+        On Yosemite, this is changing the cookieAcceptPolicy that DumpRenderTree uses.
+        On more recent Cocoa platforms, it is only changing the cookieAcceptPolicy that TestWebKitAPI uses, which isn't
+        causing any problems because there are no other API tests that do anything with cookies.
+        My solution will be to restore the original cookieAcceptPolicy after running this API test to clean up,
+        but first I am committing this patch setting the cookieAcceptPolicy to NSHTTPCookieAcceptPolicyOnlyFromMainDocumentDomain
+        to reset any bots that have run tests since r204365.  I will commit a followup that sets it to originalCookieAcceptPolicy.
+
+2016-08-11  Aakash Jain  <aakash_jain@apple.com>
+
+        EWS should check if the patch is still valid before executing every major step
+        https://bugs.webkit.org/show_bug.cgi?id=160739
+        rdar://problem/27768813
+
+        Reviewed by Alexey Proskuryakov.
+
+        * Scripts/webkitpy/tool/bot/commitqueuetask.py:
+        (CommitQueueTask.run): validate method is now executed in base class.
+        * Scripts/webkitpy/tool/bot/earlywarningsystemtask.py:
+        (EarlyWarningSystemTask.run): validate method is now executed in base class.
+        * Scripts/webkitpy/tool/bot/stylequeuetask.py:
+        (StyleQueueTask.validate): Raise an PatchIsNotValid exception instead of returning False.
+        * Scripts/webkitpy/tool/bot/patchanalysistask.py:
+        (PatchAnalysisTask._run_command): validate the patch before executing any command. This is to ensure
+        that we do not waste time on any patch which has become invalid (e.g.: obsolete, r-).
+        * Scripts/webkitpy/tool/commands/perfalizer.py:
+        (PerfalizerTask.validate): Added.
+        * Scripts/webkitpy/tool/commands/queues_unittest.py:
+        (test_manual_reject_during_processing): Updated test case.
+
+2016-08-11  Alex Christensen  <achristensen@webkit.org>
+
+        Add URLParser stub
+        https://bugs.webkit.org/show_bug.cgi?id=160770
+
+        Reviewed by Sam Weinig.
+
+        * TestWebKitAPI/PlatformGTK.cmake:
+        * TestWebKitAPI/PlatformWin.cmake:
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp: Added.
+        (TestWebKitAPI::TEST_F):
+
+2016-08-10  Simon Fraser  <simon.fraser@apple.com>
+
+        [iOS DRT] Allow DRT to be iPad-sized in the iPad simulator
+        https://bugs.webkit.org/show_bug.cgi?id=160761
+
+        Reviewed by Tim Horton.
+
+        Give iOS DRT a Launch storyboard.
+
+        Have it use a UIViewController so future forms testing works correctly.
+
+        Add TARGETED_DEVICE_FAMILY = "1,2" to the build settings for the .app, so that it
+        can run in iPad mode.
+
+        Remove empty InfoPlist.strings files.
+
+        * DumpRenderTree/DumpRenderTree.xcodeproj/project.pbxproj:
+        * DumpRenderTree/ios/Info.plist:
+        * DumpRenderTree/ios/Launch.storyboard: Added.
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (createWebViewAndOffscreenWindow):
+        * WebKitTestRunner/WebKitTestRunner.xcodeproj/project.pbxproj:
+        * WebKitTestRunner/WebKitTestRunnerApp/en.lproj/InfoPlist.strings: Removed.
+        * WebKitTestRunner/ios/PlatformWebViewIOS.mm:
+        (WTR::PlatformWebView::PlatformWebView): Drive-by leak fix.
+
+2016-08-11  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Unable to reliably run tests in parallel
+        https://bugs.webkit.org/show_bug.cgi?id=140914
+
+        Reviewed by Brent Fulgham.
+
+        The cygpath utility function can fail badly when running with multiple DumpRenderTree
+        processes. We can use string replacement to convert the Cygwin path to a Windows path
+        instead.
+
+        * Scripts/webkitpy/common/system/path.py:
+        (cygpathFast):
+        * Scripts/webkitpy/port/driver.py:
+        (Driver._command_from_driver_input):
+
 2016-08-10  Alex Christensen  <achristensen@webkit.org>
 
         Fix crash when changing cookie accept policy after r204327
