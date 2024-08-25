@@ -126,7 +126,7 @@ list(APPEND WebCore_SOURCES
     platform/network/qt/ResourceHandleQt.cpp
     platform/network/qt/ResourceRequestQt.cpp
     platform/network/qt/ResourceResponseQt.cpp
-    platform/network/qt/SocketStreamHandleQt.cpp
+    platform/network/qt/SocketStreamHandleImplQt.cpp
     platform/network/qt/SynchronousLoaderClientQt.cpp
 
     platform/qt/CursorQt.cpp

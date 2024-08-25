@@ -30,7 +30,7 @@
  */
 
 #include "config.h"
-#include "SocketStreamHandle.h"
+#include "SocketStreamHandleImpl.h"
 
 #include "URL.h"
 #include "Logging.h"
@@ -41,7 +41,7 @@
 
 namespace WebCore {
 
-SocketStreamHandlePrivate::SocketStreamHandlePrivate(SocketStreamHandle* streamHandle, const URL& url)
+SocketStreamHandlePrivate::SocketStreamHandlePrivate(SocketStreamHandleImpl* streamHandle, const URL& url)
 {
     m_streamHandle = streamHandle;
     m_socket = 0;
@@ -70,7 +70,7 @@ SocketStreamHandlePrivate::SocketStreamHandlePrivate(SocketStreamHandle* streamH
         m_socket->connectToHost(host, port);
 }
 
-SocketStreamHandlePrivate::SocketStreamHandlePrivate(SocketStreamHandle* streamHandle, QTcpSocket* socket)
+SocketStreamHandlePrivate::SocketStreamHandlePrivate(SocketStreamHandleImpl* streamHandle, QTcpSocket* socket)
 {
     m_streamHandle = streamHandle;
     m_socket = socket;
@@ -103,8 +103,8 @@ void SocketStreamHandlePrivate::initConnections()
 void SocketStreamHandlePrivate::socketConnected()
 {
     if (m_streamHandle) {
-        m_streamHandle->m_state = SocketStreamHandleBase::Open;
-        m_streamHandle->client().didOpenSocketStream(*m_streamHandle);
+        m_streamHandle->m_state = SocketStreamHandle::Open;
+        m_streamHandle->m_client.didOpenSocketStream(*m_streamHandle);
     }
 }
 
@@ -112,14 +112,14 @@ void SocketStreamHandlePrivate::socketReadyRead()
 {
     if (m_streamHandle) {
         QByteArray data = m_socket->read(m_socket->bytesAvailable());
-        m_streamHandle->client().didReceiveSocketStreamData(*m_streamHandle, data.constData(), data.size());
+        m_streamHandle->m_client.didReceiveSocketStreamData(*m_streamHandle, data.constData(), data.size());
     }
 }
 
-int SocketStreamHandlePrivate::send(const char* data, int len)
+Optional<size_t> SocketStreamHandlePrivate::send(const char* data, size_t len)
 {
     if (!m_socket || m_socket->state() != QAbstractSocket::ConnectedState)
-        return 0;
+        return Nullopt;
     quint64 sentSize = m_socket->write(data, len);
     QMetaObject::invokeMethod(this, "socketSentData", Qt::QueuedConnection);
     return sentSize;
@@ -127,9 +127,9 @@ int SocketStreamHandlePrivate::send(const char* data, int len)
 
 void SocketStreamHandlePrivate::close()
 {
-    if (m_socket && m_streamHandle && m_streamHandle->m_state == SocketStreamHandleBase::Connecting) {
+    if (m_socket && m_streamHandle && m_streamHandle->m_state == SocketStreamHandle::Connecting) {
         m_socket->abort();
-        m_streamHandle->client().didCloseSocketStream(*m_streamHandle);
+        m_streamHandle->m_client.didCloseSocketStream(*m_streamHandle);
         return;
     }
     if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState)
@@ -155,10 +155,10 @@ void SocketStreamHandlePrivate::socketError(QAbstractSocket::SocketError error)
 void SocketStreamHandlePrivate::socketClosedCallback()
 {
     if (m_streamHandle) {
-        SocketStreamHandle* streamHandle = m_streamHandle;
+        SocketStreamHandleImpl* streamHandle = m_streamHandle;
         m_streamHandle = 0;
         // This following call deletes _this_. Nothing should be after it.
-        streamHandle->client().didCloseSocketStream(*streamHandle);
+        streamHandle->m_client.didCloseSocketStream(*streamHandle);
     }
 }
 
@@ -166,13 +166,13 @@ void SocketStreamHandlePrivate::socketErrorCallback(int error)
 {
     // FIXME - in the future, we might not want to treat all errors as fatal.
     if (m_streamHandle) {
-        SocketStreamHandle* streamHandle = m_streamHandle;
+        SocketStreamHandleImpl* streamHandle = m_streamHandle;
         m_streamHandle = 0;
 
-        streamHandle->client().didFailSocketStream(*streamHandle, SocketStreamError(error, m_socket->errorString()));
+        streamHandle->m_client.didFailSocketStream(*streamHandle, SocketStreamError(error, streamHandle->m_url, m_socket->errorString()));
 
         // This following call deletes _this_. Nothing should be after it.
-        streamHandle->client().didCloseSocketStream(*streamHandle);
+        streamHandle->m_client.didCloseSocketStream(*streamHandle);
     }
 }
 
@@ -183,61 +183,59 @@ void SocketStreamHandlePrivate::socketSslErrors(const QList<QSslError>& error)
 }
 #endif
 
-SocketStreamHandle::SocketStreamHandle(const URL& url, SocketStreamHandleClient& client)
-    : SocketStreamHandleBase(url, client)
+SocketStreamHandleImpl::SocketStreamHandleImpl(const URL& url, SocketStreamHandleClient& client)
+    : SocketStreamHandle(url, client)
 {
-    LOG(Network, "SocketStreamHandle %p new client %p", this, &m_client);
+    LOG(Network, "SocketStreamHandleImpl %p new client %p", this, &m_client);
     m_p = new SocketStreamHandlePrivate(this, url);
 }
 
-SocketStreamHandle::SocketStreamHandle(QTcpSocket* socket, SocketStreamHandleClient& client)
-    : SocketStreamHandleBase(URL(), client)
+SocketStreamHandleImpl::SocketStreamHandleImpl(QTcpSocket* socket, SocketStreamHandleClient& client)
+    : SocketStreamHandle(URL(), client)
 {
-    LOG(Network, "SocketStreamHandle %p new client %p", this, &m_client);
+    LOG(Network, "SocketStreamHandleImpl %p new client %p", this, &m_client);
     m_p = new SocketStreamHandlePrivate(this, socket);
     if (socket->isOpen())
         m_state = Open;
 }
 
-SocketStreamHandle::~SocketStreamHandle()
+SocketStreamHandleImpl::~SocketStreamHandleImpl()
 {
-    LOG(Network, "SocketStreamHandle %p delete", this);
+    LOG(Network, "SocketStreamHandleImpl %p delete", this);
     delete m_p;
 }
 
-int SocketStreamHandle::platformSend(const char* data, int len)
+Optional<size_t> SocketStreamHandleImpl::platformSend(const char* data, size_t len)
 {
-    LOG(Network, "SocketStreamHandle %p platformSend", this);
+    LOG(Network, "SocketStreamHandleImpl %p platformSend", this);
     return m_p->send(data, len);
 }
 
-void SocketStreamHandle::platformClose()
+void SocketStreamHandleImpl::platformClose()
 {
-    LOG(Network, "SocketStreamHandle %p platformClose", this);
+    LOG(Network, "SocketStreamHandleImpl %p platformClose", this);
     if (m_p)
         m_p->close();
 }
 
-void SocketStreamHandle::didReceiveAuthenticationChallenge(const AuthenticationChallenge&)
+void SocketStreamHandleImpl::didReceiveAuthenticationChallenge(const AuthenticationChallenge&)
 {
     notImplemented();
 }
 
-void SocketStreamHandle::receivedCredential(const AuthenticationChallenge&, const Credential&)
+void SocketStreamHandleImpl::receivedCredential(const AuthenticationChallenge&, const Credential&)
 {
     notImplemented();
 }
 
-void SocketStreamHandle::receivedRequestToContinueWithoutCredential(const AuthenticationChallenge&)
+void SocketStreamHandleImpl::receivedRequestToContinueWithoutCredential(const AuthenticationChallenge&)
 {
     notImplemented();
 }
 
-void SocketStreamHandle::receivedCancellation(const AuthenticationChallenge&)
+void SocketStreamHandleImpl::receivedCancellation(const AuthenticationChallenge&)
 {
     notImplemented();
 }
 
 } // namespace WebCore
-
-#include "moc_SocketStreamHandlePrivate.cpp"

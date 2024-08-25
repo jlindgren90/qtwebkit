@@ -30,10 +30,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SocketStreamHandle_h
-#define SocketStreamHandle_h
+#ifndef SocketStreamHandleImpl_h
+#define SocketStreamHandleImpl_h
 
-#include "SocketStreamHandleBase.h"
+#include "SocketStreamHandle.h"
 
 #include "SessionID.h"
 #include <wtf/PassRefPtr.h>
@@ -55,20 +55,20 @@ namespace WebCore {
     class SocketStreamHandleClient;
     class SocketStreamHandlePrivate;
 
-    class SocketStreamHandle final : public RefCounted<SocketStreamHandle>, public SocketStreamHandleBase {
+    class SocketStreamHandleImpl final : public SocketStreamHandle {
     public:
-        static Ref<SocketStreamHandle> create(const URL& url, SocketStreamHandleClient& client, NetworkingContext&, SessionID) { return adoptRef(*new SocketStreamHandle(url, client)); }
-        static Ref<SocketStreamHandle> create(QTcpSocket* socket, SocketStreamHandleClient& client) { return adoptRef(*new SocketStreamHandle(socket, client)); }
+        static Ref<SocketStreamHandleImpl> create(const URL& url, SocketStreamHandleClient& client, SessionID) { return adoptRef(*new SocketStreamHandleImpl(url, client)); }
+        static Ref<SocketStreamHandleImpl> create(QTcpSocket* socket, SocketStreamHandleClient& client) { return adoptRef(*new SocketStreamHandleImpl(socket, client)); }
 
-        ~SocketStreamHandle();
+        ~SocketStreamHandleImpl();
 
     protected:
-        int platformSend(const char* data, int length) final;
+        Optional<size_t> platformSend(const char* data, size_t length) final;
         void platformClose() final;
 
     private:
-        SocketStreamHandle(const URL&, SocketStreamHandleClient&);
-        SocketStreamHandle(QTcpSocket*, SocketStreamHandleClient&);
+        SocketStreamHandleImpl(const URL&, SocketStreamHandleClient&);
+        SocketStreamHandleImpl(QTcpSocket*, SocketStreamHandleClient&);
 
         // No authentication for streams per se, but proxy may ask for credentials.
         void didReceiveAuthenticationChallenge(const AuthenticationChallenge&);
@@ -81,4 +81,4 @@ namespace WebCore {
 
 }  // namespace WebCore
 
-#endif  // SocketStreamHandle_h
+#endif  // SocketStreamHandleImpl_h
