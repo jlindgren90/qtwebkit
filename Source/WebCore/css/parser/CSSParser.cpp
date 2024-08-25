@@ -56,6 +56,7 @@
 #include "CSSNamedImageValue.h"
 #include "CSSPageRule.h"
 #include "CSSParserFastPaths.h"
+#include "CSSParserImpl.h"
 #include "CSSPrimitiveValue.h"
 #include "CSSPrimitiveValueMappings.h"
 #include "CSSPropertySourceData.h"
@@ -269,6 +270,7 @@ CSSParserContext::CSSParserContext(Document& document, const URL& baseURL, const
         textAutosizingEnabled = settings->textAutosizingEnabled();
 #endif
         springTimingFunctionEnabled = settings->springTimingFunctionEnabled();
+        useNewParser = settings->newCSSParserEnabled();
     }
 
 #if PLATFORM(IOS)
@@ -371,8 +373,16 @@ void CSSParser::setupParser(const char* prefix, unsigned prefixLength, StringVie
     m_lexFunc = &CSSParser::realLex<UChar>;
 }
 
+// FIXME-NEWPARSER: This API needs to change. It's polluted with Inspector stuff, and that should
+// use the new obverver model instead.
 void CSSParser::parseSheet(StyleSheetContents* sheet, const String& string, const TextPosition& textPosition, RuleSourceDataList* ruleSourceDataResult, bool logErrors)
 {
+    // FIXME-NEWPARSER: It's easier for testing to let the entire UA sheet parse with the old
+    // parser. That way we can still have the default styles look correct while we add in support for
+    // properties.
+    if (m_context.useNewParser && m_context.mode != UASheetMode)
+        return CSSParserImpl::parseStyleSheet(string, m_context, sheet);
+    
     setStyleSheet(sheet);
     m_defaultNamespace = starAtom; // Reset the default namespace.
     if (ruleSourceDataResult)
@@ -1047,6 +1057,16 @@ static inline bool isValidKeywordPropertyAndValue(CSSPropertyID propertyId, int 
 #if ENABLE(CSS_TRAILING_WORD)
     case CSSPropertyAppleTrailingWord: // auto | -apple-partially-balanced
         if (valueID == CSSValueAuto || valueID == CSSValueWebkitPartiallyBalanced)
+            return true;
+        break;
+#endif
+#if ENABLE(APPLE_PAY)
+    case CSSPropertyApplePayButtonStyle: // white | white-outline | black
+        if (valueID == CSSValueWhite || valueID == CSSValueWhiteOutline || valueID == CSSValueBlack)
+            return true;
+        break;
+    case CSSPropertyApplePayButtonType: // plain | buy | set-up | in-store
+        if (valueID == CSSValuePlain || valueID == CSSValueBuy || valueID == CSSValueSetUp || valueID == CSSValueInStore)
             return true;
         break;
 #endif
@@ -5645,11 +5665,14 @@ static bool isGridTrackFixedSized(const CSSValue& value)
         return isGridTrackFixedSized(downcast<CSSPrimitiveValue>(value));
 
     ASSERT(value.isFunctionValue());
-    ASSERT(downcast<CSSFunctionValue>(value).arguments());
-    ASSERT(downcast<CSSFunctionValue>(value).arguments()->length() == 2);
+    auto& arguments = *downcast<CSSFunctionValue>(value).arguments();
+    // fit-content
+    if (arguments.length() == 1)
+        return false;
 
-    auto& min = downcast<CSSPrimitiveValue>(*downcast<CSSFunctionValue>(value).arguments()->item(0));
-    auto& max = downcast<CSSPrimitiveValue>(*downcast<CSSFunctionValue>(value).arguments()->item(1));
+    ASSERT(arguments.length() == 2);
+    auto& min = downcast<CSSPrimitiveValue>(*arguments.itemWithoutBoundsCheck(0));
+    auto& max = downcast<CSSPrimitiveValue>(*arguments.itemWithoutBoundsCheck(1));
     return isGridTrackFixedSized(min) || isGridTrackFixedSized(max);
 }
 
@@ -5794,6 +5817,21 @@ RefPtr<CSSValue> CSSParser::parseGridTrackSize(CSSParserValueList& inputList)
 
     if (currentValue.id == CSSValueAuto)
         return CSSValuePool::singleton().createIdentifierValue(CSSValueAuto);
+
+    if (currentValue.unit == CSSParserValue::Function && equalLettersIgnoringASCIICase(currentValue.function->name, "fit-content(")) {
+        CSSParserValueList* arguments = currentValue.function->args.get();
+        if (!arguments || arguments->size() != 1)
+            return nullptr;
+        ValueWithCalculation valueWithCalculation(*arguments->valueAt(0));
+        if (!validateUnit(valueWithCalculation, FNonNeg | FLength | FPercent))
+            return nullptr;
+        RefPtr<CSSPrimitiveValue> trackBreadth = createPrimitiveNumericValue(valueWithCalculation);
+        if (!trackBreadth)
+            return nullptr;
+        auto parsedArguments = CSSValueList::createCommaSeparated();
+        parsedArguments->append(trackBreadth.releaseNonNull());
+        return CSSFunctionValue::create("fit-content(", WTFMove(parsedArguments));
+    }
 
     if (currentValue.unit == CSSParserValue::Function && equalLettersIgnoringASCIICase(currentValue.function->name, "minmax(")) {
         // The spec defines the following grammar: minmax( <track-breadth> , <track-breadth> )
@@ -13295,6 +13333,17 @@ bool CSSParser::parseViewportShorthand(CSSPropertyID propId, CSSPropertyID first
 }
 #endif
 
+#if ENABLE(LEGACY_CSS_VENDOR_PREFIXES)
+static bool isAppleLegacyCSSPropertyKeyword(const char* propertyKeyword, unsigned length)
+{
+    static const char applePrefix[] = "-apple-";
+    static const char applePayPrefix[] = "-apple-pay-";
+
+    return hasPrefix(propertyKeyword, length, applePrefix)
+        && !hasPrefix(propertyKeyword, length, applePayPrefix);
+}
+#endif
+
 template <typename CharacterType>
 static CSSPropertyID cssPropertyID(const CharacterType* propertyName, unsigned length)
 {
@@ -13314,7 +13363,7 @@ static CSSPropertyID cssPropertyID(const CharacterType* propertyName, unsigned l
         // If the prefix is -apple- or -khtml-, change it to -webkit-.
         // This makes the string one character longer.
         if (RuntimeEnabledFeatures::sharedFeatures().legacyCSSVendorPrefixesEnabled()
-            && (hasPrefix(buffer, length, "-apple-") || hasPrefix(buffer, length, "-khtml-"))) {
+            && (isAppleLegacyCSSPropertyKeyword(buffer, length) || hasPrefix(buffer, length, "-khtml-"))) {
             memmove(buffer + 7, buffer + 6, length + 1 - 6);
             memcpy(buffer, "-webkit", 7);
             ++length;
@@ -13365,14 +13414,16 @@ void cssPropertyNameIOSAliasing(const char* propertyName, const char*& propertyN
 }
 #endif
 
-static bool isAppleLegacyCssValueKeyword(const char* valueKeyword, unsigned length)
+static bool isAppleLegacyCSSValueKeyword(const char* valueKeyword, unsigned length)
 {
     static const char applePrefix[] = "-apple-";
-    static const char appleSystemPrefix[] = "-apple-system";
+    static const char appleSystemPrefix[] = "-apple-system-";
+    static const char applePayPrefix[] = "-apple-pay-";
     static const char* appleWirelessPlaybackTargetActive = getValueName(CSSValueAppleWirelessPlaybackTargetActive);
 
     return hasPrefix(valueKeyword, length, applePrefix)
         && !hasPrefix(valueKeyword, length, appleSystemPrefix)
+        && !hasPrefix(valueKeyword, length, applePayPrefix)
         && !WTF::equal(reinterpret_cast<const LChar*>(valueKeyword), reinterpret_cast<const LChar*>(appleWirelessPlaybackTargetActive), length);
 }
 
@@ -13394,7 +13445,7 @@ static CSSValueID cssValueKeywordID(const CharacterType* valueKeyword, unsigned 
         // This makes the string one character longer.
         // On iOS we don't want to change values starting with -apple-system to -webkit-system.
         // FIXME: Remove this mangling without breaking the web.
-        if (isAppleLegacyCssValueKeyword(buffer, length) || hasPrefix(buffer, length, "-khtml-")) {
+        if (isAppleLegacyCSSValueKeyword(buffer, length) || hasPrefix(buffer, length, "-khtml-")) {
             memmove(buffer + 7, buffer + 6, length + 1 - 6);
             memcpy(buffer, "-webkit", 7);
             ++length;

@@ -1,3 +1,50 @@
+2016-09-15  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205931.
+        https://bugs.webkit.org/show_bug.cgi?id=162021
+
+        Tests for this change fail on 32-bit JSC bots (Requested by
+        ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "[JSC] Make the rounding-related nodes support any type"
+        https://bugs.webkit.org/show_bug.cgi?id=161895
+        http://trac.webkit.org/changeset/205931
+
+2016-09-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: Should be a SyntaxError for duplicate parameter names in function with default parameters
+        https://bugs.webkit.org/show_bug.cgi?id=162013
+
+        Reviewed by Saam Barati.
+
+        * stress/es6-default-parameters.js:
+        * test262.yaml:
+
+2016-09-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        ASSERT_NOT_REACHED when using spread inside an array literal with Function.prototype.apply
+        https://bugs.webkit.org/show_bug.cgi?id=162003
+
+        Reviewed by Saam Barati.
+
+        * stress/spread-calling.js:
+        * test262.yaml:
+
+2016-09-14  Michael Saboff  <msaboff@apple.com>
+
+        YARR doesn't check for invalid flags for literal regular expressions
+        https://bugs.webkit.org/show_bug.cgi?id=161995
+
+        Reviewed by Mark Lam.
+
+        New test.
+
+        * stress/regress-161995.js: Added.
+        (testStatic):
+        (catch):
+
 2016-09-14  Joseph Pecoraro  <pecoraro@apple.com>
 
         test262: TypedArray constructors length should be 3 and configurable

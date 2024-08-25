@@ -4344,6 +4344,11 @@ void WebPageProxy::setNeedsHiddenContentEditableQuirk(bool needsHiddenContentEdi
     m_needsHiddenContentEditableQuirk = needsHiddenContentEditableQuirk;
 }
 
+void WebPageProxy::setNeedsPlainTextQuirk(bool needsPlainTextQuirk)
+{
+    m_needsPlainTextQuirk = needsPlainTextQuirk;
+}
+
 // BackForwardList
 
 void WebPageProxy::backForwardAddItem(uint64_t itemID)
@@ -6396,7 +6401,7 @@ void WebPageProxy::videoControlsManagerDidChange()
 bool WebPageProxy::hasActiveVideoForControlsManager() const
 {
 #if ENABLE(VIDEO_PRESENTATION_MODE)
-    return m_playbackSessionManager && m_playbackSessionManager->controlsManagerInterface() && m_mediaState & MediaProducer::HasAudioOrVideo;
+    return m_playbackSessionManager && m_playbackSessionManager->controlsManagerInterface();
 #else
     return false;
 #endif

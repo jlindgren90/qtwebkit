@@ -1147,6 +1147,7 @@ public:
 
     bool hasHadSelectionChangesFromUserInteraction() const { return m_hasHadSelectionChangesFromUserInteraction; }
     bool needsHiddenContentEditableQuirk() const { return m_needsHiddenContentEditableQuirk; }
+    bool needsPlainTextQuirk() const { return m_needsPlainTextQuirk; }
 
     bool isAlwaysOnLoggingAllowed() const;
 
@@ -1323,6 +1324,7 @@ private:
     void compositionWasCanceled(const EditorState&);
     void setHasHadSelectionChangesFromUserInteraction(bool);
     void setNeedsHiddenContentEditableQuirk(bool);
+    void setNeedsPlainTextQuirk(bool);
 #if PLATFORM(QT)
     void willSetInputMethodState();
 #endif
@@ -1906,6 +1908,7 @@ private:
 
     bool m_hasHadSelectionChangesFromUserInteraction { false };
     bool m_needsHiddenContentEditableQuirk { false };
+    bool m_needsPlainTextQuirk { false };
 
 #if ENABLE(MEDIA_SESSION)
     bool m_hasMediaSessionWithActiveMediaElements { false };

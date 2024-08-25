@@ -2794,6 +2794,10 @@ void WebPage::didStartPageTransition()
         m_needsHiddenContentEditableQuirk = false;
         send(Messages::WebPageProxy::SetNeedsHiddenContentEditableQuirk(m_needsHiddenContentEditableQuirk));
     }
+    if (m_needsPlainTextQuirk) {
+        m_needsPlainTextQuirk = false;
+        send(Messages::WebPageProxy::SetNeedsPlainTextQuirk(m_needsPlainTextQuirk));
+    }
 #endif
 }
 
@@ -4963,10 +4967,39 @@ static bool needsHiddenContentEditableQuirk(bool needsQuirks, const URL& url)
     String path = url.path();
     return equalLettersIgnoringASCIICase(host, "docs.google.com") || (equalLettersIgnoringASCIICase(host, "www.icloud.com") && path.contains("/pages/"));
 }
+
+static bool needsPlainTextQuirk(bool needsQuirks, const URL& url)
+{
+    if (!needsQuirks)
+        return false;
+
+    String host = url.host();
+
+    if (equalLettersIgnoringASCIICase(host, "twitter.com"))
+        return true;
+
+    if (equalLettersIgnoringASCIICase(host, "onedrive.live.com"))
+        return true;
+
+    String path = url.path();
+    if (equalLettersIgnoringASCIICase(host, "www.icloud.com") && (path.contains("notes") || url.fragmentIdentifier().contains("notes") || path.contains("/keynote/")))
+        return true;
+
+    if (equalLettersIgnoringASCIICase(host, "trix-editor.org"))
+        return true;
+
+    return false;
+}
 #endif
 
 void WebPage::didChangeSelection()
 {
+    // The act of getting Dictionary Popup info can make selection changes that we should not propagate to the UIProcess.
+    // Specifically, if there is a caret selection, it will change to a range selection of the word around the caret. And
+    // then it will change back.
+    if (m_isGettingDictionaryPopupInfo)
+        return;
+
     Frame& frame = m_page->focusController().focusedOrMainFrame();
     FrameView* view = frame.view();
 
@@ -4985,6 +5018,12 @@ void WebPage::didChangeSelection()
             m_needsHiddenContentEditableQuirk = true;
             send(Messages::WebPageProxy::SetNeedsHiddenContentEditableQuirk(m_needsHiddenContentEditableQuirk));
         }
+
+        if (needsPlainTextQuirk(m_page->settings().needsSiteSpecificQuirks(), m_page->mainFrame().document()->url())) {
+            m_needsPlainTextQuirk = true;
+            send(Messages::WebPageProxy::SetNeedsPlainTextQuirk(m_needsPlainTextQuirk));
+        }
+
         send(Messages::WebPageProxy::SetHasHadSelectionChangesFromUserInteraction(m_hasEverFocusedElementDueToUserInteractionSincePageTransition));
     }
 

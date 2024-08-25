@@ -7158,12 +7158,14 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionAny(ExecState* state)
 }
 
 static EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionPromise(ExecState*, Ref<DeferredWrapper>&&);
+
 EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionTestPromiseFunction(ExecState* state)
 {
-    return JSValue::encode(callPromiseFunction(*state, jsTestObjPrototypeFunctionTestPromiseFunctionPromise));
+    ASSERT(state);
+    return JSValue::encode(callPromiseFunction<jsTestObjPrototypeFunctionTestPromiseFunctionPromise, PromiseExecutionScope::WindowOnly>(*state));
 }
 
-static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionPromise(ExecState* state, Ref<DeferredWrapper>&&  deferredWrapper)
+static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionPromise(ExecState* state, Ref<DeferredWrapper>&& deferredWrapper)
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
@@ -7179,12 +7181,14 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionPromis
 }
 
 static EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise(ExecState*, Ref<DeferredWrapper>&&);
+
 EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgument(ExecState* state)
 {
-    return JSValue::encode(callPromiseFunction(*state, jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise));
+    ASSERT(state);
+    return JSValue::encode(callPromiseFunction<jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise, PromiseExecutionScope::WindowOnly>(*state));
 }
 
-static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise(ExecState* state, Ref<DeferredWrapper>&&  deferredWrapper)
+static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise(ExecState* state, Ref<DeferredWrapper>&& deferredWrapper)
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
@@ -7205,12 +7209,14 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithFl
 }
 
 static EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise(ExecState*, Ref<DeferredWrapper>&&);
+
 EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionTestPromiseFunctionWithException(ExecState* state)
 {
-    return JSValue::encode(callPromiseFunction(*state, jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise));
+    ASSERT(state);
+    return JSValue::encode(callPromiseFunction<jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise, PromiseExecutionScope::WindowOnly>(*state));
 }
 
-static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise(ExecState* state, Ref<DeferredWrapper>&&  deferredWrapper)
+static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise(ExecState* state, Ref<DeferredWrapper>&& deferredWrapper)
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
@@ -7228,12 +7234,14 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithEx
 }
 
 static EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise(ExecState*, Ref<DeferredWrapper>&&);
+
 EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgument(ExecState* state)
 {
-    return JSValue::encode(callPromiseFunction(*state, jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise));
+    ASSERT(state);
+    return JSValue::encode(callPromiseFunction<jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise, PromiseExecutionScope::WindowOnly>(*state));
 }
 
-static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise(ExecState* state, Ref<DeferredWrapper>&&  deferredWrapper)
+static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise(ExecState* state, Ref<DeferredWrapper>&& deferredWrapper)
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
@@ -7252,12 +7260,14 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseFunctionWithOp
 }
 
 static EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise(ExecState*, Ref<DeferredWrapper>&&);
+
 static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1(ExecState* state)
 {
-    return JSValue::encode(callPromiseFunction(*state, jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise));
+    ASSERT(state);
+    return JSValue::encode(callPromiseFunction<jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise, PromiseExecutionScope::WindowOnly>(*state));
 }
 
-static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise(ExecState* state, Ref<DeferredWrapper>&&  deferredWrapper)
+static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise(ExecState* state, Ref<DeferredWrapper>&& deferredWrapper)
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
@@ -7278,12 +7288,14 @@ static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunc
 }
 
 static EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise(ExecState*, Ref<DeferredWrapper>&&);
+
 static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2(ExecState* state)
 {
-    return JSValue::encode(callPromiseFunction(*state, jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise));
+    ASSERT(state);
+    return JSValue::encode(callPromiseFunction<jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise, PromiseExecutionScope::WindowOnly>(*state));
 }
 
-static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise(ExecState* state, Ref<DeferredWrapper>&&  deferredWrapper)
+static inline EncodedJSValue jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise(ExecState* state, Ref<DeferredWrapper>&& deferredWrapper)
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
@@ -7321,12 +7333,14 @@ EncodedJSValue JSC_HOST_CALL jsTestObjPrototypeFunctionTestPromiseOverloadedFunc
 }
 
 static EncodedJSValue jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise(ExecState*, Ref<DeferredWrapper>&&);
+
 EncodedJSValue JSC_HOST_CALL jsTestObjConstructorFunctionTestStaticPromiseFunction(ExecState* state)
 {
-    return JSValue::encode(callPromiseFunction(*state, jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise));
+    ASSERT(state);
+    return JSValue::encode(callPromiseFunction<jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise, PromiseExecutionScope::WindowOnly>(*state));
 }
 
-static inline EncodedJSValue jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise(ExecState* state, Ref<DeferredWrapper>&&  deferredWrapper)
+static inline EncodedJSValue jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise(ExecState* state, Ref<DeferredWrapper>&& deferredWrapper)
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
@@ -7336,12 +7350,14 @@ static inline EncodedJSValue jsTestObjConstructorFunctionTestStaticPromiseFuncti
 }
 
 static EncodedJSValue jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise(ExecState*, Ref<DeferredWrapper>&&);
+
 EncodedJSValue JSC_HOST_CALL jsTestObjConstructorFunctionTestStaticPromiseFunctionWithException(ExecState* state)
 {
-    return JSValue::encode(callPromiseFunction(*state, jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise));
+    ASSERT(state);
+    return JSValue::encode(callPromiseFunction<jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise, PromiseExecutionScope::WindowOnly>(*state));
 }
 
-static inline EncodedJSValue jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise(ExecState* state, Ref<DeferredWrapper>&&  deferredWrapper)
+static inline EncodedJSValue jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise(ExecState* state, Ref<DeferredWrapper>&& deferredWrapper)
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);

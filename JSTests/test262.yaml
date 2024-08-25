@@ -53236,21 +53236,21 @@
 - path: test262/test/language/expressions/array/spread-err-sngl-err-unresolvable.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/array/spread-mult-empty.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/array/spread-mult-empty.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/array/spread-mult-expr.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/array/spread-mult-expr.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/array/spread-mult-iter.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/array/spread-mult-iter.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/array/spread-mult-literal.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/array/spread-mult-literal.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/array/spread-sngl-empty.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/array/spread-sngl-empty.js
@@ -53260,9 +53260,9 @@
 - path: test262/test/language/expressions/array/spread-sngl-expr.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/array/spread-sngl-iter.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/array/spread-sngl-iter.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/array/spread-sngl-literal.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/array/spread-sngl-literal.js
@@ -54068,7 +54068,7 @@
 - path: test262/test/language/expressions/arrow-function/params-dflt-arg-val-undefined.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/arrow-function/params-dflt-duplicates.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/arrow-function/params-dflt-duplicates.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/arrow-function/params-dflt-ref-later.js
@@ -62176,7 +62176,7 @@
 - path: test262/test/language/expressions/function/params-dflt-args-unmapped.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/function/params-dflt-duplicates.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/function/params-dflt-duplicates.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/function/params-dflt-ref-arguments.js
@@ -62998,7 +62998,7 @@
 - path: test262/test/language/expressions/generators/params-dflt-args-unmapped.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/generators/params-dflt-duplicates.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/generators/params-dflt-duplicates.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/generators/params-dflt-ref-arguments.js
@@ -83352,7 +83352,7 @@
 - path: test262/test/language/statements/function/params-dflt-args-unmapped.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/function/params-dflt-duplicates.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/function/params-dflt-duplicates.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/function/params-dflt-ref-arguments.js
@@ -84162,7 +84162,7 @@
 - path: test262/test/language/statements/generators/params-dflt-args-unmapped.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/generators/params-dflt-duplicates.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/generators/params-dflt-duplicates.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/generators/params-dflt-ref-arguments.js

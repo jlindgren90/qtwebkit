@@ -202,6 +202,8 @@ public:
     // availability of the platformLayer().
     virtual void mediaPlayerRenderingModeChanged(MediaPlayer*) { }
 
+    virtual void mediaPlayerActiveSourceBuffersChanged(const MediaPlayer*) { }
+
 #if PLATFORM(WIN) && USE(AVFOUNDATION)
     virtual GraphicsDeviceAdapter* mediaPlayerGraphicsDeviceAdapter(const MediaPlayer*) const { return 0; }
 #endif

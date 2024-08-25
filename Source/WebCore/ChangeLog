@@ -1,3 +1,711 @@
+2016-09-15  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Check for invalid characters in the host
+        https://bugs.webkit.org/show_bug.cgi?id=162023
+
+        Reviewed by Tim Horton.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::failure):
+        (WebCore::URLParser::parseHost):
+
+2016-09-15  Antti Koivisto  <antti@apple.com>
+
+        Remove some extra spaces.
+
+        * rendering/TextDecorationPainter.cpp:
+        (WebCore::collectStylesForRenderer):
+
+2016-09-15  Alex Christensen  <achristensen@webkit.org>
+
+        Use efficient iterators in URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162007
+
+        Reviewed by Tim Horton.
+
+        URLParser used to use StringView::CodePoints::Iterator, which needs to check if
+        the StringView is 8-bit or 16-bit every time it does anything.
+        I wrote a new CodePointIterator template which already knows whether it is iterating
+        8-bit or 16-bit characters, so it does not need to do the checks each time it gets a
+        code point or advances to the next code point.
+
+        No change in behavior except a performance increase.
+        Covered by existing tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::CodePointIterator::CodePointIterator):
+        (WebCore::CodePointIterator::operator==):
+        (WebCore::CodePointIterator::operator!=):
+        (WebCore::CodePointIterator::operator=):
+        (WebCore::CodePointIterator::atEnd):
+        (WebCore::CodePointIterator<LChar>::operator):
+        (WebCore::CodePointIterator<UChar>::operator):
+        (WebCore::isWindowsDriveLetter):
+        (WebCore::shouldCopyFileURL):
+        (WebCore::isPercentEncodedDot):
+        (WebCore::isSingleDotPathSegment):
+        (WebCore::isDoubleDotPathSegment):
+        (WebCore::consumeSingleDotPathSegment):
+        (WebCore::consumeDoubleDotPathSegment):
+        (WebCore::URLParser::failure):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::parseAuthority):
+        (WebCore::parseIPv4Number):
+        (WebCore::parseIPv4Host):
+        (WebCore::parseIPv6Host):
+        (WebCore::URLParser::parsePort):
+        (WebCore::URLParser::parseHost):
+        * platform/URLParser.h:
+
+2016-09-14  Antti Koivisto  <antti@apple.com>
+
+        Move text decoration style computation from RenderObject to TextDecorationPainter
+        https://bugs.webkit.org/show_bug.cgi?id=162004
+
+        Reviewed by Zalan Bujtas.
+
+        It is mostly an implementation detail of TextDecorationPainter.
+
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (AXAttributeStringSetStyle):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (AXAttributeStringSetStyle):
+        * rendering/RenderObject.cpp:
+        (WebCore::decorationColor): Deleted.
+        (WebCore::RenderObject::getTextDecorationColorsAndStyles): Deleted.
+        * rendering/RenderObject.h:
+        * rendering/TextDecorationPainter.cpp:
+        (WebCore::TextDecorationPainter::TextDecorationPainter):
+        (WebCore::TextDecorationPainter::paintTextDecoration):
+        (WebCore::decorationColor):
+        * rendering/TextDecorationPainter.h:
+
+2016-09-15  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Make stylesheets parse using the new parser if the setting is enabled
+        https://bugs.webkit.org/show_bug.cgi?id=162018
+
+        Reviewed by Zalan Bujtas.
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParserContext::CSSParserContext):
+        (WebCore::CSSParser::parseSheet):
+        * css/parser/CSSParserMode.h:
+
+2016-09-15  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [CMake] Refactor GENERATE_BINDINGS
+        https://bugs.webkit.org/show_bug.cgi?id=161854
+
+        Reviewed by Gyuyoung Kim.
+
+        * CMakeLists.txt: Changed the arguments of GENERATE_BINDINGS to
+        new style.  Removed add_custom_command of preprocess-idls.pl which
+        is moved to GENERATE_BINDINGS.  Moved IDL_ATTRIBUTES_FILE into
+        GENERATE_BINDINGS.
+
+2016-09-14  Anders Carlsson  <andersca@apple.com>
+
+        Add CSS -webkit-appearance property for Apple Pay buttons
+        https://bugs.webkit.org/show_bug.cgi?id=161986
+        rdar://problem/27459216
+
+        Reviewed by Dean Jackson.
+
+        Add a new -webkit-appearance property, "-apple-pay-button".
+        Also, add two properties, "-apple-pay-button-type" and "-apple-pay-button-style".
+
+        * WebCore.xcodeproj/project.pbxproj:
+        Add RenderThemeCocoa.h and RenderThemeCocoa.mm.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::ComputedStyleExtractor::propertyValue):
+        Handle CSSPropertyApplePayButtonStyle and CSSPropertyApplePayButtonType.
+
+        * css/CSSPrimitiveValueMappings.h:
+        (WebCore::CSSPrimitiveValue::CSSPrimitiveValue):
+        (WebCore::CSSPrimitiveValue::operator ApplePayButtonStyle):
+        (WebCore::CSSPrimitiveValue::operator ApplePayButtonType):
+        Add ApplePayButtonStyle and ApplePayButtonType conversion routines.
+
+        * css/CSSPropertyNames.in:
+        Add -apple-pay-button-style and -apple-pay-button-type.
+
+        * css/CSSValueKeywords.in:
+        Add CSS values.
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::isValidKeywordPropertyAndValue):
+        Handle CSSPropertyApplePayButtonStyle and CSSPropertyApplePayButtonType.
+
+        * css/parser/CSSParserFastPaths.cpp:
+        (WebCore::CSSParserFastPaths::isKeywordPropertyID):
+        Handle CSSPropertyApplePayButtonStyle and CSSPropertyApplePayButtonType.
+
+        (WebCore::isAppleLegacyCSSPropertyKeyword):
+        New function that returns whether the CSS property should be rewritten to -webkit-.
+        We want to rewrite -apple- but not -apple-pay-.
+
+        (WebCore::cssPropertyID):
+        Use the newly added isAppleLegacyCSSPropertyKeyword.
+
+        (WebCore::isAppleLegacyCSSValueKeyword):
+        Check for "-apple-pay-" in addition to "-apple-system-".
+
+        * platform/ThemeTypes.h:
+        Add ApplePayButtonPart.
+
+        * platform/spi/cocoa/PassKitSPI.h:
+        Add PKDrawApplePayButton declaration.
+
+        * rendering/RenderTheme.cpp:
+        (WebCore::RenderTheme::adjustStyle):
+        Handle ApplePayButtonPart.
+
+        (WebCore::RenderTheme::paint):
+        Handle ApplePayButtonPart.
+
+        * rendering/RenderTheme.h:
+        (WebCore::RenderTheme::adjustApplePayButtonStyle):
+        (WebCore::RenderTheme::paintApplePayButton):
+        Add new functions.
+
+        * rendering/RenderThemeCocoa.h: Added.
+        * rendering/RenderThemeCocoa.mm: Added.
+        (WebCore::RenderThemeCocoa::adjustApplePayButtonStyle):
+        Adjust the minimum width and minimum height accordingly.
+
+        (WebCore::toPKPaymentButtonStyle):
+        (WebCore::toPKPaymentButtonType):
+        Helper functions that convert our WebCore types to PK types.
+
+        (WebCore::RenderThemeCocoa::paintApplePayButton):
+        Call PKDrawApplePayButton.
+
+        * rendering/RenderThemeIOS.h:
+        * rendering/RenderThemeMac.h:
+        Inherit from RenderThemeCocoa.
+
+        * rendering/style/RenderStyle.h:
+        (WebCore::RenderStyle::applePayButtonStyle):
+        (WebCore::RenderStyle::applePayButtonType):
+        (WebCore::RenderStyle::setApplePayButtonStyle):
+        (WebCore::RenderStyle::setApplePayButtonType):
+        (WebCore::RenderStyle::initialApplePayButtonStyle):
+        (WebCore::RenderStyle::initialApplePayButtonType):
+        * rendering/style/RenderStyleConstants.h:
+        * rendering/style/StyleRareInheritedData.cpp:
+        (WebCore::StyleRareInheritedData::StyleRareInheritedData):
+        (WebCore::StyleRareInheritedData::operator==):
+        * rendering/style/StyleRareInheritedData.h:
+        Add new style members for the button style and button type properties.
+
+2016-09-15  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Implement fit-content track size
+        https://bugs.webkit.org/show_bug.cgi?id=161379
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        This implements the new <fit-content> track size which is defined as follows: "Represents
+        the formula min(max-content, max(auto, argument)), which is calculated similar to auto
+        (i.e. minmax(auto, max-content)), except that the track size is clamped at argument if it is
+        greater than the auto minimum."
+
+        From the parsing POV fit-content was implemented as a new type of function which only takes
+        one argument. That forced us to refactor some code because minmax() was the only allowed
+        function for <track-size>s so far.
+
+        The implementation key is a new attribute in GridTrack called growthLimitCap which is
+        precisely the single attribute of fit-content(). Some parts of the track sizing algorithm
+        were adapted to this change like for example the sorting of tracks by growth potential (we
+        need to consider the caps).
+
+        Tests: fast/css-grid-layout/fit-content-columns.html
+        fast/css-grid-layout/fit-content-rows.html
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::specifiedValueForGridTrackSize): Added support for fit-content sizes.
+        * css/StyleBuilderConverter.h:
+        (WebCore::StyleBuilderConverter::createGridTrackSize): Added support for fit-content sizes.
+        * css/parser/CSSParser.cpp:
+        (WebCore::isGridTrackFixedSized): Added support for fit-content sizes.
+        (WebCore::CSSParser::parseGridTrackSize): Added support for parsing fit-content() functions.
+        * css/parser/CSSPropertyParser.cpp: Added support for parsing fit-content() functions so
+        it'll be available once we switch to the new parser.
+        * rendering/RenderGrid.cpp:
+        (WebCore::GridTrack::baseSize): Just return a LayoutUnit, the return value optimization will
+        keep it fast in any case.
+        (WebCore::GridTrack::growthLimit): Ditto.
+        (WebCore::GridTrack::setGrowthLimit): Added an ASSERT to check that the growth limit is
+        never higher than the cap.
+        (WebCore::GridTrack::infiniteGrowthPotential):
+        (WebCore::GridTrack::plannedSize): Just return a LayoutUnit, the return value optimization will
+        keep it fast in any case.
+        (WebCore::GridTrack::tempSize): Just return a LayoutUnit, the return value optimization will
+        keep it fast in any case.
+        (WebCore::GridTrack::setTempSize): Added as we no longer return a reference in tempSize().
+        (WebCore::GridTrack::growTempSize): New utility function which increases the tempSize.
+        (WebCore::GridTrack::setInfinitelyGrowable):
+        (WebCore::GridTrack::setGrowthLimitCap): Added.
+        (WebCore::GridTrack::growthLimitCap): Ditto.
+        (WebCore::GridTrack::growthLimitIsInfinite): Made private.
+        (WebCore::RenderGrid::GridSizingData::freeSpace): Renamed from freeSpaceForDirection.
+        (WebCore::RenderGrid::GridSizingData::availableSpace): We now cache the available space as
+        it is used to compute relative (percentage) sizes.
+        (WebCore::RenderGrid::GridSizingData::setAvailableSpace): Ditto.
+        (WebCore::RenderGrid::GridSizingData::setFreeSpace): Renamed from setFreeSpaceForDirection.
+        (WebCore::RenderGrid::computeTrackSizesForDirection): Receives the available space instead
+        of the free space.
+        (WebCore::RenderGrid::computeIntrinsicLogicalWidths): Properly initialize free and available
+        spaces.
+        (WebCore::RenderGrid::computeIntrinsicLogicalHeight): Ditto.
+        (WebCore::RenderGrid::computeUsedBreadthOfGridTracks): Use available space to initialize the
+        track sizes. Also use sizingOperation to decide whether or not sizes are indefinite. Last
+        but not least, added support for fit-content tracks.
+        (WebCore::RenderGrid::computeUsedBreadthOfMinLength): Pass a GridTrackSize instead of a GridLength.
+        (WebCore::RenderGrid::computeUsedBreadthOfMaxLength): Ditto.
+        (WebCore::RenderGrid::gridTrackSize): Added support for fit-content.
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctions): Ditto.
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctionsForNonSpanningItems): Ditto.
+        (WebCore::trackSizeForTrackSizeComputationPhase):
+        (WebCore::sortByGridTrackGrowthPotential): Reworked the function so it properly sorts tracks
+        with growth limit caps to support fit-content().
+        (WebCore::clampGrowthShareIfNeeded): Clamps the given growthShare passed as argument to the
+        track growth limit cap.
+        (WebCore::RenderGrid::distributeSpaceToTracks): Use the new setTempSize() method. Also sort
+        the selected tracks to grow over growth limits in order to respect the track caps eventually
+        set by fit-content (otherwise those tracks could indefinitely grow over the specified value).
+        (WebCore::RenderGrid::tracksAreWiderThanMinTrackBreadth): Use the new defined functions.
+        (WebCore::RenderGrid::applyStretchAlignmentToTracksIfNeeded): Use freeSpace().
+        (WebCore::RenderGrid::populateGridPositionsForDirection): Ditto.
+        (WebCore::GridTrack::infinitelyGrowable): Deleted.
+        (WebCore::RenderGrid::GridSizingData::freeSpaceForDirection): Deleted.
+        (WebCore::RenderGrid::GridSizingData::setFreeSpaceForDirection): Deleted.
+        (WebCore::RenderGrid::trackSizeForTrackSizeComputationPhase): Deleted.
+        * rendering/RenderGrid.h: Changed the signature of some methods. Moved
+        TrackSizeComputationPhase out of the RenderGrid class.
+        * rendering/style/GridTrackSize.h:
+        (WebCore::GridTrackSize::GridTrackSize): Added some extra documentation. Added a new
+        attribute to the constructor to support fit-content GridTrackSizes.
+        (WebCore::GridTrackSize::fitContentTrackBreadth): New method which returns the growth limit
+        cap set by fit-content().
+        (WebCore::GridTrackSize::minTrackBreadth):
+        (WebCore::GridTrackSize::isFitContent): Added.
+        (WebCore::GridTrackSize::length): Deleted.
+        (WebCore::GridTrackSize::isPercentage): Deleted.
+
+2016-09-15  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Fix a dangling reference
+        https://bugs.webkit.org/show_bug.cgi?id=161739
+
+        Reviewed by Alexey Proskuryakov.
+
+        The code was trying to get a reference to a private attribute of a temporary object returned
+        by gridTrackSize().
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::assumedRowsSizeForOrthogonalChild):
+
+2016-09-15  Sergio Villar Senin  <svillar@igalia.com>
+
+        Unreviewed, rolling out r205966.
+
+        Triggered some assertions
+
+        Reverted changeset:
+
+        "[css-grid] Implement fit-content track size"
+        https://bugs.webkit.org/show_bug.cgi?id=161379
+        http://trac.webkit.org/changeset/205966
+
+2016-09-15  Zalan Bujtas  <zalan@apple.com>
+
+        Cleanup RenderLayer::shouldBeNormalFlowOnly
+        https://bugs.webkit.org/show_bug.cgi?id=161981
+
+        Reviewed by Simon Fraser.
+
+        This patch changes the logic of figuring about if a particular layer is normal flow only by simply checking
+        if the layer creates a stacking context. If it does, we assume that it can't be a normal flow layer anymore.
+        This patch slightly changes behaviour by making layers with isolation and reflection to be non normal flow layers anymore.    
+
+        Covered by existing testcases.
+
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::calculateClipRects):
+
+2016-09-07  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Implement fit-content track size
+        https://bugs.webkit.org/show_bug.cgi?id=161379
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        This implements the new <fit-content> track size which is defined as follows: "Represents
+        the formula min(max-content, max(auto, argument)), which is calculated similar to auto
+        (i.e. minmax(auto, max-content)), except that the track size is clamped at argument if it is
+        greater than the auto minimum."
+
+        From the parsing POV fit-content was implemented as a new type of function which only takes
+        one argument. That forced us to refactor some code because minmax() was the only allowed
+        function for <track-size>s so far.
+
+        The implementation key is a new attribute in GridTrack called growthLimitCap which is
+        precisely the single attribute of fit-content(). Some parts of the track sizing algorithm
+        were adapted to this change like for example the sorting of tracks by growth potential (we
+        need to consider the caps).
+
+        Tests: fast/css-grid-layout/fit-content-columns.html
+        fast/css-grid-layout/fit-content-rows.html
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::specifiedValueForGridTrackSize): Added support for fit-content sizes.
+        * css/StyleBuilderConverter.h:
+        (WebCore::StyleBuilderConverter::createGridTrackSize): Added support for fit-content sizes.
+        * css/parser/CSSParser.cpp:
+        (WebCore::isGridTrackFixedSized): Added support for fit-content sizes.
+        (WebCore::CSSParser::parseGridTrackSize): Added support for parsing fit-content() functions.
+        * css/parser/CSSPropertyParser.cpp: Added support for parsing fit-content() functions so
+        it'll be available once we switch to the new parser.
+        * rendering/RenderGrid.cpp:
+        (WebCore::GridTrack::baseSize): Just return a LayoutUnit, the return value optimization will
+        keep it fast in any case.
+        (WebCore::GridTrack::growthLimit): Ditto.
+        (WebCore::GridTrack::setGrowthLimit): Added an ASSERT to check that the growth limit is
+        never higher than the cap.
+        (WebCore::GridTrack::infiniteGrowthPotential):
+        (WebCore::GridTrack::plannedSize): Just return a LayoutUnit, the return value optimization will
+        keep it fast in any case.
+        (WebCore::GridTrack::tempSize): Just return a LayoutUnit, the return value optimization will
+        keep it fast in any case.
+        (WebCore::GridTrack::setTempSize): Added as we no longer return a reference in tempSize().
+        (WebCore::GridTrack::growTempSize): New utility function which increases the tempSize.
+        (WebCore::GridTrack::setInfinitelyGrowable):
+        (WebCore::GridTrack::setGrowthLimitCap): Added.
+        (WebCore::GridTrack::growthLimitCap): Ditto.
+        (WebCore::GridTrack::growthLimitIsInfinite): Made private.
+        (WebCore::RenderGrid::GridSizingData::freeSpace): Renamed from freeSpaceForDirection.
+        (WebCore::RenderGrid::GridSizingData::availableSpace): We now cache the available space as
+        it is used to compute relative (percentage) sizes.
+        (WebCore::RenderGrid::GridSizingData::setAvailableSpace): Ditto.
+        (WebCore::RenderGrid::GridSizingData::setFreeSpace): Renamed from setFreeSpaceForDirection.
+        (WebCore::RenderGrid::computeTrackSizesForDirection): Receives the available space instead
+        of the free space.
+        (WebCore::RenderGrid::computeIntrinsicLogicalWidths): Properly initialize free and available
+        spaces.
+        (WebCore::RenderGrid::computeIntrinsicLogicalHeight): Ditto.
+        (WebCore::RenderGrid::computeUsedBreadthOfGridTracks): Use available space to initialize the
+        track sizes. Also use sizingOperation to decide whether or not sizes are indefinite. Last
+        but not least, added support for fit-content tracks.
+        (WebCore::RenderGrid::computeUsedBreadthOfMinLength): Pass a GridTrackSize instead of a GridLength.
+        (WebCore::RenderGrid::computeUsedBreadthOfMaxLength): Ditto.
+        (WebCore::RenderGrid::gridTrackSize): Added support for fit-content.
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctions): Ditto.
+        (WebCore::RenderGrid::resolveContentBasedTrackSizingFunctionsForNonSpanningItems): Ditto.
+        (WebCore::trackSizeForTrackSizeComputationPhase):
+        (WebCore::sortByGridTrackGrowthPotential): Reworked the function so it properly sorts tracks
+        with growth limit caps to support fit-content().
+        (WebCore::clampGrowthShareIfNeeded): Clamps the given growthShare passed as argument to the
+        track growth limit cap.
+        (WebCore::RenderGrid::distributeSpaceToTracks): Use the new setTempSize() method. Also sort
+        the selected tracks to grow over growth limits in order to respect the track caps eventually
+        set by fit-content (otherwise those tracks could indefinitely grow over the specified value).
+        (WebCore::RenderGrid::tracksAreWiderThanMinTrackBreadth): Use the new defined functions.
+        (WebCore::RenderGrid::applyStretchAlignmentToTracksIfNeeded): Use freeSpace().
+        (WebCore::RenderGrid::populateGridPositionsForDirection): Ditto.
+        (WebCore::GridTrack::infinitelyGrowable): Deleted.
+        (WebCore::RenderGrid::GridSizingData::freeSpaceForDirection): Deleted.
+        (WebCore::RenderGrid::GridSizingData::setFreeSpaceForDirection): Deleted.
+        (WebCore::RenderGrid::trackSizeForTrackSizeComputationPhase): Deleted.
+        * rendering/RenderGrid.h: Changed the signature of some methods. Moved
+        TrackSizeComputationPhase out of the RenderGrid class.
+        * rendering/style/GridTrackSize.h:
+        (WebCore::GridTrackSize::GridTrackSize): Added some extra documentation. Added a new
+        attribute to the constructor to support fit-content GridTrackSizes.
+        (WebCore::GridTrackSize::fitContentTrackBreadth): New method which returns the growth limit
+        cap set by fit-content().
+        (WebCore::GridTrackSize::minTrackBreadth):
+        (WebCore::GridTrackSize::isFitContent): Added.
+        (WebCore::GridTrackSize::length): Deleted.
+        (WebCore::GridTrackSize::isPercentage): Deleted.
+
+2016-09-15  Alejandro G. Castro  <alex@igalia.com>
+
+        Fix build warnings in the mediastream code
+        https://bugs.webkit.org/show_bug.cgi?id=161957
+
+        Reviewed by Philippe Normand.
+
+        * platform/mediastream/MediaConstraints.cpp:
+        (WebCore::MediaConstraint::create): Added assertion and mock return.
+        * platform/mediastream/RealtimeMediaSourceSupportedConstraints.cpp:
+        (WebCore::RealtimeMediaSourceSupportedConstraints::nameForConstraint):
+        Added assertion and mock return.
+        (WebCore::RealtimeMediaSourceSupportedConstraints::supportsConstraint):
+        Added assertion and mock return.
+
+2016-09-15  Youenn Fablet  <youenn@apple.com>
+
+        Rebase binding tests after r205953
+        https://bugs.webkit.org/show_bug.cgi?id=162012
+
+        Unreviewed.
+
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::jsTestNodePrototypeFunctionTestWorkerPromise):
+        (WebCore::jsTestNodePrototypeFunctionTestWorkerPromisePromise):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunction):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgument):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithException):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgument):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunction):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionPromise):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionWithException):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise):
+
+2016-09-15  Alejandro G. Castro  <alex@igalia.com>
+
+        [WebRTC][OpenWebRTC] crash in maybeHandleChangeMutedState
+        https://bugs.webkit.org/show_bug.cgi?id=161619
+
+        Added OpenWebRTC support to the RealtimeMediaSource mock class.
+
+        Reviewed by Eric Carlson.
+
+        Fixed tests.
+
+        * platform/mediastream/openwebrtc/RealtimeMediaSourceOwr.h:
+        (WebCore::RealtimeMediaSourceOwr::RealtimeMediaSourceOwr): Allowed
+        inheritance of the class, required to use it when creating the
+        mock class. Added a new constructor to create the class with null
+        mediastream.
+        * platform/mock/MockRealtimeMediaSource.cpp:
+        (WebCore::MockRealtimeMediaSource::MockRealtimeMediaSource): Use
+        the new BaseRealtimeMediaSourceClass in the constructor.
+        * platform/mock/MockRealtimeMediaSource.h: Added a new
+        BaseRealtimeMediaSourceClass defined using the
+        RealtimeMediaSourceOwr class for OpenWebRTC platform.
+
+2016-09-15  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Fix intrinsic size computation with flexible sized tracks
+        https://bugs.webkit.org/show_bug.cgi?id=161903
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        This is fixing a regression added in r192154. When computing the min content size of a grid
+        container (min preferred logical width) we should not take into account the fr tracks. As
+        stated in the early versions of the spec that size is the sum of the tracks' base sizes
+        before running the maximize tracks step.
+
+        That regression was causing sizing issues in grids with fr tracks both when under
+        min|max-content constrains and also when used as grid items (in nested grids).
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::computeUsedBreadthOfGridTracks):
+
+2016-09-13  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Too many gaps with trailing collapsing tracks
+        https://bugs.webkit.org/show_bug.cgi?id=161905
+
+        Reviewed by Darin Adler.
+
+        The total number and size of gaps were incorrectly computed whenever there were trailing
+        collapsed tracks (with collapsed gaps). The problem was that we were trying to optimize too
+        much the amount of hash table queries required to know the gaps between two lines. We were
+        considering that a gap always exist between 2 consecutive tracks if the first one is not
+        empty. That's generally true (for both NOTEMPTY|NOTEMPTY and NOTEMPTY|EMPTY+|NOTEMPTY
+        sequences) but not for all the cases (NOTEMPTY|EMPTY+).
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::guttersSize):
+
+2016-09-15  Youenn Fablet  <youenn@apple.com>
+
+        callPromiseFunction should be made usable for custom binding code
+        https://bugs.webkit.org/show_bug.cgi?id=161961
+
+        Reviewed by Darin Adler.
+
+        Covered by updated test.
+
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::castThisValue): Utility function to cast this value to a specific type.
+        * bindings/js/JSDOMPromise.h:
+        (WebCore::callPromiseFunction): Updated to take real promise function as a template parameter
+        for improved efficiency. Added workerMode template parameter.
+        (WebCore::bindingPromiseFunctionAdapter): Function signature adaptor.
+        * bindings/js/JSMediaDevicesCustom.cpp:
+        (WebCore::JSMediaDevicesGetUserMediaPromiseFunction):
+        (WebCore::JSMediaDevices::getUserMedia): Making use of callPromiseFunction to properly handle exceptions.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Updated to use template parameter.
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        (WebCore::jsTestNodePrototypeFunctionTestWorkerPromise):
+        (WebCore::jsTestNodePrototypeFunctionTestWorkerPromisePromise):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunction):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgument):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithException):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithOptionalIntArgument):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunction):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionWithException):
+        * bindings/scripts/test/TestNode.idl: Adding Worker promise binding test.
+
+2016-09-14  Jiewen Tan  <jiewen_tan@apple.com>
+
+        WebCrypto algorithms should be exposed via KeyAlgorithm dictionary
+        https://bugs.webkit.org/show_bug.cgi?id=128748
+        <rdar://problem/27359438>
+
+        Reviewed by Brent Fulgham and Chris Dumez.
+
+        Replace custom CryptoAlgorithmBuilder/buildAlgorithmDescription with KeyAlgorithm dictionary which is
+        defined by the spec: https://www.w3.org/TR/WebCryptoAPI/#key-algorithm-dictionary. Moreover, mark
+        CryptoKey.usages as CachedAttribute.
+
+        Tests: crypto/subtle/crypto-key-algorithm-gc.html
+               crypto/subtle/crypto-key-usages-gc.html
+
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * PlatformMac.cmake:
+        Remove CryptoAlgorithmDescriptionBuilder.cpp.
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSCryptoAlgorithmBuilder.cpp:
+        (WebCore::JSCryptoAlgorithmBuilder::add):
+        (WebCore::JSCryptoAlgorithmBuilder::createEmptyClone): Deleted.
+        * bindings/js/JSCryptoAlgorithmBuilder.h:
+        * bindings/js/JSCryptoKeyCustom.cpp:
+        (WebCore::JSCryptoKey::algorithm):
+        Get rid of dependency on CryptoAlgorithmDescriptionBuilder.
+        * crypto/CryptoAlgorithmDescriptionBuilder.cpp: Removed.
+        * crypto/CryptoAlgorithmDescriptionBuilder.h: Removed.
+        Replace it with KeyAlgorithm.
+        * crypto/CryptoKey.cpp:
+        (WebCore::CryptoKey::CryptoKey):
+        (WebCore::CryptoKey::buildAlgorithmDescription): Deleted.
+        * crypto/CryptoKey.h:
+        (WebCore::KeyAlgorithm::KeyAlgorithm):
+        (WebCore::KeyAlgorithm::~KeyAlgorithm):
+        (WebCore::CryptoKey::algorithmIdentifier):
+        * crypto/CryptoKey.idl:
+        Add KeyAlgorithm dictionary which is returned via CryptoKey.buildAlgorithm() method,
+        and rename m_algorithm to m_algorithmIdentifier to distingush it with newly
+        added KeyAlgorithm dictionary.
+        * crypto/gnutls/CryptoKeyRSAGnuTLS.cpp:
+        (WebCore::buildAlgorithm):
+        (WebCore::CryptoKeyRSA::buildAlgorithmDescription): Deleted.
+        * crypto/keys/CryptoKeyAES.cpp:
+        (WebCore::CryptoKeyAES::buildAlgorithm):
+        (WebCore::CryptoKeyAES::buildAlgorithmDescription): Deleted.
+        * crypto/keys/CryptoKeyAES.h:
+        (WebCore::AesKeyAlgorithm::AesKeyAlgorithm):
+        (WebCore::AesKeyAlgorithm::~AesKeyAlgorithm):
+        * crypto/keys/CryptoKeyHMAC.cpp:
+        (WebCore::CryptoKeyHMAC::buildAlgorithm):
+        (WebCore::CryptoKeyHMAC::buildAlgorithmDescription): Deleted.
+        * crypto/keys/CryptoKeyHMAC.h:
+        (WebCore::HmacKeyAlgorithm::HmacKeyAlgorithm):
+        (WebCore::HmacKeyAlgorithm::~HmacKeyAlgorithm):
+        * crypto/keys/CryptoKeyRSA.h:
+        (WebCore::RsaKeyAlgorithm::RsaKeyAlgorithm):
+        (WebCore::RsaKeyAlgorithm::~RsaKeyAlgorithm):
+        (WebCore::RsaHashedKeyAlgorithm::RsaHashedKeyAlgorithm):
+        (WebCore::RsaHashedKeyAlgorithm::~RsaHashedKeyAlgorithm):
+        * crypto/mac/CryptoKeyRSAMac.cpp:
+        (WebCore::CryptoKeyRSA::buildAlgorithm):
+        (WebCore::CryptoKeyRSA::buildAlgorithmDescription): Deleted.
+
+2016-09-14  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r205670): ASSERTION FAILED: methodTable(vm)->toThis(this, exec, NotStrictMode) == this
+        https://bugs.webkit.org/show_bug.cgi?id=161982
+
+        Reviewed by Saam Barati.
+
+        We no longer need a custom [[SetPrototypeOf]] anymore as JSProxy::setPrototypeOf()
+        no longer forwards the call to its target.
+
+        No new layout tests because the behavior only changes in the context of the JSC
+        tests (which were updated in this patch).
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::setPrototype): Deleted.
+        * page/DOMWindow.idl:
+
+2016-09-14  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls behave strangely when changing media sources
+        https://bugs.webkit.org/show_bug.cgi?id=161914
+        <rdar://problem/28227805>
+
+        Reviewed by Tim Horton.
+
+        Addresses media controls flickering while changing the source of a media element. To accomplish this, we make
+        the following changes to the media controls main content heuristic:
+
+        - Prevent elements that are not mostly within the mainframe rect (or elements with empty rects) from showing
+          media controls. Many websites that rely on same document navigation will move videos offscreen when navigating
+          to a section of their site that does not play media. Without this check, we would not know to hide a video
+          element on certain popular websites that use this technique, since the video has been interacted with in the
+          past.
+
+        - Rather than check whether a media element currently has video/audio sources, check whether it has ever had
+          audio. Many websites will use the same media element across different videos and change only the source, and
+          we should not prevent a media element from having media controls on grounds of having no audio or video in
+          this case.
+
+        - Rather than add user gesture and playback behavior restrictions before dispatching an ended event, add only
+          the gesture restriction immediately, and add the playback restriction after waiting for a grace period only if
+          the user has not interacted with the video since ending, and the video is not currently playing or about to
+          play. This gives the user a chance to interact with the controls when a video ends, but also allows the page
+          to load or begin playing a new video with the same media element without thrashing media control state.
+
+        Adds 3 new API tests.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::HTMLMediaElement):
+        (WebCore::HTMLMediaElement::~HTMLMediaElement):
+        (WebCore::HTMLMediaElement::mediaPlayerActiveSourceBuffersChanged):
+        (WebCore::HTMLMediaElement::seekWithTolerance):
+        (WebCore::HTMLMediaElement::beginScrubbing):
+        (WebCore::HTMLMediaElement::addBehaviorRestrictionsOnEndIfNecessary):
+        (WebCore::HTMLMediaElement::mediaPlayerCharacteristicChanged):
+        (WebCore::HTMLMediaElement::playbackControlsManagerBehaviorRestrictionsTimerFired):
+        * html/HTMLMediaElement.h:
+        (WebCore::HTMLMediaElement::hasEverHadAudio):
+        (WebCore::HTMLMediaElement::hasEverHadVideo):
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canShowControlsManager):
+        (WebCore::isElementRectMostlyInMainFrame):
+        * platform/graphics/MediaPlayer.h:
+        (WebCore::MediaPlayerClient::mediaPlayerActiveSourceBuffersChanged):
+        * platform/graphics/MediaPlayerPrivate.h:
+        (WebCore::MediaPlayerPrivateInterface::notifyActiveSourceBuffersChanged):
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::notifyActiveSourceBuffersChanged):
+        * platform/graphics/avfoundation/objc/MediaSourcePrivateAVFObjC.mm:
+        (WebCore::MediaSourcePrivateAVFObjC::removeSourceBuffer):
+        (WebCore::MediaSourcePrivateAVFObjC::sourceBufferPrivateDidChangeActiveState):
+
 2016-09-14  Eric Carlson  <eric.carlson@apple.com>
 
         [MediaStream] Minor cleanup

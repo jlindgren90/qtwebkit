@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,21 +23,18 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-#include "CryptoAlgorithmDescriptionBuilder.h"
+#pragma once
 
-#if ENABLE(SUBTLE_CRYPTO)
+#include "RenderTheme.h"
 
 namespace WebCore {
 
-CryptoAlgorithmDescriptionBuilder::CryptoAlgorithmDescriptionBuilder()
-{
+class RenderThemeCocoa : public RenderTheme {
+private:
+#if ENABLE(APPLE_PAY)
+    void adjustApplePayButtonStyle(StyleResolver&, RenderStyle&, const Element*) const override;
+    bool paintApplePayButton(const RenderObject&, const PaintInfo&, const IntRect&) override;
+#endif
+};
+
 }
-
-CryptoAlgorithmDescriptionBuilder::~CryptoAlgorithmDescriptionBuilder()
-{
-}
-
-} // namespace WebCore
-
-#endif // ENABLE(SUBTLE_CRYPTO)

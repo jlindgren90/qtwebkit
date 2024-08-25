@@ -1,3 +1,181 @@
+2016-09-15  Javier Fernandez  <jfernandez@igalia.com>
+
+        [GTK] Unreviewed test gardening
+        https://bugs.webkit.org/show_bug.cgi?id=162019
+
+        * platform/gtk/TestExpectations:
+        * platform/gtk/fast/forms/menulist-clip-expected.png:
+        * platform/gtk/fast/forms/menulist-clip-expected.txt:
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/basic/request-headers-expected.txt:
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/basic/request-headers-worker-expected.txt:
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/redirect/redirect-location-expected.txt:
+        * platform/gtk/imported/w3c/web-platform-tests/fetch/api/redirect/redirect-location-worker-expected.txt:
+
+2016-09-15  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Implement fit-content track size
+        https://bugs.webkit.org/show_bug.cgi?id=161379
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        New tests to verify that fit-content track sizes work as expected for columns and for
+        rows. Also added some more test cases to verify that we properly parse fit-content().
+
+        * fast/css-grid-layout/fit-content-columns-expected.html: Added.
+        * fast/css-grid-layout/fit-content-columns.html: Added.
+        * fast/css-grid-layout/fit-content-rows-expected.html: Added.
+        * fast/css-grid-layout/fit-content-rows.html: Added.
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set-expected.txt:
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set.html:
+        * fast/css-grid-layout/grid-columns-rows-get-set-expected.txt:
+        * fast/css-grid-layout/grid-columns-rows-get-set.html:
+        * fast/css-grid-layout/resources/grid-columns-rows-get-set.js:
+
+2016-09-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking transitions/3d/interrupted-transition.html as flaky on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=130972
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-09-15  Sergio Villar Senin  <svillar@igalia.com>
+
+        Unreviewed, rolling out r205966.
+
+        Triggered some assertions
+
+        Reverted changeset:
+
+        "[css-grid] Implement fit-content track size"
+        https://bugs.webkit.org/show_bug.cgi?id=161379
+        http://trac.webkit.org/changeset/205966
+
+2016-09-15  Zalan Bujtas  <zalan@apple.com>
+
+        Cleanup RenderLayer::shouldBeNormalFlowOnly
+        https://bugs.webkit.org/show_bug.cgi?id=161981
+
+        Reviewed by Simon Fraser.
+
+        Rebaselining.
+
+        * fast/table/overflow-table-collapsed-borders-section-self-painting-layer-painting-expected.txt:
+
+2016-09-15  Csaba Osztrogonác  <ossy@webkit.org>
+
+        js/stringimpl-to-jsstring-on-large-strings tests consume huge memory
+        https://bugs.webkit.org/show_bug.cgi?id=159807
+
+        Reviewed by Saam Barati.
+
+        * js/script-tests/stringimpl-to-jsstring-on-large-strings-1.js: Skipped on memory limited devices.
+        * js/script-tests/stringimpl-to-jsstring-on-large-strings-2.js: Skipped on memory limited devices.
+        * js/script-tests/stringimpl-to-jsstring-on-large-strings-3.js: Skipped on memory limited devices.
+
+2016-09-07  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Implement fit-content track size
+        https://bugs.webkit.org/show_bug.cgi?id=161379
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        New tests to verify that fit-content track sizes work as expected for columns and for
+        rows. Also added some more test cases to verify that we properly parse fit-content().
+
+        * fast/css-grid-layout/fit-content-columns-expected.html: Added.
+        * fast/css-grid-layout/fit-content-columns.html: Added.
+        * fast/css-grid-layout/fit-content-rows-expected.html: Added.
+        * fast/css-grid-layout/fit-content-rows.html: Added.
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set-expected.txt:
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set.html:
+        * fast/css-grid-layout/grid-columns-rows-get-set-expected.txt:
+        * fast/css-grid-layout/grid-columns-rows-get-set.html:
+        * fast/css-grid-layout/resources/grid-columns-rows-get-set.js:
+
+2016-09-15  Alejandro G. Castro  <alex@igalia.com>
+
+        [WebRTC][OpenWebRTC] crash in maybeHandleChangeMutedState
+        https://bugs.webkit.org/show_bug.cgi?id=161619
+
+        Reviewed by Eric Carlson.
+
+        * platform/gtk/TestExpectations: Modify the expectations, the
+        tests do not crash anymore.
+
+2016-09-15  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Fix intrinsic size computation with flexible sized tracks
+        https://bugs.webkit.org/show_bug.cgi?id=161903
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        Added a couple of new test cases, grid with fr tracks inside a container with intrinsic
+        dimensions and and grid with fr tracks inside another grid with fr tracks.
+
+        * fast/css-grid-layout/flex-and-intrinsic-sizes-expected.txt:
+        * fast/css-grid-layout/flex-and-intrinsic-sizes.html:
+
+2016-09-13  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Too many gaps with trailing collapsing tracks
+        https://bugs.webkit.org/show_bug.cgi?id=161905
+
+        Reviewed by Darin Adler.
+
+        Added new test cases to check that trailing collapsed tracks do not add gutters at the end.
+
+        * fast/css-grid-layout/grid-auto-fit-columns-expected.txt:
+        * fast/css-grid-layout/grid-auto-fit-columns.html:
+
+2016-09-15  Youenn Fablet  <youenn@apple.com>
+
+        callPromiseFunction should be made usable for custom binding code
+        https://bugs.webkit.org/show_bug.cgi?id=161961
+
+        Reviewed by Darin Adler.
+
+        * fast/mediastream/MediaDevices-getUserMedia-expected.txt:
+        * fast/mediastream/MediaDevices-getUserMedia.html: Updated to expect a rejected promise in lieu of an exception.
+
+2016-09-14  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update ios-simulator-wk1 test expectations after migrating to iOS 10
+
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/ios-simulator-wk2/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+
+2016-09-14  Jiewen Tan  <jiewen_tan@apple.com>
+
+        WebCrypto algorithms should be exposed via KeyAlgorithm dictionary
+        https://bugs.webkit.org/show_bug.cgi?id=128748
+        <rdar://problem/27359438>
+
+        Reviewed by Brent Fulgham and Chris Dumez.
+
+        * crypto/subtle/crypto-key-algorithm-gc-expected.txt: Added.
+        * crypto/subtle/crypto-key-algorithm-gc.html: Added.
+        * crypto/subtle/crypto-key-usages-gc-expected.txt: Added.
+        * crypto/subtle/crypto-key-usages-gc.html: Added.
+        * crypto/subtle/hmac-generate-key-expected.txt:
+        * crypto/subtle/hmac-generate-key.html:
+
+2016-09-14  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r205670): ASSERTION FAILED: methodTable(vm)->toThis(this, exec, NotStrictMode) == this
+        https://bugs.webkit.org/show_bug.cgi?id=161982
+
+        Reviewed by Saam Barati.
+
+        Bring back JSC test coverage that got lost in r205670.
+
+        * js/object-literal-shorthand-construction-expected.txt:
+        * js/script-tests/object-literal-shorthand-construction.js:
+        * js/script-tests/sloppy-getter-setter-global-object.js:
+        * js/sloppy-getter-setter-global-object-expected.txt:
+
 2016-09-14  Joseph Pecoraro  <pecoraro@apple.com>
 
         test262: TypedArray constructors length should be 3 and configurable

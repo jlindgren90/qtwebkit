@@ -1444,6 +1444,7 @@ private:
     bool m_isAssistingNodeDueToUserInteraction { false };
     bool m_hasEverFocusedElementDueToUserInteractionSincePageTransition { false };
     bool m_needsHiddenContentEditableQuirk { false };
+    bool m_needsPlainTextQuirk { false };
 
 #if ENABLE(CONTEXT_MENUS)
     bool m_isShowingContextMenu;
@@ -1522,6 +1523,7 @@ private:
     bool m_mainFrameProgressCompleted;
     bool m_shouldDispatchFakeMouseMoveEvents;
     bool m_isEditorStateMissingPostLayoutData { false };
+    bool m_isGettingDictionaryPopupInfo { false };
 
     enum class EditorStateIsContentEditable { No, Yes, Unset };
     mutable EditorStateIsContentEditable m_lastEditorStateWasContentEditable { EditorStateIsContentEditable::Unset };

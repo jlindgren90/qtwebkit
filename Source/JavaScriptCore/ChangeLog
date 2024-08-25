@@ -1,3 +1,143 @@
+2016-09-14  Filip Pizlo  <fpizlo@apple.com>
+
+        There is no good reason for WeakBlock to care about newly allocated objects
+        https://bugs.webkit.org/show_bug.cgi?id=162006
+
+        Reviewed by Geoffrey Garen.
+
+        WeakBlock scans itself in two modes:
+
+        visit: if a Weak in the block belongs to an unmarked object, ask the Weak to consider whether
+            it should do things.
+        
+        reap: if a Weak in a block belongs to an unmarked object, delete the Weak.
+
+        Except that "unmarked" has a peculiar meaning: WeakBlock defines it as
+        !markedOrNewlyAllocated. So, a newly allocated object will never be consulted about anything. 
+        That sounds scary until you realize that newlyAllocated must have been cleared before we even
+        got here.
+
+        So, we were paying the price of checking newlyAllocated for no reason. This switches the code
+        to using isMarked(). I don't know why the code previously checked newlyAllocated, but I do
+        trust my reasoning.
+
+        * heap/LargeAllocation.h:
+        (JSC::LargeAllocation::isMarkedDuringWeakVisiting):
+        (JSC::LargeAllocation::isMarkedOrNewlyAllocatedDuringWeakVisiting): Deleted.
+        * heap/MarkedBlock.h:
+        (JSC::MarkedBlock::isMarkedDuringWeakVisiting):
+        (JSC::MarkedBlock::isMarkedOrNewlyAllocatedDuringWeakVisiting): Deleted.
+        * heap/WeakBlock.cpp:
+        (JSC::WeakBlock::specializedVisit):
+        (JSC::WeakBlock::reap):
+
+2016-09-15  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205931.
+        https://bugs.webkit.org/show_bug.cgi?id=162021
+
+        Tests for this change fail on 32-bit JSC bots (Requested by
+        ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "[JSC] Make the rounding-related nodes support any type"
+        https://bugs.webkit.org/show_bug.cgi?id=161895
+        http://trac.webkit.org/changeset/205931
+
+2016-09-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: Should be a SyntaxError for duplicate parameter names in function with default parameters
+        https://bugs.webkit.org/show_bug.cgi?id=162013
+
+        Reviewed by Saam Barati.
+
+        https://tc39.github.io/ecma262/#sec-function-definitions-static-semantics-early-errors
+        It is a Syntax Error if IsSimpleParameterList of FormalParameterList is
+        false and BoundNames of FormalParameterList contains any duplicate elements.
+
+        Non-simple parameter lists include rest parameters, destructuring,
+        and default parameters.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseFormalParameters):
+        Previously, we were not failing if there were default parameters
+        early in the parameter list that were not yet identified as duplicates
+        and simple parameters later were duplicates. Now, we fail if there
+        are default parameters anywhere in the parameter list with a duplicate.
+
+2016-09-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        ASSERT_NOT_REACHED when using spread inside an array literal with Function.prototype.apply
+        https://bugs.webkit.org/show_bug.cgi?id=162003
+
+        Reviewed by Saam Barati.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::ArrayNode::isSimpleArray):
+        Don't treat an Array that has a spread expression inside it as simple.
+        This avoids a fast path for f.apply(x, simpleArray) that was not handling
+        spread expressions within arrays, and instead taking a path that can
+        handle the spreading.
+
+2016-09-14  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205933 and r205936.
+        https://bugs.webkit.org/show_bug.cgi?id=162002
+
+        broke the build (Requested by keith_miller on #webkit).
+
+        Reverted changesets:
+
+        "Pragma out undefined-var-template warnings in JSC for
+        JSObjects that are templatized"
+        https://bugs.webkit.org/show_bug.cgi?id=161985
+        http://trac.webkit.org/changeset/205933
+
+        "Unreviewed, fix the Windows build."
+        http://trac.webkit.org/changeset/205936
+
+2016-09-14  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r205670): ASSERTION FAILED: methodTable(vm)->toThis(this, exec, NotStrictMode) == this
+        https://bugs.webkit.org/show_bug.cgi?id=161982
+
+        Reviewed by Saam Barati.
+
+        Update JSProxy::setPrototype() to return false unconditionally instead
+        of forwarding the call to its target. We used to forward to the target
+        and then the JSDOMWindow's [[SetPrototypeOf]] would return false.
+        However, the JSC tests use a different GlobalObject and forwarding
+        the setPrototypeOf() call to the GlobalObject lead to hitting an
+        assertion. This patch aligns the behavior of the GlobalObject used by
+        the JSC tests with JSDOMWindow.
+
+        * runtime/JSProxy.cpp:
+        (JSC::JSProxy::setPrototype):
+
+2016-09-14  Michael Saboff  <msaboff@apple.com>
+
+        YARR doesn't check for invalid flags for literal regular expressions
+        https://bugs.webkit.org/show_bug.cgi?id=161995
+
+        Reviewed by Mark Lam.
+
+        Added a new error and a check that the flags are valid when we create a
+        literal regular expression.
+
+        * runtime/RegExp.cpp:
+        (JSC::RegExp::finishCreation):
+        * yarr/YarrPattern.cpp:
+        (JSC::Yarr::YarrPattern::errorMessage):
+        (JSC::Yarr::YarrPattern::compile):
+        * yarr/YarrPattern.h:
+
+2016-09-14  Keith Miller  <keith_miller@apple.com>
+
+        Unreviewed, fix the Windows build.
+
+        * runtime/HashMapImpl.cpp:
+
 2016-09-14  Keith Miller  <keith_miller@apple.com>
 
         Pragma out undefined-var-template warnings in JSC for JSObjects that are templatized

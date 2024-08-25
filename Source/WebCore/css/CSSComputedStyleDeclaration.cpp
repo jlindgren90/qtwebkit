@@ -1013,7 +1013,12 @@ static Ref<CSSValue> specifiedValueForGridTrackSize(const GridTrackSize& trackSi
 {
     switch (trackSize.type()) {
     case LengthTrackSizing:
-        return specifiedValueForGridTrackBreadth(trackSize.length(), style);
+        return specifiedValueForGridTrackBreadth(trackSize.minTrackBreadth(), style);
+    case FitContentTrackSizing: {
+        auto fitContentTrackSize = CSSValueList::createCommaSeparated();
+        fitContentTrackSize->append(zoomAdjustedPixelValueForLength(trackSize.fitContentTrackBreadth().length(), style));
+        return CSSFunctionValue::create("fit-content(", WTFMove(fitContentTrackSize));
+    }
     default:
         ASSERT(trackSize.type() == MinMaxTrackSizing);
         auto minMaxTrackBreadths = CSSValueList::createCommaSeparated();
@@ -3751,6 +3756,13 @@ RefPtr<CSSValue> ComputedStyleExtractor::propertyValue(CSSPropertyID propertyID,
 #if ENABLE(CSS_TRAILING_WORD)
         case CSSPropertyAppleTrailingWord:
             return cssValuePool.createValue(style->trailingWord());
+#endif
+
+#if ENABLE(APPLE_PAY)
+        case CSSPropertyApplePayButtonStyle:
+            return cssValuePool.createValue(style->applePayButtonStyle());
+        case CSSPropertyApplePayButtonType:
+            return cssValuePool.createValue(style->applePayButtonType());
 #endif
 
         /* Individual properties not part of the spec */
