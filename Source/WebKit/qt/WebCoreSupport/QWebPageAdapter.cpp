@@ -68,6 +68,7 @@
 #include "PlatformTouchEvent.h"
 #include "PlatformWheelEvent.h"
 #include "PluginDatabase.h"
+#include "PluginInfoProvider.h"
 #include "PluginPackage.h"
 #include "ProgressTracker.h"
 #include "ProgressTrackerClientQt.h"
@@ -128,6 +129,13 @@ extern Q_GUI_EXPORT int qt_defaultDpi();
 QT_END_NAMESPACE
 
 using namespace WebCore;
+
+class EmptyPluginInfoProvider : public PluginInfoProvider {
+public:
+    void refreshPlugins() override { }
+    void getPluginInfo(Page&, Vector<PluginInfo>&) override { }
+    void getWebVisiblePluginInfo(Page&, Vector<PluginInfo>&) override { }
+};
 
 bool QWebPageAdapter::drtRun = false;
 
@@ -234,6 +242,7 @@ void QWebPageAdapter::initializeWebCorePage()
     pageConfiguration.progressTrackerClient = new ProgressTrackerClientQt(this);
     pageConfiguration.applicationCacheStorage = ApplicationCacheStorage::create(String(), "ApplicationCache");
     pageConfiguration.databaseProvider = &WebDatabaseProvider::singleton();
+    pageConfiguration.pluginInfoProvider = adoptRef(new EmptyPluginInfoProvider);
     pageConfiguration.storageNamespaceProvider = WebStorageNamespaceProvider::create(
         QWebSettings::globalSettings()->localStoragePath());
     pageConfiguration.userContentProvider = &userContentProvider();
