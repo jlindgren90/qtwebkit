@@ -1,3 +1,390 @@
+2016-09-13  Chris Dumez  <cdumez@apple.com>
+
+        Drop support for <isindex>
+        https://bugs.webkit.org/show_bug.cgi?id=7139
+
+        Reviewed by Ryosuke Niwa.
+
+        Drop outdated tests / checks.
+
+        * dom/html/level2/html/HTMLIsIndexElement01-expected.txt: Removed.
+        * dom/html/level2/html/HTMLIsIndexElement01.html: Removed.
+        * dom/html/level2/html/HTMLIsIndexElement01.js: Removed.
+        * dom/html/level2/html/HTMLIsIndexElement02-expected.txt: Removed.
+        * dom/html/level2/html/HTMLIsIndexElement02.html: Removed.
+        * dom/html/level2/html/HTMLIsIndexElement02.js: Removed.
+        * dom/html/level2/html/HTMLIsIndexElement03-expected.txt: Removed.
+        * dom/html/level2/html/HTMLIsIndexElement03.html: Removed.
+        * dom/html/level2/html/HTMLIsIndexElement03.js: Removed.
+        * fast/dom/HTMLIsIndexElement/prototype-chain-expected.txt: Removed.
+        * fast/dom/HTMLIsIndexElement/prototype-chain.html: Removed.
+        * fast/dom/HTMLIsIndexElement/script-tests/prototype-chain.js: Removed.
+        * fast/dom/isindex-001.html: Removed.
+        * fast/dom/isindex-002.html: Removed.
+        * fast/events/resources/tabindex-focus-blur-all-frame1.html:
+        * fast/events/resources/tabindex-focus-blur-all-frame2.html:
+        * fast/events/resources/tabindex-focus-blur-all-iframe1.html:
+        * fast/events/resources/tabindex-focus-blur-all-iframe2.html:
+        * fast/forms/isindex-name-expected.txt: Removed.
+        * fast/forms/isindex-name.html: Removed.
+        * fast/forms/isindex-placeholder-expected.html: Removed.
+        * fast/forms/isindex-placeholder.html: Removed.
+        * fast/forms/text-style-color.html: Removed.
+        * fast/parser/fragment-parser-expected.txt:
+        * fast/parser/script-tests/fragment-parser.js:
+        * fast/replaced/table-percent-height-text-controls-expected.txt:
+        * fast/replaced/table-percent-height-text-controls.html:
+        * html5lib/generated/run-isindex-data-expected.txt: Removed.
+        * html5lib/generated/run-isindex-data.html: Removed.
+        * html5lib/generated/run-isindex-write-expected.txt: Removed.
+        * html5lib/generated/run-isindex-write.html: Removed.
+        * html5lib/resources/isindex.dat:
+        * html5lib/resources/tests19.dat:
+        * html5lib/resources/tests2.dat:
+        * html5lib/resources/webkit02.dat:
+        * http/tests/misc/isindex-formdata-expected.txt: Removed.
+        * http/tests/misc/isindex-formdata.html: Removed.
+        * http/tests/misc/isindex-with-no-form-base-href-expected.txt: Removed.
+        * http/tests/misc/isindex-with-no-form-base-href.html: Removed.
+        * http/tests/misc/isindex-with-no-form-expected.txt: Removed.
+        * http/tests/misc/isindex-with-no-form.html: Removed.
+        * http/tests/misc/resources/isindex-with-no-form-base-href-submit.html: Removed.
+        * http/tests/misc/resources/isindex-with-no-form-base-href.html: Removed.
+        * platform/efl/fast/dom/isindex-001-expected.png: Removed.
+        * platform/efl/fast/dom/isindex-001-expected.txt: Removed.
+        * platform/efl/fast/dom/isindex-002-expected.png: Removed.
+        * platform/efl/fast/dom/isindex-002-expected.txt: Removed.
+        * platform/efl/fast/forms/text-style-color-expected.png: Removed.
+        * platform/efl/fast/forms/text-style-color-expected.txt: Removed.
+        * platform/gtk/fast/dom/isindex-001-expected.png: Removed.
+        * platform/gtk/fast/dom/isindex-001-expected.txt: Removed.
+        * platform/gtk/fast/dom/isindex-002-expected.png: Removed.
+        * platform/gtk/fast/dom/isindex-002-expected.txt: Removed.
+        * platform/gtk/fast/forms/text-style-color-expected.png: Removed.
+        * platform/gtk/fast/forms/text-style-color-expected.txt: Removed.
+        * platform/ios-simulator/fast/dom/isindex-001-expected.txt: Removed.
+        * platform/ios-simulator/fast/dom/isindex-002-expected.txt: Removed.
+        * platform/ios-simulator/fast/forms/text-style-color-expected.txt: Removed.
+        * platform/mac-elcapitan/fast/dom/isindex-001-expected.txt: Removed.
+        * platform/mac-elcapitan/fast/dom/isindex-002-expected.txt: Removed.
+        * platform/mac-elcapitan/fast/forms/text-style-color-expected.txt: Removed.
+        * platform/mac/fast/dom/isindex-001-expected.png: Removed.
+        * platform/mac/fast/dom/isindex-001-expected.txt: Removed.
+        * platform/mac/fast/dom/isindex-002-expected.png: Removed.
+        * platform/mac/fast/dom/isindex-002-expected.txt: Removed.
+        * platform/mac/fast/forms/text-style-color-expected.png: Removed.
+        * platform/mac/fast/forms/text-style-color-expected.txt: Removed.
+        * platform/win/fast/dom/isindex-001-expected.txt: Removed.
+        * platform/win/fast/dom/isindex-002-expected.txt: Removed.
+        * platform/win/fast/forms/text-style-color-expected.txt: Removed.
+
+2016-09-13  Per Arne Vollan  <pvollan@apple.com>
+
+        Skip media source tests since the feature is not enabled on Windows.
+
+        Unreviewed test gardening.
+
+        * platform/win/TestExpectations:
+
+2016-09-13  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        ES6: Classes: Should be allowed to create a static method with name "arguments"
+        https://bugs.webkit.org/show_bug.cgi?id=152985
+
+        Reviewed by Keith Miller.
+
+        * js/Object-getOwnPropertyNames-expected.txt:
+        * js/basic-strict-mode-expected.txt:
+        * js/class-method-and-constructor-properties-expected.txt: Removed.
+        * js/class-syntax-method-names-expected.txt:
+        * js/es6-function-properties-expected.txt: Added.
+        * js/es6-function-properties.html: Copied from LayoutTests/js/class-method-and-constructor-properties.html.
+        * js/kde/script-tests/function_arguments.js:
+        (f):
+        * js/non-strict-function-properties-expected.txt: Added.
+        * js/non-strict-function-properties.html: Renamed from LayoutTests/js/class-method-and-constructor-properties.html.
+        * js/script-tests/Object-getOwnPropertyNames.js:
+        * js/script-tests/basic-strict-mode.js:
+        * js/script-tests/class-method-and-constructor-properties.js: Removed.
+        (shouldThrow): Deleted.
+        (shouldBe): Deleted.
+        (A): Deleted.
+        (B): Deleted.
+        (C): Deleted.
+        (D): Deleted.
+        (E.prototype.getItem): Deleted.
+        (E): Deleted.
+        (F.prototype.getElement): Deleted.
+        (F): Deleted.
+        (G.prototype.get item): Deleted.
+        (G): Deleted.
+        (H.prototype.caller): Deleted.
+        (H.prototype.arguments): Deleted.
+        (H): Deleted.
+        * js/script-tests/class-syntax-method-names.js:
+        * js/script-tests/es6-function-properties.js: Added.
+        (shouldThrow):
+        (shouldBe):
+        (A):
+        (B):
+        (C):
+        (D):
+        (E.prototype.getItem):
+        (E):
+        (F.prototype.getElement):
+        (F):
+        (G.prototype.get item):
+        (G):
+        (check):
+        (arr):
+        (H.prototype.caller):
+        (H.prototype.arguments):
+        (H):
+        (J.prototype.gen):
+        (J.gen):
+        (J):
+        * js/script-tests/non-strict-function-properties.js: Added.
+        (foo):
+        (boo):
+        (f):
+        (g):
+        (doSetCaller):
+        (doSetArguments):
+        * js/script-tests/strict-throw-type-error.js:
+
+2016-09-12  Youenn Fablet  <youenn@apple.com>
+
+        ScriptElement should use FetchOptions::mode according its crossOrigin attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161686
+
+        Reviewed by Darin Adler.
+
+        Added new tests.
+        Updated cookie test for robustness as the order of the cookie items when more than one may not be preserved.
+
+        Moved one of the blink test to http/tests as it requires HTTP to run properly.
+        Updated blink test expectation as it is run from file, while it should be run from http.
+
+        Copied a similar test to http/tests/local to ensure that script load fails when served from the filesystem , CORS check failing.
+        The test was previously passing in WebKit as the test file was served from filesystem and was granted universal access.
+        The CORS checks were done through SecurityOrigin::canRequest which was testing that first.
+        With the patch, CORS checks are done at a lower level and do not take in to account universal access.
+        This aligns with Chrome and Firefox behavior.
+
+        * http/tests/local/script-crossorigin-loads-fail-origin-expected.txt: Added.
+        * http/tests/local/script-crossorigin-loads-fail-origin.html: Copied from LayoutTests/imported/blink/http/tests/security/script-crossorigin-loads-correctly-credentials.html.
+        * http/tests/cookies/resources/third-party-cookie-relaxing-iframe.html: Sorting the cookie to make the test more resistant.
+        * http/tests/security/cross-origin-cached-images-expected.txt: Added.
+        * http/tests/security/cross-origin-cached-images-parallel-expected.txt: Added.
+        * http/tests/security/cross-origin-cached-images-parallel.html: Renamed from LayoutTests/http/tests/security/cross-origin-cached-resource-parallel.html.
+        * http/tests/security/cross-origin-cached-images.html: Renamed from LayoutTests/http/tests/security/cross-origin-cached-resource.html.
+        * http/tests/security/cross-origin-cached-resource-parallel-expected.txt: Removed.
+        * http/tests/security/cross-origin-cached-scripts-expected.txt: Added.
+        * http/tests/security/cross-origin-cached-scripts-parallel-expected.txt: Added.
+        * http/tests/security/cross-origin-cached-scripts-parallel.html: Added.
+        * http/tests/security/cross-origin-cached-scripts.html: Added.
+        * http/tests/security/resources/cors-script.php: Updated according chromium script to activate CORS credentials header if requested.
+        * http/tests/security/resources/cross-origin-cached-resource-iframe.html:
+        * http/tests/security/resources/notify-loaded.js: Added.
+        * http/tests/security/script-crossorigin-loads-correctly-credentials-expected.txt: Renamed from LayoutTests/imported/blink/http/tests/security/script-crossorigin-loads-correctly-credentials-expected.txt.
+        * http/tests/security/script-crossorigin-loads-correctly-credentials.html: Renamed from LayoutTests/imported/blink/http/tests/security/script-crossorigin-loads-correctly-credentials.html.
+        * http/tests/security/script-with-dataurl-expected.txt: Added.
+        * http/tests/security/script-with-dataurl.html: Added.
+        * http/tests/security/script-with-failed-cors-check-fails-to-load-expected.txt:
+
+2016-09-12  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [GTK] Fix lint warnings of LayoutTests/platform/gtk/TestExpectations
+        https://bugs.webkit.org/show_bug.cgi?id=161890
+
+        Unreviewed test gardening.
+
+        * platform/gtk/TestExpectations: Removed deleted test cases
+        js/regress/nested-function-parsing.html, js/regress/new-array-buffer-dead.html
+        and js/regress/method-on-number.html.
+        Skip imported/w3c/web-platform-tests/media-source/
+
+2016-09-12  Saam Barati  <sbarati@apple.com>
+
+        Speed up Function.prototype.bind a bit by making it a builtin
+        https://bugs.webkit.org/show_bug.cgi?id=161879
+
+        Reviewed by Filip Pizlo.
+
+        * js/dom/function-bind-expected.txt:
+
+2016-09-12  Nan Wang  <n_wang@apple.com>
+
+        AX: Crash at WebCore::Range::compareBoundaryPoints(WebCore::Range::CompareHow, WebCore::Range const&, int&) const + 23
+        https://bugs.webkit.org/show_bug.cgi?id=161878
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/doctype-node-in-text-marker-crash-expected.txt: Added.
+        * accessibility/mac/doctype-node-in-text-marker-crash.html: Added.
+
+2016-09-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        HTMLButtonElement.prototype.click should be HTMLElement.prototype.click
+        https://bugs.webkit.org/show_bug.cgi?id=161874
+
+        Reviewed by Chris Dumez.
+
+        * fast/dom/HTMLButtonElement/click-expected.txt: Added.
+        * fast/dom/HTMLButtonElement/click.html: Added.
+
+2016-09-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/dom/nodes/ProcessingInstruction-escapes-1.xhtml as flaky on mac.
+        https://bugs.webkit.org/show_bug.cgi?id=161883
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-09-12  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Add TestHarness assertions/expectations to provide additional semantics similar to XCTest
+        https://bugs.webkit.org/show_bug.cgi?id=161278
+        <rdar://problem/28039741>
+
+        Reviewed by Joseph Pecoraro.
+
+        Add test to verify that the TestHarness.expect* family of functions
+        trivially work. Since it isn't possible to verify the TestPage results
+        directly without introducing additional complexity, simply log baseline
+        "PASS" and "FAIL" results for each function.
+
+        * inspector/unit-tests/test-harness-expect-functions-expected.txt: Added.
+        * inspector/unit-tests/test-harness-expect-functions.html: Added.
+
+2016-09-12  Chris Dumez  <cdumez@apple.com>
+
+        window.performance object resets script-applied properties
+        https://bugs.webkit.org/show_bug.cgi?id=137407
+
+        Reviewed by Darin Adler.
+
+        Add layout test coverage.
+
+        * fast/performance/performance-object-gc-expected.txt: Added.
+        * fast/performance/performance-object-gc.html: Added.
+
+2016-09-12  Jer Noble  <jer.noble@apple.com>
+
+        Fix failing mediasource-play.html and mediasource-config-change-mp4-v-bitrate.html tests
+        https://bugs.webkit.org/show_bug.cgi?id=161819
+
+        Reviewed by Eric Carlson.
+
+        * media/media-source/media-source-end-of-stream-readyState.html:
+        * media/media-source/media-source-end-of-stream-readyState-expected.txt:
+        * platform/mac/TestExpectations:
+
+2016-09-12  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Object.shallowEqual() should return false if object prototype chains differ
+        https://bugs.webkit.org/show_bug.cgi?id=161852
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/unit-tests/object-utilities-expected.txt: Added.
+        * inspector/unit-tests/object-utilities.html: Added.
+        Add test coverage for Object.shallowEqual.
+
+2016-09-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking accessibility/mac/value-change/value-change-user-info-contenteditable.html as flaky on mac-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=160042
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-09-12  Simon Fraser  <simon.fraser@apple.com>
+
+        Make -webkit-transition-* and -webkit-animation-* properties be pure aliases of the unprefixed ones
+        https://bugs.webkit.org/show_bug.cgi?id=160478
+
+        Reviewed by Dean Jackson.
+        
+        Updated results, and a new test to ensure that longhand properties override
+        shorthand ones, with various combinations of prefixing.
+
+        * fast/css/getComputedStyle/computed-style-expected.txt:
+        * fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * fast/css/longhand-overrides-shorthand-prefixing-expected.txt: Added.
+        * fast/css/longhand-overrides-shorthand-prefixing.html: Added.
+        * fast/css/prefixed-unprefixed-variant-style-declaration-expected.txt:
+        * fast/css/prefixed-unprefixed-variant-style-declaration.html:
+        * transitions/svg-transitions-expected.txt:
+        * transitions/transitions-parsing-expected.txt:
+        * transitions/transitions-parsing.html:
+
+2016-09-12  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-align] Initial values are parsed as invalid for some Alignment properties
+        https://bugs.webkit.org/show_bug.cgi?id=161303
+
+        Reviewed by Darin Adler.
+
+        Test to verify the "initial" values of the CSS Box Alignment properties
+        are parsed as valid independently of whether Grid Layout is enabled or not.
+
+        * fast/css/ensure-flexbox-compatibility-with-initial-values-expected.txt: Added.
+        * fast/css/ensure-flexbox-compatibility-with-initial-values.html: Added.
+        * fast/css/resources/alignment-parsing-utils.js:
+        (checkSupportedValues):
+
+2016-09-11  Chris Dumez  <cdumez@apple.com>
+
+        HTMLTrackElement.kind's invalid value default should be the metadata state
+        https://bugs.webkit.org/show_bug.cgi?id=161840
+
+        Reviewed by Eric Carlson.
+
+        * media/track/track-kind-expected.txt:
+        * media/track/track-kind.html:
+        Update existing test to reflect behavior change.
+
+        * media/track/w3c/interfaces/TextTrack/kind.html:
+        Re-sync test from W3C as it was outdated.
+
+2016-09-11  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Skip to test some w3c/web-platform-tests
+
+        Unreviewed EFL gardening.
+
+        Some tests of w3c/web-platform-tests have been flaky since r205777.
+
+        * platform/efl/TestExpectations
+
+2016-09-11  Tim Horton  <timothy_horton@apple.com>
+
+        Candidates that don't end in spaces shouldn't have spaces arbitrarily appended to them
+        https://bugs.webkit.org/show_bug.cgi?id=161846
+        <rdar://problem/28245097>
+
+        Reviewed by Beth Dakin.
+
+        * editing/mac/spelling/accept-candidate-replacing-multiple-words-expected.txt:
+        * editing/mac/spelling/accept-candidate-replacing-multiple-words.html:
+        * editing/mac/spelling/accept-candidate-without-crossing-editing-boundary-expected.txt:
+        * editing/mac/spelling/accept-candidate-without-crossing-editing-boundary.html:
+        Update existing tests to put spaces at the end of accepted candidates to make them
+        more similar to what the OS will return to us.
+
+        * editing/mac/spelling/accept-candidate-without-adding-space-expected.txt: Added.
+        * editing/mac/spelling/accept-candidate-without-adding-space.html: Added.
+        Add a test where the accepted candidate does *not* have a space at the end,
+        testing that we don't add one where the candidate didn't contain one.
+
+        * editing/mac/spelling/accept-candidate-allows-autocorrect-on-next-word-expected.txt: Added.
+        * editing/mac/spelling/accept-candidate-allows-autocorrect-on-next-word.html: Added.
+        Add a test ensuring that the document marker added by accepting a candidate
+        doesn't overlap the next word and prevent autocorrect from working on it.
+
 2016-09-10  Chris Dumez  <cdumez@apple.com>
 
         It is possible for Document::m_frame pointer to become stale

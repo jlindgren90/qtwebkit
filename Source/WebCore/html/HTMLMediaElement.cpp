@@ -7228,7 +7228,7 @@ bool HTMLMediaElement::isVideoTooSmallForInlinePlayback()
 static bool mediaElementIsAllowedToAutoplay(const HTMLMediaElement& element)
 {
     const Document& document = element.document();
-    if (document.inPageCache())
+    if (document.pageCacheState() != Document::NotInPageCache)
         return false;
     if (document.activeDOMObjectsAreSuspended())
         return false;

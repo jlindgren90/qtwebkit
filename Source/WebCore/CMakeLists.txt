@@ -1353,6 +1353,7 @@ set(WebCore_SOURCES
     css/parser/CSSParser.cpp
     css/parser/CSSParserFastPaths.cpp
     css/parser/CSSParserIdioms.cpp
+    css/parser/CSSParserImpl.cpp
     css/parser/CSSParserObserverWrapper.cpp
     css/parser/CSSParserToken.cpp
     css/parser/CSSParserTokenRange.cpp
@@ -1360,10 +1361,13 @@ set(WebCore_SOURCES
     css/parser/CSSPropertyParser.cpp
     css/parser/CSSPropertyParserHelpers.cpp
     css/parser/CSSSelectorParser.cpp
+    css/parser/CSSSupportsParser.cpp
     css/parser/CSSTokenizer.cpp
     css/parser/CSSTokenizerInputStream.cpp
     css/parser/MediaQueryBlockWatcher.cpp
     css/parser/MediaQueryParser.cpp
+    css/parser/SizesAttributeParser.cpp
+    css/parser/SizesCalcParser.cpp
     css/parser/SVGCSSParser.cpp
 
     cssjit/SelectorCompiler.cpp

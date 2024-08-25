@@ -2157,7 +2157,7 @@ void RenderObject::removeRareData()
 void printRenderTreeForLiveDocuments()
 {
     for (const auto* document : Document::allDocuments()) {
-        if (!document->renderView() || document->inPageCache())
+        if (!document->renderView() || document->pageCacheState() != Document::NotInPageCache)
             continue;
         if (document->frame() && document->frame()->isMainFrame())
             fprintf(stderr, "----------------------main frame--------------------------\n");
@@ -2169,7 +2169,7 @@ void printRenderTreeForLiveDocuments()
 void printLayerTreeForLiveDocuments()
 {
     for (const auto* document : Document::allDocuments()) {
-        if (!document->renderView() || document->inPageCache())
+        if (!document->renderView() || document->pageCacheState() != Document::NotInPageCache)
             continue;
         if (document->frame() && document->frame()->isMainFrame())
             fprintf(stderr, "----------------------main frame--------------------------\n");

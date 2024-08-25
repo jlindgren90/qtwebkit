@@ -543,6 +543,9 @@ private:
         case ArithCos:
             compileArithCos();
             break;
+        case ArithTan:
+            compileArithTan();
+            break;
         case ArithPow:
             compileArithPow();
             break;
@@ -2068,6 +2071,17 @@ private:
         setDouble(result);
     }
 
+    void compileArithTan()
+    {
+        if (m_node->child1().useKind() == DoubleRepUse) {
+            setDouble(m_out.doubleTan(lowDouble(m_node->child1())));
+            return;
+        }
+        LValue argument = lowJSValue(m_node->child1());
+        LValue result = vmCall(Double, m_out.operation(operationArithTan), m_callFrame, argument);
+        setDouble(result);
+    }
+
     void compileArithPow()
     {
         if (m_node->child2().useKind() == Int32Use)
@@ -2888,6 +2902,7 @@ private:
     void compileGetArrayLength()
     {
         switch (m_node->arrayMode().type()) {
+        case Array::Undecided:
         case Array::Int32:
         case Array::Double:
         case Array::Contiguous: {

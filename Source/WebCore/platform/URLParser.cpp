@@ -127,35 +127,127 @@ static void encodeQuery(const StringBuilder& source, StringBuilder& destination,
     }
 }
 
-static bool isDefaultPort(const String& scheme, uint16_t port)
+static bool isDefaultPort(StringView scheme, uint16_t port)
 {
-    static NeverDestroyed<HashMap<String, uint16_t>> defaultPorts(HashMap<String, uint16_t>({
-        {"ftp", 21},
-        {"gopher", 70},
-        {"http", 80},
-        {"https", 443},
-        {"ws", 80},
-        {"wss", 443}}));
-    return defaultPorts.get().get(scheme) == port;
+    static const uint16_t ftpPort = 21;
+    static const uint16_t gopherPort = 70;
+    static const uint16_t httpPort = 80;
+    static const uint16_t httpsPort = 443;
+    static const uint16_t wsPort = 80;
+    static const uint16_t wssPort = 443;
+    
+    auto length = scheme.length();
+    if (!length)
+        return false;
+    switch (scheme[0]) {
+    case 'w':
+        switch (length) {
+        case 2:
+            return scheme[1] == 's'
+                && port == wsPort;
+        case 3:
+            return scheme[1] == 's'
+                && scheme[2] == 's'
+                && port == wssPort;
+        default:
+            return false;
+        }
+    case 'h':
+        switch (length) {
+        case 4:
+            return scheme[1] == 't'
+                && scheme[2] == 't'
+                && scheme[3] == 'p'
+                && port == httpPort;
+        case 5:
+            return scheme[1] == 't'
+                && scheme[2] == 't'
+                && scheme[3] == 'p'
+                && scheme[4] == 's'
+                && port == httpsPort;
+        default:
+            return false;
+        }
+    case 'g':
+        return length == 6
+            && scheme[1] == 'o'
+            && scheme[2] == 'p'
+            && scheme[3] == 'h'
+            && scheme[4] == 'e'
+            && scheme[5] == 'r'
+            && port == gopherPort;
+    case 'f':
+        return length == 3
+            && scheme[1] == 't'
+            && scheme[2] == 'p'
+            && port == ftpPort;
+        return false;
+    default:
+        return false;
+    }
 }
 
 static bool isSpecialScheme(StringView scheme)
 {
-    return scheme == "ftp"
-        || scheme == "file"
-        || scheme == "gopher"
-        || scheme == "http"
-        || scheme == "https"
-        || scheme == "ws"
-        || scheme == "wss";
+    auto length = scheme.length();
+    if (!length)
+        return false;
+    switch (scheme[0]) {
+    case 'f':
+        switch (length) {
+        case 3:
+            return scheme[1] == 't'
+                && scheme[2] == 'p';
+        case 4:
+            return scheme[1] == 'i'
+                && scheme[2] == 'l'
+                && scheme[3] == 'e';
+        default:
+            return false;
+        }
+    case 'g':
+        return length == 6
+            && scheme[1] == 'o'
+            && scheme[2] == 'p'
+            && scheme[3] == 'h'
+            && scheme[4] == 'e'
+            && scheme[5] == 'r';
+    case 'h':
+        switch (length) {
+        case 4:
+            return scheme[1] == 't'
+                && scheme[2] == 't'
+                && scheme[3] == 'p';
+        case 5:
+            return scheme[1] == 't'
+                && scheme[2] == 't'
+                && scheme[3] == 'p'
+                && scheme[4] == 's';
+        default:
+            return false;
+        }
+    case 'w':
+        switch (length) {
+        case 2:
+            return scheme[1] == 's';
+        case 3:
+            return scheme[1] == 's'
+                && scheme[2] == 's';
+        default:
+            return false;
+        }
+    default:
+        return false;
+    }
 }
 
-static StringView bufferView(const StringBuilder& builder, unsigned start, unsigned length)
+template<typename T>
+static StringView bufferView(const T& buffer, unsigned start, unsigned length)
 {
-    ASSERT(builder.length() >= length);
-    if (builder.is8Bit())
-        return StringView(builder.characters8() + start, length);
-    return StringView(builder.characters16() + start, length);
+    ASSERT(buffer.length() >= length);
+    if (buffer.is8Bit())
+        return StringView(buffer.characters8() + start, length);
+    return StringView(buffer.characters16() + start, length);
 }
 
 enum class URLParser::URLPart {
@@ -389,12 +481,16 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
     // FIXME: We shouldn't need to allocate another buffer for this.
     StringBuilder queryBuffer;
 
-    auto codePoints = StringView(input).codePoints();
+    unsigned endIndex = input.length();
+    while (endIndex && isC0ControlOrSpace(input[endIndex - 1]))
+        endIndex--;
+    auto codePoints = bufferView(input, 0, endIndex).codePoints();
     auto c = codePoints.begin();
     auto end = codePoints.end();
     auto authorityOrHostBegin = codePoints.begin();
     while (c != end && isC0ControlOrSpace(*c))
         ++c;
+    auto beginAfterControlAndSpace = c;
     
     enum class State : uint8_t {
         SchemeStart,
@@ -468,24 +564,26 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
                     m_url.m_portEnd = m_url.m_userStart;
                     auto maybeSlash = c;
                     ++maybeSlash;
+                    while (maybeSlash != end && isTabOrNewline(*maybeSlash))
+                        ++maybeSlash;
                     if (maybeSlash != end && *maybeSlash == '/') {
                         m_buffer.append('/');
                         m_url.m_pathAfterLastSlash = m_url.m_userStart + 1;
                         state = State::PathOrAuthority;
-                        ++c;
+                        c = maybeSlash;
                         ASSERT(*c == '/');
                     } else {
                         m_url.m_pathAfterLastSlash = m_url.m_userStart;
                         m_url.m_cannotBeABaseURL = true;
                         state = State::CannotBeABaseURLPath;
                     }
-                    ++c;
-                    break;
                 }
+                ++c;
+                break;
             } else {
                 m_buffer.clear();
                 state = State::NoScheme;
-                c = codePoints.begin();
+                c = beginAfterControlAndSpace;
                 break;
             }
             ++c;
@@ -494,7 +592,7 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
             if (c == end) {
                 m_buffer.clear();
                 state = State::NoScheme;
-                c = codePoints.begin();
+                c = beginAfterControlAndSpace;
             }
             break;
         case State::NoScheme:
@@ -504,6 +602,7 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
             if (base.m_cannotBeABaseURL && *c == '#') {
                 copyURLPartsUntil(base, URLPart::QueryEnd);
                 state = State::Fragment;
+                m_buffer.append('#');
                 ++c;
                 break;
             }
@@ -586,13 +685,13 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
         case State::SpecialAuthoritySlashes:
             LOG_STATE("SpecialAuthoritySlashes");
             m_buffer.append("//");
-            if (*c == '/') {
+            if (*c == '/' || *c == '\\') {
                 ++c;
                 while (c != end && isTabOrNewline(*c))
                     ++c;
                 if (c == end)
                     return failure(input);
-                if (*c == '/')
+                if (*c == '/' || *c == '\\')
                     ++c;
             }
             state = State::SpecialAuthorityIgnoreSlashes;
@@ -834,7 +933,7 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
                 m_url.m_queryEnd = m_url.m_pathEnd;
                 state = State::Fragment;
             } else {
-                m_buffer.append(*c);
+                utf8PercentEncode(*c, m_buffer, isInSimpleEncodeSet);
                 ++c;
             }
             break;
@@ -871,6 +970,8 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
         break;
     case State::SpecialRelativeOrAuthority:
         LOG_FINAL_STATE("SpecialRelativeOrAuthority");
+        copyURLPartsUntil(base, URLPart::QueryEnd);
+        m_url.m_fragmentEnd = m_url.m_queryEnd;
         break;
     case State::PathOrAuthority:
         LOG_FINAL_STATE("PathOrAuthority");
@@ -890,6 +991,15 @@ URL URLParser::parse(const String& input, const URL& base, const TextEncoding& e
         break;
     case State::SpecialAuthoritySlashes:
         LOG_FINAL_STATE("SpecialAuthoritySlashes");
+        m_url.m_userStart = m_buffer.length();
+        m_url.m_userEnd = m_url.m_userStart;
+        m_url.m_passwordEnd = m_url.m_userStart;
+        m_url.m_hostEnd = m_url.m_userStart;
+        m_url.m_portEnd = m_url.m_userStart;
+        m_url.m_pathAfterLastSlash = m_url.m_userStart;
+        m_url.m_pathEnd = m_url.m_userStart;
+        m_url.m_queryEnd = m_url.m_userStart;
+        m_url.m_fragmentEnd = m_url.m_userStart;
         break;
     case State::SpecialAuthorityIgnoreSlashes:
         LOG_FINAL_STATE("SpecialAuthorityIgnoreSlashes");
@@ -1394,9 +1504,7 @@ bool URLParser::parsePort(StringView::CodePoints::Iterator& iterator, const Stri
             return false;
     }
     
-    // FIXME: This shouldn't need a String allocation.
-    String scheme = m_buffer.toStringPreserveCapacity().substring(0, m_url.m_schemeEnd);
-    if (isDefaultPort(scheme, port)) {
+    if (isDefaultPort(bufferView(m_buffer, 0, m_url.m_schemeEnd), port)) {
         ASSERT(m_buffer[m_buffer.length() - 1] == ':');
         m_buffer.resize(m_buffer.length() - 1);
     } else

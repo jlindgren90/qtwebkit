@@ -202,6 +202,8 @@ TEST_F(URLParserTest, Basic)
     checkURL("sc:/pa", {"sc", "", "", "", 0, "/pa", "", "", "sc:/pa"});
     checkURL("sc:/pa/", {"sc", "", "", "", 0, "/pa/", "", "", "sc:/pa/"});
     checkURL("sc://pa/", {"sc", "", "", "pa", 0, "/", "", "", "sc://pa/"});
+    checkURL("http://host   \a   ", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
+    // FIXME: Fix and add a test with an invalid surrogate pair at the end with a space as the second code unit.
 
     // This disagrees with the web platform test for http://:@www.example.com but agrees with Chrome and URL::parse,
     // and Firefox fails the web platform test differently. Maybe the web platform test ought to be changed.
@@ -272,6 +274,15 @@ TEST_F(URLParserTest, ParseRelative)
     checkRelativeURL("http:\\\\foo.com/", "http://example.org/foo/bar", {"http", "", "", "foo.com", 0, "/", "", "", "http://foo.com/"});
     checkRelativeURL("http:\\\\foo.com", "http://example.org/foo/bar", {"http", "", "", "foo.com", 0, "/", "", "", "http://foo.com/"});
     checkRelativeURL("http://ExAmPlE.CoM", "http://other.com", {"http", "", "", "example.com", 0, "/", "", "", "http://example.com/"});
+    checkRelativeURL("http:", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "", "", "http://example.org/foo/bar"});
+    checkRelativeURL("#x", "data:,", {"data", "", "", "", 0, ",", "", "x", "data:,#x"});
+    checkRelativeURL("#x", "about:blank", {"about", "", "", "", 0, "blank", "", "x", "about:blank#x"});
+    checkRelativeURL("  foo.com  ", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/foo.com", "", "", "http://example.org/foo/foo.com"});
+    checkRelativeURL(" \a baz", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/baz", "", "", "http://example.org/foo/baz"});
+    
+    // The checking of slashes in SpecialAuthoritySlashes needed to get this to pass contradicts what is in the spec,
+    // but it is included in the web platform tests.
+    checkRelativeURL("http:\\\\host\\foo", "about:blank", {"http", "", "", "host", 0, "/foo", "", "", "http://host/foo"});
 }
 
 static void checkURLDifferences(const String& urlString, const ExpectedParts& partsNew, const ExpectedParts& partsOld)
@@ -466,6 +477,7 @@ TEST_F(URLParserTest, ParserDifferences)
 
 TEST_F(URLParserTest, DefaultPort)
 {
+    checkURL("FtP://host:21/", {"ftp", "", "", "host", 0, "/", "", "", "ftp://host/"});
     checkURL("ftp://host:21/", {"ftp", "", "", "host", 0, "/", "", "", "ftp://host/"});
     checkURL("ftp://host:22/", {"ftp", "", "", "host", 22, "/", "", "", "ftp://host:22/"});
     checkURLDifferences("ftp://host:21",
@@ -475,6 +487,7 @@ TEST_F(URLParserTest, DefaultPort)
         {"ftp", "", "", "host", 22, "/", "", "", "ftp://host:22/"},
         {"ftp", "", "", "host", 22, "", "", "", "ftp://host:22"});
     
+    checkURL("gOpHeR://host:70/", {"gopher", "", "", "host", 0, "/", "", "", "gopher://host/"});
     checkURL("gopher://host:70/", {"gopher", "", "", "host", 0, "/", "", "", "gopher://host/"});
     checkURL("gopher://host:71/", {"gopher", "", "", "host", 71, "/", "", "", "gopher://host:71/"});
     // Spec, Chrome, Firefox, and URLParser have "/", URL::parse does not.
@@ -486,16 +499,19 @@ TEST_F(URLParserTest, DefaultPort)
         {"gopher", "", "", "host", 71, "/", "", "", "gopher://host:71/"},
         {"gopher", "", "", "host", 71, "", "", "", "gopher://host:71"});
     
+    checkURL("hTtP://host:80", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
     checkURL("http://host:80", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
     checkURL("http://host:80/", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
     checkURL("http://host:81", {"http", "", "", "host", 81, "/", "", "", "http://host:81/"});
     checkURL("http://host:81/", {"http", "", "", "host", 81, "/", "", "", "http://host:81/"});
     
+    checkURL("hTtPs://host:443", {"https", "", "", "host", 0, "/", "", "", "https://host/"});
     checkURL("https://host:443", {"https", "", "", "host", 0, "/", "", "", "https://host/"});
     checkURL("https://host:443/", {"https", "", "", "host", 0, "/", "", "", "https://host/"});
     checkURL("https://host:444", {"https", "", "", "host", 444, "/", "", "", "https://host:444/"});
     checkURL("https://host:444/", {"https", "", "", "host", 444, "/", "", "", "https://host:444/"});
     
+    checkURL("wS://host:80/", {"ws", "", "", "host", 0, "/", "", "", "ws://host/"});
     checkURL("ws://host:80/", {"ws", "", "", "host", 0, "/", "", "", "ws://host/"});
     checkURL("ws://host:81/", {"ws", "", "", "host", 81, "/", "", "", "ws://host:81/"});
     // URLParser matches Chrome and Firefox, but not URL::parse
@@ -506,6 +522,7 @@ TEST_F(URLParserTest, DefaultPort)
         {"ws", "", "", "host", 81, "/", "", "", "ws://host:81/"},
         {"ws", "", "", "host", 81, "", "", "", "ws://host:81"});
     
+    checkURL("WsS://host:443/", {"wss", "", "", "host", 0, "/", "", "", "wss://host/"});
     checkURL("wss://host:443/", {"wss", "", "", "host", 0, "/", "", "", "wss://host/"});
     checkURL("wss://host:444/", {"wss", "", "", "host", 444, "/", "", "", "wss://host:444/"});
     // URLParser matches Chrome and Firefox, but not URL::parse
@@ -517,6 +534,7 @@ TEST_F(URLParserTest, DefaultPort)
         {"wss", "", "", "host", 444, "", "", "", "wss://host:444"});
 
     // 990 is the default ftps port in URL::parse, but it's not in the URL spec. Maybe it should be.
+    checkURL("fTpS://host:990/", {"ftps", "", "", "host", 990, "/", "", "", "ftps://host:990/"});
     checkURL("ftps://host:990/", {"ftps", "", "", "host", 990, "/", "", "", "ftps://host:990/"});
     checkURL("ftps://host:991/", {"ftps", "", "", "host", 991, "/", "", "", "ftps://host:991/"});
     checkURLDifferences("ftps://host:990",
@@ -526,6 +544,7 @@ TEST_F(URLParserTest, DefaultPort)
         {"ftps", "", "", "host", 991, "/", "", "", "ftps://host:991/"},
         {"ftps", "", "", "host", 991, "", "", "", "ftps://host:991"});
 
+    checkURL("uNkNoWn://host:80/", {"unknown", "", "", "host", 80, "/", "", "", "unknown://host:80/"});
     checkURL("unknown://host:80/", {"unknown", "", "", "host", 80, "/", "", "", "unknown://host:80/"});
     checkURL("unknown://host:81/", {"unknown", "", "", "host", 81, "/", "", "", "unknown://host:81/"});
     checkURLDifferences("unknown://host:80",
@@ -569,6 +588,21 @@ TEST_F(URLParserTest, ParserFailures)
     shouldFail("/i", "sc:sd/sd");
     shouldFail("?i", "sc:sd");
     shouldFail("?i", "sc:sd/sd");
+}
+
+// These are in the spec but not in the web platform tests.
+TEST_F(URLParserTest, AdditionalTests)
+{
+    checkURL("about:\a\aabc", {"about", "", "", "", 0, "%07%07abc", "", "", "about:%07%07abc"});
+    checkURL("notspecial:\t\t\n\t", {"notspecial", "", "", "", 0, "", "", "", "notspecial:"});
+    checkURLDifferences("notspecial\t\t\n\t:\t\t\n\t/\t\t\n\t/\t\t\n\thost",
+        {"notspecial", "", "", "host", 0, "/", "", "", "notspecial://host/"},
+        {"notspecial", "", "", "host", 0, "", "", "", "notspecial://host"});
+    checkRelativeURL("http:", "http://example.org/foo/bar?query#fragment", {"http", "", "", "example.org", 0, "/foo/bar", "query", "", "http://example.org/foo/bar?query"});
+    checkRelativeURLDifferences("ws:", "http://example.org/foo/bar",
+        {"ws", "", "", "", 0, "", "", "", "ws:"},
+        {"ws", "", "", "", 0, "s:", "", "", "ws:s:"});
+    checkRelativeURL("notspecial:", "http://example.org/foo/bar", {"notspecial", "", "", "", 0, "", "", "", "notspecial:"});
 }
 
 } // namespace TestWebKitAPI

@@ -3807,6 +3807,11 @@ TextRun RenderBlock::constructTextRun(const String& string, const RenderStyle& s
     return constructTextRun(StringView(string), style, expansion, flags);
 }
 
+TextRun RenderBlock::constructTextRun(const AtomicString& atomicString, const RenderStyle& style, ExpansionBehavior expansion, TextRunFlags flags)
+{
+    return constructTextRun(StringView(atomicString), style, expansion, flags);
+}
+
 TextRun RenderBlock::constructTextRun(const RenderText& text, const RenderStyle& style, ExpansionBehavior expansion)
 {
     return constructTextRun(text.stringView(), style, expansion);

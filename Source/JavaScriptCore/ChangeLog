@@ -1,3 +1,290 @@
+2016-09-12  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        ES6: Classes: Should be allowed to create a static method with name "arguments"
+        https://bugs.webkit.org/show_bug.cgi?id=152985
+
+        Reviewed by Keith Miller.
+
+        Current patch covered 16.2 Forbidden Extensions - first topic 
+        (https://tc39.github.io/ecma262/#sec-forbidden-extensions) ECMAScript Functions 
+        should not have own properties named "caller" or "arguments".
+        Also added possibility to declare static methods and getters with 
+        name 'arguments' and 'caller' for classes. i.e.:
+        class A { static arguments() { return 'value'; } }
+        A.arguments() === 'value';
+        To implement this patch 'caller' and 'arguments' were put to the FunctionPrototype
+        object. Also was changed approach to init throwTypeErrorArgumentsCalleeAndCallerGetterSetter
+        property from Lazy to common because it necessary to use execState during init of the accessors 
+        properties.
+
+        * runtime/Executable.h:
+        * runtime/FunctionPrototype.cpp:
+        (JSC::FunctionPrototype::initRestrictedProperties):
+        (JSC::FunctionPrototype::addFunctionProperties): Deleted.
+        * runtime/FunctionPrototype.h:
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::getOwnPropertySlot):
+        (JSC::JSFunction::getOwnNonIndexPropertyNames):
+        (JSC::JSFunction::put):
+        (JSC::JSFunction::deleteProperty):
+        (JSC::JSFunction::defineOwnProperty):
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+        (JSC::JSGlobalObject::visitChildren):
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::throwTypeErrorArgumentsCalleeAndCallerGetterSetter):
+
+2016-09-12  Filip Pizlo  <fpizlo@apple.com>
+
+        MarkedBlock should be able to use flipIfNecessary() as the "I'm not empty" trigger
+        https://bugs.webkit.org/show_bug.cgi?id=161869
+
+        Reviewed by Saam Barati.
+        
+        In bug 161581, I'm going to use flipIfNecessary() during marking to trigger the "I'm not
+        empty" hook, which will set a bit in the markingNotEmpty bitvector.
+        
+        For this to work, we need to ensure that nobody else uses flipIfNecessary() during marking.
+        If anyone else does it but they aren't marking new objects, then this prevents
+        flipIfNecessary() from triggering when the first object is marked, which means we won't
+        always detect when a block became non-empty.
+        
+        I addressed this by adding a isMarking flag, and asserting in flipIfNecessary() that the flag
+        isn't set. flipIfNecessaryDuringMarking() is used only on the marking path, so that code
+        knows that it can trigger something like noteMarked(). The only places that were using
+        flipIfNecessary() should have been using needsFlip() anyway.
+
+        * heap/CellContainer.h:
+        * heap/CellContainerInlines.h:
+        (JSC::CellContainer::needsFlip):
+        * heap/Heap.cpp:
+        (JSC::Heap::markRoots):
+        (JSC::Heap::beginMarking):
+        (JSC::Heap::endMarking):
+        (JSC::Heap::clearLivenessData): Deleted.
+        (JSC::Heap::converge): Deleted.
+        (JSC::Heap::resetVisitors): Deleted.
+        * heap/Heap.h:
+        * heap/HeapInlines.h:
+        (JSC::Heap::testAndSetMarked):
+        * heap/LargeAllocation.h:
+        (JSC::LargeAllocation::flipIfNecessaryDuringMarking):
+        (JSC::LargeAllocation::flipIfNecessaryConcurrently): Deleted.
+        * heap/MarkedBlock.cpp:
+        (JSC::MarkedBlock::flipIfNecessarySlow):
+        (JSC::MarkedBlock::flipIfNecessaryDuringMarkingSlow):
+        (JSC::MarkedBlock::flipIfNecessaryConcurrentlySlow): Deleted.
+        * heap/MarkedBlock.h:
+        (JSC::MarkedBlock::flipIfNecessaryDuringMarking):
+        (JSC::MarkedBlock::Handle::flipIfNecessaryDuringMarking):
+        (JSC::MarkedBlock::flipIfNecessaryConcurrently): Deleted.
+        (JSC::MarkedBlock::Handle::flipIfNecessaryConcurrently): Deleted.
+        * heap/MarkedSpace.h:
+        (JSC::MarkedSpace::isMarking):
+        (JSC::MarkedSpace::setIsMarking):
+        (JSC::MarkedSpace::largeAllocationsForThisCollectionSize): Deleted.
+        * heap/SlotVisitor.cpp:
+        (JSC::SlotVisitor::setMarkedAndAppendToMarkStack):
+        * heap/WeakBlock.cpp:
+        (JSC::WeakBlock::visit):
+
+2016-09-12  Saam Barati  <sbarati@apple.com>
+
+        HashMapImpl should take into account m_deleteCount in its load factor and it should be able to rehash the table to be smaller
+        https://bugs.webkit.org/show_bug.cgi?id=161640
+
+        Reviewed by Geoffrey Garen.
+
+        HashMapImpl now takes into account m_deleteCount in its load factor.
+        It now knows how to rehash to either decrease its capacity, stay at
+        the same capacity, or increase its capacity. The reason we can sometimes
+        stay at the same capacity is that we can reduce the load factor enough
+        by rehashing that growing isn't warranted. The reason for this is that
+        anytime we rehash, we remove all deleted sentinels from the buffer.
+        Therefore, staying at the same same capacity, when there are deleted entries,
+        can still reduce the load factor because it removes all deleted sentinels.
+
+        * runtime/HashMapImpl.h:
+        (JSC::HashMapBuffer::create):
+        (JSC::HashMapBuffer::reset):
+        (JSC::HashMapImpl::HashMapImpl):
+        (JSC::HashMapImpl::add):
+        (JSC::HashMapImpl::remove):
+        (JSC::HashMapImpl::size):
+        (JSC::HashMapImpl::clear):
+        (JSC::HashMapImpl::approximateSize):
+        (JSC::HashMapImpl::shouldRehashAfterAdd):
+        (JSC::HashMapImpl::shouldShrink):
+        (JSC::HashMapImpl::rehash):
+        (JSC::HashMapImpl::checkConsistency):
+        (JSC::HashMapImpl::makeAndSetNewBuffer):
+        (JSC::HashMapImpl::assertBufferIsEmpty):
+
+2016-09-12  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Use GetArrayLength for JSArray.length even when the array type is undecided
+        https://bugs.webkit.org/show_bug.cgi?id=161671
+
+        Reviewed by Geoffrey Garen.
+
+        UndecidedShape is a type with storage. When we allocate an uninitialized JSArray,
+        it gets a butterfly with its length.
+        When we were querying that length, we were generating a generic GetById with inline cache.
+
+        This patch adds the missing bits to treat Undecided like the other types with storage.
+
+        * dfg/DFGArrayMode.cpp:
+        (JSC::DFG::canBecomeGetArrayLength):
+        (JSC::DFG::ArrayMode::refine):
+        * dfg/DFGArrayMode.h:
+        (JSC::DFG::ArrayMode::usesButterfly):
+        (JSC::DFG::ArrayMode::lengthNeedsStorage):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::checkArray):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileGetArrayLength):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileGetArrayLength):
+
+2016-09-12  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DFG][FTL] Add ArithTan
+        https://bugs.webkit.org/show_bug.cgi?id=161857
+
+        Reviewed by Filip Pizlo.
+
+        While ArithSin and ArithCos are supported, ArithTan is not supported yet.
+        And we also find that Math.tan is included in MotionMark's Multiply benchmark.
+
+        This patch adds ArithTan support in DFG and FTL. And it also cleans up the
+        existing ArithSin, ArithCos, and ArithLog compilations by unifying them.
+        The microbenchmark shows the 9% perf improvement.
+
+            tan    322.4819+-0.3766     ^    295.8700+-0.3094        ^ definitely 1.0899x faster
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleIntrinsicCall):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGOperations.cpp:
+        * dfg/DFGOperations.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithDoubleUnaryOp):
+        (JSC::DFG::SpeculativeJIT::compileArithCos):
+        (JSC::DFG::SpeculativeJIT::compileArithTan):
+        (JSC::DFG::SpeculativeJIT::compileArithSin):
+        (JSC::DFG::SpeculativeJIT::compileArithLog):
+        * dfg/DFGSpeculativeJIT.h:
+        * dfg/DFGSpeculativeJIT32_64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithTan):
+        * ftl/FTLOutput.cpp:
+        (JSC::FTL::Output::doubleTan):
+        * ftl/FTLOutput.h:
+        * runtime/Intrinsic.h:
+        * runtime/MathObject.cpp:
+        (JSC::MathObject::finishCreation):
+
+2016-09-12  Saam Barati  <sbarati@apple.com>
+
+        MapHash should do constant folding when it has a constant argument and its legal to hash that value
+        https://bugs.webkit.org/show_bug.cgi?id=161639
+
+        Reviewed by Filip Pizlo.
+
+        We now constant fold the MapHash node. We're careful to not resolve
+        ropes from the compiler thread, and to only hash strings if they're
+        not too large. The microbenchmark I added runs about 12% faster with
+        this patch.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * runtime/HashMapImpl.h:
+        (JSC::wangsInt64Hash):
+        (JSC::jsMapHash):
+        (JSC::concurrentJSMapHash):
+
+2016-09-11  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG::forAllKilledOperands() could use a faster bitvector scan in the same-inline-stack fast path
+        https://bugs.webkit.org/show_bug.cgi?id=161849
+
+        Reviewed by Saam Barati.
+        
+        This is a fairly obvious change. This turns a loop that would query each bit individually
+        into a loop that will process a word at a time. I would expect a very tiny progression in
+        DFG compile times.
+        
+        This also gave me an opportunity to test and fix the new FastBitVector functionality.
+
+        * dfg/DFGForAllKills.h:
+        (JSC::DFG::forAllKilledOperands):
+
+2016-09-11  Filip Pizlo  <fpizlo@apple.com>
+
+        FastBitVector should have efficient and easy-to-use vector-vector operations
+        https://bugs.webkit.org/show_bug.cgi?id=161847
+
+        Reviewed by Saam Barati.
+        
+        Adapt existing users of FastBitVector to the new API.
+
+        * bytecode/BytecodeLivenessAnalysis.cpp:
+        (JSC::BytecodeLivenessAnalysis::computeKills):
+        (JSC::BytecodeLivenessAnalysis::dumpResults):
+        * bytecode/BytecodeLivenessAnalysisInlines.h:
+        (JSC::operandThatIsNotAlwaysLiveIsLive):
+        (JSC::BytecodeLivenessPropagation<DerivedAnalysis>::stepOverInstruction):
+        (JSC::BytecodeLivenessPropagation<DerivedAnalysis>::runLivenessFixpoint):
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::validate):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::flushForTerminal):
+        * dfg/DFGForAllKills.h:
+        (JSC::DFG::forAllKilledOperands):
+        * dfg/DFGGraph.h:
+        (JSC::DFG::Graph::forAllLocalsLiveInBytecode):
+        * dfg/DFGLiveCatchVariablePreservationPhase.cpp:
+        (JSC::DFG::LiveCatchVariablePreservationPhase::willCatchException):
+        (JSC::DFG::LiveCatchVariablePreservationPhase::handleBlock):
+        * dfg/DFGNaturalLoops.cpp:
+        (JSC::DFG::NaturalLoops::NaturalLoops):
+        * dfg/DFGPlan.cpp:
+        (JSC::DFG::Plan::cleanMustHandleValuesIfNecessary):
+
+2016-09-10  Chris Dumez  <cdumez@apple.com>
+
+        parseHTMLInteger() should take a StringView in parameter
+        https://bugs.webkit.org/show_bug.cgi?id=161669
+
+        Reviewed by Ryosuke Niwa.
+
+        * runtime/DateConversion.cpp:
+        (JSC::formatDateTime):
+        Explicitly construct a String from the const WCHAR* on Windows because
+        it is ambiguous otherwise now that there is a StringBuilder::append()
+        overload taking an AtomicString in.
+
 2016-09-08  Keith Miller  <keith_miller@apple.com>
 
         WASM should support if-then-else

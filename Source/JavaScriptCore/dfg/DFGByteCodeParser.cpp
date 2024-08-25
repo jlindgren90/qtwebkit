@@ -638,7 +638,7 @@ private:
             const FastBitVector& livenessAtBytecode = fullLiveness.getLiveness(bytecodeIndex);
 
             for (unsigned local = codeBlock->m_numCalleeLocals; local--;) {
-                if (livenessAtBytecode.get(local)) {
+                if (livenessAtBytecode[local]) {
                     VirtualRegister reg = virtualRegisterForLocal(local);
                     if (inlineCallFrame)
                         reg = inlineStackEntry->remapOperand(reg);
@@ -2155,7 +2155,8 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
     case FRoundIntrinsic:
     case LogIntrinsic:
     case SinIntrinsic:
-    case SqrtIntrinsic: {
+    case SqrtIntrinsic:
+    case TanIntrinsic: {
         if (argumentCountIncludingThis == 1) {
             insertChecks();
             set(VirtualRegister(resultOperand), addToGraph(JSConstant, OpInfo(m_constantNaN)));
@@ -2178,6 +2179,9 @@ bool ByteCodeParser::handleIntrinsicCall(Node* callee, int resultOperand, Intrin
             break;
         case SqrtIntrinsic:
             nodeType = ArithSqrt;
+            break;
+        case TanIntrinsic:
+            nodeType = ArithTan;
             break;
         default:
             RELEASE_ASSERT_NOT_REACHED();

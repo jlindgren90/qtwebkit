@@ -1,3 +1,100 @@
+2016-09-12  Chris Dumez  <cdumez@apple.com>
+
+        Fix post-landing review comments after r205787
+        https://bugs.webkit.org/show_bug.cgi?id=161885
+
+        Reviewed by Darin Adler.
+
+        Leverage new StringBuilder::append(CFStringRef) overload.
+
+        * WebKitTestRunner/InjectedBundle/InjectedBundlePage.cpp:
+        (WTR::InjectedBundlePage::dumpDOMAsWebArchive):
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Correctly ignore spaces before relative URLs with no scheme
+        https://bugs.webkit.org/show_bug.cgi?id=161889
+
+        Reviewed by Daniel Bates.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Fix relative URLs containing only fragments
+        https://bugs.webkit.org/show_bug.cgi?id=161882
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Correctly handle relative URLs that are just a scheme and a colon
+        https://bugs.webkit.org/show_bug.cgi?id=161876
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-12  DAN SAUNDERS  <dasau@microsoft.com>
+
+        AX: WKWebView for macOS does not allow configuration of tabsToLinks
+        https://bugs.webkit.org/show_bug.cgi?id=161394
+
+        Reviewed by Anders Carlsson.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/Coding.mm:
+        (TEST):
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        Remove trailing control characters and spaces before parsing a URL
+        https://bugs.webkit.org/show_bug.cgi?id=161870
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        Fix more URLParser quirks
+        https://bugs.webkit.org/show_bug.cgi?id=161834
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-10  Alex Christensen  <achristensen@webkit.org>
+
+        Optimize URLParser performance
+        https://bugs.webkit.org/show_bug.cgi?id=161837
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+        Added a test to verify the case insensitivity of the default port checks.
+
+2016-09-10  Chris Dumez  <cdumez@apple.com>
+
+        parseHTMLInteger() should take a StringView in parameter
+        https://bugs.webkit.org/show_bug.cgi?id=161669
+
+        Reviewed by Ryosuke Niwa.
+
+        Explicitly construct a String from the CFStringRef in order to call
+        StringBuilder::append(). This is needed now that there is an append()
+        overload taking an AtomicString in parameter.
+
+        * WebKitTestRunner/InjectedBundle/InjectedBundlePage.cpp:
+        (WTR::InjectedBundlePage::dumpDOMAsWebArchive):
+
 2016-09-10  Wenson Hsieh  <wenson_hsieh@apple.com>
 
         Apple.com keynote does not display media controls

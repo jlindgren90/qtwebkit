@@ -493,7 +493,7 @@ std::unique_ptr<RenderStyle> StyleResolver::styleForKeyframe(const RenderStyle* 
         CSSPropertyID property = keyframe->properties().propertyAt(i).id();
         // Timing-function within keyframes is special, because it is not animated; it just
         // describes the timing function between this keyframe and the next.
-        if (property != CSSPropertyWebkitAnimationTimingFunction && property != CSSPropertyAnimationTimingFunction)
+        if (property != CSSPropertyAnimationTimingFunction)
             keyframeValue.addProperty(property);
     }
 
@@ -1169,8 +1169,7 @@ static bool elementTypeHasAppearanceFromUAStyle(const Element& element)
         || localName == HTMLNames::buttonTag
         || localName == HTMLNames::progressTag
         || localName == HTMLNames::selectTag
-        || localName == HTMLNames::meterTag
-        || localName == HTMLNames::isindexTag;
+        || localName == HTMLNames::meterTag;
 }
 
 unsigned StyleResolver::computeMatchedPropertiesHash(const MatchedProperties* properties, unsigned size)

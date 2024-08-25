@@ -819,6 +819,10 @@ static inline bool isValidKeywordPropertyAndValue(CSSPropertyID propertyId, int 
         if (valueID == CSSValueAuto || valueID == CSSValueBalance)
             return true;
         break;
+    case CSSPropertyAlignContent:
+        // FIXME: Per CSS alignment, this property should accept an optional <overflow-position>. We should share this parsing code with 'justify-self'.
+        // FIXME: For now, we will do it behind the GRID_LAYOUT compile flag.
+        return valueID == CSSValueFlexStart || valueID == CSSValueFlexEnd || valueID == CSSValueCenter || valueID == CSSValueSpaceBetween || valueID == CSSValueSpaceAround || valueID == CSSValueStretch;
     case CSSPropertyAlignItems:
         // FIXME: Per CSS alignment, this property should accept the same arguments as 'justify-self' so we should share its parsing code.
         // FIXME: For now, we will do it behind the GRID_LAYOUT compile flag.
@@ -839,6 +843,10 @@ static inline bool isValidKeywordPropertyAndValue(CSSPropertyID propertyId, int 
         if (valueID == CSSValueNowrap || valueID == CSSValueWrap || valueID == CSSValueWrapReverse)
              return true;
         break;
+    case CSSPropertyJustifyContent:
+        // FIXME: Per CSS alignment, this property should accept an optional <overflow-position>. We should share this parsing code with 'justify-self'.
+        // FIXME: For now, we will do it behind the GRID_LAYOUT compile flag.
+        return valueID == CSSValueFlexStart || valueID == CSSValueFlexEnd || valueID == CSSValueCenter || valueID == CSSValueSpaceBetween || valueID == CSSValueSpaceAround;
     case CSSPropertyWebkitFontKerning:
         if (valueID == CSSValueAuto || valueID == CSSValueNormal || valueID == CSSValueNone)
             return true;
@@ -1155,6 +1163,8 @@ static inline bool isKeywordPropertyID(CSSPropertyID propertyId)
     case CSSPropertyFontVariantCaps:
     case CSSPropertyFontVariantAlternates:
         return true;
+    case CSSPropertyJustifyContent:
+    case CSSPropertyAlignContent:
     case CSSPropertyAlignItems:
     case CSSPropertyAlignSelf:
 #if ENABLE(CSS_GRID_LAYOUT)
@@ -2711,25 +2721,13 @@ bool CSSParser::parseValue(CSSPropertyID propId, bool important)
     case CSSPropertyAnimationPlayState:
     case CSSPropertyAnimationIterationCount:
     case CSSPropertyAnimationTimingFunction:
-    case CSSPropertyWebkitAnimationDelay:
-    case CSSPropertyWebkitAnimationDirection:
-    case CSSPropertyWebkitAnimationDuration:
-    case CSSPropertyWebkitAnimationFillMode:
-    case CSSPropertyWebkitAnimationName:
-    case CSSPropertyWebkitAnimationPlayState:
-    case CSSPropertyWebkitAnimationIterationCount:
-    case CSSPropertyWebkitAnimationTimingFunction:
 #if ENABLE(CSS_ANIMATIONS_LEVEL_2)
     case CSSPropertyWebkitAnimationTrigger:
 #endif
     case CSSPropertyTransitionDelay:
     case CSSPropertyTransitionDuration:
     case CSSPropertyTransitionTimingFunction:
-    case CSSPropertyTransitionProperty:
-    case CSSPropertyWebkitTransitionDelay:
-    case CSSPropertyWebkitTransitionDuration:
-    case CSSPropertyWebkitTransitionTimingFunction:
-    case CSSPropertyWebkitTransitionProperty: {
+    case CSSPropertyTransitionProperty: {
         RefPtr<CSSValue> val;
         AnimationParseContext context;
         if (parseAnimationProperty(propId, val, context)) {
@@ -2738,10 +2736,11 @@ bool CSSParser::parseValue(CSSPropertyID propId, bool important)
         }
         return false;
     }
+#if ENABLE(CSS_GRID_LAYOUT)
     case CSSPropertyJustifyContent:
+        ASSERT(RuntimeEnabledFeatures::sharedFeatures().isCSSGridLayoutEnabled());
         parsedValue = parseContentDistributionOverflowPosition();
         break;
-#if ENABLE(CSS_GRID_LAYOUT)
     case CSSPropertyJustifySelf:
         if (!isCSSGridLayoutEnabled())
             return false;
@@ -3059,10 +3058,8 @@ bool CSSParser::parseValue(CSSPropertyID propId, bool important)
     case CSSPropertyWebkitTextStroke:
         return parseShorthand(propId, webkitTextStrokeShorthand(), important);
     case CSSPropertyAnimation:
-    case CSSPropertyWebkitAnimation:
         return parseAnimationShorthand(propId, important);
     case CSSPropertyTransition:
-    case CSSPropertyWebkitTransition:
         return parseTransitionShorthand(propId, important);
     case CSSPropertyInvalid:
         return false;
@@ -3162,10 +3159,11 @@ bool CSSParser::parseValue(CSSPropertyID propId, bool important)
         parsedValue = parseImageResolution();
         break;
 #endif
+#if ENABLE(CSS_GRID_LAYOUT)
     case CSSPropertyAlignContent:
+        ASSERT(RuntimeEnabledFeatures::sharedFeatures().isCSSGridLayoutEnabled());
         parsedValue = parseContentDistributionOverflowPosition();
         break;
-#if ENABLE(CSS_GRID_LAYOUT)
     case CSSPropertyAlignSelf:
         ASSERT(RuntimeEnabledFeatures::sharedFeatures().isCSSGridLayoutEnabled());
         return parseItemPositionOverflowPosition(propId, important);
@@ -3778,17 +3776,16 @@ void CSSParser::addAnimationValue(RefPtr<CSSValue>& lval, Ref<CSSValue>&& rval)
 
 bool CSSParser::parseAnimationShorthand(CSSPropertyID propId, bool important)
 {
-    ASSERT(propId == CSSPropertyAnimation || propId == CSSPropertyWebkitAnimation);
+    ASSERT(propId == CSSPropertyAnimation);
 
     const unsigned numProperties = 8;
-    const StylePropertyShorthand& shorthand = animationShorthandForParsing(propId);
+    const StylePropertyShorthand& shorthand = animationShorthandForParsing();
 
     // The list of properties in the shorthand should be the same
     // length as the list with animation name in last position, even though they are
     // in a different order.
     ASSERT(numProperties == shorthand.length());
     ASSERT(numProperties == animationShorthand().length());
-    ASSERT(numProperties == webkitAnimationShorthand().length());
 
     ShorthandScope scope(this, propId);
 
@@ -3846,28 +3843,10 @@ bool CSSParser::parseAnimationShorthand(CSSPropertyID propId, bool important)
     // to make sure that a shorthand clears all existing prefixed and
     // unprefixed values.
     for (i = 0; i < numProperties; ++i)
-        addPropertyWithPrefixingVariant(shorthand.properties()[i], WTFMove(values[i]), important);
+        addProperty(shorthand.properties()[i], WTFMove(values[i]), important);
 
     return true;
 }
-
-void CSSParser::addPropertyWithPrefixingVariant(CSSPropertyID propId, RefPtr<CSSValue>&& value, bool important, bool implicit)
-{
-    addProperty(propId, value.copyRef(), important, implicit);
-
-    CSSPropertyID prefixingVariant = prefixingVariantForPropertyId(propId);
-    if (prefixingVariant == propId)
-        return;
-
-    if (m_currentShorthand) {
-        // We can't use ShorthandScope here as we can already be inside one (e.g we are parsing CSSTransition).
-        m_currentShorthand = prefixingVariantForPropertyId(m_currentShorthand);
-        addProperty(prefixingVariant, WTFMove(value), important, implicit);
-        m_currentShorthand = prefixingVariantForPropertyId(m_currentShorthand);
-    } else
-        addProperty(prefixingVariant, WTFMove(value), important, implicit);
-}
-
 
 RefPtr<CSSPrimitiveValue> CSSParser::parseColumnWidth()
 {
@@ -4000,7 +3979,7 @@ bool CSSParser::parseTransitionShorthand(CSSPropertyID propId, bool important)
     // to make sure that a shorthand clears all existing prefixed and
     // unprefixed values.
     for (i = 0; i < numProperties; ++i)
-        addPropertyWithPrefixingVariant(shorthand.properties()[i], WTFMove(values[i]), important);
+        addProperty(shorthand.properties()[i], WTFMove(values[i]), important);
 
     return true;
 }
@@ -5369,53 +5348,43 @@ bool CSSParser::parseAnimationProperty(CSSPropertyID propId, RefPtr<CSSValue>& r
         else {
             switch (propId) {
             case CSSPropertyAnimationDelay:
-            case CSSPropertyWebkitAnimationDelay:
             case CSSPropertyTransitionDelay:
-            case CSSPropertyWebkitTransitionDelay:
                 currValue = parseAnimationDelay();
                 if (currValue)
                     m_valueList->next();
                 break;
             case CSSPropertyAnimationDirection:
-            case CSSPropertyWebkitAnimationDirection:
                 currValue = parseAnimationDirection();
                 if (currValue)
                     m_valueList->next();
                 break;
             case CSSPropertyAnimationDuration:
-            case CSSPropertyWebkitAnimationDuration:
             case CSSPropertyTransitionDuration:
-            case CSSPropertyWebkitTransitionDuration:
                 currValue = parseAnimationDuration();
                 if (currValue)
                     m_valueList->next();
                 break;
             case CSSPropertyAnimationFillMode:
-            case CSSPropertyWebkitAnimationFillMode:
                 currValue = parseAnimationFillMode();
                 if (currValue)
                     m_valueList->next();
                 break;
             case CSSPropertyAnimationIterationCount:
-            case CSSPropertyWebkitAnimationIterationCount:
                 currValue = parseAnimationIterationCount();
                 if (currValue)
                     m_valueList->next();
                 break;
             case CSSPropertyAnimationName:
-            case CSSPropertyWebkitAnimationName:
                 currValue = parseAnimationName();
                 if (currValue)
                     m_valueList->next();
                 break;
             case CSSPropertyAnimationPlayState:
-            case CSSPropertyWebkitAnimationPlayState:
                 currValue = parseAnimationPlayState();
                 if (currValue)
                     m_valueList->next();
                 break;
             case CSSPropertyTransitionProperty:
-            case CSSPropertyWebkitTransitionProperty:
                 currValue = parseAnimationProperty(context);
                 if (value && !context.animationPropertyKeywordAllowed())
                     return false;
@@ -5423,9 +5392,7 @@ bool CSSParser::parseAnimationProperty(CSSPropertyID propId, RefPtr<CSSValue>& r
                     m_valueList->next();
                 break;
             case CSSPropertyAnimationTimingFunction:
-            case CSSPropertyWebkitAnimationTimingFunction:
             case CSSPropertyTransitionTimingFunction:
-            case CSSPropertyWebkitTransitionTimingFunction:
                 currValue = parseAnimationTimingFunction();
                 if (currValue)
                     m_valueList->next();
@@ -7328,7 +7295,7 @@ bool CSSParser::parseFontFaceSrcLocal(CSSValueList& valueList)
                 return false;
             if (!builder.isEmpty())
                 builder.append(' ');
-            builder.append(localValue->string);
+            builder.append(localValue->string.toStringView());
         }
         valueList.append(CSSFontFaceSrcValue::createLocal(builder.toString()));
     } else

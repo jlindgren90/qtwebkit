@@ -1,3 +1,92 @@
+2016-09-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Get rid of DataObjectGtk::forClipboard and cleanup pasteboard code
+        https://bugs.webkit.org/show_bug.cgi?id=161907
+
+        Reviewed by Michael Catanzaro.
+
+        Update to DataObjectGtk and PasteboardHelper API changes.
+
+        * UIProcess/gtk/DragAndDropHandler.cpp:
+        (WebKit::DragAndDropHandler::startDrag):
+        (WebKit::DragAndDropHandler::fillDragData):
+        (WebKit::DragAndDropHandler::dataObjectForDropData):
+        * WebProcess/WebCoreSupport/gtk/WebDragClientGtk.cpp:
+        (WebKit::WebDragClient::startDrag):
+        * WebProcess/WebCoreSupport/gtk/WebEditorClientGtk.cpp:
+        (WebKit::collapseSelection):
+        (WebKit::WebEditorClient::updateGlobalSelection): Remove wrong X11 guards, since that code is not X11 specific.
+
+2016-09-12  DAN SAUNDERS  <dasau@microsoft.com>
+
+        AX: WKWebView for macOS does not allow configuration of tabsToLinks
+        https://bugs.webkit.org/show_bug.cgi?id=161394
+
+        Reviewed by Anders Carlsson.
+
+        * UIProcess/API/Cocoa/WKPreferences.h:
+        * UIProcess/API/Cocoa/WKPreferences.mm:
+        (-[WKPreferences encodeWithCoder:]):
+        (-[WKPreferences initWithCoder:]):
+        (-[WKPreferences tabFocusesLinks]):
+        (-[WKPreferences setTabFocusesLinks:]):
+
+2016-09-12  Saam Barati  <sbarati@apple.com>
+
+        Add WebKit support for an option in Safari's debug menu similar to "Get Bytecode Profile" but for the Sampling Profiler's data
+        https://bugs.webkit.org/show_bug.cgi?id=161785
+
+        Reviewed by Tim Horton.
+
+        This patch follows in the steps of how we dump output for the
+        internal JSC bytecode profiler tool, but now also for the internal
+        JSC sampling profiler tool. This can be used when doing performance
+        analysis work analyzing the JS execution of a page.
+
+        * UIProcess/API/C/WKPage.cpp:
+        (WKPageGetSamplingProfilerOutput):
+        * UIProcess/API/C/WKPagePrivate.h:
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::getSamplingProfilerOutput):
+        (WebKit::WebPageProxy::invalidateStringCallback):
+        * UIProcess/WebPageProxy.h:
+        * UIProcess/WebPageProxy.messages.in:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::getSamplingProfilerOutput):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/WebPage.messages.in:
+
+2016-09-12  Keith Rollin  <krollin@apple.com>
+
+        Enhance Network logging
+        https://bugs.webkit.org/show_bug.cgi?id=161771
+
+        Reviewed by Antti Koivisto.
+
+        Modify current logging statements to follow a consistent pattern in
+        order to enhance readability and parsing.
+
+        * NetworkProcess/Downloads/Download.cpp:
+        (WebKit::Download::didReceiveResponse):
+        (WebKit::Download::didReceiveData):
+        (WebKit::Download::didFinish):
+        (WebKit::Download::didFail):
+        (WebKit::Download::didCancel):
+        * NetworkProcess/NetworkResourceLoader.cpp:
+        (WebKit::NetworkResourceLoader::startNetworkLoad):
+        (WebKit::NetworkResourceLoader::didFinishLoading):
+        (WebKit::NetworkResourceLoader::didFailLoading):
+        (WebKit::NetworkResourceLoader::continueWillSendRequest):
+        * WebProcess/Network/WebLoaderStrategy.cpp:
+        (WebKit::WebLoaderStrategy::scheduleLoad):
+        * WebProcess/Network/WebResourceLoader.cpp:
+        (WebKit::WebResourceLoader::willSendRequest):
+        (WebKit::WebResourceLoader::didReceiveResponse):
+        (WebKit::WebResourceLoader::didReceiveData):
+        (WebKit::WebResourceLoader::didFinishResourceLoad):
+        (WebKit::WebResourceLoader::didFailResourceLoad):
+        (WebKit::WebResourceLoader::didReceiveResource):
+
 2016-09-09  Tim Horton  <timothy_horton@apple.com>
 
         WKThumbnailView should expose a mode where it can be reparented without resnapshotting

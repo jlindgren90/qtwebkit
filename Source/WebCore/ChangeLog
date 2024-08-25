@@ -1,3 +1,977 @@
+2016-09-13  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Get rid of DataObjectGtk::forClipboard and cleanup pasteboard code
+        https://bugs.webkit.org/show_bug.cgi?id=161907
+
+        Reviewed by Michael Catanzaro.
+
+        We don't really need to keep a DataObjectGtk for every clipboard, we could simply pass the DataObjectGtk to read
+        and write methods of PasteboardHelper.
+
+        * editing/gtk/EditorGtk.cpp:
+        (WebCore::createFragmentFromPasteboardData): Update for DataObjectGtk API changes.
+        * platform/Pasteboard.h:
+        * platform/gtk/DataObjectGtk.cpp: Remove forClipboard() static method.
+        * platform/gtk/DataObjectGtk.h: Ditto.
+        * platform/gtk/PasteboardGtk.cpp:
+        (WebCore::Pasteboard::Pasteboard): Always create a new DataObjectGtk.
+        (WebCore::Pasteboard::dataObject): Return a const reference instead of a pointer.
+        (WebCore::Pasteboard::writePlainText): Pass the DataObjectGtk to PasteboardHelper.
+        (WebCore::Pasteboard::write): Ditto.
+        (WebCore::Pasteboard::writePasteboard): Ditto.
+        (WebCore::Pasteboard::clear): Ditto.
+        (WebCore::Pasteboard::read): Ditto.
+        (WebCore::Pasteboard::hasData): Ditto.
+        (WebCore::Pasteboard::types): Ditto.
+        (WebCore::Pasteboard::readString): Ditto.
+        (WebCore::Pasteboard::readFilenames): Ditto.
+        * platform/gtk/PasteboardHelper.cpp:
+        (WebCore::PasteboardHelper::getClipboardContents): Update the given DataObjectGtk.
+        (WebCore::PasteboardHelper::fillSelectionData): Use a const reference to DataObjectGtk instead of a pointer.
+        (WebCore::PasteboardHelper::targetListForDataObject): Ditto.
+        (WebCore::PasteboardHelper::fillDataObjectFromDropData): Use a reference to DataObjectGtk instead of a pointer.
+        (WebCore::ClipboardSetData::ClipboardSetData): Helper struct to pass DataObjectGtk and callback to clipboard callbacks.
+        (WebCore::ClipboardSetData::~ClipboardSetData):
+        (WebCore::getClipboardContentsCallback): Get the DataObjectGtk from ClipboardSetData struct passed as user data.
+        (WebCore::clearClipboardContentsCallback): Get the DataObjectGtk and callback from ClipboardSetData struct
+        passed as user data.
+        (WebCore::PasteboardHelper::writeClipboardContents): Write the given DataObjectGtk.
+        * platform/gtk/PasteboardHelper.h:
+
+2016-09-13  Chris Dumez  <cdumez@apple.com>
+
+        Drop support for <isindex>
+        https://bugs.webkit.org/show_bug.cgi?id=7139
+
+        Reviewed by Ryosuke Niwa.
+
+        Drop support for <isindex> and <input name=isindex>. Those are no longer
+        in the HTML specification and Chrome / Edge have already dropped their
+        support. Firefox is also planning on dropping this.
+
+        Test: imported/w3c/web-platform-tests/html/semantics/forms/historical.html
+
+        * css/StyleResolver.cpp:
+        (WebCore::elementTypeHasAppearanceFromUAStyle):
+        * css/html.css:
+        (input, textarea, keygen, select, button, meter, progress):
+        (input, textarea, keygen, select, button):
+        (#if defined(WTF_PLATFORM_IOS) && WTF_PLATFORM_IOS):
+        (input::placeholder):
+        (input:focus, textarea:focus, keygen:focus, select:focus):
+        * dom/Element.cpp:
+        (WebCore::Element::ieForbidsInsertHTML):
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::HTMLInputElement):
+        * html/HTMLTagNames.in:
+        * html/parser/HTMLStackItem.h:
+        (WebCore::isSpecialNode):
+        * html/parser/HTMLTreeBuilder.cpp:
+        (WebCore::HTMLTreeBuilder::processStartTagForInBody):
+        (WebCore::HTMLTreeBuilder::processCloseWhenNestedTag): Deleted.
+        (WebCore::createCaseMap): Deleted.
+        * html/parser/HTMLTreeBuilder.h:
+        * platform/network/FormData.cpp:
+        (WebCore::FormData::appendKeyValuePairItems):
+
+2016-09-12  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] Warning fix.
+        https://bugs.webkit.org/show_bug.cgi?id=161858
+
+        Reviewed by Brent Fulgham.
+
+        Use exported constants from CoreText.dll, instead of creating copies.
+
+        * PlatformAppleWin.cmake:
+        * platform/spi/win/CoreTextSPIWin.cpp: Removed.
+        * platform/spi/win/CoreTextSPIWin.h:
+
+2016-09-12  Youenn Fablet  <youenn@apple.com>
+
+        ScriptElement should use FetchOptions::mode according its crossOrigin attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161686
+
+        Reviewed by Darin Adler.
+
+        Setting ScriptElement fetch mode according its crossOrigin attribute.
+        Removing LoadableClassicScriptchecking of CORS since this is now done at ResourceLoader/CachedResource level.
+
+        Updating CachedResourceLoader to ensure that a resource that matches an on-going resource load but with different fetch mode/origin,
+        always gets its loading started if the resource state is not Cached.
+
+        Tests: fast/dom/script-crossorigin-loads-fail-origin.html
+               http/tests/security/cross-origin-cached-images-parallel.html
+               http/tests/security/cross-origin-cached-images.html
+               http/tests/security/cross-origin-cached-scripts-parallel.html
+               http/tests/security/cross-origin-cached-scripts.html
+               http/tests/security/script-crossorigin-loads-correctly-credentials.html
+               http/tests/security/script-with-dataurl.html
+
+        * dom/LoadableClassicScript.cpp:
+        (WebCore::LoadableClassicScript::create):
+        (WebCore::LoadableClassicScript::notifyFinished): Checking CORS failures using the resource state.
+        (WebCore::LoadableClassicScript::~LoadableClassicScript): Deleted.
+        (WebCore::LoadableClassicScript::isLoaded): Deleted.
+        * dom/LoadableClassicScript.h:
+        * dom/ScriptElement.cpp:
+        (WebCore::ScriptElement::requestClassicScript):
+        (WebCore::ScriptElement::requestScriptWithCache): Using CachedResourceRequest::setAsPotentiallyCrossOrigin to set fetch mode according crossOrigin attribute.
+        * dom/ScriptElement.h:
+        * loader/cache/CachedImage.cpp:
+        (WebCore::CachedImage::setBodyDataFrom):
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::updateCachedResourceWithCurrentRequest): Adding support for script resources.
+        (WebCore::CachedResourceLoader::requestResource): Ensuring that 'updated' resources gets actually loaded.
+        * loader/cache/CachedScript.cpp:
+        (WebCore::CachedScript::setBodyDataFrom): Implementing specific data copy from another CachedScript.
+        * loader/cache/CachedScript.h:
+
+2016-09-12  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Scrollbar  too large
+        https://bugs.webkit.org/show_bug.cgi?id=161735
+
+        Reviewed by Michael Catanzaro.
+
+        We were not calculating the total scrollbar size correctly when the theme defines a minimum width/height. In
+        that case we need to take the extra size into account (border, margin, padding), but not adding the minimum
+        size. We were also adjusting the thumb position when rendering in indicator mode, but we really need to adjust
+        the whole rectangle. This worked in Adwaita because it uses a transparent track when in indicator mode. We are
+        also now taking into account the text direction when doing this adjustment for the indicator mode.
+
+        * platform/gtk/ScrollbarThemeGtk.cpp:
+        (WebCore::ScrollbarThemeGtk::paint):
+        (WebCore::ScrollbarThemeGtk::scrollbarThickness):
+
+2016-09-12  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Crash of WebProcess on the last WebView disconnect (take two)
+        https://bugs.webkit.org/show_bug.cgi?id=161842
+
+        Reviewed by Michael Catanzaro.
+
+        The problem is that when PlatformDisplayX11 is destroyed, the sharing GL context is deleted and its destructor
+        makes a downcast of PlatformDisplay to get the native X11 display. We could simply keep a pointer to the native
+        X11 display in GLContextGLX, got at construction time from the PlatformDisplay, and ensure the sharing GL
+        context is deleted before the native X11 display is closed.
+
+        * platform/graphics/PlatformDisplay.h: Make m_sharingGLContext protected.
+        * platform/graphics/glx/GLContextGLX.cpp:
+        (WebCore::GLContextGLX::GLContextGLX): Initialize m_x11Display.
+        (WebCore::GLContextGLX::~GLContextGLX): Use m_x11Display and remove confusing comment about possible crash with
+        nviedia closed drivers.
+        (WebCore::GLContextGLX::defaultFrameBufferSize): Use m_x11Display.
+        (WebCore::GLContextGLX::makeContextCurrent): Ditto.
+        (WebCore::GLContextGLX::swapBuffers): Ditto.
+        (WebCore::GLContextGLX::swapInterval): Ditto.
+        (WebCore::GLContextGLX::cairoDevice): Ditto.
+        * platform/graphics/glx/GLContextGLX.h:
+        * platform/graphics/x11/PlatformDisplayX11.cpp:
+        (WebCore::PlatformDisplayX11::~PlatformDisplayX11): Delete the sharing GL context before closing the display.
+
+2016-09-12  Chris Dumez  <cdumez@apple.com>
+
+        Fix post-landing review comments after r205787
+        https://bugs.webkit.org/show_bug.cgi?id=161885
+
+        Reviewed by Darin Adler.
+
+        Leverage new StringBuilder::append(CFStringRef) overload.
+
+        * html/parser/HTMLParserIdioms.cpp:
+        (WebCore::parseHTTPRefreshInternal):
+        * page/CaptionUserPreferencesMediaAF.cpp:
+        (WebCore::CaptionUserPreferencesMediaAF::captionsDefaultFontCSS):
+        (WebCore::buildDisplayStringForTrackBase):
+        * platform/network/mac/CookieJarMac.mm:
+        (WebCore::cookiesForSession):
+        * rendering/RenderThemeIOS.mm:
+        (WebCore::RenderThemeIOS::mediaControlsStyleSheet):
+        (WebCore::RenderThemeIOS::mediaControlsScript):
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::mediaControlsStyleSheet):
+        (WebCore::RenderThemeMac::mediaControlsScript):
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Correctly ignore spaces before relative URLs with no scheme
+        https://bugs.webkit.org/show_bug.cgi?id=161889
+
+        Reviewed by Daniel Bates.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+
+2016-09-12  Nan Wang  <n_wang@apple.com>
+
+        AX: Crash at WebCore::Range::compareBoundaryPoints(WebCore::Range::CompareHow, WebCore::Range const&, int&) const + 23
+        https://bugs.webkit.org/show_bug.cgi?id=161878
+
+        Reviewed by Chris Fleizach.
+
+        In function characterOffsetsInOrder(const CharacterOffset&, const CharacterOffset&), we are creating two
+        ranges based on the nodes that are associated to the passed in CharacterOffsets. When the first node is a doctype
+        node, the first range will be a nullptr, and dereferencing it leads to a crash. Fixed this by adding a 
+        NULL check.
+
+        Test: accessibility/mac/doctype-node-in-text-marker-crash.html
+
+        * accessibility/AXObjectCache.cpp:
+        (WebCore::characterOffsetsInOrder):
+        (WebCore::resetNodeAndOffsetForReplacedNode):
+
+2016-09-12  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Move the pixel data of ImageFrame to a separate class named ImageBackingStore
+        https://bugs.webkit.org/show_bug.cgi?id=159679
+
+        Reviewed by Simon Fraser.
+
+        Move the pixel data manipulation part in ImageFrame into a separate class
+        and allocate it on demand.
+
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * PlatformWinCairo.cmake:
+        * WebCore.xcodeproj/project.pbxproj:
+        Add ImageBackingStoreCairo.cpp and remove ImageDecoderCairo.cpp from the
+        WebKit projects.
+
+        * platform/graphics/Color.cpp:
+        (WebCore::premultipliedChannel): channel = channel * alpha / 255.
+        (WebCore::unpremultipliedChannel): channel = channel * 255 / alpha.
+        (WebCore::makePremultipliedRGBA): Un-premultiplied channels to premultiplied RGBA32.
+        (WebCore::makeUnPremultipliedRGBA): Premultiplied channels to un-premultiplied RGBA32.
+        (WebCore::colorFromPremultipliedARGB): Use makeUnPremultipliedRGBA.
+        (WebCore::premultipliedARGBFromColor): Use makePremultipliedRGBA.
+        * platform/graphics/Color.h:
+        (WebCore::fastMultiplyBy255): x * 255 = x * 256 - x = x << 8 - x.
+
+        * platform/graphics/ImageBackingStore.h: Added.
+        (WebCore::ImageBackingStore::create): Creates a new ImageBackingStore.
+        (WebCore::ImageBackingStore::setSize): Changes the pixels size.
+        (WebCore::ImageBackingStore::setFrameRect): This will always just be the entire buffer except for GIF and PNG frames.
+        (WebCore::ImageBackingStore::size): Returns the pixels size.
+        (WebCore::ImageBackingStore::frameRect): Returns the pixels frame rectangle.
+        (WebCore::ImageBackingStore::clear): Clears the entire image.
+        (WebCore::ImageBackingStore::clearRect): Clears a rectangle in the image.
+        (WebCore::ImageBackingStore::repeatFirstRow): Repeats the first row in a rectangle in the image.
+        (WebCore::ImageBackingStore::pixelAt): Returns a pointer to a pixel data.
+        (WebCore::ImageBackingStore::setPixel): Sets the color of a pixel in the image.
+        (WebCore::ImageBackingStore::blendPixel): Blend a color with a pixel in the image.
+        (WebCore::ImageBackingStore::inBounds): Checks if a rectangle is in the bounds of the image.
+        (WebCore::ImageBackingStore::isOverSize): Checks whether a size could not be allocated for an image.
+        (WebCore::ImageBackingStore::ImageBackingStore):
+
+        * platform/graphics/cg/NativeImageCG.cpp:
+        (WebCore::nativeImageHasAlpha): Implement this function. See comments in https://bugs.webkit.org/show_bug.cgi?id=158684.
+
+        * platform/image-decoders/ImageDecoder.cpp:
+        (WebCore::ImageFrame::operator=): copyBitmapData() now copies the frameRect of the ImageBackingStore.
+        (WebCore::ImageFrame::clearPixelData): The pixels data and the pointer to these pixels are now included in the ImageBackingStore.
+        (WebCore::ImageFrame::zeroFillPixelData): Clearing the image pixels are now in ImageBackingStore::clear().
+        (WebCore::ImageFrame::zeroFillFrameRect): Clearing the image pixels are now in ImageBackingStore::clearRect().
+        (WebCore::ImageFrame::copyBitmapData): We either need to create a new ImageBackingStore or nullify the current one.
+        (WebCore::ImageFrame::setSize): ImageFrame::setSize() is supposed to be called once and to create the ImageBackingStore.
+        (WebCore::ImageFrame::setOriginalFrameRect): Delegate this call to ImageBackingStore::setFrameRect().
+        (WebCore::ImageDecoder::frameBytesAtIndex): ImageFrame::PixelData can be replaced by RGBA32.
+
+        * platform/image-decoders/ImageDecoder.h:
+        (WebCore::ImageFrame::copyRowNTimes): The implementation was moved to ImageBackingStore::repeatFirstRow().
+        (WebCore::ImageFrame::size): Gets the size of an image from its ImageBackingStore.
+        (WebCore::ImageFrame::asNewNativeImage): Gets a NtaiveImagePtr from the ImageBackingStore.
+        (WebCore::ImageFrame::backingStore): Returns a raw pointer to the ImageBackingStore.
+        (WebCore::ImageFrame::hasBackingStore): Returns whether the ImageFrame has an ImageBackingStore.
+        (WebCore::ImageFrame::originalFrameRect): Returns the frameRect of the image from its ImageBackingStore.
+        (WebCore::ImageFrame::pixelAt): Delegates the call to the ImageBackingStore.
+        (WebCore::ImageFrame::setPixel): Delegates the call to the ImageBackingStore.
+        (WebCore::ImageFrame::blendPixel): Delegates the call to the ImageBackingStore.
+        
+        (WebCore::ImageDecoder::setSize): setSize() now takes an IntSize.
+        (WebCore::ImageFrame::setOriginalFrameRect): Deleted. Moved to ImageDecoder.cpp.
+        (WebCore::ImageFrame::setRGBA): Deleted. Renamed to ImageFrame::setPixel().
+        (WebCore::ImageFrame::getAddr): Deleted. Renamed to ImageFrame::pixelAt().
+        (WebCore::ImageFrame::hasPixelData): Deleted. Renamed to ImageFrame::hasBackingStore().
+        (WebCore::ImageFrame::fixPointUnsignedMultiply): Deleted.
+        (WebCore::ImageFrame::divide255): Deleted. Replaced by fastDivideBy255() from Color.h.
+        (WebCore::ImageFrame::overRGBA): Deleted. Renamed to ImageFrame::blendPixel().
+        (WebCore::ImageFrame::width): Deleted.
+        (WebCore::ImageFrame::height): Deleted.
+        (WebCore::ImageDecoder::isOverSize): Deleted. Moved to ImageBackingStore::isOverSize().
+
+        * platform/image-decoders/bmp/BMPImageReader.cpp:
+        (WebCore::BMPImageReader::decodeBMP):
+        (WebCore::BMPImageReader::processInfoHeader):
+        (WebCore::BMPImageReader::processNonRLEData):
+        * platform/image-decoders/bmp/BMPImageReader.h:
+        (WebCore::BMPImageReader::setI):
+        (WebCore::BMPImageReader::setPixel):
+        (WebCore::BMPImageReader::fillRGBA):
+        (WebCore::BMPImageReader::setRGBA): Deleted.
+        * platform/image-decoders/cairo/ImageBackingStoreCairo.cpp: Added.
+        (WebCore::ImageBackingStore::image):
+        * platform/image-decoders/cairo/ImageDecoderCairo.cpp: Removed.
+        * platform/image-decoders/gif/GIFImageDecoder.cpp:
+        (WebCore::GIFImageDecoder::setSize):
+        (WebCore::GIFImageDecoder::haveDecodedRow):
+        (WebCore::GIFImageDecoder::initFrameBuffer):
+        * platform/image-decoders/gif/GIFImageDecoder.h:
+        * platform/image-decoders/gif/GIFImageReader.cpp:
+        (GIFImageReader::parse):
+        * platform/image-decoders/ico/ICOImageDecoder.cpp:
+        (WebCore::ICOImageDecoder::setSize):
+        (WebCore::ICOImageDecoder::processDirectoryEntries):
+        * platform/image-decoders/ico/ICOImageDecoder.h:
+        * platform/image-decoders/jpeg/JPEGImageDecoder.cpp:
+        (WebCore::JPEGImageReader::decode):
+        (WebCore::JPEGImageDecoder::setSize):
+        (WebCore::setPixel):
+        (WebCore::JPEGImageDecoder::outputScanlines):
+        * platform/image-decoders/jpeg/JPEGImageDecoder.h:
+        * platform/image-decoders/png/PNGImageDecoder.cpp:
+        (WebCore::PNGImageDecoder::setSize):
+        (WebCore::PNGImageDecoder::headerAvailable):
+        (WebCore::setPixelRGB):
+        (WebCore::setPixelRGBA):
+        (WebCore::setPixelPremultipliedRGBA):
+        (WebCore::PNGImageDecoder::rowAvailable):
+        (WebCore::PNGImageDecoder::initFrameBuffer):
+        (WebCore::PNGImageDecoder::frameComplete):
+        * platform/image-decoders/png/PNGImageDecoder.h:
+        * platform/image-decoders/webp/WEBPImageDecoder.cpp:
+        (WebCore::WEBPImageDecoder::decode):
+        - Send an IntSize to ImageFrame::setSize() and ImageDecoder::setSize().
+        - Replace ImageFrame::PixelData by RGBA32.
+        - No need to call ImageFrame::setOriginalFrameRect() if this sets the
+          frameRect to the entire image rectangle since this is done by default
+          in ImageBackingStore::setSize().
+        - ImageBackingStore::image() now replaces ImageFrame::asNewNativeImage().
+        - ImageFrame::setPixel() now replaces ImageFrame::setRGBA().
+        - ImageFrame::blendPixel() now replaces ImageFrame::overRGBA().
+        - ImageFrame::pixelAt() now replaces ImageFrame::getAddr().
+
+2016-09-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        HTMLButtonElement.prototype.click should be HTMLElement.prototype.click
+        https://bugs.webkit.org/show_bug.cgi?id=161874
+
+        Reviewed by Chris Dumez.
+
+        Test: fast/dom/HTMLButtonElement/click.html
+
+        * html/HTMLButtonElement.idl:
+        Remove the unnecessary 'click' definition. It already exists in HTMLElement.
+        If this was needed for ObjC code generation on DOMHTMLButtonElement, then
+        the extra definition is no longer needed now that ObjC bindings have moved.
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Fix relative URLs containing only fragments
+        https://bugs.webkit.org/show_bug.cgi?id=161882
+
+        Reviewed by Brady Eidson.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: Correctly handle relative URLs that are just a scheme and a colon
+        https://bugs.webkit.org/show_bug.cgi?id=161876
+
+        Reviewed by Brady Eidson.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+
+2016-09-12  Dean Jackson  <dino@apple.com>
+
+        Remove OptionalColor
+        https://bugs.webkit.org/show_bug.cgi?id=161853
+        <rdar://problem/28252385>
+
+        Reviewed by Alex Christensen.
+
+        OptionalColor isn't used. The concept will be implemented
+        in a different manner.
+
+        * platform/graphics/Color.h:
+
+2016-09-12  Simon Fraser  <simon.fraser@apple.com>
+
+        Add Intersection Observer to the features.json file.
+
+        * features.json:
+
+2016-09-12  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Reduce uses of CGFonts in favor of CTFonts
+        https://bugs.webkit.org/show_bug.cgi?id=161809
+
+        Reviewed by Daniel Bates.
+
+        Eventually, we want to remove the cgFont() member of PlatformFontData for both memory
+        savings and conceptual clarity. Because there is no performance loss from moving from
+        CGFontGetGlyphsForUnichars() to CTFontGetGlyphsForCharacters(), making this switch
+        gets us closer to reducing the uses of cgFont().
+
+        No new tests because there is no behavior change.
+
+        * platform/graphics/Font.cpp:
+        (WebCore::createAndFillGlyphPage):
+        * platform/graphics/GlyphPage.h:
+        (WebCore::GlyphData::GlyphData):
+        * platform/graphics/mac/GlyphPageMac.cpp:
+        (WebCore::shouldFillWithVerticalGlyphs):
+        (WebCore::GlyphPage::fill):
+        (WebCore::shouldUseCoreText): Deleted.
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        Remove trailing control characters and spaces before parsing a URL
+        https://bugs.webkit.org/show_bug.cgi?id=161870
+
+        Reviewed by Tim Horton.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::bufferView):
+        (WebCore::URLParser::parse):
+
+2016-09-12  Chris Dumez  <cdumez@apple.com>
+
+        window.performance object resets script-applied properties
+        https://bugs.webkit.org/show_bug.cgi?id=137407
+
+        Reviewed by Darin Adler.
+
+        Make sure the window.performance wrapper stays alive for as long as the
+        associated frame, similarly to what we do for window.screen.
+
+        Test: fast/performance/performance-object-gc.html
+
+        * page/Performance.idl:
+
+2016-09-12  Saam Barati  <sbarati@apple.com>
+
+        Add WebKit support for an option in Safari's debug menu similar to "Get Bytecode Profile" but for the Sampling Profiler's data
+        https://bugs.webkit.org/show_bug.cgi?id=161785
+
+        Reviewed by Tim Horton.
+
+        * ForwardingHeaders/runtime/SamplingProfiler.h: Added.
+
+2016-09-12  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Add support for the parsing of the HTML sizes attribute
+        https://bugs.webkit.org/show_bug.cgi?id=161868
+
+        Reviewed by Dean Jackson.
+
+        This patch adds the parsers for the sizes attribute. This code is heavily modified
+        from Blink, and it really only makes use of the tokenization/parsing code. What is done
+        with the results involves the same original code that we used over in SourceSizeList.cpp.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/parser/SizesAttributeParser.cpp: Added.
+        (WebCore::SizesAttributeParser::computeLength):
+        (WebCore::SizesAttributeParser::SizesAttributeParser):
+        (WebCore::SizesAttributeParser::length):
+        (WebCore::SizesAttributeParser::calculateLengthInPixels):
+        (WebCore::SizesAttributeParser::mediaConditionMatches):
+        (WebCore::SizesAttributeParser::parse):
+        (WebCore::SizesAttributeParser::effectiveSize):
+        (WebCore::SizesAttributeParser::effectiveSizeDefaultValue):
+        * css/parser/SizesAttributeParser.h: Added.
+        * css/parser/SizesCalcParser.cpp: Added.
+        (WebCore::SizesCalcParser::SizesCalcParser):
+        (WebCore::SizesCalcParser::result):
+        (WebCore::operatorPriority):
+        (WebCore::SizesCalcParser::handleOperator):
+        (WebCore::SizesCalcParser::appendNumber):
+        (WebCore::SizesCalcParser::appendLength):
+        (WebCore::SizesCalcParser::appendOperator):
+        (WebCore::SizesCalcParser::calcToReversePolishNotation):
+        (WebCore::operateOnStack):
+        (WebCore::SizesCalcParser::calculate):
+        * css/parser/SizesCalcParser.h: Added.
+        (WebCore::SizesCalcValue::SizesCalcValue):
+        (WebCore::SizesCalcParser::isValid):
+
+2016-09-12  Jer Noble  <jer.noble@apple.com>
+
+        Fix failing mediasource-play.html and mediasource-config-change-mp4-v-bitrate.html tests
+        https://bugs.webkit.org/show_bug.cgi?id=161819
+
+        Reviewed by Eric Carlson.
+
+        Fixes tests: imported/w3c/web-platform-tests/media-source/mediasource-play.html
+                     imported/w3c/web-platform-tests/media-source/mediasource-sourcebuffer-mode.html
+
+        The newest revision of the web-platform-test suite for Media Source tests new behavior
+        added to the MSE specification. Specifically, setting a MediaSource's duration will no
+        longer implicitly truncate the source's active SourceBuffer objects.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::setDuration): Return exception if issued by setDurationInternal.
+        (WebCore::MediaSource::setDurationInternal): Bring "duration change" algorithm up to spec.
+        * Modules/mediasource/MediaSource.h:
+        * Modules/mediasource/SampleMap.h:
+        (WebCore::PresentationOrderSampleMap::begin): Add const accessor.
+        (WebCore::PresentationOrderSampleMap::end): Ditto.
+        (WebCore::PresentationOrderSampleMap::rbegin): Ditto.
+        (WebCore::PresentationOrderSampleMap::rend): DItto.
+        (WebCore::DecodeOrderSampleMap::begin): Ditto.
+        (WebCore::DecodeOrderSampleMap::end): Ditto.
+        (WebCore::DecodeOrderSampleMap::rbegin): Ditto.
+        (WebCore::DecodeOrderSampleMap::rend): Ditto.
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::highestPresentationTimestamp): Added convenience method.
+        (WebCore::SourceBuffer::removeCodedFrames): Drive-by fix; use .values() rather than
+            pulling the value out of each HashMap iterator.
+        * Modules/mediasource/SourceBuffer.h:
+
+2016-09-12  Chris Dumez  <cdumez@apple.com>
+
+        Switch remaining users of Document::inPageCache() to pageCacheState()
+        https://bugs.webkit.org/show_bug.cgi?id=161865
+
+        Reviewed by Darin Adler.
+
+        Switch remaining users of Document::inPageCache() to pageCacheState() as
+        the former one is confusing (given that it returns true while the
+        pagehide event is being fired).
+
+        * dom/Document.cpp:
+        (WebCore::Document::scheduleStyleRecalc):
+        (WebCore::Document::fontsNeedUpdate):
+        (WebCore::Document::removeFocusedNodeOfSubtree):
+        (WebCore::Document::setFocusedElement):
+        (WebCore::Document::takeDOMWindowFrom):
+        (WebCore::Document::topDocument):
+        (WebCore::Document::webkitWillEnterFullScreenForElement):
+        (WebCore::Document::webkitDidEnterFullScreenForElement):
+        (WebCore::Document::webkitWillExitFullScreenForElement):
+        (WebCore::Document::webkitDidExitFullScreenForElement):
+        * dom/Document.h:
+        (WebCore::Document::needsStyleRecalc):
+        (WebCore::Document::inPageCache): Deleted.
+        * history/CachedFrame.cpp:
+        (WebCore::CachedFrame::CachedFrame):
+        (WebCore::CachedFrame::clear):
+        (WebCore::CachedFrame::destroy):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::mediaElementIsAllowedToAutoplay):
+        * html/HTMLPlugInImageElement.cpp:
+        (WebCore::HTMLPlugInImageElement::createElementRenderer):
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::addSubresourceLoader):
+        * loader/HistoryController.cpp:
+        (WebCore::HistoryController::saveScrollPositionAndViewStateToItem):
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::decrementScrollEventListenersCount):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::layout):
+        * page/animation/AnimationBase.cpp:
+        (WebCore::AnimationBase::setNeedsStyleRecalc):
+        * page/animation/AnimationController.cpp:
+        (WebCore::AnimationControllerPrivate::updateAnimations):
+        (WebCore::AnimationControllerPrivate::addElementChangeToDispatch):
+        (WebCore::AnimationController::cancelAnimations):
+        (WebCore::AnimationController::updateAnimations):
+        * page/animation/ImplicitAnimation.cpp:
+        (WebCore::ImplicitAnimation::sendTransitionEvent):
+        * page/animation/KeyframeAnimation.cpp:
+        (WebCore::KeyframeAnimation::sendAnimationEvent):
+        * page/scrolling/AsyncScrollingCoordinator.cpp:
+        (WebCore::AsyncScrollingCoordinator::requestScrollPositionUpdate):
+        * rendering/RenderElement.cpp:
+        (WebCore::shouldRepaintForImageAnimation):
+        (WebCore::RenderElement::newImageAnimationFrameAvailable):
+        * rendering/RenderImage.cpp:
+        (WebCore::RenderImage::imageChanged):
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::updateCompositingLayers):
+        (WebCore::RenderLayerCompositor::willRemoveScrollingLayerWithBacking):
+        (WebCore::RenderLayerCompositor::didAddScrollingLayer):
+        * rendering/RenderObject.cpp:
+        (WebCore::printRenderTreeForLiveDocuments):
+        (WebCore::printLayerTreeForLiveDocuments):
+        * rendering/RenderView.cpp:
+        (WebCore::RenderView::lazyRepaintTimerFired):
+        * rendering/SimpleLineLayout.cpp:
+        (WebCore::SimpleLineLayout::collectNonEmptyLeafRenderBlockFlowsForCurrentPage):
+
+2016-09-12  Keith Rollin  <krollin@apple.com>
+
+        Enhance Network logging
+        https://bugs.webkit.org/show_bug.cgi?id=161771
+
+        Reviewed by Antti Koivisto.
+
+        Modify current logging statements to follow a consistent pattern in
+        order to enhance readability and parsing.
+
+        No new tests -- there are no tests for logging.
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::prepareForLoadStart):
+        (WebCore::FrameLoader::checkLoadCompleteForThisFrame):
+
+2016-09-12  Brady Eidson  <beidson@apple.com>
+
+        Crash in com.apple.WebCore: WebCore::NavigatorGamepad::gamepadFromPlatformGamepad.
+        <rdar://problem/28018073> and https://bugs.webkit.org/show_bug.cgi?id=161694
+
+        Reviewed by Alex Christensen.
+
+        No new tests (Caught by existing tests in some configurations).
+
+        * Modules/gamepad/GamepadManager.cpp:
+        (WebCore::GamepadManager::platformGamepadInputActivity): Null check.
+
+2016-09-12  Alex Christensen  <achristensen@webkit.org>
+
+        Fix more URLParser quirks
+        https://bugs.webkit.org/show_bug.cgi?id=161834
+
+        Reviewed by Brady Eidson.
+
+        Added new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+        Skip some tabs and newlines.  The spec says to remove them before processing the String,
+        but to reduce allocations I am skipping them whenever we increment an iterator.
+        Fix a few other quirks to be more web platform conformant.
+
+2016-09-09  Alex Christensen  <achristensen@webkit.org>
+
+        Optimize URLParser performance
+        https://bugs.webkit.org/show_bug.cgi?id=161837
+
+        Reviewed by Brady Eidson.
+
+        No change in behavior.  Existing behavior covered by API tests and added a new API test.
+
+        * platform/URLParser.cpp:
+        (WebCore::isDefaultPort):
+        Use switch statements instead of HashMap lookups.
+        (WebCore::isSpecialScheme):
+        Use switch statements instead of repeated String comparisons.
+        (WebCore::URLParser::parsePort):
+        Reduce String allocation.
+
+2016-09-12  Simon Fraser  <simon.fraser@apple.com>
+
+        Make -webkit-transition-* and -webkit-animation-* properties be pure aliases of the unprefixed ones
+        https://bugs.webkit.org/show_bug.cgi?id=160478
+
+        Reviewed by Dean Jackson.
+        
+        Remove the custom -webkit prefixed transition and animation properties, and just make
+        them aliases of the unprefixed ones, as we do for transforms.
+        
+        -webkit-animation-trigger remains as the only prefixed-only animation property.
+        
+        This is mostly code deletion.
+
+        Test: fast/css/longhand-overrides-shorthand-prefixing.html
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::ComputedStyleExtractor::propertyValue):
+        * css/CSSProperty.h:
+        (WebCore::prefixingVariantForPropertyId): Deleted.
+        * css/CSSPropertyNames.in:
+        * css/CSSToStyleMap.cpp:
+        (WebCore::CSSToStyleMap::mapAnimationDelay):
+        (WebCore::CSSToStyleMap::mapAnimationDirection):
+        (WebCore::CSSToStyleMap::mapAnimationDuration):
+        (WebCore::CSSToStyleMap::mapAnimationFillMode):
+        (WebCore::CSSToStyleMap::mapAnimationIterationCount):
+        (WebCore::CSSToStyleMap::mapAnimationName):
+        (WebCore::CSSToStyleMap::mapAnimationPlayState):
+        (WebCore::CSSToStyleMap::mapAnimationProperty):
+        (WebCore::CSSToStyleMap::mapAnimationTimingFunction):
+        * css/PropertySetCSSStyleDeclaration.cpp:
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyCSSValueInternal):
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyValueInternal):
+        * css/StyleProperties.cpp:
+        (WebCore::StyleProperties::getPropertyValue):
+        (WebCore::MutableStyleProperties::removeShorthandProperty):
+        (WebCore::StyleProperties::asText):
+        * css/StylePropertyShorthand.cpp:
+        (WebCore::animationShorthandForParsing):
+        * css/StylePropertyShorthand.h:
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::styleForKeyframe):
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParser::parseValue):
+        (WebCore::CSSParser::parseAnimationShorthand):
+        (WebCore::CSSParser::parseTransitionShorthand):
+        (WebCore::CSSParser::parseAnimationProperty):
+        (WebCore::CSSParser::addPropertyWithPrefixingVariant): Deleted.
+        * css/parser/CSSParser.h:
+        * html/shadow/MediaControlElements.cpp:
+        (WebCore::MediaControlPanelElement::makeOpaque):
+        (WebCore::MediaControlPanelElement::makeTransparent):
+
+2016-09-12  Per Arne Vollan  <pvollan@apple.com>
+
+        Unreviewed build fix after r205090.
+
+        * platform/cf/MediaAccessibilitySoftLink.cpp:
+
+2016-09-12  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-align] Initial values are parsed as invalid for some Alignment properties
+        https://bugs.webkit.org/show_bug.cgi?id=161303
+
+        Reviewed by Darin Adler.
+
+        Due to the implementation of the new CSS Box Alignment specification,
+        some properties have now new values allowed, which are not valid
+        according to the Flexible Box Layout specification.
+
+        In r205102 we have get back the keywordID parsing, originally implemented for
+        the Flexbible Box Layout specification. Even though the new valued would be
+        parsed as invalid when they are set, the 'initial' values will be assigned
+        in any case.
+
+        This patch verifies that the 'initial' values depend on whether the Grid
+        Layout is enabled or not and verifying such values are parsed as valid.
+
+        Additionally, it gets back as well they keywordID parsing for the Content
+        Alignment properties (align-content and justify-content). This required to
+        touch a bit the StyleBuilderConverter logic, since we will have to deal with
+        either the complex CSSContentDistributionValue complex or the  simpler
+        CSSPrimitiveValue.
+
+        Test: fast/css/ensure-flexbox-compatibility-with-initial-values.html
+
+        * css/StyleBuilderConverter.h:
+        (WebCore::StyleBuilderConverter::convertContentAlignmentData): Handling a primitive value if Grid Layout is not enabled.
+        * css/parser/CSSParser.cpp:
+        (WebCore::isValidKeywordPropertyAndValue): Simpler parsing of alignment properties if Grid Layout is not enabled.
+        (WebCore::isKeywordPropertyID): Alignment properties are defined as keyword if Grid Layout is no enabled.
+        (WebCore::CSSParser::parseValue): Assert Grid Layout is enabled when using the complex parsing.
+        * rendering/style/RenderStyle.cpp:
+        (WebCore::RenderStyle::isCSSGridLayoutEnabled): Checking out the Grid Layout runtime flags.
+        * rendering/style/RenderStyle.h:
+        (WebCore::RenderStyle::initialDefaultAlignment): Initial value will depend on whether Grid Layout is enabled or not.
+        (WebCore::RenderStyle::initialContentAlignment): Initial value will depend on whether Grid Layout is enabled or not.
+
+2016-09-12  Chris Dumez  <cdumez@apple.com>
+
+        ol.start may return incorrect value for reversed lists when not explicitly set
+        https://bugs.webkit.org/show_bug.cgi?id=161713
+
+        Reviewed by Ryosuke Niwa.
+
+        Fix style nit after r205689.
+
+        * html/HTMLOListElement.cpp:
+        (WebCore::HTMLOListElement::itemCount):
+        (WebCore::HTMLOListElement::itemCountAfterLayout):
+        * html/HTMLOListElement.h:
+
+2016-09-12  Chris Dumez  <cdumez@apple.com>
+
+        Start using Document::pageCacheState() instead of Document::inPageCache()
+        https://bugs.webkit.org/show_bug.cgi?id=161851
+
+        Reviewed by Ryosuke Niwa.
+
+        Start using Document::pageCacheState() instead of Document::inPageCache()
+        as the latter one is confusing (given that it is true when firing the
+        pagehide event, when the document is about to enter page cache).
+
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::closeURL):
+        (WebCore::FrameLoader::clear):
+        (WebCore::FrameLoader::dispatchUnloadEvents):
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::load):
+        * page/Page.cpp:
+        (WebCore::incrementFrame): Deleted.
+        * page/Page.h:
+
+2016-09-11  Chris Dumez  <cdumez@apple.com>
+
+        HTMLTrackElement.kind's invalid value default should be the metadata state
+        https://bugs.webkit.org/show_bug.cgi?id=161840
+
+        Reviewed by Eric Carlson.
+
+        HTMLTrackElement.kind's invalid value default should be the metadata state,
+        not the subtitles state:
+        - https://html.spec.whatwg.org/#attr-track-kind
+
+        Chrome agrees with the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/track/TextTrack.cpp:
+        (WebCore::TextTrack::setKindKeywordIgnoringASCIICase):
+
+2016-09-11  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Add the main parser implementation
+        https://bugs.webkit.org/show_bug.cgi?id=161813
+
+        Reviewed by Dean Jackson.
+
+        This patch adds the main CSSParserImpl that handles stylesheet and rule parsing. All parsing starts with this
+        class (it will eventually be invoked from the CSSParser). This patch also adds @supports parsing.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/CSSKeyframeRule.cpp:
+        (WebCore::StyleKeyframe::StyleKeyframe):
+        * css/CSSKeyframeRule.h:
+        * css/StyleRule.cpp:
+        (WebCore::StyleRuleBase::destroy):
+        (WebCore::StyleRuleBase::copy):
+        (WebCore::StyleRuleBase::createCSSOMWrapper):
+        (WebCore::StyleRuleCharset::StyleRuleCharset):
+        (WebCore::StyleRuleCharset::~StyleRuleCharset):
+        (WebCore::StyleRuleNamespace::StyleRuleNamespace):
+        (WebCore::StyleRuleNamespace::~StyleRuleNamespace):
+        * css/StyleRule.h:
+        (WebCore::StyleRuleBase::isNamespaceRule):
+        (isType):
+        (WebCore::StyleRuleBase::isKeyframesRule): Deleted.
+        * css/StyleSheetContents.cpp:
+        (WebCore::traverseSubresourcesInRules):
+        * css/parser/CSSParserImpl.cpp: Added.
+        (WebCore::CSSParserImpl::CSSParserImpl):
+        (WebCore::CSSParserImpl::parseValue):
+        (WebCore::CSSParserImpl::parseVariableValue):
+        (WebCore::filterProperties):
+        (WebCore::createStyleProperties):
+        (WebCore::CSSParserImpl::parseInlineStyleDeclaration):
+        (WebCore::CSSParserImpl::parseDeclarationList):
+        (WebCore::CSSParserImpl::parseRule):
+        (WebCore::CSSParserImpl::parseStyleSheet):
+        (WebCore::CSSParserImpl::parsePageSelector):
+        (WebCore::CSSParserImpl::parseCustomPropertySet):
+        (WebCore::CSSParserImpl::parseKeyframeKeyList):
+        (WebCore::CSSParserImpl::supportsDeclaration):
+        (WebCore::CSSParserImpl::parseDeclarationListForInspector):
+        (WebCore::CSSParserImpl::parseStyleSheetForInspector):
+        (WebCore::computeNewAllowedRules):
+        (WebCore::CSSParserImpl::consumeRuleList):
+        (WebCore::CSSParserImpl::consumeAtRule):
+        (WebCore::CSSParserImpl::consumeQualifiedRule):
+        (WebCore::consumeStringOrURI):
+        (WebCore::CSSParserImpl::consumeCharsetRule):
+        (WebCore::CSSParserImpl::consumeImportRule):
+        (WebCore::CSSParserImpl::consumeNamespaceRule):
+        (WebCore::CSSParserImpl::consumeMediaRule):
+        (WebCore::CSSParserImpl::consumeSupportsRule):
+        (WebCore::CSSParserImpl::consumeViewportRule):
+        (WebCore::CSSParserImpl::consumeFontFaceRule):
+        (WebCore::CSSParserImpl::consumeKeyframesRule):
+        (WebCore::CSSParserImpl::consumePageRule):
+        (WebCore::CSSParserImpl::consumeKeyframeStyleRule):
+        (WebCore::observeSelectors):
+        (WebCore::CSSParserImpl::consumeStyleRule):
+        (WebCore::CSSParserImpl::consumeDeclarationList):
+        (WebCore::CSSParserImpl::consumeDeclaration):
+        (WebCore::CSSParserImpl::consumeVariableValue):
+        (WebCore::CSSParserImpl::consumeDeclarationValue):
+        (WebCore::CSSParserImpl::consumeKeyframeKeyList):
+        * css/parser/CSSParserImpl.h: Added.
+        * css/parser/CSSParserValues.cpp:
+        (WebCore::CSSParserSelector::parsePagePseudoSelector):
+        * css/parser/CSSParserValues.h:
+        * css/parser/CSSPropertyParser.cpp:
+        (WebCore::CSSPropertyParser::parseValue):
+        * css/parser/CSSSupportsParser.cpp: Added.
+        (WebCore::CSSSupportsParser::supportsCondition):
+        (WebCore::CSSSupportsParser::consumeCondition):
+        (WebCore::CSSSupportsParser::consumeNegation):
+        (WebCore::CSSSupportsParser::consumeConditionInParenthesis):
+        * css/parser/CSSSupportsParser.h: Added.
+        (WebCore::CSSSupportsParser::CSSSupportsParser):
+
+2016-09-11  Tim Horton  <timothy_horton@apple.com>
+
+        Candidates that don't end in spaces shouldn't have spaces arbitrarily appended to them
+        https://bugs.webkit.org/show_bug.cgi?id=161846
+        <rdar://problem/28245097>
+
+        Reviewed by Beth Dakin.
+
+        Tests: editing/mac/spelling/accept-candidate-without-adding-space.html,
+               editing/mac/spelling/accept-candidate-allows-autocorrect-on-next-word.html
+
+        * editing/Editor.cpp:
+        (WebCore::Editor::handleAcceptedCandidate):
+        Stop appending a space just because the candidate doesn't end in a space.
+        There are languages where that doesn't make sense, and the platform
+        guarantees that candidates will always have spaces if they need them.
+
+        Also, adjust the way we compute the AcceptedCandidate document marker range.
+        There were two problems with the existing code: it expanded outward from
+        the post-insertion cursor in *both* directions, instead of just backwards,
+        and it used the length of the replaced text, not the length of the newly
+        inserted text (more of the confusion mentioned in r205765).
+
+2016-09-10  Chris Dumez  <cdumez@apple.com>
+
+        parseHTMLInteger() should take a StringView in parameter
+        https://bugs.webkit.org/show_bug.cgi?id=161669
+
+        Reviewed by Ryosuke Niwa.
+
+        parseHTMLInteger() should take a StringView in parameter instead of a
+        const String&.
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParser::parseFontFaceSrcLocal):
+        * css/parser/CSSParserValues.h:
+        (WebCore::CSSParserString::toStringView):
+        Add toStringView() to avoid unnecessarily constructing a String for
+        calling StringBuilder::append().
+
+        * html/parser/HTMLParserIdioms.cpp:
+        (WebCore::parseHTMLInteger):
+        (WebCore::parseHTMLNonNegativeInteger):
+        (WebCore::parseHTTPRefreshInternal):
+        * html/parser/HTMLParserIdioms.h:
+        (WebCore::limitToOnlyHTMLNonNegativeNumbersGreaterThanZero):
+        (WebCore::limitToOnlyHTMLNonNegative):
+        Take a StringView in parameter instead of a const String&.
+
+        * platform/sql/SQLiteStatement.cpp:
+        (WebCore::SQLiteStatement::isColumnDeclaredAsBlob):
+        Avoid unnecessarily constructing a String to call equalLettersIgnoringASCIICase()
+        by leveraging the StringView constructor taking a 'const char*' in parameter.
+
+        * rendering/RenderBlock.cpp:
+        (WebCore::RenderBlock::constructTextRun):
+        * rendering/RenderBlock.h:
+        Add constructTextRun() overload taking an AtomicString. It was otherwise ambiguous
+        because both a String or a StringView could be constructed from an AtomicString.
+
+        * page/CaptionUserPreferencesMediaAF.cpp:
+        (WebCore::CaptionUserPreferencesMediaAF::captionsDefaultFontCSS):
+        (WebCore::buildDisplayStringForTrackBase):
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::mediaControlsStyleSheet):
+        (WebCore::RenderThemeMac::mediaControlsScript):
+        Explicitly construct a String from NSString / CFStringRef types as such calls are
+        now ambiguous.
+
 2016-09-10  Chris Dumez  <cdumez@apple.com>
 
         It is possible for Document::m_frame pointer to become stale

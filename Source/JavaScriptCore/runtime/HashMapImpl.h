@@ -158,8 +158,13 @@ public:
         }
 
         HashMapBuffer* buffer = static_cast<HashMapBuffer*>(data);
-        memset(buffer, -1, allocationSize);
+        buffer->reset(capacity);
         return buffer;
+    }
+
+    ALWAYS_INLINE void reset(uint32_t capacity)
+    {
+        memset(this, -1, allocationSize(capacity));
     }
 };
 
@@ -194,6 +199,19 @@ ALWAYS_INLINE JSValue normalizeMapKey(JSValue key)
     return key;
 }
 
+static ALWAYS_INLINE uint32_t wangsInt64Hash(uint64_t key)
+{
+    key += ~(key << 32);
+    key ^= (key >> 22);
+    key += ~(key << 13);
+    key ^= (key >> 8);
+    key += (key << 3);
+    key ^= (key >> 15);
+    key += ~(key << 27);
+    key ^= (key >> 31);
+    return static_cast<unsigned>(key);
+}
+
 ALWAYS_INLINE uint32_t jsMapHash(ExecState* exec, VM& vm, JSValue value)
 {
     ASSERT_WITH_MESSAGE(normalizeMapKey(value) == value, "We expect normalized values flowing into this function.");
@@ -208,18 +226,24 @@ ALWAYS_INLINE uint32_t jsMapHash(ExecState* exec, VM& vm, JSValue value)
         return wtfString.impl()->hash();
     }
 
-    auto wangsInt64Hash = [] (uint64_t key) -> uint32_t {
-        key += ~(key << 32);
-        key ^= (key >> 22);
-        key += ~(key << 13);
-        key ^= (key >> 8);
-        key += (key << 3);
-        key ^= (key >> 15);
-        key += ~(key << 27);
-        key ^= (key >> 31);
-        return static_cast<unsigned>(key);
-    };
     uint64_t rawValue = JSValue::encode(value);
+    return wangsInt64Hash(rawValue);
+}
+
+ALWAYS_INLINE Optional<uint32_t> concurrentJSMapHash(JSValue key)
+{
+    key = normalizeMapKey(key);
+    if (key.isString()) {
+        JSString* string = asString(key);
+        if (string->length() > 10 * 1024)
+            return Nullopt;
+        const StringImpl* impl = string->tryGetValueImpl();
+        if (!impl)
+            return Nullopt;
+        return impl->concurrentHash();
+    }
+
+    uint64_t rawValue = JSValue::encode(key);
     return wangsInt64Hash(rawValue);
 }
 
@@ -261,7 +285,7 @@ public:
 
     HashMapImpl(VM& vm, Structure* structure)
         : Base(vm, structure)
-        , m_size(0)
+        , m_keyCount(0)
         , m_deleteCount(0)
         , m_capacity(4)
     {
@@ -372,8 +396,10 @@ public:
         newTail->setPrev(vm, newEntry);
         newTail->setDeleted(true);
         newEntry->setNext(vm, newTail);
-        uint32_t newSize = ++m_size;
-        if (2*newSize > m_capacity)
+
+        ++m_keyCount;
+
+        if (shouldRehashAfterAdd())
             rehash(exec);
     }
 
@@ -391,21 +417,25 @@ public:
 
         *bucket = deletedValue();
 
-        m_deleteCount++;
+        ++m_deleteCount;
+        ASSERT(m_keyCount > 0);
+        --m_keyCount;
+
+        if (shouldShrink())
+            rehash(exec);
 
         return true;
     }
 
     ALWAYS_INLINE uint32_t size() const
     {
-        RELEASE_ASSERT(m_size >= m_deleteCount);
-        return m_size - m_deleteCount;
+        return m_keyCount;
     }
 
     ALWAYS_INLINE void clear(ExecState* exec)
     {
         VM& vm = exec->vm();
-        m_size = 0;
+        m_keyCount = 0;
         m_deleteCount = 0;
         HashMapBucketType* head = m_head.get();
         HashMapBucketType* bucket = m_head->next();
@@ -414,12 +444,14 @@ public:
             HashMapBucketType* next = bucket->next();
             // We restart each iterator by pointing it to the head of the list.
             bucket->setNext(vm, head);
+            bucket->setDeleted(true);
             bucket = next;
         }
         m_head->setNext(vm, m_tail.get());
         m_tail->setPrev(vm, m_head.get());
         m_capacity = 4;
         makeAndSetNewBuffer(exec, vm);
+        checkConsistency();
     }
 
     ALWAYS_INLINE size_t bufferSizeInBytes() const
@@ -445,11 +477,21 @@ public:
         size_t size = sizeof(HashMapImpl);
         size += bufferSizeInBytes();
         size += 2 * sizeof(HashMapBucketType); // Head and tail members.
-        size += (m_deleteCount + m_size) * sizeof(HashMapBucketType); // Number of members on the list.
+        size += m_keyCount * sizeof(HashMapBucketType); // Number of members that are on the list.
         return size;
     }
 
 private:
+    ALWAYS_INLINE uint32_t shouldRehashAfterAdd() const
+    {
+        return 2 * (m_keyCount + m_deleteCount) >= m_capacity;
+    }
+
+    ALWAYS_INLINE uint32_t shouldShrink() const
+    {
+        return 8 * m_keyCount <= m_capacity && m_capacity > 4;
+    }
+
     ALWAYS_INLINE HashMapBucketType** findBucketAlreadyHashedAndNormalized(ExecState* exec, JSValue key, uint32_t hash)
     {
         const uint32_t mask = m_capacity - 1;
@@ -471,10 +513,34 @@ private:
         VM& vm = exec->vm();
         auto scope = DECLARE_THROW_SCOPE(vm);
 
-        m_capacity = m_capacity * 2;
-        makeAndSetNewBuffer(exec, vm);
-        if (UNLIKELY(scope.exception()))
-            return;
+        uint32_t oldCapacity = m_capacity;
+        if (shouldShrink()) {
+            m_capacity = m_capacity / 2;
+            ASSERT(m_capacity >= 4);
+        } else if (3 * m_keyCount <= m_capacity && m_capacity > 64) {
+            // We stay at the same size if rehashing would cause us to be no more than
+            // 1/3rd full. This comes up for programs like this:
+            // Say the hash table grew to a key count of 64, causing it to grow to a capacity of 256.
+            // Then, the table added 63 items. The load is now 127. Then, 63 items are deleted.
+            // The load is still 127. Then, another item is added. The load is now 128, and we
+            // decide that we need to rehash. The key count is 65, almost exactly what it was
+            // when we grew to a capacity of 256. We don't really need to grow to a capacity
+            // of 512 in this situation. Instead, we choose to rehash at the same size. This
+            // will bring the load down to 65. We rehash into the same size when we determine
+            // that the new load ratio will be under 1/3rd. (We also pick a minumum capacity
+            // at which this rule kicks in because otherwise we will be too sensitive to rehashing
+            // at the same capacity).
+        } else
+            m_capacity = (Checked<uint32_t>(m_capacity) * 2).unsafeGet();
+
+        if (m_capacity != oldCapacity) {
+            makeAndSetNewBuffer(exec, vm);
+            if (UNLIKELY(scope.exception()))
+                return;
+        } else {
+            m_buffer.get()->reset(m_capacity);
+            assertBufferIsEmpty();
+        }
 
         HashMapBucketType* iter = m_head->next();
         HashMapBucketType* end = m_tail.get();
@@ -494,6 +560,24 @@ private:
             buffer[index] = iter;
             iter = iter->next();
         }
+
+        m_deleteCount = 0;
+
+        checkConsistency();
+    }
+
+    ALWAYS_INLINE void checkConsistency() const
+    {
+        if (!ASSERT_DISABLED) {
+            HashMapBucketType* iter = m_head->next();
+            HashMapBucketType* end = m_tail.get();
+            uint32_t size = 0;
+            while (iter != end) {
+                ++size;
+                iter = iter->next();
+            }
+            ASSERT(size == m_keyCount);
+        }
     }
 
     void makeAndSetNewBuffer(ExecState* exec, VM& vm)
@@ -505,16 +589,21 @@ private:
             return;
 
         m_buffer.set(vm, this, buffer);
+        assertBufferIsEmpty();
+    }
+
+    ALWAYS_INLINE void assertBufferIsEmpty() const
+    {
         if (!ASSERT_DISABLED) {
             for (unsigned i = 0; i < m_capacity; i++)
-                ASSERT(isEmpty(this->buffer()[i]));
+                ASSERT(isEmpty(buffer()[i]));
         }
     }
 
     WriteBarrier<HashMapBucketType> m_head;
     WriteBarrier<HashMapBucketType> m_tail;
     AuxiliaryBarrier<HashMapBufferType*> m_buffer;
-    uint32_t m_size;
+    uint32_t m_keyCount;
     uint32_t m_deleteCount;
     uint32_t m_capacity;
 };

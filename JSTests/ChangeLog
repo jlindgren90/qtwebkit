@@ -1,3 +1,114 @@
+2016-09-12  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        ES6: Classes: Should be allowed to create a static method with name "arguments"
+        https://bugs.webkit.org/show_bug.cgi?id=152985
+
+        Reviewed by Keith Miller.
+
+        * test262.yaml:
+
+2016-09-12  Saam Barati  <sbarati@apple.com>
+
+        Speed up Function.prototype.bind a bit by making it a builtin
+        https://bugs.webkit.org/show_bug.cgi?id=161879
+
+        Reviewed by Filip Pizlo.
+
+        * microbenchmarks/function-bind-inlining.js: Added.
+        (assert):
+        (test):
+        (test2):
+        (foo):
+        * microbenchmarks/function-bind-no-inlining.js: Added.
+        (assert):
+        (test):
+        (test2):
+        (foo):
+
+2016-09-12  Saam Barati  <sbarati@apple.com>
+
+        HashMapImpl should take into account m_deleteCount in its load factor and it should be able to rehash the table to be smaller
+        https://bugs.webkit.org/show_bug.cgi?id=161640
+
+        Reviewed by Geoffrey Garen.
+
+        * microbenchmarks/map-rehash.js: Added.
+        * stress/map-delete.js: Added.
+        (assert):
+        * stress/map-rehash-2.js: Added.
+        (assert):
+        * stress/map-rehash.js: Added.
+        (assert):
+
+2016-09-12  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, fix tests for different libm environments
+        https://bugs.webkit.org/show_bug.cgi?id=161857
+
+        * stress/ftl-arithtan.js:
+
+2016-09-12  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Use GetArrayLength for JSArray.length even when the array type is undecided
+        https://bugs.webkit.org/show_bug.cgi?id=161671
+
+        Reviewed by Geoffrey Garen.
+
+        * stress/get-array-length-on-undecided.js: Added.
+
+2016-09-12  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DFG][FTL] Add ArithTan
+        https://bugs.webkit.org/show_bug.cgi?id=161857
+
+        Reviewed by Filip Pizlo.
+
+        * microbenchmarks/tan.js: Added.
+        * stress/arith-tan-on-various-types.js: Added.
+        (let.validInputTypedTestCases.validInputTestCases.map):
+        (isIdentical):
+        (opaqueTanNoArgument):
+        (testNoArgument):
+        (opaqueAllTypesTan):
+        (testAllTypesCall):
+        (testTangleTypeCall):
+        (testConstant):
+        (opaqueTanForSideEffects):
+        (testSideEffect.let.testObject.valueOf):
+        (testSideEffect):
+        (opaqueTanForCSE):
+        (testCSE.let.testObject.valueOf):
+        (testCSE):
+        (opaqueTanForDCE):
+        (testDCE.let.testObject.valueOf):
+        (testDCE):
+        (testException.opaqueTanWithException):
+        (testException):
+        * stress/ftl-arithtan.js: Added.
+        (foo):
+
+2016-09-12  Saam Barati  <sbarati@apple.com>
+
+        MapHash should do constant folding when it has a constant argument and its legal to hash that value
+        https://bugs.webkit.org/show_bug.cgi?id=161639
+
+        Reviewed by Filip Pizlo.
+
+        * microbenchmarks/map-constant-key.js: Added.
+        (assert):
+        (test):
+        (foo):
+
+2016-09-12  Michael Saboff  <msaboff@apple.com>
+
+        JSC test timeout: ChakraCore.yaml/ChakraCore/test/Bugs/bug56026_trycatch.js.default
+        https://bugs.webkit.org/show_bug.cgi?id=161863
+
+        Reviewed by Saam Barati.
+
+        * ChakraCore.yaml:
+        Disabled Bugs/bug56026_trycatch.js.
+
 2016-09-09  Michael Saboff  <msaboff@apple.com>
 
         Unreviewed, rolling r205759 back in with a fix.
