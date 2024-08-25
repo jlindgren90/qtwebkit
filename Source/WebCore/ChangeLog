@@ -1,3 +1,1289 @@
+2016-09-02  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Distinguish between paint advances and base advances
+        https://bugs.webkit.org/show_bug.cgi?id=160892
+
+        Reviewed by Simon Fraser.
+
+        This patch introduces the concept of a layout (or "base") advance which is distinct
+        from a painting advance. In extremely complicated scripts such as Urdu, it is common
+        for a glyph advance to be negative in the horizontal direction, and have large advances
+        in the vertical direction. In particular, in cursive scripts, the glyph placement is
+        only indirectly related to where the actual characters lie. Conceptually, these glyph
+        locations are correct for painting, but are not correct when performing width
+        measurements.
+
+        In many text engines, glyph shaping actually can be split into two phases: adjusting
+        advances, and then placing glyphs relative to those advances. The secondary glyph
+        placement step is much more context-sensitive than the first step. In addition, when
+        multiple glyphs combine to form a character, it is common for one glyph to own the
+        full base advance for the character, and for the other glyphs in the character to
+        have zero base advances. (Then, in the glyph placement phase, the other glyphs get
+        placed all around.)
+
+        Because of the context-insensitivity of the base advances, it is valuable to use
+        these for text measurement. Then, when we want to paint, we should add in the extra
+        origins. This dramatically improves the layout of complex fonts like Noto Nastaliq.
+
+        This patch migrates WebKit to use this two-phase shaping.
+
+        No new tests just yet, because I have to create a font which exercises the
+        advanced glyph placement support.
+
+        * platform/graphics/GlyphBuffer.h:
+        (WebCore::GlyphBufferAdvance::setHeight):
+        (WebCore::GlyphBufferAdvance::setWidth): Deleted.
+        * platform/graphics/TextRun.h:
+        (WebCore::TextRun::TextRun):
+        (WebCore::TextRun::shouldDisableLayoutSpecificAdvances):
+        (WebCore::TextRun::setShouldDisableLayoutSpecificAdvances):
+        (WebCore::TextRun::spacingDisabled): Deleted.
+        (WebCore::TextRun::setCharacterScanForCodePath): Deleted.
+        * platform/graphics/cocoa/FontCascadeCocoa.mm:
+        (WebCore::FontCascade::getGlyphsAndAdvancesForComplexText):
+        * platform/graphics/mac/ComplexTextController.cpp:
+        (WebCore::ComplexTextController::ComplexTextController):
+        (WebCore::ComplexTextController::offsetForPosition):
+        (WebCore::ComplexTextController::collectComplexTextRuns):
+        (WebCore::ComplexTextController::ComplexTextRun::setIsNonMonotonic):
+        (WebCore::ComplexTextController::runWidthSoFarFraction):
+        (WebCore::ComplexTextController::advance):
+        (WebCore::ComplexTextController::adjustGlyphsAndAdvances):
+        * platform/graphics/mac/ComplexTextController.h:
+        (WebCore::ComplexTextController::ComplexTextRun::create):
+        (WebCore::ComplexTextController::ComplexTextRun::baseAdvances):
+        (WebCore::ComplexTextController::ComplexTextRun::glyphOrigins):
+        (WebCore::ComplexTextController::useLayoutSpecificAdvances):
+        (WebCore::ComplexTextController::finalRoundingWidth): Deleted.
+        (WebCore::ComplexTextController::ComplexTextRun::advances): Deleted.
+        * platform/graphics/mac/ComplexTextControllerCoreText.mm:
+        (SOFT_LINK):
+        (WebCore::ComplexTextController::ComplexTextRun::ComplexTextRun):
+        (WebCore::ComplexTextController::collectComplexTextRunsForCharacters):
+        * platform/spi/cocoa/CoreTextSPI.h:
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, roll out r205354 because it caused JSC test failures
+
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::shouldAllowAccessFrom):
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::preventExtensions): Deleted.
+        (WebCore::JSDOMWindow::setLocation): Deleted.
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::preventExtensions): Deleted.
+        (WebCore::JSLocationPrototype::putDelegate): Deleted.
+        (WebCore::JSLocationPrototype::defineOwnProperty): Deleted.
+        * bindings/js/JSWorkerGlobalScopeBase.cpp:
+        (WebCore::JSWorkerGlobalScopeBase::allowsAccessFrom):
+        * bindings/js/JSWorkerGlobalScopeBase.h:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        * bindings/scripts/IDLAttributes.txt:
+        * page/DOMWindow.idl:
+        * page/Location.idl:
+
+2016-09-02  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Provide a way to open an inspector frontend for a remote target
+        https://bugs.webkit.org/show_bug.cgi?id=161515
+        <rdar://problem/13182127>
+
+        Reviewed by Brian Burg.
+
+        Previously WebKit inspector frontend clients could only
+        create a frontend for a web page with the latest protocol.
+        Now it may create a frontend for a "javascript" or "web"
+        debuggable that may be current or an older protocol.
+
+        The frontend already supports these configurations by
+        checking and calling InspectorFrontendHost methods
+        that may or may not have existed previously:
+
+        - debuggableType was always "web" but frontend supports "javascript"
+        - inspectorBackendCommandsURLs was absent so the frontend used the most current
+            - rename this to backendCommandsURL
+        
+        Formalize the methods and have them delegate to the
+        frontend client opening the frontend.
+
+        * inspector/InspectorFrontendClient.h:
+        (WebCore::InspectorFrontendClient::backendCommandsURL):
+        (WebCore::InspectorFrontendClient::debuggableType):
+        * inspector/InspectorFrontendHost.cpp:
+        (WebCore::InspectorFrontendHost::localizedStringsURL):
+        (WebCore::InspectorFrontendHost::backendCommandsURL):
+        (WebCore::InspectorFrontendHost::debuggableType):
+        * inspector/InspectorFrontendHost.h:
+        * inspector/InspectorFrontendHost.idl:
+        Formalize and give default values to InspectorFrontentHost methods.
+
+2016-09-02  Dave Hyatt  <hyatt@apple.com>
+
+        Add support for media query parsing using new CSS Parser
+        https://bugs.webkit.org/show_bug.cgi?id=161537
+
+        Reviewed by Dean Jackson.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/MediaQueryExp.cpp:
+        (WebCore::featureWithValidIdent):
+        (WebCore::featureWithValidDensity):
+        (WebCore::featureWithValidPositiveLength):
+        (WebCore::featureWithPositiveInteger):
+        (WebCore::featureWithPositiveNumber):
+        (WebCore::featureWithZeroOrOne):
+        (WebCore::isFeatureValidWithIdentifier):
+        (WebCore::MediaQueryExpression::MediaQueryExpression):
+        * css/MediaQueryExp.h:
+        * css/parser/CSSParserIdioms.cpp: Added.
+        (WebCore::convertToASCIILowercaseInPlace):
+        * css/parser/CSSParserIdioms.h:
+        * css/parser/CSSParserToken.cpp:
+        (WebCore::convertToASCIILowercaseInPlace):
+        * css/parser/MediaQueryBlockWatcher.cpp: Added.
+        (WebCore::MediaQueryBlockWatcher::MediaQueryBlockWatcher):
+        (WebCore::MediaQueryBlockWatcher::handleToken):
+        * css/parser/MediaQueryBlockWatcher.h: Added.
+        (WebCore::MediaQueryBlockWatcher::blockLevel):
+        * css/parser/MediaQueryParser.cpp: Added.
+        (WebCore::MediaQueryParser::parseMediaQuerySet):
+        (WebCore::MediaQueryParser::parseMediaCondition):
+        (WebCore::MediaQueryParser::MediaQueryParser):
+        (WebCore::MediaQueryParser::~MediaQueryParser):
+        (WebCore::MediaQueryParser::setStateAndRestrict):
+        (WebCore::MediaQueryParser::readRestrictor):
+        (WebCore::MediaQueryParser::readMediaNot):
+        (WebCore::isRestrictorOrLogicalOperator):
+        (WebCore::MediaQueryParser::readMediaType):
+        (WebCore::MediaQueryParser::commitMediaQuery):
+        (WebCore::MediaQueryParser::readAnd):
+        (WebCore::MediaQueryParser::readFeatureStart):
+        (WebCore::MediaQueryParser::readFeature):
+        (WebCore::MediaQueryParser::readFeatureColon):
+        (WebCore::MediaQueryParser::readFeatureValue):
+        (WebCore::MediaQueryParser::readFeatureEnd):
+        (WebCore::MediaQueryParser::skipUntilComma):
+        (WebCore::MediaQueryParser::skipUntilBlockEnd):
+        (WebCore::MediaQueryParser::done):
+        (WebCore::MediaQueryParser::handleBlocks):
+        (WebCore::MediaQueryParser::processToken):
+        (WebCore::MediaQueryParser::parseInternal):
+        (WebCore::MediaQueryData::MediaQueryData):
+        (WebCore::MediaQueryData::clear):
+        (WebCore::MediaQueryData::addExpression):
+        (WebCore::MediaQueryData::tryAddParserToken):
+        (WebCore::MediaQueryData::setMediaType):
+        * css/parser/MediaQueryParser.h: Added.
+        (WebCore::MediaQueryData::restrictor):
+        (WebCore::MediaQueryData::expressions):
+        (WebCore::MediaQueryData::mediaType):
+        (WebCore::MediaQueryData::currentMediaQueryChanged):
+        (WebCore::MediaQueryData::setRestrictor):
+        (WebCore::MediaQueryData::setMediaFeature):
+
+2016-07-08  Jer Noble  <jer.noble@apple.com>
+
+        Refactor WebPlaybackSessionModelMediaElement to be client based.
+        https://bugs.webkit.org/show_bug.cgi?id=159580
+
+        Reviewed by Eric Carlson.
+
+        Add client callback interfaces to both WebPlaybackSessionModel and WebVideoFullscreenModel, where each object
+        can have multiple clients, and so the object will both store current values and also notify those clients
+        when the values change. After this change, there is no need to have the models know about their associated
+        interfaces explicitly.
+
+        * platform/cocoa/WebPlaybackSessionInterface.h:
+        * platform/cocoa/WebPlaybackSessionModel.h:
+        (WebCore::WebPlaybackSessionModelClient::~WebPlaybackSessionModelClient):
+        (WebCore::WebPlaybackSessionModelClient::durationChanged):
+        (WebCore::WebPlaybackSessionModelClient::currentTimeChanged):
+        (WebCore::WebPlaybackSessionModelClient::bufferedTimeChanged):
+        (WebCore::WebPlaybackSessionModelClient::rateChanged):
+        (WebCore::WebPlaybackSessionModelClient::seekableRangesChanged):
+        (WebCore::WebPlaybackSessionModelClient::canPlayFastReverseChanged):
+        (WebCore::WebPlaybackSessionModelClient::audioMediaSelectionOptionsChanged):
+        (WebCore::WebPlaybackSessionModelClient::legibleMediaSelectionOptionsChanged):
+        (WebCore::WebPlaybackSessionModelClient::externalPlaybackChanged):
+        (WebCore::WebPlaybackSessionModelClient::wirelessVideoPlaybackDisabledChanged):
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.h:
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.mm:
+        (WebPlaybackSessionModelMediaElement::setMediaElement):
+        (WebPlaybackSessionModelMediaElement::updateForEventName):
+        (WebPlaybackSessionModelMediaElement::addClient):
+        (WebPlaybackSessionModelMediaElement::removeClient):
+        (WebPlaybackSessionModelMediaElement::updateLegibleOptions):
+        (WebPlaybackSessionModelMediaElement::observedEventNames):
+        (WebPlaybackSessionModelMediaElement::eventNameAll):
+        (WebPlaybackSessionModelMediaElement::audioMediaSelectionOptions):
+        (WebPlaybackSessionModelMediaElement::audioMediaSelectedIndex):
+        (WebPlaybackSessionModelMediaElement::legibleMediaSelectedIndex):
+        (WebPlaybackSessionModelMediaElement::externalPlaybackEnabled):
+        (WebPlaybackSessionModelMediaElement::externalPlaybackTargetType):
+        (WebPlaybackSessionModelMediaElement::externalPlaybackLocalizedDeviceName):
+        (WebPlaybackSessionModelMediaElement::wirelessVideoPlaybackDisabled):
+        (WebPlaybackSessionModelMediaElement::setWebPlaybackSessionInterface): Deleted.
+        * platform/cocoa/WebVideoFullscreenInterface.h:
+        * platform/cocoa/WebVideoFullscreenModel.h:
+        (WebCore::WebVideoFullscreenModelClient::~WebVideoFullscreenModelClient):
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.h:
+        (WebCore::WebVideoFullscreenModelVideoElement::create):
+        (WebCore::WebVideoFullscreenModelVideoElement::playbackSessionModel): Deleted.
+        * platform/cocoa/WebVideoFullscreenModelVideoElement.mm:
+        (WebVideoFullscreenModelVideoElement::WebVideoFullscreenModelVideoElement):
+        (WebVideoFullscreenModelVideoElement::setVideoElement):
+        (WebVideoFullscreenModelVideoElement::updateForEventName):
+        (WebVideoFullscreenModelVideoElement::addClient):
+        (WebVideoFullscreenModelVideoElement::removeClient):
+        (WebVideoFullscreenModelVideoElement::setHasVideo):
+        (WebVideoFullscreenModelVideoElement::setVideoDimensions):
+        (WebVideoFullscreenModelVideoElement::setWebVideoFullscreenInterface): Deleted.
+        * platform/ios/WebAVPlayerController.h:
+        * platform/ios/WebAVPlayerController.mm:
+        (-[WebAVPlayerController resetState]): Deleted.
+        * platform/ios/WebPlaybackSessionInterfaceAVKit.h:
+        (WebCore::WebPlaybackSessionInterfaceAVKitClient::~WebPlaybackSessionInterfaceAVKitClient): Deleted.
+        * platform/ios/WebPlaybackSessionInterfaceAVKit.mm:
+        (WebCore::WebPlaybackSessionInterfaceAVKit::WebPlaybackSessionInterfaceAVKit):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::~WebPlaybackSessionInterfaceAVKit):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::resetMediaState):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::durationChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::currentTimeChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::bufferedTimeChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::rateChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::seekableRangesChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::canPlayFastReverseChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::audioMediaSelectionOptionsChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::legibleMediaSelectionOptionsChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::externalPlaybackChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::wirelessVideoPlaybackDisabledChanged):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::invalidate):
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setWebPlaybackSessionModel): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setDuration): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setCurrentTime): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setBufferedTime): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setRate): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setSeekableRanges): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setCanPlayFastReverse): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setAudioMediaSelectionOptions): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setLegibleMediaSelectionOptions): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setExternalPlayback): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::setWirelessVideoPlaybackDisabled): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceAVKit::wirelessVideoPlaybackDisabled): Deleted.
+        * platform/ios/WebVideoFullscreenControllerAVKit.mm:
+        (WebVideoFullscreenControllerContext::didSetupFullscreen):
+        (WebVideoFullscreenControllerContext::didExitFullscreen):
+        (WebVideoFullscreenControllerContext::didCleanupFullscreen):
+        (WebVideoFullscreenControllerContext::durationChanged):
+        (WebVideoFullscreenControllerContext::currentTimeChanged):
+        (WebVideoFullscreenControllerContext::bufferedTimeChanged):
+        (WebVideoFullscreenControllerContext::rateChanged):
+        (WebVideoFullscreenControllerContext::hasVideoChanged):
+        (WebVideoFullscreenControllerContext::videoDimensionsChanged):
+        (WebVideoFullscreenControllerContext::seekableRangesChanged):
+        (WebVideoFullscreenControllerContext::canPlayFastReverseChanged):
+        (WebVideoFullscreenControllerContext::audioMediaSelectionOptionsChanged):
+        (WebVideoFullscreenControllerContext::legibleMediaSelectionOptionsChanged):
+        (WebVideoFullscreenControllerContext::externalPlaybackChanged):
+        (WebVideoFullscreenControllerContext::wirelessVideoPlaybackDisabledChanged):
+        (WebVideoFullscreenControllerContext::addClient):
+        (WebVideoFullscreenControllerContext::removeClient):
+        (WebVideoFullscreenControllerContext::requestFullscreenMode):
+        (WebVideoFullscreenControllerContext::setVideoLayerFrame):
+        (WebVideoFullscreenControllerContext::setVideoLayerGravity):
+        (WebVideoFullscreenControllerContext::fullscreenModeChanged):
+        (WebVideoFullscreenControllerContext::isVisible):
+        (WebVideoFullscreenControllerContext::hasVideo):
+        (WebVideoFullscreenControllerContext::videoDimensions):
+        (WebVideoFullscreenControllerContext::play):
+        (WebVideoFullscreenControllerContext::pause):
+        (WebVideoFullscreenControllerContext::togglePlayState):
+        (WebVideoFullscreenControllerContext::beginScrubbing):
+        (WebVideoFullscreenControllerContext::endScrubbing):
+        (WebVideoFullscreenControllerContext::seekToTime):
+        (WebVideoFullscreenControllerContext::fastSeek):
+        (WebVideoFullscreenControllerContext::beginScanningForward):
+        (WebVideoFullscreenControllerContext::beginScanningBackward):
+        (WebVideoFullscreenControllerContext::endScanning):
+        (WebVideoFullscreenControllerContext::selectAudioMediaOption):
+        (WebVideoFullscreenControllerContext::selectLegibleMediaOption):
+        (WebVideoFullscreenControllerContext::duration):
+        (WebVideoFullscreenControllerContext::currentTime):
+        (WebVideoFullscreenControllerContext::bufferedTime):
+        (WebVideoFullscreenControllerContext::isPlaying):
+        (WebVideoFullscreenControllerContext::playbackRate):
+        (WebVideoFullscreenControllerContext::seekableRanges):
+        (WebVideoFullscreenControllerContext::canPlayFastReverse):
+        (WebVideoFullscreenControllerContext::audioMediaSelectionOptions):
+        (WebVideoFullscreenControllerContext::audioMediaSelectedIndex):
+        (WebVideoFullscreenControllerContext::legibleMediaSelectionOptions):
+        (WebVideoFullscreenControllerContext::legibleMediaSelectedIndex):
+        (WebVideoFullscreenControllerContext::externalPlaybackEnabled):
+        (WebVideoFullscreenControllerContext::externalPlaybackTargetType):
+        (WebVideoFullscreenControllerContext::externalPlaybackLocalizedDeviceName):
+        (WebVideoFullscreenControllerContext::wirelessVideoPlaybackDisabled):
+        (WebVideoFullscreenControllerContext::setUpFullscreen):
+        (WebVideoFullscreenControllerContext::exitFullscreen):
+        (WebVideoFullscreenControllerContext::requestHideAndExitFullscreen):
+        (WebVideoFullscreenControllerContext::resetMediaState): Deleted.
+        (WebVideoFullscreenControllerContext::setDuration): Deleted.
+        (WebVideoFullscreenControllerContext::setCurrentTime): Deleted.
+        (WebVideoFullscreenControllerContext::setBufferedTime): Deleted.
+        (WebVideoFullscreenControllerContext::setRate): Deleted.
+        (WebVideoFullscreenControllerContext::setVideoDimensions): Deleted.
+        (WebVideoFullscreenControllerContext::setSeekableRanges): Deleted.
+        (WebVideoFullscreenControllerContext::setCanPlayFastReverse): Deleted.
+        (WebVideoFullscreenControllerContext::setAudioMediaSelectionOptions): Deleted.
+        (WebVideoFullscreenControllerContext::setLegibleMediaSelectionOptions): Deleted.
+        (WebVideoFullscreenControllerContext::setExternalPlayback): Deleted.
+        (WebVideoFullscreenControllerContext::setWirelessVideoPlaybackDisabled): Deleted.
+        (WebVideoFullscreenSessionModel::play): Deleted.
+        (WebVideoFullscreenSessionModel::pause): Deleted.
+        (WebVideoFullscreenSessionModel::togglePlayState): Deleted.
+        (WebVideoFullscreenSessionModel::beginScrubbing): Deleted.
+        (WebVideoFullscreenSessionModel::endScrubbing): Deleted.
+        (WebVideoFullscreenSessionModel::seekToTime): Deleted.
+        (WebVideoFullscreenSessionModel::fastSeek): Deleted.
+        (WebVideoFullscreenSessionModel::beginScanningForward): Deleted.
+        (WebVideoFullscreenSessionModel::beginScanningBackward): Deleted.
+        (WebVideoFullscreenSessionModel::endScanning): Deleted.
+        (WebVideoFullscreenSessionModel::selectAudioMediaOption): Deleted.
+        (WebVideoFullscreenSessionModel::selectLegibleMediaOption): Deleted.
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.h:
+        * platform/ios/WebVideoFullscreenInterfaceAVKit.mm:
+        (WebVideoFullscreenInterfaceAVKit::~WebVideoFullscreenInterfaceAVKit):
+        (WebVideoFullscreenInterfaceAVKit::setWebVideoFullscreenModel):
+        (WebVideoFullscreenInterfaceAVKit::setWebVideoFullscreenChangeObserver):
+        (WebVideoFullscreenInterfaceAVKit::hasVideoChanged):
+        (WebVideoFullscreenInterfaceAVKit::videoDimensionsChanged):
+        (WebVideoFullscreenInterfaceAVKit::externalPlaybackChanged):
+        (WebVideoFullscreenInterfaceAVKit::resetMediaState): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setDuration): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setCurrentTime): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setBufferedTime): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setRate): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setVideoDimensions): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setSeekableRanges): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setCanPlayFastReverse): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setAudioMediaSelectionOptions): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setLegibleMediaSelectionOptions): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setExternalPlayback): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::externalPlaybackEnabledChanged): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::setWirelessVideoPlaybackDisabled): Deleted.
+        (WebVideoFullscreenInterfaceAVKit::wirelessVideoPlaybackDisabled): Deleted.
+        * platform/mac/WebPlaybackSessionInterfaceMac.h:
+        (WebCore::WebPlaybackSessionInterfaceMacClient::~WebPlaybackSessionInterfaceMacClient): Deleted.
+        * platform/mac/WebPlaybackSessionInterfaceMac.mm:
+        (WebCore::WebPlaybackSessionInterfaceMac::create):
+        (WebCore::WebPlaybackSessionInterfaceMac::WebPlaybackSessionInterfaceMac):
+        (WebCore::WebPlaybackSessionInterfaceMac::~WebPlaybackSessionInterfaceMac):
+        (WebCore::WebPlaybackSessionInterfaceMac::durationChanged):
+        (WebCore::WebPlaybackSessionInterfaceMac::currentTimeChanged):
+        (WebCore::WebPlaybackSessionInterfaceMac::rateChanged):
+        (WebCore::WebPlaybackSessionInterfaceMac::seekableRangesChanged):
+        (WebCore::WebPlaybackSessionInterfaceMac::audioMediaSelectionOptionsChanged):
+        (WebCore::WebPlaybackSessionInterfaceMac::legibleMediaSelectionOptionsChanged):
+        (WebCore::WebPlaybackSessionInterfaceMac::invalidate):
+        (WebCore::WebPlaybackSessionInterfaceMac::setWebPlaybackSessionModel): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceMac::setClient): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceMac::setDuration): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceMac::setCurrentTime): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceMac::setRate): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceMac::setSeekableRanges): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceMac::setAudioMediaSelectionOptions): Deleted.
+        (WebCore::WebPlaybackSessionInterfaceMac::setLegibleMediaSelectionOptions): Deleted.
+        * platform/mac/WebVideoFullscreenInterfaceMac.h:
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (WebCore::WebVideoFullscreenInterfaceMac::WebVideoFullscreenInterfaceMac):
+        (WebCore::WebVideoFullscreenInterfaceMac::~WebVideoFullscreenInterfaceMac):
+        (WebCore::WebVideoFullscreenInterfaceMac::setWebVideoFullscreenModel):
+        (WebCore::WebVideoFullscreenInterfaceMac::externalPlaybackChanged):
+        (WebCore::WebVideoFullscreenInterfaceMac::hasVideoChanged):
+        (WebCore::WebVideoFullscreenInterfaceMac::videoDimensionsChanged):
+        (WebCore::WebVideoFullscreenInterfaceMac::setDuration): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setCurrentTime): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setRate): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setSeekableRanges): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setAudioMediaSelectionOptions): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setLegibleMediaSelectionOptions): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setExternalPlayback): Deleted.
+        (WebCore::WebVideoFullscreenInterfaceMac::setVideoDimensions): Deleted.
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r204839): [mac-wk1] LayoutTest webgl/max-active-contexts-webglcontextlost-prevent-default.html is a flaky timeout
+        https://bugs.webkit.org/show_bug.cgi?id=161205
+
+        Reviewed by Geoffrey Garen.
+
+        Fixes several issues:
+        - Add missing isReachableFromOpaqueRoots() implementation for JSWebGLRenderingContextBase.
+          It used to rely on the one from its JSCanvasRenderingContext base. However, that base
+          was dropped in r204839.
+        - Update JSWebGLRenderingContextBase::visitAdditionalChildren() to add its canvas
+          object as opaque root as well. This used to be taken care of by
+          JSCanvasRenderingContext::visitAdditionalChildren() but it got dropped in r204839.
+
+        This also refactors the code a bit for clarity.
+
+        No new tests, unskipped existing test.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSCanvasRenderingContext.h: Removed.
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::getCSSCanvasContext):
+        * bindings/js/JSHTMLCanvasElementCustom.cpp:
+        (WebCore::JSHTMLCanvasElement::getContext):
+        * bindings/js/JSWebGLRenderingContextBaseCustom.cpp:
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSWebGLRenderingContextBaseOwner::isReachableFromOpaqueRoots):
+        (WebCore::JSWebGLRenderingContextBase::visitAdditionalChildren):
+        * html/canvas/CanvasRenderingContext.h:
+        (WebCore::CanvasRenderingContext::is3d):
+        * html/canvas/WebGLRenderingContextBase.h:
+        * html/canvas/WebGLRenderingContextBase.idl:
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Object.preventExtensions() should throw cross-origin
+        https://bugs.webkit.org/show_bug.cgi?id=161486
+
+        Reviewed by Geoffrey Garen.
+
+        Object.preventExtensions() should throw cross-origin:
+        - https://html.spec.whatwg.org/#windowproxy-preventextensions
+        - https://html.spec.whatwg.org/#location-preventextensions
+        - http://www.ecma-international.org/ecma-262/6.0/#sec-object.preventextensions
+
+        Firefox and Chrome both throw in the cross-origin case. Firefox also throws
+        a TypeError in the same-origin case for Window, as per the specification.
+        However, Firefox does not seem to throw yet in the same-origin case for
+        Location yet.
+
+        Test: http/tests/security/preventExtensions-window-location.html
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::preventExtensions):
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::preventExtensions):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        * bindings/scripts/IDLAttributes.txt:
+        * page/DOMWindow.idl:
+        * page/Location.idl:
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Object.defineProperty() should throw cross-origin
+        https://bugs.webkit.org/show_bug.cgi?id=161460
+
+        Reviewed by Geoffrey Garen.
+
+        Object.defineProperty() should throw cross-origin to match Firefox and
+        Chrome.
+
+        The specification is in the process of being updated to match the
+        behavior of browsers.
+
+        Test: http/tests/security/window-defineProperty-crossOrigin.html
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::defineOwnProperty):
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::defineOwnProperty):
+
+2016-09-02  Brady Eidson  <beidson@apple.com>
+
+        Weak link the GameController.framework on macOS but differently than before.
+
+        Reviewed by Dan Bernstein.
+        
+        * Configurations/WebCore.xcconfig:
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Align proto getter / setter behavior with other browsers
+        https://bugs.webkit.org/show_bug.cgi?id=161455
+
+        Reviewed by Mark Lam.
+
+        Align cross-origin __proto__ getter / setter behavior with other
+        browsers and the specification:
+
+        [[SetPrototypeOf]] should throw a TypeError:
+        - https://html.spec.whatwg.org/#windowproxy-setprototypeof
+        - https://html.spec.whatwg.org/#location-setprototypeof
+        - https://tc39.github.io/ecma262/#sec-object.setprototypeof (step 5)
+
+        [[GetPrototypeOf]] should return null cross-origin:
+        - https://html.spec.whatwg.org/#windowproxy-getprototypeof
+        - https://html.spec.whatwg.org/#location-getprototypeof
+
+        Test: js/dom/setPrototypeOf-location-window.html
+
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::JSDOMWindowBase::JSDOMWindowBase): Deleted.
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::setPrototype):
+        (WebCore::JSDOMWindow::getPrototype):
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::setPrototype):
+        (WebCore::JSLocation::getPrototype):
+        * bindings/js/JSWorkerGlobalScopeBase.cpp:
+        (WebCore::JSWorkerGlobalScopeBase::supportsRichSourceInfo): Deleted.
+        * bindings/js/JSWorkerGlobalScopeBase.h:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        * bindings/scripts/IDLAttributes.txt:
+        * page/DOMWindow.idl:
+        * page/Location.idl:
+
+2016-09-02  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] applyConstraints pt. 1 - mandatory constraints
+        https://bugs.webkit.org/show_bug.cgi?id=161469
+        <rdar://problem/28109325>
+
+        Reviewed by Jer Noble.
+
+        Tests: fast/mediastream/apply-constraints-audio.html
+               fast/mediastream/apply-constraints-video.html
+
+        * Modules/mediastream/MediaStreamTrack.cpp:
+        (WebCore::MediaStreamTrack::MediaStreamTrack): Initialize the weak pointer factory.
+        (WebCore::MediaStreamTrack::applyConstraints): Make it work.
+        * Modules/mediastream/MediaStreamTrack.h:
+        * Modules/mediastream/MediaStreamTrack.idl:
+
+        * WebCore.xcodeproj/project.pbxproj: Add JSMediaDevicesCustom.h.
+
+        * bindings/js/JSMediaDevicesCustom.cpp:
+        (WebCore::createStringConstraint): Add name parameter.
+        (WebCore::createBooleanConstraint): Ditto.
+        (WebCore::createDoubleConstraint): Ditto.
+        (WebCore::createIntConstraint): Ditto.
+        (WebCore::parseMediaTrackConstraintSetForKey): Drop type parameter because we don't need to
+          filter by source media type.
+        (WebCore::parseAdvancedConstraints): Ditto.
+        (WebCore::parseMediaConstraintsDictionary): Renamed from parseConstraints.
+        (WebCore::JSMediaDevices::getUserMedia): Don't throw exceptions, always return a promise.
+        (WebCore::parseConstraints): Deleted.
+        * bindings/js/JSMediaDevicesCustom.h: Added.
+
+        * bindings/js/JSMediaStreamTrackCustom.cpp:
+        (WebCore::JSMediaStreamTrack::getSettings): Don't include aspect ratio if the value is 0.
+        (WebCore::capabilityValue): asULong -> asInt.
+        (WebCore::JSMediaStreamTrack::applyConstraints): New.
+        (WebCore::JSMediaStreamTrack::getConstraints): New.
+
+        * bindings/js/WebCoreBuiltinNames.h: Add "mediaStreamTrackConstraints".
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::setSrcObject): Drive by fix: don't call DOMURL::createPublicURL(null).
+
+        * platform/mediastream/MediaConstraints.cpp:
+        (WebCore::MediaConstraint::create): Pass name to constructors.
+        (WebCore::StringConstraint::find): New.
+        * platform/mediastream/MediaConstraints.h:
+
+        * platform/mediastream/MediaStreamTrackPrivate.cpp:
+        (WebCore::MediaStreamTrackPrivate::applyConstraints): Add callback parameters.
+        * platform/mediastream/MediaStreamTrackPrivate.h:
+
+        * platform/mediastream/RealtimeMediaSource.cpp:
+        (WebCore::RealtimeMediaSource::RealtimeMediaSource): Initialize weak pointer factory.
+        (WebCore::RealtimeMediaSource::settingsDidChange): Don't call observers immediately so we can
+         coalesce multiple changes in the same runloop cycle.
+        (WebCore::RealtimeMediaSource::supportsConstraint): New.
+        (WebCore::value): Return the most appropriate value from a numeric constraint.
+        (WebCore::RealtimeMediaSource::applyConstraint): New, apply one constraint.
+        (WebCore::RealtimeMediaSource::applyConstraints): New, validate and apply constraints.
+        (WebCore::RealtimeMediaSource::setWidth): New.
+        (WebCore::RealtimeMediaSource::setHeight): New.
+        (WebCore::RealtimeMediaSource::setFrameRate): New.
+        (WebCore::RealtimeMediaSource::setAspectRatio): New.
+        (WebCore::RealtimeMediaSource::setFacingMode): New.
+        (WebCore::RealtimeMediaSource::setVolume): New.
+        (WebCore::RealtimeMediaSource::setSampleRate): New.
+        (WebCore::RealtimeMediaSource::setSampleSize): New.
+        (WebCore::RealtimeMediaSource::setEchoCancellation) New.:
+        (WebCore::RealtimeMediaSource::scheduleDeferredTask): New.
+        * platform/mediastream/RealtimeMediaSource.h:
+
+        * platform/mediastream/RealtimeMediaSourceCapabilities.h:
+        (WebCore::CapabilityValueOrRange::CapabilityValueOrRange): "unsigned long" -> "int"
+
+        * platform/mediastream/RealtimeMediaSourceSettings.cpp:
+        (WebCore::userFacing): New.
+        (WebCore::environmentFacing): New.
+        (WebCore::leftFacing): New.
+        (WebCore::rightFacing): New.
+        (WebCore::RealtimeMediaSourceSettings::facingMode):
+        (WebCore::RealtimeMediaSourceSettings::videoFacingModeEnum):
+        * platform/mediastream/RealtimeMediaSourceSettings.h:
+
+        * platform/mediastream/mac/AVAudioCaptureSource.mm:
+        (WebCore::AVAudioCaptureSource::initializeCapabilities): Volume range is 0.0 .. 1.0.
+
+        * platform/mediastream/mac/AVMediaCaptureSource.h:
+        (WebCore::AVMediaCaptureSource::createWeakPtr): Deleted.
+        * platform/mediastream/mac/AVMediaCaptureSource.mm:
+        (WebCore::AVMediaCaptureSource::AVMediaCaptureSource): Don't need the weak ptr factory, it is
+          in the base class.
+        (WebCore::AVMediaCaptureSource::scheduleDeferredTask): Deleted.
+
+        * platform/mediastream/mac/AVVideoCaptureSource.h:
+        * platform/mediastream/mac/AVVideoCaptureSource.mm:
+        (WebCore::AVVideoCaptureSource::applySize): New.
+        (WebCore::AVVideoCaptureSource::applyFrameRate): New.
+        (WebCore::AVVideoCaptureSource::setupCaptureSession):
+        (WebCore::AVVideoCaptureSource::setFrameRateConstraint): Deleted.
+        (WebCore::AVVideoCaptureSource::applyConstraints): Deleted.
+
+        * platform/mock/MockRealtimeAudioSource.cpp:
+        (WebCore::MockRealtimeAudioSource::updateSettings): Set volume and echoCancellation to the
+          current values.
+        (WebCore::MockRealtimeAudioSource::initializeCapabilities): Volume takes a float, not an int.
+        * platform/mock/MockRealtimeAudioSource.h:
+
+        * platform/mock/MockRealtimeMediaSource.cpp: Minor cleanup.
+        * platform/mock/MockRealtimeMediaSource.h:
+
+        * platform/mock/MockRealtimeVideoSource.cpp:
+        (WebCore::MockRealtimeVideoSource::MockRealtimeVideoSource): Initialize frame rate.
+        (WebCore::MockRealtimeVideoSource::startProducingData): m_size -> size().
+        (WebCore::MockRealtimeVideoSource::updateSettings): Use accessors because instance variables
+          have been moved to the base class.
+        (WebCore::MockRealtimeVideoSource::initializeCapabilities): Ditto.
+        (WebCore::MockRealtimeVideoSource::applyFrameRate): New.
+        (WebCore::MockRealtimeVideoSource::applySize):
+        (WebCore::MockRealtimeVideoSource::drawAnimation):
+        (WebCore::MockRealtimeVideoSource::drawBoxes):
+        (WebCore::MockRealtimeVideoSource::drawText):
+        (WebCore::MockRealtimeVideoSource::generateFrame):
+        (WebCore::MockRealtimeVideoSource::imageBuffer):
+        (WebCore::MockRealtimeVideoSource::setFrameRate): Deleted.
+        (WebCore::MockRealtimeVideoSource::setSize): Deleted.
+        * platform/mock/MockRealtimeVideoSource.h:
+        (WebCore::MockRealtimeVideoSource::size): Deleted.
+
+2016-09-02  Brady Eidson  <beidson@apple.com>
+
+        Weak link the GameController.framework on macOS.
+
+        Reviewed by Tim Horton.
+        
+        * Configurations/WebCore.xcconfig:
+
+2016-09-02  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205344.
+        https://bugs.webkit.org/show_bug.cgi?id=161533
+
+        Hitting assertions under CachedResource::removeClient in a few
+        tests (Requested by anttik on #webkit).
+
+        Reverted changeset:
+
+        "Reverse ownership relation of StyleCachedImage and
+        CSSImageValue"
+        https://bugs.webkit.org/show_bug.cgi?id=161447
+        http://trac.webkit.org/changeset/205344
+
+2016-09-02  Antti Koivisto  <antti@apple.com>
+
+        Reverse ownership relation of StyleCachedImage and CSSImageValue
+        https://bugs.webkit.org/show_bug.cgi?id=161447
+
+        Reviewed by Andreas Kling.
+
+        Currently StyleCachedImage (which represents an image in RenderStyle) has a weak ref to the
+        underlying CSSImageValue/CSSImageSetValue which actually owns it. This is awkwards especially since
+        StyleGeneratedImage, the other StyleImage subclass has reversed relationship where it refs
+        the underlying CSSImageGeneratorValue.
+
+        This patch makes StyleCachedImage similar to StyleGeneratedImage. StyleCachedImage now refs the
+        underlying CSSImageValue/CSSImageSetValue. CSSImageValues no longer need to know about StyleCachedImage.
+        Instead they reference CachedImages (memory cache objects) directly. StyleCachedImage instances are now
+        conceptually unique to RenderStyle instances. Actual resources are shared as before by sharing CachedImages.
+
+        * css/CSSCursorImageValue.cpp:
+        (WebCore::CSSCursorImageValue::loadImage):
+        (WebCore::CSSCursorImageValue::cachedImage):
+        (WebCore::CSSCursorImageValue::styleImage): Deleted.
+        * css/CSSCursorImageValue.h:
+        * css/CSSImageGeneratorValue.cpp:
+        (WebCore::CSSImageGeneratorValue::cachedImageForCSSValue):
+        * css/CSSImageSetValue.cpp:
+        (WebCore::CSSImageSetValue::~CSSImageSetValue):
+        (WebCore::CSSImageSetValue::loadBestFitImage):
+        (WebCore::CSSImageSetValue::traverseSubresources):
+        (WebCore::CSSImageSetValue::styleImage): Deleted.
+        * css/CSSImageSetValue.h:
+        * css/CSSImageValue.cpp:
+        (WebCore::CSSImageValue::CSSImageValue):
+        (WebCore::CSSImageValue::~CSSImageValue):
+        (WebCore::CSSImageValue::isPending):
+        (WebCore::CSSImageValue::loadImage):
+        (WebCore::CSSImageValue::traverseSubresources):
+        (WebCore::CSSImageValue::knownToBeOpaque):
+        (WebCore::CSSImageValue::styleImage): Deleted.
+        * css/CSSImageValue.h:
+        * css/StyleBuilderCustom.h:
+        (WebCore::StyleBuilderCustom::applyValueContent):
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::styleImage):
+        (WebCore::StyleResolver::styleCachedImageFromValue):
+        (WebCore::StyleResolver::styleGeneratedImageFromValue):
+        (WebCore::StyleResolver::cachedOrPendingFromValue): Deleted.
+        (WebCore::StyleResolver::generatedOrPendingFromValue): Deleted.
+        (WebCore::StyleResolver::setOrPendingFromValue): Deleted.
+        (WebCore::StyleResolver::cursorOrPendingFromValue): Deleted.
+        * css/StyleResolver.h:
+        * editing/TextIterator.cpp:
+        (WebCore::fullyClipsContents):
+        * page/PageSerializer.cpp:
+        (WebCore::PageSerializer::retrieveResourcesForProperties):
+        * rendering/style/FillLayer.cpp:
+        (WebCore::FillLayer::imagesIdentical):
+
+            Compare data equality instead of pointer equality for StyleImages (since StyleImages are no longer shared).
+
+        (WebCore::layerImagesIdentical): Deleted.
+        * rendering/style/StyleCachedImage.cpp:
+        (WebCore::StyleCachedImage::StyleCachedImage):
+        (WebCore::StyleCachedImage::~StyleCachedImage):
+        (WebCore::StyleCachedImage::cachedImage):
+        (WebCore::StyleCachedImage::cssValue):
+        (WebCore::StyleCachedImage::canRender):
+        (WebCore::StyleCachedImage::isPending):
+        (WebCore::StyleCachedImage::isLoaded):
+        (WebCore::StyleCachedImage::errorOccurred):
+        (WebCore::StyleCachedImage::imageSize):
+        (WebCore::StyleCachedImage::imageHasRelativeWidth):
+        (WebCore::StyleCachedImage::imageHasRelativeHeight):
+        (WebCore::StyleCachedImage::computeIntrinsicDimensions):
+        (WebCore::StyleCachedImage::usesImageContainerSize):
+        (WebCore::StyleCachedImage::setContainerSizeForRenderer):
+        (WebCore::StyleCachedImage::addClient):
+        (WebCore::StyleCachedImage::removeClient):
+        (WebCore::StyleCachedImage::image):
+        (WebCore::StyleCachedImage::knownToBeOpaque):
+        (WebCore::StyleCachedImage::setCachedImage): Deleted.
+        * rendering/style/StyleCachedImage.h:
+
+2016-09-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Only update connected custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=161480
+
+        Reviewed by Yusuke Suzuki.
+
+        In the latest specs, creating an element only upgrades an element if the custom element had already been defined:
+        https://dom.spec.whatwg.org/#concept-create-element
+
+        Otherwise, an element remains unresolved until it gets connected to the document associated with the global object:
+        https://dom.spec.whatwg.org/#concept-node-insert
+
+        This patch removes the upgrade candidate map in CustomElementRegistry, and traverses the entire document associated
+        with global object (DOMWindow) in addElementDefinition: https://html.spec.whatwg.org/#dom-customelementregistry-define
+
+        The traversal is done in the shadow-including tree order (different from depth-first preorder traversal of flat tree)
+        since it doesn't enter slots and children of shadow hosts are always visited even if they are not assigned to a slot:
+        https://dom.spec.whatwg.org/#concept-shadow-including-tree-order
+
+        Test: fast/custom-elements/enqueue-custom-element-upgrade-reaction.html
+
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::upgradeElement): Assert that the element being upgraded as the same qualified name
+        as the custom element interface.
+        * bindings/js/JSCustomElementRegistryCustom.cpp:
+        (WebCore::JSCustomElementRegistry::define): Moved the code to resolve the promise from here to addElementDefinition.
+        Also cleaned up the code to extract callbacks a little.
+        * dom/CustomElementReactionQueue.cpp:
+        (WebCore::CustomElementReactionQueue::enqueueElementUpgrade): Added an assertion.
+        (WebCore::CustomElementReactionQueue::enqueueElementUpgradeIfDefined): Added. Upgrade an element if the custom element
+        had already been defined.
+        * dom/CustomElementReactionQueue.h:
+        * dom/CustomElementRegistry.cpp:
+        (WebCore::CustomElementRegistry::create): Stores the reference to DOMWindow to find its document in addElementDefinition.
+        (WebCore::CustomElementRegistry::CustomElementRegistry): Ditto.
+        (WebCore::enqueueUpgradeInShadowIncludingTreeOrder): Added. Enqueue upgrade reactions in shadow-including tree order.
+        (WebCore::CustomElementRegistry::addElementDefinition): Upgrade all unresolved elements that matches this definition and
+        resolve the the promise returned by "whenDefined" if there is any.
+        (WebCore::CustomElementRegistry::addUpgradeCandidate): Deleted.
+        (WebCore::CustomElementRegistry::findInterface): Added a new variant that takes an element.
+        * dom/CustomElementRegistry.h:
+        * dom/Document.cpp:
+        (WebCore::createUpgradeCandidateElement): No longer takes DOMWindow since we don't upgrade synchronously here. It's also
+        wrong not to mark the element as unresolved custom element in a document without a browsing context per new semantics.
+        (WebCore::createHTMLElementWithNameValidation): Ditto.
+        (WebCore::createFallbackHTMLElement): Ditto.
+        * dom/Element.cpp:
+        (WebCore::Element::insertedInto): Enqueue an upgrade reaction if this is an unsolved custom element and there is now
+        a definition for it (the latter condition is checked in enqueueElementUpgradeIfDefined).
+        * html/parser/HTMLConstructionSite.cpp:
+        (WebCore::HTMLConstructionSite::createHTMLElementOrFindCustomElementInterface): Don't upgrade this element until it gets
+        connected to a document in Element::insertedInto.
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::ensureCustomElementRegistry):
+
+2016-09-01  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Add toJS for JSC::PrivateName
+        https://bugs.webkit.org/show_bug.cgi?id=161522
+
+        Reviewed by Ryosuke Niwa.
+
+        JSC::PrivateName is the wrapper to create and hold the ES6 Symbol instance.
+        This patch adds toJS support for JSC::PrivateName.
+        Later, the module integration patch will use this feature to call
+        DeferredWrapper::{resolve,reject} with JSC::PrivateName.
+
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::toJS):
+
+2016-09-01  Dan Bernstein  <mitz@apple.com>
+
+        Build fix.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * Configurations/WebCore.xcconfig:
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-09-01  Ricky Mondello  <rmondello@apple.com>
+
+        YouTube Flash plug-in replacement facility should not insert showinfo=0 into iframe URLs
+        https://bugs.webkit.org/show_bug.cgi?id=161478
+        <rdar://problem/28050847>
+
+        Reviewed by Eric Carlson.
+
+        * Modules/plugins/YouTubePluginReplacement.cpp:
+        (WebCore::YouTubePluginReplacement::youTubeURLFromAbsoluteURL): Stop adding the query parameter.
+
+2016-09-01  Mark Lam  <mark.lam@apple.com>
+
+        Move some JSObject and JSArray inline functions to their respective Inlines.h files.
+        https://bugs.webkit.org/show_bug.cgi?id=161499
+
+        Reviewed by Saam Barati.
+
+        No new tests because there is no behavior change.
+
+        * ForwardingHeaders/runtime/JSObjectInlines.h: Added.
+        * bindings/js/JSDOMBinding.h:
+        * bindings/js/JSSQLTransactionCustom.cpp:
+        * bindings/js/JSWebGLRenderingContextBaseCustom.cpp:
+        * contentextensions/ContentExtensionParser.cpp:
+
+2016-09-01  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Fix ENABLE(CSS_GRID_LAYOUT) guards harder after r205102/r205292
+
+        Unreviewed. Silence unused function warning.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+
+2016-09-01  Alex Christensen  <achristensen@webkit.org>
+
+        Avoid unneeded string copy when parsing URL hosts
+        https://bugs.webkit.org/show_bug.cgi?id=161511
+
+        Reviewed by Tim Horton.
+
+        No change in behavior.  Covered by existing API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::parseAuthority):
+        (WebCore::URLParser::parseHost):
+        (WebCore::URLParser::authorityEndReached): Deleted.
+        (WebCore::URLParser::hostEndReached): Deleted.
+        * platform/URLParser.h:
+
+2016-09-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add "whenDefined" to CustomElementRegistry
+        https://bugs.webkit.org/show_bug.cgi?id=161425
+
+        Reviewed by Yusuke Suzuki.
+
+        Add the support for "whenDefined" method on CustomElementRegistry: 
+        https://html.spec.whatwg.org/#dom-customelementregistry-whendefined
+
+        Because it needs to store the newly created promise when the queried custom element has not been defined yet,
+        we need to write custom binding code instead of relying on the binding generator.
+
+        Tests: fast/custom-elements/CustomElementRegistry.html
+
+        * bindings/js/JSCustomElementRegistryCustom.cpp:
+        (WebCore::validateCustomElementNameAndThrowIfNeeded): Extracted out of JSCustomElementRegistry::define.
+        (WebCore::JSCustomElementRegistry::define): Fulfill the "whenDefined" promise when the definition succeeds.
+        (WebCore::whenDefinedPromise): Added. Return an existing promise if there is one, or create a new promise.
+        We cache the created promise only if the custom element had not been defined yet since we'll indefinitely
+        retain the resolved promise otherwise.
+        (WebCore::JSCustomElementRegistry::whenDefined): Added. Calls whenDefinedPromise and returns a rejected
+        promise when there was an exception.
+        * dom/CustomElementRegistry.cpp:
+        * dom/CustomElementRegistry.h:
+        (WebCore::CustomElementRegistry::promiseMap): Added.
+        * dom/CustomElementRegistry.idl:
+
+2016-09-01  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should handle . and .. in URL paths
+        https://bugs.webkit.org/show_bug.cgi?id=161443
+
+        Reviewed by Brady Eidson.
+
+        Covered by new API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::isSingleDotPathSegment):
+        (WebCore::isDoubleDotPathSegment):
+        (WebCore::consumeSingleDotPathSegment):
+        (WebCore::consumeDoubleDotPathSegment):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::copyURLPartsUntil): Deleted.
+
+2016-09-01  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Mac CMake build.
+
+        * PlatformMac.cmake:
+
+2016-09-01  Ricky Mondello  <rmondello@apple.com>
+
+        YouTube Flash plug-in replacement facility should more gracefully handle malformed queries
+        https://bugs.webkit.org/show_bug.cgi?id=161476
+        <rdar://problem/28050847>
+
+        Reviewed by Eric Carlson.
+
+        Some YouTube Flash embeds use '&' instead of '?' to start the query portion of the URL. Before this patch,
+        our implementation discards all parts of the path after the '&', which could drop important query information
+        like the start time for the video. This patch treats anything after that '&' as a "malformed query" and uses
+        it as the query to restore to the transformed URL if there was no actual query in the original URL.
+
+        * Modules/plugins/YouTubePluginReplacement.cpp:
+        (WebCore::processAndCreateYouTubeURL): Add an out-parameter for the path after the first ampersand.
+        (WebCore::YouTubePluginReplacement::youTubeURLFromAbsoluteURL): If the input URL had no query, append
+            the possibly malformed one found after the first ampersand to the replacement URL.
+
+2016-09-01  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Mac CMake build after r205266.
+
+        * PlatformMac.cmake:
+        * platform/cocoa/URLParserCocoa.mm: Removed.
+
+2016-09-01  Javier Fernandez  <jfernandez@igalia.com>
+
+        Unreviewed build fix after r205102.
+
+        The change made in r205102 caused compilation failures on
+        builds with the CSS_GRID_LAYOUT compilation flag disabled.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::ComputedStyleExtractor::propertyValue):
+        (WebCore::resolveJustifySelfAuto): Deleted.
+        * css/CSSPropertyNames.in:
+        * css/parser/CSSParser.cpp:
+        (WebCore::isKeywordPropertyID):
+        (WebCore::CSSParser::parseValue):
+
+2016-09-01  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        Fix the Mac cmake clean build issue
+        https://bugs.webkit.org/show_bug.cgi?id=157261
+
+        Reviewed by Michael Catanzaro.
+
+        Building WebCoreDerivedSources target failed due to the race
+        condition with building ForwardingHeaders of JavaScriptCore.
+
+        * CMakeLists.txt: Make WebCoreDerivedSources depends on JavaScriptCore.
+
+2016-09-01  Andreas Kling  <akling@apple.com>
+
+        FocusController should pass KeyboardEvent around by reference.
+        <https://webkit.org/b/161461>
+
+        Reviewed by Sam Weinig.
+
+        Clean up FocusController to pass KeyboardEvent& around internally.
+
+        Also make FocusController::setInitialFocus() synthesize a dummy KeyboardEvent
+        if one isn't provided, just like nextFocusableElement()/previousFocusableElement() does.
+        This way we can feel confident about dereferencing the formerly KeyboardEvent* everywhere.
+
+        * page/EventHandler.cpp:
+        (WebCore::EventHandler::defaultArrowEventHandler):
+        (WebCore::EventHandler::defaultTabEventHandler):
+        * page/FocusController.cpp:
+        (WebCore::isFocusableElementOrScopeOwner):
+        (WebCore::isNonFocusableScopeOwner):
+        (WebCore::isFocusableScopeOwner):
+        (WebCore::shadowAdjustedTabIndex):
+        (WebCore::FocusController::findFocusableElementDescendingDownIntoFrameDocument):
+        (WebCore::FocusController::setInitialFocus):
+        (WebCore::FocusController::advanceFocus):
+        (WebCore::FocusController::advanceFocusInDocumentOrder):
+        (WebCore::FocusController::findFocusableElementAcrossFocusScope):
+        (WebCore::FocusController::findFocusableElementWithinScope):
+        (WebCore::FocusController::nextFocusableElementWithinScope):
+        (WebCore::FocusController::previousFocusableElementWithinScope):
+        (WebCore::FocusController::findFocusableElementOrScopeOwner):
+        (WebCore::FocusController::findElementWithExactTabIndex):
+        (WebCore::nextElementWithGreaterTabIndex):
+        (WebCore::previousElementWithLowerTabIndex):
+        (WebCore::FocusController::nextFocusableElement):
+        (WebCore::FocusController::previousFocusableElement):
+        (WebCore::FocusController::nextFocusableElementOrScopeOwner):
+        (WebCore::FocusController::previousFocusableElementOrScopeOwner):
+        (WebCore::FocusController::findFocusCandidateInContainer):
+        (WebCore::FocusController::advanceFocusDirectionallyInContainer):
+        (WebCore::FocusController::advanceFocusDirectionally):
+        * page/FocusController.h:
+
+2016-09-01  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Streams API] Align internal structure of ReadableStream with spec
+        https://bugs.webkit.org/show_bug.cgi?id=160299
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Aligned internal structure of ReadableStream with spec. Various
+        internal properties have been moved to ReadableStreamDefaultController.
+        In addition, various behaviors had to be updated. Several other changes
+        will have to be performed in order to align with spec, e.g. changing
+        functions names. This patch does not change them in order to make the
+        structural changes easier to follow.
+
+        No change in functionality except support for 1 specific case where
+        an error was not thrown while it should have been. Changed corresponding
+        test expectation (now PASS instead of FAIL).
+        Modified test expectation: web-platform-tests/streams/readable-streams/general.https-expected.txt
+
+        * Modules/fetch/FetchResponse.js:
+        (initializeFetchResponse): Replaced reference to underlyingSource as no
+        more a property of readableStream (use readableStreamController instead,
+        as defined by spec).
+        * Modules/streams/ReadableStream.js:
+        (initializeReadableStream): Removed various properties now hanlded by
+        ReadableStreamDefaultController.
+        * Modules/streams/ReadableStreamDefaultController.js:
+        (enqueue): Updated based on new properties repartition between reader and controller. 
+        (error): Updated based on new properties repartition between reader and controller. 
+        (close): Updated based on new properties repartition between reader and controller. 
+        (desiredSize): Updated based on new properties repartition between reader and controller. 
+        * Modules/streams/ReadableStreamInternals.js:
+        (privateInitializeReadableStreamDefaultController): Added various properties now handled by
+        ReadableStreamDefaultController, as well as an internal pull function defined by spec.
+        (readableStreamDefaultControllerError): Added based on spec (error handling at controller level).
+        (teeReadableStream): Fixed typo and use readableStreamDefaultControllerError instead of errorReadableStream.
+        (doStructuredClone): Added "use strict";.
+        (teeReadableStreamPullFunction): Use readableStreamDefaultControllerClose instead of closeReadableStream.
+        (isReadableStream): Replaced check of underlyingSource by check that object is actually an instance of
+        ReadableStream (spec requires checking that readableStreamController slot is present, but this cannot
+        be checked).
+        (isReadableStreamDefaultReader): Replaced check of ownerReadableStream presence by check of readRequests,
+        in line with spec.
+        (isReadableStreamDefaultController): Replaced check of controlledReadableStream presence by check of unerlyingSource,
+        in line with spec.
+        (errorReadableStream): Updated based on new properties repartition between reader and controller.
+        (requestReadableStreamPull): Updated based on new properties repartition between reader and controller.
+        (readableStreamDefaultControllerGetDesiredSize): Replaces getReadableStreamDesiredSize (size now depends
+        on controller; new function name aligned with spec).
+        (cancelReadableStream): Updated based on new properties repartition between reader and controller. 
+        (readableStreamDefaultControllerClose): Added based on spec (closing controller).
+        (closeReadableStream): Updated based on new properties repartition between reader and controller. 
+        (enqueueInReadableStream): Updated based on new properties repartition between reader and controller. 
+        (readFromReadableStreamDefaultReader): Updated based on new properties repartition between reader and controller. 
+        * bindings/js/WebCoreBuiltinNames.h: Added pull (internal function of ReadableStreamDefaultController)
+        and readableStreamController (defined by spec)
+
+2016-09-01  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviewed, fix the !ENABLE(SVG_FONTS) and !ENABLE(XSLT) build after r205269.
+
+        * loader/LinkLoader.cpp:
+        (WebCore::createLinkPreloadResourceClient):
+
+2016-09-01  Csaba Osztrogonác  <ossy@webkit.org>
+
+        URTBF after r205161 to fix !ENABLE(WEB_TIMING) build.
+
+        * bindings/js/JSPerformanceTimingCustom.cpp:
+
+2016-09-01  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Clean up TextRun-related code
+        https://bugs.webkit.org/show_bug.cgi?id=161473
+
+        Reviewed by Simon Fraser.
+
+        Some assorted cleanup, including:
+        - Renaming "AllowTrailingExpansion | ForbidLeadingExpansion" to "DefaultExpansion"
+        - Migrating from pointers to references
+        - Migrating from ints to unsigneds
+        - Using proper character names from CharacterNames.h
+        - Simplifying CoreTextSPI.h
+
+        No new tests because there is no behavior change.
+
+        * platform/graphics/TextRun.h:
+        (WebCore::TextRun::TextRun):
+        * platform/graphics/mac/ComplexTextController.cpp:
+        (WebCore::TextLayout::isNeeded):
+        (WebCore::TextLayout::constructTextRun):
+        * platform/spi/cocoa/CoreTextSPI.h:
+        * platform/text/TextFlags.h:
+        * rendering/RenderBlock.cpp:
+        (WebCore::RenderBlock::constructTextRun):
+        * rendering/RenderBlock.h:
+        * rendering/RenderListMarker.cpp:
+        (WebCore::RenderListMarker::computePreferredLogicalWidths):
+        (WebCore::RenderListMarker::getRelativeMarkerRect):
+        * rendering/RenderMenuList.cpp:
+        (RenderMenuList::updateOptionsWidth):
+        * rendering/RenderText.cpp:
+        (WebCore::RenderText::widthFromCache):
+        (WebCore::RenderText::trimmedPrefWidths):
+        (WebCore::hyphenWidth):
+        (WebCore::maxWordFragmentWidth):
+        (WebCore::RenderText::computePreferredLogicalWidths):
+        (WebCore::RenderText::width):
+        * rendering/RenderText.h:
+        * rendering/RenderThemeIOS.mm:
+        * rendering/line/BreakingContext.h:
+        (WebCore::textWidth):
+        (WebCore::tryHyphenating):
+        * rendering/svg/SVGInlineTextBox.cpp:
+        (WebCore::SVGInlineTextBox::offsetForPositionInFragment):
+        (WebCore::SVGInlineTextBox::selectionRectForTextFragment):
+        (WebCore::SVGInlineTextBox::localSelectionRect):
+        (WebCore::SVGInlineTextBox::paintSelectionBackground):
+        (WebCore::SVGInlineTextBox::paint):
+        (WebCore::SVGInlineTextBox::acquirePaintingResource):
+        (WebCore::SVGInlineTextBox::prepareGraphicsContextForTextPainting):
+        (WebCore::SVGInlineTextBox::constructTextRun):
+        (WebCore::SVGInlineTextBox::paintDecorationWithStyle):
+        (WebCore::SVGInlineTextBox::paintTextWithShadows):
+        (WebCore::SVGInlineTextBox::paintText):
+        * rendering/svg/SVGInlineTextBox.h:
+
+2016-08-31  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Move GObject DOM bindings to WebKit2 layer and stop auto generating them
+        https://bugs.webkit.org/show_bug.cgi?id=161438
+
+        Reviewed by Michael Catanzaro.
+
+        Remove the scripts to generate GObject DOM bindings and the tests. Also remove all GObject ifdefs from the idl files.
+
+        * PlatformGTK.cmake:
+        * bindings/gobject: Removed.
+        * bindings/scripts/CodeGeneratorGObject.pm: Removed.
+        * bindings/scripts/test/GObject: Removed.
+        * css/CSSStyleSheet.idl:
+        * css/RGBColor.idl:
+        * dom/DOMCoreException.idl:
+        * dom/DOMImplementation.idl:
+        * dom/Document.idl:
+        * dom/DocumentType.idl:
+        * dom/Element.idl:
+        * dom/Event.idl:
+        * dom/EventTarget.idl:
+        * dom/KeyboardEvent.idl:
+        * dom/MessageEvent.idl:
+        * dom/MessagePort.idl:
+        * dom/MouseEvent.idl:
+        * dom/NamedNodeMap.idl:
+        * dom/Node.idl:
+        * dom/Range.idl:
+        * dom/Slotable.idl:
+        * dom/WheelEvent.idl:
+        * fileapi/FileException.idl:
+        * html/HTMLAppletElement.idl:
+        * html/HTMLCanvasElement.idl:
+        * html/HTMLCollection.idl:
+        * html/HTMLDocument.idl:
+        * html/HTMLElement.idl:
+        * html/HTMLEmbedElement.idl:
+        * html/HTMLFieldSetElement.idl:
+        * html/HTMLFormElement.idl:
+        * html/HTMLIFrameElement.idl:
+        * html/HTMLInputElement.idl:
+        * html/HTMLMediaElement.idl:
+        * html/HTMLOptionElement.idl:
+        * html/HTMLOptionsCollection.idl:
+        * html/HTMLSelectElement.idl:
+        * html/HTMLTableCellElement.idl:
+        * html/HTMLTableColElement.idl:
+        * html/HTMLTextAreaElement.idl:
+        * html/HTMLVideoElement.idl:
+        * html/ImageData.idl:
+        * html/URLUtils.idl:
+        * html/track/TextTrack.idl:
+        * page/DOMSelection.idl:
+        * page/DOMWindow.idl:
+        * svg/SVGDocument.idl:
+        * svg/SVGElement.idl:
+        * svg/SVGException.idl:
+        * workers/DedicatedWorkerGlobalScope.idl:
+        * workers/Worker.idl:
+        * workers/WorkerGlobalScope.idl:
+        * xml/XPathException.idl:
+
+2016-08-31  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Add initiator parameter to module pipeline
+        https://bugs.webkit.org/show_bug.cgi?id=161470
+
+        Reviewed by Saam Barati.
+
+        No user-observable behavior change.
+
+        We rename JSModuleLoader to ScriptModuleLoader.
+        The name "JSModuleLoader" is misleading since it seems like this is a JS object.
+        "ModuleLoader" is not good since there is CSS modules.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        * bindings/js/JSDOMWindowBase.cpp:
+        (WebCore::JSDOMWindowBase::moduleLoaderResolve):
+        (WebCore::JSDOMWindowBase::moduleLoaderFetch):
+        (WebCore::JSDOMWindowBase::moduleLoaderEvaluate):
+        * bindings/js/JSDOMWindowBase.h:
+        * bindings/js/JSMainThreadExecState.h:
+        (WebCore::JSMainThreadExecState::loadModule):
+        (WebCore::JSMainThreadExecState::linkAndEvaluateModule):
+        * bindings/js/JSModuleLoader.cpp:
+        (WebCore::JSModuleLoader::JSModuleLoader): Deleted.
+        (WebCore::JSModuleLoader::resolve): Deleted.
+        (WebCore::JSModuleLoader::fetch): Deleted.
+        (WebCore::JSModuleLoader::evaluate): Deleted.
+        * bindings/js/JSModuleLoader.h:
+        (WebCore::JSModuleLoader::document): Deleted.
+        * bindings/js/ScriptModuleLoader.cpp: Renamed from Source/WebCore/bindings/js/JSModuleLoader.cpp.
+        (WebCore::ScriptModuleLoader::ScriptModuleLoader):
+        (WebCore::ScriptModuleLoader::resolve):
+        (WebCore::ScriptModuleLoader::fetch):
+        (WebCore::ScriptModuleLoader::evaluate):
+        * bindings/js/ScriptModuleLoader.h: Renamed from Source/WebCore/bindings/js/JSModuleLoader.h.
+        (WebCore::ScriptModuleLoader::document):
+        * dom/Document.cpp:
+        (WebCore::Document::Document):
+        * dom/Document.h:
+        (WebCore::Document::moduleLoader):
+
 2016-08-31  Zalan Bujtas  <zalan@apple.com>
 
         ASSERTION FAILED: !flow->layer() && !flow->isInlineElementContinuation() in WebCore::RenderBlock::addContinuationWithOutline

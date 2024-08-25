@@ -76,7 +76,7 @@ WebPageProxy* WebInspectorProxy::platformCreateInspectorPage()
 #endif
     preferences->setJavaScriptRuntimeFlags({
     });
-    RefPtr<WebPageGroup> pageGroup = WebPageGroup::create(inspectorPageGroupIdentifier(), false, false);
+    RefPtr<WebPageGroup> pageGroup = WebPageGroup::create(inspectorPageGroupIdentifierForPage(inspectedPage()), false, false);
 
     auto pageConfiguration = API::PageConfiguration::create();
     pageConfiguration->setProcessPool(&inspectorProcessPool(inspectionLevel()));
@@ -212,6 +212,10 @@ void WebInspectorProxy::platformDidClose()
         m_inspectorWindow = 0;
     }
     m_inspectorView = 0;
+}
+
+void WebInspectorProxy::platformDidCloseForCrash()
+{
 }
 
 void WebInspectorProxy::platformInvalidate()

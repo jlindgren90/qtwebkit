@@ -1,3 +1,572 @@
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, roll out r205354 because it caused JSC test failures
+
+        * jsc.cpp:
+        * runtime/JSGlobalObject.cpp:
+        * runtime/JSGlobalObject.h:
+        (JSC::JSGlobalObject::allowsAccessFrom):
+        (JSC::JSGlobalObject::setDebugger): Deleted.
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::GlobalFuncProtoGetterFunctor::GlobalFuncProtoGetterFunctor):
+        (JSC::GlobalFuncProtoGetterFunctor::result):
+        (JSC::GlobalFuncProtoGetterFunctor::operator()):
+        (JSC::globalFuncProtoGetter):
+        (JSC::GlobalFuncProtoSetterFunctor::GlobalFuncProtoSetterFunctor):
+        (JSC::GlobalFuncProtoSetterFunctor::allowsAccess):
+        (JSC::GlobalFuncProtoSetterFunctor::operator()):
+        (JSC::checkProtoSetterAccessAllowed):
+        (JSC::globalFuncProtoSetter):
+        * runtime/JSGlobalObjectFunctions.h:
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+        (JSC::JSObject::allowsAccessFrom):
+        * runtime/JSObject.h:
+        * runtime/JSProxy.cpp:
+        * runtime/JSProxy.h:
+        * runtime/ObjectConstructor.cpp:
+        (JSC::ObjectConstructorGetPrototypeOfFunctor::ObjectConstructorGetPrototypeOfFunctor):
+        (JSC::ObjectConstructorGetPrototypeOfFunctor::result):
+        (JSC::ObjectConstructorGetPrototypeOfFunctor::operator()):
+        (JSC::objectConstructorGetPrototypeOf):
+        (JSC::objectConstructorSetPrototypeOf):
+        * runtime/ObjectConstructor.h:
+        * runtime/ReflectObject.cpp:
+        (JSC::reflectObjectGetPrototypeOf):
+        (JSC::reflectObjectSetPrototypeOf):
+
+2016-09-02  Caio Lima  <ticaiolima@gmail.com>
+
+        Register usage optimization in mathIC when LHS and RHS are constants isn't configured correctly
+        https://bugs.webkit.org/show_bug.cgi?id=160802
+
+        Reviewed by Saam Barati.
+
+        This patch is fixing a broken mechanism of MathIC that avoids allocate
+        a register to LHS or RHS if one of these operands are proven as valid
+        constant for JIT*Generator. In previous implementation, even if the
+        JIT*Generator was not using an operand register because it was proven as a
+        constant, compileMathIC and emitICFast were allocating a register for
+        it. This was broken because mathIC->isLeftOperandValidConstant and
+        mathIC->isLeftOperandValidConstant were being called before its Generator be
+        properly initialized. We changed this mechanism to enable Generators write
+        their validConstant rules using static methods isLeftOperandValidConstant(SnippetOperand)
+        and isRightOperandValidConstant(SnippetOperand).
+
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileMathIC):
+        * jit/JITAddGenerator.h:
+        (JSC::JITAddGenerator::JITAddGenerator):
+        (JSC::JITAddGenerator::isLeftOperandValidConstant):
+        (JSC::JITAddGenerator::isRightOperandValidConstant):
+        * jit/JITArithmetic.cpp:
+        (JSC::JIT::emitMathICFast):
+        * jit/JITMathIC.h:
+        * jit/JITMulGenerator.h:
+        (JSC::JITMulGenerator::JITMulGenerator):
+        (JSC::JITMulGenerator::isLeftOperandValidConstant):
+        (JSC::JITMulGenerator::isRightOperandValidConstant):
+        * jit/JITSubGenerator.h:
+        (JSC::JITSubGenerator::isLeftOperandValidConstant):
+        (JSC::JITSubGenerator::isRightOperandValidConstant):
+
+2016-09-02  JF Bastien  <jfbastien@apple.com>
+
+        GetByValWithThis: fix opInfo in DFG creation
+        https://bugs.webkit.org/show_bug.cgi?id=161541
+
+        Reviewed by Saam Barati.
+
+        super-get-by-val-with-this-monomorphic might be 1.0148x faster after this change.
+
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock): fix OpInfo
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Object.preventExtensions() should throw cross-origin
+        https://bugs.webkit.org/show_bug.cgi?id=161486
+
+        Reviewed by Geoffrey Garen.
+
+        Update JSProxy to forward preventExtensions() calls to its target.
+
+        * runtime/JSProxy.cpp:
+        (JSC::JSProxy::preventExtensions):
+        * runtime/JSProxy.h:
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Align proto getter / setter behavior with other browsers
+        https://bugs.webkit.org/show_bug.cgi?id=161455
+
+        Reviewed by Mark Lam.
+
+        Drop allowsAccessFrom from the methodTable and delegate cross-origin
+        checking to the DOM bindings for [[SetPrototypeOf]] / [[GetPrototypeOf]].
+        This is more consistent with other operations (e.g. [[GetOwnProperty]]).
+
+        * jsc.cpp:
+        * runtime/JSGlobalObject.cpp:
+        * runtime/JSGlobalObject.h:
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncProtoGetter):
+        (JSC::globalFuncProtoSetter):
+        (JSC::globalFuncBuiltinLog): Deleted.
+        * runtime/JSGlobalObjectFunctions.h:
+        * runtime/JSObject.h:
+        (JSC::JSObject::getArrayLength): Deleted.
+        * runtime/JSProxy.cpp:
+        (JSC::JSProxy::setPrototype):
+        (JSC::JSProxy::getPrototype):
+        * runtime/JSProxy.h:
+        * runtime/ObjectConstructor.cpp:
+        (JSC::objectConstructorGetPrototypeOf):
+        (JSC::objectConstructorSetPrototypeOf):
+        (JSC::objectConstructorGetOwnPropertyDescriptor): Deleted.
+        (JSC::objectConstructorGetOwnPropertyDescriptors): Deleted.
+        * runtime/ObjectConstructor.h:
+        * runtime/ReflectObject.cpp:
+        (JSC::reflectObjectGetPrototypeOf):
+        (JSC::reflectObjectSetPrototypeOf):
+
+        * runtime/JSObject.cpp:
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+        Comment out check added in r197648. This check was added to match
+        the latest EcmaScript spec:
+        - https://tc39.github.io/ecma262/#sec-ordinarysetprototypeof (step 8)
+        This check allowed for [[Prototype]] chain cycles if the prototype
+        chain includes objects that do not use the ordinary object definitions
+        for [[GetPrototypeOf]] and [[SetPrototypeOf]].
+        The issue is that the rest of our code base does not properly handle
+        such cycles and we can end up in infinite loops. This became obvious
+        because this patch updates Window / Location so that they no longer
+        use the default [[GetPrototypeOf]] / [[SetPrototypeOf]]. If I do not
+        comment out this check, I get an infinite loop in
+        Structure::anyObjectInChainMayInterceptIndexedAccesses(), which is
+        called from JSObject::setPrototypeDirect(), when running the following
+        layout test:
+        - html/browsers/history/the-location-interface/allow_prototype_cycle_through_location.sub.html
+        I filed https://bugs.webkit.org/show_bug.cgi?id=161534 to track this
+        issue.
+
+2016-09-01  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Add toJS for JSC::PrivateName
+        https://bugs.webkit.org/show_bug.cgi?id=161522
+
+        Reviewed by Ryosuke Niwa.
+
+        Add the export annotation.
+        And we perform refactoring RefPtr<SymbolImpl> => Ref<SymbolImpl> for PrivateName,
+        since PrivateName never holds null SymbolImpl pointer. And along with this change,
+        we changed SymbolImpl* to SymbolImpl& in PrivateName::uid() callers.
+
+        * runtime/Completion.cpp:
+        (JSC::createSymbolForEntryPointModule):
+        * runtime/IdentifierInlines.h:
+        (JSC::Identifier::fromUid):
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::setFunctionName):
+        * runtime/PrivateName.h:
+        (JSC::PrivateName::PrivateName):
+        (JSC::PrivateName::uid): Ugly const_cast. But const annotation is meaningless for SymbolImpl.
+        StringImpl should be observed as an immutable object. (Of course, its hash members etc. are mutable.
+        But most of the users (One of the exceptions is the concurrent JIT compiling thread!) should not care about this.)
+        (JSC::PrivateName::operator==):
+        (JSC::PrivateName::operator!=):
+        * runtime/PropertyName.h:
+        (JSC::PropertyName::PropertyName):
+        * runtime/Symbol.cpp:
+        (JSC::Symbol::finishCreation):
+        * runtime/Symbol.h:
+        * runtime/SymbolConstructor.cpp:
+        (JSC::symbolConstructorKeyFor):
+
+2016-09-01  Dan Bernstein  <mitz@apple.com>
+
+        Build fix.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-09-01  JF Bastien  <jfbastien@apple.com>
+
+        jsc: fix cmake build missing symbol getPropertySlot
+        https://bugs.webkit.org/show_bug.cgi?id=161521
+
+        Reviewed by Saam Barati.
+
+        * runtime/IntlDateTimeFormat.cpp: include JSCInlines.h
+        * runtime/IntlNumberFormat.cpp: include JSCInlines.h
+
+2016-09-01  JF Bastien  <jfbastien@apple.com>
+
+        jsc: provide printErr()
+        https://bugs.webkit.org/show_bug.cgi?id=161513
+
+        Reviewed by Mark Lam.
+
+        * jsc.cpp:
+        (GlobalObject::finishCreation):
+        (printInternal): renamed from functionPrint, add error checking
+        (functionPrintStdOut): punt to printInternal
+        (functionPrintStdErr): punt to printInternal
+        (functionPrint): Deleted.
+
+2016-09-01  Mark Lam  <mark.lam@apple.com>
+
+        Move some JSObject and JSArray inline functions to their respective Inlines.h files.
+        https://bugs.webkit.org/show_bug.cgi?id=161499
+
+        Reviewed by Saam Barati.
+
+        This is just a refactoring patch to move some inline functions to their Inlines.h
+        files.  This will be needed to enable https://bugs.webkit.org/show_bug.cgi?id=161498
+        later.
+
+        * bindings/ScriptValue.cpp:
+        * interpreter/Interpreter.cpp:
+        * runtime/IntlDateTimeFormatPrototype.cpp:
+        * runtime/IntlNumberFormatPrototype.cpp:
+        * runtime/JSArray.cpp:
+        * runtime/JSArray.h:
+        (JSC::getLength): Deleted.
+        (JSC::toLength): Deleted.
+        * runtime/JSArrayInlines.h:
+        (JSC::JSArray::mergeIndexingTypeForCopying):
+        (JSC::JSArray::canFastCopy):
+        (JSC::getLength):
+        (JSC::toLength):
+        * runtime/JSInternalPromise.cpp:
+        * runtime/JSInternalPromiseDeferred.cpp:
+        * runtime/JSJob.cpp:
+        * runtime/JSModuleRecord.cpp:
+        * runtime/JSObject.h:
+        (JSC::JSObject::getPropertySlot): Deleted.
+        (JSC::JSObject::getNonIndexPropertySlot): Deleted.
+        * runtime/JSObjectInlines.h:
+        (JSC::JSObject::getPropertySlot):
+        (JSC::JSObject::getNonIndexPropertySlot):
+        * runtime/JSPromiseDeferred.cpp:
+        * runtime/JSTypedArrayViewPrototype.cpp:
+        * runtime/MapConstructor.cpp:
+        * runtime/SamplingProfiler.cpp:
+        * runtime/SetConstructor.cpp:
+        * runtime/WeakMapConstructor.cpp:
+        * runtime/WeakSetConstructor.cpp:
+
+2016-09-01  JF Bastien  <jfbastien@apple.com>
+
+        GetByIdWithThis/GetByValWithThis should have ValueProfiles so that they can predict their result types
+        https://bugs.webkit.org/show_bug.cgi?id=160922
+
+        Reviewed by Keith Miller.
+
+        Add value profiling to GetBy{Id,Val}WithThis.
+
+        * bytecode/BytecodeList.json:
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::dumpBytecode):
+        (JSC::CodeBlock::finishCreation):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitGetById):
+        (JSC::BytecodeGenerator::emitGetByVal):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::hasHeapPrediction):
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * llint/LowLevelInterpreter.asm:
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::SLOW_PATH_DECL):
+
+2016-09-01  Keith Miller  <keith_miller@apple.com>
+
+        WASM functions should be able to use arguments
+        https://bugs.webkit.org/show_bug.cgi?id=161471
+
+        Reviewed by Benjamin Poulain.
+
+        This patch does a couple of changes:
+
+        1) Adds a new Calling Convention class for B3. This class is used to make it easy to specify the calling convention of a function. In particular it knows which arguments are in registers and which ones should be on the stack. For now, nothing uses the argument registers, in the future we will use these for WASM and/or JS. Additonally, it knows the callee save registers for any given function. The main advantage of this class is that it makes it easy to iterate over the arguments of your function without having to worry about the details of the calling convention you are using.
+
+        2) Makes the WASM calling convention the same as the JS one. Currently, the CodeBlock, CodeOrigin, and Callee are all 0. Since they have no value. Additionally, since we call into WASM from C++ through vmEntryToJavaScript, if there are no arguments to the callee we insert a null pointer as the first argument.
+
+        3) Since WASM expects the arguments to be mapped to function locals we map the argument stack slots to variables immediately after the function prologue.
+
+        * B3CallingConventions.cpp: Copied from Source/JavaScriptCore/llint/LLIntThunks.h.
+        (JSC::B3::jscCallingConvention):
+        * B3CallingConventions.h: Added.
+        (JSC::B3::CallingConvention::CallingConvention):
+        (JSC::B3::CallingConvention::iterate):
+        (JSC::B3::nextJSCOffset):
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * interpreter/ProtoCallFrame.h:
+        * llint/LLIntThunks.cpp:
+        (JSC::vmEntryToWASM):
+        * llint/LLIntThunks.h:
+        * testWASM.cpp:
+        (invoke):
+        (box):
+        (runWASMTests):
+        * wasm/WASMB3IRGenerator.cpp:
+        (JSC::WASM::B3IRGenerator::addLocal):
+        (JSC::WASM::B3IRGenerator::addArguments):
+        (JSC::WASM::B3IRGenerator::getLocal):
+        * wasm/WASMFormat.h:
+        * wasm/WASMFunctionParser.h:
+        (JSC::WASM::FunctionParser<Context>::FunctionParser):
+        (JSC::WASM::FunctionParser<Context>::parseExpression):
+        * wasm/WASMModuleParser.cpp:
+        (JSC::WASM::ModuleParser::parseFunctionTypes):
+        (JSC::WASM::ModuleParser::parseFunctionSignatures):
+        * wasm/WASMModuleParser.h:
+        * wasm/WASMOps.h:
+
+2016-09-01  Keith Miller  <keith_miller@apple.com>
+
+        Rename WASM classes dropping the WASM prefix
+        https://bugs.webkit.org/show_bug.cgi?id=161500
+
+        Reviewed by Mark Lam.
+
+        Having to write WASM::WASMModule seems silly. Also, this patch
+        merges WASMFunctionReturnType and WASMValueType into one type
+        that is a typedef of B3::Type. Using B3::Type as the WASM
+        primitive type makes it trivial to convert a Vector of WASM
+        types into a Vector of B3 types.
+
+        * b3/B3Type.h:
+        * wasm/JSWASMModule.h:
+        (JSC::JSWASMModule::signatures):
+        (JSC::JSWASMModule::functionImports):
+        (JSC::JSWASMModule::functionImportSignatures):
+        (JSC::JSWASMModule::globalVariableTypes):
+        (JSC::JSWASMModule::functionDeclarations):
+        (JSC::JSWASMModule::functionPointerTables):
+        * wasm/WASMB3IRGenerator.cpp:
+        (JSC::WASM::toB3Op):
+        (JSC::WASM::B3IRGenerator::addLocal):
+        (JSC::WASM::B3IRGenerator::unaryOp):
+        (JSC::WASM::B3IRGenerator::binaryOp):
+        (JSC::WASM::B3IRGenerator::addConstant):
+        (JSC::WASM::parseAndCompile):
+        * wasm/WASMB3IRGenerator.h:
+        * wasm/WASMFormat.h:
+        * wasm/WASMFunctionParser.h:
+        (JSC::WASM::FunctionParser<Context>::FunctionParser):
+        (JSC::WASM::FunctionParser<Context>::parse):
+        (JSC::WASM::FunctionParser<Context>::parseBlock):
+        (JSC::WASM::FunctionParser<Context>::parseExpression):
+        (JSC::WASM::WASMFunctionParser<Context>::WASMFunctionParser): Deleted.
+        (JSC::WASM::WASMFunctionParser<Context>::parse): Deleted.
+        (JSC::WASM::WASMFunctionParser<Context>::parseBlock): Deleted.
+        (JSC::WASM::WASMFunctionParser<Context>::parseExpression): Deleted.
+        * wasm/WASMModuleParser.cpp:
+        (JSC::WASM::ModuleParser::parse):
+        (JSC::WASM::ModuleParser::parseFunctionTypes):
+        (JSC::WASM::ModuleParser::parseFunctionSignatures):
+        (JSC::WASM::ModuleParser::parseFunctionDefinitions):
+        (JSC::WASM::WASMModuleParser::parse): Deleted.
+        (JSC::WASM::WASMModuleParser::parseFunctionTypes): Deleted.
+        (JSC::WASM::WASMModuleParser::parseFunctionSignatures): Deleted.
+        (JSC::WASM::WASMModuleParser::parseFunctionDefinitions): Deleted.
+        * wasm/WASMModuleParser.h:
+        (JSC::WASM::ModuleParser::ModuleParser):
+        (JSC::WASM::ModuleParser::functionInformation):
+        (JSC::WASM::WASMModuleParser::WASMModuleParser): Deleted.
+        (JSC::WASM::WASMModuleParser::functionInformation): Deleted.
+        * wasm/WASMOps.h:
+        * wasm/WASMParser.h:
+        (JSC::WASM::Parser::Parser):
+        (JSC::WASM::Parser::consumeCharacter):
+        (JSC::WASM::Parser::consumeString):
+        (JSC::WASM::Parser::parseUInt32):
+        (JSC::WASM::Parser::parseUInt7):
+        (JSC::WASM::Parser::parseVarUInt1):
+        (JSC::WASM::Parser::parseValueType):
+        (JSC::WASM::WASMParser::WASMParser): Deleted.
+        (JSC::WASM::WASMParser::consumeCharacter): Deleted.
+        (JSC::WASM::WASMParser::consumeString): Deleted.
+        (JSC::WASM::WASMParser::parseUInt32): Deleted.
+        (JSC::WASM::WASMParser::parseUInt7): Deleted.
+        (JSC::WASM::WASMParser::parseVarUInt1): Deleted.
+        (JSC::WASM::WASMParser::parseValueType): Deleted.
+        * wasm/WASMPlan.cpp:
+        (JSC::WASM::Plan::Plan):
+        * wasm/WASMSections.cpp:
+        (JSC::WASM::Sections::lookup):
+        (JSC::WASM::WASMSections::lookup): Deleted.
+        * wasm/WASMSections.h:
+        (JSC::WASM::Sections::validateOrder):
+        (JSC::WASM::WASMSections::validateOrder): Deleted.
+
+2016-09-01  Filip Pizlo  <fpizlo@apple.com>
+
+        ObjectAllocationSinkingPhase::insertOSRHintsForUpdate() fails to emit updated hints in some cases
+        https://bugs.webkit.org/show_bug.cgi?id=161492
+
+        Reviewed by Mark Lam.
+        
+        If you materialize a sunken object that is referenced from another sunken object, then you
+        have to emit a PutHint to tell OSR that the latter object now refers to a materialized
+        object rather than to the old sunken one.
+        
+        The ObjectAllocationSinkingPhase totally knows how to do this, but for some reason it only
+        did it when the PromotedLocationDescriptor for the field used for referring to the other
+        object is !neededForMaterialization(), i.e. it's a NamedPropertyPLoc or a ClosureVarPLoc.
+        I can sort of imagine why we thought that would be right - neededForMaterialization() means
+        it's a special meta-data field initialized on construction. But just because it's immutable
+        and special doesn't mean that materialization can't change its physical representation.
+        Removing the requirement that it's !neededForMaterialization() fixes the test and doesn't
+        regress anything.
+
+        * dfg/DFGObjectAllocationSinkingPhase.cpp:
+
+2016-09-01  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r205297.
+
+        Caused some JSC test failures
+
+        Reverted changeset:
+
+        "Align cross-origin proto getter / setter behavior with the
+        specification"
+        https://bugs.webkit.org/show_bug.cgi?id=161455
+        http://trac.webkit.org/changeset/205297
+
+2016-09-01  Chris Dumez  <cdumez@apple.com>
+
+        Align cross-origin proto getter / setter behavior with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=161455
+
+        Reviewed by Mark Lam.
+
+        Align cross-origin proto getter / setter behavior with the specification:
+
+        The setter should throw a TypeError:
+        - https://html.spec.whatwg.org/#windowproxy-setprototypeof
+        - https://html.spec.whatwg.org/#location-setprototypeof
+        - https://tc39.github.io/ecma262/#sec-object.setprototypeof (step 5)
+
+        The getter should return null:
+        - https://html.spec.whatwg.org/#windowproxy-getprototypeof
+        - https://html.spec.whatwg.org/#location-getprototypeof
+
+        I have verified that this aligns our behavior with Firefox and Chrome.
+
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::GlobalFuncProtoGetterFunctor::operator()):
+        (JSC::globalFuncProtoSetter):
+
+2016-09-01  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviewed ARM buildfix after r205283.
+
+        * assembler/ARMAssembler.h:
+        (JSC::ARMAssembler::patchableJumpSize):
+        * assembler/MacroAssemblerARM.h:
+        (JSC::MacroAssemblerARM::patchableJumpSize):
+
+2016-09-01  Saam Barati  <sbarati@apple.com>
+
+        JITMathIC was misusing maxJumpReplacementSize
+        https://bugs.webkit.org/show_bug.cgi?id=161356
+        <rdar://problem/28065560>
+
+        Reviewed by Benjamin Poulain.
+
+        JITMathIC was assuming that maxJumpReplacementSize is the size
+        you'd get if you emitted a patchableJump() using the macro assembler.
+        This is not true, however. It happens to be true on arm64, x86 and x86-64,
+        however, it is not true on armv7. This patch introduces an alternative to
+        maxJumpReplacementSize called patchableJumpSize, and switches JITMathIC
+        to use that number instead.
+
+        * assembler/ARM64Assembler.h:
+        (JSC::ARM64Assembler::patchableJumpSize):
+        (JSC::ARM64Assembler::maxJumpReplacementSize): Deleted.
+        * assembler/ARMv7Assembler.h:
+        (JSC::ARMv7Assembler::patchableJumpSize):
+        (JSC::ARMv7Assembler::maxJumpReplacementSize): Deleted.
+        * assembler/MacroAssemblerARM64.h:
+        (JSC::MacroAssemblerARM64::patchableJumpSize):
+        * assembler/MacroAssemblerARMv7.h:
+        (JSC::MacroAssemblerARMv7::patchableJumpSize):
+        * assembler/MacroAssemblerX86Common.h:
+        (JSC::MacroAssemblerX86Common::patchableJumpSize):
+        * assembler/X86Assembler.h:
+        (JSC::X86Assembler::patchableJumpSize):
+        (JSC::X86Assembler::maxJumpReplacementSize): Deleted.
+        * jit/JITMathIC.h:
+        (JSC::JITMathIC::generateInline):
+
+2016-08-31  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] Add initiator parameter to module pipeline
+        https://bugs.webkit.org/show_bug.cgi?id=161470
+
+        Reviewed by Saam Barati.
+
+        The fetching semantics of the <script type="module"> tag has per module-tag context.
+        For example, "nonce", "crossorigin" etc. attributes are shared in the fetching requests
+        issued from the module-tag. To transfer this information, we add a new parameter "initiator"
+        to the module loader pipeline. We are planning to transfer information by this parameter.
+
+        At the same time, we also perform some clean up.
+
+        - Use arrow function in ModuleLoaderPrototype.js.
+        - Rename "ResolveDependencies" to "Satisfy" to align to the loader spec.
+
+        * builtins/ModuleLoaderPrototype.js:
+        (newRegistryEntry):
+        (commitInstantiated):
+        (requestFetch):
+        (requestTranslate):
+        (requestInstantiate):
+        (requestSatisfy):
+        (requestInstantiateAll):
+        (requestLink):
+        (moduleEvaluation):
+        (provide):
+        (loadAndEvaluateModule):
+        (requestResolveDependencies.): Deleted.
+        (requestResolveDependencies): Deleted.
+        (requestReady): Deleted.
+        (link): Deleted.
+        (loadModule): Deleted.
+        (linkAndEvaluateModule): Deleted.
+        * bytecode/BytecodeIntrinsicRegistry.cpp:
+        (JSC::BytecodeIntrinsicRegistry::BytecodeIntrinsicRegistry):
+        * bytecode/BytecodeIntrinsicRegistry.h:
+        * jsc.cpp:
+        (GlobalObject::moduleLoaderResolve):
+        (GlobalObject::moduleLoaderFetch):
+        * runtime/Completion.cpp:
+        (JSC::loadAndEvaluateModule):
+        (JSC::loadModule):
+        (JSC::linkAndEvaluateModule):
+        * runtime/Completion.h:
+        * runtime/JSGlobalObject.h:
+        * runtime/JSModuleLoader.cpp:
+        (JSC::JSModuleLoader::loadAndEvaluateModule):
+        (JSC::JSModuleLoader::loadModule):
+        (JSC::JSModuleLoader::linkAndEvaluateModule):
+        (JSC::JSModuleLoader::resolve):
+        (JSC::JSModuleLoader::fetch):
+        (JSC::JSModuleLoader::translate):
+        (JSC::JSModuleLoader::instantiate):
+        (JSC::JSModuleLoader::evaluate):
+        * runtime/JSModuleLoader.h:
+        * runtime/ModuleLoaderPrototype.cpp:
+        (JSC::moduleLoaderPrototypeResolve):
+        (JSC::moduleLoaderPrototypeFetch):
+        (JSC::moduleLoaderPrototypeTranslate):
+        (JSC::moduleLoaderPrototypeInstantiate):
+        (JSC::moduleLoaderPrototypeEvaluate):
+
 2016-08-31  Yusuke Suzuki  <utatane.tea@gmail.com>
 
         [JSC] linking and evaluating the modules are done in a sync manner

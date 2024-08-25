@@ -38,6 +38,8 @@ extern "C" {
     EncodedJSValue vmEntryToNative(void*, VM*, ProtoCallFrame*);
 }
 
+EncodedJSValue JS_EXPORT_PRIVATE vmEntryToWASM(void*, VM*, ProtoCallFrame*);
+
 namespace LLInt {
 
 MacroAssemblerCodeRef functionForCallEntryThunkGenerator(VM*);

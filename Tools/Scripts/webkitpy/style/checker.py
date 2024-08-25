@@ -1,7 +1,7 @@
 # Copyright (C) 2009 Google Inc. All rights reserved.
 # Copyright (C) 2010 Chris Jerdonek (chris.jerdonek@gmail.com)
 # Copyright (C) 2010 ProFUSION embedded systems
-# Copyright (C) 2013-2017 Apple Inc. All rights reserved.
+# Copyright (C) 2013, 2015 Apple Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -136,63 +136,14 @@ _PATH_RULES_SPECIFIER = [
 
     ([  # TestNetscapePlugIn has no config.h and uses funny names like
       # NPP_SetWindow.
-      os.path.join('Tools', 'DumpRenderTree', 'TestNetscapePlugIn'),
-      # Qt tests and examples follow Qt coding style
-      os.path.join('Source', 'WebKit', 'qt', 'docs'),
-      os.path.join('Source', 'WebKit', 'qt', 'examples'),
-      os.path.join('Source', 'WebKit', 'qt', 'tests')],
+      os.path.join('Tools', 'DumpRenderTree', 'TestNetscapePlugIn')],
      ["-build/include",
-      "-readability/naming",
-      "-readability/parameter_name",
-      "-whitespace/braces",
-      "-whitespace/comments"]),
+      "-readability/naming"]),
     ([# There is no clean way to avoid "yy_*" names used by flex.
       os.path.join('Source', 'WebCore', 'css', 'CSSParser.cpp'),
       # TestWebKitAPI uses funny macros like EXPECT_WK_STREQ.
-      os.path.join('Tools', 'TestWebKitAPI'),
-      # Qt code uses '_' in some places (such as private slots
-      # and on test xxx_data methos on tests)
-      "Source/JavaScriptCore/qt/",
-      "Source/WebKit/qt/tests/",
-      "Source/WebKit/qt/declarative/",
-      "Source/WebKit/qt/examples/"],
+      os.path.join('Tools', 'TestWebKitAPI')],
      ["-readability/naming"]),
-
-    ([# The Qt APIs use Qt declaration style, it puts the * to
-      # the variable name, not to the class, and variables should
-      # always be named in headers.
-      # Also header guards are named differently
-      "Source/WebKit/qt/Api/",
-      "Source/WebKit/qt/WidgetApi/",
-      "Source/WebKit2/UIProcess/API/qt"],
-     ["-build/header_guard",
-      "-readability/naming",
-      "-readability/parameter_name",
-      "-whitespace/declaration"]),
-
-     ([# Qt's MiniBrowser has no config.h
-       "Tools/MiniBrowser/qt",
-       "Tools/MiniBrowser/qt/raw"],
-      ["-build/include"]),
-
-    ([# The GTK+ APIs use GTK+ naming style, which includes
-      # lower-cased, underscore-separated values, whitespace before
-      # parens for function calls, and always having variable names.
-      # Also, GTK+ allows the use of NULL.
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMCustom.h'),
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMDeprecated.h'),
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMEventTarget.h'),
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMNodeFilter.h'),
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMXPathNSResolver.h'),
-      os.path.join('Source', 'WebKit', 'gtk', 'webkit'),
-      os.path.join('Tools', 'DumpRenderTree', 'gtk')],
-     ["-readability/naming",
-      "-readability/parameter_name",
-      "-readability/null",
-      "-readability/enum_casing",
-      "-whitespace/declaration",
-      "-whitespace/indent",
-      "-whitespace/parens"]),
 
     ([# The GTK+ API use upper case, underscore separated, words in
       # certain types of enums (e.g. signals, properties).
@@ -254,11 +205,6 @@ _PATH_RULES_SPECIFIER = [
       "-whitespace/declaration"]),
     ([# These files define GObjects, which implies some definitions of
       # variables and functions containing underscores.
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMCustom.cpp'),
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMDeprecated.cpp'),
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMEventTarget.cpp'),
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMNodeFilter.cpp'),
-      os.path.join('Source', 'WebCore', 'bindings', 'gobject', 'WebKitDOMXPathNSResolver.cpp'),
       os.path.join('Source', 'WebCore', 'platform', 'graphics', 'gstreamer', 'VideoSinkGStreamer.cpp'),
       os.path.join('Source', 'WebCore', 'platform', 'graphics', 'gstreamer', 'WebKitWebSourceGStreamer.cpp'),
       os.path.join('Source', 'WebCore', 'platform', 'audio', 'gstreamer', 'WebKitWebAudioSourceGStreamer.cpp'),
@@ -281,12 +227,6 @@ _PATH_RULES_SPECIFIER = [
       "+pep8/W191",  # Tabs
       "+pep8/W291",  # Trailing white space
       "+whitespace/carriage_return"]),
-
-    ([# Source/JavaScriptCore/disassembler/udis86/ is generated code.
-      os.path.join('Source', 'JavaScriptCore', 'disassembler', 'udis86')],
-     ["-readability/naming/underscores",
-      "-whitespace/declaration",
-      "-whitespace/indent"]),
 
     ([# There is no way to avoid the symbols __jit_debug_register_code
       # and __jit_debug_descriptor when integrating with gdb.
@@ -361,6 +301,9 @@ _SKIPPED_FILES_WITH_WARNING = [
     # WebKit*.h files in Source/WebKit2/UIProcess/API/gtk, except those ending in Private.h are GTK+ API headers, which do not follow WebKit coding style.
     re.compile(re.escape(os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'gtk') + os.path.sep) + r'WebKit(?!.*Private\.h).*\.h$'),
     re.compile(re.escape(os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'gtk') + os.path.sep) + r'WebKit(?!.*Private\.h).*\.h$'),
+
+    # GObject DOM bindings copied from generated code using different coding style.
+    os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'gtk', 'DOM'),
 
     os.path.join('Source', 'WebKit2', 'UIProcess', 'API', 'gtk', 'webkit2.h'),
     os.path.join('Source', 'WebKit2', 'WebProcess', 'InjectedBundle', 'API', 'gtk', 'webkit-web-extension.h')]

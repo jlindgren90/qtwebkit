@@ -39,6 +39,7 @@
 #include <runtime/JSArrayBuffer.h>
 #include <runtime/JSCJSValueInlines.h>
 #include <runtime/JSCellInlines.h>
+#include <runtime/JSObjectInlines.h>
 #include <runtime/JSTypedArrays.h>
 #include <runtime/Lookup.h>
 #include <runtime/ObjectConstructor.h>
@@ -263,6 +264,7 @@ template<typename T> JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject*, RefP
 template<typename T> JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject*, const Vector<T>&);
 template<typename T> JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject*, const Vector<RefPtr<T>>&);
 JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject*, const String&);
+JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject*, const JSC::PrivateName&);
 
 JSC::JSValue toJSIterator(JSC::ExecState&, JSDOMGlobalObject&, JSC::JSValue);
 template<typename T> JSC::JSValue toJSIterator(JSC::ExecState&, JSDOMGlobalObject&, const T&);
@@ -573,6 +575,11 @@ template<typename T> inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalO
 inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalObject*, const String& value)
 {
     return jsStringOrNull(exec, value);
+}
+
+inline JSC::JSValue toJS(JSC::ExecState* exec, JSDOMGlobalObject*, const JSC::PrivateName& privateName)
+{
+    return JSC::Symbol::create(exec->vm(), privateName.uid());
 }
 
 inline JSC::JSValue toJSIterator(JSC::ExecState& state, JSDOMGlobalObject&, JSC::JSValue value)

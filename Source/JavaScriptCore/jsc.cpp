@@ -584,7 +584,8 @@ static EncodedJSValue JSC_HOST_CALL functionGetElement(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionCreateSimpleObject(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionGetHiddenValue(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionSetHiddenValue(ExecState*);
-static EncodedJSValue JSC_HOST_CALL functionPrint(ExecState*);
+static EncodedJSValue JSC_HOST_CALL functionPrintStdOut(ExecState*);
+static EncodedJSValue JSC_HOST_CALL functionPrintStdErr(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionDebug(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionDescribe(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionDescribeArray(ExecState*);
@@ -785,7 +786,8 @@ protected:
         addFunction(vm, "debug", functionDebug, 1);
         addFunction(vm, "describe", functionDescribe, 1);
         addFunction(vm, "describeArray", functionDescribeArray, 1);
-        addFunction(vm, "print", functionPrint, 1);
+        addFunction(vm, "print", functionPrintStdOut, 1);
+        addFunction(vm, "printErr", functionPrintStdErr, 1);
         addFunction(vm, "quit", functionQuit, 0);
         addFunction(vm, "abort", functionAbort, 0);
         addFunction(vm, "gc", functionGCAndSweep, 0);
@@ -902,8 +904,8 @@ protected:
         putDirect(vm, identifier, JSFunction::create(vm, this, arguments, identifier.string(), function, NoIntrinsic, function));
     }
 
-    static JSInternalPromise* moduleLoaderResolve(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue, JSValue);
-    static JSInternalPromise* moduleLoaderFetch(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue);
+    static JSInternalPromise* moduleLoaderResolve(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue, JSValue, JSValue);
+    static JSInternalPromise* moduleLoaderFetch(JSGlobalObject*, ExecState*, JSModuleLoader*, JSValue, JSValue);
 };
 
 const ClassInfo GlobalObject::s_info = { "global", &JSGlobalObject::s_info, nullptr, CREATE_METHOD_TABLE(GlobalObject) };
@@ -1033,7 +1035,7 @@ static String resolvePath(const DirectoryName& directoryName, const ModuleName& 
     return builder.toString();
 }
 
-JSInternalPromise* GlobalObject::moduleLoaderResolve(JSGlobalObject* globalObject, ExecState* exec, JSModuleLoader*, JSValue keyValue, JSValue referrerValue)
+JSInternalPromise* GlobalObject::moduleLoaderResolve(JSGlobalObject* globalObject, ExecState* exec, JSModuleLoader*, JSValue keyValue, JSValue referrerValue, JSValue)
 {
     JSInternalPromiseDeferred* deferred = JSInternalPromiseDeferred::create(exec, globalObject);
     const Identifier key = keyValue.toPropertyKey(exec);
@@ -1136,7 +1138,7 @@ static bool fetchModuleFromLocalFileSystem(const String& fileName, Vector<char>&
     return result;
 }
 
-JSInternalPromise* GlobalObject::moduleLoaderFetch(JSGlobalObject* globalObject, ExecState* exec, JSModuleLoader*, JSValue key)
+JSInternalPromise* GlobalObject::moduleLoaderFetch(JSGlobalObject* globalObject, ExecState* exec, JSModuleLoader*, JSValue key, JSValue)
 {
     JSInternalPromiseDeferred* deferred = JSInternalPromiseDeferred::create(exec, globalObject);
     String moduleKey = key.toWTFString(exec);
@@ -1155,7 +1157,7 @@ JSInternalPromise* GlobalObject::moduleLoaderFetch(JSGlobalObject* globalObject,
 }
 
 
-EncodedJSValue JSC_HOST_CALL functionPrint(ExecState* exec)
+static EncodedJSValue printInternal(ExecState* exec, FILE* out)
 {
     if (test262AsyncTest) {
         JSValue value = exec->argument(0);
@@ -1166,15 +1168,21 @@ EncodedJSValue JSC_HOST_CALL functionPrint(ExecState* exec)
 
     for (unsigned i = 0; i < exec->argumentCount(); ++i) {
         if (i)
-            putchar(' ');
+            if (EOF == fputc(' ', out))
+                goto fail;
 
-        printf("%s", exec->uncheckedArgument(i).toString(exec)->view(exec).get().utf8().data());
+        if (fprintf(out, "%s", exec->uncheckedArgument(i).toString(exec)->view(exec).get().utf8().data()) < 0)
+            goto fail;
     }
 
-    putchar('\n');
-    fflush(stdout);
+    fputc('\n', out);
+fail:
+    fflush(out);
     return JSValue::encode(jsUndefined());
 }
+
+EncodedJSValue JSC_HOST_CALL functionPrintStdOut(ExecState* exec) { return printInternal(exec, stdout); }
+EncodedJSValue JSC_HOST_CALL functionPrintStdErr(ExecState* exec) { return printInternal(exec, stderr); }
 
 #ifndef NDEBUG
 EncodedJSValue JSC_HOST_CALL functionDumpCallFrame(ExecState* exec)

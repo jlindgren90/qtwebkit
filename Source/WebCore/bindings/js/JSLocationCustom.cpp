@@ -119,9 +119,23 @@ void JSLocation::getOwnPropertyNames(JSObject* object, ExecState* exec, Property
 
 bool JSLocation::defineOwnProperty(JSObject* object, ExecState* exec, PropertyName propertyName, const PropertyDescriptor& descriptor, bool throwException)
 {
+    JSLocation* thisObject = jsCast<JSLocation*>(object);
+    if (!BindingSecurity::shouldAllowAccessToFrame(exec, thisObject->wrapped().frame(), ThrowSecurityError))
+        return false;
+
     if (descriptor.isAccessorDescriptor() && (propertyName == exec->propertyNames().toString || propertyName == exec->propertyNames().valueOf))
         return false;
     return Base::defineOwnProperty(object, exec, propertyName, descriptor, throwException);
+}
+
+bool JSLocation::preventExtensions(JSObject* object, ExecState* exec)
+{
+    JSLocation* thisObject = jsCast<JSLocation*>(object);
+    if (!BindingSecurity::shouldAllowAccessToFrame(exec, thisObject->wrapped().frame(), ThrowSecurityError))
+        return false;
+    // FIXME: The specification says to return false in the same origin case as well but other browsers have
+    // not implemented this yet.
+    return Base::preventExtensions(object, exec);
 }
 
 bool JSLocationPrototype::putDelegate(ExecState* exec, PropertyName propertyName, JSValue, PutPropertySlot&, bool& putResult)

@@ -3865,7 +3865,7 @@ void EventHandler::defaultArrowEventHandler(FocusDirection focusDirection, Keybo
     if (m_frame.document()->inDesignMode())
         return;
 
-    if (page->focusController().advanceFocus(focusDirection, &event))
+    if (page->focusController().advanceFocus(focusDirection, event))
         event.setDefaultHandled();
 }
 
@@ -3889,7 +3889,7 @@ void EventHandler::defaultTabEventHandler(KeyboardEvent& event)
     if (m_frame.document()->inDesignMode())
         return;
 
-    if (page->focusController().advanceFocus(focusDirection, &event))
+    if (page->focusController().advanceFocus(focusDirection, event))
         event.setDefaultHandled();
 }
 

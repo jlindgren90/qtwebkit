@@ -103,7 +103,6 @@
 #include "InspectorInstrumentation.h"
 #include "JSCustomElementInterface.h"
 #include "JSLazyEventListener.h"
-#include "JSModuleLoader.h"
 #include "KeyboardEvent.h"
 #include "Language.h"
 #include "LoaderStrategy.h"
@@ -153,6 +152,7 @@
 #include "SchemeRegistry.h"
 #include "ScopedEventQueue.h"
 #include "ScriptController.h"
+#include "ScriptModuleLoader.h"
 #include "ScriptRunner.h"
 #include "ScriptSourceCode.h"
 #include "ScrollingCoordinator.h"
@@ -480,7 +480,7 @@ Document::Document(Frame* frame, const URL& url, unsigned documentClasses, unsig
     , m_startTime(std::chrono::steady_clock::now())
     , m_overMinimumLayoutThreshold(false)
     , m_scriptRunner(std::make_unique<ScriptRunner>(*this))
-    , m_moduleLoader(std::make_unique<JSModuleLoader>(*this))
+    , m_moduleLoader(std::make_unique<ScriptModuleLoader>(*this))
     , m_xmlVersion(ASCIILiteral("1.0"))
     , m_xmlStandalone(StandaloneUnspecified)
     , m_hasXMLDeclaration(false)
@@ -877,9 +877,9 @@ void Document::childrenChanged(const ChildChange& change)
 }
 
 #if ENABLE(CUSTOM_ELEMENTS)
-static ALWAYS_INLINE RefPtr<HTMLElement> createUpgradeCandidateElement(Document& document, DOMWindow* window, const QualifiedName& name)
+static ALWAYS_INLINE RefPtr<HTMLElement> createUpgradeCandidateElement(Document& document, const QualifiedName& name)
 {
-    if (!window || !RuntimeEnabledFeatures::sharedFeatures().customElementsEnabled())
+    if (!RuntimeEnabledFeatures::sharedFeatures().customElementsEnabled())
         return nullptr;
 
     if (Document::validateCustomElementName(name.localName()) != CustomElementNameValidationStatus::Valid)
@@ -887,7 +887,6 @@ static ALWAYS_INLINE RefPtr<HTMLElement> createUpgradeCandidateElement(Document&
 
     auto element = HTMLElement::create(name, document);
     element->setIsUnresolvedCustomElement();
-    window->ensureCustomElementRegistry().addUpgradeCandidate(element.get());
     return WTFMove(element);
 }
 #endif
@@ -917,7 +916,7 @@ static RefPtr<Element> createHTMLElementWithNameValidation(Document& document, c
     QualifiedName qualifiedName(nullAtom, localName, xhtmlNamespaceURI);
 
 #if ENABLE(CUSTOM_ELEMENTS)
-    if (auto element = createUpgradeCandidateElement(document, window, qualifiedName))
+    if (auto element = createUpgradeCandidateElement(document, qualifiedName))
         return WTFMove(element);
 #endif
 
@@ -1095,7 +1094,7 @@ static Ref<HTMLElement> createFallbackHTMLElement(Document& document, const Qual
         }
     }
     // FIXME: Should we also check the equality of prefix between the custom element and name?
-    if (auto element = createUpgradeCandidateElement(document, window, name))
+    if (auto element = createUpgradeCandidateElement(document, name))
         return element.releaseNonNull();
 #endif
     return HTMLUnknownElement::create(name, document);

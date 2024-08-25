@@ -1,3 +1,302 @@
+2016-09-02  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Distinguish between paint advances and base advances
+        https://bugs.webkit.org/show_bug.cgi?id=160892
+
+        Reviewed by Simon Fraser.
+
+        Update tests. There are some expected (small) changes in metrics due to this patch.
+
+        * platform/mac-elcapitan/css2.1/t051202-c26-psudo-nest-00-c-expected.png: Copied from LayoutTests/platform/mac/css2.1/t051202-c26-psudo-nest-00-c-expected.png.
+        * platform/mac-elcapitan/css2.1/t051202-c26-psudo-nest-00-c-expected.txt: Copied from LayoutTests/platform/mac/css2.1/t051202-c26-psudo-nest-00-c-expected.txt.
+        * platform/mac-elcapitan/css2.1/t1508-c527-font-00-b-expected.png: Copied from LayoutTests/platform/mac/css2.1/t1508-c527-font-00-b-expected.png.
+        * platform/mac-elcapitan/css2.1/t1508-c527-font-00-b-expected.txt: Added.
+        * platform/mac-elcapitan/fast/inline/absolute-positioned-inline-in-centred-block-expected.png: Copied from LayoutTests/platform/mac/fast/inline/absolute-positioned-inline-in-centred-block-expected.png.
+        * platform/mac-elcapitan/fast/inline/absolute-positioned-inline-in-centred-block-expected.txt: Copied from LayoutTests/platform/mac/fast/inline/absolute-positioned-inline-in-centred-block-expected.txt.
+        * platform/mac/css2.1/t051202-c26-psudo-nest-00-c-expected.png:
+        * platform/mac/css2.1/t051202-c26-psudo-nest-00-c-expected.txt:
+        * platform/mac/css2.1/t1508-c527-font-00-b-expected.png:
+        * platform/mac/css2.1/t1508-c527-font-00-b-expected.txt: Added.
+        * platform/mac/fast/inline/absolute-positioned-inline-in-centred-block-expected.png:
+        * platform/mac/fast/inline/absolute-positioned-inline-in-centred-block-expected.txt:
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, roll out r205354 because it caused JSC test failures
+
+        * fast/dom/Window/script-tests/window-custom-prototype.js: Added.
+        * fast/dom/Window/window-custom-prototype-crash-expected.txt:
+        * fast/dom/Window/window-custom-prototype-expected.txt: Added.
+        * fast/dom/Window/window-custom-prototype.html: Added.
+        * http/tests/security/cross-frame-access-object-getPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-getPrototypeOf.html:
+        * http/tests/security/cross-frame-access-object-setPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-setPrototypeOf.html:
+        * http/tests/security/xss-DENIED-htmlelelment-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-htmlelelment-with-iframe-proto.html:
+        * http/tests/security/xss-DENIED-method-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-method-with-iframe-proto.html:
+        * http/tests/security/xss-DENIED-non-shadowable-propterty-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-non-shadowable-propterty-with-iframe-proto.html:
+        * http/tests/security/xss-DENIED-regular-propterty-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-regular-propterty-with-iframe-proto.html:
+        * js/dom/setPrototypeOf-location-window-expected.txt: Removed.
+        * js/dom/setPrototypeOf-location-window.html: Removed.
+        * js/object-literal-shorthand-construction-expected.txt:
+        * js/script-tests/object-literal-shorthand-construction.js:
+        * js/script-tests/sloppy-getter-setter-global-object.js:
+        * js/sloppy-getter-setter-global-object-expected.txt:
+
+2016-09-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline fast/mediastream/MediaStreamTrack-getSettings.html after r205348.
+
+        Unreviewed test gardening.
+
+        * fast/mediastream/MediaStreamTrack-getSettings-expected.txt:
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r204839): [mac-wk1] LayoutTest webgl/max-active-contexts-webglcontextlost-prevent-default.html is a flaky timeout
+        https://bugs.webkit.org/show_bug.cgi?id=161205
+
+        Reviewed by Geoffrey Garen.
+
+        Unskip test case now that it is no longer flaky.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Object.preventExtensions() should throw cross-origin
+        https://bugs.webkit.org/show_bug.cgi?id=161486
+
+        Reviewed by Geoffrey Garen.
+
+        Add layout test coverage. We have a few failures in the same origin case
+        because we don't fully match the specification yet:
+        - Object.preventExtensions() should throw a TypeError. However, our
+          implementation currently does not throw if [[PreventExtensions]] returns
+          false.
+        - We do not ignore calls to Object.preventExtensions() for the Location
+          object yet because other browsers do not seem to either.
+
+        * http/tests/security/preventExtensions-window-location-expected.txt: Added.
+        * http/tests/security/preventExtensions-window-location.html: Added.
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Object.defineProperty() should throw cross-origin
+        https://bugs.webkit.org/show_bug.cgi?id=161460
+
+        Reviewed by Geoffrey Garen.
+
+        Add test coverage.
+
+        * http/tests/security/cross-frame-access-object-prototype-expected.txt:
+        * http/tests/security/location-cross-origin-expected.txt:
+        * http/tests/security/location-cross-origin.html:
+        * http/tests/security/window-defineProperty-crossOrigin-expected.txt: Added.
+        * http/tests/security/window-defineProperty-crossOrigin.html: Added.
+        * http/tests/security/xss-DENIED-defineProperty-expected.txt:
+
+2016-09-02  Chris Dumez  <cdumez@apple.com>
+
+        Align proto getter / setter behavior with other browsers
+        https://bugs.webkit.org/show_bug.cgi?id=161455
+
+        Reviewed by Mark Lam.
+
+        Add layout test coverage and update a few existing test to reflect
+        behavior change.
+
+        * http/tests/security/cross-frame-access-object-getPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-getPrototypeOf.html:
+        * http/tests/security/cross-frame-access-object-setPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-setPrototypeOf.html:
+        * http/tests/security/xss-DENIED-htmlelelment-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-htmlelelment-with-iframe-proto.html:
+        * http/tests/security/xss-DENIED-method-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-method-with-iframe-proto.html:
+        * http/tests/security/xss-DENIED-non-shadowable-propterty-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-non-shadowable-propterty-with-iframe-proto.html:
+        * http/tests/security/xss-DENIED-regular-propterty-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-regular-propterty-with-iframe-proto.html:
+        * js/dom/setPrototypeOf-location-window-expected.txt: Added.
+        * js/dom/setPrototypeOf-location-window.html: Added.
+
+2016-09-02  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] applyConstraints pt. 1 - mandatory constraints
+        https://bugs.webkit.org/show_bug.cgi?id=161469
+        <rdar://problem/28109325>
+
+        Reviewed by Jer Noble.
+
+        * fast/mediastream/apply-constraints-audio-expected.txt: Added.
+        * fast/mediastream/apply-constraints-audio.html: Added.
+        * fast/mediastream/apply-constraints-video-expected.txt: Added.
+        * fast/mediastream/apply-constraints-video.html: Added.
+        * fast/mediastream/resources/apply-constraints-utils.js: Added.
+
+2016-09-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Only update connected custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=161480
+
+        Reviewed by Yusuke Suzuki.
+
+        Added a W3c-style testharness.js test for https://html.spec.whatwg.org/#enqueue-a-custom-element-upgrade-reaction
+        and added more test cases for :defined and customElements.define.
+
+        * fast/custom-elements/CustomElementRegistry.html: Revised descriptions for "get" and "whenDefined" test cases consistent
+        with ones for "define".
+        * fast/custom-elements/defined-pseudo-class-expected.txt:
+        * fast/custom-elements/defined-pseudo-class.html:
+        * fast/custom-elements/enqueue-custom-element-upgrade-reaction-expected.txt: Added.
+        * fast/custom-elements/enqueue-custom-element-upgrade-reaction.html: Added.
+        * fast/custom-elements/resources/document-types.js:
+        (create):
+
+2016-09-01  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Mark failing tests to failure
+
+        Unreviewed EFL gardening.
+
+        Failing tests of security, hyphenation, and form are marked to failure.
+
+        * platform/efl/TestExpectations:
+
+2016-09-01  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Gardening faliure and timeout tests on 2th Sep.
+
+        Unreviewed EFL gardening.
+
+        * platform/efl/TestExpectations:
+
+2016-09-01  Ricky Mondello  <rmondello@apple.com>
+
+        YouTube Flash plug-in replacement facility should not insert showinfo=0 into iframe URLs
+        https://bugs.webkit.org/show_bug.cgi?id=161478
+        <rdar://problem/28050847>
+
+        Reviewed by Eric Carlson.
+
+        * platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe-expected.txt: Update the URL that was blocked.
+        * platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe-no-height-or-width-expected.txt: Ditto.
+        * security/contentSecurityPolicy/plugins-types-allows-youtube-plugin-replacement-expected.txt: Ditto.
+
+2016-09-01  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: add Object.awaitEvent which is like singleFireEventListener but returns a promise
+        https://bugs.webkit.org/show_bug.cgi?id=161451
+
+        Reviewed by Brian Burg.
+
+        * inspector/unit-tests/object-expected.txt:
+        * inspector/unit-tests/object.html:
+
+2016-09-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Fix a typo in the previous commit. I didn't mean to comment out this test case I added per a review comment.
+
+        * fast/custom-elements/CustomElementRegistry-expected.txt:
+        * fast/custom-elements/CustomElementRegistry.html:
+
+2016-09-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add "whenDefined" to CustomElementRegistry
+        https://bugs.webkit.org/show_bug.cgi?id=161425
+
+        Reviewed by Yusuke Suzuki.
+
+        Added test cases for "whenDefined" method.
+
+        * fast/custom-elements/CustomElementRegistry-expected.txt:
+        * fast/custom-elements/CustomElementRegistry.html:
+
+2016-09-01  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Minification detection produces false positives for small resources
+        https://bugs.webkit.org/show_bug.cgi?id=161159
+        <rdar://problem/27995306>
+
+        Reviewed by Brian Burg.
+
+        * inspector/formatting/is-text-likely-minified-expected.txt: Added.
+        * inspector/formatting/is-text-likely-minified.html: Added.
+
+2016-09-01  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r205297.
+
+        Caused some JSC test failures
+
+        Reverted changeset:
+
+        "Align cross-origin proto getter / setter behavior with the
+        specification"
+        https://bugs.webkit.org/show_bug.cgi?id=161455
+        http://trac.webkit.org/changeset/205297
+
+2016-09-01  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, update iOS simulator WK1 flaky tests.
+
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-09-01  Chris Dumez  <cdumez@apple.com>
+
+        Align cross-origin proto getter / setter behavior with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=161455
+
+        Reviewed by Mark Lam.
+
+        Add layout test coverage.
+
+        * http/tests/security/cross-frame-access-object-getPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-getPrototypeOf.html:
+        * http/tests/security/cross-frame-access-object-setPrototypeOf-expected.txt:
+        * http/tests/security/cross-frame-access-object-setPrototypeOf.html:
+
+2016-09-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/video-main-content-allow-then-scroll.html as flaky on ios-simulator-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=161491
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-09-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Add ios-simulator baseline for compositing/layer-creation/will-change-on-normal-flow-content.html.
+        https://bugs.webkit.org/show_bug.cgi?id=161490
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/compositing/layer-creation/will-change-on-normal-flow-content-expected.txt: Added.
+
+2016-09-01  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Skip fixed layout tests in GTK+
+
+        They are causing a lot of flaky tests because of changes in the viewport controller that are never reset. Once
+        the actual bug is properly fixed I'll unskip these tests again.
+
+        * platform/gtk/TestExpectations:
+
+2016-09-01  Youenn Fablet  <youenn@apple.com>
+
+        Calling then on promise in Workers may crash in Debug builds
+        https://bugs.webkit.org/show_bug.cgi?id=156737
+
+        Unreviewed.
+
+        * TestExpectations: Activating previously skipped fetch api tests in Debug bots
+
 2016-08-31  Zalan Bujtas  <zalan@apple.com>
 
         ASSERTION FAILED: !flow->layer() && !flow->isInlineElementContinuation() in WebCore::RenderBlock::addContinuationWithOutline

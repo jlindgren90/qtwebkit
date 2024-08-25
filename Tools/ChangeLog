@@ -1,3 +1,386 @@
+2016-09-02  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed build fix: restore storyboard files to Xcode 7-compatability.
+
+        * MobileMiniBrowser/MobileMiniBrowser/Base.lproj/LaunchScreen.storyboard:
+        * MobileMiniBrowser/MobileMiniBrowserFramework/Base.lproj/Main.storyboard:
+
+2016-09-02  Tim Horton  <timothy_horton@apple.com>
+
+        REGRESSION (r205329): Two API tests time out on iOS Simulator
+        https://bugs.webkit.org/show_bug.cgi?id=161542
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/AnimatedResize.mm:
+        (createAnimatedResizeWebView):
+        (createFirstVisuallyNonEmptyWatchingNavigationDelegate):
+        (TEST):
+        (animatedResizeWebView): Deleted.
+        The navigation delegate was being stored in a local and went out of scope
+        before the test was over. Keep it around, instead.
+
+2016-08-31  Jer Noble  <jer.noble@apple.com>
+
+        Refactor MobileMiniBrowser into an application framework to allow external XCTesting
+        https://bugs.webkit.org/show_bug.cgi?id=161462
+
+        Reviewed by Eric Carlson.
+
+        XCTest targets need to be in the same project as the application which they're testing. To facilitate
+        having external projects with XCTest targets, move the application's implementation into a framework
+        that can be included with a bare-bones application shell for testing.
+
+        Simultaneously, add the ability to load files from within the new framework's bundle by using a
+        'bundle:/' URL scheme. Update the tests to use this new bundle URL and remove the dependency on
+        an external server for testing.
+
+        * MobileMiniBrowser/MobileMiniBrowser.xcodeproj/project.pbxproj:
+        * MobileMiniBrowser/MobileMiniBrowser/Base.lproj/LaunchScreen.storyboard:
+        * MobileMiniBrowser/MobileMiniBrowser/Info.plist:
+        * MobileMiniBrowser/MobileMiniBrowser/main.m:
+        * MobileMiniBrowser/MobileMiniBrowserFramework/AppDelegate.h: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/AppDelegate.h.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/AppDelegate.m: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/AppDelegate.m.
+        (-[AppDelegate application:didFinishLaunchingWithOptions:]): Manually instantiate the main view
+            controller from the framework's bundle.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/Assets.xcassets/AppIcon.appiconset/Contents.json: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/Assets.xcassets/AppIcon.appiconset/Contents.json.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/Base.lproj/Main.storyboard: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/Base.lproj/Main.storyboard.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/Info.plist: Added.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/MobileMiniBrowser.h: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/AppDelegate.h.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/TabViewController.h: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/TabViewController.h.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/TabViewController.m: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/TabViewController.m.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/WebViewController.h: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/WebViewController.h.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/WebViewController.m: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/WebViewController.m.
+        (+[NSURL __bundleURLForFileURL:bundle:]): Add utility method.
+        (+[NSURL __fileURLForBundleURL:bundle:]): Ditto.
+        (-[WebViewController navigateTo:]): Support loading "bundle:/" URLs which are really just "file:" URLs
+            pointing to the framework's resources directory.
+        (-[WebViewController observeValueForKeyPath:ofObject:change:context:]): Ditto.
+        * MobileMiniBrowser/MobileMiniBrowserUITests/MobileMiniBrowserUITests.m:
+        (-[MobileMiniBrowserUITests testBasicVideoPlayback]):
+
+2016-09-02  Jonathan Bedard  <jbedard@apple.com>
+
+        Fix --no-sample-on-timeout command line argument
+        https://bugs.webkit.org/show_bug.cgi?id=161507
+
+        Reviewed by Alexey Proskuryakov.
+
+        This patch fixes the —no-sample-on-timeout flag and correctly names spindumps as spindump.txt.
+
+        * Scripts/webkitpy/layout_tests/run_webkit_tests.py:
+        (parse_args): Fixed —-no-sample-on-timeout.
+        * Scripts/webkitpy/port/apple.py:
+        (ApplePort.sample_process): Use correct file name.
+        (ApplePort.spindump_file_path): Spindump and sample file names are different.
+        * Scripts/webkitpy/port/driver.py:
+        (Driver._check_for_driver_timeout): Check “sample_on_timeout” flag.
+        * Scripts/webkitpy/port/mac_unittest.py:
+        (MacTest.test_spindump): Modified for correct filename.
+
+2016-09-02  Jonathan Bedard  <jbedard@apple.com>
+
+        Unreviewed: moved myself to the reviewers list.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-09-02  Tomas Popela  <tpopela@redhat.com>
+
+        [GTK] Fix compiler warning in MiniBrowser
+        https://bugs.webkit.org/show_bug.cgi?id=161529
+
+        We were missing a return statement in decidePermissionRequest() and
+        also there was unused variable in browserWindowConstructed().
+
+        Reviewed by Carlos Garcia Campos.
+
+        * MiniBrowser/gtk/BrowserTab.c:
+        (decidePermissionRequest):
+        * MiniBrowser/gtk/BrowserWindow.c:
+        (browserWindowConstructed):
+
+2016-09-01  Dan Bernstein  <mitz@apple.com>
+
+        Build fix.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-09-01  Tim Horton  <timothy_horton@apple.com>
+
+        Provide a TestWebKitAPI-wide WKNavigationDelegate to simplify tests
+        https://bugs.webkit.org/show_bug.cgi?id=161413
+
+        Reviewed by Simon Fraser.
+
+        Add TestNavigationDelegate, which provides block properties to make
+        writing tests feel a little more natural (the callbacks can be inline),
+        and also add WKWebView _test_waitForDidFinishNavigation, so that many
+        tests don't even need to manually allocate a navigation delegate at all.
+
+        Adopt in some of the simpler tests; there are a few navigation delegates
+        left behind, which we can move to the new model in the future.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2/WKBackForwardList.mm:
+        (TEST):
+        (-[WKBackForwardListTestNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/AlwaysRevalidatedURLSchemes.mm:
+        (TEST):
+        (-[AlwaysRevalidatedURLSchemesDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/AnimatedResize.mm:
+        (animatedResizeWebView):
+        (-[AnimatedResizeNavigationDelegate _webView:renderingProgressDidChange:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/AutoLayoutIntegration.mm:
+        (-[AutoLayoutWKWebView initWithFrame:configuration:]):
+        (-[AutoLayoutWKWebView load:withWidth:expectingContentSize:resettingWidth:]):
+        (TEST):
+        (-[AutoLayoutNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/CancelFontSubresource.mm:
+        (TEST):
+        (-[CancelFontSubresourceNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/CommandBackForward.mm:
+        (WebKit2_CommandBackForwardTestWKWebView::SetUp):
+        (WebKit2_CommandBackForwardTestWKWebView::loadFiles):
+        (TEST_F):
+        (-[CommandBackForwardNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/DataDetection.mm:
+        (expectLinkCount):
+        (TEST):
+        (-[DataDetectionNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/FindInPage.mm:
+        (TEST):
+        (-[FindInPageNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/FixedLayoutSize.mm:
+        (TEST):
+        (-[FixedLayoutSizeNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IndexedDBDatabaseProcessKill.mm:
+        (TEST):
+        (-[DatabaseProcessKillNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/IndexedDBPersistence.mm:
+        (-[IndexedDBNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/ProvisionalURLNotChange.mm:
+        (TEST):
+        (-[ProvisionalURLNotChangeController webView:didFinishNavigation:]): Deleted.
+        (-[ProvisionalURLNotChangeController webView:didFailProvisionalNavigation:withError:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/RequiresUserActionForPlayback.mm:
+        (RequiresUserActionForPlaybackTest::createWebView):
+        (RequiresUserActionForPlaybackTest::testVideoWithAudio):
+        (RequiresUserActionForPlaybackTest::testVideoWithoutAudio):
+        (RequiresUserActionForPlaybackTest::testAudioOnly):
+        (-[RequiresUserActionForPlaybackNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/ShrinkToFit.mm:
+        (TEST):
+        (-[ShrinkToFitNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/UserContentController.mm:
+        (TEST):
+        (webViewForScriptMessageHandlerMultipleHandlerRemovalTest):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/UserContentWorld.mm:
+        (TEST):
+        (-[SimpleDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/WKPDFViewResizeCrash.mm:
+        (TEST):
+        (-[WKPDFViewResizeNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/WKWebViewEvaluateJavaScript.mm:
+        (TEST):
+        (-[EvaluateJavaScriptNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/Tests/WebKit2Cocoa/WKWebViewTextInput.mm:
+        (TEST):
+        (-[DummyNavigationDelegate webView:didFinishNavigation:]): Deleted.
+        * TestWebKitAPI/cocoa/TestNavigationDelegate.h: Added.
+        * TestWebKitAPI/cocoa/TestNavigationDelegate.mm: Added.
+        (-[TestNavigationDelegate webView:didFailProvisionalNavigation:withError:]):
+        (-[TestNavigationDelegate webView:didFinishNavigation:]):
+        (-[TestNavigationDelegate _webView:renderingProgressDidChange:]):
+        (-[TestNavigationDelegate waitForDidFinishNavigation]):
+        (-[WKWebView _test_waitForDidFinishNavigation]):
+
+2016-09-01  Ricky Mondello  <rmondello@apple.com>
+
+        YouTube Flash plug-in replacement facility should not insert showinfo=0 into iframe URLs
+        https://bugs.webkit.org/show_bug.cgi?id=161478
+        <rdar://problem/28050847>
+
+        Reviewed by Eric Carlson.
+
+        * TestWebKitAPI/Tests/WebCore/YouTubePluginReplacement.cpp:
+        (TestWebKitAPI::TEST_F): Update expected results.
+
+2016-09-01  Anders Carlsson  <andersca@apple.com>
+
+        add BlockPtr::fromCallable
+        https://bugs.webkit.org/show_bug.cgi?id=161504
+
+        Reviewed by Tim Horton.
+
+        Add a test.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WTF/BlockPtr.mm: Added.
+        (TestWebKitAPI::TEST):
+
+2016-09-01  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should handle . and .. in URL paths
+        https://bugs.webkit.org/show_bug.cgi?id=161443
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::eq):
+        (TestWebKitAPI::TEST_F):
+
+2016-09-01  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r205295 and r205303.
+        https://bugs.webkit.org/show_bug.cgi?id=161505
+
+        Broke the iOS build (Requested by ryanhaddad on #webkit).
+
+        Reverted changesets:
+
+        "Refactor MobileMiniBrowser into an application framework to
+        allow external XCTesting"
+        https://bugs.webkit.org/show_bug.cgi?id=161462
+        http://trac.webkit.org/changeset/205295
+
+        "Unreviewed build-fix; don't specify an explicit deployment
+        target."
+        http://trac.webkit.org/changeset/205303
+
+2016-09-01  Ricky Mondello  <rmondello@apple.com>
+
+        YouTube Flash plug-in replacement facility should more gracefully handle malformed queries
+        https://bugs.webkit.org/show_bug.cgi?id=161476
+        <rdar://problem/28050847>
+
+        Reviewed by Eric Carlson.
+
+        * TestWebKitAPI/Tests/WebCore/YouTubePluginReplacement.cpp:
+        (TestWebKitAPI::TEST_F): New tests. The first two and second-to-last test cases cover the "malformed" query
+            logic. A few other tests are added, too.
+
+2016-09-01  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed build-fix; don't specify an explicit deployment target.
+
+        * MobileMiniBrowser/MobileMiniBrowser.xcodeproj/project.pbxproj:
+
+2016-08-31  Jer Noble  <jer.noble@apple.com>
+
+        Refactor MobileMiniBrowser into an application framework to allow external XCTesting
+        https://bugs.webkit.org/show_bug.cgi?id=161462
+
+        Reviewed by Eric Carlson.
+
+        XCTest targets need to be in the same project as the application which they're testing. To facilitate
+        having external projects with XCTest targets, move the application's implementation into a framework
+        that can be included with a bare-bones application shell for testing.
+
+        Simultaneously, add the ability to load files from within the new framework's bundle by using a
+        'bundle:/' URL scheme. Update the tests to use this new bundle URL and remove the dependency on
+        an external server for testing.
+
+        * MobileMiniBrowser/MobileMiniBrowser.xcodeproj/project.pbxproj:
+        * MobileMiniBrowser/MobileMiniBrowser/Base.lproj/LaunchScreen.storyboard:
+        * MobileMiniBrowser/MobileMiniBrowser/Info.plist:
+        * MobileMiniBrowser/MobileMiniBrowser/main.m:
+        * MobileMiniBrowser/MobileMiniBrowserFramework/AppDelegate.h: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/AppDelegate.h.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/AppDelegate.m: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/AppDelegate.m.
+        (-[AppDelegate application:didFinishLaunchingWithOptions:]): Manually instantiate the main view
+            controller from the framework's bundle.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/Assets.xcassets/AppIcon.appiconset/Contents.json: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/Assets.xcassets/AppIcon.appiconset/Contents.json.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/Base.lproj/Main.storyboard: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/Base.lproj/Main.storyboard.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/Info.plist: Added.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/MobileMiniBrowser.h: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/AppDelegate.h.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/TabViewController.h: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/TabViewController.h.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/TabViewController.m: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/TabViewController.m.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/WebViewController.h: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/WebViewController.h.
+        * MobileMiniBrowser/MobileMiniBrowserFramework/WebViewController.m: Renamed from Tools/MobileMiniBrowser/MobileMiniBrowser/WebViewController.m.
+        (+[NSURL __bundleURLForFileURL:bundle:]): Add utility method.
+        (+[NSURL __fileURLForBundleURL:bundle:]): Ditto.
+        (-[WebViewController navigateTo:]): Support loading "bundle:/" URLs which are really just "file:" URLs
+            pointing to the framework's resources directory.
+        (-[WebViewController observeValueForKeyPath:ofObject:change:context:]): Ditto.
+        * MobileMiniBrowser/MobileMiniBrowserUITests/MobileMiniBrowserUITests.m:
+        (-[MobileMiniBrowserUITests testBasicVideoPlayback]):
+
+2016-09-01  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix webkitpy unit tests after r205280.
+
+        * Scripts/webkitpy/style/checker_unittest.py:
+        (GlobalVariablesTest.test_path_rules_specifier):
+
+2016-08-31  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Move GObject DOM bindings to WebKit2 layer and stop auto generating them
+        https://bugs.webkit.org/show_bug.cgi?id=161438
+
+        Reviewed by Michael Catanzaro.
+
+        Remove scripts related to the GObject DOM bindings auto-generation.
+
+        * BuildSlaveSupport/build.webkit.org-config/master.cfg:
+        (RunGtkAPITests.getText2):
+        (TestFactory.__init__):
+        (RunWebKit1Tests): Deleted.
+        (RunWebKit1Tests.start): Deleted.
+        (RunWebKit1LeakTests): Deleted.
+        (RunWebKit1LeakTests.start): Deleted.
+        (RunAndUploadPerfTests): Deleted.
+        (RunAndUploadPerfTests.start): Deleted.
+        (BuildAndRemoteJSCTestsFactory.__init__): Deleted.
+        * BuildSlaveSupport/build.webkit.org-config/mastercfg_unittest.py:
+        (BuildStepsTest.test_unnecessary_expected_results):
+        (RunAndUploadPerfTestsTest): Deleted.
+        (RunAndUploadPerfTestsTest.assertResults): Deleted.
+        (RunAndUploadPerfTestsTest.test_success): Deleted.
+        (RunAndUploadPerfTestsTest.test_tests_failed): Deleted.
+        (RunAndUploadPerfTestsTest.test_build_bad_build): Deleted.
+        (RunAndUploadPerfTestsTest.test_build_bad_source_json): Deleted.
+        (RunAndUploadPerfTestsTest.test_build_bad_marge): Deleted.
+        (RunAndUploadPerfTestsTest.test_build_bad_failed_uploading): Deleted.
+        (RunAndUploadPerfTestsTest.test_build_bad_preparation): Deleted.
+        (RunAndUploadPerfTestsTest.test_buildbot_timeout): Deleted.
+        (RunBenchmarkTest): Deleted.
+        (RunBenchmarkTest.assertResults): Deleted.
+        (RunBenchmarkTest.test_success): Deleted.
+        * Scripts/run-bindings-tests:
+        (main):
+        * Scripts/webkitpy/style/checker.py:
+        * gtk/check-for-webkitdom-api-breaks: Removed.
+        * gtk/generate-gtkdoc:
+        * gtk/webkitdom.py: Removed.
+
+2016-08-31  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Small clean up in MiniBrowser
+        https://bugs.webkit.org/show_bug.cgi?id=161428
+
+        Reviewed by Yusuke Suzuki.
+
+        This patch resizes MiniBrowser, add *char* constants for scheme,
+        does line breaking, and remove unnecessary spaces.
+
+        * MiniBrowser/efl/main.c:
+        (on_mouse_wheel):
+        (history_list_hide):
+        (script_execute_callback):
+        (on_key_down):
+        (on_url_changed):
+        (on_error):
+        (on_color_picker_request):
+        (url_from_user_input):
+        (url_load_from_user_input):
+        (on_back_button_clicked):
+        (on_search_case_option_changed):
+        (on_search_word_start_option_changed):
+        (on_list_item_select):
+        (navigation_button_longpress_process):
+        (on_navigation_policy_decision):
+        (window_create):
+        (parse_cookies_policy):
+
 2016-08-31  Alex Christensen  <achristensen@webkit.org>
 
         Implement IPv6 parsing in URLParser

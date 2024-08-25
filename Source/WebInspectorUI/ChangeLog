@@ -1,3 +1,136 @@
+2016-09-02  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Provide a way to open an inspector frontend for a remote target
+        https://bugs.webkit.org/show_bug.cgi?id=161515
+        <rdar://problem/13182127>
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Base/InspectorFrontendHostStub.js:
+        (WebInspector.InspectorFrontendHostStub.prototype.backendCommandsURL):
+        Stub new InspectorFrontendHost methods. This value causes the
+        frontend to load the latest protocol.
+
+        * UserInterface/Protocol/LoadInspectorBackendCommands.js:
+        Use formalized backendCommandsURL, and if empty load the latest protocol.
+
+2016-09-02  Johan K. Jensen  <johan_jensen@apple.com>
+
+        Web Inspector: NetworkTimelineOverviewGraph.MinimumBarPaddingTime is undefined
+        https://bugs.webkit.org/show_bug.cgi?id=161510
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/NetworkTimelineOverviewGraph.js:
+        (WebInspector.NetworkTimelineOverviewGraph.prototype._networkTimelineRecordAdded):
+        (WebInspector.NetworkTimelineOverviewGraph):
+        Calculate the minimumBarPaddingTime in similar ways to TimelineRecordBar,
+        by using MinimumWidthPixel, MinimumMarginPixel and MinimumDurationPerPixel as the secondsPerPixel value.
+
+        * UserInterface/Views/TimelineOverview.js:
+        (WebInspector.TimelineOverview):
+        Make Minimum/MaximumDurationPerPixel public properties.
+
+2016-09-01  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Add visual indicator for shadow content in DOM tree
+        https://bugs.webkit.org/show_bug.cgi?id=160874
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/DOMTreeElement.js:
+        (WebInspector.DOMTreeElement.prototype._nodeTitleInfo):
+        (WebInspector.DOMTreeElement.prototype._buildTagDOM):
+        Moved "shadow" class to parent element to allow easier styling.
+
+        * UserInterface/Views/DOMTreeOutline.css:
+        (.tree-outline.dom):
+        (.tree-outline.dom li):
+        (.tree-outline.dom .shadow):
+        (.tree-outline.dom li.parent.shadow::after):
+        (.tree-outline.dom li.parent.shadow + ol.children.expanded):
+        (.tree-outline.dom .html-fragment.shadow): Deleted.
+
+2016-09-01  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Value checks of secondsPerPixel cause errors
+        https://bugs.webkit.org/show_bug.cgi?id=161304
+        <rdar://problem/28050070>
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/NetworkTimelineView.js:
+        (WebInspector.NetworkTimelineView.prototype.reset):
+        Clear resource node map, which is used to determine which nodes
+        to refresh during layout.
+
+        (WebInspector.NetworkTimelineView.prototype.layout):
+        Like OverviewTimelineView, only refresh node graphs when times change.
+        This prevents refreshing nodes when (endTime - startTime) === 0.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView.prototype._recordingReset):
+        TimelineViews must be cleared before calling _updateTimes to avoid
+        doing layouts in timeline views containing stale data.
+
+2016-09-01  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: add Object.awaitEvent which is like singleFireEventListener but returns a promise
+        https://bugs.webkit.org/show_bug.cgi?id=161451
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Base/Object.js:
+        (WebInspector.Object.awaitEvent):
+        (WebInspector.Object.prototype.awaitEvent):
+
+2016-09-01  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Minification detection produces false positives for small resources
+        https://bugs.webkit.org/show_bug.cgi?id=161159
+        <rdar://problem/27995306>
+
+        Reviewed by Brian Burg.
+
+        Improve minification detection algorithm. Minified resources rarely have tabs and usually
+        have a very few line breaks. Counting tabs as 4 spaces and line breaks as 8 makes minification
+        detection heuristic more accurate. Increase ratio thresholds to accommodate for the changes in
+        whitespaceScore.
+
+        * UserInterface/Base/Utilities.js:
+        (isTextLikelyMinified):
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype._prepareEditorForInitialContent):
+        (WebInspector.SourceCodeTextEditor.prototype._isLikelyMinified): Deleted.
+
+2016-09-01  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        REGRESSION (r201454): Web Inspector: Text caret isn't visible when editing an attribute
+        https://bugs.webkit.org/show_bug.cgi?id=160986
+        <rdar://problem/27916207>
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/DOMTreeOutline.css:
+        (.tree-outline.dom li .selection-area):
+        (.tree-outline.dom li > span):
+        Place selection area under the edited field, the way it was before r201454.
+
+2016-09-01  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: tweak one UIString for "reasons for compositing"
+        https://bugs.webkit.org/show_bug.cgi?id=161495
+        <rdar://problem/13718387>
+
+        Reviewed by Simon Fraser.
+
+        Change "Element establishes a stacking context" to "Element may overlap other compositing element".
+
+        * Localizations/en.lproj/localizedStrings.js:
+        * UserInterface/Views/LayerTreeDetailsSidebarPanel.js:
+        (WebInspector.LayerTreeDetailsSidebarPanel.prototype._populateListOfCompositingReasons):
+        (WebInspector.LayerTreeDetailsSidebarPanel):
+
 2016-08-30  Devin Rousso  <dcrousso+webkit@gmail.com>
 
         Web Inspector: Remove largest common indentation spacing in debugger popover

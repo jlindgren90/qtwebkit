@@ -329,7 +329,6 @@ list(APPEND WebCore_SOURCES
     platform/cocoa/SystemVersion.mm
     platform/cocoa/TelephoneNumberDetectorCocoa.cpp
     platform/cocoa/ThemeCocoa.mm
-    platform/cocoa/URLParserCocoa.mm
     platform/cocoa/VNodeTrackerCocoa.cpp
     platform/cocoa/WebCoreNSErrorExtras.mm
 
@@ -641,6 +640,7 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
 
     platform/audio/cocoa
 
+    platform/gamepad/cocoa
     platform/gamepad/mac
 
     platform/graphics/ca
