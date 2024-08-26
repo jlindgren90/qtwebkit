@@ -51,6 +51,13 @@ enum class XSSProtectionDisposition {
     BlockEnabled,
 };
 
+enum ContentDispositionType {
+    ContentDispositionNone,
+    ContentDispositionInline,
+    ContentDispositionAttachment,
+    ContentDispositionOther
+};
+
 #if ENABLE(NOSNIFF)
 enum ContentTypeOptionsDisposition {
     ContentTypeOptionsNone,
@@ -67,6 +74,7 @@ enum XFrameOptionsDisposition {
     XFrameOptionsConflict
 };
 
+ContentDispositionType contentDispositionType(const String&);
 bool isValidReasonPhrase(const String&);
 bool isValidHTTPHeaderValue(const String&);
 bool isValidHTTPToken(const String&);
