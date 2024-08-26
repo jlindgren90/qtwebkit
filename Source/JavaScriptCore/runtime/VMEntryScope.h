@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef VMEntryScope_h
-#define VMEntryScope_h
+#pragma once
 
 #include <wtf/StackBounds.h>
 #include <wtf/StackStats.h>
@@ -53,5 +52,3 @@ private:
 };
 
 } // namespace JSC
-
-#endif // VMEntryScope_h

@@ -23,8 +23,7 @@
  *
  */
 
-#ifndef Nodes_h
-#define Nodes_h
+#pragma once
 
 #include "BuiltinNames.h"
 #include "Error.h"
@@ -2295,5 +2294,3 @@ namespace JSC {
     };
 
 } // namespace JSC
-
-#endif // Nodes_h

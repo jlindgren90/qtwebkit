@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef JSGenericTypedArrayViewConstructorInlines_h
-#define JSGenericTypedArrayViewConstructorInlines_h
+#pragma once
 
 #include "BuiltinNames.h"
 #include "Error.h"
@@ -280,5 +279,3 @@ CallType JSGenericTypedArrayViewConstructor<ViewClass>::getCallData(JSCell*, Cal
 }
 
 } // namespace JSC
-
-#endif // JSGenericTypedArrayViewConstructorInlines_h
