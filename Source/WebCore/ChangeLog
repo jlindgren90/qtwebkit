@@ -1,3 +1,104 @@
+2016-09-27  Chris Dumez  <cdumez@apple.com>
+
+        It should be possible to dispatch events on documents created using DOMParser
+        https://bugs.webkit.org/show_bug.cgi?id=26147
+
+        Reviewed by Ryosuke Niwa.
+
+        It should be possible to dispatch events on documents created using
+        DOMParser. It did not work because we were not setting the context
+        document on the newly created document in DOMParser::parseFromString().
+
+        Firefox and Chrome both already support this.
+
+        Test: fast/dom/parsed-document-dispatchEvent.html
+
+        * xml/DOMParser.cpp:
+        (WebCore::DOMParser::DOMParser):
+        (WebCore::DOMParser::parseFromString):
+        * xml/DOMParser.h:
+        (WebCore::DOMParser::create):
+        * xml/DOMParser.idl:
+
+2016-09-26  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [Cocoa] Improve performance of complex text codepath
+        https://bugs.webkit.org/show_bug.cgi?id=161936
+
+        Reviewed by Simon Fraser.
+
+        CoreText exposes a bit on the CTRunStatus which represents whether
+        the run actually uses the glyph origins concept introduced in
+        r205396. If this bit is not set, we can use the (slightly faster)
+        call to CTRunGetAdvances() instead of
+        CTRunGetBaseAdvancesAndOrigins(). In addition, if none of the runs
+        have this bit set, we don't need to allocate storage for the vector
+        of origins at all, thereby using less memory.
+
+        No new tests because there is no behavior change.
+
+        * platform/graphics/mac/ComplexTextController.cpp:
+        (WebCore::ComplexTextController::advance):
+        (WebCore::ComplexTextController::adjustGlyphsAndAdvances):
+        * platform/graphics/mac/ComplexTextController.h:
+        (WebCore::ComplexTextController::ComplexTextRun::glyphOrigins):
+        (WebCore::ComplexTextController::glyphOrigin):
+        * platform/graphics/mac/ComplexTextControllerCoreText.mm:
+        (WebCore::ComplexTextController::ComplexTextRun::ComplexTextRun):
+        * platform/spi/cocoa/CoreTextSPI.h:
+
+2016-09-27  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Import w3c shadow DOM tests and fix one assertion
+        https://bugs.webkit.org/show_bug.cgi?id=162629
+
+        Reviewed by Chris Dumez.
+
+        The assertion failure was caused by RelatedNodeRetargeter's constructor mixing up the ancestor tree scopes
+        for the target and the related target. Fixed the bug by reversing the two.
+
+        Tests: imported/w3c/web-platform-tests/shadow-dom/event-composed-path-with-related-target.html
+
+        * dom/EventPath.cpp:
+        (WebCore::RelatedNodeRetargeter::RelatedNodeRetargeter): i and m_ancestorTreeScopes are for the related target
+        and j and targetTreeScopeAncestors are for the target.
+
+2016-09-27  Chris Dumez  <cdumez@apple.com>
+
+        It should be possible to dispatch events on documents that do not have a browsing context
+        https://bugs.webkit.org/show_bug.cgi?id=162620
+
+        Reviewed by Ryosuke Niwa.
+
+        It should be possible to dispatch events on documents that do not have a browsing
+        context (e.g. Documents created using DOMImplementation.createHTMLDocument()).
+        Gecko and Blink both allow this but WebKit did not.
+
+        The approach chosen to support this is similar to the one in Blink. When constructing
+        a new document (e.g. using DOMImplementation.createHTMLDocument()) we now keep track
+        of the context document. When requesting the scriptExecutionContext(), we now return
+        the context document if the document has one instead of the document itself.
+
+        Test: imported/w3c/web-platform-tests/dom/events/Event-dispatch-other-document.html
+
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::visitAdditionalChildren):
+        * dom/DOMImplementation.cpp:
+        (WebCore::DOMImplementation::createDocument):
+        (WebCore::DOMImplementation::createHTMLDocument):
+        * dom/Document.cpp:
+        (WebCore::Document::create):
+        (WebCore::Document::cloneDataFromDocument):
+        (WebCore::Document::contextDocument):
+        (WebCore::Document::takeDOMWindowFrom): Deleted.
+        * dom/Document.h:
+        (WebCore::Document::setContextDocument):
+        (WebCore::Node::scriptExecutionContext):
+        (WebCore::Node::isDocumentNode): Deleted.
+        * dom/Document.idl:
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::responseXML):
+
 2016-09-27  Alex Christensen  <achristensen@webkit.org>
 
         Implement URLParser::syntaxViolation
