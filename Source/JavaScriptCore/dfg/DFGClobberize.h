@@ -498,6 +498,8 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case PutGetterSetterById:
     case PutGetterByVal:
     case PutSetterByVal:
+    case DefineDataProperty:
+    case DefineAccessorProperty:
     case DeleteById:
     case DeleteByVal:
     case ArrayPush:
@@ -887,6 +889,15 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
         def(HeapLocation(ButterflyLoc, JSObject_butterfly, node->child1()), LazyNode(node));
         return;
 
+    case CheckDOM:
+        def(PureValue(node, node->classInfo()));
+        return;
+
+    case CallDOM:
+        read(World);
+        write(Heap);
+        return;
+
     case Arrayify:
     case ArrayifyToStructure:
         read(JSCell_structureID);
@@ -1258,7 +1269,7 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
             return;
         }
         
-    case ThrowReferenceError:
+    case ThrowStaticError:
         write(SideState);
         return;
         
@@ -1292,6 +1303,10 @@ void clobberize(Graph& graph, Node* node, const ReadFunctor& read, const WriteFu
     case IsNonEmptyMapBucket:
         read(MiscFields);
         def(HeapLocation(MapHasLoc, MiscFields, node->child1()), LazyNode(node));
+        return;
+
+    case ToLowerCase:
+        def(PureValue(node));
         return;
         
     case LastNodeType:

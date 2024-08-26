@@ -118,13 +118,14 @@ static void checkURL(const String& urlString, const ExpectedParts& parts, TestTa
     EXPECT_TRUE(URLParser::internalValuesConsistent(url));
     EXPECT_TRUE(URLParser::internalValuesConsistent(oldURL));
 
-    if (testTabs == TestTabs::Yes) {
-        for (size_t i = 0; i < urlString.length(); ++i) {
-            String urlStringWithTab = insertTabAtLocation(urlString, i);
-            checkURL(urlStringWithTab,
-                parts.isInvalid() ? invalidParts(urlStringWithTab) : parts,
-                TestTabs::No);
-        }
+    if (testTabs == TestTabs::No)
+        return;
+
+    for (size_t i = 0; i < urlString.length(); ++i) {
+        String urlStringWithTab = insertTabAtLocation(urlString, i);
+        checkURL(urlStringWithTab,
+            parts.isInvalid() ? invalidParts(urlStringWithTab) : parts,
+            TestTabs::No);
     }
 }
 
@@ -314,6 +315,22 @@ TEST_F(URLParserTest, Basic)
     checkURL("http://host:123?query", {"http", "", "", "host", 123, "/", "query", "", "http://host:123/?query"});
     checkURL("http://host:123#", {"http", "", "", "host", 123, "/", "", "", "http://host:123/#"});
     checkURL("http://host:123#fragment", {"http", "", "", "host", 123, "/", "", "fragment", "http://host:123/#fragment"});
+    checkURL("foo:////", {"foo", "", "", "", 0, "////", "", "", "foo:////"});
+    checkURL("foo:///?", {"foo", "", "", "", 0, "///", "", "", "foo:///?"});
+    checkURL("foo:///#", {"foo", "", "", "", 0, "///", "", "", "foo:///#"});
+    checkURL("foo:///", {"foo", "", "", "", 0, "///", "", "", "foo:///"});
+    checkURL("foo://?", {"foo", "", "", "", 0, "//", "", "", "foo://?"});
+    checkURL("foo://#", {"foo", "", "", "", 0, "//", "", "", "foo://#"});
+    checkURL("foo://", {"foo", "", "", "", 0, "//", "", "", "foo://"});
+    checkURL("foo:/?", {"foo", "", "", "", 0, "/", "", "", "foo:/?"});
+    checkURL("foo:/#", {"foo", "", "", "", 0, "/", "", "", "foo:/#"});
+    checkURL("foo:/", {"foo", "", "", "", 0, "/", "", "", "foo:/"});
+    checkURL("foo:?", {"foo", "", "", "", 0, "", "", "", "foo:?"});
+    checkURL("foo:#", {"foo", "", "", "", 0, "", "", "", "foo:#"});
+    checkURL("A://", {"a", "", "", "", 0, "//", "", "", "a://"});
+    checkURL("aA://", {"aa", "", "", "", 0, "//", "", "", "aa://"});
+    checkURL(utf16String(u"foo://host/#ПП\u0007 a</"), {"foo", "", "", "host", 0, "/", "", "%D0%9F%D0%9F%07 a</", "foo://host/#%D0%9F%D0%9F%07 a</"});
+    checkURL(utf16String(u"foo://host/#\u0007 a</"), {"foo", "", "", "host", 0, "/", "", "%07 a</", "foo://host/#%07 a</"});
 
     // This disagrees with the web platform test for http://:@www.example.com but agrees with Chrome and URL::parse,
     // and Firefox fails the web platform test differently. Maybe the web platform test ought to be changed.
@@ -353,14 +370,15 @@ static void checkRelativeURL(const String& urlString, const String& baseURLStrin
     EXPECT_TRUE(URLParser::internalValuesConsistent(url));
     EXPECT_TRUE(URLParser::internalValuesConsistent(oldURL));
     
-    if (testTabs == TestTabs::Yes) {
-        for (size_t i = 0; i < urlString.length(); ++i) {
-            String urlStringWithTab = insertTabAtLocation(urlString, i);
-            checkRelativeURL(urlStringWithTab,
-                baseURLString,
-                parts.isInvalid() ? invalidParts(urlStringWithTab) : parts,
-                TestTabs::No);
-        }
+    if (testTabs == TestTabs::No)
+        return;
+
+    for (size_t i = 0; i < urlString.length(); ++i) {
+        String urlStringWithTab = insertTabAtLocation(urlString, i);
+        checkRelativeURL(urlStringWithTab,
+            baseURLString,
+            parts.isInvalid() ? invalidParts(urlStringWithTab) : parts,
+            TestTabs::No);
     }
 }
 
@@ -384,6 +402,10 @@ TEST_F(URLParserTest, ParseRelative)
     checkRelativeURL("#", "file:///path?query#old", {"file", "", "", "", 0, "/path", "query", "", "file:///path?query#"});
     checkRelativeURL("?query", "http://host/path", {"http", "", "", "host", 0, "/path", "query", "", "http://host/path?query"});
     checkRelativeURL("?query#fragment", "http://host/path", {"http", "", "", "host", 0, "/path", "query", "fragment", "http://host/path?query#fragment"});
+    checkRelativeURL("?new", "file:///path?old#fragment", {"file", "", "", "", 0, "/path", "new", "", "file:///path?new"});
+    checkRelativeURL("?", "file:///path?old#fragment", {"file", "", "", "", 0, "/path", "", "", "file:///path?"});
+    checkRelativeURL("?", "file:///path", {"file", "", "", "", 0, "/path", "", "", "file:///path?"});
+    checkRelativeURL("?query", "file:///path", {"file", "", "", "", 0, "/path", "query", "", "file:///path?query"});
     checkRelativeURL(utf16String(u"?β"), "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "%CE%B2", "", "http://example.org/foo/bar?%CE%B2"});
     checkRelativeURL("?", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "", "", "http://example.org/foo/bar?"});
     checkRelativeURL("#", "http://example.org/foo/bar", {"http", "", "", "example.org", 0, "/foo/bar", "", "", "http://example.org/foo/bar#"});
@@ -433,6 +455,7 @@ TEST_F(URLParserTest, ParseRelative)
     checkRelativeURL("  ", "http://host/#fragment", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
     checkRelativeURL("  ", "http://host/path?query#fra#gment", {"http", "", "", "host", 0, "/path", "query", "", "http://host/path?query"});
     checkRelativeURL(" \a ", "http://host/#fragment", {"http", "", "", "host", 0, "/", "", "", "http://host/"});
+    checkRelativeURL("foo://", "http://example.org/foo/bar", {"foo", "", "", "", 0, "//", "", "", "foo://"});
 
     // The checking of slashes in SpecialAuthoritySlashes needed to get this to pass contradicts what is in the spec,
     // but it is included in the web platform tests.
@@ -472,14 +495,15 @@ static void checkURLDifferences(const String& urlString, const ExpectedParts& pa
     EXPECT_TRUE(URLParser::internalValuesConsistent(url));
     EXPECT_TRUE(URLParser::internalValuesConsistent(oldURL));
     
-    if (testTabs == TestTabs::Yes) {
-        for (size_t i = 0; i < urlString.length(); ++i) {
-            String urlStringWithTab = insertTabAtLocation(urlString, i);
-            checkURLDifferences(urlStringWithTab,
-                partsNew.isInvalid() ? invalidParts(urlStringWithTab) : partsNew,
-                partsOld.isInvalid() ? invalidParts(urlStringWithTab) : partsOld,
-                TestTabs::No);
-        }
+    if (testTabs == TestTabs::No)
+        return;
+
+    for (size_t i = 0; i < urlString.length(); ++i) {
+        String urlStringWithTab = insertTabAtLocation(urlString, i);
+        checkURLDifferences(urlStringWithTab,
+            partsNew.isInvalid() ? invalidParts(urlStringWithTab) : partsNew,
+            partsOld.isInvalid() ? invalidParts(urlStringWithTab) : partsOld,
+            TestTabs::No);
     }
 }
 
@@ -516,14 +540,15 @@ static void checkRelativeURLDifferences(const String& urlString, const String& b
     EXPECT_TRUE(URLParser::internalValuesConsistent(url));
     EXPECT_TRUE(URLParser::internalValuesConsistent(oldURL));
 
-    if (testTabs == TestTabs::Yes) {
-        for (size_t i = 0; i < urlString.length(); ++i) {
-            String urlStringWithTab = insertTabAtLocation(urlString, i);
-            checkRelativeURLDifferences(urlStringWithTab, baseURLString,
-                partsNew.isInvalid() ? invalidParts(urlStringWithTab) : partsNew,
-                partsOld.isInvalid() ? invalidParts(urlStringWithTab) : partsOld,
-                TestTabs::No);
-        }
+    if (testTabs == TestTabs::No)
+        return;
+
+    for (size_t i = 0; i < urlString.length(); ++i) {
+        String urlStringWithTab = insertTabAtLocation(urlString, i);
+        checkRelativeURLDifferences(urlStringWithTab, baseURLString,
+            partsNew.isInvalid() ? invalidParts(urlStringWithTab) : partsNew,
+            partsOld.isInvalid() ? invalidParts(urlStringWithTab) : partsOld,
+            TestTabs::No);
     }
 }
 
@@ -551,6 +576,21 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("http://[a:0:0:0:b:c::d]",
         {"http", "", "", "[a::b:c:0:d]", 0, "/", "", "", "http://[a::b:c:0:d]/"},
         {"http", "", "", "[a:0:0:0:b:c::d]", 0, "/", "", "", "http://[a:0:0:0:b:c::d]/"});
+    checkURLDifferences("http://[::7f00:0001]/",
+        {"http", "", "", "[::7f00:1]", 0, "/", "", "", "http://[::7f00:1]/"},
+        {"http", "", "", "[::7f00:0001]", 0, "/", "", "", "http://[::7f00:0001]/"});
+    checkURLDifferences("http://[::7f00:00]/",
+        {"http", "", "", "[::7f00:0]", 0, "/", "", "", "http://[::7f00:0]/"},
+        {"http", "", "", "[::7f00:00]", 0, "/", "", "", "http://[::7f00:00]/"});
+    checkURLDifferences("http://[::0:7f00:0001]/",
+        {"http", "", "", "[::7f00:1]", 0, "/", "", "", "http://[::7f00:1]/"},
+        {"http", "", "", "[::0:7f00:0001]", 0, "/", "", "", "http://[::0:7f00:0001]/"});
+    checkURLDifferences("http://127.00.0.1/",
+        {"http", "", "", "127.0.0.1", 0, "/", "", "", "http://127.0.0.1/"},
+        {"http", "", "", "127.00.0.1", 0, "/", "", "", "http://127.00.0.1/"});
+    checkURLDifferences("http://127.0.0.01/",
+        {"http", "", "", "127.0.0.1", 0, "/", "", "", "http://127.0.0.1/"},
+        {"http", "", "", "127.0.0.01", 0, "/", "", "", "http://127.0.0.01/"});
     checkURLDifferences("http://example.com/path1/.%2e",
         {"http", "", "", "example.com", 0, "/", "", "", "http://example.com/"},
         {"http", "", "", "example.com", 0, "/path1/.%2e", "", "", "http://example.com/path1/.%2e"});
@@ -729,9 +769,6 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("notspecial://@test@test@example:800\\path@end",
         {"notspecial", "@test@test@example", "800\\path", "end", 0, "/", "", "", "notspecial://%40test%40test%40example:800%5Cpath@end/"},
         {"", "", "", "", 0, "", "", "", "notspecial://@test@test@example:800\\path@end"});
-    checkRelativeURLDifferences("foo://", "http://example.org/foo/bar",
-        {"foo", "", "", "", 0, "/", "", "", "foo:///"},
-        {"foo", "", "", "", 0, "//", "", "", "foo://"});
     checkURLDifferences(utf16String(u"http://host?ß😍#ß😍"),
         {"http", "", "", "host", 0, "/", "%C3%9F%F0%9F%98%8D", utf16String(u"ß😍"), utf16String(u"http://host/?%C3%9F%F0%9F%98%8D#ß😍")},
         {"http", "", "", "host", 0, "/", "%C3%9F%F0%9F%98%8D", "%C3%9F%F0%9F%98%8D", "http://host/?%C3%9F%F0%9F%98%8D#%C3%9F%F0%9F%98%8D"}, testTabsValueForSurrogatePairs);
@@ -753,12 +790,6 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("http://host/`",
         {"http", "", "", "host", 0, "/%60", "", "", "http://host/%60"},
         {"http", "", "", "host", 0, "/`", "", "", "http://host/`"});
-    checkURLDifferences("aA://",
-        {"aa", "", "", "", 0, "/", "", "", "aa:///"},
-        {"aa", "", "", "", 0, "//", "", "", "aa://"});
-    checkURLDifferences("A://",
-        {"a", "", "", "", 0, "/", "", "", "a:///"},
-        {"a", "", "", "", 0, "//", "", "", "a://"});
     checkURLDifferences("http://://",
         {"", "", "", "", 0, "", "", "", "http://://"},
         {"http", "", "", "", 0, "//", "", "", "http://://"});
@@ -774,6 +805,12 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("http://:",
         {"", "", "", "", 0, "", "", "", "http://:"},
         {"http", "", "", "", 0, "/", "", "", "http://:/"});
+    checkURLDifferences("http:##foo",
+        {"http", "", "", "", 0, "//", "", "#foo", "http://##foo"},
+        {"http", "", "", "", 0, "/", "", "#foo", "http:/##foo"});
+    checkURLDifferences("http:??bar",
+        {"http", "", "", "", 0, "//", "?bar", "", "http://??bar"},
+        {"http", "", "", "", 0, "/", "?bar", "", "http:/??bar"});
     checkRelativeURLDifferences("//C|/foo/bar", "file:///tmp/mock/path",
         {"file", "", "", "", 0, "/C:/foo/bar", "", "", "file:///C:/foo/bar"},
         {"", "", "", "", 0, "", "", "", "//C|/foo/bar"});
@@ -840,6 +877,90 @@ TEST_F(URLParserTest, ParserDifferences)
     checkRelativeURLDifferences("http://f:010/c", "http://example.org/foo/bar",
         {"http", "", "", "f", 10, "/c", "", "", "http://f:10/c"},
         {"http", "", "", "f", 10, "/c", "", "", "http://f:010/c"});
+    checkURLDifferences("notspecial://HoSt",
+        {"notspecial", "", "", "host", 0, "/", "", "", "notspecial://host/"},
+        {"notspecial", "", "", "HoSt", 0, "", "", "", "notspecial://HoSt"});
+    checkURLDifferences("notspecial://H%4fSt",
+        {"notspecial", "", "", "host", 0, "/", "", "", "notspecial://host/"},
+        {"notspecial", "", "", "H%4fSt", 0, "", "", "", "notspecial://H%4fSt"});
+    checkURLDifferences(utf16String(u"notspecial://H😍ßt"),
+        {"notspecial", "", "", "xn--hsst-qc83c", 0, "/", "", "", "notspecial://xn--hsst-qc83c/"},
+        {"notspecial", "", "", "xn--hsst-qc83c", 0, "", "", "", "notspecial://xn--hsst-qc83c"}, testTabsValueForSurrogatePairs);
+    checkURLDifferences("http://[ffff:aaaa:cccc:eeee:bbbb:dddd:255.255.255.255]/",
+        {"http", "", "", "[ffff:aaaa:cccc:eeee:bbbb:dddd:ffff:ffff]", 0, "/", "", "", "http://[ffff:aaaa:cccc:eeee:bbbb:dddd:ffff:ffff]/"},
+        {"http", "", "", "[ffff:aaaa:cccc:eeee:bbbb:dddd:255.255.255.255]", 0, "/", "", "", "http://[ffff:aaaa:cccc:eeee:bbbb:dddd:255.255.255.255]/"}, TestTabs::No);
+    checkURLDifferences("http://[::123.234.12.210]/",
+        {"http", "", "", "[::7bea:cd2]", 0, "/", "", "", "http://[::7bea:cd2]/"},
+        {"http", "", "", "[::123.234.12.210]", 0, "/", "", "", "http://[::123.234.12.210]/"});
+    checkURLDifferences("http://[::a:255.255.255.255]/",
+        {"http", "", "", "[::a:ffff:ffff]", 0, "/", "", "", "http://[::a:ffff:ffff]/"},
+        {"http", "", "", "[::a:255.255.255.255]", 0, "/", "", "", "http://[::a:255.255.255.255]/"});
+    checkURLDifferences("http://[::0.00.255.255]/",
+        {"", "", "", "", 0, "", "", "", "http://[::0.00.255.255]/"},
+        {"http", "", "", "[::0.00.255.255]", 0, "/", "", "", "http://[::0.00.255.255]/"});
+    checkURLDifferences("http://[::0.0.255.255]/",
+        {"http", "", "", "[::ffff]", 0, "/", "", "", "http://[::ffff]/"},
+        {"http", "", "", "[::0.0.255.255]", 0, "/", "", "", "http://[::0.0.255.255]/"});
+    checkURLDifferences("http://[::0:1.0.255.255]/",
+        {"http", "", "", "[::100:ffff]", 0, "/", "", "", "http://[::100:ffff]/"},
+        {"http", "", "", "[::0:1.0.255.255]", 0, "/", "", "", "http://[::0:1.0.255.255]/"});
+    checkURLDifferences("http://[::A:1.0.255.255]/",
+        {"http", "", "", "[::a:100:ffff]", 0, "/", "", "", "http://[::a:100:ffff]/"},
+        {"http", "", "", "[::a:1.0.255.255]", 0, "/", "", "", "http://[::a:1.0.255.255]/"});
+    checkURLDifferences("http://[:127.0.0.1]",
+        {"", "", "", "", 0, "", "", "", "http://[:127.0.0.1]"},
+        {"http", "", "", "[:127.0.0.1]", 0, "/", "", "", "http://[:127.0.0.1]/"});
+    checkURLDifferences("http://[127.0.0.1]",
+        {"", "", "", "", 0, "", "", "", "http://[127.0.0.1]"},
+        {"http", "", "", "[127.0.0.1]", 0, "/", "", "", "http://[127.0.0.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f:127.0.0.1]",
+        {"http", "", "", "[a:b:c:d:e:f:7f00:1]", 0, "/", "", "", "http://[a:b:c:d:e:f:7f00:1]/"},
+        {"http", "", "", "[a:b:c:d:e:f:127.0.0.1]", 0, "/", "", "", "http://[a:b:c:d:e:f:127.0.0.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f:127.0.0.101]",
+        {"http", "", "", "[a:b:c:d:e:f:7f00:65]", 0, "/", "", "", "http://[a:b:c:d:e:f:7f00:65]/"},
+        {"http", "", "", "[a:b:c:d:e:f:127.0.0.101]", 0, "/", "", "", "http://[a:b:c:d:e:f:127.0.0.101]/"});
+    checkURLDifferences("http://[::a:b:c:d:e:f:127.0.0.1]",
+        {"", "", "", "", 0, "", "", "", "http://[::a:b:c:d:e:f:127.0.0.1]"},
+        {"http", "", "", "[::a:b:c:d:e:f:127.0.0.1]", 0, "/", "", "", "http://[::a:b:c:d:e:f:127.0.0.1]/"});
+    checkURLDifferences("http://[a:b::c:d:e:f:127.0.0.1]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b::c:d:e:f:127.0.0.1]"},
+        {"http", "", "", "[a:b::c:d:e:f:127.0.0.1]", 0, "/", "", "", "http://[a:b::c:d:e:f:127.0.0.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e:127.0.0.1]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:127.0.0.1]"},
+        {"http", "", "", "[a:b:c:d:e:127.0.0.1]", 0, "/", "", "", "http://[a:b:c:d:e:127.0.0.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f:127.0.0.0.1]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:f:127.0.0.0.1]"},
+        {"http", "", "", "[a:b:c:d:e:f:127.0.0.0.1]", 0, "/", "", "", "http://[a:b:c:d:e:f:127.0.0.0.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f:127.0.1]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:f:127.0.1]"},
+        {"http", "", "", "[a:b:c:d:e:f:127.0.1]", 0, "/", "", "", "http://[a:b:c:d:e:f:127.0.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f:127.0.0.011]", // Chrome treats this as octal, Firefox and the spec fail
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:f:127.0.0.011]"},
+        {"http", "", "", "[a:b:c:d:e:f:127.0.0.011]", 0, "/", "", "", "http://[a:b:c:d:e:f:127.0.0.011]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f:127.0.00.1]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:f:127.0.00.1]"},
+        {"http", "", "", "[a:b:c:d:e:f:127.0.00.1]", 0, "/", "", "", "http://[a:b:c:d:e:f:127.0.00.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f:127.0.0.1.]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:f:127.0.0.1.]"},
+        {"http", "", "", "[a:b:c:d:e:f:127.0.0.1.]", 0, "/", "", "", "http://[a:b:c:d:e:f:127.0.0.1.]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f:127.0..0.1]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:f:127.0..0.1]"},
+        {"http", "", "", "[a:b:c:d:e:f:127.0..0.1]", 0, "/", "", "", "http://[a:b:c:d:e:f:127.0..0.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f::127.0.0.1]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:f::127.0.0.1]"},
+        {"http", "", "", "[a:b:c:d:e:f::127.0.0.1]", 0, "/", "", "", "http://[a:b:c:d:e:f::127.0.0.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e::127.0.0.1]",
+        {"http", "", "", "[a:b:c:d:e:0:7f00:1]", 0, "/", "", "", "http://[a:b:c:d:e:0:7f00:1]/"},
+        {"http", "", "", "[a:b:c:d:e::127.0.0.1]", 0, "/", "", "", "http://[a:b:c:d:e::127.0.0.1]/"});
+    checkURLDifferences("http://[a:b:c:d::e:127.0.0.1]",
+        {"http", "", "", "[a:b:c:d:0:e:7f00:1]", 0, "/", "", "", "http://[a:b:c:d:0:e:7f00:1]/"},
+        {"http", "", "", "[a:b:c:d::e:127.0.0.1]", 0, "/", "", "", "http://[a:b:c:d::e:127.0.0.1]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f::127.0.0.]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:f::127.0.0.]"},
+        {"http", "", "", "[a:b:c:d:e:f::127.0.0.]", 0, "/", "", "", "http://[a:b:c:d:e:f::127.0.0.]/"});
+    checkURLDifferences("http://[a:b:c:d:e:f::127.0.0.256]",
+        {"", "", "", "", 0, "", "", "", "http://[a:b:c:d:e:f::127.0.0.256]"},
+        {"http", "", "", "[a:b:c:d:e:f::127.0.0.256]", 0, "/", "", "", "http://[a:b:c:d:e:f::127.0.0.256]/"});
 }
 
 TEST_F(URLParserTest, DefaultPort)
@@ -929,6 +1050,22 @@ TEST_F(URLParserTest, DefaultPort)
     checkURLDifferences("unknown://host:81",
         {"unknown", "", "", "host", 81, "/", "", "", "unknown://host:81/"},
         {"unknown", "", "", "host", 81, "", "", "", "unknown://host:81"});
+
+    checkURL("file://host:0", {"file", "", "", "host", 0, "/", "", "", "file://host:0/"});
+    checkURL("file://host:80", {"file", "", "", "host", 80, "/", "", "", "file://host:80/"});
+    checkURL("file://host:80/path", {"file", "", "", "host", 80, "/path", "", "", "file://host:80/path"});
+    checkURLDifferences("file://:80/path",
+        {"", "", "", "", 0, "", "", "", "file://:80/path"},
+        {"file", "", "", "", 80, "/path", "", "", "file://:80/path"});
+    checkURLDifferences("file://:0/path",
+        {"", "", "", "", 0, "", "", "", "file://:0/path"},
+        {"file", "", "", "", 0, "/path", "", "", "file://:0/path"});
+    checkURLDifferences(utf16String(u"http://host/#ПП\u0007 a</"),
+        {"http", "", "", "host", 0, "/", "", utf16String(u"ПП\u0007 a</"), utf16String(u"http://host/#ПП\u0007 a</")},
+        {"http", "", "", "host", 0, "/", "", "%D0%9F%D0%9F%07 a</", "http://host/#%D0%9F%D0%9F%07 a</"});
+    checkURLDifferences(utf16String(u"http://host/#\u0007 a</"),
+        {"http", "", "", "host", 0, "/", "", "\a a</", "http://host/#\a a</"},
+        {"http", "", "", "host", 0, "/", "", "%07 a</", "http://host/#%07 a</"});
 }
     
 static void shouldFail(const String& urlString)
@@ -988,6 +1125,10 @@ TEST_F(URLParserTest, ParserFailures)
     shouldFail("http://[1234::ab~]");
     shouldFail("http://[2001::1");
     shouldFail("http://[1:2:3:4:5:6:7:8~]/");
+    shouldFail("http://[a:b:c:d:e:f:g:127.0.0.1]");
+    shouldFail("http://[a:b:c:d:e:f:g:h:127.0.0.1]");
+    shouldFail("http://[a:b:c:d:e:f:127.0.0.0x11]"); // Chrome treats this as hex, Firefox and the spec fail
+    shouldFail("http://[a:b:c:d:e:f:127.0.-0.1]");
 }
 
 // These are in the spec but not in the web platform tests.
@@ -1026,6 +1167,8 @@ TEST_F(URLParserTest, AdditionalTests)
     checkURLDifferences(utf16String<13>({'h', 't', 't', 'p', ':', '/', '/', 'w', '/', '?', surrogateBegin, ' ', '\0'}),
         {"http", "", "", "w", 0, "/", "%EF%BF%BD", "", "http://w/?%EF%BF%BD"},
         {"http", "", "", "w", 0, "/", "%ED%A0%80", "", "http://w/?%ED%A0%80"});
+    
+    // FIXME: Write more invalid surrogate pair tests based on feedback from https://bugs.webkit.org/show_bug.cgi?id=162105
 }
 
 static void checkURL(const String& urlString, const TextEncoding& encoding, const ExpectedParts& parts, TestTabs testTabs = TestTabs::Yes)
@@ -1042,13 +1185,40 @@ static void checkURL(const String& urlString, const TextEncoding& encoding, cons
     EXPECT_TRUE(eq(parts.fragment, url.fragmentIdentifier()));
     EXPECT_TRUE(eq(parts.string, url.string()));
 
-    if (testTabs == TestTabs::Yes) {
-        for (size_t i = 0; i < urlString.length(); ++i) {
-            String urlStringWithTab = insertTabAtLocation(urlString, i);
-            checkURL(urlStringWithTab, encoding,
-                parts.isInvalid() ? invalidParts(urlStringWithTab) : parts,
-                TestTabs::No);
-        }
+    if (testTabs == TestTabs::No)
+        return;
+
+    for (size_t i = 0; i < urlString.length(); ++i) {
+        String urlStringWithTab = insertTabAtLocation(urlString, i);
+        checkURL(urlStringWithTab, encoding,
+            parts.isInvalid() ? invalidParts(urlStringWithTab) : parts,
+            TestTabs::No);
+    }
+}
+
+static void checkURL(const String& urlString, const String& baseURLString, const TextEncoding& encoding, const ExpectedParts& parts, TestTabs testTabs = TestTabs::Yes)
+{
+    URLParser baseParser(baseURLString, { }, encoding);
+    URLParser parser(urlString, baseParser.result(), encoding);
+    auto url = parser.result();
+    EXPECT_TRUE(eq(parts.protocol, url.protocol()));
+    EXPECT_TRUE(eq(parts.user, url.user()));
+    EXPECT_TRUE(eq(parts.password, url.pass()));
+    EXPECT_TRUE(eq(parts.host, url.host()));
+    EXPECT_EQ(parts.port, url.port());
+    EXPECT_TRUE(eq(parts.path, url.path()));
+    EXPECT_TRUE(eq(parts.query, url.query()));
+    EXPECT_TRUE(eq(parts.fragment, url.fragmentIdentifier()));
+    EXPECT_TRUE(eq(parts.string, url.string()));
+    
+    if (testTabs == TestTabs::No)
+        return;
+
+    for (size_t i = 0; i < urlString.length(); ++i) {
+        String urlStringWithTab = insertTabAtLocation(urlString, i);
+        checkURL(urlStringWithTab, baseURLString, encoding,
+            parts.isInvalid() ? invalidParts(urlStringWithTab) : parts,
+            TestTabs::No);
     }
 }
 
@@ -1063,10 +1233,26 @@ TEST_F(URLParserTest, QueryEncoding)
     checkURL("http://host/?\tquery", latin1, {"http", "", "", "host", 0, "/", "query", "", "http://host/?query"});
     checkURL("http://host/?q\tuery", latin1, {"http", "", "", "host", 0, "/", "query", "", "http://host/?query"});
     checkURL("http://host/?query with SpAcEs#fragment", latin1, {"http", "", "", "host", 0, "/", "query%20with%20SpAcEs", "fragment", "http://host/?query%20with%20SpAcEs#fragment"});
+    checkURL("http://host/?que\rry\t\r\n#fragment", latin1, {"http", "", "", "host", 0, "/", "query", "fragment", "http://host/?query#fragment"});
 
     TextEncoding unrecognized(String("unrecognized invalid encoding name"));
     checkURL("http://host/?query", unrecognized, {"http", "", "", "host", 0, "/", "", "", "http://host/?"});
     checkURL("http://host/?", unrecognized, {"http", "", "", "host", 0, "/", "", "", "http://host/?"});
+
+    TextEncoding iso88591(String("ISO-8859-1"));
+    String withUmlauts = utf16String<4>({0xDC, 0x430, 0x451, '\0'});
+    checkURL(makeString("ws://host/path?", withUmlauts), iso88591, {"ws", "", "", "host", 0, "/path", "%C3%9C%D0%B0%D1%91", "", "ws://host/path?%C3%9C%D0%B0%D1%91"});
+    checkURL(makeString("wss://host/path?", withUmlauts), iso88591, {"wss", "", "", "host", 0, "/path", "%C3%9C%D0%B0%D1%91", "", "wss://host/path?%C3%9C%D0%B0%D1%91"});
+    checkURL(makeString("asdf://host/path?", withUmlauts), iso88591, {"asdf", "", "", "host", 0, "/path", "%C3%9C%D0%B0%D1%91", "", "asdf://host/path?%C3%9C%D0%B0%D1%91"});
+    checkURL(makeString("https://host/path?", withUmlauts), iso88591, {"https", "", "", "host", 0, "/path", "%DC%26%231072%3B%26%231105%3B", "", "https://host/path?%DC%26%231072%3B%26%231105%3B"});
+    checkURL(makeString("gopher://host/path?", withUmlauts), iso88591, {"gopher", "", "", "host", 0, "/path", "%DC%26%231072%3B%26%231105%3B", "", "gopher://host/path?%DC%26%231072%3B%26%231105%3B"});
+    checkURL(makeString("/path?", withUmlauts, "#fragment"), "ws://example.com/", iso88591, {"ws", "", "", "example.com", 0, "/path", "%C3%9C%D0%B0%D1%91", "fragment", "ws://example.com/path?%C3%9C%D0%B0%D1%91#fragment"});
+    checkURL(makeString("/path?", withUmlauts, "#fragment"), "wss://example.com/", iso88591, {"wss", "", "", "example.com", 0, "/path", "%C3%9C%D0%B0%D1%91", "fragment", "wss://example.com/path?%C3%9C%D0%B0%D1%91#fragment"});
+    checkURL(makeString("/path?", withUmlauts, "#fragment"), "asdf://example.com/", iso88591, {"asdf", "", "", "example.com", 0, "/path", "%C3%9C%D0%B0%D1%91", "fragment", "asdf://example.com/path?%C3%9C%D0%B0%D1%91#fragment"});
+    checkURL(makeString("/path?", withUmlauts, "#fragment"), "https://example.com/", iso88591, {"https", "", "", "example.com", 0, "/path", "%DC%26%231072%3B%26%231105%3B", "fragment", "https://example.com/path?%DC%26%231072%3B%26%231105%3B#fragment"});
+    checkURL(makeString("/path?", withUmlauts, "#fragment"), "gopher://example.com/", iso88591, {"gopher", "", "", "example.com", 0, "/path", "%DC%26%231072%3B%26%231105%3B", "fragment", "gopher://example.com/path?%DC%26%231072%3B%26%231105%3B#fragment"});
+    checkURL(makeString("gopher://host/path?", withUmlauts, "#fragment"), "asdf://example.com/?doesntmatter", iso88591, {"gopher", "", "", "host", 0, "/path", "%DC%26%231072%3B%26%231105%3B", "fragment", "gopher://host/path?%DC%26%231072%3B%26%231105%3B#fragment"});
+    checkURL(makeString("asdf://host/path?", withUmlauts, "#fragment"), "http://example.com/?doesntmatter", iso88591, {"asdf", "", "", "host", 0, "/path", "%C3%9C%D0%B0%D1%91", "fragment", "asdf://host/path?%C3%9C%D0%B0%D1%91#fragment"});
 
     // FIXME: Add more tests with other encodings and things like non-ascii characters, emoji and unmatched surrogate pairs.
 }

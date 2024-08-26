@@ -144,7 +144,6 @@ public:
         RunJavaScriptAlertResultListener,
         RunJavaScriptConfirmResultListener,
         RunJavaScriptPromptResultListener,
-        Session,
         TextChecker,
         URLSchemeHandlerTask,
         UserContentController,

@@ -337,6 +337,7 @@ webkit.org/b/155233 fast/events/max-tabindex-focus.html [ Skip ]
 fast/shadow-dom/shadow-host-removal-crash.html [ Skip ]
 fast/shadow-dom/input-element-in-shadow.html [ Skip ]
 fast/events/keyboardevent-key.html [ Skip ]
+fast/events/keyboardevent-code.html [ Skip ]
 
 # The file-wrapper part of <attachment> is not yet working on iOS
 fast/attachment/attachment-type-attribute.html [ Skip ]
@@ -1196,6 +1197,10 @@ fast/events/frame-scroll-fake-mouse-move.html [ Failure ]
 fast/events/frame-tab-focus.html [ Failure ]
 fast/events/ime-composition-events-001.html [ Failure ]
 fast/events/inputText-never-fired-on-keydown-cancel.html [ Failure ]
+fast/events/input-events-fired-when-typing.html [ Failure ]
+fast/events/before-input-events-prevent-default.html [ Failure ]
+fast/events/before-input-events-prevent-default-in-textfield.html [ Failure ]
+fast/events/before-input-events-different-start-end-elements.html [ Failure ]
 fast/events/key-events-in-input-button.html [ Failure ]
 fast/events/keydown-1.html [ Failure ]
 fast/events/keydown-leftright-keys.html [ Failure ]
@@ -2668,3 +2673,8 @@ webkit.org/b/130972 transitions/3d/interrupted-transition.html [ Pass Timeout ]
 fast/text/letterpress-different.html [ Pass ]
 
 webkit.org/b/162739 fast/images/gif-loop-count.html [ Pass ImageOnlyFailure ]
+
+webkit.org/b/163009 media/modern-media-controls/icon-button/icon-button-active-state.html [ Failure ]
+
+# This variation font test requires Skia which isn't available on iOS.
+webkit.org/b/163093 fast/text/variations/advances.html [ Failure ]

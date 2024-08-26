@@ -248,7 +248,7 @@ public:
     size_t maximumSourceBufferSize(const SourceBuffer&) const;
 #endif
 
-#if ENABLE(ENCRYPTED_MEDIA_V2)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     MediaKeys* keys() const { return m_mediaKeys.get(); }
     void setMediaKeys(MediaKeys*);
 
@@ -570,7 +570,7 @@ private:
     void mediaPlayerFirstVideoFrameAvailable(MediaPlayer*) override;
     void mediaPlayerCharacteristicChanged(MediaPlayer*) override;
 
-#if ENABLE(ENCRYPTED_MEDIA_V2)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RefPtr<ArrayBuffer> mediaPlayerCachedKeyForKeyId(const String& keyId) const override;
     bool mediaPlayerKeyNeeded(MediaPlayer*, Uint8Array*) override;
     String mediaPlayerMediaKeysStorageDirectory() const override;
@@ -1000,7 +1000,7 @@ private:
 
     friend class TrackDisplayUpdateScope;
 
-#if ENABLE(ENCRYPTED_MEDIA_V2)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     RefPtr<MediaKeys> m_mediaKeys;
 #endif
 

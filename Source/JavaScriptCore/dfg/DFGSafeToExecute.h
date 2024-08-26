@@ -213,9 +213,13 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case PutGetterSetterById:
     case PutGetterByVal:
     case PutSetterByVal:
+    case DefineDataProperty:
+    case DefineAccessorProperty:
     case CheckStructure:
     case GetExecutable:
     case GetButterfly:
+    case CallDOM:
+    case CheckDOM:
     case CheckArray:
     case Arrayify:
     case ArrayifyToStructure:
@@ -300,7 +304,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case TailCallVarargs:
     case TailCallForwardVarargs:
     case Throw:
-    case ThrowReferenceError:
+    case ThrowStaticError:
     case CountExecution:
     case ForceOSRExit:
     case CheckWatchdogTimer:
@@ -359,6 +363,7 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case PutDynamicVar:
     case ResolveScope:
     case MapHash:
+    case ToLowerCase:
     case GetMapBucket:
     case LoadFromJSMapBucket:
     case IsNonEmptyMapBucket:

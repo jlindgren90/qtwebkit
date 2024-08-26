@@ -409,6 +409,7 @@ enum TestConfidence { "high", "kinda-low" };
 #endif
 
     void attachShadowRoot(TestDictionary init);
+    void operationWithExternalDictionaryParameter(TestStandaloneDictionary dict);
 
     stringifier attribute USVString stringifierAttribute;
 
@@ -474,3 +475,14 @@ dictionary TestDictionaryThatShouldTolerateNull {
     TestEnumType enumerationValue;
     boolean booleanWithoutDefault;
 };
+
+dictionary ParentDictionary {
+    boolean parentMember2;
+    boolean parentMember1;
+};
+
+dictionary ChildDictionary : ParentDictionary {
+    boolean childMember2;
+    boolean childMember1;
+};
+

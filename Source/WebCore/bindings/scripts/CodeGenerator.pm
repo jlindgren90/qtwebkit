@@ -138,6 +138,7 @@ my %svgTypeWithWritablePropertiesNeedingTearOff = (
 # Cache of IDL file pathnames.
 my $idlFiles;
 my $cachedInterfaces = {};
+my $cachedExternalDictionaries = {};
 
 # Default constructor
 sub new
@@ -199,6 +200,14 @@ sub ProcessDocument
         $codeGenerator->GenerateInterface($interface, $defines, $useDocument->enumerations, $useDocument->dictionaries);
         $codeGenerator->WriteData($interface, $useOutputDir, $useOutputHeadersDir);
     }
+
+    # It is possible to have dictionaries in an IDL file without any interface.
+    unless (@$interfaces) {
+        foreach my $dictionary (@{$useDocument->dictionaries}) {
+            $codeGenerator->GenerateDictionary($dictionary);
+            $codeGenerator->WriteData($dictionary, $useOutputDir, $useOutputHeadersDir);
+        }
+    }
 }
 
 sub FileNamePrefix
@@ -219,6 +228,8 @@ sub UpdateFile
     my $fileName = shift;
     my $contents = shift;
 
+    # FIXME: We should only write content if it is different from what is in the file.
+    # But that would mean running more often the binding generator, see https://bugs.webkit.org/show_bug.cgi?id=131756
     open FH, ">", $fileName or die "Couldn't open $fileName: $!\n";
     print FH $contents;
     close FH;
@@ -447,12 +458,53 @@ sub GetEnumImplementationNameOverride
     return $enumTypeImplementationNameOverrides{$type};
 }
 
+sub GetDictionaryByName
+{
+    my ($object, $name) = @_;
+    return unless defined($name);
+
+    for my $dictionary (@{$useDocument->dictionaries}) {
+        return $dictionary if $dictionary->name eq $name;
+    }
+
+    return $cachedExternalDictionaries->{$name} if exists($cachedExternalDictionaries->{$name});
+
+    # Find the IDL file associated with the dictionary.
+    my $filename = $object->IDLFileForInterface($name) or return;
+
+    # Do a fast check to see if it seems to contain a dictionary.
+    my $fileContents = slurp($filename);
+
+    if ($fileContents =~ /\bdictionary\s+$name/gs) {
+        # Parse the IDL.
+        my $parser = IDLParser->new(1);
+        my $document = $parser->Parse($filename, $defines, $preprocessor);
+
+        foreach my $dictionary (@{$document->dictionaries}) {
+            next unless $dictionary->name eq $name;
+
+            $cachedExternalDictionaries->{$name} = $dictionary;
+            my $implementedAs = $dictionary->extendedAttributes->{ImplementedAs};
+            $dictionaryTypeImplementationNameOverrides{$dictionary->name} = $implementedAs if $implementedAs;
+            return $dictionary;
+        }
+    }
+    $cachedExternalDictionaries->{$name} = undef;
+}
+
 sub IsDictionaryType
 {
     my ($object, $type) = @_;
 
-    return 1 if exists $dictionaryTypes{$type};
-    return 0;
+    return $type =~ /^[A-Z]/ && defined($object->GetDictionaryByName($type));
+}
+
+# A dictionary defined in its own IDL file.
+sub IsExternalDictionaryType
+{
+    my ($object, $type) = @_;
+
+    return $object->IsDictionaryType($type) && defined($cachedExternalDictionaries->{$type});
 }
 
 sub HasDictionaryImplementationNameOverride
@@ -646,6 +698,16 @@ sub WK_lcfirst
     $ret =~ s/^exclusive/isExclusive/ if $ret =~ /^exclusive$/;
 
     return $ret;
+}
+
+sub slurp {
+    my $file = shift;
+
+    open my $fh, '<', $file or die;
+    local $/ = undef;
+    my $content = <$fh>;
+    close $fh;
+    return $content;
 }
 
 sub trim

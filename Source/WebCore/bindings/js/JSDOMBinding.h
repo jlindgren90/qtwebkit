@@ -187,6 +187,7 @@ JSC::JSValue createDOMException(JSC::ExecState*, ExceptionCode, const String&);
 
 // Convert a DOM implementation exception code into a JavaScript exception in the execution state.
 WEBCORE_EXPORT void setDOMException(JSC::ExecState*, ExceptionCode);
+void setDOMException(JSC::ExecState*, ExceptionCode, const String&);
 void setDOMException(JSC::ExecState*, const ExceptionCodeWithMessage&);
 
 WEBCORE_EXPORT void setDOMExceptionSlow(JSC::ExecState*, JSC::ThrowScope&, ExceptionCode);
@@ -381,6 +382,28 @@ struct VariadicHelper : public VariadicHelperBase<JSClass, DOMClass> {
 };
 
 template<typename VariadicHelper> typename VariadicHelper::Result toArguments(JSC::ExecState&, size_t startIndex = 0);
+
+enum class CastedThisErrorBehavior { Throw, ReturnEarly };
+
+template<typename JSClass>
+struct BindingCaller {
+    using AttributeGetterFunction = JSC::JSValue(JSC::ExecState*, JSClass*, JSC::ThrowScope&);
+
+    template<AttributeGetterFunction getter, CastedThisErrorBehavior shouldThrow = CastedThisErrorBehavior::Throw>
+    static JSC::EncodedJSValue attribute(JSC::ExecState* state, JSC::EncodedJSValue thisValue, const char* attributeName)
+    {
+        ASSERT(state);
+        auto throwScope = DECLARE_THROW_SCOPE(state->vm());
+        auto* thisObject = JSClass::castForAttribute(state, thisValue);
+        if (UNLIKELY(!thisObject)) {
+            ASSERT(JSClass::info());
+            return shouldThrow == CastedThisErrorBehavior::Throw ?
+                throwGetterTypeError(*state, throwScope, JSClass::info()->className, attributeName) : JSC::JSValue::encode(JSC::jsUndefined());
+        }
+        // FIXME: We should refactor the binding generated code to use references for state and thisObject.
+        return JSC::JSValue::encode(getter(state, thisObject, throwScope));
+    }
+};
 
 // Inline functions and template definitions.
 
@@ -924,7 +947,7 @@ template<typename T> inline JSC::JSValue toNullableJSNumber(Optional<T> optional
 template<typename T> inline JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, ExceptionOr<T>&& value)
 {
     if (UNLIKELY(value.hasException())) {
-        setDOMException(state, value.exceptionCode());
+        setDOMException(state, value.exceptionCode(), value.exceptionMessage());
         return JSC::jsUndefined();
     }
     return toJS(state, globalObject, value.takeReturnValue());
@@ -934,7 +957,7 @@ template<typename T> inline JSC::JSValue toJSNewlyCreated(JSC::ExecState* state,
 {
     // FIXME: It's really annoying to have two of these functions. Should find a way to combine toJS and toJSNewlyCreated.
     if (UNLIKELY(value.hasException())) {
-        setDOMException(state, value.exceptionCode());
+        setDOMException(state, value.exceptionCode(), value.exceptionMessage());
         return JSC::jsUndefined();
     }
     return toJSNewlyCreated(state, globalObject, value.takeReturnValue());

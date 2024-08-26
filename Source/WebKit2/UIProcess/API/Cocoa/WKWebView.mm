@@ -2198,7 +2198,7 @@ static bool scrollViewCanScroll(UIScrollView *scrollView)
         if (!_gestureController) {
             _gestureController = std::make_unique<WebKit::ViewGestureController>(*_page);
             _gestureController->installSwipeHandler(self, [self scrollView]);
-            _gestureController->setAlternateBackForwardListSourceView([_configuration _alternateWebViewForNavigationGestures]);
+            _gestureController->setAlternateBackForwardListSourcePage([_configuration _alternateWebViewForNavigationGestures]->_page.get());
         }
     } else
         _gestureController = nullptr;
@@ -4591,7 +4591,7 @@ static WebCore::UserInterfaceLayoutDirection toUserInterfaceLayoutDirection(UISe
         _page->requestActiveNowPlayingSessionInfo();
 }
 
-- (void)_handleActiveNowPlayingSessionInfoResponse:(BOOL)hasActiveSession
+- (void)_handleActiveNowPlayingSessionInfoResponse:(BOOL)hasActiveSession title:(NSString *)title duration:(double)duration elapsedTime:(double)elapsedTime
 {
     // Overridden by subclasses.
 }
@@ -4610,6 +4610,11 @@ static WebCore::UserInterfaceLayoutDirection toUserInterfaceLayoutDirection(UISe
             Block_release(updateBlockCopy);
         }
     });
+}
+
+- (void)_disableBackForwardSnapshotVolatilityForTesting
+{
+    WebKit::ViewSnapshotStore::singleton().setDisableSnapshotVolatilityForTesting(true);
 }
 
 @end

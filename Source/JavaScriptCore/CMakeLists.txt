@@ -18,6 +18,7 @@ set(JavaScriptCore_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/dfg"
     "${JAVASCRIPTCORE_DIR}/disassembler"
     "${JAVASCRIPTCORE_DIR}/disassembler/udis86"
+    "${JAVASCRIPTCORE_DIR}/domjit"
     "${JAVASCRIPTCORE_DIR}/ftl"
     "${JAVASCRIPTCORE_DIR}/heap"
     "${JAVASCRIPTCORE_DIR}/debugger"
@@ -285,6 +286,7 @@ set(JavaScriptCore_SOURCES
     dfg/DFGConstantHoistingPhase.cpp
     dfg/DFGCriticalEdgeBreakingPhase.cpp
     dfg/DFGDCEPhase.cpp
+    dfg/DFGDOMJITPatchpointParams.cpp
     dfg/DFGDesiredIdentifiers.cpp
     dfg/DFGDesiredTransitions.cpp
     dfg/DFGDesiredWatchpoints.cpp
@@ -414,6 +416,7 @@ set(JavaScriptCore_SOURCES
     ftl/FTLCapabilities.cpp
     ftl/FTLCommonValues.cpp
     ftl/FTLCompile.cpp
+    ftl/FTLDOMJITPatchpointParams.cpp
     ftl/FTLExceptionTarget.cpp
     ftl/FTLExitArgument.cpp
     ftl/FTLExitArgumentForOperand.cpp
@@ -1096,6 +1099,7 @@ set(JavaScriptCore_FORWARDING_HEADERS_DIRECTORIES
     debugger
     dfg
     disassembler
+    domjit
     heap
     inspector
     interpreter

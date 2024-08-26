@@ -546,7 +546,7 @@ void MediaPlayer::setShouldBufferData(bool shouldBuffer)
     m_private->setShouldBufferData(shouldBuffer);
 }
 
-#if ENABLE(ENCRYPTED_MEDIA_V2)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 std::unique_ptr<CDMSession> MediaPlayer::createSession(const String& keySystem, CDMSessionClient* client)
 {
     return m_private->createSession(keySystem, client);
@@ -1176,7 +1176,7 @@ AudioSourceProvider* MediaPlayer::audioSourceProvider()
 }
 #endif // WEB_AUDIO
 
-#if ENABLE(ENCRYPTED_MEDIA_V2)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 RefPtr<ArrayBuffer> MediaPlayer::cachedKeyForKeyId(const String& keyId) const
 {
     return m_client.mediaPlayerCachedKeyForKeyId(keyId);

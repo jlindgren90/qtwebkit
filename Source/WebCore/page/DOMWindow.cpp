@@ -96,6 +96,7 @@
 #include "StorageNamespaceProvider.h"
 #include "StyleMedia.h"
 #include "StyleResolver.h"
+#include "StyleScope.h"
 #include "SuddenTermination.h"
 #include "URL.h"
 #include "UserGestureIndicator.h"
@@ -1431,6 +1432,8 @@ RefPtr<CSSRuleList> DOMWindow::getMatchedCSSRules(Element* element, const String
     if (pseudoType == CSSSelector::PseudoElementUnknown && !pseudoElement.isEmpty())
         return nullptr;
 
+    m_frame->document()->styleScope().flushPendingUpdate();
+
     unsigned rulesToInclude = StyleResolver::AuthorCSSRules;
     if (!authorOnly)
         rulesToInclude |= StyleResolver::UAAndUserCSSRules;
@@ -1439,7 +1442,7 @@ RefPtr<CSSRuleList> DOMWindow::getMatchedCSSRules(Element* element, const String
 
     PseudoId pseudoId = CSSSelector::pseudoId(pseudoType);
 
-    auto matchedRules = m_frame->document()->ensureStyleResolver().pseudoStyleRulesForElement(element, pseudoId, rulesToInclude);
+    auto matchedRules = m_frame->document()->styleScope().resolver().pseudoStyleRulesForElement(element, pseudoId, rulesToInclude);
     if (matchedRules.isEmpty())
         return nullptr;
 

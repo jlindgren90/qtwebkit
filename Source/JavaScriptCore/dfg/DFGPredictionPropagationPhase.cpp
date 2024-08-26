@@ -699,7 +699,8 @@ private:
         case GetClosureVar:
         case GetFromArguments:
         case LoadFromJSMapBucket:
-        case ToNumber: {
+        case ToNumber:
+        case CallDOM: {
             setPrediction(m_currentNode->getHeapPrediction());
             break;
         }
@@ -754,6 +755,11 @@ private:
             setPrediction(SpecInt32Only);
             break;
         }
+
+        case ToLowerCase:
+            setPrediction(SpecString);
+            break;
+
         case ArithPow:
         case ArithSqrt:
         case ArithFRound:
@@ -818,6 +824,9 @@ private:
             setPrediction(SpecOther);
             break;
         }
+
+        case CheckDOM:
+            break;
 
         case CallObjectConstructor: {
             setPrediction(SpecObject);
@@ -1041,12 +1050,14 @@ private:
         case PutGetterSetterById:
         case PutGetterByVal:
         case PutSetterByVal:
+        case DefineDataProperty:
+        case DefineAccessorProperty:
         case DFG::Jump:
         case Branch:
         case Switch:
         case ProfileType:
         case ProfileControlFlow:
-        case ThrowReferenceError:
+        case ThrowStaticError:
         case ForceOSRExit:
         case SetArgument:
         case SetFunctionName:

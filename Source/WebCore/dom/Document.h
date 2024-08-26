@@ -74,7 +74,6 @@ namespace WebCore {
 
 class AXObjectCache;
 class Attr;
-class AuthorStyleSheets;
 class CDATASection;
 class CSSFontSelector;
 class CSSStyleDeclaration;
@@ -223,6 +222,10 @@ struct TextAutoSizingTraits : WTF::GenericHashTraits<TextAutoSizingKey> {
 #if ENABLE(MEDIA_SESSION)
 class MediaSession;
 #endif
+
+namespace Style {
+class Scope;
+};
 
 const uint64_t HTMLMediaElementInvalidID = 0;
 
@@ -397,9 +400,6 @@ public:
 
     NamedFlowCollection& namedFlows();
 
-    Element* elementFromPoint(int x, int y) { return elementFromPoint(LayoutPoint(x, y)); }
-    WEBCORE_EXPORT Element* elementFromPoint(const LayoutPoint& clientPoint);
-
     WEBCORE_EXPORT RefPtr<Range> caretRangeFromPoint(int x, int y);
     RefPtr<Range> caretRangeFromPoint(const LayoutPoint& clientPoint);
 
@@ -487,16 +487,8 @@ public:
 
     bool isSrcdocDocument() const { return m_isSrcdocDocument; }
 
-    StyleResolver* styleResolverIfExists() const { return m_styleResolver.get(); }
-
     bool sawElementsInKnownNamespaces() const { return m_sawElementsInKnownNamespaces; }
 
-    StyleResolver& ensureStyleResolver()
-    { 
-        if (!m_styleResolver)
-            createStyleResolver();
-        return *m_styleResolver;
-    }
     StyleResolver& userAgentShadowTreeStyleResolver();
 
     CSSFontSelector& fontSelector() { return m_fontSelector; }
@@ -507,8 +499,8 @@ public:
 
     WEBCORE_EXPORT StyleSheetList& styleSheets();
 
-    AuthorStyleSheets& authorStyleSheets() { return *m_authorStyleSheets; }
-    const AuthorStyleSheets& authorStyleSheets() const { return *m_authorStyleSheets; }
+    Style::Scope& styleScope() { return *m_styleScope; }
+    const Style::Scope& styleScope() const { return *m_styleScope; }
     ExtensionStyleSheets& extensionStyleSheets() { return *m_extensionStyleSheets; }
     const ExtensionStyleSheets& extensionStyleSheets() const { return *m_extensionStyleSheets; }
 
@@ -1230,7 +1222,7 @@ public:
 
     void didRemoveAllPendingStylesheet();
     void setNeedsNotifyRemoveAllPendingStylesheet() { m_needsNotifyRemoveAllPendingStylesheet = true; }
-    void clearStyleResolver();
+    void didClearStyleResolver();
 
     bool inStyleRecalc() const { return m_inStyleRecalc; }
     bool inRenderTreeUpdate() const { return m_inRenderTreeUpdate; }
@@ -1352,8 +1344,6 @@ private:
 
     void buildAccessKeyMap(TreeScope* root);
 
-    void createStyleResolver();
-
     void loadEventDelayTimerFired();
 
     void pendingTasksTimerFired();
@@ -1362,8 +1352,6 @@ private:
     void displayBufferModifiedByEncodingInternal(CharacterType*, unsigned) const;
 
     PageVisibilityState pageVisibilityState() const;
-
-    Node* nodeFromPoint(const LayoutPoint& clientPoint, LayoutPoint* localPoint = nullptr);
 
     template <CollectionType collectionType>
     Ref<HTMLCollection> ensureCachedCollection();
@@ -1399,7 +1387,6 @@ private:
 
     unsigned m_referencingNodeCount;
 
-    std::unique_ptr<StyleResolver> m_styleResolver;
     std::unique_ptr<StyleResolver> m_userAgentShadowTreeStyleResolver;
     bool m_hasNodesWithPlaceholderStyle;
     bool m_needsNotifyRemoveAllPendingStylesheet;
@@ -1474,7 +1461,7 @@ private:
 
     MutationObserverOptions m_mutationObserverTypes;
 
-    std::unique_ptr<AuthorStyleSheets> m_authorStyleSheets;
+    std::unique_ptr<Style::Scope> m_styleScope;
     std::unique_ptr<ExtensionStyleSheets> m_extensionStyleSheets;
     RefPtr<StyleSheetList> m_styleSheetList;
 

@@ -34,6 +34,7 @@
 #if ENABLE(WEB_RTC)
 
 #include "MediaEndpoint.h"
+#include "Timer.h"
 
 namespace WebCore {
 
@@ -47,8 +48,8 @@ public:
     void setConfiguration(RefPtr<MediaEndpointConfiguration>&&) override;
 
     void generateDtlsInfo() override;
-    Vector<RefPtr<MediaPayload>> getDefaultAudioPayloads() override;
-    Vector<RefPtr<MediaPayload>> getDefaultVideoPayloads() override;
+    MediaPayloadVector getDefaultAudioPayloads() override;
+    MediaPayloadVector getDefaultVideoPayloads() override;
     MediaPayloadVector filterPayloads(const MediaPayloadVector& remotePayloads, const MediaPayloadVector& defaultPayloads) override;
 
     UpdateResult updateReceiveConfiguration(MediaEndpointSessionConfiguration*, bool isInitiator) override;
@@ -61,8 +62,23 @@ public:
 
     void stop() override;
 
+    void emulatePlatformEvent(const String& action) override;
+
 private:
+    void dispatchFakeIceCandidates();
+    void iceCandidateTimerFired();
+
+    void stepIceTransportStates();
+    void iceTransportTimerFired();
+
     MediaEndpointClient& m_client;
+    Vector<String> m_mids;
+
+    Vector<RefPtr<IceCandidate>> m_fakeIceCandidates;
+    Timer m_iceCandidateTimer;
+
+    Vector<std::pair<String, MediaEndpoint::IceTransportState>> m_iceTransportStateChanges;
+    Timer m_iceTransportTimer;
 };
 
 } // namespace WebCore

@@ -76,6 +76,8 @@ public:
             m_modifiers |= Modifier::AltKey;
         if (webEvent.metaKey())
             m_modifiers |= Modifier::MetaKey;
+        if (webEvent.capsLockKey())
+            m_modifiers |= Modifier::CapsLockKey;
 
         m_timestamp = webEvent.timestamp();
 
@@ -127,6 +129,8 @@ public:
             m_modifiers |= Modifier::AltKey;
         if (webEvent.metaKey())
             m_modifiers |= Modifier::MetaKey;
+        if (webEvent.capsLockKey())
+            m_modifiers |= Modifier::CapsLockKey;
 
         m_timestamp = webEvent.timestamp();
 
@@ -185,6 +189,8 @@ public:
             m_modifiers |= Modifier::AltKey;
         if (webEvent.metaKey())
             m_modifiers |= Modifier::MetaKey;
+        if (webEvent.capsLockKey())
+            m_modifiers |= Modifier::CapsLockKey;
 
         m_timestamp = webEvent.timestamp();
 
@@ -193,6 +199,9 @@ public:
         m_unmodifiedText = webEvent.unmodifiedText();
 #if ENABLE(KEYBOARD_KEY_ATTRIBUTE)
         m_key = webEvent.key();
+#endif
+#if ENABLE(KEYBOARD_CODE_ATTRIBUTE)
+        m_code = webEvent.code();
 #endif
         m_keyIdentifier = webEvent.keyIdentifier();
         m_windowsVirtualKeyCode = webEvent.windowsVirtualKeyCode();
@@ -361,6 +370,8 @@ public:
             m_modifiers |= Modifier::AltKey;
         if (webEvent.metaKey())
             m_modifiers |= Modifier::MetaKey;
+        if (webEvent.capsLockKey())
+            m_modifiers |= Modifier::CapsLockKey;
 
         m_timestamp = webEvent.timestamp();
 
@@ -418,6 +429,8 @@ public:
             m_modifiers |= Modifier::AltKey;
         if (webEvent.metaKey())
             m_modifiers |= Modifier::MetaKey;
+        if (webEvent.capsLockKey())
+            m_modifiers |= Modifier::CapsLockKey;
 
         m_timestamp = webEvent.timestamp();
 

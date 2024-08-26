@@ -53,7 +53,7 @@ CrossOriginPreflightChecker::CrossOriginPreflightChecker(DocumentThreadableLoade
 CrossOriginPreflightChecker::~CrossOriginPreflightChecker()
 {
     if (m_resource)
-        m_resource->removeClient(this);
+        m_resource->removeClient(*this);
 }
 
 void CrossOriginPreflightChecker::validatePreflightResponse(DocumentThreadableLoader& loader, ResourceRequest&& request, unsigned long identifier, const ResourceResponse& response)
@@ -86,9 +86,9 @@ void CrossOriginPreflightChecker::validatePreflightResponse(DocumentThreadableLo
     loader.preflightSuccess(WTFMove(request));
 }
 
-void CrossOriginPreflightChecker::notifyFinished(CachedResource* resource)
+void CrossOriginPreflightChecker::notifyFinished(CachedResource& resource)
 {
-    ASSERT_UNUSED(resource, resource == m_resource);
+    ASSERT_UNUSED(resource, &resource == m_resource);
     if (m_resource->loadFailedOrCanceled()) {
         ResourceError preflightError = m_resource->resourceError();
         // If the preflight was cancelled by underlying code, it probably means the request was blocked due to some access control policy.
@@ -119,7 +119,7 @@ void CrossOriginPreflightChecker::startPreflight()
     ASSERT(!m_resource);
     m_resource = m_loader.document().cachedResourceLoader().requestRawResource(WTFMove(preflightRequest));
     if (m_resource)
-        m_resource->addClient(this);
+        m_resource->addClient(*this);
 }
 
 void CrossOriginPreflightChecker::doPreflight(DocumentThreadableLoader& loader, ResourceRequest&& request)

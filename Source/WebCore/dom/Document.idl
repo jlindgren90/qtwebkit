@@ -126,7 +126,6 @@
     [ImplementedAs=characterSetWithUTF8Fallback] readonly attribute DOMString charset;
     readonly attribute DOMString readyState;
 
-    Element elementFromPoint(optional long x = 0, optional long y = 0);
     Range caretRangeFromPoint(optional long x = 0, optional long y = 0);
 
     // Mozilla extensions
@@ -141,7 +140,6 @@
 
     HTMLCollection getElementsByClassName(DOMString classNames);
 
-    readonly attribute Element? activeElement;
     boolean hasFocus();
 
     readonly attribute DOMString compatMode;
@@ -194,6 +192,7 @@
     // FIXME: Should these be exposed on Window as well (and therefore moved to GlobalEventHandlers.idl)?
     [NotEnumerable] attribute EventHandler onbeforecopy;
     [NotEnumerable] attribute EventHandler onbeforecut;
+    [NotEnumerable] attribute EventHandler onbeforeinput;
     [NotEnumerable] attribute EventHandler onbeforepaste;
     [NotEnumerable] attribute EventHandler oncopy;
     [NotEnumerable] attribute EventHandler oncut;
@@ -214,4 +213,5 @@
 
 Document implements ParentNode;
 Document implements NonElementParentNode;
+Document implements DocumentOrShadowRoot;
 Document implements GlobalEventHandlers;

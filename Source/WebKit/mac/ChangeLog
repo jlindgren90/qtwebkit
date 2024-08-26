@@ -1,3 +1,87 @@
+2016-10-07  Simon Fraser  <simon.fraser@apple.com>
+
+        [WK1 Mac] Fix repaints of fixed-background elements in layer-backed WebViews
+        https://bugs.webkit.org/show_bug.cgi?id=163154
+        rdar://problem/28674216
+
+        Reviewed by Tim Horton.
+        
+        r55159 added code to counteract AppKit's adjustment of dirty regions during scrolling,
+        by offsetting the dirty rect in -setNeedsDisplayInRect: if the call happens during
+        the NSViewBoundsDidChangeNotification handling.
+        
+        However, AppKit only does dirty region adjustment in the code path that blits ("copy
+        on scroll"), so r55159 produces incorrect behavior in, for example, layer-backed views.
+        
+        Fix by overriding -[NSClipView _canCopyOnScrollForDeltaX:deltaY:] to know if a single
+        scroll is going to blit, and only do adjustments in -setNeedsDisplayInRect: if it is.
+
+        * WebView/WebClipView.h:
+        * WebView/WebClipView.mm:
+        (-[WebClipView _immediateScrollToPoint:]):
+        (-[WebClipView _canCopyOnScrollForDeltaX:deltaY:]):
+        (-[WebClipView currentScrollIsBlit]):
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView setNeedsDisplayInRect:]):
+        (-[WebHTMLView drawRect:]):
+
+2016-10-06  Youenn Fablet  <youenn@apple.com>
+
+        CachedResource client handling methods should take reference
+        https://bugs.webkit.org/show_bug.cgi?id=163014
+
+        Reviewed by Alex Christensen.
+
+        * WebView/WebHTMLView.mm:
+        (promisedDataClient):
+
+2016-10-05  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Put variation fonts work behind a compile-time flag
+        https://bugs.webkit.org/show_bug.cgi?id=162949
+
+        Reviewed by Simon Fraser.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-10-05  Zan Dobersek  <zdobersek@igalia.com>
+
+        Rename ENABLE_ENCRYPTED_MEDIA_V2 to ENABLE_LEGACY_ENCRYPTED_MEDIA
+        https://bugs.webkit.org/show_bug.cgi?id=162903
+
+        Reviewed by Alex Christensen.
+
+        Rename build guards for the remaining implementation of the legacy EME API
+        to ENABLE_LEGACY_ENCRYPTED_MEDIA. This will allow for the future implementation
+        of the near-finished API to be guarded with the simple ENABLE_ENCRYPTED_MEDIA guards.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChanged:]):
+
+2016-10-04  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        The dragged image should be the current frame only of the animated image
+        https://bugs.webkit.org/show_bug.cgi?id=162109
+
+        Reviewed by Tim Horton.
+
+        * DOM/DOM.mm:
+        (-[DOMElement image]): Call the Image function with its new name.
+        (-[DOMElement _imageTIFFRepresentation]): Ditto.
+        * Misc/WebElementDictionary.mm:
+        (-[WebElementDictionary _image]): Call the Image function with its new name.
+        * Misc/WebIconDatabase.mm:
+        (-[WebIconDatabase defaultIconWithSize:]): Call snapshotNSImage() to create the icon image.
+        (webGetNSImage): Call the Image function with its new name.
+        * WebCoreSupport/WebContextMenuClient.mm:
+        (WebContextMenuClient::imageForCurrentSharingServicePickerItem): Call snapshotNSImage() instead of nsImage()..
+        (WebContextMenuClient::contextMenuForEvent): Ditto.
+        * WebView/WebHTMLView.mm:
+        (-[WebHTMLView pasteboard:provideDataForType:]): Call the Image function with its new name.
+
 2016-10-02  Ryan Haddad  <ryanhaddad@apple.com>
 
         Unreviewed, rolling out r206683.

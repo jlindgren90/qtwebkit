@@ -572,7 +572,7 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
         m_mimeTypesWithCustomContentProviders.add(mimeType);
 
 
-#if ENABLE(ENCRYPTED_MEDIA_V2)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
     if (WebMediaKeyStorageManager* manager = webProcess.supplement<WebMediaKeyStorageManager>())
         m_page->settings().setMediaKeysStorageDirectory(manager->mediaKeyStorageDirectory());
 #endif
@@ -3368,7 +3368,11 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 
     settings.setVisualViewportEnabled(store.getBoolValueForKey(WebPreferencesKey::visualViewportEnabledKey()));
 
+#if ENABLE(VARIATION_FONTS)
     settings.setVariationFontsEnabled(store.getBoolValueForKey(WebPreferencesKey::variationFontsEnabledKey()));
+#endif
+
+    settings.setInputEventsEnabled(store.getBoolValueForKey(WebPreferencesKey::inputEventsEnabledKey()));
 
     RuntimeEnabledFeatures::sharedFeatures().setModernMediaControlsEnabled(store.getBoolValueForKey(WebPreferencesKey::modernMediaControlsEnabledKey()));
 

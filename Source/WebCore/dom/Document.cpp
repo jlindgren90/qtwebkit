@@ -31,7 +31,6 @@
 #include "AXObjectCache.h"
 #include "AnimationController.h"
 #include "Attr.h"
-#include "AuthorStyleSheets.h"
 #include "CDATASection.h"
 #include "CSSFontSelector.h"
 #include "CSSStyleDeclaration.h"
@@ -168,6 +167,7 @@
 #include "StyleProperties.h"
 #include "StyleResolveForDocument.h"
 #include "StyleResolver.h"
+#include "StyleScope.h"
 #include "StyleSheetContents.h"
 #include "StyleSheetList.h"
 #include "StyleTreeResolver.h"
@@ -451,7 +451,7 @@ Document::Document(Frame* frame, const URL& url, unsigned documentClasses, unsig
     , m_domTreeVersion(++s_globalTreeVersion)
     , m_listenerTypes(0)
     , m_mutationObserverTypes(0)
-    , m_authorStyleSheets(std::make_unique<AuthorStyleSheets>(*this))
+    , m_styleScope(std::make_unique<Style::Scope>(*this))
     , m_extensionStyleSheets(std::make_unique<ExtensionStyleSheets>(*this))
     , m_visitedLinkState(std::make_unique<VisitedLinkState>(*this))
     , m_visuallyOrdered(false)
@@ -628,7 +628,7 @@ Document::~Document()
 
     extensionStyleSheets().detachFromDocument();
 
-    clearStyleResolver(); // We need to destroy CSSFontSelector before destroying m_cachedResourceLoader.
+    styleScope().clearResolver(); // We need to destroy CSSFontSelector before destroying m_cachedResourceLoader.
     m_fontSelector->clearDocument();
     m_fontSelector->unregisterForInvalidationCallbacks(*this);
 
@@ -860,7 +860,7 @@ void Document::childrenChanged(const ChildChange& change)
         return;
     m_documentElement = newDocumentElement;
     // The root style used for media query matching depends on the document element.
-    clearStyleResolver();
+    styleScope().clearResolver();
 }
 
 #if ENABLE(CUSTOM_ELEMENTS)
@@ -890,7 +890,7 @@ static RefPtr<Element> createHTMLElementWithNameValidation(Document& document, c
         auto* registry = window->customElementRegistry();
         if (UNLIKELY(registry)) {
             if (auto* elementInterface = registry->findInterface(localName))
-                return elementInterface->constructElement(localName, JSCustomElementInterface::ShouldClearException::DoNotClear);
+                return elementInterface->constructElementWithFallback(document, localName);
         }
     }
 #endif
@@ -1351,7 +1351,7 @@ void Document::setContentLanguage(const String& language)
     m_contentLanguage = language;
 
     // Recalculate style so language is used when selecting the initial font.
-    m_authorStyleSheets->didChangeContentsOrInterpretation();
+    m_styleScope->didChangeContentsOrInterpretation();
 }
 
 void Document::setXMLVersion(const String& version, ExceptionCode& ec)
@@ -1420,52 +1420,6 @@ String Document::contentType() const
         return mimeType;
 
     return ASCIILiteral("application/xml");
-}
-
-Node* Document::nodeFromPoint(const LayoutPoint& clientPoint, LayoutPoint* localPoint)
-{
-    if (!frame() || !view())
-        return nullptr;
-    
-    Frame& frame = *this->frame();
-    
-    float scaleFactor = frame.pageZoomFactor() * frame.frameScaleFactor();
-
-    LayoutPoint contentsPoint = clientPoint;
-    contentsPoint.scale(scaleFactor, scaleFactor);
-    contentsPoint.moveBy(view()->contentsScrollPosition());
-
-    LayoutRect visibleRect;
-#if PLATFORM(IOS)
-    visibleRect = view()->unobscuredContentRect();
-#else
-    visibleRect = view()->visibleContentRect();
-#endif
-    if (!visibleRect.contains(contentsPoint))
-        return nullptr;
-
-    HitTestResult result(contentsPoint);
-    renderView()->hitTest(HitTestRequest(), result);
-
-    if (localPoint)
-        *localPoint = result.localPoint();
-
-    return result.innerNode();
-}
-
-Element* Document::elementFromPoint(const LayoutPoint& clientPoint)
-{
-    if (!hasLivingRenderTree())
-        return nullptr;
-
-    Node* node = nodeFromPoint(clientPoint);
-    while (node && !is<Element>(*node))
-        node = node->parentNode();
-
-    if (node)
-        node = ancestorInThisScope(node);
-
-    return downcast<Element>(node);
 }
 
 RefPtr<Range> Document::caretRangeFromPoint(int x, int y)
@@ -1857,7 +1811,7 @@ void Document::recalcStyle(Style::Change change)
     // re-attaching our containing iframe, which when asked HTMLFrameElementBase::isURLAllowed
     // hits a null-dereference due to security code always assuming the document has a SecurityOrigin.
 
-    authorStyleSheets().flushPendingUpdate();
+    styleScope().flushPendingUpdate();
 
     frameView.willRecalcStyle();
 
@@ -1940,7 +1894,7 @@ bool Document::needsStyleRecalc() const
     if (pageCacheState() != NotInPageCache)
         return false;
 
-    return m_pendingStyleRecalcShouldForce || childNeedsStyleRecalc() || authorStyleSheets().hasPendingUpdate();
+    return m_pendingStyleRecalcShouldForce || childNeedsStyleRecalc() || styleScope().hasPendingUpdate();
 }
 
 void Document::updateStyleIfNeeded()
@@ -1951,7 +1905,7 @@ void Document::updateStyleIfNeeded()
     if (!view() || view()->isInRenderTreeLayout())
         return;
 
-    authorStyleSheets().flushPendingUpdate();
+    styleScope().flushPendingUpdate();
 
     if (!needsStyleRecalc())
         return;
@@ -2005,7 +1959,7 @@ void Document::updateLayoutIgnorePendingStylesheets(Document::RunPostLayoutTasks
         HTMLElement* bodyElement = bodyOrFrameset();
         if (bodyElement && !bodyElement->renderer() && m_pendingSheetLayout == NoLayoutWithPendingSheets) {
             m_pendingSheetLayout = DidLayoutWithPendingSheets;
-            authorStyleSheets().didChangeContentsOrInterpretation();
+            styleScope().didChangeContentsOrInterpretation();
             recalcStyle(Style::Force);
         } else if (m_hasNodesWithPlaceholderStyle)
             // If new nodes have been added or style recalc has been done with style sheets still pending, some nodes 
@@ -2142,13 +2096,13 @@ bool Document::updateLayoutIfDimensionsOutOfDate(Element& element, DimensionsChe
 
 bool Document::isPageBoxVisible(int pageIndex)
 {
-    std::unique_ptr<RenderStyle> pageStyle(ensureStyleResolver().styleForPage(pageIndex));
+    std::unique_ptr<RenderStyle> pageStyle(styleScope().resolver().styleForPage(pageIndex));
     return pageStyle->visibility() != HIDDEN; // display property doesn't apply to @page.
 }
 
 void Document::pageSizeAndMarginsInPixels(int pageIndex, IntSize& pageSize, int& marginTop, int& marginRight, int& marginBottom, int& marginLeft)
 {
-    std::unique_ptr<RenderStyle> style = ensureStyleResolver().styleForPage(pageIndex);
+    std::unique_ptr<RenderStyle> style = styleScope().resolver().styleForPage(pageIndex);
 
     int width = pageSize.width();
     int height = pageSize.height();
@@ -2184,19 +2138,13 @@ void Document::pageSizeAndMarginsInPixels(int pageIndex, IntSize& pageSize, int&
     marginLeft = style->marginLeft().isAuto() ? marginLeft : intValueForLength(style->marginLeft(), width);
 }
 
-void Document::createStyleResolver()
-{
-    m_styleResolver = std::make_unique<StyleResolver>(*this);
-    m_styleResolver->appendAuthorStyleSheets(authorStyleSheets().activeStyleSheets());
-}
-
 StyleResolver& Document::userAgentShadowTreeStyleResolver()
 {
     if (!m_userAgentShadowTreeStyleResolver) {
         m_userAgentShadowTreeStyleResolver = std::make_unique<StyleResolver>(*this);
 
         // FIXME: Filter out shadow pseudo elements we don't want to expose to authors.
-        auto& documentAuthorStyle = ensureStyleResolver().ruleSets().authorStyle();
+        auto& documentAuthorStyle = styleScope().resolver().ruleSets().authorStyle();
         if (documentAuthorStyle.hasShadowPseudoElementRules())
             m_userAgentShadowTreeStyleResolver->ruleSets().authorStyle().copyShadowPseudoElementRulesFrom(documentAuthorStyle);
     }
@@ -2206,16 +2154,15 @@ StyleResolver& Document::userAgentShadowTreeStyleResolver()
 
 void Document::fontsNeedUpdate(FontSelector&)
 {
-    if (m_styleResolver)
-        m_styleResolver->invalidateMatchedPropertiesCache();
+    if (auto* resolver = styleScope().resolverIfExists())
+        resolver->invalidateMatchedPropertiesCache();
     if (pageCacheState() != NotInPageCache || !renderView())
         return;
     scheduleForcedStyleRecalc();
 }
 
-void Document::clearStyleResolver()
+void Document::didClearStyleResolver()
 {
-    m_styleResolver = nullptr;
     m_userAgentShadowTreeStyleResolver = nullptr;
 
     m_fontSelector->buildStarted();
@@ -3135,7 +3082,7 @@ void Document::didRemoveAllPendingStylesheet()
 {
     m_needsNotifyRemoveAllPendingStylesheet = false;
 
-    authorStyleSheets().didChangeCandidatesForActiveSet();
+    styleScope().didChangeCandidatesForActiveSet();
 
     if (m_pendingSheetLayout == DidLayoutWithPendingSheets) {
         m_pendingSheetLayout = IgnoreLayoutWithPendingSheets;
@@ -3158,9 +3105,9 @@ bool Document::usesStyleBasedEditability() const
     ASSERT(!m_renderView || !m_renderView->frameView().isPainting());
     ASSERT(!m_inStyleRecalc);
 
-    auto& authorSheets = const_cast<AuthorStyleSheets&>(authorStyleSheets());
-    authorSheets.flushPendingUpdate();
-    return authorSheets.usesStyleBasedEditability();
+    auto& styleScope = const_cast<Style::Scope&>(this->styleScope());
+    styleScope.flushPendingUpdate();
+    return styleScope.usesStyleBasedEditability();
 }
 
 void Document::setHasElementUsingStyleBasedEditability()
@@ -3206,9 +3153,9 @@ void Document::processHttpEquiv(const String& equiv, const String& content, bool
         // For more info, see the test at:
         // http://www.hixie.ch/tests/evil/css/import/main/preferred.html
         // -dwh
-        authorStyleSheets().setSelectedStylesheetSetName(content);
-        authorStyleSheets().setPreferredStylesheetSetName(content);
-        authorStyleSheets().didChangeContentsOrInterpretation();
+        styleScope().setSelectedStylesheetSetName(content);
+        styleScope().setPreferredStylesheetSetName(content);
+        styleScope().didChangeContentsOrInterpretation();
         break;
 
     case HTTPHeaderName::Refresh: {
@@ -3502,18 +3449,18 @@ StyleSheetList& Document::styleSheets()
 
 String Document::preferredStylesheetSet() const
 {
-    return authorStyleSheets().preferredStylesheetSetName();
+    return styleScope().preferredStylesheetSetName();
 }
 
 String Document::selectedStylesheetSet() const
 {
-    return authorStyleSheets().selectedStylesheetSetName();
+    return styleScope().selectedStylesheetSetName();
 }
 
 void Document::setSelectedStylesheetSet(const String& aString)
 {
-    authorStyleSheets().setSelectedStylesheetSetName(aString);
-    authorStyleSheets().didChangeContentsOrInterpretation();
+    styleScope().setSelectedStylesheetSetName(aString);
+    styleScope().didChangeContentsOrInterpretation();
 }
 
 void Document::evaluateMediaQueryList()
@@ -3541,7 +3488,7 @@ void Document::updateViewportUnitsOnResize()
     if (!hasStyleWithViewportUnits())
         return;
 
-    ensureStyleResolver().clearCachedPropertiesAffectedByViewportUnits();
+    styleScope().resolver().clearCachedPropertiesAffectedByViewportUnits();
 
     // FIXME: Ideally, we should save the list of elements that have viewport units and only iterate over those.
     for (Element* element = ElementTraversal::firstWithin(rootNode()); element; element = ElementTraversal::nextIncludingPseudo(*element)) {
@@ -6716,7 +6663,7 @@ void Document::updateHoverActiveState(const HitTestRequest& request, Element* in
 
 bool Document::haveStylesheetsLoaded() const
 {
-    return !authorStyleSheets().hasPendingSheets() || m_ignorePendingStylesheets;
+    return !styleScope().hasPendingSheets() || m_ignorePendingStylesheets;
 }
 
 Locale& Document::getCachedLocale(const AtomicString& locale)

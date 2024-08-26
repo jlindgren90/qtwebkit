@@ -179,7 +179,7 @@ inline CapabilityLevel canCompile(Node* node)
     case MultiPutByOffset:
     case ToPrimitive:
     case Throw:
-    case ThrowReferenceError:
+    case ThrowStaticError:
     case Unreachable:
     case In:
     case HasOwnProperty:
@@ -263,6 +263,11 @@ inline CapabilityLevel canCompile(Node* node)
     case CompareGreater:
     case CompareGreaterEq:
     case CompareStrictEq:
+    case DefineDataProperty:
+    case DefineAccessorProperty:
+    case ToLowerCase:
+    case CheckDOM:
+    case CallDOM:
         // These are OK.
         break;
 

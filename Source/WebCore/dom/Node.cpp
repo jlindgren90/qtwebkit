@@ -47,6 +47,7 @@
 #include "HTMLImageElement.h"
 #include "HTMLSlotElement.h"
 #include "HTMLStyleElement.h"
+#include "InputEvent.h"
 #include "InspectorController.h"
 #include "KeyboardEvent.h"
 #include "Logging.h"
@@ -61,6 +62,7 @@
 #include "RenderTextControl.h"
 #include "RenderView.h"
 #include "ScopedEventQueue.h"
+#include "Settings.h"
 #include "StorageEvent.h"
 #include "StyleResolver.h"
 #include "StyleSheetContents.h"
@@ -2219,9 +2221,13 @@ bool Node::dispatchBeforeLoadEvent(const String& sourceURL)
     return !beforeLoadEvent->defaultPrevented();
 }
 
-void Node::dispatchInputEvent()
+void Node::dispatchInputEvent(const AtomicString& inputType)
 {
-    dispatchScopedEvent(Event::create(eventNames().inputEvent, true, false));
+    auto* settings = document().settings();
+    if (settings && settings->inputEventsEnabled())
+        dispatchScopedEvent(InputEvent::create(eventNames().inputEvent, inputType, true, false, document().defaultView(), 0));
+    else
+        dispatchScopedEvent(Event::create(eventNames().inputEvent, true, false));
 }
 
 void Node::defaultEventHandler(Event& event)
@@ -2286,8 +2292,6 @@ void Node::defaultEventHandler(Event& event)
                 frame->eventHandler().defaultTouchEventHandler(renderer->node(), &downcast<TouchEvent>(event));
         }
 #endif
-    } else if (event.type() == eventNames().webkitEditableContentChangedEvent) {
-        dispatchInputEvent();
     }
 }
 

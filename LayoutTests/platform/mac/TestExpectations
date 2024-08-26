@@ -206,6 +206,8 @@ fast/mediastream/RTCPeerConnection-media-setup-single-dialog.html
 fast/mediastream/RTCPeerConnection-media-setup-two-dialogs.html
 fast/mediastream/RTCPeerConnection-media-setup-callbacks-single-dialog.html
 fast/mediastream/RTCPeerConnection-legacy-stream-based-api.html
+fast/mediastream/RTCPeerConnection-icecandidate-event.html
+fast/mediastream/RTCPeerConnection-iceconnectionstatechange-event.html
 
 # Asserts in debug.
 [ Debug ] fast/images/large-size-image-crash.html [ Skip ]
@@ -1406,7 +1408,7 @@ webkit.org/b/159683 imported/w3c/web-platform-tests/fetch/api/request/request-ca
 
 webkit.org/b/158500 storage/indexeddb/database-close-private.html [ Pass Failure ]
 
-webkit.org/b/158640 imported/blink/storage/indexeddb/blob-valid-after-deletion.html [ Pass Failure ]
+webkit.org/b/163122 imported/blink/storage/indexeddb/blob-valid-after-deletion.html [ Pass Timeout ]
 
 webkit.org/b/128312 media/video-load-preload-metadata.html [ Pass Failure ]
 
@@ -1457,3 +1459,15 @@ webkit.org/b/162626 imported/w3c/web-platform-tests/media-source/mediasource-liv
 webkit.org/b/162647 [ Sierra+ ] http/tests/xmlhttprequest/onabort-response-getters.html [ Pass Failure ]
 
 webkit.org/b/162830 [ Debug ] fast/events/tabindex-focus-blur-all.html [ Pass Timeout ]
+
+webkit.org/b/127116 [ Debug ] svg/custom/animate-initial-pause-unpause.html [ Pass Failure ]
+
+# rdar://problem/28586837
+fast/text/variations/order.html [ Crash ]
+animations/font-variation-settings-order.html [ Crash ]
+
+[ Debug ] fast/selectors/slow-style-sharing-with-long-cousin-list.html [ Skip ]
+
+webkit.org/b/161720 [ Debug ] storage/indexeddb/key-type-array.html [ Pass Timeout ]
+
+webkit.org/b/155138 [ Debug ] inspector/console/addInspectedNode.html [ Pass Timeout ]

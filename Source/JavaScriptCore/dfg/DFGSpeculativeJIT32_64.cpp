@@ -2678,6 +2678,11 @@ void SpeculativeJIT::compile(Node* node)
         } }
         break;
     }
+    
+    case ToLowerCase: {
+        compileToLowerCase(node);
+        break;
+    }
 
     case GetByValWithThis: {
         JSValueOperand base(this, node->child1());
@@ -3474,7 +3479,7 @@ void SpeculativeJIT::compile(Node* node)
     }
         
     case Throw:
-    case ThrowReferenceError: {
+    case ThrowStaticError: {
         // We expect that throw statements are rare and are intended to exit the code block
         // anyway, so we just OSR back to the old JIT for now.
         terminateSpeculativeExecution(Uncountable, JSValueRegs(), 0);
@@ -4479,6 +4484,16 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
+    case DefineDataProperty: {
+        compileDefineDataProperty(node);
+        break;
+    }
+
+    case DefineAccessorProperty: {
+        compileDefineAccessorProperty(node);
+        break;
+    }
+
     case GetGlobalLexicalVariable:
     case GetGlobalVar: {
         GPRTemporary resultPayload(this);
@@ -5419,6 +5434,14 @@ void SpeculativeJIT::compile(Node* node)
         compileResolveScope(node);
         break;
     }
+
+    case CallDOM:
+        compileCallDOM(node);
+        break;
+
+    case CheckDOM:
+        compileCheckDOM(node);
+        break;
 
     case Unreachable:
         unreachable(node);

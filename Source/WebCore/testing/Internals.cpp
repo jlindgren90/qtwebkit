@@ -156,7 +156,7 @@
 #include <wtf/dtoa.h>
 #endif
 
-#if ENABLE(ENCRYPTED_MEDIA_V2)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 #include "CDM.h"
 #include "MockCDM.h"
 #endif
@@ -968,6 +968,11 @@ void Internals::enableMockMediaEndpoint()
 void Internals::enableMockRTCPeerConnectionHandler()
 {
     RTCPeerConnectionHandler::create = RTCPeerConnectionHandlerMock::create;
+}
+
+void Internals::emulateRTCPeerConnectionPlatformEvent(RTCPeerConnection& connection, const String& action)
+{
+    connection.emulatePlatformEvent(action);
 }
 #endif
 
@@ -2673,7 +2678,7 @@ void Internals::enableAutoSizeMode(bool enabled, int minimumWidth, int minimumHe
     document->view()->enableAutoSizeMode(enabled, IntSize(minimumWidth, minimumHeight), IntSize(maximumWidth, maximumHeight));
 }
 
-#if ENABLE(ENCRYPTED_MEDIA_V2)
+#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
 void Internals::initializeMockCDM()
 {
     CDM::registerCDMFactory([](CDM* cdm) { return std::make_unique<MockCDM>(cdm); },

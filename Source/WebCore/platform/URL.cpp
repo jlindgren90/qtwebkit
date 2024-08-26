@@ -464,14 +464,14 @@ URL::URL(const URL& base, const String& relative)
 
 URL::URL(const URL& base, const String& relative, const TextEncoding& encoding)
 {
+    // For UTF-{7,16,32}, we want to use UTF-8 for the query part as
+    // we do when submitting a form. A form with GET method
+    // has its contents added to a URL as query params and it makes sense
+    // to be consistent.
     if (URLParser::enabled()) {
-        URLParser parser(relative, base, encoding);
+        URLParser parser(relative, base, encoding.encodingForFormSubmission());
         *this = parser.result();
     } else {
-        // For UTF-{7,16,32}, we want to use UTF-8 for the query part as
-        // we do when submitting a form. A form with GET method
-        // has its contents added to a URL as query params and it makes sense
-        // to be consistent.
         init(base, relative, encoding.encodingForFormSubmission());
     }
 }
@@ -1310,6 +1310,12 @@ static inline bool cannotBeABaseURL(const URL& url)
 // Implementation of https://url.spec.whatwg.org/#url-serializing
 String URL::serialize(bool omitFragment) const
 {
+    if (URLParser::enabled()) {
+        if (omitFragment)
+            return m_string.left(m_queryEnd);
+        return m_string;
+    }
+
     if (isNull())
         return String();
 

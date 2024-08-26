@@ -367,7 +367,7 @@ enum UserInterfaceLayoutDirection {
     [Conditional=VIDEO] void simulateAudioInterruption(HTMLMediaElement element);
     [Conditional=VIDEO, MayThrowLegacyException] boolean mediaElementHasCharacteristic(HTMLMediaElement element, DOMString characteristic);
 
-    [Conditional=ENCRYPTED_MEDIA_V2] void initializeMockCDM();
+    [Conditional=LEGACY_ENCRYPTED_MEDIA] void initializeMockCDM();
 
     [Conditional=SPEECH_SYNTHESIS] void enableMockSpeechSynthesizer();
 
@@ -414,6 +414,7 @@ enum UserInterfaceLayoutDirection {
     [Conditional=WIRELESS_PLAYBACK_TARGET] void setMockMediaPlaybackTargetPickerEnabled(boolean enabled);
     [Conditional=WIRELESS_PLAYBACK_TARGET, MayThrowLegacyException] void setMockMediaPlaybackTargetPickerState(DOMString deviceName, DOMString deviceState);
     [Conditional=MEDIA_STREAM] void setMockMediaCaptureDevicesEnabled(boolean enabled);
+    [Conditional=WEB_RTC] void emulateRTCPeerConnectionPlatformEvent(RTCPeerConnection connection, DOMString action);
 
     [Conditional=VIDEO] void simulateSystemSleep();
     [Conditional=VIDEO] void simulateSystemWake();

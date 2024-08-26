@@ -26,7 +26,6 @@
 #pragma once
 
 #include "APIObject.h"
-#include "APISession.h"
 #include "AssistedNodeInformation.h"
 #include "AutoCorrectionCallback.h"
 #include "Connection.h"
@@ -297,7 +296,6 @@ public:
 
     uint64_t pageID() const { return m_pageID; }
     WebCore::SessionID sessionID() const { return m_sessionID; }
-    void setSessionID(WebCore::SessionID);
 
     WebFrameProxy* mainFrame() const { return m_mainFrame.get(); }
     WebFrameProxy* focusedFrame() const { return m_focusedFrame.get(); }
@@ -1031,7 +1029,7 @@ public:
 
     bool shouldRecordNavigationSnapshots() const { return m_shouldRecordNavigationSnapshots; }
     void setShouldRecordNavigationSnapshots(bool shouldRecordSnapshots) { m_shouldRecordNavigationSnapshots = shouldRecordSnapshots; }
-    void recordNavigationSnapshot();
+    void recordAutomaticNavigationSnapshot();
     void recordNavigationSnapshot(WebBackForwardListItem&);
 
 #if PLATFORM(COCOA)
@@ -1064,7 +1062,7 @@ public:
     void requestControlledElementID() const;
     void handleControlledElementIDResponse(const String&) const;
     void requestActiveNowPlayingSessionInfo();
-    void handleActiveNowPlayingSessionInfoResponse(bool hasActiveSession) const;
+    void handleActiveNowPlayingSessionInfoResponse(bool hasActiveSession, const String& title, double duration, double elapsedTime) const;
     bool isPlayingVideoInEnhancedFullscreen() const;
 #endif
 
@@ -1159,6 +1157,8 @@ public:
 #if ENABLE(GAMEPAD)
     void gamepadActivity(const Vector<GamepadData>&);
 #endif
+        
+    WeakPtr<WebPageProxy> createWeakPtr() const { return m_weakPtrFactory.createWeakPtr(); }
 
     void setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&&, const String& scheme);
     WebURLSchemeHandler* urlSchemeHandlerForScheme(const String& scheme);
@@ -1803,7 +1803,7 @@ private:
 #endif
 
     const uint64_t m_pageID;
-    WebCore::SessionID m_sessionID;
+    const WebCore::SessionID m_sessionID;
 
     bool m_isPageSuspended;
     bool m_addsVisitedLinks;
@@ -1889,7 +1889,7 @@ private:
     bool m_waitingForDidUpdateViewState;
 
     bool m_shouldScaleViewToFitDocument { false };
-    bool m_suppressNavigationSnapshotting { false };
+    bool m_suppressAutomaticNavigationSnapshotting { false };
 
 #if PLATFORM(QT)
     WTF::HashSet<RefPtr<QtRefCountedNetworkRequestData>> m_applicationSchemeRequests;
@@ -1940,6 +1940,8 @@ private:
 #if ENABLE(DOWNLOAD_ATTRIBUTE)
     bool m_syncNavigationActionHasDownloadAttribute { false };
 #endif
+        
+    WeakPtrFactory<WebPageProxy> m_weakPtrFactory;
 
     HashMap<String, RefPtr<WebURLSchemeHandler>> m_urlSchemeHandlersByScheme;
     HashMap<uint64_t, RefPtr<WebURLSchemeHandler>> m_urlSchemeHandlersByIdentifier;

@@ -3090,6 +3090,12 @@ bool AccessibilityObject::isSuperscriptStyleGroup() const
     Node* node = this->node();
     return node && node->hasTagName(supTag);
 }
+
+bool AccessibilityObject::isFigure() const
+{
+    Node* node = this->node();
+    return node && node->hasTagName(figureTag);
+}
     
 bool AccessibilityObject::isContainedByPasswordField() const
 {

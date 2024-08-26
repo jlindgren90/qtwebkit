@@ -479,7 +479,7 @@ messages -> WebPageProxy {
 
 #if PLATFORM(MAC)
     DidHandleAcceptedCandidate()
-    HandleActiveNowPlayingSessionInfoResponse(bool hasActiveSession)
+    HandleActiveNowPlayingSessionInfoResponse(bool hasActiveSession, String title, double duration, double elapsedTime)
 #endif
 
     StartURLSchemeHandlerTask(uint64_t loaderIdentifier, uint64_t resourceIdentifier, WebCore::ResourceRequest request)

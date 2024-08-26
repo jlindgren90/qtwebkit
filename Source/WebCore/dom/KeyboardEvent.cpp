@@ -24,6 +24,7 @@
 #include "KeyboardEvent.h"
 
 #include "Document.h"
+#include "Editor.h"
 #include "EventDispatcher.h"
 #include "EventHandler.h"
 #include "EventNames.h"
@@ -91,14 +92,7 @@ static inline KeyboardEvent::KeyLocationCode keyLocationCode(const PlatformKeybo
     }
 }
 
-KeyboardEvent::KeyboardEvent()
-    : m_location(DOM_KEY_LOCATION_STANDARD)
-    , m_altGraphKey(false)
-#if PLATFORM(COCOA)
-    , m_handledByInputMethod(false)
-#endif
-{
-}
+KeyboardEvent::KeyboardEvent() = default;
 
 KeyboardEvent::KeyboardEvent(const PlatformKeyboardEvent& key, DOMWindow* view)
     : UIEventWithKeyState(eventTypeForKeyboardEventType(key.type()),
@@ -107,10 +101,15 @@ KeyboardEvent::KeyboardEvent(const PlatformKeyboardEvent& key, DOMWindow* view)
 #if ENABLE(KEYBOARD_KEY_ATTRIBUTE)
     , m_key(key.key())
 #endif
+#if ENABLE(KEYBOARD_CODE_ATTRIBUTE)
+    , m_code(key.code())
+#endif
     , m_keyIdentifier(key.keyIdentifier())
     , m_location(keyLocationCode(key))
     , m_repeat(key.isAutoRepeat())
     , m_altGraphKey(false)
+    , m_capsLockKey(key.modifiers().contains(PlatformEvent::Modifier::CapsLockKey))
+    , m_isComposing(view && view->frame() && view->frame()->editor().hasComposition())
 #if PLATFORM(COCOA)
 #if USE(APPKIT)
     , m_handledByInputMethod(key.handledByInputMethod())
@@ -133,10 +132,15 @@ KeyboardEvent::KeyboardEvent(const AtomicString& eventType, const KeyboardEventI
 #if ENABLE(KEYBOARD_KEY_ATTRIBUTE)
     , m_key(initializer.key)
 #endif
+#if ENABLE(KEYBOARD_CODE_ATTRIBUTE)
+    , m_code(initializer.code)
+#endif
     , m_keyIdentifier(initializer.keyIdentifier)
     , m_location(initializer.location)
     , m_repeat(initializer.repeat)
-    , m_altGraphKey(false)
+    , m_altGraphKey(false) // FIXME: should be initialized from initializer.modifierAltGraph.
+    , m_capsLockKey(false) // FIXME: should be initialized from initializer.modifierCapsLock.
+    , m_isComposing(initializer.isComposing)
 #if PLATFORM(COCOA)
     , m_handledByInputMethod(false)
 #endif
@@ -177,7 +181,9 @@ bool KeyboardEvent::getModifierState(const String& keyIdentifier) const
         return metaKey();
     if (keyIdentifier == "AltGraph")
         return altGraphKey();
-    // FIXME: We should support CapsLock, Fn, FnLock, Hyper, NumLock, Super, ScrollLock, Symbol, SymbolLock.
+    if (keyIdentifier == "CapsLock")
+        return m_capsLockKey;
+    // FIXME: The specification also has Fn, FnLock, Hyper, NumLock, Super, ScrollLock, Symbol, SymbolLock.
     return false;
 }
 
