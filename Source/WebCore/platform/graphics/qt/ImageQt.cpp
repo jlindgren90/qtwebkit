@@ -36,6 +36,7 @@
 #include "BitmapImage.h"
 #include "FloatRect.h"
 #include "GraphicsContext.h"
+#include "ImageBackingStore.h"
 #include "ImageObserver.h"
 #include "ShadowBlur.h"
 #include "StillImageQt.h"
@@ -125,24 +126,24 @@ static QPixmap loadResourcePixmap(const char* name)
 
 namespace WebCore {
 
-bool FrameData::clear(bool clearMetadata)
+NativeImagePtr ImageBackingStore::image() const
 {
-    if (clearMetadata)
-        m_haveMetadata = false;
-
-    m_orientation = ImageOrientation();
-    m_subsamplingLevel = 0;
-
-    if (m_image) {
-        *m_image = QPixmap();
-        return true;
-    }
-    return false;
+    QImage::Format format = m_premultiplyAlpha ? QImage::Format_ARGB32_Premultiplied : QImage::Format_ARGB32;
+    QImage img((const uchar*)m_pixelsPtr, size().width(), size().height(), size().width() * sizeof(RGBA32), format);
+    return QPixmap::fromImage(img);
 }
 
-namespace NativeImage {
+IntSize nativeImageSize(const NativeImagePtr& image)
+{
+    return { image->width(), image->height() };
+}
 
-Color singlePixelSolidColor(const NativeImagePtr& image)
+bool nativeImageHasAlpha(const NativeImagePtr& image)
+{
+    return image->hasAlpha();
+}
+
+Color nativeImageSinglePixelSolidColor(const NativeImagePtr& image)
 {
     if (image->size() != QSize(1, 1))
         return Color();
@@ -150,6 +151,9 @@ Color singlePixelSolidColor(const NativeImagePtr& image)
     return QColor::fromRgba(image->toImage().pixel(0, 0));
 }
 
+float subsamplingScale(GraphicsContext&, const FloatRect&, const FloatRect&)
+{
+    return 1;
 }
 
 // ================================================
@@ -230,53 +234,42 @@ QPixmap prescaleImageIfRequired(QPainter* painter, const QPixmap &image, const Q
 }
 
 // Drawing Routines
-void BitmapImage::draw(GraphicsContext& ctxt, const FloatRect& dst,
-    const FloatRect& src, CompositeOperator op, BlendMode blendMode, ImageOrientationDescription)
+void drawNativeImage(const NativeImagePtr& srcImage, GraphicsContext& ctxt, const FloatRect& dst,
+    const FloatRect& src, const IntSize&, CompositeOperator op, BlendMode blendMode, const ImageOrientation&)
 {
     QRectF normalizedDst = dst.normalized();
     QRectF normalizedSrc = src.normalized();
 
-    startAnimation();
-
     if (normalizedSrc.isEmpty() || normalizedDst.isEmpty())
         return;
 
-    NativeImagePtr image = nativeImageForCurrentFrame();
-    if (!image)
-        return;
-
-    Color color = singlePixelSolidColor();
-    if (color.isValid()) {
-        fillWithSolidColor(ctxt, normalizedDst, color, op);
-        return;
-    }
-
 #if ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
-    normalizedSrc = adjustSourceRectForDownSampling(normalizedSrc, image->size());
+    normalizedSrc = adjustSourceRectForDownSampling(normalizedSrc, srcImage->size());
 #endif
 
-    *image = prescaleImageIfRequired(ctxt.platformContext(), *image, normalizedDst, &normalizedSrc);
+    QPixmap image = prescaleImageIfRequired(ctxt.platformContext(), *srcImage, normalizedDst, &normalizedSrc);
 
     CompositeOperator previousOperator = ctxt.compositeOperation();
     BlendMode previousBlendMode = ctxt.blendModeOperation();
-    ctxt.setCompositeOperation(!image->hasAlpha() && op == CompositeSourceOver && blendMode == BlendModeNormal ? CompositeCopy : op, blendMode);
+    ctxt.setCompositeOperation(!image.hasAlpha() && op == CompositeSourceOver && blendMode == BlendModeNormal ? CompositeCopy : op, blendMode);
 
     if (ctxt.hasShadow()) {
         ShadowBlur shadow(ctxt.state());
         GraphicsContext* shadowContext = shadow.beginShadowLayer(ctxt, normalizedDst);
         if (shadowContext) {
             QPainter* shadowPainter = shadowContext->platformContext();
-            shadowPainter->drawPixmap(normalizedDst, *image, normalizedSrc);
+            shadowPainter->drawPixmap(normalizedDst, image, normalizedSrc);
             shadow.endShadowLayer(ctxt);
         }
     }
 
-    ctxt.platformContext()->drawPixmap(normalizedDst, *image, normalizedSrc);
+    ctxt.platformContext()->drawPixmap(normalizedDst, image, normalizedSrc);
 
     ctxt.setCompositeOperation(previousOperator, previousBlendMode);
+}
 
-    if (imageObserver())
-        imageObserver()->didDraw(this);
+void clearNativeImageSubimages(const NativeImagePtr&)
+{
 }
 
 #if OS(WINDOWS)
