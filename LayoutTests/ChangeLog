@@ -1,3 +1,54 @@
+2016-10-02  Chris Dumez  <cdumez@apple.com>
+
+        Add support for KeyboardEvent.getModifierState() operation
+        https://bugs.webkit.org/show_bug.cgi?id=162855
+
+        Reviewed by Darin Adler.
+
+        Add layout test coverage.
+
+        * fast/events/constructors/keyboard-event-getModifierState-expected.txt: Added.
+        * fast/events/constructors/keyboard-event-getModifierState.html: Added.
+
+2016-10-02  Chris Dumez  <cdumez@apple.com>
+
+        Add support for KeyboardEvent.repeat attribute
+        https://bugs.webkit.org/show_bug.cgi?id=162854
+
+        Reviewed by Darin Adler.
+
+        Extend layout test coverage.
+
+        * fast/events/constructors/keyboard-event-constructor-expected.txt:
+        * fast/events/constructors/keyboard-event-constructor.html:
+
+2016-10-02  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r206692 and r206718.
+
+        Seems to have caused >200 failures on Sierra
+
+        Reverted changesets:
+
+        "Implement rendering of font-variation-settings"
+        https://bugs.webkit.org/show_bug.cgi?id=162782
+        http://trac.webkit.org/changeset/206692
+
+        "Tried to fix the build after r206692."
+        http://trac.webkit.org/changeset/206718
+
+2016-10-01  Simon Fraser  <simon.fraser@apple.com>
+
+        Support transitions/animations of background-position with right/bottom-relative values
+        https://bugs.webkit.org/show_bug.cgi?id=162048
+
+        Reviewed by Dean Jackson.
+
+        * transitions/background-position-transitions-expected.txt: Added.
+        * transitions/background-position-transitions.html: Added.
+        * transitions/resources/transition-test-helpers.js:
+        * transitions/svg-transitions-expected.txt:
+
 2016-10-01  Simon Fraser  <simon.fraser@apple.com>
 
         Bad cast when CSS position programmatically changed from -webkit-sticky to fixed
