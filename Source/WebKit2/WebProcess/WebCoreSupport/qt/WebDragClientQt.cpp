@@ -26,7 +26,7 @@
 #include "config.h"
 #include "WebDragClient.h"
 
-#if ENABLE(DRAG_SUPPORT)
+#if 0 // FIXME
 
 #include "DataTransfer.h"
 #include "DragData.h"
