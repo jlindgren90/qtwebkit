@@ -63034,9 +63034,9 @@
 - path: test262/test/language/expressions/generators/params-trailing-comma.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/generators/prototype-own-properties.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/generators/prototype-own-properties.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/generators/prototype-property-descriptor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/language/expressions/generators/prototype-property-descriptor.js
@@ -76522,9 +76522,9 @@
 - path: test262/test/language/statements/class/subclass/builtin-objects/GeneratorFunction/instance-name.js
   cmd: runTest262 :normal, "NoException", ["../../../../../../../harness/assert.js", "../../../../../../../harness/sta.js", "../../../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/language/statements/class/subclass/builtin-objects/GeneratorFunction/instance-prototype.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../../../harness/assert.js", "../../../../../../../harness/sta.js", "../../../../../../../harness/propertyHelper.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../../../harness/assert.js", "../../../../../../../harness/sta.js", "../../../../../../../harness/propertyHelper.js"], []
 - path: test262/test/language/statements/class/subclass/builtin-objects/GeneratorFunction/instance-prototype.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../../../harness/assert.js", "../../../../../../../harness/sta.js", "../../../../../../../harness/propertyHelper.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../../../harness/assert.js", "../../../../../../../harness/sta.js", "../../../../../../../harness/propertyHelper.js"], [:strict]
 - path: test262/test/language/statements/class/subclass/builtin-objects/GeneratorFunction/regular-subclassing.js
   cmd: runTest262 :normal, "NoException", ["../../../../../../../harness/assert.js", "../../../../../../../harness/sta.js"], []
 - path: test262/test/language/statements/class/subclass/builtin-objects/GeneratorFunction/regular-subclassing.js
@@ -84194,9 +84194,9 @@
 - path: test262/test/language/statements/generators/params-trailing-comma.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/generators/prototype-own-properties.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/generators/prototype-own-properties.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/generators/prototype-property-descriptor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js", "../../../../harness/propertyHelper.js"], []
 - path: test262/test/language/statements/generators/prototype-property-descriptor.js
