@@ -1,3 +1,278 @@
+2016-09-27  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Adopt MediaRemote SPI to achieve desired Now Playing behavior
+        https://bugs.webkit.org/show_bug.cgi?id=162658
+        <rdar://problem/28499358>
+
+        Reviewed by Jer Noble.
+
+        Restores the changes previously rolled out in r206444, and adopts new MediaRemote SPI to achieve the desired
+        behavior for media in background tabs without breaking other features.
+
+        Introduces 2 new unit tests in NowPlayingControlsTests.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::pageAllowsNowPlayingControls):
+        * page/Page.cpp:
+        (WebCore::Page::setViewState):
+        * platform/audio/PlatformMediaSessionManager.h:
+        (WebCore::PlatformMediaSessionManager::hasActiveNowPlayingSession):
+        * platform/audio/mac/MediaSessionManagerMac.h:
+        * platform/audio/mac/MediaSessionManagerMac.mm:
+        (WebCore::MediaSessionManagerMac::updateNowPlayingInfo):
+        * platform/mac/MediaRemoteSoftLink.cpp:
+        * platform/mac/MediaRemoteSoftLink.h:
+        * platform/spi/mac/MediaRemoteSPI.h:
+
+2016-09-28  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        REGRESSION(r206481): ASSERTION FAILED: isDecoderAvailable()
+        https://bugs.webkit.org/show_bug.cgi?id=162665
+
+        Reviewed by Simon Fraser.
+
+        Remove a wrong assertion from ImageSource::destroyDecodedData(). Before
+        r206481, the original function BitmapImage::destroyDecodedData() did not
+        have this assertion. Destroying the decoded ImageFrames can happen after
+        releasing the ImageDecoder. And it can happen also if decoding the image
+        fails and BitmapImage::isNull() is true. See CachedImage::finishLoading().
+
+        * platform/graphics/ImageSource.cpp:
+        (WebCore::ImageSource::destroyDecodedData):
+
+2016-09-28  Youenn Fablet  <youenn@apple.com>
+
+        WebCore::ResourceErrorBase::setType is crashing
+        https://bugs.webkit.org/show_bug.cgi?id=162484
+        <rdar://problem/28390828>
+
+        Reviewed by Alex Christensen.
+
+        Test: http/tests/xmlhttprequest/on-network-timeout-error-during-preflight.html
+
+        Behavior is slightly changed as we are no longer casting Timeout preflight errors as AccessControl errors.
+        This is more inline with fetch spec which prescribes to send back any error received by preflight as response error for fetch.
+
+        Ideally, we should not need to change errors received during preflight loads but the error type is important for some clients:
+        - EventSource may try to reconnect if error is not AccessControl
+        - XMLHttpRequest will send abort events in case of Cancellation errors and timeout events in case of Timeout errors
+
+        * loader/CrossOriginPreflightChecker.cpp:
+        (WebCore::CrossOriginPreflightChecker::notifyFinished): Setting error type to AccessControl except in case of Timeout.
+        (WebCore::CrossOriginPreflightChecker::doPreflight): Ditto.
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::preflightFailure): Removing ASSERT since Timeout errors may be returned.
+        * platform/network/ResourceErrorBase.h:
+        (WebCore::ResourceErrorBase::isGeneral): New getter.
+
+2016-09-28  Jer Noble  <jer.noble@apple.com>
+
+        PiP shows incorrect state of play button.
+        https://bugs.webkit.org/show_bug.cgi?id=162652
+
+        Reviewed by Eric Carlson.
+
+        After getting a new WebPlaybackSessionModel, the first thing WebVideoFullscreenInterfaceMac
+        should do is query for it's playbackRate() and isPlaying() properties.
+
+        * platform/mac/WebVideoFullscreenInterfaceMac.mm:
+        (WebCore::WebVideoFullscreenInterfaceMac::WebVideoFullscreenInterfaceMac):
+
+2016-09-28  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Add Chrome UA quirk
+        https://bugs.webkit.org/show_bug.cgi?id=162617
+
+        Reviewed by Carlos Garcia Campos.
+
+        Add Chrome UA quirk and use it on typekit.net, typekit.com, youtube.com, slack.com, and
+        any domain that begins with "google".
+
+        * platform/gtk/UserAgentGtk.cpp:
+        (WebCore::buildUserAgentString):
+        (WebCore::urlRequiresChromeBrowser):
+        (WebCore::standardUserAgentForURL):
+
+2016-09-28  Jer Noble  <jer.noble@apple.com>
+
+        [MSE][Mac] In SourceBufferPrivateAVFObjC::abort(), support reseting parser to the last appended initialization segment.
+        https://bugs.webkit.org/show_bug.cgi?id=135164
+
+        Reviewed by Eric Carlson.
+
+        Test: media/media-source/media-source-abort-resets-parser.html
+
+        Use the -[AVStreamDataParser appendStreamData:withFlags:] to implement "resetting" the parser. In this case,
+        the parser isn't explicitly reset during resetParserState(), but rather a flag is set so that the next append
+        signals a data discontinuity, and the parser is reset at that point.
+
+        Because a previous append operation may be in-flight during this abort(), care must be taken to invalidate any
+        operations which may have already started on a background thread. So SourceBufferPrivateAVFObjC will use a
+        separate WeakPtrFactory for its append operations, will invalidate any outstanding WeakPtrs during an abort(),
+        and will block until the previous append() operation completes.
+
+        This will require the WebAVStreamDataParserListener object to occasionally have it's WeakPtr pointing back to the
+        SourceBufferPrivateAVFObjC to be reset after an abort(), so make that ivar an @property. Rather than passing a
+        RetainPtr to itself in all the callbacks it handles, the WebAVStreamDataParserListener can just pass in a copy
+        of its own WeakPtr (which may be invalidated during an abort()).
+
+        Break the distinct operations of "abort()" and "resetParserState()" into their own methods in SourceBufferPrivate
+        and all its subclasses.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::resetParserState):
+        (WebCore::SourceBuffer::abortIfUpdating):
+        * platform/graphics/SourceBufferPrivate.h:
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.h:
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+        (-[WebAVStreamDataParserListener streamDataParser:didParseStreamDataAsAsset:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didParseStreamDataAsAsset:withDiscontinuity:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didFailToParseStreamDataWithError:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didProvideMediaData:forTrackID:mediaType:flags:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didReachEndOfTrackWithTrackID:mediaType:]):
+        (-[WebAVStreamDataParserListener streamDataParserWillProvideContentKeyRequestInitializationData:forTrackID:]):
+        (-[WebAVStreamDataParserListener streamDataParser:didProvideContentKeyRequestInitializationData:forTrackID:]):
+        (WebCore::SourceBufferPrivateAVFObjC::SourceBufferPrivateAVFObjC):
+        (WebCore::SourceBufferPrivateAVFObjC::append):
+        (WebCore::SourceBufferPrivateAVFObjC::abort):
+        (WebCore::SourceBufferPrivateAVFObjC::resetParserState):
+        (-[WebAVStreamDataParserListener initWithParser:parent:]): Deleted.
+        * platform/graphics/gstreamer/SourceBufferPrivateGStreamer.cpp:
+        (WebCore::SourceBufferPrivateGStreamer::resetParserState):
+        * platform/graphics/gstreamer/SourceBufferPrivateGStreamer.h:
+        * platform/mock/mediasource/MockSourceBufferPrivate.cpp:
+        (WebCore::MockSourceBufferPrivate::resetParserState):
+        * platform/mock/mediasource/MockSourceBufferPrivate.h:
+        * platform/spi/mac/AVFoundationSPI.h:
+
+2016-09-28  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] User agent should always claim to be Intel
+        https://bugs.webkit.org/show_bug.cgi?id=162610
+
+        Reviewed by Carlos Garcia Campos.
+
+        We should always claim to be running on Intel regardless of actual CPU type. See discussion
+        in bug #162548 for details. In particular, we can never advertise ARM because it causes dumb
+        websites to send mobile pages.
+
+        * platform/gtk/UserAgentGtk.cpp:
+        (WebCore::platformVersionForUAString):
+        (WebCore::buildUserAgentString):
+        (WebCore::cpuDescriptionForUAString): Deleted.
+
+2016-09-28  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Adjust OS X UA quirks list
+        https://bugs.webkit.org/show_bug.cgi?id=162616
+
+        Reviewed by Carlos Garcia Campos.
+
+        Remove the OS X quirk for yahoo.com as it's no longer needed. Add quirks for taobao.com and
+        whatsapp.com.
+
+        * platform/gtk/UserAgentGtk.cpp:
+        (WebCore::urlRequiresMacintoshPlatform):
+        (WebCore::standardUserAgentForURL):
+
+2016-09-28  Alejandro G. Castro  <alex@igalia.com>
+
+        Add WebIDL special operation support: serializer
+        https://bugs.webkit.org/show_bug.cgi?id=156293
+
+        Reviewed by Youenn Fablet.
+
+        Added support for the serializer special operation for WebIDLs,
+        current implementation adds support for:
+          - just the keyword: serializer; It will return all the
+            attributes of in an object.
+          - map of entries with the attributes: serializer = {attribute1,
+            attribute2, ...}
+
+        It creates a toJSON method that returns the serialized value
+        converted into an ECMAScript value. For more information check the
+        definition of the operation:
+
+        http://heycam.github.io/webidl/#idl-serializers
+
+        We have created a new function in the API of the objects
+        that are marked as serializer.
+
+        Used the support to add new API for RTCIceCandidate and
+        RTCSessionDescription.
+
+        Updated the tests expectations of the bindings.
+
+        Tests: bindings/scripts/test/TestNode.idl
+               bindings/scripts/test/TestObj.idl
+               fast/mediastream/RTCIceCandidate.html
+               fast/mediastream/RTCSessionDescription.html
+
+        * Modules/mediastream/RTCIceCandidate.idl: Added the serializer
+        operation.
+        * Modules/mediastream/RTCSessionDescription.idl: Added the
+        serializer operation.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Added the calls to the serializer
+        code generator.
+        (GenerateSerializerFunction): Added, generates the toJSON function
+        adding all the serializable->attributes value to an object as
+        defined in the spec.
+        * bindings/scripts/IDLParser.pm: Modified the serializer parser
+        that was unused to support the WebIDL spec parts. Added a new
+        domSerializable type to store the list of attributes in the
+        possible map.
+        (parseSerializer): Modified the function to follow the
+        semicolon rule in the spec, now the serializer line must have a
+        semicolon like any other line.
+        (parseSerializerRest): The function now has to get the attributes
+        list from the pattern parsing function and add them to the
+        domSerializable item.
+        (parseSerializationPattern): Now this function returns the list of
+        attributes in the serializable map or list if we have one.
+        (parseSerializationAttributes): Added, this function replaces the
+        Map and List functions, the currently supported parts are similar
+        for both situations.
+        (applyMemberList): Added the serializable item to the interface
+        variable and populate the serializable in case there is not a
+        defined map.
+        (parseSerializationPatternMap): Replaced with
+        parseSerializationAttributes.
+        (parseSerializationPatternList): Ditto.
+        * bindings/scripts/test/JS/JSTestNode.cpp: Modified the expected result.
+        (WebCore::jsTestNodePrototypeFunctionToJSON):
+        * bindings/scripts/test/JS/JSTestObj.cpp: Modified the expected result.
+        (WebCore::jsTestObjPrototypeFunctionToJSON):
+        * bindings/scripts/test/TestNode.idl: Added the serializer test.
+        * bindings/scripts/test/TestObj.idl: Added serializer map test.
+
+2016-09-28  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Simplify platformForUAString
+        https://bugs.webkit.org/show_bug.cgi?id=162614
+
+        Reviewed by Carlos Garcia Campos.
+
+        Note in particular that the previous PLATFORM(MAC) check was wrong here, as that is never
+        true for GTK; this patch risks changing it to OS(MAC_OS_X), on the hope that advertising Mac
+        when running on Mac might not break anything. If it does, then we should remove it and just
+        always pretend to be on X11.
+
+        * platform/gtk/UserAgentGtk.cpp:
+        (WebCore::platformForUAString):
+
+2016-09-28  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Bump fake Safari version in UA
+        https://bugs.webkit.org/show_bug.cgi?id=162615
+
+        Reviewed by Carlos Garcia Campos.
+
+        Pretend to be Safari 10.0 to fix sites that don't work when we pretend to be Safari 8.0.
+
+        * platform/gtk/UserAgentGtk.cpp:
+        (WebCore::buildUserAgentString):
+
 2016-09-28  Khaled Hosny  <khaledhosny@eglug.org>
 
         Use new woff2 API
