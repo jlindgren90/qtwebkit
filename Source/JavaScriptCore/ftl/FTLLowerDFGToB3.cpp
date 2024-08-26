@@ -31,6 +31,7 @@
 #include "AirGenerationContext.h"
 #include "AllowMacroScratchRegisterUsage.h"
 #include "B3CheckValue.h"
+#include "B3FenceValue.h"
 #include "B3PatchpointValue.h"
 #include "B3SlotBaseValue.h"
 #include "B3StackmapGenerationParams.h"
@@ -947,6 +948,7 @@ private:
             compileCountExecution();
             break;
         case StoreBarrier:
+        case FencedStoreBarrier:
             compileStoreBarrier();
             break;
         case HasIndexedProperty:
@@ -6999,9 +7001,9 @@ private:
     
     void compileStoreBarrier()
     {
-        emitStoreBarrier(lowCell(m_node->child1()));
+        emitStoreBarrier(lowCell(m_node->child1()), m_node->op() == FencedStoreBarrier);
     }
-
+    
     void compileHasIndexedProperty()
     {
         switch (m_node->arrayMode().type()) {
@@ -8129,8 +8131,6 @@ private:
                 object, m_out.loadPtr(object, m_heaps.JSObject_butterfly),
                 previousStructure, nextStructure);
         }
-        
-        emitStoreBarrier(object);
         
         return result;
     }
@@ -10057,13 +10057,13 @@ private:
     // run after the function that created them returns. Hence, you should not use by-reference
     // capture (i.e. [&]) in any of these lambdas.
     template<typename Functor, typename... ArgumentTypes>
-    LValue lazySlowPath(const Functor& functor, ArgumentTypes... arguments)
+    PatchpointValue* lazySlowPath(const Functor& functor, ArgumentTypes... arguments)
     {
         return lazySlowPath(functor, Vector<LValue>{ arguments... });
     }
 
     template<typename Functor>
-    LValue lazySlowPath(const Functor& functor, const Vector<LValue>& userArguments)
+    PatchpointValue* lazySlowPath(const Functor& functor, const Vector<LValue>& userArguments)
     {
         CodeOrigin origin = m_node->origin.semantic;
         
@@ -11433,26 +11433,39 @@ private:
         return m_out.load8ZeroExt32(base, m_heaps.JSCell_cellState);
     }
 
-    void emitStoreBarrier(LValue base)
+    void emitStoreBarrier(LValue base, bool isFenced)
     {
         LBasicBlock slowPath = m_out.newBlock();
         LBasicBlock continuation = m_out.newBlock();
 
+        LValue threshold;
+        if (isFenced)
+            threshold = m_out.load32(m_out.absolute(vm().heap.addressOfBarrierThreshold()));
+        else
+            threshold = m_out.constInt32(blackThreshold);
+        
         m_out.branch(
-            m_out.above(loadCellState(base), m_out.constInt32(blackThreshold)),
+            m_out.above(loadCellState(base), threshold),
             usually(continuation), rarely(slowPath));
 
         LBasicBlock lastNext = m_out.appendTo(slowPath, continuation);
-
+        
         // We emit the store barrier slow path lazily. In a lot of cases, this will never fire. And
         // when it does fire, it makes sense for us to generate this code using our JIT rather than
         // wasting B3's time optimizing it.
-        lazySlowPath(
+        PatchpointValue* patchpoint = lazySlowPath(
             [=] (const Vector<Location>& locations) -> RefPtr<LazySlowPath::Generator> {
                 GPRReg baseGPR = locations[1].directGPR();
 
                 return LazySlowPath::createGenerator(
                     [=] (CCallHelpers& jit, LazySlowPath::GenerationParams& params) {
+                        if (isFenced) {
+                            CCallHelpers::Jump noFence = jit.jumpIfBarrierStoreLoadFenceNotNeeded();
+                            jit.memoryFence();
+                            params.doneJumps.append(jit.barrierBranchWithoutFence(baseGPR));
+                            noFence.link(&jit);
+                        }
+                        
                         RegisterSet usedRegisters = params.lazySlowPath->usedRegisters();
                         ScratchRegisterAllocator scratchRegisterAllocator(usedRegisters);
                         scratchRegisterAllocator.lock(baseGPR);
@@ -11497,6 +11510,13 @@ private:
                     });
             },
             base);
+        
+        if (isFenced)
+            m_heaps.decoratePatchpointRead(&m_heaps.root, patchpoint);
+        else
+            m_heaps.decoratePatchpointRead(&m_heaps.JSCell_cellState, patchpoint);
+        m_heaps.decoratePatchpointWrite(&m_heaps.JSCell_cellState, patchpoint);
+        
         m_out.jump(continuation);
 
         m_out.appendTo(continuation, lastNext);

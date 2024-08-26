@@ -189,7 +189,9 @@ private:
     void startTransfer(DownloadID, const String& destination);
 #endif
 #if USE(NETWORK_SESSION)
+#if USE(PROTECTION_SPACE_AUTH_CALLBACK)
     void continueCanAuthenticateAgainstProtectionSpaceDownload(DownloadID, bool canAuthenticate);
+#endif
     void continueWillSendRequest(DownloadID, WebCore::ResourceRequest&&);
 #endif
     void continueDecidePendingDownloadDestination(DownloadID, String destination, const SandboxExtension::Handle& sandboxExtensionHandle, bool allowOverwrite);

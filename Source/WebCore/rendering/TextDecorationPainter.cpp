@@ -262,7 +262,7 @@ void TextDecorationPainter::paintTextDecoration(const TextRun& textRun, const Fl
     m_context.setStrokeThickness(textDecorationThickness);
     FloatPoint localOrigin = boxOrigin;
 
-    auto paintDecoration = [&](TextDecoration decoration, TextDecorationStyle style, Color color, const FloatPoint& start, const FloatPoint& end, int offset) {
+    auto paintDecoration = [&](TextDecoration decoration, TextDecorationStyle style, const Color& color, const FloatPoint& start, const FloatPoint& end, int offset) {
 #if !ENABLE(CSS3_TEXT_DECORATION_SKIP_INK)
         UNUSED_PARAM(offset);
 #endif
