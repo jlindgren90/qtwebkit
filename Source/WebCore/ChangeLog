@@ -1,5 +1,74 @@
 2016-09-22  Zalan Bujtas  <zalan@apple.com>
 
+        Replace redundant prepareForDestruction() call with RELEASE_ASSERT in Document::removedLastRef.
+        https://bugs.webkit.org/show_bug.cgi?id=162467
+
+        Reviewed by Chris Dumez.
+
+        Since r205786 fixed the root cause of webkit.org/b/159372, we no longer need the workaround.
+        Replace it with a RELEASE_ASSERT to ensure clean state.
+
+        No new tests, covered by existing test.
+
+        * dom/Document.cpp:
+        (WebCore::Document::removedLastRef):
+
+2016-09-23  Antoine Quint  <graouts@apple.com>
+
+        Add a new runtime flag for work on modern media controls (off by default)
+        https://bugs.webkit.org/show_bug.cgi?id=162420
+        <rdar://problem/27989489>
+
+        Reviewed by Eric Carlson.
+
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::setModernMediaControlsEnabled):
+        (WebCore::RuntimeEnabledFeatures::modernMediaControlsEnabled):
+
+2016-09-22  Chris Dumez  <cdumez@apple.com>
+
+        [ShadowDOM] Add support for Node.getRootNode(options)
+        https://bugs.webkit.org/show_bug.cgi?id=162457
+
+        Reviewed by Ryosuke Niwa.
+
+        Add support for Node.getRootNode(options):
+        - https://dom.spec.whatwg.org/#dom-node-getrootnode
+
+        No new tests, rebaselined existing tests.
+
+        * dom/EventPath.cpp:
+        (WebCore::RelatedNodeRetargeter::RelatedNodeRetargeter):
+        (WebCore::RelatedNodeRetargeter::checkConsistency):
+        * dom/Node.cpp:
+        (WebCore::Node::rootNode):
+        (WebCore::Node::shadowIncludingRoot):
+        (WebCore::Node::getRootNode):
+        * dom/Node.h:
+        * dom/Node.idl:
+        * editing/Editor.cpp:
+        (WebCore::correctSpellcheckingPreservingTextCheckingParagraph):
+        * xml/XPathPath.cpp:
+        (WebCore::XPath::LocationPath::evaluate):
+
+2016-09-22  Brady Eidson  <beidson@apple.com>
+
+        IDBIndex.openCursor() matches indices on multiple object stores.
+        <rdar://problem/28434463> and https://bugs.webkit.org/show_bug.cgi?id=158833
+
+        Reviewed by Alex Christensen.
+
+        Tests: storage/indexeddb/modern/multiple-objectstore-index-cursor-collision-private.html
+               storage/indexeddb/modern/multiple-objectstore-index-cursor-collision.html
+
+        * Modules/indexeddb/server/SQLiteIDBCursor.cpp:
+        (WebCore::IDBServer::buildIndexStatement): Need to include the object store id in the statement for
+          index cursors, otherwise there will be collisions amongst multiple object stores that happen to
+          share primary keys.
+        (WebCore::IDBServer::SQLiteIDBCursor::bindArguments):
+
+2016-09-22  Zalan Bujtas  <zalan@apple.com>
+
         ShowRenderTree: Shuffle letters to have better readability.
         https://bugs.webkit.org/show_bug.cgi?id=162460
 

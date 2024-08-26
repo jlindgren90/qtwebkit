@@ -1,3 +1,142 @@
+2016-09-23  Csaba Osztrogonác  <ossy@webkit.org>
+
+        ARM EABI buildfix after r206289
+        https://bugs.webkit.org/show_bug.cgi?id=162486
+
+        Unreviewed buildfix.
+
+        * jit/CCallHelpers.h:
+        (JSC::CCallHelpers::setupArgumentsWithExecState):
+
+2016-09-23  Antoine Quint  <graouts@apple.com>
+
+        Add a new runtime flag for work on modern media controls (off by default)
+        https://bugs.webkit.org/show_bug.cgi?id=162420
+        <rdar://problem/27989489>
+
+        Reviewed by Eric Carlson.
+
+        * runtime/CommonIdentifiers.h:
+
+2016-09-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r194387): Crash on github.com in IntlDateTimeFormat::resolvedOptions in C locale
+        https://bugs.webkit.org/show_bug.cgi?id=162139
+
+        Reviewed by Michael Catanzaro.
+
+        The crash happens in unix ports because the resolved locale is empty when system locale is "C". IntlObject
+        considers any language tag with a size < 2 to be an invalid language, so "C" is not a valid language to resolve
+        the locale. We should ensure that WTF::platformUserPreferredLanguages() never returns invalid languages, but
+        that's not enough, because languages can be overriden from the public API, so we need to handle those cases and
+        throw exceptions instead of crashing.
+
+        * runtime/IntlCollator.cpp:
+        (JSC::IntlCollator::initializeCollator): Throw a exception when we fail to resolve the locale.
+        * runtime/IntlDateTimeFormat.cpp:
+        (JSC::IntlDateTimeFormat::initializeDateTimeFormat): Ditto.
+        * runtime/IntlNumberFormat.cpp:
+        (JSC::IntlNumberFormat::initializeNumberFormat): Ditto.
+
+2016-09-22  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] Use an inline cache to generate op_negate
+        https://bugs.webkit.org/show_bug.cgi?id=162371
+
+        Reviewed by Saam Barati.
+
+        Use an inline cache to reduce the amount of code
+        required to implement op_negate.
+
+        For pure integer negate, the generated asm shrinks
+        from 147 bytes to 125 bytes (14%).
+        For double negate, the generated asm shrinks
+        to 130 bytes (11%).
+        The average size on Sunspider is 100bytes, this is due
+        to the op_negates that are never executed and do not
+        generate much.
+
+        * bytecode/ArithProfile.h:
+        (JSC::ArithProfile::ArithProfile):
+        (JSC::ArithProfile::observeLHS):
+        (JSC::ArithProfile::observeLHSAndRHS):
+        * bytecode/BytecodeList.json:
+        * bytecode/CodeBlock.cpp:
+        (JSC::CodeBlock::addJITNegIC):
+        * bytecode/CodeBlock.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitUnaryOp):
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::UnaryOpNode::emitBytecode):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileMathIC):
+        * dfg/DFGSpeculativeJIT.h:
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileMathIC):
+        * jit/CCallHelpers.h:
+        (JSC::CCallHelpers::setupArgumentsWithExecState):
+        * jit/JIT.h:
+        * jit/JITArithmetic.cpp:
+        (JSC::JIT::emit_op_negate):
+        (JSC::JIT::emitSlow_op_negate):
+        (JSC::JIT::emitMathICFast):
+        (JSC::JIT::emitMathICSlow):
+        * jit/JITInlines.h:
+        (JSC::JIT::callOperation):
+        * jit/JITMathIC.h:
+        (JSC::JITMathIC::generateInline):
+        (JSC::canGenerateWithBinaryProfile):
+        (JSC::canGenerateWithUnaryProfile):
+        * jit/JITMathICForwards.h:
+        * jit/JITNegGenerator.cpp:
+        (JSC::JITNegGenerator::generateInline):
+        (JSC::JITNegGenerator::generateFastPath):
+        * jit/JITNegGenerator.h:
+        (JSC::JITNegGenerator::JITNegGenerator):
+        (JSC::JITNegGenerator::arithProfile):
+        (JSC::JITNegGenerator::didEmitFastPath): Deleted.
+        (JSC::JITNegGenerator::endJumpList): Deleted.
+        (JSC::JITNegGenerator::slowPathJumpList): Deleted.
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * llint/LowLevelInterpreter.asm:
+        * llint/LowLevelInterpreter32_64.asm:
+        * llint/LowLevelInterpreter64.asm:
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::updateArithProfileForUnaryArithOp):
+        (JSC::SLOW_PATH_DECL):
+
+2016-09-22  Mark Lam  <mark.lam@apple.com>
+
+        Removed unused hasErrorInfo().
+        https://bugs.webkit.org/show_bug.cgi?id=162473
+
+        Reviewed by Saam Barati.
+
+        * JavaScriptCore.order:
+        * runtime/Error.cpp:
+        (JSC::hasErrorInfo): Deleted.
+        * runtime/Error.h:
+
+2016-09-22  Mark Lam  <mark.lam@apple.com>
+
+        Array.prototype.join should do overflow checks on string joins.
+        https://bugs.webkit.org/show_bug.cgi?id=162459
+
+        Reviewed by Saam Barati.
+
+        Change the 2 JSRopeString::create() functions that do joins to be private, and
+        force all clients of it to go through the jsString() utility functions that do
+        overflow checks before creating the ropes.
+
+        * dfg/DFGOperations.cpp:
+        * runtime/ArrayPrototype.cpp:
+        (JSC::slowJoin):
+        * runtime/JSString.h:
+        * runtime/Operations.h:
+        (JSC::jsString):
+
 2016-09-22  Filip Pizlo  <fpizlo@apple.com>
 
         Fences on x86 should be a lot cheaper
