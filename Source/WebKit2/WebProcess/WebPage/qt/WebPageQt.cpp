@@ -314,4 +314,9 @@ void WebPage::hidePopupMenu()
     m_activePopupMenu = nullptr;
 }
 
+void WebPage::collapseSelectionInFrame(uint64_t frameID)
+{
+    notImplemented();
+}
+
 } // namespace WebKit

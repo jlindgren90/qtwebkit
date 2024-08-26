@@ -38,6 +38,11 @@
 #include <EGL/eglplatform.h>
 #endif
 
+// Qt/X11 name conflicts
+#undef Bool
+#undef CursorShape
+#undef Status
+
 // FIXME: this needs to be here, after eglplatform.h, to avoid EGLNativeDisplayType to be defined as wl_display.
 // Since we support Wayland and X11 to be built at the same time, but eglplatform.h defines are decided at compile time
 // we need to ensure we only include eglplatform.h from X11 or Wayland specific files.

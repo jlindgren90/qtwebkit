@@ -86,7 +86,7 @@ void IncrementalSweeper::cancelTimer()
 #elif PLATFORM(QT)
 IncrementalSweeper::IncrementalSweeper(Heap* heap)
     : HeapTimer(heap->vm())
-    , m_blocksToSweep(heap->m_blockSnapshot)
+    , m_currentAllocator(nullptr)
 {
 }
 
