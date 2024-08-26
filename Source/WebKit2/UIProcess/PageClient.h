@@ -160,7 +160,7 @@ public:
 
     virtual void didChangeContentSize(const WebCore::IntSize&) = 0;
 
-#if (PLATFORM(QT) || PLATFORM(GTK)) && ENABLE(DRAG_SUPPORT)
+#if PLATFORM(GTK) && ENABLE(DRAG_SUPPORT)
     virtual void startDrag(Ref<WebCore::SelectionData>&&, WebCore::DragOperation, RefPtr<ShareableBitmap>&& dragImage) = 0;
 #endif
 

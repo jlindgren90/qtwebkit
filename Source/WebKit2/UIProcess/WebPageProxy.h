@@ -834,7 +834,7 @@ public:
     void setPromisedDataForAttachment(const String& pasteboardName, const String& filename, const String& extension, const String& title, const String& url, const String& visibleURL);
 #endif
 #endif
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
     void startDrag(WebSelectionData&&, uint64_t dragOperation, const ShareableBitmap::Handle& dragImage);
 #endif
 #endif

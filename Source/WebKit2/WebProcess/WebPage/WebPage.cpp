@@ -3539,15 +3539,11 @@ bool WebPage::handleEditingKeyboardEvent(KeyboardEvent* evt)
 
 #if ENABLE(DRAG_SUPPORT)
 
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
 void WebPage::performDragControllerAction(uint64_t action, const IntPoint& clientPosition, const IntPoint& globalPosition, uint64_t draggingSourceOperationMask, WebSelectionData&& selection, uint32_t flags)
 {
     if (!m_page) {
         send(Messages::WebPageProxy::DidPerformDragControllerAction(DragOperationNone, false, 0));
-#if PLATFORM(QT)
-        QMimeData* data = const_cast<QMimeData*>(dragData.platformData());
-        delete data;
-#endif
         return;
     }
 
@@ -3575,10 +3571,6 @@ void WebPage::performDragControllerAction(uint64_t action, const IntPoint& clien
     default:
         ASSERT_NOT_REACHED();
     }
-#if PLATFORM(QT)
-    QMimeData* data = const_cast<QMimeData*>(dragData.platformData());
-    delete data;
-#endif
 }
 #else
 void WebPage::performDragControllerAction(uint64_t action, WebCore::IntPoint clientPosition, WebCore::IntPoint globalPosition, uint64_t draggingSourceOperationMask, const String& dragStorageName, uint32_t flags, const SandboxExtension::Handle& sandboxExtensionHandle, const SandboxExtension::HandleArray& sandboxExtensionsHandleArray)

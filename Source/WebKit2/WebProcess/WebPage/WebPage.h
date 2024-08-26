@@ -743,7 +743,7 @@ public:
     void restoreSelectionInFocusedEditableElement();
 
 #if ENABLE(DRAG_SUPPORT)
-#if PLATFORM(QT) || PLATFORM(GTK)
+#if PLATFORM(GTK)
     void performDragControllerAction(uint64_t action, const WebCore::IntPoint& clientPosition, const WebCore::IntPoint& globalPosition, uint64_t draggingSourceOperationMask, WebSelectionData&&, uint32_t flags);
 #else
     void performDragControllerAction(uint64_t action, WebCore::IntPoint clientPosition, WebCore::IntPoint globalPosition, uint64_t draggingSourceOperationMask, const WTF::String& dragStorageName, uint32_t flags, const SandboxExtension::Handle&, const SandboxExtension::HandleArray&);
