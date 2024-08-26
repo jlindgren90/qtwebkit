@@ -69,6 +69,13 @@ Download::Download(DownloadManager& downloadManager, DownloadID downloadID, cons
 
 Download::~Download()
 {
+    if (m_resourceHandle) {
+        m_resourceHandle->clearClient();
+        m_resourceHandle->cancel();
+        m_resourceHandle = nullptr;
+    }
+    m_downloadClient = nullptr;
+
     platformInvalidate();
 
     m_downloadManager.didDestroyDownload();
@@ -90,6 +97,17 @@ void Download::start()
 #endif
 }
 
+void Download::cancel()
+{
+    if (m_request.url().protocolIsBlob()) {
+        auto resourceHandle = WTFMove(m_resourceHandle);
+        resourceHandle->cancel();
+        static_cast<BlobDownloadClient*>(m_downloadClient.get())->didCancel();
+        return;
+    }
+    cancelNetworkLoad();
+}
+
 void Download::didStart()
 {
     send(Messages::DownloadProxy::DidStart(m_request, m_suggestedName));
@@ -104,7 +122,7 @@ void Download::didReceiveAuthenticationChallenge(const AuthenticationChallenge& 
 
 void Download::didReceiveResponse(const ResourceResponse& response)
 {
-    RELEASE_LOG_IF_ALLOWED("didReceiveResponse: Created (id = %llu)", downloadID().downloadID());
+    RELEASE_LOG_IF_ALLOWED("didReceiveResponse: Created (id = %" PRIu64 ")", downloadID().downloadID());
 
     send(Messages::DownloadProxy::DidReceiveResponse(response));
 }
@@ -112,7 +130,7 @@ void Download::didReceiveResponse(const ResourceResponse& response)
 void Download::didReceiveData(uint64_t length)
 {
     if (!m_hasReceivedData) {
-        RELEASE_LOG_IF_ALLOWED("didReceiveData: Started receiving data (id = %llu)", downloadID().downloadID());
+        RELEASE_LOG_IF_ALLOWED("didReceiveData: Started receiving data (id = %" PRIu64 ")", downloadID().downloadID());
         m_hasReceivedData = true;
     }
 
@@ -149,7 +167,7 @@ void Download::didCreateDestination(const String& path)
 
 void Download::didFinish()
 {
-    RELEASE_LOG_IF_ALLOWED("didFinish: (id = %llu)", downloadID().downloadID());
+    RELEASE_LOG_IF_ALLOWED("didFinish: (id = %" PRIu64 ")", downloadID().downloadID());
 
     platformDidFinish();
 
@@ -165,7 +183,7 @@ void Download::didFinish()
 
 void Download::didFail(const ResourceError& error, const IPC::DataReference& resumeData)
 {
-    RELEASE_LOG_IF_ALLOWED("didFail: (id = %llu, isTimeout = %d, isCancellation = %d, errCode = %d)",
+    RELEASE_LOG_IF_ALLOWED("didFail: (id = %" PRIu64 ", isTimeout = %d, isCancellation = %d, errCode = %d)",
         downloadID().downloadID(), error.isTimeout(), error.isCancellation(), error.errorCode());
 
     send(Messages::DownloadProxy::DidFail(error, resumeData));
@@ -179,7 +197,7 @@ void Download::didFail(const ResourceError& error, const IPC::DataReference& res
 
 void Download::didCancel(const IPC::DataReference& resumeData)
 {
-    RELEASE_LOG_IF_ALLOWED("didCancel: (id = %llu)", downloadID().downloadID());
+    RELEASE_LOG_IF_ALLOWED("didCancel: (id = %" PRIu64 ")", downloadID().downloadID());
 
     send(Messages::DownloadProxy::DidCancel(resumeData));
 

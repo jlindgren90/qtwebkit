@@ -123,6 +123,7 @@ private:
 #if !USE(NETWORK_SESSION)
     void startNetworkLoad();
 #endif
+    void cancelNetworkLoad();
 
     void platformInvalidate();
 
