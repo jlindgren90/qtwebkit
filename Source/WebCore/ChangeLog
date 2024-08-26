@@ -1,3 +1,493 @@
+2016-09-26  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        If you play a youtube video from now playing after it finished in Safari, controls disappear
+        https://bugs.webkit.org/show_bug.cgi?id=162589
+        <rdar://problem/28484047>
+
+        Reviewed by Jer Noble.
+
+        Tweaks the main content heuristic slightly to remove the "mostly in mainframe" requirement in the case of Now
+        Playing. This was added in the case of the controls manager as an additional way to identify video elements that
+        should not show controls, since we relax audio and video constraints for showing videos in the controls manager,
+        so that a video element is prevented from showing controls on grounds of lacking audio only if it has never had
+        audio before. In the case of Now Playing, we have stricter requirements for videos, which must have audio, which
+        makes the mainframe heuristic not necessary.
+
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canShowControlsManager):
+
+2016-09-26  Antti Koivisto  <antti@apple.com>
+
+        Setter on style element's textContent or cssText doesn't trigger style recalc
+        https://bugs.webkit.org/show_bug.cgi?id=160331
+        <rdar://problem/27609715>
+
+        Reviewed by Ryosuke Niwa and Daniel Bates.
+
+        We would not notify the parent when text node content changed in a shadow tree.
+
+        Test: fast/shadow-dom/shadow-style-text-mutation.html
+
+        * dom/AuthorStyleSheets.cpp:
+        (WebCore::AuthorStyleSheets::updateActiveStyleSheets):
+
+            Invalidate shadow root children instead of the root itself when doing full invalidation.
+            The invalidity bits have no meaning for non-element, non-texts.
+
+        * dom/CharacterData.cpp:
+        (WebCore::CharacterData::parserAppendData):
+        (WebCore::CharacterData::setDataAndUpdate):
+        (WebCore::CharacterData::notifyParentAfterChange):
+
+            Add a helper and call it also in shadow trees.
+
+        (WebCore::CharacterData::dispatchModifiedEvent):
+        * dom/CharacterData.h:
+
+2016-09-26  Antti Koivisto  <antti@apple.com>
+
+        Input elements don't work inside shadow tree
+        https://bugs.webkit.org/show_bug.cgi?id=160427
+
+        Reviewed by Darin Adler.
+
+        There is a bug in ComposedTreeIterator. If the iterator is initialized with an initial state where the root
+        is inside a shadow tree it won't iterate into slots.
+
+        If an input element is in a shadow tree it generates narrowly scoped style updates. When RenderTreeUpdater
+        applies such an update the update root will be inside the shadow tree and the bug will prevent the render tree
+        for slotted content from updating.
+
+        Added tests for both the iterator behavior and the specific symptom with input elements.
+
+        Tests: fast/shadow-dom/composed-tree-shadow-child-subtree.html
+               fast/shadow-dom/input-element-in-shadow.html
+
+        * dom/ComposedTreeIterator.cpp:
+        (WebCore::ComposedTreeIterator::ComposedTreeIterator):
+
+            Check and cache if the root is inside shadow tree.
+
+        (WebCore::ComposedTreeIterator::traverseNextInShadowTree):
+        * dom/ComposedTreeIterator.h:
+        (WebCore::ComposedTreeIterator::traverseNext):
+
+            If it is, always use the shadow traversal code path.
+
+2016-09-26  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Seeking video doesn't update seek position
+        https://bugs.webkit.org/show_bug.cgi?id=162575
+        <rdar://problem/28457219>
+
+        Reviewed by Jer Noble.
+
+        On ToT, seeking in a video causes the playhead to stutter, and does not actually update media remote's seek
+        position. This is partly due to how we do not update media remote with new information when beginning to respond
+        to remote seek commands, so media remote continues to think that a playing video is still playing despite the
+        user attempting to seek through it.
+
+        To fix this, we introduce timer-based guards around remote seek commands, such that a seek "gesture" begins when
+        we receive the first seek command and ends when no seek command has been received in a set amount of time (this
+        is 0.5 seconds, which is approximately what other clients around the platform use).
+
+        Also, when responding to a remote seek, perform the seek with no tolerance. This prevents the playhead from
+        stuttering at the end of a seek from the final requested destination of the seek to the last actually seeked
+        time in the video.
+
+        When beginning to seek, we must pause the media. Through existing mechanisms, this causes the media session
+        manager to update its Now Playing information, which informs media remote that we are no longer playing and
+        prevents us from stuttering. However, when ending a seek, we must also trigger an additional update to again
+        refresh media remote's view of the current time. This prevents a flicker when playing media after seeking.
+
+        Unit tests to be added in a follow-up due to time constraints.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::HTMLMediaElement):
+        (WebCore::HTMLMediaElement::handleSeekToPlaybackPosition):
+        (WebCore::HTMLMediaElement::seekToPlaybackPositionEndedTimerFired):
+        (WebCore::HTMLMediaElement::didReceiveRemoteControlCommand):
+        * html/HTMLMediaElement.h:
+        * platform/audio/PlatformMediaSessionManager.h:
+        (WebCore::PlatformMediaSessionManager::scheduleUpdateNowPlayingInfo):
+        (WebCore::PlatformMediaSessionManager::sessionDidEndRemoteScrubbing):
+        (WebCore::PlatformMediaSessionManager::sessions): Deleted.
+        * platform/audio/mac/MediaSessionManagerMac.h:
+        * platform/audio/mac/MediaSessionManagerMac.mm:
+        (WebCore::PlatformMediaSessionManager::updateNowPlayingInfoIfNecessary):
+        (WebCore::MediaSessionManagerMac::scheduleUpdateNowPlayingInfo):
+        (WebCore::MediaSessionManagerMac::sessionDidEndRemoteScrubbing):
+        (WebCore::MediaSessionManagerMac::updateNowPlayingInfo):
+
+2016-09-26  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] BlobDownloadClient should use asynchronous IPC to decide destination path
+        https://bugs.webkit.org/show_bug.cgi?id=162568
+
+        Reviewed by Alex Christensen.
+
+        Update BlobResourceHandle to wait for continueDidReceiveResponse() to be
+        called after it calls the client's didReceiveResponseAsync(), before
+        actually reading the Blob Data.
+
+        No new tests, covered by existing tests.
+
+        * platform/network/BlobResourceHandle.cpp:
+        (WebCore::BlobResourceHandle::continueDidReceiveResponse):
+        (WebCore::BlobResourceHandle::getSizeForNext):
+        (WebCore::BlobResourceHandle::notifyResponseOnSuccess):
+        (WebCore::BlobResourceHandle::notifyResponseOnError):
+
+2016-09-26  Daniel Bates  <dabates@apple.com>
+
+        Mark Ping{Handle, Load} as final
+        https://bugs.webkit.org/show_bug.cgi?id=162576
+
+        Reviewed by Alex Christensen.
+
+        We should not support subclassing of a ping handle or overriding its ResourceHandleClient
+        callbacks because there are security/privacy implications with a ping request. We should
+        not encourage subclassing without careful consideration.
+
+        * platform/network/PingHandle.h:
+
+2016-09-26  Daniel Bates  <dabates@apple.com>
+
+        Rename IOS_TEXT_AUTOSIZING to TEXT_AUTOSIZING
+        https://bugs.webkit.org/show_bug.cgi?id=162365
+
+        Reviewed by Simon Fraser.
+
+        Repurpose the feature name TEXT_AUTOSIZING for the ENABLE(IOS_TEXT_AUTOSIZING)-guarded code
+        as this code represents WebKit's automatic text size adjustment machinery and is compiled
+        on both macOS and iOS.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::ComputedStyleExtractor::propertyValue):
+        * css/CSSPropertyNames.in:
+        * css/StyleBuilderCustom.h:
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::updateFont):
+        * css/StyleResolver.h:
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParserContext::CSSParserContext):
+        (WebCore::CSSParser::parseValue):
+        * css/parser/CSSParser.h:
+        * css/parser/CSSParserMode.h:
+        * dom/Document.cpp:
+        (WebCore::Document::destroyRenderTree):
+        * dom/Document.h:
+        * editing/EditingStyle.cpp:
+        * page/FrameView.cpp:
+        (WebCore::FrameView::layout):
+        * page/Page.cpp:
+        (WebCore::Page::Page):
+        * page/Page.h:
+        * page/Settings.in:
+        * platform/graphics/FontCascade.h:
+        * platform/graphics/FontDescription.cpp:
+        * platform/graphics/FontDescription.h:
+        * rendering/RenderBlockFlow.cpp:
+        (WebCore::RenderBlockFlow::RenderBlockFlow):
+        * rendering/RenderBlockFlow.h:
+        * rendering/RenderElement.cpp:
+        * rendering/RenderElement.h:
+        * rendering/RenderObject.cpp:
+        * rendering/RenderObject.h:
+        * rendering/RenderText.cpp:
+        (WebCore::RenderText::RenderText):
+        * rendering/RenderText.h:
+        * rendering/TextAutoSizing.cpp:
+        * rendering/TextAutoSizing.h:
+        * rendering/style/RenderStyle.cpp:
+        (WebCore::RenderStyle::changeRequiresLayout):
+        * rendering/style/RenderStyle.h:
+        * rendering/style/StyleInheritedData.cpp:
+        (WebCore::StyleInheritedData::StyleInheritedData):
+        (WebCore::StyleInheritedData::operator==):
+        * rendering/style/StyleInheritedData.h:
+        * rendering/style/StyleRareInheritedData.cpp:
+        (WebCore::StyleRareInheritedData::StyleRareInheritedData):
+        (WebCore::StyleRareInheritedData::operator==):
+        * rendering/style/StyleRareInheritedData.h:
+        * rendering/style/TextSizeAdjustment.h:
+        * testing/InternalSettings.cpp:
+        (WebCore::InternalSettings::Backup::Backup):
+        (WebCore::InternalSettings::Backup::restoreTo):
+        (WebCore::InternalSettings::setTextAutosizingEnabled):
+        (WebCore::InternalSettings::setTextAutosizingWindowSizeOverride):
+        * testing/InternalSettings.h:
+
+2016-09-26  Nan Wang  <n_wang@apple.com>
+
+        AX: Progress: [Mac] Content in label element should be used as AXTitle or AXDescription
+        https://bugs.webkit.org/show_bug.cgi?id=162573
+
+        Reviewed by Chris Fleizach.
+
+        Exposed the label element's text as the AXTitle of the progress indicator.
+
+        Test: accessibility/mac/progress-with-label-element.html
+
+        * accessibility/AccessibilityNodeObject.cpp:
+        (WebCore::AccessibilityNodeObject::titleElementText):
+        (WebCore::AccessibilityNodeObject::title):
+
+2016-09-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline bindings tests after r206386.
+
+        Unreviewed test gardening.
+
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        * bindings/scripts/test/JS/JSTestOverloadedConstructorsWithSequence.cpp:
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+
+2016-09-26  Youenn Fablet  <youenn@apple.com>
+
+        ASSERTION FAILED: m_origin || m_type == CachedResource::MainResource
+        https://bugs.webkit.org/show_bug.cgi?id=162472
+        <rdar://problem/28431522>
+
+        Reviewed by Chris Dumez.
+
+        Covered by existing tests.
+
+        * loader/cache/CachedImage.cpp:
+        (WebCore::CachedImage::CachedImage): Fixing the last CachedImage constructor.
+        Using CachedResource protected constructor.
+        * loader/cache/CachedResource.h: Small clean-up.
+
+2016-09-26  Youenn Fablet  <youenn@apple.com>
+
+        [GTK][EFL] imported/w3c/web-platform-tests/fetch/api/basic/accept-header.html is failing
+        https://bugs.webkit.org/show_bug.cgi?id=162547
+
+        Reviewed by Carlos Garcia Campos.
+
+        Covered by LayoutTests/imported/w3c/web-platform-tests/fetch/api/basic/accept-header.html now passing.
+
+        * platform/network/soup/SoupNetworkSession.cpp:
+        (WebCore::SoupNetworkSession::createTestingSession): Setting a default Accept-Language value.
+
+2016-09-26  Mark Lam  <mark.lam@apple.com>
+
+        Added RETURN_IF_EXCEPTION() macro and use it for exception checks.
+        https://bugs.webkit.org/show_bug.cgi?id=162521
+
+        Reviewed by Saam Barati.
+
+        No new tests because this patch is mostly refactoring.  The only change in
+        behavior is that functions that have a JSValue return type will now return the
+        empty JSValue when an exception is thrown.  I tested this behavior by running
+        the existing JSC and layout tests.
+
+        * bindings/js/ArrayValue.cpp:
+        (WebCore::ArrayValue::get):
+        * bindings/js/IDBBindingUtilities.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSApplePaySessionCustom.cpp:
+        (WebCore::JSApplePaySession::completeShippingMethodSelection):
+        (WebCore::JSApplePaySession::completeShippingContactSelection):
+        (WebCore::JSApplePaySession::completePaymentMethodSelection):
+        * bindings/js/JSAudioTrackCustom.cpp:
+        (WebCore::JSAudioTrack::setKind):
+        (WebCore::JSAudioTrack::setLanguage):
+        * bindings/js/JSBlobCustom.cpp:
+        (WebCore::constructJSBlob):
+        * bindings/js/JSCSSStyleDeclarationCustom.cpp:
+        (WebCore::JSCSSStyleDeclaration::getPropertyCSSValue):
+        * bindings/js/JSCommandLineAPIHostCustom.cpp:
+        (WebCore::getJSListenerFunctions):
+        * bindings/js/JSCryptoAlgorithmDictionary.cpp:
+        (WebCore::JSCryptoAlgorithmDictionary::getAlgorithmIdentifier):
+        (WebCore::getHashAlgorithm):
+        (WebCore::createAesCbcParams):
+        (WebCore::createAesKeyGenParams):
+        (WebCore::createHmacKeyParams):
+        (WebCore::createRsaKeyGenParams):
+        (WebCore::createRsaOaepParams):
+        * bindings/js/JSCryptoKeySerializationJWK.cpp:
+        (WebCore::getStringFromJSON):
+        (WebCore::JSCryptoKeySerializationJWK::reconcileUsages):
+        (WebCore::JSCryptoKeySerializationJWK::keyDataRSAComponents):
+        (WebCore::buildJSONForRSAComponents):
+        (WebCore::addUsagesToJSON):
+        (WebCore::JSCryptoKeySerializationJWK::serialize):
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::constructCustomElementSynchronously):
+        (WebCore::JSCustomElementInterface::upgradeElement):
+        * bindings/js/JSCustomElementRegistryCustom.cpp:
+        (WebCore::getCustomElementCallback):
+        (WebCore::JSCustomElementRegistry::define):
+        (WebCore::whenDefinedPromise):
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::valueToUSVString):
+        (WebCore::hasIteratorMethod):
+        (WebCore::toSmallerInt):
+        (WebCore::toSmallerUInt):
+        (WebCore::toInt32EnforceRange):
+        (WebCore::toUInt32EnforceRange):
+        (WebCore::toInt64EnforceRange):
+        (WebCore::toUInt64EnforceRange):
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::toJSSequence):
+        (WebCore::toJS):
+        (WebCore::jsFrozenArray):
+        * bindings/js/JSDOMPromise.cpp:
+        (WebCore::rejectPromiseWithExceptionIfAny):
+        * bindings/js/JSDOMStringMapCustom.cpp:
+        (WebCore::JSDOMStringMap::putDelegate):
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::setLocation):
+        (WebCore::JSDOMWindow::open):
+        (WebCore::JSDOMWindow::showModalDialog):
+        (WebCore::handlePostMessage):
+        (WebCore::JSDOMWindow::setTimeout):
+        (WebCore::JSDOMWindow::setInterval):
+        * bindings/js/JSDataCueCustom.cpp:
+        (WebCore::constructJSDataCue):
+        * bindings/js/JSDeviceMotionEventCustom.cpp:
+        (WebCore::readAccelerationArgument):
+        (WebCore::readRotationRateArgument):
+        (WebCore::JSDeviceMotionEvent::initDeviceMotionEvent):
+        * bindings/js/JSDictionary.cpp:
+        (WebCore::JSDictionary::tryGetProperty):
+        (WebCore::JSDictionary::convertValue):
+        * bindings/js/JSDictionary.h:
+        (WebCore::JSDictionary::tryGetPropertyAndResult):
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::getCSSCanvasContext):
+        * bindings/js/JSFileCustom.cpp:
+        (WebCore::constructJSFile):
+        * bindings/js/JSGeolocationCustom.cpp:
+        (WebCore::JSGeolocation::getCurrentPosition):
+        (WebCore::JSGeolocation::watchPosition):
+        * bindings/js/JSHTMLAllCollectionCustom.cpp:
+        (WebCore::callHTMLAllCollection):
+        * bindings/js/JSHTMLCanvasElementCustom.cpp:
+        (WebCore::JSHTMLCanvasElement::getContext):
+        * bindings/js/JSHTMLElementCustom.cpp:
+        (WebCore::constructJSHTMLElement):
+        * bindings/js/JSHistoryCustom.cpp:
+        (WebCore::JSHistory::pushState):
+        (WebCore::JSHistory::replaceState):
+        * bindings/js/JSIDBDatabaseCustom.cpp:
+        (WebCore::JSIDBDatabase::createObjectStore):
+        * bindings/js/JSMessageEventCustom.cpp:
+        (WebCore::handleInitMessageEvent):
+        * bindings/js/JSMessagePortCustom.cpp:
+        (WebCore::fillMessagePortArray):
+        * bindings/js/JSMessagePortCustom.h:
+        (WebCore::handlePostMessage):
+        * bindings/js/JSMockContentFilterSettingsCustom.cpp:
+        (WebCore::JSMockContentFilterSettings::setDecisionPoint):
+        (WebCore::toDecision):
+        (WebCore::JSMockContentFilterSettings::setDecision):
+        (WebCore::JSMockContentFilterSettings::setUnblockRequestDecision):
+        * bindings/js/JSNodeFilterCustom.cpp:
+        (WebCore::JSNodeFilter::acceptNode):
+        * bindings/js/JSNodeOrString.cpp:
+        (WebCore::toNodeOrStringVector):
+        * bindings/js/JSSQLTransactionCustom.cpp:
+        (WebCore::JSSQLTransaction::executeSql):
+        * bindings/js/JSSVGLengthCustom.cpp:
+        (WebCore::JSSVGLength::convertToSpecifiedUnits):
+        * bindings/js/JSStorageCustom.cpp:
+        (WebCore::JSStorage::getOwnPropertyNames):
+        * bindings/js/JSTextTrackCustom.cpp:
+        (WebCore::JSTextTrack::setLanguage):
+        * bindings/js/JSVideoTrackCustom.cpp:
+        (WebCore::JSVideoTrack::setKind):
+        (WebCore::JSVideoTrack::setLanguage):
+        * bindings/js/JSWebGL2RenderingContextCustom.cpp:
+        (WebCore::JSWebGL2RenderingContext::getIndexedParameter):
+        * bindings/js/JSWebGLRenderingContextBaseCustom.cpp:
+        (WebCore::getObjectParameter):
+        (WebCore::JSWebGLRenderingContextBase::getExtension):
+        (WebCore::JSWebGLRenderingContextBase::getFramebufferAttachmentParameter):
+        (WebCore::JSWebGLRenderingContextBase::getParameter):
+        (WebCore::JSWebGLRenderingContextBase::getProgramParameter):
+        (WebCore::JSWebGLRenderingContextBase::getShaderParameter):
+        (WebCore::toVector):
+        (WebCore::dataFunctionf):
+        (WebCore::dataFunctionMatrix):
+        * bindings/js/JSWebKitSubtleCryptoCustom.cpp:
+        (WebCore::cryptoKeyFormatFromJSValue):
+        (WebCore::cryptoKeyUsagesFromJSValue):
+        (WebCore::JSWebKitSubtleCrypto::generateKey):
+        (WebCore::importKey):
+        (WebCore::JSWebKitSubtleCrypto::importKey):
+        (WebCore::exportKey):
+        (WebCore::JSWebKitSubtleCrypto::exportKey):
+        (WebCore::JSWebKitSubtleCrypto::unwrapKey):
+        * bindings/js/JSWorkerCustom.cpp:
+        (WebCore::constructJSWorker):
+        * bindings/js/JSWorkerGlobalScopeCustom.cpp:
+        (WebCore::JSWorkerGlobalScope::importScripts):
+        (WebCore::JSWorkerGlobalScope::setTimeout):
+        (WebCore::JSWorkerGlobalScope::setInterval):
+        * bindings/js/ReadableStreamDefaultController.cpp:
+        (WebCore::ReadableStreamDefaultController::invoke):
+        * bindings/js/ScheduledAction.cpp:
+        (WebCore::ScheduledAction::create):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDictionaryImplementationContent):
+        (GenerateImplementation):
+        (GenerateParametersCheck):
+        (GenerateImplementationFunctionCall):
+        (GenerateConstructorDefinition):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::controllerJSValue):
+        (WebCore::HTMLMediaElement::updateMediaControlsAfterPresentationModeChange):
+        (WebCore::HTMLMediaElement::getCurrentMediaControlsStatus):
+
+2016-09-26  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        -Wtautological-compare triggered in URLParser::internalValuesConsistent
+        https://bugs.webkit.org/show_bug.cgi?id=162551
+
+        Reviewed by Alex Christensen.
+
+        Fix logic error.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::internalValuesConsistent):
+
+2016-09-26  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Add CairoUniquePtr and use it in FontPlatformDataFreetype.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=162557
+
+        Reviewed by Alex Christensen.
+
+        * platform/graphics/cairo/CairoUniquePtr.h: Added.
+        (WebCore::CairoPtrDeleter<cairo_font_options_t>::operator()):
+        * platform/graphics/freetype/FontPlatformDataFreeType.cpp:
+        (WebCore::getDefaultCairoFontOptions): Return a smart pointer.
+        (WebCore::FontPlatformData::buildScaledFont): Use smart pointer.
+
+2016-09-26  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Silence unused parameter warnings from Geoclue2Interface.c
+        https://bugs.webkit.org/show_bug.cgi?id=162545
+
+        Reviewed by Carlos Garcia Campos.
+
+        * PlatformGTK.cmake:
+
 2016-09-26  Michael Catanzaro  <mcatanzaro@igalia.com>
 
         std::unique_ptr deleter functions should not check if pointer is null

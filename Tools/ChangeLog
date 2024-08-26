@@ -1,3 +1,36 @@
+2016-09-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Add Sierra to the flakiness dashboard.
+        https://bugs.webkit.org/show_bug.cgi?id=162509
+
+        Reviewed by Alexey Proskuryakov.
+
+        * TestResultServer/static-dashboards/builders.jsonp:
+
+2016-09-26  Daniel Bates  <dabates@apple.com>
+
+        Rename IOS_TEXT_AUTOSIZING to TEXT_AUTOSIZING
+        https://bugs.webkit.org/show_bug.cgi?id=162365
+
+        Reviewed by Simon Fraser.
+
+        * DumpRenderTree/TestRunner.h:
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-09-26  Tomas Popela  <tpopela@redhat.com>
+
+        [GTK] TestContextMenu is failing
+        https://bugs.webkit.org/show_bug.cgi?id=162569
+
+        We cannot use the MP3 file in the TestContextMenu, as it will not work
+        by default on most distributions (that don't have an MP3 codecs
+        installed). Change the test to use OGG file instead.
+
+        Reviewed by Michael Catanzaro.
+
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestContextMenu.cpp:
+        (testContextMenuDefaultMenu):
+
 2016-09-26  Yusuke Suzuki  <utatane.tea@gmail.com>
 
         Using char16_t instead of wchar_t in TestWebKitAPI URLParser tests

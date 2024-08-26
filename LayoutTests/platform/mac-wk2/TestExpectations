@@ -211,9 +211,6 @@ webkit.org/b/117962 media/video-played-collapse.html [ Pass Failure ]
 
 webkit.org/b/136109 fast/multicol/mixed-opacity-fixed-test.html  [ ImageOnlyFailure ]
 
-# Flaky on WebKit2.
-webkit.org/b/162543 fast/dom/HTMLAnchorElement/anchor-download.html [ Pass Failure ]
-
 # Reference expectation doesn't end up in compositing code path, leading to antialiasing differences.
 webkit.org/b/132421 fast/multicol/fixed-stack.html [ ImageOnlyFailure ]
 
@@ -586,7 +583,7 @@ imported/blink/fast/multicol/vertical-rl/float-big-line.html [ Pass ImageOnlyFai
 imported/blink/fast/multicol/span/adjacent-spanners-with-margin.html [ Pass ImageOnlyFailure ]
 imported/blink/fast/overflow/hidden-html-auto-body.html [ Pass ImageOnlyFailure ]
 
-webkit.org/b/155757 [ ElCapitan ] media/media-document-audio-repaint.html [ Pass Failure ]
+webkit.org/b/155757 [ ElCapitan+ ] media/media-document-audio-repaint.html [ Pass Failure ]
 
 webkit.org/b/157589 fast/text-autosizing/ios/text-autosizing-after-back.html [ Pass Timeout ]
 
@@ -685,3 +682,5 @@ webkit.org/b/162081 editing/inserting/typing-space-to-trigger-smart-link.html [ 
 webkit.org/b/162081 editing/inserting/smart-quote-with-all-configurations.html [ Failure ]
 
 webkit.org/b/160017 js/regress-139548.html [ Pass Timeout ]
+
+webkit.org/b/161659 [ Yosemite Debug ] media/media-controls-drag-timeline-set-controls-property.html [ Pass Timeout ]

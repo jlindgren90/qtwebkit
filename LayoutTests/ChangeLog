@@ -1,1 +1,86 @@
+2017-09-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking css3/filters/backdrop/backdrop-filter-with-reflection* tests as flaky on Sierra WK1.
+        https://bugs.webkit.org/show_bug.cgi?id=162591
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-09-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Remove 100ms timeout for media/media-source/media-source-delaying-load-event.html to try to fix flakiness.
+        https://bugs.webkit.org/show_bug.cgi?id=162566
+
+        Reviewed by Alexey Proskuryakov.
+
+        * media/media-source/media-source-delaying-load-event.html:
+
+2016-09-26  Antti Koivisto  <antti@apple.com>
+
+        Setter on style element's textContent or cssText doesn't trigger style recalc
+        https://bugs.webkit.org/show_bug.cgi?id=160331
+        <rdar://problem/27609715>
+
+        Reviewed by Ryosuke Niwa and Daniel Bates.
+
+        * fast/shadow-dom/shadow-style-text-mutation-expected.html: Added.
+        * fast/shadow-dom/shadow-style-text-mutation.html: Added.
+
+2016-09-26  Antti Koivisto  <antti@apple.com>
+
+        Input elements don't work inside shadow tree
+        https://bugs.webkit.org/show_bug.cgi?id=160427
+
+        Reviewed by Darin Adler.
+
+        * fast/shadow-dom/composed-tree-shadow-child-subtree-expected.txt: Added.
+        * fast/shadow-dom/composed-tree-shadow-child-subtree.html: Added.
+        * fast/shadow-dom/input-element-in-shadow-expected.html: Added.
+        * fast/shadow-dom/input-element-in-shadow.html: Added.
+
+2016-09-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/media-document-audio-repaint.html as flaky on Sierra.
+        https://bugs.webkit.org/show_bug.cgi?id=155757
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-09-26  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] BlobDownloadClient should use asynchronous IPC to decide destination path
+        https://bugs.webkit.org/show_bug.cgi?id=162568
+
+        Reviewed by Alex Christensen.
+
+        * fast/dom/HTMLAnchorElement/anchor-download-expected.txt:
+        * fast/dom/HTMLAnchorElement/anchor-nodownload-set-expected.txt:
+        * http/tests/security/anchor-download-allow-blob-expected.txt:
+        Rebaseline several Blob download tests now that the "Download started"
+        message always comes first (as it should).
+
+        * platform/mac-wk2/TestExpectations:
+        Unskip test that is no longer flaky.
+
+2016-09-26  Nan Wang  <n_wang@apple.com>
+
+        AX: Progress: [Mac] Content in label element should be used as AXTitle or AXDescription
+        https://bugs.webkit.org/show_bug.cgi?id=162573
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/progress-with-label-element-expected.txt: Added.
+        * accessibility/mac/progress-with-label-element.html: Added.
+
+2016-09-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/media-controls-drag-timeline-set-controls-property.html as flaky on Yosemite Debug WK2.
+        https://bugs.webkit.org/show_bug.cgi?id=161659
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
 == Rolled over to ChangeLog-2016-09-26 ==

@@ -406,7 +406,7 @@ static void printNavigationErrorMessage(Frame* frame, const URL& activeURL, cons
     frame->document()->domWindow()->printErrorMessage(message);
 }
 
-#if ENABLE(IOS_TEXT_AUTOSIZING)
+#if ENABLE(TEXT_AUTOSIZING)
 
 void TextAutoSizingTraits::constructDeletedValue(TextAutoSizingKey& slot)
 {
@@ -2327,7 +2327,7 @@ void Document::destroyRenderTree()
     m_renderView = nullptr;
     Node::setRenderer(nullptr);
 
-#if ENABLE(IOS_TEXT_AUTOSIZING)
+#if ENABLE(TEXT_AUTOSIZING)
     // Do this before the arena is cleared, which is needed to deref the RenderStyle on TextAutoSizingKey.
     m_textAutoSizedNodes.clear();
 #endif
@@ -5390,7 +5390,7 @@ HTMLCanvasElement* Document::getCSSCanvasElement(const String& name)
     return element.get();
 }
 
-#if ENABLE(IOS_TEXT_AUTOSIZING)
+#if ENABLE(TEXT_AUTOSIZING)
 
 void Document::addAutoSizedNode(Text& node, float candidateSize)
 {
@@ -5413,7 +5413,7 @@ void Document::clearAutoSizedNodes()
     m_textAutoSizedNodes.clear();
 }
 
-#endif // ENABLE(IOS_TEXT_AUTOSIZING)
+#endif // ENABLE(TEXT_AUTOSIZING)
 
 void Document::initDNSPrefetch()
 {

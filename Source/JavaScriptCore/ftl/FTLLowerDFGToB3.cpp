@@ -1555,7 +1555,8 @@ private:
 
     void compileValueAdd()
     {
-        JITAddIC* addIC = codeBlock()->addJITAddIC();
+        ArithProfile* arithProfile = m_ftlState.graph.baselineCodeBlockFor(m_node->origin.semantic)->arithProfileForBytecodeOffset(m_node->origin.semantic.bytecodeIndex);
+        JITAddIC* addIC = codeBlock()->addJITAddIC(arithProfile);
         auto repatchingFunction = operationValueAddOptimize;
         auto nonRepatchingFunction = operationValueAdd;
         compileMathIC(addIC, repatchingFunction, nonRepatchingFunction);
@@ -1595,10 +1596,9 @@ private:
 #endif
 
                 Box<MathICGenerationState> mathICGenerationState = Box<MathICGenerationState>::create();
-                ArithProfile* arithProfile = state->graph.baselineCodeBlockFor(node->origin.semantic)->arithProfileForBytecodeOffset(node->origin.semantic.bytecodeIndex);
                 mathIC->m_generator = Generator(leftOperand, rightOperand, JSValueRegs(params[0].gpr()),
                     JSValueRegs(params[1].gpr()), JSValueRegs(params[2].gpr()), params.fpScratch(0),
-                    params.fpScratch(1), params.gpScratch(0), InvalidFPRReg, arithProfile);
+                    params.fpScratch(1), params.gpScratch(0), InvalidFPRReg);
 
                 bool shouldEmitProfiling = false;
                 bool generatedInline = mathIC->generateInline(jit, *mathICGenerationState, shouldEmitProfiling);
@@ -1726,7 +1726,8 @@ private:
                 break;
             }
 
-            JITSubIC* subIC = codeBlock()->addJITSubIC();
+            ArithProfile* arithProfile = m_ftlState.graph.baselineCodeBlockFor(m_node->origin.semantic)->arithProfileForBytecodeOffset(m_node->origin.semantic.bytecodeIndex);
+            JITSubIC* subIC = codeBlock()->addJITSubIC(arithProfile);
             auto repatchingFunction = operationValueSubOptimize;
             auto nonRepatchingFunction = operationValueSub;
             compileMathIC(subIC, repatchingFunction, nonRepatchingFunction);
@@ -1820,7 +1821,8 @@ private:
         }
 
         case UntypedUse: {
-            JITMulIC* mulIC = codeBlock()->addJITMulIC();
+            ArithProfile* arithProfile = m_ftlState.graph.baselineCodeBlockFor(m_node->origin.semantic)->arithProfileForBytecodeOffset(m_node->origin.semantic.bytecodeIndex);
+            JITMulIC* mulIC = codeBlock()->addJITMulIC(arithProfile);
             auto repatchingFunction = operationValueMulOptimize;
             auto nonRepatchingFunction = operationValueMul;
             compileMathIC(mulIC, repatchingFunction, nonRepatchingFunction);

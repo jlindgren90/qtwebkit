@@ -1,3 +1,582 @@
+2016-09-26  Sam Weinig  <sam@webkit.org>
+
+        Make DFGSlowPathGenerator a bit more variadic
+        https://bugs.webkit.org/show_bug.cgi?id=162378
+
+        Reviewed by Filip Pizlo.
+
+        Make the subclass of CallSlowPathGenerator that takes arguments variadic
+        so it can take any number of arguments. Also updates the slowPathCall helper
+        function to be variadic. I had to move the spill mode and exception check 
+        requirement parameters to before the arguments since the variadic arguments
+        must be at the end. As a convenience, I added an overload of slowPathCall that
+        doesn't take spill mode and exception check requirement parameters.
+
+        * dfg/DFGSlowPathGenerator.h:
+        (JSC::DFG::CallResultAndArgumentsSlowPathGenerator::CallResultAndArgumentsSlowPathGenerator):
+        (JSC::DFG::CallResultAndArgumentsSlowPathGenerator::unpackAndGenerate):
+        (JSC::DFG::slowPathCall):
+        (JSC::DFG::CallResultAndNoArgumentsSlowPathGenerator::CallResultAndNoArgumentsSlowPathGenerator): Deleted.
+        (JSC::DFG::CallResultAndOneArgumentSlowPathGenerator::CallResultAndOneArgumentSlowPathGenerator): Deleted.
+        (JSC::DFG::CallResultAndTwoArgumentsSlowPathGenerator::CallResultAndTwoArgumentsSlowPathGenerator): Deleted.
+        (JSC::DFG::CallResultAndThreeArgumentsSlowPathGenerator::CallResultAndThreeArgumentsSlowPathGenerator): Deleted.
+        (JSC::DFG::CallResultAndFourArgumentsSlowPathGenerator::CallResultAndFourArgumentsSlowPathGenerator): Deleted.
+        (JSC::DFG::CallResultAndFourArgumentsSlowPathGenerator::generateInternal): Deleted.
+        (JSC::DFG::CallResultAndFiveArgumentsSlowPathGenerator::CallResultAndFiveArgumentsSlowPathGenerator): Deleted.
+        (JSC::DFG::CallResultAndFiveArgumentsSlowPathGenerator::generateInternal): Deleted.
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileValueToInt32):
+        (JSC::DFG::SpeculativeJIT::compileNotifyWrite):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::cachedGetById):
+
+2016-09-26  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r206405.
+        https://bugs.webkit.org/show_bug.cgi?id=162588
+
+        This change caused LayoutTest crashes. (Requested by
+        ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "Add some needed CatchScopes in code that should not throw."
+        https://bugs.webkit.org/show_bug.cgi?id=162584
+        http://trac.webkit.org/changeset/206405
+
+2016-09-26  Mark Lam  <mark.lam@apple.com>
+
+        Add some needed CatchScopes in code that should not throw.
+        https://bugs.webkit.org/show_bug.cgi?id=162584
+
+        Reviewed by Keith Miller.
+
+        * API/JSObjectRef.cpp:
+        (JSObjectSetProperty):
+        - This function already handles exceptions in its own way.  We're honoring this
+          contract and catching exceptions and passing it to the handler.
+
+        * interpreter/Interpreter.cpp:
+        (JSC::notifyDebuggerOfUnwinding):
+        - The debugger should not be throwing any exceptions.
+
+        * jsc.cpp:
+        (runJSC):
+        - the buck stops here.  There's no reason an exception should propagate past here.
+
+        * profiler/ProfilerDatabase.cpp:
+        (JSC::Profiler::Database::save):
+        - If an exception was thrown while saving the database, there's nothing we can
+          really do about it anyway.  Just fail nicely and return false.  This is in line
+          with existing error checking code in Database::save() that returns false if
+          it's not able to open the file to save to.
+
+        * runtime/ExceptionHelpers.cpp:
+        (JSC::createError):
+        - If we're not able to stringify the error value, then we'll just use the
+          provided message as the error string.  It doesn't make sense to have the
+          Error factory throw an exception that shadows the intended exception that the
+          client probably wants to throw (assuming that that's why the client is creating
+          this Error object).
+
+        * runtime/JSModuleLoader.cpp:
+        (JSC::JSModuleLoader::finishCreation):
+        - The existing code already RELEASE_ASSERT that no exception was thrown.
+          Hence, it's appropriate to use a CatchScope here.
+
+        * runtime/SamplingProfiler.cpp:
+        (JSC::SamplingProfiler::StackFrame::nameFromCallee):
+        - The sampling profiler is doing a VMInquiry get here.  It should never throw an
+          exception.  Hence, we'll just use a CatchScope and assert accordingly.
+
+2016-09-26  Mark Lam  <mark.lam@apple.com>
+
+        Exception unwinding code should use a CatchScope instead of a ThrowScope.
+        https://bugs.webkit.org/show_bug.cgi?id=162583
+
+        Reviewed by Geoffrey Garen.
+
+        This is because the exception unwinding code does not throw an exception.
+        It only inspects the thrown exception and passes it to the appropriate handler.
+
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::unwind):
+        * jit/JITExceptions.cpp:
+        (JSC::genericUnwind):
+
+2016-09-26  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Add an Option to disable the CodeCache
+        https://bugs.webkit.org/show_bug.cgi?id=162579
+
+        Reviewed by Geoffrey Garen.
+
+        * runtime/CodeCache.cpp:
+        (JSC::CodeCache::getGlobalCodeBlock):
+        (JSC::CodeCache::getFunctionExecutableFromGlobalCode):
+        Do not use the cache if the Option is disabled.
+
+        * runtime/Options.h:
+        New option to not use the code cache.
+
+2016-09-26  Daniel Bates  <dabates@apple.com>
+
+        Rename IOS_TEXT_AUTOSIZING to TEXT_AUTOSIZING
+        https://bugs.webkit.org/show_bug.cgi?id=162365
+
+        Reviewed by Simon Fraser.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-09-26  Benjamin Poulain  <benjamin@webkit.org>
+
+        [JSC] Shrink the Math inline caches some more
+        https://bugs.webkit.org/show_bug.cgi?id=162485
+
+        Reviewed by Saam Barati.
+
+        This patch applies some lessons learnt from op_negate
+        to shrink the generated asm of the previous 3 inline
+        caches.
+
+        In order of importance:
+        -We do not need to pass the pointer to ArithProfile
+         on the slow path. We can just get the profile out
+         of the Math IC.
+         This saves us from materializing a 64bits value
+         in a register before the call on the slow path.
+        -We can remove a bunch of mov by setting up the registers
+         in the way the slow path needs them.
+         The slow path makes a function calls with the input
+         as second and third arguments, and return the result in
+         the "return register". By using those as target when
+         loading/storing from the stack, we remove 3 mov per slow path.
+        -When performing integer add, we can set the result directly in
+         the output register if that does not trashes one of the input
+         register. This removes one mov per integer add.
+
+        The inline cache average sizes on Sunspider change as follow:
+        -Adds: 147.573099->131.555556 (~10%)
+        -Muls: 186.882353->170.991597 (~8%)
+        -Subs: 139.127907->121.523256 (~12%)
+
+        * jit/JIT.h:
+        * jit/JITAddGenerator.cpp:
+        (JSC::JITAddGenerator::generateInline):
+        (JSC::JITAddGenerator::generateFastPath):
+        * jit/JITArithmetic.cpp:
+        (JSC::JIT::emitMathICFast):
+        (JSC::JIT::emitMathICSlow):
+        * jit/JITInlines.h:
+        (JSC::JIT::callOperation): Deleted.
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+
+2016-09-26  Mark Lam  <mark.lam@apple.com>
+
+        Added RETURN_IF_EXCEPTION() macro and use it for exception checks.
+        https://bugs.webkit.org/show_bug.cgi?id=162521
+
+        Reviewed by Saam Barati.
+
+        Also, where possible, if the return type is JSValue, changed the returned value
+        (on exception) to the empty JSValue (instead of sometimes jsUndefined, jsNull,
+        or the thrown exception value).
+
+        There are a few places where I had to continue to return the previously returned
+        value (instead of the empty JSValue) in order for tests to pass.  This is needed
+        because there are missing exception checks that will need to be added before I
+        can change those to return the empty JSValue too.  Identifying all the places
+        where those checks need to be added is beyond the scope of this patch.  I will
+        work on adding missing exception checks in a subsequent patch.
+
+        In this patch, there is one missing exception check in replaceUsingRegExpSearch()
+        that was easily identified, and is necessary so that Interpreter::execute()
+        functions can return JSValue.  I've added this missing check.
+
+        This patch has passed the JSC and layout tests.
+
+        * dfg/DFGOperations.cpp:
+        (JSC::DFG::operationPutByValInternal):
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::evaluateWithScopeExtension):
+        (Inspector::JSInjectedScriptHost::getInternalProperties):
+        (Inspector::JSInjectedScriptHost::weakMapEntries):
+        (Inspector::JSInjectedScriptHost::weakSetEntries):
+        (Inspector::JSInjectedScriptHost::iteratorEntries):
+        * inspector/JSJavaScriptCallFrame.cpp:
+        (Inspector::JSJavaScriptCallFrame::evaluateWithScopeExtension):
+        * interpreter/Interpreter.cpp:
+        (JSC::eval):
+        (JSC::sizeOfVarargs):
+        (JSC::Interpreter::execute):
+        (JSC::Interpreter::executeCall):
+        (JSC::Interpreter::executeConstruct):
+        * interpreter/ShadowChicken.cpp:
+        (JSC::ShadowChicken::functionsOnStack):
+        * jit/JITOperations.cpp:
+        (JSC::getByVal):
+        * jsc.cpp:
+        (WTF::ImpureGetter::getOwnPropertySlot):
+        (functionRun):
+        (functionRunString):
+        (functionLoad):
+        (functionLoadString):
+        (functionReadFile):
+        (functionCheckSyntax):
+        (functionSetRandomSeed):
+        (functionLoadModule):
+        (functionCreateBuiltin):
+        (functionCheckModuleSyntax):
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::getByVal):
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * profiler/ProfilerBytecodeSequence.cpp:
+        (JSC::Profiler::BytecodeSequence::addSequenceProperties):
+        * profiler/ProfilerCompilation.cpp:
+        (JSC::Profiler::Compilation::toJS):
+        * profiler/ProfilerDatabase.cpp:
+        (JSC::Profiler::Database::toJS):
+        * profiler/ProfilerOSRExitSite.cpp:
+        (JSC::Profiler::OSRExitSite::toJS):
+        * profiler/ProfilerOriginStack.cpp:
+        (JSC::Profiler::OriginStack::toJS):
+        * runtime/ArrayPrototype.cpp:
+        (JSC::speciesConstructArray):
+        (JSC::shift):
+        (JSC::unshift):
+        (JSC::arrayProtoFuncToString):
+        (JSC::arrayProtoFuncToLocaleString):
+        (JSC::slowJoin):
+        (JSC::fastJoin):
+        (JSC::arrayProtoFuncJoin):
+        (JSC::arrayProtoFuncPop):
+        (JSC::arrayProtoFuncPush):
+        (JSC::arrayProtoFuncReverse):
+        (JSC::arrayProtoFuncShift):
+        (JSC::arrayProtoFuncSlice):
+        (JSC::arrayProtoFuncSplice):
+        (JSC::arrayProtoFuncUnShift):
+        (JSC::arrayProtoFuncIndexOf):
+        (JSC::arrayProtoFuncLastIndexOf):
+        (JSC::moveElements):
+        (JSC::arrayProtoPrivateFuncConcatMemcpy):
+        * runtime/BooleanConstructor.cpp:
+        (JSC::constructWithBooleanConstructor):
+        * runtime/CommonSlowPaths.h:
+        (JSC::CommonSlowPaths::opIn):
+        * runtime/Completion.cpp:
+        (JSC::loadAndEvaluateModule):
+        (JSC::loadModule):
+        * runtime/ConsoleObject.cpp:
+        (JSC::consoleProtoFuncAssert):
+        (JSC::consoleProtoFuncProfile):
+        (JSC::consoleProtoFuncProfileEnd):
+        (JSC::consoleProtoFuncTakeHeapSnapshot):
+        (JSC::consoleProtoFuncTime):
+        (JSC::consoleProtoFuncTimeEnd):
+        * runtime/DateConstructor.cpp:
+        (JSC::constructDate):
+        (JSC::dateParse):
+        * runtime/DatePrototype.cpp:
+        (JSC::dateProtoFuncToPrimitiveSymbol):
+        (JSC::dateProtoFuncToJSON):
+        * runtime/ErrorConstructor.cpp:
+        (JSC::Interpreter::constructWithErrorConstructor):
+        * runtime/ErrorInstance.cpp:
+        (JSC::ErrorInstance::sanitizedToString):
+        * runtime/ErrorPrototype.cpp:
+        (JSC::errorProtoFuncToString):
+        * runtime/ExceptionScope.h:
+        * runtime/FunctionConstructor.cpp:
+        (JSC::constructFunctionSkippingEvalEnabledCheck):
+        * runtime/GenericArgumentsInlines.h:
+        (JSC::GenericArguments<Type>::copyToArguments):
+        * runtime/GetterSetter.cpp:
+        (JSC::callGetter):
+        * runtime/HashMapImpl.h:
+        (JSC::jsMapHash):
+        (JSC::HashMapImpl::finishCreation):
+        (JSC::HashMapImpl::findBucket):
+        (JSC::HashMapImpl::add):
+        (JSC::HashMapImpl::rehash):
+        * runtime/InspectorInstrumentationObject.cpp:
+        (JSC::inspectorInstrumentationObjectLog):
+        * runtime/InternalFunction.cpp:
+        (JSC::InternalFunction::createSubclassStructure):
+        * runtime/IntlCollator.cpp:
+        (JSC::IntlCollator::initializeCollator):
+        * runtime/IntlCollatorConstructor.cpp:
+        (JSC::constructIntlCollator):
+        (JSC::IntlCollatorConstructorFuncSupportedLocalesOf):
+        * runtime/IntlCollatorPrototype.cpp:
+        (JSC::IntlCollatorFuncCompare):
+        (JSC::IntlCollatorPrototypeGetterCompare):
+        * runtime/IntlDateTimeFormat.cpp:
+        (JSC::toDateTimeOptionsAnyDate):
+        (JSC::IntlDateTimeFormat::initializeDateTimeFormat):
+        * runtime/IntlDateTimeFormatConstructor.cpp:
+        (JSC::constructIntlDateTimeFormat):
+        (JSC::IntlDateTimeFormatConstructorFuncSupportedLocalesOf):
+        * runtime/IntlDateTimeFormatPrototype.cpp:
+        (JSC::IntlDateTimeFormatFuncFormatDateTime):
+        (JSC::IntlDateTimeFormatPrototypeGetterFormat):
+        * runtime/IntlNumberFormat.cpp:
+        (JSC::IntlNumberFormat::initializeNumberFormat):
+        * runtime/IntlNumberFormatConstructor.cpp:
+        (JSC::constructIntlNumberFormat):
+        (JSC::IntlNumberFormatConstructorFuncSupportedLocalesOf):
+        * runtime/IntlNumberFormatPrototype.cpp:
+        (JSC::IntlNumberFormatFuncFormatNumber):
+        (JSC::IntlNumberFormatPrototypeGetterFormat):
+        * runtime/IntlObject.cpp:
+        (JSC::intlBooleanOption):
+        (JSC::intlStringOption):
+        (JSC::intlNumberOption):
+        (JSC::canonicalizeLocaleList):
+        (JSC::supportedLocales):
+        * runtime/IntlObjectInlines.h:
+        (JSC::constructIntlInstanceWithWorkaroundForLegacyIntlConstructor):
+        * runtime/IteratorOperations.cpp:
+        (JSC::iteratorNext):
+        (JSC::iteratorStep):
+        (JSC::iteratorClose):
+        (JSC::iteratorForIterable):
+        * runtime/IteratorOperations.h:
+        (JSC::forEachInIterable):
+        * runtime/JSArray.cpp:
+        (JSC::JSArray::pop):
+        (JSC::JSArray::copyToArguments):
+        * runtime/JSArrayBufferConstructor.cpp:
+        (JSC::constructArrayBuffer):
+        * runtime/JSArrayBufferPrototype.cpp:
+        (JSC::arrayBufferProtoFuncSlice):
+        * runtime/JSArrayInlines.h:
+        (JSC::getLength):
+        (JSC::toLength):
+        * runtime/JSBoundFunction.cpp:
+        (JSC::getBoundFunctionStructure):
+        (JSC::JSBoundFunction::create):
+        * runtime/JSCJSValue.cpp:
+        (JSC::JSValue::putToPrimitive):
+        (JSC::JSValue::toStringSlowCase):
+        * runtime/JSCJSValueInlines.h:
+        (JSC::toPreferredPrimitiveType):
+        (JSC::JSValue::getPropertySlot):
+        (JSC::JSValue::equalSlowCaseInline):
+        * runtime/JSDataViewPrototype.cpp:
+        (JSC::getData):
+        (JSC::setData):
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::setFunctionName):
+        * runtime/JSGenericTypedArrayView.h:
+        (JSC::JSGenericTypedArrayView::setIndex):
+        * runtime/JSGenericTypedArrayViewConstructorInlines.h:
+        (JSC::constructGenericTypedArrayViewFromIterator):
+        (JSC::constructGenericTypedArrayViewWithArguments):
+        (JSC::constructGenericTypedArrayView):
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        (JSC::speciesConstruct):
+        (JSC::genericTypedArrayViewProtoFuncSet):
+        (JSC::genericTypedArrayViewProtoFuncCopyWithin):
+        (JSC::genericTypedArrayViewProtoFuncIncludes):
+        (JSC::genericTypedArrayViewProtoFuncIndexOf):
+        (JSC::genericTypedArrayViewProtoFuncJoin):
+        (JSC::genericTypedArrayViewProtoFuncLastIndexOf):
+        (JSC::genericTypedArrayViewProtoFuncSlice):
+        (JSC::genericTypedArrayViewPrivateFuncSubarrayCreate):
+        * runtime/JSGlobalObject.h:
+        (JSC::constructEmptyArray):
+        (JSC::constructArray):
+        (JSC::constructArrayNegativeIndexed):
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncEval):
+        * runtime/JSModuleRecord.cpp:
+        (JSC::JSModuleRecord::instantiateDeclarations):
+        * runtime/JSONObject.cpp:
+        (JSC::Stringifier::stringify):
+        (JSC::Stringifier::toJSON):
+        (JSC::Stringifier::appendStringifiedValue):
+        (JSC::Stringifier::Holder::appendNextProperty):
+        (JSC::Walker::walk):
+        (JSC::JSONProtoFuncParse):
+        * runtime/JSObject.cpp:
+        (JSC::ordinarySetSlow):
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+        (JSC::callToPrimitiveFunction):
+        (JSC::JSObject::defaultHasInstance):
+        (JSC::JSObject::getPropertyNames):
+        (JSC::JSObject::toNumber):
+        (JSC::JSObject::toString):
+        (JSC::JSObject::defineOwnNonIndexProperty):
+        (JSC::JSObject::getGenericPropertyNames):
+        (JSC::JSObject::getMethod):
+        * runtime/JSObjectInlines.h:
+        (JSC::createListFromArrayLike):
+        (JSC::JSObject::getPropertySlot):
+        (JSC::JSObject::getNonIndexPropertySlot):
+        * runtime/JSPromiseConstructor.cpp:
+        (JSC::constructPromise):
+        * runtime/JSPromiseDeferred.cpp:
+        (JSC::JSPromiseDeferred::create):
+        * runtime/JSPropertyNameEnumerator.h:
+        (JSC::propertyNameEnumerator):
+        * runtime/JSPropertyNameIterator.cpp:
+        (JSC::JSPropertyNameIterator::create):
+        * runtime/JSScope.cpp:
+        (JSC::isUnscopable):
+        * runtime/JSString.cpp:
+        (JSC::JSString::equalSlowCase):
+        * runtime/JSStringJoiner.cpp:
+        (JSC::JSStringJoiner::join):
+        * runtime/LiteralParser.cpp:
+        (JSC::LiteralParser<CharType>::parse):
+        * runtime/MapBase.h:
+        (JSC::MapBase::finishCreation):
+        * runtime/MapConstructor.cpp:
+        (JSC::constructMap):
+        * runtime/MathObject.cpp:
+        (JSC::mathProtoFuncClz32):
+        (JSC::mathProtoFuncHypot):
+        (JSC::mathProtoFuncIMul):
+        * runtime/ModuleLoaderPrototype.cpp:
+        (JSC::moduleLoaderPrototypeParseModule):
+        (JSC::moduleLoaderPrototypeRequestedModules):
+        (JSC::moduleLoaderPrototypeModuleDeclarationInstantiation):
+        * runtime/NativeErrorConstructor.cpp:
+        (JSC::Interpreter::constructWithNativeErrorConstructor):
+        * runtime/NumberConstructor.cpp:
+        (JSC::constructWithNumberConstructor):
+        * runtime/ObjectConstructor.cpp:
+        (JSC::constructObject):
+        (JSC::objectConstructorGetPrototypeOf):
+        (JSC::objectConstructorSetPrototypeOf):
+        (JSC::objectConstructorGetOwnPropertyDescriptor):
+        (JSC::objectConstructorGetOwnPropertyDescriptors):
+        (JSC::objectConstructorGetOwnPropertyNames):
+        (JSC::objectConstructorGetOwnPropertySymbols):
+        (JSC::objectConstructorKeys):
+        (JSC::ownEnumerablePropertyKeys):
+        (JSC::toPropertyDescriptor):
+        (JSC::objectConstructorDefineProperty):
+        (JSC::defineProperties):
+        (JSC::objectConstructorSeal):
+        (JSC::objectConstructorFreeze):
+        (JSC::objectConstructorIsSealed):
+        (JSC::objectConstructorIsFrozen):
+        (JSC::objectConstructorIsExtensible):
+        (JSC::ownPropertyKeys):
+        * runtime/ObjectConstructor.h:
+        (JSC::constructObjectFromPropertyDescriptor):
+        * runtime/ObjectPrototype.cpp:
+        (JSC::objectProtoFuncHasOwnProperty):
+        (JSC::objectProtoFuncIsPrototypeOf):
+        (JSC::objectProtoFuncDefineGetter):
+        (JSC::objectProtoFuncDefineSetter):
+        (JSC::objectProtoFuncLookupGetter):
+        (JSC::objectProtoFuncLookupSetter):
+        (JSC::objectProtoFuncPropertyIsEnumerable):
+        (JSC::objectProtoFuncToLocaleString):
+        (JSC::objectProtoFuncToString):
+        * runtime/Operations.cpp:
+        (JSC::jsAddSlowCase):
+        * runtime/PropertyDescriptor.cpp:
+        (JSC::PropertyDescriptor::slowGetterSetter):
+        * runtime/ProxyConstructor.cpp:
+        (JSC::makeRevocableProxy):
+        * runtime/ProxyObject.cpp:
+        (JSC::performProxyGet):
+        (JSC::ProxyObject::performGet):
+        (JSC::ProxyObject::performInternalMethodGetOwnProperty):
+        (JSC::ProxyObject::performHasProperty):
+        (JSC::ProxyObject::performPut):
+        (JSC::ProxyObject::putByIndexCommon):
+        (JSC::performProxyCall):
+        (JSC::performProxyConstruct):
+        (JSC::ProxyObject::performDelete):
+        (JSC::ProxyObject::performPreventExtensions):
+        (JSC::ProxyObject::performIsExtensible):
+        (JSC::ProxyObject::performDefineOwnProperty):
+        (JSC::ProxyObject::performGetOwnPropertyNames):
+        (JSC::ProxyObject::performSetPrototype):
+        (JSC::ProxyObject::performGetPrototype):
+        * runtime/ReflectObject.cpp:
+        (JSC::reflectObjectConstruct):
+        (JSC::reflectObjectDefineProperty):
+        (JSC::reflectObjectGet):
+        (JSC::reflectObjectGetOwnPropertyDescriptor):
+        (JSC::reflectObjectIsExtensible):
+        (JSC::reflectObjectPreventExtensions):
+        (JSC::reflectObjectSet):
+        (JSC::reflectObjectSetPrototypeOf):
+        * runtime/RegExpConstructor.cpp:
+        (JSC::toFlags):
+        (JSC::regExpCreate):
+        (JSC::constructRegExp):
+        * runtime/RegExpConstructor.h:
+        (JSC::isRegExp):
+        * runtime/RegExpObject.cpp:
+        (JSC::collectMatches):
+        (JSC::RegExpObject::matchGlobal):
+        * runtime/RegExpPrototype.cpp:
+        (JSC::regExpProtoFuncCompile):
+        (JSC::flagsString):
+        (JSC::regExpProtoFuncToString):
+        (JSC::regExpProtoGetterFlags):
+        (JSC::regExpProtoFuncSearchFast):
+        (JSC::regExpProtoFuncSplitFast):
+        * runtime/SetConstructor.cpp:
+        (JSC::constructSet):
+        * runtime/StringConstructor.cpp:
+        (JSC::stringFromCodePoint):
+        (JSC::constructWithStringConstructor):
+        * runtime/StringObject.cpp:
+        (JSC::StringObject::defineOwnProperty):
+        * runtime/StringPrototype.cpp:
+        (JSC::replaceUsingRegExpSearch):
+        (JSC::operationStringProtoFuncReplaceRegExpEmptyStr):
+        (JSC::replaceUsingStringSearch):
+        (JSC::replace):
+        (JSC::stringProtoFuncReplaceUsingRegExp):
+        (JSC::stringProtoFuncReplaceUsingStringSearch):
+        (JSC::stringProtoFuncCodePointAt):
+        (JSC::stringProtoFuncSlice):
+        (JSC::stringProtoFuncSplitFast):
+        (JSC::stringProtoFuncSubstr):
+        (JSC::stringProtoFuncSubstring):
+        (JSC::stringProtoFuncLocaleCompare):
+        (JSC::toLocaleCase):
+        (JSC::stringProtoFuncBig):
+        (JSC::stringProtoFuncSmall):
+        (JSC::stringProtoFuncBlink):
+        (JSC::stringProtoFuncBold):
+        (JSC::stringProtoFuncFixed):
+        (JSC::stringProtoFuncItalics):
+        (JSC::stringProtoFuncStrike):
+        (JSC::stringProtoFuncSub):
+        (JSC::stringProtoFuncSup):
+        (JSC::stringProtoFuncFontcolor):
+        (JSC::stringProtoFuncFontsize):
+        (JSC::stringProtoFuncAnchor):
+        (JSC::stringProtoFuncLink):
+        (JSC::trimString):
+        (JSC::stringProtoFuncStartsWith):
+        (JSC::stringProtoFuncEndsWith):
+        (JSC::stringIncludesImpl):
+        (JSC::stringProtoFuncIncludes):
+        (JSC::builtinStringIncludesInternal):
+        (JSC::stringProtoFuncNormalize):
+        * runtime/SymbolConstructor.cpp:
+        (JSC::symbolConstructorFor):
+        * runtime/TemplateRegistry.cpp:
+        (JSC::TemplateRegistry::getTemplateObject):
+        * runtime/WeakMapConstructor.cpp:
+        (JSC::constructWeakMap):
+        * runtime/WeakSetConstructor.cpp:
+        (JSC::constructWeakSet):
+        * tools/JSDollarVMPrototype.cpp:
+        (JSC::functionPrint):
+
 2016-09-26  Don Olmstead  <don.olmstead@am.sony.com>
 
         [JSC] Allow fixedExecutableMemoryPoolSize to be set during build
