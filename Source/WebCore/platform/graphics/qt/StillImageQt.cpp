@@ -58,7 +58,7 @@ StillImage::~StillImage()
         delete m_pixmap;
 }
 
-bool StillImage::currentFrameKnownToBeOpaque()
+bool StillImage::currentFrameKnownToBeOpaque() const
 {
     return !m_pixmap->hasAlpha();
 }

@@ -101,17 +101,16 @@ static bool isPointOnPathBorder(const QPolygonF& border, const QPointF& p)
 
 bool Path::contains(const FloatPoint& point, WindRule rule) const
 {
-    Qt::FillRule savedRule = m_path.fillRule();
-    const_cast<QPainterPath*>(&m_path)->setFillRule(rule == RULE_EVENODD ? Qt::OddEvenFill : Qt::WindingFill);
+    QPainterPath pathCopy = m_path;
+    pathCopy.setFillRule(rule == RULE_EVENODD ? Qt::OddEvenFill : Qt::WindingFill);
 
-    bool contains = m_path.contains(point);
+    bool contains = pathCopy.contains(point);
     
     if (!contains) {
         // check whether the point is on the border
-        contains = isPointOnPathBorder(m_path.toFillPolygon(), point);
+        contains = isPointOnPathBorder(pathCopy.toFillPolygon(), point);
     }
 
-    const_cast<QPainterPath*>(&m_path)->setFillRule(savedRule);
     return contains;
 }
 

@@ -179,11 +179,11 @@ enum UserInterfaceLayoutDirection {
 
     [MayThrowLegacyException] void setDelegatesScrolling(boolean enabled);
 #if defined(ENABLE_TOUCH_ADJUSTMENT) && ENABLE_TOUCH_ADJUSTMENT
-    [RaisesException] WebKitPoint touchPositionAdjustedToBestClickableNode(long x, long y, long width, long height);
-    [RaisesException] Node touchNodeAdjustedToBestClickableNode(long x, long y, long width, long height);
-    [RaisesException] WebKitPoint touchPositionAdjustedToBestContextMenuNode(long x, long y, long width, long height);
-    [RaisesException] Node touchNodeAdjustedToBestContextMenuNode(long x, long y, long width, long height);
-    [RaisesException] ClientRect bestZoomableAreaForTouchPoint(long x, long y, long width, long height);
+    [MayThrowLegacyException] WebKitPoint touchPositionAdjustedToBestClickableNode(long x, long y, long width, long height);
+    [MayThrowLegacyException] Node touchNodeAdjustedToBestClickableNode(long x, long y, long width, long height);
+    [MayThrowLegacyException] WebKitPoint touchPositionAdjustedToBestContextMenuNode(long x, long y, long width, long height);
+    [MayThrowLegacyException] Node touchNodeAdjustedToBestContextMenuNode(long x, long y, long width, long height);
+    [MayThrowLegacyException] ClientRect bestZoomableAreaForTouchPoint(long x, long y, long width, long height);
 #endif
 
     [MayThrowLegacyException] long lastSpellCheckRequestSequence();

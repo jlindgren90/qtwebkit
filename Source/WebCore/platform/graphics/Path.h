@@ -78,7 +78,12 @@ typedef void PlatformPath;
 
 #if PLATFORM(QT)
 /* QPainterPath is valued based */
-typedef PlatformPath PlatformPathPtr;
+class PlatformPathPtr : public QPainterPath {
+public:
+    using QPainterPath::QPainterPath;
+    using QPainterPath::operator=;
+    PlatformPathPtr(std::nullptr_t) {}
+};
 #else
 typedef PlatformPath* PlatformPathPtr;
 #endif

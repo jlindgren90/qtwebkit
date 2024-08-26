@@ -33,17 +33,17 @@
 
 namespace WebCore {
 
-static void mouseEventModifiersFromQtKeyboardModifiers(Qt::KeyboardModifiers keyboardModifiers, unsigned& modifiers)
+static void mouseEventModifiersFromQtKeyboardModifiers(Qt::KeyboardModifiers keyboardModifiers, WTF::OptionSet<PlatformEvent::Modifier>& modifiers)
 {
-    modifiers = 0;
+    modifiers = { };
     if (keyboardModifiers & Qt::ShiftModifier)
-        modifiers |= PlatformEvent::ShiftKey;
+        modifiers |= PlatformEvent::Modifier::ShiftKey;
     if (keyboardModifiers & Qt::ControlModifier)
-        modifiers |= PlatformEvent::CtrlKey;
+        modifiers |= PlatformEvent::Modifier::CtrlKey;
     if (keyboardModifiers & Qt::AltModifier)
-        modifiers |= PlatformEvent::AltKey;
+        modifiers |= PlatformEvent::Modifier::AltKey;
     if (keyboardModifiers & Qt::MetaModifier)
-        modifiers |= PlatformEvent::MetaKey;
+        modifiers |= PlatformEvent::Modifier::MetaKey;
 }
 
 static void mouseEventTypeAndMouseButtonFromQEvent(const QEvent* event, PlatformEvent::Type& mouseEventType, MouseButton& mouseButton)

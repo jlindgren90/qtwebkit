@@ -284,7 +284,7 @@ private:
                 break;
             }
             if (m_graph.binaryArithShouldSpeculateInt32(node, FixupPass)) {
-                if (optimizeForX86() || optimizeForARM64() || optimizeForARMv7IDIVSupported() || optimizeForMIPS()) {
+                if (optimizeForX86() || optimizeForARM64() || optimizeForARMv7IDIVSupported()) {
                     fixIntOrBooleanEdge(leftChild);
                     fixIntOrBooleanEdge(rightChild);
                     if (bytecodeCanTruncateInteger(node->arithNodeFlags()))

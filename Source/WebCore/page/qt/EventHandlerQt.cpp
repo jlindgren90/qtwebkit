@@ -121,20 +121,9 @@ bool EventHandler::passMouseReleaseEventToSubframe(MouseEventWithHitTestResults&
     return true;
 }
 
-unsigned EventHandler::accessKeyModifiers()
+OptionSet<PlatformEvent::Modifier> EventHandler::accessKeyModifiers()
 {
-#if OS(DARWIN)
-    // On macOS, the ControlModifier value corresponds
-    // to the Command keys on the keyboard,
-    // and the MetaModifier value corresponds to the Control keys.
-    // See http://doc.qt.io/qt-5/qt.html#KeyboardModifier-enum
-    if (UNLIKELY(QCoreApplication::testAttribute(Qt::AA_MacDontSwapCtrlAndMeta)))
-        return PlatformEvent::CtrlKey | PlatformEvent::AltKey;
-    else
-        return PlatformEvent::MetaKey | PlatformEvent::AltKey;
-#else
-    return PlatformEvent::AltKey;
-#endif
+    return PlatformEvent::Modifier::AltKey;
 }
 
 }

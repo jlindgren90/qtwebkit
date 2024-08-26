@@ -53,6 +53,8 @@
 #include <limits>
 #include <wtf/Ref.h>
 
+using JSC::SetForScope;
+
 namespace WebCore {
 
 using namespace HTMLNames;

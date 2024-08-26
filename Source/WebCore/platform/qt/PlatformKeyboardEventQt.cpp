@@ -877,15 +877,15 @@ PlatformKeyboardEvent::PlatformKeyboardEvent(QKeyEvent* event, bool useNativeVir
     const int state = event->modifiers();
     m_type = (event->type() == QEvent::KeyRelease) ? PlatformEvent::KeyUp : PlatformEvent::KeyDown;
 
-    m_modifiers = 0;
+    m_modifiers = { };
     if ((state & Qt::ShiftModifier) || event->key() == Qt::Key_Backtab) // Simulate Shift+Tab with Key_Backtab
-        m_modifiers |= ShiftKey;
+        m_modifiers |= Modifier::ShiftKey;
     if (state & Qt::ControlModifier)
-        m_modifiers |= CtrlKey;
+        m_modifiers |= Modifier::CtrlKey;
     if (state & Qt::AltModifier)
-        m_modifiers |= AltKey;
+        m_modifiers |= Modifier::AltKey;
     if (state & Qt::MetaModifier)
-        m_modifiers |= MetaKey;
+        m_modifiers |= Modifier::MetaKey;
 
     m_useNativeVirtualKeyAsDOMKey = useNativeVirtualKeyAsDOMKey;
     m_text = keyTextForKeyEvent<false>(event);
@@ -894,16 +894,15 @@ PlatformKeyboardEvent::PlatformKeyboardEvent(QKeyEvent* event, bool useNativeVir
     m_autoRepeat = event->isAutoRepeat();
     m_isKeypad = (state & Qt::KeypadModifier);
     m_isSystemKey = false;
-    m_nativeVirtualKeyCode = event->nativeVirtualKey();
+    int nativeVirtualKeyCode = event->nativeVirtualKey();
     // If QKeyEvent::nativeVirtualKey() is valid (!=0) and useNativeVirtualKeyAsDOMKey is set,
     // then it is a special case desired by QtWebKit embedder to send domain specific keys
     // to Web Applications intented for platforms like HbbTV,CE-HTML,OIPF,..etc.
-    if (useNativeVirtualKeyAsDOMKey && m_nativeVirtualKeyCode)
-        m_windowsVirtualKeyCode = m_nativeVirtualKeyCode;
+    if (useNativeVirtualKeyAsDOMKey && nativeVirtualKeyCode)
+        m_windowsVirtualKeyCode = nativeVirtualKeyCode;
     else
         m_windowsVirtualKeyCode = windowsKeyCodeForKeyEvent(event->key(), m_isKeypad);
 
-    m_macCharCode = 0;
     m_qtEvent = event;
     m_timestamp = WTF::currentTime();
 }

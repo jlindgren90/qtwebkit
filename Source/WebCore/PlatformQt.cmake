@@ -17,6 +17,7 @@ list(APPEND WebCore_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/bytecompiler"
     "${JAVASCRIPTCORE_DIR}/dfg"
     "${JAVASCRIPTCORE_DIR}/disassembler"
+    "${JAVASCRIPTCORE_DIR}/domjit"
     "${JAVASCRIPTCORE_DIR}/heap"
     "${JAVASCRIPTCORE_DIR}/debugger"
     "${JAVASCRIPTCORE_DIR}/interpreter"
@@ -290,6 +291,7 @@ list(APPEND WebCore_LIBRARIES
     ${SQLITE_LIBRARIES}
     ${X11_X11_LIB}
     ${ZLIB_LIBRARIES}
+    jpeg
 )
 
 if (QT_STATIC_BUILD)
