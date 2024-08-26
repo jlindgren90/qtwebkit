@@ -84,10 +84,7 @@ public:
     ~Download();
 
     void start();
-
-#if !USE(NETWORK_SESSION)
     void startWithHandle(WebCore::ResourceHandle*, const WebCore::ResourceResponse&);
-#endif
     void resume(const IPC::DataReference& resumeData, const String& path, const SandboxExtension::Handle&);
     void cancel();
 
@@ -127,6 +124,7 @@ private:
 
 #if !USE(NETWORK_SESSION)
     void startNetworkLoad();
+    void startNetworkLoadWithHandle(WebCore::ResourceHandle*, const WebCore::ResourceResponse&);
 #endif
     void cancelNetworkLoad();
 
