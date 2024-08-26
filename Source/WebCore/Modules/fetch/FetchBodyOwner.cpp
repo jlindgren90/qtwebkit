@@ -52,10 +52,12 @@ void FetchBodyOwner::stop()
     m_body.cleanConsumePromise();
 
     if (m_blobLoader) {
+        bool isUniqueReference = hasOneRef();
         if (m_blobLoader->loader)
             m_blobLoader->loader->stop();
+        // After that point, 'this' may be destroyed, since unsetPendingActivity should have been called.
+        ASSERT_UNUSED(isUniqueReference, isUniqueReference || !m_blobLoader);
     }
-    ASSERT(!m_blobLoader);
 }
 
 bool FetchBodyOwner::isDisturbedOrLocked() const
@@ -97,6 +99,16 @@ void FetchBodyOwner::blob(Ref<DeferredPromise>&& promise)
     }
     m_isDisturbed = true;
     m_body.blob(*this, WTFMove(promise));
+}
+
+void FetchBodyOwner::consumeOnceLoadingFinished(FetchBodyConsumer::Type type, Ref<DeferredPromise>&& promise)
+{
+    if (isDisturbedOrLocked()) {
+        promise->reject(TypeError);
+        return;
+    }
+    m_isDisturbed = true;
+    m_body.consumeOnceLoadingFinished(type, WTFMove(promise));
 }
 
 void FetchBodyOwner::formData(Ref<DeferredPromise>&& promise)
@@ -174,8 +186,6 @@ void FetchBodyOwner::finishBlobLoading()
 
 void FetchBodyOwner::blobLoadingSucceeded()
 {
-    ASSERT(m_body.type() == FetchBody::Type::Blob);
-
 #if ENABLE(READABLE_STREAM_API)
     if (m_readableStreamSource) {
         m_readableStreamSource->close();

@@ -1,3 +1,154 @@
+2016-09-30  Alex Christensen  <achristensen@webkit.org>
+
+        Fix off-by-one error in URLParser::parseIPv4Host
+        https://bugs.webkit.org/show_bug.cgi?id=162789
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-30  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: parsing a URL with an empty host and a colon should fail
+        https://bugs.webkit.org/show_bug.cgi?id=162795
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-30  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: handle syntax violations in non-UTF-8 encoded queries
+        https://bugs.webkit.org/show_bug.cgi?id=162770
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::TEST_F):
+        Tests with emoji change behavior when we insert a tab between the surrogates, so don't do the
+        insert-tab-at-each-location verification that syntax violations are handled correctly.
+
+2016-09-30  Megan Gardner  <megan_gardner@apple.com>
+
+        Make it possible to test web-related user-interface features
+        https://bugs.webkit.org/show_bug.cgi?id=162657
+
+        Reviewed by Simon Fraser.
+
+        * DumpRenderTree/ios/UIScriptControllerIOS.mm:
+        (WTR::UIScriptController::contentsOfUserInterfaceItem):
+        (WTR::UIScriptController::selectFormAccessoryPickerRow): Deleted.
+        * TestRunnerShared/UIScriptContext/Bindings/UIScriptController.idl:
+        * TestRunnerShared/UIScriptContext/UIScriptController.cpp:
+        (WTR::UIScriptController::contentsOfUserInterfaceItem):
+        (WTR::UIScriptController::selectFormAccessoryPickerRow): Deleted.
+        * TestRunnerShared/UIScriptContext/UIScriptController.h:
+        * WebKitTestRunner/ios/UIScriptControllerIOS.mm:
+        (WTR::UIScriptController::contentsOfUserInterfaceItem):
+        (WTR::UIScriptController::selectFormAccessoryPickerRow): Deleted.
+
+2016-09-29  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Expose CryptoKey to web workers
+        https://bugs.webkit.org/show_bug.cgi?id=162640
+        <rdar://problem/28182204>
+
+        Reviewed by Brent Fulgham.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebCore/SerializedCryptoKeyWrap.mm: Added.
+        (TestWebKitAPI::TEST_F):
+        Add API tests for SerializedCryptoKeyWrap APIs.
+
+2016-09-29  Alex Christensen  <achristensen@webkit.org>
+
+        Fix syntax violation handling in IPv4 address parsing
+        https://bugs.webkit.org/show_bug.cgi?id=162756
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-29  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should correctly parse ports with leading 0's
+        https://bugs.webkit.org/show_bug.cgi?id=162752
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-29  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: make parsing invalid IPv4 addresses more robust and correct
+        https://bugs.webkit.org/show_bug.cgi?id=162746
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-29  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser: IPv6 addresses followed by a colon are invalid
+        https://bugs.webkit.org/show_bug.cgi?id=162747
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-29  Alexey Proskuryakov  <ap@apple.com>
+
+        Make WKTR short timeout dynamic
+        https://bugs.webkit.org/show_bug.cgi?id=162733
+
+        Reviewed by Alex Christensen.
+
+        WebKitTestRunner has a hardcoded value for how long to wait for IPC responses,
+        which is 5 seconds, or 10 seconds under ASan. But some of the operations can be
+        fairly time consuming - e.g. launching Networking process on demand.
+        These may take longer under load, especially with GuardMalloc.
+
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::resetStateToConsistentValues):
+        (WTR::TestController::reattachPageToWebProcess):
+        * WebKitTestRunner/TestController.h:
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::shortTimeout):
+        (WTR::TestInvocation::invoke):
+        (WTR::TestInvocation::dumpResults):
+
+        * WebKitTestRunner/TestInvocation.h:
+        (WTR::TestInvocation::customTimeout): Deleted, this function was unused.
+
+2016-09-29  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should fail to parse unclosed IPv6 addresses
+        https://bugs.webkit.org/show_bug.cgi?id=162715
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-29  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should ignore tabs at all possible locations
+        https://bugs.webkit.org/show_bug.cgi?id=162711
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::ExpectedParts::isInvalid):
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::TEST_F):
+
 2016-09-29  Gyuyoung Kim  <gyuyoung.kim@navercorp.com>
 
         [EFL] Add search button to url bar in MiniBrowser

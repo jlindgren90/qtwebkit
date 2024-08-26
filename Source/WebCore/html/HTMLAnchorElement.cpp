@@ -44,6 +44,7 @@
 #include "ResourceRequest.h"
 #include "RuntimeEnabledFeatures.h"
 #include "SVGImage.h"
+#include "ScriptController.h"
 #include "SecurityOrigin.h"
 #include "SecurityPolicy.h"
 #include "Settings.h"
@@ -303,7 +304,7 @@ bool HTMLAnchorElement::hasRel(uint32_t relation) const
 DOMTokenList& HTMLAnchorElement::relList()
 {
     if (!m_relList) 
-        m_relList = std::make_unique<DOMTokenList>(*this, HTMLNames::relAttr, [](const String& token) {
+        m_relList = std::make_unique<DOMTokenList>(*this, HTMLNames::relAttr, [](StringView token) {
             return equalIgnoringASCIICase(token, "noreferrer");
         });
     return *m_relList;
@@ -380,9 +381,9 @@ void HTMLAnchorElement::handleClick(Event& event)
         // If the a element has a download attribute and the algorithm is not triggered by user activation
         // then abort these steps.
         // https://html.spec.whatwg.org/#the-a-element:triggered-by-user-activation
-        if (!downloadAttribute.isNull() && !event.isTrusted()) {
+        if (!downloadAttribute.isNull() && !event.isTrusted() && !ScriptController::processingUserGesture()) {
             // The specification says to throw an InvalidAccessError but other browsers do not.
-            document().addConsoleMessage(MessageSource::Security, MessageLevel::Warning, "Synthetic clicks on anchors that have a download attribute are ignored.");
+            document().addConsoleMessage(MessageSource::Security, MessageLevel::Warning, "Non user-triggered activations of anchors that have a download attribute are ignored.");
             return;
         }
     }

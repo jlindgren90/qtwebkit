@@ -726,6 +726,10 @@
 		0FDB2CEA174896C7007B3C1B /* ConcurrentJITLock.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FDB2CE9174896C7007B3C1B /* ConcurrentJITLock.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FDDBFB51666EED800C55FEF /* DFGVariableAccessDataDump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FDDBFB21666EED500C55FEF /* DFGVariableAccessDataDump.cpp */; };
 		0FDDBFB61666EEDA00C55FEF /* DFGVariableAccessDataDump.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FDDBFB31666EED500C55FEF /* DFGVariableAccessDataDump.h */; };
+		0FDF67D21D9C6D27001B9825 /* B3Kind.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FDF67D11D9C6086001B9825 /* B3Kind.h */; };
+		0FDF67D31D9C6D2A001B9825 /* B3Kind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FDF67D01D9C6086001B9825 /* B3Kind.cpp */; };
+		0FDF67D61D9DC440001B9825 /* AirKind.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FDF67D41D9DC43E001B9825 /* AirKind.cpp */; };
+		0FDF67D71D9DC442001B9825 /* AirKind.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FDF67D51D9DC43E001B9825 /* AirKind.h */; };
 		0FDF70851D3F2C2200927449 /* AirLowerEntrySwitch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FDF70831D3F2C1F00927449 /* AirLowerEntrySwitch.cpp */; };
 		0FDF70861D3F2C2500927449 /* AirLowerEntrySwitch.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FDF70841D3F2C1F00927449 /* AirLowerEntrySwitch.h */; };
 		0FE050141AA9091100D33B33 /* ArgumentsMode.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FE0500C1AA9091100D33B33 /* ArgumentsMode.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -1653,6 +1657,8 @@
 		A59455921824744700CC3843 /* JSGlobalObjectDebuggable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A59455901824744700CC3843 /* JSGlobalObjectDebuggable.cpp */; };
 		A59455931824744700CC3843 /* JSGlobalObjectDebuggable.h in Headers */ = {isa = PBXBuildFile; fileRef = A59455911824744700CC3843 /* JSGlobalObjectDebuggable.h */; };
 		A5945595182479EB00CC3843 /* InspectorFrontendChannel.h in Headers */ = {isa = PBXBuildFile; fileRef = A5945594182479EB00CC3843 /* InspectorFrontendChannel.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		A5A1A0941D8CB33E004C2EB8 /* DebuggerParseData.h in Headers */ = {isa = PBXBuildFile; fileRef = A5A1A0921D8CB12F004C2EB8 /* DebuggerParseData.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		A5A1A0951D8CB341004C2EB8 /* DebuggerParseData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5A1A0931D8CB337004C2EB8 /* DebuggerParseData.cpp */; };
 		A5AB49DC1BEC8082007020FB /* PerGlobalObjectWrapperWorld.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5AB49DA1BEC8079007020FB /* PerGlobalObjectWrapperWorld.cpp */; };
 		A5AB49DD1BEC8086007020FB /* PerGlobalObjectWrapperWorld.h in Headers */ = {isa = PBXBuildFile; fileRef = A5AB49DB1BEC8079007020FB /* PerGlobalObjectWrapperWorld.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		A5B6A74D18C6DBA600F11E91 /* ConsoleClient.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A5B6A74C18C6DBA600F11E91 /* ConsoleClient.cpp */; };
@@ -2983,6 +2989,10 @@
 		0FDB2CE9174896C7007B3C1B /* ConcurrentJITLock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ConcurrentJITLock.h; sourceTree = "<group>"; };
 		0FDDBFB21666EED500C55FEF /* DFGVariableAccessDataDump.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DFGVariableAccessDataDump.cpp; path = dfg/DFGVariableAccessDataDump.cpp; sourceTree = "<group>"; };
 		0FDDBFB31666EED500C55FEF /* DFGVariableAccessDataDump.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DFGVariableAccessDataDump.h; path = dfg/DFGVariableAccessDataDump.h; sourceTree = "<group>"; };
+		0FDF67D01D9C6086001B9825 /* B3Kind.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = B3Kind.cpp; path = b3/B3Kind.cpp; sourceTree = "<group>"; };
+		0FDF67D11D9C6086001B9825 /* B3Kind.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = B3Kind.h; path = b3/B3Kind.h; sourceTree = "<group>"; };
+		0FDF67D41D9DC43E001B9825 /* AirKind.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AirKind.cpp; path = b3/air/AirKind.cpp; sourceTree = "<group>"; };
+		0FDF67D51D9DC43E001B9825 /* AirKind.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AirKind.h; path = b3/air/AirKind.h; sourceTree = "<group>"; };
 		0FDF70831D3F2C1F00927449 /* AirLowerEntrySwitch.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AirLowerEntrySwitch.cpp; path = b3/air/AirLowerEntrySwitch.cpp; sourceTree = "<group>"; };
 		0FDF70841D3F2C1F00927449 /* AirLowerEntrySwitch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AirLowerEntrySwitch.h; path = b3/air/AirLowerEntrySwitch.h; sourceTree = "<group>"; };
 		0FE0500C1AA9091100D33B33 /* ArgumentsMode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ArgumentsMode.h; sourceTree = "<group>"; };
@@ -3950,6 +3960,8 @@
 		A59455901824744700CC3843 /* JSGlobalObjectDebuggable.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSGlobalObjectDebuggable.cpp; sourceTree = "<group>"; };
 		A59455911824744700CC3843 /* JSGlobalObjectDebuggable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSGlobalObjectDebuggable.h; sourceTree = "<group>"; };
 		A5945594182479EB00CC3843 /* InspectorFrontendChannel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = InspectorFrontendChannel.h; sourceTree = "<group>"; };
+		A5A1A0921D8CB12F004C2EB8 /* DebuggerParseData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DebuggerParseData.h; sourceTree = "<group>"; };
+		A5A1A0931D8CB337004C2EB8 /* DebuggerParseData.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DebuggerParseData.cpp; sourceTree = "<group>"; };
 		A5AB49DA1BEC8079007020FB /* PerGlobalObjectWrapperWorld.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PerGlobalObjectWrapperWorld.cpp; sourceTree = "<group>"; };
 		A5AB49DB1BEC8079007020FB /* PerGlobalObjectWrapperWorld.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PerGlobalObjectWrapperWorld.h; sourceTree = "<group>"; };
 		A5B6A74C18C6DBA600F11E91 /* ConsoleClient.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ConsoleClient.cpp; sourceTree = "<group>"; };
@@ -4877,6 +4889,8 @@
 				0FEC85B41BE1462F0080FF74 /* B3InsertionSet.cpp */,
 				0FEC85B51BE1462F0080FF74 /* B3InsertionSet.h */,
 				0FEC85B61BE1462F0080FF74 /* B3InsertionSetInlines.h */,
+				0FDF67D01D9C6086001B9825 /* B3Kind.cpp */,
+				0FDF67D11D9C6086001B9825 /* B3Kind.h */,
 				436E54511C468E5F00B5AF73 /* B3LegalizeMemoryOffsets.cpp */,
 				436E54521C468E5F00B5AF73 /* B3LegalizeMemoryOffsets.h */,
 				0F338E191BF286EA0013C88F /* B3LowerMacros.cpp */,
@@ -5007,6 +5021,8 @@
 				0FEC855C1BDACDC70080FF74 /* AirInstInlines.h */,
 				26718BA21BE99F780052017B /* AirIteratedRegisterCoalescing.cpp */,
 				26718BA31BE99F780052017B /* AirIteratedRegisterCoalescing.h */,
+				0FDF67D41D9DC43E001B9825 /* AirKind.cpp */,
+				0FDF67D51D9DC43E001B9825 /* AirKind.h */,
 				2684D4371C00161C0081D663 /* AirLiveness.h */,
 				0FE34C171C4B39AE0003A512 /* AirLogRegisterPressure.cpp */,
 				0FE34C181C4B39AE0003A512 /* AirLogRegisterPressure.h */,
@@ -5508,6 +5524,8 @@
 				6AD2CB4C19B9140100065719 /* DebuggerEvalEnabler.h */,
 				A5FC84B01D1DDAC8006B5C46 /* DebuggerLocation.cpp */,
 				A5FC84B11D1DDAC8006B5C46 /* DebuggerLocation.h */,
+				A5A1A0931D8CB337004C2EB8 /* DebuggerParseData.cpp */,
+				A5A1A0921D8CB12F004C2EB8 /* DebuggerParseData.h */,
 				FEA0861F182B7A0400F6D851 /* DebuggerPrimitives.h */,
 				0F2D4DDB19832D34007D4B19 /* DebuggerScope.cpp */,
 				0F2D4DDC19832D34007D4B19 /* DebuggerScope.h */,
@@ -7553,6 +7571,7 @@
 				A7D89CFE17A0B8CC00773AD8 /* DFGOSRAvailabilityAnalysisPhase.h in Headers */,
 				0FD82E57141DAF1000179C94 /* DFGOSREntry.h in Headers */,
 				0F40E4A71C497F7400A577FA /* AirOpcode.h in Headers */,
+				0FDF67D71D9DC442001B9825 /* AirKind.h in Headers */,
 				0FD8A32617D51F5700CA2C40 /* DFGOSREntrypointCreationPhase.h in Headers */,
 				0FC0976A1468A6F700CF2442 /* DFGOSRExit.h in Headers */,
 				0F235BEC17178E7300690C7F /* DFGOSRExitBase.h in Headers */,
@@ -7740,6 +7759,7 @@
 				0F64EAF31C4ECD0600621E9B /* AirArgInlines.h in Headers */,
 				A5EA710519F6DE740098F5EC /* generate_objc_configuration_header.py in Headers */,
 				DC69B99D1D15F914002E3C00 /* B3InferSwitches.h in Headers */,
+				0FDF67D21D9C6D27001B9825 /* B3Kind.h in Headers */,
 				A5EA710619F6DE760098F5EC /* generate_objc_configuration_implementation.py in Headers */,
 				0F7C39FF1C90C55B00480151 /* DFGOpInfo.h in Headers */,
 				A5EA710719F6DE780098F5EC /* generate_objc_protocol_type_conversions_header.py in Headers */,
@@ -8308,6 +8328,7 @@
 				A7386556118697B400540279 /* ThunkGenerators.h in Headers */,
 				141448CD13A1783700F5BA1A /* TinyBloomFilter.h in Headers */,
 				2684D4381C00161C0081D663 /* AirLiveness.h in Headers */,
+				A5A1A0941D8CB33E004C2EB8 /* DebuggerParseData.h in Headers */,
 				0F55989817C86C5800A1E543 /* ToNativeFromValue.h in Headers */,
 				DCEE220B1CEB9895000C2396 /* DFGControlEquivalenceAnalysis.h in Headers */,
 				0F2D4DE919832DAC007D4B19 /* ToThisStatus.h in Headers */,
@@ -8921,6 +8942,7 @@
 				0F4570381BE44C910062A629 /* AirEliminateDeadCode.cpp in Sources */,
 				43AB26C71C1A535C00D82AE6 /* B3MathExtras.cpp in Sources */,
 				0FEC85781BDACDC70080FF74 /* AirGenerate.cpp in Sources */,
+				0FDF67D61D9DC440001B9825 /* AirKind.cpp in Sources */,
 				0FEC85931BDB1E100080FF74 /* AirGenerated.cpp in Sources */,
 				53486BBB1C18E84500F6F3AF /* JSTypedArray.cpp in Sources */,
 				0FEC857B1BDACDC70080FF74 /* AirHandleCalleeSaves.cpp in Sources */,
@@ -9095,6 +9117,7 @@
 				0FFFC95914EF90A600C72532 /* DFGCSEPhase.cpp in Sources */,
 				0F2FC77216E12F710038D976 /* DFGDCEPhase.cpp in Sources */,
 				0F338E121BF0276C0013C88F /* B3OpaqueByproducts.cpp in Sources */,
+				0FDF67D31D9C6D2A001B9825 /* B3Kind.cpp in Sources */,
 				0F8F2B99172F04FF007DBDA5 /* DFGDesiredIdentifiers.cpp in Sources */,
 				C2C0F7CD17BBFC5B00464FE4 /* DFGDesiredTransitions.cpp in Sources */,
 				0FE8534B1723CDA500B618F5 /* DFGDesiredWatchpoints.cpp in Sources */,
@@ -9493,6 +9516,7 @@
 				148F21B0107EC5410042EC2C /* Lexer.cpp in Sources */,
 				0FF4275715914A20004CB9FF /* LinkBuffer.cpp in Sources */,
 				A7E2EA6C0FB460CF00601F06 /* LiteralParser.cpp in Sources */,
+				A5A1A0951D8CB341004C2EB8 /* DebuggerParseData.cpp in Sources */,
 				FE3913541B794F6E00EDAF71 /* LiveObjectList.cpp in Sources */,
 				FE20CE9D15F04A9500DF3430 /* LLIntCLoop.cpp in Sources */,
 				0F4680D214BBD16500BFE272 /* LLIntData.cpp in Sources */,

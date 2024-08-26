@@ -150,11 +150,12 @@ public:
     // Accessors for native image formats.
 
 #if USE(APPKIT)
-    virtual NSImage* getNSImage() { return nullptr; }
+    virtual NSImage *nsImage() { return nullptr; }
+    virtual RetainPtr<NSImage> currentFrameNSImage() { return nullptr; }
 #endif
 
 #if PLATFORM(COCOA)
-    virtual CFDataRef getTIFFRepresentation() { return nullptr; }
+    virtual CFDataRef tiffRepresentation() { return nullptr; }
 #endif
 
 #if PLATFORM(WIN)
@@ -174,8 +175,8 @@ public:
     virtual Evas_Object* getEvasObject(Evas*) { return nullptr; }
 #endif
 
-    virtual void drawPattern(GraphicsContext&, const FloatRect& srcRect, const AffineTransform& patternTransform,
-        const FloatPoint& phase, const FloatSize& spacing, CompositeOperator, const FloatRect& destRect, BlendMode = BlendModeNormal);
+    virtual void drawPattern(GraphicsContext&, const FloatRect& destRect, const FloatRect& srcRect, const AffineTransform& patternTransform,
+        const FloatPoint& phase, const FloatSize& spacing, CompositeOperator, BlendMode = BlendModeNormal);
 
 #if ENABLE(IMAGE_DECODER_DOWN_SAMPLING)
     FloatRect adjustSourceRectForDownSampling(const FloatRect& srcRect, const IntSize& scaledSize) const;

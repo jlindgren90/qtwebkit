@@ -1,3 +1,253 @@
+2016-09-30  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Follow-up patch after r206701
+        https://bugs.webkit.org/show_bug.cgi?id=162818
+
+        Unreviewed.
+
+        I missed one place required to enable an experimental feature by default.
+
+        * UIProcess/Cocoa/WebProcessPoolCocoa.mm:
+        (WebKit::registerUserDefaultsIfNeeded):
+
+2016-09-30  Dan Bernstein  <mitz@apple.com>
+
+        [iOS] Editing menu omits the Share command if the selected text is longer than 200 characters
+        https://bugs.webkit.org/show_bug.cgi?id=162821
+        <rdar://problem/28409828>
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView canPerformAction:withSender:]): Changed to return YES for the _share:
+          action even if the selection is longer than 200 characters. While Define should not have
+          been available for longer selections, Share does not have such a limitation.
+
+2016-09-30  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Turn variation fonts on by default
+        https://bugs.webkit.org/show_bug.cgi?id=162818
+
+        Reviewed by Simon Fraser.
+
+        * Shared/WebPreferencesDefinitions.h:
+
+2016-09-30  Brady Eidson  <beidson@apple.com>
+
+        REGRESSION (Safari 10 combined with WK changes): Unable to store WebCrypto keys in IndexedDB database.
+        <rdar://problem/28334440> and https://bugs.webkit.org/show_bug.cgi?id=162554
+
+        Reviewed by Alexey Proskuryakov.
+
+        Safari 10 has a WKPageNavigation client but does not implement the "copyWebCryptoMasterKey" callback.
+
+        WebKit just fails in this case, instead of falling back to "getDefaultWebCryptoMasterKey".
+        It should fall back.
+
+        Additionally there's a WKContextClient callback to get the crypto key, also, but it is completely unused.
+        So it should be pulled.
+
+        * UIProcess/API/APILoaderClient.h:
+        (API::LoaderClient::webCryptoMasterKey): Deleted.
+        * UIProcess/API/C/WKContext.h:
+
+        * UIProcess/API/C/WKPage.cpp:
+        (WKPageSetPageLoaderClient):
+        (WKPageSetPageNavigationClient): If the client doesn't implement this method, fallback to getDefaultWebCryptoMasterKey.
+
+        * UIProcess/Cocoa/NavigationState.mm:
+        (WebKit::NavigationState::NavigationClient::webCryptoMasterKey): If the client doesn't implement this method,
+          fallback to getDefaultWebCryptoMasterKey.
+
+        * UIProcess/WebContextClient.cpp:
+        (WebKit::WebContextClient::copyWebCryptoMasterKey): Deleted.
+        * UIProcess/WebContextClient.h:
+
+        * UIProcess/WebPageProxy.cpp:
+        (WebKit::WebPageProxy::wrapCryptoKey): Only ask the NavigationClient before falling back. Don't ask the loader client.
+        (WebKit::WebPageProxy::unwrapCryptoKey): Ditto.
+
+2016-09-30  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        The dragged image should be the current frame only of the animated image
+        https://bugs.webkit.org/show_bug.cgi?id=162109
+
+        Reviewed by Tim Horton.
+
+        * UIProcess/Cocoa/WebViewImpl.mm:
+        (WebKit::WebViewImpl::provideDataForPasteboard): Call the Image function with its new name.
+
+2016-09-30  Anders Carlsson  <andersca@apple.com>
+
+        Second time going into fullscreen using silverlight, will hide the menu bar and dock for Safari
+        https://bugs.webkit.org/show_bug.cgi?id=162805
+        rdar://problem/28208495
+
+        Reviewed by Dan Bernstein.
+
+        Turns out that the WindowRef wrappers for full screen NSWindows can end up in the m_windows HashSet,
+        and never go away. 
+        
+        Fix this by storing the canonical CGWindowIDs in the hash map instead.
+
+        * PluginProcess/mac/PluginProcessMac.mm:
+        (WebKit::cgWindowID):
+        (WebKit::windowCoversAnyScreen):
+        (WebKit::FullscreenWindowTracker::windowShown):
+        (WebKit::FullscreenWindowTracker::windowHidden):
+
+2016-09-30  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Create runtime flag for variation font work
+        https://bugs.webkit.org/show_bug.cgi?id=162780
+
+        Reviewed by Alex Christensen.
+
+        * Shared/WebPreferencesDefinitions.h:
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::updatePreferences):
+
+2016-09-30  Chris Dumez  <cdumez@apple.com>
+
+        [WK2][iOS] Add radiusX / radiusY / rotationAngle to WebPlatformTouchPoint
+        https://bugs.webkit.org/show_bug.cgi?id=162787
+        <rdar://problem/28554292>
+
+        Reviewed by Benjamin Poulain.
+
+        Add radiusX / radiusY / rotationAngle to WebPlatformTouchPoint.
+
+        * Platform/spi/ios/UIKitSPI.h:
+        * Shared/WebEvent.h:
+        (WebKit::WebPlatformTouchPoint::setRadiusX):
+        (WebKit::WebPlatformTouchPoint::radiusX):
+        (WebKit::WebPlatformTouchPoint::setRadiusY):
+        (WebKit::WebPlatformTouchPoint::radiusY):
+        (WebKit::WebPlatformTouchPoint::setRotationAngle):
+        (WebKit::WebPlatformTouchPoint::rotationAngle):
+        * Shared/WebEventConversion.cpp:
+        (WebKit::WebKit2PlatformTouchPoint::WebKit2PlatformTouchPoint):
+        * Shared/ios/NativeWebTouchEventIOS.mm:
+        (WebKit::NativeWebTouchEvent::extractWebTouchPoint):
+        * Shared/ios/WebPlatformTouchPointIOS.cpp:
+        (WebKit::WebPlatformTouchPoint::encode):
+        (WebKit::WebPlatformTouchPoint::decode):
+
+2016-09-30  Megan Gardner  <megan_gardner@apple.com>
+
+        Make it possible to test web-related user-interface features
+        https://bugs.webkit.org/show_bug.cgi?id=162657
+
+        Reviewed by Simon Fraser.
+
+        Added the ability to pull the strings from an Action Sheet and pass them to
+        test scripts to make sure we are giving the correct available actions for
+        the item we are interacting with.
+        Added a test for long press on an image, and used the sheet scraping functionality
+        to make sure that the correct actions were being displayed.
+        Test for previous patch, Changeset 205915; Bug 161761
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _contentsOfUserInterfaceItem:]):
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h:
+        * UIProcess/ios/WKActionSheetAssistant.h:
+        * UIProcess/ios/WKActionSheetAssistant.mm:
+        (-[WKActionSheetAssistant currentAvailableActionStrings]):
+        * UIProcess/ios/WKContentViewInteraction.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _contentsOfUserInterfaceItem:]):
+
+2016-09-27  Anders Carlsson  <andersca@apple.com>
+
+        Remove a couple of unused members from PlatformKeyboardEvent
+        https://bugs.webkit.org/show_bug.cgi?id=162641
+
+        Reviewed by Tim Horton.
+
+        * Shared/WebEventConversion.cpp:
+        (WebKit::WebKit2PlatformKeyboardEvent::WebKit2PlatformKeyboardEvent):
+
+2016-09-29  Nan Wang  <n_wang@apple.com>
+
+        AX: iOS: Tapping <input> in Safari zooms in a bit when page has max scale = 1
+        https://bugs.webkit.org/show_bug.cgi?id=162471
+
+        Reviewed by Simon Fraser.
+
+        * Shared/AssistedNodeInformation.cpp:
+        (WebKit::AssistedNodeInformation::encode):
+        (WebKit::AssistedNodeInformation::decode):
+        * Shared/AssistedNodeInformation.h:
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _displayFormNodeInputView]):
+        * WebProcess/WebPage/WebPage.h:
+        * WebProcess/WebPage/ios/WebPageIOS.mm:
+        (WebKit::WebPage::maximumPageScaleFactorIgnoringAlwaysScalable):
+        (WebKit::WebPage::getAssistedNodeInformation):
+
+2016-09-29  Daniel Bates  <dabates@apple.com>
+
+        Mark NetworkLoad as final
+        https://bugs.webkit.org/show_bug.cgi?id=162681
+
+        Reviewed by Alex Christensen.
+
+        Mark class NetworkLoad as final as we do not have any derived classes at the moment and it
+        is unclear if it would make sense to subclass it. We can always unmark the class if it turns
+        out that it makes sense to subclass it.
+
+        * NetworkProcess/NetworkLoad.h:
+
+2016-09-29  Sam Weinig  <sam@webkit.org>
+
+        Allow overriding some NSURLSessionConfiguration properties on a per-NetworkProcess basis
+        <rdar://problem/27648683>
+        https://bugs.webkit.org/show_bug.cgi?id=162735
+
+        Reviewed by Dan Bernstein.
+
+        Add SPI for overriding the following NSURLSessionConfigurations properties:
+            - _sourceApplicationBundleIdentifier
+            - _sourceApplicationSecondaryIdentifier
+            - _CTDataConnectionServiceType
+
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::initializeNetworkProcess):
+        * NetworkProcess/NetworkProcessCreationParameters.cpp:
+        (WebKit::NetworkProcessCreationParameters::encode):
+        (WebKit::NetworkProcessCreationParameters::decode):
+        * NetworkProcess/NetworkProcessCreationParameters.h:
+        * NetworkProcess/NetworkSession.h:
+        * NetworkProcess/cocoa/NetworkProcessCocoa.mm:
+        (WebKit::NetworkProcess::platformInitializeNetworkProcessCocoa):
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (WebKit::globalSourceApplicationBundleIdentifier):
+        (WebKit::globalSourceApplicationSecondaryIdentifier):
+        (WebKit::globalCTDataConnectionServiceType):
+        (WebKit::NetworkSession::setCustomProtocolManager):
+        (WebKit::NetworkSession::setSourceApplicationAuditTokenData):
+        (WebKit::NetworkSession::setSourceApplicationBundleIdentifier):
+        (WebKit::NetworkSession::setSourceApplicationSecondaryIdentifier):
+        (WebKit::NetworkSession::setCTDataConnectionServiceType):
+        (WebKit::NetworkSession::NetworkSession):
+        * UIProcess/API/APIProcessPoolConfiguration.cpp:
+        (API::ProcessPoolConfiguration::copy):
+        * UIProcess/API/APIProcessPoolConfiguration.h:
+        * UIProcess/API/Cocoa/_WKProcessPoolConfiguration.h:
+        * UIProcess/API/Cocoa/_WKProcessPoolConfiguration.mm:
+        (-[_WKProcessPoolConfiguration sourceApplicationBundleIdentifier]):
+        (-[_WKProcessPoolConfiguration setSourceApplicationBundleIdentifier:]):
+        (-[_WKProcessPoolConfiguration sourceApplicationSecondaryIdentifier]):
+        (-[_WKProcessPoolConfiguration setSourceApplicationSecondaryIdentifier:]):
+        (-[_WKProcessPoolConfiguration CTDataConnectionServiceType]):
+        (-[_WKProcessPoolConfiguration setCTDataConnectionServiceType:]):
+        * UIProcess/Cocoa/WebProcessPoolCocoa.mm:
+        (WebKit::WebProcessPool::platformInitializeNetworkProcess):
+        * WebProcess/WebProcess.cpp:
+        (WebKit::WebProcess::initializeWebProcess):
+        * WebProcess/cocoa/WebProcessCocoa.mm:
+        (WebKit::WebProcess::platformInitializeWebProcess):
+
 2016-09-29  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         NetworkSession: HTTP authentication doesn't work if PROTECTION_SPACE_AUTH_CALLBACK is not enabled

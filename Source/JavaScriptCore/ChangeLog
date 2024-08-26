@@ -1,3 +1,1106 @@
+2016-10-01  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] Align attributes of Generator related properties to spec
+        https://bugs.webkit.org/show_bug.cgi?id=162839
+
+        Reviewed by Saam Barati.
+
+        This patch fixes attributes of Generator related properties.
+        These fixes are covered by test262.
+
+        * runtime/GeneratorFunctionConstructor.cpp:
+        (JSC::GeneratorFunctionConstructor::finishCreation):
+        * runtime/GeneratorFunctionConstructor.h:
+        * runtime/GeneratorFunctionPrototype.cpp:
+        (JSC::GeneratorFunctionPrototype::finishCreation):
+        * runtime/GeneratorFunctionPrototype.h:
+        * runtime/GeneratorPrototype.h:
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init):
+
+2016-10-01  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [ES6] GeneratorFunction constructor should instantiate generator function
+        https://bugs.webkit.org/show_bug.cgi?id=162838
+
+        Reviewed by Saam Barati.
+
+        GeneratorFunction's constructor should return an instance of JSGeneratorFunction
+        instead of JSFunction. In this patch, we fix the following 2 things.
+
+        1. GeneratorFunction constructor should use JSGeneratorFunction
+
+            Previously, we used JSFunction to construct a result. It's wrong. We use JSGeneratorFunction.
+
+        2. Pass newTarget into GeneratorFunction constructor to make it subclassible
+
+            We did not leverage newTarget when using GeneratorFunction constructor.
+            Using it correctly to create the subclass Structure and making GeneratorFunction subclassible.
+
+        Test262 test covers (1), but (2) is not covered. We add tests that covers both to stress tests.
+
+        * runtime/FunctionConstructor.cpp:
+        (JSC::constructFunctionSkippingEvalEnabledCheck):
+        * runtime/GeneratorFunctionConstructor.cpp:
+        (JSC::constructGeneratorFunctionConstructor):
+        * runtime/JSGeneratorFunction.cpp:
+        (JSC::JSGeneratorFunction::JSGeneratorFunction):
+        (JSC::JSGeneratorFunction::createImpl):
+        (JSC::JSGeneratorFunction::create):
+        (JSC::JSGeneratorFunction::createWithInvalidatedReallocationWatchpoint):
+        * runtime/JSGeneratorFunction.h:
+
+2016-10-01  Filip Pizlo  <fpizlo@apple.com>
+
+        Get rid of isMarkedOrNewlyAllocated
+        https://bugs.webkit.org/show_bug.cgi?id=162842
+
+        Reviewed by Dan Bernstein.
+        
+        This function has become dead code. This change removes it.
+
+        * heap/CellContainer.h:
+        * heap/CellContainerInlines.h:
+        (JSC::CellContainer::isMarkedOrNewlyAllocated): Deleted.
+        * heap/LargeAllocation.h:
+        (JSC::LargeAllocation::isLive):
+        (JSC::LargeAllocation::isMarkedOrNewlyAllocated): Deleted.
+        * heap/MarkedBlock.cpp:
+        (JSC::MarkedBlock::Handle::isMarkedOrNewlyAllocated): Deleted.
+        (JSC::MarkedBlock::isMarkedOrNewlyAllocated): Deleted.
+        * heap/MarkedBlock.h:
+        (JSC::MarkedBlock::Handle::isMarkedOrNewlyAllocated): Deleted.
+        (JSC::MarkedBlock::isMarkedOrNewlyAllocated): Deleted.
+
+2016-10-01  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Rename DebugHookID to DebugHookType
+        https://bugs.webkit.org/show_bug.cgi?id=162820
+
+        Reviewed by Alex Christensen.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::debugHookName):
+        (JSC::CodeBlock::dumpBytecode):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitDebugHook):
+        * bytecompiler/BytecodeGenerator.h:
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::debug):
+        * interpreter/Interpreter.h:
+        * jit/JITOperations.cpp:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+
+2016-09-30  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Stepping to a line with an autoContinue breakpoint should still pause
+        https://bugs.webkit.org/show_bug.cgi?id=161712
+        <rdar://problem/28193970>
+
+        Reviewed by Brian Burg.
+
+        * debugger/Debugger.cpp:
+        (JSC::Debugger::pauseIfNeeded):
+        If we stepped to an auto-continue breakpoint we should continue
+        stepping, not just continue.
+
+2016-09-30  Filip Pizlo  <fpizlo@apple.com>
+
+        B3 should support trapping memory accesses
+        https://bugs.webkit.org/show_bug.cgi?id=162689
+
+        Reviewed by Geoffrey Garen.
+        
+        This adds a traps flag to B3::Kind. It also makes B3::Kind work more like Air::Kind, in the
+        sense that it's a bag of distinct bits - it doesn't need to be a union unless we get enough
+        things that it would make a difference.
+        
+        The only analysis that needs to know about traps is effects. It now knows that traps implies
+        sideExits, which means that this turns off DCE. The only optimization that needs to know
+        about traps is eliminateCommonSubexpressions(), which needs to pessimize its store
+        elimination if the store traps.
+        
+        The hard part of this change is teaching the instruction selector to faithfully carry the
+        traps flag down to Air. I got this to work by making ArgPromise a non-copyable object that
+        knows whether you've used it in an instruction. It knows when you call consume(). If you do
+        this then ArgPromise cannot be destructed without first passing your inst through it. This,
+        along with a few other hacks, means that all of the load-op and load-op-store fusions
+        correctly carry the trap bit: if any of the B3 loads or stores involved traps then you get
+        traps in Air.
+        
+        This framework also sets us up to do bug 162688, since the ArgPromise::inst() hook is
+        powerful enough to allow wrapping the instruction with a Patch.
+        
+        I added some tests to testb3 that verify that optimizations are appropriately inhibited and
+        that the traps flag survives until the bitter end of Air.
+
+        * b3/B3EliminateCommonSubexpressions.cpp:
+        * b3/B3Kind.cpp:
+        (JSC::B3::Kind::dump):
+        * b3/B3Kind.h:
+        (JSC::B3::Kind::Kind):
+        (JSC::B3::Kind::hasExtraBits):
+        (JSC::B3::Kind::isChill):
+        (JSC::B3::Kind::setIsChill):
+        (JSC::B3::Kind::hasTraps):
+        (JSC::B3::Kind::traps):
+        (JSC::B3::Kind::setTraps):
+        (JSC::B3::Kind::operator==):
+        (JSC::B3::Kind::hash):
+        (JSC::B3::trapping):
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::ArgPromise::swap):
+        (JSC::B3::Air::LowerToAir::ArgPromise::ArgPromise):
+        (JSC::B3::Air::LowerToAir::ArgPromise::operator=):
+        (JSC::B3::Air::LowerToAir::ArgPromise::~ArgPromise):
+        (JSC::B3::Air::LowerToAir::ArgPromise::setTraps):
+        (JSC::B3::Air::LowerToAir::ArgPromise::consume):
+        (JSC::B3::Air::LowerToAir::ArgPromise::inst):
+        (JSC::B3::Air::LowerToAir::trappingInst):
+        (JSC::B3::Air::LowerToAir::loadPromiseAnyOpcode):
+        (JSC::B3::Air::LowerToAir::appendUnOp):
+        (JSC::B3::Air::LowerToAir::appendBinOp):
+        (JSC::B3::Air::LowerToAir::tryAppendStoreUnOp):
+        (JSC::B3::Air::LowerToAir::tryAppendStoreBinOp):
+        (JSC::B3::Air::LowerToAir::appendStore):
+        (JSC::B3::Air::LowerToAir::append):
+        (JSC::B3::Air::LowerToAir::createGenericCompare):
+        (JSC::B3::Air::LowerToAir::createBranch):
+        (JSC::B3::Air::LowerToAir::createCompare):
+        (JSC::B3::Air::LowerToAir::createSelect):
+        (JSC::B3::Air::LowerToAir::lower):
+        * b3/B3Validate.cpp:
+        * b3/B3Value.cpp:
+        (JSC::B3::Value::effects):
+        * b3/B3Value.h:
+        * b3/air/AirCode.h:
+        * b3/testb3.cpp:
+        (JSC::B3::testTrappingLoad):
+        (JSC::B3::testTrappingStore):
+        (JSC::B3::testTrappingLoadAddStore):
+        (JSC::B3::testTrappingLoadDCE):
+        (JSC::B3::testTrappingStoreElimination):
+        (JSC::B3::run):
+
+2016-09-30  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Stepping over/out of a function sometimes resumes instead of taking you to caller
+        https://bugs.webkit.org/show_bug.cgi?id=162802
+        <rdar://problem/28569982>
+
+        Reviewed by Mark Lam.
+
+        * debugger/Debugger.cpp:
+        (JSC::Debugger::stepOverStatement):
+        (JSC::Debugger::stepOutOfFunction):
+        Enable stepping mode when we start stepping.
+
+2016-09-30  Filip Pizlo  <fpizlo@apple.com>
+
+        B3::moveConstants should be able to edit code to minimize the number of constants
+        https://bugs.webkit.org/show_bug.cgi?id=162764
+
+        Reviewed by Saam Barati.
+        
+        There are some interesting cases where we can reduce the number of constant materializations if
+        we teach moveConstants() how to edit code. The two examples that this patch supports are:
+        
+            - Loads and stores from a constant pointer. Since loads and stores get an offset for free
+              and the instruction selector is really good at handling it, and since we can query Air to
+              see what kinds of offsets are legal, we can sometimes avoid using a constant pointer that
+              is specific to the absolute address of that load and instead pick some other constant
+              that is within offset distance of ours.
+            
+            - Add and Sub by a constant (x + c, x - c). Since x + c = x - -c and x - c = x + -c, we can
+              flip Add to Sub or vice versa if the negated constant is available.
+        
+        This change makes moveConstants() pick the most dominant constant that works for an value. In
+        the case of memory accesses, it uses Air::Arg::isValidAddrForm() to work out what other
+        constants would work. In the case of Add/Sub, it simply looks for the negated constant. This
+        should result in something like a minimal number of constants since these rules always pick the
+        most dominant constant that works - so if an Add's constant is already most dominant then
+        nothing changes, but if the negated one is more dominant then it becomes a Sub.
+        
+        This is a 0.5% speed-up on LongSpider and neutral elsewhere. It's a speed-up because the
+        absolute address thing reduces the number of address materializations that we have to do, while
+        the add/sub thing prevents us from having to materialize 0x1000000000000 to box doubles.
+        However, this may introduce a pathology, which I've filed a bug for: bug 162796.
+
+        * b3/B3MoveConstants.cpp:
+        * b3/B3MoveConstants.h:
+        * b3/B3UseCounts.h:
+        * b3/air/AirFixObviousSpills.cpp:
+        * b3/testb3.cpp:
+        (JSC::B3::testMoveConstants):
+        (JSC::B3::run):
+
+2016-09-30  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Fix modules tests after r206653 handle breakpoint locations in import/export statements
+        https://bugs.webkit.org/show_bug.cgi?id=162807
+
+        Reviewed by Mark Lam.
+
+        * parser/ASTBuilder.h:
+        (JSC::ASTBuilder::createExportDefaultDeclaration):
+        (JSC::ASTBuilder::createExportLocalDeclaration):
+        Don't record an extra breakpoint location for the statement
+        within an export statement.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseModuleSourceElements):
+        Record a pause location for import/export statements.
+
+2016-09-30  Mark Lam  <mark.lam@apple.com>
+
+        Remove the dumping of the stack back trace in VM::verifyExceptionCheckNeedIsSatisfied().
+        https://bugs.webkit.org/show_bug.cgi?id=162797
+
+        Reviewed by Geoffrey Garen.
+
+        This is because the RELEASE_ASSERT() that follows immediately after will also
+        dump the stack back trace.  Hence, the first dump will be redundant.
+
+        Also removed an extra space in the dataLog output.
+
+        * runtime/VM.cpp:
+        (JSC::VM::verifyExceptionCheckNeedIsSatisfied):
+
+2016-09-30  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Stepping through `a(); b(); c();` it is unclear where we are and what is about to execute
+        https://bugs.webkit.org/show_bug.cgi?id=161658
+        <rdar://problem/28181254>
+
+        Reviewed by Geoffrey Garen.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseAssignmentExpression):
+        Updated pause location for unary expressions.
+
+2016-09-30  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Breakpoints on blank lines or comments don't break
+        https://bugs.webkit.org/show_bug.cgi?id=9885
+        <rdar://problem/6134406>
+
+        Reviewed by Mark Lam.
+
+        This change introduces a way to perform a Debugger Parse of a script.
+        This debugger parse gathers a list of breakpoint locations, which
+        the backend uses to resolve breakpoint locations that came from the
+        Inspector frontend to the exact location we would actually pause.
+        We gather this information from the parser so that we can eagerly
+        get this information without requiring the code to have executed (the
+        real op_debugs are generated during bytecode generation when code
+        is actually evaluated).
+
+        If an input location was on a line with whitespace or a comment, the
+        resolved breakpoint location would be before the next statement that
+        will be executed. That may be the next line, or even later. We also
+        update our policy when setting breakpoints on and around function
+        statements to better match user expectations.
+
+        For example, when resolving breakpoints in:
+
+            1.  // Comment
+            2.  before;
+            3.
+            4.  function foo() {
+            5.      inside;
+            6.  }
+            7.
+            8.  after;
+
+        A breakpoint on line 1, a comment, resolves to line 2 the next
+        statement that will execute.
+
+        A breakpoint on line 3 or 7, empty lines, resolves to line 8 the next
+        statement that will execute. This skips past the definition of foo,
+        just like stepping would have done. The creation of foo would have
+        been hoisted, which would have happened before execution of the
+        other statements.
+
+        A breakpoint on line 4, a function signature, resolves to line 5,
+        inside the function. Users would expect to pause inside of a function
+        when setting a breakpoint on that function's name or opening brace.
+
+        A breakpoint on line 6, a function's closing brace, resolves to
+        line 6. The debugger will pause whenever execution leaves foo due to
+        a return and not an exception. This matches stepping behavior. An
+        explicit or implicit return (the implicit return undefined) will
+        pause on the closing brace as we leave the function, giving users
+        an opportunity to inspect the final state before leaving.
+
+        --
+
+        At this point, op_debug's are still emitted at custom locations during
+        bytecode generation of other statements / expressions. In order to
+        ensure the generated op_debugs correspond to locations the Parser
+        determined were breakpoint locations, the Parser sets a "needs debug
+        hook" flag on the nodes it will use for breakpoint locations, and
+        we assert during bytecode generation that op_debugs are only emitted
+        for nodes that were marked as needing debug hooks.
+
+        This still leaves open the possibility that the Parser will mark
+        some nodes that get missed during bytecode generation, so we might
+        fail to emit some op_debugs. The next step will be eliminating the
+        custom emitDebugHooks spread across StatementNode and ExpressionNode
+        subclasses, and instead always generating op_debugs whenever we
+        emit a flagged node.
+
+        --
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        New DebuggerParseData files.
+
+        * API/JSScriptRef.cpp:
+        (OpaqueJSScript::OpaqueJSScript):
+        * jsc.cpp:
+        (functionCheckModuleSyntax):
+        * parser/SourceCode.h:
+        (JSC::makeSource):
+        * parser/SourceProvider.cpp:
+        (JSC::SourceProvider::SourceProvider):
+        * parser/SourceProvider.h:
+        (JSC::SourceProvider::sourceType):
+        (JSC::StringSourceProvider::create):
+        (JSC::StringSourceProvider::StringSourceProvider):
+        (JSC::WebAssemblySourceProvider::WebAssemblySourceProvider):
+        (JSC::SourceProvider::startPosition): Deleted.
+        Add a new type on SourceProvider to distinguish if its script was
+        intended to be a Script, Module, or WebAssembly. This information
+        will be needed to know how to best parse this file when the
+        debugger decides to lazily parse.
+
+        * runtime/Executable.cpp:
+        (JSC::EvalExecutable::EvalExecutable):
+        (JSC::ProgramExecutable::ProgramExecutable):
+        (JSC::ModuleProgramExecutable::ModuleProgramExecutable):
+        (JSC::WebAssemblyExecutable::WebAssemblyExecutable):
+        * runtime/ModuleLoaderPrototype.cpp:
+        (JSC::moduleLoaderPrototypeParseModule):
+        ASSERT the SourceProvider type matches the executable type we are
+        creating for it.
+
+        * parser/ASTBuilder.h:
+        (JSC::ASTBuilder::breakpointLocation):
+        * parser/SyntaxChecker.h:
+        (JSC::SyntaxChecker::operatorStackPop):
+        When gathering breakpoint positions, get the position from the
+        current node. In the SyntaxChecker, return an invalid position.
+
+        * parser/Nodes.h:
+        (JSC::ExpressionNode::needsDebugHook):
+        (JSC::ExpressionNode::setNeedsDebugHook):
+        (JSC::StatementNode::needsDebugHook):
+        (JSC::StatementNode::setNeedsDebugHook):
+        When gathering breakpoint positions, mark the node as needing
+        a debug hook. For now we assert op_debugs generated must come
+        from these nodes. Later we should just generate op_debugs for
+        these nodes.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::Parser):
+        (JSC::Parser<LexerType>::parseStatementListItem):
+        (JSC::Parser<LexerType>::parseDoWhileStatement):
+        (JSC::Parser<LexerType>::parseWhileStatement):
+        (JSC::Parser<LexerType>::parseArrowFunctionSingleExpressionBodySourceElements):
+        (JSC::Parser<LexerType>::parseForStatement):
+        (JSC::Parser<LexerType>::parseWithStatement):
+        (JSC::Parser<LexerType>::parseSwitchStatement):
+        (JSC::Parser<LexerType>::parseStatement):
+        (JSC::Parser<LexerType>::parseFunctionBody):
+        (JSC::Parser<LexerType>::parseFunctionInfo):
+        (JSC::Parser<LexerType>::parseIfStatement):
+        (JSC::Parser<LexerType>::parseAssignmentExpression):
+        * parser/Parser.h:
+        (JSC::parse):
+        Add an optional DebuggerParseData struct to the Parser. When available
+        the Parser will gather debugger data, and parse all functions with the
+        ASTBuilder instead of SyntaxChecking inner functions.
+
+        * debugger/DebuggerParseData.cpp: Added.
+        (JSC::DebuggerPausePositions::breakpointLocationForLineColumn):
+        (JSC::DebuggerPausePositions::sort):
+        (JSC::gatherDebuggerParseData):
+        (JSC::gatherDebuggerParseDataForSource):
+        * debugger/DebuggerParseData.h: Copied from Source/JavaScriptCore/debugger/DebuggerPrimitives.h.
+        (JSC::DebuggerPausePositions::DebuggerPausePositions):
+        (JSC::DebuggerPausePositions::appendPause):
+        (JSC::DebuggerPausePositions::appendEntry):
+        (JSC::DebuggerPausePositions::appendLeave):
+        The DebuggerParseData struct currently only contains a list of pause positions.
+        Once populated it can resolve an input location to a pause position.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitCall):
+        (JSC::BytecodeGenerator::emitCallVarargs):
+        (JSC::BytecodeGenerator::emitDebugHook):
+        (JSC::BytecodeGenerator::emitEnumeration):
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::EmptyStatementNode::emitBytecode):
+        (JSC::DebuggerStatementNode::emitBytecode):
+        (JSC::ExprStatementNode::emitBytecode):
+        (JSC::DeclarationStatement::emitBytecode):
+        (JSC::IfElseNode::emitBytecode):
+        (JSC::DoWhileNode::emitBytecode):
+        (JSC::WhileNode::emitBytecode):
+        (JSC::ForNode::emitBytecode):
+        (JSC::ForInNode::emitBytecode):
+        (JSC::ContinueNode::emitBytecode):
+        (JSC::BreakNode::emitBytecode):
+        (JSC::ReturnNode::emitBytecode):
+        (JSC::WithNode::emitBytecode):
+        (JSC::SwitchNode::emitBytecode):
+        (JSC::ThrowNode::emitBytecode):
+        Emit op_debugs for the nodes themselves. Assert when we do that the
+        Parser had marked them as needing a debug hook.
+
+        * debugger/Breakpoint.h:
+        (JSC::Breakpoint::Breakpoint):
+        A breakpoint may be resolved or unresolved. Debugger::resolveBreakpoint
+        must be used to resolve the breakpoint. Most methods now require a
+        resolved breakpoint.
+
+        * debugger/Debugger.h:
+        * debugger/Debugger.cpp:
+        (JSC::Debugger::detach):
+        (JSC::Debugger::toggleBreakpoint):
+        (JSC::Debugger::debuggerParseData):
+        (JSC::Debugger::resolveBreakpoint):
+        (JSC::Debugger::setBreakpoint):
+        (JSC::Debugger::clearParsedData):
+        Provide a public method to resolve a breakpoint location in a script.
+        This will gather debugger parse data for the script if none is available.
+        Ensure clients have resolved a breakpoint before attempting to set it.
+        Currently we allow only a single breakpoint at a location. This may
+        need to change if multiple breakpoints resolve to the same location
+        but have different actions.
+
+        * inspector/ScriptDebugListener.h:
+        ScriptDebugServer::Script is effectively duplicating most of the data from
+        a SourceProvider. We should eliminate this and just use SourceProvider.
+
+        * inspector/ScriptDebugServer.cpp:
+        (Inspector::ScriptDebugServer::setBreakpointActions):
+        (Inspector::ScriptDebugServer::removeBreakpointActions):
+        (Inspector::ScriptDebugServer::getActionsForBreakpoint):
+        (Inspector::ScriptDebugServer::clearBreakpointActions):
+        (Inspector::ScriptDebugServer::evaluateBreakpointAction):
+        (Inspector::ScriptDebugServer::dispatchDidParseSource):
+        (Inspector::ScriptDebugServer::handleBreakpointHit):
+        (Inspector::ScriptDebugServer::setBreakpoint): Deleted.
+        (Inspector::ScriptDebugServer::removeBreakpoint): Deleted.
+        (Inspector::ScriptDebugServer::clearBreakpoints): Deleted.
+        * inspector/ScriptDebugServer.h:
+        Reduce ScriptDebugServer's involvement in breakpoints to just handling
+        breakpoint actions. Eventually we should eliminate it alltogether and
+        fold breakpoint logic into Debugger or DebugAgent.
+
+        * inspector/agents/InspectorDebuggerAgent.h:
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::buildDebuggerLocation):
+        (Inspector::parseLocation):
+        (Inspector::InspectorDebuggerAgent::setBreakpointByUrl):
+        (Inspector::InspectorDebuggerAgent::setBreakpoint):
+        (Inspector::InspectorDebuggerAgent::didSetBreakpoint):
+        (Inspector::InspectorDebuggerAgent::resolveBreakpoint):
+        (Inspector::InspectorDebuggerAgent::removeBreakpoint):
+        (Inspector::InspectorDebuggerAgent::continueToLocation):
+        (Inspector::InspectorDebuggerAgent::didParseSource):
+        (Inspector::InspectorDebuggerAgent::clearDebuggerBreakpointState):
+        The Inspector can set breakpoints in multiple ways.
+        Ensure that once we have the Script that we always
+        resolve the breakpoint location before setting the
+        breakpoint. The different paths are:
+        
+        - setBreakpoint(scriptId, location)
+          - Here we know the SourceProvider by its SourceID
+            - resolve and set
+        
+        - setBreakpointByURL(url, location)
+          - Search for existing Scripts that match the URL
+            - resolve in each and set
+          - When new Scripts are parsed that match the URL
+            - resolve and set
+            
+
+2016-09-30  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Stepping out of a function finishes the line that called it.
+        https://bugs.webkit.org/show_bug.cgi?id=155325
+        <rdar://problem/25094578>
+
+        Reviewed by Mark Lam.
+
+        Also addresses:
+        <https://webkit.org/b/161721> Web Inspector: Stepping all the way through program should not cause a pause on the next program that executes
+        <https://webkit.org/b/161716> Web Inspector: Stepping into a function / program should not require stepping to the first statement
+
+        This change introduces a new op_debug hook: WillExecuteExpression.
+        Currently this new hook is only used for pausing at function calls.
+        We may decide to add it to other places later where pausing with
+        finer granularity then statements (or lines) if useful.
+
+        This updates the location and behavior of some of the existing debug
+        hooks, to be more consistent and useful if the exact location of the
+        pause is displayed. For example, in control flow statements like
+        `if` and `while`, the pause location is the expression itself that
+        will be evaluated, not the location of the `if` or `while` keyword.
+        For example:
+
+            if (|condition)
+            while (|condition)
+
+        Finally, this change gets rid of some unnecessary / useless pause
+        locations such as on entering a function and on entering a program.
+        These pauses are not needed because if there is a statement, we
+        would pause before the statement and it is equivalent. We continue
+        to pause when leaving a function via stepping by uniformly jumping
+        to the closing brace of the function. This gives users a chance
+        to observe state before leaving the function.
+
+        * bytecode/CodeBlock.cpp:
+        (JSC::debugHookName):
+        * bytecode/UnlinkedCodeBlock.cpp:
+        (JSC::dumpLineColumnEntry):
+        Logging strings for the new debug hook.
+
+        * bytecompiler/BytecodeGenerator.h:
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitCallInTailPosition):
+        (JSC::BytecodeGenerator::emitCallEval):
+        (JSC::BytecodeGenerator::emitCallVarargsInTailPosition):
+        (JSC::BytecodeGenerator::emitConstructVarargs):
+        (JSC::BytecodeGenerator::emitCallForwardArgumentsInTailPosition):
+        (JSC::BytecodeGenerator::emitCallDefineProperty):
+        (JSC::BytecodeGenerator::emitConstruct):
+        (JSC::BytecodeGenerator::emitGetTemplateObject):
+        (JSC::BytecodeGenerator::emitIteratorNext):
+        (JSC::BytecodeGenerator::emitIteratorNextWithValue):
+        (JSC::BytecodeGenerator::emitIteratorClose):
+        (JSC::BytecodeGenerator::emitDelegateYield):
+        All emitCall variants now take an enum to decide whether or not to
+        emit the WillExecuteExpression debug hook.
+
+        (JSC::BytecodeGenerator::emitCall):
+        (JSC::BytecodeGenerator::emitCallVarargs):
+        In the two real implementations, actually decide to emit the debug
+        hook or not based on the parameter.
+
+        (JSC::BytecodeGenerator::emitEnumeration):
+        This is shared looping code used by for..of iteration of iterables.
+        When used by ForOfNode, we want to emit a pause location during
+        iteration.
+
+        (JSC::BytecodeGenerator::emitWillLeaveCallFrameDebugHook):
+        This is shared call frame leave code to emit a consistent pause
+        location when leaving a function.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::EvalFunctionCallNode::emitBytecode):
+        (JSC::FunctionCallValueNode::emitBytecode):
+        (JSC::FunctionCallResolveNode::emitBytecode):
+        (JSC::BytecodeIntrinsicNode::emit_intrinsic_tailCallForwardArguments):
+        (JSC::FunctionCallBracketNode::emitBytecode):
+        (JSC::FunctionCallDotNode::emitBytecode):
+        (JSC::CallFunctionCallDotNode::emitBytecode):
+        (JSC::ApplyFunctionCallDotNode::emitBytecode):
+        (JSC::TaggedTemplateNode::emitBytecode):
+        (JSC::ArrayPatternNode::bindValue):
+        All tail position calls are the function calls that we want to emit
+        debug hooks for. All non-tail call calls appear to be internal
+        implementation details, and these should not have the debug hook.
+
+        (JSC::IfElseNode::emitBytecode):
+        (JSC::WhileNode::emitBytecode):
+        (JSC::WithNode::emitBytecode):
+        (JSC::SwitchNode::emitBytecode):
+        Make the pause location consistent at the expression.
+
+        (JSC::DoWhileNode::emitBytecode):
+        Make the pause location consistent at the expression.
+        Remove the errant pause at the do's '}' when entering the do block.
+
+        (JSC::ForNode::emitBytecode):
+        (JSC::ForInNode::emitMultiLoopBytecode):
+        (JSC::ForOfNode::emitBytecode):
+        Make the pause location consistent at expressions.
+        Also allow stepping to the traditional for loop's
+        update expression, which was previously not possible.
+
+        (JSC::ReturnNode::emitBytecode):
+        (JSC::FunctionNode::emitBytecode):
+        Make the pause location when leaving a function consistently be the
+        function's closing brace. The two cases are stepping through a return
+        statement, or the implicit return undefined at the end of a function.
+
+        (JSC::LabelNode::emitBytecode):
+        (JSC::TryNode::emitBytecode):
+        Remove unnecessary pauses that add no value, as they contain a
+        statement and we will then pause at that statement.
+
+        * parser/Nodes.h:
+        (JSC::StatementNode::isFunctionNode):
+        (JSC::StatementNode::isForOfNode):
+        (JSC::EnumerationNode::lexpr):
+        (JSC::ForOfNode::isForOfNode):
+        New virtual methods to distinguish different nodes.
+
+        * debugger/Debugger.h:
+        Rename m_pauseAtNextStatement to m_pauseAtNextOpportunity.
+        This is the finest granularity of stepping, and it can be
+        pausing at a location that is not a statement.
+        Introduce state to properly handle step out and stepping
+        when there are multiple expressions in a statement.
+
+        * debugger/Debugger.cpp:
+        (JSC::Debugger::Debugger):
+        (JSC::Debugger::setPauseOnNextStatement):
+        (JSC::Debugger::breakProgram):
+        (JSC::Debugger::continueProgram):
+        (JSC::Debugger::stepIntoStatement):
+        (JSC::Debugger::exception):
+        (JSC::Debugger::didReachBreakpoint):
+        
+        Use new variable names, and clarify if we should attempt
+        to pause or not.
+
+        (JSC::Debugger::stepOutOfFunction):
+        Set a new state to indicate a step out action.
+
+        (JSC::Debugger::updateCallFrame):
+        (JSC::Debugger::updateCallFrameAndPauseIfNeeded): Deleted.
+        (JSC::Debugger::updateCallFrameInternal):
+        (JSC::Debugger::pauseIfNeeded):
+        Allow updateCallFrame to either attempt a pause or not.
+        
+        (JSC::Debugger::atStatement):
+        Attempt pause and reset the at first expression flag.
+
+        (JSC::Debugger::atExpression):
+        Attempt a pause when not stepping over. Also skip
+        the first expression pause, since that would be
+        equivalent to when we paused for the expression.
+
+        (JSC::Debugger::callEvent):
+        Do not pause when entering a function.
+
+        (JSC::Debugger::returnEvent):
+        Attempt pause when leaving a function.
+        If the user did a step-over and is leaving the
+        function, then behave like step-out.
+        
+        (JSC::Debugger::unwindEvent):
+        Behave like return except don't change any
+        pausing states. If we needed to pause the
+        Debugger::exception will have handled it.
+
+        (JSC::Debugger::willExecuteProgram):
+        Do not pause when entering a program.
+
+        (JSC::Debugger::didExecuteProgram):
+        Attempt pause when leaving a program that has a caller.
+        This can be useful for exiting an eval(...) program.
+        Otherwise treat this like return, and step-over out
+        of the program should behave like step-out. We use
+        pause at next opportunity because there may be extra
+        callframes we do not know about.
+        When the program doesn't have a parent, clear all
+        our state so we don't errantly pause on the next
+        JavaScript microtask that gets executed.
+        
+        (JSC::Debugger::clearNextPauseState):
+        Helper to clear all of the pause states now that
+        it happens in a couple places.
+
+        * interpreter/Interpreter.cpp:
+        (JSC::notifyDebuggerOfUnwinding):
+        Treat unwinding slightly differently from returning.
+        We will not want to pause when unwinding callframes.
+
+        (JSC::Interpreter::debug):
+        * interpreter/Interpreter.h:
+        New debug hook.
+
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::InspectorDebuggerAgent::stepInto):
+        (Inspector::InspectorDebuggerAgent::didPause):
+        * inspector/agents/InspectorDebuggerAgent.h:
+        Remove unnecessary stepInto code notification for listeners.
+        The listeners are never notified if the debugger resumes,
+        so whatever state they were setting by this is going to
+        get out of date.
+
+2016-09-30  Saam Barati  <sbarati@apple.com>
+
+        Arrow functions should not allow duplicate parameter names
+        https://bugs.webkit.org/show_bug.cgi?id=162741
+
+        Reviewed by Filip Pizlo.
+
+        This patch makes parsing arrow function parameters throw
+        a syntax error when there are duplicate parameter names.
+        It also starts to make some syntax errors for arrow functions
+        better, however, this is trickier than it seems since we need
+        to choose between two parsing productions when we decide to
+        throw a syntax error. I'm going to work on this problem
+        in another patch specifically devoted to making the error
+        messages better for parsing arrow functions:
+        https://bugs.webkit.org/show_bug.cgi?id=162794
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::isArrowFunctionParameters):
+        (JSC::Parser<LexerType>::parseFormalParameters):
+        (JSC::Parser<LexerType>::parseFunctionParameters):
+        (JSC::Parser<LexerType>::parseAssignmentExpression):
+        * parser/Parser.h:
+
+2016-09-30  Mark Lam  <mark.lam@apple.com>
+
+        Use topVMEntryFrame to determine whether to skip the re-throw of a simulated throw.
+        https://bugs.webkit.org/show_bug.cgi?id=162793
+
+        Reviewed by Saam Barati.
+
+        Change the ThrowScope destructor to use topVMEntryFrame (instead of topCallFrame)
+        in the determination of whether to skip the re-throw of a simulated throw.  This
+        is needed because the topCallFrame is not updated in operationConstructArityCheck()
+        (and does not need to be), whereas topVMEntryFrame is always updated properly.
+        Hence, we should just switch to using the more reliable topVMEntryFrame instead.
+
+        This issue was discovered by existing JSC tests when exception check validation
+        is enabled.
+
+        * runtime/ThrowScope.cpp:
+        (JSC::ThrowScope::~ThrowScope):
+
+2016-09-30  Filip Pizlo  <fpizlo@apple.com>
+
+        64-bit LLInt needs to have a concurrency-aware barrier
+        https://bugs.webkit.org/show_bug.cgi?id=162790
+
+        Reviewed by Mark Lam.
+
+        In a concurrent GC the barrier definitely has to be after the store, not before it.
+
+        * llint/LowLevelInterpreter64.asm:
+
+2016-09-29  Filip Pizlo  <fpizlo@apple.com>
+
+        Air should have a way of expressing additional instruction flags
+        https://bugs.webkit.org/show_bug.cgi?id=162699
+
+        Reviewed by Mark Lam.
+        
+        This follows a similar change in B3 (r206595) and replaces Air::Opcode with Air::Kind,
+        which holds onto the opcode and some additional flags. Because Air is an orthogonal ISA
+        (the opcode tells you what the operation does but each operand is allowed to also contain
+        effectively instructions for what to do to read or write that operand), the flags are
+        meant to be orthogonal to opcode. This allows us to say things like Add32<Trap>, which
+        makes sense if any of the operands to the Add32 are addresses.
+        
+        To demonstrate the flags facility this partly adds a trap flag to Air. B3 doesn't use it
+        yet, but I made sure that Air respects it. Basically that means blocking DCE when the flag
+        is set, by making it imply hasNonArgNonControlEffects.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * b3/B3CheckSpecial.cpp:
+        (JSC::B3::Air::numB3Args):
+        (JSC::B3::CheckSpecial::Key::Key):
+        (JSC::B3::CheckSpecial::Key::dump):
+        (JSC::B3::CheckSpecial::CheckSpecial):
+        (JSC::B3::CheckSpecial::hiddenBranch):
+        (JSC::B3::CheckSpecial::forEachArg):
+        (JSC::B3::CheckSpecial::generate):
+        (JSC::B3::CheckSpecial::dumpImpl):
+        (JSC::B3::CheckSpecial::deepDumpImpl):
+        * b3/B3CheckSpecial.h:
+        (JSC::B3::CheckSpecial::Key::Key):
+        (JSC::B3::CheckSpecial::Key::operator==):
+        (JSC::B3::CheckSpecial::Key::kind):
+        (JSC::B3::CheckSpecial::Key::hash):
+        (JSC::B3::CheckSpecial::Key::opcode): Deleted.
+        * b3/B3Kind.cpp:
+        (JSC::B3::Kind::dump):
+        * b3/air/AirDumpAsJS.cpp:
+        (JSC::B3::Air::dumpAsJS):
+        * b3/air/AirFixObviousSpills.cpp:
+        * b3/air/AirFixPartialRegisterStalls.cpp:
+        * b3/air/AirGenerate.cpp:
+        (JSC::B3::Air::generate):
+        * b3/air/AirHandleCalleeSaves.cpp:
+        (JSC::B3::Air::handleCalleeSaves):
+        * b3/air/AirInst.cpp:
+        (JSC::B3::Air::Inst::jsHash):
+        (JSC::B3::Air::Inst::dump):
+        * b3/air/AirInst.h:
+        (JSC::B3::Air::Inst::Inst):
+        (JSC::B3::Air::Inst::kind):
+        (JSC::B3::Air::Inst::operator bool):
+        (JSC::B3::Air::Inst::opcode): Deleted.
+        * b3/air/AirInstInlines.h:
+        (JSC::B3::Air::Inst::extraClobberedRegs):
+        (JSC::B3::Air::Inst::extraEarlyClobberedRegs):
+        (JSC::B3::Air::Inst::forEachDefWithExtraClobberedRegs):
+        (JSC::B3::Air::Inst::reportUsedRegisters):
+        (JSC::B3::Air::Inst::shouldTryAliasingDef):
+        * b3/air/AirIteratedRegisterCoalescing.cpp:
+        * b3/air/AirKind.cpp: Added.
+        (JSC::B3::Air::Kind::dump):
+        * b3/air/AirKind.h: Added.
+        (JSC::B3::Air::Kind::Kind):
+        (JSC::B3::Air::Kind::operator==):
+        (JSC::B3::Air::Kind::operator!=):
+        (JSC::B3::Air::Kind::hash):
+        (JSC::B3::Air::Kind::operator bool):
+        * b3/air/AirLowerAfterRegAlloc.cpp:
+        (JSC::B3::Air::lowerAfterRegAlloc):
+        * b3/air/AirLowerEntrySwitch.cpp:
+        (JSC::B3::Air::lowerEntrySwitch):
+        * b3/air/AirLowerMacros.cpp:
+        (JSC::B3::Air::lowerMacros):
+        * b3/air/AirOptimizeBlockOrder.cpp:
+        (JSC::B3::Air::optimizeBlockOrder):
+        * b3/air/AirReportUsedRegisters.cpp:
+        (JSC::B3::Air::reportUsedRegisters):
+        * b3/air/AirSimplifyCFG.cpp:
+        (JSC::B3::Air::simplifyCFG):
+        * b3/air/AirTmpWidth.cpp:
+        (JSC::B3::Air::TmpWidth::recompute):
+        * b3/air/AirUseCounts.h:
+        (JSC::B3::Air::UseCounts::UseCounts):
+        * b3/air/AirValidate.cpp:
+        * b3/air/opcode_generator.rb:
+        * b3/testb3.cpp:
+        (JSC::B3::testTernarySubInstructionSelection):
+        (JSC::B3::testBranchBitAndImmFusion):
+
+2016-09-29  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION(r206555): It made Dromaeo/jslib-style-jquery.html crash
+        https://bugs.webkit.org/show_bug.cgi?id=162721
+
+        Reviewed by Keith Miller.
+        
+        The put_by_id-in-put_by_val optimization had the write barrier in the wrong place and
+        incorrectly filtered on value instead of base.
+        
+        No reduced test case. You really need to run Dromaeo/jslib to catch it. I love Dromaeo's
+        ability to catch GC bugs.
+
+        * jit/JITPropertyAccess.cpp:
+        (JSC::JIT::emitPutByValWithCachedId):
+
+2016-09-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Arrow functions do not infer name from computed property but normal functions do
+        https://bugs.webkit.org/show_bug.cgi?id=162720
+
+        Reviewed by Saam Barati.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitSetFunctionNameIfNeeded):
+        Set function name on arrow functions as well.
+
+2016-09-29  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: class and function names should be inferred in assignment
+        https://bugs.webkit.org/show_bug.cgi?id=146262
+
+        Reviewed by Saam Barati.
+
+        * parser/ASTBuilder.h:
+        (JSC::ASTBuilder::appendParameter):
+        (JSC::ASTBuilder::appendArrayPatternEntry):
+        (JSC::ASTBuilder::appendObjectPatternEntry):
+        (JSC::ASTBuilder::tryInferFunctionNameInPattern):
+        Assign names to default value functions and classes in destructuring.
+
+        (JSC::ASTBuilder::createAssignResolve):
+        (JSC::ASTBuilder::createProperty):
+        (JSC::ASTBuilder::makeAssignNode):
+        Assign names to both normal and arrow functions.
+
+        * parser/Nodes.h:
+        (JSC::ExpressionNode::isBaseFuncExprNode):
+        Both functions and arrow functions infer name, they both extend
+        this base so give the base an is check.
+
+2016-09-28  Filip Pizlo  <fpizlo@apple.com>
+
+        B3 opcodes should leave room for flags
+        https://bugs.webkit.org/show_bug.cgi?id=162692
+
+        Reviewed by Keith Miller.
+
+        It used to be that the main thing that determined what a Value did was the opcode. The
+        Opcode was how you knew what subclass of Value you had. The opcode told you what the Value
+        actually did. This change replaces Opcode with Kind, which is a tuple of opcode and other
+        stuff.
+        
+        Opcodes are great, and that's how most compilers work. But opcodes are one-dimensional. Here
+        is how this manifests. Say you have an opcode, like Load. You will be happy if your IR has
+        one Load opcode. But then, you might add Load8S/Load8Z/Load16S/Load16Z opcodes, as we have
+        done in B3. B3 has one dimension of Load opcodes, which determines something like the C type
+        of the load. But in the very near future, we will want to add two more dimensions to Loads:
+        
+        - A flag to say if the load traps.
+        - A flag to say if the load has acquire semantics.
+        
+        Mapping these three dimensions (type, trap, acquire) onto the one-dimensional Opcode space
+        would create mayham: Load8S, Load8STrap, Load8SAcquire, Load8STrapAcquire, Load8Z,
+        Load8ZTrap, etc.
+        
+        This happens in other parts of the IR. For example, we have a dimension of arithmetic
+        operations: add, sub, mul, div, mod, etc. Then we have the chill flag. But since opcodes
+        are one-dimensional, that means having ChillDiv and ChillMod, and tons of places in the
+        compiler that case on both Div and ChillDiv, or case on both Mod and ChillMod, since they
+        are only interested in the kind of arithmetic being done and not the chillness.
+        
+        Though the examples all involve bits (chill or not, trapping or not, etc), I can imagine
+        other properties that behave more like small enums, like if we fill out more memory ordering
+        modes other than just "acquire? yes/no". There will eventually have to be something like a
+        std::memory_order associated with memory accesses.
+        
+        One approach to this problem is to have a Value subclass that contains fields with the meta
+        data. I don't like this for two reasons:
+        
+        - In bug 162688, I want to make trapping memory accesses have stackmaps. This means that a
+          trapping memory access would have a different Value subclass than a non-trapping memory
+          access. So, this meta-data needs to channel into ValueType::accepts(). Currently that
+          takes Opcode and nothing else.
+        
+        - Compiler IRs are all about making common tasks easy. If it becomes commonplace for opcodes
+          to require a custom Value subclass just for a bit then that's not very easy.
+        
+        This change addresses this problem by making the compiler pass around Kinds rather than
+        Opcodes. A Kind contains an Opcode as well as any number of opcode-specific bits. This
+        change demonstrates how Kind should be used by converting chillness to it. Kind has
+        hasIsChill(), isChill(), and setIsChill() methods. hasIsChill() is true only for Div and
+        Mod. setIsChill() asserts if !hasIsChill(). If you want to create a Chill Div, you say
+        chill(Div). IR dumps will print it like this:
+
+            Int32 @38 = Div<Chill>(@36, @37, DFG:@24, ControlDependent)
+        
+        Where "Div<Chill>" is how a Kind that hasExtraBits() dumps itself. If a Kind does not
+        hasExtraBits() (the normal case) then it dumps like a normal Opcode (without the "<>").
+        
+        I replaced many uses of Opcode with Kind. New code has to be mindful that Opcode may not be
+        the right way to summarize what a value does, and so in many cases it's better to carry
+        around a Kind instead - especially if you will use it to stamp out new Values. Opcode is no
+        longer sufficient to perform a dynamic Value cast, since that code now uses Kind. ValueKey
+        now wants a Kind instead of an Opcode. All Value constructors now take Kind instead of
+        Opcode. But most opcodes don't get any extra Kind bits, and so the code that operates on
+        those opcodes is largely unchanged.
+        
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * b3/B3ArgumentRegValue.h:
+        * b3/B3CCallValue.h:
+        * b3/B3CheckValue.cpp:
+        (JSC::B3::CheckValue::convertToAdd):
+        (JSC::B3::CheckValue::CheckValue):
+        * b3/B3CheckValue.h:
+        (JSC::B3::CheckValue::accepts):
+        * b3/B3Const32Value.h:
+        * b3/B3Const64Value.h:
+        * b3/B3ConstDoubleValue.h:
+        * b3/B3ConstFloatValue.h:
+        * b3/B3FenceValue.h:
+        * b3/B3Kind.cpp: Added.
+        (JSC::B3::Kind::dump):
+        * b3/B3Kind.h: Added.
+        (JSC::B3::Kind::Kind):
+        (JSC::B3::Kind::opcode):
+        (JSC::B3::Kind::setOpcode):
+        (JSC::B3::Kind::hasExtraBits):
+        (JSC::B3::Kind::hasIsChill):
+        (JSC::B3::Kind::isChill):
+        (JSC::B3::Kind::setIsChill):
+        (JSC::B3::Kind::operator==):
+        (JSC::B3::Kind::operator!=):
+        (JSC::B3::Kind::hash):
+        (JSC::B3::Kind::isHashTableDeletedValue):
+        (JSC::B3::chill):
+        (JSC::B3::KindHash::hash):
+        (JSC::B3::KindHash::equal):
+        * b3/B3LowerMacros.cpp:
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::lower):
+        * b3/B3MemoryValue.h:
+        * b3/B3Opcode.cpp:
+        (WTF::printInternal):
+        * b3/B3Opcode.h:
+        * b3/B3PatchpointValue.h:
+        (JSC::B3::PatchpointValue::accepts):
+        * b3/B3ReduceStrength.cpp:
+        * b3/B3SlotBaseValue.h:
+        * b3/B3StackmapValue.cpp:
+        (JSC::B3::StackmapValue::StackmapValue):
+        * b3/B3StackmapValue.h:
+        * b3/B3SwitchValue.h:
+        (JSC::B3::SwitchValue::accepts):
+        * b3/B3UpsilonValue.h:
+        * b3/B3Validate.cpp:
+        * b3/B3Value.cpp:
+        (JSC::B3::Value::dump):
+        (JSC::B3::Value::deepDump):
+        (JSC::B3::Value::invertedCompare):
+        (JSC::B3::Value::effects):
+        (JSC::B3::Value::key):
+        (JSC::B3::Value::typeFor):
+        (JSC::B3::Value::badKind):
+        (JSC::B3::Value::badOpcode): Deleted.
+        * b3/B3Value.h:
+        * b3/B3ValueInlines.h:
+        (JSC::B3::Value::as):
+        * b3/B3ValueKey.cpp:
+        (JSC::B3::ValueKey::dump):
+        (JSC::B3::ValueKey::materialize):
+        * b3/B3ValueKey.h:
+        (JSC::B3::ValueKey::ValueKey):
+        (JSC::B3::ValueKey::kind):
+        (JSC::B3::ValueKey::opcode):
+        (JSC::B3::ValueKey::operator==):
+        (JSC::B3::ValueKey::hash):
+        * b3/B3ValueKeyInlines.h:
+        (JSC::B3::ValueKey::ValueKey):
+        * b3/B3VariableValue.cpp:
+        (JSC::B3::VariableValue::VariableValue):
+        * b3/B3VariableValue.h:
+        * b3/testb3.cpp:
+        (JSC::B3::testChillDiv):
+        (JSC::B3::testChillDivTwice):
+        (JSC::B3::testChillDiv64):
+        (JSC::B3::testChillModArg):
+        (JSC::B3::testChillModArgs):
+        (JSC::B3::testChillModImms):
+        (JSC::B3::testChillModArg32):
+        (JSC::B3::testChillModArgs32):
+        (JSC::B3::testChillModImms32):
+        (JSC::B3::testSwitchChillDiv):
+        (JSC::B3::testEntrySwitchWithCommonPaths):
+        (JSC::B3::testEntrySwitchWithCommonPathsAndNonTrivialEntrypoint):
+        * ftl/FTLOutput.cpp:
+        (JSC::FTL::Output::chillDiv):
+        (JSC::FTL::Output::chillMod):
+
+2016-09-29  Saam Barati  <sbarati@apple.com>
+
+        We don't properly propagate non-simple-parameter-list when parsing a setter
+        https://bugs.webkit.org/show_bug.cgi?id=160483
+
+        Reviewed by Joseph Pecoraro.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseFunctionParameters):
+
 2016-09-28  Saam Barati  <sbarati@apple.com>
 
         stringProtoFuncRepeatCharacter will return `null` when it should not

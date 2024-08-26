@@ -27,6 +27,7 @@
 
 #include "BuiltinNames.h"
 #include "Error.h"
+#include "Interpreter.h"
 #include "JITCode.h"
 #include "ParserArena.h"
 #include "ParserTokens.h"
@@ -174,6 +175,7 @@ namespace JSC {
         virtual bool isBracketAccessorNode() const { return false; }
         virtual bool isDotAccessorNode() const { return false; }
         virtual bool isDestructuringNode() const { return false; }
+        virtual bool isBaseFuncExprNode() const { return false; }
         virtual bool isFuncExprNode() const { return false; }
         virtual bool isArrowFuncExprNode() const { return false; }
         virtual bool isClassExprNode() const { return false; }
@@ -193,8 +195,12 @@ namespace JSC {
 
         ResultType resultDescriptor() const { return m_resultType; }
 
+        bool needsDebugHook() { return m_needsDebugHook; }
+        void setNeedsDebugHook() { m_needsDebugHook = true; }
+
     private:
         ResultType m_resultType;
+        bool m_needsDebugHook { false };
     };
 
     class StatementNode : public Node {
@@ -211,17 +217,24 @@ namespace JSC {
         void setNext(StatementNode* next) { m_next = next; }
 
         virtual bool isEmptyStatement() const { return false; }
+        virtual bool isFunctionNode() const { return false; }
         virtual bool isReturnNode() const { return false; }
         virtual bool isExprStatement() const { return false; }
         virtual bool isBreak() const { return false; }
         virtual bool isContinue() const { return false; }
+        virtual bool isLabel() const { return false; }
         virtual bool isBlock() const { return false; }
         virtual bool isFuncDeclNode() const { return false; }
         virtual bool isModuleDeclarationNode() const { return false; }
+        virtual bool isForOfNode() const { return false; }
+
+        bool needsDebugHook() { return m_needsDebugHook; }
+        void setNeedsDebugHook() { m_needsDebugHook = true; }
 
     protected:
         StatementNode* m_next;
         int m_lastLine;
+        bool m_needsDebugHook { false };
     };
 
     class VariableEnvironmentNode : public ParserArenaDeletable {
@@ -1463,7 +1476,9 @@ namespace JSC {
         using ParserArenaDeletable::operator new;
 
         EnumerationNode(const JSTokenLocation&, ExpressionNode*, ExpressionNode*, StatementNode*, VariableEnvironment&);
-        
+
+        ExpressionNode* expr() const { return m_expr; }
+
     protected:
         ExpressionNode* m_lexpr;
         ExpressionNode* m_expr;
@@ -1484,7 +1499,8 @@ namespace JSC {
     class ForOfNode : public EnumerationNode {
     public:
         ForOfNode(const JSTokenLocation&, ExpressionNode*, ExpressionNode*, StatementNode*, VariableEnvironment&);
-        
+        bool isForOfNode() const override { return true; }
+
     private:
         void emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
     };
@@ -1543,6 +1559,8 @@ namespace JSC {
     class LabelNode : public StatementNode, public ThrowableExpressionData {
     public:
         LabelNode(const JSTokenLocation&, const Identifier& name, StatementNode*);
+
+        bool isLabel() const override { return true; }
 
     private:
         void emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
@@ -1936,6 +1954,8 @@ namespace JSC {
 
         void emitBytecode(BytecodeGenerator&, RegisterID* = 0) override;
 
+        bool isFunctionNode() const override { return true; }
+
         void finishParsing(const Identifier&, FunctionMode);
         
         const Identifier& ident() { return m_ident; }
@@ -1958,6 +1978,8 @@ namespace JSC {
     class BaseFuncExprNode : public ExpressionNode {
     public:
         FunctionMetadataNode* metadata() { return m_metadata; }
+
+        bool isBaseFuncExprNode() const override { return true; }
 
     protected:
         BaseFuncExprNode(const JSTokenLocation&, const Identifier&, FunctionMetadataNode*, const SourceCode&, FunctionMode);

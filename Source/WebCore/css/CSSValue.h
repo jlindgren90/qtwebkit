@@ -84,6 +84,7 @@ public:
     bool isVariableValue() const { return m_classType == VariableClass; }
     bool isFunctionValue() const { return m_classType == FunctionClass; }
     bool isFontFeatureValue() const { return m_classType == FontFeatureClass; }
+    bool isFontVariationValue() const { return m_classType == FontVariationClass; }
     bool isFontFaceSrcValue() const { return m_classType == FontFaceSrcClass; }
     bool isFontValue() const { return m_classType == FontClass; }
     bool isImageGeneratorValue() const { return m_classType >= CanvasClass && m_classType <= RadialGradientClass; }
@@ -138,8 +139,6 @@ public:
 
     RefPtr<CSSValue> cloneForCSSOM() const;
 
-    void addSubresourceStyleURLs(ListHashSet<URL>&, const StyleSheetContents*) const;
-
     bool traverseSubresources(const std::function<bool (const CachedResource&)>& handler) const;
 
     bool equals(const CSSValue&) const;
@@ -172,6 +171,7 @@ protected:
         AspectRatioClass,
         BorderImageSliceClass,
         FontFeatureClass,
+        FontVariationClass,
         FontClass,
         FontFaceSrcClass,
         FunctionClass,
