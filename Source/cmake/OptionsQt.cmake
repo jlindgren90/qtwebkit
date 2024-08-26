@@ -294,8 +294,6 @@ option(USE_STATIC_RUNTIME "Use static runtime (MSVC only)" OFF)
 # Private options specific to the Qt port. Changing these options is
 # completely unsupported. They are intended for use only by WebKit developers.
 WEBKIT_OPTION_DEFINE(ENABLE_TOUCH_ADJUSTMENT "Whether to use touch adjustment" PRIVATE ON)
-WEBKIT_OPTION_DEFINE(USE_LIBJPEG "Support JPEG format directly. If it is disabled, QImageReader will be used with possible degradation of user experience" PUBLIC ON)
-
 
 # Public options shared with other WebKit ports. There must be strong reason
 # to support changing the value of the option.

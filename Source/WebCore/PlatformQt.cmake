@@ -2,12 +2,6 @@ include(platform/ImageDecoders.cmake)
 include(platform/Linux.cmake)
 include(platform/TextureMapper.cmake)
 
-if (NOT USE_LIBJPEG)
-    list(REMOVE_ITEM WebCore_SOURCES
-        platform/image-decoders/jpeg/JPEGImageDecoder.cpp
-    )
-endif ()
-
 if (JPEG_DEFINITIONS)
     add_definitions(${JPEG_DEFINITIONS})
 endif ()
@@ -102,7 +96,6 @@ list(APPEND WebCore_SOURCES
     platform/graphics/qt/IconQt.cpp
     platform/graphics/qt/ImageBufferDataQt.cpp
     platform/graphics/qt/ImageBufferQt.cpp
-    platform/graphics/qt/ImageDecoderQt.cpp
     platform/graphics/qt/ImageQt.cpp
     platform/graphics/qt/IntPointQt.cpp
     platform/graphics/qt/IntRectQt.cpp

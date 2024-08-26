@@ -26,12 +26,7 @@
 #include "BMPImageDecoder.h"
 #include "GIFImageDecoder.h"
 #include "ICOImageDecoder.h"
-#if PLATFORM(QT)
-#include "ImageDecoderQt.h"
-#endif
-#if !PLATFORM(QT) || USE(LIBJPEG)
 #include "JPEGImageDecoder.h"
-#endif
 #include "PNGImageDecoder.h"
 #include "SharedBuffer.h"
 #if USE(WEBP)
@@ -118,10 +113,8 @@ std::unique_ptr<ImageDecoder> ImageDecoder::create(const SharedBuffer& data, Ima
     if (matchesICOSignature(contents) || matchesCURSignature(contents))
         return std::unique_ptr<ImageDecoder> { std::make_unique<ICOImageDecoder>(alphaOption, gammaAndColorProfileOption) };
 
-#if !PLATFORM(QT) || USE(LIBJPEG)
     if (matchesJPEGSignature(contents))
         return std::unique_ptr<ImageDecoder> { std::make_unique<JPEGImageDecoder>(alphaOption, gammaAndColorProfileOption) };
-#endif
 
 #if USE(WEBP)
     if (matchesWebPSignature(contents))
@@ -131,9 +124,6 @@ std::unique_ptr<ImageDecoder> ImageDecoder::create(const SharedBuffer& data, Ima
     if (matchesBMPSignature(contents))
         return std::unique_ptr<ImageDecoder> { std::make_unique<BMPImageDecoder>(alphaOption, gammaAndColorProfileOption) };
 
-#if PLATFORM(QT)
-    return std::unique_ptr<ImageDecoder> { std::make_unique<ImageDecoderQt>(alphaOption, gammaAndColorProfileOption) };
-#endif
     return nullptr;
 }
 
