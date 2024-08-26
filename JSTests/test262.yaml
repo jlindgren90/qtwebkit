@@ -54148,7 +54148,7 @@
 - path: test262/test/language/expressions/arrow-function/syntax/arrowparameters-bindingidentifier-lineterminator-concisebody-functionbody.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/arrow-function/syntax/arrowparameters-bindingidentifier-yield.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/arrow-function/syntax/arrowparameters-cover-concisebody-assignmentexpression.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/arrow-function/syntax/arrowparameters-cover-concisebody-assignmentexpression.js
@@ -66646,7 +66646,7 @@
 - path: test262/test/language/expressions/object/method-definition/params-dflt-gen-meth-args-unmapped.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/params-dflt-gen-meth-duplicates.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/params-dflt-gen-meth-duplicates.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/params-dflt-gen-meth-ref-arguments.js
@@ -66686,7 +66686,7 @@
 - path: test262/test/language/expressions/object/method-definition/params-dflt-meth-args-unmapped.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/params-dflt-meth-duplicates.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/params-dflt-meth-duplicates.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/params-dflt-meth-ref-arguments.js
@@ -72766,7 +72766,7 @@
 - path: test262/test/language/reserved-words/S7.6.1_A2.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], [:strict]
 - path: test262/test/language/reserved-words/await-module.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../harness/assert.js", "../../../harness/sta.js"], [:module]
 - path: test262/test/language/reserved-words/await-script.js
   cmd: runTest262 :normal, "NoException", ["../../../harness/assert.js", "../../../harness/sta.js"], []
 - path: test262/test/language/reserved-words/await-script.js

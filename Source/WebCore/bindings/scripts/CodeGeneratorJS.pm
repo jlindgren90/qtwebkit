@@ -2922,7 +2922,7 @@ sub GenerateImplementation
                 push(@implContent, "        $memoizedType memoizedResult = castedThis->wrapped().$implGetterFunctionName(" . join(", ", @arguments) . ");\n");
                 push(@implContent, "        cursor.appendInput<MemoizedDOMResult<$memoizedType>>(bindingName.get().string(), memoizedResult, $exceptionCode);\n");
                 push(@implContent, "        JSValue result = " . NativeToJSValue($attribute->signature, 0, $interface, "memoizedResult", "castedThis") . ";\n");
-                push(@implContent, "        setDOMException(state, ec);\n") if $getterExceptions;
+                push(@implContent, "        setDOMException(state, throwScope, ec);\n") if $getterExceptions;
                 push(@implContent, "        return JSValue::encode(result);\n");
                 push(@implContent, "    }\n");
                 push(@implContent, "\n");
@@ -2932,7 +2932,7 @@ sub GenerateImplementation
                 push(@implContent, "        if (input && input->convertTo<$memoizedType>(memoizedResult)) {\n");
                 # FIXME: the generated code should report an error if an input cannot be fetched or converted.
                 push(@implContent, "            JSValue result = " . NativeToJSValue($attribute->signature, 0, $interface, "memoizedResult", "castedThis") . ";\n");
-                push(@implContent, "            setDOMException(state, input->exceptionCode());\n") if $getterExceptions;
+                push(@implContent, "            setDOMException(state, throwScope, input->exceptionCode());\n") if $getterExceptions;
                 push(@implContent, "            return JSValue::encode(result);\n");
                 push(@implContent, "        }\n");
                 push(@implContent, "    }\n");
@@ -3025,7 +3025,7 @@ sub GenerateImplementation
                     push(@implContent, "    JSValue result = " . NativeToJSValue($attribute->signature, 0, $interface, "impl.$implGetterFunctionName(" . join(", ", @arguments) . ")", "castedThis") . ";\n");
                 }
 
-                push(@implContent, "    setDOMException(state, ec);\n");
+                push(@implContent, "    setDOMException(state, throwScope, ec);\n");
 
                 push(@implContent, "    return JSValue::encode(result);\n");
             }
@@ -3279,7 +3279,7 @@ sub GenerateImplementation
                 if ($svgPropertyOrListPropertyType) {
                     if ($svgPropertyType) {
                         push(@implContent, "    if (impl.isReadOnly()) {\n");
-                        push(@implContent, "        setDOMException(state, NO_MODIFICATION_ALLOWED_ERR);\n");
+                        push(@implContent, "        setDOMException(state, throwScope, NO_MODIFICATION_ALLOWED_ERR);\n");
                         push(@implContent, "        return false;\n");
                         push(@implContent, "    }\n");
                         $implIncludes{"ExceptionCode.h"} = 1;
@@ -3291,7 +3291,7 @@ sub GenerateImplementation
                         push(@implContent, "    podImpl.set$implSetterFunctionName(nativeValue");
                         push(@implContent, ", ec") if $setterRaisesException;
                         push(@implContent, ");\n");
-                        push(@implContent, "    setDOMException(state, ec);\n") if $setterRaisesException;
+                        push(@implContent, "    setDOMException(state, throwScope, ec);\n") if $setterRaisesException;
                     }
                     if ($svgPropertyType) {
                         if ($setterRaisesExceptionWithMessage) {
@@ -3330,7 +3330,7 @@ sub GenerateImplementation
 
                     push(@arguments, "ec") if $setterRaisesException;
                     push(@implContent, "    ${functionName}(" . join(", ", @arguments) . ");\n");
-                    push(@implContent, "    setDOMException(state, ec);\n") if $setterRaisesException;
+                    push(@implContent, "    setDOMException(state, throwScope, ec);\n") if $setterRaisesException;
                     push(@implContent, "    return true;\n");
                 }
             }
@@ -3490,7 +3490,7 @@ END
                     push(@implContent, "    auto& impl = castedThis->wrapped();\n");
                     if ($svgPropertyType) {
                         push(@implContent, "    if (impl.isReadOnly()) {\n");
-                        push(@implContent, "        setDOMException(state, NO_MODIFICATION_ALLOWED_ERR);\n");
+                        push(@implContent, "        setDOMException(state, throwScope, NO_MODIFICATION_ALLOWED_ERR);\n");
                         push(@implContent, "        return JSValue::encode(jsUndefined());\n");
                         push(@implContent, "    }\n");
                         push(@implContent, "    $svgPropertyType& podImpl = impl.propertyReference();\n");
@@ -3987,10 +3987,11 @@ sub GenerateParametersCheck
                 }
                 push(@$outputArray, "    }\n");
             } else {
+                die "CallbackInterface does not support Variadic parameter" if $parameter->isVariadic;
                 if ($codeGenerator->IsFunctionOnlyCallbackInterface($type)) {
-                    push(@$outputArray, "    if (UNLIKELY(!state->argument($argumentIndex).isFunction()))\n");
+                    push(@$outputArray, "    if (UNLIKELY(!state->uncheckedArgument($argumentIndex).isFunction()))\n");
                 } else {
-                    push(@$outputArray, "    if (UNLIKELY(!state->argument($argumentIndex).isObject()))\n");
+                    push(@$outputArray, "    if (UNLIKELY(!state->uncheckedArgument($argumentIndex).isObject()))\n");
                 }
                 push(@$outputArray, "        return throwArgumentMustBeFunctionError(*state, throwScope, $argumentIndex, \"$name\", \"$visibleInterfaceName\", $quotedFunctionName);\n");
                 if ($function->isStatic) {
@@ -4026,13 +4027,16 @@ sub GenerateParametersCheck
             my $defineOptionalValue = "auto optionalValue";
             my $indent = "";
 
+            die "Variadic parameter is already handled here" if $parameter->isVariadic;
+            my $argumentLookupMethod = $parameter->isOptional ? "argument" : "uncheckedArgument";
+
             if ($parameter->isOptional && !defined($parameter->default)) {
                 $nativeType = "Optional<$className>";
                 $optionalValue = $name;
                 $defineOptionalValue = $name;
             }
 
-            push(@$outputArray, "    auto ${name}Value = state->argument($argumentIndex);\n");
+            push(@$outputArray, "    auto ${name}Value = state->$argumentLookupMethod($argumentIndex);\n");
             push(@$outputArray, "    $nativeType $name;\n");
 
             if ($parameter->isOptional) {
@@ -4061,9 +4065,12 @@ sub GenerateParametersCheck
             my $isTearOff = $codeGenerator->IsSVGTypeNeedingTearOff($type) && $interfaceName !~ /List$/;
             my $shouldPassByReference = $isTearOff || ShouldPassWrapperByReference($parameter, $interface);
 
+            die "Variadic parameter is already handled here" if $parameter->isVariadic;
+            my $argumentLookupMethod = $parameter->isOptional ? "argument" : "uncheckedArgument";
+
             if (!$shouldPassByReference && $codeGenerator->IsWrapperType($type)) {
                 $implIncludes{"<runtime/Error.h>"} = 1;
-                my $checkedArgument = "state->argument($argumentIndex)";
+                my $checkedArgument = "state->$argumentLookupMethod($argumentIndex)";
                 my $uncheckedArgument = "state->uncheckedArgument($argumentIndex)";
                 my ($nativeValue, $mayThrowException) = JSValueToNative($interface, $parameter, $uncheckedArgument, $function->signature->extendedAttributes->{"Conditional"});
                 push(@$outputArray, "    $nativeType $name = nullptr;\n");
@@ -4098,15 +4105,15 @@ sub GenerateParametersCheck
                         $defaultValue = "JSValue::JSUndefined" if $defaultValue eq "undefined";
                     }
 
-                    $outer = "state->argument($argumentIndex).isUndefined() ? $defaultValue : ";
+                    $outer = "state->$argumentLookupMethod($argumentIndex).isUndefined() ? $defaultValue : ";
                     $inner = "state->uncheckedArgument($argumentIndex)";
                 } elsif ($parameter->isOptional && !defined($parameter->default)) {
                     # Use WTF::Optional<>() for optional parameters that are missing or undefined and that do not have a default value in the IDL.
-                    $outer = "state->argument($argumentIndex).isUndefined() ? Optional<$nativeType>() : ";
+                    $outer = "state->$argumentLookupMethod($argumentIndex).isUndefined() ? Optional<$nativeType>() : ";
                     $inner = "state->uncheckedArgument($argumentIndex)";
                 } else {
                     $outer = "";
-                    $inner = "state->argument($argumentIndex)";
+                    $inner = "state->$argumentLookupMethod($argumentIndex)";
                 }
 
                 my ($nativeValue, $mayThrowException) = JSValueToNative($interface, $parameter, $inner, $function->signature->extendedAttributes->{"Conditional"});
@@ -4426,15 +4433,15 @@ sub GenerateImplementationFunctionCall()
             push(@implContent, $indent . "InputCursor& cursor = state->lexicalGlobalObject()->inputCursor();\n");
             push(@implContent, $indent . "if (!cursor.isReplaying()) {\n");
             push(@implContent, $indent . "    $functionString;\n");
-            push(@implContent, $indent . "    setDOMException(state, ec);\n") if $raisesException;
+            push(@implContent, $indent . "    setDOMException(state, throwScope, ec);\n") if $raisesException;
             push(@implContent, $indent . "}\n");
             push(@implContent, "#else\n");
             push(@implContent, $indent . "$functionString;\n");
-            push(@implContent, $indent . "setDOMException(state, ec);\n") if $raisesException;
+            push(@implContent, $indent . "setDOMException(state, throwScope, ec);\n") if $raisesException;
             push(@implContent, "#endif\n");
         } else {
             push(@implContent, $indent . "$functionString;\n");
-            push(@implContent, $indent . "setDOMException(state, ec);\n") if $raisesException;
+            push(@implContent, $indent . "setDOMException(state, throwScope, ec);\n") if $raisesException;
         }
 
         if ($svgPropertyType and !$function->isStatic) {
@@ -4487,7 +4494,7 @@ sub GenerateImplementationFunctionCall()
         } else {
             push(@implContent, $indent . "JSValue result = " . NativeToJSValue($function->signature, 1, $interface, $functionString, $thisObject) . ";\n");
         }
-        push(@implContent, "\n" . $indent . "setDOMException(state, ec);\n") if $raisesException;
+        push(@implContent, "\n" . $indent . "setDOMException(state, throwScope, ec);\n") if $raisesException;
 
         if ($codeGenerator->ExtendedAttributeContains($function->signature->extendedAttributes->{"CallWith"}, "ScriptState")) {
             push(@implContent, $indent . "if (UNLIKELY(throwScope.exception()))\n");
@@ -5458,7 +5465,7 @@ END
 
             if ($interface->extendedAttributes->{"ConstructorRaisesException"}) {
                 push(@$outputArray, "    if (UNLIKELY(ec)) {\n");
-                push(@$outputArray, "        setDOMException(state, ec);\n");
+                push(@$outputArray, "        setDOMException(state, throwScope, ec);\n");
                 push(@$outputArray, "        return JSValue::encode(JSValue());\n");
                 push(@$outputArray, "    }\n");
             }

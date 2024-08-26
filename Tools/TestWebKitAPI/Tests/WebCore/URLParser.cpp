@@ -409,6 +409,9 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences("http://[0:0:f:0:0:f:0:0]",
         {"http", "", "", "[::f:0:0:f:0:0]", 0, "/", "", "", "http://[::f:0:0:f:0:0]/"},
         {"http", "", "", "[0:0:f:0:0:f:0:0]", 0, "/", "", "", "http://[0:0:f:0:0:f:0:0]/"});
+    checkURLDifferences("http://[a:0:0:0:b:c::d]",
+        {"http", "", "", "[a::b:c:0:d]", 0, "/", "", "", "http://[a::b:c:0:d]/"},
+        {"http", "", "", "[a:0:0:0:b:c::d]", 0, "/", "", "", "http://[a:0:0:0:b:c::d]/"});
     checkURLDifferences("http://example.com/path1/.%2e",
         {"http", "", "", "example.com", 0, "/", "", "", "http://example.com/"},
         {"http", "", "", "example.com", 0, "/path1/.%2e", "", "", "http://example.com/path1/.%2e"});
@@ -584,6 +587,9 @@ TEST_F(URLParserTest, ParserDifferences)
     checkURLDifferences(wideString(L"http://host?ß😍#ß😍"),
         {"http", "", "", "host", 0, "/", "%C3%9F%F0%9F%98%8D", wideString(L"ß😍"), wideString(L"http://host/?%C3%9F%F0%9F%98%8D#ß😍")},
         {"http", "", "", "host", 0, "/", "%C3%9F%F0%9F%98%8D", "%C3%9F%F0%9F%98%8D", "http://host/?%C3%9F%F0%9F%98%8D#%C3%9F%F0%9F%98%8D"});
+    checkURLDifferences(wideString(L"http://host/path#💩\t💩"),
+        {"http", "", "", "host", 0, "/path", "", wideString(L"💩💩"), wideString(L"http://host/path#💩💩")},
+        {"http", "", "", "host", 0, "/path", "", "%F0%9F%92%A9%F0%9F%92%A9", "http://host/path#%F0%9F%92%A9%F0%9F%92%A9"});
 }
 
 TEST_F(URLParserTest, DefaultPort)
@@ -687,6 +693,7 @@ TEST_F(URLParserTest, ParserFailures)
     shouldFail("    ");
     shouldFail("  \a  ");
     shouldFail("");
+    shouldFail(String());
     shouldFail("http://127.0.0.1:abc");
     shouldFail("http://host:abc");
     shouldFail("http://a:@", "about:blank");
@@ -758,8 +765,8 @@ TEST_F(URLParserTest, AdditionalTests)
 
 static void checkURL(const String& urlString, const TextEncoding& encoding, const ExpectedParts& parts)
 {
-    URLParser parser;
-    auto url = parser.parse(urlString, { }, encoding);
+    URLParser parser(urlString, { }, encoding);
+    auto url = parser.result();
     EXPECT_TRUE(eq(parts.protocol, url.protocol()));
     EXPECT_TRUE(eq(parts.user, url.user()));
     EXPECT_TRUE(eq(parts.password, url.pass()));

@@ -1,3 +1,133 @@
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] anchor.download attribute value is ignored by NETWORK_SESSION code path
+        https://bugs.webkit.org/show_bug.cgi?id=162531
+
+        Reviewed by Darin Adler.
+
+        Update decideDestinationWithSuggestedFilename() to return a actual file path
+        instead of nullptr. The NETWORK_SESSION code path cancels the download when
+        decideDestinationWithSuggestedFilename() returns an empty file path, unlike
+        the !NETWORK_SESSION code path that just continue downloading without
+        explicitely setting a destination path. This lead to different test results
+        for NETWORK_SESSION and !NETWORK_SESSION code paths. Returns a valid
+        destination path makes more sense and leads to consistent results.
+
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::decideDestinationWithSuggestedFilename):
+
+2016-09-23  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        [mac-sierra] 2 WKWebViewCandidateTests API test failures
+        https://bugs.webkit.org/show_bug.cgi?id=162470
+
+        Reviewed by Tim Horton.
+
+        VideoControlsManager, WKWebViewCandidateTests and CandidateTests should not be running on 10.12.0. Guard these
+        tests with an SDK check to prevent 10.12.0 bots from building them.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/VideoControlsManager.mm:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/WKWebViewCandidateTests.mm:
+        * TestWebKitAPI/Tests/mac/CandidateTests.mm:
+
+2016-09-23  Alex Christensen  <achristensen@webkit.org>
+
+        Refactor URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162516
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-09-23  Caitlin Potter  <caitp@igalia.com>
+
+        [JSC] Implement parsing of Async Functions
+        https://bugs.webkit.org/show_bug.cgi?id=161409
+
+        Reviewed by Yusuke Suzuki.
+
+        * Scripts/build-jsc:
+        (cMakeArgsFromFeatures):
+        * Scripts/webkitperl/FeatureList.pm:
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-09-23  Alex Christensen  <achristensen@webkit.org>
+
+        Refactor URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162511
+
+        Reviewed by Brady Eidson.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::TEST_F):
+        (TestWebKitAPI::checkURL):
+
+2016-09-23  Alexey Proskuryakov  <ap@apple.com>
+
+        iOS playback user action tests fail on some machines
+        https://bugs.webkit.org/show_bug.cgi?id=162504
+        rdar://problem/28013994
+
+        Reviewed by Jer Noble.
+
+        Avoid the need to have a timeout.
+
+        * TestWebKitAPI/Tests/WebKit/ios/audio-only.html:
+        * TestWebKitAPI/Tests/WebKit/ios/video-with-audio.html:
+        * TestWebKitAPI/Tests/WebKit/ios/video-without-audio.html:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/large-video-without-audio.html:
+
+2016-09-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r204163): [GTK] API test /webkit2/WebKitSecurityManager/file-xhr is failing
+        https://bugs.webkit.org/show_bug.cgi?id=161607
+
+        Reviewed by Michael Catanzaro.
+
+        Since r204163, in case of cross origin error when loading the XHR, the load fails and an error message is shown
+        in the console, but there isn't any js expcetion, which is what we were checking. Now, we check that there
+        aren't exceptions, and that the error message is sent to the console.
+
+        * Scripts/run-gtk-tests:
+        (TestRunner):
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestWebKitWebContext.cpp:
+        (consoleMessageReceivedCallback):
+        (testWebContextSecurityFileXHR):
+
+2016-09-23  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Use correct hardware for Sierra Debug WK2 testers.
+        https://bugs.webkit.org/show_bug.cgi?id=162474
+
+        Reviewed by Alexey Proskuryakov.
+
+        * BuildSlaveSupport/build.webkit.org-config/config.json:
+
+2016-09-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Make all WebView tests have a WebKitUserContentManager
+        https://bugs.webkit.org/show_bug.cgi?id=162487
+
+        Reviewed by Michael Catanzaro.
+
+        It simplifies tests using the user content manager, and allows to use it without having to subclass WebViewTest.
+
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestConsoleMessage.cpp:
+        (ConsoleMessageTest::ConsoleMessageTest):
+        (ConsoleMessageTest::~ConsoleMessageTest):
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestUIClient.cpp:
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestWebKitUserContentManager.cpp:
+        (testUserContentManagerInjectedStyleSheet):
+        (testUserContentManagerInjectedScript):
+        (UserScriptMessageTest::UserScriptMessageTest):
+        (beforeAll):
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestWebKitWebView.cpp:
+        (testWebViewIsPlayingAudio):
+        * TestWebKitAPI/gtk/WebKit2Gtk/WebViewTest.cpp:
+        (WebViewTest::WebViewTest):
+        * TestWebKitAPI/gtk/WebKit2Gtk/WebViewTest.h:
+
 2016-09-23  Antoine Quint  <graouts@apple.com>
 
         Add a new runtime flag for work on modern media controls (off by default)

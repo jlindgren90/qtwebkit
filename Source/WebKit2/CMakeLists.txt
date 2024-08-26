@@ -216,6 +216,7 @@ set(WebKit2_SOURCES
     NetworkProcess/NetworkProcessCreationParameters.cpp
     NetworkProcess/NetworkResourceLoadParameters.cpp
 
+    NetworkProcess/Downloads/BlobDownloadClient.cpp
     NetworkProcess/Downloads/Download.cpp
     NetworkProcess/Downloads/DownloadManager.cpp
 
@@ -404,8 +405,6 @@ set(WebKit2_SOURCES
     UIProcess/WebProcessPool.cpp
     UIProcess/WebProcessProxy.cpp
     UIProcess/WebResourceLoadStatisticsStore.cpp
-    UIProcess/WebTextChecker.cpp
-    UIProcess/WebTextCheckerClient.cpp
     UIProcess/WebURLSchemeHandler.cpp
     UIProcess/WebURLSchemeHandlerTask.cpp
     UIProcess/WebVibrationProvider.cpp

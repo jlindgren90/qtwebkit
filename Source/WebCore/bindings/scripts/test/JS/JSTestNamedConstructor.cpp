@@ -90,7 +90,7 @@ template<> EncodedJSValue JSC_HOST_CALL JSTestNamedConstructorNamedConstructor::
     if (UNLIKELY(state->argumentCount() < 1))
         return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
     ExceptionCode ec = 0;
-    auto str1 = state->argument(0).toWTFString(state);
+    auto str1 = state->uncheckedArgument(0).toWTFString(state);
     if (UNLIKELY(throwScope.exception()))
         return JSValue::encode(jsUndefined());
     auto str2 = state->argument(1).isUndefined() ? ASCIILiteral("defaultString") : state->uncheckedArgument(1).toWTFString(state);
@@ -101,7 +101,7 @@ template<> EncodedJSValue JSC_HOST_CALL JSTestNamedConstructorNamedConstructor::
         return JSValue::encode(jsUndefined());
     auto object = TestNamedConstructor::createForJSConstructor(*castedThis->document(), WTFMove(str1), WTFMove(str2), WTFMove(str3), ec);
     if (UNLIKELY(ec)) {
-        setDOMException(state, ec);
+        setDOMException(state, throwScope, ec);
         return JSValue::encode(JSValue());
     }
     return JSValue::encode(toJSNewlyCreated(state, castedThis->globalObject(), WTFMove(object)));

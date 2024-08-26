@@ -1,3 +1,1000 @@
+2016-09-25  Antti Koivisto  <antti@apple.com>
+
+        AuthorStyleSheets shouldn't trigger synchronous style resolutions
+        https://bugs.webkit.org/show_bug.cgi?id=162532
+
+        Reviewed by Darin Adler.
+
+        AuthorStyleSheets::didChange() took four different enum values, two of which triggered
+        a synchronous style resolution. This is almost always unnecessary as any subsequent
+        call that requires up-to-date style or layout will perform it. In the few cases where
+        it is actually needed the client can just do it manually.
+
+        The patch also replaces the remaining two enum values with functions:
+
+            void didChangeCandidatesForActiveSet();
+            void didChangeContentsOrInterpretation();
+
+        The first indicates that the set of active stylesheets might have changed and needs to be recomputed.
+        The seconds one indicates that either the content of some stylesheet has changed or that the environment
+        where we interpret the sheets has somehow changed.
+
+        The existing "AsNeeded" values map to didChangeCandidatesForActiveSet() and the rest map to
+        didChangeContentsOrInterpretation(). This also makes it obvious that some call sites use the wrong value.
+        The patch doesn't address these cases.
+
+        * css/CSSStyleSheet.cpp:
+        (WebCore::CSSStyleSheet::didMutateRules):
+        (WebCore::CSSStyleSheet::didMutate):
+        (WebCore::CSSStyleSheet::clearOwnerNode):
+        * dom/AuthorStyleSheets.cpp:
+        (WebCore::AuthorStyleSheets::AuthorStyleSheets):
+        (WebCore::AuthorStyleSheets::analyzeStyleSheetChange):
+        (WebCore::AuthorStyleSheets::updateActiveStyleSheets):
+        (WebCore::AuthorStyleSheets::flushPendingChanges):
+        (WebCore::AuthorStyleSheets::scheduleActiveSetChange):
+        (WebCore::AuthorStyleSheets::didChange):
+        (WebCore::AuthorStyleSheets::pendingChangeTimerFired):
+        (WebCore::AuthorStyleSheets::flushPendingUpdates): Deleted.
+        (WebCore::AuthorStyleSheets::scheduleOptimizedUpdate): Deleted.
+        (WebCore::AuthorStyleSheets::optimizedUpdateTimerFired): Deleted.
+        * dom/AuthorStyleSheets.h:
+        (WebCore::AuthorStyleSheets::hasPendingUpdate):
+        * dom/Document.cpp:
+        (WebCore::Document::setContentLanguage):
+        (WebCore::Document::recalcStyle):
+        (WebCore::Document::updateStyleIfNeeded):
+        (WebCore::Document::updateLayoutIgnorePendingStylesheets):
+        (WebCore::Document::didRemoveAllPendingStylesheet):
+        (WebCore::Document::usesStyleBasedEditability):
+        (WebCore::Document::processHttpEquiv):
+        (WebCore::Document::setSelectedStylesheetSet):
+        * dom/ExtensionStyleSheets.cpp:
+        (WebCore::ExtensionStyleSheets::clearPageUserSheet):
+        (WebCore::ExtensionStyleSheets::updatePageUserSheet):
+        (WebCore::ExtensionStyleSheets::invalidateInjectedStyleSheetCache):
+        (WebCore::ExtensionStyleSheets::addUserStyleSheet):
+        (WebCore::ExtensionStyleSheets::addAuthorStyleSheetForTesting):
+        (WebCore::ExtensionStyleSheets::styleResolverChangedTimerFired):
+        * dom/InlineStyleSheetOwner.cpp:
+        (WebCore::InlineStyleSheetOwner::removedFromDocument):
+        * dom/ProcessingInstruction.cpp:
+        (WebCore::ProcessingInstruction::removedFrom):
+        * dom/ShadowRoot.cpp:
+        (WebCore::ShadowRoot::updateStyle):
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::setDisabledState):
+        (WebCore::HTMLLinkElement::parseAttribute):
+        (WebCore::HTMLLinkElement::process):
+        (WebCore::HTMLLinkElement::removedFrom):
+        (WebCore::HTMLLinkElement::removePendingSheet):
+        * html/HTMLStyleElement.cpp:
+        (WebCore::HTMLStyleElement::parseAttribute):
+        * inspector/InspectorCSSAgent.cpp:
+        (WebCore::InspectorCSSAgent::forcePseudoState):
+        (WebCore::InspectorCSSAgent::resetPseudoStates):
+        * inspector/InspectorPageAgent.cpp:
+        (WebCore::InspectorPageAgent::setEmulatedMedia):
+        * page/Frame.cpp:
+        (WebCore::Frame::setPrinting):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::layout):
+        (WebCore::FrameView::setPagination):
+        (WebCore::FrameView::setViewportSizeForCSSViewportUnits):
+        * page/Page.cpp:
+        (WebCore::Page::setViewMode):
+        (WebCore::Page::setNeedsRecalcStyleInAllFrames):
+        (WebCore::Page::invalidateInjectedStyleSheetCacheInAllFrames):
+        * svg/SVGFontFaceElement.cpp:
+        (WebCore::SVGFontFaceElement::rebuildFontFace):
+        (WebCore::SVGFontFaceElement::removedFrom):
+        * xml/XMLTreeViewer.cpp:
+        (WebCore::XMLTreeViewer::transformDocumentToTreeView):
+        * xml/parser/XMLDocumentParser.cpp:
+        (WebCore::XMLDocumentParser::end):
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+        (WebCore::XMLDocumentParser::doEnd):
+
+2016-09-24  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, update results of DOM binding tests after r206354.
+        https://bugs.webkit.org/show_bug.cgi?id=162503
+
+        Update results of DOM binding tests. After r206354, setDOMException takes
+        ThrowScope as its second argument.
+
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::JSTestInterfaceConstructor::construct):
+        (WebCore::jsTestInterfacePrototypeFunctionImplementsMethod2):
+        (WebCore::jsTestInterfacePrototypeFunctionSupplementalMethod2):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::JSTestNamedConstructorNamedConstructor::construct):
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        (WebCore::jsTestNondeterministicNondeterministicGetterExceptionAttr):
+        (WebCore::setJSTestNondeterministicNondeterministicSetterExceptionAttr):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjAttrWithGetterException):
+        (WebCore::jsTestObjAttrWithGetterExceptionWithMessage):
+        (WebCore::jsTestObjStringAttrWithGetterException):
+        (WebCore::jsTestObjWithScriptStateAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAttributeRaises):
+        (WebCore::jsTestObjWithScriptExecutionContextAndScriptStateAttributeRaises):
+        (WebCore::jsTestObjNullableStringValue):
+        (WebCore::setJSTestObjAttrWithSetterException):
+        (WebCore::setJSTestObjAttrWithSetterExceptionWithMessage):
+        (WebCore::setJSTestObjStringAttrWithSetterException):
+        (WebCore::jsTestObjPrototypeFunctionMethodThatRequiresAllArgsAndThrows):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithException):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithExceptionWithMessage):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptStateVoidException):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptStateObjException):
+        (WebCore::jsTestObjPrototypeFunctionWithScriptExecutionContextAndScriptStateObjException):
+        (WebCore::jsTestObjPrototypeFunctionStringArrayFunction):
+        (WebCore::jsTestObjPrototypeFunctionDomStringListFunction):
+        (WebCore::jsTestObjPrototypeFunctionGetSVGDocument):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithExceptionPromise):
+        (WebCore::jsTestObjConstructorFunctionTestStaticPromiseFunctionWithExceptionPromise):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::jsTestTypedefsAttrWithGetterException):
+        (WebCore::jsTestTypedefsStringAttrWithGetterException):
+        (WebCore::setJSTestTypedefsAttrWithSetterException):
+        (WebCore::setJSTestTypedefsStringAttrWithSetterException):
+        (WebCore::jsTestTypedefsPrototypeFunctionStringSequenceFunction):
+        (WebCore::jsTestTypedefsPrototypeFunctionStringSequenceFunction2):
+        (WebCore::jsTestTypedefsPrototypeFunctionMethodWithException):
+
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r206221): [USER] com.apple.WebKit.WebContent.Development at com.apple.JavaScriptCore: vmEntryToJavaScript + 299
+        https://bugs.webkit.org/show_bug.cgi?id=162536
+        <rdar://problem/28415971>
+
+        Reviewed by Gavin Barraclough.
+
+        Stop marking cross-origin Window/Location objects properties as cacheable
+        given that we do not support yet caching of such properties. This is because
+        they are using the new CustomAccesstor PropertySlot type, which is not handled
+        yet by Repatch.cpp. Performance is anyway not critical for cross-origin
+        Window / Location properties.
+
+        Test: http/tests/security/cross-origin-window-property-caching-crash.html
+
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::jsDOMWindowGetOwnPropertySlotRestrictedAccess):
+        * bindings/js/JSLocationCustom.cpp:
+        (WebCore::JSLocation::getOwnPropertySlotDelegate):
+
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r205524): Crash under WTF::numGraphemeClusters()
+        https://bugs.webkit.org/show_bug.cgi?id=162534
+        <rdar://problem/28463828>
+
+        Reviewed by David Kilzer.
+
+        We were constructing a StringView from a temporary String and then passing it to
+        WTF::numGraphemeClusters().
+
+        Test: fast/dom/HTMLInputElement/handleBeforeTextInsertedEvent-crash.html
+
+        * html/TextFieldInputType.cpp:
+        (WebCore::TextFieldInputType::handleBeforeTextInsertedEvent):
+
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        <a download> does not support Blob URLs
+        https://bugs.webkit.org/show_bug.cgi?id=156099
+        <rdar://problem/25535520>
+
+        Reviewed by Darin Adler.
+
+        Only allow trusted events to trigger downloads for <a download>, as per:
+        - https://html.spec.whatwg.org/#the-a-element:triggered-by-user-activation
+
+        Without this, a script could download a file to the user's disk without
+        any user gesture or consent, simply by calling a.click(). I have confirmed
+        that Firefox also ignores the click for <a download> if it is synthetic.
+        Chrome allows synthetic clicks to trigger downloads but I filed a bug
+        about it.
+
+        Test: fast/dom/HTMLAnchorElement/anchor-download-synthetic-click.html
+
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::handleClick):
+
+2016-09-24  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [Binding] setDOMException should be inlined and fall to the slow path if exception occurs
+        https://bugs.webkit.org/show_bug.cgi?id=162503
+
+        Reviewed by Saam Barati.
+
+        Binding code emits setDOMException in critical paths. However, it is not inlined.
+        Since exception less frequently occurs, we should have inlined setDOMException that
+        early returns if it does not need to raise an exception. And it should call the exception
+        raising code as slow path case. This tiny optimization can offer improvement if
+        the DOM function is tiny and DOM binding occupies large part of it. Combined with r206338,
+        it offers 5% improvement in Dromaeo dom-attr getAttribute / setAttribute tests.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::throwDOMException): Extract the actual exception raising code.
+        (WebCore::setDOMExceptionSlow): Call throwDOMException and keep it not inlined.
+        (WebCore::setDOMException):
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::setDOMException): Use ThrowScope& to check `scope.exception()`.
+        And it has a path for normal case that allows early returning.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        (GenerateImplementationFunctionCall):
+        (GenerateConstructorDefinition):
+
+2016-09-23  Antti Koivisto  <antti@apple.com>
+
+        Move stylesheet change logic from Document to AuthorStyleSheets
+        https://bugs.webkit.org/show_bug.cgi?id=162488
+
+        Reviewed by Andreas Kling.
+
+        That's where it belongs.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/CSSStyleSheet.cpp:
+        (WebCore::CSSStyleSheet::didMutateRules):
+        (WebCore::CSSStyleSheet::didMutate):
+        (WebCore::CSSStyleSheet::clearOwnerNode):
+        * dom/AuthorStyleSheets.cpp:
+        (WebCore::AuthorStyleSheets::AuthorStyleSheets):
+        (WebCore::AuthorStyleSheets::flushPendingUpdates):
+        (WebCore::AuthorStyleSheets::scheduleOptimizedUpdate):
+        (WebCore::AuthorStyleSheets::didChange):
+        (WebCore::AuthorStyleSheets::optimizedUpdateTimerFired):
+        * dom/AuthorStyleSheets.h:
+        (WebCore::AuthorStyleSheets::hasPendingUpdate):
+        (WebCore::AuthorStyleSheets::pendingUpdateType): Deleted.
+        (WebCore::AuthorStyleSheets::setPendingUpdateType): Deleted.
+        (WebCore::AuthorStyleSheets::flushPendingUpdates): Deleted.
+        * dom/Document.cpp:
+        (WebCore::Document::Document):
+        (WebCore::Document::setContentLanguage):
+        (WebCore::Document::needsStyleRecalc):
+        (WebCore::Document::updateStyleIfNeeded):
+        (WebCore::Document::updateLayoutIgnorePendingStylesheets):
+        (WebCore::Document::didRemoveAllPendingStylesheet):
+        (WebCore::Document::processHttpEquiv):
+        (WebCore::Document::setSelectedStylesheetSet):
+        (WebCore::Document::updateHoverActiveState):
+
+            Remove StyleResolverUpdateFlag argument that was misused to indicate sync style recalc.
+            Clients can call updateStyleIfNeeded() directly though none of them appears to need it.
+
+        (WebCore::Document::optimizedStyleSheetUpdateTimerFired): Deleted.
+        (WebCore::Document::scheduleOptimizedStyleSheetUpdate): Deleted.
+        (WebCore::Document::styleResolverChanged): Deleted.
+        * dom/Document.h:
+        (WebCore::Document::needsStyleRecalc): Deleted.
+        * dom/ExtensionStyleSheets.cpp:
+        (WebCore::ExtensionStyleSheets::clearPageUserSheet):
+        (WebCore::ExtensionStyleSheets::updatePageUserSheet):
+        (WebCore::ExtensionStyleSheets::invalidateInjectedStyleSheetCache):
+        (WebCore::ExtensionStyleSheets::addUserStyleSheet):
+        (WebCore::ExtensionStyleSheets::addAuthorStyleSheetForTesting):
+        (WebCore::ExtensionStyleSheets::styleResolverChangedTimerFired):
+        * dom/InlineStyleSheetOwner.cpp:
+        (WebCore::InlineStyleSheetOwner::removedFromDocument):
+        * dom/ProcessingInstruction.cpp:
+        (WebCore::ProcessingInstruction::removedFrom):
+
+            Also fix a bug that prevented document from rendering if a loading processing instruction was removed from the tree.
+            This is tested by fast/dom/StyleSheet/detached-style-pi-2.xhtml (after other changes in this patch).
+
+        * dom/ShadowRoot.cpp:
+        (WebCore::ShadowRoot::updateStyle):
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::setDisabledState):
+        (WebCore::HTMLLinkElement::parseAttribute):
+        (WebCore::HTMLLinkElement::process):
+        (WebCore::HTMLLinkElement::removedFrom):
+        (WebCore::HTMLLinkElement::removePendingSheet):
+        * html/HTMLStyleElement.cpp:
+        (WebCore::HTMLStyleElement::parseAttribute):
+        * inspector/InspectorCSSAgent.cpp:
+        (WebCore::InspectorCSSAgent::forcePseudoState):
+        (WebCore::InspectorCSSAgent::resetPseudoStates):
+        * inspector/InspectorPageAgent.cpp:
+        (WebCore::InspectorPageAgent::setEmulatedMedia):
+        * page/Frame.cpp:
+        (WebCore::Frame::setPrinting):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::layout):
+        (WebCore::FrameView::setPagination):
+        (WebCore::FrameView::setViewportSizeForCSSViewportUnits):
+        * page/Page.cpp:
+        (WebCore::Page::setViewMode):
+        (WebCore::Page::setNeedsRecalcStyleInAllFrames):
+        (WebCore::Page::invalidateInjectedStyleSheetCacheInAllFrames):
+        * svg/SVGFontFaceElement.cpp:
+        (WebCore::SVGFontFaceElement::rebuildFontFace):
+        (WebCore::SVGFontFaceElement::removedFrom):
+        * xml/XMLTreeViewer.cpp:
+        (WebCore::XMLTreeViewer::transformDocumentToTreeView):
+        * xml/parser/XMLDocumentParser.cpp:
+        (WebCore::XMLDocumentParser::end):
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+        (WebCore::XMLDocumentParser::doEnd):
+
+2016-09-23  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls playhead does not animate smoothly while playing
+        https://bugs.webkit.org/show_bug.cgi?id=162399
+        <rdar://problem/28115680>
+
+        Reviewed by Beth Dakin.
+
+        The media controls playhead currently does not animate smoothly during playback because we don't specify a
+        playback rate when updating the WebPlaybackControlsManager's timing value. However, simply setting this timing
+        value to the current playback rate (as known to the UI process) results in the UI process receiving multiple
+        updates from the web process where the current time is equal (or even less than) the time at which media began
+        to play, which results in the playhead seeking backwards to the start time multiple times when playing or
+        resuming media.
+
+        To address this, in WebCore, we inform the playback session model of the media time when playback begins (i.e.
+        a `playing` or `play` event is fired). This message precedes both the "rate changed" and "current time changed"
+        messages.
+
+        Unit tests to be added in a future patch.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::notifyAboutPlaying):
+        (WebCore::HTMLMediaElement::setReadyState):
+        (WebCore::HTMLMediaElement::playInternal):
+        * html/HTMLMediaElement.h:
+        (WebCore::HTMLMediaElement::playbackStartedTime):
+        * platform/cocoa/WebPlaybackSessionModel.h:
+        (WebCore::WebPlaybackSessionModelClient::playbackStartedTimeChanged):
+        (WebCore::WebPlaybackSessionModelClient::bufferedTimeChanged): Deleted.
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.h:
+        * platform/cocoa/WebPlaybackSessionModelMediaElement.mm:
+        (WebPlaybackSessionModelMediaElement::updateForEventName):
+        (WebPlaybackSessionModelMediaElement::playbackStartedTime):
+        * platform/ios/WebVideoFullscreenControllerAVKit.mm:
+        * platform/mac/WebPlaybackSessionInterfaceMac.h:
+        * platform/mac/WebPlaybackSessionInterfaceMac.mm:
+        (WebCore::WebPlaybackSessionInterfaceMac::currentTimeChanged):
+        (WebCore::WebPlaybackSessionInterfaceMac::rateChanged):
+        (WebCore::WebPlaybackSessionInterfaceMac::beginScrubbing):
+        (WebCore::WebPlaybackSessionInterfaceMac::endScrubbing):
+        (WebCore::WebPlaybackSessionInterfaceMac::updatePlaybackControlsManagerTiming):
+
+2016-09-23  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: !newRelayoutRoot.container() || is<RenderView>(newRelayoutRoot.container()) || !newRelayoutRoot.container()->needsLayout() while loading sohu.com
+        https://bugs.webkit.org/show_bug.cgi?id=162466
+
+        Reviewed by Simon Fraser.
+
+        When we come across a out-of-flow positioned renderer during layout, we add it to a tracker map with
+        its containing block (calling RenderBlock::insertPositionedObject).
+        It ensures that a containing block can easily access to the out-of-flow positioned descendants during layout/painting/hittesting.
+        We do it even when the containing block - positioned renderer pair is already in this tracker map.
+        RenderBlock::insertPositionedObject() eagerly sets the positioned-child-needs-layout flag on the containing block
+        assuming it needs to layout this descendant later in the layout phase.
+        This patch ensure that we only flag the containing block dirty when the descendant needs layout.
+
+        Test: fast/block/positioning/subtree-assert-when-positioned-element-dirties-containing-block.html
+
+        * rendering/RenderBlock.cpp:
+        (WebCore::RenderBlock::insertPositionedObject):
+
+2016-09-23  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [Binding] Use unchekcedArgument if argumentCount is already checked
+        https://bugs.webkit.org/show_bug.cgi?id=162502
+
+        Reviewed by Geoffrey Garen.
+
+        It is not necessary to use `exec->argument(n)` after checking the argument exists.
+        This patch changes `argument(n)` to `uncheckedArgument(n)` if we already proved that
+        the argument exists. This change drops branches generated by `exec->argument(n)`.
+        And it is good for small DOM operations in which DOM binding code occupies large
+        part of entire processing. This patch and another small patch[1] offer roughly 5%
+        improvement in Dromaeo dom-attr's getAttribute and setAttribute tests.
+
+        [1]: https://bugs.webkit.org/show_bug.cgi?id=162503
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck): GenerateParameterCheck requires GenerateArgumentsCountCheck.
+        As a result, existence of mandatory arguments are already checked. We can use `uncheckedArgument(n)`
+        for mandatory arguments.
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        (WebCore::jsTestActiveDOMObjectPrototypeFunctionExcitingFunction):
+        (WebCore::jsTestActiveDOMObjectPrototypeFunctionPostMessage):
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.cpp:
+        (WebCore::jsTestCustomNamedGetterPrototypeFunctionAnotherFunction):
+        * bindings/scripts/test/JS/JSTestEventTarget.cpp:
+        (WebCore::jsTestEventTargetPrototypeFunctionItem):
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        (WebCore::jsTestGlobalObjectInstanceFunctionRegularOperation):
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation1):
+        (WebCore::jsTestGlobalObjectInstanceFunctionEnabledAtRuntimeOperation2):
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        (WebCore::JSTestInterfaceConstructor::construct):
+        (WebCore::jsTestInterfacePrototypeFunctionImplementsMethod2):
+        (WebCore::jsTestInterfacePrototypeFunctionSupplementalMethod2):
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.cpp:
+        (WebCore::jsTestMediaQueryListListenerPrototypeFunctionMethod):
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        (WebCore::JSTestNamedConstructorNamedConstructor::construct):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::JSTestObjConstructor::construct):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation1):
+        (WebCore::jsTestObjPrototypeFunctionEnabledAtRuntimeOperation2):
+        (WebCore::jsTestObjPrototypeFunctionVoidMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionByteMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionOctetMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionLongMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionObjMethodWithArgs):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithArgTreatingNullAsEmptyString):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithXPathNSResolverParameter):
+        (WebCore::jsTestObjPrototypeFunctionNullableStringSpecialMethod):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithEnumArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodThatRequiresAllArgsAndThrows):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithUSVStringArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNullableUSVStringArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithUSVStringArgTreatingNullAsEmptyString):
+        (WebCore::jsTestObjPrototypeFunctionSerializedValue):
+        (WebCore::jsTestObjPrototypeFunctionOptionsObject):
+        (WebCore::jsTestObjPrototypeFunctionPrivateMethod):
+        (WebCore::jsTestObjPrototypeFunctionPublicAndPrivateMethod):
+        (WebCore::jsTestObjPrototypeFunctionAddEventListener):
+        (WebCore::jsTestObjPrototypeFunctionRemoveEventListener):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonOptionalArgAndOptionalArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonOptionalArgAndTwoOptionalArgs):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithCallbackFunctionArg):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithNonCallbackArgAndCallbackFunctionArg):
+        (WebCore::jsTestObjConstructorFunctionStaticMethodWithCallbackArg):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod2):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod3):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod4):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod5):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod6):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod7):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod8):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod9):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod10):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod11):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethodWithOptionalParameter2):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod11):
+        (WebCore::jsTestObjConstructorFunctionOverloadedMethod12):
+        (WebCore::jsTestObjPrototypeFunctionClassMethodWithClamp):
+        (WebCore::jsTestObjPrototypeFunctionClassMethodWithEnforceRange):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithUnsignedLongSequence):
+        (WebCore::jsTestObjPrototypeFunctionStringArrayFunction):
+        (WebCore::jsTestObjPrototypeFunctionDomStringListFunction):
+        (WebCore::jsTestObjPrototypeFunctionMethodWithAndWithoutNullableSequence):
+        (WebCore::jsTestObjPrototypeFunctionGetElementById):
+        (WebCore::jsTestObjPrototypeFunctionConvert1):
+        (WebCore::jsTestObjPrototypeFunctionConvert2):
+        (WebCore::jsTestObjPrototypeFunctionConvert3):
+        (WebCore::jsTestObjPrototypeFunctionConvert4):
+        (WebCore::jsTestObjPrototypeFunctionVariadicStringMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicDoubleMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicNodeMethod):
+        (WebCore::jsTestObjPrototypeFunctionAny):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseFunctionWithFloatArgumentPromise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction1Promise):
+        (WebCore::jsTestObjPrototypeFunctionTestPromiseOverloadedFunction2Promise):
+        (WebCore::jsTestObjPrototypeFunctionConditionalOverload1):
+        (WebCore::jsTestObjPrototypeFunctionConditionalOverload2):
+        (WebCore::jsTestObjPrototypeFunctionSingleConditionalOverload1):
+        (WebCore::jsTestObjPrototypeFunctionSingleConditionalOverload2):
+        (WebCore::jsTestObjPrototypeFunctionAttachShadowRoot):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::constructJSTestOverloadedConstructors1):
+        (WebCore::constructJSTestOverloadedConstructors2):
+        (WebCore::constructJSTestOverloadedConstructors3):
+        (WebCore::constructJSTestOverloadedConstructors4):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructorsWithSequence.cpp:
+        (WebCore::constructJSTestOverloadedConstructorsWithSequence2):
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.cpp:
+        (WebCore::jsTestOverrideBuiltinsPrototypeFunctionNamedItem):
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        (WebCore::JSTestTypedefsConstructor::construct):
+        (WebCore::jsTestTypedefsPrototypeFunctionSetShadow):
+        (WebCore::jsTestTypedefsPrototypeFunctionMethodWithSequenceArg):
+        (WebCore::jsTestTypedefsPrototypeFunctionNullableSequenceArg):
+        (WebCore::jsTestTypedefsPrototypeFunctionFuncWithClamp):
+        (WebCore::jsTestTypedefsPrototypeFunctionStringSequenceFunction):
+        (WebCore::jsTestTypedefsPrototypeFunctionStringSequenceFunction2):
+        (WebCore::jsTestTypedefsPrototypeFunctionCallWithSequenceThatRequiresInclude):
+
+2016-09-23  Alex Christensen  <achristensen@webkit.org>
+
+        Refactor URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162518
+
+        Reviewed by Brady Eidson.
+
+        Use a helper function to determine the currentPosition instead of always determining position based on the
+        size of the buffer.  Soon there will be nothing in the buffer in the common case where there are no syntax errors.
+        Also make more static functions into methods.  Give IPv6Addresses and IPv4Addresses names.  Start adding syntaxError stubs.
+
+        No change in behavior.  Covered by API tests.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::incrementIteratorSkippingTabAndNewLine):
+        (WebCore::URLParser::isWindowsDriveLetter):
+        (WebCore::URLParser::appendToASCIIBuffer):
+        (WebCore::URLParser::syntaxError):
+        (WebCore::URLParser::currentPosition):
+        (WebCore::URLParser::URLParser):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::parseAuthority):
+        (WebCore::URLParser::appendNumberToASCIIBuffer):
+        (WebCore::URLParser::serializeIPv4):
+        (WebCore::URLParser::serializeIPv6Piece):
+        (WebCore::URLParser::serializeIPv6):
+        (WebCore::URLParser::parseIPv4Host):
+        (WebCore::URLParser::parseIPv6Host):
+        (WebCore::URLParser::parsePort):
+        (WebCore::URLParser::parseHostAndPort):
+        (WebCore::append): Deleted.
+        (WebCore::serializeIPv4): Deleted.
+        (WebCore::serializeIPv6Piece): Deleted.
+        (WebCore::serializeIPv6): Deleted.
+        (WebCore::parseIPv4Host): Deleted.
+        (WebCore::parseIPv6Host): Deleted.
+        * platform/URLParser.h:
+
+2016-09-23  Alex Christensen  <achristensen@webkit.org>
+
+        Refactor URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162516
+
+        Reviewed by Brady Eidson.
+
+        Turn more static functions into methods, use a helper function to append characters to a buffer.
+
+        No change in behavior, but I added a new API test to cover an interesting 
+        ipv6 address parsing case that had no coverage.
+
+        * platform/URLParser.cpp:
+        (WebCore::CodePointIterator::codeUnitsSince):
+        (WebCore::URLParser::isWindowsDriveLetter):
+        (WebCore::URLParser::appendToASCIIBuffer):
+        (WebCore::URLParser::checkWindowsDriveLetter):
+        (WebCore::URLParser::percentEncodeByte):
+        (WebCore::URLParser::utf8PercentEncode):
+        (WebCore::URLParser::utf8QueryEncode):
+        (WebCore::URLParser::encodeQuery):
+        (WebCore::URLParser::copyASCIIStringUntil):
+        (WebCore::URLParser::copyURLPartsUntil):
+        (WebCore::URLParser::URLParser):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::parseAuthority):
+        (WebCore::URLParser::parsePort):
+        (WebCore::URLParser::parseHostAndPort):
+        (WebCore::utf8PercentEncode): Deleted.
+        (WebCore::utf8QueryEncode): Deleted.
+        (WebCore::encodeQuery): Deleted.
+        (WebCore::copyASCIIStringUntil): Deleted.
+        * platform/URLParser.h:
+        (WebCore::URLParser::appendToASCIIBuffer):
+
+2016-09-23  Caitlin Potter  <caitp@igalia.com>
+
+        [JSC] Implement parsing of Async Functions
+        https://bugs.webkit.org/show_bug.cgi?id=161409
+
+        Reviewed by Yusuke Suzuki.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-09-23  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLLabelElement.prototype.form with the HTML specification
+        https://bugs.webkit.org/show_bug.cgi?id=162369
+
+        Reviewed by Ryosuke Niwa.
+
+        Align HTMLLabelElement.prototype.form with the HTML specification:
+        - https://html.spec.whatwg.org/#dom-label-form
+
+        In particular, the following behavior changes:
+        - We now return null if the label element has no labeled control.
+        - We now return the form element instead of returning null if
+          the label element is outside the form but its labeled control
+          is inside the form.
+
+        Firefox and Chrome match the specification.
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLLabelElement.cpp:
+        (WebCore::HTMLLabelElement::form):
+        * html/HTMLLabelElement.h:
+
+2016-09-23  Alex Christensen  <achristensen@webkit.org>
+
+        Refactor URLParser
+        https://bugs.webkit.org/show_bug.cgi?id=162511
+
+        Reviewed by Brady Eidson.
+
+        Make the constructor take the parameters instead of URL::parse.
+        Now we don't need to copy the input string on failure.
+        Also, turn some static functions into methods so they will be able to access member variables.
+
+        Covered by existing and new API tests.
+
+        * platform/URL.cpp:
+        (WebCore::URL::URL):
+        (WebCore::URL::setProtocol):
+        (WebCore::URL::setHost):
+        (WebCore::URL::removePort):
+        (WebCore::URL::setPort):
+        (WebCore::URL::setHostAndPort):
+        (WebCore::URL::setUser):
+        (WebCore::URL::setPass):
+        (WebCore::URL::setFragmentIdentifier):
+        (WebCore::URL::removeFragmentIdentifier):
+        (WebCore::URL::setQuery):
+        (WebCore::URL::setPath):
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::incrementIteratorSkippingTabAndNewLine):
+        (WebCore::URLParser::isWindowsDriveLetter):
+        (WebCore::URLParser::checkWindowsDriveLetter):
+        (WebCore::URLParser::shouldCopyFileURL):
+        (WebCore::URLParser::failure):
+        (WebCore::URLParser::URLParser):
+        (WebCore::URLParser::parse):
+        (WebCore::incrementIteratorSkippingTabAndNewLine): Deleted.
+        (WebCore::isWindowsDriveLetter): Deleted.
+        (WebCore::checkWindowsDriveLetter): Deleted.
+        (WebCore::shouldCopyFileURL): Deleted.
+        * platform/URLParser.h:
+        (WebCore::URLParser::URLParser):
+        (WebCore::URLParser::result):
+        (WebCore::URLParser::parse): Deleted.
+        * platform/cf/URLCF.cpp:
+        (WebCore::URL::URL):
+        Drive-by fix: Actually assign the URL to be the result of parsing.
+        * platform/mac/URLMac.mm:
+        (WebCore::URL::URL):
+
+2016-09-23  Alex Christensen  <achristensen@webkit.org>
+
+        Remove URLParser serialized template
+        https://bugs.webkit.org/show_bug.cgi?id=162501
+
+        Reviewed by Brady Eidson.
+
+        No change in behavior.  
+        This optimization conflicts with another optimization I'm doing.
+        We currently have the ParsedURLString tag, where we tell the parser to assume this URL is valid and canonicalized.
+        I'm going to instead make URLParser assume all URLs are valid and canonicalized until it finds that it is not, 
+        in which case it will canonicalize it if possible.
+
+        * platform/URL.cpp:
+        (WebCore::URL::URL):
+        * platform/URLParser.cpp:
+        (WebCore::incrementIteratorSkippingTabAndNewLine):
+        (WebCore::isWindowsDriveLetter):
+        (WebCore::checkWindowsDriveLetter):
+        (WebCore::shouldCopyFileURL):
+        (WebCore::utf8PercentEncode):
+        (WebCore::utf8QueryEncode):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::parseAuthority):
+        (WebCore::URLParser::parsePort):
+        (WebCore::URLParser::parseHostAndPort):
+        (WebCore::URLParser::parseSerializedURL): Deleted.
+        * platform/URLParser.h:
+        (WebCore::URLParser::parse):
+
+2016-09-23  Jer Noble  <jer.noble@apple.com>
+
+        Allow Seeking from the now playing controls
+        https://bugs.webkit.org/show_bug.cgi?id=162498
+
+        Reviewed by Beth Dakin.
+
+        We already have a handler for seek commands, we just need to register that handler
+        with MediaRemote.
+
+        * platform/mac/RemoteCommandListenerMac.mm:
+        (WebCore::RemoteCommandListenerMac::updateSupportedCommands):
+
+2016-09-23  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        MediaSessionManagerMac::nowPlayingEligibleSession() needs to honor the main content heuristic
+        https://bugs.webkit.org/show_bug.cgi?id=162480
+        <rdar://problem/28430615>
+
+        Reviewed by Jer Noble.
+
+        Changes the implementation of nowPlayingEligibleSession to use bestMediaElementForShowingPlaybackControlsManager
+        and also early return nullptr if the current tab the web process is hosted in is the active tab, and the window
+        it is hosted in is the main window. This information is derived from the viewState flags in the Page of each
+        tab -- whenever the (visible && active) state changes, the Page tells the global media session manager to update
+        its Now Playing info. Then, when each MediaElementSession tries to determine whether it can show playback
+        controls for the purposes of Now Playing, each session consults its page's visible and active state. If a page
+        is both visible and active, no Now Playing controls are allowed for that media session.
+
+        Also adds some slight adjustments to MediaSessionManagerMac::updateNowPlayingInfo, so we reset the title, rate
+        and duration of the current active session when clearing out the now playing info. Likewise, when vending an
+        active video, if the video information matches that of the current session, we mark m_nowPlayingActive anyways.
+        These tweaks prevent us from getting in a bad state when switching between a tab with media and one without.
+
+        Unit tests to come in a future patch.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::mediaElementSessionInfoForSession):
+        (WebCore::mediaSessionMayBeConfusedWithMainContent):
+        (WebCore::HTMLMediaElement::bestMediaElementForShowingPlaybackControlsManager):
+        (WebCore::HTMLMediaElement::updatePlaybackControlsManager):
+        (WebCore::bestMediaSessionForShowingPlaybackControlsManager): Deleted.
+        * html/HTMLMediaElement.h:
+        * html/MediaElementSession.cpp:
+        (WebCore::MediaElementSession::canShowControlsManager):
+        (WebCore::MediaElementSession::pageAllowsNowPlayingControls):
+        * html/MediaElementSession.h:
+        * page/Page.cpp:
+        (WebCore::Page::setViewState):
+        (WebCore::Page::isVisibleAndActive):
+        * page/Page.h:
+        * platform/audio/PlatformMediaSessionManager.cpp:
+        (WebCore::PlatformMediaSessionManager::updateNowPlayingInfoIfNecessary):
+        * platform/audio/PlatformMediaSessionManager.h:
+        * platform/audio/mac/MediaSessionManagerMac.mm:
+        (WebCore::PlatformMediaSessionManager::updateNowPlayingInfoIfNecessary):
+        (WebCore::MediaSessionManagerMac::nowPlayingEligibleSession):
+        (WebCore::MediaSessionManagerMac::updateNowPlayingInfo):
+
+2016-09-23  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r206311.
+        https://bugs.webkit.org/show_bug.cgi?id=162495
+
+        Broke internal iOS build (Requested by anttik on #webkit).
+
+        Reverted changeset:
+
+        "Move stylesheet change logic from Document to
+        AuthorStyleSheets"
+        https://bugs.webkit.org/show_bug.cgi?id=162488
+        http://trac.webkit.org/changeset/206311
+
+2016-09-23  Antti Koivisto  <antti@apple.com>
+
+        Move stylesheet change logic from Document to AuthorStyleSheets
+        https://bugs.webkit.org/show_bug.cgi?id=162488
+
+        Reviewed by Andreas Kling.
+
+        That's where it belongs.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/CSSStyleSheet.cpp:
+        (WebCore::CSSStyleSheet::didMutateRules):
+        (WebCore::CSSStyleSheet::didMutate):
+        (WebCore::CSSStyleSheet::clearOwnerNode):
+        * dom/AuthorStyleSheets.cpp:
+        (WebCore::AuthorStyleSheets::AuthorStyleSheets):
+        (WebCore::AuthorStyleSheets::flushPendingUpdates):
+        (WebCore::AuthorStyleSheets::scheduleOptimizedUpdate):
+        (WebCore::AuthorStyleSheets::didChange):
+        (WebCore::AuthorStyleSheets::optimizedUpdateTimerFired):
+        * dom/AuthorStyleSheets.h:
+        (WebCore::AuthorStyleSheets::hasPendingUpdate):
+        (WebCore::AuthorStyleSheets::pendingUpdateType): Deleted.
+        (WebCore::AuthorStyleSheets::setPendingUpdateType): Deleted.
+        (WebCore::AuthorStyleSheets::flushPendingUpdates): Deleted.
+        * dom/Document.cpp:
+        (WebCore::Document::Document):
+        (WebCore::Document::setContentLanguage):
+        (WebCore::Document::needsStyleRecalc):
+        (WebCore::Document::updateStyleIfNeeded):
+        (WebCore::Document::updateLayoutIgnorePendingStylesheets):
+        (WebCore::Document::didRemoveAllPendingStylesheet):
+        (WebCore::Document::processHttpEquiv):
+        (WebCore::Document::setSelectedStylesheetSet):
+        (WebCore::Document::updateHoverActiveState):
+        (WebCore::Document::optimizedStyleSheetUpdateTimerFired): Deleted.
+        (WebCore::Document::scheduleOptimizedStyleSheetUpdate): Deleted.
+        (WebCore::Document::styleResolverChanged): Deleted.
+        * dom/Document.h:
+        (WebCore::Document::needsStyleRecalc): Deleted.
+        * dom/ExtensionStyleSheets.cpp:
+        (WebCore::ExtensionStyleSheets::clearPageUserSheet):
+        (WebCore::ExtensionStyleSheets::updatePageUserSheet):
+        (WebCore::ExtensionStyleSheets::invalidateInjectedStyleSheetCache):
+        (WebCore::ExtensionStyleSheets::addUserStyleSheet):
+        (WebCore::ExtensionStyleSheets::addAuthorStyleSheetForTesting):
+        (WebCore::ExtensionStyleSheets::styleResolverChangedTimerFired):
+        * dom/InlineStyleSheetOwner.cpp:
+        (WebCore::InlineStyleSheetOwner::removedFromDocument):
+        * dom/ProcessingInstruction.cpp:
+        (WebCore::ProcessingInstruction::removedFrom):
+
+            Also fix a bug that prevented document from rendering if a loading processing instruction was removed from the tree.
+            This is tested by fast/dom/StyleSheet/detached-style-pi-2.xhtml (after other changes in this patch).
+
+        * dom/ShadowRoot.cpp:
+        (WebCore::ShadowRoot::updateStyle):
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::setDisabledState):
+        (WebCore::HTMLLinkElement::parseAttribute):
+        (WebCore::HTMLLinkElement::process):
+        (WebCore::HTMLLinkElement::removedFrom):
+        (WebCore::HTMLLinkElement::removePendingSheet):
+        * html/HTMLStyleElement.cpp:
+        (WebCore::HTMLStyleElement::parseAttribute):
+        * inspector/InspectorCSSAgent.cpp:
+        (WebCore::InspectorCSSAgent::forcePseudoState):
+        (WebCore::InspectorCSSAgent::resetPseudoStates):
+        * inspector/InspectorPageAgent.cpp:
+        (WebCore::InspectorPageAgent::setEmulatedMedia):
+        * page/Frame.cpp:
+        (WebCore::Frame::setPrinting):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::layout):
+        (WebCore::FrameView::setPagination):
+        (WebCore::FrameView::setViewportSizeForCSSViewportUnits):
+        * page/Page.cpp:
+        (WebCore::Page::setViewMode):
+        (WebCore::Page::setNeedsRecalcStyleInAllFrames):
+        (WebCore::Page::invalidateInjectedStyleSheetCacheInAllFrames):
+        * svg/SVGFontFaceElement.cpp:
+        (WebCore::SVGFontFaceElement::rebuildFontFace):
+        (WebCore::SVGFontFaceElement::removedFrom):
+        * xml/XMLTreeViewer.cpp:
+        (WebCore::XMLTreeViewer::transformDocumentToTreeView):
+        * xml/parser/XMLDocumentParser.cpp:
+        (WebCore::XMLDocumentParser::end):
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+        (WebCore::XMLDocumentParser::doEnd):
+
+2016-09-22  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] ASSERT when sizing tracks with percentages inside calc
+        https://bugs.webkit.org/show_bug.cgi?id=162383
+
+        Reviewed by Darin Adler.
+
+        There is an ASSERT to check that tracks are at least as wide as the initial base size. This
+        was added to verify that we never shrink tracks bellow that value. In order to compute the
+        value used for initialization we need a max size which is the value used to resolve
+        percentages to. The remaining free space was used to compute that value, that's totally
+        wrong because the free space decreases as the track sizing algorithm is run. The available
+        space should be used instead.
+
+        An extra ASSERT was removed too because it was redundant, we do always check the sizes of
+        the tracks after running the track sizing algorithm and that's precisely the unique point
+        were they could be modified.
+
+        Test: fast/css-grid-layout/tracks-wider-min-track-breadth-crash.html
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::tracksAreWiderThanMinTrackBreadth):
+
+2016-09-23  Chris Dumez  <cdumez@apple.com>
+
+        document.title getter does not strip / collapse the right whitespace characters
+        https://bugs.webkit.org/show_bug.cgi?id=162468
+
+        Reviewed by Ryosuke Niwa.
+
+        The document.title getter does not strip / collapse whitespace characters
+        as per:
+        - https://html.spec.whatwg.org/#document.title
+
+        This part of the specification provides more information about which
+        whitespace characters:
+        - https://html.spec.whatwg.org/#strip-and-collapse-whitespace
+        - https://html.spec.whatwg.org/#space-character
+
+        Firefox matches the specification. However, WebKit was stripping / collapsing
+        some characters it should not.
+
+        No new tests, rebaselined existing tests.
+
+        * dom/Document.cpp:
+        (WebCore::canonicalizedTitle):
+
+2016-09-23  Chris Dumez  <cdumez@apple.com>
+
+        Align Element.insertAdjacentHTML() with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=162479
+
+        Reviewed by Sam Weinig.
+
+        Align Element.insertAdjacentHTML() with the specification:
+        - https://w3c.github.io/DOM-Parsing/#dom-element-insertadjacenthtml (steps 1 & 2)
+
+        In particular, the following changes issues are now fixed:
+        - Calling insertAdjacentHTML() on an element whose parent is a
+          DocumentFragment now works insteas of throwing a
+          NO_MODIFICATION_ALLOWED_ERR.
+        - Calling insertAdjacentHTML() on child of the <html> element
+          no longer creates duplicate body / head elements.
+
+        Firefox agrees with the specification.
+
+        Test: fast/dom/insertAdjacentHTML-DocumentFragment-parent.html
+
+        * dom/Element.cpp:
+        (WebCore::contextNodeForInsertion):
+        (WebCore::Element::insertAdjacentHTML):
+
+2016-09-23  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r206165.
+        https://bugs.webkit.org/show_bug.cgi?id=162492
+
+        needs corresponding API change in bug 162475 (Requested by
+        alexchristensen on #webkit).
+
+        Reverted changeset:
+
+        "Non-special URLs should have an opaque origin"
+        https://bugs.webkit.org/show_bug.cgi?id=162254
+        http://trac.webkit.org/changeset/206165
+
+2016-09-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix the build after r206300.
+
+        * platform/mock/mediasource/MockSourceBufferPrivate.cpp: Add missing header include.
+
+2016-09-23  Jer Noble  <jer.noble@apple.com>
+
+        Unreviewed build fix; Missed a file in the last checkin.
+
+        * platform/graphics/SourceBufferPrivate.h:
+        (WebCore::SourceBufferPrivate::enqueuedSamplesForTrackID):
+
+2016-09-23  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION (206001): Scrubbed video on Youtube stops playing
+        https://bugs.webkit.org/show_bug.cgi?id=162481
+        <rdar://problem/28436707>
+
+        Reviewed by Eric Carlson.
+
+        Test: media/media-source/media-source-seek-back.html
+
+        When re-enqueing samples after a seek, modified the algorithm for finding the first sample
+        to re-enqueue. Instead of finding a sample which contained the requested presentation time,
+        we searched for the first sample on-or-after the presentation time. This meant that if the
+        last buffered sample in that range started before the seek time, and ended after, it would
+        get skipped during re-enquing, and a far, far future sample would be enqueued instead. Now
+        revert to the old behavior (find the sample containing the requested time), and only adopt
+        the new behavior (find the next sample on-or-after the requested time) if the first failed.
+        In addition, bail out if the second check resulted in a sample whose presentation time was
+        greater than a "fudge factor" away from the requested time.
+
+        To test this behavior, add a new method onto Internals that returns a list of the enqueued
+        samples from a SourceBuffer.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::reenqueueMediaForTime):
+        (WebCore::SourceBuffer::enqueuedSamplesForTrackID):
+        * Modules/mediasource/SourceBuffer.h:
+        * platform/mock/mediasource/MockMediaSourcePrivate.cpp:
+        (WebCore::MockMediaSourcePrivate::seekToTime):
+        * platform/mock/mediasource/MockSourceBufferPrivate.cpp:
+        (WebCore::MockSourceBufferPrivate::enqueuedSamplesForTrackID):
+        (WebCore::MockSourceBufferPrivate::enqueueSample):
+        * platform/mock/mediasource/MockSourceBufferPrivate.h:
+        * testing/Internals.cpp:
+        (WebCore::Internals::enqueuedSamplesForTrackID):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
 2016-09-22  Zalan Bujtas  <zalan@apple.com>
 
         Replace redundant prepareForDestruction() call with RELEASE_ASSERT in Document::removedLastRef.

@@ -1,3 +1,182 @@
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r206221): [USER] com.apple.WebKit.WebContent.Development at com.apple.JavaScriptCore: vmEntryToJavaScript + 299
+        https://bugs.webkit.org/show_bug.cgi?id=162536
+        <rdar://problem/28415971>
+
+        Reviewed by Gavin Barraclough.
+
+        Add layout test coverage.
+
+        * http/tests/security/cross-origin-window-property-caching-crash-expected.txt: Added.
+        * http/tests/security/cross-origin-window-property-caching-crash.html: Added.
+
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r205524): Crash under WTF::numGraphemeClusters()
+        https://bugs.webkit.org/show_bug.cgi?id=162534
+        <rdar://problem/28463828>
+
+        Reviewed by David Kilzer.
+
+        Add layout test coverage.
+
+        * fast/dom/HTMLInputElement/handleBeforeTextInsertedEvent-crash-expected.txt: Added.
+        * fast/dom/HTMLInputElement/handleBeforeTextInsertedEvent-crash.html: Added.
+
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        <a download> does not support Blob URLs
+        https://bugs.webkit.org/show_bug.cgi?id=156099
+        <rdar://problem/25535520>
+
+        Reviewed by Darin Adler.
+
+        Unskip / rebaseline existing tests now that <a download> supports Blob URLs.
+
+        * TestExpectations:
+        * fast/dom/HTMLAnchorElement/anchor-download-expected.txt:
+        * fast/dom/HTMLAnchorElement/anchor-download-synthetic-click-expected.txt: Added.
+        * fast/dom/HTMLAnchorElement/anchor-download-synthetic-click.html: Added.
+        * fast/dom/HTMLAnchorElement/anchor-nodownload-set-expected.txt:
+        * http/tests/security/anchor-download-allow-blob-expected.txt:
+        * platform/ios-simulator-wk1/TestExpectations:
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] anchor.download attribute value is ignored by NETWORK_SESSION code path
+        https://bugs.webkit.org/show_bug.cgi?id=162531
+
+        Reviewed by Darin Adler.
+
+        Unskip tests that are now passing.
+
+        * platform/mac/TestExpectations:
+
+2016-09-23  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: !newRelayoutRoot.container() || is<RenderView>(newRelayoutRoot.container()) || !newRelayoutRoot.container()->needsLayout() while loading sohu.com
+        https://bugs.webkit.org/show_bug.cgi?id=162466
+
+        Reviewed by Simon Fraser.
+
+        * fast/block/positioning/subtree-assert-when-positioned-element-dirties-containing-block-expected.txt: Added.
+        * fast/block/positioning/subtree-assert-when-positioned-element-dirties-containing-block.html: Added.
+
+2016-09-23  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Remove debug flag for flaky test js/regress-139548.html.
+        https://bugs.webkit.org/show_bug.cgi?id=160017
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-09-23  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Update TestExpectations to mark media/controls/inline-elements-dropoff-order.html as failing on Sierra.
+        https://bugs.webkit.org/show_bug.cgi?id=162494
+
+        Unreviewed test gardening.
+        * platform/mac/TestExpectations:
+
+2016-09-23  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking imported/w3c/web-platform-tests/media-source/mediasource-preload.html as flaky on Sierra.
+        https://bugs.webkit.org/show_bug.cgi?id=162523
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-09-23  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLLabelElement.prototype.form with the HTML specification
+        https://bugs.webkit.org/show_bug.cgi?id=162369
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing tests to reflect behavior change. I have verified
+        that Firefox and Chrome were failing those tests.
+
+        * fast/dom/HTMLLabelElement/form/test1.html:
+        * fast/forms/form-attribute-expected.txt:
+        * fast/forms/form-attribute-nonexistence-form-id-expected.txt:
+        * fast/forms/form-attribute-nonexistence-form-id.html:
+        * fast/forms/form-attribute.html:
+
+2016-09-23  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Temporarily skipping media/media-source/media-source-duplicate-seeked.html on mac.
+        https://bugs.webkit.org/show_bug.cgi?id=162496
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-09-22  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] ASSERT when sizing tracks with percentages inside calc
+        https://bugs.webkit.org/show_bug.cgi?id=162383
+
+        Reviewed by Darin Adler.
+
+        * fast/css-grid-layout/tracks-wider-min-track-breadth-crash-expected.txt: Added.
+        * fast/css-grid-layout/tracks-wider-min-track-breadth-crash.html: Added.
+
+2016-09-23  Chris Dumez  <cdumez@apple.com>
+
+        document.title getter does not strip / collapse the right whitespace characters
+        https://bugs.webkit.org/show_bug.cgi?id=162468
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing test to reflect behavior change.
+
+        * fast/dom/Document/script-tests/document-title-get.js:
+
+2016-09-23  Chris Dumez  <cdumez@apple.com>
+
+        Align Element.insertAdjacentHTML() with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=162479
+
+        Reviewed by Sam Weinig.
+
+        Add layout test coverage for calling insertAdjacentHTML on an element
+        whose parent is a DocumentFragment. I have verified that this test is
+        passing in Firefox.
+
+        * fast/dom/insertAdjacentHTML-DocumentFragment-crash-expected.txt:
+        * fast/dom/insertAdjacentHTML-DocumentFragment-parent-expected.txt: Added.
+        * fast/dom/insertAdjacentHTML-DocumentFragment-parent.html: Added.
+
+2016-09-23  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r206165.
+        https://bugs.webkit.org/show_bug.cgi?id=162492
+
+        needs corresponding API change in bug 162475 (Requested by
+        alexchristensen on #webkit).
+
+        Reverted changeset:
+
+        "Non-special URLs should have an opaque origin"
+        https://bugs.webkit.org/show_bug.cgi?id=162254
+        http://trac.webkit.org/changeset/206165
+
+2016-09-23  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION (206001): Scrubbed video on Youtube stops playing
+        https://bugs.webkit.org/show_bug.cgi?id=162481
+        <rdar://problem/28436707>
+
+        Reviewed by Eric Carlson.
+
+        * media/media-source/media-source-seek-back-expected.txt: Added.
+        * media/media-source/media-source-seek-back.html: Added.
+
 2016-09-23  Per Arne Vollan  <pvollan@apple.com>
 
         Skip failing html/syntax web platform test on Windows.

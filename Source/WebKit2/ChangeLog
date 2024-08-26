@@ -1,3 +1,156 @@
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] Enable support for 'download' attribute on anchor elements
+        https://bugs.webkit.org/show_bug.cgi?id=162535
+
+        Reviewed by Darin Adler.
+
+        Enable support for 'download' attribute on anchor elements for WebKit2
+        now that:
+        - It works with our NETWORK_SESSION code path (Bug 162531)
+        - Supports Blob / Data URLs (Bug 156099)
+        - Requires user interaction / ignores synthetic clicks (Bug 156099)
+
+        * Shared/WebPreferencesDefinitions.h:
+
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        <a download> does not support Blob URLs
+        https://bugs.webkit.org/show_bug.cgi?id=156099
+        <rdar://problem/25535520>
+
+        Reviewed by Darin Adler.
+
+        Add support for downloading Blob URLs to WebKit2. This should work for
+        all WebKit2 port. This also works in combination with the download
+        attribute on anchor elements. Note that the download attribute is only
+        enabled at runtime in the context of the layout tests for now. I'll
+        enable the download attribute on WK2 once I have fixed Bug 162531.
+
+        * CMakeLists.txt:
+        * NetworkProcess/Downloads/BlobDownloadClient.cpp: Added.
+        (WebKit::BlobDownloadClient::BlobDownloadClient):
+        (WebKit::BlobDownloadClient::didReceiveResponse):
+        (WebKit::BlobDownloadClient::didReceiveBuffer):
+        (WebKit::BlobDownloadClient::didFinishLoading):
+        (WebKit::BlobDownloadClient::didFail):
+        * NetworkProcess/Downloads/BlobDownloadClient.h: Added.
+        * NetworkProcess/Downloads/Download.cpp:
+        (WebKit::Download::Download):
+        (WebKit::Download::start):
+        (WebKit::Download::didStart):
+        (WebKit::Download::didReceiveResponse):
+        (WebKit::Download::decideDestinationWithSuggestedFilename):
+        (WebKit::Download::~Download): Deleted.
+        (WebKit::Download::didReceiveData): Deleted.
+        (WebKit::Download::shouldDecodeSourceDataOfMIMEType): Deleted.
+        * NetworkProcess/Downloads/Download.h:
+        (WebKit::Download::Download):
+        (WebKit::Download::suggestedName):
+        (WebKit::Download::request):
+        * NetworkProcess/Downloads/DownloadManager.cpp:
+        (WebKit::DownloadManager::startDownload):
+        * NetworkProcess/Downloads/ios/DownloadIOS.mm:
+        (WebKit::Download::startNetworkLoad):
+        * NetworkProcess/Downloads/mac/DownloadMac.mm:
+        (WebKit::Download::startNetworkLoad):
+        * NetworkProcess/Downloads/soup/DownloadSoup.cpp:
+        (WebKit::Download::startNetworkLoad):
+        * UIProcess/Downloads/DownloadProxy.cpp:
+        (WebKit::DownloadProxy::decideDestinationWithSuggestedFilename):
+        * UIProcess/Downloads/DownloadProxy.h:
+        * UIProcess/Downloads/DownloadProxy.messages.in:
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-09-24  Chris Dumez  <cdumez@apple.com>
+
+        [WK2] anchor.download attribute value is ignored by NETWORK_SESSION code path
+        https://bugs.webkit.org/show_bug.cgi?id=162531
+
+        Reviewed by Darin Adler.
+
+        Pipe the suggested filename through in the NETWORK_SESSION code path so
+        that it is used when deciding the destination path.
+
+        * NetworkProcess/Downloads/DownloadManager.cpp:
+        (WebKit::DownloadManager::startDownload):
+        * NetworkProcess/Downloads/PendingDownload.cpp:
+        (WebKit::PendingDownload::PendingDownload):
+        * NetworkProcess/Downloads/PendingDownload.h:
+        * NetworkProcess/NetworkDataTask.h:
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::setSuggestedFilename):
+        * NetworkProcess/NetworkLoad.h:
+        * NetworkProcess/cocoa/NetworkDataTaskCocoa.mm:
+        (WebKit::NetworkDataTask::suggestedFilename):
+        (WebKit::NetworkDataTask::setSuggestedFilename):
+        * NetworkProcess/cocoa/NetworkSessionCocoa.mm:
+        (-[WKNetworkSessionDelegate URLSession:dataTask:didBecomeDownloadTask:]):
+
+2016-09-23  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Media controls playhead does not animate smoothly while playing
+        https://bugs.webkit.org/show_bug.cgi?id=162399
+        <rdar://problem/28115680>
+
+        Reviewed by Beth Dakin.
+
+        See WebCore ChangeLog for more details.
+
+        In the UI process, we update the WebPlaybackSessionManager's timing value when the rate or current time changes.
+        Each AVValueTiming is generated from the current time, system anchor time, and playback rate. The behavior of
+        the first two properties is unaffected. However, the rate used to update the timing value is the effective
+        playback rate, which is equal to the playback rate unless we are (1) not playing, (2) interacting with the media
+        controls in such a way that the media is essentially not playing, or (3) the current time precedes the playback
+        start time, accounting for playback direction. In these cases, our effective playback rate is 0, which means
+        that we do not animate the playhead.
+
+        * UIProcess/Cocoa/WebPlaybackSessionManagerProxy.h:
+        * UIProcess/Cocoa/WebPlaybackSessionManagerProxy.messages.in:
+        * UIProcess/Cocoa/WebPlaybackSessionManagerProxy.mm:
+        (WebKit::WebPlaybackSessionModelContext::beginScrubbing):
+        (WebKit::WebPlaybackSessionModelContext::endScrubbing):
+        (WebKit::WebPlaybackSessionModelContext::setPlaybackStartedTime):
+        (WebKit::WebPlaybackSessionModelContext::setCurrentTime):
+        (WebKit::WebPlaybackSessionManagerProxy::setPlaybackStartedTime):
+        * WebProcess/cocoa/WebPlaybackSessionManager.h:
+        * WebProcess/cocoa/WebPlaybackSessionManager.mm:
+        (WebKit::WebPlaybackSessionInterfaceContext::playbackStartedTimeChanged):
+        (WebKit::WebPlaybackSessionManager::playbackStartedTimeChanged):
+
+2016-09-23  Caitlin Potter  <caitp@igalia.com>
+
+        [JSC] Implement parsing of Async Functions
+        https://bugs.webkit.org/show_bug.cgi?id=161409
+
+        Reviewed by Yusuke Suzuki.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-09-23  Jonathan Bedard  <jbedard@apple.com>
+
+        Fix Mac CMake build after r206261
+        https://bugs.webkit.org/show_bug.cgi?id=162493
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt: Exclude WebTextChecker from Mac CMake builds.
+        * PlatformEfl.cmake: Ditto.
+        * PlatformGTK.cmake: Ditto.
+
+2016-09-23  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] BadDamage X error in /webkit2/WebKitWebView/preferred-size
+        https://bugs.webkit.org/show_bug.cgi?id=162489
+
+        Reviewed by Michael Catanzaro.
+
+        Do a XSync right after creating/destroying the XDamage used by the redirected window in X11.
+
+        * UIProcess/gtk/AcceleratedBackingStoreX11.cpp:
+        (WebKit::AcceleratedBackingStoreX11::~AcceleratedBackingStoreX11):
+        (WebKit::AcceleratedBackingStoreX11::update):
+
 2016-09-23  Antoine Quint  <graouts@apple.com>
 
         Add a new runtime flag for work on modern media controls (off by default)

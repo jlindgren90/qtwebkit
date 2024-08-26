@@ -2879,6 +2879,11 @@ Vector<String> Internals::bufferedSamplesForTrackID(SourceBuffer& buffer, const 
     return buffer.bufferedSamplesForTrackID(trackID);
 }
     
+Vector<String> Internals::enqueuedSamplesForTrackID(SourceBuffer& buffer, const AtomicString& trackID)
+{
+    return buffer.enqueuedSamplesForTrackID(trackID);
+}
+
 void Internals::setShouldGenerateTimestamps(SourceBuffer& buffer, bool flag)
 {
     buffer.setShouldGenerateTimestamps(flag);
