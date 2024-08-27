@@ -386,6 +386,12 @@ set(WebCore_NON_SVG_IDL_FILES
     dom/DOMError.idl
     dom/DOMImplementation.idl
     dom/DOMNamedFlowCollection.idl
+    dom/DOMPoint.idl
+    dom/DOMPointInit.idl
+    dom/DOMPointReadOnly.idl
+    dom/DOMRect.idl
+    dom/DOMRectInit.idl
+    dom/DOMRectReadOnly.idl
     dom/DOMStringList.idl
     dom/DOMStringMap.idl
     dom/DataTransfer.idl
@@ -879,6 +885,7 @@ set(WebCore_SOURCES
     Modules/mediastream/MediaConstraintsImpl.cpp
     Modules/mediastream/MediaDeviceInfo.cpp
     Modules/mediastream/MediaDevices.cpp
+    Modules/mediastream/MediaDevicesEnumerationRequest.cpp
     Modules/mediastream/MediaDevicesRequest.cpp
     Modules/mediastream/MediaEndpointPeerConnection.cpp
     Modules/mediastream/MediaEndpointSessionDescription.cpp
@@ -910,7 +917,6 @@ set(WebCore_SOURCES
     Modules/mediastream/RTCTrackEvent.cpp
     Modules/mediastream/SDPProcessor.cpp
     Modules/mediastream/UserMediaController.cpp
-    Modules/mediastream/UserMediaPermissionCheck.cpp
     Modules/mediastream/UserMediaRequest.cpp
 
     Modules/navigatorcontentutils/NavigatorContentUtils.cpp

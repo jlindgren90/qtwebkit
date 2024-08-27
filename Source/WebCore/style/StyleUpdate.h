@@ -48,7 +48,7 @@ namespace Style {
 struct ElementUpdate {
     std::unique_ptr<RenderStyle> style;
     Change change { NoChange };
-    bool isSynthetic { false };
+    bool recompositeLayer { false };
 };
 
 class Update {

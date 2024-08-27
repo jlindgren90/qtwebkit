@@ -3107,6 +3107,12 @@ bool AccessibilityObject::isFigure() const
     Node* node = this->node();
     return node && node->hasTagName(figureTag);
 }
+
+bool AccessibilityObject::isOutput() const
+{
+    Node* node = this->node();
+    return node && node->hasTagName(outputTag);
+}
     
 bool AccessibilityObject::isContainedByPasswordField() const
 {

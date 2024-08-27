@@ -1,3 +1,588 @@
+2016-10-18  Keith Miller  <keith_miller@apple.com>
+
+        Cleanup Wasm memory.
+        https://bugs.webkit.org/show_bug.cgi?id=163601
+
+        Reviewed by Saam Barati.
+
+        There were a couple of issues with the original Wasm memory patch.
+        This is a follow-up patch to fix those issues.
+
+        * wasm/WASMMemory.cpp:
+        (JSC::WASM::Memory::Memory):
+        * wasm/WASMMemory.h:
+
+2016-10-15  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG and FTL should be able to use DirectCall ICs when they proved the callee or its executable
+        https://bugs.webkit.org/show_bug.cgi?id=163371
+
+        Reviewed by Geoffrey Garen and Saam Barati.
+        
+        This adds a new kind of call inline cache for when the DFG can prove what the callee
+        executable is. In those cases, we can skip some of the things that the traditional call IC
+        would do:
+        
+        - No need to check who the callee is.
+        - No need to do arity checks.
+        
+        This case isn't as simple as just emitting a call instruction since the callee may not be
+        compiled at the time that the caller is compiled. So, we need lazy resolution. Also, the
+        callee may be jettisoned independently of the caller, so we need to be able to revert the
+        call to an unlinked state. This means that we need almost all of the things that
+        CallLinkInfo has. CallLinkInfo already knows about different kinds of calls. This patch
+        teaches it about new "Direct" call types.
+        
+        The direct non-tail call IC looks like this:
+        
+                set up arguments
+            FastPath:
+                call _SlowPath
+                lea -FrameSize(%rbp), %rsp
+            
+            SlowPath:
+                pop
+                call operationLinkDirectCall
+                check exception
+                jmp FastPath
+        
+        The job of operationLinkDirectCall is to link the fast path's call entrypoint of the callee.
+        This means that in steady state, a call is just that: a call. There are no extra branches or
+        checks.
+        
+        The direct tail call IC is a bit more complicated because the act of setting up arguments
+        destroys our frame, which would prevent us from being able to throw an exception if we
+        failed to compile the callee. So, direct tail call ICs look like this:
+        
+                jmp _SlowPath
+            FastPath:
+                set up arguments
+                jmp 0 // patch to jump to callee
+            
+            SlowPath:
+                silent spill
+                call operationLinkDirectCall
+                silent fill
+                check exception
+                jmp FastPath
+        
+        The jmp to the slow path is patched to be a fall-through jmp when we link the call.
+        
+        Direct calls mean less code at call sites, fewer checks on the steady state call fast path,
+        and no need for arity fixup. This looks like a slight speed-up (~0.8%) on both Octane and
+        AsmBench.
+
+        * assembler/ARM64Assembler.h:
+        (JSC::ARM64Assembler::relinkJumpToNop):
+        * assembler/ARMv7Assembler.h:
+        (JSC::ARMv7Assembler::relinkJumpToNop):
+        (JSC::ARMv7Assembler::relinkJump): Deleted.
+        * assembler/AbstractMacroAssembler.h:
+        (JSC::AbstractMacroAssembler::repatchJumpToNop):
+        (JSC::AbstractMacroAssembler::repatchJump): Deleted.
+        * assembler/X86Assembler.h:
+        (JSC::X86Assembler::relinkJumpToNop):
+        * bytecode/CallLinkInfo.cpp:
+        (JSC::CallLinkInfo::CallLinkInfo):
+        (JSC::CallLinkInfo::callReturnLocation):
+        (JSC::CallLinkInfo::patchableJump):
+        (JSC::CallLinkInfo::hotPathBegin):
+        (JSC::CallLinkInfo::slowPathStart):
+        (JSC::CallLinkInfo::setCallee):
+        (JSC::CallLinkInfo::clearCallee):
+        (JSC::CallLinkInfo::callee):
+        (JSC::CallLinkInfo::setCodeBlock):
+        (JSC::CallLinkInfo::clearCodeBlock):
+        (JSC::CallLinkInfo::codeBlock):
+        (JSC::CallLinkInfo::setLastSeenCallee):
+        (JSC::CallLinkInfo::clearLastSeenCallee):
+        (JSC::CallLinkInfo::lastSeenCallee):
+        (JSC::CallLinkInfo::haveLastSeenCallee):
+        (JSC::CallLinkInfo::setExecutableDuringCompilation):
+        (JSC::CallLinkInfo::executable):
+        (JSC::CallLinkInfo::setMaxNumArguments):
+        (JSC::CallLinkInfo::visitWeak):
+        * bytecode/CallLinkInfo.h:
+        (JSC::CallLinkInfo::specializationKindFor):
+        (JSC::CallLinkInfo::callModeFor):
+        (JSC::CallLinkInfo::isDirect):
+        (JSC::CallLinkInfo::nearCallMode):
+        (JSC::CallLinkInfo::isLinked):
+        (JSC::CallLinkInfo::setCallLocations):
+        (JSC::CallLinkInfo::addressOfMaxNumArguments):
+        (JSC::CallLinkInfo::maxNumArguments):
+        (JSC::CallLinkInfo::isTailCall): Deleted.
+        (JSC::CallLinkInfo::setUpCallFromFTL): Deleted.
+        (JSC::CallLinkInfo::callReturnLocation): Deleted.
+        (JSC::CallLinkInfo::hotPathBegin): Deleted.
+        (JSC::CallLinkInfo::callee): Deleted.
+        (JSC::CallLinkInfo::setLastSeenCallee): Deleted.
+        (JSC::CallLinkInfo::clearLastSeenCallee): Deleted.
+        (JSC::CallLinkInfo::lastSeenCallee): Deleted.
+        (JSC::CallLinkInfo::haveLastSeenCallee): Deleted.
+        * bytecode/CallLinkStatus.cpp:
+        (JSC::CallLinkStatus::computeDFGStatuses):
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::generateImpl):
+        * bytecode/UnlinkedFunctionExecutable.h:
+        * bytecode/ValueRecovery.h:
+        (JSC::ValueRecovery::forEachReg):
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        * dfg/DFGBasicBlock.h:
+        (JSC::DFG::BasicBlock::findTerminal):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::addCallWithoutSettingResult):
+        (JSC::DFG::ByteCodeParser::handleCall):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGDoesGC.cpp:
+        (JSC::DFG::doesGC):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGGraph.cpp:
+        (JSC::DFG::Graph::parameterSlotsForArgCount):
+        * dfg/DFGGraph.h:
+        * dfg/DFGInPlaceAbstractState.cpp:
+        (JSC::DFG::InPlaceAbstractState::mergeToSuccessors):
+        * dfg/DFGJITCompiler.cpp:
+        (JSC::DFG::JITCompiler::link):
+        * dfg/DFGJITCompiler.h:
+        (JSC::DFG::JITCompiler::addJSDirectCall):
+        (JSC::DFG::JITCompiler::addJSDirectTailCall):
+        (JSC::DFG::JITCompiler::JSCallRecord::JSCallRecord):
+        (JSC::DFG::JITCompiler::JSDirectCallRecord::JSDirectCallRecord):
+        (JSC::DFG::JITCompiler::JSDirectTailCallRecord::JSDirectTailCallRecord):
+        (JSC::DFG::JITCompiler::currentJSCallIndex): Deleted.
+        * dfg/DFGNode.cpp:
+        (JSC::DFG::Node::convertToDirectCall):
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::isTerminal):
+        (JSC::DFG::Node::hasHeapPrediction):
+        (JSC::DFG::Node::hasCellOperand):
+        * dfg/DFGNodeType.h:
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSafeToExecute.h:
+        (JSC::DFG::safeToExecute):
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::callOperation):
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::emitCall):
+        (JSC::DFG::SpeculativeJIT::compile):
+        * dfg/DFGStrengthReductionPhase.cpp:
+        (JSC::DFG::StrengthReductionPhase::handleNode):
+        * ftl/FTLCapabilities.cpp:
+        (JSC::FTL::canCompile):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileNode):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallOrConstruct):
+        (JSC::FTL::DFG::LowerDFGToB3::compileDirectCallOrConstruct):
+        (JSC::FTL::DFG::LowerDFGToB3::compileTailCall):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallOrConstructVarargs):
+        * interpreter/Interpreter.cpp:
+        (JSC::Interpreter::execute):
+        (JSC::Interpreter::executeCall):
+        (JSC::Interpreter::executeConstruct):
+        (JSC::Interpreter::prepareForRepeatCall):
+        * jit/JIT.cpp:
+        (JSC::JIT::link):
+        * jit/JITCall.cpp:
+        (JSC::JIT::compileSetupVarargsFrame):
+        * jit/JITCall32_64.cpp:
+        (JSC::JIT::compileSetupVarargsFrame):
+        * jit/JITOperations.cpp:
+        * jit/JITOperations.h:
+        * jit/Repatch.cpp:
+        (JSC::linkDirectFor):
+        (JSC::revertCall):
+        * jit/Repatch.h:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::setUpCall):
+        * runtime/Executable.cpp:
+        (JSC::ScriptExecutable::prepareForExecutionImpl):
+        * runtime/Executable.h:
+        (JSC::ScriptExecutable::prepareForExecution):
+        * runtime/Options.h:
+
+2016-10-18  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Not emit exception case if it is not necessary
+        https://bugs.webkit.org/show_bug.cgi?id=163589
+
+        Reviewed by Sam Weinig.
+
+        We should not emit exception case if we do not use the slow path calls.
+        For example, nodeType accessor does not use the slow path calls.
+
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::emitDOMJITGetter):
+
+2016-10-18  Caitlin Potter  <caitp@igalia.com>
+
+        [JSC] ES6 Method functions should not have prototype
+        https://bugs.webkit.org/show_bug.cgi?id=162530
+
+        Reviewed by Saam Barati.
+
+        ECMA-262 only adds "prototype" properties to specific syntactic function forms.
+        Specific items which do not contain "prototype" include (most) built-in functions (such as Math.pow),
+        MethodDefinitions which are not either class "constructor" methods or GeneratorMethods, AsyncFunctions,
+        and ArrowFunctions.
+        
+        For details, see the following spec text, and the difference between GeneratorMethod evaluation and
+        the evaluation of other MethodDefinition forms.
+        
+        - https://tc39.github.io/ecma262/#sec-method-definitions-runtime-semantics-propertydefinitionevaluation
+        - https://tc39.github.io/ecma262/#sec-arrow-function-definitions-runtime-semantics-evaluation
+        - https://tc39.github.io/ecmascript-asyncawait/#async-function-instances
+        - https://tc39.github.io/ecma262/#sec-generator-function-definitions-runtime-semantics-propertydefinitionevaluation
+        
+
+        * runtime/Executable.h:
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::callerGetter):
+        (JSC::JSFunction::getOwnPropertySlot):
+        (JSC::JSFunction::deleteProperty):
+
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::makeFunction):
+        * runtime/Executable.h:
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::getOwnPropertySlot):
+        (JSC::JSFunction::getOwnNonIndexPropertyNames):
+        (JSC::JSFunction::put):
+        (JSC::JSFunction::deleteProperty):
+        (JSC::JSFunction::defineOwnProperty):
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncThrowTypeErrorArgumentsCalleeAndCaller):
+
+2016-10-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Use NativeCallFrameTracer for operations used for DOMJIT slow calls
+        https://bugs.webkit.org/show_bug.cgi?id=163586
+
+        Reviewed by Saam Barati.
+
+        C functions called from the DOMJIT slow path calls should use NativeCallFrameTracer.
+        This fixes the debug assertion caused in r207427.
+
+        * bytecode/DOMJITAccessCasePatchpointParams.cpp:
+        (JSC::SlowPathCallGeneratorWithArguments::generateImpl):
+        (JSC::DOMJITAccessCasePatchpointParams::emitSlowPathCalls):
+        * bytecode/DOMJITAccessCasePatchpointParams.h:
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::emitDOMJITGetter):
+        * jsc.cpp:
+        (WTF::DOMJITGetter::DOMJITNodeDOMJIT::slowCall):
+        (WTF::DOMJITGetterComplex::DOMJITNodeDOMJIT::slowCall):
+
+2016-10-17  Keith Miller  <keith_miller@apple.com>
+
+        Add support for WASM Memory.
+        https://bugs.webkit.org/show_bug.cgi?id=161710
+
+        Reviewed by Geoffrey Garen.
+
+        This patch add initial support for WASM memory operations. First,
+        it adds the concept of a WASM Module memory management object.
+        This object currently mmaps a 32-bit address space for WASM use,
+        although it marks all the memory outside the current breakpoint as
+        PROT_NONE. For now, we do a range check on each store and load. In
+        the future, we should change this to be an signal handler that
+        checks what module the program trapped in.
+
+        Additionally, this patch changes the way that our temporary tests
+        call into WASM code. There is now a true "thunk" that relocates
+        arguments and calls into WASM. This thunk does not tail call
+        because we use pinned values to memory base-pointer and
+        size. We use the new B3 pinned register api to pin the values.
+
+        * CMakeLists.txt:
+        * Configurations/ToolExecutable.xcconfig:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * testWASM.cpp:
+        (runWASMTests):
+        (main):
+        * wasm/WASMB3IRGenerator.cpp:
+        (JSC::WASM::createJSWrapper):
+        (JSC::WASM::parseAndCompile):
+        * wasm/WASMB3IRGenerator.h:
+        * wasm/WASMCallingConvention.h:
+        (JSC::WASM::CallingConvention::iterate):
+        (JSC::WASM::CallingConvention::setupCall):
+        (JSC::WASM::nextJSCOffset):
+        * wasm/WASMFormat.h:
+        * wasm/WASMFunctionParser.h:
+        (JSC::WASM::FunctionParser<Context>::parseExpression):
+        * wasm/WASMMemory.cpp: Copied from Source/JavaScriptCore/wasm/WASMPlan.cpp.
+        (JSC::WASM::Memory::Memory):
+        * wasm/WASMMemory.h: Copied from Source/JavaScriptCore/wasm/WASMModuleParser.h.
+        (JSC::WASM::Memory::~Memory):
+        (JSC::WASM::Memory::memory):
+        (JSC::WASM::Memory::size):
+        (JSC::WASM::Memory::pinnedRegisters):
+        (JSC::WASM::Memory::mode):
+        (JSC::WASM::Memory::growMemory):
+        (JSC::WASM::Memory::offsetOfSize):
+        * wasm/WASMModuleParser.cpp:
+        (JSC::WASM::ModuleParser::parse):
+        (JSC::WASM::ModuleParser::parseMemory):
+        * wasm/WASMModuleParser.h:
+        (JSC::WASM::ModuleParser::functionInformation):
+        (JSC::WASM::ModuleParser::memory):
+        * wasm/WASMOps.h:
+        * wasm/WASMPlan.cpp:
+        (JSC::WASM::Plan::Plan):
+        * wasm/WASMPlan.h:
+        * wasm/WASMSections.h:
+
+2016-10-17  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Add toggles for debugger pauses at console.assert failures
+        https://bugs.webkit.org/show_bug.cgi?id=139542
+        <rdar://problem/19281600>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/agents/InspectorDebuggerAgent.h:
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::InspectorDebuggerAgent::disable):
+        (Inspector::InspectorDebuggerAgent::setPauseOnAssertions):
+        Toggle pause on assertions state. Default is disabled,
+        and disable it when frontends disconnect.
+
+        (Inspector::InspectorDebuggerAgent::handleConsoleAssert):
+        Instead of using the PauseOnAllExceptions state, use this
+        new state specific to assertions.
+
+        * inspector/protocol/Debugger.json:
+        New protocol method to toggle pausing on assertions.
+
+2016-10-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT][JSC] Add Option::useDOMJIT
+        https://bugs.webkit.org/show_bug.cgi?id=163457
+
+        Reviewed by Saam Barati.
+
+        Add an option to switch the DOMJIT optimization.
+
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessCase::generateImpl):
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleGetById):
+        * runtime/Options.cpp:
+        (JSC::recomputeDependentOptions):
+        * runtime/Options.h:
+
+2016-10-17  Filip Pizlo  <fpizlo@apple.com>
+
+        Air::IRC doesn't need to have a special-case for uncolored Tmps since they all get colored
+        https://bugs.webkit.org/show_bug.cgi?id=163548
+        <rdar://problem/28804381>
+
+        Reviewed by Geoffrey Garen.
+        
+        Before r207408, IRC had a mode where it would silently assign the first assignable register (so
+        %rax, %xmm0, etc) to any tmp that was not colorable due to a pathological interference fencepost.
+        We reason about interference at instruction boundaries. This means that if you have, for example,
+        an instruction that clobbers all registers late followed by an instruction that has an early def
+        in the same register file, then the early def will not be colorable because it interferes with
+        all registers. This already happens in our tests, but IRC silently returns the first assignable
+        register to such tmps. For some reason the resulting code works OK - probably because this tends
+        to only be hit by fuzzing, which may not then stress that code enough to shake out the register
+        corruption. Also, this can only happen for floating point registers, so it's hard to get an
+        exciting crash. The worst case is that your numbers get all messed up.
+        
+        This change fixes the issue:
+        
+        - IRC will now crash if it can't color a tmp.
+        
+        - IRC doesn't crash on our tests anymore because I added a padInterference() utility that works
+          around the interference problem by inserting Nops to pad between those instructions where
+          conflating their early and late actions into one interference fencepost could create an
+          uncolorable graph.
+        
+        See https://bugs.webkit.org/show_bug.cgi?id=163548#c2 for a detailed discussion of how the
+        problem can arise.
+        
+        This problem almost made me want to abandon our use of interference at instruction boundaries,
+        and introduce something more comprehensive, like interference at various stages of an
+        instruction's execution. The reason why I didn't do this is that this problem only arises in well
+        confined corner cases: you need an instruction that does a late use or def followed by an
+        instruction that does an early def. Register clobbers count as defs for this equation.
+        Fortunately, early defs are rare, and even when they do happen, you still need the previous
+        instruction to have a late something. Late uses are rare and many instructions don't have defs at
+        all, which means that it's actually pretty common for an instruction to not have anything late.
+        This means that the padInterference() strategy is ideal: our algorithms stay simple because they
+        only have to worry about interference at boundaries, and we rarely insert any Nops in
+        padInterference() so the IR stays nice and compact. Those Nops get removed by any phase that does
+        DCE, which includes eliminateDeadCode(), allocateStack(), and reportUsedRegisters(). In practice
+        allocateStack() kills them.
+        
+        This also finally refactors our passing of RegisterSet to pass it by value, since it's small
+        enough that we're not gaining anything by using references. On x86, RegisterSet ought to be
+        smaller than a pointer.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * b3/B3StackmapSpecial.cpp:
+        (JSC::B3::StackmapSpecial::extraClobberedRegs):
+        (JSC::B3::StackmapSpecial::extraEarlyClobberedRegs):
+        * b3/B3StackmapSpecial.h:
+        * b3/air/AirCCallSpecial.cpp:
+        (JSC::B3::Air::CCallSpecial::extraEarlyClobberedRegs):
+        (JSC::B3::Air::CCallSpecial::extraClobberedRegs):
+        * b3/air/AirCCallSpecial.h:
+        * b3/air/AirInst.h:
+        * b3/air/AirInstInlines.h:
+        (JSC::B3::Air::Inst::extraClobberedRegs):
+        (JSC::B3::Air::Inst::extraEarlyClobberedRegs):
+        * b3/air/AirIteratedRegisterCoalescing.cpp:
+        (JSC::B3::Air::iteratedRegisterCoalescing):
+        * b3/air/AirPadInterference.cpp: Added.
+        (JSC::B3::Air::padInterference):
+        * b3/air/AirPadInterference.h: Added.
+        * b3/air/AirSpecial.h:
+        * b3/air/AirSpillEverything.cpp:
+        (JSC::B3::Air::spillEverything):
+        * jit/RegisterSet.h:
+        (JSC::RegisterSet::isEmpty):
+
+2016-10-17  JF Bastien  <jfbastien@apple.com>
+
+        WebAssembly JS API: implement basic stub
+
+        Implement the global WebAssembly JavaScript object, and its constructor +
+        function properties as described in:
+          https://github.com/WebAssembly/design/blob/master/JS.md
+
+        These don't do anything at the moment, the parent bug will take care of adding
+        more functionality and associated tests.
+
+        WebAssembly JS API: implement basic stub
+        https://bugs.webkit.org/show_bug.cgi?id=163404
+
+        Reviewed by Keith Miller.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * builtins/BuiltinNames.h: register the new WebAssembly object's name and its constructor properties
+        * jsc.cpp: remove useless include
+        * runtime/JSGlobalObject.cpp:
+        (JSC::JSGlobalObject::init): add the WebAssembly global object and its constructor properties, but only if the JSC option enables it
+        * runtime/Options.h: add the useWebAssembly (alias: enableWebAssembly) option, defaulting to false
+        * wasm/WebAssemblyObject.cpp: Added.
+        (JSC::WebAssemblyObject::create): boilerplate
+        (JSC::WebAssemblyObject::createStructure): boilerplate
+        (JSC::WebAssemblyObject::finishCreation): boilerplate
+        (JSC::WebAssemblyObject::WebAssemblyObject): boilerplate
+        (JSC::wasmObjectFuncvalidate): auto-throws for now
+        (JSC::wasmObjectFunccompile): auto-throws for now
+        * wasm/WebAssemblyObject.h: Added.
+
+2016-10-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, build fix after r207428
+        https://bugs.webkit.org/show_bug.cgi?id=163223
+
+        Previous build fix r207428 broke all the builds.
+
+        * bytecode/PolymorphicAccess.h:
+
+2016-10-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, build fix for GTK and Windows
+        https://bugs.webkit.org/show_bug.cgi?id=163223
+
+        Attempt to fix build failures in GTK port and Windows port.
+
+        * bytecode/PolymorphicAccess.cpp:
+        * bytecode/PolymorphicAccess.h:
+        (JSC::AccessGenerationState::SpillState::SpillState):
+
+2016-10-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Use DOMJIT::Patchpoint in IC
+        https://bugs.webkit.org/show_bug.cgi?id=163223
+
+        Reviewed by Saam Barati.
+
+        This patch uses DOMJIT::Patchpoint to inline DOM accesses even in IC!
+        It is useful for Baseline JIT cases and GetById cases in DFG and FTL.
+        In AccessCase, we construct the environment that allows DOMJIT::Patchpoint
+        to emit code and make DOMJIT accessors inlined in IC.
+
+        To allow DOMJIT::Patchpoint to emit code, we create a mechanism to emit calls
+        required in DOMJIT::Patchpoint. This system is useful when we create the super-
+        polymorphic support[1] later. And inlining mechanism is useful even after
+        introducing super-polymorphic support since it can work even after we fire the
+        watchpoint for super-polymorphic handling.
+
+        This patch improves Dromaeo dom-traverse 8% (263.95 runs/s v.s. 244.07 runs/s).
+
+        [1]: https://bugs.webkit.org/show_bug.cgi?id=163226
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/DOMJITAccessCasePatchpointParams.cpp: Added.
+        (JSC::SlowPathCallGeneratorWithArguments::SlowPathCallGeneratorWithArguments):
+        (JSC::SlowPathCallGeneratorWithArguments::generateImpl):
+        (JSC::DOMJITAccessCasePatchpointParams::emitSlowPathCalls):
+        * bytecode/DOMJITAccessCasePatchpointParams.h: Copied from Source/JavaScriptCore/ftl/FTLDOMJITPatchpointParams.h.
+        (JSC::DOMJITAccessCasePatchpointParams::DOMJITAccessCasePatchpointParams):
+        (JSC::DOMJITAccessCasePatchpointParams::SlowPathCallGenerator::~SlowPathCallGenerator):
+        * bytecode/PolymorphicAccess.cpp:
+        (JSC::AccessGenerationState::liveRegistersForCall):
+        (JSC::AccessGenerationState::liveRegistersToPreserveAtExceptionHandlingCallSite):
+        (JSC::calleeSaveRegisters):
+        (JSC::AccessGenerationState::calculateLiveRegistersForCallAndExceptionHandling):
+        (JSC::AccessGenerationState::restoreLiveRegistersFromStackForCallWithThrownException):
+        (JSC::AccessGenerationState::restoreLiveRegistersFromStackForCall):
+        (JSC::AccessGenerationState::callSiteIndexForExceptionHandlingOrOriginal):
+        (JSC::AccessGenerationState::originalExceptionHandler):
+        (JSC::AccessCase::generateImpl):
+        (JSC::AccessCase::emitDOMJITGetter):
+        (JSC::PolymorphicAccess::regenerate):
+        (JSC::AccessGenerationState::preserveLiveRegistersToStackForCall): Deleted.
+        * bytecode/PolymorphicAccess.h:
+        (JSC::AccessGenerationState::SpillState::isEmpty):
+        (JSC::AccessGenerationState::setSpillStateForJSGetterSetter):
+        (JSC::AccessGenerationState::spillStateForJSGetterSetter):
+        (JSC::AccessGenerationState::liveRegistersForCall): Deleted.
+        (JSC::AccessGenerationState::numberOfStackBytesUsedForRegisterPreservation): Deleted.
+        (JSC::AccessGenerationState::liveRegistersToPreserveAtExceptionHandlingCallSite): Deleted.
+        * dfg/DFGDOMJITPatchpointParams.cpp:
+        * dfg/DFGDOMJITPatchpointParams.h:
+        * domjit/DOMJITPatchpoint.h:
+        * domjit/DOMJITPatchpointParams.h:
+        (JSC::DOMJIT::PatchpointParams::addSlowPathCall):
+        * ftl/FTLDOMJITPatchpointParams.cpp:
+        * ftl/FTLDOMJITPatchpointParams.h:
+        * jsc.cpp:
+        (WTF::DOMJITNode::checkDOMJITNode):
+        (WTF::DOMJITGetterComplex::DOMJITGetterComplex):
+        (WTF::DOMJITGetterComplex::createStructure):
+        (WTF::DOMJITGetterComplex::create):
+        (WTF::DOMJITGetterComplex::DOMJITNodeDOMJIT::DOMJITNodeDOMJIT):
+        (WTF::DOMJITGetterComplex::domJITNodeGetterSetter):
+        (WTF::DOMJITGetterComplex::finishCreation):
+        (WTF::DOMJITGetterComplex::functionEnableException):
+        (WTF::DOMJITGetterComplex::customGetter):
+        (GlobalObject::finishCreation):
+        (functionCreateDOMJITGetterComplexObject):
+
+2016-10-17  Saam Barati  <sbarati@apple.com>
+
+        Build fix for HasOwnPropertyCache::Entry caused slowdown by introducing a constructor that doesn't use move semantics for the RefPtr<UniquedStringImpl> parameter
+        https://bugs.webkit.org/show_bug.cgi?id=163490
+
+        Reviewed by Darin Adler.
+
+        * runtime/HasOwnPropertyCache.h:
+        (JSC::HasOwnPropertyCache::Entry::Entry):
+        (JSC::HasOwnPropertyCache::tryAdd):
+
 2016-10-17  Mark Lam  <mark.lam@apple.com>
 
         Use the reject() helper function for conditionally throwing TypeErrors.

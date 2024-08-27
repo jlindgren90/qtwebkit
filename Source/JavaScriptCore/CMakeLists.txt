@@ -95,6 +95,7 @@ set(JavaScriptCore_SOURCES
     b3/air/AirLowerEntrySwitch.cpp
     b3/air/AirLowerMacros.cpp
     b3/air/AirOptimizeBlockOrder.cpp
+    b3/air/AirPadInterference.cpp
     b3/air/AirPhaseScope.cpp
     b3/air/AirReportUsedRegisters.cpp
     b3/air/AirSimplifyCFG.cpp
@@ -204,6 +205,7 @@ set(JavaScriptCore_SOURCES
     bytecode/ComplexGetStatus.cpp
     bytecode/DataFormat.cpp
     bytecode/DFGExitProfile.cpp
+    bytecode/DOMJITAccessCasePatchpointParams.cpp
     bytecode/DeferredCompilationCallback.cpp
     bytecode/DeferredSourceDump.cpp
     bytecode/ExecutionCounter.cpp
@@ -861,8 +863,10 @@ set(JavaScriptCore_SOURCES
     wasm/JSWASMModule.cpp
     wasm/WASMB3IRGenerator.cpp
     wasm/WASMCallingConvention.cpp
+    wasm/WASMMemory.cpp
     wasm/WASMModuleParser.cpp
     wasm/WASMPlan.cpp
+    wasm/WebAssemblyObject.cpp
 
     yarr/RegularExpression.cpp
     yarr/YarrCanonicalizeUCS2.cpp

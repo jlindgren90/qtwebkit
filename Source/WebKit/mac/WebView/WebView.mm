@@ -2537,6 +2537,8 @@ static bool needsSelfRetainWhileLoadingQuirk()
 
     RuntimeEnabledFeatures::sharedFeatures().setShadowDOMEnabled([preferences shadowDOMEnabled]);
 
+    RuntimeEnabledFeatures::sharedFeatures().setInteractiveFormValidationEnabled([self interactiveFormValidationEnabled]);
+
     RuntimeEnabledFeatures::sharedFeatures().setDOMIteratorEnabled([preferences DOMIteratorEnabled]);
 
     RuntimeEnabledFeatures::sharedFeatures().setModernMediaControlsEnabled([preferences modernMediaControlsEnabled]);
@@ -8657,7 +8659,7 @@ bool LayerFlushController::flushLayers()
     if (![[self preferences] fullScreenEnabled])
         return NO;
 
-    return !withKeyboard;
+    return true;
 }
 
 - (void)_enterFullScreenForElement:(WebCore::Element*)element

@@ -1492,13 +1492,15 @@ void RenderObject::updateDragState(bool dragOn)
 {
     bool valueChanged = (dragOn != isDragging());
     setIsDragging(dragOn);
-    if (valueChanged && node() && (style().affectedByDrag() || (is<Element>(*node()) && downcast<Element>(*node()).childrenAffectedByDrag())))
-        node()->setNeedsStyleRecalc();
 
     if (!is<RenderElement>(*this))
         return;
+    auto& renderElement = downcast<RenderElement>(*this);
 
-    for (auto& child : childrenOfType<RenderObject>(downcast<RenderElement>(*this)))
+    if (valueChanged && renderElement.element() && (style().affectedByDrag() || renderElement.element()->childrenAffectedByDrag()))
+        renderElement.element()->invalidateStyleForSubtree();
+
+    for (auto& child : childrenOfType<RenderObject>(renderElement))
         child.updateDragState(dragOn);
 }
 

@@ -460,6 +460,19 @@ void RenderGrid::layoutBlock(bool relayoutChildren, LayoutUnit)
 
     LayoutSize previousSize = size();
 
+    // We need to clear both own and containingBlock override sizes of orthogonal items to ensure we get the
+    // same result when grid's intrinsic size is computed again in the updateLogicalWidth call bellow.
+    if (sizesLogicalWidthToFitContent(MaxSize) || style().logicalWidth().isIntrinsicOrAuto()) {
+        for (auto* child = firstChildBox(); child; child = child->nextSiblingBox()) {
+            if (child->isOutOfFlowPositioned() || !isOrthogonalChild(*child))
+                continue;
+            child->clearOverrideSize();
+            child->clearContainingBlockOverrideSize();
+            child->setNeedsLayout();
+            child->layoutIfNeeded();
+        }
+    }
+
     setLogicalHeight(0);
     updateLogicalWidth();
 
@@ -1488,14 +1501,14 @@ unsigned RenderGrid::computeAutoRepeatTracksCount(GridTrackSizingDirection direc
         if (sizingOperation != IntrinsicSizeComputation)
             availableSize =  availableLogicalWidth();
     } else {
-        availableSize = computeContentLogicalHeight(MainOrPreferredSize, style().logicalHeight(), LayoutUnit(-1));
+        availableSize = computeContentLogicalHeight(MainOrPreferredSize, style().logicalHeight(), Nullopt);
         if (!availableSize) {
             const Length& maxLength = style().logicalMaxHeight();
             if (!maxLength.isUndefined())
-                availableSize = computeContentLogicalHeight(MaxSize, maxLength, LayoutUnit(-1));
-        } else {
-            availableSize = constrainLogicalHeightByMinMax(availableSize.value(), LayoutUnit(-1));
+                availableSize = computeContentLogicalHeight(MaxSize, maxLength, Nullopt);
         }
+        if (availableSize)
+            availableSize = constrainContentBoxLogicalHeightByMinMax(availableSize.value(), Nullopt);
     }
 
     bool needsToFulfillMinimumSize = false;

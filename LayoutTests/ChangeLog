@@ -1,3 +1,241 @@
+2016-10-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Add flaky expectation for tiled-drawing/scrolling/latched-div-with-scroll-snap.html that was errantly removed.
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-10-18  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        SVGCSSParser: m_implicitShorthand value is not reset after adding the shorthand property
+        https://bugs.webkit.org/show_bug.cgi?id=116470
+
+        Reviewed by Simon Fraser.
+
+        * fast/css/implicit-property-restore-expected.txt: Added.
+        * fast/css/implicit-property-restore.html: Added.
+
+        * fast/css/remove-shorthand-expected.txt:
+        Rebase-line the test expected results because of fixing the leak of
+        m_implicitShorthand. The bug was happening because "background: ..." property
+        comes immediately before the "list-style: ...." property.
+
+2016-10-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/debugger/breakpoint-action-eval.html as a flaky timeout on mac-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=163604
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-10-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking scroll-restoration-fragment-scrolling-cross-origin.html as flaky on mac-wk1.
+        https://bugs.webkit.org/show_bug.cgi?id=161360
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-10-18  Chris Dumez  <cdumez@apple.com>
+
+        Update TrackEvent to stop using legacy [ConstructorTemplate=Event]
+        https://bugs.webkit.org/show_bug.cgi?id=163580
+
+        Reviewed by Sam Weinig.
+
+        Update existing test to reflect behavior change. We now correctly throw a TypeError
+        when passing an unexpected track object type to the TrackEvent constructor.
+
+        * fast/events/constructors/track-event-constructor-expected.txt:
+        * fast/events/constructors/track-event-constructor.html:
+
+2016-10-18  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        Rebase test in fast/mediastream
+
+        [GTK] Test gardening after r206956
+        https://bugs.webkit.org/show_bug.cgi?id=163596
+
+        Unreviewed.
+
+        * fast/mediastream/RTCPeerConnection-add-removeTrack-expected.txt:
+
+2016-10-18  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Resolve constraints and enumerate devices in the UI process
+        https://bugs.webkit.org/show_bug.cgi?id=162147
+        <rdar://problem/28803569>
+
+        Reviewed by Darin Adler.
+
+        * fast/mediastream/getusermedia-expected.txt: Updated.
+        * fast/mediastream/getusermedia.html: Ditto.
+        * fast/mediastream/mock-media-source-expected.txt: Ditto.
+
+2016-10-18  Caitlin Potter  <caitp@igalia.com>
+
+        [JSC] ES6 Method functions should not have prototype
+        https://bugs.webkit.org/show_bug.cgi?id=162530
+
+        Reviewed by Saam Barati.
+
+        Update expected error message to no longer indicate "strict mode"
+        (which is not always true), and add additional tests for the presence
+        of "caller" and "arguments" on accessor MethodDefinitions.
+
+        * js/basic-strict-mode-expected.txt:
+        * js/caller-property-expected.txt:
+        * js/class-syntax-method-names-expected.txt:
+        * js/es6-function-properties-expected.txt:
+        * js/non-strict-function-properties-expected.txt:
+        * js/script-tests/caller-property.js:
+        * js/script-tests/class-syntax-method-names.js:
+        * js/script-tests/es6-function-properties.js:
+        (k.get getter):
+        (k.set setter):
+        (get checkProperties):
+        * js/script-tests/non-strict-function-properties.js:
+
+2016-10-18  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Different width of grid container between initial load and refresh
+        https://bugs.webkit.org/show_bug.cgi?id=163535
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        Tests to ensure repeated layouts on grid elements produce the same results when using
+        orthogonal grid items.
+
+        * fast/css-grid-layout/repeating-layout-must-produce-the-same-results-expected.txt: Added.
+        * fast/css-grid-layout/repeating-layout-must-produce-the-same-results.html: Added.
+
+2016-10-17  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Constrain by min|max-height on auto repeat computation
+        https://bugs.webkit.org/show_bug.cgi?id=163540
+
+        Reviewed by Darin Adler.
+
+        Some new test cases to verify that min-height is used on the auto repeat tracks computation
+        whenever the height is indefinite and max-height is not.
+
+        * fast/css-grid-layout/grid-auto-fill-rows-expected.txt:
+        * fast/css-grid-layout/grid-auto-fill-rows.html:
+        * fast/css-grid-layout/grid-indefinite-size-auto-repeat-crash-expected.txt:
+        * fast/css-grid-layout/grid-indefinite-size-auto-repeat-crash.html:
+
+2016-10-17  Megan Gardner  <megan_gardner@apple.com>
+
+        Add test and infrastructure for link popover
+        https://bugs.webkit.org/show_bug.cgi?id=163406
+
+        Reviewed by Simon Fraser.
+
+        * fast/events/touch/ios/iphone7/force-press-on-link-expected.txt: Added.
+        * fast/events/touch/ios/iphone7/force-press-on-link.html: Added.
+
+2016-10-17  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Add toggles for debugger pauses at console.assert failures
+        https://bugs.webkit.org/show_bug.cgi?id=139542
+        <rdar://problem/19281600>
+
+        Reviewed by Timothy Hatcher.
+
+        * inspector/debugger/pause-on-assert.html:
+        * inspector/debugger/pause-reason.html:
+        These tests need to enable pause on assertions.
+
+        * inspector/debugger/setPauseOnAssertions-expected.txt: Added.
+        * inspector/debugger/setPauseOnAssertions.html: Added.
+        Specific tests for the new protocol method.
+
+2016-10-17  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking platform/ios-simulator/ios/plugin/youtube-flash-plugin-iframe.html as flaky on ios-simulator debug.
+        https://bugs.webkit.org/show_bug.cgi?id=163362
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-10-17  Simon Fraser  <simon.fraser@apple.com>
+
+        Implement DOMRect/DOMRectReadOnly
+        https://bugs.webkit.org/show_bug.cgi?id=163464
+
+        Reviewed by Darin Adler.
+        
+        New test and new results for global constructor tests.
+
+        * geometry/DOMRect-001-expected.txt: Added.
+        * geometry/DOMRect-001.html: Added.
+        * js/dom/global-constructors-attributes-dedicated-worker-expected.txt:
+        * js/dom/global-constructors-attributes-expected.txt:
+        * platform/efl/js/dom/global-constructors-attributes-expected.txt:
+        * platform/gtk/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * platform/win/js/dom/global-constructors-attributes-expected.txt:
+
+2016-10-17  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Basic MediaController
+        https://bugs.webkit.org/show_bug.cgi?id=163539
+        <rdar://problem/28797542>
+
+        Reviewed by Darin Adler.
+
+        Testing the properties of the new MediaController class and the availability and behavior of the
+        createControls() global function.
+
+        * media/modern-media-controls/media-controller/media-controller-click-to-start-expected.txt: Added.
+        * media/modern-media-controls/media-controller/media-controller-click-to-start.html: Added.
+        * media/modern-media-controls/media-controller/media-controller-constructor-expected.txt: Added.
+        * media/modern-media-controls/media-controller/media-controller-constructor.html: Added.
+        * media/modern-media-controls/media-controller/media-controller-resize-expected.txt: Added.
+        * media/modern-media-controls/media-controller/media-controller-resize.html: Added.
+
+2016-10-17  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Skip layout tests under crypto/workers/subtle
+
+        * platform/gtk/TestExpectations:
+
+2016-10-17  Nan Wang  <n_wang@apple.com>
+
+        AX: [Mac] mapping for output elements
+        https://bugs.webkit.org/show_bug.cgi?id=163471
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/output-element-expected.txt: Added.
+        * accessibility/mac/output-element.html: Added.
+
+2016-10-17  Simon Fraser  <simon.fraser@apple.com>
+
+        Implement DOMPoint/DOMPointReadOnly
+        https://bugs.webkit.org/show_bug.cgi?id=133916
+
+        Reviewed by Darin Adler.
+        
+        New Web Platform-style test, and rebaselines.
+
+        * geometry/DOMPoint-001-expected.txt: Added.
+        * geometry/DOMPoint-001.html: Added.
+        * js/dom/global-constructors-attributes-dedicated-worker-expected.txt:
+        * js/dom/global-constructors-attributes-expected.txt:
+        * platform/efl/js/dom/global-constructors-attributes-expected.txt:
+        * platform/gtk/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * platform/win/js/dom/global-constructors-attributes-expected.txt:
+
 2016-10-17  Ryan Haddad  <ryanhaddad@apple.com>
 
         Rebaseline mathml/mathml-in-dashboard.html for mac.

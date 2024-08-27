@@ -4583,7 +4583,7 @@ void HTMLMediaElement::mediaPlayerRenderingModeChanged(MediaPlayer*)
     LOG(Media, "HTMLMediaElement::mediaPlayerRenderingModeChanged(%p)", this);
 
     // Kick off a fake recalcStyle that will update the compositing tree.
-    setNeedsStyleRecalc(SyntheticStyleChange);
+    invalidateStyleAndLayerComposition();
 }
 
 #if PLATFORM(WIN) && USE(AVFOUNDATION)
@@ -5597,7 +5597,7 @@ void HTMLMediaElement::setVideoFullscreenLayer(PlatformLayer* platformLayer, std
     }
     
     m_player->setVideoFullscreenLayer(platformLayer, completionHandler);
-    setNeedsStyleRecalc(SyntheticStyleChange);
+    invalidateStyleAndLayerComposition();
 #if ENABLE(VIDEO_TRACK)
     updateTextTrackDisplay();
 #endif

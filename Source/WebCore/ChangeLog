@@ -1,3 +1,920 @@
+2016-10-18  Dean Jackson  <dino@apple.com>
+
+        Remove dependency cycle with UIKit
+        https://bugs.webkit.org/show_bug.cgi?id=163577
+        <rdar://problem/28786160>
+
+        Reviewed by Tim Horton.
+
+        Soft link against UIKit. Followup patch because
+        I screwed up and forgot to edit the simulator
+        configuration.
+
+        * Configurations/WebCoreTestSupport.xcconfig:
+
+2016-10-18  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        SVGCSSParser: m_implicitShorthand value is not reset after adding the shorthand property
+        https://bugs.webkit.org/show_bug.cgi?id=116470
+
+        Reviewed by Simon Fraser.
+
+        When we encounter a shorthand css property, we set m_implicitShorthand
+        to true to tell addProperty() later that the individual properties are
+        all set through a short hand one. We need to make sure that setting 
+        m_implicitShorthand to true will not be leaked after finishing parsing
+        the short hand property.
+
+        Test: fast/css/implicit-property-restore.html
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParser::parseValue):
+        (WebCore::CSSParser::parseFillShorthand):
+        (WebCore::CSSParser::parseShorthand):
+        (WebCore::CSSParser::parse4Values):
+        (WebCore::CSSParser::parseBorderRadius):
+        (WTF::ImplicitScope::ImplicitScope): Deleted.
+        (WTF::ImplicitScope::~ImplicitScope): Deleted.
+        Get rid of ImplicitScope and replace its calls by TemporaryChange<bool>.
+        
+        * css/parser/SVGCSSParser.cpp:
+        (WebCore::CSSParser::parseSVGValue):
+        Restore m_implicitShorthand value after setting it temporarily to true.
+
+2016-10-18  Chris Dumez  <cdumez@apple.com>
+
+        Update TrackEvent to stop using legacy [ConstructorTemplate=Event]
+        https://bugs.webkit.org/show_bug.cgi?id=163580
+
+        Reviewed by Sam Weinig.
+
+        Update TrackEvent to stop using legacy [ConstructorTemplate=Event]
+        and use a regular constructor as in the specification:
+        - https://html.spec.whatwg.org/#the-trackevent-interface
+
+        No new tests, updated existing tests.
+
+        * html/track/TrackEvent.cpp:
+        (WebCore::TrackEvent::TrackEvent):
+        * html/track/TrackEvent.h:
+        * html/track/TrackEvent.idl:
+
+2016-10-18  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r207409.
+        https://bugs.webkit.org/show_bug.cgi?id=163602
+
+        Introduced many test failures and timeouts, causing release
+        bot to exit early (Requested by mcatanzaro on #webkit).
+
+        Reverted changeset:
+
+        "[GTK] Several tests crashing on debug bot in (anonymous
+        namespace)::MediaPlayerPrivateGStreamerBase::repaint"
+        https://bugs.webkit.org/show_bug.cgi?id=163511
+        http://trac.webkit.org/changeset/207409
+
+2016-10-18  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Resolve constraints and enumerate devices in the UI process
+        https://bugs.webkit.org/show_bug.cgi?id=162147
+        <rdar://problem/28803569>
+
+        Reviewed by Darin Adler.
+
+        Restructure gUM constraint validation and MediaDevices.enumerateDevices so all media device
+        access happens in the UI process.
+
+        No new tests, updated results of existing tests.
+
+        * CMakeLists.txt: Add MediaDevicesEnumerationRequest.cpp, delete UserMediaPermissionCheck.cpp.
+
+        * Modules/mediastream/MediaConstraintsImpl.cpp:
+        (WebCore::MediaConstraintsImpl::create): Only create from MediaConstraintsData.
+        (WebCore::MediaConstraintsImpl::initialize): Deleted.
+        * Modules/mediastream/MediaConstraintsImpl.h:
+
+        * Modules/mediastream/MediaDevicesEnumerationRequest.cpp: Added.
+        (WebCore::MediaDevicesEnumerationRequest::create):
+        (WebCore::MediaDevicesEnumerationRequest::MediaDevicesEnumerationRequest):
+        (WebCore::MediaDevicesEnumerationRequest::~MediaDevicesEnumerationRequest):
+        (WebCore::MediaDevicesEnumerationRequest::userMediaDocumentOrigin):
+        (WebCore::MediaDevicesEnumerationRequest::topLevelDocumentOrigin):
+        (WebCore::MediaDevicesEnumerationRequest::contextDestroyed):
+        (WebCore::MediaDevicesEnumerationRequest::start):
+        (WebCore::MediaDevicesEnumerationRequest::cancel):
+        (WebCore::MediaDevicesEnumerationRequest::setDeviceInfo):
+        (WebCore::MediaDevicesEnumerationRequest::finish):
+        * Modules/mediastream/MediaDevicesEnumerationRequest.h: Added.
+
+        * Modules/mediastream/MediaDevicesRequest.cpp:
+        (WebCore::MediaDevicesRequest::~MediaDevicesRequest): Clear the enumeration request.
+        (WebCore::MediaDevicesRequest::contextDestroyed): Ditto.
+        (WebCore::MediaDevicesRequest::start): Create and use a MediaDevicesEnumerationRequest.
+        (WebCore::MediaDevicesRequest::didCompletePermissionCheck): Deleted.
+        * Modules/mediastream/MediaDevicesRequest.h:
+
+        * Modules/mediastream/UserMediaClient.h:
+        * Modules/mediastream/UserMediaController.h:
+        (WebCore::UserMediaController::enumerateMediaDevices): New.
+        (WebCore::UserMediaController::cancelMediaDevicesEnumerationRequest): New.
+        (WebCore::UserMediaController::checkUserMediaPermission): Deleted.
+        (WebCore::UserMediaController::cancelUserMediaPermissionCheck): Deleted.
+
+        * Modules/mediastream/UserMediaPermissionCheck.h: Deleted.
+        * Modules/mediastream/UserMediaPermissionCheck.cpp: Deleted.
+
+        * Modules/mediastream/UserMediaRequest.cpp:
+        (WebCore::UserMediaRequest::UserMediaRequest):
+        (WebCore::UserMediaRequest::start):
+        (WebCore::UserMediaRequest::allow):
+        (WebCore::UserMediaRequest::deny):
+        (WebCore::UserMediaRequest::constraintsValidated): Deleted.
+        (WebCore::UserMediaRequest::userMediaAccessGranted): Deleted.
+        (WebCore::UserMediaRequest::userMediaAccessDenied): Deleted.
+        (WebCore::UserMediaRequest::constraintsInvalid): Deleted.
+        (WebCore::UserMediaRequest::didCreateStream): Deleted.
+        (WebCore::UserMediaRequest::failedToCreateStreamWithConstraintsError): Deleted.
+        (WebCore::UserMediaRequest::failedToCreateStreamWithPermissionError): Deleted.
+        * Modules/mediastream/UserMediaRequest.h:
+
+        * WebCore.xcodeproj/project.pbxproj: Add MediaDevicesEnumerationRequest.*.
+
+        * platform/mediastream/CaptureDevice.h:
+        (WebCore::CaptureDevice::CaptureDevice):
+        (WebCore::CaptureDevice::setPersistentId): Add setter for argument decoder.
+        (WebCore::CaptureDevice::setLabel): Ditto.
+        (WebCore::CaptureDevice::setGroupId): Ditto.
+        (WebCore::CaptureDevice::setKind): Ditto.
+
+        * platform/mediastream/CaptureDeviceManager.h: Remove unnecessary include.
+
+        * platform/mediastream/MediaConstraints.h:
+        (WebCore::MediaConstraint::encode): New.
+        (WebCore::MediaConstraint::decode): Ditto.
+        (WebCore::NumericConstraint::encode): Ditto.
+        (WebCore::NumericConstraint::decode): Ditto.
+
+        * platform/mediastream/MediaStreamCreationClient.h: Deleted.
+
+        * platform/mediastream/RealtimeMediaSourceCenter.h: Use completion handlers instead of client interface.
+
+        * platform/mediastream/mac/AVCaptureDeviceManager.mm:
+        (WebCore::AVCaptureDeviceManager::refreshCaptureDeviceList): Drive-by fix: don't initialize
+        group id, we don't support it.
+
+        * platform/mediastream/mac/RealtimeMediaSourceCenterMac.cpp:
+        (WebCore::RealtimeMediaSourceCenterMac::validateRequestConstraints): Update for interface change.
+        (WebCore::RealtimeMediaSourceCenterMac::createMediaStream): Ditto.
+        * platform/mediastream/mac/RealtimeMediaSourceCenterMac.h:
+
+        * platform/mediastream/openwebrtc/RealtimeMediaSourceCenterOwr.cpp:
+        (WebCore::RealtimeMediaSourceCenterOwr::validateRequestConstraints): Ditto.
+        (WebCore::RealtimeMediaSourceCenterOwr::createMediaStream): Ditto.
+        (WebCore::RealtimeMediaSourceCenterOwr::mediaSourcesAvailable): Ditto.
+        * platform/mediastream/openwebrtc/RealtimeMediaSourceCenterOwr.h:
+
+        * platform/mock/MockRealtimeMediaSourceCenter.cpp:
+        (WebCore::MockRealtimeMediaSourceCenter::validateRequestConstraints): Ditto.
+        (WebCore::MockRealtimeMediaSourceCenter::createMediaStream): Ditto.
+        * platform/mock/MockRealtimeMediaSourceCenter.h:
+
+2016-10-18  Zan Dobersek  <zdobersek@igalia.com>
+
+        [WebIDL] Support BufferSource
+        https://bugs.webkit.org/show_bug.cgi?id=163541
+
+        Reviewed by Youenn Fablet.
+
+        Add support for the BufferSource typedef in WebIDL. The implementation
+        adds the necessary handling for this type in the generator scripts and
+        the specialization of the Converter<> template for the IDLBufferSource
+        struct that enables exposing ArrayBuffer or ArrayBufferView objects by
+        having WebCore::BufferSource objects pointing to their data.
+
+        The SourceBuffer interface in the MSE module has the appendBuffer()
+        operation modified to accept a BufferSource parameter, instead of
+        overloading it for ArrayBuffer and ArrayBufferView parameters.
+
+        The bindings generator tests cover BufferSource as both an operation
+        parameter and as a dictionary member.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::appendBuffer):
+        (WebCore::SourceBuffer::appendBufferInternal):
+        * Modules/mediasource/SourceBuffer.h:
+        * Modules/mediasource/SourceBuffer.idl:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/generic/IDLTypes.h:
+        * bindings/js/BufferSource.h: Added.
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::Converter<IDLBufferSource>::convert):
+        * bindings/scripts/CodeGenerator.pm:
+        (SkipIncludeHeader):
+        (IsWrapperType):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AddClassForwardIfNeeded):
+        (GetBaseIDLType):
+        (IsHandledByDOMConvert):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convertDictionary<TestObj::Dictionary>):
+        (WebCore::jsTestObjPrototypeFunctionBufferSourceParameter):
+        (WebCore::jsTestObjPrototypeFunctionBufferSourceParameterCaller):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-10-18  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Different width of grid container between initial load and refresh
+        https://bugs.webkit.org/show_bug.cgi?id=163535
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        Grid's layout logic manages two different override sizes; one it's
+        designed to implement the grid item's stretching behavior, identified
+        with the concept of 'overrideContentLogicalSize'; there is another
+        override size, known as overrideContainingBlockContentLogicalSize,
+        used to implement the Grid Area abstraction, which will behave as
+        the actual containing block of any grid item.
+
+        During grid's layout logic these override sizes are set according
+        to the CSS style rules. This affects how the grid container and its
+        children are going to be sized during layout. Grid Tracks sizing
+        algorithm depends on these override sizes.
+
+        In order to ensure that the tracks sizing algorithm produces the
+        same results when it's run consecutively several times, we need to
+        clear these override sizes and perform a layout of the affected grid
+        items. Otherwise, the affected items will return sizing values which
+        depend on the override values set in the previous layout, which in
+        some cases, like orthogonal flows, may change through different runs
+        of the sizing algorithm.
+
+        Test: fast/css-grid-layout/repeating-layout-must-produce-the-same-results.html
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::layoutBlock):
+
+2016-10-18  Youenn Fablet  <youenn@apple.com>
+
+        CachedResourceLoader should not need to remove fragment identifier
+        https://bugs.webkit.org/show_bug.cgi?id=163015
+
+        Reviewed by Darin Adler.
+
+        No expected change for non-window port.
+        For window port, CachedResourceLoader will strip the fragment identifier of the URL passed to subresourceForURL
+        before querying the memory cache.
+
+        Removing the fragment identifier from the request stored in CachedResourceRequest.
+        The fragment identifier is stored in a separate field.
+
+        This allows CachedResourceLoader to not care about fragment identifier.
+        CachedResource can then get access to it.
+
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::CachedResource):
+        (WebCore::CachedResource::finishRequestInitialization): Deleted.
+        * loader/cache/CachedResource.h:
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::cachedResource):
+        Updated the method taking a const String& to strip the fragment identifier if needed.
+        Updated the method taking a const URL& to assert if the fragment identifier is present.
+        (WebCore::CachedResourceLoader::requestUserCSSStyleSheet):
+        (WebCore::CachedResourceLoader::requestResource):
+        * loader/cache/CachedResourceRequest.cpp:
+        (WebCore::CachedResourceRequest::CachedResourceRequest):
+        (WebCore::CachedResourceRequest::splitFragmentIdentifierFromRequestURL):
+        * loader/cache/CachedResourceRequest.h:
+        (WebCore::CachedResourceRequest::releaseFragmentIdentifier):
+        (WebCore::CachedResourceRequest::clearFragmentIdentifier):
+        * loader/cache/MemoryCache.cpp:
+        (WebCore::MemoryCache::shouldRemoveFragmentIdentifier):
+        (WebCore::MemoryCache::removeFragmentIdentifierIfNeeded):
+        (WebCore::MemoryCache::revalidationSucceeded):
+        (WebCore::MemoryCache::resourceForRequest):
+        * loader/cache/MemoryCache.h:
+
+2016-10-18  Antti Koivisto  <antti@apple.com>
+
+        Rename setNeedsStyleRecalc to invalidateStyle
+        https://bugs.webkit.org/show_bug.cgi?id=163542
+
+        Reviewed by Darin Adler.
+
+        Also rename StyleChangeType enum and some related functions for clarity. For example
+
+            element.setNeedsStyleRecalc(SyntheticStyleChange);
+
+        becomes
+
+            element.invalidateStyleAndLayerComposition();
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/StyleInvalidationAnalysis.cpp:
+        (WebCore::StyleInvalidationAnalysis::invalidateIfNeeded):
+        * dom/Document.cpp:
+        (WebCore::Document::recalcStyle):
+        (WebCore::Document::updateViewportUnitsOnResize):
+        (WebCore::Document::setCSSTarget):
+        (WebCore::unwrapFullScreenRenderer):
+        (WebCore::Document::setAnimatingFullScreen):
+        * dom/Element.cpp:
+        (WebCore::Element::setActive):
+        (WebCore::Element::setFocus):
+        (WebCore::Element::setHovered):
+        (WebCore::Element::attributeChanged):
+        (WebCore::Element::invalidateStyle):
+        (WebCore::Element::invalidateStyleAndLayerComposition):
+        (WebCore::Element::invalidateStyleForSubtree):
+        (WebCore::Element::invalidateStyleAndRenderersForSubtree):
+
+            Move public invalidation functions to Element tightening typing.
+            Use separate functions instead of enum values.
+            This way the call sites look nicer and only useful combinations are exposed.
+
+        (WebCore::Element::addShadowRoot):
+        (WebCore::checkForEmptyStyleChange):
+        (WebCore::checkForSiblingStyleChanges):
+        (WebCore::Element::needsStyleInvalidation):
+        (WebCore::Element::setContainsFullScreenElement):
+        * dom/Element.h:
+        (WebCore::Element::setHasFocusWithin):
+        * dom/Node.cpp:
+        (WebCore::computeEditabilityFromComputedStyle):
+        (WebCore::Node::adjustStyleValidity):
+
+            Update validity and mode separately. There was a potential bug here where
+            SyntheticStyleChange could overwrite FullStyleChange (no known repro).
+
+        (WebCore::Node::updateAncestorsForStyleRecalc):
+        (WebCore::Node::invalidateStyle):
+        (WebCore::Node::insertedInto):
+        (WebCore::Node::setNeedsStyleRecalc): Deleted.
+        * dom/Node.h:
+        (WebCore::Node::needsStyleRecalc):
+        (WebCore::Node::styleValidity):
+        (WebCore::Node::styleResolutionShouldRecompositeLayer):
+        (WebCore::Node::setHasValidStyle):
+        (WebCore::Node::styleChangeType): Deleted.
+        (WebCore::Node::clearNeedsStyleRecalc): Deleted.
+        (WebCore::Node::setStyleChange): Deleted.
+        * dom/RadioButtonGroups.cpp:
+        (WebCore::RadioButtonGroup::remove):
+        (WebCore::RadioButtonGroup::setNeedsStyleRecalcForAllButtons):
+        * dom/ShadowRoot.cpp:
+        (WebCore::ShadowRoot::setResetStyleInheritance):
+        * dom/SlotAssignment.cpp:
+        (WebCore::SlotAssignment::addSlotElementByName):
+        (WebCore::SlotAssignment::removeSlotElementByName):
+        (WebCore::SlotAssignment::didChangeSlot):
+        * dom/StyledElement.cpp:
+        (WebCore::StyledElement::attributeChanged):
+        (WebCore::StyledElement::styleAttributeChanged):
+        (WebCore::StyledElement::invalidateStyleAttribute):
+        * dom/Text.cpp:
+        (WebCore::Text::updateRendererAfterContentChange):
+        * dom/VisitedLinkState.cpp:
+        (WebCore::VisitedLinkState::invalidateStyleForAllLinks):
+        (WebCore::VisitedLinkState::invalidateStyleForLink):
+        * editing/FrameSelection.cpp:
+        (WebCore::FrameSelection::focusedOrActiveStateChanged):
+        * html/BaseDateAndTimeInputType.cpp:
+        (WebCore::BaseDateAndTimeInputType::minOrMaxAttributeChanged):
+        * html/FileInputType.cpp:
+        (WebCore::FileInputType::setValue):
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::parseAttribute):
+        * html/HTMLBodyElement.cpp:
+        (WebCore::HTMLBodyElement::parseAttribute):
+        * html/HTMLCanvasElement.cpp:
+        (WebCore::HTMLCanvasElement::getContext):
+        (WebCore::HTMLCanvasElement::createImageBuffer):
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::adjustDirectionalityIfNeededAfterChildAttributeChanged):
+        (WebCore::HTMLElement::calculateAndAdjustDirectionality):
+        * html/HTMLFieldSetElement.cpp:
+        (WebCore::HTMLFieldSetElement::addInvalidDescendant):
+        (WebCore::HTMLFieldSetElement::removeInvalidDescendant):
+        * html/HTMLFormControlElement.cpp:
+        (WebCore::HTMLFormControlElement::disabledStateChanged):
+        (WebCore::HTMLFormControlElement::readOnlyAttributeChanged):
+        (WebCore::HTMLFormControlElement::requiredAttributeChanged):
+        (WebCore::HTMLFormControlElement::setNeedsWillValidateCheck):
+        (WebCore::HTMLFormControlElement::updateValidity):
+        * html/HTMLFormElement.cpp:
+        (WebCore::HTMLFormElement::registerFormElement):
+        (WebCore::HTMLFormElement::registerInvalidAssociatedFormControl):
+        (WebCore::HTMLFormElement::removeInvalidAssociatedFormControlIfNeeded):
+        (WebCore::HTMLFormElement::resetDefaultButton):
+        * html/HTMLFrameElementBase.cpp:
+        (WebCore::HTMLFrameElementBase::finishedInsertingSubtree):
+        * html/HTMLFrameOwnerElement.cpp:
+        (WebCore::HTMLFrameOwnerElement::scheduleinvalidateStyleAndLayerComposition):
+        (WebCore::HTMLFrameOwnerElement::scheduleSetNeedsStyleRecalc): Deleted.
+        * html/HTMLFrameOwnerElement.h:
+        * html/HTMLFrameSetElement.cpp:
+        (WebCore::HTMLFrameSetElement::parseAttribute):
+        (WebCore::HTMLFrameSetElement::willRecalcStyle):
+        * html/HTMLInputElement.cpp:
+        (WebCore::HTMLInputElement::runPostTypeUpdateTasks):
+        (WebCore::HTMLInputElement::parseAttribute):
+        (WebCore::HTMLInputElement::setChecked):
+        (WebCore::HTMLInputElement::setIndeterminate):
+        (WebCore::HTMLInputElement::setAutoFilled):
+        (WebCore::HTMLInputElement::maxLengthAttributeChanged):
+        (WebCore::HTMLInputElement::minLengthAttributeChanged):
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::parseAttribute):
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::mediaPlayerRenderingModeChanged):
+        (WebCore::HTMLMediaElement::setVideoFullscreenLayer):
+        * html/HTMLObjectElement.cpp:
+        (WebCore::HTMLObjectElement::parseAttribute):
+        (WebCore::HTMLObjectElement::childrenChanged):
+        (WebCore::HTMLObjectElement::renderFallbackContent):
+        * html/HTMLOptGroupElement.cpp:
+        (WebCore::HTMLOptGroupElement::parseAttribute):
+        * html/HTMLOptionElement.cpp:
+        (WebCore::HTMLOptionElement::parseAttribute):
+        (WebCore::HTMLOptionElement::setSelectedState):
+        * html/HTMLPlugInElement.cpp:
+        (WebCore::HTMLPlugInElement::didAddUserAgentShadowRoot):
+        * html/HTMLPlugInImageElement.cpp:
+        (WebCore::HTMLPlugInImageElement::setDisplayState):
+        (WebCore::HTMLPlugInImageElement::willRecalcStyle):
+        (WebCore::HTMLPlugInImageElement::finishParsingChildren):
+        (WebCore::HTMLPlugInImageElement::resumeFromDocumentSuspension):
+        (WebCore::HTMLPlugInImageElement::removeSnapshotTimerFired):
+        (WebCore::HTMLPlugInImageElement::restartSnapshottedPlugIn):
+        * html/HTMLProgressElement.cpp:
+        (WebCore::HTMLProgressElement::didElementStateChange):
+        * html/HTMLSelectElement.cpp:
+        (WebCore::HTMLSelectElement::parseAttribute):
+        (WebCore::HTMLSelectElement::setRecalcListItems):
+        (WebCore::HTMLSelectElement::parseMultipleAttribute):
+        (WebCore::HTMLSelectElement::reset):
+        * html/HTMLTableElement.cpp:
+        (WebCore::isTableCellAncestor):
+        (WebCore::setTableCellsChanged):
+        (WebCore::HTMLTableElement::parseAttribute):
+        * html/HTMLTextAreaElement.cpp:
+        (WebCore::HTMLTextAreaElement::setValueCommon):
+        * html/HTMLTextFormControlElement.cpp:
+        (WebCore::HTMLTextFormControlElement::updatePlaceholderVisibility):
+        * html/InputType.cpp:
+        (WebCore::InputType::setValue):
+        * html/NumberInputType.cpp:
+        (WebCore::NumberInputType::minOrMaxAttributeChanged):
+        * html/TextFieldInputType.cpp:
+        (WebCore::TextFieldInputType::subtreeHasChanged):
+        * mathml/MathMLElement.cpp:
+        (WebCore::MathMLElement::parseAttribute):
+        * mathml/MathMLSelectElement.cpp:
+        (WebCore::MathMLSelectElement::updateSelectedChild):
+        * page/animation/AnimationBase.cpp:
+        (WebCore::AnimationBase::setNeedsStyleRecalc):
+        * page/animation/AnimationController.cpp:
+        (WebCore::AnimationControllerPrivate::clear):
+        (WebCore::AnimationControllerPrivate::updateAnimations):
+        (WebCore::AnimationControllerPrivate::fireEventsAndUpdateStyle):
+        (WebCore::AnimationControllerPrivate::pauseAnimationAtTime):
+        (WebCore::AnimationControllerPrivate::pauseTransitionAtTime):
+        (WebCore::AnimationController::cancelAnimations):
+        * rendering/RenderImage.cpp:
+        (WebCore::RenderImage::imageChanged):
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::calculateClipRects):
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::attachRootLayer):
+        (WebCore::RenderLayerCompositor::detachRootLayer):
+        (WebCore::RenderLayerCompositor::notifyIFramesOfCompositingChange):
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::updateDragState):
+        * rendering/svg/SVGResourcesCache.cpp:
+        (WebCore::SVGResourcesCache::clientStyleChanged):
+        * style/AttributeChangeInvalidation.cpp:
+        (WebCore::Style::AttributeChangeInvalidation::invalidateStyle):
+        * style/ClassChangeInvalidation.cpp:
+        (WebCore::Style::ClassChangeInvalidation::invalidateStyle):
+        * style/IdChangeInvalidation.cpp:
+        (WebCore::Style::IdChangeInvalidation::invalidateStyle):
+        * style/RenderTreeUpdater.cpp:
+        (WebCore::RenderTreeUpdater::updateElementRenderer):
+        * style/StyleScope.cpp:
+        (WebCore::Style::Scope::updateActiveStyleSheets):
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::resetStyleForNonRenderedDescendants):
+        (WebCore::Style::TreeResolver::resolveElement):
+        (WebCore::Style::TreeResolver::createAnimatedElementUpdate):
+        (WebCore::Style::TreeResolver::popParent):
+        (WebCore::Style::clearNeedsStyleResolution):
+        (WebCore::Style::TreeResolver::resolveComposedTree):
+        * style/StyleUpdate.h:
+        * style/StyleValidity.h: Added.
+
+            StyleChangeType enum splits into Style::Validity and Style::InvalidationMode.
+            Move to a file of its own.
+
+        * svg/SVGAElement.cpp:
+        (WebCore::SVGAElement::svgAttributeChanged):
+        * svg/SVGAnimateElementBase.cpp:
+        (WebCore::applyCSSPropertyToTarget):
+        (WebCore::removeCSSPropertyFromTarget):
+        * svg/SVGElement.cpp:
+        (WebCore::SVGElement::willRecalcStyle):
+        * svg/SVGElement.h:
+        (WebCore::SVGElement::invalidateSVGPresentationAttributeStyle):
+        * svg/SVGTests.cpp:
+        (WebCore::SVGTests::handleAttributeChange):
+        * svg/SVGUseElement.cpp:
+        (WebCore::SVGUseElement::invalidateShadowTree):
+        * testing/Internals.cpp:
+        (WebCore::styleValidityToToString):
+        (WebCore::Internals::styleChangeType):
+        (WebCore::styleChangeTypeToString): Deleted.
+
+2016-10-17  Sergio Villar Senin  <svillar@igalia.com>
+
+        [css-grid] Constrain by min|max-height on auto repeat computation
+        https://bugs.webkit.org/show_bug.cgi?id=163540
+
+        Reviewed by Darin Adler.
+
+        The max-height (if definite) is used to compute the number of auto repeat rows whenever the
+        height is indefinite. We were using the min-height only in case both values were indefinite.
+
+        Although not explicitly mentioned by grid specs, it's reasonable to assume that
+        the min-height trumps the used value of height/max-height like it always does, per CSS
+        2.2. Note that the number of rows still needs to fit within that size even if using
+        min-height, because we're just using min-height to compute the used value of the height
+        property. If both height and max-height are indefinite we keep doing the same, i.e., compute
+        the minimum number of rows that fulfill min-height (if definite).
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::computeAutoRepeatTracksCount):
+
+2016-10-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Use NativeCallFrameTracer for operations used for DOMJIT slow calls
+        https://bugs.webkit.org/show_bug.cgi?id=163586
+
+        Reviewed by Saam Barati.
+
+        * domjit/JSNodeDOMJIT.cpp:
+        (WebCore::toWrapperSlow):
+
+2016-10-18  Ryuan Choi  <ryuan.choi@navercorp.com>
+
+        [EFL] Build break since r207442
+        https://bugs.webkit.org/show_bug.cgi?id=163587
+
+        Unreviewed.
+
+        Since r207442, setRGB is moved to private.
+
+        * rendering/RenderThemeEfl.cpp:
+        (WebCore::fillColorsFromEdjeClass):
+
+2016-10-17  Dean Jackson  <dino@apple.com>
+
+        Remove dependency cycle with UIKit
+        https://bugs.webkit.org/show_bug.cgi?id=163577
+        <rdar://problem/28786160>
+
+        Reviewed by Tim Horton.
+
+        Soft link against UIKit.
+
+        * Configurations/WebCoreTestSupport.xcconfig:
+        * testing/Internals.mm:
+
+2016-10-17  Dean Jackson  <dino@apple.com>
+
+        Allow creation of ExtendedColors and make Color immutable
+        https://bugs.webkit.org/show_bug.cgi?id=163557
+        <rdar://problem/28805360>
+
+        Reviewed by Darin Adler and Dave Hyatt.
+
+        1. Support the creation of ExtendedColor objects via the
+        Color class.
+
+        2. Fix the remaining few places where a Color object is
+        modified after creation, instead creating a new Color.
+        Move all the mutation methods into the private section,
+        making Color now immutable.
+
+        Changes to Color are covered by existing tests. Changes
+        to ExtendedColor are covered by the ExtendedColor API test.
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParser::fastParseColor): Return a new named Color.
+
+        * dom/Document.cpp:
+        (WebCore::Document::resetActiveLinkColor): Set to be the named "red" color.
+
+        * html/HTMLElement.cpp:
+        (WebCore::HTMLElement::addHTMLColorToStyle): Use the string-based constructor
+        where possible.
+
+        * page/CaptionUserPreferencesMediaAF.cpp:
+        (WebCore::CaptionUserPreferencesMediaAF::captionsTextEdgeCSS): No need to
+        use the string "black" here - we have a constant value.
+
+        * platform/graphics/cairo/GraphicsContextCairo.cpp: Don't use setRGB.
+
+        * platform/graphics/Color.cpp:
+        (WebCore::findNamedColor): Move this up in the file.
+        (WebCore::Color::Color): Copy in the code from setNamedColor. Also
+        add a constructor for ExtendedColor.
+        (WebCore::Color::serialized): Call ExtendedColor's serializer if necessary.
+        (WebCore::Color::cssText): Ditto.
+        (WebCore::Color::setNamedColor): Deleted.
+        (WebCore::Color::tagAsExtended): Deleted.
+
+        * platform/graphics/Color.h: Add a new constructor.
+        (WebCore::Color::setRGB): Move to private.
+
+        * platform/graphics/ExtendedColor.cpp:
+        (WebCore::ExtendedColor::cssText): Implement serializer.
+        * platform/graphics/ExtendedColor.h:
+
+        * rendering/style/RenderStyle.cpp:
+        (WebCore::RenderStyle::colorIncludingFallback): Construct a new Color rather than changing an existing object.
+
+2016-10-17  Simon Fraser  <simon.fraser@apple.com>
+
+        Implement DOMRect/DOMRectReadOnly
+        https://bugs.webkit.org/show_bug.cgi?id=163464
+
+        Reviewed by Darin Adler.
+        
+        Implement the DOMRectInit/DOMRectReadOnly/DOMRect interfaces specified in
+        https://dev.w3.org/fxtf/geometry/
+        
+        DOMRects allow negative height/width and require double storage, so we can't just
+        use FloatRect for storage. They also require handling of NaN and Infinity.
+        
+        To have the left/right/top/bottom accessors follow IEEE NaN rules, we need to use
+        custom min/max functions that return NaN if either argument is NaN, so add 
+        nanPropagatingMin/nanPropagatingMax helpers to MathExtras.h.
+
+        Test: fast/dom/domrect.html
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/DOMRect.h: Added.
+        (WebCore::DOMRect::create):
+        (WebCore::DOMRect::fromRect):
+        (WebCore::DOMRect::setX):
+        (WebCore::DOMRect::setY):
+        (WebCore::DOMRect::setWidth):
+        (WebCore::DOMRect::setHeight):
+        (WebCore::DOMRect::DOMRect):
+        * dom/DOMRect.idl: Added.
+        * dom/DOMRectInit.h: Added.
+        * dom/DOMRectInit.idl: Added.
+        * dom/DOMRectReadOnly.h: Added.
+        (WebCore::DOMRectReadOnly::create):
+        (WebCore::DOMRectReadOnly::fromRect):
+        (WebCore::DOMRectReadOnly::x):
+        (WebCore::DOMRectReadOnly::y):
+        (WebCore::DOMRectReadOnly::width):
+        (WebCore::DOMRectReadOnly::height):
+        (WebCore::DOMRectReadOnly::top):
+        (WebCore::DOMRectReadOnly::right):
+        (WebCore::DOMRectReadOnly::bottom):
+        (WebCore::DOMRectReadOnly::left):
+        (WebCore::DOMRectReadOnly::DOMRectReadOnly):
+        * dom/DOMRectReadOnly.idl: Added.
+
+2016-10-17  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Basic MediaController
+        https://bugs.webkit.org/show_bug.cgi?id=163539
+        <rdar://problem/28797542>
+
+        Reviewed by Darin Adler.
+
+        We add a new main.js file which acts as the entry point by implementing the createControls()
+        function that HTMLMediaElement::ensureMediaControlsInjectedScript() once the shadow root has
+        been created. That functions creates an instance of the new MediaController class, which is
+        the controller object that will handle communication between the media controls and the media
+        element. At first, this MediaController class is very limited and assumes macOS inline
+        layout traits and forces a start button to be shown over the media, which can be played
+        to start the media and show the full controls. More functionality will be added by future patches.
+
+        Tests: media/modern-media-controls/media-controller/media-controller-click-to-start.html
+               media/modern-media-controls/media-controller/media-controller-constructor.html
+               media/modern-media-controls/media-controller/media-controller-resize.html
+
+        * Modules/modern-media-controls/main.js: Added.
+        (createControls):
+        * Modules/modern-media-controls/media/media-controller.js: Added.
+        (MediaController):
+        (MediaController.prototype.set pageScaleFactor):
+        (MediaController.prototype.set usesLTRUserInterfaceLayoutDirection):
+        (MediaController.prototype.handleEvent):
+        (MediaController.prototype.buttonWasClicked):
+        (MediaController.prototype._updateControlsSize):
+        * WebCore.xcodeproj/project.pbxproj:
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::mediaControlsStyleSheet):
+        (WebCore::RenderThemeMac::mediaControlsScript):
+
+2016-10-17  Anders Carlsson  <andersca@apple.com>
+
+        Remove an unused HistoryItem function
+        https://bugs.webkit.org/show_bug.cgi?id=163565
+
+        Reviewed by Tim Horton.
+
+        * history/HistoryItem.cpp:
+        (WebCore::HistoryItem::isAncestorOf): Deleted.
+        * history/HistoryItem.h:
+
+2016-10-17  Nan Wang  <n_wang@apple.com>
+
+        AX: [Mac] mapping for output elements
+        https://bugs.webkit.org/show_bug.cgi?id=163471
+
+        Reviewed by Chris Fleizach.
+
+        Mapped the output element to status role and exposed its text content
+        as AXTitle. 
+
+        Test: accessibility/mac/output-element.html
+
+        * English.lproj/Localizable.strings:
+        * accessibility/AccessibilityNodeObject.cpp:
+        (WebCore::AccessibilityNodeObject::visibleText):
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::isOutput):
+        * accessibility/AccessibilityObject.h:
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::determineAccessibilityRole):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (-[WebAccessibilityObjectWrapper roleDescription]):
+        * platform/LocalizedStrings.cpp:
+        (WebCore::AXOutputText):
+        * platform/LocalizedStrings.h:
+        * platform/efl/LocalizedStringsEfl.cpp:
+        (WebCore::AXOutputText):
+        * platform/gtk/LocalizedStringsGtk.cpp:
+        (WebCore::AXOutputText):
+
+2016-10-17  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Use DOMJIT::Patchpoint in IC
+        https://bugs.webkit.org/show_bug.cgi?id=163223
+
+        Reviewed by Saam Barati.
+
+        Make DOMJITPatchpointParams non-const.
+
+        * domjit/DOMJITHelpers.h:
+        (WebCore::DOMJITHelpers::toWrapper):
+        * domjit/JSNodeDOMJIT.cpp:
+        (WebCore::createCallDOMForOffsetAccess):
+        (WebCore::checkNode):
+        (WebCore::NodeNodeTypeDOMJIT::callDOM):
+
+2016-10-17  Chris Dumez  <cdumez@apple.com>
+
+        Move form.reportValidity() behind InteractiveFormValidation setting
+        https://bugs.webkit.org/show_bug.cgi?id=163550
+
+        Reviewed by Darin Adler.
+
+        Move form.reportValidity() behind InteractiveFormValidation setting for consistency
+        given that the two features are strongly related.
+
+        Also enable the setting by default so we can get feedback on the implementation.
+
+        Demos:
+        - Interactive form validation: http://jsfiddle.net/tj_vantoll/HdSqt/
+        - Report validity: https://googlechrome.github.io/samples/report-validity/
+
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::setInteractiveFormValidationEnabled):
+        (WebCore::RuntimeEnabledFeatures::interactiveFormValidationEnabled):
+        * html/HTMLButtonElement.idl:
+        * html/HTMLFieldSetElement.idl:
+        * html/HTMLFormElement.idl:
+        * html/HTMLInputElement.idl:
+        * html/HTMLKeygenElement.idl:
+        * html/HTMLObjectElement.idl:
+        * html/HTMLOutputElement.idl:
+        * html/HTMLSelectElement.idl:
+        * html/HTMLTextAreaElement.idl:
+
+2016-10-17  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Add a MediaControlsHost API to retrieve images as base64
+        https://bugs.webkit.org/show_bug.cgi?id=163502
+        <rdar://problem/28792017>
+
+        Reviewed by Darin Adler.
+
+        Add a new `base64StringForIconAndPlatform()` method to MediaControlsHost such that we
+        may load images from the modern-media-controls directory in the WebCore.framework bundle.
+        We use this new method in the iconService singleton when a `mediaControlsHost` is set,
+        which will be set in a later patch.
+
+        * Modules/mediacontrols/MediaControlsHost.cpp:
+        (WebCore::MediaControlsHost::base64StringForIconAndPlatform):
+        * Modules/mediacontrols/MediaControlsHost.h:
+        * Modules/mediacontrols/MediaControlsHost.idl:
+        * Modules/modern-media-controls/controls/icon-service.js:
+        (const.iconService.new.IconService.prototype.urlForIconNameAndLayoutTraits):
+        (const.iconService.new.IconService):
+        * rendering/RenderTheme.h:
+        (WebCore::RenderTheme::mediaControlsBase64StringForIconAndPlatform):
+        (WebCore::RenderTheme::mediaControlsScript): Deleted.
+        * rendering/RenderThemeMac.h:
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::mediaControlsBase64StringForIconAndPlatform):
+
+2016-10-17  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Add a MediaControlsHost API to retrieve the shadow root CSS
+        https://bugs.webkit.org/show_bug.cgi?id=163501
+        <rdar://problem/28792014>
+
+        Reviewed by Darin Adler.
+
+        Add a new `shadowRootCSSText` property to MediaControlsHost so that we may obtain the
+        concatenated CSS sources for the media controls shadow root via JS. Actually using this
+        API will be done in a later patch. We also no longer inject those styles as a user-agent
+        stylesheet when the runtime flag is on since it will no longer be necessary.
+
+        * Modules/mediacontrols/MediaControlsHost.cpp:
+        (WebCore::MediaControlsHost::shadowRootCSSText):
+        * Modules/mediacontrols/MediaControlsHost.h:
+        * Modules/mediacontrols/MediaControlsHost.idl:
+        * css/CSSDefaultStyleSheets.cpp:
+        (WebCore::CSSDefaultStyleSheets::ensureDefaultStyleSheetsForElement):
+
+2016-10-17  Simon Fraser  <simon.fraser@apple.com>
+
+        Implement DOMPoint/DOMPointReadOnly
+        https://bugs.webkit.org/show_bug.cgi?id=133916
+
+        Reviewed by Darin Adler.
+
+        Patch mostly by Dirk Schultz <krit@webkit.org>.
+
+        Implement DOMPoint/DOMPointReadOnly following https://drafts.fxtf.org/geometry/
+        (although we may need to match https://www.w3.org/TR/geometry-1/ to be compatible
+        with Chrome).
+        
+        Test: geometry/DOMPoint-001.html
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/DOMPoint.h: Added.
+        * dom/DOMPoint.idl: Added.
+        * dom/DOMPointInit.h: Added.
+        * dom/DOMPointInit.idl: Added.
+        * dom/DOMPointReadOnly.h: Added.
+        (WebCore::DOMPointReadOnly::create):
+        (WebCore::DOMPointReadOnly::fromPoint):
+        (WebCore::DOMPointReadOnly::x):
+        (WebCore::DOMPointReadOnly::y):
+        (WebCore::DOMPointReadOnly::z):
+        (WebCore::DOMPointReadOnly::w):
+        (WebCore::DOMPointReadOnly::DOMPointReadOnly):
+        * dom/DOMPointReadOnly.idl: Added.
+
+2016-10-17  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Use modern-media-controls module sources for media controls stylesheet and script injection
+        https://bugs.webkit.org/show_bug.cgi?id=163500
+        <rdar://problem/28792010>
+
+        Reviewed by Darin Adler.
+
+        Add files from the Modules/modern-media-controls directory to the Xcode project and add a copy phase
+        to copy those files with their directory stucture as a subdirectory of the WebCore.framework Resources
+        directory.
+
+        Additionally, use the modern-media-controls Module CSS and JS files when concatenating the media controls
+        scripts and styles in RenderTheme when the runtime flag is on.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::mediaControlsStyleSheet):
+        (WebCore::RenderThemeMac::mediaControlsScript):
+
+2016-10-17  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix typo in error message.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateSerializerFunction):
+
 2016-10-17  Fujii Hironori  <Hironori.Fujii@sony.com>
 
         preprocessor.pm: cl.exe outputs processing filenames if Windows Perl is used

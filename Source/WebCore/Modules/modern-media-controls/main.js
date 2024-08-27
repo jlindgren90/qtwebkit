@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,31 +23,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef MediaStreamCreationClient_h
-#define MediaStreamCreationClient_h
+// This is called from HTMLMediaElement::ensureMediaControlsInjectedScript().
+function createControls(shadowRoot, media, host)
+{
+    if (host) {
+        iconService.mediaControlsHost = host;
+        shadowRoot.appendChild(document.createElement("style")).textContent = host.shadowRootCSSText;
+    }
 
-#if ENABLE(MEDIA_STREAM)
-
-#include "MediaDevices.h"
-#include "RealtimeMediaSource.h"
-#include <wtf/RefCounted.h>
-
-namespace WebCore {
-
-class MediaStreamCreationClient : public RefCounted<MediaStreamCreationClient> {
-public:
-    virtual ~MediaStreamCreationClient() { }
-
-    virtual void constraintsValidated(const Vector<RefPtr<RealtimeMediaSource>>& audioTracks, const Vector<RefPtr<RealtimeMediaSource>>& videoTracks) = 0;
-    virtual void constraintsInvalid(const String& constraintName) = 0;
-
-    virtual void didCreateStream(RefPtr<MediaStreamPrivate>&&) = 0;
-    virtual void failedToCreateStreamWithConstraintsError(const String& constraintName) = 0;
-    virtual void failedToCreateStreamWithPermissionError() = 0;
-};
-
-} // namespace WebCore
-
-#endif // ENABLE(MEDIA_STREAM)
-
-#endif // MediaStreamCreationClient_h
+    return new MediaController(shadowRoot, media, host);
+}

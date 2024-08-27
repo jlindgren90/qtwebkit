@@ -861,8 +861,7 @@ public:
     uint64_t nativeWindowHandle() { return m_nativeWindowHandle; }
 #endif
 
-    bool shouldUseCustomContentProviderForResponse(const WebCore::ResourceResponse&);
-    bool canPluginHandleResponse(const WebCore::ResourceResponse& response);
+    bool shouldUseCustomContentProviderForResponse(const WebCore::ResourceResponse&, const WebCore::Frame& mainFrame);
 
     bool asynchronousPluginInitializationEnabled() const { return m_asynchronousPluginInitializationEnabled; }
     void setAsynchronousPluginInitializationEnabled(bool enabled) { m_asynchronousPluginInitializationEnabled = enabled; }
@@ -943,6 +942,7 @@ public:
     bool shouldDispatchFakeMouseMoveEvents() const { return m_shouldDispatchFakeMouseMoveEvents; }
 
     void setPageActivityState(WebCore::PageActivityState::Flags);
+    void setPageSuppressed(bool);
 
     void postMessage(const String& messageName, API::Object* messageBody);
     void postSynchronousMessageForTesting(const String& messageName, API::Object* messageBody, RefPtr<API::Object>& returnData);
@@ -1057,8 +1057,6 @@ private:
     void validateCommand(const String&, uint64_t);
     void executeEditCommand(const String&, const String&);
     void setEditable(bool);
-
-    void updateUserActivity();
 
     void mouseEvent(const WebMouseEvent&);
     void keyEvent(const WebKeyboardEvent&);
@@ -1188,8 +1186,10 @@ private:
     void didReceiveNotificationPermissionDecision(uint64_t notificationID, bool allowed);
 
 #if ENABLE(MEDIA_STREAM)
-    void didReceiveUserMediaPermissionDecision(uint64_t userMediaID, bool allowed, const String& audioDeviceUID, const String& videoDeviceUID);
-    void didCompleteUserMediaPermissionCheck(uint64_t userMediaID, const String&, bool allowed);
+    void userMediaAccessWasGranted(uint64_t userMediaID, const String& audioDeviceUID, const String& videoDeviceUID);
+    void userMediaAccessWasDenied(uint64_t userMediaID, uint64_t reason, String invalidConstraint);
+
+    void didCompleteMediaDeviceEnumeration(uint64_t userMediaID, const Vector<WebCore::CaptureDevice>& devices, const String& deviceIdentifierHashSalt, bool originHasPersistentAccess);
 #endif
 
     void advanceToNextMisspelling(bool startBeforeSelection);
@@ -1252,6 +1252,8 @@ private:
 
     void setResourceCachingDisabled(bool);
     void setUserInterfaceLayoutDirection(uint32_t);
+
+    bool canPluginHandleResponse(const WebCore::ResourceResponse&, const WebCore::Frame& mainFrame);
 
     void registerURLSchemeHandler(uint64_t identifier, const String& scheme);
 
@@ -1512,9 +1514,7 @@ private:
     bool m_useAsyncScrolling;
 
     WebCore::ViewState::Flags m_viewState;
-    WebCore::PageActivityState::Flags m_activityState;
 
-    bool m_processSuppressionEnabled;
     UserActivity m_userActivity;
 
     uint64_t m_pendingNavigationID;

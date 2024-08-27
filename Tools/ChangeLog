@@ -1,3 +1,125 @@
+2016-10-18  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Resolve constraints and enumerate devices in the UI process
+        https://bugs.webkit.org/show_bug.cgi?id=162147
+        <rdar://problem/28803569>
+
+        Reviewed by Darin Adler.
+
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::resetPreferencesToConsistentValues): Enable mock capture devices.
+        (WTR::TestController::decidePolicyForUserMediaPermissionRequestIfPossible): Update for API changes.
+
+2016-10-17  Megan Gardner  <megan_gardner@apple.com>
+
+        Add test and infrastructure for link popover
+        https://bugs.webkit.org/show_bug.cgi?id=163406
+
+        Reviewed by Simon Fraser.
+
+        Added functionality test for link popovers.
+        Can query for what URL is loaded, and that the popover has appeared or has
+        been dismissed.
+        Added a link popover test.
+
+        * DumpRenderTree/ios/UIScriptControllerIOS.mm:
+        (WTR::UIScriptController::platformSetDidShowForcePressPreviewCallback):
+        (WTR::UIScriptController::platformSetDidDismissForcePressPreviewCallback):
+        (WTR::UIScriptController::platformSetDidEndFormControlInteractionCallback): Deleted.
+        * TestRunnerShared/UIScriptContext/Bindings/UIScriptController.idl:
+        * TestRunnerShared/UIScriptContext/UIScriptContext.h:
+        * TestRunnerShared/UIScriptContext/UIScriptController.cpp:
+        (WTR::UIScriptController::setDidShowForcePressPreviewCallback):
+        (WTR::UIScriptController::didShowForcePressPreviewCallback):
+        (WTR::UIScriptController::setDidDismissForcePressPreviewCallback):
+        (WTR::UIScriptController::didDismissForcePressPreviewCallback):
+        (WTR::UIScriptController::platformSetDidShowForcePressPreviewCallback):
+        (WTR::UIScriptController::platformSetDidDismissForcePressPreviewCallback):
+        (WTR::UIScriptController::didEndFormControlInteractionCallback): Deleted.
+        (WTR::UIScriptController::platformSetDidEndFormControlInteractionCallback): Deleted.
+        * TestRunnerShared/UIScriptContext/UIScriptController.h:
+        * WebKitTestRunner/cocoa/TestRunnerWKWebView.h:
+        * WebKitTestRunner/cocoa/TestRunnerWKWebView.mm:
+        (-[TestRunnerWKWebView dealloc]):
+        (-[TestRunnerWKWebView didShowForcePressPreview]):
+        (-[TestRunnerWKWebView didDismissForcePressPreview]):
+        * WebKitTestRunner/ios/UIScriptControllerIOS.mm:
+        (WTR::UIScriptController::platformSetDidShowForcePressPreviewCallback):
+        (WTR::UIScriptController::platformSetDidDismissForcePressPreviewCallback):
+        (WTR::UIScriptController::platformSetDidEndFormControlInteractionCallback): Deleted.
+
+2016-10-17  Tim Horton  <timothy_horton@apple.com>
+
+        REGRESSION (r169805): WKWebView canGoBack returning YES when nothing is in the back-forward list after restoring session state
+        https://bugs.webkit.org/show_bug.cgi?id=163573
+        <rdar://problem/28744549>
+
+        Reviewed by Dan Bernstein.
+
+        * TestWebKitAPI/Tests/WebKit2/WKBackForwardList.mm:
+        (TEST):
+        Add a test ensuring that canGoBack returns NO after restoring session state without navigating.
+
+2016-10-17  Andy Estes  <aestes@apple.com>
+
+        Crash in ASCIICaseInsensitiveHash::hash() when a response has a null MIME type
+        https://bugs.webkit.org/show_bug.cgi?id=163476
+        <rdar://problem/26941395>
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/LoadDataWithNilMIMEType.mm: Added.
+        (TEST): Added an API test that passes a nil MIMEType to
+        -[WKWebView loadData:MIMEType:characterEncodingName:baseURL:].
+
+2016-10-17  Dean Jackson  <dino@apple.com>
+
+        Allow creation of ExtendedColors and make Color immutable
+        https://bugs.webkit.org/show_bug.cgi?id=163557
+        <rdar://problem/28805360>
+
+        Reviewed by Darin Adler and Dave Hyatt.
+
+        API tests for ExtendedColor.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebCore/ExtendedColor.cpp: Added.
+        (TestWebKitAPI::TEST):
+        (TestWebKitAPI::makeColor):
+
+2016-10-17  JF Bastien  <jfbastien@apple.com>
+
+        WebAssembly JS API: implement basic stub
+
+        Implement the global WebAssembly JavaScript object, and its constructor +
+        function properties as described in:
+          https://github.com/WebAssembly/design/blob/master/JS.md
+
+        These don't do anything at the moment, the parent bug will take care of adding
+        more functionality and associated tests.
+
+        WebAssembly JS API: implement basic stub
+        https://bugs.webkit.org/show_bug.cgi?id=163404
+
+        Reviewed by Keith Miller.
+
+        * Scripts/run-jsc-stress-tests: use the new JSC option which exposes the WebAssembly object.
+
+2016-10-17  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        resolve-ChangeLogs: Specify --no-page to git diff
+        https://bugs.webkit.org/show_bug.cgi?id=163441
+
+        Reviewed by Darin Adler.
+
+        resolve-ChangeLogs shows the result after resolving by invoking
+        'git diff'. It runs a pager for every ChangeLog if it is under
+        TTY.
+
+        * Scripts/resolve-ChangeLogs:
+        (showStatus): Specify '--no-page' to git diff.
+
 2016-10-17  Michael Catanzaro  <mcatanzaro@igalia.com>
 
         Move user agent quirks to cross-platform location

@@ -386,7 +386,6 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     , m_scrollPinningBehavior(DoNotPin)
     , m_useAsyncScrolling(false)
     , m_viewState(parameters.viewState)
-    , m_processSuppressionEnabled(true)
     , m_userActivity("Process suppression disabled for page.")
     , m_pendingNavigationID(0)
 #if ENABLE(WEBGL)
@@ -509,7 +508,7 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     m_page->setViewState(m_viewState);
     if (!isVisible())
         m_page->setIsPrerender();
-    updateUserActivity();
+    setPageSuppressed(false);
 
     updateIsInWindow(true);
 
@@ -599,21 +598,17 @@ void WebPage::reinitializeWebPage(const WebPageCreationParameters& parameters)
 
 void WebPage::setPageActivityState(PageActivityState::Flags activityState)
 {
-    PageActivityState::Flags changed = m_activityState ^ activityState;
-    m_activityState = activityState;
-
-    if (changed)
-        updateUserActivity();
+    send(Messages::WebPageProxy::SetPageActivityState(activityState));
 }
 
-void WebPage::updateUserActivity()
+void WebPage::setPageSuppressed(bool pageSuppressed)
 {
-    // Start the activity to prevent AppNap if the page activity is in progress,
-    // the page is visible and non-idle, or process suppression is disabled.
-    if (m_activityState || !(m_viewState & ViewState::IsVisuallyIdle) || !m_processSuppressionEnabled)
-        m_userActivity.start();
-    else
+    // The UserActivity keeps the processes runnable. So if the page should be suppressed, stop the activity.
+    // If the page should not be supressed, start it.
+    if (pageSuppressed)
         m_userActivity.stop();
+    else
+        m_userActivity.start();
 }
 
 WebPage::~WebPage()
@@ -2739,9 +2734,6 @@ void WebPage::setViewState(ViewState::Flags viewState, bool wantsDidUpdateViewSt
     ViewState::Flags changed = m_viewState ^ viewState;
     m_viewState = viewState;
 
-    if (changed)
-        updateUserActivity();
-
     m_page->setViewState(viewState);
     for (auto* pluginView : m_pluginViews)
         pluginView->viewStateDidChange(changed);
@@ -3349,6 +3341,8 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 
     RuntimeEnabledFeatures::sharedFeatures().setShadowDOMEnabled(store.getBoolValueForKey(WebPreferencesKey::shadowDOMEnabledKey()));
 
+    RuntimeEnabledFeatures::sharedFeatures().setInteractiveFormValidationEnabled(store.getBoolValueForKey(WebPreferencesKey::interactiveFormValidationEnabledKey()));
+
     RuntimeEnabledFeatures::sharedFeatures().setDOMIteratorEnabled(store.getBoolValueForKey(WebPreferencesKey::domIteratorEnabledKey()));
 
     // Experimental Features.
@@ -3376,12 +3370,6 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
     settings.setInputEventsEnabled(store.getBoolValueForKey(WebPreferencesKey::inputEventsEnabledKey()));
 
     RuntimeEnabledFeatures::sharedFeatures().setModernMediaControlsEnabled(store.getBoolValueForKey(WebPreferencesKey::modernMediaControlsEnabledKey()));
-
-    bool processSuppressionEnabled = store.getBoolValueForKey(WebPreferencesKey::pageVisibilityBasedProcessSuppressionEnabledKey());
-    if (m_processSuppressionEnabled != processSuppressionEnabled) {
-        m_processSuppressionEnabled = processSuppressionEnabled;
-        updateUserActivity();
-    }
 
     platformPreferencesDidChange(store);
 
@@ -3837,14 +3825,19 @@ void WebPage::didReceiveNotificationPermissionDecision(uint64_t notificationID, 
 }
 
 #if ENABLE(MEDIA_STREAM)
-void WebPage::didReceiveUserMediaPermissionDecision(uint64_t userMediaID, bool allowed, const String& audioDeviceUID, const String& videoDeviceUID)
+void WebPage::userMediaAccessWasGranted(uint64_t userMediaID, const String& audioDeviceUID, const String& videoDeviceUID)
 {
-    m_userMediaPermissionRequestManager.didReceiveUserMediaPermissionDecision(userMediaID, allowed, audioDeviceUID, videoDeviceUID);
+    m_userMediaPermissionRequestManager.userMediaAccessWasGranted(userMediaID, audioDeviceUID, videoDeviceUID);
 }
 
-void WebPage::didCompleteUserMediaPermissionCheck(uint64_t userMediaID, const String& mediaDeviceIdentifierHashSalt, bool allowed)
+void WebPage::userMediaAccessWasDenied(uint64_t userMediaID, uint64_t reason, String invalidConstraint)
 {
-    m_userMediaPermissionRequestManager.didCompleteUserMediaPermissionCheck(userMediaID, mediaDeviceIdentifierHashSalt, allowed);
+    m_userMediaPermissionRequestManager.userMediaAccessWasDenied(userMediaID, static_cast<UserMediaRequest::MediaAccessDenialReason>(reason), invalidConstraint);
+}
+
+void WebPage::didCompleteMediaDeviceEnumeration(uint64_t userMediaID, const Vector<CaptureDevice>& devices, const String& deviceIdentifierHashSalt, bool originHasPersistentAccess)
+{
+    m_userMediaPermissionRequestManager.didCompleteMediaDeviceEnumeration(userMediaID, devices, deviceIdentifierHashSalt, originHasPersistentAccess);
 }
 #endif
 
@@ -4728,11 +4721,12 @@ void WebPage::setScrollingPerformanceLoggingEnabled(bool enabled)
     frameView->setScrollingPerformanceLoggingEnabled(enabled);
 }
 
-bool WebPage::canPluginHandleResponse(const ResourceResponse& response)
+bool WebPage::canPluginHandleResponse(const ResourceResponse& response, const Frame& mainFrame)
 {
 #if ENABLE(NETSCAPE_PLUGIN_API)
+    ASSERT(mainFrame.isMainFrame());
     uint32_t pluginLoadPolicy;
-    bool allowOnlyApplicationPlugins = !m_mainFrame->coreFrame()->loader().subframeLoader().allowPlugins();
+    bool allowOnlyApplicationPlugins = !mainFrame.loader().subframeLoader().allowPlugins();
 
     uint64_t pluginProcessToken;
     String newMIMEType;
@@ -4744,14 +4738,19 @@ bool WebPage::canPluginHandleResponse(const ResourceResponse& response)
     return !isBlockedPlugin && pluginProcessToken;
 #else
     UNUSED_PARAM(response);
+    UNUSED_PARAM(mainFrame);
     return false;
 #endif
 }
 
-bool WebPage::shouldUseCustomContentProviderForResponse(const ResourceResponse& response)
+bool WebPage::shouldUseCustomContentProviderForResponse(const ResourceResponse& response, const Frame& mainFrame)
 {
     // If a plug-in exists that claims to support this response, it should take precedence over the custom content provider.
-    return m_mimeTypesWithCustomContentProviders.contains(response.mimeType()) && !canPluginHandleResponse(response);
+    if (canPluginHandleResponse(response, mainFrame))
+        return false;
+
+    auto& mimeType = response.mimeType();
+    return mimeType.isNull() ? false : m_mimeTypesWithCustomContentProviders.contains(mimeType);
 }
 
 #if PLATFORM(COCOA)
@@ -5180,7 +5179,7 @@ bool WebPage::canShowMIMEType(const String& MIMEType) const
     if (MIMETypeRegistry::canShowMIMEType(MIMEType))
         return true;
 
-    if (m_mimeTypesWithCustomContentProviders.contains(MIMEType))
+    if (!MIMEType.isNull() && m_mimeTypesWithCustomContentProviders.contains(MIMEType))
         return true;
 
     const PluginData& pluginData = m_page->pluginData();
