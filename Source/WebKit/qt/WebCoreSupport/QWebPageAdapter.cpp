@@ -234,6 +234,7 @@ void QWebPageAdapter::initializeWebCorePage()
 #endif
     PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this),
                                         SocketProvider::create());
+    pageConfiguration.backForwardClient = BackForwardList::create();
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
     pageConfiguration.dragClient = new DragClientQt(pageConfiguration.chromeClient);
@@ -294,7 +295,7 @@ void QWebPageAdapter::initializeWebCorePage()
     WebCore::provideNotification(page, NotificationPresenterClientQt::notificationPresenter());
 #endif
 
-    history.d = new QWebHistoryPrivate(static_cast<WebCore::BackForwardList*>(page->backForward().client()));
+    history.d = new QWebHistoryPrivate(static_cast<BackForwardList*>(page->backForward().client()), page);
 }
 
 QWebPageAdapter::~QWebPageAdapter()

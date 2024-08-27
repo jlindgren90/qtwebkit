@@ -21,7 +21,6 @@
 #include "qwebhistory.h"
 #include "qwebhistory_p.h"
 
-#include "BackForwardList.h"
 #include "Frame.h"
 #include "HistorySerialization.h"
 #include "IconDatabaseBase.h"
@@ -281,7 +280,7 @@ QWebHistory::~QWebHistory()
 void QWebHistory::clear()
 {
     //shortcut to private BackForwardList
-    WebCore::BackForwardList* lst = d->lst;
+    BackForwardList* lst = d->lst;
 
     VisitedLinkStoreQt::singleton().removeAllVisitedLinks();
 
@@ -309,7 +308,7 @@ void QWebHistory::clear()
 */
 QList<QWebHistoryItem> QWebHistory::items() const
 {
-    WebCore::HistoryItemVector &items = d->lst->entries();
+    HistoryItemVector &items = d->lst->entries();
 
     QList<QWebHistoryItem> ret;
     for (unsigned i = 0; i < items.size(); ++i) {
@@ -327,7 +326,7 @@ QList<QWebHistoryItem> QWebHistory::items() const
 */
 QList<QWebHistoryItem> QWebHistory::backItems(int maxItems) const
 {
-    WebCore::HistoryItemVector items(maxItems);
+    HistoryItemVector items(maxItems);
     d->lst->backListWithLimit(maxItems, items);
 
     QList<QWebHistoryItem> ret;
@@ -346,7 +345,7 @@ QList<QWebHistoryItem> QWebHistory::backItems(int maxItems) const
 */
 QList<QWebHistoryItem> QWebHistory::forwardItems(int maxItems) const
 {
-    WebCore::HistoryItemVector items(maxItems);
+    HistoryItemVector items(maxItems);
     d->lst->forwardListWithLimit(maxItems, items);
 
     QList<QWebHistoryItem> ret;
@@ -501,7 +500,7 @@ QVariantMap QWebHistory::toMap() const
     WebCore::KeyedEncoderQt encoder;
     encoder.encodeUInt32("currentItemIndex", currentItemIndex());
 
-    const WebCore::HistoryItemVector &items = d->lst->entries();
+    const HistoryItemVector &items = d->lst->entries();
     encoder.encodeObjects("history", items.begin(), items.end(), [&encoder](WebCore::KeyedEncoder&, const WebCore::HistoryItem& item) {
         WebCore::encodeBackForwardTree(encoder, item);
     });
@@ -597,13 +596,12 @@ void QWebHistoryPrivate::goToItem(WebCore::HistoryItem* item)
     if (!item)
         return;
 
-    WebCore::Page* page = lst->page();
-    page->goToItem(*item, WebCore::FrameLoadType::IndexedBackForward);
+    m_page->goToItem(*item, WebCore::FrameLoadType::IndexedBackForward);
 }
 
 QWebPageAdapter* QWebHistoryPrivate::page()
 {
-    return QWebPageAdapter::kit(static_cast<WebCore::BackForwardList*>(lst)->page());
+    return QWebPageAdapter::kit(m_page);
 }
 
 WebCore::HistoryItem* QWebHistoryItemPrivate::core(const QWebHistoryItem* q)
