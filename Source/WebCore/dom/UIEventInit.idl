@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,41 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-#include "JSDocumentType.h"
-
-#include "ExceptionCode.h"
-#include "JSNodeOrString.h"
-
-using namespace JSC;
-
-namespace WebCore {
-
-JSValue JSDocumentType::before(ExecState& state)
-{
-    ExceptionCode ec = 0;
-    wrapped().before(toNodeOrStringVector(state), ec);
-    setDOMException(&state, ec);
-
-    return jsUndefined();
-}
-
-JSValue JSDocumentType::after(ExecState& state)
-{
-    ExceptionCode ec = 0;
-    wrapped().after(toNodeOrStringVector(state), ec);
-    setDOMException(&state, ec);
-
-    return jsUndefined();
-}
-
-JSValue JSDocumentType::replaceWith(ExecState& state)
-{
-    ExceptionCode ec = 0;
-    wrapped().replaceWith(toNodeOrStringVector(state), ec);
-    setDOMException(&state, ec);
-
-    return jsUndefined();
-}
-
-} // namespace WebCore
+dictionary UIEventInit : EventInit {
+    DOMWindow? view = null;
+    long detail = 0;
+};

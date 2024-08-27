@@ -375,6 +375,7 @@ set(WebCore_NON_SVG_IDL_FILES
     dom/ChildNode.idl
     dom/ClientRect.idl
     dom/ClientRectList.idl
+    dom/ClipboardEvent.idl
     dom/Comment.idl
     dom/CompositionEvent.idl
     dom/CustomElementRegistry.idl
@@ -397,6 +398,8 @@ set(WebCore_NON_SVG_IDL_FILES
     dom/Element.idl
     dom/ErrorEvent.idl
     dom/Event.idl
+    dom/EventInit.idl
+    dom/EventModifierInit.idl
     dom/EventTarget.idl
     dom/FocusEvent.idl
     dom/GlobalEventHandlers.idl
@@ -437,6 +440,7 @@ set(WebCore_NON_SVG_IDL_FILES
     dom/TransitionEvent.idl
     dom/TreeWalker.idl
     dom/UIEvent.idl
+    dom/UIEventInit.idl
     dom/WebKitAnimationEvent.idl
     dom/WebKitNamedFlow.idl
     dom/WebKitTransitionEvent.idl
@@ -1068,7 +1072,6 @@ set(WebCore_SOURCES
     bindings/js/JSCSSValueCustom.cpp
     bindings/js/JSCallbackData.cpp
     bindings/js/JSCanvasRenderingContext2DCustom.cpp
-    bindings/js/JSCharacterDataCustom.cpp
     bindings/js/JSClientRectCustom.cpp
     bindings/js/JSCommandLineAPIHostCustom.cpp
     bindings/js/JSCryptoAlgorithmBuilder.cpp
@@ -1105,7 +1108,6 @@ set(WebCore_SOURCES
     bindings/js/JSDictionary.cpp
     bindings/js/JSDocumentCustom.cpp
     bindings/js/JSDocumentFragmentCustom.cpp
-    bindings/js/JSDocumentTypeCustom.cpp
     bindings/js/JSElementCustom.cpp
     bindings/js/JSErrorEventCustom.cpp
     bindings/js/JSErrorHandler.cpp
@@ -1158,7 +1160,6 @@ set(WebCore_SOURCES
     bindings/js/JSNodeCustom.cpp
     bindings/js/JSNodeFilterCustom.cpp
     bindings/js/JSNodeIteratorCustom.cpp
-    bindings/js/JSNodeOrString.cpp
     bindings/js/JSNodeListCustom.cpp
     bindings/js/JSPerformanceEntryCustom.cpp
     bindings/js/JSPerformanceTimingCustom.cpp
@@ -3638,7 +3639,7 @@ list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/XPathGrammar.
 set(FEATURE_DEFINES_JAVASCRIPT "LANGUAGE_JAVASCRIPT ${FEATURE_DEFINES_WITH_SPACE_SEPARATOR}")
 list(APPEND WebCoreTestSupport_IDL_FILES ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.idl)
 
-GENERATE_BINDINGS(
+GENERATE_BINDINGS(WebCoreBindings
     OUTPUT_SOURCE WebCore_DERIVED_SOURCES
     INPUT_FILES ${WebCore_IDL_FILES}
     BASE_DIR ${WEBCORE_DIR}
@@ -3654,7 +3655,7 @@ GENERATE_BINDINGS(
         --workerGlobalScopeConstructorsFile ${WORKERGLOBALSCOPE_CONSTRUCTORS_FILE}
         --dedicatedWorkerGlobalScopeConstructorsFile ${DEDICATEDWORKERGLOBALSCOPE_CONSTRUCTORS_FILE})
 
-GENERATE_BINDINGS(
+GENERATE_BINDINGS(WebCoreTestSupportBindings
     OUTPUT_SOURCE WebCoreTestSupport_SOURCES
     INPUT_FILES ${WebCoreTestSupport_IDL_FILES}
     BASE_DIR ${WEBCORE_DIR}
@@ -3662,6 +3663,9 @@ GENERATE_BINDINGS(
     FEATURES ${FEATURE_DEFINES_JAVASCRIPT}
     DESTINATION ${DERIVED_SOURCES_WEBCORE_DIR}
     GENERATOR JS)
+
+# WebCoreTestSupportBindings needs InternalSettingsGenerated.idl
+add_dependencies(WebCoreTestSupportBindings WebCoreDerivedSources)
 
 # WebCore JS Builtins
 
@@ -3824,7 +3828,7 @@ endif ()
 
 include_directories(${WebCoreTestSupport_INCLUDE_DIRECTORIES})
 add_library(WebCoreTestSupport ${WebCoreTestSupport_LIBRARY_TYPE} ${WebCoreTestSupport_SOURCES})
-add_dependencies(WebCoreTestSupport WebCore)
+add_dependencies(WebCoreTestSupport WebCore WebCoreTestSupportBindings)
 target_link_libraries(WebCoreTestSupport ${WebCoreTestSupport_LIBRARIES})
 
 if (NOT MSVC AND WIN32 AND ${PORT} STREQUAL "Qt")

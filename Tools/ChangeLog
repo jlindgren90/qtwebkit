@@ -1,3 +1,129 @@
+2016-10-09  Simon Fraser  <simon.fraser@apple.com>
+
+        Convert contributors.json to a flat list
+        https://bugs.webkit.org/show_bug.cgi?id=163183
+
+        Reviewed by Darin Adler.
+        
+        Make contributors.json easier to maintain by eliminating the big groupings ("Committers", "Reviewers" etc)
+        and moving that data to a "status" property on each contributor.
+
+        * Scripts/webkitpy/common/config/committers.py:
+        (Contributor.__eq__): Implement this to fix unit tests, now that load_json() is not @memoized.
+        (Contributor.as_dict): Include status in the dict.
+        (CommitterList.__init__): Clean up to make the testing code path more explicit.
+        (CommitterList.load_json):
+        (CommitterList.load_test_data):
+        (CommitterList.as_json):
+        (Contributor.__unicode__): Deleted.
+        * Scripts/webkitpy/common/config/contributors.json:
+        * Scripts/webkitpy/tool/bot/irc_command_unittest.py:
+        (IRCCommandTest.test_whois): The ordering here is now alphabetical.
+
+2016-10-09  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [CMake] CMake does not support the dep files for implicit dependency
+        https://bugs.webkit.org/show_bug.cgi?id=161433
+
+        Reviewed by Brent Fulgham.
+
+        Created a Perl script to generate all IDL bindings for CMake.
+        This script can regenerate outdated bindings by based on the
+        supplemental dependency and dep files created by
+        '--write-dependencies' switch of generate-bindings.pl.
+
+        add_custom_target is used to invoke the script instead of
+        add_custom_command because Ninja deletes all output files before
+        executing the command in case of add_custom_command.
+
+        USES_TERMINAL option of add_custom_target has two effects:
+        1) Not buffering output of the command
+        2) Invoking the command in the special Ninja pool which inhibits parallel build
+        One needs to use CMake 3.2 or later to enable this feature.
+
+        * DumpRenderTree/CMakeLists.txt: Specified a target name for
+        GENERATE_BINDINGS. Added dependency for the target.
+        * WebKitTestRunner/CMakeLists.txt: Ditto.
+
+2016-10-09  Simon Fraser  <simon.fraser@apple.com>
+
+        Add support for canonicalizing contributors.json, and have check-webkit-style check the format.
+        https://bugs.webkit.org/show_bug.cgi?id=163177
+
+        Follow-up fix.
+        
+        For unknown reasons, overriding Commiter.__dict__() caused mysterious test failures.
+        Rename it to as_dict().
+
+        * Scripts/webkitpy/common/config/committers.py:
+        (Contributor.as_dict):
+        (CommitterList._contributor_list_to_dict):
+        (Contributor.__dict__): Deleted.
+
+2016-10-08  Simon Fraser  <simon.fraser@apple.com>
+
+        Add support for canonicalizing contributors.json, and have check-webkit-style check the format.
+        https://bugs.webkit.org/show_bug.cgi?id=163177
+
+        Reviewed by Ryosuke Niwa.
+        
+        Make it possible to round-trip contributors.json through CommitterList, so we can
+        support writing out contributors.json in canonical format. This requires saving
+        the case-preserved email and expertise in Contributor. CommitterList also needs
+        to be able to generate the "exclusive" lists, since it currently uses lists
+        that are the union of, say, committers and reviewers.
+        
+        If contributors.json is malformed (invalid JSON), catch the Exception, report it
+        and exit rather than allowing the exception to propagate. With an invalid file,
+        an exception would be thrown before the JSON style checker reached this file, so
+        the error was not correctly reported.
+        
+        Add style/checker/committer.py for checking that committers.json has the canonical format.
+        
+        Add support to validate-committer-lists to dump out the canonical json (-d) or update
+        the file in-place (-c).
+
+        * Scripts/validate-committer-lists:
+        (CommitterListFromGit._print_three_column_row):
+        (CommitterListFromGit.possibly_expired_committers):
+        (CommitterListFromGit):
+        (CommitterListFromGit.print_possibly_expired_committers):
+        (main):
+        * Scripts/webkitpy/common/config/committers.py:
+        (Contributor.__init__):
+        (Contributor.__dict__):
+        (Committer.__init__):
+        (Reviewer.__init__):
+        (CommitterList.load_json):
+        (CommitterList):
+        (CommitterList._contributor_list_to_dict):
+        (CommitterList.as_json):
+        (CommitterList.reformat_in_place):
+        (CommitterList._exclusive_contributors):
+        (CommitterList._exclusive_committers):
+        (Contributor.matches_glob): Deleted.
+        (CommitterList.contributors): Deleted.
+        * Scripts/webkitpy/common/config/contributors.json:
+        * Scripts/webkitpy/style/checker.py:
+        (CheckerDispatcher._create_checker):
+        * Scripts/webkitpy/style/checkers/contributors.py: Added.
+        (ContributorsChecker):
+        (ContributorsChecker.__init__):
+        (ContributorsChecker.check):
+        (ContributorsChecker._unidiff_output):
+
+2016-10-06  Darin Adler  <darin@apple.com>
+
+        Next step on moving to modern way to return DOM exceptions
+        https://bugs.webkit.org/show_bug.cgi?id=163016
+
+        Reviewed by Ryosuke Niwa.
+
+        * Scripts/do-webcore-rename: Add proposed name change of setDOMException
+        to propagateException, since this function is primarily used to take an
+        exception already effectively "thrown" by setting an ExceptionCode out
+        argument and propagate it into the JavaScript engine's exception machinery.
+
 2016-10-07  Alex Christensen  <achristensen@webkit.org>
 
         Non-special URL fragments should percent-encode non-ASCII characters

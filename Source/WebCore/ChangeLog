@@ -1,3 +1,548 @@
+2016-10-09  Chris Dumez  <cdumez@apple.com>
+
+        Update generated bindings code so that dictionary structures no longer need explicit constructors
+        https://bugs.webkit.org/show_bug.cgi?id=163188
+
+        Reviewed by Darin Adler.
+
+        Update generated bindings code so that dictionary structures no longer
+        need explicit constructors. We now call the default constructor and
+        then initialize the members one by one.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDictionaryImplementationContent):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convertDictionary<TestObj::Dictionary>):
+        (WebCore::convertDictionary<TestObj::DictionaryThatShouldNotTolerateNull>):
+        (WebCore::convertDictionary<TestObj::DictionaryThatShouldTolerateNull>):
+        (WebCore::convertDictionary<AlternateDictionaryName>):
+        (WebCore::convertDictionary<TestObj::ParentDictionary>):
+        (WebCore::convertDictionary<TestObj::ChildDictionary>):
+        * bindings/scripts/test/JS/JSTestStandaloneDictionary.cpp:
+        (WebCore::convertDictionary<TestStandaloneDictionary>):
+        * dom/ClipboardEvent.h:
+        * dom/CustomEvent.h:
+        * dom/EventInit.h:
+        (WebCore::EventInit::EventInit): Deleted.
+        * dom/EventModifierInit.h:
+        (WebCore::EventModifierInit::EventModifierInit): Deleted.
+        * dom/KeyboardEvent.cpp:
+        (WebCore::KeyboardEvent::KeyboardEvent):
+        * dom/KeyboardEvent.h:
+        * dom/KeyboardEvent.idl:
+        * dom/UIEventInit.h:
+        (WebCore::UIEventInit::UIEventInit): Deleted.
+        * editing/Editor.cpp:
+        (WebCore::Editor::dispatchCPPEvent):
+
+2016-10-09  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [CMake] CMake does not support the dep files for implicit dependency
+        https://bugs.webkit.org/show_bug.cgi?id=161433
+
+        Reviewed by Brent Fulgham.
+
+        Created a Perl script to generate all IDL bindings for CMake.
+        This script can regenerate outdated bindings by based on the
+        supplemental dependency and dep files created by
+        '--write-dependencies' switch of generate-bindings.pl.
+
+        add_custom_target is used to invoke the script instead of
+        add_custom_command because Ninja deletes all output files before
+        executing the command in case of add_custom_command.
+
+        USES_TERMINAL option of add_custom_target has two effects:
+        1) Not buffering output of the command
+        2) Invoking the command in the special Ninja pool which inhibits parallel build
+        One needs to use CMake 3.2 or later to enable this feature.
+
+        * CMakeLists.txt: Specified target names for
+        GENERATE_BINDINGS. Added dependency for the targets.
+        * bindings/scripts/generate-bindings-all.pl: Added.
+
+2016-10-09  Chris Dumez  <cdumez@apple.com>
+
+        Update KeyboardEvent to stop using legacy [ConstructorTemplate=Event]
+        https://bugs.webkit.org/show_bug.cgi?id=163176
+
+        Reviewed by Darin Adler.
+
+        Update KeyboardEvent to stop using legacy [ConstructorTemplate=Event]
+        and use a proper constructor instead, like in the specification:
+        - https://www.w3.org/TR/uievents/#interface-keyboardevent
+
+        Also add support for passing modifierAltGraph / modifierCapsLock
+        in the inialization dictionary as we support those modifiers via
+        getModifierState().
+
+        No new tests, extended existing test.
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/EventModifierInit.h: Added.
+        (WebCore::EventModifierInit::EventModifierInit):
+        * dom/EventModifierInit.idl: Added.
+        * dom/KeyboardEvent.cpp:
+        (WebCore::KeyboardEvent::KeyboardEvent):
+        (WebCore::KeyboardEvent::getModifierState):
+        * dom/KeyboardEvent.h:
+        * dom/KeyboardEvent.idl:
+        * dom/MouseRelatedEvent.cpp:
+        (WebCore::MouseRelatedEvent::MouseRelatedEvent):
+        * dom/MouseRelatedEvent.h:
+        * dom/UIEvent.cpp:
+        (WebCore::UIEvent::UIEvent):
+        * dom/UIEvent.h:
+        (WebCore::UIEvent::create): Deleted.
+        * dom/UIEventInit.h: Added.
+        (WebCore::UIEventInit::UIEventInit):
+        * dom/UIEventInit.idl: Added.
+        * dom/UIEventWithKeyState.h:
+        (WebCore::UIEventWithKeyState::altGraphKey):
+        (WebCore::UIEventWithKeyState::capsLockKey):
+        (WebCore::UIEventWithKeyState::UIEventWithKeyState):
+        (WebCore::UIEventWithKeyState::ctrlKey): Deleted.
+        (WebCore::UIEventWithKeyState::shiftKey): Deleted.
+        (WebCore::UIEventWithKeyState::altKey): Deleted.
+        (WebCore::UIEventWithKeyState::metaKey): Deleted.
+
+2016-10-09  Youenn Fablet  <youenn@apple.com>
+
+        Promise attribute getters should reject promises in case of casted-this errors
+        https://bugs.webkit.org/show_bug.cgi?id=163167
+
+        Reviewed by Darin Adler.
+
+        Covered by updated test and binding test.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::throwGetterTypeError):
+        (WebCore::rejectPromiseWithGetterTypeError): Added to reject promises for attribute getters
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::BindingCaller::attribute): Introducing promise rejection for type cast errors.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        * bindings/scripts/test/JS/JSTestObj.cpp: Rebased test. As can be seen, only custom promise attributes are supported.
+        (WebCore::jsTestObjTestReadOnlyPromiseAttribute):
+        (WebCore::jsTestObjTestReadOnlyPromiseAttributeGetter):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-10-08  Chris Dumez  <cdumez@apple.com>
+
+        [Mac] Write WebArchive to the pasteboard when copying image in WebKit
+        https://bugs.webkit.org/show_bug.cgi?id=163100
+
+        Reviewed by Darin Adler.
+
+        Write WebArchive to the pasteboard when copying image in WebKit. This
+        fixes pasting such images to a content editable field in WebKit because
+        Web archives take priority over RTFD when reading from the pasteboard
+        in WebKit.
+
+        Using RTFD when pasting the image in WebKit was causing issues because:
+        1. The pasted image would not be displayed because our RTFD import code
+           is buggy.
+        2. The pasted image URL was a webkit-fake-url://
+        3. Formatting associated to the image (e.g. inline style) would be lost
+
+        No new tests, unskipped existing test on WebKit2.
+
+        * editing/Editor.h:
+        * editing/mac/EditorMac.mm:
+        (WebCore::Editor::imageInWebArchiveFormat):
+        (WebCore::Editor::writeImageToPasteboard):
+        * platform/Pasteboard.h:
+        * platform/mac/PasteboardMac.mm:
+        (WebCore::writableTypesForImage):
+        (WebCore::Pasteboard::write):
+        (WebCore::Pasteboard::Pasteboard): Deleted.
+        (WebCore::Pasteboard::createForCopyAndPaste): Deleted.
+
+2016-10-08  Chris Dumez  <cdumez@apple.com>
+
+        Update CustomEvent to stop using legacy [ConstructorTemplate=Event]
+        https://bugs.webkit.org/show_bug.cgi?id=163174
+
+        Reviewed by Darin Adler.
+
+        Update CustomEvent to stop using legacy [ConstructorTemplate=Event] and
+        use an actual constructor instead, like in the specification:
+        - https://dom.spec.whatwg.org/#interface-customevent
+
+        There is a very minor behavior change when explictly passing undefined
+        as detail value in CustomEventInit. We used to initialize detail to
+        undefined but we now initialize it to null instead, which is its default
+        value. The new behavior matches the one of Chrome and Firefox.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDefaultValue):
+        (GenerateDictionaryImplementationContent):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convertDictionary<TestObj::Dictionary>):
+        * bindings/scripts/test/TestObj.idl:
+        * dom/CustomEvent.cpp:
+        (WebCore::CustomEvent::CustomEvent):
+        * dom/CustomEvent.h:
+        * dom/CustomEvent.idl:
+        * dom/Document.cpp:
+        (WebCore::Document::createEvent):
+        * dom/Event.cpp:
+        (WebCore::Event::Event):
+        * dom/Event.h:
+
+2016-10-08  Chris Dumez  <cdumez@apple.com>
+
+        Add support for ClipboardEvent
+        https://bugs.webkit.org/show_bug.cgi?id=163164
+
+        Reviewed by Darin Adler.
+
+        Add support for ClipboardEvent:
+        - https://www.w3.org/TR/clipboard-apis/#clipboard-event-interfaces
+
+        Firefox and Chrome both already support this.
+
+        This gives us 5 more points on html5test.com.
+
+        Tests: editing/pasteboard/clipboard-event.html
+               fast/events/clipboard-event-constructor.html
+
+        * CMakeLists.txt:
+        * DerivedSources.cpp:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSEventCustom.cpp:
+        (WebCore::toJSNewlyCreated): Deleted.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (WillConvertUndefinedToDefaultParameterValue):
+        We use [] as implicit default value for dictionary parameters. This change
+        is so we call convertDictionary<>() even if the parameter is undefined
+        because we want to pass a struct to the implementation initialized with
+        the default member values defined in the IDL.
+
+        * dom/ClipboardEvent.cpp:
+        (WebCore::ClipboardEvent::ClipboardEvent):
+        (WebCore::ClipboardEvent::eventInterface):
+        * dom/ClipboardEvent.h:
+        * dom/ClipboardEvent.idl: Added.
+        * dom/Event.cpp:
+        (WebCore::Event::Event):
+        * dom/Event.h:
+        * dom/Event.idl:
+        * dom/EventInit.h: Added.
+        * dom/EventInit.idl: Added.
+        * dom/EventNames.in:
+        * dom/MouseEvent.h:
+        (WebCore::MouseEvent::dataTransfer):
+        * editing/Editor.cpp:
+        (WebCore::Editor::dispatchCPPEvent):
+
+2016-10-06  Darin Adler  <darin@apple.com>
+
+        Next step on moving to modern way to return DOM exceptions
+        https://bugs.webkit.org/show_bug.cgi?id=163016
+
+        Reviewed by Ryosuke Niwa.
+
+        * Modules/fetch/FetchRequest.idl:
+        Added MayThrowException to initializeWith since it throws an exception.
+
+        * bindings/js/JSCallbackData.cpp:
+        (WebCore::JSCallbackData::invokeCallback):
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::invokeCallback):
+        * bindings/js/JSCustomSQLStatementErrorCallback.cpp:
+        (WebCore::JSSQLStatementErrorCallback::handleEvent):
+        * bindings/js/JSCustomXPathNSResolver.cpp:
+        (WebCore::JSCustomXPathNSResolver::lookupNamespaceURI):
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::reportException):
+        (WebCore::reportCurrentException):
+        * bindings/js/JSErrorHandler.cpp:
+        (WebCore::JSErrorHandler::handleEvent):
+        * bindings/js/JSEventListener.cpp:
+        (WebCore::JSEventListener::handleEvent):
+        * bindings/js/JSMutationCallback.cpp:
+        (WebCore::JSMutationCallback::call):
+        * bindings/js/JSNodeFilterCustom.cpp:
+        (WebCore::JSNodeFilter::acceptNode):
+        * bindings/js/ScheduledAction.cpp:
+        (WebCore::ScheduledAction::executeFunctionInContext):
+        * bindings/js/ScriptController.cpp:
+        (WebCore::ScriptController::evaluateInWorld):
+        * bindings/js/WorkerScriptController.cpp:
+        (WebCore::WorkerScriptController::evaluate):
+        * inspector/PageScriptDebugServer.cpp:
+        (WebCore::PageScriptDebugServer::reportException):
+        Use JSC::Exception explicitly to avoid ambiguity with WebCore::Exception,
+        or in some cases use auto instead.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::hasUnpairedSurrogate): Factored this inline function out of valueToUSVString
+        for clarity.
+        (WebCore::createDOMException): Removed unused TRY_TO_CREATE_EXCEPTION macro.
+        (WebCore::propagateExceptionSlowPath): Added.
+        (WebCore::propagateException): Added.
+        (WebCore::setDOMException): Removed overload that takes an exception code and message
+        string separately; no longer needed.
+
+        * bindings/js/JSDOMBinding.h: Include the ExceptionOr header
+        rather than forward declaring. Added more of the ExceptionOr handling
+        functions; some just declared and not yet defined. Updated for changes
+        to ExceptionOr interface. Removed the createDOMException function that takes
+        only an exception code; not needed outside JSDOMBinding.cpp.
+
+        * bindings/js/JSXMLHttpRequestCustom.cpp:
+        (WebCore::JSXMLHttpRequest::send): Rewrote this to use ExceptionOr instead
+        of ExceptionCode. Added some FIXMEs as well.
+        (WebCore::JSXMLHttpRequest::responseText): Ditto.
+        (WebCore::JSXMLHttpRequest::retrieveResponse): Ditto.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Fixed if statements to follow WebKit coding style
+        rather than using extra braces. Added call to propagateException for SetterMayThrowException.
+        (GenerateSerializerFunction): Fixed if statements as above.
+        (GenerateParametersCheck): Ditto. Also added call to propagateException for functions with
+        void return type and MayThrowException.
+        (GenerateReturnParameters): Tweaked coding style a bit.
+        (addIterableProperties): Fixed if statements as above.
+        (NativeToJSValue): Added code to handle various cases of GetterMayThrowException
+        and MayThrowException.
+        (GenerateConstructorDefinition): Used encodedJSValue() instead of
+        JSValue::encode(JSValue()), a longer way to say the same thing.
+
+        * bindings/scripts/IDLAttributes.txt: Added GetterMayThrowException,
+        MayThrowException, and SetterMayThrowException.
+
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        * bindings/scripts/test/JS/JSTestJSBuiltinConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestNamedConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        Regenerated results.
+
+        * bindings/scripts/test/TestObj.idl: Added some test cases.
+
+        * dom/DOMImplementation.cpp:
+        (WebCore::DOMImplementation::createDocumentType): Tweaked formatting.
+        (WebCore::DOMImplementation::createDocument): Ditto.
+
+        * dom/DOMImplementation.idl: Added MayThrowException to two functions since
+        I am abandoning, for now, the ability to throw exceptions without any extended
+        attribute in the IDL file. This feature may return at some point if we figure
+        out a way to do it for functions without return values as well as functions with.
+
+        * dom/Document.cpp:
+        (WebCore::Document::exitPointerLock): Rewrote to streamline logic.
+        (WebCore::Document::pointerLockElement): Ditto.
+        (WebCore::Document::inputCursor): Added. No need for this to be inlined.
+        (WebCore::Document::setInputCursor): Changed to take Ref&&.
+        (WebCore::Document::getSelection): Added. Moved here from TreeScope.
+
+        * dom/Document.h: Updated for above changes.
+
+        * dom/Document.idl: Tweaked formatting.
+
+        * dom/Exception.h: Merged the two constructors into one with a default
+        argument value, which should be equally efficient. Added releaseMessage function.
+        Added assertion that this is only created for actual exceptions with non-zero
+        ExceptionCode. Unlike ExceptionCode, which has a value of 0 which means no
+        exception, we do not create an Exception if there is no exception.
+
+        * dom/ExceptionOr.h: Renamed takeReturnValue to releaseReturnValue. Replaced
+        exceptionCode and exceptionMessage with releaseException. Added ExceptionOr<void>
+        specialization.
+
+        * dom/TreeScope.cpp:
+        (WebCore::TreeScope::~TreeScope): Removed code dealing with
+        m_selection, which is now in Document.
+        (WebCore::TreeScope::getSelection): Deleted.
+
+        * dom/TreeScope.h: Removed DOMSelection.
+
+        * page/DOMSelection.cpp:
+        (WebCore::selectionShadowAncestor): Changed to take a reference rather than
+        a guaranteed-non-null pointer.
+        (WebCore::DOMSelection::DOMSelection): Changed to take a Frame& instead of
+        of a TreeScope*.
+        (WebCore::DOMSelection::clearTreeScope): Deleted.
+        (WebCore::DOMSelection::isCollapsed): Updated call to selectionShadowAncestor.
+        (WebCore::DOMSelection::type): Took out obsolete uneeeded comment. Got rid
+        of case where this returns a null string. Use ASCIILiteral.
+        (WebCore::DOMSelection::rangeCount): Streamlined code.
+        (WebCore::DOMSelection::collapse): Removed redundant check of m_frame for
+        null which is already handled by the isValidForPosition function.
+        Removed non-helpful FIXME.
+        (WebCore::DOMSelection::collapseToEnd): Changed to use ExceptionOr instead of
+        ExceptionCode.
+        (WebCore::DOMSelection::collapseToStart): Ditto.
+        (WebCore::DOMSelection::setBaseAndExtent): Removed redundant check of m_frame
+        for null which is already handled by the isValidForPosition function. Removed
+        non-helpful FIXME.
+        (WebCore::DOMSelection::setPosition): Ditto.
+        (WebCore::DOMSelection::extend): Changed to use ExceptionOr instead of
+        ExceptionCode.
+        (WebCore::DOMSelection::getRangeAt): Ditto.
+        (WebCore::DOMSelection::isValidForPosition): Changed to return false when
+        m_frame is null rather than asserting is is non-null and having every caller
+        check m_frame before calling this.
+
+        * page/DOMSelection.h: Use #pragma once. Fix indentation. Removed unneeded
+        comments. Use ExceptionOr rather than ExceptionCode.
+
+        * page/DOMSelection.idl: Move from MayThrowLegacyException to MayThrowException.
+
+        * page/DOMWindow.cpp:
+        (WebCore::DOMWindow::resetDOMWindowProperties): Sorted properties alphabetically
+        to make it more obvious if any are accidentally omitted or listed twice.
+        (WebCore::DOMWindow::getSelection): Changed ownership so that the window owns
+        the selection like all the other objects, rather than having it be owned by the
+        document instead.
+
+        * page/DOMWindow.h: Added m_selection, sorted all the other related properties
+        alphabetically so it's easy to compare the list here with elsewhere.
+
+        * replay/ReplayController.cpp:
+        (WebCore::ReplayController::frameNavigated): Updated to call setInputCursor
+        with a reference rather than a pointer.
+
+        * xml/XMLHttpRequest.cpp:
+        (WebCore::XMLHttpRequest::responseText): Use ExceptionOr rather than ExceptionCode.
+        (WebCore::XMLHttpRequest::responseXML): Ditto.
+        (WebCore::XMLHttpRequest::setTimeout): Ditto.
+        (WebCore::XMLHttpRequest::setResponseType): Ditto.
+        (WebCore::XMLHttpRequest::setWithCredentials): Ditto.
+        (WebCore::XMLHttpRequest::open): Ditto.
+        (WebCore::XMLHttpRequest::prepareToSend): Changed to return an
+        Optional<ExceptionOr> to reflect the three different states: an exception,
+        a value to return without sending, or "continue with the send algorithm".
+        The old code did this with a boolean plus an exception code. This sounds
+        confusing but is easy to read at the call sites, so probably OK to keep.
+        (WebCore::XMLHttpRequest::send): Use ExceptionOr rather than ExceptionCode.
+        (WebCore::XMLHttpRequest::sendBytesData): Ditto.
+        (WebCore::XMLHttpRequest::createRequest): Ditto.
+        (WebCore::XMLHttpRequest::overrideMimeType): Ditto.
+        (WebCore::XMLHttpRequest::setRequestHeader): Ditto.
+
+        * xml/XMLHttpRequest.h: Updated for changes above.
+
+        * xml/XMLHttpRequest.idl: Sorted interface extended attributes alphabetically.
+        Changed from MayThrowLegacyException to MayThrowException.
+
+2016-10-06  Sam Weinig  <sam@webkit.org>
+
+        Autogenerate passing union types as part of a functions variadic arguments
+        https://bugs.webkit.org/show_bug.cgi?id=162919
+
+        Reviewed by Darin Adler.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        Remove deleted files.
+
+        * bindings/generic/IDLTypes.h:
+        Switch to use std::reference_wrapper as it's implementation type. We may need more
+        granularity here in the future, but this will work for now.
+
+        * bindings/js/JSCharacterDataCustom.cpp: Removed.
+        * bindings/js/JSDocumentTypeCustom.cpp: Removed.
+        * bindings/js/JSNodeOrString.cpp: Removed.
+        * bindings/js/JSNodeOrString.h: Removed.
+
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::VariadicHelperBase::convert): Deleted.
+        (WebCore::toArguments): Deleted.
+        Moved to JSDOMConvert.h and renamed to convertVariadicArguments and make
+        it work in terms of IDLTypes.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::Converter<IDLInterface<T>>::convert):
+        (WebCore::VariadicConverterBase::convert):
+        (WebCore::VariadicConverterBase<IDLInterface<T>>::convert):
+        (WebCore::convertVariadicArguments):
+
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::prepend): Deleted.
+        (WebCore::JSDocument::append): Deleted.
+        * bindings/js/JSDocumentFragmentCustom.cpp:
+        (WebCore::JSDocumentFragment::prepend): Deleted.
+        (WebCore::JSDocumentFragment::append): Deleted.
+        * bindings/js/JSElementCustom.cpp:
+        (WebCore::JSElement::before): Deleted.
+        (WebCore::JSElement::after): Deleted.
+        (WebCore::JSElement::replaceWith): Deleted.
+        (WebCore::JSElement::prepend): Deleted.
+        (WebCore::JSElement::append): Deleted.
+        Remove now generated functions.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (assert):
+        Add assert to help debugging.
+
+        (ParseInterface):
+        Don't treat union types as interfaces.
+
+        (GetFlattenedMemberTypes):
+        (GetNumberOfNullableMemberTypes):
+        (GetIDLUnionMemberTypes):
+        Implement WebIDL algorithms for getting the flattened member list of union, and use it
+        to construct the c++ IDLType.
+
+        (GetBaseIDLType):
+        (GetIDLType):
+        Add helper to convert an parsed idlType to a c++ IDLType.
+
+        (IsWrapperType):
+        Don't treat union types as wrappers.
+        
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AddToImplIncludesForIDLType):
+        Add helper for adding #includes based on a parsed idlType. It recursively handles union types.
+
+        (GenerateParametersCheck):
+        Use the new convertVariadicArguments function to handle all variadic arguments, including
+        union types.
+
+        * bindings/scripts/IDLParser.pm:
+        (parseDictionaryMember):
+        (parseAttributeRest):
+        (parseOptionalOrRequiredArgument):
+        (parseExceptionField):
+        Add an idlType to domSignature and populate it.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionOverloadedMethod13):
+        (WebCore::jsTestObjPrototypeFunctionVariadicStringMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicDoubleMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicNodeMethod):
+        (WebCore::jsTestObjPrototypeFunctionVariadicUnionMethod):
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.cpp:
+        (WebCore::constructJSTestOverloadedConstructors5):
+        * bindings/scripts/test/TestObj.idl:
+        Add and update tests.
+
+        * dom/ChildNode.idl:
+        * dom/ParentNode.idl:
+        Remove Custom extended attribute.
+
+        * dom/ContainerNode.cpp:
+        * dom/ContainerNode.h:
+        * dom/Node.cpp:
+        * dom/Node.h:
+        Switch to using std::reference_wrapper instead of Ref<> for passed in parameters.
+
 2016-10-08  Youenn Fablet  <youenn@apple.com>
 
         [Fetch API] Request constructor should provide exception messages

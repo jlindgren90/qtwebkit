@@ -25,6 +25,7 @@
 
 #include "DOMWrapperWorld.h"
 #include "ExceptionCode.h"
+#include "ExceptionOr.h"
 #include "JSDOMGlobalObject.h"
 #include "JSDOMWrapper.h"
 #include "ScriptWrappable.h"
@@ -69,10 +70,6 @@ class DOMWindow;
 class Frame;
 class URL;
 class Node;
-
-template<typename> class ExceptionOr;
-
-using ExceptionCode = int;
 
 struct ExceptionDetails {
     String message;
@@ -137,6 +134,8 @@ String makeThisTypeErrorMessage(const char* interfaceName, const char* attribute
 WEBCORE_EXPORT JSC::EncodedJSValue throwGetterTypeError(JSC::ExecState&, JSC::ThrowScope&, const char* interfaceName, const char* attributeName);
 WEBCORE_EXPORT JSC::EncodedJSValue throwThisTypeError(JSC::ExecState&, JSC::ThrowScope&, const char* interfaceName, const char* functionName);
 
+JSC::EncodedJSValue rejectPromiseWithGetterTypeError(JSC::ExecState&, const char* interfaceName, const char* attributeName);
+
 WEBCORE_EXPORT JSC::Structure* getCachedDOMStructure(JSDOMGlobalObject&, const JSC::ClassInfo*);
 WEBCORE_EXPORT JSC::Structure* cacheDOMStructure(JSDOMGlobalObject&, JSC::Structure*, const JSC::ClassInfo*);
 
@@ -182,33 +181,22 @@ WEBCORE_EXPORT void reportException(JSC::ExecState*, JSC::JSValue exception, Cac
 WEBCORE_EXPORT void reportException(JSC::ExecState*, JSC::Exception*, CachedScript* = nullptr, ExceptionDetails* = nullptr);
 void reportCurrentException(JSC::ExecState*);
 
-JSC::JSValue createDOMException(JSC::ExecState*, ExceptionCode);
 JSC::JSValue createDOMException(JSC::ExecState*, ExceptionCode, const String&);
 
-// Convert a DOM implementation exception code into a JavaScript exception in the execution state.
+// Convert a DOM implementation exception into a JavaScript exception in the execution state.
+void propagateException(JSC::ExecState&, JSC::ThrowScope&, Exception&&);
+void setDOMException(JSC::ExecState*, JSC::ThrowScope&, ExceptionCode);
+void setDOMException(JSC::ExecState*, JSC::ThrowScope&, const ExceptionCodeWithMessage&);
+
+// Slower versions of the above for use when the caller doesn't have a ThrowScope.
+void propagateException(JSC::ExecState&, Exception&&);
 WEBCORE_EXPORT void setDOMException(JSC::ExecState*, ExceptionCode);
-void setDOMException(JSC::ExecState*, ExceptionCode, const String&);
 void setDOMException(JSC::ExecState*, const ExceptionCodeWithMessage&);
 
+// Implementation details of the above.
 WEBCORE_EXPORT void setDOMExceptionSlow(JSC::ExecState*, JSC::ThrowScope&, ExceptionCode);
 void setDOMExceptionSlow(JSC::ExecState*, JSC::ThrowScope&, const ExceptionCodeWithMessage&);
-
-ALWAYS_INLINE void setDOMException(JSC::ExecState* exec, JSC::ThrowScope& throwScope, const ExceptionCodeWithMessage& message)
-{
-    if (LIKELY(!message.code || throwScope.exception()))
-        return;
-    setDOMExceptionSlow(exec, throwScope, message);
-}
-
-ALWAYS_INLINE void setDOMException(JSC::ExecState* exec, JSC::ThrowScope& throwScope, ExceptionCode ec)
-{
-    if (LIKELY(!ec || throwScope.exception()))
-        return;
-    setDOMExceptionSlow(exec, throwScope, ec);
-}
-
-template<typename T> inline JSC::JSValue toJS(JSC::ExecState*, JSDOMGlobalObject*, ExceptionOr<T>&&);
-template<typename T> inline JSC::JSValue toJSNewlyCreated(JSC::ExecState*, JSDOMGlobalObject*, ExceptionOr<T>&&);
+void propagateExceptionSlowPath(JSC::ExecState&, JSC::ThrowScope&, Exception&&);
 
 JSC::JSValue jsString(JSC::ExecState*, const URL&); // empty if the URL is null
 
@@ -342,48 +330,8 @@ template<JSC::NativeFunction, int length> JSC::EncodedJSValue nonCachingStaticFu
 
 template<typename T> struct NativeValueTraits;
 
-template<typename JSClass, typename DOMClass, typename Enable = void>
-struct VariadicHelperBase {
-    using Item = DOMClass;
 
-    static Optional<Item> convert(JSC::ExecState& state, JSC::JSValue jsValue)
-    {
-        typedef NativeValueTraits<DOMClass> TraitsType;
-        DOMClass indexValue;
-        if (!TraitsType::nativeValue(state, jsValue, indexValue))
-            return Nullopt;
-        return indexValue;
-    }
-};
-
-template<typename JSClass, typename DOMClass>
-struct VariadicHelperBase<JSClass, DOMClass, typename std::enable_if<!JSDOMObjectInspector<JSClass>::isBuiltin>::type> {
-    using Class = typename std::remove_reference<decltype(std::declval<JSClass>().wrapped())>::type;
-    using Item = std::reference_wrapper<Class>;
-
-    static Optional<Item> convert(JSC::ExecState&, JSC::JSValue jsValue)
-    {
-        auto* value = JSClass::toWrapped(jsValue);
-        if (!value)
-            return Nullopt;
-        return Optional<Item>(*value);
-    }
-};
-
-template<typename JSClass, typename DOMClass>
-struct VariadicHelper : public VariadicHelperBase<JSClass, DOMClass> {
-    using Item = typename VariadicHelperBase<JSClass, DOMClass>::Item;
-    using Container = Vector<Item>;
-
-    struct Result {
-        size_t argumentIndex;
-        Optional<Container> arguments;
-    };
-};
-
-template<typename VariadicHelper> typename VariadicHelper::Result toArguments(JSC::ExecState&, size_t startIndex = 0);
-
-enum class CastedThisErrorBehavior { Throw, ReturnEarly };
+enum class CastedThisErrorBehavior { Throw, ReturnEarly, RejectPromise };
 
 template<typename JSClass>
 struct BindingCaller {
@@ -397,13 +345,28 @@ struct BindingCaller {
         auto* thisObject = JSClass::castForAttribute(state, thisValue);
         if (UNLIKELY(!thisObject)) {
             ASSERT(JSClass::info());
-            return shouldThrow == CastedThisErrorBehavior::Throw ?
-                throwGetterTypeError(*state, throwScope, JSClass::info()->className, attributeName) : JSC::JSValue::encode(JSC::jsUndefined());
+            if (shouldThrow == CastedThisErrorBehavior::Throw)
+                return throwGetterTypeError(*state, throwScope, JSClass::info()->className, attributeName);
+            if (shouldThrow == CastedThisErrorBehavior::RejectPromise)
+                return rejectPromiseWithGetterTypeError(*state, JSClass::info()->className, attributeName);
+            return JSC::JSValue::encode(JSC::jsUndefined());
         }
         // FIXME: We should refactor the binding generated code to use references for state and thisObject.
         return JSC::JSValue::encode(getter(state, thisObject, throwScope));
     }
 };
+
+// ExceptionOr handling.
+void propagateException(JSC::ExecState&, JSC::ThrowScope&, ExceptionOr<void>&&);
+template<typename T> JSC::JSValue toJS(JSC::ExecState&, JSDOMGlobalObject&, JSC::ThrowScope&, ExceptionOr<T>&&);
+JSC::JSValue toJSBoolean(JSC::ExecState&, JSC::ThrowScope&, ExceptionOr<bool>&&);
+JSC::JSValue toJSDate(JSC::ExecState&, JSC::ThrowScope&, ExceptionOr<double>&&);
+JSC::JSValue toJSNullableDate(JSC::ExecState&, JSC::ThrowScope&, ExceptionOr<Optional<double>>&&);
+JSC::JSValue toJSNullableString(JSC::ExecState&, JSC::ThrowScope&, ExceptionOr<String>&&);
+template<typename T> JSC::JSValue toJSNewlyCreated(JSC::ExecState&, JSDOMGlobalObject&, JSC::ThrowScope&, ExceptionOr<T>&& value);
+template<typename T> JSC::JSValue toJSNumber(JSC::ExecState&, JSDOMGlobalObject&, JSC::ThrowScope&, ExceptionOr<T>&& value);
+template<typename T> JSC::JSValue toJSNullableNumber(JSC::ExecState&, JSDOMGlobalObject&, JSC::ThrowScope&, ExceptionOr<T>&& value);
+JSC::JSValue toJSString(JSC::ExecState&, JSC::ThrowScope&, ExceptionOr<String>&&);
 
 // Inline functions and template definitions.
 
@@ -916,24 +879,6 @@ inline AtomicString propertyNameToAtomicString(JSC::PropertyName propertyName)
     return AtomicString(propertyName.uid() ? propertyName.uid() : propertyName.publicName());
 }
 
-template<typename VariadicHelper> typename VariadicHelper::Result toArguments(JSC::ExecState& state, size_t startIndex)
-{
-    size_t length = state.argumentCount();
-    if (startIndex > length)
-        return { 0, Nullopt };
-
-    typename VariadicHelper::Container result;
-    result.reserveInitialCapacity(length - startIndex);
-
-    for (size_t i = startIndex; i < length; ++i) {
-        auto value = VariadicHelper::convert(state, state.uncheckedArgument(i));
-        if (!value)
-            return { i, Nullopt };
-        result.uncheckedAppend(WTFMove(value.value()));
-    }
-    return { length, WTFMove(result) };
-}
-
 template<JSC::NativeFunction nativeFunction, int length> JSC::EncodedJSValue nonCachingStaticFunctionGetter(JSC::ExecState* exec, JSC::EncodedJSValue, JSC::PropertyName propertyName)
 {
     return JSC::JSValue::encode(JSC::JSFunction::create(exec->vm(), exec->lexicalGlobalObject(), length, propertyName.publicName(), nativeFunction));
@@ -944,23 +889,49 @@ template<typename T> inline JSC::JSValue toNullableJSNumber(Optional<T> optional
     return optionalNumber ? JSC::jsNumber(optionalNumber.value()) : JSC::jsNull();
 }
 
-template<typename T> inline JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, ExceptionOr<T>&& value)
+ALWAYS_INLINE void propagateException(JSC::ExecState& state, JSC::ThrowScope& throwScope, Exception&& exception)
 {
-    if (UNLIKELY(value.hasException())) {
-        setDOMException(state, value.exceptionCode(), value.exceptionMessage());
-        return JSC::jsUndefined();
-    }
-    return toJS(state, globalObject, value.takeReturnValue());
+    if (throwScope.exception())
+        return;
+    propagateExceptionSlowPath(state, throwScope, WTFMove(exception));
 }
 
-template<typename T> inline JSC::JSValue toJSNewlyCreated(JSC::ExecState* state, JSDOMGlobalObject* globalObject, ExceptionOr<T>&& value)
+ALWAYS_INLINE void setDOMException(JSC::ExecState* exec, JSC::ThrowScope& throwScope, ExceptionCode ec)
 {
-    // FIXME: It's really annoying to have two of these functions. Should find a way to combine toJS and toJSNewlyCreated.
+    if (LIKELY(!ec || throwScope.exception()))
+        return;
+    setDOMExceptionSlow(exec, throwScope, ec);
+}
+
+ALWAYS_INLINE void setDOMException(JSC::ExecState* exec, JSC::ThrowScope& throwScope, const ExceptionCodeWithMessage& exception)
+{
+    if (LIKELY(!exception.code || throwScope.exception()))
+        return;
+    setDOMExceptionSlow(exec, throwScope, exception);
+}
+
+inline void propagateException(JSC::ExecState& state, JSC::ThrowScope& throwScope, ExceptionOr<void>&& value)
+{
+    if (UNLIKELY(value.hasException()))
+        propagateException(state, throwScope, value.releaseException());
+}
+
+template<typename T> inline JSC::JSValue toJS(JSC::ExecState& state, JSDOMGlobalObject& globalObject, JSC::ThrowScope& throwScope, ExceptionOr<T>&& value)
+{
     if (UNLIKELY(value.hasException())) {
-        setDOMException(state, value.exceptionCode(), value.exceptionMessage());
-        return JSC::jsUndefined();
+        propagateException(state, throwScope, value.releaseException());
+        return { };
     }
-    return toJSNewlyCreated(state, globalObject, value.takeReturnValue());
+    return toJS(&state, &globalObject, value.releaseReturnValue());
+}
+
+template<typename T> inline JSC::JSValue toJSNewlyCreated(JSC::ExecState& state, JSDOMGlobalObject& globalObject, JSC::ThrowScope& throwScope, ExceptionOr<T>&& value)
+{
+    if (UNLIKELY(value.hasException())) {
+        propagateException(state, throwScope, value.releaseException());
+        return { };
+    }
+    return toJSNewlyCreated(&state, &globalObject, value.releaseReturnValue());
 }
 
 } // namespace WebCore

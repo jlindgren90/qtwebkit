@@ -100,6 +100,9 @@ struct PasteboardImage {
     WEBCORE_EXPORT PasteboardImage();
     WEBCORE_EXPORT ~PasteboardImage();
     RefPtr<Image> image;
+#if PLATFORM(MAC)
+    RefPtr<SharedBuffer> dataInWebArchiveFormat;
+#endif
 #if !(PLATFORM(EFL) || PLATFORM(WIN)|| PLATFORM(QT))
     PasteboardURL url;
 #endif

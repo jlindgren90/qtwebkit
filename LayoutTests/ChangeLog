@@ -1,3 +1,123 @@
+2016-10-09  Chris Dumez  <cdumez@apple.com>
+
+        Update KeyboardEvent to stop using legacy [ConstructorTemplate=Event]
+        https://bugs.webkit.org/show_bug.cgi?id=163176
+
+        Reviewed by Darin Adler.
+
+        Rebaseline existing test now that the exception message is slightly
+        different in some cases. Also add test coverage for passing
+        modifierAltGraph / modifierCapsLock in initialization dictionary.
+
+        * fast/events/constructors/keyboard-event-constructor-expected.txt:
+        * fast/events/constructors/keyboard-event-constructor.html:
+
+2016-10-09  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Miscellaneous unreviewed test gardening
+
+        * platform/gtk/TestExpectations:
+
+2016-10-09  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Skip new custom elements tests, they're all failing
+
+        * platform/gtk/TestExpectations:
+
+2016-10-09  Youenn Fablet  <youenn@apple.com>
+
+        Promise attribute getters should reject promises in case of casted-this errors
+        https://bugs.webkit.org/show_bug.cgi?id=163167
+
+        Reviewed by Darin Adler.
+
+        * fast/text/font-face-set-javascript-expected.txt:
+        * fast/text/font-face-set-javascript.html:
+
+2016-10-08  Chris Dumez  <cdumez@apple.com>
+
+        [Mac] Write HTML to the pasteboard when copying image in WebKit
+        https://bugs.webkit.org/show_bug.cgi?id=163100
+
+        Reviewed by Darin Adler.
+
+        Convert editing/pasteboard/copy-standalone-image.html into a ref test
+        and unskip on WebKit2 now that it passes there as well. Before this
+        patch, the test would fail on WebKit2 (the pasted image would not be
+        displayed).
+
+        * editing/pasteboard/copy-standalone-image-expected.html: Added.
+        * editing/pasteboard/copy-standalone-image.html:
+        * platform/gtk/editing/pasteboard/copy-standalone-image-expected.png: Removed.
+        * platform/gtk/editing/pasteboard/copy-standalone-image-expected.txt: Removed.
+        * platform/ios-simulator-wk2/editing/pasteboard/copy-standalone-image-expected.png: Removed.
+        * platform/ios-simulator/editing/pasteboard/copy-standalone-image-expected.txt: Removed.
+        * platform/mac/editing/pasteboard/copy-standalone-image-expected.png: Removed.
+        * platform/mac/editing/pasteboard/copy-standalone-image-expected.txt: Removed.
+        * platform/win/editing/pasteboard/copy-standalone-image-expected.txt: Removed.
+        * platform/wk2/TestExpectations:
+
+2016-10-08  Chris Dumez  <cdumez@apple.com>
+
+        Update CustomEvent to stop using legacy [ConstructorTemplate=Event]
+        https://bugs.webkit.org/show_bug.cgi?id=163174
+
+        Reviewed by Darin Adler.
+
+        Update existing layout test to reflect minor behavior change.
+
+        * fast/events/constructors/custom-event-constructor-expected.txt:
+        * fast/events/constructors/custom-event-constructor.html:
+
+2016-10-08  Chris Dumez  <cdumez@apple.com>
+
+        Add support for ClipboardEvent
+        https://bugs.webkit.org/show_bug.cgi?id=163164
+
+        Reviewed by Darin Adler.
+
+        Extended layout test coverage.
+
+        * editing/pasteboard/clipboard-event-expected.txt: Added.
+        * editing/pasteboard/clipboard-event.html: Added.
+        * fast/events/clipboard-event-constructor-expected.txt: Added.
+        * fast/events/clipboard-event-constructor.html: Added.
+        * fast/xmlhttprequest/xmlhttprequest-get-expected.txt:
+        * http/tests/workers/worker-importScriptsOnError-expected.txt:
+        * inspector/model/remote-object-get-properties-expected.txt:
+        * js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * platform/win/js/dom/global-constructors-attributes-expected.txt:
+
+2016-10-08  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking js/regress-141098.html as flaky on mac.
+        https://bugs.webkit.org/show_bug.cgi?id=163046
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-10-08  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/media/track-in-band-hls-metadata.html as a flaky timeout on mac.
+        https://bugs.webkit.org/show_bug.cgi?id=140022
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-10-08  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking storage/indexeddb/key-generator.html as flaky on mac-wk2 debug.
+        https://bugs.webkit.org/show_bug.cgi?id=161653
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
 2016-10-08  Youenn Fablet  <youennf@gmail.com>
 
         [Fetch API] Request constructor should provide exception messages

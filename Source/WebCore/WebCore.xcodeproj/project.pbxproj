@@ -2737,8 +2737,6 @@
 		7C1E97281A9F9834007BF0FB /* AutoFillButtonElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C1E97261A9F9834007BF0FB /* AutoFillButtonElement.h */; };
 		7C2BDD3D17C7F98C0038FF15 /* JSDOMGlobalObjectTask.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C2BDD3B17C7F98B0038FF15 /* JSDOMGlobalObjectTask.cpp */; };
 		7C2BDD3E17C7F98C0038FF15 /* JSDOMGlobalObjectTask.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C2BDD3C17C7F98B0038FF15 /* JSDOMGlobalObjectTask.h */; };
-		7C33F35A1B4A044800502CAF /* JSCharacterDataCustom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C33F3581B4A044800502CAF /* JSCharacterDataCustom.cpp */; };
-		7C33F35E1B4A04CE00502CAF /* JSDocumentTypeCustom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C33F35C1B4A04CE00502CAF /* JSDocumentTypeCustom.cpp */; };
 		7C33F3621B4A050400502CAF /* JSDocumentFragmentCustom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C33F3601B4A050400502CAF /* JSDocumentFragmentCustom.cpp */; };
 		7C3A91E61C963B8800D1A7E3 /* ClipboardAccessPolicy.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C3A91E51C963B8800D1A7E3 /* ClipboardAccessPolicy.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7C3B79711908757B00B47A2D /* UserMessageHandler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C3B796F1908757B00B47A2D /* UserMessageHandler.cpp */; };
@@ -2772,8 +2770,6 @@
 		7C7941E41C56C29300A4C58E /* DataDetectorsCoreSoftLink.mm in Sources */ = {isa = PBXBuildFile; fileRef = 7C7941E21C56C29300A4C58E /* DataDetectorsCoreSoftLink.mm */; };
 		7C7941E51C56C29300A4C58E /* DataDetectorsCoreSoftLink.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C7941E31C56C29300A4C58E /* DataDetectorsCoreSoftLink.h */; };
 		7C83DE861D04CC5D00FEBCF3 /* SpringSolver.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C83DE851D04CBD400FEBCF3 /* SpringSolver.h */; };
-		7C91A38F1B498ABE003F9EFA /* JSNodeOrString.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C91A38D1B498ABE003F9EFA /* JSNodeOrString.cpp */; };
-		7C91A3901B498ABE003F9EFA /* JSNodeOrString.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C91A38E1B498ABE003F9EFA /* JSNodeOrString.h */; };
 		7C93F3491AA6BA5E00A98BAB /* CompiledContentExtension.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C93F3471AA6BA5E00A98BAB /* CompiledContentExtension.cpp */; };
 		7C93F34A1AA6BA5E00A98BAB /* CompiledContentExtension.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C93F3481AA6BA5E00A98BAB /* CompiledContentExtension.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7C93F34D1AA6BF0700A98BAB /* ContentExtensionCompiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C93F34B1AA6BF0700A98BAB /* ContentExtensionCompiler.cpp */; };
@@ -2889,6 +2885,11 @@
 		8367587E1C56E99B008A1087 /* JSHTMLDataElement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 834B86A91C56E93E00F3F0E3 /* JSHTMLDataElement.cpp */; };
 		8367587F1C56E99B008A1087 /* JSHTMLDataElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 834B86A81C56E93E00F3F0E3 /* JSHTMLDataElement.h */; };
 		836C14431CDEAFD80073493F /* JSXPathNSResolverCustom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836C14421CDEAFCA0073493F /* JSXPathNSResolverCustom.cpp */; };
+		836D032A1DA89B9200FFD96B /* EventInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 836D03281DA89B7300FFD96B /* EventInit.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		836D032F1DA8A13A00FFD96B /* JSEventInit.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836D032B1DA8A13200FFD96B /* JSEventInit.cpp */; };
+		836D03301DA8A13D00FFD96B /* JSEventInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 836D032C1DA8A13200FFD96B /* JSEventInit.h */; };
+		836D03311DA8A13F00FFD96B /* JSClipboardEvent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836D032D1DA8A13200FFD96B /* JSClipboardEvent.cpp */; };
+		836D03321DA8A14200FFD96B /* JSClipboardEvent.h in Headers */ = {isa = PBXBuildFile; fileRef = 836D032E1DA8A13200FFD96B /* JSClipboardEvent.h */; };
 		836DAA061CEAB80D00A2B707 /* RenderDescendantIterator.h in Headers */ = {isa = PBXBuildFile; fileRef = 836DAA051CEAB7CD00A2B707 /* RenderDescendantIterator.h */; };
 		836FBCEA178C113200B21A15 /* SVGAnimatedTypeAnimator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836FBCE9178C113200B21A15 /* SVGAnimatedTypeAnimator.cpp */; };
 		836FBCEC178C117F00B21A15 /* SVGAnimatedProperty.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 836FBCEB178C117F00B21A15 /* SVGAnimatedProperty.cpp */; };
@@ -2930,6 +2931,8 @@
 		83E359A21BB1031D002CEB98 /* JSHTMLTimeElement.h in Headers */ = {isa = PBXBuildFile; fileRef = 83E359A01BB1031D002CEB98 /* JSHTMLTimeElement.h */; };
 		83E359A31BB1031D002CEB98 /* JSHTMLTimeElement.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 83E359A11BB1031D002CEB98 /* JSHTMLTimeElement.cpp */; };
 		83F1206B1B8C104700D75F63 /* JSNodeFilterCustom.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 83F1206A1B8C103600D75F63 /* JSNodeFilterCustom.cpp */; };
+		83FE7CA71DA9F1A70037237C /* UIEventInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 83FE7CA41DA9F1660037237C /* UIEventInit.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		83FE7CA81DA9F1B60037237C /* EventModifierInit.h in Headers */ = {isa = PBXBuildFile; fileRef = 83FE7CA31DA9F1650037237C /* EventModifierInit.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		8419D2A7120D92D000141F8F /* SVGPathByteStream.h in Headers */ = {isa = PBXBuildFile; fileRef = 8419D2A4120D92D000141F8F /* SVGPathByteStream.h */; };
 		8419D2A8120D92D000141F8F /* SVGPathByteStreamBuilder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8419D2A5120D92D000141F8F /* SVGPathByteStreamBuilder.cpp */; };
 		8419D2A9120D92D000141F8F /* SVGPathByteStreamBuilder.h in Headers */ = {isa = PBXBuildFile; fileRef = 8419D2A6120D92D000141F8F /* SVGPathByteStreamBuilder.h */; };
@@ -9849,8 +9852,6 @@
 		7C1E97261A9F9834007BF0FB /* AutoFillButtonElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AutoFillButtonElement.h; sourceTree = "<group>"; };
 		7C2BDD3B17C7F98B0038FF15 /* JSDOMGlobalObjectTask.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSDOMGlobalObjectTask.cpp; sourceTree = "<group>"; };
 		7C2BDD3C17C7F98B0038FF15 /* JSDOMGlobalObjectTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSDOMGlobalObjectTask.h; sourceTree = "<group>"; };
-		7C33F3581B4A044800502CAF /* JSCharacterDataCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSCharacterDataCustom.cpp; sourceTree = "<group>"; };
-		7C33F35C1B4A04CE00502CAF /* JSDocumentTypeCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSDocumentTypeCustom.cpp; sourceTree = "<group>"; };
 		7C33F3601B4A050400502CAF /* JSDocumentFragmentCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSDocumentFragmentCustom.cpp; sourceTree = "<group>"; };
 		7C3A91E51C963B8800D1A7E3 /* ClipboardAccessPolicy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ClipboardAccessPolicy.h; sourceTree = "<group>"; };
 		7C3B796F1908757B00B47A2D /* UserMessageHandler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = UserMessageHandler.cpp; sourceTree = "<group>"; };
@@ -9896,8 +9897,6 @@
 		7C7941E21C56C29300A4C58E /* DataDetectorsCoreSoftLink.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DataDetectorsCoreSoftLink.mm; sourceTree = "<group>"; };
 		7C7941E31C56C29300A4C58E /* DataDetectorsCoreSoftLink.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DataDetectorsCoreSoftLink.h; sourceTree = "<group>"; };
 		7C83DE851D04CBD400FEBCF3 /* SpringSolver.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SpringSolver.h; sourceTree = "<group>"; };
-		7C91A38D1B498ABE003F9EFA /* JSNodeOrString.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSNodeOrString.cpp; sourceTree = "<group>"; };
-		7C91A38E1B498ABE003F9EFA /* JSNodeOrString.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSNodeOrString.h; sourceTree = "<group>"; };
 		7C93F3471AA6BA5E00A98BAB /* CompiledContentExtension.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CompiledContentExtension.cpp; sourceTree = "<group>"; };
 		7C93F3481AA6BA5E00A98BAB /* CompiledContentExtension.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CompiledContentExtension.h; sourceTree = "<group>"; };
 		7C93F34B1AA6BF0700A98BAB /* ContentExtensionCompiler.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ContentExtensionCompiler.cpp; sourceTree = "<group>"; };
@@ -10022,6 +10021,13 @@
 		835F8B261D2D90BA00E408EC /* Slotable.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Slotable.idl; sourceTree = "<group>"; };
 		8369E58F1AFDD0300087DF68 /* NonDocumentTypeChildNode.idl */ = {isa = PBXFileReference; lastKnownFileType = text; path = NonDocumentTypeChildNode.idl; sourceTree = "<group>"; };
 		836C14421CDEAFCA0073493F /* JSXPathNSResolverCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSXPathNSResolverCustom.cpp; sourceTree = "<group>"; };
+		836D03271DA89B7300FFD96B /* ClipboardEvent.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = ClipboardEvent.idl; sourceTree = "<group>"; };
+		836D03281DA89B7300FFD96B /* EventInit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EventInit.h; sourceTree = "<group>"; };
+		836D03291DA89B7300FFD96B /* EventInit.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = EventInit.idl; sourceTree = "<group>"; };
+		836D032B1DA8A13200FFD96B /* JSEventInit.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSEventInit.cpp; sourceTree = "<group>"; };
+		836D032C1DA8A13200FFD96B /* JSEventInit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSEventInit.h; sourceTree = "<group>"; };
+		836D032D1DA8A13200FFD96B /* JSClipboardEvent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSClipboardEvent.cpp; sourceTree = "<group>"; };
+		836D032E1DA8A13200FFD96B /* JSClipboardEvent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSClipboardEvent.h; sourceTree = "<group>"; };
 		836DAA051CEAB7CD00A2B707 /* RenderDescendantIterator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RenderDescendantIterator.h; sourceTree = "<group>"; };
 		836FBCE9178C113200B21A15 /* SVGAnimatedTypeAnimator.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SVGAnimatedTypeAnimator.cpp; sourceTree = "<group>"; };
 		836FBCEB178C117F00B21A15 /* SVGAnimatedProperty.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SVGAnimatedProperty.cpp; sourceTree = "<group>"; };
@@ -10061,6 +10067,10 @@
 		83D35AEB1C7187ED00F70D5A /* XMLHttpRequestEventTarget.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = XMLHttpRequestEventTarget.idl; sourceTree = "<group>"; };
 		83D35AEF1C718D8400F70D5A /* JSXMLHttpRequestEventTarget.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSXMLHttpRequestEventTarget.cpp; sourceTree = "<group>"; };
 		83D35AF01C718D8400F70D5A /* JSXMLHttpRequestEventTarget.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSXMLHttpRequestEventTarget.h; sourceTree = "<group>"; };
+		83E045EC1DAA104F00B0D8B9 /* JSEventModifierInit.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSEventModifierInit.cpp; sourceTree = "<group>"; };
+		83E045ED1DAA104F00B0D8B9 /* JSEventModifierInit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSEventModifierInit.h; sourceTree = "<group>"; };
+		83E045EE1DAA104F00B0D8B9 /* JSUIEventInit.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSUIEventInit.cpp; sourceTree = "<group>"; };
+		83E045EF1DAA104F00B0D8B9 /* JSUIEventInit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSUIEventInit.h; sourceTree = "<group>"; };
 		83E359A01BB1031D002CEB98 /* JSHTMLTimeElement.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSHTMLTimeElement.h; sourceTree = "<group>"; };
 		83E359A11BB1031D002CEB98 /* JSHTMLTimeElement.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSHTMLTimeElement.cpp; sourceTree = "<group>"; };
 		83E959E11B8BC22B004D9385 /* NativeNodeFilter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NativeNodeFilter.h; sourceTree = "<group>"; };
@@ -10069,6 +10079,10 @@
 		83F1206A1B8C103600D75F63 /* JSNodeFilterCustom.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSNodeFilterCustom.cpp; sourceTree = "<group>"; };
 		83F570AD1C53268E007FD6CB /* JSXMLDocument.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSXMLDocument.h; sourceTree = "<group>"; };
 		83F570AE1C53268E007FD6CB /* JSXMLDocument.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSXMLDocument.cpp; sourceTree = "<group>"; };
+		83FE7CA31DA9F1650037237C /* EventModifierInit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EventModifierInit.h; sourceTree = "<group>"; };
+		83FE7CA41DA9F1660037237C /* UIEventInit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UIEventInit.h; sourceTree = "<group>"; };
+		83FE7CA51DA9F1660037237C /* UIEventInit.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = UIEventInit.idl; sourceTree = "<group>"; };
+		83FE7CA61DA9F1660037237C /* EventModifierInit.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = EventModifierInit.idl; sourceTree = "<group>"; };
 		8419D2A4120D92D000141F8F /* SVGPathByteStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SVGPathByteStream.h; sourceTree = "<group>"; };
 		8419D2A5120D92D000141F8F /* SVGPathByteStreamBuilder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SVGPathByteStreamBuilder.cpp; sourceTree = "<group>"; };
 		8419D2A6120D92D000141F8F /* SVGPathByteStreamBuilder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SVGPathByteStreamBuilder.h; sourceTree = "<group>"; };
@@ -19683,6 +19697,8 @@
 				BC946347107A936600857193 /* JSBeforeLoadEvent.h */,
 				8225432CA9D4B4CF4628EC7F /* JSBeforeUnloadEvent.cpp */,
 				29E04A27BED2F81F98E9022B /* JSBeforeUnloadEvent.h */,
+				836D032D1DA8A13200FFD96B /* JSClipboardEvent.cpp */,
+				836D032E1DA8A13200FFD96B /* JSClipboardEvent.h */,
 				79AC9216109945C80021266E /* JSCompositionEvent.cpp */,
 				79AC9217109945C80021266E /* JSCompositionEvent.h */,
 				E4778B7D115A581A00B5D372 /* JSCustomEvent.cpp */,
@@ -19691,6 +19707,10 @@
 				2ECF7ADB10162B3800427DE7 /* JSErrorEvent.h */,
 				14E8378309F85D1C00B85AE4 /* JSEvent.cpp */,
 				14E8378D09F85D4F00B85AE4 /* JSEvent.h */,
+				836D032B1DA8A13200FFD96B /* JSEventInit.cpp */,
+				836D032C1DA8A13200FFD96B /* JSEventInit.h */,
+				83E045EC1DAA104F00B0D8B9 /* JSEventModifierInit.cpp */,
+				83E045ED1DAA104F00B0D8B9 /* JSEventModifierInit.h */,
 				C6A703325C9D0B6CDCBC4D78 /* JSEventTarget.cpp */,
 				5FC7DC26CFE2563200B85AE5 /* JSEventTarget.h */,
 				B6D9D27A14EAC0860090D75E /* JSFocusEvent.cpp */,
@@ -19733,6 +19753,8 @@
 				E17B491F16A9B8FF001C8839 /* JSTransitionEvent.h */,
 				A86629CA09DA2B47009633A5 /* JSUIEvent.cpp */,
 				A86629C909DA2B47009633A5 /* JSUIEvent.h */,
+				83E045EE1DAA104F00B0D8B9 /* JSUIEventInit.cpp */,
+				83E045EF1DAA104F00B0D8B9 /* JSUIEventInit.h */,
 				31C0FF390E4CEFAC007D6FE5 /* JSWebKitAnimationEvent.cpp */,
 				31C0FF3A0E4CEFAC007D6FE5 /* JSWebKitAnimationEvent.h */,
 				31C0FF3B0E4CEFAC007D6FE5 /* JSWebKitTransitionEvent.cpp */,
@@ -21101,8 +21123,6 @@
 				E38838951BAD145F00D62EE3 /* ScriptModuleLoader.h */,
 				C6F420A016B7164E0052A9F2 /* JSMutationCallback.cpp */,
 				C6F420A116B7164E0052A9F2 /* JSMutationCallback.h */,
-				7C91A38D1B498ABE003F9EFA /* JSNodeOrString.cpp */,
-				7C91A38E1B498ABE003F9EFA /* JSNodeOrString.h */,
 				CB38FD551CD21D5B00592A3F /* JSPerformanceEntryCustom.cpp */,
 				93B70D4F09EB0C7C009D8468 /* JSPluginElementFunctions.cpp */,
 				93B70D5009EB0C7C009D8468 /* JSPluginElementFunctions.h */,
@@ -21154,7 +21174,6 @@
 				BE6DF710171CA2DA00DD52B8 /* JSAudioTrackListCustom.cpp */,
 				8931DE5A14C44C44000DC9D2 /* JSBlobCustom.cpp */,
 				49EED14B1051971900099FAB /* JSCanvasRenderingContext2DCustom.cpp */,
-				7C33F3581B4A044800502CAF /* JSCharacterDataCustom.cpp */,
 				46A58AC41D46B3FA00432036 /* JSClientRectCustom.cpp */,
 				A584FE371864DAC100843B10 /* JSCommandLineAPIHostCustom.cpp */,
 				7CEF26181D6A92E300BE905D /* JSCryptoCustom.cpp */,
@@ -21176,7 +21195,6 @@
 				49C7BA8C1042F5B10009D447 /* JSDocumentCustom.cpp */,
 				ADDA94BF19686F8000453029 /* JSDocumentCustom.h */,
 				7C33F3601B4A050400502CAF /* JSDocumentFragmentCustom.cpp */,
-				7C33F35C1B4A04CE00502CAF /* JSDocumentTypeCustom.cpp */,
 				A9C6E6460D7465CA006442E9 /* JSDOMMimeTypeArrayCustom.cpp */,
 				A9C6E64A0D7465E7006442E9 /* JSDOMPluginArrayCustom.cpp */,
 				A9C6E64B0D7465E7006442E9 /* JSDOMPluginCustom.cpp */,
@@ -22993,6 +23011,7 @@
 				BCC0657C0F3CE1B700CD2D87 /* ClientRectList.idl */,
 				85031B290A44EFC700F992E0 /* ClipboardEvent.cpp */,
 				85031B2A0A44EFC700F992E0 /* ClipboardEvent.h */,
+				836D03271DA89B7300FFD96B /* ClipboardEvent.idl */,
 				9BD8A95918BEFC7600987E9A /* CollectionIndexCache.cpp */,
 				E425A49918292B840020CFCF /* CollectionIndexCache.h */,
 				6550B697099DF0270090D781 /* Comment.cpp */,
@@ -23113,10 +23132,14 @@
 				4138D3331244054800323D33 /* EventContext.h */,
 				418A06CF133C04D500CD379C /* EventDispatcher.cpp */,
 				418A06CE133C04D500CD379C /* EventDispatcher.h */,
+				836D03281DA89B7300FFD96B /* EventInit.h */,
+				836D03291DA89B7300FFD96B /* EventInit.idl */,
 				935FBC4409BA00B900E230B1 /* EventListener.h */,
 				85AFA7410AAF298400E84305 /* EventListener.idl */,
 				AD4495F1141FC08900541EDF /* EventListenerMap.cpp */,
 				AD4495F2141FC08900541EDF /* EventListenerMap.h */,
+				83FE7CA31DA9F1650037237C /* EventModifierInit.h */,
+				83FE7CA61DA9F1660037237C /* EventModifierInit.idl */,
 				939885C108B7E3D100E707C4 /* EventNames.cpp */,
 				939885C208B7E3D100E707C4 /* EventNames.h */,
 				BC9A6142146859D9006057FD /* EventNames.in */,
@@ -23343,6 +23366,8 @@
 				85031B370A44EFC700F992E0 /* UIEvent.cpp */,
 				85031B380A44EFC700F992E0 /* UIEvent.h */,
 				141B94EE09EC425A000E9413 /* UIEvent.idl */,
+				83FE7CA41DA9F1660037237C /* UIEventInit.h */,
+				83FE7CA51DA9F1660037237C /* UIEventInit.idl */,
 				93354A3B0B24F8C9003F6DEA /* UIEventWithKeyState.cpp */,
 				85031B390A44EFC700F992E0 /* UIEventWithKeyState.h */,
 				A769E96916689D0C005D4529 /* UserActionElementSet.cpp */,
@@ -24201,6 +24226,7 @@
 				BCEA4790097CAAC80094C9E4 /* CSSComputedStyleDeclaration.h in Headers */,
 				9DAC7C551AF2CAA200437C44 /* CSSContentDistributionValue.h in Headers */,
 				2D8FEBDD143E3EF70072502B /* CSSCrossfadeValue.h in Headers */,
+				83FE7CA71DA9F1A70037237C /* UIEventInit.h in Headers */,
 				AA21ECCD0ABF0FC6002B834C /* CSSCursorImageValue.h in Headers */,
 				BC779E141BB215BB00CAA8BF /* CSSCustomPropertyValue.h in Headers */,
 				4A9CC81816BB9AC600EC645A /* CSSDefaultStyleSheets.h in Headers */,
@@ -24359,6 +24385,7 @@
 				26A517FE1AB92238006335DF /* DFAMinimizer.h in Headers */,
 				267725FF1A5B3AD9003C24DD /* DFANode.h in Headers */,
 				CD19A2681A13E700008D650E /* DiagnosticLoggingClient.h in Headers */,
+				83FE7CA81DA9F1B60037237C /* EventModifierInit.h in Headers */,
 				46FCB6181A70820E00C5A21E /* DiagnosticLoggingKeys.h in Headers */,
 				8372DB311A6780A800C697C5 /* DiagnosticLoggingResultType.h in Headers */,
 				CECADFC7153778FF00E37068 /* DictationAlternative.h in Headers */,
@@ -25263,7 +25290,6 @@
 				1A750D8E0A90E521000FF215 /* JSNodeIterator.h in Headers */,
 				BCD9C2C30C17B69E005C90A2 /* JSNodeList.h in Headers */,
 				AD20B18D18E9D237005A8083 /* JSNodeListCustom.h in Headers */,
-				7C91A3901B498ABE003F9EFA /* JSNodeOrString.h in Headers */,
 				33503CA410179AD7003B47E1 /* JSNotification.h in Headers */,
 				33503CA610179AD7003B47E1 /* JSNotificationCenter.h in Headers */,
 				31EC1E2914FF60EE00C94662 /* JSNotificationPermissionCallback.h in Headers */,
@@ -25289,6 +25315,7 @@
 				8A9A588811E84F37008ACFD1 /* JSPerformanceTiming.h in Headers */,
 				FDEA6247152102FC00479DF0 /* JSPeriodicWave.h in Headers */,
 				93B70D6C09EB0C7C009D8468 /* JSPluginElementFunctions.h in Headers */,
+				836D03301DA8A13D00FFD96B /* JSEventInit.h in Headers */,
 				5189F01E10B37BD900F3C739 /* JSPopStateEvent.h in Headers */,
 				598365DD1355F557001B185D /* JSPositionCallback.h in Headers */,
 				FE80DA720E9C472F000D6F75 /* JSPositionError.h in Headers */,
@@ -26171,6 +26198,7 @@
 				BCE32B9C1517C0B200F542EC /* RenderMultiColumnSet.h in Headers */,
 				94DE5C921D83011D00164F2A /* CSSSupportsParser.h in Headers */,
 				BC1A7D9818FCB5B000421879 /* RenderMultiColumnSpannerPlaceholder.h in Headers */,
+				836D032A1DA89B9200FFD96B /* EventInit.h in Headers */,
 				8AC822FD180FC03300FB64D5 /* RenderNamedFlowFragment.h in Headers */,
 				BC85F23D151915E000BC17BE /* RenderNamedFlowThread.h in Headers */,
 				BCEA4880097D93020094C9E4 /* RenderObject.h in Headers */,
@@ -26969,6 +26997,7 @@
 				9B2D8A7914997CCF00ECEF3E /* UndoStep.h in Headers */,
 				A863E2011343412000274926 /* UnicodeBidi.h in Headers */,
 				518864E11BBAF57400E540C9 /* UniqueIDBDatabase.h in Headers */,
+				836D03321DA8A14200FFD96B /* JSClipboardEvent.h in Headers */,
 				5198F7A51BBDB79300E2CC5F /* UniqueIDBDatabaseConnection.h in Headers */,
 				5198F7A91BBDD38500E2CC5F /* UniqueIDBDatabaseTransaction.h in Headers */,
 				E4AFCFA50DAF29A300F5F55C /* UnitBezier.h in Headers */,
@@ -28140,6 +28169,7 @@
 				9BAB6C6D12550631001626D4 /* EditingStyle.cpp in Sources */,
 				4B3043CC0AE0373B00A82647 /* Editor.cpp in Sources */,
 				9B55EEE91B3E8898005342BC /* EditorCocoa.mm in Sources */,
+				836D032F1DA8A13A00FFD96B /* JSEventInit.cpp in Sources */,
 				93A38B4B0D0E5808006872C2 /* EditorCommand.cpp in Sources */,
 				FED13D3A0CEA934600D89466 /* EditorIOS.mm in Sources */,
 				ED501DC60B249F2900AE18D9 /* EditorMac.mm in Sources */,
@@ -28648,7 +28678,6 @@
 				FDA15EA112B03EE1003A583A /* JSChannelMergerNode.cpp in Sources */,
 				FDA15EA312B03EE1003A583A /* JSChannelSplitterNode.cpp in Sources */,
 				65DF31F309D1CC60000BE325 /* JSCharacterData.cpp in Sources */,
-				7C33F35A1B4A044800502CAF /* JSCharacterDataCustom.cpp in Sources */,
 				BCC065870F3CE2A700CD2D87 /* JSClientRect.cpp in Sources */,
 				46A58AC51D46B3FA00432036 /* JSClientRectCustom.cpp in Sources */,
 				BCC065890F3CE2A700CD2D87 /* JSClientRectList.cpp in Sources */,
@@ -28720,7 +28749,6 @@
 				7C33F3621B4A050400502CAF /* JSDocumentFragmentCustom.cpp in Sources */,
 				1221E05F1C02B444006A1A00 /* JSDocumentTimeline.cpp in Sources */,
 				65DF31F509D1CC60000BE325 /* JSDocumentType.cpp in Sources */,
-				7C33F35E1B4A04CE00502CAF /* JSDocumentTypeCustom.cpp in Sources */,
 				1AC2260C0DB69F190089B669 /* JSDOMApplicationCache.cpp in Sources */,
 				93B70D6309EB0C7C009D8468 /* JSDOMBinding.cpp in Sources */,
 				BC60D7C00D29A46300B9918F /* JSDOMCoreException.cpp in Sources */,
@@ -28983,7 +29011,6 @@
 				1A750DD40A90E729000FF215 /* JSNodeIteratorCustom.cpp in Sources */,
 				BCD9C2C20C17B69E005C90A2 /* JSNodeList.cpp in Sources */,
 				BCD9C2650C17AA67005C90A2 /* JSNodeListCustom.cpp in Sources */,
-				7C91A38F1B498ABE003F9EFA /* JSNodeOrString.cpp in Sources */,
 				33503CA310179AD7003B47E1 /* JSNotification.cpp in Sources */,
 				33503CA510179AD7003B47E1 /* JSNotificationCenter.cpp in Sources */,
 				31EC1E2814FF60EE00C94662 /* JSNotificationPermissionCallback.cpp in Sources */,
@@ -30508,6 +30535,7 @@
 				3140379C124BEA7F00AF40E4 /* WebCoreMotionManager.mm in Sources */,
 				CDC979F41C498C0900DB50D4 /* WebCoreNSErrorExtras.mm in Sources */,
 				934D9BA50B8C116B007B42A9 /* WebCoreNSStringExtras.mm in Sources */,
+				836D03311DA8A13F00FFD96B /* JSClipboardEvent.cpp in Sources */,
 				C5B4C24E1509236C00A6EF37 /* WebCoreNSURLExtras.mm in Sources */,
 				CD225C0B1C46FBF400140761 /* WebCoreNSURLSession.mm in Sources */,
 				B50F5B810E96CD9900AD71A6 /* WebCoreObjCExtras.mm in Sources */,

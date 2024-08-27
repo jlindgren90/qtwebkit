@@ -1157,8 +1157,6 @@ public:
 #if ENABLE(GAMEPAD)
     void gamepadActivity(const Vector<GamepadData>&);
 #endif
-        
-    WeakPtr<WebPageProxy> createWeakPtr() const { return m_weakPtrFactory.createWeakPtr(); }
 
     void setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&&, const String& scheme);
     WebURLSchemeHandler* urlSchemeHandlerForScheme(const String& scheme);
@@ -1940,8 +1938,6 @@ private:
 #if ENABLE(DOWNLOAD_ATTRIBUTE)
     bool m_syncNavigationActionHasDownloadAttribute { false };
 #endif
-        
-    WeakPtrFactory<WebPageProxy> m_weakPtrFactory;
 
     HashMap<String, RefPtr<WebURLSchemeHandler>> m_urlSchemeHandlersByScheme;
     HashMap<uint64_t, RefPtr<WebURLSchemeHandler>> m_urlSchemeHandlersByIdentifier;

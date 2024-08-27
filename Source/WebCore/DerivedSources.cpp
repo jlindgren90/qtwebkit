@@ -136,6 +136,7 @@
 #include "JSCSSUnknownRule.cpp"
 #include "JSCSSValue.cpp"
 #include "JSCSSValueList.cpp"
+#include "JSClipboardEvent.cpp"
 #if ENABLE(CUSTOM_ELEMENTS)
 #include "JSCustomElementRegistry.cpp"
 #endif
@@ -188,6 +189,8 @@
 #include "JSElement.cpp"
 #include "JSErrorEvent.cpp"
 #include "JSEvent.cpp"
+#include "JSEventInit.cpp"
+#include "JSEventModifierInit.cpp"
 #include "JSEventSource.cpp"
 #include "JSEventTarget.cpp"
 #include "JSFetchBody.cpp"
@@ -628,6 +631,7 @@
 #include "JSTransitionEvent.cpp"
 #include "JSTreeWalker.cpp"
 #include "JSUIEvent.cpp"
+#include "JSUIEventInit.cpp"
 #include "JSUIRequestEvent.cpp"
 #include "JSURLUtils.cpp"
 #if ENABLE(USER_MESSAGE_HANDLERS)

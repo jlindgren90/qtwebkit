@@ -561,6 +561,7 @@ Document::Document(Frame* frame, const URL& url, unsigned documentClasses, unsig
 }
 
 #if ENABLE(FULLSCREEN_API)
+
 static bool isAttributeOnAllOwners(const WebCore::QualifiedName& attribute, const WebCore::QualifiedName& prefixedAttribute, const HTMLFrameOwnerElement* owner)
 {
     if (!owner)
@@ -571,14 +572,14 @@ static bool isAttributeOnAllOwners(const WebCore::QualifiedName& attribute, cons
     } while ((owner = owner->document().ownerElement()));
     return true;
 }
+
 #endif
 
 Ref<Document> Document::create(Document& contextDocument)
 {
-    Ref<Document> document = adoptRef(*new Document(nullptr, URL()));
+    auto document = adoptRef(*new Document(nullptr, URL()));
     document->setContextDocument(contextDocument);
     document->setSecurityOriginPolicy(contextDocument.securityOriginPolicy());
-
     return document;
 }
 
@@ -864,6 +865,7 @@ void Document::childrenChanged(const ChildChange& change)
 }
 
 #if ENABLE(CUSTOM_ELEMENTS)
+
 static ALWAYS_INLINE RefPtr<HTMLElement> createUpgradeCandidateElement(Document& document, const QualifiedName& name)
 {
     if (!RuntimeEnabledFeatures::sharedFeatures().customElementsEnabled())
@@ -876,17 +878,17 @@ static ALWAYS_INLINE RefPtr<HTMLElement> createUpgradeCandidateElement(Document&
     element->setIsCustomElementUpgradeCandidate();
     return WTFMove(element);
 }
+
 #endif
 
 static RefPtr<Element> createHTMLElementWithNameValidation(Document& document, const AtomicString& localName, ExceptionCode& ec)
 {
-    RefPtr<HTMLElement> element = HTMLElementFactory::createKnownElement(localName, document);
+    auto element = HTMLElementFactory::createKnownElement(localName, document);
     if (LIKELY(element))
         return element;
 
 #if ENABLE(CUSTOM_ELEMENTS)
-    auto* window = document.domWindow();
-    if (window) {
+    if (auto* window = document.domWindow()) {
         auto* registry = window->customElementRegistry();
         if (UNLIKELY(registry)) {
             if (auto* elementInterface = registry->findInterface(localName))
@@ -1068,8 +1070,7 @@ bool Document::hasValidNamespaceForAttributes(const QualifiedName& qName)
 static Ref<HTMLElement> createFallbackHTMLElement(Document& document, const QualifiedName& name)
 {
 #if ENABLE(CUSTOM_ELEMENTS)
-    auto* window = document.domWindow();
-    if (window) {
+    if (auto* window = document.domWindow()) {
         auto* registry = window->customElementRegistry();
         if (UNLIKELY(registry)) {
             if (auto* elementInterface = registry->findInterface(name)) {
@@ -1148,13 +1149,16 @@ CustomElementNameValidationStatus Document::validateCustomElementName(const Atom
 }
 
 #if ENABLE(CSS_GRID_LAYOUT)
+
 bool Document::isCSSGridLayoutEnabled() const
 {
     return RuntimeEnabledFeatures::sharedFeatures().isCSSGridLayoutEnabled();
 }
+
 #endif
 
 #if ENABLE(CSS_REGIONS)
+
 RefPtr<DOMNamedFlowCollection> Document::webkitGetNamedFlows()
 {
     if (!renderView())
@@ -1164,6 +1168,7 @@ RefPtr<DOMNamedFlowCollection> Document::webkitGetNamedFlows()
 
     return namedFlows().createCSSOMSnapshot();
 }
+
 #endif
 
 NamedFlowCollection& Document::namedFlows()
@@ -1662,8 +1667,8 @@ bool Document::hidden() const
     return pageVisibilityState() != PageVisibilityStateVisible;
 }
 
-
 #if ENABLE(VIDEO)
+
 void Document::registerForAllowsMediaDocumentInlinePlaybackChangedCallbacks(HTMLMediaElement& element)
 {
     m_allowsMediaDocumentInlinePlaybackElements.add(&element);
@@ -1679,6 +1684,7 @@ void Document::allowsMediaDocumentInlinePlaybackChanged()
     for (auto* element : m_allowsMediaDocumentInlinePlaybackElements)
         element->allowsMediaDocumentInlinePlaybackChanged();
 }
+
 #endif
 
 String Document::nodeName() const
@@ -2980,25 +2986,27 @@ void Document::disableEval(const String& errorMessage)
 }
 
 #if ENABLE(INDEXED_DATABASE)
+
 IDBClient::IDBConnectionProxy* Document::idbConnectionProxy()
 {
     if (!m_idbConnectionProxy) {
         Page* currentPage = page();
         if (!currentPage)
             return nullptr;
-
         m_idbConnectionProxy = &currentPage->idbConnection().proxy();
     }
-
     return m_idbConnectionProxy.get();
 }
-#endif // ENABLE(INDEXED_DATABASE)
+
+#endif
 
 #if ENABLE(WEB_SOCKETS)
+
 SocketProvider* Document::socketProvider()
 {
     return m_socketProvider.get();
 }
+
 #endif
     
 bool Document::canNavigate(Frame* targetFrame)
@@ -3600,6 +3608,7 @@ void Document::elementInActiveChainDidDetach(Element* element)
 }
 
 #if ENABLE(DASHBOARD_SUPPORT)
+
 const Vector<AnnotatedRegionValue>& Document::annotatedRegions() const
 {
     return m_annotatedRegions;
@@ -3610,6 +3619,7 @@ void Document::setAnnotatedRegions(const Vector<AnnotatedRegionValue>& regions)
     m_annotatedRegions = regions;
     setAnnotatedRegionsDirty(false);
 }
+
 #endif
 
 bool Document::setFocusedElement(Element* element, FocusDirection direction, FocusRemovalEventsMode eventsMode)
@@ -4121,7 +4131,7 @@ RefPtr<Event> Document::createEvent(const String& type, ExceptionCode& ec)
     // <https://dom.spec.whatwg.org/#dom-document-createevent>.
 
     if (equalLettersIgnoringASCIICase(type, "customevent"))
-        return CustomEvent::createForBindings();
+        return CustomEvent::create();
     if (equalLettersIgnoringASCIICase(type, "event") || equalLettersIgnoringASCIICase(type, "events") || equalLettersIgnoringASCIICase(type, "htmlevents"))
         return Event::createForBindings();
     if (equalLettersIgnoringASCIICase(type, "keyboardevent") || equalLettersIgnoringASCIICase(type, "keyboardevents"))
@@ -4368,7 +4378,7 @@ void Document::setDomain(const String& newDomain, ExceptionCode& ec)
 }
 
 // http://www.whatwg.org/specs/web-apps/current-work/#dom-document-lastmodified
-String Document::lastModified() const
+String Document::lastModified()
 {
     using namespace std::chrono;
     Optional<system_clock::time_point> dateTime;
@@ -4381,11 +4391,11 @@ String Document::lastModified() const
     if (!dateTime) {
         dateTime = system_clock::now();
 #if ENABLE(WEB_REPLAY)
-        InputCursor& cursor = inputCursor();
+        auto& cursor = inputCursor();
         if (cursor.isCapturing())
             cursor.appendInput<DocumentLastModifiedDate>(duration_cast<milliseconds>(dateTime.value().time_since_epoch()).count());
         else if (cursor.isReplaying()) {
-            if (DocumentLastModifiedDate* input = cursor.fetchInput<DocumentLastModifiedDate>())
+            if (auto* input = cursor.fetchInput<DocumentLastModifiedDate>())
                 dateTime = system_clock::time_point(milliseconds(static_cast<long long>(input->fallbackValue())));
         }
 #endif
@@ -4715,6 +4725,7 @@ void Document::unregisterForPrivateBrowsingStateChangedCallbacks(Element* e)
 }
 
 #if ENABLE(VIDEO_TRACK)
+
 void Document::registerForCaptionPreferencesChangedCallbacks(Element* e)
 {
     if (page())
@@ -4733,9 +4744,11 @@ void Document::captionPreferencesChanged()
     for (auto* element : m_captionPreferencesChangedElements)
         element->captionPreferencesChanged();
 }
+
 #endif
 
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
+
 void Document::registerForPageScaleFactorChangedCallbacks(HTMLMediaElement* element)
 {
     m_pageScaleFactorChangedElements.add(element);
@@ -4767,6 +4780,7 @@ void Document::userInterfaceLayoutDirectionChanged()
     for (auto* mediaElement : m_userInterfaceLayoutDirectionChangedElements)
         mediaElement->userInterfaceLayoutDirectionChanged();
 }
+
 #endif
 
 void Document::setShouldCreateRenderers(bool f)
@@ -5076,7 +5090,9 @@ void Document::clearSharedObjectPool()
 }
 
 #if ENABLE(TELEPHONE_NUMBER_DETECTION)
-// FIXME: Find a better place for this functionality.
+
+// FIXME: Find a better place for this code.
+
 bool Document::isTelephoneNumberParsingEnabled() const
 {
     Settings* settings = this->settings();
@@ -5092,6 +5108,7 @@ bool Document::isTelephoneNumberParsingAllowed() const
 {
     return m_isTelephoneNumberParsingAllowed;
 }
+
 #endif
 
 RefPtr<XPathExpression> Document::createExpression(const String& expression, RefPtr<XPathNSResolver>&& resolver, ExceptionCode& ec)
@@ -5570,6 +5587,7 @@ MediaCanStartListener* Document::takeAnyMediaCanStartListener()
 }
 
 #if ENABLE(DEVICE_ORIENTATION) && PLATFORM(IOS)
+
 DeviceMotionController* Document::deviceMotionController() const
 {
     return m_deviceMotionController.get();
@@ -5579,9 +5597,11 @@ DeviceOrientationController* Document::deviceOrientationController() const
 {
     return m_deviceOrientationController.get();
 }
+
 #endif
 
 #if ENABLE(FULLSCREEN_API)
+
 bool Document::fullScreenIsAllowedForElement(Element* element) const
 {
     ASSERT(element);
@@ -6040,30 +6060,34 @@ void Document::addDocumentToFullScreenChangeEventQueue(Document* doc)
         target = doc;
     m_fullScreenChangeEventTargetQueue.append(target);
 }
+
 #endif
 
 #if ENABLE(POINTER_LOCK)
+
 void Document::exitPointerLock()
 {
-    if (!page())
+    Page* page = this>page();
+    if (!page)
         return;
-    if (Element* target = page()->pointerLockController().element()) {
+    if (auto* target = page->pointerLockController().element()) {
         if (&target->document() != this)
             return;
     }
-    page()->pointerLockController().requestPointerUnlock();
+    page->pointerLockController().requestPointerUnlock();
 }
 
 Element* Document::pointerLockElement() const
 {
-    if (!page() || page()->pointerLockController().lockPending())
+    Page* page = this>page();
+    if (!page || page->pointerLockController().lockPending())
         return nullptr;
-    if (Element* element = page()->pointerLockController().element()) {
-        if (&element->document() == this)
-            return element;
-    }
-    return nullptr;
+    auto* element = page()->pointerLockController().element();
+    if (!element || &element->document() != this)
+        return nullptr;
+    return element;
 }
+
 #endif
 
 void Document::decrementLoadEventDelayCount()
@@ -6088,6 +6112,7 @@ double Document::monotonicTimestamp() const
 }
 
 #if ENABLE(REQUEST_ANIMATION_FRAME)
+
 int Document::requestAnimationFrame(PassRefPtr<RequestAnimationFrameCallback> callback)
 {
     if (!m_scriptedAnimationController) {
@@ -6127,6 +6152,7 @@ void Document::clearScriptedAnimationController()
         m_scriptedAnimationController->clearDocumentPointer();
     m_scriptedAnimationController = nullptr;
 }
+
 #endif
     
 void Document::sendWillRevealEdgeEventsIfNeeded(const IntPoint& oldPosition, const IntPoint& newPosition, const IntRect& visibleRect, const IntSize& contentsSize, Element* target)
@@ -6200,8 +6226,8 @@ void Document::sendWillRevealEdgeEventsIfNeeded(const IntPoint& oldPosition, con
 #endif
 }
 
-#if !PLATFORM(IOS)
-#if ENABLE(TOUCH_EVENTS)
+#if ENABLE(TOUCH_EVENTS) && !PLATFORM(IOS)
+
 RefPtr<Touch> Document::createTouch(DOMWindow* window, EventTarget* target, int identifier, int pageX, int pageY, int screenX, int screenY, int radiusX, int radiusY, float rotationAngle, float force, ExceptionCode&) const
 {
     // FIXME: It's not clear from the documentation at
@@ -6211,8 +6237,8 @@ RefPtr<Touch> Document::createTouch(DOMWindow* window, EventTarget* target, int 
     Frame* frame = window ? window->frame() : this->frame();
     return Touch::create(frame, target, identifier, screenX, screenY, pageX, pageY, radiusX, radiusY, rotationAngle, force);
 }
+
 #endif
-#endif // !PLATFORM(IOS)
 
 void Document::wheelEventHandlersChanged()
 {
@@ -6451,12 +6477,14 @@ DocumentLoader* Document::loader() const
 }
 
 #if ENABLE(CSS_DEVICE_ADAPTATION)
+
 IntSize Document::initialViewportSize() const
 {
     if (!view())
         return IntSize();
     return view()->initialViewportSize();
 }
+
 #endif
 
 Element* eventTargetElementForDocument(Document* document)
@@ -6764,6 +6792,7 @@ void Document::ensurePlugInsInjectedScript(DOMWrapperWorld& world)
 }
 
 #if ENABLE(SUBTLE_CRYPTO)
+
 bool Document::wrapCryptoKey(const Vector<uint8_t>& key, Vector<uint8_t>& wrappedKey)
 {
     Page* page = this->page();
@@ -6779,6 +6808,7 @@ bool Document::unwrapCryptoKey(const Vector<uint8_t>& wrappedKey, Vector<uint8_t
         return false;
     return page->chrome().client().unwrapCryptoKey(wrappedKey, key);
 }
+
 #endif // ENABLE(SUBTLE_CRYPTO)
 
 Element* Document::activeElement()
@@ -6801,13 +6831,21 @@ bool Document::hasFocus() const
 }
 
 #if ENABLE(WEB_REPLAY)
-void Document::setInputCursor(PassRefPtr<InputCursor> cursor)
+
+JSC::InputCursor& Document::inputCursor()
+{
+    return m_inputCursor;
+}
+
+void Document::setInputCursor(Ref<InputCursor>&& cursor)
 {
     m_inputCursor = WTFMove(cursor);
 }
+
 #endif
 
 #if ENABLE(WIRELESS_PLAYBACK_TARGET)
+
 static uint64_t nextPlaybackTargetClientContextId()
 {
     static uint64_t contextId = 0;
@@ -6898,16 +6936,18 @@ void Document::setShouldPlayToPlaybackTarget(uint64_t clientId, bool shouldPlay)
 
     it->value->setShouldPlayToPlaybackTarget(shouldPlay);
 }
+
 #endif // ENABLE(WIRELESS_PLAYBACK_TARGET)
 
 #if ENABLE(MEDIA_SESSION)
+
 MediaSession& Document::defaultMediaSession()
 {
     if (!m_defaultMediaSession)
         m_defaultMediaSession = MediaSession::create(*scriptExecutionContext());
-
     return *m_defaultMediaSession;
 }
+
 #endif
 
 ShouldOpenExternalURLsPolicy Document::shouldOpenExternalURLsPolicyToPropagate() const
@@ -6965,6 +7005,11 @@ void Document::setDir(const AtomicString& value)
     auto* documentElement = this->documentElement();
     if (is<HTMLHtmlElement>(documentElement))
         downcast<HTMLHtmlElement>(*documentElement).setDir(value);
+}
+
+DOMSelection* Document::getSelection()
+{
+    return m_domWindow ? m_domWindow->getSelection() : nullptr;
 }
 
 } // namespace WebCore

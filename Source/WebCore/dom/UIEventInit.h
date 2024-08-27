@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,41 +23,17 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "config.h"
-#include "JSCharacterData.h"
+#pragma once
 
-#include "ExceptionCode.h"
-#include "JSNodeOrString.h"
-
-using namespace JSC;
+#include "DOMWindow.h"
+#include "EventInit.h"
+#include <wtf/RefPtr.h>
 
 namespace WebCore {
 
-JSValue JSCharacterData::before(ExecState& state)
-{
-    ExceptionCode ec = 0;
-    wrapped().before(toNodeOrStringVector(state), ec);
-    setDOMException(&state, ec);
+struct UIEventInit : public EventInit {
+    RefPtr<DOMWindow> view;
+    int detail { 0 };
+};
 
-    return jsUndefined();
 }
-
-JSValue JSCharacterData::after(ExecState& state)
-{
-    ExceptionCode ec = 0;
-    wrapped().after(toNodeOrStringVector(state), ec);
-    setDOMException(&state, ec);
-
-    return jsUndefined();
-}
-
-JSValue JSCharacterData::replaceWith(ExecState& state)
-{
-    ExceptionCode ec = 0;
-    wrapped().replaceWith(toNodeOrStringVector(state), ec);
-    setDOMException(&state, ec);
-
-    return jsUndefined();
-}
-
-} // namespace WebCore
