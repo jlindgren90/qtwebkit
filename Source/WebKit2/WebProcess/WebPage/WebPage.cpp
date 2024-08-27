@@ -4743,8 +4743,13 @@ bool WebPage::canPluginHandleResponse(const ResourceResponse& response)
 
 bool WebPage::shouldUseCustomContentProviderForResponse(const ResourceResponse& response)
 {
+    auto& mimeType = response.mimeType();
+    if (mimeType.isNull())
+        return false;
+
     // If a plug-in exists that claims to support this response, it should take precedence over the custom content provider.
-    return m_mimeTypesWithCustomContentProviders.contains(response.mimeType()) && !canPluginHandleResponse(response);
+    // canPluginHandleResponse() is called last because it performs synchronous IPC.
+    return m_mimeTypesWithCustomContentProviders.contains(mimeType) && !canPluginHandleResponse(response);
 }
 
 #if PLATFORM(COCOA)
@@ -5173,7 +5178,7 @@ bool WebPage::canShowMIMEType(const String& MIMEType) const
     if (MIMETypeRegistry::canShowMIMEType(MIMEType))
         return true;
 
-    if (m_mimeTypesWithCustomContentProviders.contains(MIMEType))
+    if (!MIMEType.isNull() && m_mimeTypesWithCustomContentProviders.contains(MIMEType))
         return true;
 
     const PluginData& pluginData = m_page->pluginData();

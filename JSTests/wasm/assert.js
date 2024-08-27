@@ -24,8 +24,13 @@
  */
 
 export const notUndef = (v) => {
-    if (v === undefined)
+    if (typeof v === "undefined")
         throw new Error("Shouldn't be undefined");
+};
+
+export const isUndef = (v) => {
+    if (typeof v !== "undefined")
+        throw new Error("Should be undefined");
 };
 
 export const eq = (lhs, rhs) => {
@@ -40,30 +45,13 @@ export const ge = (lhs, rhs) => {
         throw new Error(`Expected: "${lhs}" < "${rhs}"`);
 };
 
-export const throwsError = (opFn, message, ...args) => {
-    if (message)
-        message = " for " + message;
-
+export const throws = (func, type, message, ...args) => {
     try {
-        opFn(...args);
+        func(...args);
     } catch (e) {
-        if (e instanceof Error)
+        if (e instanceof type && e.message === message)
             return;
-        throw new Error(`Expected an Error${message}, got ${e}`);
+        throw new Error(`Expected to throw a ${type.name} with message "${message}", got ${e.name} with message "${e.message}"`);
     }
-    throw new Error(`Expected to throw an Error${message}`);
-};
-
-export const throwsRangeError = (opFn, message, ...args) => {
-    if (message)
-        message = " for " + message;
-
-    try {
-        opFn(...args);
-    } catch (e) {
-        if (e instanceof RangeError)
-            return;
-        throw new Error(`Expected a RangeError${message}, got ${e}`);
-    }
-    throw new Error(`Expected to throw a RangeError${message}`);
+    throw new Error(`Expected to throw a ${type.name} with message "${message}"`);
 };

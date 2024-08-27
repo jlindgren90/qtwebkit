@@ -126,6 +126,8 @@ list(APPEND WebCore_SOURCES
     platform/graphics/cairo/TransformationMatrixCairo.cpp
 
     platform/graphics/egl/GLContextEGL.cpp
+    platform/graphics/egl/GLContextEGLWayland.cpp
+    platform/graphics/egl/GLContextEGLX11.cpp
 
     platform/graphics/freetype/FontCacheFreeType.cpp
     platform/graphics/freetype/FontCustomPlatformDataFreeType.cpp
@@ -149,6 +151,7 @@ list(APPEND WebCore_SOURCES
     platform/graphics/wayland/PlatformDisplayWayland.cpp
 
     platform/graphics/x11/PlatformDisplayX11.cpp
+    platform/graphics/x11/XErrorTrapper.cpp
     platform/graphics/x11/XUniqueResource.cpp
 
     platform/gtk/DragDataGtk.cpp

@@ -862,7 +862,6 @@ public:
 #endif
 
     bool shouldUseCustomContentProviderForResponse(const WebCore::ResourceResponse&);
-    bool canPluginHandleResponse(const WebCore::ResourceResponse& response);
 
     bool asynchronousPluginInitializationEnabled() const { return m_asynchronousPluginInitializationEnabled; }
     void setAsynchronousPluginInitializationEnabled(bool enabled) { m_asynchronousPluginInitializationEnabled = enabled; }
@@ -1253,6 +1252,8 @@ private:
 
     void setResourceCachingDisabled(bool);
     void setUserInterfaceLayoutDirection(uint32_t);
+
+    bool canPluginHandleResponse(const WebCore::ResourceResponse&);
 
     void registerURLSchemeHandler(uint64_t identifier, const String& scheme);
 

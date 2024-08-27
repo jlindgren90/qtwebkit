@@ -4601,6 +4601,9 @@ void Document::setPageCacheState(PageCacheState state)
             } else
                 v->resetScrollbars();
         }
+
+        styleScope().clearResolver();
+        clearSelectorQueryCache();
         m_styleRecalcTimer.stop();
 
         clearSharedObjectPool();

@@ -30,6 +30,7 @@ class MediaController
     {
         this.shadowRoot = shadowRoot;
         this.media = media;
+        this.host = host;
 
         // FIXME: This should get set dynamically based on the current environment.
         this.layoutTraits = LayoutTraits.macOS;
@@ -37,8 +38,8 @@ class MediaController
         this.controls = new MacOSInlineMediaControls
         shadowRoot.appendChild(this.controls.element);        
 
-        this.controls.startButton.uiDelegate = this;
-        this.controls.showsStartButton = true;
+        new StartSupport(this);
+        new MuteSupport(this);
 
         this._updateControlsSize();
         media.addEventListener("resize", this);
@@ -60,15 +61,6 @@ class MediaController
     {
         if (event.type === "resize" && event.currentTarget === this.media)
             this._updateControlsSize();
-    }
-
-    buttonWasClicked(button)
-    {
-        if (button !== this.controls.startButton)
-            return;
-
-        this.controls.showsStartButton = false;
-        this.media.play();
     }
 
     // Private

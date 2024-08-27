@@ -1,3 +1,258 @@
+2016-10-20  Jer Noble  <jer.noble@apple.com>
+
+        CRASH in WebCore::MediaSource::seekToTime + 185
+        https://bugs.webkit.org/show_bug.cgi?id=163652
+
+        Reviewed by Eric Carlson.
+
+        * media/media-source/content/test-48kHz.m4a: Added.
+        * media/media-source/content/test-48khz-manifest.json: Added.
+        * media/media-source/media-source-seek-detach-crash-expected.txt: Added.
+        * media/media-source/media-source-seek-detach-crash.html: Added.
+
+2016-10-20  Andreas Kling  <akling@apple.com>
+
+        Drop StyleResolver and SelectorQueryCache when entering PageCache.
+        <https://webkit.org/b/154238>
+
+        Reviewed by Antti Koivisto.
+
+        Progression in compositing/iframes/page-cache-layer-tree.html, when navigating back,
+        the two iframes' dimensions correctly exclude the horizontal scrollbar's height since
+        it's not present after a style recalc.
+
+        * compositing/iframes/page-cache-layer-tree-expected.txt:
+
+2016-10-20  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        WebRTC: The MediaStreamTrackEvent init dictionary needs a required track member
+        https://bugs.webkit.org/show_bug.cgi?id=146232
+
+        Update MediaStreamTrackEvent IDL as per specification.
+
+        No additional test required, rebase existings tests.
+
+        Reviewed by Darin Adler.
+
+        * fast/mediastream/MediaStreamTrackEvent-constructor-expected.txt:
+        * fast/mediastream/MediaStreamTrackEvent-constructor.html: Remove
+        useless tests.
+
+2016-10-19  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: mute support
+        https://bugs.webkit.org/show_bug.cgi?id=163677
+        <rdar://problem/28851582>
+
+        Reviewed by Dean Jackson.
+
+        New tests for the MuteSupport class and adding the new resource to other MediaController tests.
+
+        * media/modern-media-controls/media-controller/media-controller-constructor.html:
+        * media/modern-media-controls/media-controller/media-controller-resize.html:
+        * media/modern-media-controls/mute-support/mute-support-button-click-expected.txt: Added.
+        * media/modern-media-controls/mute-support/mute-support-button-click.html: Added.
+        * media/modern-media-controls/mute-support/mute-support-media-api-expected.txt: Added.
+        * media/modern-media-controls/mute-support/mute-support-media-api.html: Added.
+        * media/modern-media-controls/mute-support/mute-support-muted-expected.txt: Added.
+        * media/modern-media-controls/mute-support/mute-support-muted.html: Added.
+        * media/modern-media-controls/start-support/start-support-audio.html:
+        * media/modern-media-controls/start-support/start-support-autoplay.html:
+        * media/modern-media-controls/start-support/start-support-click-to-start.html:
+        * media/modern-media-controls/start-support/start-support-error.html:
+        * media/modern-media-controls/start-support/start-support-fullscreen.html:
+        * media/modern-media-controls/start-support/start-support-manual-play.html:
+        * media/modern-media-controls/start-support/start-support-no-source.html:
+
+2016-10-19  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION (r206025): All YouTube videos play with black bars on all four sides
+        https://bugs.webkit.org/show_bug.cgi?id=163308
+
+        Reviewed by Darin Adler.
+
+        * media/media-source/media-source-resize-expected.txt: Added.
+        * media/media-source/media-source-resize.html: Added.
+
+2016-10-19  Nan Wang  <n_wang@apple.com>
+
+        AX: [Mac] Mark element AXAPI should comform to specs
+        https://bugs.webkit.org/show_bug.cgi?id=163707
+
+        Reviewed by Chris Fleizach.
+
+        Added the modified roles-computedRoleString-expected.txt in mac platform so 
+        that the exposed mark element won't affect other platform.
+
+        * platform/mac/accessibility/roles-computedRoleString-expected.txt: Added.
+        * platform/mac/accessibility/roles-exposed-expected.txt:
+
+2016-10-19  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        CSS font-variation-settings does not handle uppercase axis names in variable fonts
+        https://bugs.webkit.org/show_bug.cgi?id=163546
+
+        Reviewed by Dean Jackson.
+
+        * fast/text/variations/case-axis-names-expected.html: Added.
+        * fast/text/variations/case-axis-names.html: Added.
+
+2016-10-19  Joone Hur  <joone.hur@intel.com>
+
+        Add a plain space instead of &nbsp; between text nodes
+        https://bugs.webkit.org/show_bug.cgi?id=123163
+
+        Reviewed by Ryosuke Niwa.
+
+        When we rebalance white spaces, &nbsp; can be added as space
+        under some conditions. This patch adds a condition that the next
+        sibling text node should not exist.
+
+        * accessibility/mac/find-and-replace-match-capitalization-expected.txt:
+        * accessibility/mac/find-and-replace-match-capitalization.html:
+        * accessibility/mac/select-text/select-text-135575-expected.txt:
+        * accessibility/mac/select-text/select-text-7-expected.txt:
+        * accessibility/mac/select-text/select-text-8-expected.txt:
+        * accessibility/mac/select-text/select-text-9-expected.txt:
+        * editing/mac/spelling/autocorrection-blockquote-crash-expected.txt:
+        * editing/pasteboard/paste-text-003-expected.txt:
+        * platform/gtk/editing/execCommand/paste-1-expected.txt:
+        * platform/gtk/editing/pasteboard/paste-2-expected.txt:
+        * platform/gtk/editing/pasteboard/unrendered-br-expected.txt:
+        * platform/mac/editing/execCommand/paste-1-expected.txt:
+        * platform/mac/editing/pasteboard/paste-2-expected.txt:
+        * platform/mac/editing/pasteboard/unrendered-br-expected.txt:
+
+2016-10-19  Sam Weinig  <sam@webkit.org>
+
+        Add support for sequences and dictionaries in unions
+        https://bugs.webkit.org/show_bug.cgi?id=163695
+
+        Reviewed by Chris Dumez.
+
+        * js/dom/webidl-type-mapping-expected.txt:
+        * js/dom/webidl-type-mapping.html:
+        Add tests for more complex conversions.
+
+2016-10-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking platform/mac-wk2/plugins/muted-state.html as failing.
+        https://bugs.webkit.org/show_bug.cgi?id=163702
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-10-19  Dean Jackson  <dino@apple.com>
+
+        Import W3C CSS Shapes tests
+        https://bugs.webkit.org/show_bug.cgi?id=163697
+
+        Rubberstamped by Anders Carlsson.
+
+        * TestExpectations: Mark as skipped while we unprefix.
+
+2016-10-19  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Annotate more DOM and HTML IDLs with CEReactions
+        https://bugs.webkit.org/show_bug.cgi?id=163653
+
+        Reviewed by Darin Adler.
+
+        Added a regression test to make sure webkitdropzone IDL attribute on HTMLElement
+        honors CEReactions semantics using the web-platform-tests' infrastructure I added.
+
+        * fast/custom-elements/reactions-for-webkit-extensions-expected.txt: Added.
+        * fast/custom-elements/reactions-for-webkit-extensions.html: Added.
+
+2016-10-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207557.
+
+        This change caused animations/font-variations tests to time
+        out on pre-Sierra Macs.
+
+        Reverted changeset:
+
+        "[macOS] [iOS] Disable variation fonts on macOS El Capitan and
+        iOS 9"
+        https://bugs.webkit.org/show_bug.cgi?id=163374
+        http://trac.webkit.org/changeset/207557
+
+2016-10-19  Nan Wang  <n_wang@apple.com>
+
+        AX: crash: com.apple.WebCore: WebCore::AccessibilityObject::findMatchingObjects + 600
+        https://bugs.webkit.org/show_bug.cgi?id=163682
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/search-predicate-crash-expected.txt: Added.
+        * accessibility/mac/search-predicate-crash.html: Added.
+
+2016-10-19  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [macOS] [iOS] Disable variation fonts on macOS El Capitan and iOS 9
+        https://bugs.webkit.org/show_bug.cgi?id=163374
+
+        Reviewed by Darin Adler.
+
+        Moving animations/font-variation-settings* tests to animations/font-variations
+        in order to make them easier to mark as failing.
+
+        Mark the relevant tests as failing on El Capitan and iOS 9.
+
+        * animations/font-variations/font-variation-settings-expected.html: Renamed from LayoutTests/animations/font-variation-settings-expected.html.
+        * animations/font-variations/font-variation-settings-order-expected.html: Renamed from LayoutTests/animations/font-variation-settings-order-expected.html.
+        * animations/font-variations/font-variation-settings-order.html: Renamed from LayoutTests/animations/font-variation-settings-order.html.
+        * animations/font-variations/font-variation-settings-unlike-expected.html: Renamed from LayoutTests/animations/font-variation-settings-unlike-expected.html.
+        * animations/font-variations/font-variation-settings-unlike.html: Renamed from LayoutTests/animations/font-variation-settings-unlike.html.
+        * animations/font-variations/font-variation-settings.html: Renamed from LayoutTests/animations/font-variation-settings.html.
+        * platform/gtk/TestExpectations:
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-10-19  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: click-to-start support
+        https://bugs.webkit.org/show_bug.cgi?id=163659
+        <rdar://problem/28845656>
+
+        Reviewed by Dean Jackson.
+
+        New test coverage for the StartSupport class.
+
+        * media/modern-media-controls/media-controller/media-controller-constructor.html:
+        * media/modern-media-controls/media-controller/media-controller-resize.html:
+        * media/modern-media-controls/start-support/start-support-audio-expected.txt: Added.
+        * media/modern-media-controls/start-support/start-support-audio.html: Added.
+        * media/modern-media-controls/start-support/start-support-autoplay-expected.txt: Added.
+        * media/modern-media-controls/start-support/start-support-autoplay.html: Added.
+        * media/modern-media-controls/start-support/start-support-click-to-start-expected.txt: Renamed from LayoutTests/media/modern-media-controls/media-controller/media-controller-click-to-start-expected.txt.
+        * media/modern-media-controls/start-support/start-support-click-to-start.html: Renamed from LayoutTests/media/modern-media-controls/media-controller/media-controller-click-to-start.html.
+        * media/modern-media-controls/start-support/start-support-error-expected.txt: Added.
+        * media/modern-media-controls/start-support/start-support-error.html: Added.
+        * media/modern-media-controls/start-support/start-support-fullscreen-expected.txt: Added.
+        * media/modern-media-controls/start-support/start-support-fullscreen.html: Added.
+        * media/modern-media-controls/start-support/start-support-manual-play-expected.txt: Added.
+        * media/modern-media-controls/start-support/start-support-manual-play.html: Added.
+        * media/modern-media-controls/start-support/start-support-no-source-expected.txt: Added.
+        * media/modern-media-controls/start-support/start-support-no-source.html: Added.
+        * platform/ios-simulator/TestExpectations:
+
+2016-10-19  Aaron Chu  <aaron_chu@apple.com>
+
+        Web Inspector: AXI: expose computed tree node and heading level
+        https://bugs.webkit.org/show_bug.cgi?id=130825
+        <rdar://problem/16442349>
+
+        Reviewed by Joseph Pecoraro.
+
+        Included logging of the two newly exposed accessibility properties:
+        Heading Level and Hierarchical Level.
+
+        * inspector/dom/getAccessibilityPropertiesForNode-expected.txt:
+        * inspector/dom/getAccessibilityPropertiesForNode.html:
+
 2016-10-19  Zalan Bujtas  <zalan@apple.com>
 
         Use anonymous table row for new child at RenderTableRow::addChild() if available.

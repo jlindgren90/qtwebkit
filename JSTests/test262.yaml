@@ -63088,9 +63088,9 @@
 - path: test262/test/language/expressions/generators/scope-paramsbody-var-open.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/generators/use-strict-with-non-simple-param.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/generators/use-strict-with-non-simple-param.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/generators/yield-as-binding-identifier.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/generators/yield-as-binding-identifier.js
@@ -66550,9 +66550,9 @@
 - path: test262/test/language/expressions/object/method-definition/generator-super-prop-param.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/generator-use-strict-with-non-simple-param.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/generator-use-strict-with-non-simple-param.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/name-invoke-ctor.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/name-invoke-ctor.js
@@ -84244,9 +84244,9 @@
 - path: test262/test/language/statements/generators/scope-paramsbody-var-open.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/generators/use-strict-with-non-simple-param.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/generators/use-strict-with-non-simple-param.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/statements/generators/yield-as-binding-identifier.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/language/statements/generators/yield-as-binding-identifier.js

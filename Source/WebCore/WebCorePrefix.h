@@ -154,13 +154,11 @@
 #endif
 
 #include <windows.h>
-
-#elif !PLATFORM(IOS)
-
+#else
+#if !PLATFORM(IOS)
 #include <CoreServices/CoreServices.h>
-
-#endif
-
+#endif // !PLATFORM(IOS)
+#endif // OS(WINDOWS)
 
 #endif
 

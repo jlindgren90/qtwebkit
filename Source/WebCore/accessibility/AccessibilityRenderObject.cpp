@@ -2745,6 +2745,9 @@ AccessibilityRole AccessibilityRenderObject::determineAccessibilityRole()
 
     if (node && node->hasTagName(captionTag))
         return CaptionRole;
+    
+    if (node && node->hasTagName(markTag))
+        return MarkRole;
 
     if (node && node->hasTagName(preTag))
         return PreRole;

@@ -1,3 +1,859 @@
+2016-10-20  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Fix font family parsing and add CSS region property parsing
+        https://bugs.webkit.org/show_bug.cgi?id=163741
+
+        Reviewed by Zalan Bujtas.
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::isKeywordPropertyID):
+        (WebCore::parseKeywordValue):
+        (WebCore::CSSParser::parseValue):
+        Modify the old CSSParser to have its own keyword check, since keywords were
+        incorrectly added to the new parser when this check was consolidated. Column
+        and region breaks are considered keyword properties by the old parser, but
+        not by the new parser, since the new parser special cases them and maps them
+        into the generic break property.
+
+        * css/parser/CSSParserFastPaths.cpp:
+        (WebCore::CSSParserFastPaths::isValidKeywordPropertyAndValue):
+        (WebCore::CSSParserFastPaths::isKeywordPropertyID):
+        Update for regions to make sure all the region properties are there. Remove the
+        column and region break properties, since they're not supposed to be here in the
+        new parser.
+
+        * css/parser/CSSPropertyParser.cpp:
+        (WebCore::consumeFamilyName):
+        Fix font parsing to make font family values so that fonts work.
+
+        (WebCore::consumeFlowProperty):
+        Add a function for handling -webkit-flow-from and -webkit-flow-into.
+
+        (WebCore::CSSPropertyParser::parseSingleValue):
+        Add support for the region properties.
+
+        (WebCore::mapFromRegionBreakBetween):
+        (WebCore::mapFromColumnRegionOrPageBreakInside):
+        (WebCore::mapFromLegacyBreakProperty):
+        (WebCore::CSSPropertyParser::consumeLegacyBreakProperty):
+        (WebCore::mapFromColumnOrPageBreakInside): Deleted.
+        Update to handle the region break properties in the same way that column break
+        properties are handled.
+
+2016-10-20  Jer Noble  <jer.noble@apple.com>
+
+        CRASH in WebCore::MediaSource::seekToTime + 185
+        https://bugs.webkit.org/show_bug.cgi?id=163652
+
+        Reviewed by Eric Carlson.
+
+        Test: media/media-source/media-source-seek-detach-crash.html
+
+        Add isClosed() checks (which are effectively m_private null-checks) everywhere m_private is
+        dereferenced. The one place where m_private is cleared without setting the state to closed
+        is stop(), so make stop() set the state to closed as well (without firing any events).
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::seekToTime):
+        (WebCore::MediaSource::completeSeek):
+        (WebCore::MediaSource::monitorSourceBuffers):
+        (WebCore::MediaSource::streamEndedWithError):
+        (WebCore::MediaSource::stop):
+
+2016-10-20  Andreas Kling  <akling@apple.com>
+
+        Drop StyleResolver and SelectorQueryCache when entering PageCache.
+        <https://webkit.org/b/154238>
+
+        Reviewed by Antti Koivisto.
+
+        Stop keeping these around for cached pages to save lots of memory.
+        We can easily rebuild them if a cached navigation occurs, and this
+        way we also don't need to worry about invalidating style for cached
+        pages in all the right places.
+
+        Restoring a cached page will now lead to a forced style recalc.
+        We don't try to defer this (beyond a zero-timer) since it's going
+        to happen anyway, and it's nicer to front-load the cost rather than
+        stuttering on the first user content interaction.
+
+        * dom/Document.cpp:
+        (WebCore::Document::setPageCacheState):
+        * history/CachedPage.cpp:
+        (WebCore::CachedPage::restore):
+        (WebCore::CachedPage::clear):
+        * history/CachedPage.h:
+        (WebCore::CachedPage::markForVisitedLinkStyleRecalc): Deleted.
+        (WebCore::CachedPage::markForFullStyleRecalc): Deleted.
+        * history/PageCache.cpp:
+        (WebCore::PageCache::markPagesForVisitedLinkStyleRecalc): Deleted.
+        (WebCore::PageCache::markPagesForFullStyleRecalc): Deleted.
+        * history/PageCache.h:
+        * page/Frame.cpp:
+        (WebCore::Frame::setPageAndTextZoomFactors):
+        * page/Page.cpp:
+        (WebCore::Page::setViewScaleFactor):
+        (WebCore::Page::setDeviceScaleFactor):
+        (WebCore::Page::setPagination):
+        (WebCore::Page::setPaginationLineGridEnabled):
+        (WebCore::Page::setVisitedLinkStore):
+
+2016-10-20  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK] Build fix after r207616
+        https://bugs.webkit.org/show_bug.cgi?id=163333
+
+        Reviewed by Carlos Garcia Campos.
+
+        EGL_PLATFORM_X11_KHR and EGL_PLATFORM_WAYLAND_KHR are not defined
+        on the EGL headers shipped by Mesa 10.3 (shipped by Debian 8)
+
+        * platform/graphics/wayland/PlatformDisplayWayland.cpp:
+        (WebCore::PlatformDisplayWayland::initialize):
+        * platform/graphics/x11/PlatformDisplayX11.cpp:
+        (WebCore::PlatformDisplayX11::initializeEGLDisplay):
+
+2016-10-20  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [CMake] CMake does not support the dep files for implicit dependency
+        https://bugs.webkit.org/show_bug.cgi?id=161433
+
+        Reviewed by Brent Fulgham.
+
+        Created a Perl script to generate all IDL bindings for CMake.
+        This script can regenerate outdated bindings by based on the
+        supplemental dependency and dep files created by
+        '--write-dependencies' switch of generate-bindings.pl.
+
+        add_custom_target is used to invoke the script instead of
+        add_custom_command because Ninja deletes all output files before
+        executing the command in case of add_custom_command.
+
+        USES_TERMINAL option of add_custom_target has two effects:
+        1) Not buffering output of the command
+        2) Invoking the command in the special Ninja pool which inhibits parallel build
+        One needs to use CMake 3.2 or later to enable this feature.
+
+        * CMakeLists.txt: Specified target names for
+        GENERATE_BINDINGS. Added dependency for the targets.
+        * bindings/scripts/generate-bindings-all.pl: Added.
+
+2016-10-20  Adam Jackson  <ajax@redhat.com>
+
+        Prefer eglGetPlatformDisplay to eglGetDisplay
+        https://bugs.webkit.org/show_bug.cgi?id=163333
+
+        Reviewed by Carlos Garcia Campos.
+
+        eglGetDisplay forces the implementation to guess what kind of void* it's been handed. Different implementations
+        do different things, in particular glvnd and Mesa behave differently. Fortunately there exists API to tell EGL
+        what kind of display it is, so let's use it.
+
+        * platform/graphics/wayland/PlatformDisplayWayland.cpp:
+        (WebCore::PlatformDisplayWayland::initialize):
+        * platform/graphics/x11/PlatformDisplayX11.cpp:
+        (WebCore::PlatformDisplayX11::initializeEGLDisplay):
+
+2016-10-20  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Avoid including egl.h headers in internal headers
+        https://bugs.webkit.org/show_bug.cgi?id=163722
+
+        Reviewed by Žan Doberšek.
+
+        egl.h includes eglplatform.h that decides the native types for the platform at compile time. However, we support
+        to build with X11 and Wayland at the same time and decide what to use at runtime. Currently GLContext.h includes
+        eglplatform.h after wayland-egl.h if Wayland is enabled. That means that the wayland native types are used by
+        default from all cpp files including GLContext.h. It currently works in X11 because we cast the value anyway and
+        for example EGLNativeWindowType is a pointer in Wayland that can be casted to unsigned long in X11 to represent
+        the X Window. This is very fragile in any case, we should avoid adding egl headers in our headers and only
+        include it in cpp files. But we also need to ensure we don't use X11 and Wayland in the same cpp file.
+
+        * PlatformGTK.cmake:
+        * platform/graphics/GLContext.cpp:
+        (WebCore::GLContext::createContextForWindow):
+        * platform/graphics/GLContext.h:
+        * platform/graphics/egl/GLContextEGL.cpp:
+        (WebCore::GLContextEGL::createWindowContext):
+        (WebCore::GLContextEGL::createContext):
+        (WebCore::GLContextEGL::~GLContextEGL):
+        * platform/graphics/egl/GLContextEGL.h:
+        * platform/graphics/egl/GLContextEGLWayland.cpp: Added.
+        (WebCore::GLContextEGL::GLContextEGL):
+        (WebCore::GLContextEGL::createWindowSurfaceWayland):
+        (WebCore::GLContextEGL::createWaylandContext):
+        (WebCore::GLContextEGL::destroyWaylandWindow):
+        * platform/graphics/egl/GLContextEGLX11.cpp: Added.
+        (WebCore::GLContextEGL::GLContextEGL):
+        (WebCore::GLContextEGL::createWindowSurfaceX11):
+        (WebCore::GLContextEGL::createPixmapContext):
+        * platform/graphics/glx/GLContextGLX.cpp:
+        (WebCore::GLContextGLX::createWindowContext):
+        (WebCore::GLContextGLX::createContext):
+        (WebCore::GLContextGLX::GLContextGLX):
+        * platform/graphics/glx/GLContextGLX.h:
+        * platform/graphics/wayland/PlatformDisplayWayland.cpp:
+        * platform/graphics/x11/PlatformDisplayX11.cpp:
+
+2016-10-20  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Avoid strstr() when checking (E)GL extensions
+        https://bugs.webkit.org/show_bug.cgi?id=161958
+
+        Reviewed by Žan Doberšek.
+
+        Add static method GLContext::isExtensionSupported() to properly search extenstions in the given extension
+        list, and use it instead of strstr().
+
+        * platform/graphics/GLContext.cpp:
+        (WebCore::GLContext::isExtensionSupported):
+        * platform/graphics/GLContext.h:
+        * platform/graphics/egl/GLContextEGL.cpp:
+        (WebCore::GLContextEGL::createSurfacelessContext):
+        * platform/graphics/glx/GLContextGLX.cpp:
+        (WebCore::hasSGISwapControlExtension):
+
+2016-10-20  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win][Direct2D] Implement ImageBufferData::getData.
+        https://bugs.webkit.org/show_bug.cgi?id=163668
+
+        Reviewed by Brent Fulgham.
+
+        Render data to a bitmap in system memory, which data can be read from.
+
+        * platform/graphics/win/ImageBufferDataDirect2D.cpp:
+        (WebCore::ImageBufferData::getData):
+        * platform/graphics/win/ImageBufferDirect2D.cpp:
+        (WebCore::ImageBuffer::ImageBuffer):
+
+2016-10-20  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Wrong use of EGL_DEPTH_SIZE
+        https://bugs.webkit.org/show_bug.cgi?id=155536
+
+        Reviewed by Michael Catanzaro.
+
+        What happens here is that the driver doesn't implement EGL_DEPTH_SIZE and the default value, which is 0, is
+        returned. Then XCreatePixmap fails because 0 is not a valid depth. The thing is that even if EGL_DEPTH_SIZE or
+        EGL_BUFFER_SIZE returned a valid depth, it still might not be supported by the default screen and XCreatePixmap
+        can fail. What we need to ensure is that the depth we pass is compatible with the X display, not only with the
+        EGL config, to avoid failures when creating the pixmap. So, we can use EGL_NATIVE_VISUAL_ID instead, and
+        then ask X for the visual info for that id. If it isn't found then we just return before creating the pixmap,
+        but if the visual is found then we can be sure that the depth of the visual will not make the pixmap creation
+        fail. However, with the driver I'm using it doesn't matter how we create the pixmap that eglCreatePixmapSurface
+        always fails, again with X errors that are fatal by default. Since the driver is not free, I assume it doesn't
+        support eglCreatePixmapSurface or it's just buggy, so the only option we have here is trap the x errors and
+        ignore them. It turns out that the X errors are not fatal in this case, because eglCreatePixmapSurface ends up
+        returning a surface, and since these are offscreen contexts, it doesn't really matter if they contain an
+        invalid pixmap, because we never do swap buffer on them, so just ignoring the X errors fixes the crashes and
+        makes everythig work. This patch adds a helper class XErrorTrapper that allows to trap XErrors and decide what
+        to do with them (ignore, warn or crash) or even not consider a particular set of errors as errors.
+
+        * PlatformEfl.cmake: Add new file to compilation.
+        * PlatformGTK.cmake: Ditto.
+        * platform/graphics/egl/GLContextEGL.cpp:
+        (WebCore::GLContextEGL::createPixmapContext): Use EGL_NATIVE_VISUAL_ID instead of EGL_DEPTH_SIZE to figure out
+        the depth to be passed to XCreatePixmap. Also use the XErrorTrapper class to ignore all BadDrawable errors
+        produced by eglCreatePixmapSurface() and only show a warning about all other X errors.
+        * platform/graphics/x11/XErrorTrapper.cpp: Added.
+        (WebCore::xErrorTrappersMap):
+        (WebCore::XErrorTrapper::XErrorTrapper):
+        (WebCore::XErrorTrapper::~XErrorTrapper):
+        (WebCore::XErrorTrapper::errorCode):
+        (WebCore::XErrorTrapper::errorEvent):
+        * platform/graphics/x11/XErrorTrapper.h: Added.
+        (WebCore::XErrorTrapper::XErrorTrapper):
+
+2016-10-20  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        WebRTC: The MediaStreamTrackEvent init dictionary needs a required track member
+        https://bugs.webkit.org/show_bug.cgi?id=146232
+
+        Update MediaStreamTrackEvent IDL as per specification.
+
+        Reviewed by Darin Adler.
+
+        No additional test required, rebase existings tests.
+
+        * Modules/mediastream/MediaStreamTrackEvent.idl:
+
+2016-10-19  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: mute support
+        https://bugs.webkit.org/show_bug.cgi?id=163677
+        <rdar://problem/28851582>
+
+        Reviewed by Dean Jackson.
+
+        We introduce the MuteSupport class which brings support for muting the media
+        by clicking on the mute button in the media controls and correctly reflecting
+        the media's muted state should the media be muted via the media API.
+
+        Tests: media/modern-media-controls/mute-support/mute-support-button-click.html
+               media/modern-media-controls/mute-support/mute-support-media-api.html
+               media/modern-media-controls/mute-support/mute-support-muted.html
+
+        * Modules/modern-media-controls/media/media-controller.js:
+        (MediaController):
+        * Modules/modern-media-controls/media/mute-support.js: Copied from Source/WebCore/Modules/modern-media-controls/media/media-controller.js.
+        (MuteSupport.prototype.get control):
+        (MuteSupport.prototype.get mediaEvents):
+        (MuteSupport.prototype.buttonWasClicked):
+        (MuteSupport.prototype.syncControl):
+        (MuteSupport):
+        * WebCore.xcodeproj/project.pbxproj:
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::mediaControlsScript):
+
+2016-10-19  Alex Christensen  <achristensen@webkit.org>
+
+        Revert r207151
+        https://bugs.webkit.org/show_bug.cgi?id=163675
+
+        Reviewed by Brent Fulgham.
+
+        This code is still useful for comparison with Windows.  I'll remove it again soon.
+
+        No new tests.  No change in behavior.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * WebCorePrefix.h:
+        * loader/DocumentLoader.h:
+        * loader/EmptyClients.h:
+        * loader/FrameLoaderClient.h:
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::didReceiveAuthenticationChallenge):
+        * loader/ResourceLoader.h:
+        * loader/SubresourceLoader.h:
+        * loader/cf/ResourceLoaderCFNet.cpp:
+        * loader/cocoa/SubresourceLoaderCocoa.mm:
+        (WebCore::SubresourceLoader::willCacheResponse):
+        * loader/mac/DocumentLoaderMac.cpp:
+        * loader/mac/ResourceLoaderMac.mm:
+        (WebCore::ResourceLoader::willCacheResponse):
+        * page/mac/PageMac.mm:
+        (WebCore::Page::platformInitialize):
+        (WebCore::Page::addSchedulePair):
+        (WebCore::Page::removeSchedulePair):
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateAVFoundationObjC.mm:
+        (WebCore::WebCoreNSURLAuthenticationChallengeClient::create):
+        (WebCore::WebCoreNSURLAuthenticationChallengeClient::WebCoreNSURLAuthenticationChallengeClient):
+        (WebCore::MediaPlayerPrivateAVFoundationObjC::shouldWaitForResponseToAuthenticationChallenge):
+        * platform/mac/WebCoreSystemInterface.h:
+        * platform/network/NetworkStorageSession.h:
+        * platform/network/ProtectionSpace.h:
+        * platform/network/ProtectionSpaceBase.cpp:
+        * platform/network/ResourceHandle.cpp:
+        * platform/network/ResourceHandle.h:
+        * platform/network/ResourceHandleClient.cpp:
+        * platform/network/ResourceHandleClient.h:
+        * platform/network/ResourceHandleInternal.h:
+        (WebCore::ResourceHandleInternal::ResourceHandleInternal):
+        * platform/network/ResourceRequestBase.cpp:
+        * platform/network/cf/AuthenticationCF.cpp:
+        (WebCore::AuthenticationChallenge::AuthenticationChallenge):
+        (WebCore::AuthenticationChallenge::setAuthenticationClient): Deleted.
+        (WebCore::AuthenticationChallenge::authenticationClient): Deleted.
+        (WebCore::AuthenticationChallenge::platformCompare): Deleted.
+        (WebCore::createCF): Deleted.
+        (WebCore::core): Deleted.
+        * platform/network/cf/AuthenticationCF.h:
+        * platform/network/cf/AuthenticationChallenge.h:
+        * platform/network/cf/CookieJarCFNet.cpp:
+        * platform/network/cf/CredentialStorageCFNet.cpp:
+        (WebCore::CredentialStorage::getFromPersistentStorage):
+        (WebCore::CredentialStorage::saveToPersistentStorage):
+        * platform/network/cf/LoaderRunLoopCF.cpp:
+        * platform/network/cf/LoaderRunLoopCF.h:
+        * platform/network/cf/NetworkStorageSessionCFNet.cpp:
+        (WebCore::NetworkStorageSession::cookieStorage):
+        * platform/network/cf/ProtectionSpaceCFNet.cpp:
+        * platform/network/cf/ProtectionSpaceCFNet.h:
+        * platform/network/cf/ResourceError.h:
+        * platform/network/cf/ResourceErrorCF.cpp:
+        * platform/network/cf/ResourceHandleCFNet.cpp:
+        (WebCore::shouldSniffConnectionProperty):
+        (WebCore::ResourceHandle::createCFURLConnection):
+        (WebCore::ResourceHandle::start):
+        (WebCore::ResourceHandle::didReceiveAuthenticationChallenge):
+        (WebCore::ResourceHandle::tryHandlePasswordBasedAuthentication):
+        (WebCore::ResourceHandle::receivedCredential):
+        (WebCore::ResourceHandle::schedule):
+        (WebCore::ResourceHandle::unschedule):
+        * platform/network/cf/ResourceHandleCFURLConnectionDelegate.cpp:
+        * platform/network/cf/ResourceHandleCFURLConnectionDelegate.h:
+        * platform/network/cf/ResourceHandleCFURLConnectionDelegateWithOperationQueue.cpp:
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::setupRequest):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::didReceiveResponse):
+        (WebCore::ResourceHandleCFURLConnectionDelegateWithOperationQueue::canRespondToProtectionSpace):
+        * platform/network/cf/ResourceHandleCFURLConnectionDelegateWithOperationQueue.h:
+        * platform/network/cf/ResourceRequest.h:
+        (WebCore::ResourceRequest::encodingRequiresPlatformData):
+        * platform/network/cf/ResourceRequestCFNet.cpp:
+        (WebCore::findCFURLRequestSetContentDispositionEncodingFallbackArrayFunction):
+        (WebCore::findCFURLRequestCopyContentDispositionEncodingFallbackArrayFunction):
+        (WebCore::ResourceRequest::doUpdatePlatformRequest):
+        (WebCore::ResourceRequest::doUpdatePlatformHTTPBody):
+        (WebCore::ResourceRequest::doUpdateResourceRequest):
+        (WebCore::ResourceRequest::setStorageSession):
+        * platform/network/cf/ResourceRequestCFNet.h:
+        * platform/network/cf/ResourceResponse.h:
+        * platform/network/cf/ResourceResponseCFNet.cpp:
+        (WebCore::ResourceResponse::cfURLResponse):
+        * platform/network/cf/SynchronousLoaderClientCFNet.cpp:
+        * platform/network/cf/SynchronousResourceHandleCFURLConnectionDelegate.cpp:
+        (WebCore::SynchronousResourceHandleCFURLConnectionDelegate::setupRequest):
+        (WebCore::SynchronousResourceHandleCFURLConnectionDelegate::setupConnectionScheduling):
+        (WebCore::SynchronousResourceHandleCFURLConnectionDelegate::didReceiveResponse):
+        (WebCore::SynchronousResourceHandleCFURLConnectionDelegate::willCacheResponse):
+        (WebCore::SynchronousResourceHandleCFURLConnectionDelegate::canRespondToProtectionSpace):
+        * platform/network/cf/SynchronousResourceHandleCFURLConnectionDelegate.h:
+        * platform/network/cocoa/CredentialCocoa.h:
+        * platform/network/cocoa/CredentialCocoa.mm:
+        (WebCore::Credential::Credential):
+        (WebCore::Credential::cfCredential):
+        * platform/network/cocoa/ProtectionSpaceCocoa.h:
+        * platform/network/cocoa/ProtectionSpaceCocoa.mm:
+        (WebCore::ProtectionSpace::ProtectionSpace):
+        (WebCore::ProtectionSpace::cfSpace):
+        * platform/network/cocoa/ResourceRequestCocoa.mm:
+        (WebCore::ResourceRequest::nsURLRequest):
+        * platform/network/cocoa/ResourceResponseCocoa.mm:
+        (WebCore::ResourceResponse::platformCertificateInfo):
+        (WebCore::ResourceResponse::nsURLResponse):
+        (WebCore::ResourceResponse::ResourceResponse):
+        * platform/network/ios/QuickLook.h:
+        * platform/network/ios/QuickLook.mm:
+        (-[WebQuickLookHandleAsDelegate initWithConnectionDelegate:]):
+        (-[WebQuickLookHandleAsDelegate connection:didReceiveDataArray:]):
+        (-[WebQuickLookHandleAsDelegate connection:didReceiveData:lengthReceived:]):
+        (-[WebQuickLookHandleAsDelegate connectionDidFinishLoading:]):
+        (-[WebQuickLookHandleAsDelegate connection:didFailWithError:]):
+        (-[WebQuickLookHandleAsDelegate detachHandle]):
+        (WebCore::QuickLookHandle::create):
+        (WebCore::QuickLookHandle::cfResponse):
+        * platform/network/mac/AuthenticationMac.mm:
+        (-[WebCoreAuthenticationClientAsChallengeSender setCFChallenge:]):
+        (-[WebCoreAuthenticationClientAsChallengeSender cfChallenge]):
+        (WebCore::core):
+        (WebCore::mac):
+        * platform/network/mac/CookieJarMac.mm:
+        (WebCore::setCookiesFromDOM):
+        (WebCore::addCookie):
+        (WebCore::cookieStorage):
+        * platform/network/mac/CredentialStorageMac.mm:
+        * platform/network/mac/FormDataStreamMac.h:
+        * platform/network/mac/FormDataStreamMac.mm:
+        * platform/network/mac/ResourceErrorMac.mm:
+        (NSErrorFromCFError):
+        (WebCore::ResourceError::ResourceError):
+        (WebCore::ResourceError::nsError):
+        (WebCore::ResourceError::operator NSError *):
+        * platform/network/mac/ResourceHandleMac.mm:
+        (WebCore::ResourceHandle::getConnectionTimingData):
+        * platform/network/mac/ResourceRequestMac.mm: Added.
+        (WebCore::ResourceRequest::ResourceRequest):
+        (WebCore::ResourceRequest::updateNSURLRequest):
+        * platform/network/mac/SynchronousLoaderClient.mm:
+        * platform/network/mac/WebCoreResourceHandleAsDelegate.h:
+        * platform/network/mac/WebCoreResourceHandleAsDelegate.mm:
+        * platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.h:
+        * platform/network/mac/WebCoreResourceHandleAsOperationQueueDelegate.mm:
+        * platform/network/mac/WebCoreURLResponse.mm:
+        * platform/win/TemporaryLinkStubs.cpp:
+        * testing/js/WebCoreTestSupportPrefix.h:
+
+2016-10-19  Jer Noble  <jer.noble@apple.com>
+
+        REGRESSION (r206025): All YouTube videos play with black bars on all four sides
+        https://bugs.webkit.org/show_bug.cgi?id=163308
+
+        Reviewed by Darin Adler.
+
+        Test: media/media-source/media-source-resize.html
+
+        After r206025, we do not fire resize events when the size change notification happens equal-
+        to-or-before the current time, which can happen at the very beginning of a stream. Take care
+        of this case by checking that the target time isn't actually in the past inside of
+        sizeWillChangeAtTime(), and also always skip the boundary time observer when there was no
+        previous size (such as after a flush due to a seek).
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::sizeWillChangeAtTime):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::setNaturalSize):
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+        (WebCore::SourceBufferPrivateAVFObjC::flushAndEnqueueNonDisplayingSamples):
+        (WebCore::SourceBufferPrivateAVFObjC::enqueueSample):
+
+2016-10-19  Nan Wang  <n_wang@apple.com>
+
+        AX: [Mac] Mark element AXAPI should comform to specs
+        https://bugs.webkit.org/show_bug.cgi?id=163707
+
+        Reviewed by Chris Fleizach.
+
+        Created a new role for mark elements on Mac and exposed the role
+        description.
+
+        Changes are covered in modified test expectaions.
+
+        * English.lproj/Localizable.strings:
+        * accessibility/AccessibilityObject.h:
+        * accessibility/AccessibilityRenderObject.cpp:
+        (WebCore::AccessibilityRenderObject::determineAccessibilityRole):
+        * accessibility/ios/WebAccessibilityObjectWrapperIOS.mm:
+        (-[WebAccessibilityObjectWrapper determineIsAccessibilityElement]):
+        * accessibility/mac/AccessibilityObjectMac.mm:
+        (WebCore::AccessibilityObject::accessibilityPlatformIncludesObject):
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (createAccessibilityRoleMap):
+        (-[WebAccessibilityObjectWrapper roleDescription]):
+        * platform/LocalizedStrings.cpp:
+        (WebCore::AXMarkText):
+        * platform/LocalizedStrings.h:
+
+2016-10-19  Alex Christensen  <achristensen@webkit.org>
+
+        Re-enable URLParser for non-Safari Cocoa apps after r207321
+        https://bugs.webkit.org/show_bug.cgi?id=163690
+
+        Reviewed by Darin Adler.
+
+        I disabled the URLParser for non-Safari applications in r207305
+        to give me time to make URLParser more compatible, which I did in r207321
+
+        Updated some API tests which will be investigated in 
+        https://bugs.webkit.org/show_bug.cgi?id=163127
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::setEnabled):
+        (WebCore::URLParser::enabled):
+        * testing/js/WebCoreTestSupport.cpp:
+        (WebCoreTestSupport::setURLParserEnabled): Deleted.
+        * testing/js/WebCoreTestSupport.h:
+
+2016-10-19  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        CSS font-variation-settings does not handle uppercase axis names in variable fonts
+        https://bugs.webkit.org/show_bug.cgi?id=163546
+
+        Reviewed by Dean Jackson.
+
+        Remove the extra toASCIILower() call.
+
+        Test: fast/text/variations/case-axis-names.html
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParser::parseFontVariationTag):
+
+2016-10-19  Anders Carlsson  <andersca@apple.com>
+
+        Remove m_redirectURLs from HistoryItem
+        https://bugs.webkit.org/show_bug.cgi?id=163704
+
+        Reviewed by Dan Bernstein.
+
+        * history/HistoryItem.cpp:
+        (WebCore::HistoryItem::HistoryItem):
+        (WebCore::HistoryItem::reset):
+        * history/HistoryItem.h:
+
+2016-10-19  Joone Hur  <joone.hur@intel.com>
+
+        Add a plain space instead of &nbsp; between text nodes
+        https://bugs.webkit.org/show_bug.cgi?id=123163
+
+        Reviewed by Ryosuke Niwa.
+
+        When we rebalance white spaces, &nbsp; can be added as space
+        under some conditions. This patch adds a condition that the next
+        sibling text node should not exist.
+
+        No new tests, updated existing test.
+
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::CompositeEditCommand::rebalanceWhitespaceOnTextSubstring):
+        * editing/htmlediting.cpp:
+        (WebCore::stringWithRebalancedWhitespace):
+        * editing/htmlediting.h:
+
+2016-10-19  Sam Weinig  <sam@webkit.org>
+
+        Add support for sequences and dictionaries in unions
+        https://bugs.webkit.org/show_bug.cgi?id=163695
+
+        Reviewed by Chris Dumez.
+
+        Tests:
+         - Updated js/dom/webidl-type-mapping.html
+
+        * bindings/generic/IDLTypes.h:
+        Add additional helper predicates and fix formatting.
+
+        * bindings/js/JSDOMBinding.h:
+        Export hasIteratorMethod for use in testing.
+
+        * bindings/js/JSDOMConvert.h:
+        - Change return type of Converter<IDLDictionary<T>> to T, from Optional<T>.
+        - Add support for unions conversion step 12 (parts 1-3).
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDefaultValue):
+        Support complex default value computations for unions using the convert infrastructure.
+
+        (GenerateParametersCheck):
+        (GenerateConstructorDefinition):
+        Remove incorrect .value() calls now that Converter<IDLDictionary<T>> returns T.
+
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        Update bindings test results.
+
+        * testing/TypeConversions.h:
+        (WebCore::TypeConversions::setTypeConversionsDictionary):
+        (WebCore::TypeConversions::typeConversionsDictionaryLongValue):
+        (WebCore::TypeConversions::typeConversionsDictionaryStringValue):
+        (WebCore::TypeConversions::typeConversionsDictionarySequenceValue):
+        (WebCore::TypeConversions::typeConversionsDictionaryUnionType):
+        * testing/TypeConversions.idl:
+        Add some complex types to allow testing IDL conversions from tests.
+
+2016-10-19  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Annotate more DOM and HTML IDLs with CEReactions
+        https://bugs.webkit.org/show_bug.cgi?id=163653
+
+        Reviewed by Darin Adler.
+
+        Added CEReactions to more IDL files.
+
+        Test: fast/custom-elements/reactions-for-webkit-extensions.html
+
+        * bindings/js/JSDOMStringMapCustom.cpp:
+        (WebCore::JSDOMStringMap::deleteProperty): Instantiate CustomElementReactionStack, which is equivalent to
+        adding CEReactions in IDL.
+        (WebCore::JSDOMStringMap::putDelegate): Ditto.
+        * dom/Document.idl:
+        * dom/Element.idl:
+        * html/HTMLElement.idl:
+        * page/DOMSelection.idl:
+
+2016-10-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207557.
+
+        This change caused animations/font-variations tests to time
+        out on pre-Sierra Macs.
+
+        Reverted changeset:
+
+        "[macOS] [iOS] Disable variation fonts on macOS El Capitan and
+        iOS 9"
+        https://bugs.webkit.org/show_bug.cgi?id=163374
+        http://trac.webkit.org/changeset/207557
+
+2016-10-19  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Support -webkit-border-fit
+        https://bugs.webkit.org/show_bug.cgi?id=163687
+
+        Reviewed by Zalan Bujtas.
+
+        Add support for -webkit-border-fit to isValidKeywordPropertyAndValue.
+
+        * css/parser/CSSParserFastPaths.cpp:
+        (WebCore::CSSParserFastPaths::isValidKeywordPropertyAndValue):
+
+2016-10-19  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] class and id parsing need to be case-insensitive in HTML quirks mode
+        https://bugs.webkit.org/show_bug.cgi?id=163685
+
+        Reviewed by Zalan Bujtas.
+
+        Class and ID parsing should be case-insensitive in quirks mode. Apply the same hack
+        that the old parser did and lowercase the class and ids in place.
+
+        * css/parser/CSSSelectorParser.cpp:
+        (WebCore::CSSSelectorParser::consumeId):
+        (WebCore::CSSSelectorParser::consumeClass):
+
+2016-10-19  Nan Wang  <n_wang@apple.com>
+
+        AX: crash: com.apple.WebCore: WebCore::AccessibilityObject::findMatchingObjects + 600
+        https://bugs.webkit.org/show_bug.cgi?id=163682
+
+        Reviewed by Chris Fleizach.
+
+        There's a null pointer crash when we ask for startObject->parentObjectUnignored() in
+        AccessibilityObject::findMatchingObject. Added a null check for the startObject to fix that.
+
+        Test: accessibility/mac/search-predicate-crash.html
+
+        * accessibility/AccessibilityObject.cpp:
+        (WebCore::AccessibilityObject::findMatchingObjects):
+
+2016-10-19  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 163670: Refine assertions in WebCore::ImageData constructors
+        <https://webkit.org/b/163670>
+        <rdar://problem/27497338>
+
+        Reviewed by Brent Fulgham.
+
+        No new tests because there is no change in nominal behavior.
+
+        * html/ImageData.cpp:
+        (WebCore::ImageData::ImageData(const IntSize&)): Change to use
+        ASSERT() since the worst-case scenario here is a nullptr deref.
+        Switch to IntSize::area() to compute the area.
+        (WebCore::ImageData::ImageData(const IntSize&, Ref<Uint8ClampedArray>&&)):
+        Add ASSERT() identical to the previous constructor, and change
+        ASSERT_WITH_SECURITY_IMPLICATION() to only fire when m_data is
+        not nullptr and the length check fails.  Switch to
+        IntSize::area() to compute the area.
+
+2016-10-19  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [macOS] [iOS] Disable variation fonts on macOS El Capitan and iOS 9
+        https://bugs.webkit.org/show_bug.cgi?id=163374
+
+        Reviewed by Darin Adler.
+
+        Because of platform lack of support for variations in in-memory fonts,
+        this feature should be disabled on the affected OSes.
+
+        No tests because there is no behavior change (on the relevant platforms).
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-10-19  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Fix background-position parsing
+        https://bugs.webkit.org/show_bug.cgi?id=163681
+
+        Reviewed by Dean Jackson.
+
+        The new parser has a more efficient parsed representation of background positions. When
+        background-position is "center" or when no length unit is specified for a dimension,
+        then rather than creating a pair, the new parser makes a singleton primitive value.
+
+        Patch the StyleBuilder code to handle this case, resolving center to (left,50%) or
+        (top,50%) as appropriate and also handling top/left without any associated length.
+
+        * css/CSSToStyleMap.cpp:
+        (WebCore::CSSToStyleMap::mapFillXPosition):
+        (WebCore::CSSToStyleMap::mapFillYPosition):
+
+2016-10-19  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: click-to-start support
+        https://bugs.webkit.org/show_bug.cgi?id=163659
+        <rdar://problem/28845656>
+
+        Reviewed by Dean Jackson.
+
+        We introduce the MediaControllerSupport class which will allow a number of media controller
+        features to be implemented by subclasses each devoted to implementing a specific subset of
+        media controller features. With this bug, we add the correct behavior for click-to-start,
+        only showing the start button under the right circumstances.
+
+        A MediaController object indicates which media control to attach click event listeners to
+        through the `control` property, and a list of media events it should register on the media
+        element through the `mediaEvents` property. Then, as the user interacts with the specified
+        control and the media, the Button delegation method `buttonWasClicked()` and the `syncControl()`
+        methods are called to allow for the media state to be correctly set and represented in the
+        media controls. Custom event handling for the specified events can also be achieved by
+        subclassing the `handleEvent()` method.
+
+        Tests: media/modern-media-controls/start-support/start-support-audio.html
+               media/modern-media-controls/start-support/start-support-autoplay.html
+               media/modern-media-controls/start-support/start-support-click-to-start.html
+               media/modern-media-controls/start-support/start-support-error.html
+               media/modern-media-controls/start-support/start-support-fullscreen.html
+               media/modern-media-controls/start-support/start-support-manual-play.html
+               media/modern-media-controls/start-support/start-support-no-source.html
+
+        * Modules/modern-media-controls/media/media-controller-support.js: Added.
+        (MediaControllerSupport):
+        (MediaControllerSupport.prototype.get control):
+        (MediaControllerSupport.prototype.get mediaEvents):
+        (MediaControllerSupport.prototype.buttonWasClicked):
+        (MediaControllerSupport.prototype.handleEvent):
+        (MediaControllerSupport.prototype.syncControl):
+        * Modules/modern-media-controls/media/media-controller.js:
+        (MediaController):
+        (MediaController.prototype.buttonWasClicked): Deleted.
+        * Modules/modern-media-controls/media/start-support.js: Added.
+        (StartSupport.prototype.get control):
+        (StartSupport.prototype.get mediaEvents):
+        (StartSupport.prototype.buttonWasClicked):
+        (StartSupport.prototype.handleEvent):
+        (StartSupport.prototype.syncControl):
+        (StartSupport.prototype._shouldShowStartButton):
+        (StartSupport):
+
+2016-10-19  Aaron Chu  <aaron_chu@apple.com>
+
+        Web Inspector: AXI: expose computed tree node and heading level
+        https://bugs.webkit.org/show_bug.cgi?id=130825
+        <rdar://problem/16442349>
+
+        Reviewed by Joseph Pecoraro.
+
+        Exposing two new accessibility properties: Heading Level and Hierarchical Level.
+
+        Updated Test: LayoutTest/inspector/dom/getAccessibilityPropertiesForNode.html
+
+        * inspector/InspectorDOMAgent.cpp:
+        (WebCore::InspectorDOMAgent::buildObjectForAccessibilityProperties):
+
+2016-10-19  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: Implement MediaEndpointPeerConnection::stop()
+        https://bugs.webkit.org/show_bug.cgi?id=163660
+
+        Reviewed by Philippe Normand.
+
+        Make MediaEndpointPeerConnection::stop() stop its MediaEndpoint.
+
+        Testing: This fix deals with cleanup and tearing down resources down in the platform layer
+        and is not covered by automated tests. It is however observable in the manual test added
+        in [1] where the remote videos should stop when the connections are closed.
+
+        [1] http://webkit.org/b/163327
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::stop):
+
+2016-10-19  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Fix -webkit-mask-box-image parsing
+        https://bugs.webkit.org/show_bug.cgi?id=163676
+
+        Reviewed by Dean Jackson.
+
+        -webkit-mask-box-image is not a shorthand in our current code, so treat it the same as the legacy
+        -webkit-border-image.
+
+        * css/parser/CSSPropertyParser.cpp:
+        (WebCore::CSSPropertyParser::parseSingleValue):
+        (WebCore::CSSPropertyParser::parseShorthand):
+
+2016-10-19  Carlos Alberto Lopez Perez  <clopez@igalia.com>
+
+        [GTK][EFL] Build fix after r207543.
+        https://bugs.webkit.org/show_bug.cgi?id=163671
+
+        Unreviewed.
+
+        Fix typo on the filename of the included header:
+        Mac filesystem is case insensitive, but Linux filesystems are case sensitive.
+
+        * css/parser/CSSPropertyParser.cpp:
+
 2016-10-19  Zalan Bujtas  <zalan@apple.com>
 
         Use anonymous table row for new child at RenderTableRow::addChild() if available.

@@ -3650,7 +3650,7 @@ list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/XPathGrammar.
 set(FEATURE_DEFINES_JAVASCRIPT "LANGUAGE_JAVASCRIPT ${FEATURE_DEFINES_WITH_SPACE_SEPARATOR}")
 list(APPEND WebCoreTestSupport_IDL_FILES ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.idl)
 
-GENERATE_BINDINGS(
+GENERATE_BINDINGS(WebCoreBindings
     OUTPUT_SOURCE WebCore_DERIVED_SOURCES
     INPUT_FILES ${WebCore_IDL_FILES}
     BASE_DIR ${WEBCORE_DIR}
@@ -3666,7 +3666,7 @@ GENERATE_BINDINGS(
         --workerGlobalScopeConstructorsFile ${WORKERGLOBALSCOPE_CONSTRUCTORS_FILE}
         --dedicatedWorkerGlobalScopeConstructorsFile ${DEDICATEDWORKERGLOBALSCOPE_CONSTRUCTORS_FILE})
 
-GENERATE_BINDINGS(
+GENERATE_BINDINGS(WebCoreTestSupportBindings
     OUTPUT_SOURCE WebCoreTestSupport_SOURCES
     INPUT_FILES ${WebCoreTestSupport_IDL_FILES}
     BASE_DIR ${WEBCORE_DIR}
@@ -3674,6 +3674,9 @@ GENERATE_BINDINGS(
     FEATURES ${FEATURE_DEFINES_JAVASCRIPT}
     DESTINATION ${DERIVED_SOURCES_WEBCORE_DIR}
     GENERATOR JS)
+
+# WebCoreTestSupportBindings needs InternalSettingsGenerated.idl
+add_dependencies(WebCoreTestSupportBindings WebCoreDerivedSources)
 
 # WebCore JS Builtins
 
@@ -3836,7 +3839,7 @@ endif ()
 
 include_directories(${WebCoreTestSupport_INCLUDE_DIRECTORIES})
 add_library(WebCoreTestSupport ${WebCoreTestSupport_LIBRARY_TYPE} ${WebCoreTestSupport_SOURCES})
-add_dependencies(WebCoreTestSupport WebCore)
+add_dependencies(WebCoreTestSupport WebCore WebCoreTestSupportBindings)
 target_link_libraries(WebCoreTestSupport ${WebCoreTestSupport_LIBRARIES})
 
 if (NOT MSVC AND WIN32 AND ${PORT} STREQUAL "Qt")

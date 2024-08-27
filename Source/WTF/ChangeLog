@@ -1,3 +1,62 @@
+2016-10-19  Alex Christensen  <achristensen@webkit.org>
+
+        Revert r207151
+        https://bugs.webkit.org/show_bug.cgi?id=163675
+
+        Reviewed by Brent Fulgham.
+
+        * wtf/Platform.h:
+        * wtf/SchedulePair.h:
+        * wtf/SchedulePairMac.mm:
+
+2016-10-19  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION (r207480): 3 Dromaeo tests failing
+        https://bugs.webkit.org/show_bug.cgi?id=163633
+
+        Reviewed by Mark Lam.
+        
+        It's a ParkingLot bug: if we timeout and get unparked at the same time, then the unparking
+        thread will clear our address eventually - but not immediately. This causes a nasty
+        assertion failure. The tricky thing is that when we detect this, we need to wait until that
+        unparking thread does the deed. Otherwise, they will still do it at some later time.
+        
+        Alternatively, we could use some kind of versioning to detect this - increment the version
+        when you park, so that unparking threads will know if they are time travelers. That seems
+        more yucky.
+        
+        I don't think it matters too much what we do here, so long as it's simple and correct, since
+        this requires a race that is rare enough that it didn't happen once in my testing, and I was
+        pretty thorough. For example, it didn't happen once in 15 runs of JetStream. The race is
+        rare because it requires the timeout to happen right as someone else is unparking. Since
+        it's so rare, its probably OK that the unparked thread waits just a tiny moment until the
+        unparking thread is done.
+
+        * wtf/ParkingLot.cpp:
+        (WTF::ParkingLot::parkConditionallyImpl):
+        (WTF::ParkingLot::unparkOneImpl):
+
+2016-10-19  Filip Pizlo  <fpizlo@apple.com>
+
+        Baseline JIT should use AutomaticThread
+        https://bugs.webkit.org/show_bug.cgi?id=163686
+
+        Reviewed by Geoffrey Garen.
+        
+        Added a AutomaticThreadCondition::wait() method, so that if you really want to use one
+        common condition for your thread and something else, you can do it. This trivially works
+        if you only use notifyAll(), and behaves as you'd expect for notifyOne() (i.e. it's
+        dangerous, since you don't know who will wake up).
+        
+        The Baseline JIT used the one-true-Condition idiom because it used notifyAll() in an
+        optimal way: there are just two threads talking to each other, so it wakes up at most one
+        thread and that thread is exactly the one you want woken up. Adding wait() means that I did
+        not have to change that code.
+
+        * wtf/AutomaticThread.cpp:
+        (WTF::AutomaticThreadCondition::wait):
+        * wtf/AutomaticThread.h:
+
 2016-10-18  Filip Pizlo  <fpizlo@apple.com>
 
         DFG worklist should use AutomaticThread

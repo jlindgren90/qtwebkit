@@ -115,7 +115,6 @@ TestController& TestController::singleton()
 
 TestController::TestController(int argc, const char* argv[])
 {
-    WebCoreTestSupport::setURLParserEnabled(true);
     initialize(argc, argv);
     controller = this;
     run();
@@ -754,6 +753,8 @@ bool TestController::resetStateToConsistentValues(const TestOptions& options)
     WKRect rect = m_mainWebView->windowFrame();
     m_mainWebView->setWindowFrame(WKRectMake(rect.origin.x, rect.origin.y, TestController::viewWidth, TestController::viewHeight));
 #endif
+
+    WKPageSetMuted(m_mainWebView->page(), true);
 
     // Reset notification permissions
     m_webNotificationProvider.reset();

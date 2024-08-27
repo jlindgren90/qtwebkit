@@ -1,3 +1,145 @@
+2016-10-20  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [CMake] CMake does not support the dep files for implicit dependency
+        https://bugs.webkit.org/show_bug.cgi?id=161433
+
+        Reviewed by Brent Fulgham.
+
+        Created a Perl script to generate all IDL bindings for CMake.
+        This script can regenerate outdated bindings by based on the
+        supplemental dependency and dep files created by
+        '--write-dependencies' switch of generate-bindings.pl.
+
+        add_custom_target is used to invoke the script instead of
+        add_custom_command because Ninja deletes all output files before
+        executing the command in case of add_custom_command.
+
+        USES_TERMINAL option of add_custom_target has two effects:
+        1) Not buffering output of the command
+        2) Invoking the command in the special Ninja pool which inhibits parallel build
+        One needs to use CMake 3.2 or later to enable this feature.
+
+        * DumpRenderTree/CMakeLists.txt: Specified a target name for
+        GENERATE_BINDINGS. Added dependency for the target.
+        * WebKitTestRunner/CMakeLists.txt: Ditto.
+
+2016-10-20  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [GTK] Cannot build GTK+ with CUPS 2.* versions
+        https://bugs.webkit.org/show_bug.cgi?id=163591
+
+        Reviewed by Michael Catanzaro.
+
+        GTK+ is wrongly checking about the available CUPS version,
+        so if you have CUPS 2.* the configure step fails.
+
+        This has been already fixed upstream and included in 2.30 series:
+        https://git.gnome.org/browse/gtk+/commit/?id=631f6b536485829a0bd00532f5826ad302b4951b
+
+        Added patch on JHBuild so we can now build GTK+ with CUPS 2.*.
+
+        * gtk/jhbuild.modules: Applied patch and avoid using "configure" script directly
+        as the patch modifies "configure.ac".
+        * gtk/patches/configure-fix-detecting-CUPS-2.x.patch: Added.
+
+2016-10-20  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [GTK] Bump glib to 2.50.1
+        https://bugs.webkit.org/show_bug.cgi?id=163689
+
+        Reviewed by Michael Catanzaro.
+
+        This is need in order to fix GTK+ build with CUPS 2.* (bug #163591).
+
+        * gtk/jhbuild.modules: Bump glib version. Pass --disable-libmount to build properly.
+        Also we don't need the patches anymore.
+        * gtk/patches/gdate-suppress-string-format-literal-warning.patch: Removed.
+        * gtk/patches/glib-warning-fix.patch: Removed.
+
+2016-10-19  Alex Christensen  <achristensen@webkit.org>
+
+        Re-enable URLParser for non-Safari Cocoa apps after r207321
+        https://bugs.webkit.org/show_bug.cgi?id=163690
+
+        Reviewed by Darin Adler.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (DumpRenderTreeMain):
+        * TestWebKitAPI/Tests/WebKit2Cocoa/LoadInvalidURLRequest.mm:
+        (-[LoadInvalidURLNavigationActionDelegate webView:didFailProvisionalNavigation:withError:]):
+        * TestWebKitAPI/Tests/mac/LoadInvalidURLRequest.mm:
+        (TestWebKitAPI::TEST):
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::TestController):
+
+2016-10-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207557.
+
+        This change caused animations/font-variations tests to time
+        out on pre-Sierra Macs.
+
+        Reverted changeset:
+
+        "[macOS] [iOS] Disable variation fonts on macOS El Capitan and
+        iOS 9"
+        https://bugs.webkit.org/show_bug.cgi?id=163374
+        http://trac.webkit.org/changeset/207557
+
+2016-10-19  Andy Estes  <aestes@apple.com>
+
+        Crash in ASCIICaseInsensitiveHash::hash() when a response has a null MIME type
+        https://bugs.webkit.org/show_bug.cgi?id=163476
+        <rdar://problem/26941395>
+
+        Reviewed by Andreas Kling.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2Cocoa/LoadDataWithNilMIMEType.mm: Added.
+        (TEST): Added an API test that passes a nil MIMEType to
+        -[WKWebView loadData:MIMEType:characterEncodingName:baseURL:].
+
+2016-10-19  Jer Noble  <jer.noble@apple.com>
+
+        Modify testrunner to mute audio during tests
+        https://bugs.webkit.org/show_bug.cgi?id=162582
+
+        Reviewed by Alexey Proskuryakov.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (createWebViewAndOffscreenWindow):
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::resetStateToConsistentValues):
+
+2016-10-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        check-webkit-style: fix false-positive warnings about using #pragma once header guard
+        https://bugs.webkit.org/show_bug.cgi?id=163575
+
+        Reviewed by Brady Eidson.
+
+        There were some false positive warnings about header guards
+        for ObjC headers that don't need guards. This changes the
+        style checker to no longer warn if there is no #pragma once.
+        It only warns if there are #ifndef that should be #pragma once.
+
+        * Scripts/webkitpy/style/checkers/cpp.py:
+        (check_for_header_guard):
+        Change when we output an error.
+
+        * Scripts/webkitpy/style/checkers/cpp_unittest.py:
+        (CppStyleTest.test_build_header_guard):
+        Update tests.
+
+2016-10-19  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [macOS] [iOS] Disable variation fonts on macOS El Capitan and iOS 9
+        https://bugs.webkit.org/show_bug.cgi?id=163374
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
 2016-10-18  Philippe Normand  <pnormand@igalia.com>
 
         WebRTC: [GTK] Update jhbuild environment for OpenWebRTC
