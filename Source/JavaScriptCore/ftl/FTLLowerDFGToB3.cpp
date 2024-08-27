@@ -2608,8 +2608,7 @@ private:
     void compileCheckStringIdent()
     {
         UniquedStringImpl* uid = m_node->uidOperand();
-        LValue string = lowStringIdent(m_node->child1());
-        LValue stringImpl = m_out.loadPtr(string, m_heaps.JSString_value);
+        LValue stringImpl = lowStringIdent(m_node->child1());
         speculate(BadIdent, noValue(), nullptr, m_out.notEqual(stringImpl, m_out.constIntPtr(uid)));
     }
 
@@ -8727,12 +8726,14 @@ private:
     {
         LValue cell = lowCell(m_node->child1());
 
-        RefPtr<DOMJIT::Patchpoint> domJIT = m_node->domJIT()->checkDOM();
+        DOMJIT::Patchpoint* domJIT = m_node->checkDOMPatchpoint();
 
         PatchpointValue* patchpoint = m_out.patchpoint(Void);
         patchpoint->appendSomeRegister(cell);
         patchpoint->numGPScratchRegisters = domJIT->numGPScratchRegisters;
         patchpoint->numFPScratchRegisters = domJIT->numFPScratchRegisters;
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
 
         State* state = &m_ftlState;
         Node* node = m_node;
@@ -8740,14 +8741,15 @@ private:
         unsigned osrExitArgumentOffset = patchpoint->numChildren();
         OSRExitDescriptor* exitDescriptor = appendOSRExitDescriptor(jsValueValue(cell), m_node->child1().node());
         patchpoint->appendColdAnys(buildExitArguments(exitDescriptor, origin.forExit, jsValueValue(cell)));
+        JSValue child1Constant = m_state.forNode(m_node->child1()).value();
 
         patchpoint->setGenerator(
             [=] (CCallHelpers& jit, const StackmapGenerationParams& params) {
                 Vector<GPRReg> gpScratch;
                 Vector<FPRReg> fpScratch;
-                Vector<DOMJIT::Reg> regs;
+                Vector<DOMJIT::Value> regs;
 
-                regs.append(params[0].gpr());
+                regs.append(DOMJIT::Value(params[0].gpr(), child1Constant));
 
                 for (unsigned i = 0; i < domJIT->numGPScratchRegisters; ++i)
                     gpScratch.append(params.gpScratch(i));
@@ -8769,35 +8771,48 @@ private:
 
     void compileCallDOM()
     {
-        LValue globalObject = lowCell(m_graph.varArgChild(m_node, 0));
-        LValue cell = lowCell(m_graph.varArgChild(m_node, 1));
+        DOMJIT::CallDOMPatchpoint* domJIT = m_node->callDOMPatchpoint();
+        int childIndex = 0;
 
-        RefPtr<DOMJIT::Patchpoint> domJIT = m_node->domJIT()->callDOM();
+        LValue globalObject;
+        JSValue globalObjectConstant;
+        if (domJIT->requireGlobalObject) {
+            Edge& globalObjectEdge = m_graph.varArgChild(m_node, childIndex++);
+            globalObject = lowCell(globalObjectEdge);
+            globalObjectConstant = m_state.forNode(globalObjectEdge).value();
+        }
+
+        Edge& baseEdge = m_graph.varArgChild(m_node, childIndex++);
+        LValue base = lowCell(baseEdge);
+        JSValue baseConstant = m_state.forNode(baseEdge).value();
+
         PatchpointValue* patchpoint = m_out.patchpoint(Int64);
-        patchpoint->appendSomeRegister(globalObject);
-        patchpoint->appendSomeRegister(cell);
-        patchpoint->append(m_tagMask, ValueRep::lateReg(GPRInfo::tagMaskRegister));
-        patchpoint->append(m_tagTypeNumber, ValueRep::lateReg(GPRInfo::tagTypeNumberRegister));
+        if (domJIT->requireGlobalObject)
+            patchpoint->appendSomeRegister(globalObject);
+        patchpoint->appendSomeRegister(base);
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
         RefPtr<PatchpointExceptionHandle> exceptionHandle = preparePatchpointForExceptions(patchpoint);
         patchpoint->clobber(RegisterSet::macroScratchRegisters());
         patchpoint->numGPScratchRegisters = domJIT->numGPScratchRegisters;
         patchpoint->numFPScratchRegisters = domJIT->numFPScratchRegisters;
+        patchpoint->resultConstraint = ValueRep::SomeEarlyRegister;
 
         State* state = &m_ftlState;
         Node* node = m_node;
         patchpoint->setGenerator(
             [=] (CCallHelpers& jit, const StackmapGenerationParams& params) {
+                AllowMacroScratchRegisterUsage allowScratch(jit);
+
                 Vector<GPRReg> gpScratch;
                 Vector<FPRReg> fpScratch;
-                Vector<DOMJIT::Reg> regs;
+                Vector<DOMJIT::Value> regs;
 
-                // FIXME: patchpoint should have a way to tell this can reuse "base" register.
-                // Teaching DFG about DOMJIT::Patchpoint clobber information is nice.
+                int childIndex = 1;
                 regs.append(JSValueRegs(params[0].gpr()));
-                regs.append(params[1].gpr());
-                regs.append(params[2].gpr());
-                regs.append(params[3].gpr());
-                regs.append(params[4].gpr());
+                if (domJIT->requireGlobalObject)
+                    regs.append(DOMJIT::Value(params[childIndex++].gpr(), globalObjectConstant));
+                regs.append(DOMJIT::Value(params[childIndex++].gpr(), baseConstant));
 
                 for (unsigned i = 0; i < domJIT->numGPScratchRegisters; ++i)
                     gpScratch.append(params.gpScratch(i));

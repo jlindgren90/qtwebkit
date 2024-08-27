@@ -1,3 +1,82 @@
+2016-10-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Uncaught Exception: TypeError: this.positionToOffset is not a function - seen hovering expressions with Type Profiler enabled
+        https://bugs.webkit.org/show_bug.cgi?id=163405
+        <rdar://problem/28763953>
+
+        Reviewed by Matt Baker.
+
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        Use correct method name, the old one must have gone away.
+
+2016-10-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Improve support for logging Proxy objects in console
+        https://bugs.webkit.org/show_bug.cgi?id=163323
+        <rdar://problem/28432553>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/ConsoleMessageView.js:
+        (WebInspector.ConsoleMessageView.prototype._formatParameter):
+        Treat a Proxy like any other object.
+
+2016-10-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Emit DebugHooks uniformly with pause locations instead of having separate pause locations and op_debug emits
+        https://bugs.webkit.org/show_bug.cgi?id=162809
+
+        Reviewed by Geoffrey Garen.
+
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype.textEditorExecutionHighlightRange):
+        When pausing on the variable assignment inside for..of and for..in don't just
+        highlight "var foo" but include the right hand side "var foo in ..." or
+        "var foo of ...".
+
+2016-10-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Whole program sometimes highlighted instead of just first statement
+        https://bugs.webkit.org/show_bug.cgi?id=163300
+        <rdar://problem/28723162>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype.textEditorExecutionHighlightRange):
+        Avoid highlighting the entire program by skipping a Program type Node.
+
+        * UserInterface/Views/TextEditor.js:
+        (WebInspector.TextEditor.prototype.setExecutionLineAndColumn):
+        Avoid unnecessary work before content has loaded.
+
+        (WebInspector.TextEditor.prototype.currentPositionToOriginalOffset):
+        Avoid unnecessary indirection to get the CodeMirror editor.
+
+2016-10-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Remove line highlight on primary execution line while stepping because it is distracting
+        https://bugs.webkit.org/show_bug.cgi?id=163294
+        <rdar://problem/28721176>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TextEditor.js:
+        (WebInspector.TextEditor.prototype._updateExecutionLine):
+        When setting the primary execution line, remove default line highlights.
+
+2016-10-10  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Revealed line not highlighted in TextEditor while debugger paused
+        https://bugs.webkit.org/show_bug.cgi?id=163197
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TextEditor.js:
+        (WebInspector.TextEditor.prototype.revealPosition.revealAndHighlightLine):
+        Avoid highlighting the execution line while debugging, but allow
+        other lines to be highlighted.
+
 2016-10-06  Devin Rousso  <dcrousso+webkit@gmail.com>
 
         Inspector exception in `parseTextForRule()` when pasting into CSS rule selector

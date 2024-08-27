@@ -2146,15 +2146,8 @@ void Document::pageSizeAndMarginsInPixels(int pageIndex, IntSize& pageSize, int&
 
 StyleResolver& Document::userAgentShadowTreeStyleResolver()
 {
-    if (!m_userAgentShadowTreeStyleResolver) {
+    if (!m_userAgentShadowTreeStyleResolver)
         m_userAgentShadowTreeStyleResolver = std::make_unique<StyleResolver>(*this);
-
-        // FIXME: Filter out shadow pseudo elements we don't want to expose to authors.
-        auto& documentAuthorStyle = styleScope().resolver().ruleSets().authorStyle();
-        if (documentAuthorStyle.hasShadowPseudoElementRules())
-            m_userAgentShadowTreeStyleResolver->ruleSets().authorStyle().copyShadowPseudoElementRulesFrom(documentAuthorStyle);
-    }
-
     return *m_userAgentShadowTreeStyleResolver;
 }
 
@@ -2441,8 +2434,13 @@ void Document::clearAXObjectCache()
     m_axObjectCache = nullptr;
 }
 
+static bool hasEverCreatedAnAXObjectCache = false;
+
 AXObjectCache* Document::existingAXObjectCache() const
 {
+    if (!hasEverCreatedAnAXObjectCache)
+        return nullptr;
+
     Document& topDocument = this->topDocument();
     if (!topDocument.hasLivingRenderTree())
         return nullptr;
@@ -2465,8 +2463,10 @@ AXObjectCache* Document::axObjectCache() const
         return nullptr;
 
     ASSERT(&topDocument == this || !m_axObjectCache);
-    if (!topDocument.m_axObjectCache)
+    if (!topDocument.m_axObjectCache) {
         topDocument.m_axObjectCache = std::make_unique<AXObjectCache>(topDocument);
+        hasEverCreatedAnAXObjectCache = true;
+    }
     return topDocument.m_axObjectCache.get();
 }
 
@@ -3090,8 +3090,6 @@ void Document::didRemoveAllPendingStylesheet()
 {
     m_needsNotifyRemoveAllPendingStylesheet = false;
 
-    styleScope().didChangeCandidatesForActiveSet();
-
     if (m_pendingSheetLayout == DidLayoutWithPendingSheets) {
         m_pendingSheetLayout = IgnoreLayoutWithPendingSheets;
         if (renderView())
@@ -3216,12 +3214,12 @@ void Document::processHttpEquiv(const String& equiv, const String& content, bool
 
     case HTTPHeaderName::ContentSecurityPolicy:
         if (isInDocumentHead)
-            contentSecurityPolicy()->processHTTPEquiv(content, ContentSecurityPolicyHeaderType::Enforce);
+            contentSecurityPolicy()->didReceiveHeader(content, ContentSecurityPolicyHeaderType::Enforce, ContentSecurityPolicy::PolicyFrom::HTTPEquivMeta);
         break;
 
     case HTTPHeaderName::XWebKitCSP:
         if (isInDocumentHead)
-            contentSecurityPolicy()->processHTTPEquiv(content, ContentSecurityPolicyHeaderType::PrefixedEnforce);
+            contentSecurityPolicy()->didReceiveHeader(content, ContentSecurityPolicyHeaderType::PrefixedEnforce, ContentSecurityPolicy::PolicyFrom::HTTPEquivMeta);
         break;
 
     default:
@@ -3285,6 +3283,11 @@ void Document::processReferrerPolicy(const String& policy)
     // even if the document has a meta tag saying otherwise.
     if (shouldEnforceContentDispositionAttachmentSandbox())
         return;
+
+#if USE(QUICK_LOOK)
+    if (shouldEnforceQuickLookSandbox())
+        return;
+#endif
 
     // Note that we're supporting both the standard and legacy keywords for referrer
     // policies, as defined by http://www.w3.org/TR/referrer-policy/#referrer-policy-delivery-meta
@@ -5173,6 +5176,11 @@ void Document::initSecurityContext()
     setSecurityOriginPolicy(SecurityOriginPolicy::create(isSandboxed(SandboxOrigin) ? SecurityOrigin::createUnique() : SecurityOrigin::create(m_url)));
     setContentSecurityPolicy(std::make_unique<ContentSecurityPolicy>(*this));
 
+#if USE(QUICK_LOOK)
+    if (shouldEnforceQuickLookSandbox())
+        applyQuickLookSandbox();
+#endif
+
     if (Settings* settings = this->settings()) {
         if (!settings->webSecurityEnabled()) {
             // Web security is turned off. We should let this document access every other document. This is used primary by testing
@@ -6957,6 +6965,26 @@ ShouldOpenExternalURLsPolicy Document::shouldOpenExternalURLsPolicyToPropagate()
 
     return ShouldOpenExternalURLsPolicy::ShouldNotAllow;
 }
+
+#if USE(QUICK_LOOK)
+bool Document::shouldEnforceQuickLookSandbox() const
+{
+    if (m_isSynthesized || !m_frame)
+        return false;
+    DocumentLoader* documentLoader = m_frame->loader().activeDocumentLoader();
+    return documentLoader && documentLoader->response().isQuickLook();
+}
+
+void Document::applyQuickLookSandbox()
+{
+    static NeverDestroyed<String> quickLookCSP = makeString("default-src ", QLPreviewProtocol(), ": 'unsafe-inline'; base-uri 'none'; sandbox allow-scripts");
+    ASSERT_WITH_SECURITY_IMPLICATION(contentSecurityPolicy());
+    // The sandbox directive is only allowed if the policy is from an HTTP header.
+    contentSecurityPolicy()->didReceiveHeader(quickLookCSP, ContentSecurityPolicyHeaderType::Enforce, ContentSecurityPolicy::PolicyFrom::HTTPHeader);
+
+    setReferrerPolicy(ReferrerPolicy::Never);
+}
+#endif
 
 bool Document::shouldEnforceContentDispositionAttachmentSandbox() const
 {

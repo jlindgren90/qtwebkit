@@ -111,16 +111,39 @@
 
 namespace WebCore {
 
-static bool dispatchBeforeInputEvent(Element& element, const AtomicString& inputType)
+static bool dispatchBeforeInputEvent(Element& element, const AtomicString& inputType, const String& data = { })
 {
     auto* settings = element.document().settings();
     if (!settings || !settings->inputEventsEnabled())
         return true;
 
-    auto event = InputEvent::create(eventNames().beforeinputEvent, inputType, true, true, element.document().defaultView(), 0);
+    auto event = InputEvent::create(eventNames().beforeinputEvent, inputType, true, true, element.document().defaultView(), data, 0);
     element.dispatchScopedEvent(event);
 
     return !event->defaultPrevented();
+}
+
+static void dispatchInputEvent(Element& element, const AtomicString& inputType, const String& data = { })
+{
+    auto* settings = element.document().settings();
+    if (settings && settings->inputEventsEnabled())
+        element.dispatchScopedEvent(InputEvent::create(eventNames().inputEvent, inputType, true, false, element.document().defaultView(), data, 0));
+    else
+        element.dispatchInputEvent();
+}
+
+static String inputEventDataForEditingStyleAndAction(EditingStyle& style, EditAction action)
+{
+    auto* properties = style.style();
+    if (!properties)
+        return { };
+
+    switch (action) {
+    case EditActionSetColor:
+        return properties->getPropertyValue(CSSPropertyColor);
+    default:
+        return { };
+    }
 }
 
 class ClearTextCommand : public DeleteSelectionCommand {
@@ -1043,22 +1066,22 @@ static void notifyTextFromControls(Element* startRoot, Element* endRoot)
         endingTextControl->didEditInnerTextValue();
 }
 
-static bool dispatchBeforeInputEvents(RefPtr<Element> startRoot, RefPtr<Element> endRoot, const AtomicString& inputTypeName)
+static bool dispatchBeforeInputEvents(RefPtr<Element> startRoot, RefPtr<Element> endRoot, const AtomicString& inputTypeName, const String& data = { })
 {
     bool continueWithDefaultBehavior = true;
     if (startRoot)
-        continueWithDefaultBehavior &= dispatchBeforeInputEvent(*startRoot, inputTypeName);
+        continueWithDefaultBehavior &= dispatchBeforeInputEvent(*startRoot, inputTypeName, data);
     if (endRoot && endRoot != startRoot)
-        continueWithDefaultBehavior &= dispatchBeforeInputEvent(*endRoot, inputTypeName);
+        continueWithDefaultBehavior &= dispatchBeforeInputEvent(*endRoot, inputTypeName, data);
     return continueWithDefaultBehavior;
 }
 
-static void dispatchInputEvents(RefPtr<Element> startRoot, RefPtr<Element> endRoot, const AtomicString& inputTypeName)
+static void dispatchInputEvents(RefPtr<Element> startRoot, RefPtr<Element> endRoot, const AtomicString& inputTypeName, const String& data = { })
 {
     if (startRoot)
-        startRoot->dispatchInputEvent(inputTypeName);
+        dispatchInputEvent(*startRoot, inputTypeName, data);
     if (endRoot && endRoot != startRoot)
-        endRoot->dispatchInputEvent(inputTypeName);
+        dispatchInputEvent(*endRoot, inputTypeName, data);
 }
 
 bool Editor::willApplyEditing(CompositeEditCommand& command) const
@@ -1067,7 +1090,7 @@ bool Editor::willApplyEditing(CompositeEditCommand& command) const
     if (!composition)
         return true;
 
-    return dispatchBeforeInputEvents(composition->startingRootEditableElement(), composition->endingRootEditableElement(), emptyString());
+    return dispatchBeforeInputEvents(composition->startingRootEditableElement(), composition->endingRootEditableElement(), command.inputEventTypeName(), command.inputEventData());
 }
 
 void Editor::appliedEditing(PassRefPtr<CompositeEditCommand> cmd)
@@ -1086,7 +1109,7 @@ void Editor::appliedEditing(PassRefPtr<CompositeEditCommand> cmd)
     FrameSelection::SetSelectionOptions options = cmd->isDictationCommand() ? FrameSelection::DictationTriggered : 0;
     
     changeSelectionAfterCommand(newSelection, options);
-    dispatchInputEvents(composition->startingRootEditableElement(), composition->endingRootEditableElement(), emptyString());
+    dispatchInputEvents(composition->startingRootEditableElement(), composition->endingRootEditableElement(), cmd->inputEventTypeName(), cmd->inputEventData());
 
     updateEditorUINowIfScheduled();
     
@@ -1111,7 +1134,7 @@ void Editor::appliedEditing(PassRefPtr<CompositeEditCommand> cmd)
 
 bool Editor::willUnapplyEditing(const EditCommandComposition& composition) const
 {
-    return dispatchBeforeInputEvents(composition.startingRootEditableElement(), composition.endingRootEditableElement(), emptyString());
+    return dispatchBeforeInputEvents(composition.startingRootEditableElement(), composition.endingRootEditableElement(), "historyUndo");
 }
 
 void Editor::unappliedEditing(PassRefPtr<EditCommandComposition> cmd)
@@ -1122,7 +1145,7 @@ void Editor::unappliedEditing(PassRefPtr<EditCommandComposition> cmd)
 
     VisibleSelection newSelection(cmd->startingSelection());
     changeSelectionAfterCommand(newSelection, FrameSelection::defaultSetSelectionOptions());
-    dispatchInputEvents(cmd->startingRootEditableElement(), cmd->endingRootEditableElement(), emptyString());
+    dispatchInputEvents(cmd->startingRootEditableElement(), cmd->endingRootEditableElement(), "historyUndo");
 
     updateEditorUINowIfScheduled();
 
@@ -1136,7 +1159,7 @@ void Editor::unappliedEditing(PassRefPtr<EditCommandComposition> cmd)
 
 bool Editor::willReapplyEditing(const EditCommandComposition& composition) const
 {
-    return dispatchBeforeInputEvents(composition.startingRootEditableElement(), composition.endingRootEditableElement(), emptyString());
+    return dispatchBeforeInputEvents(composition.startingRootEditableElement(), composition.endingRootEditableElement(), "historyRedo");
 }
 
 void Editor::reappliedEditing(PassRefPtr<EditCommandComposition> cmd)
@@ -1147,7 +1170,7 @@ void Editor::reappliedEditing(PassRefPtr<EditCommandComposition> cmd)
 
     VisibleSelection newSelection(cmd->endingSelection());
     changeSelectionAfterCommand(newSelection, FrameSelection::defaultSetSelectionOptions());
-    dispatchInputEvents(cmd->startingRootEditableElement(), cmd->endingRootEditableElement(), emptyString());
+    dispatchInputEvents(cmd->startingRootEditableElement(), cmd->endingRootEditableElement(), "historyRedo");
     
     updateEditorUINowIfScheduled();
 
@@ -1705,7 +1728,7 @@ void Editor::setBaseWritingDirection(WritingDirection direction)
         if (direction == NaturalWritingDirection)
             return;
         downcast<HTMLTextFormControlElement>(*focusedElement).setAttributeWithoutSynchronization(dirAttr, direction == LeftToRightWritingDirection ? "ltr" : "rtl");
-        focusedElement->dispatchInputEvent(emptyString());
+        focusedElement->dispatchInputEvent();
         document().updateStyleIfNeeded();
         return;
     }
@@ -3106,8 +3129,10 @@ void Editor::computeAndSetTypingStyle(EditingStyle& style, EditAction editingAct
         return;
     }
 
+    String inputTypeName = inputTypeNameForEditingAction(editingAction);
+    String inputEventData = inputEventDataForEditingStyleAndAction(style, editingAction);
     auto* element = m_frame.selection().selection().rootEditableElement();
-    if (element && !dispatchBeforeInputEvent(*element, emptyString()))
+    if (element && !dispatchBeforeInputEvent(*element, inputTypeName, inputEventData))
         return;
 
     // Calculate the current typing style.
@@ -3124,7 +3149,7 @@ void Editor::computeAndSetTypingStyle(EditingStyle& style, EditAction editingAct
         applyCommand(ApplyStyleCommand::create(document(), blockStyle.get(), editingAction));
 
     if (element)
-        element->dispatchInputEvent(emptyString());
+        dispatchInputEvent(*element, inputTypeName, inputEventData);
 
     // Set the remaining style as the typing style.
     m_frame.selection().setTypingStyle(typingStyle);

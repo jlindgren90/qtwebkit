@@ -7188,29 +7188,31 @@ static void allocateTemporaryRegistersForPatchpoint(SpeculativeJIT* jit, Vector<
 
 void SpeculativeJIT::compileCallDOM(Node* node)
 {
-    Ref<DOMJIT::Patchpoint> patchpoint = node->domJIT()->callDOM();
+    DOMJIT::CallDOMPatchpoint* patchpoint = node->callDOMPatchpoint();
 
     Vector<GPRReg> gpScratch;
     Vector<FPRReg> fpScratch;
-    Vector<DOMJIT::Reg> regs;
+    Vector<DOMJIT::Value> regs;
 
-    // FIXME: patchpoint should have a way to tell this can reuse "base" register.
-    // Teaching DFG about DOMJIT::Patchpoint clobber information is nice.
-    SpeculateCellOperand globalObject(this, m_jit.graph().varArgChild(node, 0));
-    SpeculateCellOperand base(this, m_jit.graph().varArgChild(node, 1));
     JSValueRegsTemporary result(this);
-
     regs.append(result.regs());
-    regs.append(globalObject.gpr());
-    regs.append(base.gpr());
-#if USE(JSVALUE64)
-    regs.append(static_cast<GPRReg>(GPRInfo::tagMaskRegister));
-    regs.append(static_cast<GPRReg>(GPRInfo::tagTypeNumberRegister));
-#endif
+
+    int childIndex = 0;
+
+    Optional<SpeculateCellOperand> globalObject;
+    if (patchpoint->requireGlobalObject) {
+        Edge& globalObjectEdge = m_jit.graph().varArgChild(node, childIndex++);
+        globalObject = SpeculateCellOperand(this, globalObjectEdge);
+        regs.append(DOMJIT::Value(globalObject->gpr(), m_state.forNode(globalObjectEdge).value()));
+    }
+
+    Edge& baseEdge = m_jit.graph().varArgChild(node, childIndex++);
+    SpeculateCellOperand base(this, baseEdge);
+    regs.append(DOMJIT::Value(base.gpr(), m_state.forNode(baseEdge).value()));
 
     Vector<GPRTemporary> gpTempraries;
     Vector<FPRTemporary> fpTempraries;
-    allocateTemporaryRegistersForPatchpoint(this, gpTempraries, fpTempraries, gpScratch, fpScratch, patchpoint.get());
+    allocateTemporaryRegistersForPatchpoint(this, gpTempraries, fpTempraries, gpScratch, fpScratch, *patchpoint);
     DOMJITPatchpointParams params(this, WTFMove(regs), WTFMove(gpScratch), WTFMove(fpScratch));
     patchpoint->generator()->run(m_jit, params);
     jsValueResult(result.regs(), node);
@@ -7219,19 +7221,19 @@ void SpeculativeJIT::compileCallDOM(Node* node)
 void SpeculativeJIT::compileCheckDOM(Node* node)
 {
     // FIXME: We can add the fallback implementation that inlines jsDynamicCast things here.
-    Ref<DOMJIT::Patchpoint> patchpoint = node->domJIT()->checkDOM();
+    DOMJIT::Patchpoint* patchpoint = node->checkDOMPatchpoint();
 
     Vector<GPRReg> gpScratch;
     Vector<FPRReg> fpScratch;
-    Vector<DOMJIT::Reg> regs;
+    Vector<DOMJIT::Value> regs;
 
     SpeculateCellOperand base(this, node->child1());
     GPRReg baseGPR = base.gpr();
-    regs.append(baseGPR);
+    regs.append(DOMJIT::Value(baseGPR, m_state.forNode(node->child1()).value()));
 
     Vector<GPRTemporary> gpTempraries;
     Vector<FPRTemporary> fpTempraries;
-    allocateTemporaryRegistersForPatchpoint(this, gpTempraries, fpTempraries, gpScratch, fpScratch, patchpoint.get());
+    allocateTemporaryRegistersForPatchpoint(this, gpTempraries, fpTempraries, gpScratch, fpScratch, *patchpoint);
 
     DOMJITPatchpointParams params(this, WTFMove(regs), WTFMove(gpScratch), WTFMove(fpScratch));
     CCallHelpers::JumpList failureCases = patchpoint->generator()->run(m_jit, params);

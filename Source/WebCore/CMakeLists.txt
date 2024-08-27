@@ -8,6 +8,7 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/Modules/applepay"
     "${WEBCORE_DIR}/Modules/battery"
     "${WEBCORE_DIR}/Modules/encryptedmedia"
+    "${WEBCORE_DIR}/Modules/encryptedmedia/legacy"
     "${WEBCORE_DIR}/Modules/fetch"
     "${WEBCORE_DIR}/Modules/geolocation"
     "${WEBCORE_DIR}/Modules/indexeddb"
@@ -48,6 +49,7 @@ set(WebCore_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/cssjit"
     "${WEBCORE_DIR}/dom"
     "${WEBCORE_DIR}/dom/default"
+    "${WEBCORE_DIR}/domjit"
     "${WEBCORE_DIR}/editing"
     "${WEBCORE_DIR}/fileapi"
     "${WEBCORE_DIR}/history"
@@ -138,7 +140,7 @@ set(WebCore_IDL_INCLUDES
 
     Modules/airplay
     Modules/battery
-    Modules/encryptedmedia
+    Modules/encryptedmedia/legacy
     Modules/fetch
     Modules/geolocation
     Modules/indexeddb
@@ -410,6 +412,7 @@ set(WebCore_NON_SVG_IDL_FILES
     dom/MessageEvent.idl
     dom/MessagePort.idl
     dom/MouseEvent.idl
+    dom/MouseEventInit.idl
     dom/MutationEvent.idl
     dom/MutationObserver.idl
     dom/MutationRecord.idl
@@ -1528,6 +1531,8 @@ set(WebCore_SOURCES
 
     dom/default/PlatformMessagePortChannel.cpp
 
+    domjit/JSNodeDOMJIT.cpp
+
     editing/AlternativeTextController.cpp
     editing/AppendNodeCommand.cpp
     editing/ApplyBlockElementCommand.cpp
@@ -1599,7 +1604,6 @@ set(WebCore_SOURCES
     fileapi/WebKitBlobBuilder.cpp
 
     history/BackForwardController.cpp
-    history/BackForwardList.cpp
     history/CachedFrame.cpp
     history/CachedPage.cpp
     history/HistoryItem.cpp
@@ -1844,7 +1848,6 @@ set(WebCore_SOURCES
     html/shadow/MediaControlElementTypes.cpp
     html/shadow/MediaControlElements.cpp
     html/shadow/MediaControls.cpp
-    html/shadow/MeterShadowElement.cpp
     html/shadow/ProgressShadowElement.cpp
     html/shadow/SliderThumbElement.cpp
     html/shadow/SpinButtonElement.cpp
@@ -2198,6 +2201,7 @@ set(WebCore_SOURCES
     platform/graphics/Color.cpp
     platform/graphics/CrossfadeGeneratedImage.cpp
     platform/graphics/DisplayRefreshMonitorClient.cpp
+    platform/graphics/ExtendedColor.cpp
     platform/graphics/FloatPoint.cpp
     platform/graphics/FloatPoint3D.cpp
     platform/graphics/FloatPolygon.cpp
@@ -2981,6 +2985,7 @@ set(WebCore_USER_AGENT_STYLE_SHEETS
     ${WEBCORE_DIR}/css/plugIns.css
     ${WEBCORE_DIR}/css/quirks.css
     ${WEBCORE_DIR}/css/svg.css
+    ${WEBCORE_DIR}/html/shadow/meterElementShadow.css
 )
 
 set(WebCore_PLUG_INS_RESOURCES
@@ -2998,21 +3003,22 @@ if (ENABLE_LEGACY_ENCRYPTED_MEDIA)
         Modules/encryptedmedia/CDMPrivateClearKey.cpp
         Modules/encryptedmedia/CDMPrivateMediaPlayer.cpp
         Modules/encryptedmedia/CDMSessionClearKey.cpp
-        Modules/encryptedmedia/MediaKeyMessageEvent.cpp
-        Modules/encryptedmedia/MediaKeyNeededEvent.cpp
-        Modules/encryptedmedia/MediaKeySession.cpp
-        Modules/encryptedmedia/MediaKeys.cpp
+
+        Modules/encryptedmedia/legacy/WebKitMediaKeyMessageEvent.cpp
+        Modules/encryptedmedia/legacy/WebKitMediaKeyNeededEvent.cpp
+        Modules/encryptedmedia/legacy/WebKitMediaKeySession.cpp
+        Modules/encryptedmedia/legacy/WebKitMediaKeys.cpp
     )
     list(APPEND WebCoreTestSupport_SOURCES
         testing/MockCDM.cpp
     )
     list(APPEND WebCore_IDL_FILES
-        Modules/encryptedmedia/MediaKeyMessageEvent.idl
-        Modules/encryptedmedia/MediaKeyNeededEvent.idl
-        Modules/encryptedmedia/MediaKeySession.idl
-        Modules/encryptedmedia/MediaKeys.idl
+        Modules/encryptedmedia/legacy/WebKitMediaKeyMessageEvent.idl
+        Modules/encryptedmedia/legacy/WebKitMediaKeyNeededEvent.idl
+        Modules/encryptedmedia/legacy/WebKitMediaKeySession.idl
+        Modules/encryptedmedia/legacy/WebKitMediaKeys.idl
 
-        html/MediaKeyError.idl
+        html/WebKitMediaKeyError.idl
     )
 endif ()
 
@@ -3639,7 +3645,7 @@ list(APPEND WebCore_DERIVED_SOURCES ${DERIVED_SOURCES_WEBCORE_DIR}/XPathGrammar.
 set(FEATURE_DEFINES_JAVASCRIPT "LANGUAGE_JAVASCRIPT ${FEATURE_DEFINES_WITH_SPACE_SEPARATOR}")
 list(APPEND WebCoreTestSupport_IDL_FILES ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.idl)
 
-GENERATE_BINDINGS(WebCoreBindings
+GENERATE_BINDINGS(
     OUTPUT_SOURCE WebCore_DERIVED_SOURCES
     INPUT_FILES ${WebCore_IDL_FILES}
     BASE_DIR ${WEBCORE_DIR}
@@ -3655,7 +3661,7 @@ GENERATE_BINDINGS(WebCoreBindings
         --workerGlobalScopeConstructorsFile ${WORKERGLOBALSCOPE_CONSTRUCTORS_FILE}
         --dedicatedWorkerGlobalScopeConstructorsFile ${DEDICATEDWORKERGLOBALSCOPE_CONSTRUCTORS_FILE})
 
-GENERATE_BINDINGS(WebCoreTestSupportBindings
+GENERATE_BINDINGS(
     OUTPUT_SOURCE WebCoreTestSupport_SOURCES
     INPUT_FILES ${WebCoreTestSupport_IDL_FILES}
     BASE_DIR ${WEBCORE_DIR}
@@ -3663,9 +3669,6 @@ GENERATE_BINDINGS(WebCoreTestSupportBindings
     FEATURES ${FEATURE_DEFINES_JAVASCRIPT}
     DESTINATION ${DERIVED_SOURCES_WEBCORE_DIR}
     GENERATOR JS)
-
-# WebCoreTestSupportBindings needs InternalSettingsGenerated.idl
-add_dependencies(WebCoreTestSupportBindings WebCoreDerivedSources)
 
 # WebCore JS Builtins
 
@@ -3828,7 +3831,7 @@ endif ()
 
 include_directories(${WebCoreTestSupport_INCLUDE_DIRECTORIES})
 add_library(WebCoreTestSupport ${WebCoreTestSupport_LIBRARY_TYPE} ${WebCoreTestSupport_SOURCES})
-add_dependencies(WebCoreTestSupport WebCore WebCoreTestSupportBindings)
+add_dependencies(WebCoreTestSupport WebCore)
 target_link_libraries(WebCoreTestSupport ${WebCoreTestSupport_LIBRARIES})
 
 if (NOT MSVC AND WIN32 AND ${PORT} STREQUAL "Qt")

@@ -1,3 +1,1138 @@
+2016-10-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: @isConstructor incorrectly thinks Math.cos is a constructor
+        https://bugs.webkit.org/show_bug.cgi?id=163437
+
+        Reviewed by Saam Barati.
+
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::getConstructData):
+        By default, Host JSFunctions are not constructable. They get
+        the default callHostFunctionAsConstructor native constructor.
+        When getting construct data we can return ConstructType::None
+        in these cases instead of indicating it might be constructable
+        and later throwing an exception when construction is attempted.
+
+2016-10-14  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207322.
+
+        This change caused JSC test failures
+
+        Reverted changeset:
+
+        "Fix Array.prototype.splice ES6 compliance."
+        https://bugs.webkit.org/show_bug.cgi?id=163372
+        http://trac.webkit.org/changeset/207322
+
+2016-10-14  Mark Lam  <mark.lam@apple.com>
+
+        JSON.parse should not modify frozen objects.
+        https://bugs.webkit.org/show_bug.cgi?id=163430
+
+        Reviewed by Saam Barati.
+
+        The ES6 spec for JSON.parse (https://tc39.github.io/ecma262/#sec-json.parse and
+        https://tc39.github.io/ecma262/#sec-internalizejsonproperty) states that it uses
+        CreateDataProperty() (https://tc39.github.io/ecma262/#sec-createdataproperty) to
+        set values returned by a reviver.  The spec for CreateDataPropertyOrThrow states:
+
+        "This abstract operation creates a property whose attributes are set to the same
+        defaults used for properties created by the ECMAScript language assignment
+        operator. Normally, the property will not already exist. If it does exist and is
+        not configurable or if O is not extensible, [[DefineOwnProperty]] will return
+        false."
+
+        Note: CreateDataProperty() will not throw a TypeError.
+
+        Since the properties of frozen objects are not extensible, not configurable, and
+        not writeable, JSON.parse should fail to write to any frozen objects.  Similarly,
+        JSON.parse should fail to delete properties in frozen objects.
+
+        In JSON.parse(), we previously write to array elements using the form of
+        putDirectIndex() that uses mode PutDirectIndexLikePutDirect.  This makes it so
+        that the write (i.e. put) is always successful.  We've now fixed this to use
+        PutDirectIndexShouldNotThrow mode instead, which will fail to put the element if
+        the array is not writeable.
+
+        Also changed Walker::walk() to use the version of methodTable() that takes a VM&
+        since the VM& is already available.
+
+        * runtime/JSONObject.cpp:
+        (JSC::Walker::walk):
+
+2016-10-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        test262: Failure with RegExp.prototype.compile when pattern is undefined
+        https://bugs.webkit.org/show_bug.cgi?id=163431
+
+        Reviewed by Yusuke Suzuki.
+
+        If pattern is undefined let P be the empty String.
+        https://tc39.github.io/ecma262/#sec-regexpinitialize
+
+        * runtime/RegExpPrototype.cpp:
+        (JSC::regExpProtoFuncCompile):
+
+2016-10-13  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Exception message for expressions with multiple bracket accesses is inconsistent / incorrect
+        https://bugs.webkit.org/show_bug.cgi?id=163426
+
+        Reviewed by Geoffrey Garen.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::BracketAccessorNode::emitBytecode):
+        It matters where emitExpressionInfo is called since it gathers
+        info about where we are in the instruction stream. We need to
+        emit it before the bytecode that we want to associate the data
+        with. In this case, before the getById / getByVal.
+
+2016-10-13  Mark Lam  <mark.lam@apple.com>
+
+        Fix Array.prototype.splice ES6 compliance.
+        https://bugs.webkit.org/show_bug.cgi?id=163372
+
+        Reviewed by Geoffrey Garen and Yusuke Suzuki.
+
+        Our Array.prototype.splice implementation neglected to set length on the result
+        array (step 12 of https://tc39.github.io/ecma262/#sec-array.prototype.splice) in
+        a certain code path.  This is now fixed.
+
+        I'm deferring the implementation of step 8 till later because it requires more
+        careful consideration and the fix is of a lesser value (and therefore, of less
+        urgency).  See https://bugs.webkit.org/show_bug.cgi?id=163417
+
+        Also added some needed exception checks and assertions.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::arrayProtoFuncSplice):
+
+2016-10-13  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Stepping highlight for dot/bracket expressions in if statements highlights subset of the expression
+        https://bugs.webkit.org/show_bug.cgi?id=163378
+        <rdar://problem/28749376>
+
+        Reviewed by Saam Barati.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseAssignmentExpression):
+        Since each expression builds on the previous, always keep the starting
+        location the first location.
+
+2016-10-13  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win64] Compile fix.
+        https://bugs.webkit.org/show_bug.cgi?id=163384
+
+        Reviewed by Brent Fulgham.
+
+        Fix use of potentially uninitialized variable.
+
+        * dfg/DFGSpeculativeJIT64.cpp:
+        (JSC::DFG::SpeculativeJIT::compile):
+
+2016-10-12  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Drop support for legacy [ConstructorConditional=*]
+        https://bugs.webkit.org/show_bug.cgi?id=163368
+
+        Reviewed by Ryosuke Niwa.
+
+        Drop ENABLE_DOM4_EVENTS_CONSTRUCTOR compiler flag.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-10-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: step-into `console.log(o)` should not step through inspector javascript
+        https://bugs.webkit.org/show_bug.cgi?id=161656
+        <rdar://problem/28181123>
+
+        Reviewed by Timothy Hatcher.
+
+        * debugger/Debugger.h:
+        * debugger/Debugger.cpp:
+        (JSC::Debugger::pauseIfNeeded):
+        If the Script is blacklisted skip checking if we need to pause.
+
+        (JSC::Debugger::isBlacklisted):
+        (JSC::Debugger::addToBlacklist):
+        (JSC::Debugger::clearBlacklist):
+        Add the ability to add a Script to a blacklist. Currently the blacklist
+        only prevents pausing in the Script.
+
+        * inspector/agents/InspectorDebuggerAgent.cpp:
+        (Inspector::isWebKitInjectedScript):
+        (Inspector::InspectorDebuggerAgent::didParseSource):
+        Always add Internal InjectedScripts to the Debugger's blacklist.
+
+        (Inspector::InspectorDebuggerAgent::clearDebuggerBreakpointState):
+        Clear blacklists when clearing debugger state.
+
+2016-10-12  Keith Miller  <keith_miller@apple.com>
+
+        B3 needs a special WasmBoundsCheck Opcode
+        https://bugs.webkit.org/show_bug.cgi?id=163246
+
+        Reviewed by Filip Pizlo.
+
+        This patch adds a new Opcode, WasmBoundsCheck, as well as a B3::Value subclass for it,
+        WasmBoundsCheckValue. WasmBoundsCheckValue takes three pieces of information. The first is
+        the Int32 pointer value used to be used by the Load.  Next is the pinned register. The
+        pinned register must be pinned by calling proc.setPinned() prior to compiling the
+        Procedure. Lastly, the WasmBoundsCheckValue takes an offset. The WasmBoundsCheckValue is
+        will then emit code that side-exits if the Int64 sum of the offset and pointer is greater
+        than or equal to the value in the pinnedRegister. Instead of taking a generator for each
+        value like Check/Patchpoint, WasmBoundsCheck gets its generator directly off Air::Code. In
+        Air this patch adds a new Custom opcode, WasmBoundsCheck.
+
+        In the future we should add WasmBoundsCheck to CSE so it can eliminate redundant bounds
+        checks. At the first cut, we can remove any WasmBoundsCheck dominated by another
+        WasmBoundsCheck with the same pointer and pinnedGPR, and a larger offset.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::imm):
+        (JSC::B3::Air::LowerToAir::lower):
+        * b3/B3Opcode.cpp:
+        (WTF::printInternal):
+        * b3/B3Opcode.h:
+        * b3/B3Procedure.cpp:
+        (JSC::B3::Procedure::setWasmBoundsCheckGenerator):
+        * b3/B3Procedure.h:
+        (JSC::B3::Procedure::setWasmBoundsCheckGenerator):
+        * b3/B3Validate.cpp:
+        * b3/B3Value.cpp:
+        (JSC::B3::Value::effects):
+        (JSC::B3::Value::typeFor):
+        * b3/B3WasmBoundsCheckValue.cpp: Added.
+        (JSC::B3::WasmBoundsCheckValue::~WasmBoundsCheckValue):
+        (JSC::B3::WasmBoundsCheckValue::WasmBoundsCheckValue):
+        (JSC::B3::WasmBoundsCheckValue::dumpMeta):
+        * b3/B3WasmBoundsCheckValue.h: Added.
+        (JSC::B3::WasmBoundsCheckValue::accepts):
+        (JSC::B3::WasmBoundsCheckValue::pinnedGPR):
+        (JSC::B3::WasmBoundsCheckValue::offset):
+        * b3/air/AirCode.h:
+        (JSC::B3::Air::Code::setWasmBoundsCheckGenerator):
+        (JSC::B3::Air::Code::wasmBoundsCheckGenerator):
+        * b3/air/AirCustom.cpp:
+        (JSC::B3::Air::WasmBoundsCheckCustom::isValidForm):
+        * b3/air/AirCustom.h:
+        (JSC::B3::Air::WasmBoundsCheckCustom::forEachArg):
+        (JSC::B3::Air::WasmBoundsCheckCustom::isValidFormStatic):
+        (JSC::B3::Air::WasmBoundsCheckCustom::admitsStack):
+        (JSC::B3::Air::WasmBoundsCheckCustom::isTerminal):
+        (JSC::B3::Air::WasmBoundsCheckCustom::hasNonArgNonControlEffects):
+        (JSC::B3::Air::WasmBoundsCheckCustom::generate):
+        * b3/air/AirOpcode.opcodes:
+        * b3/testb3.cpp:
+        (JSC::B3::testWasmBoundsCheck):
+        (JSC::B3::run):
+
+2016-10-12  Filip Pizlo  <fpizlo@apple.com>
+
+        The blackening of CellState is a bad way of tracking if the object is being marked for the first time
+        https://bugs.webkit.org/show_bug.cgi?id=163343
+
+        Reviewed by Mark Lam.
+        
+        When I first added the concept of NewGrey/OldGrey, I had the SlotVisitor store the old cell
+        state in itself, so that it could use it to decide what to do for reportExtraMemoryVisited().
+        
+        Then I changed it in a recent commit, because I wanted the freedom to have SlotVisitor visit
+        multiple objects in tandem. But I never ended up using this capability. Still, I liked the
+        new way better: instead of the SlotVisitor rembemering the state-before-blackening, we would
+        make the object's state reflect whether it was black for the first time or not. That seemed
+        convenient.
+        
+        Unfortunately it's wrong. After we blacken the object, a concurrent barrier could instantly
+        grey it. Then we would forget that we are visiting this object for the first time.
+        Subsequent visits will think that they are not the first. So, we will fail to do the right
+        thing in reportExtraMemoryVisited().
+        
+        So, this reverts that change. This is a little more than just a revert, though. I've changed
+        the terminology a bit. For example, I got tired of reading Black and having to remind myself
+        that it really means that the object has begun being visited, instead of the more strict
+        meaning that implies that it has already been visited. We want to say that it's Black or
+        currently being scanned. I'm going to adopt Siebert's term for this: Anthracite [1]. So, our
+        black CellState is now called AnthraciteOrBlack.
+        
+        [1] https://pdfs.semanticscholar.org/7ae4/633265aead1f8835cf7966e179d02c2c8a4b.pdf
+
+        * heap/CellState.h:
+        (JSC::isBlack): Deleted.
+        (JSC::blacken): Deleted.
+        * heap/Heap.cpp:
+        (JSC::Heap::addToRememberedSet):
+        (JSC::Heap::writeBarrierSlowPath):
+        * heap/Heap.h:
+        * heap/HeapInlines.h:
+        (JSC::Heap::reportExtraMemoryVisited):
+        (JSC::Heap::reportExternalMemoryVisited):
+        * heap/SlotVisitor.cpp:
+        (JSC::SlotVisitor::appendToMarkStack):
+        (JSC::SlotVisitor::visitChildren):
+        * heap/SlotVisitor.h:
+        * heap/SlotVisitorInlines.h:
+        (JSC::SlotVisitor::reportExtraMemoryVisited):
+        (JSC::SlotVisitor::reportExternalMemoryVisited):
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::Data::performAssertions):
+        * llint/LowLevelInterpreter.asm:
+
+2016-10-12  Mark Lam  <mark.lam@apple.com>
+
+        Rename variables in arrayProtoFuncSplice() to match names in the spec.
+        https://bugs.webkit.org/show_bug.cgi?id=163354
+
+        Reviewed by Saam Barati.
+
+        This will make it easier to see whether the code matches the spec or not.
+        Ref: https://tc39.github.io/ecma262/#sec-array.prototype.splice
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::arrayProtoFuncSplice):
+
+2016-10-12  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT][JSC] Explore the way to embed nodeType into JSC::JSType in WebCore
+        https://bugs.webkit.org/show_bug.cgi?id=163245
+
+        Reviewed by Filip Pizlo.
+
+        We reserve the highest bit of JSC::JSType for extensions outside JSC.
+        JSC does not use JSType bits so many: only 52 types are defined.
+
+        And we extend CallDOM patchpoint to claim that it does not require a global object.
+        This global object is used to generate a DOM wrapper. However, nodeType does not require
+        it since it just returns integer. In the future, we will extend CallDOM to claim
+        its result type. And we can decide this `requireGlobalObject` condition automatically
+        according to the result type.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleDOMJITGetter):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+        * dfg/DFGGraph.h:
+        * dfg/DFGNode.h:
+        (JSC::DFG::Node::hasCheckDOMPatchpoint):
+        (JSC::DFG::Node::checkDOMPatchpoint):
+        (JSC::DFG::Node::hasCallDOMPatchpoint):
+        (JSC::DFG::Node::callDOMPatchpoint):
+        (JSC::DFG::Node::hasDOMJIT): Deleted.
+        (JSC::DFG::Node::domJIT): Deleted.
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileCallDOM):
+        (JSC::DFG::SpeculativeJIT::compileCheckDOM):
+        * domjit/DOMJITCallDOMPatchpoint.h: Copied from Source/JavaScriptCore/domjit/DOMJITGetterSetter.h.
+        (JSC::DOMJIT::CallDOMPatchpoint::create):
+        * domjit/DOMJITGetterSetter.h:
+        * domjit/DOMJITPatchpoint.h:
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileCheckDOM):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallDOM):
+        * jsc.cpp:
+        * llint/LLIntData.cpp:
+        (JSC::LLInt::Data::performAssertions):
+        * llint/LowLevelInterpreter.asm:
+        * runtime/JSType.h:
+
+2016-10-12  Keith Miller  <keith_miller@apple.com>
+
+        Handle non-function, non-undefined comparator in Array.prototype.sort
+        https://bugs.webkit.org/show_bug.cgi?id=163085
+
+        Reviewed by Yusuke Suzuki.
+
+        * builtins/ArrayPrototype.js:
+        (sort.comparatorSort):
+        (sort.stringSort):
+        (sort):
+
+2016-10-12  Filip Pizlo  <fpizlo@apple.com>
+
+        REGRESSION (r207179): ASSERTION FAILED: node.cell != previousCell
+        https://bugs.webkit.org/show_bug.cgi?id=163337
+
+        Reviewed by Mark Lam.
+        
+        It turns out that HeapSnapshot was not down with revisiting. The concurrent GC is going to be
+        built around the idea that we can revisit objects many times. This means that any action that
+        should only take place once per object must check the object's state. This fixes the snapshot
+        code to do this.
+        
+        While writing this code, I realized that we're actually doing this check incorrectly, so I
+        filed bug 163343. That bug requires a race, so we aren't going to see it yet.
+
+        * heap/HeapSnapshot.cpp:
+        (JSC::HeapSnapshot::finalize):
+        * heap/SlotVisitor.cpp:
+        (JSC::SlotVisitor::appendToMarkStack):
+        (JSC::SlotVisitor::visitChildren):
+
+2016-10-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Improve support for logging Proxy objects in console
+        https://bugs.webkit.org/show_bug.cgi?id=163323
+        <rdar://problem/28432553>
+
+        Reviewed by Timothy Hatcher.
+
+        This is based off of similiar patches in Blink for Proxy handling.
+
+        * bindings/ScriptValue.cpp:
+        (Deprecated::ScriptValue::isEqual):
+        Use strict equality. This is the intent, and it prevents the possibility of triggering
+        primitive conversion on objects in previous ConsoleMessage argument lists.
+
+        * inspector/InjectedScriptSource.js:
+        (InjectedScript.prototype._propertyDescriptors):
+        Bail if the object is a Proxy.
+
+        (InjectedScript.prototype._describe):
+        Provide a friendlier name, "Proxy" instead of "ProxyObject".
+        
+        (InjectedScript.RemoteObject):
+        When generating a preview for a Proxy object, generate it from the final target
+        and mark it as lossy so that the object can always be expanded to get the internal
+        target/handler properties.
+
+        * inspector/JSInjectedScriptHost.h:
+        * inspector/JSInjectedScriptHost.cpp:
+        (Inspector::JSInjectedScriptHost::subtype):
+        New subtype for Proxy objects.
+
+        (Inspector::JSInjectedScriptHost::proxyTargetValue):
+        Resolve the final target value for a Proxy.
+
+        * inspector/JSInjectedScriptHostPrototype.cpp:
+        (Inspector::JSInjectedScriptHostPrototype::finishCreation):
+        (Inspector::jsInjectedScriptHostPrototypeFunctionProxyTargetValue):
+        Add the new method.
+
+        * inspector/ScriptArguments.cpp:
+        (Inspector::ScriptArguments::getFirstArgumentAsString):
+        Avoid triggering Proxy traps on a Proxy object when getting a quick
+        string description for ConsoleMessages.
+
+        * inspector/protocol/Runtime.json:
+        Add new "proxy" subtype.
+
+2016-10-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Emit DebugHooks uniformly with pause locations instead of having separate pause locations and op_debug emits
+        https://bugs.webkit.org/show_bug.cgi?id=162809
+
+        Reviewed by Geoffrey Garen.
+
+        Change how BytecodeGeneration emits debug hooks to be more consistent.
+        Previously most nodes individually generated their own debug hook
+        and we asserted that it matched a breakpoint location identified
+        by the parser. This could get out of sync, or nodes could forget to
+        emit debug hooks expected by the parser.
+        
+        With this change, we always check and emit a debug hook for any
+        node. The default behavior is for BytecodeGenerator::emitNode
+        to emit the debug hook when emitting the node itself. This covers
+        the majority of cases (statements).
+
+        There are a few exceptions where we continue to need to customize
+        emitting debug hooks:
+
+            1. Nodes with emitBytecodeInConditionContext
+                - non-Expression nodes customize how they emit their children
+                - constants conditions may emit nothing, but we had recorded a breakpoint location so emit a debug hook
+                - always emit one debug hook in case we recorded a breakpoint location, but avoid emitting multiple
+                  in nodes which may call up to the ExpressionNode::emitBytecodeInConditionContext base impl.
+            2. Specialized Debug Hooks
+                - such as hooks for Program start/end, debugger statements, etc.
+            3. Debug Hooks in for..of / for..in that don't correspond to re-emitting nodes
+                - such as pausing on the assignment expression inside these loops
+
+        The majority of nodes no longer have custom emits.
+
+        * bytecompiler/BytecodeGenerator.h:
+        (JSC::BytecodeGenerator::emitNodeInTailPosition):
+        (JSC::BytecodeGenerator::emitNodeInConditionContext):
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitDebugHook):
+        (JSC::BytecodeGenerator::emitEnumeration):
+        By default, when emitting a node check if we should also emit an op_debug for it.
+        This default DebugHook is WillExecuteStatement, which is a normal pause point.
+
+        * bytecompiler/NodesCodegen.cpp:
+        (JSC::ConstantNode::emitBytecodeInConditionContext):
+        (JSC::LogicalNotNode::emitBytecodeInConditionContext):
+        (JSC::BinaryOpNode::emitBytecodeInConditionContext):
+        (JSC::LogicalOpNode::emitBytecodeInConditionContext):
+        The parser would have generated a pause location for these conditions
+        no matter what constant folding and re-writing these nodes may perform.
+        So, when emitting these nodes in condition context check if they need
+        emit their own debug hook.
+
+        (JSC::EmptyStatementNode::emitBytecode):
+        (JSC::ExprStatementNode::emitBytecode):
+        (JSC::DeclarationStatement::emitBytecode):
+        (JSC::IfElseNode::emitBytecode):
+        (JSC::DoWhileNode::emitBytecode):
+        (JSC::WhileNode::emitBytecode):
+        (JSC::ForNode::emitBytecode):
+        (JSC::ContinueNode::emitBytecode):
+        (JSC::BreakNode::emitBytecode):
+        (JSC::ReturnNode::emitBytecode):
+        (JSC::WithNode::emitBytecode):
+        (JSC::SwitchNode::emitBytecode):
+        (JSC::ThrowNode::emitBytecode):
+        No longer need to custom emit debug hooks. The default emitNode will handle these.
+
+        (JSC::ForInNode::emitBytecode):
+        Include extra debug hooks the user expects to return back to the assignment
+        expression in the loop header before starting the body again. The same is done
+        for for..of with emitEnumeration.
+
+        * parser/ASTBuilder.h:
+        (JSC::ASTBuilder::createExportDefaultDeclaration):
+        (JSC::ASTBuilder::createExportLocalDeclaration):
+        These are no longer needed to fake-satisfy assertions. We never wanted to
+        emit debug hooks for these inner statements because the export statement
+        will already have the debug hooks.
+
+        (JSC::ASTBuilder::createForInLoop):
+        (JSC::ASTBuilder::createForOfLoop):
+        Include the correct location where the declaration starts.
+
+        (JSC::ASTBuilder::breakpointLocation):
+        Simplify to a general implementation for Node.
+
+        * parser/SyntaxChecker.h:
+        (JSC::SyntaxChecker::createForInLoop):
+        (JSC::SyntaxChecker::createForOfLoop):
+        Ignore the new extra parameter.
+
+        * parser/Nodes.h:
+        (JSC::Node::needsDebugHook):
+        (JSC::Node::setNeedsDebugHook):
+        (JSC::ExpressionNode::needsDebugHook): Deleted.
+        (JSC::ExpressionNode::setNeedsDebugHook): Deleted.
+        (JSC::StatementNode::isEmptyStatement): Deleted.
+        (JSC::StatementNode::needsDebugHook): Deleted.
+        (JSC::StatementNode::setNeedsDebugHook): Deleted.
+        Move debug hook logic into the base Node class.
+
+        (JSC::StatementNode::isDebuggerStatement):
+        Provide a way to distinguish a debugger statement.
+
+        * parser/Parser.cpp:
+        (JSC::Parser<LexerType>::parseForStatement):
+        Provide the location before the declaration starts.
+
+2016-10-12  Mark Lam  <mark.lam@apple.com>
+
+        Array.prototype.slice should not modify frozen objects.
+        https://bugs.webkit.org/show_bug.cgi?id=163338
+
+        Reviewed by Filip Pizlo.
+
+        1. The ES6 spec for Array.prototype.slice
+           (https://tc39.github.io/ecma262/#sec-array.prototype.slice) states that it uses
+           the CreateDataPropertyOrThrow()
+           (https://tc39.github.io/ecma262/#sec-createdatapropertyorthrow) to add items to
+           the result array.  The spec for CreateDataPropertyOrThrow states:
+
+           "This abstract operation creates a property whose attributes are set to the
+           same defaults used for properties created by the ECMAScript language assignment
+           operator. Normally, the property will not already exist. If it does exist and
+           is not configurable or if O is not extensible, [[DefineOwnProperty]] will
+           return false causing this operation to throw a TypeError exception."
+
+        2. Array.prototype.slice also uses a Set function
+           (https://tc39.github.io/ecma262/#sec-set-o-p-v-throw) to set the "length"
+           property and passes true for the Throw argument.  Ultimately, it ends up
+           calling the OrdinarySet function
+           (https://tc39.github.io/ecma262/#sec-ordinaryset) that will fail if the
+           property is not writable.  This failure should result in a TypeError being
+           thrown in Set.
+
+           Since the properties of frozen objects are not extensible, not configurable,
+           and not writeable, Array.prototype.slice should fail to write to the result
+           array if it is frozen.
+
+        If the source array being sliced has 1 or more elements, (1) will take effect
+        when we try to set the element in the non-writeable result obj.
+        If the source array being sliced has 0 elements, we will not set any elements and
+        (1) will not trigger.  Subsequently, (2) will take effect when we will try to
+        set the length of the result obj.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::putLength):
+        (JSC::setLength):
+        (JSC::arrayProtoFuncSlice):
+        (JSC::arrayProtoFuncSplice):
+
+2016-10-12  Filip Pizlo  <fpizlo@apple.com>
+
+        Remove JITWriteBarrier.h
+        https://bugs.webkit.org/show_bug.cgi?id=163334
+
+        Reviewed by Mark Lam.
+        
+        I guess that the idea of JITWriteBarrier was to make sure that if you slap some heap pointer
+        bits into machine code, then you better execute a barrier on the code block. But it's a
+        complicated piece of code, and I can never remember how it quite works. These days it looks
+        vestigial, particularly since only the CallLinkInfo patchable callee immediate uses it. It's
+        not really necessary to have something like this, since our convention is that any pointer
+        stored in machine code must always be shadowed in the GC heap. I think that convention has
+        won by overwhelming majority, so we should finally remove JITWriteBarrier.
+        
+        A practical outcome of this change is that it makes it easier to implement DirectCall ICs,
+        which will have to store the callee in the CallLinkInfo but not in the machine code.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * assembler/AbstractMacroAssembler.h:
+        * bytecode/CallLinkInfo.cpp:
+        (JSC::CallLinkInfo::setCallee):
+        (JSC::CallLinkInfo::clearCallee):
+        * bytecode/CallLinkInfo.h:
+        (JSC::CallLinkInfo::setCallee): Deleted.
+        (JSC::CallLinkInfo::clearCallee): Deleted.
+        * heap/SlotVisitor.h:
+        * jit/JITWriteBarrier.h: Removed.
+
+2016-10-12  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviewed buildfix for GCC 4.9 after r207186.
+        https://bugs.webkit.org/show_bug.cgi?id=163255
+
+        * runtime/HasOwnPropertyCache.h:
+        (JSC::HasOwnPropertyCache::Entry::Entry):
+
+2016-10-11  Saam Barati  <sbarati@apple.com>
+
+        HasOwnPropertyCache needs to ref the UniquedStringImpls it sees
+        https://bugs.webkit.org/show_bug.cgi?id=163255
+
+        Reviewed by Geoffrey Garen.
+
+        The cache needs to be responsible for ensuring that things
+        in the cache stay alive. Before, it wasn't doing this, and
+        that was wrong.
+
+        * runtime/HasOwnPropertyCache.h:
+        (JSC::HasOwnPropertyCache::Entry::operator=):
+        (JSC::HasOwnPropertyCache::operator delete):
+        (JSC::HasOwnPropertyCache::create):
+        (JSC::HasOwnPropertyCache::get):
+        (JSC::HasOwnPropertyCache::tryAdd):
+        (JSC::HasOwnPropertyCache::clear):
+        (JSC::HasOwnPropertyCache::zeroBuffer):
+
+2016-10-06  Filip Pizlo  <fpizlo@apple.com>
+
+        MarkedBlock should know what objects are live during marking
+        https://bugs.webkit.org/show_bug.cgi?id=162309
+
+        Reviewed by Geoffrey Garen.
+        
+        It used to be that we would forget which objects are live the moment we started collection.
+        That's because the flip at the beginning clears all mark bits.
+        
+        But we already have a facility for tracking objects that are live-but-not-marked. It's called
+        newlyAllocated. So, instead of clearing mark bits, we want to just transfer them to
+        newlyAllocated. Then we want to clear all newlyAllocated after GC.
+        
+        This implements such an approach, along with a versioning optimization for newlyAllocated.
+        Instead of walking the whole heap to clear newlyAllocated bits at the end of the GC, we bump
+        the newlyAllocatedVersion, which causes MarkedBlock to treat newlyAllocated as if it was
+        clear.
+        
+        We could have even avoided allocating newlyAllocated in most cases, since empirically most
+        blocks are either completely empty or completely full. An earlier version of this patch did
+        this, but it was not better than this patch. In fact, it seemed to actually be worse for PLT
+        and membuster.
+        
+        To validate this change, we now run the conservative scan after the beginMarking flip. And it
+        totally works!
+        
+        This is a huge step towards concurrent GC. It means that we ought to be able to run the
+        allocator while marking. Since we already separately made it possible to run the barrier
+        while marking, this means that we're pretty much ready for some serious concurrency action.
+        
+        This appears to be perf-neutral and space-neutral.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * bytecode/CodeBlock.cpp:
+        * bytecode/CodeBlock.h:
+        (JSC::CodeBlockSet::mark): Deleted.
+        * heap/CodeBlockSet.cpp:
+        (JSC::CodeBlockSet::writeBarrierCurrentlyExecuting):
+        (JSC::CodeBlockSet::clearCurrentlyExecuting):
+        (JSC::CodeBlockSet::writeBarrierCurrentlyExecutingCodeBlocks): Deleted.
+        * heap/CodeBlockSet.h:
+        * heap/CodeBlockSetInlines.h: Added.
+        (JSC::CodeBlockSet::mark):
+        * heap/ConservativeRoots.cpp:
+        * heap/Heap.cpp:
+        (JSC::Heap::markRoots):
+        (JSC::Heap::beginMarking):
+        (JSC::Heap::collectImpl):
+        (JSC::Heap::writeBarrierCurrentlyExecutingCodeBlocks):
+        (JSC::Heap::clearCurrentlyExecutingCodeBlocks):
+        * heap/Heap.h:
+        * heap/HeapUtil.h:
+        (JSC::HeapUtil::findGCObjectPointersForMarking):
+        * heap/MarkedAllocator.cpp:
+        (JSC::MarkedAllocator::isPagedOut):
+        * heap/MarkedBlock.cpp:
+        (JSC::MarkedBlock::Handle::Handle):
+        (JSC::MarkedBlock::Handle::sweepHelperSelectHasNewlyAllocated):
+        (JSC::MarkedBlock::Handle::stopAllocating):
+        (JSC::MarkedBlock::Handle::lastChanceToFinalize):
+        (JSC::MarkedBlock::Handle::resumeAllocating):
+        (JSC::MarkedBlock::aboutToMarkSlow):
+        (JSC::MarkedBlock::Handle::resetAllocated):
+        (JSC::MarkedBlock::resetMarks):
+        (JSC::MarkedBlock::setNeedsDestruction):
+        (JSC::MarkedBlock::Handle::didAddToAllocator):
+        (JSC::MarkedBlock::Handle::isLive):
+        (JSC::MarkedBlock::Handle::isLiveCell):
+        (JSC::MarkedBlock::clearMarks): Deleted.
+        * heap/MarkedBlock.h:
+        (JSC::MarkedBlock::Handle::newlyAllocatedVersion):
+        (JSC::MarkedBlock::Handle::hasAnyNewlyAllocated): Deleted.
+        (JSC::MarkedBlock::Handle::clearNewlyAllocated): Deleted.
+        * heap/MarkedBlockInlines.h:
+        (JSC::MarkedBlock::Handle::cellsPerBlock):
+        (JSC::MarkedBlock::Handle::isLive):
+        (JSC::MarkedBlock::Handle::isLiveCell):
+        (JSC::MarkedBlock::Handle::isNewlyAllocatedStale):
+        (JSC::MarkedBlock::Handle::hasAnyNewlyAllocatedWithSweep):
+        (JSC::MarkedBlock::Handle::hasAnyNewlyAllocated):
+        (JSC::MarkedBlock::heap):
+        (JSC::MarkedBlock::space):
+        (JSC::MarkedBlock::Handle::space):
+        (JSC::MarkedBlock::resetMarkingVersion): Deleted.
+        * heap/MarkedSpace.cpp:
+        (JSC::MarkedSpace::beginMarking):
+        (JSC::MarkedSpace::endMarking):
+        (JSC::MarkedSpace::clearNewlyAllocated): Deleted.
+        * heap/MarkedSpace.h:
+        (JSC::MarkedSpace::nextVersion):
+        (JSC::MarkedSpace::newlyAllocatedVersion):
+        (JSC::MarkedSpace::markingVersion): Deleted.
+        * runtime/SamplingProfiler.cpp:
+
+2016-10-11  Mark Lam  <mark.lam@apple.com>
+
+        Array.prototype.concat should not modify frozen objects.
+        https://bugs.webkit.org/show_bug.cgi?id=163302
+
+        Reviewed by Filip Pizlo.
+
+        The ES6 spec for Array.prototype.concat states that it uses the
+        CreateDataPropertyOrThrow() to add items to the result array.  The spec for
+        CreateDataPropertyOrThrow states:
+
+        "This abstract operation creates a property whose attributes are set to the same
+        defaults used for properties created by the ECMAScript language assignment
+        operator. Normally, the property will not already exist. If it does exist and is
+        not configurable or if O is not extensible, [[DefineOwnProperty]] will return
+        false causing this operation to throw a TypeError exception."
+
+        Since the properties of frozen objects are not extensible, not configurable, and
+        not writable, Array.prototype.concat should fail to write to the result array if
+        it is frozen.
+
+        Ref: https://tc39.github.io/ecma262/#sec-array.prototype.concat,
+        https://tc39.github.io/ecma262/#sec-createdatapropertyorthrow, and
+        https://tc39.github.io/ecma262/#sec-createdataproperty.
+
+        The fix consists of 2 parts:
+        1. moveElement() should use the PutDirectIndexShouldThrow mode when invoking
+           putDirectIndex(), and
+        2. SparseArrayValueMap::putDirect() should check for the case where the property
+           is read only.
+
+        (2) ensures that we don't write into a non-writable property.
+        (1) ensures that we throw a TypeError for attempts to write to a non-writeable
+        property.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::moveElements):
+        * runtime/SparseArrayValueMap.cpp:
+        (JSC::SparseArrayValueMap::putDirect):
+
+2016-10-11  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] DOMJIT::Patchpoint should have a way to receive constant folded arguments
+        https://bugs.webkit.org/show_bug.cgi?id=163224
+
+        Reviewed by Filip Pizlo.
+
+        We use the GetGlobalObject DFG node to retrieve a global object from a DOM node.
+        This global object is necessary to check whether the world is normal before entering
+        the fast path of looking up the DOM wrapper cache.
+        We can sometimes constant-fold this GetGlobalObject. For example, if we performed
+        CheckStructure, the structure can offer the information about the possible result
+        of GetGlobalObject. By using this constant-folded global object, we can drop some
+        checks.
+
+        This patch introduces the way to tell the constant-folded values to DOMJIT::Patchpoint.
+        We pass DOMJIT::Value instead of DOMJIT::Reg as a parameter of DOMJIT::PatchpointParams.
+        This DOMJIT::Value is a pair of DOMJIT::Reg and JSValue. If the given parameter has a
+        constant value, this JSValue is filled with it.
+
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * dfg/DFGDOMJITPatchpointParams.h:
+        (JSC::DFG::DOMJITPatchpointParams::DOMJITPatchpointParams):
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileCallDOM):
+        (JSC::DFG::SpeculativeJIT::compileCheckDOM):
+        * domjit/DOMJITPatchpointParams.h:
+        (JSC::DOMJIT::PatchpointParams::at):
+        (JSC::DOMJIT::PatchpointParams::operator[]):
+        (JSC::DOMJIT::PatchpointParams::PatchpointParams):
+        * domjit/DOMJITValue.h: Copied from Source/JavaScriptCore/dfg/DFGDOMJITPatchpointParams.h.
+        (JSC::DOMJIT::Value::Value):
+        (JSC::DOMJIT::Value::isGPR):
+        (JSC::DOMJIT::Value::isFPR):
+        (JSC::DOMJIT::Value::isJSValueRegs):
+        (JSC::DOMJIT::Value::gpr):
+        (JSC::DOMJIT::Value::fpr):
+        (JSC::DOMJIT::Value::jsValueRegs):
+        (JSC::DOMJIT::Value::reg):
+        (JSC::DOMJIT::Value::value):
+        * ftl/FTLDOMJITPatchpointParams.h:
+        (JSC::FTL::DOMJITPatchpointParams::DOMJITPatchpointParams):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileCheckDOM):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallDOM):
+
+2016-10-10  Filip Pizlo  <fpizlo@apple.com>
+
+        Air should be able to replace constant materializations with adds
+        https://bugs.webkit.org/show_bug.cgi?id=162749
+
+        Reviewed by Yusuke Suzuki.
+        
+        We have a lot of defenses against emitting code that materializes huge contants. But if we do
+        end up with such code in the backend, it's better to convert those materializations into add
+        instructions by checking if other registers are known to contain nearby constants. That's
+        what this patch does.
+
+        * b3/air/AirFixObviousSpills.cpp:
+        * b3/testb3.cpp:
+
+2016-10-11  Filip Pizlo  <fpizlo@apple.com>
+
+        B3->Air lowering needs the same defenses in effectiveAddr() that it has in tryAppendLea()
+        https://bugs.webkit.org/show_bug.cgi?id=163264
+
+        Reviewed by Mark Lam.
+        
+        When writing the lea patch (r207039), I was very careful about how I convert a Shl into a
+        BaseIndex scale. But I forgot to check if the older code for creating BaseIndexes for
+        effectiveAddr() got this right. It turns out that the older code missed the <<32 corner
+        case.
+        
+        It's sad that the two paths can't share all of their code, but it's somewhat inevitable due
+        to how matching an address and matching a lea have to do very different things. Matching a
+        lea means creating an instruction that is distinct from other instructions to do multiple
+        math operations at once. Matching an address means making some instruction do extra work
+        for free. Also, address matching can take advantage of the fact that the offset is already
+        associated with the memory operation by strength reduction - lea matching can't do this; it
+        has to figure out Add(@value, $const) on its own. This change makes the situation slightly
+        more sane by adding a scaleForShl() helper that handles this weird case. It's based on the
+        new Shl handling from r207039, and exposes it as an API for effectiveAddr() to use.
+        
+        The testLoadBaseIndexShift32() used to crash. I don't think that this case affects JS
+        content, since <<32 is such a bizarre outlier. I don't think we even have a path along
+        which the FTL would emit a 64-bit <<32. It probably won't even affect WebAssembly since
+        that uses 32-bit pointers, so we won't see 64-bit <<32 in effectiveAddr() there.
+
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::scaleForShl):
+        (JSC::B3::Air::LowerToAir::effectiveAddr):
+        (JSC::B3::Air::LowerToAir::tryAppendLea):
+        (JSC::B3::Air::LowerToAir::crossesInterference): Deleted.
+        * b3/testb3.cpp:
+        (JSC::B3::testLoadBaseIndexShift2):
+        (JSC::B3::testLoadBaseIndexShift32):
+        (JSC::B3::run):
+
+2016-10-11  Saam Barati  <sbarati@apple.com>
+
+        ValueAdd should be constant folded if the operands are constant String,Primitive or Primitive,String
+        https://bugs.webkit.org/show_bug.cgi?id=163182
+
+        Reviewed by Filip Pizlo.
+
+        This code pattern shows up in Dromaeo, so it's worth optimizing for.
+        This might also show up in real world JS code due to inlining and other
+        types of constant folding.
+
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::parseBlock):
+        * dfg/DFGLazyJSValue.cpp:
+        (JSC::DFG::LazyJSValue::getValue):
+        * dfg/DFGStrengthReductionPhase.cpp:
+        (JSC::DFG::StrengthReductionPhase::handleNode):
+
+2016-10-10  Zan Dobersek  <zdobersek@igalia.com>
+
+        Add ENABLE_ENCRYPTED_MEDIA configuration option
+        https://bugs.webkit.org/show_bug.cgi?id=163219
+
+        Reviewed by Darin Adler.
+
+        * Configurations/FeatureDefines.xcconfig:
+        Add the ENABLE_ENCRYPTED_MEDIA configuration option. It will be used
+        to enable or disable the new EME implementation at build-time.
+
+2016-10-10  Filip Pizlo  <fpizlo@apple.com>
+
+        B3->Air lowering should be able to emit complex leas on x86
+        https://bugs.webkit.org/show_bug.cgi?id=163234
+
+        Reviewed by Saam Barati.
+        
+        This adds comprehensive support for emitting lea on x86.
+        
+        When adding this, I found that it was useful to also finally add more reassociation. That
+        reduces the amount of patterns that the instruction selector has to deal with.
+
+        * assembler/MacroAssembler.h:
+        (JSC::MacroAssembler::lea32):
+        (JSC::MacroAssembler::lea64):
+        (JSC::MacroAssembler::lea): Deleted.
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::commitInternal):
+        (JSC::B3::Air::LowerToAir::tryAppendLea):
+        (JSC::B3::Air::LowerToAir::lower):
+        (JSC::B3::Air::LowerToAir::createSelect): Deleted.
+        * b3/B3ReduceStrength.cpp:
+        * b3/B3Value.h:
+        * b3/B3ValueInlines.h:
+        (JSC::B3::Value::isRepresentableAs):
+        (JSC::B3::Value::representableAs): Deleted.
+        * b3/air/AirOpcode.opcodes:
+        * b3/testb3.cpp: Lots of tests for lea and reassociation.
+
+2016-10-10  Mark Lam  <mark.lam@apple.com>
+
+        Change ArrayPrototype.cpp's putLength() and setLength() to take a VM& so that we can use vm.propertyNames.
+        https://bugs.webkit.org/show_bug.cgi?id=163260
+
+        Reviewed by Saam Barati.
+
+        In all cases where we call these, we already have the VM& anyway.
+
+        * runtime/ArrayPrototype.cpp:
+        (JSC::putLength):
+        (JSC::setLength):
+        (JSC::arrayProtoFuncPop):
+        (JSC::arrayProtoFuncPush):
+        (JSC::arrayProtoFuncShift):
+        (JSC::arrayProtoFuncSlice):
+        (JSC::arrayProtoFuncSplice):
+        (JSC::arrayProtoFuncUnShift):
+
+2016-10-10  Mark Lam  <mark.lam@apple.com>
+
+        Rename the StrictModeReadonlyPropertyWriteError string to ReadonlyPropertyWriteError.
+        https://bugs.webkit.org/show_bug.cgi?id=163239
+
+        Reviewed by Filip Pizlo.
+
+        This string is also used for reporting the same error in cases which have nothing
+        to do with strict mode.
+
+        * bytecompiler/BytecodeGenerator.cpp:
+        (JSC::BytecodeGenerator::emitReadOnlyExceptionIfNeeded):
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::SLOW_PATH_DECL):
+        * runtime/GetterSetter.cpp:
+        (JSC::callSetter):
+        * runtime/JSArray.cpp:
+        (JSC::JSArray::setLengthWithArrayStorage):
+        (JSC::JSArray::pop):
+        * runtime/JSCJSValue.cpp:
+        (JSC::JSValue::putToPrimitive):
+        (JSC::JSValue::putToPrimitiveByIndex):
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::put):
+        * runtime/JSModuleEnvironment.cpp:
+        (JSC::JSModuleEnvironment::put):
+        * runtime/JSModuleNamespaceObject.cpp:
+        (JSC::JSModuleNamespaceObject::put):
+        (JSC::JSModuleNamespaceObject::putByIndex):
+        * runtime/JSObject.cpp:
+        (JSC::ordinarySetSlow):
+        (JSC::JSObject::putInlineSlow):
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+        (JSC::JSObject::putByIndexBeyondVectorLengthWithArrayStorage):
+        (JSC::JSObject::putDirectIndexBeyondVectorLengthWithArrayStorage):
+        * runtime/JSObject.h:
+        * runtime/JSObjectInlines.h:
+        (JSC::JSObject::putInline):
+        * runtime/JSSymbolTableObject.h:
+        (JSC::symbolTablePut):
+        * runtime/Lookup.h:
+        (JSC::putEntry):
+        * runtime/RegExpObject.h:
+        (JSC::RegExpObject::setLastIndex):
+        * runtime/SparseArrayValueMap.cpp:
+        (JSC::SparseArrayValueMap::putEntry):
+        (JSC::SparseArrayEntry::put):
+        * runtime/StringObject.cpp:
+        (JSC::StringObject::put):
+        (JSC::StringObject::putByIndex):
+
+2016-10-10  Saam Barati  <sbarati@apple.com>
+
+        compileCheckStringIdent in the FTL is wrong
+        https://bugs.webkit.org/show_bug.cgi?id=163215
+
+        Reviewed by Mark Lam and Filip Pizlo.
+
+        lowStringIdent() returns the StringImpl pointer. The compileCheckStringIdent()
+        was treating its return value as the actual JSString. This is wrong.
+
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileCheckStringIdent):
+
+2016-10-10  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Implement Node accessors in DOMJIT
+        https://bugs.webkit.org/show_bug.cgi?id=163005
+
+        Reviewed by Filip Pizlo.
+
+        Add some helper methods and offsetOfXXX for JSC::Weak since it is used
+        for DOM wrapper caching.
+
+        And make DOMJIT::Patchpoint in FTL closer to one in DFG. We add resultConstraint
+        to avoid the situation that the same register is allocated to child and result.
+
+        We also extend DOMJIT::Patchpoint to tell useTagTypeNumberRegister / useTagMaskRegister.
+
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::callOperation):
+        * domjit/DOMJITSlowPathCalls.h:
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileCheckDOM):
+        (JSC::FTL::DFG::LowerDFGToB3::compileCallDOM):
+        * heap/WeakImpl.h:
+        (JSC::WeakImpl::offsetOfJSValue):
+        (JSC::WeakImpl::offsetOfWeakHandleOwner):
+        * jit/AssemblyHelpers.h:
+        (JSC::AssemblyHelpers::boxCell):
+        (JSC::AssemblyHelpers::boxInt32): Deleted.
+        * jit/JITOperations.h:
+
+2016-10-09  Filip Pizlo  <fpizlo@apple.com>
+
+        Air should expose API for pinning registers
+        https://bugs.webkit.org/show_bug.cgi?id=163175
+
+        Reviewed by Keith Miller.
+        
+        You can now call Procedure::pinRegister(), or Code::pinRegister(), and it will make this
+        register behave as follows:
+        
+        - B3 and Air will emit no code that modifies the value in this register, except if that
+          happens via a Patchpoint or stackmap constraint (i.e. the user explicitly asked for it).
+        - B3 and Air will allow others to modify the register. For example, if the register is not
+          callee-save, then the compiler knows that the register's value will be trashed by any
+          C-style call.
+        - Air will be happy to emit code that reads from this register, including coalescing tmps
+          with it, so longer as there is no interference (i.e. no chance of the register's value
+          changing). For example, if we went back to having pinned tag registers, we would tell B3
+          to use them by (1) excluding them from any clobber set (easy, since they're callee save)
+          and (2) emitting ArgumentReg to grab their value. There's a test that does this.
+        
+        This is accomplished by taking regsInPriorityOrder() and making it a method of Code. Air 
+        already used this API when choosing registers in register allocation. Code now also vends a
+        mutableRegs() set, which is derived from regsInPriorityOrder(), that can quickly tell you if
+        a register can be mutated. Doing it this way means that most of this is a purely mechanical
+        change. The calls to mutableRegs() are the places where we had to change logic:
+        
+        - The register allocators needs to know that coalescing with a precolored pinned tmp is free.
+        - The callee-save handler needs to know that we're not supposed to save/restore pinned
+          registers.
+        
+        Note that in this scheme, pinned registers are simply registers that do not appear in
+        regsInPriorityOrder(). This means, for example, that we will now say that FP is pinned. So,
+        this means that you can also pin registers by calling setRegsInPriorityOrder() and passing a
+        vector that excludes some registers. More generally, this means that clients can now tweak
+        the register allocator's register preferences, since the ordering in that list reflects the
+        order in which the allocator will try registers.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * b3/B3Procedure.cpp:
+        (JSC::B3::Procedure::pinRegister):
+        * b3/B3Procedure.h:
+        * b3/air/AirCode.cpp:
+        (JSC::B3::Air::Code::Code):
+        (JSC::B3::Air::Code::setRegsInPriorityOrder):
+        (JSC::B3::Air::Code::pinRegister):
+        * b3/air/AirCode.h:
+        (JSC::B3::Air::Code::regsInPriorityOrder):
+        (JSC::B3::Air::Code::mutableRegs):
+        (JSC::B3::Air::Code::isPinned):
+        (JSC::B3::Air::Code::regsInPriorityOrderImpl):
+        (JSC::B3::Air::Code::proc): Deleted.
+        * b3/air/AirEmitShuffle.cpp:
+        (JSC::B3::Air::emitShuffle):
+        * b3/air/AirEmitShuffle.h:
+        * b3/air/AirHandleCalleeSaves.cpp:
+        (JSC::B3::Air::handleCalleeSaves):
+        * b3/air/AirIteratedRegisterCoalescing.cpp:
+        * b3/air/AirLowerAfterRegAlloc.cpp:
+        (JSC::B3::Air::lowerAfterRegAlloc):
+        * b3/air/AirRegisterPriority.cpp: Removed.
+        * b3/air/AirRegisterPriority.h: Removed.
+        * b3/air/AirSpillEverything.cpp:
+        (JSC::B3::Air::spillEverything):
+        * b3/air/testair.cpp:
+        (JSC::B3::Air::testShuffleBroadcastAllRegs):
+        (JSC::B3::Air::testShuffleShiftAllRegs):
+        (JSC::B3::Air::testShuffleRotateAllRegs):
+        (JSC::B3::Air::testShuffleShiftMemoryAllRegs):
+        (JSC::B3::Air::testShuffleShiftMemoryAllRegs64):
+        (JSC::B3::Air::testShuffleShiftMemoryAllRegsMixedWidth):
+        (JSC::B3::Air::testShuffleRotateMemoryAllRegs64):
+        (JSC::B3::Air::testShuffleRotateMemoryAllRegsMixedWidth):
+        * b3/testb3.cpp:
+        (JSC::B3::testPinRegisters):
+        (JSC::B3::run):
+        * jit/RegisterSet.h:
+
+2016-10-08  Filip Pizlo  <fpizlo@apple.com>
+
+        B3 should know about mutable pinned registers
+        https://bugs.webkit.org/show_bug.cgi?id=163172
+
+        Reviewed by Keith Miller.
+        
+        If we have mutable pinned registers then we need to know which operations mutate them. At
+        first I considered making this into a heap range thing, but I think that this would be very
+        confusing. Also, in the future, we might want to make Effects track register sets of
+        clobbered registers (see bug 163173).
+
+        * b3/B3Effects.cpp:
+        (JSC::B3::Effects::interferes):
+        (JSC::B3::Effects::operator==):
+        (JSC::B3::Effects::dump):
+        * b3/B3Effects.h:
+        (JSC::B3::Effects::forCall):
+        (JSC::B3::Effects::mustExecute):
+
 2016-10-08  Saam Barati  <sbarati@apple.com>
 
         HasIndexedProperty clobberize rule is wrong for Array::ForceOSRExit

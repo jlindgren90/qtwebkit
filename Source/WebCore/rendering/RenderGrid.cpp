@@ -1212,7 +1212,7 @@ bool RenderGrid::shouldProcessTrackForTrackSizeComputationPhase(TrackSizeComputa
     case ResolveMaxContentMinimums:
         return trackSize.hasMaxContentMinTrackBreadth();
     case ResolveIntrinsicMaximums:
-        return trackSize.hasMinOrMaxContentMaxTrackBreadth();
+        return trackSize.hasIntrinsicMaxTrackBreadth();
     case ResolveMaxContentMaximums:
         return trackSize.hasMaxContentOrAutoMaxTrackBreadth();
     case MaximizeTracks:
@@ -1291,9 +1291,9 @@ LayoutUnit RenderGrid::currentItemSizeForTrackSizeComputationPhase(TrackSizeComp
 {
     switch (phase) {
     case ResolveIntrinsicMinimums:
+    case ResolveIntrinsicMaximums:
         return minSizeForChild(gridItem, direction, sizingData);
     case ResolveContentBasedMinimums:
-    case ResolveIntrinsicMaximums:
         return minContentForChild(gridItem, direction, sizingData);
     case ResolveMaxContentMinimums:
     case ResolveMaxContentMaximums:

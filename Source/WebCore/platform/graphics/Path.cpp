@@ -40,7 +40,7 @@
 
 namespace WebCore {
 
-#if !PLATFORM(QT)
+#if !USE(DIRECT2D) && !PLATFORM(QT)
 float Path::length() const
 {
     PathTraversalState traversalState(PathTraversalState::Action::TotalLength);
@@ -120,7 +120,7 @@ void Path::addRoundedRect(const FloatRoundedRect& r, RoundedRectStrategy strateg
     }
 
     if (strategy == PreferNativeRoundedRect) {
-#if USE(CG)
+#if USE(CG) || USE(DIRECT2D)
         platformAddPathForRoundedRect(rect, radii.topLeft(), radii.topRight(), radii.bottomLeft(), radii.bottomRight());
         return;
 #endif

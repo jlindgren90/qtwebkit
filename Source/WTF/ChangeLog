@@ -1,3 +1,127 @@
+2016-10-12  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207225.
+
+        This change causes debug tests to exit early with crashes.
+
+        Reverted changeset:
+
+        "Optional's move-constructor and move-assignment operator
+        don't disengage the value being moved from"
+        https://bugs.webkit.org/show_bug.cgi?id=163309
+        http://trac.webkit.org/changeset/207225
+
+2016-10-11  Sam Weinig  <sam@webkit.org>
+
+        Optional's move-constructor and move-assignment operator don't disengage the value being moved from
+        https://bugs.webkit.org/show_bug.cgi?id=163309
+
+        Reviewed by Anders Carlsson.
+
+        * wtf/Optional.h:
+        (WTF::Optional::Optional):
+        (WTF::Optional::operator=):
+        Disengage 'other' on move-construction and move-assignment.
+
+2016-10-08  Filip Pizlo  <fpizlo@apple.com>
+
+        MarkedBlock should know what objects are live during marking
+        https://bugs.webkit.org/show_bug.cgi?id=162309
+
+        Reviewed by Geoffrey Garen.
+        
+        This removes the atomicity mode, because it's not really used: it only affects the
+        concurrentBlah methods, but their only users turn on atomicity. This was useful because
+        previously, some binary Bitmap methods (like merge(const Bitmap&)) couldn't be used
+        effectively in the GC because some of the GC's bitmaps set the atomic mode and some didn't.
+        Removing this useless mode is the best solution.
+        
+        Also added some new binary Bitmap methods: mergeAndClear(Bitmap& other) and
+        setAndClear(Bitmap& other). They perform their action on 'this' (either merge or set,
+        respectively) while also clearing the contents of 'other'. This is great for one of the GC
+        hot paths.
+
+        * wtf/Bitmap.h:
+        (WTF::WordType>::Bitmap):
+        (WTF::WordType>::get):
+        (WTF::WordType>::set):
+        (WTF::WordType>::testAndSet):
+        (WTF::WordType>::testAndClear):
+        (WTF::WordType>::concurrentTestAndSet):
+        (WTF::WordType>::concurrentTestAndClear):
+        (WTF::WordType>::clear):
+        (WTF::WordType>::clearAll):
+        (WTF::WordType>::nextPossiblyUnset):
+        (WTF::WordType>::findRunOfZeros):
+        (WTF::WordType>::count):
+        (WTF::WordType>::isEmpty):
+        (WTF::WordType>::isFull):
+        (WTF::WordType>::merge):
+        (WTF::WordType>::filter):
+        (WTF::WordType>::exclude):
+        (WTF::WordType>::forEachSetBit):
+        (WTF::WordType>::mergeAndClear):
+        (WTF::WordType>::setAndClear):
+        (WTF::=):
+        (WTF::WordType>::hash):
+
+2016-10-11  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Add SynchronizedFixedQueue class
+        https://bugs.webkit.org/show_bug.cgi?id=162478
+
+        Reviewed by Geoffrey Garen.
+
+        This class represents a simple producer/consumer worker. It facilitates
+        synchronizing enqueuing to and dequeuing from a fixed size-queue. It uses
+        a single lock and a single condition to synchronize all its members among
+        the working threads. This means a single thread is active at any time and
+        and the other threads are blocked waiting for the lock to be released. Or
+        they are sleeping waiting for the condition to be satisfied.
+
+        * WTF.xcodeproj/project.pbxproj:
+        * wtf/SynchronizedFixedQueue.h: Added.
+        (WTF::SynchronizedFixedQueue::SynchronizedFixedQueue):
+        (WTF::SynchronizedFixedQueue::open): Restore the queue to its original state.
+        (WTF::SynchronizedFixedQueue::close): Wake all the sleeping threads with a closing state.
+        (WTF::SynchronizedFixedQueue::isOpen): Does the queue accept new items?
+        (WTF::SynchronizedFixedQueue::enqueue): Enqueue an item into the queue.
+        (WTF::SynchronizedFixedQueue::dequeue): Dequeue an item form the queue.
+
+2016-10-11  Alex Christensen  <achristensen@webkit.org>
+
+        Remove dead networking code
+        https://bugs.webkit.org/show_bug.cgi?id=163263
+
+        Reviewed by Daniel Bates.
+
+        * wtf/Platform.h:
+        * wtf/SchedulePair.h:
+        * wtf/SchedulePairMac.mm:
+
+2016-10-10  Zan Dobersek  <zdobersek@igalia.com>
+
+        Add ENABLE_ENCRYPTED_MEDIA configuration option
+        https://bugs.webkit.org/show_bug.cgi?id=163219
+
+        Reviewed by Darin Adler.
+
+        * wtf/FeatureDefines.h:
+        If undefined, define the ENABLE_ENCRYPTED_MEDIA option to 0.
+
+2016-10-10  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Implement Node accessors in DOMJIT
+        https://bugs.webkit.org/show_bug.cgi?id=163005
+
+        Reviewed by Filip Pizlo.
+
+        Add CAST_OFFSET. It is not necessary for JSCell thingy
+        since we don't use virtual member functions. However, it
+        is not true for WebCore DOM wrapped objects.
+
+        * wtf/StdLibExtras.h:
+
 2016-10-07  Chris Dumez  <cdumez@apple.com>
 
         window.navigator.language incorrectly returns all lowercase string

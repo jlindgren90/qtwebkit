@@ -28,9 +28,12 @@
 
 namespace WebCore {
 
-struct HTTPHeaderValues {
-    static const String& TextPlainContentType();
-    static const String& FormURLEncodedContentType();
-};
+namespace HTTPHeaderValues {
+
+const String& textPlainContentType();
+const String& formURLEncodedContentType();
+const String& noCache();
+const String& maxAge0();
+}
 
 }

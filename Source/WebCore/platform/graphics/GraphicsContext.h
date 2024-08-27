@@ -562,8 +562,10 @@ public:
     WEBCORE_EXPORT bool didBeginDraw() const;
     D2D1_COLOR_F colorWithGlobalAlpha(const Color&) const;
 
-    ID2D1SolidColorBrush* solidStrokeBrush();
-    ID2D1SolidColorBrush* solidFillBrush();
+    ID2D1Brush* solidStrokeBrush() const;
+    ID2D1Brush* solidFillBrush() const;
+    ID2D1Brush* patternStrokeBrush() const;
+    ID2D1Brush* patternFillBrush() const;
 #endif
 #else // PLATFORM(WIN)
     bool shouldIncludeChildWindows() const { return false; }
@@ -630,6 +632,11 @@ private:
     void platformFillRoundedRect(const FloatRoundedRect&, const Color&);
 
     FloatRect computeLineBoundsAndAntialiasingModeForText(const FloatPoint&, float width, bool printing, Color&);
+
+    float dashedLineCornerWidthForStrokeWidth(float) const;
+    float dashedLinePatternWidthForStrokeWidth(float) const;
+    float dashedLinePatternOffsetForPatternAndStrokeWidth(float patternWidth, float strokeWidth) const;
+    Vector<FloatPoint> centerLineAndCutOffCorners(bool isVerticalLine, float cornerWidth, FloatPoint point1, FloatPoint point2) const;
 
     GraphicsContextPlatformPrivate* m_data { nullptr };
     DisplayList::Recorder* m_displayListRecorder { nullptr };

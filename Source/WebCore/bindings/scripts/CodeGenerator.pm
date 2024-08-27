@@ -385,7 +385,7 @@ sub IsConstructorTemplate
     my $interface = shift;
     my $template = shift;
 
-    return $interface->extendedAttributes->{"ConstructorTemplate"} && $interface->extendedAttributes->{"ConstructorTemplate"} eq $template;
+    return $interface->extendedAttributes->{"LegacyConstructorTemplate"} && $interface->extendedAttributes->{"LegacyConstructorTemplate"} eq $template;
 }
 
 sub IsNumericType
@@ -474,7 +474,7 @@ sub GetEnumImplementationNameOverride
 sub GetDictionaryByName
 {
     my ($object, $name) = @_;
-    return unless defined($name);
+    die "GetDictionaryByName() was called with an undefined dictionary name" unless defined($name);
 
     for my $dictionary (@{$useDocument->dictionaries}) {
         return $dictionary if $dictionary->name eq $name;
@@ -675,99 +675,6 @@ sub GetSequenceOrFrozenArrayInnerType
     return $object->GetSequenceInnerType($type) if $object->IsSequenceType($type);
     return $object->GetFrozenArrayInnerType($type) if $object->IsFrozenArrayType($type);
     return "";
-}
-
-# http://heycam.github.io/webidl/#dfn-flattened-union-member-types
-sub GetFlattenedMemberTypes
-{
-    my ($object, $idlUnionType) = @_;
-
-    my @flattenedMemberTypes = ();
-
-    foreach my $memberType (@{$idlUnionType->subtypes}) {
-        if ($memberType->isUnion) {
-            push(@flattenedMemberTypes, $object->GetFlattenedMemberTypes($memberType));
-        } else {
-            push(@flattenedMemberTypes, $memberType);
-        }
-    }
-
-    return @flattenedMemberTypes;
-}
-
-# http://heycam.github.io/webidl/#dfn-number-of-nullable-member-types
-sub GetNumberOfNullableMemberTypes
-{
-    my ($object, $idlUnionType) = @_;
-
-    my $count = 0;
-
-    foreach my $memberType (@{$idlUnionType->subtypes}) {
-        $count++ if $memberType->isNullable;
-        $count += $object->GetNumberOfNullableMemberTypes($memberType) if $memberType->isUnion;
-    }
-
-    return $count;
-}
-
-sub GetIDLUnionMemberTypes
-{
-    my ($object, $interface, $idlUnionType) = @_;
-
-    my $numberOfNullableMembers = $object->GetNumberOfNullableMemberTypes($idlUnionType);
-    assert("Union types must only have 0 or 1 nullable types.") if $numberOfNullableMembers > 1;
-
-    my @idlUnionMemberTypes = ();
-
-    push(@idlUnionMemberTypes, "IDLNull") if $numberOfNullableMembers == 1;
-
-    foreach my $memberType ($object->GetFlattenedMemberTypes($idlUnionType)) {
-        push(@idlUnionMemberTypes, $object->GetBaseIDLType($interface, $memberType));
-    }
-
-    return @idlUnionMemberTypes;
-}
-
-sub GetBaseIDLType
-{
-    my ($object, $interface, $idlType) = @_;
-
-    my %IDLTypes = (
-        "any" => "IDLAny",
-        "boolean" => "IDLBoolean",
-        "byte" => "IDLByte",
-        "octet" => "IDLOctet",
-        "short" => "IDLShort",
-        "unsigned short" => "IDLUnsignedShort",
-        "long" => "IDLLong",
-        "unsigned long" => "IDLUnsignedLong",
-        "long long" => "IDLLongLong",
-        "unsigned long long" => "IDLUnsignedLongLong",
-        "float" => "IDLFloat",
-        "unrestricted float" => "IDLUnrestrictedFloat",
-        "double" => "IDLDouble",
-        "unrestricted double" => "IDLUnrestrictedDouble",
-        "DOMString" => "IDLDOMString",
-        "ByteString" => "IDLByteString",
-        "USVString" => "IDLUSVString",
-    );
-
-    return $IDLTypes{$idlType->name} if exists $IDLTypes{$idlType->name};
-    return "IDLEnumeration<" . $object->GetEnumerationClassName($interface, $idlType->name) . ">" if $object->IsEnumType($idlType->name);
-    return "IDLDictionary<" . $object->GetDictionaryClassName($interface, $idlType->name) . ">" if $object->IsDictionaryType($idlType->name);
-    return "IDLSequence<" . $object->GetIDLType($interface, @{$idlType->subtypes}[0]) . ">" if $object->IsSequenceType($idlType->name);
-    return "IDLFrozenArray<" . $object->GetIDLType($interface, @{$idlType->subtypes}[0]) . ">" if $object->IsFrozenArrayType($idlType->name);
-    return "IDLUnion<" . join(", ", $object->GetIDLUnionMemberTypes($interface, $idlType)) . ">" if $idlType->isUnion;
-    return "IDLInterface<" . $idlType->name . ">";
-}
-
-sub GetIDLType
-{
-    my ($object, $interface, $idlType) = @_;
-
-    my $baseIDLType = $object->GetBaseIDLType($interface, $idlType);
-    return "IDLNullable<" . $baseIDLType . ">" if $idlType->isNullable;
-    return $baseIDLType;
 }
 
 # These match WK_lcfirst and WK_ucfirst defined in builtins_generator.py.
@@ -1086,19 +993,6 @@ sub GenerateConditionalString
     my $node = shift;
 
     my $conditional = $node->extendedAttributes->{"Conditional"};
-    if ($conditional) {
-        return $generator->GenerateConditionalStringFromAttributeValue($conditional);
-    } else {
-        return "";
-    }
-}
-
-sub GenerateConstructorConditionalString
-{
-    my $generator = shift;
-    my $node = shift;
-
-    my $conditional = $node->extendedAttributes->{"ConstructorConditional"};
     if ($conditional) {
         return $generator->GenerateConditionalStringFromAttributeValue($conditional);
     } else {

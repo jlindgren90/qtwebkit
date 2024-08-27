@@ -104,22 +104,25 @@ private:
 
     static RefPtr<TypingCommand> lastTypingCommandIfStillOpenForTyping(Frame&);
 
-    void doApply();
-    bool isTypingCommand() const;
-    bool preservesTypingStyle() const { return m_preservesTypingStyle; }
-    bool shouldRetainAutocorrectionIndicator() const
+    void doApply() final;
+    bool isTypingCommand() const final;
+    bool preservesTypingStyle() const final { return m_preservesTypingStyle; }
+    bool shouldRetainAutocorrectionIndicator() const final
     {
         ASSERT(isTopLevelCommand());
         return m_shouldRetainAutocorrectionIndicator;
     }
-    void setShouldRetainAutocorrectionIndicator(bool retain) { m_shouldRetainAutocorrectionIndicator = retain; }
-    bool shouldStopCaretBlinking() const { return true; }
+    void setShouldRetainAutocorrectionIndicator(bool retain) final { m_shouldRetainAutocorrectionIndicator = retain; }
+    bool shouldStopCaretBlinking() const final { return true; }
     void setShouldPreventSpellChecking(bool prevent) { m_shouldPreventSpellChecking = prevent; }
+
+    String inputEventTypeName() const final;
+    String inputEventData() const final;
 
     static void updateSelectionIfDifferentFromCurrentSelection(TypingCommand*, Frame*);
 
     void updatePreservesTypingStyle(ETypingCommand);
-    bool willAddTypingToOpenCommand(ETypingCommand, TextGranularity);
+    bool willAddTypingToOpenCommand(ETypingCommand, TextGranularity, const String& = emptyString());
     void markMisspellingsAfterTyping(ETypingCommand);
     void typingAddedToOpenCommand(ETypingCommand);
     bool makeEditableRootEmpty();
@@ -130,11 +133,13 @@ private:
     void insertParagraphSeparatorInQuotedContentAndNotifyAccessibility();
     void insertParagraphSeparatorAndNotifyAccessibility();
 
-    bool willApplyCommand();
-    void didApplyCommand();
+    bool willApplyCommand() final;
+    void didApplyCommand() final;
 
     ETypingCommand m_commandType;
+    EditAction m_currentTypingEditAction;
     String m_textToInsert;
+    String m_currentTextToInsert;
     bool m_openForMoreTyping;
     bool m_selectInsertedText;
     bool m_smartDelete;

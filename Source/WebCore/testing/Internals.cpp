@@ -417,6 +417,11 @@ void Internals::resetToConsistentState(Page& page)
     MockContentFilterSettings::reset();
 #endif
 
+#if ENABLE(WIRELESS_PLAYBACK_TARGET)
+    page.setMockMediaPlaybackTargetPickerEnabled(true);
+    page.setMockMediaPlaybackTargetPickerState(emptyString(), MediaPlaybackTargetContext::Unknown);
+#endif
+
     page.setShowAllPlugins(false);
 
 #if PLATFORM(QT)
@@ -3487,5 +3492,12 @@ void Internals::setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection use
 
     page->setUserInterfaceLayoutDirection(userInterfaceLayoutDirection == UserInterfaceLayoutDirection::LTR ? WebCore::UserInterfaceLayoutDirection::LTR : WebCore::UserInterfaceLayoutDirection::RTL);
 }
+
+#if !PLATFORM(COCOA)
+bool Internals::userPrefersReducedMotion() const
+{
+    return false;
+}
+#endif
 
 } // namespace WebCore

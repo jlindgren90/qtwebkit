@@ -71,9 +71,21 @@ Scope::Scope(ShadowRoot& shadowRoot)
 {
 }
 
+bool Scope::shouldUseSharedUserAgentShadowTreeStyleResolver() const
+{
+    if (!m_shadowRoot)
+        return false;
+    if (m_shadowRoot->mode() != ShadowRoot::Mode::UserAgent)
+        return false;
+    // If we have stylesheets in the user agent shadow tree use per-scope resolver.
+    if (!m_styleSheetCandidateNodes.isEmpty())
+        return false;
+    return true;
+}
+
 StyleResolver& Scope::resolver()
 {
-    if (m_shadowRoot && m_shadowRoot->mode() == ShadowRoot::Mode::UserAgent)
+    if (shouldUseSharedUserAgentShadowTreeStyleResolver())
         return m_document.userAgentShadowTreeStyleResolver();
 
     if (!m_resolver) {
@@ -85,7 +97,7 @@ StyleResolver& Scope::resolver()
 
 StyleResolver* Scope::resolverIfExists()
 {
-    if (m_shadowRoot && m_shadowRoot->mode() == ShadowRoot::Mode::UserAgent)
+    if (shouldUseSharedUserAgentShadowTreeStyleResolver())
         return &m_document.userAgentShadowTreeStyleResolver();
 
     return m_resolver.get();
@@ -129,13 +141,10 @@ void Scope::removePendingSheet(RemovePendingSheetNotificationType notification)
         return;
     }
 
-    if (m_shadowRoot) {
-        // FIXME: Make optimized updates work.
-        didChangeContentsOrInterpretation();
-        return;
-    }
+    didChangeCandidatesForActiveSet();
 
-    m_document.didRemoveAllPendingStylesheet();
+    if (!m_shadowRoot)
+        m_document.didRemoveAllPendingStylesheet();
 }
 
 void Scope::addStyleSheetCandidateNode(Node& node, bool createdByParser)
@@ -300,7 +309,12 @@ Scope::StyleResolverUpdateType Scope::analyzeStyleSheetChange(const Vector<RefPt
     StyleInvalidationAnalysis invalidationAnalysis(addedSheets, styleResolver.mediaQueryEvaluator());
     if (invalidationAnalysis.dirtiesAllStyle())
         return styleResolverUpdateType;
-    invalidationAnalysis.invalidateStyle(m_document);
+
+    if (m_shadowRoot)
+        invalidationAnalysis.invalidateStyle(*m_shadowRoot);
+    else
+        invalidationAnalysis.invalidateStyle(m_document);
+
     requiresFullStyleRecalc = false;
 
     return styleResolverUpdateType;
@@ -346,10 +360,6 @@ void Scope::updateActiveStyleSheets(UpdateType updateType)
         clearResolver();
         return;
     }
-
-    // FIXME: Support optimized invalidation in shadow trees.
-    if (m_shadowRoot)
-        updateType = UpdateType::ContentsOrInterpretation;
 
     m_didUpdateActiveStyleSheets = true;
 
@@ -405,14 +415,6 @@ void Scope::updateStyleResolver(Vector<RefPtr<CSSStyleSheet>>& activeStyleSheets
         Vector<RefPtr<CSSStyleSheet>> newStyleSheets;
         newStyleSheets.appendRange(activeStyleSheets.begin() + firstNewIndex, activeStyleSheets.end());
         styleResolver.appendAuthorStyleSheets(newStyleSheets);
-    }
-
-    if (!m_shadowRoot) {
-        auto& userAgentShadowTreeStyleResolver = m_document.userAgentShadowTreeStyleResolver();
-        userAgentShadowTreeStyleResolver.ruleSets().resetAuthorStyle();
-        auto& authorRuleSet = styleResolver.ruleSets().authorStyle();
-        if (authorRuleSet.hasShadowPseudoElementRules())
-            userAgentShadowTreeStyleResolver.ruleSets().authorStyle().copyShadowPseudoElementRulesFrom(authorRuleSet);
     }
 }
 

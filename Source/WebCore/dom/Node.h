@@ -533,7 +533,7 @@ public:
 
     bool dispatchBeforeLoadEvent(const String& sourceURL);
 
-    virtual void dispatchInputEvent(const AtomicString& inputType);
+    void dispatchInputEvent();
 
     // Perform the default action for an event.
     virtual void defaultEventHandler(Event&);
@@ -567,10 +567,11 @@ public:
     void updateAncestorConnectedSubframeCountForRemoval() const;
     void updateAncestorConnectedSubframeCountForInsertion() const;
 
-#if ENABLE(CSS_SELECTOR_JIT)
+#if ENABLE(JIT)
     static ptrdiff_t nodeFlagsMemoryOffset() { return OBJECT_OFFSETOF(Node, m_nodeFlags); }
     static ptrdiff_t rareDataMemoryOffset() { return OBJECT_OFFSETOF(Node, m_data.m_rareData); }
     static int32_t flagIsText() { return IsTextFlag; }
+    static int32_t flagIsContainer() { return IsContainerFlag; }
     static int32_t flagIsElement() { return IsElementFlag; }
     static int32_t flagIsHTML() { return IsHTMLFlag; }
     static int32_t flagIsLink() { return IsLinkFlag; }
@@ -582,7 +583,7 @@ public:
 
     static int32_t flagAffectsNextSiblingElementStyle() { return AffectsNextSiblingElementStyle; }
     static int32_t flagStyleIsAffectedByPreviousSibling() { return StyleIsAffectedByPreviousSibling; }
-#endif // ENABLE(CSS_SELECTOR_JIT)
+#endif // ENABLE(JIT)
 
 protected:
     enum NodeFlags {

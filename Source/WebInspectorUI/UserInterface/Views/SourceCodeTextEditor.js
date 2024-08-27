@@ -1235,11 +1235,19 @@ WebInspector.SourceCodeTextEditor = class SourceCodeTextEditor extends WebInspec
             }
 
             // Find a node starting at this offset.
+            // Avoid highlighting the entire program if this is the start of the first statement.
+            // Special case the assignment expression inside of a for..of and for..in to highlight a larger range.
             for (let node of nodes) {
                 let startOffset = node.range[0];
-                if (startOffset === offset) {
+                if (startOffset === offset && node.type !== WebInspector.ScriptSyntaxTree.NodeType.Program) {
                     callback(convertRangeOffsetsToSourceCodeOffsets(node.range));
                     return;
+                }
+                if (node.type === WebInspector.ScriptSyntaxTree.NodeType.ForInStatement || node.type === WebInspector.ScriptSyntaxTree.NodeType.ForOfStatement) {
+                    if (node.left.range[0] === offset) {
+                        callback(convertRangeOffsetsToSourceCodeOffsets([node.left.range[0], node.right.range[1]]));
+                        return;
+                    }
                 }
                 if (startOffset > offset)
                     break;
@@ -1508,7 +1516,7 @@ WebInspector.SourceCodeTextEditor = class SourceCodeTextEditor extends WebInspec
         var sourceCode = this._sourceCode;
         var sourceID = sourceCode instanceof WebInspector.Script ? sourceCode.id : sourceCode.scripts[0].id;
         var range = candidate.hoveredTokenRange;
-        var offset = this.positionToOffset({line: range.start.line, ch: range.start.ch});
+        var offset = this.currentPositionToOriginalOffset(range.start);
 
         var allRequests = [{
             typeInformationDescriptor: WebInspector.ScriptSyntaxTree.TypeProfilerSearchDescriptor.NormalExpression,

@@ -448,9 +448,9 @@
 - path: test262/test/annexB/built-ins/RegExp/prototype/compile/pattern-to-string-err.js
   cmd: runTest262 :normal, "NoException", ["../../../../../../harness/assert.js", "../../../../../../harness/sta.js"], [:strict]
 - path: test262/test/annexB/built-ins/RegExp/prototype/compile/pattern-undefined.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../../harness/assert.js", "../../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../../../harness/assert.js", "../../../../../../harness/sta.js"], []
 - path: test262/test/annexB/built-ins/RegExp/prototype/compile/pattern-undefined.js
-  cmd: runTest262 :fail, "NoException", ["../../../../../../harness/assert.js", "../../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../../../harness/assert.js", "../../../../../../harness/sta.js"], [:strict]
 - path: test262/test/annexB/built-ins/RegExp/prototype/compile/this-not-object.js
   cmd: runTest262 :normal, "NoException", ["../../../../../../harness/assert.js", "../../../../../../harness/sta.js"], []
 - path: test262/test/annexB/built-ins/RegExp/prototype/compile/this-not-object.js
@@ -3054,9 +3054,9 @@
 - path: test262/test/built-ins/Array/of/return-a-custom-instance.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Array/of/return-a-new-array-object.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Array/of/return-a-new-array-object.js
-  cmd: runTest262 :fail, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], [:strict]
 - path: test262/test/built-ins/Array/of/return-abrupt-from-contructor.js
   cmd: runTest262 :normal, "NoException", ["../../../../harness/assert.js", "../../../../harness/sta.js"], []
 - path: test262/test/built-ins/Array/of/return-abrupt-from-contructor.js

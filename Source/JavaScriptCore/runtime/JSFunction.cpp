@@ -455,7 +455,7 @@ bool JSFunction::put(JSCell* cell, ExecState* exec, PropertyName propertyName, J
     }
     if (propertyName == vm.propertyNames->arguments || propertyName == vm.propertyNames->caller) {
         if (slot.isStrictMode())
-            throwTypeError(exec, scope, StrictModeReadonlyPropertyWriteError);
+            throwTypeError(exec, scope, ReadonlyPropertyWriteError);
         return false;
     }
     thisObject->reifyLazyPropertyIfNeeded(vm, exec, propertyName);
@@ -573,6 +573,8 @@ ConstructType JSFunction::getConstructData(JSCell* cell, ConstructData& construc
     JSFunction* thisObject = jsCast<JSFunction*>(cell);
 
     if (thisObject->isHostFunction()) {
+        if (thisObject->nativeConstructor() == callHostFunctionAsConstructor)
+            return ConstructType::None;
         constructData.native.function = thisObject->nativeConstructor();
         return ConstructType::Host;
     }

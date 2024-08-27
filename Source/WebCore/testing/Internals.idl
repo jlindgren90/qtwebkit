@@ -473,4 +473,6 @@ enum UserInterfaceLayoutDirection {
     GCObservation observeGC(any observed);
 
     void setUserInterfaceLayoutDirection(UserInterfaceLayoutDirection userInterfaceLayoutDirection);
+
+    boolean userPrefersReducedMotion();
 };

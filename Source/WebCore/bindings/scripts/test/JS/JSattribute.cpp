@@ -132,24 +132,24 @@ void JSattribute::destroy(JSC::JSCell* cell)
     thisObject->JSattribute::~JSattribute();
 }
 
-inline JSattribute* JSattribute::castForAttribute(JSC::ExecState*, EncodedJSValue thisValue)
+template<> inline JSattribute* BindingCaller<JSattribute>::castForAttribute(ExecState&, EncodedJSValue thisValue)
 {
     return jsDynamicCast<JSattribute*>(JSValue::decode(thisValue));
 }
 
-static inline JSValue jsattributeReadonlyGetter(ExecState*, JSattribute*, ThrowScope& throwScope);
+static inline JSValue jsattributeReadonlyGetter(ExecState&, JSattribute&, ThrowScope& throwScope);
 
 EncodedJSValue jsattributeReadonly(ExecState* state, EncodedJSValue thisValue, PropertyName)
 {
     return BindingCaller<JSattribute>::attribute<jsattributeReadonlyGetter>(state, thisValue, "readonly");
 }
 
-static inline JSValue jsattributeReadonlyGetter(ExecState* state, JSattribute* thisObject, ThrowScope& throwScope)
+static inline JSValue jsattributeReadonlyGetter(ExecState& state, JSattribute& thisObject, ThrowScope& throwScope)
 {
     UNUSED_PARAM(throwScope);
     UNUSED_PARAM(state);
-    auto& impl = thisObject->wrapped();
-    JSValue result = jsStringWithCache(state, impl.readonly());
+    auto& impl = thisObject.wrapped();
+    JSValue result = jsStringWithCache(&state, impl.readonly());
     return result;
 }
 

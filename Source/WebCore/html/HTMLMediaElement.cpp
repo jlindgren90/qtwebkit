@@ -145,8 +145,8 @@
 #endif
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-#include "MediaKeyNeededEvent.h"
-#include "MediaKeys.h"
+#include "WebKitMediaKeyNeededEvent.h"
+#include "WebKitMediaKeys.h"
 #endif
 
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
@@ -504,7 +504,8 @@ HTMLMediaElement::HTMLMediaElement(const QualifiedName& tagName, Document& docum
     if (document.ownerElement() || !document.isMediaDocument()) {
         if (settings && settings->videoPlaybackRequiresUserGesture()) {
             m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForVideoRateChange);
-            m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForLoad);
+            if (settings->requiresUserGestureToLoadVideo())
+                m_mediaSession->addBehaviorRestriction(MediaElementSession::RequireUserGestureForLoad);
         }
 
         if (settings && settings->audioPlaybackRequiresUserGesture())
@@ -583,7 +584,7 @@ HTMLMediaElement::~HTMLMediaElement()
 #endif
 
 #if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    setMediaKeys(0);
+    webkitSetMediaKeys(0);
 #endif
 
 #if ENABLE(MEDIA_CONTROLS_SCRIPT)
@@ -2451,7 +2452,7 @@ bool HTMLMediaElement::mediaPlayerKeyNeeded(MediaPlayer*, Uint8Array* initData)
         return false;
     }
 
-    auto event = MediaKeyNeededEvent::create(eventNames().webkitneedkeyEvent, initData);
+    auto event = WebKitMediaKeyNeededEvent::create(eventNames().webkitneedkeyEvent, initData);
     event->setTarget(this);
     m_asyncEventQueue.enqueueEvent(WTFMove(event));
 
@@ -2475,7 +2476,7 @@ String HTMLMediaElement::mediaPlayerMediaKeysStorageDirectory() const
     return pathByAppendingComponent(storageDirectory, origin->databaseIdentifier());
 }
 
-void HTMLMediaElement::setMediaKeys(MediaKeys* mediaKeys)
+void HTMLMediaElement::webkitSetMediaKeys(WebKitMediaKeys* mediaKeys)
 {
     if (m_mediaKeys == mediaKeys)
         return;
@@ -3245,92 +3246,6 @@ void HTMLMediaElement::detachMediaSource()
 }
 #endif
 
-#if ENABLE(ENCRYPTED_MEDIA)
-void HTMLMediaElement::webkitGenerateKeyRequest(const String& keySystem, const RefPtr<Uint8Array>& initData, ExceptionCode& ec)
-{
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    static bool firstTime = true;
-    if (firstTime && scriptExecutionContext()) {
-        scriptExecutionContext()->addConsoleMessage(MessageSource::JS, MessageLevel::Warning, ASCIILiteral("'HTMLMediaElement.webkitGenerateKeyRequest()' is deprecated.  Use 'MediaKeys.createSession()' instead."));
-        firstTime = false;
-    }
-#endif
-
-    if (keySystem.isEmpty()) {
-        ec = SYNTAX_ERR;
-        return;
-    }
-
-    if (!m_player) {
-        ec = INVALID_STATE_ERR;
-        return;
-    }
-
-    const unsigned char* initDataPointer = nullptr;
-    unsigned initDataLength = 0;
-    if (initData) {
-        initDataPointer = initData->data();
-        initDataLength = initData->length();
-    }
-
-    MediaPlayer::MediaKeyException result = m_player->generateKeyRequest(keySystem, initDataPointer, initDataLength);
-    ec = exceptionCodeForMediaKeyException(result);
-}
-
-void HTMLMediaElement::webkitAddKey(const String& keySystem, Uint8Array& key, const RefPtr<Uint8Array>& initData, const String& sessionId, ExceptionCode& ec)
-{
-#if ENABLE(LEGACY_ENCRYPTED_MEDIA)
-    static bool firstTime = true;
-    if (firstTime && scriptExecutionContext()) {
-        scriptExecutionContext()->addConsoleMessage(MessageSource::JS, MessageLevel::Warning, ASCIILiteral("'HTMLMediaElement.webkitAddKey()' is deprecated.  Use 'MediaKeySession.update()' instead."));
-        firstTime = false;
-    }
-#endif
-
-    if (keySystem.isEmpty()) {
-        ec = SYNTAX_ERR;
-        return;
-    }
-
-    if (!key.length()) {
-        ec = TYPE_MISMATCH_ERR;
-        return;
-    }
-
-    if (!m_player) {
-        ec = INVALID_STATE_ERR;
-        return;
-    }
-
-    const unsigned char* initDataPointer = nullptr;
-    unsigned initDataLength = 0;
-    if (initData) {
-        initDataPointer = initData->data();
-        initDataLength = initData->length();
-    }
-
-    MediaPlayer::MediaKeyException result = m_player->addKey(keySystem, key.data(), key.length(), initDataPointer, initDataLength, sessionId);
-    ec = exceptionCodeForMediaKeyException(result);
-}
-
-void HTMLMediaElement::webkitCancelKeyRequest(const String& keySystem, const String& sessionId, ExceptionCode& ec)
-{
-    if (keySystem.isEmpty()) {
-        ec = SYNTAX_ERR;
-        return;
-    }
-
-    if (!m_player) {
-        ec = INVALID_STATE_ERR;
-        return;
-    }
-
-    MediaPlayer::MediaKeyException result = m_player->cancelKeyRequest(keySystem, sessionId);
-    ec = exceptionCodeForMediaKeyException(result);
-}
-
-#endif
-
 bool HTMLMediaElement::loop() const
 {
     return hasAttributeWithoutSynchronization(loopAttr);
@@ -3423,6 +3338,7 @@ void HTMLMediaElement::setMuted(bool muted)
     }
 
     scheduleUpdatePlaybackControlsManager();
+    updateAudioAssertionState();
 }
 
 void HTMLMediaElement::togglePlayState()
@@ -4944,6 +4860,8 @@ void HTMLMediaElement::updateVolume()
     if (hasMediaControls())
         mediaControls()->changedVolume();
 #endif
+
+    updateAudioAssertionState();
 }
 
 void HTMLMediaElement::updatePlayState(UpdateState updateState)
@@ -4963,7 +4881,7 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
         m_playbackProgressTimer.stop();
         if (hasMediaControls())
             mediaControls()->playbackStopped();
-        m_activityToken = nullptr;
+        updateAudioAssertionState();
         return;
     }
     
@@ -5001,8 +4919,6 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
 
         if (hasMediaControls())
             mediaControls()->playbackStarted();
-        if (document().page())
-            m_activityToken = document().page()->pageThrottler().mediaActivityToken();
 
         startPlaybackProgressTimer();
         setPlaying(true);
@@ -5024,7 +4940,6 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
 
         if (hasMediaControls())
             mediaControls()->playbackStopped();
-        m_activityToken = nullptr;
     }
     
     updateMediaController();
@@ -5032,6 +4947,8 @@ void HTMLMediaElement::updatePlayState(UpdateState updateState)
 
     m_hasEverHadAudio |= hasAudio();
     m_hasEverHadVideo |= hasVideo();
+
+    updateAudioAssertionState();
 }
 
 void HTMLMediaElement::setPlaying(bool playing)
@@ -5140,6 +5057,11 @@ void HTMLMediaElement::clearMediaPlayer(DelayedActionType flags)
         // Send an availability event in case scripts want to hide the picker when the element
         // doesn't support playback to a target.
         enqueuePlaybackTargetAvailabilityChangedEvent();
+    }
+
+    if (m_isPlayingToWirelessTarget) {
+        m_isPlayingToWirelessTarget = false;
+        scheduleEvent(eventNames().webkitcurrentplaybacktargetiswirelesschangedEvent);
     }
 #endif
 
@@ -7085,6 +7007,42 @@ void HTMLMediaElement::pageMutedStateDidChange()
 bool HTMLMediaElement::effectiveMuted() const
 {
     return muted() || (document().page() && document().page()->isMuted());
+}
+
+void HTMLMediaElement::updateAudioAssertionState()
+{
+    auto* page = document().page();
+    if (!page) {
+        m_audioActivityToken = nullptr;
+        return;
+    }
+
+#define RELEASE_AUDIO_TOKEN(REASON) \
+    RELEASE_LOG_IF(page->isAlwaysOnLoggingAllowed() && m_audioActivityToken, Media, "%p - HTMLMediaElement releases audio activity token, reason: " REASON, this); \
+    m_audioActivityToken = nullptr
+
+    if (!hasAudio()) {
+        RELEASE_AUDIO_TOKEN("No audio");
+        return;
+    }
+    if (!isPlaying()) {
+        RELEASE_AUDIO_TOKEN("Not playing");
+        return;
+    }
+    if (effectiveMuted()) {
+        RELEASE_AUDIO_TOKEN("Audio is muted");
+        return;
+    }
+    if (!volume()) {
+        RELEASE_AUDIO_TOKEN("Volume is 0");
+        return;
+    }
+    if (!m_audioActivityToken) {
+        RELEASE_LOG_IF(page->isAlwaysOnLoggingAllowed(), Media, "%p - HTMLMediaElement takes audio activity token because there is audible audio", this);
+        m_audioActivityToken = page->pageThrottler().mediaActivityToken();
+    }
+
+#undef RELEASE_AUDIO_TOKEN
 }
 
 bool HTMLMediaElement::doesHaveAttribute(const AtomicString& attribute, AtomicString* value) const

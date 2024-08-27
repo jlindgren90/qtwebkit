@@ -29,6 +29,7 @@
 #import "WebBackForwardList.h"
 #import "WebBackForwardListInternal.h"
 
+#import "BackForwardList.h"
 #import "WebFrameInternal.h"
 #import "WebHistoryItemInternal.h"
 #import "WebHistoryItemPrivate.h"
@@ -38,7 +39,6 @@
 #import "WebPreferencesPrivate.h"
 #import "WebTypesInternal.h"
 #import "WebViewPrivate.h"
-#import <WebCore/BackForwardList.h>
 #import <WebCore/HistoryItem.h>
 #import <WebCore/Page.h>
 #import <WebCore/PageCache.h>
@@ -82,17 +82,17 @@ WebBackForwardList *kit(BackForwardList* backForwardList)
     if (WebBackForwardList *webBackForwardList = backForwardLists().get(backForwardList))
         return webBackForwardList;
 
-    return [[[WebBackForwardList alloc] initWithBackForwardList:backForwardList] autorelease];
+    return [[[WebBackForwardList alloc] initWithBackForwardList:*backForwardList] autorelease];
 }
 
-- (id)initWithBackForwardList:(PassRefPtr<BackForwardList>)backForwardList
+- (id)initWithBackForwardList:(Ref<BackForwardList>&&)backForwardList
 {   
     WebCoreThreadViolationCheckRoundOne();
     self = [super init];
     if (!self)
         return nil;
 
-    _private = reinterpret_cast<WebBackForwardListPrivate*>(backForwardList.leakRef());
+    _private = reinterpret_cast<WebBackForwardListPrivate*>(&backForwardList.leakRef());
     backForwardLists().set(core(self), self);
     return self;
 }
@@ -160,7 +160,7 @@ WebBackForwardList *kit(BackForwardList* backForwardList)
 {
     BackForwardList *coreBFList = core(self);
     
-    HistoryItemVector& historyItems = coreBFList->entries();
+    auto& historyItems = coreBFList->entries();
     unsigned size = historyItems.size();
     NSMutableArray *entriesArray = [[NSMutableArray alloc] initWithCapacity:size];
     for (unsigned i = 0; i < size; ++i)
@@ -232,7 +232,7 @@ WebBackForwardList *kit(BackForwardList* backForwardList)
     return [[kit(core(self)->forwardItem()) retain] autorelease];
 }
 
-static NSArray* vectorToNSArray(HistoryItemVector& list)
+static NSArray* vectorToNSArray(Vector<Ref<HistoryItem>>& list)
 {
     unsigned size = list.size();
     NSMutableArray *result = [[[NSMutableArray alloc] initWithCapacity:size] autorelease];
@@ -256,7 +256,7 @@ static bool bumperCarBackForwardHackNeeded()
 
 - (NSArray *)backListWithLimit:(int)limit
 {
-    HistoryItemVector list;
+    Vector<Ref<HistoryItem>> list;
     core(self)->backListWithLimit(limit, list);
     NSArray *result = vectorToNSArray(list);
     
@@ -271,7 +271,7 @@ static bool bumperCarBackForwardHackNeeded()
 
 - (NSArray *)forwardListWithLimit:(int)limit
 {
-    HistoryItemVector list;
+    Vector<Ref<HistoryItem>> list;
     core(self)->forwardListWithLimit(limit, list);
     NSArray *result = vectorToNSArray(list);
     
@@ -305,7 +305,7 @@ static bool bumperCarBackForwardHackNeeded()
     [result appendString:@"WebBackForwardList:\n"];
     
     BackForwardList* backForwardList = core(self);
-    HistoryItemVector& entries = backForwardList->entries();
+    auto& entries = backForwardList->entries();
     
     unsigned size = entries.size();
     for (unsigned i = 0; i < size; ++i) {
@@ -332,12 +332,12 @@ static bool bumperCarBackForwardHackNeeded()
 
 - (void)setPageCacheSize:(NSUInteger)size
 {
-    [kit(core(self)->page()) setUsesPageCache:size != 0];
+    [core(self)->webView() setUsesPageCache:size != 0];
 }
 
 - (NSUInteger)pageCacheSize
 {
-    return [kit(core(self)->page()) usesPageCache] ? PageCache::singleton().maxSize() : 0;
+    return [core(self)->webView() usesPageCache] ? PageCache::singleton().maxSize() : 0;
 }
 
 - (int)backListCount

@@ -32,33 +32,35 @@ namespace WebCore {
 class DOMWindow;
 class DataTransfer;
 
-struct InputEventInit : public UIEventInit {
-    String inputType;
-};
-
 class InputEvent final : public UIEvent {
 public:
-    static Ref<InputEvent> create(const AtomicString& eventType, const String& inputType, bool canBubble, bool cancelable, DOMWindow* view, int detail)
+    static Ref<InputEvent> create(const AtomicString& eventType, const String& inputType, bool canBubble, bool cancelable, DOMWindow* view, const String& data, int detail)
     {
-        return adoptRef(*new InputEvent(eventType, inputType, canBubble, cancelable, view, detail));
+        return adoptRef(*new InputEvent(eventType, inputType, canBubble, cancelable, view, data, detail));
     }
 
-    static Ref<InputEvent> createForBindings(const AtomicString& type, const InputEventInit& initializer)
+    struct Init : UIEventInit {
+        String data;
+    };
+
+    static Ref<InputEvent> create(const AtomicString& type, const Init& initializer, IsTrusted isTrusted = IsTrusted::No)
     {
-        return adoptRef(*new InputEvent(type, initializer));
+        return adoptRef(*new InputEvent(type, initializer, isTrusted));
     }
 
-    InputEvent(const AtomicString& eventType, const String& inputType, bool canBubble, bool cancelable, DOMWindow*, int detail);
-    InputEvent(const AtomicString& eventType, const InputEventInit&);
+    InputEvent(const AtomicString& eventType, const String& inputType, bool canBubble, bool cancelable, DOMWindow*, const String& data, int detail);
+    InputEvent(const AtomicString& eventType, const Init&, IsTrusted);
 
     virtual ~InputEvent() { }
 
     bool isInputEvent() const override { return true; }
     EventInterface eventInterface() const final { return InputEventInterfaceType; }
-    String inputType() const { return m_inputType.string(); }
+    const String& inputType() const { return m_inputType; }
+    const String& data() const { return m_data; }
 
 private:
-    AtomicString m_inputType;
+    String m_inputType;
+    String m_data;
 };
 
 } // namespace WebCore
