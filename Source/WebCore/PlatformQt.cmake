@@ -291,7 +291,6 @@ list(APPEND WebCore_LIBRARIES
     ${SQLITE_LIBRARIES}
     ${X11_X11_LIB}
     ${ZLIB_LIBRARIES}
-    jpeg
 )
 
 if (QT_STATIC_BUILD)

@@ -470,17 +470,7 @@ else ()
 endif ()
 
 find_package(Threads REQUIRED)
-
-if (USE_LIBJPEG)
-    # Additional names of libjpeg to search (fixed in CMake 3.12.0)
-    set(JPEG_NAMES jpeg-static libjpeg-static)
-    find_package(JPEG)
-    if (NOT JPEG_FOUND)
-        message(FATAL_ERROR "libjpeg not found. Please make sure that CMake can find its header files and libraries, or build with -DUSE_LIBJPEG=OFF with possible degradation of user experience")
-    endif ()
-else ()
-    message(WARNING "USE_LIBJPEG is disabled, will attempt using QImageReader to decode JPEG with possible degradation of user experience")
-endif ()
+find_package(JPEG REQUIRED)
 
 if (NOT QT_BUNDLED_PNG)
     find_package(PNG REQUIRED)
