@@ -38,7 +38,7 @@ CustomEvent::CustomEvent(IsTrusted isTrusted)
 
 CustomEvent::CustomEvent(JSC::ExecState& state, const AtomicString& type, const Init& initializer, IsTrusted isTrusted)
     : Event(type, initializer, isTrusted)
-    , m_detail(state.vm(), initializer.detail)
+    , m_detail(initializer.detail)
 {
 }
 

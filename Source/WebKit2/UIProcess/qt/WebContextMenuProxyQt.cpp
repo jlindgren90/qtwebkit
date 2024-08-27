@@ -40,6 +40,10 @@ void WebContextMenuProxyQt::show()
 {
 }
 
+void WebContextMenuProxyQt::showContextMenuWithItems(const Vector<WebContextMenuItemData>& items)
+{
+}
+
 #include "moc_WebContextMenuProxyQt.cpp"
 
 } // namespace WebKit
