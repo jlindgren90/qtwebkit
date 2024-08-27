@@ -1,3 +1,186 @@
+2016-10-19  Chris Dumez  <cdumez@apple.com>
+
+        MouseEvent's coordinates should be 0 for simulated clicks
+        https://bugs.webkit.org/show_bug.cgi?id=163648
+
+        Reviewed by Darin Adler.
+
+        Add layout test coverage. I verified that this test is passing in
+        Firefox and Chrome as well.
+
+        * fast/events/element-click-no-coords-expected.txt: Added.
+        * fast/events/element-click-no-coords.html: Added.
+
+2016-10-19  Nan Wang  <n_wang@apple.com>
+
+        AX: [Mac] Meter element should use AXValueDescription to descrbe the status of the value
+        https://bugs.webkit.org/show_bug.cgi?id=163610
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/mac/meter-gauge-value-description-expected.txt: Added.
+        * accessibility/mac/meter-gauge-value-description.html: Added.
+
+2016-10-19  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking WPT html/webappapis/animation-frames/callback-* tests as flaky on mac-wk1.
+        https://bugs.webkit.org/show_bug.cgi?id=163361
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-10-19  Javier Fernandez  <jfernandez@igalia.com>
+
+        Web Inspector: Debugger buttons positioned incorrectly, align-content default value is unexpected
+        https://bugs.webkit.org/show_bug.cgi?id=163572
+
+        Reviewed by Sergio Villar Senin.
+
+        Modified test cases for initial values.
+        Added regression test for the align-content issue.
+
+        * css3/flexbox/flexbox-lines-must-be-stretched-by-default-expected.txt: Added.
+        * css3/flexbox/flexbox-lines-must-be-stretched-by-default.html: Added.
+        * fast/css/ensure-flexbox-compatibility-with-initial-values-expected.txt:
+
+2016-10-19  Jer Noble  <jer.noble@apple.com>
+
+        [Mac][MSE] Movies with a 'mvex' box have a zero-duration
+        https://bugs.webkit.org/show_bug.cgi?id=163641
+
+        Reviewed by Darin Adler.
+
+        * media/media-source/content/test-fragmented-manifest.json:
+        * media/media-source/content/test-fragmented.mp4:
+        * platform/mac/TestExpectations:
+
+2016-10-18  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Import the latest custom elements tests from W3C
+        https://bugs.webkit.org/show_bug.cgi?id=163640
+
+        Reviewed by Chris Dumez.
+
+        Removed the test re-imported via web-platform-tests in r206838.
+
+        * fast/custom-elements/lifecycle-callback-timing-expected.txt: Removed.
+        * fast/custom-elements/lifecycle-callback-timing.html: Removed.
+
+2016-10-18  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Drop webkit-specific extended attributes that are no longer useful
+        https://bugs.webkit.org/show_bug.cgi?id=163643
+
+        Reviewed by Ryosuke Niwa.
+
+        Add layout test to check that Notification.permission is now deletable.
+
+        * fast/notifications/notification-permisssion-deletable-expected.txt: Added.
+        * fast/notifications/notification-permisssion-deletable.html: Added.
+
+2016-10-18  Mark Lam  <mark.lam@apple.com>
+
+        Invoking Object.prototype.__proto__ accessors directly should throw a TypeError.
+        https://bugs.webkit.org/show_bug.cgi?id=154377
+        <rdar://problem/27330808>
+
+        Reviewed by Filip Pizlo and Saam Barati.
+
+        * http/tests/security/xss-DENIED-htmlelelment-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-method-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-non-shadowable-propterty-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-regular-propterty-with-iframe-proto-expected.txt:
+        * http/tests/security/xss-DENIED-regular-propterty-with-iframe-proto.html:
+        * js/dom/activation-proto-expected.txt:
+        * js/dom/script-tests/activation-proto.js:
+        * js/object-literal-shorthand-construction-expected.txt:
+        * js/script-tests/object-literal-shorthand-construction.js:
+        * js/script-tests/sloppy-getter-setter-global-object.js:
+        * js/sloppy-getter-setter-global-object-expected.txt:
+
+2016-10-18  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Kill support for [LegacyConstructorTemplate=Event] / [LegacyInitializedByEventConstructor]
+        https://bugs.webkit.org/show_bug.cgi?id=163630
+
+        Reviewed by Darin Adler.
+
+        Update / rebaseline existing tests to reflect minor behavior changes.
+
+        * fast/events/constructors/event-constructors-expected.txt:
+        * fast/events/constructors/event-constructors.html:
+        * fast/events/constructors/ui-event-constructor-expected.txt:
+
+2016-10-18  Chris Dumez  <cdumez@apple.com>
+
+        Changing details.open should cause a toggle event to be fired asynchronously
+        https://bugs.webkit.org/show_bug.cgi?id=163568
+
+        Reviewed by Darin Adler.
+
+        Rebaseline existing test now that a new ontoggle attribute is exposed.
+
+        * js/dom/dom-static-property-for-in-iteration-expected.txt:
+
+2016-10-18  Chris Dumez  <cdumez@apple.com>
+
+        Provide better form validation messages
+        https://bugs.webkit.org/show_bug.cgi?id=163584
+
+        Reviewed by Darin Adler.
+
+        Update existing tests now that form validation messages differ.
+
+        * fast/forms/number/number-validation-message-expected.txt:
+        * fast/forms/number/number-validation-message.html:
+        * fast/forms/validationMessage-expected.txt:
+        * platform/mac/fast/forms/validation-message-appearance-expected.txt:
+
+2016-10-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/basic-upgrade-cors.https.html as flaky on Sierra.
+        https://bugs.webkit.org/show_bug.cgi?id=163453
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-10-18  Chris Dumez  <cdumez@apple.com>
+
+        Leverage new union type support for HTMLSelectElement.add() / HTMLOptionsCollection.add()
+        https://bugs.webkit.org/show_bug.cgi?id=163608
+
+        Reviewed by Ryosuke Niwa.
+
+        Rebaseline existing tests now that exception messages are different.
+
+        * fast/dom/HTMLSelectElement/add-expected.txt:
+        * fast/dom/HTMLSelectElement/options-collection-add-expected.txt:
+        * fast/dom/incompatible-operations-expected.txt:
+
+2016-10-18  Ryosuke Niwa  <rniwa@webkit.org>
+
+        REGRESSION (r201471): Keyboard remains visible when swiping back on twitter.com
+        https://bugs.webkit.org/show_bug.cgi?id=163581
+        <rdar://problem/27739558>
+
+        Reviewed by Simon Fraser.
+
+        Added a regression test for hiding a keyboard when the focused element is removed from the DOM.
+
+        * fast/forms/ios/hide-keyboard-on-node-removal-expected.txt: Added.
+        * fast/forms/ios/hide-keyboard-on-node-removal.html: Added.
+
+2016-10-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-buttons-styles.html as flaky on mac-wk1.
+        https://bugs.webkit.org/show_bug.cgi?id=163598
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
 2016-10-18  Ryan Haddad  <ryanhaddad@apple.com>
 
         Add flaky expectation for tiled-drawing/scrolling/latched-div-with-scroll-snap.html that was errantly removed.

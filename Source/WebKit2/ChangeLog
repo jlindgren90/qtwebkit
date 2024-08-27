@@ -1,3 +1,121 @@
+2016-10-19  Darin Adler  <darin@apple.com>
+
+        Move XPath from ExceptionCode to Exception
+        https://bugs.webkit.org/show_bug.cgi?id=163656
+
+        Reviewed by Chris Dumez.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDocument.cpp:
+        (webkit_dom_document_create_expression): Use ExceptionOr.
+        (webkit_dom_document_evaluate): Ditto.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMXPathExpression.cpp:
+        (webkit_dom_xpath_expression_evaluate): Ditto.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMXPathResult.cpp:
+        (webkit_dom_xpath_result_iterate_next): Ditto.
+        (webkit_dom_xpath_result_snapshot_item): Ditto.
+        (webkit_dom_xpath_result_get_number_value): Ditto.
+        (webkit_dom_xpath_result_get_string_value): Ditto.
+        (webkit_dom_xpath_result_get_boolean_value): Ditto.
+        (webkit_dom_xpath_result_get_single_node_value): Ditto.
+        (webkit_dom_xpath_result_get_snapshot_length): Ditto.
+
+2016-10-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        NetworkSession: updatedRequest parameter of NetworkProcess::findPendingDownloadLocation is unused since r206988
+        https://bugs.webkit.org/show_bug.cgi?id=163588
+
+        Reviewed by Alex Christensen.
+
+        The parameter was used only for the DownloadProxy::DidStart message that is no longer sent from
+        findPendingDownloadLocation since r206988.
+
+        * NetworkProcess/NetworkDataTask.h:
+        (WebKit::NetworkDataTask::currentRequest): Removed since it's unused now.
+        * NetworkProcess/NetworkLoad.cpp:
+        (WebKit::NetworkLoad::convertTaskToDownload): Update the m_currentRequest and pass it to DidStart message.
+        (WebKit::NetworkLoad::didReceiveResponseNetworkSession):
+        * NetworkProcess/NetworkProcess.cpp:
+        (WebKit::NetworkProcess::findPendingDownloadLocation):
+        * NetworkProcess/NetworkProcess.h:
+        * NetworkProcess/cocoa/NetworkDataTaskCocoa.mm: Remove currentRequest() implementation.
+
+2016-10-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GTK+ build after r207522.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMDOMWindow.cpp:
+        (webkit_dom_dom_window_webkit_message_handlers_post_message): Use new exceptions.
+
+2016-10-19  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix GTK+ build after r207497.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMHTMLSelectElement.cpp:
+        (webkit_dom_html_select_element_add): Update implementation since add() now takes a Variant.
+
+2016-10-18  Simon Fraser  <simon.fraser@apple.com>
+
+        Add a MiniBrowser menu item to apply page scale in WK1 and WK2
+        https://bugs.webkit.org/show_bug.cgi?id=163627
+
+        Reviewed by Dean Jackson.
+
+        New SPI to set and retrieve page scale.
+
+        * UIProcess/API/Cocoa/WKWebView.mm:
+        (-[WKWebView _setPageScale:withOrigin:]):
+        (-[WKWebView _pageScale]):
+        * UIProcess/API/Cocoa/WKWebViewPrivate.h:
+
+2016-10-18  Dean Jackson  <dino@apple.com>
+
+        Remove CSS_SHAPES feature definition. This should always be on.
+        https://bugs.webkit.org/show_bug.cgi?id=163628
+        <rdar://problem/28834613>
+
+        Reviewed by Tim Horton.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-10-18  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207413.
+
+        This change broke iOS builds.
+
+        Reverted changeset:
+
+        "[iOS] Hook up WebPlatformTouchPoint's radiusX / radiusY to
+        _UIWebTouchPoint.majorRadiusInScreenCoordinates"
+        https://bugs.webkit.org/show_bug.cgi?id=163547
+        http://trac.webkit.org/changeset/207413
+
+2016-10-18  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r207443.
+        https://bugs.webkit.org/show_bug.cgi?id=163616
+
+        "Caused 5% PLT regression" (Requested by krollin on #webkit).
+
+        Reverted changeset:
+
+        "Crash in ASCIICaseInsensitiveHash::hash() when a response has
+        a null MIME type"
+        https://bugs.webkit.org/show_bug.cgi?id=163476
+        http://trac.webkit.org/changeset/207443
+
+2016-10-18  Megan Gardner  <megan_gardner@apple.com>
+
+        Fix build for platforms where HAVE(LINK_PREVIEW) is false
+        https://bugs.webkit.org/show_bug.cgi?id=163607
+
+        Reviewed by Tim Horton.
+
+        Added needed # for link preview
+
+        * UIProcess/ios/WKContentViewInteraction.mm:
+        (-[WKContentView _contentsOfUserInterfaceItem:]):
+
 2016-10-18  Joseph Pecoraro  <pecoraro@apple.com>
 
         Remote Web Inspector: Timeline UI not updating while recording

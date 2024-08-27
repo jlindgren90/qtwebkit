@@ -62,6 +62,7 @@
 #include "RenderBlock.h"
 #include "RenderBox.h"
 #include "RenderStyle.h"
+#include "RuntimeEnabledFeatures.h"
 #include "SVGElement.h"
 #include "Settings.h"
 #include "ShapeValue.h"
@@ -381,9 +382,7 @@ static const CSSPropertyID computedProperties[] = {
 #if PLATFORM(IOS)
     CSSPropertyWebkitTouchCallout,
 #endif
-#if ENABLE(CSS_SHAPES)
     CSSPropertyWebkitShapeOutside,
-#endif
 #if ENABLE(TOUCH_EVENTS)
     CSSPropertyWebkitTapHighlightColor,
 #endif
@@ -414,10 +413,8 @@ static const CSSPropertyID computedProperties[] = {
     CSSPropertyWebkitRegionBreakInside,
     CSSPropertyWebkitRegionFragment,
 #endif
-#if ENABLE(CSS_SHAPES)
     CSSPropertyWebkitShapeMargin,
     CSSPropertyWebkitShapeImageThreshold,
-#endif
     CSSPropertyBufferedRendering,
     CSSPropertyClipPath,
     CSSPropertyClipRule,
@@ -2382,7 +2379,6 @@ static inline const RenderStyle* computeRenderStyleForProperty(Node* styledNode,
     return styledNode->computedStyle(styledNode->isPseudoElement() ? NOPSEUDO : pseudoElementSpecifier);
 }
 
-#if ENABLE(CSS_SHAPES)
 static Ref<CSSValue> shapePropertyValue(const RenderStyle& style, const ShapeValue* shapeValue)
 {
     if (!shapeValue)
@@ -2405,7 +2401,6 @@ static Ref<CSSValue> shapePropertyValue(const RenderStyle& style, const ShapeVal
         list->append(CSSValuePool::singleton().createValue(shapeValue->cssBox()));
     return list.releaseNonNull();
 }
-#endif
 
 static Ref<CSSValueList> valueForItemPositionWithOverflowAlignment(const StyleSelfAlignmentData& data)
 {
@@ -2420,14 +2415,22 @@ static Ref<CSSValueList> valueForItemPositionWithOverflowAlignment(const StyleSe
     return result;
 }
 
-static Ref<CSSValueList> valueForContentPositionAndDistributionWithOverflowAlignment(const StyleContentAlignmentData& data)
+static Ref<CSSValueList> valueForContentPositionAndDistributionWithOverflowAlignment(const StyleContentAlignmentData& data, CSSValueID normalBehaviorValueID)
 {
     auto& cssValuePool = CSSValuePool::singleton();
     auto result = CSSValueList::createSpaceSeparated();
     if (data.distribution() != ContentDistributionDefault)
         result.get().append(cssValuePool.createValue(data.distribution()));
-    if (data.distribution() == ContentDistributionDefault || data.position() != ContentPositionNormal)
-        result.get().append(cssValuePool.createValue(data.position()));
+    if (data.distribution() == ContentDistributionDefault || data.position() != ContentPositionNormal) {
+        bool gridEnabled = false;
+#if ENABLE(CSS_GRID_LAYOUT)
+        gridEnabled = RuntimeEnabledFeatures::sharedFeatures().isCSSGridLayoutEnabled();
+#endif
+        if (data.position() != ContentPositionNormal || gridEnabled)
+            result.get().append(cssValuePool.createValue(data.position()));
+        else
+            result.get().append(cssValuePool.createIdentifierValue(normalBehaviorValueID));
+    }
     if ((data.position() >= ContentPositionCenter || data.distribution() != ContentDistributionDefault) && data.overflow() != OverflowAlignmentDefault)
         result.get().append(cssValuePool.createValue(data.overflow()));
     ASSERT(result.get().length() > 0);
@@ -2809,7 +2812,7 @@ RefPtr<CSSValue> ComputedStyleExtractor::propertyValue(CSSPropertyID propertyID,
         case CSSPropertyEmptyCells:
             return cssValuePool.createValue(style->emptyCells());
         case CSSPropertyAlignContent:
-            return valueForContentPositionAndDistributionWithOverflowAlignment(style->alignContent());
+            return valueForContentPositionAndDistributionWithOverflowAlignment(style->alignContent(), CSSValueStretch);
         case CSSPropertyAlignItems:
             return valueForItemPositionWithOverflowAlignment(style->alignItems());
         case CSSPropertyAlignSelf:
@@ -2829,7 +2832,7 @@ RefPtr<CSSValue> ComputedStyleExtractor::propertyValue(CSSPropertyID propertyID,
         case CSSPropertyFlexWrap:
             return cssValuePool.createValue(style->flexWrap());
         case CSSPropertyJustifyContent:
-            return valueForContentPositionAndDistributionWithOverflowAlignment(style->justifyContent());
+            return valueForContentPositionAndDistributionWithOverflowAlignment(style->justifyContent(), CSSValueFlexStart);
 #if ENABLE(CSS_GRID_LAYOUT)
         case CSSPropertyJustifyItems:
             return valueForItemPositionWithOverflowAlignment(resolveJustifyItemsAuto(style->justifyItems(), styledNode->parentNode()));
@@ -3684,14 +3687,12 @@ RefPtr<CSSValue> ComputedStyleExtractor::propertyValue(CSSPropertyID propertyID,
         case CSSPropertyWebkitRegionFragment:
             return cssValuePool.createValue(style->regionFragment());
 #endif
-#if ENABLE(CSS_SHAPES)
         case CSSPropertyWebkitShapeMargin:
             return cssValuePool.createValue(style->shapeMargin(), *style);
         case CSSPropertyWebkitShapeImageThreshold:
             return cssValuePool.createValue(style->shapeImageThreshold(), CSSPrimitiveValue::CSS_NUMBER);
         case CSSPropertyWebkitShapeOutside:
             return shapePropertyValue(*style, style->shapeOutside());
-#endif
         case CSSPropertyFilter:
             return valueForFilter(*style, style->filter());
 #if ENABLE(FILTERS_LEVEL_2)

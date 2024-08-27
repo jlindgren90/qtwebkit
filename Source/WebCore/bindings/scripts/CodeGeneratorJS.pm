@@ -996,25 +996,31 @@ sub GetDictionaryClassName
 
 sub GenerateDefaultValue
 {
-    my ($interface, $member) = @_;
+    my ($interface, $signature) = @_;
 
-    my $defaultValue = $member->default;
+    my $defaultValue = $signature->default;
 
-    if ($codeGenerator->IsEnumType($member->type)) {
+    if ($codeGenerator->IsEnumType($signature->type)) {
         # FIXME: Would be nice to report an error if the value does not have quote marks around it.
         # FIXME: Would be nice to report an error if the value is not one of the enumeration values.
-        my $className = GetEnumerationClassName($member->type, $interface);
+        my $className = GetEnumerationClassName($signature->type, $interface);
         my $enumerationValueName = GetEnumerationValueName(substr($defaultValue, 1, -1));
         return $className . "::" . $enumerationValueName;
     }
     if ($defaultValue eq "null") {
-        return "jsNull()" if $member->type eq "any";
-        return "nullptr" if $codeGenerator->IsWrapperType($member->type) || $codeGenerator->IsTypedArrayType($member->type);
-        return "String()" if $codeGenerator->IsStringType($member->type);
+        return "Nullopt" if $signature->idlType->isUnion;
+        return "jsNull()" if $signature->type eq "any";
+        return "nullptr" if $codeGenerator->IsWrapperType($signature->type) || $codeGenerator->IsTypedArrayType($signature->type);
+        return "String()" if $codeGenerator->IsStringType($signature->type);
         return "Nullopt";
     }
-    return "{ }" if $defaultValue eq "[]";
+    if ($defaultValue eq "[]") {
+        my $nativeType = GetNativeTypeFromSignature($interface, $signature);
+        return "$nativeType()"
+    }
+
     return "jsUndefined()" if $defaultValue eq "undefined";
+    return "PNaN" if $defaultValue eq "NaN";
 
     return $defaultValue;
 }
@@ -1045,7 +1051,7 @@ sub GenerateDictionaryHeaderContent
     my $result = "";
     my $conditionalString = $codeGenerator->GenerateConditionalString($dictionary);
     $result .= "#if ${conditionalString}\n\n" if $conditionalString;
-    $result .= "template<> Optional<$className> convertDictionary<$className>(JSC::ExecState&, JSC::JSValue);\n\n";
+    $result .= "template<> $className convertDictionary<$className>(JSC::ExecState&, JSC::JSValue);\n\n";
     $result .= "#endif\n\n" if $conditionalString;
     return $result;
 }
@@ -1082,7 +1088,7 @@ sub GenerateDictionaryImplementationContent
     AddToImplIncludes("JSDOMConvert.h");
 
     # https://heycam.github.io/webidl/#es-dictionary
-    $result .= "template<> Optional<$className> convertDictionary<$className>(ExecState& state, JSValue value)\n";
+    $result .= "template<> $className convertDictionary<$className>(ExecState& state, JSValue value)\n";
     $result .= "{\n";
     $result .= "    VM& vm = state.vm();\n";
     $result .= "    auto throwScope = DECLARE_THROW_SCOPE(vm);\n";
@@ -1091,14 +1097,14 @@ sub GenerateDictionaryImplementationContent
     # 1. If Type(V) is not Undefined, Null or Object, then throw a TypeError.
     $result .= "    if (UNLIKELY(!isNullOrUndefined && !object)) {\n";
     $result .= "        throwTypeError(&state, throwScope);\n";
-    $result .= "        return Nullopt;\n";
+    $result .= "        return { };\n";
     $result .= "    }\n";
 
     # 2. If V is a native RegExp object, then throw a TypeError.
     # FIXME: This RegExp special handling is likely to go away in the specification.
     $result .= "    if (UNLIKELY(object && object->type() == RegExpObjectType)) {\n";
     $result .= "        throwTypeError(&state, throwScope);\n";
-    $result .= "        return Nullopt;\n";
+    $result .= "        return { };\n";
     $result .= "    }\n";
 
     # 3. Let dict be an empty dictionary value of type D; every dictionary member is initially considered to be not present.
@@ -1139,16 +1145,8 @@ sub GenerateDictionaryImplementationContent
 
             # 5.3. If value is not undefined, then:
             $result .= "    if (!${key}Value.isUndefined()) {\n";
-
-            # FIXME: We should figure out a way to merge these two cases.
-            if ($codeGenerator->IsDictionaryType($idlType->name)) {
-                $result .= "        auto ${key}Optional = convert<${IDLType}>(state, ${key}Value);\n";
-                $result .= "        RETURN_IF_EXCEPTION(throwScope, Nullopt);\n";
-                $result .= "        result.$key = ${key}Optional.value();\n";
-            } else {
-                $result .= "        result.$key = convert<${IDLType}>(state, ${key}Value);\n";
-                $result .= "        RETURN_IF_EXCEPTION(throwScope, Nullopt);\n";
-            }
+            $result .= "        result.$key = convert<${IDLType}>(state, ${key}Value);\n";
+            $result .= "        RETURN_IF_EXCEPTION(throwScope, { });\n";
 
             # Value is undefined.
             # 5.4. Otherwise, if value is undefined but the dictionary member has a default value, then:
@@ -1159,7 +1157,7 @@ sub GenerateDictionaryImplementationContent
                 # 5.5. Otherwise, if value is undefined and the dictionary member is a required dictionary member, then throw a TypeError.
                 $result .= "    } else {\n";
                 $result .= "        throwTypeError(&state, throwScope);\n";
-                $result .= "        return Nullopt;\n";
+                $result .= "        return { };\n";
                 $result .= "    }\n";
             } else {
                 $result .= "    }\n";
@@ -1167,7 +1165,7 @@ sub GenerateDictionaryImplementationContent
         }
     }
 
-    $result .= "    return WTFMove(result);\n";
+    $result .= "    return result;\n";
     $result .= "}\n\n";
     $result .= "#endif\n\n" if $conditionalString;
 
@@ -1274,7 +1272,6 @@ sub GenerateHeader
     }
 
     AddClassForwardIfNeeded("JSDOMWindowShell") if $interfaceName eq "DOMWindow";
-    AddClassForwardIfNeeded("JSDictionary") if $codeGenerator->IsConstructorTemplate($interface, "Event");
 
     my $exportMacro = GetExportMacroForJSClass($interface);
 
@@ -1725,10 +1722,6 @@ sub GenerateHeader
     if (HasCustomConstructor($interface)) {
         push(@headerContent, "// Custom constructor\n");
         push(@headerContent, "JSC::EncodedJSValue JSC_HOST_CALL construct${className}(JSC::ExecState&);\n\n");
-    }
-
-    if ($codeGenerator->IsConstructorTemplate($interface, "Event")) {
-        push(@headerContent, "bool fill${interfaceName}Init(${interfaceName}Init&, JSDictionary&);\n\n");
     }
 
     if (NeedsImplementationClass($interface)) {
@@ -2350,7 +2343,7 @@ sub GetWinMangledNameForInterface
 sub GetNamespaceForInterface
 {
     my $interface = shift;
-    return $interface->extendedAttributes->{ImplementationNamespace} || "WebCore";
+    return "WebCore";
 }
 
 sub GetImplementationLacksVTableForInterface
@@ -2599,7 +2592,7 @@ sub GenerateImplementation
             push(@hashKeys, $name);
 
             my @specials = ();
-            push(@specials, "DontDelete") unless $attribute->signature->extendedAttributes->{Deletable};
+            push(@specials, "DontDelete") if IsUnforgeable($interface, $attribute);
             push(@specials, "ReadOnly") if IsReadonly($attribute);
             push(@specials, "DOMJITAttribute") if $attribute->signature->extendedAttributes->{"DOMJIT"};
             my $special = (@specials > 0) ? join(" | ", @specials) : "0";
@@ -4342,10 +4335,7 @@ sub GenerateParametersCheck
                             $defaultValue = $useAtomicString ? "AtomicString($defaultValue, AtomicString::ConstructFromLiteral)" : "ASCIILiteral($defaultValue)";
                         }
                     } else {
-                        $defaultValue = "nullptr" if $defaultValue eq "null";
-                        $defaultValue = "PNaN" if $defaultValue eq "NaN";
-                        $defaultValue = "$nativeType()" if $defaultValue eq "[]";
-                        $defaultValue = "JSValue::JSUndefined" if $defaultValue eq "undefined";
+                        $defaultValue = GenerateDefaultValue($interface, $parameter);
                     }
 
                     $outer = "state->$argumentLookupMethod($argumentIndex).isUndefined() ? $defaultValue : ";
@@ -4910,7 +4900,6 @@ sub GetNativeVectorType
     die "This should only be called for sequence or array types" unless $codeGenerator->IsSequenceOrFrozenArrayType($type);
 
     my $innerType = $codeGenerator->GetSequenceOrFrozenArrayInnerType($type);
-    return "MessagePortArray" if $innerType eq "MessagePort";
     return "Vector<" . GetNativeVectorInnerType($innerType) . ">";
 }
 
@@ -5173,7 +5162,7 @@ sub JSValueToNative
 
     if ($type eq "SerializedScriptValue") {
         AddToImplIncludes("SerializedScriptValue.h", $conditional);
-        return ("SerializedScriptValue::create($statePointer, $value, 0, 0)", 1);
+        return ("SerializedScriptValue::create($stateReference, $value)", 1);
     }
 
     if ($type eq "Dictionary") {
@@ -5264,8 +5253,10 @@ sub NativeToJSValue
     if ($codeGenerator->IsSequenceOrFrozenArrayType($type)) {
         my $innerType = $codeGenerator->GetSequenceOrFrozenArrayInnerType($type);
         AddToImplIncludes("JS${innerType}.h", $conditional) if $codeGenerator->IsRefPtrType($innerType);
-        return "jsArray($statePointer, $globalObject, $value)" if $codeGenerator->IsSequenceType($type);
-        return "jsFrozenArray($statePointer, $globalObject, $value)" if $codeGenerator->IsFrozenArrayType($type);
+        my $isSequence = $codeGenerator->IsSequenceType($type);
+        return "toJSArray($stateReference, *$globalObject, throwScope, $value)" if $isSequence && $mayThrowException;
+        return "jsArray($statePointer, $globalObject, $value)" if $isSequence;
+        return "jsFrozenArray($statePointer, $globalObject, $value)";;
     }
 
     if ($type eq "any") {
@@ -5279,7 +5270,7 @@ sub NativeToJSValue
 
     if ($type eq "SerializedScriptValue") {
         AddToImplIncludes("SerializedScriptValue.h", $conditional);
-        return "$value ? $value->deserialize($statePointer, $globalObject, 0) : jsNull()";
+        return "$value ? $value->deserialize($stateReference, $globalObject) : jsNull()";
     }
 
     AddToImplIncludes("StyleProperties.h", $conditional) if $type eq "CSSStyleDeclaration";
@@ -5709,84 +5700,7 @@ sub GenerateConstructorDefinition
     my $constructorClassName = $generatingNamedConstructor ? "${className}NamedConstructor" : "${className}Constructor";
 
     if (IsConstructable($interface)) {
-        if ($codeGenerator->IsConstructorTemplate($interface, "Event")) {
-            $implIncludes{"JSDictionary.h"} = 1;
-            $implIncludes{"<runtime/Error.h>"} = 1;
-
-            push(@$outputArray, <<END);
-template<> EncodedJSValue JSC_HOST_CALL ${constructorClassName}::construct(ExecState* state)
-{
-    VM& vm = state->vm();
-    auto throwScope = DECLARE_THROW_SCOPE(vm);
-    auto* jsConstructor = jsCast<${constructorClassName}*>(state->callee());
-    ASSERT(jsConstructor);
-
-    if (!jsConstructor->scriptExecutionContext())
-        return throwConstructorScriptExecutionContextUnavailableError(*state, throwScope, \"${visibleInterfaceName}\");
-
-    if (UNLIKELY(state->argumentCount() < 1))
-        return throwVMError(state, throwScope, createNotEnoughArgumentsError(state));
-
-    AtomicString eventType = state->uncheckedArgument(0).toString(state)->toAtomicString(state);
-    RETURN_IF_EXCEPTION(throwScope, encodedJSValue());
-
-    ${interfaceName}Init eventInit;
-
-    JSValue initializerValue = state->argument(1);
-    if (!initializerValue.isUndefinedOrNull()) {
-        // Given the above test, this will always yield an object.
-        JSObject* initializerObject = initializerValue.toObject(state);
-        ASSERT(!throwScope.exception());
-
-        // Create the dictionary wrapper from the initializer object.
-        JSDictionary dictionary(state, initializerObject);
-
-        // Attempt to fill in the EventInit.
-        if (!fill${interfaceName}Init(eventInit, dictionary))
-            return JSValue::encode(jsUndefined());
-    }
-
-    Ref<${interfaceName}> event = ${interfaceName}::createForBindings(eventType, eventInit);
-    return JSValue::encode(createWrapper<${interfaceName}>(jsConstructor->globalObject(), WTFMove(event)));
-}
-
-bool fill${interfaceName}Init(${interfaceName}Init& eventInit, JSDictionary& dictionary)
-{
-END
-
-            if ($interface->parent) {
-                my $interfaceBase = $interface->parent;
-                push(@implContent, <<END);
-    if (!fill${interfaceBase}Init(eventInit, dictionary))
-        return false;
-
-END
-            }
-
-            for (my $index = 0; $index < @{$interface->attributes}; $index++) {
-                my $attribute = @{$interface->attributes}[$index];
-                if ($attribute->signature->extendedAttributes->{LegacyInitializedByEventConstructor}) {
-                    my $attributeName = $attribute->signature->name;
-                    my $attributeImplName = $attribute->signature->extendedAttributes->{ImplementedAs} || $attributeName;
-                    my $conditionalString = $codeGenerator->GenerateConditionalString($attribute->signature);
-
-                    push(@implContent, "#if ${conditionalString}\n") if $conditionalString;
-
-                    push(@implContent, <<END);
-    if (!dictionary.tryGetProperty("${attributeName}", eventInit.${attributeImplName}))
-        return false;
-END
-                    push(@implContent, "#endif\n") if $conditionalString;
-
-                }
-            }
-
-            push(@$outputArray, <<END);
-    return true;
-}
-
-END
-         } elsif ($interface->extendedAttributes->{CustomConstructor}) {
+        if ($interface->extendedAttributes->{CustomConstructor}) {
             push(@$outputArray, "template<> JSC::EncodedJSValue JSC_HOST_CALL ${constructorClassName}::construct(JSC::ExecState* exec)\n");
             push(@$outputArray, "{\n");
             push(@$outputArray, "    ASSERT(exec);\n");
@@ -5910,9 +5824,7 @@ sub GenerateConstructorHelperMethods
 
     my $constructorClassName = $generatingNamedConstructor ? "${className}NamedConstructor" : "${className}Constructor";
     my $leastConstructorLength = 0;
-    if ($codeGenerator->IsConstructorTemplate($interface, "Event")) {
-        $leastConstructorLength = 1;
-    } elsif ($interface->extendedAttributes->{Constructor} || $interface->extendedAttributes->{CustomConstructor}) {
+    if ($interface->extendedAttributes->{Constructor} || $interface->extendedAttributes->{CustomConstructor}) {
         my @constructors = @{$interface->constructors};
         my @customConstructors = @{$interface->customConstructors};
         $leastConstructorLength = 255;
@@ -6020,7 +5932,6 @@ sub IsConstructable
     return HasCustomConstructor($interface)
         || $interface->extendedAttributes->{Constructor}
         || $interface->extendedAttributes->{NamedConstructor}
-        || $interface->extendedAttributes->{LegacyConstructorTemplate}
         || $interface->extendedAttributes->{JSBuiltinConstructor};
 }
 

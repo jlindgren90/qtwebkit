@@ -335,7 +335,7 @@ bool Element::dispatchKeyEvent(const PlatformKeyboardEvent& platformEvent)
 
 void Element::dispatchSimulatedClick(Event* underlyingEvent, SimulatedClickMouseEventOptions eventOptions, SimulatedClickVisualOptions visualOptions)
 {
-    simulateClick(*this, underlyingEvent, eventOptions, visualOptions, SimulatedClickCreationOptions::FromUserAgent);
+    simulateClick(*this, underlyingEvent, eventOptions, visualOptions, SimulatedClickSource::UserAgent);
 }
 
 Ref<Node> Element::cloneNodeInternal(Document& targetDocument, CloningOperation type)
@@ -1800,10 +1800,10 @@ void Element::removeShadowRoot()
     notifyChildNodeRemoved(*this, *oldRoot);
 }
 
-RefPtr<ShadowRoot> Element::createShadowRoot(ExceptionCode& ec)
+ShadowRoot* Element::createShadowRoot(ExceptionCode& ec)
 {
     if (alwaysCreateUserAgentShadowRoot())
-        ensureUserAgentShadowRoot();
+        return &ensureUserAgentShadowRoot();
 
     ec = HIERARCHY_REQUEST_ERR;
     return nullptr;

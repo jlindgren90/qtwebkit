@@ -295,6 +295,7 @@ HTMLElement::EventHandlerNameMap HTMLElement::createEventHandlerNameMap()
         &onsubmitAttr,
         &onsuspendAttr,
         &ontimeupdateAttr,
+        &ontoggleAttr,
         &ontouchcancelAttr,
         &ontouchendAttr,
         &ontouchforcechangeAttr,
@@ -700,7 +701,7 @@ void HTMLElement::setSpellcheck(bool enable)
 
 void HTMLElement::click()
 {
-    simulateClick(*this, nullptr, SendNoEvents, DoNotShowPressedLook, SimulatedClickCreationOptions::FromBindings);
+    simulateClick(*this, nullptr, SendNoEvents, DoNotShowPressedLook, SimulatedClickSource::Bindings);
 }
 
 void HTMLElement::accessKeyAction(bool sendMouseEvents)

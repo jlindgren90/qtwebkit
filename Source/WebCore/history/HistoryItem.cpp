@@ -120,8 +120,6 @@ inline HistoryItem::HistoryItem(const HistoryItem& item)
     , m_obscuredInset(item.m_obscuredInset)
     , m_scale(item.m_scale)
     , m_scaleIsInitial(item.m_scaleIsInitial)
-    , m_bookmarkID(item.m_bookmarkID)
-    , m_sharedLinkUniqueIdentifier(item.m_sharedLinkUniqueIdentifier)
 #endif
 {
     if (item.m_formData)
@@ -477,27 +475,6 @@ bool HistoryItem::isCurrentDocument(Document& document) const
 {
     // FIXME: We should find a better way to check if this is the current document.
     return equalIgnoringFragmentIdentifier(url(), document.url());
-}
-
-void HistoryItem::addRedirectURL(const String& url)
-{
-    if (!m_redirectURLs)
-        m_redirectURLs = std::make_unique<Vector<String>>();
-
-    // Our API allows us to store all the URLs in the redirect chain, but for
-    // now we only have a use for the final URL.
-    (*m_redirectURLs).resize(1);
-    (*m_redirectURLs)[0] = url;
-}
-
-Vector<String>* HistoryItem::redirectURLs() const
-{
-    return m_redirectURLs.get();
-}
-
-void HistoryItem::setRedirectURLs(std::unique_ptr<Vector<String>> redirectURLs)
-{
-    m_redirectURLs = WTFMove(redirectURLs);
 }
 
 void HistoryItem::notifyChanged()

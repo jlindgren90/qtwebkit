@@ -67,7 +67,7 @@ class PlatformGestureEvent;
 
 class UIRequestEvent;
 
-using NodeOrString = std::experimental::variant<RefPtr<Node>, String>;
+using NodeOrString = Variant<RefPtr<Node>, String>;
 
 class NodeRareDataBase {
 public:

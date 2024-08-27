@@ -500,9 +500,7 @@ static inline bool isSimpleLengthPropertyID(CSSPropertyID propertyId, bool& acce
     case CSSPropertyGridColumnGap:
     case CSSPropertyGridRowGap:
 #endif
-#if ENABLE(CSS_SHAPES)
     case CSSPropertyWebkitShapeMargin:
-#endif
         acceptsNegativeNumbers = false;
         return true;
     case CSSPropertyBottom:
@@ -1554,16 +1552,12 @@ void CSSParser::clearProperties()
 
 URL CSSParser::completeURL(const CSSParserContext& context, const String& url)
 {
-    if (url.isNull())
-        return URL();
-    if (context.charset.isEmpty())
-        return URL(context.baseURL, url);
-    return URL(context.baseURL, url, context.charset);
+    return context.completeURL(url);
 }
 
 URL CSSParser::completeURL(const String& url) const
 {
-    return completeURL(m_context, url);
+    return m_context.completeURL(url);
 }
 
 bool CSSParser::validateCalculationUnit(ValueWithCalculation& valueWithCalculation, Units unitFlags)
@@ -2982,7 +2976,6 @@ bool CSSParser::parseValue(CSSPropertyID propId, bool important)
     case CSSPropertyWebkitClipPath:
         parsedValue = parseClipPath();
         break;
-#if ENABLE(CSS_SHAPES)
     case CSSPropertyWebkitShapeOutside:
         parsedValue = parseShapeProperty(propId);
         break;
@@ -2992,7 +2985,6 @@ bool CSSParser::parseValue(CSSPropertyID propId, bool important)
     case CSSPropertyWebkitShapeImageThreshold:
         validPrimitive = !id && validateUnit(valueWithCalculation, FNumber);
         break;
-#endif
 #if ENABLE(CSS_IMAGE_ORIENTATION)
     case CSSPropertyImageOrientation:
         validPrimitive = !id && validateUnit(valueWithCalculation, FAngle);
@@ -6679,7 +6671,6 @@ RefPtr<CSSValueList> CSSParser::parseBasicShapeAndOrBox(CSSPropertyID propId)
     return WTFMove(list);
 }
 
-#if ENABLE(CSS_SHAPES)
 RefPtr<CSSValue> CSSParser::parseShapeProperty(CSSPropertyID propId)
 {
     CSSParserValue& value = *m_valueList->current();
@@ -6698,7 +6689,6 @@ RefPtr<CSSValue> CSSParser::parseShapeProperty(CSSPropertyID propId)
 
     return parseBasicShapeAndOrBox(propId);
 }
-#endif
 
 RefPtr<CSSValue> CSSParser::parseClipPath()
 {
@@ -12991,10 +12981,10 @@ std::unique_ptr<CSSParserSelector> CSSParser::rewriteSpecifiers(std::unique_ptr<
     }
     if (specifiers->isCustomPseudoElement()) {
         // Specifiers for unknown pseudo element go right behind it in the chain.
-        specifiers->insertTagHistory(CSSSelector::SubSelector, WTFMove(newSpecifier), CSSSelector::ShadowDescendant);
+        specifiers->insertTagHistory(CSSSelector::Subselector, WTFMove(newSpecifier), CSSSelector::ShadowDescendant);
         return specifiers;
     }
-    specifiers->appendTagHistory(CSSSelector::SubSelector, WTFMove(newSpecifier));
+    specifiers->appendTagHistory(CSSSelector::Subselector, WTFMove(newSpecifier));
     return specifiers;
 }
 

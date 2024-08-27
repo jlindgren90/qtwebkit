@@ -449,7 +449,7 @@ static HashSet<RefPtr<Node>> nodeSetPreTransformedFromNodeOrStringVector(const V
     );
 
     for (const auto& variant : vector)
-        std::experimental::visit(visitor, variant);
+        WTF::visit(visitor, variant);
 
     return nodeSet;
 }
@@ -486,7 +486,7 @@ RefPtr<Node> Node::convertNodesOrStringsIntoNode(Vector<NodeOrString>&& nodeOrSt
     );
 
     for (auto& variant : nodeOrStringVector)
-        std::experimental::visit(visitor, variant);
+        WTF::visit(visitor, variant);
 
     if (nodes.size() == 1)
         return WTFMove(nodes.first());

@@ -1,3 +1,192 @@
+2016-10-18  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG worklist should use AutomaticThread
+        https://bugs.webkit.org/show_bug.cgi?id=163615
+
+        Reviewed by Mark Lam.
+        
+        AutomaticThread is a new feature in WTF that allows you to easily create worker threads that
+        shut down automatically. This changes DFG::Worklist to use AutomaticThread, so that its
+        threads shut down automatically, too. This has the potential to save a lot of memory.
+        
+        This required some improvements to AutomaticThread: Worklist likes to be able to keep state
+        around for the whole lifetime of a thread, and so it likes knowing when threads are born and
+        when they die. I added virtual methods for that. Also, Worklist uses notifyOne() so I added
+        that, too.
+        
+        This looks to be perf-neutral.
+
+        * dfg/DFGThreadData.cpp:
+        (JSC::DFG::ThreadData::ThreadData):
+        * dfg/DFGThreadData.h:
+        * dfg/DFGWorklist.cpp:
+        (JSC::DFG::Worklist::ThreadBody::ThreadBody):
+        (JSC::DFG::Worklist::Worklist):
+        (JSC::DFG::Worklist::~Worklist):
+        (JSC::DFG::Worklist::finishCreation):
+        (JSC::DFG::Worklist::isActiveForVM):
+        (JSC::DFG::Worklist::enqueue):
+        (JSC::DFG::Worklist::compilationState):
+        (JSC::DFG::Worklist::waitUntilAllPlansForVMAreReady):
+        (JSC::DFG::Worklist::removeAllReadyPlansForVM):
+        (JSC::DFG::Worklist::completeAllReadyPlansForVM):
+        (JSC::DFG::Worklist::rememberCodeBlocks):
+        (JSC::DFG::Worklist::visitWeakReferences):
+        (JSC::DFG::Worklist::removeDeadPlans):
+        (JSC::DFG::Worklist::removeNonCompilingPlansForVM):
+        (JSC::DFG::Worklist::queueLength):
+        (JSC::DFG::Worklist::dump):
+        (JSC::DFG::Worklist::runThread): Deleted.
+        (JSC::DFG::Worklist::threadFunction): Deleted.
+        * dfg/DFGWorklist.h:
+
+2016-10-19  Dan Bernstein  <mitz@apple.com>
+
+        [Xcode] JavaScriptCore fails to build when CLANG_WARN_DOCUMENTATION_COMMENTS is enabled
+        https://bugs.webkit.org/show_bug.cgi?id=163642
+
+        Reviewed by Darin Adler.
+
+        * API/JSClassRef.cpp: Removed a bad headerdoc comment inside an implementation file.
+        * API/JSContext.h: Changed @methodgroup to @functiongroup, because the compiler requires the
+          former to be followed by a method (and we have a property), but not the latter. Changed
+          a couple of instances of “method” to “@method”. Removed empty @param entries.
+        * API/JSContextRefInternal.h: Named a parameter referenced in a @param entry.
+        * API/JSContextRefPrivate.h: Ditto.
+        * API/JSManagedValue.h: Removed empty @param entries.
+        * API/JSObjectRef.h: Corrected parameter name in @param entry.
+        * API/JSTypedArray.h: Ditto.
+        * API/JSValue.h: Removed empty @param entries, changed @methodgroup to @functiongroup, and
+          changed @method to @property where appropriate. Removed empty @param entries.
+        * API/JSValueRef.h: Named a parameter referenced in a @param entry.
+        * API/JSWeakObjectMapRefPrivate.h: Ditto.
+        * Configurations/Base.xcconfig: Enabled CLANG_WARN_DOCUMENTATION_COMMENTS. Made the compiler
+          treat the icu headers as system headers, to stop it from emitting warnings about headers
+          we don’t want to change.
+        * Configurations/ToolExecutable.xcconfig: Made the compiler treat the icu headers as system
+          headers.
+
+2016-10-19  Csaba Osztrogonác  <ossy@webkit.org>
+
+        Unreviewed ARM buildfix after r207475.
+
+        * assembler/ARMAssembler.h:
+        (JSC::ARMAssembler::relinkJumpToNop):
+
+2016-10-18  Mark Lam  <mark.lam@apple.com>
+
+        Invoking Object.prototype.__proto__ accessors directly should throw a TypeError.
+        https://bugs.webkit.org/show_bug.cgi?id=154377
+        <rdar://problem/27330808>
+
+        Reviewed by Filip Pizlo and Saam Barati.
+
+        In a scenario where we cache the __proto__ accessors in global variables, and
+        later explicitly invoke those accessors as functions, the spec for Function Calls
+        (see https://tc39.github.io/ecma262/#sec-function-calls) states that the function
+        ref value is of type Reference, and base of ref is an Environment Record.  Then,
+        it follows that the thisValue should be set to refEnv.WithBaseObject()
+        (see section 4.b.ii of 12.3.4.1 at
+        https://tc39.github.io/ecma262/#sec-function-calls-runtime-semantics-evaluation).
+
+        refEnv in this case is the environment record that the cached accessors were
+        found in i.e. the global object.  The WithBaseObject() of the global object is
+        undefined (see details about WithBaseObject at
+        https://tc39.github.io/ecma262/#sec-environment-records).
+
+        Hence, the __proto__ accessors should see a thisValue of undefined, and throw
+        TypeErrors.  See https://tc39.github.io/ecma262/#sec-get-object.prototype.__proto__,
+        https://tc39.github.io/ecma262/#sec-set-object.prototype.__proto__,
+        https://tc39.github.io/ecma262/#sec-toobject, and
+        https://tc39.github.io/ecma262/#sec-requireobjectcoercible.
+
+        In JSC's implementation, the callee needs to do a ToThis operation on the
+        incoming "this" argument in order to get the specified thisValue.  The
+        implementations of the __proto__ accessors were not doing this correctly.  This
+        has now been fixed.
+
+        * runtime/JSGlobalObjectFunctions.cpp:
+        (JSC::globalFuncProtoGetter):
+        (JSC::globalFuncProtoSetter):
+
+2016-10-18  Sam Weinig  <sam@webkit.org>
+
+        Replace std::experimental::variant with WTF::Variant (or similar)
+        https://bugs.webkit.org/show_bug.cgi?id=163626
+
+        Reviewed by Chris Dumez.
+
+        Rename std::experimental::variant, Variant. Move helpers get/holds_alternative/etc.
+        into the WTF namespace.
+
+        * domjit/DOMJITReg.h:
+        (JSC::DOMJIT::Reg::gpr):
+        (JSC::DOMJIT::Reg::fpr):
+        (JSC::DOMJIT::Reg::jsValueRegs):
+
+2016-10-18  Keith Miller  <keith_miller@apple.com>
+
+        GetByVal to GetById conversion in the DFG is incorrect for getters with control flow
+        https://bugs.webkit.org/show_bug.cgi?id=163629
+
+        Reviewed by Yusuke Suzuki.
+
+        This patch fixes a bug in the DFG when attempt to convert a
+        GetByVal into a GetById. While converting the GetByVal, during
+        handleGetById in the Bytecode parser, we would mistakenly use the
+        opcode length of op_get_by_id rather than op_get_by_val. This causes
+        the new basic block we create to point to the wrong offset. In the
+        added test this will cause us to infinite loop.
+
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::handleGetById):
+        (JSC::DFG::ByteCodeParser::parseBlock):
+
+2016-10-18  Dean Jackson  <dino@apple.com>
+
+        Remove CSS_SHAPES feature definition. This should always be on.
+        https://bugs.webkit.org/show_bug.cgi?id=163628
+        <rdar://problem/28834613>
+        Reviewed by Tim Horton.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-10-18  Michael Saboff  <msaboff@apple.com>
+
+        Add JSC option to show time spent in each optimization phase
+        https://bugs.webkit.org/show_bug.cgi?id=163617
+
+        Reviewed by Saam Barati.
+
+        Added reportDFGPhaseTimes option.  This outputs one line per phase similar to
+            Phase CPS rethreading took 0.2661 ms
+
+        One line is output for each phase run.
+
+        * dfg/DFGPhase.h:
+        (JSC::DFG::runAndLog):
+        * dfg/DFGPlan.cpp:
+        (JSC::DFG::Plan::compileInThread):
+        * runtime/Options.cpp:
+        (JSC::recomputeDependentOptions):
+        * runtime/Options.h:
+
+2016-10-18  Filip Pizlo  <fpizlo@apple.com>
+
+        WTF should make it easier to create threads that die automatically after inactivity
+        https://bugs.webkit.org/show_bug.cgi?id=163576
+
+        Reviewed by Andreas Kling.
+        
+        Added a sleepSeconds() function, which made it easier for me to test this change.
+        
+        The WTF changes in this patch change how the JSC GC manages threads: the GC threads will now
+        shut down automatically after 1 second of inactivity. Maybe this will save some memory.
+
+        * jsc.cpp:
+        (GlobalObject::finishCreation):
+        (functionSleepSeconds):
+
 2016-10-18  Keith Miller  <keith_miller@apple.com>
 
         Cleanup Wasm memory.

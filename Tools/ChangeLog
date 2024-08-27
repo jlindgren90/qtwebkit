@@ -1,3 +1,94 @@
+2016-10-18  Philippe Normand  <pnormand@igalia.com>
+
+        WebRTC: [GTK] Update jhbuild environment for OpenWebRTC
+        https://bugs.webkit.org/show_bug.cgi?id=163330
+
+        Reviewed by Michael Catanzaro.
+
+        Bring back the openwebrtc JHBuild moduleset in the time being. It
+        should be removed after the bump to GStreamer 1.10 is complete and
+        the libnice patches have been upstreamed. The GStreamer git
+        snapshots used in this patch are the ones configured in Ericsson's
+        GStreamer Cerbero fork.
+
+        * gtk/openwebrtc.modules: Added.
+        * gtk/patches/libnice-0001-TURN-allow-REALM-to-be-empty.patch: Added.
+        * gtk/patches/libnice-0001-agent-Remove-unnecessary-NULL-check.patch: Added.
+        * gtk/patches/libnice-0001-nicesrc-spin-the-agent-mainloop-in-a-separate-thread.patch: Added.
+        * gtk/patches/libnice-0002-Do-not-update-a-remote-candidate-s-type.patch: Added.
+        * gtk/patches/libnice-0002-TURN-handle-437-Allocation-Mismatch-responses.patch: Added.
+        * gtk/patches/libnice-0003-Do-not-compare-scope-for-IPv6-address-when-scope-is-.patch: Added.
+        * gtk/patches/libnice-0004-Removing-no-op-assignment.patch: Added.
+
+2016-10-18  Sam Weinig  <sam@webkit.org>
+
+        Replace std::experimental::variant with WTF::Variant (or similar)
+        https://bugs.webkit.org/show_bug.cgi?id=163626
+
+        Reviewed by Chris Dumez.
+
+        Rename std::experimental::variant, Variant. Move helpers get/holds_alternative/etc.
+        into the WTF namespace.
+
+        * TestWebKitAPI/Tests/WTF/Variant.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-10-18  Simon Fraser  <simon.fraser@apple.com>
+
+        Add a MiniBrowser menu item to apply page scale in WK1 and WK2
+        https://bugs.webkit.org/show_bug.cgi?id=163627
+
+        Reviewed by Dean Jackson.
+
+        Rename setScale: to setViewScale: and add setPageScale:, hooking it up for WK1 (via exisiting SPI)
+        and WK2 (via new SPI).
+
+        * MiniBrowser/mac/BrowserWindowController.h:
+        * MiniBrowser/mac/BrowserWindowController.m:
+        (-[BrowserWindowController pageScaleForMenuItemTag:]):
+        (-[BrowserWindowController setPageScale:]):
+        (-[BrowserWindowController setViewScale:]):
+        (-[BrowserWindowController setScale:]): Deleted.
+        * MiniBrowser/mac/MainMenu.xib:
+        * MiniBrowser/mac/WK1BrowserWindowController.m:
+        (-[WK1BrowserWindowController setPageScale:]):
+        (-[WK1BrowserWindowController setViewScale:]):
+        (areEssentiallyEqual):
+        (-[WK1BrowserWindowController validateMenuItem:]):
+        (-[WK1BrowserWindowController setScale:]): Deleted.
+        * MiniBrowser/mac/WK2BrowserWindowController.m:
+        (-[WK2BrowserWindowController setPageScale:]):
+        (-[WK2BrowserWindowController viewScaleForMenuItemTag:]):
+        (-[WK2BrowserWindowController setViewScale:]):
+        (areEssentiallyEqual):
+        (-[WK2BrowserWindowController validateMenuItem:]):
+        (viewScaleForMenuItemTag): Deleted.
+        (-[WK2BrowserWindowController setScale:]): Deleted.
+
+2016-10-18  Anders Carlsson  <andersca@apple.com>
+
+        Add an beforeunload alert to the WebKitLegacy MiniBrowser
+        https://bugs.webkit.org/show_bug.cgi?id=163634
+
+        Reviewed by Sam Weinig.
+
+        * MiniBrowser/mac/WK1BrowserWindowController.m:
+        (-[WK1BrowserWindowController webView:runBeforeUnloadConfirmPanelWithMessage:initiatedByFrame:]):
+
+2016-10-18  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r207443.
+        https://bugs.webkit.org/show_bug.cgi?id=163616
+
+        "Caused 5% PLT regression" (Requested by krollin on #webkit).
+
+        Reverted changeset:
+
+        "Crash in ASCIICaseInsensitiveHash::hash() when a response has
+        a null MIME type"
+        https://bugs.webkit.org/show_bug.cgi?id=163476
+        http://trac.webkit.org/changeset/207443
+
 2016-10-18  Eric Carlson  <eric.carlson@apple.com>
 
         [MediaStream] Resolve constraints and enumerate devices in the UI process
