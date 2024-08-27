@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Naver Corp. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,16 +23,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef UserAgentEfl_h
-#define UserAgentEfl_h
+class MacOSMediaControls extends MediaControls
+{
 
-#include <wtf/text/WTFString.h>
+    constructor(options = {})
+    {
+        super({
+            width: options.width,
+            height: options.height,
+            layoutTraits: LayoutTraits.macOS
+        });
 
-namespace WebCore {
+        this.element.classList.add("mac");
 
-String standardUserAgent(const String& applicationName = emptyString(), const String& applicationVersion = emptyString());
+        this.muteButton = new MuteButton(this);
+        this.tracksButton = new TracksButton(this);
+        this.volumeSlider = new VolumeSlider;
+    }
 
 }
-
-#endif // UserAgentEfl_h
-

@@ -1866,7 +1866,7 @@ size_t JIT_OPERATION operationDeleteById(ExecState* exec, EncodedJSValue encoded
         return false;
     bool couldDelete = baseObj->methodTable(vm)->deleteProperty(baseObj, exec, Identifier::fromUid(&vm, uid));
     if (!couldDelete && exec->codeBlock()->isStrictMode())
-        throwTypeError(exec, scope, ASCIILiteral("Unable to delete property."));
+        throwTypeError(exec, scope, ASCIILiteral(UnableToDeletePropertyError));
     return couldDelete;
 }
 
@@ -1897,7 +1897,7 @@ size_t JIT_OPERATION operationDeleteByVal(ExecState* exec, EncodedJSValue encode
         couldDelete = baseObj->methodTable(vm)->deleteProperty(baseObj, exec, property);
     }
     if (!couldDelete && exec->codeBlock()->isStrictMode())
-        throwTypeError(exec, scope, ASCIILiteral("Unable to delete property."));
+        throwTypeError(exec, scope, ASCIILiteral(UnableToDeletePropertyError));
     return couldDelete;
 }
 
@@ -2470,7 +2470,10 @@ ALWAYS_INLINE static EncodedJSValue profiledNegate(ExecState* exec, EncodedJSVal
     double number = operand.toNumber(exec);
     if (UNLIKELY(scope.exception()))
         return JSValue::encode(JSValue());
-    return JSValue::encode(jsNumber(-number));
+
+    JSValue result = jsNumber(-number);
+    arithProfile.observeResult(result);
+    return JSValue::encode(result);
 }
 
 EncodedJSValue JIT_OPERATION operationArithNegate(ExecState* exec, EncodedJSValue operand)
@@ -2504,7 +2507,9 @@ EncodedJSValue JIT_OPERATION operationArithNegateProfiledOptimize(ExecState* exe
     double number = operand.toNumber(exec);
     if (UNLIKELY(scope.exception()))
         return JSValue::encode(JSValue());
-    return JSValue::encode(jsNumber(-number));
+    JSValue result = jsNumber(-number);
+    arithProfile->observeResult(result);
+    return JSValue::encode(result);
 }
 
 EncodedJSValue JIT_OPERATION operationArithNegateOptimize(ExecState* exec, EncodedJSValue encodedOperand, JITNegIC* negIC)

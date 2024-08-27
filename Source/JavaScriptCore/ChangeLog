@@ -1,3 +1,275 @@
+2016-10-17  Mark Lam  <mark.lam@apple.com>
+
+        Use the reject() helper function for conditionally throwing TypeErrors.
+        https://bugs.webkit.org/show_bug.cgi?id=163491
+
+        Reviewed by Filip Pizlo.
+
+        In some places where we may conditionally throw a TypeError (e.g. when in strict
+        mode), we already use the reject() helper function to conditionally throw the
+        TypeError.  Doing so makes the code mode compact.  This patch applies this idiom
+        consistently in all places that throws TypeError where appropriate.
+
+        This patch also does the following:
+        1. Make the reject() helper function take an ASCIILiteral instead of a const char*
+           because we always pass it a literal string anyway.
+        2. Change the reject helper() to take a ThrowScope&.  This allows the thrown
+           error to be attributed to its caller.
+        3. When an error message string is instantiated repeatedly in more than 1 place,
+           create a common copy of that literal string in JSObject.cpp (if one doesn't
+           already exist) and use that common string in all those places.
+        4. Since I was auditing call sites of throwTypeError() to check if they should be
+           using the reject() helper instead, I also fixed those up to pass the error
+           message as an ASCIILiteral where appropriate.
+        5. In functions that I touched, change the code to not recompute the VM& when it
+           is already available.
+
+        * jit/JITOperations.cpp:
+        * llint/LLIntSlowPaths.cpp:
+        (JSC::LLInt::LLINT_SLOW_PATH_DECL):
+        * runtime/ArrayPrototype.cpp:
+        (JSC::shift):
+        (JSC::unshift):
+        (JSC::arrayProtoFuncPop):
+        (JSC::arrayProtoFuncReverse):
+        * runtime/CommonSlowPaths.cpp:
+        (JSC::SLOW_PATH_DECL):
+        * runtime/GetterSetter.cpp:
+        (JSC::callSetter):
+        * runtime/JSArray.cpp:
+        (JSC::JSArray::defineOwnProperty):
+        (JSC::JSArray::setLengthWithArrayStorage):
+        (JSC::JSArray::pop):
+        * runtime/JSArrayBuffer.cpp:
+        (JSC::JSArrayBuffer::put):
+        (JSC::JSArrayBuffer::defineOwnProperty):
+        * runtime/JSCJSValue.cpp:
+        (JSC::JSValue::putToPrimitive):
+        (JSC::JSValue::putToPrimitiveByIndex):
+        * runtime/JSDataView.cpp:
+        (JSC::JSDataView::put):
+        (JSC::JSDataView::defineOwnProperty):
+        * runtime/JSFunction.cpp:
+        (JSC::JSFunction::put):
+        (JSC::JSFunction::defineOwnProperty):
+        * runtime/JSGenericTypedArrayView.h:
+        (JSC::JSGenericTypedArrayView::setIndex):
+        * runtime/JSGenericTypedArrayViewInlines.h:
+        (JSC::JSGenericTypedArrayView<Adaptor>::defineOwnProperty):
+        (JSC::JSGenericTypedArrayView<Adaptor>::deleteProperty):
+        * runtime/JSGenericTypedArrayViewPrototypeFunctions.h:
+        (JSC::speciesConstruct):
+        (JSC::genericTypedArrayViewPrivateFuncSubarrayCreate):
+        * runtime/JSModuleNamespaceObject.cpp:
+        (JSC::JSModuleNamespaceObject::defineOwnProperty):
+        * runtime/JSObject.cpp:
+        (JSC::ordinarySetSlow):
+        (JSC::JSObject::putInlineSlow):
+        (JSC::JSObject::setPrototypeWithCycleCheck):
+        (JSC::JSObject::defineOwnIndexedProperty):
+        (JSC::JSObject::putByIndexBeyondVectorLengthWithArrayStorage):
+        (JSC::JSObject::putDirectIndexBeyondVectorLengthWithArrayStorage):
+        (JSC::validateAndApplyPropertyDescriptor):
+        * runtime/JSObject.h:
+        * runtime/JSObjectInlines.h:
+        (JSC::JSObject::putInline):
+        * runtime/JSProxy.cpp:
+        (JSC::JSProxy::setPrototype):
+        * runtime/JSSymbolTableObject.h:
+        (JSC::symbolTablePut):
+        * runtime/Lookup.h:
+        (JSC::putEntry):
+        * runtime/RegExpObject.cpp:
+        (JSC::RegExpObject::defineOwnProperty):
+        * runtime/RegExpObject.h:
+        (JSC::RegExpObject::setLastIndex):
+        * runtime/Reject.h:
+        (JSC::reject):
+        * runtime/SparseArrayValueMap.cpp:
+        (JSC::SparseArrayValueMap::putEntry):
+        (JSC::SparseArrayValueMap::putDirect):
+        (JSC::SparseArrayEntry::put):
+        * runtime/StringObject.cpp:
+        (JSC::StringObject::put):
+        (JSC::StringObject::putByIndex):
+        * runtime/SymbolConstructor.cpp:
+        (JSC::symbolConstructorKeyFor):
+
+2016-10-16  Filip Pizlo  <fpizlo@apple.com>
+
+        Air::IRC needs to place all Tmps on some worklist, even if they have no interference edges
+        https://bugs.webkit.org/show_bug.cgi?id=163509
+
+        Reviewed by Mark Lam.
+        
+        The worklist building function in IRC skips temporaries that have no degree. This doesn't appear
+        to be necessary. This has been there since the original IRC commit. It hasn't caused bugs because
+        ordinarily, the only way to have a tmp with no degree is to not have any mention of that tmp. But
+        while working on bug 163371, I hit a crazy corner case where a temporary would have no
+        interference edges (i.e. no degree). Here's how it happens:
+        
+        A spill tmp from a previous iteration of IRC may have no degree: imagine a tmp that is live
+        everywhere and interferes with everyone, but has one use like:
+
+        Move %ourTmp, %someOtherTmp
+
+        Where there are no other tmps live.  After spill conversion, this may look like:
+
+        Move (ourSpill), %newTmp
+        Move %newTmp, %someOtherTmp
+
+        Of course, we'd rather not get this kind of spill code but it's totally possible because we now
+        have a bunch of random conditions under which we won't slap the spill address directly into the
+        Move.
+
+        After this happens, assuming that the only thing live was %someOtherTmp, we will have zero degree
+        for %newTmp because the Move is coalescable and does not contribute to interference.
+
+        Then, we might coalesce %someOtherTmp with %newTmp.  Once this happens, if we make the %newTmp be
+        the master, we're in deep trouble because %newTmp is not on any worklist.
+        
+        I don't know how to reproduce this except through the patch in bug 163371. Removing the two lines
+        of code that skipped no-degree tmps causes no regressions, and resolves the problem I was having.
+
+        * b3/air/AirIteratedRegisterCoalescing.cpp:
+
+2016-10-15  Mark Lam  <mark.lam@apple.com>
+
+        Add a $vm.getpid() method.
+        https://bugs.webkit.org/show_bug.cgi?id=163493
+
+        Reviewed by Saam Barati.
+
+        This is especially useful when we need to know the pid of an instance of jsc in
+        the foreground that we're trying to attach a debugger to while the JSC tests are
+        running in the background with a gazillion other jsc processes live at the same
+        time.
+
+        Currently, $vm.getpid() is only supported on non-Windows platforms.
+        According to https://msdn.microsoft.com/en-us/library/ms235372.aspx, getpid() is
+        deprecated.  According to https://msdn.microsoft.com/en-us/library/t2y34y40.aspx,
+        _getpid() cannot be used in applications that execute in the Windows Runtime.
+
+        Since this is only a debugging tool and is not a required feature, I'll defer
+        the Windows implementation of this function till the time when someone actually
+        needs it.
+
+        * tools/JSDollarVMPrototype.cpp:
+        (JSC::functionGetPID):
+        (JSC::JSDollarVMPrototype::finishCreation):
+
+2016-10-15  Saam Barati  <sbarati@apple.com>
+
+        Assertion failed under operationToLowerCase with a rope with zero length
+        https://bugs.webkit.org/show_bug.cgi?id=163314
+
+        Reviewed by Mark Lam.
+
+        There are some ways to get JSC to create empty rope strings. ToLowerCase
+        inside the DFG/FTL goes to the slow path when the argument is a rope.
+        operationToLowerCase was calling into a WTF string function that
+        assumed we are passing it a this value that has non-zero length.
+        However, we were calling it with a string that did have zero length.
+        To fix this, we make operationToLowerCase return the empty JSString
+        if it is going to make a string with zero length.
+
+        * dfg/DFGOperations.cpp:
+        * jsc.cpp:
+        (GlobalObject::finishCreation):
+        (functionIsRope):
+
+2016-10-14  Benjamin Poulain  <bpoulain@apple.com>
+
+        [JSC] op_negate should with any type
+        https://bugs.webkit.org/show_bug.cgi?id=162587
+
+        Reviewed by Saam Barati.
+
+        * dfg/DFGAbstractInterpreterInlines.h:
+        (JSC::DFG::AbstractInterpreter<AbstractStateType>::executeEffects):
+        ArithNegate is quite simple. If the input is double, the output
+        is double. The other cases are set from the LLInt slow case.
+
+        * dfg/DFGByteCodeParser.cpp:
+        (JSC::DFG::ByteCodeParser::makeSafe):
+        * dfg/DFGClobberize.h:
+        (JSC::DFG::clobberize):
+        * dfg/DFGFixupPhase.cpp:
+        (JSC::DFG::FixupPhase::fixupNode):
+
+        * dfg/DFGIntegerRangeOptimizationPhase.cpp:
+        Tweak a bit the IntegerRangeOptimizationPhase when simplifying
+        ArithAbs to ArithNegate.
+        We should not do the conversion if the target nodes OSR Exits
+        on different input than the source node.
+
+        In particular, Checked ArithNegate exits on zero while
+        ArithAbs has not problem with it.
+        Unchecked ArithAbs() do not OSR Exit on INT_MIN, ArithNeg
+        should not either.
+
+        * dfg/DFGPredictionPropagationPhase.cpp:
+        * dfg/DFGSpeculativeJIT.cpp:
+        (JSC::DFG::SpeculativeJIT::compileArithNegate):
+        (JSC::DFG::SpeculativeJIT::compileMathIC):
+        * dfg/DFGSpeculativeJIT.h:
+        (JSC::DFG::SpeculativeJIT::callOperation):
+        * ftl/FTLLowerDFGToB3.cpp:
+        (JSC::FTL::DFG::LowerDFGToB3::compileMathIC):
+        (JSC::FTL::DFG::LowerDFGToB3::compileArithNegate):
+
+        * jit/JITNegGenerator.cpp:
+        (JSC::JITNegGenerator::generateFastPath):
+        * jit/JITOperations.cpp:
+        Add result profiling in baseline to have types we can use
+        in DFG and FTL.
+
+2016-10-14  Keith Miller  <keith_miller@apple.com>
+
+        B3 needs a special WasmAddress Opcode
+        https://bugs.webkit.org/show_bug.cgi?id=163394
+
+        Reviewed by Filip Pizlo.
+
+        This patch adds support for WasmAddress. WasmAddress will be used by
+        Wasm to compute the address of a memory operation from the pinned
+        base pointer. WasmAddress takes an IntPtr so we can avoid emitting
+        unnecessary Move32s in Air. This could happen in the following case:
+
+        @ptr = Trunc(...)
+        WasmAddress(@ptr, pinnedGPR)
+        ...
+        PatchPoint(...) // Do Wasm call
+        WasmAddress(@ptr, pinnedGPR)
+        ...
+
+        In this case we will not be able to CSE the WasmAddresses since the
+        call writes to pinnedGPR. Thus if WasmAddress took an Int32 we would need
+        to emit an extra Move32 at the second WasmAddress to ensure it saw a proper
+        32-bit value. If Wasm ensures that there there is a leading ZExt32 then
+        the duplicated moves become unnecessary.
+
+        * CMakeLists.txt:
+        * JavaScriptCore.xcodeproj/project.pbxproj:
+        * b3/B3LowerToAir.cpp:
+        (JSC::B3::Air::LowerToAir::effectiveAddr):
+        (JSC::B3::Air::LowerToAir::lower):
+        * b3/B3Opcode.cpp:
+        (WTF::printInternal):
+        * b3/B3Opcode.h:
+        * b3/B3Validate.cpp:
+        * b3/B3Value.cpp:
+        (JSC::B3::Value::effects):
+        * b3/B3WasmAddressValue.cpp: Added.
+        (JSC::B3::WasmAddressValue::~WasmAddressValue):
+        (JSC::B3::WasmAddressValue::dumpMeta):
+        (JSC::B3::WasmAddressValue::cloneImpl):
+        (JSC::B3::WasmAddressValue::WasmAddressValue):
+        * b3/B3WasmAddressValue.h: Added.
+        * b3/testb3.cpp:
+        (JSC::B3::testWasmAddress):
+        (JSC::B3::run):
+
 2016-10-14  Joseph Pecoraro  <pecoraro@apple.com>
 
         test262: @isConstructor incorrectly thinks Math.cos is a constructor

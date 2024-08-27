@@ -133,9 +133,6 @@
 /* Option in segmented control for inserting a bulleted list in text editing */
 "Bulleted list" = "Bulleted list";
 
-/* Exit fullscreen button in fullscreen media controls */
-"Exit Fullscreen" = "Exit Fullscreen";
-
 /* menu item title for phone number */
 "Call Using iPhone:" = "Call Using iPhone:";
 
@@ -220,6 +217,9 @@
 /* Undo action name */
 "Cut (Undo action name)" = "Cut";
 
+/* accessibility role description for a date field */
+"date field" = "date field";
+
 /* Default writing direction context menu item */
 "Default" = "Default";
 
@@ -247,6 +247,9 @@
 /* Undo action name */
 "Drag (Undo action name)" = "Drag";
 
+/* accessibility role description for an email field */
+"email field" = "email field";
+
 /* Video Enter Fullscreen context menu item */
 "Enter Full Screen" = "Enter Full Screen";
 
@@ -256,11 +259,11 @@
 /* Video Exit Fullscreen context menu item */
 "Exit Full Screen" = "Exit Full Screen";
 
+/* Button for exiting fullscreen when in fullscreen media playback */
+"Exit Fullscreen" = "Exit Fullscreen";
+
 /* menu item */
 "Exit Picture in Picture" = "Exit Picture in Picture";
-
-/* accessibility role description for a figure element */
-"figure" = "figure";
 
 /* Default application name for Open With context menu */
 "Finder" = "Finder";
@@ -616,6 +619,9 @@
 /* File Upload alert sheet camera button string for taking only videos */
 "Take Video (file upload action sheet)" = "Take Video";
 
+/* accessibility role description for a telephone number field */
+"telephone number field" = "telephone number field";
+
 /* Text Replacement context menu item */
 "Text Replacement" = "Text Replacement";
 
@@ -837,6 +843,9 @@
 
 /* accessibility label for fast reverse button */
 "fast reverse" = "fast reverse";
+
+/* accessibility role description for a figure element. */
+"figure" = "figure";
 
 /* accessibility role description for a file upload button */
 "file upload button" = "file upload button";
@@ -1087,6 +1096,9 @@
 /* term word of a description list */
 "term" = "term";
 
+/* accessibility role description for a time field */
+"time field" = "time field";
+
 /* accessibility label for timeline thumb */
 "timeline slider thumb" = "timeline slider thumb";
 
@@ -1095,6 +1107,9 @@
 
 /* Validation message for form control elements with a value longer than maximum allowed length */
 "too long" = "too long";
+
+/* Validation message for form control elements with a value shorter than minimum allowed length */
+"too short" = "too short";
 
 /* An ARIA accessibility group that acts as a tooltip. */
 "tooltip" = "tooltip";
@@ -1128,6 +1143,9 @@
 
 /* HTTP result code string */
 "unsupported version" = "unsupported version";
+
+/* accessibility role description for a URL field */
+"URL field" = "URL field";
 
 /* Validation message for required form control elements that have no value */
 "value missing" = "value missing";

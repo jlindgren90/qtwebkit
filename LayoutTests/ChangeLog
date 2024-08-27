@@ -1,3 +1,143 @@
+2016-10-17  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline mathml/mathml-in-dashboard.html for mac.
+
+        Unreviewed test gardening.
+
+        * platform/mac/mathml/mathml-in-dashboard-expected.txt: Added.
+
+2016-10-16  Nan Wang  <n_wang@apple.com>
+
+        AX: [Mac] roleDescription for AXTextField input types
+        https://bugs.webkit.org/show_bug.cgi?id=163419
+        <rdar://problem/28766192>
+
+        Reviewed by Darin Adler.
+
+        * platform/mac/accessibility/roles-exposed-expected.txt:
+
+2016-10-16  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed GTK test gardening
+
+        * mathml/mathml-in-dashboard-expected.txt:
+        * platform/gtk/TestExpectations:
+
+2016-10-16  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Styles for StartButton are missing
+        https://bugs.webkit.org/show_bug.cgi?id=163499
+        <rdar://problem/28792009>
+
+        Reviewed by Darin Adler.
+
+        New test checking StartButton instances have the right CSS styles applied to their DOM structure.
+
+        * media/modern-media-controls/start-button/start-button-styles-expected.txt: Added.
+        * media/modern-media-controls/start-button/start-button-styles.html: Added.
+
+2016-10-16  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Meter tests have been failed since r207280
+
+        Unreviewed EFL gardening. And add new baseline for meter-element.html.
+
+        * platform/efl/TestExpectations: Mark 2 tests to failure.
+        * platform/efl/fast/dom/HTMLMeterElement/meter-element-expected.txt: Added.
+
+2016-10-15  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Delete the animated image catchup code
+        https://bugs.webkit.org/show_bug.cgi?id=163410
+
+        Reviewed by Simon Fraser.
+
+        This animated gif has one red frame, one green frame and two red frames.
+        The test page renders only two frames from this this image on a canvas. The
+        test passes if the second frame (the green one) is rendered on the canvas
+        even if drawImage() is called after the duration of the first frame.
+
+        * fast/images/ordered-animated-image-frames-expected.html: Added.
+        * fast/images/ordered-animated-image-frames.html: Added.
+        * fast/images/resources/animated-red-green-blue.gif: Added.
+
+2016-10-15  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Test that duplicate axis values in font-variation-settings are resolved correctly
+        https://bugs.webkit.org/show_bug.cgi?id=163489
+
+        Reviewed by Darin Adler.
+
+        * fast/text/variations/duplicate-axis-expected.html: Added.
+        * fast/text/variations/duplicate-axis.html: Added.
+
+2016-10-15  Sam Weinig  <sam@webkit.org>
+
+        MessageEvent's source property should be a (DOMWindow or MessagePort)? rather than a EventTarget?
+        https://bugs.webkit.org/show_bug.cgi?id=163475
+
+        Reviewed by Simon Fraser.
+
+        * fast/dom/message-port-deleted-by-accessor.html:
+        Switch source parameter to null to avoid accidental type error.
+
+        * fast/events/constructors/message-event-constructor-expected.txt:
+        * fast/events/constructors/message-event-constructor.html:
+        Update test expect a thrown type error, as is now expected, for non-window or MessagePort EventTargets.
+
+2016-10-15  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] macOS inline controls
+        https://bugs.webkit.org/show_bug.cgi?id=163444
+        <rdar://problem/27989473>
+
+        Reviewed by Dean Jackson.
+
+        Testing the properties of the new MacOSMediaControls and MacOSInlineMediaControls classes.
+
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-buttons-styles-expected.txt: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-buttons-styles.html: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-constructor-expected.txt: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-constructor.html: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-controls-bar-styles-expected.txt: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-controls-bar-styles.html: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-layout-expected.txt: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-layout.html: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-time-control-styles-expected.txt: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-time-control-styles.html: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-volume-slider-visibility-expected.txt: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-volume-slider-visibility.html: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-volume-styles-expected.txt: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-volume-styles.html: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-dropping-controls-expected.txt: Added.
+        * media/modern-media-controls/macos-inline-media-controls/macos-inline-media-dropping-controls.html: Added.
+        * media/modern-media-controls/macos-media-controls/macos-media-controls-expected.txt: Added.
+        * media/modern-media-controls/macos-media-controls/macos-media-controls.html: Added.
+
+2016-10-14  Antti Koivisto  <antti@apple.com>
+
+        100% CPU on homedepot.com page
+        https://bugs.webkit.org/show_bug.cgi?id=163452
+        <rdar://problem/28730708>
+
+        Reviewed by Simon Fraser.
+
+        * fast/animation/animation-style-update-size-expected.txt: Added.
+        * fast/animation/animation-style-update-size.html: Added.
+
+2016-10-14  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r207319.
+
+        Regressed Dromaeo and may have caused crashes under
+        GuardMalloc (rdar://problem/28780835)
+
+        Reverted changeset:
+
+        "[Web IDL] Add support for [SameObject] extended attribute"
+        https://bugs.webkit.org/show_bug.cgi?id=163414
+        http://trac.webkit.org/changeset/207319
+
 2016-10-14  Manuel Rego Casasnovas  <rego@igalia.com>
 
         [css-grid] Changing the argument on fit-content() doesn't cause the grid to be relayout

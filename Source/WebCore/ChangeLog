@@ -1,3 +1,1292 @@
+2016-10-17  Mark Lam  <mark.lam@apple.com>
+
+        Use the reject() helper function for conditionally throwing TypeErrors.
+        https://bugs.webkit.org/show_bug.cgi?id=163491
+
+        Reviewed by Filip Pizlo.
+
+        No new tests because this patch does not introduce new behavior.
+
+        * bindings/js/JSCryptoAlgorithmDictionary.cpp:
+        (WebCore::createRsaKeyGenParams):
+        * bindings/js/JSIDBDatabaseCustom.cpp:
+        (WebCore::JSIDBDatabase::createObjectStore):
+        * bridge/c/c_instance.cpp:
+        (JSC::Bindings::CInstance::invokeMethod):
+
+2016-10-17  Miguel Gomez  <magomez@igalia.com>
+
+        [GTK] Several tests crashing on debug bot in (anonymous namespace)::MediaPlayerPrivateGStreamerBase::repaint
+        https://bugs.webkit.org/show_bug.cgi?id=163511
+
+        Reviewed by Carlos Garcia Campos.
+
+        Perform the video repaint in the main thread when accelerated compositing is disabled.
+
+        Covered by existent tests.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::MediaPlayerPrivateGStreamerBase):
+        (WebCore::MediaPlayerPrivateGStreamerBase::repaint):
+        (WebCore::MediaPlayerPrivateGStreamerBase::triggerRepaint):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h:
+
+2016-10-17  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Eleminate code duplication between ResourceRequest encoding/decoding implementations
+        https://bugs.webkit.org/show_bug.cgi?id=163507
+
+        Reviewed by Carlos Garcia Campos.
+
+        ResourceRequestBase::encodeWithoutPlatformData() and Soup implementation of
+        ArgumentCoder<ResourceRequest>::encodePlatformData() share most of the code,
+        ditto for decoding implementations.
+
+        No new tests needed.
+
+        * platform/network/ResourceRequestBase.h:
+        (WebCore::ResourceRequestBase::encodeBase):
+        (WebCore::ResourceRequestBase::decodeBase):
+        (WebCore::ResourceRequestBase::encodeWithoutPlatformData):
+        (WebCore::ResourceRequestBase::decodeWithoutPlatformData):
+        * platform/network/soup/ResourceRequest.h:
+        (WebCore::ResourceRequest::encodeWithPlatformData):
+        (WebCore::ResourceRequest::decodeWithPlatformData):
+
+2016-10-17  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Move user agent quirks to cross-platform location
+        https://bugs.webkit.org/show_bug.cgi?id=163508
+
+        Reviewed by Carlos Garcia Campos.
+
+        Tested by Tools/TestWebKitAPI/Tests/WebCore/UserAgentQuirks.cpp.
+
+        * PlatformGTK.cmake:
+        * platform/UserAgent.h: Renamed from Source/WebCore/platform/gtk/UserAgentGtk.h.
+        * platform/UserAgentQuirks.cpp: Added. Moved from UserAgentGtk.cpp.
+        (WebCore::urlRequiresChromeBrowser): Sneakily tighten up Google domain detection, it should
+        only apply to sites if the base domain matches google.*, not any base domain that starts
+        with google.
+        (WebCore::urlRequiresMacintoshPlatform):
+        (WebCore::UserAgentQuirks::quirksForURL):
+        (WebCore::UserAgentQuirks::stringForQuirk):
+        * platform/UserAgentQuirks.h: Moved from UserAgentGtk.cpp. prepare-ChangeLog thinks it was
+        renamed from Source/WebCore/platform/efl/UserAgentEfl.h, but prepare-ChangeLog is dumb.
+        (WebCore::UserAgentQuirks::UserAgentQuirks):
+        (WebCore::UserAgentQuirks::add):
+        (WebCore::UserAgentQuirks::contains):
+        (WebCore::UserAgentQuirks::isEmpty):
+        * platform/efl/UserAgentEfl.cpp:
+        (WebCore::standardUserAgentForURL):
+        * platform/gtk/UserAgentGtk.cpp:
+        (WebCore::buildUserAgentString):
+        (WebCore::standardUserAgentForURL):
+        (): Deleted.
+        (WebCore::UserAgentQuirks::UserAgentQuirks): Deleted.
+        (WebCore::UserAgentQuirks::add): Deleted.
+        (WebCore::UserAgentQuirks::contains): Deleted.
+        (WebCore::UserAgentQuirks::isEmpty): Deleted.
+        (WebCore::urlRequiresChromeBrowser): Deleted.
+        (WebCore::urlRequiresMacintoshPlatform): Deleted.
+
+2016-10-17  Alberto Garcia  <berto@igalia.com>
+
+        [GTK] gobject-introspection on package build with webkit2gtk fails without active X session
+        https://bugs.webkit.org/show_bug.cgi?id=163105
+
+        Reviewed by Carlos Garcia Campos.
+
+        Don't call XCompositeQueryExtension() or XDamageQueryExtension()
+        if m_display is NULL.
+
+        * platform/graphics/x11/PlatformDisplayX11.cpp:
+        (WebCore::PlatformDisplayX11::supportsXComposite):
+        (WebCore::PlatformDisplayX11::supportsXDamage):
+
+2016-10-16  Nan Wang  <n_wang@apple.com>
+
+        AX: [Mac] roleDescription for AXTextField input types
+        https://bugs.webkit.org/show_bug.cgi?id=163419
+        <rdar://problem/28766192>
+
+        Reviewed by Darin Adler.
+
+        Provided more detailed role description for input types that
+        exposed as standard text fields on the mac.
+
+        Changes are covered in modified test expectation.
+
+        * English.lproj/Localizable.strings:
+        * accessibility/mac/WebAccessibilityObjectWrapperMac.mm:
+        (-[WebAccessibilityObjectWrapper roleDescription]):
+        * platform/LocalizedStrings.cpp:
+        (WebCore::AXEmailFieldText):
+        (WebCore::AXTelephoneFieldText):
+        (WebCore::AXURLFieldText):
+        (WebCore::AXDateFieldText):
+        (WebCore::AXTimeFieldText):
+        * platform/LocalizedStrings.h:
+        * platform/efl/LocalizedStringsEfl.cpp:
+        (WebCore::AXEmailFieldText):
+        (WebCore::AXTelephoneFieldText):
+        (WebCore::AXURLFieldText):
+        (WebCore::AXDateFieldText):
+        (WebCore::AXTimeFieldText):
+        * platform/gtk/LocalizedStringsGtk.cpp:
+        (WebCore::AXEmailFieldText):
+        (WebCore::AXTelephoneFieldText):
+        (WebCore::AXURLFieldText):
+        (WebCore::AXDateFieldText):
+        (WebCore::AXTimeFieldText):
+
+2016-10-16  Chris Dumez  <cdumez@apple.com>
+
+        Update WebKit localizable strings
+        https://bugs.webkit.org/show_bug.cgi?id=163513
+
+        Reviewed by Dan Bernstein.
+
+        Update WebKit localizable strings as it was missing the "too short" one needed
+        by form validation. This was causing a "Localized string not found" message to
+        be shown when testing the following sample on WebKit ToT:
+        - https://googlechrome.github.io/samples/report-validity/
+
+        * English.lproj/Localizable.strings:
+
+2016-10-16  Chris Dumez  <cdumez@apple.com>
+
+        REGRESSION (r206750): Crash when pressing Caps Lock if “Use the Caps Lock key to switch to and from U.S.” is selected in Input Sources preferences
+        https://bugs.webkit.org/show_bug.cgi?id=163506
+        <rdar://problem/28792483>
+
+        Reviewed by Darin Adler.
+
+        As per the NSEvent documentation [1], calling [NSEvent characters] is only
+        valid on key up / key down events and will raise an NSInternalInconsistencyException
+        if accessed on any other kind of event object. The crash happens when keyForKeyEvent()
+        is called with the third kind of key event (NSFlagsChanged) which is used for
+        detecting modifier keys. We normally detect the modifier key and return early before
+        calling [NSEvent characters]. However, in some rare cases, we fail to detect the
+        modifier key and we fall through.
+
+        To address the issue, we now return "Unidentified" for NSFlagsChanged events, if we
+        fail to detect the modifier key and before calling [NSEvent characters].
+
+        [1] https://developer.apple.com/reference/appkit/nsevent/1534183-characters
+
+        No new test, not easily testable.
+
+        * platform/mac/PlatformEventFactoryMac.mm:
+        (WebCore::keyForKeyEvent):
+
+2016-10-16  Darin Adler  <darin@apple.com>
+
+        Move CSS classes from ExceptionCode to Exception
+        https://bugs.webkit.org/show_bug.cgi?id=163494
+
+        Reviewed by Sam Weinig.
+
+        Removed the "get" prefix from the names of many CSSPrimitiveValue
+        functions to match WebKit coding style and to disambiguate them
+        from the public CSS DOM functions that raise exceptions.
+
+        * bindings/js/JSCSSStyleDeclarationCustom.cpp:
+        (WebCore::propertyNamePrefix): Use enum class.
+        (WebCore::parseJavaScriptCSSPropertyName): Tweak style a bit.
+        (WebCore::stylePropertyGetter): Refactor to simplify structure.
+        (WebCore::stylePropertyGetterPixelOrPosPrefix): Ditto. Also use floatValue.
+        (WebCore::JSCSSStyleDeclaration::putDelegate): Use findIgnoringASCIICase,
+        and use propagateException to handle ExcpetionOr.
+        (WebCore::JSCSSStyleDeclaration::getPropertyCSSValue): Tweak style a bit.
+        (WebCore::JSCSSStyleDeclaration::getOwnPropertyNames): Use a lambda to
+        initialize a global here.
+
+        * bindings/js/JSDOMBinding.h: Added toJSString to support bindings for
+        functions returning ExceptionOr<String>.
+
+        * bindings/scripts/gobject-generate-headers.pl: Deleted.
+
+        * css/BasicShapeFunctions.cpp:
+        (WebCore::convertToLengthSize): Use pairValue.
+        (WebCore::convertToCenterCoordinate): Use valueID and pairValue.
+        (WebCore::cssValueToBasicShapeRadius): Ditto.
+        * css/CSSBasicShapes.cpp:
+        (WebCore::serializePositionOffset): Ditto.
+        (WebCore::buildSerializablePositionOffset): Ditto.
+        (WebCore::CSSBasicShapeCircle::cssText): Ditto.
+        (WebCore::CSSBasicShapeEllipse::cssText): Ditto.
+        (WebCore::updateCornerRadiusWidthAndHeight): Ditto.
+        * css/CSSBorderImageSliceValue.h: Use quadValue.
+        * css/CSSCalculationValue.cpp:
+        (WebCore::determineCategory): Use floatValue and doubleValue.
+
+        * css/CSSCharsetRule.h: Use ExceptionOr. Also made more things private.
+        * css/CSSCharsetRule.idl: Use non-legacy exceptions.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::CSSComputedStyleDeclaration::setCssText): Use ExceptionOr.
+        (WebCore::ComputedStyleExtractor::propertyMatches): Use valueID.
+        (WebCore::CSSComputedStyleDeclaration::setProperty): Use ExceptionOr.
+        (WebCore::CSSComputedStyleDeclaration::removeProperty): Ditto.
+        (WebCore::CSSComputedStyleDeclaration::setPropertyInternal): Ditto.
+        (WebCore::ComputedStyleExtractor::getBackgroundShorthandValue): Return
+        a Ref instead of a RefPtr.
+        * css/CSSComputedStyleDeclaration.h: Updated for above changes.
+
+        * css/CSSCrossfadeValue.cpp:
+        (WebCore::CSSCrossfadeValue::fixedSize): Use floatValue.
+        (WebCore::CSSCrossfadeValue::image): Ditto.
+        (WebCore::CSSCrossfadeValue::blend): Use doubleValue.
+
+        * css/CSSFontFace.cpp:
+        (WebCore::CSSFontFace::calculateStyleMask): Use valueID.
+        (WebCore::CSSFontFace::calculateWeightMask): Ditto.
+        * css/CSSFontFaceSet.cpp:
+        (WebCore::CSSFontFaceSet::familyNameFromPrimitive): Ditto.
+        (WebCore::CSSFontFaceSet::matchingFaces): Use ExceptoinOr.
+        (WebCore::CSSFontFaceSet::check): Ditto.
+        * css/CSSFontFaceSet.h: Updated for above changes.
+
+        * css/CSSGradientValue.cpp:
+        (WebCore::compareStops): Use doubleValue.
+        (WebCore::CSSGradientValue::addStops): Use floatValue.
+        (WebCore::positionFromValue): Use floatValue and valudID.
+        (WebCore::CSSLinearGradientValue::customCSSText): Use doubleValue and valueID.
+        (WebCore::CSSLinearGradientValue::createGradient): Use floatValue and valueID.
+        (WebCore::CSSRadialGradientValue::customCSSText): Use doubleValue and valueID.
+        (WebCore::CSSRadialGradientValue::resolveRadius): Use floatValue.
+        (WebCore::CSSRadialGradientValue::createGradient): Use valueID.
+
+        * css/CSSGroupingRule.cpp:
+        (WebCore::CSSGroupingRule::insertRule): Use ExceptionOr.
+        (WebCore::CSSGroupingRule::deleteRule): Ditto.
+        * css/CSSGroupingRule.h: Updated for above changes.
+
+        * css/CSSImageGeneratorValue.cpp:
+        (WebCore::CSSImageGeneratorValue::subimageIsPending): Use valueID.
+        (WebCore::CSSImageGeneratorValue::cachedImageForCSSValue): Ditto.
+
+        * css/CSSImageSetValue.cpp:
+        (WebCore::CSSImageSetValue::fillImageSet): Use floatValue.
+
+        * css/CSSMediaRule.idl: Use non-legacy exceptions.
+
+        * css/CSSPrimitiveValue.cpp:
+        (WebCore::CSSPrimitiveValue::computeDegrees): Use doubleValue.
+        (WebCore::CSSPrimitiveValue::setFloatValue): Use ExceptionOr.
+        (WebCore::CSSPrimitiveValue::getFloatValue): Replaced getDoubleValue with this,
+        since getDoubleValue is unused, moving the call to clampTo into this function.
+        Also changed this to use ExceptionOr.
+        (WebCore::CSSPrimitiveValue::doubleValue): Renamed from getDoubleValue.
+        (WebCore::CSSPrimitiveValue::doubleValueInternal): Use Optional instead of a bool
+        and an out argument to return the value and check for type failure.
+        (WebCore::CSSPrimitiveValue::setStringValue): Use ExceptionOr.
+        (WebCore::CSSPrimitiveValue::getStringValue): Ditto.
+        (WebCore::CSSPrimitiveValue::stringValue): Renamed from getStringValue.
+        (WebCore::CSSPrimitiveValue::getCounterValue): Use ExceptionOr.
+        (WebCore::CSSPrimitiveValue::getRectValue): Use ExceptionOr.
+        (WebCore::CSSPrimitiveValue::getQuadValue): Deleted.
+        (WebCore::CSSPrimitiveValue::getLengthRepeatValue): Deleted.
+        (WebCore::CSSPrimitiveValue::getRGBColorValue): Use ExceptionOr.
+        (WebCore::CSSPrimitiveValue::getPairValue): Deleted.
+        (WebCore::CSSPrimitiveValue::formatNumberForCustomCSSText): Use new names for functions.
+        * css/CSSPrimitiveValue.h: Reorganized the class, moved large inline function bodies
+        out of the class definition. Updated for the above changes.
+        * css/CSSPrimitiveValue.idl: Use non-legacy exceptions.
+
+        * css/CSSPrimitiveValueMappings.h: Use value instead of getValue, etc.
+
+        * css/CSSRule.cpp:
+        (WebCore::CSSRule::setCssText): Use ExceptionOr.
+        * css/CSSRule.h: Updated for above change.
+        * css/CSSRule.idl: Use non-legacy exceptions.
+
+        * css/CSSStyleDeclaration.h: Use ExceptionOr.
+        * css/CSSStyleDeclaration.idl: Use non-legacy exceptions.
+
+        * css/CSSStyleSheet.cpp:
+        (WebCore::CSSStyleSheet::deprecatedInsertRule): Use ExceptionOr.
+        (WebCore::CSSStyleSheet::insertRule): Ditto.
+        (WebCore::CSSStyleSheet::deleteRule): Ditto.
+        (WebCore::CSSStyleSheet::addRule): Ditto.
+        * css/CSSStyleSheet.h: Updated for the above changes.
+        * css/CSSStyleSheet.idl: Use non-legacy exceptions.
+
+        * css/CSSSupportsRule.idl: Use non-legacy exceptions.
+
+        * css/CSSToStyleMap.cpp:
+        (WebCore::CSSToStyleMap::mapFillAttachment): Use valueID instead of getValueID, etc.
+        (WebCore::convertToLengthSize): Ditto.
+        (WebCore::CSSToStyleMap::mapFillSize): Ditto.
+        (WebCore::CSSToStyleMap::mapFillXPosition): Ditto.
+        (WebCore::CSSToStyleMap::mapFillYPosition): Ditto.
+        (WebCore::CSSToStyleMap::mapFillMaskSourceType): Ditto.
+        (WebCore::CSSToStyleMap::mapAnimationDirection): Ditto.
+        (WebCore::CSSToStyleMap::mapAnimationFillMode): Ditto.
+        (WebCore::CSSToStyleMap::mapAnimationIterationCount): Ditto.
+        (WebCore::CSSToStyleMap::mapAnimationName): Ditto.
+        (WebCore::CSSToStyleMap::mapAnimationPlayState): Ditto.
+        (WebCore::CSSToStyleMap::mapAnimationProperty): Ditto.
+        (WebCore::CSSToStyleMap::mapAnimationTimingFunction): Ditto.
+        (WebCore::CSSToStyleMap::mapAnimationTrigger): Ditto.
+        (WebCore::CSSToStyleMap::mapNinePieceImageSlice): Ditto.
+        (WebCore::CSSToStyleMap::mapNinePieceImageQuad): Ditto.
+        (WebCore::CSSToStyleMap::mapNinePieceImageRepeat): Ditto.
+
+        * css/CSSValue.h: Use ExceptionOr.
+        * css/CSSValue.idl: Use non-legacy exceptions.
+
+        * css/Counter.h: Use stringValue instead of getStringValue, etc.
+
+        * css/FontFace.cpp:
+        (WebCore::FontFace::create): Use ExceptionOr.
+        (WebCore::FontFace::setFamily): Ditto.
+        (WebCore::FontFace::setStyle): Ditto.
+        (WebCore::FontFace::setWeight): Ditto.
+        (WebCore::FontFace::setStretch): Ditto.
+        (WebCore::FontFace::setUnicodeRange): Ditto.
+        (WebCore::FontFace::setVariant): Ditto.
+        (WebCore::FontFace::setFeatureSettings): Ditto.
+        * css/FontFace.h: Updated for above changes.
+        * css/FontFace.idl: Use non-legacy exceptions.
+
+        * css/FontFaceSet.cpp:
+        (WebCore::FontFaceSet::load): Use ExceptionOr.
+        (WebCore::FontFaceSet::check): Ditto.
+        * css/FontFaceSet.h: Updated for above changes.
+        * css/FontFaceSet.idl: Use non-legacy exceptions.
+
+        * css/FontVariantBuilder.cpp:
+        (WebCore::extractFontVariantLigatures): Use valueID instead of getValueID, etc.
+        (WebCore::extractFontVariantNumeric): Ditto.
+        (WebCore::extractFontVariantEastAsian): Ditto.
+
+        * css/MediaList.cpp:
+        (WebCore::MediaList::setMediaText): Use ExceptionOr.
+        (WebCore::MediaList::deleteMedium): Ditto.
+        (WebCore::MediaList::appendMedium): Ditto.
+        * css/MediaList.h: Updated for above changes.
+        * css/MediaList.idl: Use non-legacy exceptions.
+
+        * css/MediaQueryEvaluator.cpp:
+        (WebCore::doubleValue): Use valueID instead of getValueID, etc.
+        (WebCore::colorGamutEvaluate): Ditto.
+        (WebCore::invertedColorsEvaluate): Ditto.
+        (WebCore::orientationEvaluate): Ditto.
+        (WebCore::evaluateResolution): Ditto.
+        (WebCore::computeLength): Ditto.
+        (WebCore::viewModeEvaluate): Ditto.
+        (WebCore::hoverEvaluate): Ditto.
+        (WebCore::pointerEvaluate): Ditto.
+        (WebCore::prefersReducedMotionEvaluate): Ditto.
+
+        * css/PropertySetCSSStyleDeclaration.cpp:
+        (WebCore::PropertySetCSSStyleDeclaration::setCssText): Use ExceptionOr.
+        (WebCore::PropertySetCSSStyleDeclaration::setProperty): Ditto.
+        (WebCore::PropertySetCSSStyleDeclaration::removeProperty): Ditto.
+        (WebCore::PropertySetCSSStyleDeclaration::getPropertyCSSValueInternal): Ditto.
+        (WebCore::PropertySetCSSStyleDeclaration::setPropertyInternal): Ditto.
+        * css/PropertySetCSSStyleDeclaration.h: Updated for above changes.
+        Also marked a couple additional functions private.
+
+        * css/StyleBuilderConverter.h: Use doubleValue instead of getDoubleValue, etc.
+        * css/StyleBuilderCustom.h: Ditto.
+        * css/StyleProperties.cpp:
+        (WebCore::StyleProperties::getLayeredShorthandValue): Ditto.
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::MatchResult::addMatchedProperties): Ditto.
+        (WebCore::StyleResolver::colorFromPrimitiveValueIsDerivedFromElement): Ditto.
+        (WebCore::StyleResolver::colorFromPrimitiveValue): Ditto.
+        (WebCore::StyleResolver::createFilterOperations): Ditto.
+        * css/TransformFunctions.cpp:
+        (WebCore::transformsForValue): Ditto.
+        * css/ViewportStyleResolver.cpp:
+        (WebCore::ViewportStyleResolver::getViewportArgumentValue): Ditto.
+
+        * css/WebKitCSSMatrix.cpp:
+        (WebCore::WebKitCSSMatrix::WebKitCSSMatrix): Tweaked constructors a bit,
+        getting rid of the one that uses an ExceptionCode.
+        (WebCore::WebKitCSSMatrix::create): Moved in here, and use ExceptionOr.
+        (WebCore::WebKitCSSMatrix::setMatrixValue): Use ExceptionOr.
+        (WebCore::WebKitCSSMatrix::multiply): Tweak coding style a bit.
+        (WebCore::WebKitCSSMatrix::inverse): Use ExceptionOr.
+        (WebCore::WebKitCSSMatrix::translate): Return a Ref instead of RefPtr.
+        (WebCore::WebKitCSSMatrix::scale): Ditto.
+        (WebCore::WebKitCSSMatrix::rotate): Ditto.
+        (WebCore::WebKitCSSMatrix::rotateAxisAngle): Ditto.
+        (WebCore::WebKitCSSMatrix::skewX): Ditto.
+        (WebCore::WebKitCSSMatrix::skewY): Ditto.
+        (WebCore::WebKitCSSMatrix::toString): Tweaked formatting a bit.
+        * css/WebKitCSSMatrix.h: Updated for above changes.
+        * css/WebKitCSSMatrix.idl: Use non-legacy extensions.
+
+        * css/makeprop.pl:
+        (handleCurrentColorValue): Use valueID instead of getValueID.
+        (generateValueSetter): Ditto.
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParser::parse4ValuesFillPosition): Use valueID instead of getValueID, etc.
+        (WebCore::CSSParser::parse3ValuesFillPosition): Ditto.
+        (WebCore::CSSParser::parseFillPosition): Ditto.
+        (WebCore::CSSParser::parseFillRepeat): Ditto.
+        (WebCore::CSSParser::parseGridPosition): Ditto.
+        (WebCore::CSSParser::parseGridTemplateRowsAndAreasAndColumns): Ditto.
+        (WebCore::isGridTrackFixedSized): Ditto.
+        (WebCore::CSSParser::parseRadialGradient): Ditto.
+        (WebCore::CSSParser::parseBuiltinFilterArguments): Ditto.
+
+        * css/parser/CSSParserValues.cpp:
+        (WebCore::CSSParserValue::createCSSValue): Removed the unneeded call to
+        setPrimitiveType here. The createParserOperator returns an object that
+        already has the correct primitive type.
+
+        * css/parser/CSSPropertyParser.cpp: Updated most cases of calling the old
+        getXXXValue functions, but not sure if it's right since it is commented out
+        code that I did not compile.
+
+        * css/parser/CSSPropertyParserHelpers.cpp:
+        (WebCore::CSSPropertyParserHelpers::clampRGBComponent): Use intValue instead of getIntValue, etc.
+        (WebCore::CSSPropertyParserHelpers::parseHSLParameters): Ditto.
+        (WebCore::CSSPropertyParserHelpers::isHorizontalPositionKeywordOnly): Ditto.
+        (WebCore::CSSPropertyParserHelpers::isVerticalPositionKeywordOnly): Ditto.
+        (WebCore::CSSPropertyParserHelpers::positionFromThreeOrFourValues): Ditto.
+        (WebCore::CSSPropertyParserHelpers::consumeRadialGradient): Ditto.
+
+        * dom/Range.cpp: Added now-needed include of ExceptionCode.h.
+        * dom/SelectorQuery.cpp: Ditto.
+
+        * editing/ApplyStyleCommand.cpp:
+        (WebCore::toIdentifier): Use valueID instead of getValueID, etc.
+        (WebCore::ApplyStyleCommand::computedFontSize): Ditto.
+        * editing/EditingStyle.cpp:
+        (WebCore::identifierForStyleProperty): Ditto.
+        (WebCore::HTMLElementEquivalent::valueIsPresentInStyle): Ditto.
+        (WebCore::EditingStyle::extractFontSizeDelta): Ditto.
+        (WebCore::EditingStyle::textDirection): Ditto.
+        (WebCore::EditingStyle::prepareToApplyAt): Ditto.
+        (WebCore::EditingStyle::textDirectionForSelection): Ditto.
+        (WebCore::fontWeightIsBold): Ditto.
+        (WebCore::legacyFontSizeFromCSSValue): Ditto.
+        (WebCore::isTransparentColorValue): Ditto.
+        (WebCore::hasTransparentBackgroundColor): Ditto.
+        (WebCore::backgroundColorInEffect): Ditto.
+
+        * editing/Editor.cpp:
+        (WebCore::Editor::applyEditingStyleToElement): Removed IGNORE_EXCEPTION; that is
+        what we do by default for things returning ExceptionOr.
+        * editing/RemoveCSSPropertyCommand.cpp:
+        (WebCore::RemoveCSSPropertyCommand::doApply): Ditto.
+        (WebCore::RemoveCSSPropertyCommand::doUnapply): Ditto.
+        * editing/ReplaceSelectionCommand.cpp:
+        (WebCore::ReplaceSelectionCommand::removeRedundantStylesAndKeepStyleSpanInline): Ditto.
+
+        * editing/cocoa/HTMLConverter.mm:
+        (floatValueFromPrimitiveValue): Use floatValue instead of getFloatValue, etc.
+        * editing/markup.cpp:
+        (WebCore::propertyMissingOrEqualToNone): Ditto.
+
+        * inspector/InspectorStyleSheet.cpp:
+        (WebCore::InspectorStyleSheet::addRule): Updated to call ExceptionOr-returning functions.
+        (WebCore::InspectorStyleSheet::deleteRule): Ditto.
+        (WebCore::InspectorStyleSheet::setStyleText): Ditto.
+
+        * svg/SVGLength.cpp:
+        (WebCore::SVGLength::fromCSSPrimitiveValue): Use floatValue instead of getFloatValue.
+
+2016-10-16  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Styles for StartButton are missing
+        https://bugs.webkit.org/show_bug.cgi?id=163499
+        <rdar://problem/28792009>
+
+        Reviewed by Darin Adler.
+
+        Add styling for StartButton so that instances are always displayed in the center of their container.
+
+        Test: media/modern-media-controls/start-button/start-button-styles.html
+
+        * Modules/modern-media-controls/controls/start-button.css: Added.
+        (button.start):
+        (button.start > *):
+        (button.start > div):
+        (button.start > img):
+        (button.start:active > img):
+
+2016-10-16  Simon Fraser  <simon.fraser@apple.com>
+
+        Implement serializer = { attribute }
+        https://bugs.webkit.org/show_bug.cgi?id=163466
+        
+        Follow-up fix to die if "serializer {...}" lists an attribute not present
+        on the interface. I don't think this is testable with the current bindings tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateSerializerFunction):
+
+2016-10-16  Simon Fraser  <simon.fraser@apple.com>
+
+        Add the "Geometry Interfaces" to features.json.
+
+        * features.json:
+
+2016-10-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Document request not updated after willSendRequest is called for a redirect
+        https://bugs.webkit.org/show_bug.cgi?id=163436
+
+        Reviewed by Michael Catanzaro.
+
+        The first willSendRequest happens before DocumentLoader::startLoadingMainResource(), that calls setRequest, but
+        the second one happens after DocumentLoader::redirectReceived() and then the request is never updated again.
+
+        Covered by GTK+ unit tests.
+
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::willContinueMainResourceLoadAfterRedirect): Set the new request.
+        * loader/DocumentLoader.h:
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::willSendRequestInternal): Notify the document loader when loading the main resource
+        and called for a redirection.
+
+2016-10-15  Said Abou-Hallawa  <sabouhallawa@apple.com>
+
+        Delete the animated image catchup code
+        https://bugs.webkit.org/show_bug.cgi?id=163410
+
+        Reviewed by Simon Fraser.
+
+        This patch fixes two issues in the animated image workflow:
+
+        1) Setting the animation timer should follow the following rules:
+        
+            -- Initial case: Which happens before drawing the first frame. We
+            should set the timer to fire after the current_frame_duration.
+
+            -- Late case (Slow animation): This happens if the current_time is
+            past the next_frame_desired_time. In this case we should fire the
+            timer immediately.
+
+            -- Early case (Fast animation): This happens when there is still time
+            before the next_frame_desired_time. In this case we should set the
+            timer to fire after the difference between the next_frame_desired_time
+            and the current_time.
+
+        2) Deleting the code for catching up the current_frame:
+        
+            This code used to run in the slow animation case. It was never used
+            on iOS. It was trying to adjust the current_frame according to the
+            current_time as if there were no delay. It turned out that this might
+            cause a bigger delay because most likely the decoder decodes the image
+            frames incrementally; i.e. to decode frame k, it has to have frame
+            (k - 1) decoded.
+
+        Test: fast/images/ordered-animated-image-frames.html
+
+        * platform/graphics/BitmapImage.cpp:
+        (WebCore::BitmapImage::draw): Remove the iOS specific code.
+        (WebCore::BitmapImage::startAnimation): Move the animation finishing code from 
+        BitmapImage::internalAdvanceAnimation() to this function. Simplify the timer
+        duration code as it is described above.
+
+        (WebCore::BitmapImage::advanceAnimation): Merge BitmapImage::internalAdvanceAnimation()
+        into this function.
+
+        (WebCore::BitmapImage::resetAnimation):
+        
+        (WebCore::BitmapImage::internalAdvanceAnimation): Deleted.
+        * platform/graphics/BitmapImage.h:
+
+        * platform/graphics/Image.cpp:
+        (WebCore::Image::drawTiled):
+        * platform/graphics/Image.h:
+        (WebCore::Image::startAnimation):
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::startAnimation):
+        * svg/graphics/SVGImage.h:
+        Remove the catchup code form the Image and SVGImage classes.
+
+2016-10-15  Darin Adler  <darin@apple.com>
+
+        Move Web SQL database and WebSockets off legacy exceptions
+        https://bugs.webkit.org/show_bug.cgi?id=163284
+
+        Reviewed by Chris Dumez.
+
+        * Modules/webdatabase/DOMWindowWebDatabase.cpp:
+        (WebCore::DOMWindowWebDatabase::openDatabase): Use ExceptionOr.
+        * Modules/webdatabase/DOMWindowWebDatabase.h: Update for above.
+        * Modules/webdatabase/DOMWindowWebDatabase.idl: Ditto.
+
+        * Modules/webdatabase/SQLResultSet.cpp:
+        (WebCore::SQLResultSet::SQLResultSet): Move initialization of
+        many data members into the class definition.
+        (WebCore::SQLResultSet::insertId): Use ExceptionOr.
+        (WebCore::SQLResultSet::rowsAffected): Moved into class definition.
+        (WebCore::SQLResultSet::rows): Ditto.
+        (WebCore::SQLResultSet::setInsertId): Ditto.
+        (WebCore::SQLResultSet::setRowsAffected): Ditto.
+
+        * Modules/webdatabase/SQLResultSet.h: Updated for above.
+
+        * Modules/webdatabase/SQLResultSet.idl: Use non-legacy exceptions.
+        Added a FIXME about the mismatch between long and int64_t.
+
+        * Modules/webdatabase/SQLStatement.cpp:
+        (WebCore::SQLStatement::execute): Use reference instead of pointer.
+
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::isValidProtocolString): Use StringView.
+        (WebCore::WebSocket::subprotocolSeparator): Fixed capitalization and
+        spelling error in the name of this function.
+        (WebCore::WebSocket::WebSocket): Move initialization of many data
+        members into the class definition.
+        (WebCore::WebSocket::create): Use ExceptionOr.
+        (WebCore::WebSocket::connect): Ditto.
+        (WebCore::WebSocket::send): Ditto.
+        (WebCore::WebSocket::close): Ditto.
+        (WebCore::WebSocket::binaryType): Update to use enum class.
+        (WebCore::WebSocket::setBinaryType): Use ExecptionOr and update to
+        use enum class.
+        (WebCore::WebSocket::didReceiveBinaryData): Ditto.
+
+        * Modules/websockets/WebSocket.h: Updated for above. Changed the
+        BinaryType enum into an enum class.
+
+        * Modules/websockets/WebSocket.idl: Use non-legacy exceptions.
+
+        * Modules/websockets/WebSocketHandshake.cpp:
+        (WebCore::WebSocketHandshake::checkResponseHeaders):
+        Updated for name change to subprotocolSeparator.
+
+        * dom/ExceptionOr.h: Added a constructor for scalar types that does not
+        require an rvalue reference. We can refine this more later, but for now
+        this is sufficient to obviate the need for WTFMove where it otherwise would
+        have been needed in the code above.
+
+        * inspector/InspectorDatabaseAgent.cpp: Use reference instead of pointer.
+
+        * page/DOMWindow.idl: Touched this file to work around bugs in the dependency
+        analysis of the current CMake build system, since otherwise it doesn't process the
+        change to the partial interface WebSocket. Edited lots of comments, removed many
+        others, and tweaked formatting.
+
+2016-10-14  Sam Weinig  <sam@webkit.org>
+
+        MessageEvent's source property should be a (DOMWindow or MessagePort)? rather than a EventTarget?
+        https://bugs.webkit.org/show_bug.cgi?id=163475
+
+        Reviewed by Simon Fraser.
+
+        Start fleshing out union support, starting with MessageEvent.
+        - Simplify things a bit for now by requiring interface types to use RefPtr<T> as their type when
+          used in sequences and unions. We should revisit this later, and see if we can use Ref<T> where
+          possible, but it causes complications for dictionaries, since they want a Ref<T> uninitialized.
+
+        * bindings/generic/IDLTypes.h:
+        Switch IDLInterface to use RefPtr<T> as its implementation type.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::Detail::VariadicConverterBase::convert):
+        - Remove isJSDOMWrapperType() optimization. It was not correct, due to not being able to detect window
+          and window shell, and not always an optimization, e.g. in the case of a single interface.
+        - Switch from JSC::jsDynamicCast<WrapperType*>() to WrapperType::toWrapped() which can be faster and
+          handles window and window shell correctly.
+        - Also fix an issue where we would wrongly assert that one interface had to match.
+
+        * bindings/js/JSDOMWrapper.h:
+        (WebCore::isJSDOMWrapperType): Deleted.
+        Remove unused predicate.
+
+        * bindings/scripts/IDLParser.pm:
+        (parseType):
+        Add missing support for nullable unions.
+
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/TestObj.idl:
+        Add new tests for unions (both non-null and nullable) in dictionaries.
+ 
+        * dom/ContainerNode.cpp:
+        (WebCore::ContainerNode::append):
+        (WebCore::ContainerNode::prepend):
+        * dom/ContainerNode.h:
+        * dom/Node.cpp:
+        (WebCore::nodeSetPreTransformedFromNodeOrStringVector):
+        (WebCore::Node::convertNodesOrStringsIntoNode):
+        (WebCore::Node::before):
+        (WebCore::Node::after):
+        (WebCore::Node::replaceWith):
+        * dom/Node.h:
+        Add using declaration for NodeOrString and change it to use RefPtr<Node>.
+
+        * bindings/js/JSMessageEventCustom.cpp:
+        (WebCore::handleInitMessageEvent):
+        * dom/MessageEvent.cpp:
+        (WebCore::MessageEvent::MessageEvent):
+        (WebCore::MessageEvent::create):
+        (WebCore::MessageEvent::initMessageEvent):
+        (WebCore::MessageEvent::source):
+        (WebCore::isValidSource): Deleted.
+        * dom/MessageEvent.h:
+        * dom/MessageEvent.idl:
+        * page/DOMWindow.cpp:
+        (WebCore::PostMessageTimer::event):
+        Change MessageEvent's source to be a std::experimental::variant<RefPtr<DOMWindow>, RefPtr<MessagePort>>.
+        For now, we only enforce this on setting, and leave the getter a EventTarget?, but that should not be
+        observable, and will rectified in subsequent patches.
+
+2016-10-15  Chris Dumez  <cdumez@apple.com>
+
+        Add support for reportValidity() on form and form control elements
+        https://bugs.webkit.org/show_bug.cgi?id=163479
+
+        Reviewed by Darin Adler.
+
+        Add support for reportValidity() on form and form control elements:
+        - https://html.spec.whatwg.org/#dom-form-reportvalidity
+        - https://html.spec.whatwg.org/#dom-cva-reportvalidity
+
+        Firefox and Chrome already support this.
+
+        Demo: https://googlechrome.github.io/samples/report-validity/
+
+        No new tests, rebaselined existing tests.
+
+        * html/HTMLButtonElement.idl:
+        * html/HTMLFieldSetElement.idl:
+        * html/HTMLFormElement.idl:
+        * html/HTMLInputElement.idl:
+        * html/HTMLKeygenElement.idl:
+        * html/HTMLObjectElement.idl:
+        * html/HTMLOutputElement.idl:
+        * html/HTMLSelectElement.idl:
+        * html/HTMLTextAreaElement.idl:
+        Add reportValidity() operation.
+
+        * html/HTMLFormControlElement.cpp:
+        (WebCore::HTMLFormControlElement::checkValidity):
+
+        (WebCore::HTMLFormControlElement::reportValidity):
+        Add implementation for reportValidity() for form control elements.
+        First, it calls checkValidity() and returns early if there is no
+        constraint violation. if the JS canceled the 'invalid' event
+        fired by checkValidity(), then return early as well, as per the
+        specification. If the element is focusable, we scroll to it,
+        focus it and show the validation message. Otherwise, we log a
+        error message to the console. The last part of the behavior
+        matches what we already did in HTMLFormElement::validateInteractively()
+        and complies with the behavior in the specification.
+
+        (WebCore::HTMLFormControlElement::focusAndShowValidationMessage):
+        Add utility function to scroll to the form control element, focus
+        it and show its validation message. This code was moved from
+        HTMLFormElement::validateInteractively() so that it could be reused
+        in HTMLFormControlElement::reportValidity().
+
+        * html/HTMLFormControlElement.h:
+        * html/HTMLFormElement.cpp:
+        (WebCore::HTMLFormElement::validateInteractively):
+        Move the early abort checks to the existing call site (prepareForSubmission)
+        so that we can reuse this method for reportValidity().
+
+        (WebCore::HTMLFormElement::prepareForSubmission):
+        Only call validateInteractively() if we really should validate. Those checks
+        used to be in validateInteractively() but I moved them here so we could more
+        easily reuse validateInteractively().
+
+        (WebCore::HTMLFormElement::checkValidity):
+        (WebCore::HTMLFormElement::checkInvalidControlsAndCollectUnhandled):
+        Update Vector type to be a Vector of HTMLFormControlElement given that we
+        only add HTMLFormControlElement objects to it and that it results it simpler
+        code.
+
+        (WebCore::HTMLFormElement::reportValidity):
+        Add implementation for reportValidity() for form elements. The
+        implementation calls our already existing validateInteractively()
+        method, as per the specification.
+
+        * html/HTMLFormElement.h:
+
+        * html/HTMLObjectElement.h:
+        reportValidity() returns true unconditionally for object elements,
+        similarly to checkValidity().
+
+2016-10-15  Simon Fraser  <simon.fraser@apple.com>
+
+        Sort the project file.
+
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-10-15  Simon Fraser  <simon.fraser@apple.com>
+
+        Implement serializer = { attribute }
+        https://bugs.webkit.org/show_bug.cgi?id=163466
+
+        Reviewed by Darin Adler.
+
+        Fix the code generator to generate code for serializer = { attribute }.
+        In IDLParser, extend domSerializable with flags for the 'inherit', 'getter' and
+        'attribute' values (the first two are still unsupported). Fix parseSerializationPattern()
+        to detect these; it needs to create the domSerializable() now. Basic support
+        for isSerializableAttribute() is added (primitive types only).
+        
+        GenerateSerializerFunction is fixed to output code for the serializable attributes
+        in the order specified in "serializer = {}", as specified in WebIDL.
+        
+        Removed custom serialization for ClientRect and PerformanceTiming.
+        
+        Other minor cleanup to always get $interfaceName from $interface->name, and to fix
+        ObjectConstructor.h to be included as <runtime/ObjectConstructor.h>.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSBindingsAllInOne.cpp:
+        * bindings/js/JSClientRectCustom.cpp: Removed.
+        * bindings/js/JSPerformanceTimingCustom.cpp: Removed.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation):
+        (GenerateSerializerFunction):
+        * bindings/scripts/IDLParser.pm:
+        (parseSerializerRest):
+        (parseSerializationPattern):
+        (parseSerializationAttributes):
+        (isSerializableAttribute):
+        (applyMemberList):
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionToJSONCaller):
+        * bindings/scripts/test/JS/JSTestSerialization.cpp: Added.
+        * bindings/scripts/test/JS/JSTestSerialization.h: Added.
+        * bindings/scripts/test/TestObj.idl:
+        * bindings/scripts/test/TestSerialization.idl: Copied from Source/WebCore/dom/ClientRect.idl.
+        * dom/ClientRect.idl:
+        * page/PerformanceTiming.idl:
+
+2016-10-15  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        [GTK] Restore user agent quirk for Yahoo
+        https://bugs.webkit.org/show_bug.cgi?id=163481
+
+        Reviewed by Carlos Garcia Campos.
+
+        finance.yahoo.com is sending a mobile version in response to our standard user agent.
+
+        * platform/gtk/UserAgentGtk.cpp:
+        (WebCore::urlRequiresMacintoshPlatform):
+
+2016-10-15  Chris Dumez  <cdumez@apple.com>
+
+        Setting HTMLMediaElement.volume to NaN or Inf should throw a TypeError
+        https://bugs.webkit.org/show_bug.cgi?id=163472
+
+        Reviewed by Sam Weinig.
+
+        Setting HTMLMediaElement.volume to NaN or Inf should throw a TypeError:
+        - https://html.spec.whatwg.org/#dom-media-volume
+
+        This is because the attribute is of type double (not unrestricted double in the IDL).
+
+        Chrome and Firefox agree with the specification. WebKit throws an IndexSizeErr instead.
+
+        No new tests, rebaselined existing test.
+
+        * html/HTMLMediaElement.idl:
+
+2016-10-15  Zalan Bujtas  <zalan@apple.com>
+
+        CounterNode::resetRenderers is so inefficient.
+        https://bugs.webkit.org/show_bug.cgi?id=163480
+
+        Reviewed by Simon Fraser.
+
+        CounterNode::resetRenderers() removes all the associated renderers from this CounterNode
+        and sets the dirty bit on them.
+        This patch does all that in a loop, instead of traversing the linked tree on each removal.
+
+        No change in functionality.
+
+        * rendering/CounterNode.cpp:
+        (WebCore::CounterNode::CounterNode):
+        (WebCore::CounterNode::~CounterNode):
+        (WebCore::CounterNode::nextInPreOrderAfterChildren):
+        (WebCore::CounterNode::lastDescendant):
+        (WebCore::CounterNode::addRenderer): These assertions do not seem super useful.
+        (WebCore::CounterNode::removeRenderer):
+        (WebCore::CounterNode::resetRenderers):
+        (WebCore::CounterNode::insertAfter):
+        (WebCore::CounterNode::removeChild):
+        * rendering/CounterNode.h:
+        * rendering/RenderCounter.cpp:
+        (WebCore::makeCounterNode):
+        (WebCore::RenderCounter::RenderCounter):
+        (WebCore::RenderCounter::~RenderCounter):
+        (WebCore::RenderCounter::originalText):
+        (WebCore::updateCounters):
+        (WebCore::RenderCounter::invalidate): Deleted.
+        * rendering/RenderCounter.h:
+
+2016-10-15  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] macOS inline controls
+        https://bugs.webkit.org/show_bug.cgi?id=163444
+        <rdar://problem/27989473>
+
+        Reviewed by Dean Jackson.
+
+        Introducing the new MacOSMediaControls and MacOSInlineMediaControls classes. MacOSMediaControls is a MediaControls subclass
+        that adds specific buttons to the macOS platform and sets the layout traits to be macOS. This class has a new subclass,
+        MacOSInlineMediaControls, which sets the layout traits to also include inline and implements custom layout to drop
+        controls as necessary as the width of the controls varies. It also shows the volume slider when the mute button is hovered.
+        
+        Tests: media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-buttons-styles.html
+               media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-constructor.html
+               media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-controls-bar-styles.html
+               media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-layout.html
+               media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-time-control-styles.html
+               media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-volume-slider-visibility.html
+               media/modern-media-controls/macos-inline-media-controls/macos-inline-media-controls-volume-styles.html
+               media/modern-media-controls/macos-inline-media-controls/macos-inline-media-dropping-controls.html
+               media/modern-media-controls/macos-media-controls/macos-media-controls.html
+
+        * Modules/modern-media-controls/controls/macos-inline-media-controls.css: Added.
+        (.media-controls.mac.inline > .controls-bar):
+        (.media-controls.mac.inline > .controls-bar > *):
+        (.media-controls.mac.inline button):
+        (.media-controls.mac.inline button:active):
+        (.media-controls.mac.inline > .controls-bar button):
+        (.media-controls.mac.inline > .controls-bar,):
+        (.media-controls.mac.inline button.play-pause):
+        (.media-controls.mac.inline button.skip-back):
+        (.media-controls.mac.inline .scrubber.slider):
+        (.media-controls.mac.inline button.mute):
+        (.media-controls.mac.inline button.airplay):
+        (.media-controls.mac.inline button.pip):
+        (.media-controls.mac.inline button.tracks):
+        (.media-controls.mac.inline button.fullscreen):
+        (.media-controls.mac.inline .time-label):
+        (.media-controls.mac.inline .volume-slider-container):
+        (.media-controls.mac.inline .volume-slider-container:before):
+        (.media-controls.mac.inline .volume.slider):
+        * Modules/modern-media-controls/controls/macos-inline-media-controls.js: Added.
+        (MacOSInlineMediaControls.prototype.layout):
+        (MacOSInlineMediaControls.prototype.handleEvent):
+        * Modules/modern-media-controls/controls/macos-media-controls.js: Added.
+        (MacOSMediaControls):
+
+2016-10-14  Antti Koivisto  <antti@apple.com>
+
+        100% CPU on homedepot.com page
+        https://bugs.webkit.org/show_bug.cgi?id=163452
+        <rdar://problem/28730708>
+
+        Reviewed by Simon Fraser.
+
+        The site has a keyframe animation on body. Currently this causes the animation to invalidate the
+        style of the entire document.
+
+        Animations use SyntheticStyleChange to invalidate elements when animation progresses and currently
+        that causes full subtree invalidation. However animation only ever affect individual elements and
+        the normal style resolution mechanism should be able to deal with things like inheritance as needed.
+
+        Test: fast/animation/animation-style-update-size.html
+
+        * dom/Document.cpp:
+        (WebCore::Document::recalcStyle):
+        * dom/Document.h:
+        (WebCore::Document::lastStyleUpdateSizeForTesting):
+
+            Testing support.
+
+        * style/StyleTreeResolver.cpp:
+        (WebCore::Style::TreeResolver::resolveElement):
+
+            Don't force subtree style resolution for SyntheticStyleChange.
+
+        * style/StyleUpdate.h:
+        (WebCore::Style::Update::size):
+        * testing/Internals.cpp:
+        (WebCore::Internals::lastStyleUpdateSize):
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-10-14  Chris Dumez  <cdumez@apple.com>
+
+        Setting HTMLMediaElement.muted to the same value should not fire a volume change event
+        https://bugs.webkit.org/show_bug.cgi?id=163474
+
+        Reviewed by Eric Carlson.
+
+        Setting HTMLMediaElement.muted to the same value should not fire a volume
+        change event:
+        - https://html.spec.whatwg.org/#dom-media-muted
+
+        Chrome and Firefox agree with the specification.
+
+        No new tests, rebaselined existing test.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::setMuted):
+
+2016-10-14  Dean Jackson  <dino@apple.com>
+
+        Add Display P3 ColorSpace
+        https://bugs.webkit.org/show_bug.cgi?id=162880
+        <rdar://problem/28598564>
+
+        Reviewed by Sam Weinig.
+
+        Re-landing with a version that hopefully compiles on El Capitan.
+
+        Add a new ColorSpace for Display P3.
+
+        This will be tested once the Color class can create
+        objects that reference other color spaces.
+
+        * platform/graphics/ColorSpace.h:
+        * platform/graphics/cg/GraphicsContextCG.cpp:
+        (WebCore::displayP3ColorSpaceRef):
+        * platform/graphics/cg/GraphicsContextCG.h:
+        (WebCore::cachedCGColorSpace):
+
+2016-10-14  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win][Direct2D] Minor cleanups
+        https://bugs.webkit.org/show_bug.cgi?id=162953
+
+        Reviewed by Dean Jackson.
+
+        Code cleanup. No change in behavior.
+
+        * platform/graphics/win/ImageDecoderDirect2D.cpp:
+        (WebCore::ImageDecoder::frameIsCompleteAtIndex):
+        (WebCore::ImageDecoder::frameBytesAtIndex):
+
+2016-10-14  Alex Christensen  <achristensen@webkit.org>
+
+        Fix CMake build.
+
+        * PlatformMac.cmake:
+
+2016-10-14  Anders Carlsson  <andersca@apple.com>
+
+        Pass on networking settings to the PKPaymentRequest
+        https://bugs.webkit.org/show_bug.cgi?id=163462
+        rdar://problem/28567629
+
+        Reviewed by Dan Bernstein.
+
+        Add new SPI.
+
+        * platform/spi/cocoa/PassKitSPI.h:
+
+2016-10-14  Dean Jackson  <dino@apple.com>
+
+        CSS parsing should use Color not RGBA32
+        https://bugs.webkit.org/show_bug.cgi?id=163423
+        <rdar://problem/28766903>
+
+        Reviewed by Simon Fraser.
+
+        Re-landing this after it was rolled out in https://trac.webkit.org/r207342.
+
+        In order to allow CSS to use the ExtendedColor variant of
+        Color, we need to stop using RGBA32. This is a fairly big
+        change that goes through all the places in the parser
+        related to colors, and moves them from RGBA32 to Color.
+
+        No change in functionality, so covered by existing tests.
+
+        * WebCore.xcodeproj/project.pbxproj: Add the new ColorHash.h file.
+
+        * css/CSSPrimitiveValue.cpp: CSSPrimitiveValue now can hold a Color*
+        rather than an unsigned int for colors.
+        (WebCore::CSSPrimitiveValue::CSSPrimitiveValue):
+        (WebCore::CSSPrimitiveValue::cleanup):
+        (WebCore::CSSPrimitiveValue::getRGBColorValue):
+        (WebCore::CSSPrimitiveValue::formatNumberForCustomCSSText):
+        (WebCore::CSSPrimitiveValue::cloneForCSSOM):
+        (WebCore::CSSPrimitiveValue::equals):
+        * css/CSSPrimitiveValue.h: Move to Color* and also use some
+        nullptrs.
+        * css/CSSPrimitiveValueMappings.h:
+        (WebCore::CSSPrimitiveValue::CSSPrimitiveValue): Add a new inline
+        constructor.
+
+        * css/CSSValuePool.cpp: Move to Color.
+        (WebCore::CSSValuePool::CSSValuePool):
+        (WebCore::CSSValuePool::createColorValue):
+        * css/CSSValuePool.h: Change the ColorValueCache to a new type.
+
+        * css/StyleResolver.cpp: Move to Color.
+        (WebCore::StyleResolver::colorFromPrimitiveValue):
+        * css/parser/CSSParser.cpp:
+        (WebCore::parseColorValue):
+        (WebCore::CSSParser::parseColor):
+        (WebCore::CSSParser::parseColorFromString):
+        (WebCore::CSSParser::parseSystemColor):
+        (WebCore::fastParseColorInternal):
+        (WebCore::CSSParser::fastParseColor):
+        (WebCore::CSSParser::parseColorFromValue):
+        * css/parser/CSSParser.h:
+        * css/parser/CSSParserFastPaths.cpp:
+        (WebCore::fastParseColorInternal):
+        (WebCore::CSSParserFastPaths::parseColor):
+        * css/parser/CSSPropertyParserHelpers.cpp:
+        (WebCore::CSSPropertyParserHelpers::consumeColor):
+        * css/parser/SVGCSSParser.cpp:
+        (WebCore::CSSParser::parseSVGValue):
+        (WebCore::CSSParser::parseSVGPaint):
+        (WebCore::CSSParser::parseSVGColor):
+        * editing/EditingStyle.cpp:
+        (WebCore::cssValueToColor):
+        (WebCore::textColorFromStyle):
+        (WebCore::backgroundColorFromStyle):
+        (WebCore::rgbaBackgroundColorInEffect):
+        (WebCore::EditingStyle::prepareToApplyAt):
+        (WebCore::isTransparentColorValue):
+        (WebCore::cssValueToRGBA): Deleted.
+        * editing/cocoa/HTMLConverter.mm:
+        (HTMLConverterCaches::colorPropertyValueForNode):
+        * html/HTMLBodyElement.cpp:
+        (WebCore::HTMLBodyElement::parseAttribute):
+        * html/canvas/CanvasGradient.cpp:
+        (WebCore::CanvasGradient::addColorStop):
+        * html/canvas/CanvasRenderingContext2D.cpp: Ditto, but leave a FIXME to
+        remind myself to come back when colorWithOverrideAlpha has been updated.
+        (WebCore::CanvasRenderingContext2D::setStrokeStyle):
+        (WebCore::CanvasRenderingContext2D::setFillStyle):
+        (WebCore::CanvasRenderingContext2D::setShadowColor):
+        (WebCore::CanvasRenderingContext2D::setShadow):
+        * html/canvas/CanvasStyle.cpp:
+        (WebCore::isCurrentColorString):
+        (WebCore::parseColor):
+        (WebCore::currentColor):
+        (WebCore::parseColorOrCurrentColor):
+        (WebCore::CanvasStyle::createFromString):
+        (WebCore::CanvasStyle::createFromStringWithOverrideAlpha):
+        * html/canvas/CanvasStyle.h:
+        * svg/SVGColor.cpp:
+        (WebCore::SVGColor::colorFromRGBColorString):
+
+        * platform/graphics/Color.h: Add new constructors for the special
+        empty and deleted Color values used in HashTables.
+        (WebCore::Color::Color):
+        (WebCore::Color::isHashTableDeletedValue):
+        (WebCore::Color::asUint64): New accessor to get the raw uint64_t value.
+
+        * platform/graphics/ColorHash.h: Added. Implement the traits for a Color HashTable.
+        (WTF::ColorHash::hash):
+        (WTF::ColorHash::equal):
+        (WTF::HashTraits<WebCore::Color>::emptyValue):
+        (WTF::HashTraits<WebCore::Color>::constructDeletedValue):
+        (WTF::HashTraits<WebCore::Color>::isDeletedValue):
+
+2016-10-14  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win][Direct2D] Implement basic SVG support
+        https://bugs.webkit.org/show_bug.cgi?id=163349
+
+        Reviewed by Brent Fulgham.
+
+        Direct2D needs access to the target graphics context when generating bitmap
+        images so that it can properly match pixel format and other settings.
+
+        Add implementations for a number of drawing primitives used in the SVG
+        test cases. Correct some differences between CG and Direct2D for drawing
+        different primitives.
+
+        No new tests. Tested by existing 'svg' tests.
+
+        * platform/graphics/BitmapImage.cpp:
+       (WebCore::BitmapImage::frameImageAtIndex): Take optional target graphics
+       context. Also pass the graphics context to the image decoder.
+       (WebCore::BitmapImage::nativeImage): Accept an optional target context.
+       (WebCore::BitmapImage::nativeImageForCurrentFrame): Ditto.
+       (WebCore::BitmapImage::draw): Pass target graphics context to the
+       'frameImageAtIndex' method.
+        * platform/graphics/BitmapImage.h:
+        * platform/graphics/Image.h:
+        * platform/graphics/ImageBuffer.cpp:
+        (WebCore::ImageBuffer::create): Moved from header. Add create function that
+        takes an optional GraphicsContext argument.
+        * platform/graphics/ImageBuffer.h:
+        * platform/graphics/ImageFrameCache.cpp: Add missing include needed to build
+        under Direct2D.
+        * platform/graphics/ImageSource.cpp:
+        (WebCore::ImageSource::setDecoderTargetContext): Added.
+        (WebCore::ImageSource::setRenderTarget): Deleted.
+        * platform/graphics/ImageSource.h:
+        * platform/graphics/Pattern.h:
+        * platform/graphics/win/GraphicsContextDirect2D.cpp:
+        (WebCore::GraphicsContextPlatformPrivate::endDraw): Log error state instead of crashing
+        each time.
+        (WebCore::GraphicsContext::drawEllipse): Ellipses are defined in D2D as a center, an
+        X-radius, and a Y-radius.
+        (WebCore::GraphicsContext::applyStrokePattern):
+        (WebCore::GraphicsContext::applyFillPattern):
+        (WebCore::GraphicsContext::clearRect): Use 'Clear' function if possible. Don't clear
+        anything if the clear rect is outside the drawing area.
+        (WebCore::GraphicsContext::strokeRect): Provide implementation (needed by SVG).
+        (WebCore::GraphicsContext::platformFillEllipse): Ellipses are defined in D2D as
+        a center, an X-radius, and a Y-radius.
+        (WebCore::GraphicsContext::platformStrokeEllipse): Ditto.
+        * platform/graphics/win/ImageBufferDirect2D.cpp:
+        (WebCore::ImageBuffer::createCompatibleBuffer): Accept optional GraphicsContext argument.
+        (WebCore::ImageBuffer::ImageBuffer): Ditto.
+        * platform/graphics/win/ImageDecoderDirect2D.cpp:
+        (WebCore::ImageDecoder::setTargetContext): Renamed from 'setRenderTarget'.
+        (WebCore::ImageDecoder::createFrameImageAtIndex): Take optional GraphicsContext argument.
+        (WebCore::ImageDecoder::setRenderTarget): Deleted.
+        * platform/graphics/win/ImageDecoderDirect2D.h:
+        * platform/graphics/win/ImageDirect2D.cpp:
+        (WebCore::BitmapImage::setRenderTarget): Deleted.
+        * platform/graphics/win/NativeImageDirect2D.cpp: Add missing include.
+        * platform/graphics/win/PatternDirect2D.cpp: 
+        (WebCore::Pattern::createPlatformPattern): Revise for new signature.
+        * rendering/FilterEffectRenderer.cpp:
+        (WebCore::FilterEffectRenderer::allocateBackingStoreIfNeeded): Pass GraphicsContext
+        to ImageBuffer constructor.
+        (WebCore::FilterEffectRendererHelper::beginFilterEffect): Pass target context to
+        filter when allocating backing store.
+        * rendering/FilterEffectRenderer.h: Add GraphicsContext as argument to constructor.
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::hasFilterThatIsPainting): Supply GraphicsContext argument when
+        building new FilterEffectRenderer and helper.
+        (WebCore::RenderLayer::setupFilters): Ditto.
+        * svg/graphics/SVGImage.cpp:
+        (WebCore::SVGImage::nativeImageForCurrentFrame): Revise to take optional GraphicsContext
+        argument.
+        (WebCore::SVGImage::nativeImage): Ditto.
+        * svg/graphics/SVGImage.h:
+        * svg/graphics/SVGImageForContainer.cpp:
+        (WebCore::SVGImageForContainer::nativeImageForCurrentFrame): Ditto.
+        * svg/graphics/SVGImageForContainer.h:
+
+2016-10-14  Chris Dumez  <cdumez@apple.com>
+
+        Unreviewed, rolling out r207319.
+
+        Regressed Dromaeo and may have caused crashes under
+        GuardMalloc (rdar://problem/28780835)
+
+        Reverted changeset:
+
+        "[Web IDL] Add support for [SameObject] extended attribute"
+        https://bugs.webkit.org/show_bug.cgi?id=163414
+        http://trac.webkit.org/changeset/207319
+
+2016-10-14  Anders Carlsson  <andersca@apple.com>
+
+        Clean up BackForwardClient
+        https://bugs.webkit.org/show_bug.cgi?id=163454
+
+        Reviewed by Sam Weinig.
+
+        Remove iOS specific member functions that are only used from WebKit.
+
+        * history/BackForwardClient.h:
+        * loader/EmptyClients.cpp:
+
 2016-10-13  Anders Carlsson  <andersca@apple.com>
 
         Move BackForwardList from WebCore to WebKitLegacy

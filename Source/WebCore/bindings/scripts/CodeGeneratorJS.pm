@@ -352,15 +352,6 @@ sub ShouldUseGlobalObjectPrototype
     return IsDOMGlobalObject($interface);
 }
 
-sub ShouldCacheAttribute
-{
-    my $attribute = shift;
-
-    return 1 if $attribute->signature->extendedAttributes->{CachedAttribute};
-    return 1 if $attribute->signature->extendedAttributes->{SameObject};
-    return 0;
-}
-
 sub GenerateGetOwnPropertySlotBody
 {
     my ($interface, $className, $inlined) = @_;
@@ -1490,7 +1481,7 @@ sub GenerateHeader
             my $attribute = $_;
             $numCustomAttributes++ if HasCustomGetter($attribute->signature->extendedAttributes);
             $numCustomAttributes++ if HasCustomSetter($attribute->signature->extendedAttributes);
-            if (ShouldCacheAttribute($attribute)) {
+            if ($attribute->signature->extendedAttributes->{CachedAttribute}) {
                 my $conditionalString = $codeGenerator->GenerateConditionalString($attribute->signature);
                 push(@headerContent, "#if ${conditionalString}\n") if $conditionalString;
                 push(@headerContent, "    mutable JSC::WriteBarrier<JSC::Unknown> m_" . $attribute->signature->name . ";\n");
@@ -3073,7 +3064,7 @@ sub GenerateImplementation
                 }
             }
 
-            $needsVisitChildren = 1 if ShouldCacheAttribute($attribute);
+            $needsVisitChildren = 1 if $attribute->signature->extendedAttributes->{CachedAttribute};
 
             if ($interface->extendedAttributes->{CheckSecurity} &&
                 !$attribute->signature->extendedAttributes->{DoNotCheckSecurity} &&
@@ -3148,7 +3139,7 @@ sub GenerateImplementation
                 }
             } elsif (!$attribute->signature->extendedAttributes->{GetterMayThrowLegacyException}) {
                 my $cacheIndex = 0;
-                if (ShouldCacheAttribute($attribute)) {
+                if ($attribute->signature->extendedAttributes->{CachedAttribute}) {
                     $cacheIndex = $currentCachedAttribute;
                     $currentCachedAttribute++;
                     push(@implContent, "    if (JSValue cachedValue = thisObject.m_" . $attribute->signature->name . ".get())\n");
@@ -3191,7 +3182,7 @@ sub GenerateImplementation
                     }
                 }
 
-                push(@implContent, "    thisObject.m_" . $attribute->signature->name . ".set(state.vm(), &thisObject, result);\n") if ShouldCacheAttribute($attribute);
+                push(@implContent, "    thisObject.m_" . $attribute->signature->name . ".set(state.vm(), &thisObject, result);\n") if $attribute->signature->extendedAttributes->{CachedAttribute};
                 push(@implContent, "    return result;\n");
 
             } else {
@@ -3754,7 +3745,7 @@ END
 
 
     GenerateImplementationIterableFunctions($interface) if $interface->iterable;
-    GenerateSerializerFunction($interface, $interfaceName, $className) if $interface->serializable;
+    GenerateSerializerFunction($interface, $className) if $interface->serializable;
 
     if ($needsVisitChildren) {
         push(@implContent, "void ${className}::visitChildren(JSCell* cell, SlotVisitor& visitor)\n");
@@ -3777,7 +3768,7 @@ END
         if ($numCachedAttributes > 0) {
             foreach (@{$interface->attributes}) {
                 my $attribute = $_;
-                if (ShouldCacheAttribute($attribute)) {
+                if ($attribute->signature->extendedAttributes->{CachedAttribute}) {
                     push(@implContent, "    visitor.append(&thisObject->m_" . $attribute->signature->name . ");\n");
                 }
             }
@@ -3977,26 +3968,44 @@ END
 
 sub GenerateSerializerFunction
 {
-    my ($interface, $interfaceName, $className) = @_;
+    my ($interface, $className) = @_;
+
+    my $interfaceName = $interface->name;
+
     my $serializerFunctionName = "toJSON";
     my $serializerNativeFunctionName = $codeGenerator->WK_lcfirst($className) . "PrototypeFunction" . $codeGenerator->WK_ucfirst($serializerFunctionName);
 
-    AddToImplIncludes("ObjectConstructor.h");
+    AddToImplIncludes("<runtime/ObjectConstructor.h>");
     push(@implContent, "static inline EncodedJSValue ${serializerNativeFunctionName}Caller(ExecState* state, JS$interfaceName* thisObject, JSC::ThrowScope& throwScope)\n");
     push(@implContent, "{\n");
     push(@implContent, "    auto& vm = state->vm();\n");
     push(@implContent, "    auto* result = constructEmptyObject(state);\n");
     push(@implContent, "\n");
-    foreach my $attribute (@{$interface->attributes}) {
-        my $name = $attribute->signature->name;
-        if (grep $_ eq $name, @{$interface->serializable->attributes}) {
-            my $getFunctionName = GetAttributeGetterName($interface, $className, $attribute);
-            push(@implContent, "    auto ${name}Value = ${getFunctionName}Getter(*state, *thisObject, throwScope);\n");
-            push(@implContent, "    ASSERT(!throwScope.exception());\n");
-            push(@implContent, "    result->putDirect(vm, Identifier::fromString(&vm, \"${name}\"), ${name}Value);\n");
-            push(@implContent, "\n");
+
+    my @serializedAttributes = ();
+    foreach my $attribute_name (@{$interface->serializable->attributes}) {
+        my $found_attribute = 0;
+        foreach my $attribute (@{$interface->attributes}) {
+            if ($attribute_name eq $attribute->signature->name) {
+                push @serializedAttributes, $attribute;
+                $found_attribute = 1;
+                last;
+            }
         }
+        
+        die "Failed to find \"serializate\" attribute \"$attribute_name\" in $interfaceName" if !$found_attribute;
     }
+
+    foreach my $attribute (@serializedAttributes) {
+        my $name = $attribute->signature->name;
+
+        my $getFunctionName = GetAttributeGetterName($interface, $className, $attribute);
+        push(@implContent, "    auto ${name}Value = ${getFunctionName}Getter(*state, *thisObject, throwScope);\n");
+        push(@implContent, "    ASSERT(!throwScope.exception());\n");
+        push(@implContent, "    result->putDirect(vm, Identifier::fromString(&vm, \"${name}\"), ${name}Value);\n");
+        push(@implContent, "\n");
+    }
+
     push(@implContent, "    return JSValue::encode(result);\n");
     push(@implContent, "}\n");
     push(@implContent, "\n");

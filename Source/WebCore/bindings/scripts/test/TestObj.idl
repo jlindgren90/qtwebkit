@@ -414,8 +414,7 @@ enum TestConfidence { "high", "kinda-low" };
 
     stringifier attribute USVString stringifierAttribute;
 
-
-    serializer = {readOnlyStringAttr, create, enumAttr, longAttr};
+    serializer = {create, readOnlyStringAttr, enumAttr, longAttr};
 };
 
 // The following comment should not generate any code.
@@ -459,6 +458,8 @@ dictionary TestDictionary {
     any anyValueWithNullDefault = null;
     AnyTypedef anyTypedefValue;
     TestDictionaryThatShouldTolerateNull dictionaryMember;
+    (long or Node) unionMember;
+    (long or Node)? nullableUnionMember = null;
 };
 
 dictionary TestDictionaryThatShouldNotTolerateNull {

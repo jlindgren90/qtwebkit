@@ -182,6 +182,11 @@ namespace WebCore {
     String AXDetailsText();
     String AXSummaryText();
     String AXFigureText();
+    String AXEmailFieldText();
+    String AXTelephoneFieldText();
+    String AXURLFieldText();
+    String AXDateFieldText();
+    String AXTimeFieldText();
     
     String AXButtonActionVerb();
     String AXRadioButtonActionVerb();

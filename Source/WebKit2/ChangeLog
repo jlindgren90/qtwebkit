@@ -1,3 +1,173 @@
+2016-10-17  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Eleminate code duplication between ResourceRequest encoding/decoding implementations
+        https://bugs.webkit.org/show_bug.cgi?id=163507
+
+        Reviewed by Carlos Garcia Campos.
+
+        ResourceRequestBase::encodeWithoutPlatformData() and Soup implementation of
+        ArgumentCoder<ResourceRequest>::encodePlatformData() share most of the code,
+        ditto for decoding implementations.
+
+        * Shared/soup/WebCoreArgumentCodersSoup.cpp:
+        (IPC::ArgumentCoder<ResourceRequest>::encodePlatformData):
+        (IPC::ArgumentCoder<ResourceRequest>::decodePlatformData):
+
+2016-10-17  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Move user agent quirks to cross-platform location
+        https://bugs.webkit.org/show_bug.cgi?id=163508
+
+        Reviewed by Carlos Garcia Campos.
+
+        #include <WebCore/UserAgent.h> instead of <WebCore/UserAgentGtk.h>.
+
+        * UIProcess/API/gtk/WebKitSettings.cpp:
+        * UIProcess/efl/WebPageProxyEfl.cpp:
+        * UIProcess/gtk/WebPageProxyGtk.cpp:
+        * WebProcess/WebPage/gtk/WebPageGtk.cpp:
+
+2016-10-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [SOUP] Downloads should always sniff contents
+        https://bugs.webkit.org/show_bug.cgi?id=163538
+
+        Reviewed by Michael Catanzaro.
+
+        It's quite common that downloads have weird filenames with no extension, so it would be better if the loader
+        sniff the contents to guess the mime type.
+
+        * NetworkProcess/Downloads/soup/DownloadSoup.cpp:
+        (WebKit::Download::startNetworkLoad): Pass true for shouldContentSniff parameter of ResourceHandle::create().
+
+2016-10-17  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Switch to use API::DownloadClient instead of the C API client
+        https://bugs.webkit.org/show_bug.cgi?id=163537
+
+        Reviewed by Michael Catanzaro.
+
+        The code is simpler and we avoid all the toImpl/toAPI.
+
+        * UIProcess/API/gtk/WebKitDownloadClient.cpp:
+        (attachDownloadClientToContext):
+        (didStart):
+        (didReceiveResponse):
+        (didReceiveData):
+        (decideDestinationWithSuggestedFilename):
+        (didCreateDestination):
+        (didFail):
+        (didCancel):
+        (didFinish):
+
+2016-10-17  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] Disable CSS Grid Layout runtime flag by default
+        https://bugs.webkit.org/show_bug.cgi?id=163432
+
+        Reviewed by Darin Adler.
+
+        It was enabled in r201042, but now Safari Technology Preview
+        has a UI to switch runtime flags so it doesn't need to be enabled
+        by default anymore.
+
+        * Shared/WebPreferencesDefinitions.h: Disable grid layout runtime flag
+        by default.
+
+2016-10-16  Darin Adler  <darin@apple.com>
+
+        Move CSS classes from ExceptionCode to Exception
+        https://bugs.webkit.org/show_bug.cgi?id=163494
+
+        Reviewed by Sam Weinig.
+
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCSSRule.cpp:
+        (webkit_dom_css_rule_set_css_text): Updated for ExceptionOr.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCSSStyleDeclaration.cpp:
+        (webkit_dom_css_style_declaration_remove_property): Ditto.
+        (webkit_dom_css_style_declaration_set_property): Ditto.
+        (webkit_dom_css_style_declaration_set_css_text): Ditto.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCSSStyleSheet.cpp:
+        (webkit_dom_css_style_sheet_insert_rule): Ditto.
+        (webkit_dom_css_style_sheet_delete_rule): Ditto.
+        (webkit_dom_css_style_sheet_add_rule): Ditto.
+        (webkit_dom_css_style_sheet_remove_rule): Ditto.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMCSSValue.cpp:
+        (webkit_dom_css_value_set_css_text): Ditto.
+        * WebProcess/InjectedBundle/API/gtk/DOM/WebKitDOMMediaList.cpp:
+        (webkit_dom_media_list_delete_medium): Ditto.
+        (webkit_dom_media_list_append_medium): Ditto.
+        (webkit_dom_media_list_set_media_text): Ditto.
+
+2016-10-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Default WebKitWebsiteDataManager is always leaked in WebKitWebContext
+        https://bugs.webkit.org/show_bug.cgi?id=163443
+
+        Reviewed by Michael Catanzaro.
+
+        Adopt the reference returned by webkitWebsiteDataManagerCreate().
+
+        * UIProcess/API/gtk/WebKitWebContext.cpp:
+        (webkitWebContextConstructed):
+
+2016-10-16  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] WebKitWebPage URI not updated after URI is modified by InjectedBundlePageResourceLoadClient::willSendRequestForFrame
+        https://bugs.webkit.org/show_bug.cgi?id=163389
+
+        Reviewed by Michael Catanzaro.
+
+        Update the page URI also when the load is committed.
+
+        * WebProcess/InjectedBundle/API/gtk/WebKitWebPage.cpp:
+        (getDocumentLoaderURL):
+        (didStartProvisionalLoadForFrame):
+        (didReceiveServerRedirectForProvisionalLoadForFrame):
+        (didCommitLoadForFrame):
+        (webkitWebPageCreate):
+        (getProvisionalURLForFrame): Deleted.
+
+2016-10-15  Simon Fraser  <simon.fraser@apple.com>
+
+        Sort the project file.
+
+        * WebKit2.xcodeproj/project.pbxproj:
+
+2016-10-14  Anders Carlsson  <andersca@apple.com>
+
+        Fix Mac build.
+
+        * UIProcess/ApplePay/mac/WebPaymentCoordinatorProxyMac.mm:
+        (WebKit::WebPaymentCoordinatorProxy::platformShowPaymentUI):
+
+2016-10-14  Anders Carlsson  <andersca@apple.com>
+
+        Pass on networking settings to the PKPaymentRequest
+        https://bugs.webkit.org/show_bug.cgi?id=163462
+        rdar://problem/28567629
+
+        Reviewed by Dan Bernstein.
+
+        * UIProcess/ApplePay/cocoa/WebPaymentCoordinatorProxyCocoa.h:
+        * UIProcess/ApplePay/cocoa/WebPaymentCoordinatorProxyCocoa.mm:
+        (WebKit::toPKPaymentRequest):
+        * UIProcess/ApplePay/ios/WebPaymentCoordinatorProxyIOS.mm:
+        (WebKit::WebPaymentCoordinatorProxy::platformShowPaymentUI):
+
+2016-10-14  Anders Carlsson  <andersca@apple.com>
+
+        Clean up BackForwardClient
+        https://bugs.webkit.org/show_bug.cgi?id=163454
+
+        Reviewed by Sam Weinig.
+
+        Remove empty iOS only stubs.
+
+        * WebKit2.xcodeproj/project.pbxproj:
+        * WebProcess/WebPage/WebBackForwardListProxy.h:
+        * WebProcess/WebPage/ios/WebBackForwardListProxyIOS.mm: Removed.
+
 2016-10-14  Brady Eidson  <beidson@apple.com>
 
         Enable Gamepads by default in WK2.

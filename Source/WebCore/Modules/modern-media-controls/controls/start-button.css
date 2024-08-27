@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2014 Igalia S.L.
+ * Copyright (C) 2016 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,18 +23,36 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef UserAgentGtk_h
-#define UserAgentGtk_h
+button.start {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 70px;
+    height: 70px;
 
-#include <wtf/text/WTFString.h>
+    background: transparent !important;
 
-namespace WebCore {
-class URL;
-
-String standardUserAgent(const String& applicationName = emptyString(), const String& applicationVersion = emptyString());
-String standardUserAgentForURL(const URL&);
-
+    transform: translate3d(-50%, -50%, 0);
 }
 
-#endif // UserAgentGtk_h
+button.start > * {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+}
 
+button.start > div {
+    -webkit-appearance: media-controls-light-bar-background;
+    -webkit-clip-path: circle(50%);
+    will-change: transform;
+}
+
+button.start > img {
+    opacity: 0.6;
+}
+
+button.start:active > img {
+    opacity: 1;
+}
