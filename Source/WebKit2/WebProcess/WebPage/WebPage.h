@@ -978,6 +978,12 @@ public:
 #if ENABLE(GAMEPAD)
     void gamepadActivity(const Vector<GamepadData>&);
 #endif
+    
+#if ENABLE(POINTER_LOCK)
+    void didAcquirePointerLock();
+    void didNotAcquirePointerLock();
+    void didLosePointerLock();
+#endif
 
     WebURLSchemeHandlerProxy* urlSchemeHandlerForScheme(const String&);
 

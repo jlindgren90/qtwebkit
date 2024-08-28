@@ -974,6 +974,11 @@ public:
     void handleMediaEvent(WebCore::MediaEventType);
     void setVolumeOfMediaElement(double, uint64_t);
 #endif
+        
+#if ENABLE(POINTER_LOCK)
+    void didAllowPointerLock();
+    void didDenyPointerLock();
+#endif
 
     // WebPopupMenuProxy::Client
     NativeWebMouseEvent* currentlyProcessedMouseDownEvent() override;
@@ -1201,6 +1206,11 @@ private:
 #if PLATFORM(QT)
     void changeSelectedIndex(int32_t newSelectedIndex) override;
     void closePopupMenu() override;
+#endif
+
+#if ENABLE(POINTER_LOCK)
+    void requestPointerLock();
+    void requestPointerUnlock();
 #endif
 
     void didCreateMainFrame(uint64_t frameID);

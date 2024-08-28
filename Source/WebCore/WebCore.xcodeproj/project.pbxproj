@@ -1515,6 +1515,7 @@
 		3F42B31E1881191B00278AAC /* WebVideoFullscreenControllerAVKit.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3F42B31C1881191B00278AAC /* WebVideoFullscreenControllerAVKit.mm */; };
 		3FBC4AF3189881560046EE38 /* WebVideoFullscreenInterfaceAVKit.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3FBC4AF1189881560046EE38 /* WebVideoFullscreenInterfaceAVKit.mm */; };
 		3FBC4AF4189881560046EE38 /* WebVideoFullscreenInterfaceAVKit.h in Headers */ = {isa = PBXBuildFile; fileRef = 3FBC4AF2189881560046EE38 /* WebVideoFullscreenInterfaceAVKit.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		3FF813A71DBA8640009BF001 /* PointerLockController.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CFC434F192406A900A0D3B5 /* PointerLockController.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		3FFFF9A8159D9A550020BBD5 /* WebKitCSSViewportRule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3FFFF9A6159D9A550020BBD5 /* WebKitCSSViewportRule.cpp */; };
 		3FFFF9A9159D9A550020BBD5 /* WebKitCSSViewportRule.h in Headers */ = {isa = PBXBuildFile; fileRef = 3FFFF9A7159D9A550020BBD5 /* WebKitCSSViewportRule.h */; };
 		3FFFF9AD159D9B060020BBD5 /* ViewportStyleResolver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3FFFF9AB159D9B060020BBD5 /* ViewportStyleResolver.cpp */; };
@@ -10643,6 +10644,7 @@
 		9362640A0DE1137D009D5A00 /* CSSReflectionDirection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSSReflectionDirection.h; sourceTree = "<group>"; };
 		936DD03A09CEAC270056AE8C /* Range.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = Range.idl; sourceTree = "<group>"; };
 		9370918C1416D86B00477333 /* textAreaResizeCorner@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "textAreaResizeCorner@2x.png"; sourceTree = "<group>"; };
+		9371080D1DB754550060744E /* WindowOrWorkerGlobalScope.idl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = WindowOrWorkerGlobalScope.idl; sourceTree = "<group>"; };
 		9377AB9F15DEFEEF0031FD04 /* Pagination.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Pagination.h; sourceTree = "<group>"; };
 		937F4CCB1A2D48C100BB39F5 /* QuickLookMacSPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QuickLookMacSPI.h; sourceTree = "<group>"; };
 		937F4CCD1A2D4B0100BB39F5 /* NSMenuSPI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NSMenuSPI.h; sourceTree = "<group>"; };
@@ -17663,6 +17665,7 @@
 				BC8243E70D0CFD7500460C8F /* WindowFeatures.h */,
 				7E99AF520B13846468FB01A5 /* WindowFocusAllowedIndicator.cpp */,
 				7E99AF540B13846468FB01A5 /* WindowFocusAllowedIndicator.h */,
+				9371080D1DB754550060744E /* WindowOrWorkerGlobalScope.idl */,
 				E1271A130EEEC80400F61213 /* WorkerNavigator.cpp */,
 				E1271A0A0EEEC77A00F61213 /* WorkerNavigator.h */,
 				E1271A510EEECD1C00F61213 /* WorkerNavigator.idl */,
@@ -26490,6 +26493,7 @@
 				BCBB8ABA13F1AFB000734DF0 /* PODIntervalTree.h in Headers */,
 				BCBB8ABB13F1AFB000734DF0 /* PODRedBlackTree.h in Headers */,
 				B2B1F7170D00CAA8004AEA64 /* PointerEventsHitRules.h in Headers */,
+				3FF813A71DBA8640009BF001 /* PointerLockController.h in Headers */,
 				84730D921248F0B300D3A9C9 /* PointLightSource.h in Headers */,
 				97059978107D975200A50A7C /* PolicyCallback.h in Headers */,
 				9705997A107D975200A50A7C /* PolicyChecker.h in Headers */,
