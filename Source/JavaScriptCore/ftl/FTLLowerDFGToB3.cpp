@@ -625,7 +625,10 @@ private:
             compilePutStructure();
             break;
         case TryGetById:
-            compileGetById(AccessType::GetPure);
+            compileGetById(AccessType::TryGet);
+            break;
+        case PureGetById:
+            compileGetById(AccessType::PureGet);
             break;
         case GetById:
         case GetByIdFlush:
@@ -1059,8 +1062,8 @@ private:
         case CheckDOM:
             compileCheckDOM();
             break;
-        case CallDOM:
-            compileCallDOM();
+        case CallDOMGetter:
+            compileCallDOMGetter();
             break;
 
         case PhantomLocal:
@@ -2790,7 +2793,7 @@ private:
     
     void compileGetById(AccessType type)
     {
-        ASSERT(type == AccessType::Get || type == AccessType::GetPure);
+        ASSERT(type == AccessType::Get || type == AccessType::TryGet || type == AccessType::PureGet);
         switch (m_node->child1().useKind()) {
         case CellUse: {
             setJSValue(getById(lowCell(m_node->child1()), type));
@@ -2817,6 +2820,8 @@ private:
             J_JITOperation_EJI getByIdFunction;
             if (type == AccessType::Get)
                 getByIdFunction = operationGetByIdGeneric;
+            else if (type == AccessType::PureGet)
+                getByIdFunction = operationPureGetByIdGeneric;
             else
                 getByIdFunction = operationTryGetByIdGeneric;
 
@@ -8840,6 +8845,8 @@ private:
                         J_JITOperation_ESsiJI optimizationFunction;
                         if (type == AccessType::Get)
                             optimizationFunction = operationGetByIdOptimize;
+                        else if (type == AccessType::PureGet)
+                            optimizationFunction = operationPureGetByIdOptimize;
                         else
                             optimizationFunction = operationTryGetByIdOptimize;
 
@@ -9064,9 +9071,9 @@ private:
         patchpoint->effects = Effects::forCheck();
     }
 
-    void compileCallDOM()
+    void compileCallDOMGetter()
     {
-        DOMJIT::CallDOMPatchpoint* domJIT = m_node->callDOMData()->patchpoint;
+        DOMJIT::CallDOMGetterPatchpoint* domJIT = m_node->callDOMGetterData()->patchpoint;
 
         Edge& baseEdge = m_node->child1();
         LValue base = lowCell(baseEdge);

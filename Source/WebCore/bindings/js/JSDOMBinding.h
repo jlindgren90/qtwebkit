@@ -28,6 +28,7 @@
 #include "ExceptionOr.h"
 #include "JSDOMGlobalObject.h"
 #include "JSDOMWrapper.h"
+#include "JSDynamicDowncast.h"
 #include "ScriptWrappable.h"
 #include "ScriptWrappableInlines.h"
 #include "WebCoreTypedArrayController.h"
@@ -282,22 +283,17 @@ RefPtr<JSC::Float64Array> toFloat64Array(JSC::JSValue);
 template<typename T, typename JSType> Vector<Ref<T>> toRefNativeArray(JSC::ExecState&, JSC::JSValue);
 WEBCORE_EXPORT bool hasIteratorMethod(JSC::ExecState&, JSC::JSValue);
 
-bool shouldAllowAccessToNode(JSC::ExecState*, Node*);
-bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*);
-bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*, String& message);
-bool shouldAllowAccessToDOMWindow(JSC::ExecState*, DOMWindow&, String& message);
-
-enum SecurityReportingOption {
-    DoNotReportSecurityError,
-    LogSecurityError, // Legacy behavior.
-    ThrowSecurityError
-};
-
-class BindingSecurity {
-public:
-    static bool shouldAllowAccessToNode(JSC::ExecState*, Node*);
-    static bool shouldAllowAccessToDOMWindow(JSC::ExecState*, DOMWindow&, SecurityReportingOption = LogSecurityError);
-    static bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*, SecurityReportingOption = LogSecurityError);
+enum SecurityReportingOption { DoNotReportSecurityError, LogSecurityError, ThrowSecurityError };
+namespace BindingSecurity {
+    template<typename T> T* checkSecurityForNode(JSC::ExecState&, T&);
+    template<typename T> T* checkSecurityForNode(JSC::ExecState&, T*);
+    template<typename T> ExceptionOr<T*> checkSecurityForNode(JSC::ExecState&, ExceptionOr<T*>&&);
+    template<typename T> ExceptionOr<T*> checkSecurityForNode(JSC::ExecState&, ExceptionOr<T&>&&);
+    bool shouldAllowAccessToDOMWindow(JSC::ExecState*, DOMWindow&, SecurityReportingOption = LogSecurityError);
+    bool shouldAllowAccessToDOMWindow(JSC::ExecState&, DOMWindow&, String& message);
+    bool shouldAllowAccessToFrame(JSC::ExecState*, Frame*, SecurityReportingOption = LogSecurityError);
+    bool shouldAllowAccessToFrame(JSC::ExecState&, Frame&, String& message);
+    bool shouldAllowAccessToNode(JSC::ExecState&, Node*);
 };
 
 void printErrorMessageForFrame(Frame*, const String& message);
@@ -564,7 +560,7 @@ template<typename DOMClass> inline JSC::JSValue wrap(JSC::ExecState* state, JSDO
 template<typename JSClass> inline JSClass& castThisValue(JSC::ExecState& state)
 {
     auto thisValue = state.thisValue();
-    auto castedThis = JSC::jsDynamicCast<JSClass*>(thisValue);
+    auto castedThis = jsDynamicDowncast<JSClass*>(thisValue);
     ASSERT(castedThis);
     return *castedThis;
 }
@@ -686,7 +682,7 @@ inline JSC::JSValue toJSIteratorEnd(JSC::ExecState& state)
 
 inline RefPtr<JSC::ArrayBufferView> toArrayBufferView(JSC::JSValue value)
 {
-    auto* wrapper = JSC::jsDynamicCast<JSC::JSArrayBufferView*>(value);
+    auto* wrapper = jsDynamicDowncast<JSC::JSArrayBufferView*>(value);
     if (!wrapper)
         return nullptr;
     return wrapper->impl();
@@ -778,6 +774,30 @@ template<typename T> inline JSC::JSValue toJSNewlyCreated(JSC::ExecState& state,
         return { };
     }
     return toJSNewlyCreated(&state, &globalObject, value.releaseReturnValue());
+}
+
+template<typename T> inline T* BindingSecurity::checkSecurityForNode(JSC::ExecState& state, T& node)
+{
+    return shouldAllowAccessToNode(state, &node) ? &node : nullptr;
+}
+
+template<typename T> inline T* BindingSecurity::checkSecurityForNode(JSC::ExecState& state, T* node)
+{
+    return shouldAllowAccessToNode(state, node) ? node : nullptr;
+}
+
+template<typename T> inline ExceptionOr<T*> BindingSecurity::checkSecurityForNode(JSC::ExecState& state, ExceptionOr<T*>&& value)
+{
+    if (value.hasException())
+        return value.releaseException();
+    return checkSecurityForNode(state, value.releaseReturnValue());
+}
+
+template<typename T> inline ExceptionOr<T*> BindingSecurity::checkSecurityForNode(JSC::ExecState& state, ExceptionOr<T&>&& value)
+{
+    if (value.hasException())
+        return value.releaseException();
+    return checkSecurityForNode(state, value.releaseReturnValue());
 }
 
 } // namespace WebCore

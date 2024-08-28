@@ -42,8 +42,10 @@ class MediaController
         new MuteSupport(this);
         new PlaybackSupport(this);
         new RemainingTimeSupport(this);
+        new ScrubbingSupport(this);
         new SkipBackSupport(this);
         new StartSupport(this);
+        new VolumeSupport(this);
 
         this._updateControlsSize();
         media.addEventListener("resize", this);

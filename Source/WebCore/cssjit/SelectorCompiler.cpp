@@ -38,7 +38,6 @@
 #include "FunctionCall.h"
 #include "HTMLDocument.h"
 #include "HTMLNames.h"
-#include "HTMLOptGroupElement.h"
 #include "HTMLParserIdioms.h"
 #include "InspectorInstrumentation.h"
 #include "NodeRenderStyle.h"
@@ -402,7 +401,10 @@ SelectorCompilationStatus compileSelector(const CSSSelector* lastSelector, JSC::
 static inline FragmentRelation fragmentRelationForSelectorRelation(CSSSelector::RelationType relation)
 {
     switch (relation) {
-    case CSSSelector::Descendant:
+    case CSSSelector::DescendantSpace:
+#if ENABLE_CSS_SELECTORS_LEVEL4
+    case CSSSelector::DescendantDoubleChild:
+#endif
         return FragmentRelation::Descendant;
     case CSSSelector::Child:
         return FragmentRelation::Child;
@@ -3790,7 +3792,7 @@ void SelectorCodeGenerator::generateElementIsScopeRoot(Assembler::JumpList& fail
     Assembler::Jump scopeIsNotNull = m_assembler.branchTestPtr(Assembler::NonZero, scope);
 
     DOMJIT::loadDocument(m_assembler, elementAddressRegister, scope);
-    m_assembler.loadPtr(Assembler::Address(scope, Document::documentElementMemoryOffset()), scope);
+    DOMJIT::loadDocumentElement(m_assembler, scope, scope);
 
     scopeIsNotNull.link(&m_assembler);
     failureCases.append(m_assembler.branchPtr(Assembler::NotEqual, scope, elementAddressRegister));

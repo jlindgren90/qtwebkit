@@ -66498,13 +66498,13 @@
 - path: test262/test/language/expressions/object/method-definition/generator-param-init-yield.js
   cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/generator-param-redecl-const.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/generator-param-redecl-const.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/generator-param-redecl-let.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/generator-param-redecl-let.js
-  cmd: runTest262 :fail, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
+  cmd: runTest262 :normal, "SyntaxError", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], [:strict]
 - path: test262/test/language/expressions/object/method-definition/generator-params.js
   cmd: runTest262 :normal, "NoException", ["../../../../../harness/assert.js", "../../../../../harness/sta.js"], []
 - path: test262/test/language/expressions/object/method-definition/generator-params.js

@@ -28,7 +28,7 @@
 #include "JSDOMBinding.h"
 #include "JSDOMConstructor.h"
 #include "JSDOMConvert.h"
-#include "TestObj.h"
+#include "JSTestObj.h"
 #include "TestSupplemental.h"
 #include <runtime/Error.h>
 #include <runtime/FunctionPrototype.h>
@@ -40,7 +40,6 @@
 
 #if ENABLE(Condition11) || ENABLE(Condition12) || ENABLE(Condition22) || ENABLE(Condition23)
 #include "JSNode.h"
-#include "JSTestObj.h"
 #endif
 
 using namespace JSC;
@@ -400,12 +399,12 @@ void JSTestInterface::destroy(JSC::JSCell* cell)
 
 template<> inline JSTestInterface* BindingCaller<JSTestInterface>::castForAttribute(ExecState&, EncodedJSValue thisValue)
 {
-    return jsDynamicCast<JSTestInterface*>(JSValue::decode(thisValue));
+    return jsDynamicDowncast<JSTestInterface*>(JSValue::decode(thisValue));
 }
 
 template<> inline JSTestInterface* BindingCaller<JSTestInterface>::castForOperation(ExecState& state)
 {
-    return jsDynamicCast<JSTestInterface*>(state.thisValue());
+    return jsDynamicDowncast<JSTestInterface*>(state.thisValue());
 }
 
 #if ENABLE(Condition22) || ENABLE(Condition23)
@@ -632,7 +631,7 @@ EncodedJSValue jsTestInterfaceConstructor(ExecState* state, EncodedJSValue thisV
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    JSTestInterfacePrototype* domObject = jsDynamicCast<JSTestInterfacePrototype*>(JSValue::decode(thisValue));
+    JSTestInterfacePrototype* domObject = jsDynamicDowncast<JSTestInterfacePrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject))
         return throwVMTypeError(state, throwScope);
     return JSValue::encode(JSTestInterface::getConstructor(state->vm(), domObject->globalObject()));
@@ -643,7 +642,7 @@ bool setJSTestInterfaceConstructor(ExecState* state, EncodedJSValue thisValue, E
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     JSValue value = JSValue::decode(encodedValue);
-    JSTestInterfacePrototype* domObject = jsDynamicCast<JSTestInterfacePrototype*>(JSValue::decode(thisValue));
+    JSTestInterfacePrototype* domObject = jsDynamicDowncast<JSTestInterfacePrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject)) {
         throwVMTypeError(state, throwScope);
         return false;
@@ -1030,7 +1029,7 @@ JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestIn
 
 TestInterface* JSTestInterface::toWrapped(JSC::JSValue value)
 {
-    if (auto* wrapper = jsDynamicCast<JSTestInterface*>(value))
+    if (auto* wrapper = jsDynamicDowncast<JSTestInterface*>(value))
         return &wrapper->wrapped();
     return nullptr;
 }

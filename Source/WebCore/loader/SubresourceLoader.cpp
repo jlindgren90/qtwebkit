@@ -43,7 +43,6 @@
 #include "Page.h"
 #include "ResourceLoadObserver.h"
 #include "RuntimeEnabledFeatures.h"
-#include "Settings.h"
 #include <wtf/Ref.h>
 #include <wtf/RefCountedLeakCounter.h>
 #include <wtf/StdLibExtras.h>
@@ -189,6 +188,9 @@ void SubresourceLoader::willSendRequestInternal(ResourceRequest& newRequest, con
             opaqueRedirectedResponse.setType(ResourceResponse::Type::Opaqueredirect);
             m_resource->responseReceived(opaqueRedirectedResponse);
             didFinishLoading(currentTime());
+            return;
+        } else if (m_redirectCount++ >= options().maxRedirectCount) {
+            cancel(ResourceError(String(), 0, request().url(), ASCIILiteral("Too many redirections"), ResourceError::Type::General));
             return;
         }
 

@@ -39,6 +39,7 @@
 #include "EventTarget.h"
 #include "MediaStream.h"
 #include "PeerConnectionBackend.h"
+#include "RTCOfferAnswerOptions.h"
 #include "RTCRtpTransceiver.h"
 #include "ScriptWrappable.h"
 #include <wtf/HashMap.h>
@@ -60,7 +61,11 @@ public:
     static Ref<RTCPeerConnection> create(ScriptExecutionContext&);
     ~RTCPeerConnection();
 
-    void initializeWith(Document&, const Dictionary&, ExceptionCode&);
+    using OfferAnswerOptions = RTCOfferAnswerOptions;
+    using OfferOptions = RTCOfferOptions;
+    using AnswerOptions = RTCAnswerOptions;
+
+    ExceptionOr<void> initializeWith(Document&, const Dictionary&);
 
     const Vector<RefPtr<RTCRtpSender>>& getSenders() const { return m_transceiverSet->getSenders(); }
     const Vector<RefPtr<RTCRtpReceiver>>& getReceivers() const { return m_transceiverSet->getReceivers(); }
@@ -69,8 +74,8 @@ public:
     // Part of legacy MediaStream-based API (mostly implemented as JS built-ins)
     Vector<RefPtr<MediaStream>> getRemoteStreams() const { return m_backend->getRemoteStreams(); }
 
-    RefPtr<RTCRtpSender> addTrack(Ref<MediaStreamTrack>&&, const Vector<std::reference_wrapper<MediaStream>>&, ExceptionCode&);
-    void removeTrack(RTCRtpSender&, ExceptionCode&);
+    ExceptionOr<Ref<RTCRtpSender>> addTrack(Ref<MediaStreamTrack>&&, const Vector<std::reference_wrapper<MediaStream>>&);
+    ExceptionOr<void> removeTrack(RTCRtpSender&);
 
     // This enum is mirrored in RTCRtpTransceiver.h
     enum class RtpTransceiverDirection { Sendrecv, Sendonly, Recvonly, Inactive };
@@ -79,11 +84,11 @@ public:
         RtpTransceiverDirection direction;
     };
 
-    RefPtr<RTCRtpTransceiver> addTransceiver(Ref<MediaStreamTrack>&&, const RtpTransceiverInit&, ExceptionCode&);
-    RefPtr<RTCRtpTransceiver> addTransceiver(const String& kind, const RtpTransceiverInit&, ExceptionCode&);
+    ExceptionOr<Ref<RTCRtpTransceiver>> addTransceiver(Ref<MediaStreamTrack>&&, const RtpTransceiverInit&);
+    ExceptionOr<Ref<RTCRtpTransceiver>> addTransceiver(const String& kind, const RtpTransceiverInit&);
 
-    void queuedCreateOffer(const Dictionary& offerOptions, PeerConnection::SessionDescriptionPromise&&);
-    void queuedCreateAnswer(const Dictionary& answerOptions, PeerConnection::SessionDescriptionPromise&&);
+    void queuedCreateOffer(RTCOfferOptions&&, PeerConnection::SessionDescriptionPromise&&);
+    void queuedCreateAnswer(RTCAnswerOptions&&, PeerConnection::SessionDescriptionPromise&&);
 
     void queuedSetLocalDescription(RTCSessionDescription&, PeerConnection::VoidPromise&&);
     RefPtr<RTCSessionDescription> localDescription() const;
@@ -103,11 +108,11 @@ public:
     String iceConnectionState() const;
 
     RTCConfiguration* getConfiguration() const;
-    void setConfiguration(const Dictionary& configuration, ExceptionCode&);
+    ExceptionOr<void> setConfiguration(const Dictionary&);
 
     void privateGetStats(MediaStreamTrack*, PeerConnection::StatsPromise&&);
 
-    RefPtr<RTCDataChannel> createDataChannel(String label, const Dictionary& dataChannelDict, ExceptionCode&);
+    ExceptionOr<RefPtr<RTCDataChannel>> createDataChannel(const String& label, const Dictionary& dataChannelDict);
 
     void close();
 
@@ -124,7 +129,7 @@ public:
 private:
     RTCPeerConnection(ScriptExecutionContext&);
 
-    RefPtr<RTCRtpTransceiver> completeAddTransceiver(Ref<RTCRtpTransceiver>&&, const RtpTransceiverInit&);
+    void completeAddTransceiver(RTCRtpTransceiver&, const RtpTransceiverInit&);
 
     // EventTarget implementation.
     void refEventTarget() final { ref(); }

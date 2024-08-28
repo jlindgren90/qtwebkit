@@ -78,15 +78,12 @@ class AXObjectCache;
 class Element;
 class Frame;
 class FrameView;
-class HTMLAnchorElement;
-class HTMLAreaElement;
 class IntPoint;
 class IntSize;
 class MainFrame;
 class Node;
 class Page;
 class RenderObject;
-class RenderListItem;
 class ScrollableArea;
 class ScrollView;
 class Widget;
@@ -1045,6 +1042,7 @@ public:
 #if PLATFORM(IOS)
     int accessibilityPasswordFieldLength();
     bool hasTouchEventListener() const;
+    bool isInputTypePopupButton() const;
 #endif
     
     // allows for an AccessibilityObject to update its render tree or perform

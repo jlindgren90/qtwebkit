@@ -70,7 +70,6 @@
 #include "TextEncoding.h"
 #include "TextResourceDecoder.h"
 #include "UserGestureIndicator.h"
-#include <bindings/ScriptValue.h>
 #include <inspector/ContentSearchUtilities.h>
 #include <inspector/IdentifiersFactory.h>
 #include <inspector/InspectorValues.h>
@@ -528,7 +527,7 @@ void InspectorPageAgent::getCookies(ErrorString&, RefPtr<Inspector::Protocol::Ar
                 // FIXME: We need duplication checking for the String representation of cookies.
                 // Exceptions are thrown by cookie() in sandboxed frames. That won't happen here
                 // because "document" is the document of the main frame of the page.
-                stringCookiesList.append(document->cookie(ASSERT_NO_EXCEPTION));
+                stringCookiesList.append(document->cookie().releaseReturnValue());
             } else {
                 for (auto& cookie : docCookiesList) {
                     if (!rawCookiesList.contains(cookie))

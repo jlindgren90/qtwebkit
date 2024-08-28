@@ -88,8 +88,13 @@ WebInspector.loaded = function()
         InspectorBackend.registerLayerTreeDispatcher(new WebInspector.LayerTreeObserver);
     if (InspectorBackend.registerRuntimeDispatcher)
         InspectorBackend.registerRuntimeDispatcher(new WebInspector.RuntimeObserver);
+    if (InspectorBackend.registerWorkerDispatcher)
+        InspectorBackend.registerWorkerDispatcher(new WebInspector.WorkerObserver);
     if (InspectorBackend.registerReplayDispatcher)
         InspectorBackend.registerReplayDispatcher(new WebInspector.ReplayObserver);
+
+    // Main backend target.
+    WebInspector.mainTarget = new WebInspector.MainTarget;
 
     // Enable agents.
     InspectorAgent.enable();
@@ -121,6 +126,8 @@ WebInspector.loaded = function()
     this.layerTreeManager = new WebInspector.LayerTreeManager;
     this.dashboardManager = new WebInspector.DashboardManager;
     this.probeManager = new WebInspector.ProbeManager;
+    this.targetManager = new WebInspector.TargetManager;
+    this.workerManager = new WebInspector.WorkerManager;
     this.replayManager = new WebInspector.ReplayManager;
 
     // Enable the Console Agent after creating the singleton managers.
@@ -160,9 +167,8 @@ WebInspector.loaded = function()
 
     // COMPATIBILITY (iOS 8): Page.enableTypeProfiler did not exist.
     this.showJavaScriptTypeInformationSetting = new WebInspector.Setting("show-javascript-type-information", false);
-    if (this.showJavaScriptTypeInformationSetting.value && window.RuntimeAgent && RuntimeAgent.enableTypeProfiler) {
+    if (this.showJavaScriptTypeInformationSetting.value && window.RuntimeAgent && RuntimeAgent.enableTypeProfiler)
         RuntimeAgent.enableTypeProfiler();
-    }
 
     this.enableControlFlowProfilerSetting = new WebInspector.Setting("enable-control-flow-profiler", false);
     if (this.enableControlFlowProfilerSetting.value && window.RuntimeAgent && RuntimeAgent.enableControlFlowProfiler)
@@ -226,13 +232,32 @@ WebInspector.contentLoaded = function()
 
     document.body.classList.add(this.debuggableType);
 
+    function setTabSize() {
+        document.body.style.tabSize = WebInspector.settings.tabSize.value;
+    }
+    WebInspector.settings.tabSize.addEventListener(WebInspector.Setting.Event.Changed, setTabSize);
+    setTabSize();
+
+    function setInvalidCharacterClassName() {
+        document.body.classList.toggle("show-invalid-characters", WebInspector.settings.showInvalidCharacters.value);
+    }
+    WebInspector.settings.showInvalidCharacters.addEventListener(WebInspector.Setting.Event.Changed, setInvalidCharacterClassName);
+    setInvalidCharacterClassName();
+
+    function setWhitespaceCharacterClassName() {
+        document.body.classList.toggle("show-whitespace-characters", WebInspector.settings.showWhitespaceCharacters.value);
+    }
+    WebInspector.settings.showWhitespaceCharacters.addEventListener(WebInspector.Setting.Event.Changed, setWhitespaceCharacterClassName);
+    setWhitespaceCharacterClassName();
+
+    this.settingsTabContentView = new WebInspector.SettingsTabContentView;
+
     // Create the user interface elements.
     this.toolbar = new WebInspector.Toolbar(document.getElementById("toolbar"), null, true);
     this.toolbar.displayMode = WebInspector.Toolbar.DisplayMode.IconOnly;
     this.toolbar.sizeMode = WebInspector.Toolbar.SizeMode.Small;
 
     this.tabBar = new WebInspector.TabBar(document.getElementById("tab-bar"));
-    this.tabBar.addEventListener(WebInspector.TabBar.Event.NewTabItemClicked, this._newTabItemClicked, this);
     this.tabBar.addEventListener(WebInspector.TabBar.Event.OpenDefaultTab, this._openDefaultTab, this);
 
     this._contentElement = document.getElementById("content");
@@ -282,9 +307,6 @@ WebInspector.contentLoaded = function()
 
     this.tabBrowser = new WebInspector.TabBrowser(document.getElementById("tab-browser"), this.tabBar, this.navigationSidebar, this.detailsSidebar);
     this.tabBrowser.addEventListener(WebInspector.TabBrowser.Event.SelectedTabContentViewDidChange, this._tabBrowserSelectedTabContentViewDidChange, this);
-
-    this.tabBar.addEventListener(WebInspector.TabBar.Event.TabBarItemAdded, this._updateNewTabButtonState, this);
-    this.tabBar.addEventListener(WebInspector.TabBar.Event.TabBarItemRemoved, this._updateNewTabButtonState, this);
 
     this._reloadPageKeyboardShortcut = new WebInspector.KeyboardShortcut(WebInspector.KeyboardShortcut.Modifier.CommandOrControl, "R", this._reloadPage.bind(this));
     this._reloadPageIgnoringCacheKeyboardShortcut = new WebInspector.KeyboardShortcut(WebInspector.KeyboardShortcut.Modifier.CommandOrControl | WebInspector.KeyboardShortcut.Modifier.Shift, "R", this._reloadPageIgnoringCache.bind(this));
@@ -400,6 +422,7 @@ WebInspector.contentLoaded = function()
         WebInspector.NewTabContentView,
         WebInspector.ResourcesTabContentView,
         WebInspector.SearchTabContentView,
+        WebInspector.SettingsTabContentView,
         WebInspector.StorageTabContentView,
         WebInspector.TimelineTabContentView,
     ];
@@ -441,7 +464,7 @@ WebInspector.contentLoaded = function()
     if (!this.tabBar.selectedTabBarItem)
         this.tabBar.selectedTabBarItem = 0;
 
-    if (!this.tabBar.hasNormalTab())
+    if (!this.tabBar.normalTabCount)
         this.showNewTabTab();
 
     // Listen to the events after restoring the saved tabs to avoid recursion.
@@ -532,17 +555,6 @@ WebInspector._rememberOpenTabs = function()
     this._openTabsSetting.value = openTabs;
 };
 
-WebInspector._updateNewTabButtonState = function(event)
-{
-    this.tabBar.newTabItem.disabled = !this.isNewTabWithTypeAllowed(WebInspector.NewTabContentView.Type);
-};
-
-WebInspector._newTabItemClicked = function(event)
-{
-    const shouldAnimate = true;
-    this.showNewTabTab(shouldAnimate);
-};
-
 WebInspector._openDefaultTab = function(event)
 {
     this.showNewTabTab();
@@ -568,7 +580,7 @@ WebInspector._tryToRestorePendingTabs = function()
 
     this._pendingOpenTabs = stillPendingOpenTabs;
 
-    this._updateNewTabButtonState();
+    this.tabBrowser.tabBar.updateNewTabTabBarItemState();
 };
 
 WebInspector.showNewTabTab = function(shouldAnimate)
@@ -1025,6 +1037,13 @@ WebInspector.UIString = function(string, vararg)
     }
 
     return "LOCALIZED STRING NOT FOUND";
+};
+
+WebInspector.indentString = function()
+{
+    if (WebInspector.settings.indentWithTabs.value)
+        return "\t";
+    return " ".repeat(WebInspector.settings.indentUnit.value);
 };
 
 WebInspector.restoreFocusFromElement = function(element)
@@ -2502,6 +2521,11 @@ WebInspector.reportInternalError = function(errorOrString, details={})
     } else
         console.error(error);
 };
+
+Object.defineProperty(WebInspector, "targets",
+{
+    get() { return this.targetManager.targets; }
+});
 
 // OpenResourceDialog delegate
 

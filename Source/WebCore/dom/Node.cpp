@@ -63,7 +63,6 @@
 #include "RenderTextControl.h"
 #include "RenderView.h"
 #include "ScopedEventQueue.h"
-#include "Settings.h"
 #include "StorageEvent.h"
 #include "StyleResolver.h"
 #include "StyleSheetContents.h"
@@ -471,7 +470,7 @@ static RefPtr<Node> firstFollowingSiblingNotInNodeSet(Node& context, const HashS
     return nullptr;
 }
 
-RefPtr<Node> Node::convertNodesOrStringsIntoNode(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
+ExceptionOr<RefPtr<Node>> Node::convertNodesOrStringsIntoNode(Vector<NodeOrString>&& nodeOrStringVector)
 {
     if (nodeOrStringVector.isEmpty())
         return nullptr;
@@ -486,79 +485,110 @@ RefPtr<Node> Node::convertNodesOrStringsIntoNode(Vector<NodeOrString>&& nodeOrSt
     }
 
     if (nodes.size() == 1)
-        return WTFMove(nodes.first());
+        return RefPtr<Node> { WTFMove(nodes.first()) };
 
     auto nodeToReturn = DocumentFragment::create(document());
     for (auto& node : nodes) {
-        if (!nodeToReturn->appendChild(node, ec))
-            return nullptr;
+        ExceptionCode ec = 0;
+        nodeToReturn->appendChild(node, ec);
+        if (ec)
+            return Exception { ec };
     }
-    return WTFMove(nodeToReturn);
+    return RefPtr<Node> { WTFMove(nodeToReturn) };
 }
 
-void Node::before(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
+ExceptionOr<void> Node::before(Vector<NodeOrString>&& nodeOrStringVector)
 {
     RefPtr<ContainerNode> parent = parentNode();
     if (!parent)
-        return;
+        return { };
 
     auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
     auto viablePreviousSibling = firstPrecedingSiblingNotInNodeSet(*this, nodeSet);
 
-    auto node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
-    if (ec || !node)
-        return;
+    auto result = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector));
+    if (result.hasException())
+        return result.releaseException();
+    auto node = result.releaseReturnValue();
+    if (!node)
+        return { };
 
     if (viablePreviousSibling)
         viablePreviousSibling = viablePreviousSibling->nextSibling();
     else
         viablePreviousSibling = parent->firstChild();
 
+    ExceptionCode ec = 0;
     parent->insertBefore(*node, viablePreviousSibling.get(), ec);
-}
-
-void Node::after(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
-{
-    RefPtr<ContainerNode> parent = parentNode();
-    if (!parent)
-        return;
-
-    auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
-    auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
-
-    auto node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
-    if (ec || !node)
-        return;
-
-    parent->insertBefore(*node, viableNextSibling.get(), ec);
-}
-
-void Node::replaceWith(Vector<NodeOrString>&& nodeOrStringVector, ExceptionCode& ec)
-{
-    RefPtr<ContainerNode> parent = parentNode();
-    if (!parent)
-        return;
-
-    auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
-    auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
-
-    auto node = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector), ec);
     if (ec)
-        return;
+        return Exception { ec };
+    return { };
+}
+
+ExceptionOr<void> Node::after(Vector<NodeOrString>&& nodeOrStringVector)
+{
+    RefPtr<ContainerNode> parent = parentNode();
+    if (!parent)
+        return { };
+
+    auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
+    auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
+
+    auto result = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector));
+    if (result.hasException())
+        return result.releaseException();
+    auto node = result.releaseReturnValue();
+    if (!node)
+        return { };
+
+    ExceptionCode ec = 0;
+    parent->insertBefore(*node, viableNextSibling.get(), ec);
+    if (ec)
+        return Exception { ec };
+    return { };
+}
+
+ExceptionOr<void> Node::replaceWith(Vector<NodeOrString>&& nodeOrStringVector)
+{
+    RefPtr<ContainerNode> parent = parentNode();
+    if (!parent)
+        return { };
+
+    auto nodeSet = nodeSetPreTransformedFromNodeOrStringVector(nodeOrStringVector);
+    auto viableNextSibling = firstFollowingSiblingNotInNodeSet(*this, nodeSet);
+
+    auto result = convertNodesOrStringsIntoNode(WTFMove(nodeOrStringVector));
+    if (result.hasException())
+        return result.releaseException();
+    auto node = result.releaseReturnValue();
 
     if (parentNode() == parent) {
-        if (node)
+        if (node) {
+            ExceptionCode ec = 0;
             parent->replaceChild(*node, *this, ec);
-        else
+            if (ec)
+                return Exception { ec };
+        } else
             parent->removeChild(*this);
-    } else if (node)
+    } else if (node) {
+        ExceptionCode ec = 0;
         parent->insertBefore(*node, viableNextSibling.get(), ec);
+        if (ec)
+            return Exception { ec };
+    }
+    return { };
 }
 
-void Node::remove(ExceptionCode& ec)
+ExceptionOr<void> Node::remove()
 {
-    if (ContainerNode* parent = parentNode())
-        parent->removeChild(*this, ec);
+    auto* parent = parentNode();
+    if (!parent)
+        return { };
+    ExceptionCode ec = 0;
+    parent->removeChild(*this, ec);
+    if (ec)
+        return Exception { ec };
+    return { };
 }
 
 void Node::normalize()
@@ -588,7 +618,7 @@ void Node::normalize()
         if (!text->length()) {
             // Care must be taken to get the next node before removing the current node.
             node = NodeTraversal::nextPostOrder(*node);
-            text->remove(IGNORE_EXCEPTION);
+            text->remove();
             continue;
         }
 
@@ -600,7 +630,7 @@ void Node::normalize()
 
             // Remove empty text nodes.
             if (!nextText->length()) {
-                nextText->remove(IGNORE_EXCEPTION);
+                nextText->remove();
                 continue;
             }
 
@@ -608,7 +638,7 @@ void Node::normalize()
             unsigned offset = text->length();
             text->appendData(nextText->data());
             document().textNodesMerged(nextText.get(), offset);
-            nextText->remove(IGNORE_EXCEPTION);
+            nextText->remove();
         }
 
         node = NodeTraversal::nextPostOrder(*node);

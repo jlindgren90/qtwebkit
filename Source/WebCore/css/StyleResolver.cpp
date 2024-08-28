@@ -56,6 +56,7 @@
 #include "CSSSelectorList.h"
 #include "CSSShadowValue.h"
 #include "CSSStyleRule.h"
+#include "CSSStyleSheet.h"
 #include "CSSSupportsRule.h"
 #include "CSSTimingFunctionValue.h"
 #include "CSSValueList.h"
@@ -76,15 +77,10 @@
 #include "FrameSelection.h"
 #include "FrameView.h"
 #include "HTMLDocument.h"
-#include "HTMLIFrameElement.h"
 #include "HTMLInputElement.h"
 #include "HTMLMarqueeElement.h"
 #include "HTMLNames.h"
-#include "HTMLOptGroupElement.h"
-#include "HTMLOptionElement.h"
-#include "HTMLProgressElement.h"
 #include "HTMLSlotElement.h"
-#include "HTMLStyleElement.h"
 #include "HTMLTableElement.h"
 #include "HTMLTextAreaElement.h"
 #include "InspectorInstrumentation.h"
@@ -233,7 +229,7 @@ void StyleResolver::MatchResult::addMatchedProperties(const StyleProperties& pro
                     break;
                 }
 
-                if (value.isVariableDependentValue()) {
+                if (value.hasVariableReferences()) {
                     isCacheable = false;
                     break;
                 }
@@ -1586,8 +1582,8 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     State& state = m_state;
     
     RefPtr<CSSValue> valueToApply = value;
-    if (value->isVariableDependentValue()) {
-        valueToApply = resolvedVariableValue(id, *downcast<CSSVariableDependentValue>(value));
+    if (value->hasVariableReferences()) {
+        valueToApply = resolvedVariableValue(id, *value);
         if (!valueToApply) {
             if (CSSProperty::isInheritedProperty(id))
                 valueToApply = CSSValuePool::singleton().createInheritedValue();
@@ -1604,17 +1600,23 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     
     CSSValue* valueToCheckForInheritInitial = valueToApply.get();
     CSSCustomPropertyValue* customPropertyValue = nullptr;
+    CSSValueID customPropertyValueID = CSSValueInvalid;
     
     if (id == CSSPropertyCustom) {
+        // FIXME-NEWPARSER: Can clean this up once old parser is gone and remove
+        // the deprecatedValue call and the valueToCheckForInheritInitial variable.
         customPropertyValue = &downcast<CSSCustomPropertyValue>(*valueToApply);
         valueToCheckForInheritInitial = customPropertyValue->deprecatedValue().get();
+        customPropertyValueID = customPropertyValue->valueID();
+        if (customPropertyValueID != CSSValueInvalid)
+            valueToCheckForInheritInitial = valueToApply.get();
     }
 
-    bool isInherit = state.parentStyle() && valueToCheckForInheritInitial->isInheritedValue();
-    bool isInitial = valueToCheckForInheritInitial->isInitialValue() || (!state.parentStyle() && valueToCheckForInheritInitial->isInheritedValue());
+    bool isInherit = state.parentStyle() ? valueToCheckForInheritInitial->isInheritedValue() || customPropertyValueID == CSSValueInherit : false;
+    bool isInitial = valueToCheckForInheritInitial->isInitialValue() || customPropertyValueID == CSSValueInitial || (!state.parentStyle() && (valueToCheckForInheritInitial->isInheritedValue() || customPropertyValueID == CSSValueInherit));
     
-    bool isUnset = valueToCheckForInheritInitial->isUnsetValue();
-    bool isRevert = valueToCheckForInheritInitial->isRevertValue();
+    bool isUnset = valueToCheckForInheritInitial->isUnsetValue() || customPropertyValueID == CSSValueUnset;
+    bool isRevert = valueToCheckForInheritInitial->isRevertValue() || customPropertyValueID == CSSValueRevert;
 
     if (isRevert) {
         if (cascadeLevel() == UserAgentLevel || !matchResult)
@@ -1666,14 +1668,14 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     if (id == CSSPropertyCustom) {
         CSSCustomPropertyValue* customProperty = &downcast<CSSCustomPropertyValue>(*valueToApply);
         if (isInherit) {
-            RefPtr<CSSValue> customVal = state.parentStyle()->getCustomPropertyValue(customProperty->name());
+            RefPtr<CSSCustomPropertyValue> customVal = state.parentStyle()->getCustomPropertyValue(customProperty->name());
             if (!customVal)
                 customVal = CSSCustomPropertyValue::createInvalid();
             state.style()->setCustomPropertyValue(customProperty->name(), customVal);
         } else if (isInitial)
             state.style()->setCustomPropertyValue(customProperty->name(), CSSCustomPropertyValue::createInvalid());
         else
-            state.style()->setCustomPropertyValue(customProperty->name(), customProperty->deprecatedValue());
+            state.style()->setCustomPropertyValue(customProperty->name(), customProperty);
         return;
     }
 
@@ -1681,10 +1683,10 @@ void StyleResolver::applyProperty(CSSPropertyID id, CSSValue* value, SelectorChe
     StyleBuilder::applyProperty(id, *this, *valueToApply, isInitial, isInherit);
 }
 
-RefPtr<CSSValue> StyleResolver::resolvedVariableValue(CSSPropertyID propID, const CSSVariableDependentValue& value)
+RefPtr<CSSValue> StyleResolver::resolvedVariableValue(CSSPropertyID propID, const CSSValue& value)
 {
     CSSParser parser(m_state.document());
-    return parser.parseVariableDependentValue(propID, value, m_state.style()->customProperties(), m_state.style()->direction(), m_state.style()->writingMode());
+    return parser.parseValueWithVariableReferences(propID, value, m_state.style()->customProperties(), m_state.style()->direction(), m_state.style()->writingMode());
 }
 
 RefPtr<StyleImage> StyleResolver::styleImage(CSSValue& value)

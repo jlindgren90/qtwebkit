@@ -25,12 +25,13 @@
 #pragma once
 
 #include "EventTarget.h"
-#include "URLHash.h"
+#include "ExceptionOr.h"
 #include "LayoutRect.h"
 #include "MutationObserver.h"
 #include "RenderStyleConstants.h"
 #include "StyleValidity.h"
 #include "TreeScope.h"
+#include "URLHash.h"
 #include <wtf/Forward.h>
 #include <wtf/ListHashSet.h>
 #include <wtf/MainThread.h>
@@ -197,10 +198,10 @@ public:
     WEBCORE_EXPORT Element* nextElementSibling() const;
 
     // From the ChildNode - https://dom.spec.whatwg.org/#childnode
-    void before(Vector<NodeOrString>&&, ExceptionCode&);
-    void after(Vector<NodeOrString>&&, ExceptionCode&);
-    void replaceWith(Vector<NodeOrString>&&, ExceptionCode&);
-    WEBCORE_EXPORT void remove(ExceptionCode&);
+    ExceptionOr<void> before(Vector<NodeOrString>&&);
+    ExceptionOr<void> after(Vector<NodeOrString>&&);
+    ExceptionOr<void> replaceWith(Vector<NodeOrString>&&);
+    WEBCORE_EXPORT ExceptionOr<void> remove();
 
     // Other methods (not part of DOM)
 
@@ -659,7 +660,7 @@ protected:
     void invalidateStyle(Style::Validity, Style::InvalidationMode = Style::InvalidationMode::Normal);
     void updateAncestorsForStyleRecalc();
 
-    RefPtr<Node> convertNodesOrStringsIntoNode(Vector<NodeOrString>&&, ExceptionCode&);
+    ExceptionOr<RefPtr<Node>> convertNodesOrStringsIntoNode(Vector<NodeOrString>&&);
 
 private:
     virtual PseudoId customPseudoId() const

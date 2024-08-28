@@ -214,6 +214,14 @@ void UIScriptController::keyUpUsingHardwareKeyboard(JSStringRef, JSValueRef)
 {
 }
 
+void UIScriptController::selectTextCandidateAtIndex(long, JSValueRef)
+{
+}
+
+void UIScriptController::waitForTextPredictionsViewAndSelectCandidateAtIndex(long, unsigned, float)
+{
+}
+
 void UIScriptController::keyDownUsingHardwareKeyboard(JSStringRef, JSValueRef)
 {
 }
@@ -307,6 +315,14 @@ void UIScriptController::platformSetDidHideKeyboardCallback()
 void UIScriptController::platformClearAllCallbacks()
 {
 }
+#endif
+
+#if !PLATFORM(MAC)
+
+void UIScriptController::insertText(JSStringRef, int, int)
+{
+}
+
 #endif
 
 void UIScriptController::uiScriptComplete(JSStringRef result)

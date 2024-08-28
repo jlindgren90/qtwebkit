@@ -31,6 +31,7 @@
 
 namespace WebCore {
 
+class CSSCustomPropertyValue;
 class CachedResource;
 class StyleSheetContents;
 
@@ -79,7 +80,6 @@ public:
     bool isCrossfadeValue() const { return m_classType == CrossfadeClass; }
     bool isCursorImageValue() const { return m_classType == CursorImageClass; }
     bool isCustomPropertyValue() const { return m_classType == CustomPropertyClass; }
-    bool isInvalidCustomPropertyValue() const;
     bool isVariableDependentValue() const { return m_classType == VariableDependentClass; }
     bool isVariableValue() const { return m_classType == VariableClass; }
     bool isFunctionValue() const { return m_classType == FunctionClass; }
@@ -130,6 +130,8 @@ public:
     bool isCustomIdentValue() const { return m_classType == CustomIdentClass; }
     bool isVariableReferenceValue() const { return m_classType == VariableReferenceClass; }
     bool isPendingSubstitutionValue() const { return m_classType == PendingSubstitutionValueClass; }
+    
+    bool hasVariableReferences() const { return isVariableDependentValue() || isVariableReferenceValue() || isPendingSubstitutionValue(); }
 
     bool isCSSOMSafe() const { return m_isCSSOMSafe; }
     bool isSubtypeExposedToCSSOM() const
@@ -301,7 +303,7 @@ inline bool compareCSSValue(const Ref<CSSValueType>& first, const Ref<CSSValueTy
     return first.get().equals(second);
 }
 
-typedef HashMap<AtomicString, RefPtr<CSSValue>> CustomPropertyValueMap;
+typedef HashMap<AtomicString, RefPtr<CSSCustomPropertyValue>> CustomPropertyValueMap;
 
 } // namespace WebCore
 

@@ -56,18 +56,14 @@ MockMediaEndpoint::MockMediaEndpoint(MediaEndpointClient& client)
     , m_iceTransportTimer(*this, &MockMediaEndpoint::iceTransportTimerFired)
     , m_unmuteTimer(*this, &MockMediaEndpoint::unmuteTimerFired)
 {
+    callOnMainThread([this]() {
+        m_client.gotDtlsFingerprint(String(fingerprint), String(fingerprintFunction));
+    });
 }
 
 MockMediaEndpoint::~MockMediaEndpoint()
 {
     stop();
-}
-
-void MockMediaEndpoint::generateDtlsInfo()
-{
-    callOnMainThread([this]() {
-        m_client.gotDtlsFingerprint(String(fingerprint), String(fingerprintFunction));
-    });
 }
 
 MediaPayloadVector MockMediaEndpoint::getDefaultAudioPayloads()
@@ -225,8 +221,8 @@ void MockMediaEndpoint::emulatePlatformEvent(const String& action)
 void MockMediaEndpoint::updateConfigurationMids(const MediaEndpointSessionConfiguration& configuration)
 {
     Vector<String> mids;
-    for (const RefPtr<PeerMediaDescription>& mediaDescription : configuration.mediaDescriptions())
-        mids.append(mediaDescription->mid());
+    for (auto& mediaDescription : configuration.mediaDescriptions())
+        mids.append(mediaDescription.mid);
     m_mids.swap(mids);
 }
 

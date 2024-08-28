@@ -120,19 +120,10 @@ void Gradient::fill(GraphicsContext* context, const FloatRect& rect)
     if (!m_cachedHash || !m_gradient)
         generateGradient(d2dContext);
 
-    if (!context->didBeginDraw())
-        d2dContext->BeginDraw();
-
     d2dContext->SetTags(GRADIENT_DRAWING, __LINE__);
 
     const D2D1_RECT_F d2dRect = rect;
     d2dContext->FillRectangle(&d2dRect, m_gradient);
-
-    if (!context->didBeginDraw()) {
-        D2D1_TAG first, second;
-        HRESULT hr = d2dContext->EndDraw(&first, &second);
-        RELEASE_ASSERT(SUCCEEDED(hr));
-    }
 
     if (needScaling)
         context->restore();

@@ -527,8 +527,8 @@ public:
 
     const PseudoStyleCache* cachedPseudoStyles() const { return m_cachedPseudoStyles.get(); }
 
-    void setCustomPropertyValue(const AtomicString& name, const RefPtr<CSSValue>& value) { rareInheritedData.access()->m_customProperties.access()->setCustomPropertyValue(name, value); }
-    RefPtr<CSSValue> getCustomPropertyValue(const AtomicString& name) const { return rareInheritedData->m_customProperties->getCustomPropertyValue(name); }
+    void setCustomPropertyValue(const AtomicString& name, const RefPtr<CSSCustomPropertyValue>& value) { rareInheritedData.access()->m_customProperties.access()->setCustomPropertyValue(name, value); }
+    RefPtr<CSSCustomPropertyValue> getCustomPropertyValue(const AtomicString& name) const { return rareInheritedData->m_customProperties->getCustomPropertyValue(name); }
     bool hasCustomProperty(const AtomicString& name) const { return rareInheritedData->m_customProperties->hasCustomProperty(name); }
     const CustomPropertyValueMap& customProperties() const { return rareInheritedData->m_customProperties->m_values; }
 
@@ -907,7 +907,7 @@ public:
     void getTextShadowBlockDirectionExtent(LayoutUnit& logicalTop, LayoutUnit& logicalBottom) const { getShadowBlockDirectionExtent(textShadow(), logicalTop, logicalBottom); }
 
     float textStrokeWidth() const { return rareInheritedData->textStrokeWidth; }
-    float opacity() const { return rareNonInheritedData->opacity; }
+    float opacity() const { return rareNonInheritedData->m_opacity; }
     ControlPart appearance() const { return static_cast<ControlPart>(rareNonInheritedData->m_appearance); }
     AspectRatioType aspectRatioType() const { return static_cast<AspectRatioType>(rareNonInheritedData->m_aspectRatioType); }
     float aspectRatio() const { return aspectRatioNumerator() / aspectRatioDenominator(); }
@@ -1120,9 +1120,6 @@ public:
     const LengthSize& pageSize() const { return rareNonInheritedData->m_pageSize; }
     PageSizeType pageSizeType() const { return static_cast<PageSizeType>(rareNonInheritedData->m_pageSizeType); }
     
-    // When set, this ensures that styles compare as different. Used during accelerated animations.
-    bool isRunningAcceleratedAnimation() const { return rareNonInheritedData->m_runningAcceleratedAnimation; }
-
     LineBoxContain lineBoxContain() const { return rareInheritedData->m_lineBoxContain; }
     const LineClampValue& lineClamp() const { return rareNonInheritedData->lineClamp; }
     const IntSize& initialLetter() const { return rareNonInheritedData->m_initialLetter; }
@@ -1514,7 +1511,7 @@ public:
     void setTextStrokeColor(const Color& c) { SET_VAR(rareInheritedData, textStrokeColor, c); }
     void setTextStrokeWidth(float w) { SET_VAR(rareInheritedData, textStrokeWidth, w); }
     void setTextFillColor(const Color& c) { SET_VAR(rareInheritedData, textFillColor, c); }
-    void setOpacity(float f) { float v = clampTo<float>(f, 0, 1); SET_VAR(rareNonInheritedData, opacity, v); }
+    void setOpacity(float f) { float v = clampTo<float>(f, 0, 1); SET_VAR(rareNonInheritedData, m_opacity, v); }
     void setAppearance(ControlPart a) { SET_VAR(rareNonInheritedData, m_appearance, a); }
     // For valid values of box-align see http://www.w3.org/TR/2009/WD-css3-flexbox-20090723/#alignment
     void setBoxAlign(EBoxAlignment a) { SET_NESTED_VAR(rareNonInheritedData, m_deprecatedFlexibleBox, align, a); }
@@ -1693,8 +1690,6 @@ public:
     void setPageSize(LengthSize size) { SET_VAR(rareNonInheritedData, m_pageSize, WTFMove(size)); }
     void setPageSizeType(PageSizeType t) { SET_VAR(rareNonInheritedData, m_pageSizeType, t); }
     void resetPageSizeType() { SET_VAR(rareNonInheritedData, m_pageSizeType, PAGE_SIZE_AUTO); }
-
-    void setIsRunningAcceleratedAnimation(bool b = true) { SET_VAR(rareNonInheritedData, m_runningAcceleratedAnimation, b); }
 
     void setLineBoxContain(LineBoxContain c) { SET_VAR(rareInheritedData, m_lineBoxContain, c); }
     void setLineClamp(LineClampValue c) { SET_VAR(rareNonInheritedData, lineClamp, c); }

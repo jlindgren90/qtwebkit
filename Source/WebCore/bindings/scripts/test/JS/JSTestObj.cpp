@@ -22,10 +22,8 @@
 #include "JSTestObj.h"
 
 #include "CallbackFunction.h"
-#include "DOMStringList.h"
 #include "Dictionary.h"
 #include "Document.h"
-#include "Element.h"
 #include "EventNames.h"
 #include "ExceptionCode.h"
 #include "Frame.h"
@@ -56,8 +54,6 @@
 #include "JSTestSubObj.h"
 #include "JSXPathNSResolver.h"
 #include "RuntimeEnabledFeatures.h"
-#include "SVGDocument.h"
-#include "SVGPoint.h"
 #include "SVGStaticPropertyTearOff.h"
 #include "SerializedScriptValue.h"
 #include "Settings.h"
@@ -1811,12 +1807,12 @@ bool JSTestObj::getOwnPropertySlotByIndex(JSObject* object, ExecState* state, un
 
 template<> inline JSTestObj* BindingCaller<JSTestObj>::castForAttribute(ExecState&, EncodedJSValue thisValue)
 {
-    return jsDynamicCast<JSTestObj*>(JSValue::decode(thisValue));
+    return jsDynamicDowncast<JSTestObj*>(JSValue::decode(thisValue));
 }
 
 template<> inline JSTestObj* BindingCaller<JSTestObj>::castForOperation(ExecState& state)
 {
-    return jsDynamicCast<JSTestObj*>(state.thisValue());
+    return jsDynamicDowncast<JSTestObj*>(state.thisValue());
 }
 
 static inline JSValue jsTestObjReadOnlyLongAttrGetter(ExecState&, JSTestObj&, ThrowScope& throwScope);
@@ -2958,7 +2954,8 @@ static inline JSValue jsTestObjContentDocumentGetter(ExecState& state, JSTestObj
     UNUSED_PARAM(throwScope);
     UNUSED_PARAM(state);
     auto& impl = thisObject.wrapped();
-    return shouldAllowAccessToNode(&state, impl.contentDocument()) ? toJS(&state, thisObject.globalObject(), impl.contentDocument()) : jsNull();
+    JSValue result = toJS(&state, thisObject.globalObject(), BindingSecurity::checkSecurityForNode(state, impl.contentDocument()));
+    return result;
 }
 
 static inline JSValue jsTestObjMutablePointGetter(ExecState&, JSTestObj&, ThrowScope& throwScope);
@@ -3303,7 +3300,7 @@ EncodedJSValue jsTestObjConstructor(ExecState* state, EncodedJSValue thisValue, 
 {
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
-    JSTestObjPrototype* domObject = jsDynamicCast<JSTestObjPrototype*>(JSValue::decode(thisValue));
+    JSTestObjPrototype* domObject = jsDynamicDowncast<JSTestObjPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject))
         return throwVMTypeError(state, throwScope);
     return JSValue::encode(JSTestObj::getConstructor(state->vm(), domObject->globalObject()));
@@ -3314,7 +3311,7 @@ bool setJSTestObjConstructor(ExecState* state, EncodedJSValue thisValue, Encoded
     VM& vm = state->vm();
     auto throwScope = DECLARE_THROW_SCOPE(vm);
     JSValue value = JSValue::decode(encodedValue);
-    JSTestObjPrototype* domObject = jsDynamicCast<JSTestObjPrototype*>(JSValue::decode(thisValue));
+    JSTestObjPrototype* domObject = jsDynamicDowncast<JSTestObjPrototype*>(JSValue::decode(thisValue));
     if (UNLIKELY(!domObject)) {
         throwVMTypeError(state, throwScope);
         return false;
@@ -7582,9 +7579,7 @@ static inline JSC::EncodedJSValue jsTestObjPrototypeFunctionGetSVGDocumentCaller
     UNUSED_PARAM(throwScope);
     auto& impl = castedThis->wrapped();
     ExceptionCode ec = 0;
-    if (!shouldAllowAccessToNode(state, impl.getSVGDocument(ec)))
-        return JSValue::encode(jsNull());
-    JSValue result = toJS(state, castedThis->globalObject(), impl.getSVGDocument(ec));
+    JSValue result = toJS(state, castedThis->globalObject(), BindingSecurity::checkSecurityForNode(*state, impl.getSVGDocument(ec)));
 
     setDOMException(state, throwScope, ec);
     return JSValue::encode(result);
@@ -8357,7 +8352,7 @@ JSC::JSValue toJS(JSC::ExecState* state, JSDOMGlobalObject* globalObject, TestOb
 
 TestObj* JSTestObj::toWrapped(JSC::JSValue value)
 {
-    if (auto* wrapper = jsDynamicCast<JSTestObj*>(value))
+    if (auto* wrapper = jsDynamicDowncast<JSTestObj*>(value))
         return &wrapper->wrapped();
     return nullptr;
 }

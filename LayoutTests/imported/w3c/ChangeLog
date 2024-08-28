@@ -1,3 +1,94 @@
+2016-10-28  Darin Adler  <darin@apple.com>
+
+        Move all classes in the HTML directory from ExceptionCode to Exception
+        https://bugs.webkit.org/show_bug.cgi?id=163876
+
+        Reviewed by Sam Weinig.
+
+        * web-platform-tests/url/url-setters-expected.txt: Updated for progressions that occurred
+        because setting the href attribute on a DOMURL object no longer modifies the URL as a side
+        effect in the cases where it throw an exception.
+
+2016-10-28  Alex Christensen  <achristensen@webkit.org>
+
+        Partially revert 207805 after resolution in URL spec issue 87
+        https://bugs.webkit.org/show_bug.cgi?id=164142
+
+        Reviewed by Andy Estes.
+
+        * web-platform-tests/url/a-element-expected.txt:
+        * web-platform-tests/url/a-element-xhtml-expected.txt:
+        * web-platform-tests/url/url-constructor-expected.txt:
+
+2016-10-28  Youenn Fablet  <youenn@apple.com>
+
+        Expose RTCPeerConnection unprefixed
+        https://bugs.webkit.org/show_bug.cgi?id=164060
+
+        Reviewed by Darin Adler.
+
+        * web-platform-tests/webrtc/datachannel-emptystring-expected.txt: Added.
+        * web-platform-tests/webrtc/no-media-call-expected.txt: Added.
+        * web-platform-tests/webrtc/promises-call-expected.txt: Added.
+        * web-platform-tests/webrtc/rtcpeerconnection/rtcpeerconnection-constructor-expected.txt: Added.
+        * web-platform-tests/webrtc/rtcpeerconnection/rtcpeerconnection-idl-expected.txt: Added.
+        * web-platform-tests/webrtc/simplecall-expected.txt: Added.
+
+2016-10-28  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch] Ensure redirection count is no more than 20 in case of cross origin requests
+        https://bugs.webkit.org/show_bug.cgi?id=164117
+
+        Reviewed by Sam Weinig.
+
+        Adding new tests.
+        Split redirect.py in two different scripts.
+        redirect.py is to be used when simple redirections are needed.
+        redirect-count.py is to be used when the number of redirections is tested.
+
+        redirect.py no longer needs the count parameter.
+        This explains rebasing of the existing tests.
+
+        * web-platform-tests/fetch/api/basic/mode-same-origin-expected.txt:
+        * web-platform-tests/fetch/api/basic/mode-same-origin-worker-expected.txt:
+        * web-platform-tests/fetch/api/cors/cors-redirect-credentials-expected.txt:
+        * web-platform-tests/fetch/api/cors/cors-redirect-credentials-worker-expected.txt:
+        * web-platform-tests/fetch/api/redirect/redirect-count-cross-origin-expected.txt: Added.
+        * web-platform-tests/fetch/api/redirect/redirect-count-cross-origin-worker-expected.txt: Added.
+        * web-platform-tests/fetch/api/redirect/redirect-count-cross-origin-worker.html: Added.
+        * web-platform-tests/fetch/api/redirect/redirect-count-cross-origin.html: Added.
+        * web-platform-tests/fetch/api/redirect/redirect-count-cross-origin.js: Added.
+        (redirectCount):
+        * web-platform-tests/fetch/api/redirect/redirect-count-expected.txt:
+        * web-platform-tests/fetch/api/redirect/redirect-count-worker-expected.txt:
+        * web-platform-tests/fetch/api/redirect/redirect-count.js:
+        (redirectCount):
+        * web-platform-tests/fetch/api/request/request-cache-only-if-cached-expected.txt:
+        * web-platform-tests/fetch/api/resources/redirect-count.py: Copied from LayoutTests/imported/w3c/web-platform-tests/fetch/api/resources/redirect.py.
+        (main):
+        * web-platform-tests/fetch/api/resources/redirect.py:
+        (main):
+
+2016-10-27  Youenn Fablet  <youenn@apple.com>
+
+        [Fetch API] Fetch ReadableStream should only clone the second branch
+        https://bugs.webkit.org/show_bug.cgi?id=164058
+
+        Reviewed by Darin Adler.
+
+        * web-platform-tests/fetch/api/response/response-clone-expected.txt:
+
+2016-10-27  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Include ConsoleAgent in Workers - real console.log support
+        https://bugs.webkit.org/show_bug.cgi?id=163844
+        <rdar://problem/28903328>
+
+        Reviewed by Brian Burg.
+
+        * web-platform-tests/fetch/api/policies/csp-blocked-worker-expected.txt:
+        * web-platform-tests/streams/readable-streams/garbage-collection.https-expected.txt:
+
 2016-10-27  Chris Dumez  <cdumez@apple.com>
 
         testharnessreport.js should sanitize the results before printing them

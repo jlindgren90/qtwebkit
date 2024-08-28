@@ -914,7 +914,6 @@ set(WebCore_SOURCES
     Modules/mediastream/RTCDataChannelEvent.cpp
     Modules/mediastream/RTCIceCandidate.cpp
     Modules/mediastream/RTCIceCandidateEvent.cpp
-    Modules/mediastream/RTCOfferAnswerOptions.cpp
     Modules/mediastream/RTCPeerConnection.cpp
     Modules/mediastream/RTCRtpReceiver.cpp
     Modules/mediastream/RTCRtpSender.cpp
@@ -1271,6 +1270,7 @@ set(WebCore_SOURCES
     css/CSSCrossfadeValue.cpp
     css/CSSCursorImageValue.cpp
     css/CSSCustomIdentValue.cpp
+    css/CSSCustomPropertyValue.cpp
     css/CSSDefaultStyleSheets.cpp
     css/CSSFilterImageValue.cpp
     css/FontFaceSet.cpp
@@ -1544,6 +1544,8 @@ set(WebCore_SOURCES
     dom/default/PlatformMessagePortChannel.cpp
 
     domjit/DOMJITAbstractHeapRepository.cpp
+    domjit/DOMJITHelpers.cpp
+    domjit/JSDocumentDOMJIT.cpp
     domjit/JSNodeDOMJIT.cpp
 
     editing/AlternativeTextController.cpp
@@ -1893,6 +1895,7 @@ set(WebCore_SOURCES
     inspector/InspectorPageAgent.cpp
     inspector/InspectorStyleSheet.cpp
     inspector/InspectorTimelineAgent.cpp
+    inspector/InspectorWorkerAgent.cpp
     inspector/InstrumentingAgents.cpp
     inspector/NetworkResourcesData.cpp
     inspector/PageConsoleAgent.cpp
@@ -1905,6 +1908,10 @@ set(WebCore_SOURCES
     inspector/WebDebuggerAgent.cpp
     inspector/WebInjectedScriptHost.cpp
     inspector/WebInjectedScriptManager.cpp
+    inspector/WorkerConsoleAgent.cpp
+    inspector/WorkerInspectorController.cpp
+    inspector/WorkerRuntimeAgent.cpp
+    inspector/WorkerScriptDebugServer.cpp
 
     loader/ContentFilter.cpp
     loader/CookieJar.cpp
@@ -2847,6 +2854,7 @@ set(WebCore_SOURCES
     workers/WorkerConsoleClient.cpp
     workers/WorkerEventQueue.cpp
     workers/WorkerGlobalScope.cpp
+    workers/WorkerInspectorProxy.cpp
     workers/WorkerLocation.cpp
     workers/WorkerMessagingProxy.cpp
     workers/WorkerRunLoop.cpp
@@ -3252,6 +3260,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/common/utilities.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/common/tls.cpp
 
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/AddAndTrueToLoopCondition.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ArrayReturnValueToOutParameter.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ASTMetadataHLSL.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/blocklayout.cpp
@@ -3263,9 +3272,11 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/CallDAG.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/CodeGen.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/Compiler.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ConstantUnion.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/DeferGlobalInitializers.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/Diagnostics.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/DirectiveHandler.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/EmulateGLFragColorBroadcast.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/EmulatePrecision.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ExtensionGLSL.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/glslang_lex.cpp
@@ -3290,6 +3301,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ParseContext.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/PoolAlloc.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/PruneEmptyDeclarations.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/QualifierTypes.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RecordConstantPrecision.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RegenerateStructNames.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RemoveDynamicIndexing.cpp
@@ -3297,6 +3309,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RemoveSwitchFallThrough.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RewriteDoWhile.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RewriteElseBlocks.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/RewriteTexelFetchOffset.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ScalarizeVecAndMatConstructorArgs.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/SearchSymbol.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/SeparateArrayInitialization.cpp
@@ -3313,6 +3326,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/UnfoldShortCircuitAST.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/UnfoldShortCircuitToIf.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/UniformHLSL.cpp
+        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/UseInterfaceBlockFields.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/util.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/UtilsHLSL.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/ValidateGlobalInitializer.cpp
@@ -3323,11 +3337,6 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/VariableInfo.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/VariablePacker.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/VersionGLSL.cpp
-
-        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/depgraph/DependencyGraph.cpp
-        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/depgraph/DependencyGraphBuilder.cpp
-        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/depgraph/DependencyGraphOutput.cpp
-        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/depgraph/DependencyGraphTraverse.cpp
 
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/preprocessor/DiagnosticsBase.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/preprocessor/DirectiveHandlerBase.cpp
@@ -3340,9 +3349,6 @@ if (ENABLE_GRAPHICS_CONTEXT_3D)
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/preprocessor/Preprocessor.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/preprocessor/Token.cpp
         ${THIRDPARTY_DIR}/ANGLE/src/compiler/preprocessor/Tokenizer.cpp
-
-        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/timing/RestrictFragmentShaderTiming.cpp
-        ${THIRDPARTY_DIR}/ANGLE/src/compiler/translator/timing/RestrictVertexShaderTiming.cpp
 
         ${THIRDPARTY_DIR}/ANGLE/src/libANGLE/Platform.cpp
 
@@ -3878,6 +3884,7 @@ if (ENABLE_GRAPHICS_CONTEXT_3D AND NOT ${PORT} STREQUAL "Win")
     target_include_directories(ANGLESupport PRIVATE
         "${THIRDPARTY_DIR}/ANGLE/include"
         "${THIRDPARTY_DIR}/ANGLE/src"
+        "${THIRDPARTY_DIR}/ANGLE/src/common/third_party/numerics"
     )
     list(APPEND WebCore_LIBRARIES ANGLESupport)
     WEBKIT_SET_EXTRA_COMPILER_FLAGS(ANGLESupport IGNORECXX_WARNINGS)
