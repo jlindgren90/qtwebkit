@@ -1,3 +1,103 @@
+2016-10-27  Chris Dumez  <cdumez@apple.com>
+
+        Element parameter to CanvasRenderingContext2D.drawFocusIfNeeded() should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=164062
+
+        Reviewed by Darin Adler.
+
+        Add layout test coverage.
+
+        * fast/canvas/draw-focus-if-needed-null-element-expected.txt: Added.
+        * fast/canvas/draw-focus-if-needed-null-element.html: Added.
+
+2016-10-27  Chris Dumez  <cdumez@apple.com>
+
+        testharnessreport.js should sanitize the results before printing them
+        https://bugs.webkit.org/show_bug.cgi?id=164064
+
+        Reviewed by Youenn Fablet.
+
+        testharnessreport.js should sanitize the results before printing them. We
+        currently have 3 copies of this script and only 1 does the sanitization.
+        Short term, let do the sanitization in all of them. Longer term, we should
+        merge these and have a way to keep them in sync.
+
+        * fast/media/w3c/test_media_queries-expected.txt:
+        * fetch/fetch-url-serialization-expected.txt:
+        * http/tests/w3c/resources/testharnessreport.js:
+        (add_completion_callback.sanitize):
+        (add_completion_callback):
+        * resources/testharnessreport.js:
+        (self.testRunner.add_completion_callback.):
+        (self.testRunner.add_completion_callback):
+
+2016-10-27  Xabier Rodriguez Calvar  <calvaris@igalia.com>
+
+        Unreviewed fix of GTK and EFL test bots.
+
+        * platform/efl/TestExpectations:
+        * platform/gtk/TestExpectations: Skip media-source tests
+
+2016-10-27  Youenn Fablet  <youenn@apple.com>
+
+        REGRESSION(r207753-207755): ASSERTION FAILED: m_parsedStyleSheetCache->isInMemoryCache()
+        https://bugs.webkit.org/show_bug.cgi?id=163905
+
+        Reviewed by Antti Koivisto.
+
+        * http/tests/security/cached-cross-origin-shared-css-stylesheet-expected.txt: Added.
+        * http/tests/security/cached-cross-origin-shared-css-stylesheet.html: Added.
+
+2016-10-26  Youenn Fablet  <youennf@gmail.com>
+
+        Refresh WPT tests up to 0acd8f6
+        https://bugs.webkit.org/show_bug.cgi?id=164009
+
+        Reviewed by Darin Adler.
+
+        * TestExpectations: Skipping webrtc tests for now.
+        * tests-options.json:
+
+2016-10-26  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Add support for having string enumerations in their own IDL file
+        https://bugs.webkit.org/show_bug.cgi?id=164025
+
+        Reviewed by Darin Adler.
+
+        Rebaseline existign tests as the exception messages differ slightly.
+
+        * storage/indexeddb/exceptions-expected.txt:
+        * storage/indexeddb/exceptions-private-expected.txt:
+        * storage/indexeddb/modern/idbdatabase-transaction-failures-expected.txt:
+        * storage/indexeddb/modern/idbdatabase-transaction-failures-private-expected.txt:
+        * storage/indexeddb/transaction-basics-expected.txt:
+        * storage/indexeddb/transaction-basics-private-expected.txt:
+
+2016-10-26  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Implement Node::ownerDocument
+        https://bugs.webkit.org/show_bug.cgi?id=164004
+
+        Reviewed by Darin Adler.
+
+        * js/dom/domjit-accessor-owner-document-expected.txt: Added.
+        * js/dom/domjit-accessor-owner-document.html: Added.
+
+2016-10-26  Chris Dumez  <cdumez@apple.com>
+
+        Replace IDBKeyPath with a WTF::Variant
+        https://bugs.webkit.org/show_bug.cgi?id=163909
+
+        Reviewed by Darin Adler.
+
+        Rebaseline a few tests now that IDBIndex.keyPath / IDBObjectStore.keyPath
+        no longer incorrectly return DOMStringList objects and return regular
+        arrays instead.
+
+        * storage/indexeddb/modern/idbindex-properties-basic-expected.txt:
+        * storage/indexeddb/modern/idbindex-properties-basic-private-expected.txt:
+
 2016-10-26  Zalan Bujtas  <zalan@apple.com>
 
         Ignore out-of-flow siblings when searching for a spanner candidate.

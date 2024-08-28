@@ -35,6 +35,7 @@
 #include "IDBConnectionToServer.h"
 #include "IDBDatabaseInfo.h"
 #include "IDBKeyPath.h"
+#include "IDBTransactionMode.h"
 
 namespace WebCore {
 
@@ -57,14 +58,14 @@ public:
     RefPtr<DOMStringList> objectStoreNames() const;
 
     struct ObjectStoreParameters {
-        Optional<IDBKeyPathVariant> keyPath;
+        Optional<IDBKeyPath> keyPath;
         bool autoIncrement;
     };
 
     ExceptionOr<Ref<IDBObjectStore>> createObjectStore(const String& name, ObjectStoreParameters&&);
 
     using StringOrVectorOfStrings = WTF::Variant<String, Vector<String>>;
-    ExceptionOr<Ref<IDBTransaction>> transaction(StringOrVectorOfStrings&& storeNames, const String& mode);
+    ExceptionOr<Ref<IDBTransaction>> transaction(StringOrVectorOfStrings&& storeNames, IDBTransactionMode);
     ExceptionOr<void> deleteObjectStore(const String& name);
     void close();
 

@@ -33,7 +33,4 @@
     [TreatNullAs=EmptyString, SetterMayThrowLegacyException] attribute DOMString innerHTML;
 };
 
-// "user-agent" is a WebKit extension that is not exposed to the Web.
-enum ShadowRootMode { "user-agent", "closed", "open" };
-
 ShadowRoot implements DocumentOrShadowRoot;
