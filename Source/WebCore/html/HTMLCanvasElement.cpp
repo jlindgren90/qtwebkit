@@ -232,7 +232,7 @@ CanvasRenderingContext* HTMLCanvasElement::getContext(const String& type, Canvas
                 return nullptr;
             }
 
-            m_context = std::make_unique<CanvasRenderingContext2D>(this, document().inQuirksMode(), usesDashboardCompatibilityMode);
+            m_context = std::make_unique<CanvasRenderingContext2D>(*this, document().inQuirksMode(), usesDashboardCompatibilityMode);
 
             downcast<CanvasRenderingContext2D>(*m_context).setUsesDisplayListDrawing(m_usesDisplayListDrawing);
             downcast<CanvasRenderingContext2D>(*m_context).setTracksDisplayListReplay(m_tracksDisplayListReplay);
@@ -326,10 +326,8 @@ void HTMLCanvasElement::reset()
         m_contextStateSaver->save();
     }
 
-    if (m_context && m_context->is2d()) {
-        CanvasRenderingContext2D* context2D = static_cast<CanvasRenderingContext2D*>(m_context.get());
-        context2D->reset();
-    }
+    if (is<CanvasRenderingContext2D>(m_context.get()))
+        downcast<CanvasRenderingContext2D>(*m_context).reset();
 
     IntSize oldSize = size();
     IntSize newSize(w, h);
@@ -581,7 +579,7 @@ void HTMLCanvasElement::setUsesDisplayListDrawing(bool usesDisplayListDrawing)
     
     m_usesDisplayListDrawing = usesDisplayListDrawing;
 
-    if (m_context && is<CanvasRenderingContext2D>(*m_context))
+    if (is<CanvasRenderingContext2D>(m_context.get()))
         downcast<CanvasRenderingContext2D>(*m_context).setUsesDisplayListDrawing(m_usesDisplayListDrawing);
 }
 
@@ -592,13 +590,13 @@ void HTMLCanvasElement::setTracksDisplayListReplay(bool tracksDisplayListReplay)
 
     m_tracksDisplayListReplay = tracksDisplayListReplay;
 
-    if (m_context && is<CanvasRenderingContext2D>(*m_context))
+    if (is<CanvasRenderingContext2D>(m_context.get()))
         downcast<CanvasRenderingContext2D>(*m_context).setTracksDisplayListReplay(m_tracksDisplayListReplay);
 }
 
 String HTMLCanvasElement::displayListAsText(DisplayList::AsTextFlags flags) const
 {
-    if (m_context && is<CanvasRenderingContext2D>(*m_context))
+    if (is<CanvasRenderingContext2D>(m_context.get()))
         return downcast<CanvasRenderingContext2D>(*m_context).displayListAsText(flags);
 
     return String();
@@ -606,7 +604,7 @@ String HTMLCanvasElement::displayListAsText(DisplayList::AsTextFlags flags) cons
 
 String HTMLCanvasElement::replayDisplayListAsText(DisplayList::AsTextFlags flags) const
 {
-    if (m_context && is<CanvasRenderingContext2D>(*m_context))
+    if (is<CanvasRenderingContext2D>(m_context.get()))
         return downcast<CanvasRenderingContext2D>(*m_context).replayDisplayListAsText(flags);
 
     return String();
@@ -727,10 +725,9 @@ void HTMLCanvasElement::clearImageBuffer() const
 
     m_didClearImageBuffer = true;
 
-    if (m_context->is2d()) {
-        CanvasRenderingContext2D* context2D = static_cast<CanvasRenderingContext2D*>(m_context.get());
+    if (is<CanvasRenderingContext2D>(*m_context)) {
         // No need to undo transforms/clip/etc. because we are called right after the context is reset.
-        context2D->clearRect(0, 0, width(), height());
+        downcast<CanvasRenderingContext2D>(*m_context).clearRect(0, 0, width(), height());
     }
 }
 

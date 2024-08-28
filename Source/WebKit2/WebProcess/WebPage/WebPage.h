@@ -941,7 +941,6 @@ public:
     void setMainFrameProgressCompleted(bool completed) { m_mainFrameProgressCompleted = completed; }
     bool shouldDispatchFakeMouseMoveEvents() const { return m_shouldDispatchFakeMouseMoveEvents; }
 
-    void setPageActivityState(WebCore::PageActivityState::Flags);
     void setPageSuppressed(bool);
 
     void postMessage(const String& messageName, API::Object* messageBody);
@@ -989,6 +988,8 @@ public:
 
 private:
     WebPage(uint64_t pageID, const WebPageCreationParameters&);
+
+    void updateUserActivity();
 
     // IPC::MessageSender
     IPC::Connection* messageSenderConnection() override;
@@ -1196,6 +1197,7 @@ private:
     void userMediaAccessWasDenied(uint64_t userMediaID, uint64_t reason, String invalidConstraint);
 
     void didCompleteMediaDeviceEnumeration(uint64_t userMediaID, const Vector<WebCore::CaptureDevice>& devices, const String& deviceIdentifierHashSalt, bool originHasPersistentAccess);
+    void grantUserMediaDevicesSandboxExtension(const SandboxExtension::HandleArray&);
 #endif
 
     void advanceToNextMisspelling(bool startBeforeSelection);
@@ -1522,6 +1524,7 @@ private:
     WebCore::ViewState::Flags m_viewState;
 
     UserActivity m_userActivity;
+    WebCore::HysteresisActivity m_userActivityHysteresis;
 
     uint64_t m_pendingNavigationID;
 

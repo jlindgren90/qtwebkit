@@ -1166,6 +1166,8 @@ public:
         
     WeakPtr<WebPageProxy> createWeakPtr() const { return m_weakPtrFactory.createWeakPtr(); }
 
+    void isLoadingChanged() { updateThrottleState(); }
+
     void setURLSchemeHandlerForScheme(Ref<WebURLSchemeHandler>&&, const String& scheme);
     WebURLSchemeHandler* urlSchemeHandlerForScheme(const String& scheme);
 
@@ -1568,7 +1570,6 @@ private:
     void dispatchViewStateChange();
     void viewDidLeaveWindow();
     void viewDidEnterWindow();
-    void setPageActivityState(WebCore::PageActivityState::Flags);
 
 #if PLATFORM(MAC)
     void didPerformImmediateActionHitTest(const WebHitTestResultData&, bool contentPreventsDefault, const UserData&);
@@ -1767,7 +1768,6 @@ private:
     WebCore::PolicyAction m_syncNavigationActionPolicyAction;
     DownloadID m_syncNavigationActionPolicyDownloadID;
     bool m_shouldSuppressAppLinksInNextNavigationPolicyDecision { false };
-    WebCore::PageActivityState::Flags m_activityState { WebCore::PageActivityState::NoFlags };
     bool m_pageSuppressed { false };
 
 #if ENABLE(QT_GESTURE_EVENTS)

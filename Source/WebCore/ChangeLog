@@ -1,3 +1,1152 @@
+2016-10-22  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        ASSERTION FAILED: m_fonts in &WebCore::FontCascade::primaryFont
+        https://bugs.webkit.org/show_bug.cgi?id=163459
+
+        Reviewed by Darin Adler.
+
+        The CSS Units and Values spec states that font-relative units, when used
+        in the font-size property, are resolved against the parent element. When
+        calc() is specified, we were trying to resolve them against the current
+        element, which is impossible because of the circular dependency. Instead,
+        we should resolve against the parent style the same way as when calc() 
+        isn't specified.
+
+        Test: fast/text/font-size-calc.html
+
+        * css/StyleBuilderCustom.h:
+        (WebCore::StyleBuilderCustom::applyValueFontSize):
+
+2016-10-22  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Two types are distinguishable for overload resolution if at most one of the two includes a nullable type
+        https://bugs.webkit.org/show_bug.cgi?id=163791
+
+        Reviewed by Sam Weinig.
+
+        Update overload resolution in the bindings generator so that 2 nullable types
+        are no longer considered as distinguishable, as per Web IDL:
+        - https://heycam.github.io/webidl/#dfn-distinguishable
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AreTypesDistinguishableForOverloadResolution):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableNonDistinguishingParameter1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableNonDistinguishingParameter1Caller):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableNonDistinguishingParameter2):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableNonDistinguishingParameter2Caller):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableNonDistinguishingParameter):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-10-22  Chris Dumez  <cdumez@apple.com>
+
+        WebGLRenderingContextBase.texSubImage2D() should use a union instead of overloading
+        https://bugs.webkit.org/show_bug.cgi?id=163859
+
+        Reviewed by Darin Adler.
+
+        WebGLRenderingContextBase.texSubImage2D() should use a union instead of overloading:
+        - https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14
+
+        No new tests, no Web-exposed behavior change.
+
+        * html/canvas/WebGL2RenderingContext.cpp:
+        (WebCore::WebGL2RenderingContext::texSubImage2D):
+        * html/canvas/WebGL2RenderingContext.h:
+        * html/canvas/WebGLRenderingContext.cpp:
+        (WebCore::WebGLRenderingContext::texSubImage2D):
+        * html/canvas/WebGLRenderingContext.h:
+        * html/canvas/WebGLRenderingContextBase.h:
+        * html/canvas/WebGLRenderingContextBase.idl:
+
+2016-10-22  Dan Bernstein  <mitz@apple.com>
+
+        Dynamically-added backdrop filter to clip-path'd element with 3D transform renders incorrectly (without clip)
+        https://bugs.webkit.org/show_bug.cgi?id=163497
+
+        Reviewed by Simon Fraser.
+
+        Test: css3/filters/backdrop/dynamic-with-clip-path.html
+
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayerCA::ensureStructuralLayer): Added MaskLayerChanged to
+          structuralLayerChangeFlags to ensure that the mask layer is updated.
+
+2016-10-22  Simon Fraser  <simon.fraser@apple.com>
+
+        Backdrop filter doesn't show if removed then re-added
+        https://bugs.webkit.org/show_bug.cgi?id=163860
+
+        Reviewed by Dan Bernstein.
+
+        When a backdrop filter is removed the re-added, updateBackdropFiltersRect() never
+        runs the second time because m_backdropFiltersRect doesn't change. However, we need
+        to run that code to size and position the newly re-created backdrop layer, so run
+        it explicitly if we just created the backdrop layer. This is similar to how
+        updateContentsImage() calls updateContentsRects().
+
+        Test: css3/filters/backdrop/add-remove-add-backdrop-filter.html
+
+        * platform/graphics/ca/GraphicsLayerCA.cpp:
+        (WebCore::GraphicsLayerCA::setBackdropFilters):
+        (WebCore::GraphicsLayerCA::updateBackdropFilters):
+
+2016-10-22  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix repainting of slow repaint objects in WK1 when page scale is applied
+        https://bugs.webkit.org/show_bug.cgi?id=163854
+
+        Reviewed by Zalan Bujtas.
+        
+        RenderObject::repaintSlowRepaintObject() always set the repaint container to the RenderView
+        if it was null. This is before the call to clippedOverflowRectForRepaint(). If that function
+        is called with a null repaintContainer, it maps the rect up through the RenderView's transform
+        (which represents page scale), which is what we want here. Passing the RenderView itself
+        stops the transform from being applied, which led to the bug.
+        
+        WebKit2 doesn't suffer from this bug because containerForRepaint() always returns the
+        composited RenderView.
+
+        Test: fast/repaint/zoomed-fixed-background.html
+
+        * rendering/RenderObject.cpp:
+        (WebCore::RenderObject::repaintSlowRepaintObject):
+
+2016-10-22  Darin Adler  <darin@apple.com>
+
+        Move HTML canvas and tracks from ExceptionCode to Exception
+        https://bugs.webkit.org/show_bug.cgi?id=163853
+
+        Reviewed by Chris Dumez.
+
+        * WebCore.xcodeproj/project.pbxproj: Added CanvasPath.idl.
+
+        * bindings/js/JSWebGL2RenderingContextCustom.cpp: Tweaked a bit.
+
+        * bindings/js/JSWebGLRenderingContextBaseCustom.cpp:
+        (WebCore::JSWebGLRenderingContextBase::getExtension): Tweaked a bit.
+        (WebCore::JSWebGLRenderingContextBase::getFramebufferAttachmentParameter):
+        Removed unneeded exception handling.
+        (WebCore::JSWebGLRenderingContextBase::getParameter): Ditto.
+        (WebCore::JSWebGLRenderingContextBase::getProgramParameter): Ditto.
+        (WebCore::JSWebGLRenderingContextBase::getShaderParameter): Ditto.
+        (WebCore::JSWebGLRenderingContextBase::getSupportedExtensions): Use a
+        modern for loop.
+        (WebCore::JSWebGLRenderingContextBase::getUniform): Removed unneeded
+        exception handling.
+
+        * html/HTMLCanvasElement.cpp:
+        (WebCore::HTMLCanvasElement::getContext): Pass a reference.
+        (WebCore::HTMLCanvasElement::reset): Use is<CanvasRenderingContext2D>.
+        (WebCore::HTMLCanvasElement::setUsesDisplayListDrawing): Ditto.
+        (WebCore::HTMLCanvasElement::setTracksDisplayListReplay) Ditto.:
+        (WebCore::HTMLCanvasElement::displayListAsText): Ditto.
+        (WebCore::HTMLCanvasElement::replayDisplayListAsText): Ditto.
+        (WebCore::HTMLCanvasElement::clearImageBuffer): Ditto.
+
+        * html/canvas/CanvasGradient.cpp:
+        (WebCore::CanvasGradient::CanvasGradient): Streamlined.
+        (WebCore::CanvasGradient::addColorStop): Use ExceptionOr.
+        * html/canvas/CanvasGradient.h: Updated for above changes.
+        * html/canvas/CanvasGradient.idl: Use non-legacy exception.
+
+        * html/canvas/CanvasPath.cpp:
+        (WebCore::CanvasPath::arcTo): Use ExceptionOr.
+        (WebCore::CanvasPath::arc): Ditto.
+        (WebCore::CanvasPath::ellipse): Ditto.
+        * html/canvas/CanvasPath.h: Updated for above changes.
+        * html/canvas/CanvasPath.idl: Use non-legacy exceptions.
+
+        * html/canvas/CanvasPattern.cpp:
+        (WebCore::CanvasPattern::create): Use Ref&&.
+        (WebCore::CanvasPattern::CanvasPattern): Ditto.
+        (WebCore::CanvasPattern::parseRepetitionType): Return a boolean
+        instead of using an ExceptionCode.
+        * html/canvas/CanvasPattern.h: Updated for above changes.
+
+        * html/canvas/CanvasRenderingContext.cpp:
+        (CanvasRenderingContext::wouldTaintOrigin): Reordered function so
+        that it's safe to call it on an image element without a cached
+        image, or a cached image without an underlying image.
+
+        * html/canvas/CanvasRenderingContext2D.cpp:
+        (WebCore::CanvasRenderingContext2D::CanvasRenderingContext2D):
+        Take a reference.
+        (WebCore::CanvasRenderingContext2D::drawImage): Use ExceptionOr.
+        (WebCore::CanvasRenderingContext2D::drawImageFromRect): Ditto.
+        (WebCore::CanvasRenderingContext2D::createLinearGradient): Ditto.
+        (WebCore::CanvasRenderingContext2D::createRadialGradient): Ditto.
+        (WebCore::CanvasRenderingContext2D::createPattern): Ditto.
+        (WebCore::CanvasRenderingContext2D::createImageData): Ditto.
+        (WebCore::CanvasRenderingContext2D::getImageData): Ditto.
+        (WebCore::CanvasRenderingContext2D::webkitGetImageDataHD): Ditto.
+        (WebCore::CanvasRenderingContext2D::putImageData): Removed unneeded
+        ExceptionCode because this does not throw exceptions; the only one
+        was for non-finite numeric values but this is now handled by bindings.
+        (WebCore::CanvasRenderingContext2D::webkitPutImageDataHD): Ditto.
+        * html/canvas/CanvasRenderingContext2D.h: Updated for above.
+        * html/canvas/CanvasRenderingContext2D.idl: Use non-legacy exceptions
+        and removed exceptions entirely in other cases.
+
+        * html/canvas/OESVertexArrayObject.cpp:
+        (WebCore::OESVertexArrayObject::OESVertexArrayObject): Take a reference.
+        (WebCore::OESVertexArrayObject::~OESVertexArrayObject): Deleted.
+        (WebCore::OESVertexArrayObject::isVertexArrayOES): Use && instead of
+        multiple return statements.
+        (WebCore::OESVertexArrayObject::bindVertexArrayOES): Removed unneeded
+        ExceptionCode since this does not throw an exception.
+        * html/canvas/OESVertexArrayObject.h: Updated for above.
+        * html/canvas/OESVertexArrayObject.idl: Removed unneeded exception.
+
+        * html/canvas/WebGL2RenderingContext.cpp:
+        (WebCore::WebGL2RenderingContext::getFramebufferAttachmentParameter):
+        Removed unneeded ExceptionCode since this does not throw an exception.
+        (WebCore::WebGL2RenderingContext::texSubImage2DBase): Ditto.
+        (WebCore::WebGL2RenderingContext::texSubImage2DImpl): Ditto.
+        (WebCore::WebGL2RenderingContext::texSubImage2D): Removed unneeded
+        ExceptionCode for some overloads, for the others, use ExceptionOr
+        for the security exception. Moved security exception code here from
+        the validate functions.
+        (WebCore::WebGL2RenderingContext::validateTexFuncParameters): Removed
+        unneeded ExceptionCode.
+        (WebCore::WebGL2RenderingContext::getParameter): Ditto.
+        * html/canvas/WebGL2RenderingContext.h: Updated for above.
+
+        * html/canvas/WebGLRenderingContext.cpp:
+        (WebCore::WebGLRenderingContext::getExtension): Pass a reference.
+        (WebCore::WebGLRenderingContext::getFramebufferAttachmentParameter):
+        Remvoed unneeded ExceptionCode since this does not throw an exception.
+        (WebCore::WebGLRenderingContext::texSubImage2DBase): Ditto.
+        (WebCore::WebGLRenderingContext::texSubImage2DImpl): Ditto.
+        (WebCore::WebGLRenderingContext::texSubImage2D): Removed unneeded
+        ExceptionCode for some overloads, for the others, use ExceptionOr
+        for the security exception. Moved security exception code here from
+        the validate functions.
+        (WebCore::WebGLRenderingContext::getParameter): Removed unneeded
+        ExceptionCode.
+        * html/canvas/WebGLRenderingContext.h: Updated for above changes.
+
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::texImage2DBase):
+        Remvoed unneeded ExceptionCode since this does not throw an exception.
+        (WebCore::WebGLRenderingContextBase::texImage2DImpl): Ditto.
+        (WebCore::WebGLRenderingContextBase::texImage2D): Removed unneeded
+        ExceptionCode for some overloads, for the others, use ExceptionOr
+        for the security exception. Moved security exception code here from
+        the validate functions.
+        (WebCore::WebGLRenderingContextBase::validateHTMLImageElement):
+        Moved the security exception out of here to the call sites.
+        (WebCore::WebGLRenderingContextBase::validateHTMLCanvasElement): Ditto.
+        (WebCore::WebGLRenderingContextBase::validateHTMLVideoElement): Ditto.
+        * html/canvas/WebGLRenderingContextBase.h: Updated for above changes.
+        * html/canvas/WebGLRenderingContextBase.idl: Use non-legacy exceptions
+        in some cases and no exceptions at all in many others.
+
+        * html/shadow/MediaControlElements.cpp:
+        (WebCore::MediaControlTextTrackContainerElement::updateDisplay):
+        Use a reference instead of a pointer.
+
+        * html/track/DataCue.h: Use pragma once.
+        * html/track/DataCue.idl: Use non-legacy exception for constructor
+        attribute, even though it is custom and so it has no effect.
+
+        * html/track/InbandDataTextTrack.cpp:
+        (WebCore::InbandDataTextTrack::create): Use RefPtr&&.
+        (WebCore::InbandDataTextTrack::InbandDataTextTrack): Ditto.
+        (WebCore::InbandDataTextTrack::addDataCue): Stop using
+        ASSERT_NO_EXCEPTION.
+        (WebCore::InbandDataTextTrack::removeDataCue): Stop using
+        IGNORE_EXCEPTION.
+        (WebCore::InbandDataTextTrack::removeCue): Use ExceptionOr.
+        Also use remove instead of find/remove.
+        * html/track/InbandDataTextTrack.h: Updated for above changes.
+
+        * html/track/InbandGenericTextTrack.cpp:
+        (WebCore::GenericTextTrackCueMap::GenericTextTrackCueMap): Deleted.
+        (WebCore::GenericTextTrackCueMap::~GenericTextTrackCueMap): Deleted.
+        (WebCore::GenericTextTrackCueMap::add): Take references intead of
+        pointers.
+        (WebCore::GenericTextTrackCueMap::find): Ditto. Also use get
+        instead of find.
+        (WebCore::GenericTextTrackCueMap::remove): Ditto. Also use take
+        instead of double hashing to both find and remove.
+        (WebCore::InbandGenericTextTrack::updateCueFromCueData): Stop using
+        IGNORE_EXCEPTION. Also got rid of code that is converting a double
+        to a long and then back to a double by using lround. Instead just
+        use std::round, which keeps it a double. But also, why does this need
+        to round?!
+        (WebCore::InbandGenericTextTrack::addGenericCue): Updated to use
+        reference to work with m_cueMap.
+        (WebCore::InbandGenericTextTrack::updateGenericCue): Ditto.
+        (WebCore::InbandGenericTextTrack::removeGenericCue): Ditto.
+        (WebCore::InbandGenericTextTrack::removeCue): Use ExceptionOr.
+        (WebCore::InbandGenericTextTrack::newCuesParsed): Removed
+        ASSERT_NO_EXCEPTION.
+        * html/track/InbandGenericTextTrack.h: Updated for above changes.
+
+        * html/track/InbandWebVTTTextTrack.cpp:
+        (WebCore::InbandWebVTTTextTrack::newCuesParsed): Removed
+        ASSERT_NO_EXCEPTION.
+
+        * html/track/TextTrack.cpp:
+        (WebCore::TextTrack::addCue): Use ExcepctionOr.
+        (WebCore::TextTrack::removeCue): Ditto.
+        (WebCore::TextTrack::addRegion): Ditto.
+        (WebCore::TextTrack::removeRegion): Ditto.
+        * html/track/TextTrack.h: Updated for above changes.
+        * html/track/TextTrack.idl: Ditto.
+
+        * html/track/TextTrackCue.cpp:
+        (WebCore::TextTrackCue::cueShadowPseudoId): Moved this here
+        since it does not need to be inlined in the header.
+        (WebCore::TextTrackCue::~TextTrackCue): Deleted.
+        (WebCore::TextTrackCue::setStartTime): Removed ExceptionCode&
+        since the exceptions were for non-finite values, but this is
+        now handled by the bindings.
+        (WebCore::TextTrackCue::setEndTime): Ditto.
+        * html/track/TextTrackCue.h: Updated for the above.
+        * html/track/TextTrackCue.idl: Removed SetterMayThrowLegacyException
+        and made startTime and endTime be double rather than unrestricted double.
+
+        * html/track/TextTrackCueGeneric.cpp:
+        (WebCore::TextTrackCueGenericBoxElement::applyCSSProperties):
+        Use a reference instead of a pointer.
+        (WebCore::TextTrackCueGeneric::TextTrackCueGeneric): Initialize
+        m_defaultPosition in the class definition instead of here.
+        (WebCore::TextTrackCueGeneric::createDisplayTree): Return a Ref.
+        (WebCore::TextTrackCueGeneric::setLine): Use ExceptionOr.
+        (WebCore::TextTrackCueGeneric::setPosition): Ditto.
+        (WebCore::TextTrackCueGeneric::setFontSize): Updated since
+        displayTreeInternal() now returns a reference.
+        * html/track/TextTrackCueGeneric.h: Updated for above changes.
+        Also fixed some arguument types and made some more things private.
+
+        * html/track/VTTCue.cpp:
+        (WebCore::VTTCue::createDisplayTree): Return a Ref.
+        (WebCore::VTTCue::displayTreeInternal): Return a reference.
+        (WebCore::VTTCue::setVertical): Use ExceptionOr.
+        (WebCore::VTTCue::setLine): Ditto.
+        (WebCore::VTTCue::setPosition): Ditto.
+        (WebCore::VTTCue::setSize): Ditto.
+        (WebCore::VTTCue::setAlign): Ditto.
+        (WebCore::VTTCue::getDisplayTree): Return a reference.
+        (WebCore::VTTCue::removeDisplayTree): Updated since
+        displayTreeInternal returns a reference.
+        (WebCore::VTTCue::setFontSize): Ditto.
+        * html/track/VTTCue.h: Updated for the above.
+        * html/track/VTTCue.idl: Use non-legacy exceptions and also
+        restricted doubles.
+
+        * html/track/VTTRegion.cpp:
+        (WebCore::VTTRegion::VTTRegion): Moved default values all into
+        the class definition.
+        (WebCore::VTTRegion::setWidth): Removed the check for non-finite
+        since the bindings now handle that. Use ExcpetionOr.
+        (WebCore::VTTRegion::setHeight): Ditto.
+        (WebCore::VTTRegion::setRegionAnchorX): Ditto.
+        (WebCore::VTTRegion::setRegionAnchorY): Ditto.
+        (WebCore::VTTRegion::setViewportAnchorX): Ditto.
+        (WebCore::VTTRegion::setViewportAnchorY): Ditto.
+        (WebCore::upKeyword): Added. Shared by the code below.
+        (WebCore::VTTRegion::scroll): Rewrote to be simpler.
+        (WebCore::VTTRegion::setScroll): Rewrote to be simpler.
+        (WebCore::VTTRegion::updateParametersFromRegion): Read and
+        write data members directly to avoid awkward code that is otherwise
+        required just to copy from one object to the other. Also take a
+        const& instead of a pointer for the thing to update from.
+        (WebCore::VTTRegion::parseSettingValue): Use upKeyword.
+        (WebCore::VTTRegion::appendTextTrackCueBox): Take a Ref&&.
+        (WebCore::VTTRegion::getDisplayTree): Do the downcast to Document
+        here instead of using the helper function.
+        (WebCore::VTTRegion::prepareRegionDisplayTree): Ditto.
+        * html/track/VTTRegion.h: Updated for the above.
+        * html/track/VTTRegion.idl: Use non-legacy exceptions and also
+        use restricted dobules, not unrestricted.
+
+2016-10-22  Chris Dumez  <cdumez@apple.com>
+
+        WebGLRenderingContextBase.texImage2D() should use a union instead of overloading
+        https://bugs.webkit.org/show_bug.cgi?id=163856
+
+        Reviewed by Darin Adler.
+
+        WebGLRenderingContextBase.texImage2D() should use a union instead of overloading:
+        - https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14
+
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::texImage2D):
+        * html/canvas/WebGLRenderingContextBase.h:
+        * html/canvas/WebGLRenderingContextBase.idl:
+
+2016-10-22  Antti Koivisto  <antti@apple.com>
+
+        REGRESSION(r207669): Dromaeo/jslib-style-jquery.html regressed >20%
+        https://bugs.webkit.org/show_bug.cgi?id=163851
+
+        Reviewed by Darin Adler.
+
+        The test calls Scope::flushPendingUpdate a lot and nothing ever happens there.
+
+        Add a separate invalidity bit for descendant scopes and inline the fast path.
+
+        * style/StyleScope.cpp:
+        (WebCore::Style::Scope::flushPendingSelfUpdate):
+        (WebCore::Style::Scope::flushPendingDescendantUpdates):
+        (WebCore::Style::Scope::scheduleUpdate):
+        (WebCore::Style::Scope::flushPendingUpdate): Deleted.
+        * style/StyleScope.h:
+        (WebCore::Style::Scope::hasPendingUpdate):
+        (WebCore::Style::Scope::flushPendingUpdate):
+
+2016-10-22  Darin Adler  <darin@apple.com>
+
+        Move SVG from ExceptionCode to Exception
+        https://bugs.webkit.org/show_bug.cgi?id=163837
+
+        Reviewed by Chris Dumez.
+
+        * WebCore.xcodeproj/project.pbxproj: Added SVGGraphicsElement.idl.
+
+        * bindings/js/JSSVGLengthCustom.cpp:
+        (WebCore::JSSVGLength::value): Use toJSNumber.
+        (WebCore::JSSVGLength::setValue): Use propagateException.
+        (WebCore::JSSVGLength::convertToSpecifiedUnits): Ditto.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementation): Properly handle SetterMayThrowException
+        in the special case for SVG setters.
+
+        * rendering/style/SVGRenderStyle.h:
+        (WebCore::SVGRenderStyle::initialBaselineShiftValue): Removed
+        ASSERT_NO_EXCEPTION, no longer needed.
+        (WebCore::SVGRenderStyle::initialKerning): Ditto.
+
+        * svg/SVGAltGlyphElement.cpp:
+        (WebCore::SVGAltGlyphElement::setGlyphRef): Use ExceptionOr.
+        (WebCore::SVGAltGlyphElement::setFormat): Ditto.
+        (WebCore::SVGAltGlyphElement::hasValidGlyphElements): Tweaked a bit.
+        * svg/SVGAltGlyphElement.h: Updated for above changes.
+        * svg/SVGAltGlyphElement.idl: Use non-legacy exceptions.
+
+        * svg/SVGAngle.cpp:
+        (WebCore::SVGAngle::valueAsString): Removed unneeded String globals.
+        (WebCore::parseAngleType): Rewrote to be simpler and more direct.
+        (WebCore::SVGAngle::setValueAsString): Use ExceptionOr.
+        (WebCore::SVGAngle::newValueSpecifiedUnits): Ditto.
+        (WebCore::SVGAngle::convertToSpecifiedUnits): Ditto.
+        * svg/SVGAngle.h: Updated for above changes. Initialized data members
+        here in the class definite and removed constructor; default now works.
+        * svg/SVGAngle.idl: Use non-legacy exceptions.
+
+        * svg/SVGAnimateElementBase.cpp:
+        (WebCore::SVGAnimateElementBase::calculateAnimatedValue): Update since
+        CalcMode is now an enum class.
+        * svg/SVGAnimateMotionElement.cpp:
+        (WebCore::SVGAnimateMotionElement::SVGAnimateMotionElement): Ditto.
+
+        * svg/SVGAnimateTransformElement.cpp:
+        (WebCore::SVGAnimateTransformElement::hasValidAttributeType): Update
+        since AttributeType is now an enum class.
+
+        * svg/SVGAnimatedAngle.cpp:
+        (WebCore::SVGAnimatedAngleAnimator::calculateDistance): Removed
+        ASSERT_NO_EXCEPTION, no longer needed.
+
+        * svg/SVGAnimatedBoolean.idl: Use non-legacy exception.
+        * svg/SVGAnimatedEnumeration.idl: Ditto.
+        * svg/SVGAnimatedInteger.idl: Ditto.
+
+        * svg/SVGAnimatedLength.cpp:
+        (WebCore::sharedSVGLength): Deleted.
+        (WebCore::SVGAnimatedLengthAnimator::addAnimatedTypes): Removed
+        ASSERT_NO_EXCEPTION, no longer needed.
+        (WebCore::parseLengthFromString): Ditto. Also rewrote to not use
+        a shared SVGLength; no benefit to doing that.
+        (WebCore::SVGAnimatedLengthAnimator::calculateAnimatedValue): Ditto.
+        * svg/SVGAnimatedLengthList.cpp:
+        (WebCore::SVGAnimatedLengthListAnimator::addAnimatedTypes): Ditto.
+        (WebCore::SVGAnimatedLengthListAnimator::calculateAnimatedValue): Ditto.
+
+        * svg/SVGAnimatedNumber.idl: Use non-legacy exception.
+        * svg/SVGAnimatedString.idl: Ditto.
+
+        * svg/SVGAnimatedType.cpp:
+        (WebCore::SVGAnimatedType::setValueAsString): Updated since
+        setValueAsString now uses ExceptionOr.
+
+        * svg/SVGAnimationElement.cpp:
+        (WebCore::SVGAnimationElement::SVGAnimationElement): Initialized scalars
+        in the class definition instead of here.
+        (WebCore::SVGAnimationElement::getSimpleDuration): Removed uneeded ExceptionCode&.
+        (WebCore::SVGAnimationElement::setCalcMode): Updated since CalcMode is now an enum class.
+        (WebCore::SVGAnimationElement::setAttributeType): Updated since AttributeType
+        is now an enum class.
+        (WebCore::SVGAnimationElement::shouldApplyAnimation): Ditto.
+        (WebCore::SVGAnimationElement::calculateKeyTimesForCalcModePaced): Ditto.
+        (WebCore::SVGAnimationElement::calculatePercentForSpline): Ditto.
+        (WebCore::SVGAnimationElement::calculatePercentFromKeyPoints): Ditto.
+        (WebCore::SVGAnimationElement::calculatePercentForFromTo): Ditto.
+        (WebCore::SVGAnimationElement::currentValuesFromKeyPoints): Ditto.
+        (WebCore::SVGAnimationElement::currentValuesForValuesAnimation): Ditto.
+        (WebCore::SVGAnimationElement::startedActiveInterval): Ditto.
+        (WebCore::SVGAnimationElement::updateAnimation): Ditto.
+        (WebCore::SVGAnimationElement::checkInvalidCSSAttributeType): Ditto.
+
+        * svg/SVGAnimationElement.h: Changed CalcMode into an enum class.
+        Updated for above changes.
+
+        * svg/SVGAnimationElement.idl: Removed MayThrowLegacyException from
+        getSimpleDuration.
+
+        * svg/SVGColor.cpp:
+        (WebCore::SVGColor::SVGColor): Updated to take scalar in the straightforward
+        manner instead of constt SVGColorType&.
+        (WebCore::SVGColor::setRGBColor): Use ExceptionOr.
+        (WebCore::SVGColor::setRGBColorICCColor): Ditto.
+        (WebCore::SVGColor::setColor): Ditto.
+        * svg/SVGColor.h: Updated for above changes. Removed unneeded destructor.
+        * svg/SVGColor.idl: Use non-legacy exceptions.
+
+        * svg/SVGGlyphRefElement.cpp:
+        (WebCore::SVGGlyphRefElement::SVGGlyphRefElement): Initialize data members
+        in class definition, not here.
+        (WebCore::parseFloat): Added helper. Used in parseAttribute.
+        (WebCore::SVGGlyphRefElement::parseAttribute): Updated to use parseFloat helper.
+        (WebCore::SVGGlyphRefElement::glyphRef): Deleted.
+        (WebCore::SVGGlyphRefElement::setGlyphRef): Deleted.
+        (WebCore::SVGGlyphRefElement::setX): Removed unused Exception& argument.
+        (WebCore::SVGGlyphRefElement::setY): Ditto.
+        (WebCore::SVGGlyphRefElement::setDx): Ditto.
+        (WebCore::SVGGlyphRefElement::setDy): Ditto.
+        * svg/SVGGlyphRefElement.h: Updated for above changes.
+        * svg/SVGGlyphRefElement.idl: Use Reflect on glyphRef. Removed incorrect
+        SetterMayThrowLegacyException attributes for x, y, dx, and dy. Longer term
+        it might be nice to use [Reflect] on these too.
+
+        * svg/SVGGraphicsElement.idl: Use non-legacy exception.
+
+        * svg/SVGLength.cpp:
+        (WebCore::parseLengthType): Changed argument type since caller does not
+        need to know how many characters are consumed.
+        (WebCore::SVGLength::SVGLength): Removed IGNORE_EXCEPTION and ASSERT_NO_EXCEPTION.
+        Also removed the copy constructor, letting the compiler generate the default.
+        (WebCore::SVGLength::setValueAsString): Use ExceptionOr.
+        (WebCore::SVGLength::construct): Updated since setValueAsString uses ExceptionOr.
+        (WebCore::SVGLength::value): Ditto.
+        (WebCore::SVGLength::valueForBindings): Use ExceptionOr. Also renamed to
+        disambiguate with the version used outside of bindings.
+        (WebCore::SVGLength::setValue): Use ExceptionOr.
+        (WebCore::SVGLength::newValueSpecifiedUnits): Ditto.
+        (WebCore::SVGLength::convertToSpecifiedUnits): Ditto.
+        (WebCore::SVGLength::fromCSSPrimitiveValue): Updated since newValueSpecifiedUnits
+        uses ExceptionOr.
+        (WebCore::SVGLength::lengthModeForAnimatedLengthAttribute): Rewrote map generation
+        code to be more efficient and not unrolled. Only do one hash table lookup.
+        * svg/SVGLength.h: Updated for above changes.
+        * svg/SVGLength.idl: Use non-legacy exceptions.
+
+        * svg/SVGLengthContext.cpp:
+        (WebCore::SVGLengthContext::valueForLength): Update since function
+        uses ExceptionOr.
+        (WebCore::SVGLengthContext::convertValueToUserUnits): Use ExceptionOr.
+        (WebCore::SVGLengthContext::convertValueFromUserUnits): Ditto.
+        (WebCore::SVGLengthContext::convertValueFromUserUnitsToPercentage): Ditto.
+        (WebCore::SVGLengthContext::convertValueFromPercentageToUserUnits): Ditto.
+        (WebCore::SVGLengthContext::convertValueFromUserUnitsToEMS): Ditto.
+        (WebCore::SVGLengthContext::convertValueFromEMSToUserUnits): Ditto.
+        (WebCore::SVGLengthContext::convertValueFromUserUnitsToEXS): Ditto.
+        (WebCore::SVGLengthContext::convertValueFromEXSToUserUnits): Ditto.
+        * svg/SVGLengthContext.h: Updatedfor above changes.
+
+        * svg/SVGLengthList.cpp:
+        (WebCore::SVGLengthList::parse): Updated since setValueAsString uses
+        ExceptionOr now.
+        * svg/SVGLengthList.h: Removed unneeded constructor.
+        * svg/SVGLengthList.idl: Use non-legacy exceptions.
+
+        * svg/SVGLocatable.cpp:
+        (WebCore::SVGLocatable::getTransformToElement): Use ExceptionOr.
+        * svg/SVGLocatable.h: Updated for above change.
+
+        * svg/SVGMarkerElement.h:
+        (WebCore::SVGPropertyTraits<SVGMarkerOrientType>::fromString):
+        Updated since setValueAsString uses ExceptionOr now.
+
+        * svg/SVGMatrix.h: Use ExceptionOr.
+        * svg/SVGMatrix.idl: Use non-legacy exceptions.
+
+        * svg/SVGNumberList.h: Removed unneeded constructor.
+        * svg/SVGNumberList.idl: Use non-legacy exceptions.
+
+        * svg/SVGPaint.cpp:
+        (WebCore::SVGPaint::setPaint): Use ExceptionOr.
+        * svg/SVGPaint.h: Updated for above chagne.
+        * svg/SVGPaint.idl: Use non-legacy exception.
+
+        * svg/SVGPathSegList.h: Tweaked a bit.
+        * svg/SVGPathSegList.idl: Use non-legacy exceptions.
+
+        * svg/SVGPointList.h: Removed unneeded constructor.
+        * svg/SVGPointList.idl: Use non-legacy exceptions.
+
+        * svg/SVGPreserveAspectRatio.cpp:
+        (WebCore::SVGPreserveAspectRatio::setAlign): Use ExceptionOr.
+        (WebCore::SVGPreserveAspectRatio::setMeetOrSlice): Ditto.
+        * svg/SVGPreserveAspectRatio.h: Updated for above changes.
+        * svg/SVGPreserveAspectRatio.idl: Use non-legacy exceptions.
+
+        * svg/SVGSVGElement.cpp:
+        (WebCore::SVGSVGElement::currentView): Pass a reference.
+
+        * svg/SVGStringList.h: Tweaked a bit.
+        * svg/SVGStringList.idl: Use non-legacy exceptions.
+
+        * svg/SVGStyleElement.cpp:
+        (WebCore::SVGStyleElement::setType): Removed unneeded ExceptionCode&.
+        (WebCore::SVGStyleElement::setMedia): Ditto.
+        (WebCore::SVGStyleElement::setTitle): Deleted.
+        * svg/SVGStyleElement.h: Updated for above changes, and made the title
+        function override be private.
+        * svg/SVGStyleElement.idl: Use Reflect for title. Removed unneeded
+        SetterMayThrowLegacyException on all attributes.
+
+        * svg/SVGTextContentElement.cpp:
+        (WebCore::SVGTextContentElement::textLengthAnimated): Removed
+        ASSERT_NO_EXCEPTION, won't work any more.
+        (WebCore::SVGTextContentElement::getSubStringLength): Use ExceptionOr.
+        Also remove redundant call to updateLayoutIgnorePendingStylesheets,
+        called by getNumberOfChars.
+        (WebCore::SVGTextContentElement::getStartPositionOfChar): Ditto.
+        (WebCore::SVGTextContentElement::getEndPositionOfChar): Ditto.
+        (WebCore::SVGTextContentElement::getExtentOfChar): Ditto.
+        (WebCore::SVGTextContentElement::getRotationOfChar): Ditto.
+        (WebCore::SVGTextContentElement::selectSubString): Ditto.
+        * svg/SVGTextContentElement.h: Updated for above changes.
+        * svg/SVGTextContentElement.idl: Use non-legacy exceptions.
+
+        * svg/SVGTransformList.h: Removed unneeded constructor.
+        * svg/SVGTransformList.idl: Use non-legacy exceptions.
+
+        * svg/SVGViewSpec.cpp:
+        (WebCore::SVGViewSpec::SVGViewSpec): Updated to take a reference.
+        (WebCore::SVGViewSpec::setZoomAndPan): Use ExceptionOr.
+        (WebCore::SVGViewSpec::setTransformString): Deleted.
+        (WebCore::SVGViewSpec::viewBoxString): Use m_viewBox directly.
+        (WebCore::SVGViewSpec::preserveAspectRatioString): Use
+        m_preserveAspectRatio directly.
+        (WebCore::SVGViewSpec::viewTarget): Use is<SVGElement>.
+        (WebCore::SVGViewSpec::lookupOrCreateViewBoxWrapper): Use
+        m_contextElement directly.
+        (WebCore::SVGViewSpec::lookupOrCreatePreserveAspectRatioWrapper):
+        Ditto.
+        (WebCore::SVGViewSpec::lookupOrCreateTransformWrapper): Ditto.
+        (WebCore::SVGViewSpec::parseViewSpec): Set m_viewTargetString directly.
+        * svg/SVGViewSpec.h: Updated for above changes. Removed unneeded virtual
+        destructor, unneeded using for ref/deref, unused functions including
+        setTransformString, setViewTargetString, non-exception setZoomAndPan,
+        contextElement, viewBoxBaseValue, and preserveAspectRatioBaseValue.
+        * svg/SVGViewSpec.idl: Use non-legacy exceptions. Also specify
+        ImplementationLacksVTable.
+
+        * svg/properties/SVGAnimatedEnumerationPropertyTearOff.h:
+        Use ExceptionOr.
+        * svg/properties/SVGAnimatedStaticPropertyTearOff.h: Ditto.
+        * svg/properties/SVGListProperty.h: Ditto.
+        * svg/properties/SVGListPropertyTearOff.h: Ditto.
+         * svg/properties/SVGPathSegListPropertyTearOff.cpp:
+        (WebCore::SVGPathSegListPropertyTearOff::clear): Ditto.
+        (WebCore::SVGPathSegListPropertyTearOff::getItem): Ditto.
+        (WebCore::SVGPathSegListPropertyTearOff::replaceItem): Ditto.
+        (WebCore::SVGPathSegListPropertyTearOff::removeItem): Ditto.
+        * svg/properties/SVGPathSegListPropertyTearOff.h: Ditto.
+        * svg/properties/SVGPropertyTearOff.h: Ditto. Also added an overload
+        of create that knows how to deal with exceptions.
+        * svg/properties/SVGStaticListPropertyTearOff.h: Ditto.
+        * svg/properties/SVGTransformListPropertyTearOff.h: Ditto.
+
+2016-10-22  Chris Dumez  <cdumez@apple.com>
+
+        WebGLRenderingContextBase.bufferData() should use a union instead of overloading
+        https://bugs.webkit.org/show_bug.cgi?id=163795
+
+        Reviewed by Darin Adler.
+
+        WebGLRenderingContextBase.bufferData() / bufferSubData() should use a union
+        instead of overloading:
+        - https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14
+
+        No new tests, no web-exposed behavior change.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::Converter<IDLInterface<T>>::convert):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateHeader):
+        * bindings/scripts/test/JS/JSInterfaceName.h:
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.h:
+        * bindings/scripts/test/JS/JSTestCEReactions.h:
+        * bindings/scripts/test/JS/JSTestCEReactionsStringifier.h:
+        * bindings/scripts/test/JS/JSTestClassWithJSBuiltinConstructor.h:
+        * bindings/scripts/test/JS/JSTestCustomConstructorWithNoInterfaceObject.h:
+        * bindings/scripts/test/JS/JSTestCustomNamedGetter.h:
+        * bindings/scripts/test/JS/JSTestEventConstructor.h:
+        * bindings/scripts/test/JS/JSTestEventTarget.h:
+        * bindings/scripts/test/JS/JSTestException.h:
+        * bindings/scripts/test/JS/JSTestGenerateIsReachable.h:
+        * bindings/scripts/test/JS/JSTestGlobalObject.h:
+        * bindings/scripts/test/JS/JSTestInterface.h:
+        * bindings/scripts/test/JS/JSTestIterable.h:
+        * bindings/scripts/test/JS/JSTestMediaQueryListListener.h:
+        * bindings/scripts/test/JS/JSTestNamedConstructor.h:
+        * bindings/scripts/test/JS/JSTestNode.h:
+        * bindings/scripts/test/JS/JSTestNondeterministic.h:
+        * bindings/scripts/test/JS/JSTestObj.h:
+        * bindings/scripts/test/JS/JSTestOverloadedConstructors.h:
+        * bindings/scripts/test/JS/JSTestOverloadedConstructorsWithSequence.h:
+        * bindings/scripts/test/JS/JSTestOverrideBuiltins.h:
+        * bindings/scripts/test/JS/JSTestSerialization.h:
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.h:
+        * bindings/scripts/test/JS/JSTestTypedefs.h:
+        * bindings/scripts/test/JS/JSattribute.h:
+        * bindings/scripts/test/JS/JSreadonly.h:
+        * html/canvas/WebGL2RenderingContext.cpp:
+        (WebCore::WebGL2RenderingContext::bufferData):
+        (WebCore::WebGL2RenderingContext::bufferSubData):
+        * html/canvas/WebGLRenderingContextBase.cpp:
+        (WebCore::WebGLRenderingContextBase::bufferData):
+        (WebCore::WebGLRenderingContextBase::bufferSubData):
+        * html/canvas/WebGLRenderingContextBase.h:
+        * html/canvas/WebGLRenderingContextBase.idl:
+
+2016-10-22  Darin Adler  <darin@apple.com>
+
+        [Cocoa] REGRESSION (r204508): Crash in init_WebCreateFragment when pasting (seen in multiple apps using legacy WebKit)
+        https://bugs.webkit.org/show_bug.cgi?id=163839
+
+        Reviewed by Dan Bernstein.
+
+        * editing/cocoa/EditorCocoa.mm: Use the appropriate SOFT_LINK macros to find
+        the WebKitLegacy platform in the correct location for iOS and macOS.
+
+2016-10-22  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        Bindings error message for missing required dictionary member should be more explicit
+        https://bugs.webkit.org/show_bug.cgi?id=163665
+
+        Reviewed by Darin Adler.
+
+        Add throwRequiredMemberTypeError function to throw a TypeError exception with an error
+        message indicating the missing required member.
+
+        No new test required, rebase existing tests.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::throwRequiredMemberTypeError):
+        * bindings/js/JSDOMBinding.h:
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDictionaryImplementationContent):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convertDictionary<TestObj::DictionaryThatShouldNotTolerateNull>):
+
+2016-10-22  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Upgrading custom element should enqueue attributeChanged and connected callbacks
+        https://bugs.webkit.org/show_bug.cgi?id=163840
+
+        Reviewed by Darin Adler.
+
+        When upgrading a custom element, enqueue attributeChanged and connectedCallbacks as needed as specified
+        in step 3 and 4 of: https://html.spec.whatwg.org/multipage/scripting.html#concept-upgrade-an-element
+
+        Test: fast/custom-elements/upgrading-enqueue-reactions.html
+
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::upgradeElement): Enqueue 
+        * dom/CustomElementReactionQueue.cpp:
+        (WebCore::CustomElementReactionQueueItem::invoke): Don't invoke callbacks when the custom element had
+        failed to upgrade.
+        (WebCore::CustomElementReactionQueue::enqueuePostUpgradeReactions): Added.
+        (WebCore::CustomElementReactionQueue::invokeAll): Upgrading a custom element may enqueue more reactions.
+        Keep invoking reactions until the queue becomes empty.
+        * dom/CustomElementReactionQueue.h:
+        * dom/Range.idl: Added a forgotten CEReactions here.
+
+2016-10-21  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 163762: IntSize::area() should used checked arithmetic
+        <https://webkit.org/b/163762>
+
+        Reviewed by Darin Adler.
+
+        No new tests since no change in nominal behavior.
+
+        * platform/graphics/IntSize.h:
+        (WebCore::IntSize::area): Change to return a
+        Checked<unsigned, T> value. Use WTF:: namespace to avoid
+        including another header.
+
+        * platform/graphics/IntRect.h:
+        (WebCore::IntRect::area): Ditto.
+
+        The remaining changes are to use the Checked<unsigned> return
+        value of IntSize::area() and IntRect::area() correctly in
+        context, in addition to items noted below.
+
+        * html/HTMLPlugInImageElement.cpp:
+        (WebCore::HTMLPlugInImageElement::isTopLevelFullPagePlugin):
+        Declare contentWidth and contentHeight as float values to
+        prevent overflow when computing the area, and to make the
+        inequality comparison in the return statement uses the same type
+        for both sides.
+        * html/ImageData.cpp:
+        (WebCore::ImageData::ImageData):
+        * html/MediaElementSession.cpp:
+        (WebCore::isElementRectMostlyInMainFrame):
+        * platform/graphics/ImageBackingStore.h:
+        (WebCore::ImageBackingStore::setSize): Restructure logic to
+        compute area only once.
+        (WebCore::ImageBackingStore::clear):
+        * platform/graphics/ImageFrame.h:
+        (WebCore::ImageFrame::frameBytes):
+        * platform/graphics/ImageSource.cpp:
+        (WebCore::ImageSource::maximumSubsamplingLevel):
+        * platform/graphics/ca/LayerPool.cpp:
+        (WebCore::LayerPool::backingStoreBytesForSize):
+        * platform/graphics/cg/ImageDecoderCG.cpp:
+        (WebCore::ImageDecoder::frameBytesAtIndex):
+        * platform/graphics/filters/FEGaussianBlur.cpp:
+        (WebCore::FEGaussianBlur::platformApplySoftware):
+        * platform/graphics/filters/FilterEffect.cpp:
+        (WebCore::FilterEffect::asUnmultipliedImage):
+        (WebCore::FilterEffect::asPremultipliedImage):
+        (WebCore::FilterEffect::copyUnmultipliedImage):
+        (WebCore::FilterEffect::copyPremultipliedImage):
+        (WebCore::FilterEffect::createUnmultipliedImageResult):
+        (WebCore::FilterEffect::createPremultipliedImageResult):
+        * platform/graphics/win/ImageBufferDataDirect2D.cpp:
+        (WebCore::ImageBufferData::getData): Update overflow check,
+        rename local variable to numBytes, and compute numBytes once.
+        * platform/graphics/win/ImageDecoderDirect2D.cpp:
+        (WebCore::ImageDecoder::frameBytesAtIndex):
+        * platform/image-decoders/ImageDecoder.cpp:
+        (WebCore::ImageDecoder::frameBytesAtIndex):
+        * platform/ios/LegacyTileLayerPool.mm:
+        (WebCore::LegacyTileLayerPool::bytesBackingLayerWithPixelSize):
+        * rendering/RenderLayerCompositor.cpp:
+        (WebCore::RenderLayerCompositor::requiresCompositingForCanvas):
+        * rendering/shapes/Shape.cpp:
+        (WebCore::Shape::createRasterShape):
+
+2016-10-21  Gavin Barraclough  <barraclough@apple.com>
+
+        WebPageProxy should not need PageActivityState
+        https://bugs.webkit.org/show_bug.cgi?id=163821
+
+        Reviewed by Geoff Garen.
+
+        The PageActivityState is currently plumbed back from WebCore up to the UI process, to
+        determine whether to enabled process suppression. However the information it contains
+        (whether a page load is ongoing, whether audio is playing) is already available via
+        other means. Remove this use of PageActivityState.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::mediaState):
+            - Fix a bug in how we compute IsPlayingAudio - if the volume of the MediaElement is
+              set to zero, then audio is not playing (we were already checking muted).
+        * page/ChromeClient.h:
+            - removed setPageActivityState
+        * page/Page.cpp:
+        (WebCore::Page::setPageActivityState): Deleted.
+            - setPageActivityState -> pageActivityStateChanged, remove call to ChromeClient
+        * page/Page.h:
+        (WebCore::Page::pageActivityStateChanged):
+            - setPageActivityState -> pageActivityStateChanged
+        * page/PageThrottler.cpp:
+        (WebCore::PageThrottler::setActivityFlag):
+            - setPageActivityState -> pageActivityStateChanged
+
+2016-10-21  Chris Dumez  <cdumez@apple.com>
+
+        [Web ID] Overload resolution is wrong if one of the types is a nullable union
+        https://bugs.webkit.org/show_bug.cgi?id=163816
+
+        Reviewed by Alex Christensen.
+
+        Overload resolution was wrong if one of the types was a nullable union. This
+        is because we never considered the union type itself, only its subtypes.
+        Therefore, we checked if any of the union's subtypes were nullable but we
+        failed to check if the union itself was nullable.
+
+        See:
+        - https://heycam.github.io/webidl/#es-overloads (Step 11.3.)
+
+        No new tests, extended bindings tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetOverloadThatMatchesIgnoringUnionSubtypes):
+        (GenerateOverloadedFunctionOrConstructor):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableUnion1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableUnion1Caller):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableUnion2):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableUnion2Caller):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithNullableUnion):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithOptionalUnion1):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithOptionalUnion1Caller):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithOptionalUnion2):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithOptionalUnion2Caller):
+        (WebCore::jsTestObjPrototypeFunctionOverloadWithOptionalUnion):
+        * bindings/scripts/test/TestObj.idl:
+
+2016-10-21  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Dynamically generate media capture sandbox extensions
+        https://bugs.webkit.org/show_bug.cgi?id=154861
+        <rdar://problem/24909411>
+
+        Reviewed by Tim Horton.
+
+        No new tests, some of these changes are covered by existing tests and some can only be tested
+        with physical capture devices.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm: AVSampleBufferAudioRenderer
+          and AVSampleBufferRenderSynchronizer are now declared in AVFoundationSPI.h.
+
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaStreamAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::MediaPlayerPrivateMediaStreamAVFObjC): Initialize 
+          AVSampleBufferRenderSynchronizer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::isAvailable): Fail if AVSampleBufferRenderSynchronizer
+          isn't available.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::enqueueAudioSampleBufferFromTrack): Take a MediaSample&
+          instead of a PlatformSample&.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::enqueueVideoSampleBufferFromTrack): Ditto.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::ensureLayer): Add the sample buffer display 
+          later to the synchronizer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::destroyLayer): Remove the sample buffer display 
+          later from the synchronizer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::play): Start the synchronizer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::pause): Stash the current clock time in 
+          m_pausedTime, but leave the clock running. Pause the synchronizer.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::currentMediaTime): Return the clock time
+          when playing, m_pausedTime time when paused because we leave the clock running forever.
+        (WebCore::MediaPlayerPrivateMediaStreamAVFObjC::sampleBufferUpdated):
+
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm: AVSampleBufferAudioRenderer
+          is now declared in AVFoundationSPI.h.
+
+        * platform/spi/mac/AVFoundationSPI.h: Add AVSampleBufferAudioRenderer and AVSampleBufferRenderSynchronizer.
+
+2016-10-21  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r207582.
+        https://bugs.webkit.org/show_bug.cgi?id=163819
+
+        Not quite ready rdar://problem/28897179 (Requested by
+        alexchristensen on #webkit).
+
+        Reverted changeset:
+
+        "Re-enable URLParser for non-Safari Cocoa apps after r207321"
+        https://bugs.webkit.org/show_bug.cgi?id=163690
+        http://trac.webkit.org/changeset/207582
+
+2016-10-21  Gavin Barraclough  <barraclough@apple.com>
+
+        WebPage should take UserActivity directly for user input
+        https://bugs.webkit.org/show_bug.cgi?id=163813
+
+        Reviewed by Anders Carlsson.
+
+        When we receive mouse/keyboard events in a page, we want to prevent AppNap. We currently do so
+        via the PageThrottler. This patch is to just make the WebPage drive the UserActivity directly.
+
+        Two reasons to do so: (1) to cleanup & simplify for further refactoring. (2) The current code
+        isn't really achieving the desired effect. The page setting the flag in the throttler to get
+        the activity to be set is now a less effective way of achieving this goal, since the
+        PageActivityState bounces back across to the UI process & then messages back to the WebContent
+        process to take the UserActivity. These extra hops defeat the purpose of making sure the boost
+        from the initial message isn't lost.
+
+        * page/PageThrottler.cpp:
+        (WebCore::PageThrottler::PageThrottler):
+        (WebCore::m_userInputHysteresis): Deleted.
+        * page/PageThrottler.h:
+        (WebCore::PageThrottler::didReceiveUserInput): Deleted.
+            - removed PageActivityState::UserInputActivity, didReceiveUserInput, m_userInputHysteresis.
+
+2016-10-21  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Support (insertFrom|deleteBy)Composition and (insert|delete)CompositionText inputTypes for InputEvents
+        https://bugs.webkit.org/show_bug.cgi?id=163460
+        <rdar://problem/28784142>
+
+        Reviewed by Darin Adler.
+
+        Adds basic support for the composition inputTypes in the InputEvent spec. See w3.org/TR/input-events,
+        github.com/w3c/input-events/issues/41 and github.com/w3c/input-events/issues/42 for more details. While input
+        events are fired in the correct order with respect to each other, additional work will be required to ensure
+        that input events are fired in the correct order with respect to composition(start|update|end) events and
+        textInput events. This is held off until the expected ordering of events is officially defined in the spec.
+
+        Tests: fast/events/before-input-events-prevent-insert-composition.html
+               fast/events/before-input-events-prevent-recomposition.html
+               fast/events/input-events-ime-composition.html
+               fast/events/input-events-ime-recomposition.html
+
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::CompositeEditCommand::apply):
+        * editing/CompositeEditCommand.h:
+        (WebCore::CompositeEditCommand::isBeforeInputEventCancelable):
+
+        Adds a new virtual method hook for subclasses to mark their `beforeinput` events as non-cancelable (see
+        TypingCommand::isBeforeInputEventCancelable). By default, `beforeinput` events are cancelable.
+
+        * editing/EditAction.h:
+
+        Adds 4 new EditActions corresponding to the 4 composition-related inputTypes. These are:
+        EditActionTypingDeletePendingComposition    => "deleteCompositionText"
+        EditActionTypingDeleteFinalComposition      => "deleteByComposition"
+        EditActionTypingInsertPendingComposition    => "insertCompositionText"
+        EditActionTypingInsertFinalComposition      => "insertFromComposition"
+
+        * editing/EditCommand.cpp:
+        (WebCore::inputTypeNameForEditingAction):
+        * editing/Editor.cpp:
+        (WebCore::dispatchBeforeInputEvent):
+        (WebCore::dispatchBeforeInputEvents):
+        (WebCore::Editor::willApplyEditing):
+        (WebCore::Editor::insertTextWithoutSendingTextEvent):
+        (WebCore::Editor::setComposition):
+
+        In setComposition(text, mode), tweak the logic for committing a composition to always delete the selection
+        before inserting the final composition text. In setComposition(text, underlines, start, end), catch the case
+        where we're beginning to recompose an existing range in the DOM and delete the recomposed text first.
+
+        * editing/TypingCommand.cpp:
+        (WebCore::editActionForTypingCommand):
+        (WebCore::TypingCommand::TypingCommand):
+        (WebCore::TypingCommand::deleteSelection):
+
+        Adds a TextCompositionType parameter so that call sites (see Editor::setComposition) can indicate what state the
+        edited composition is in. This allows us to differentiate between deletion of finalized composition text in
+        preparation of recomposing a range in the DOM, and deletion of composition text that has not yet been committed
+        in preparation for inserting a finalized composition into the DOM.
+
+        (WebCore::TypingCommand::deleteKeyPressed):
+        (WebCore::TypingCommand::forwardDeleteKeyPressed):
+        (WebCore::TypingCommand::insertText):
+        (WebCore::TypingCommand::insertLineBreak):
+        (WebCore::TypingCommand::insertParagraphSeparatorInQuotedContent):
+        (WebCore::TypingCommand::insertParagraphSeparator):
+        (WebCore::TypingCommand::isBeforeInputEventCancelable):
+        (WebCore::TypingCommand::inputEventData):
+        (WebCore::TypingCommand::willAddTypingToOpenCommand):
+        * editing/TypingCommand.h:
+
+2016-10-21  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Make sure shadow user agent sheets parse in UASheetMode
+        https://bugs.webkit.org/show_bug.cgi?id=163810
+
+        Reviewed by Dean Jackson.
+
+        * dom/InlineStyleSheetOwner.cpp:
+        (WebCore::parserContextForElement):
+        (WebCore::makeInlineStyleSheetCacheKey):
+        (WebCore::InlineStyleSheetOwner::createSheet):
+        (WebCore::parserContextForForElement): Deleted.
+
+2016-10-21  Jer Noble  <jer.noble@apple.com>
+
+        YouTube stalls when seeking beyond buffered range
+        https://bugs.webkit.org/show_bug.cgi?id=162813
+
+        Reviewed by Eric Carlson.
+
+        When seeking a MediaPlayerPrivateMediaSourceAVFObjC, we will first seek the AVSampleBufferRenderSynchronizer,
+        flush and enqueue non-displaying frames, enqueue regular frames, then begin playback. The above stall will occur
+        when we enqueue so many non- displaying frames that the display layer is not ready for normal ones before
+        playback begins. Then, when the synchronizer attempts to synchronize the enqueued audio and video renderers, the
+        only available samples are back at the original media time, and so it "seeks" by updating the CMTimebase back to
+        the original media time, causing playback to appear "stalled".  The overall solution is to "flush" the contents
+        of the renderers before the seek, so that the synchronizer doesn't reset the currentTime, and to only restart
+        the synchronizer when there are visible (or audible) samples available for display.
+
+        Breaking the fix down into sections:
+
+        = Don't enqueue too many non-displaying samples at once:
+        - Rename SourceBufferPrivate::flushAndEnqueueNonDisplayingSamples() to SourceBufferPrivate::flush(), and no longer
+          pass in an array of non-displaying samples.
+        - Add a new virtual method to MediaSample, createNonDisplayingCopy(), used by SourceBuffer to enqueue non-displaying
+          samples.
+        - in SourceBuffer::reenqueueMediaForTime(), use that new createNonDisplayingCopy() method to enqueue non-displaying
+          samples in the same queue as regular samples.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::provideMediaData):
+        (WebCore::SourceBuffer::reenqueueMediaForTime):
+        * platform/MediaSample.h:
+        (WebCore::MediaSample::isNonDisplaying):
+        * platform/graphics/SourceBufferPrivate.h:
+        (WebCore::SourceBufferPrivate::flush):
+        (WebCore::SourceBufferPrivate::flushAndEnqueueNonDisplayingSamples): Renamed -> flush().
+        * platform/graphics/avfoundation/MediaSampleAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaSampleAVFObjC.mm:
+        (WebCore::CMSampleBufferIsNonDisplaying):
+        (WebCore::MediaSampleAVFObjC::flags):
+        (WebCore::MediaSampleAVFObjC::createNonDisplayingCopy):
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+        (WebCore::SourceBufferPrivateAVFObjC::trackDidChangeEnabled):
+        (WebCore::SourceBufferPrivateAVFObjC::willSeek):
+        (WebCore::createNonDisplayingCopy): Moved to MediaSampleAVFObjC.
+        (WebCore::SourceBufferPrivateAVFObjC::flushAndEnqueueNonDisplayingSamples): Renamed -> flush().
+        * platform/mock/mediasource/MockBox.h:
+        * platform/mock/mediasource/MockSourceBufferPrivate.cpp:
+        (WebCore::MockMediaSample::flags):
+        (WebCore::MockMediaSample::createNonDisplayingCopy):
+        * platform/mock/mediasource/MockSourceBufferPrivate.h:
+
+        = Don't start playing until all renderers have visible/audible samples:
+        - SourceBufferPrivateAVFObjC will notify its associated MediaPlayerPrivateMediaSourceAVFObjC when
+          it flushes and receives visible/audible samples.
+        - The MediaPlayer will store audio renderers as keys to a HashMap which allows it to track which
+          have available samples.
+        - This requires changing all the places where we loop over the available renderers.
+
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.mm:
+        (WebCore::SourceBufferPrivateAVFObjC::trackDidChangeEnabled):
+        (WebCore::SourceBufferPrivateAVFObjC::enqueueSample):
+        (WebCore::SourceBufferPrivateAVFObjC::flush):
+        (WebCore::SourceBufferPrivateAVFObjC::willSeek):
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.h:
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::allRenderersHaveAvailableSamples):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::setHasAvailableVideoFrame): Deleted.
+        * platform/graphics/avfoundation/objc/MediaPlayerPrivateMediaSourceAVFObjC.mm:
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::MediaPlayerPrivateMediaSourceAVFObjC):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::setVolume):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::setMuted):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::setHasAvailableVideoFrame):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::setHasAvailableAudioSample):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::updateAllRenderersHaveAvailableSamples):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::addAudioRenderer):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::removeAudioRenderer):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::setPreservesPitch):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::seeking):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::shouldBePlaying):
+        (WebCore::MediaPlayerPrivateMediaSourceAVFObjC::seekInternal):
+        * platform/graphics/avfoundation/objc/MediaSourcePrivateAVFObjC.h:
+        * platform/graphics/avfoundation/objc/MediaSourcePrivateAVFObjC.mm:
+        (WebCore::MediaSourcePrivateAVFObjC::willSeek):
+        * platform/graphics/avfoundation/objc/SourceBufferPrivateAVFObjC.h:
+
+        = Don't display new samples mid-seek.
+        - MediaSource should clear its m_pendingSeekTime ivar, which is used whyn SourceBuffer queries whether or not a
+          seek is pending, when instructing its SourceBuffers to seekToTime().
+        - This allows SourceBuffer to decline to enqueue new samples during a MediaSource seek operation.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::completeSeek):
+
 2016-10-20  Dean Jackson  <dino@apple.com>
 
         SVG should not paint selection within a mask

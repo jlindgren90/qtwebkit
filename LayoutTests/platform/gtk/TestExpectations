@@ -1683,6 +1683,8 @@ webkit.org/b/163780 media/media-controls-drag-timeline-set-controls-property.htm
 
 webkit.org/b/163781 media/muted-video-is-playing-audio.html [ Timeout ]
 
+webkit.org/b/163850 imported/w3c/web-platform-tests/html/semantics/embedded-content/media-elements/playing-the-media-resource/pause-move-within-document.html [ Timeout ]
+
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of Tests timing out
 #////////////////////////////////////////////////////////////////////////////////////////
@@ -2697,6 +2699,33 @@ webkit.org/b/163529 media/video-playback-restriction-play-before-load.html [ Fai
 webkit.org/b/163530 media/video-restricted-no-preload-metadata.html [ Failure ]
 webkit.org/b/163531 media/video-volume-slider-drag.html [ Failure ]
 
+webkit.org/b/163823 media/audio-playback-restriction-autoplay.html [ Failure ]
+webkit.org/b/163823 media/audio-playback-restriction-play-muted.html [ Failure ]
+webkit.org/b/163823 media/audio-playback-restriction-play.html [ Failure ]
+webkit.org/b/163823 media/context-menu-actions.html [ Failure ]
+webkit.org/b/163823 media/video-defaultmuted.html [ Failure ]
+webkit.org/b/163823 media/video-volume-slider.html [ Failure ]
+
+webkit.org/b/163824 media/media-source/media-source-init-segment-duration.html [ Failure ]
+
+webkit.org/b/163825 media/modern-media-controls/media-controller/media-controller-resize.html [ Failure ]
+
+webkit.org/b/163826 storage/domstorage/events/basic-body-attribute.html [ Failure ]
+
+webkit.org/b/163827 storage/websql/quota-tracking.html [ Failure ]
+
+webkit.org/b/163830 svg/css/mix-blend-mode-background-root.svg [ ImageOnlyFailure ]
+webkit.org/b/163830 svg/css/mix-blend-mode-opacity-root.svg [ ImageOnlyFailure ]
+webkit.org/b/163830 svg/css/mix-blend-mode-with-inline-svg.html [ ImageOnlyFailure ]
+
+webkit.org/b/163829 svg/W3C-SVG-1.1/fonts-desc-02-t.svg [ Failure ]
+webkit.org/b/163831 svg/custom/acid3-test-77.html [ Failure ]
+webkit.org/b/163832 svg/custom/filter-update-different-root.html [ ImageOnlyFailure ]
+webkit.org/b/163833 svg/custom/getscreenctm-in-mixed-content2.xhtml [ Failure ]
+
+webkit.org/b/163857 imported/w3c/web-platform-tests/touch-events/create-touch-touchlist.html [ Skip ]
+webkit.org/b/163858 fast/events/touch/touch-constructor.html [ Skip ]
+
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of non-crashing, non-flaky tests failing
 #////////////////////////////////////////////////////////////////////////////////////////
@@ -2896,8 +2925,8 @@ webkit.org/b/160119 mathml/opentype/large-operators-displaystyle-dynamic.html [ 
 webkit.org/b/160119 media/video-object-fit-change.html [ ImageOnlyFailure ]
 
 # Threaded compositor failures caused by one of r203496, r203497, or r203498
-webkit.org/b/163528 media/video-object-fit.html [ Failure ]
-webkit.org/b/163533 security/contentSecurityPolicy/video-with-data-url-allowed-by-media-src-star.html [ Failure ]
+webkit.org/b/163528 media/video-object-fit.html [ ImageOnlyFailure ]
+webkit.org/b/163533 security/contentSecurityPolicy/video-with-data-url-allowed-by-media-src-star.html [ ImageOnlyFailure ]
 
 #////////////////////////////////////////////////////////////////////////////////////////
 # End of tests failing due to THREADED COMPOSITOR enablement. Don't put random test

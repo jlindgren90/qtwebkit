@@ -1,3 +1,147 @@
+2016-10-22  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        ASSERTION FAILED: m_fonts in &WebCore::FontCascade::primaryFont
+        https://bugs.webkit.org/show_bug.cgi?id=163459
+
+        Reviewed by Darin Adler.
+
+        * fast/text/font-size-calc-expected.txt: Added.
+        * fast/text/font-size-calc.html: Added.
+
+2016-10-22  Dan Bernstein  <mitz@apple.com>
+
+        Dynamically-added backdrop filter to clip-path'd element with 3D transform renders incorrectly (without clip)
+        https://bugs.webkit.org/show_bug.cgi?id=163497
+
+        Reviewed by Simon Fraser.
+
+        Based on the test case from Tim Horton.
+
+        * css3/filters/backdrop/dynamic-with-clip-path-expected.html: Added.
+        * css3/filters/backdrop/dynamic-with-clip-path.html: Added.
+
+2016-10-22  Simon Fraser  <simon.fraser@apple.com>
+
+        Backdrop filter doesn't show if removed then re-added
+        https://bugs.webkit.org/show_bug.cgi?id=163860
+
+        Reviewed by Dan Bernstein.
+
+        * css3/filters/backdrop/add-remove-add-backdrop-filter-expected.html: Added.
+        * css3/filters/backdrop/add-remove-add-backdrop-filter.html: Added.
+
+2016-10-22  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix repainting of slow repaint objects in WK1 when page scale is applied
+        https://bugs.webkit.org/show_bug.cgi?id=163854
+
+        Reviewed by Zalan Bujtas.
+        
+        Test that logs the repaint rect after scrolling a page with an element
+        with a fixed background. The WebKit1 result is the interesting one.
+
+        * fast/repaint/zoomed-fixed-background-expected.txt: Added.
+        * fast/repaint/zoomed-fixed-background.html: Added.
+        * platform/mac-wk1/fast/repaint/zoomed-fixed-background-expected.txt: Added.
+
+2016-10-22  Darin Adler  <darin@apple.com>
+
+        Move HTML canvas and tracks from ExceptionCode to Exception
+        https://bugs.webkit.org/show_bug.cgi?id=163853
+
+        Reviewed by Chris Dumez.
+
+        * media/track/regions-webvtt/vtt-region-constructor-expected.txt:
+        Change expectations to expect the more specific TypeError message
+        that the bindings generate as opposed to the generic ones that the
+        WebVTT DOM code was generating before.
+
+2016-10-22  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed GTK test gardening
+
+        * platform/gtk/TestExpectations:
+        * platform/gtk/imported/w3c/web-platform-tests/touch-events/historical-expected.txt: Added.
+        * platform/gtk/imported/w3c/web-platform-tests/touch-events/touch-globaleventhandler-interface-expected.txt: Added.
+        * platform/gtk/svg/custom/repaint-shadow-expected.txt: Renamed from LayoutTests/platform/gtk/svg/text/repaint-shadow-expected.txt.
+        * platform/gtk/svg/custom/simple-text-double-shadow-expected.txt: Renamed from LayoutTests/platform/gtk/svg/custom/simple-text-double-shadow.txt.
+
+2016-10-22  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        Bindings error message for missing required dictionary member should be more explicit
+        https://bugs.webkit.org/show_bug.cgi?id=163665
+
+        Reviewed by Darin Adler.
+
+        Update existing tests.
+
+        * fast/mediastream/MediaStreamTrackEvent-constructor-expected.txt:
+
+2016-10-22  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Upgrading custom element should enqueue attributeChanged and connected callbacks
+        https://bugs.webkit.org/show_bug.cgi?id=163840
+
+        Reviewed by Darin Adler.
+
+        Added a W3C style testharness.js test for making sure upgrading custom custom elements
+        would enqueue attributedChanged and connected reactions.
+
+        * fast/custom-elements/upgrading-enqueue-reactions-expected.txt: Added.
+        * fast/custom-elements/upgrading-enqueue-reactions.html: Added.
+
+2016-10-21  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Update custom elements tests
+        https://bugs.webkit.org/show_bug.cgi?id=163815
+
+        Reviewed by Joseph Pecoraro.
+
+        Removed the tests that have been upstreamed and reimported from web-platform-tests.
+
+        * fast/custom-elements/Document-createElement-expected.txt: Removed.
+        * fast/custom-elements/enqueue-custom-element-upgrade-reaction-expected.txt: Removed.
+        * fast/custom-elements/parser/: Removed.
+        * fast/custom-elements/upgrading/: Removed.
+
+2016-10-21  Michael Catanzaro  <mcatanzaro@igalia.com>
+
+        Unreviewed GTK test gardening
+
+        * platform/gtk/TestExpectations:
+        * platform/gtk/svg/W3C-SVG-1.1/struct-dom-03-b-expected.txt: Added.
+        * platform/gtk/svg/W3C-SVG-1.1/struct-dom-04-b-expected.txt: Added.
+        * platform/gtk/svg/W3C-SVG-1.1/struct-dom-05-b-expected.txt: Added.
+        * platform/gtk/svg/custom/dynamic-svg-document-creation-expected.txt:
+        * platform/gtk/svg/custom/simple-text-double-shadow.txt: Added.
+        * platform/gtk/svg/text/repaint-shadow-expected.txt: Added.
+        * platform/gtk/svg/text/text-hkern-on-vertical-text-expected.png:
+        * platform/gtk/svg/text/text-hkern-on-vertical-text-expected.txt: Added.
+        * platform/gtk/svg/text/text-vkern-on-horizontal-text-expected.txt: Added.
+
+2016-10-21  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Support (insertFrom|deleteBy)Composition and (insert|delete)CompositionText inputTypes for InputEvents
+        https://bugs.webkit.org/show_bug.cgi?id=163460
+        <rdar://problem/28784142>
+
+        Reviewed by Darin Adler.
+
+        Adds 4 new layout tests to verify that composition events are dispatched as expected when using IME, and that
+        input events of type "insertFromComposition" and "deleteByComposition" can be prevented.
+
+        Also rebaselines an existing WK1 editing test (text-input-controller.html) to account for how we now delete the
+        existing composition text before inserting the finalized composition text in Editor::setComposition. This means
+        that there are a few more delegate calls than there were before (as seen in the expected output), although the
+        resulting behavior is still the same.
+
+        * editing/mac/input/text-input-controller-expected.txt:
+        * fast/events/before-input-events-prevent-insert-composition.html: Added.
+        * fast/events/before-input-events-prevent-recomposition.html: Added.
+        * fast/events/input-events-ime-composition.html: Added.
+        * fast/events/input-events-ime-recomposition.html: Added.
+        * platform/ios-simulator/TestExpectations:
+
 2016-10-20  Dean Jackson  <dino@apple.com>
 
         SVG should not paint selection within a mask

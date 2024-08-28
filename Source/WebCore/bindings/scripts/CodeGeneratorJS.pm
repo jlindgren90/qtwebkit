@@ -1161,7 +1161,7 @@ sub GenerateDictionaryImplementationContent
             } elsif (!$member->isOptional) {
                 # 5.5. Otherwise, if value is undefined and the dictionary member is a required dictionary member, then throw a TypeError.
                 $result .= "    } else {\n";
-                $result .= "        throwTypeError(&state, throwScope);\n";
+                $result .= "        throwRequiredMemberTypeError(state, throwScope, \"".$member->name."\", \"$name\", \"".$idlType->name."\");\n";
                 $result .= "        return { };\n";
                 $result .= "    }\n";
             } else {
@@ -1732,6 +1732,7 @@ sub GenerateHeader
     if (NeedsImplementationClass($interface)) {
         push(@headerContent, "template<> struct JSDOMWrapperConverterTraits<${implType}> {\n");
         push(@headerContent, "    using WrapperClass = ${className};\n");
+        push(@headerContent, "    using ToWrappedReturnType = ${implType}*;\n");
         push(@headerContent, "};\n");
     }
 
@@ -1972,8 +1973,8 @@ sub AreTypesDistinguishableForOverloadResolution
         return $codeGenerator->IsFunctionOnlyCallbackInterface($type) || &$isDictionary($type);
     };
 
-    # FIXME: The WebIDL mandates this but this currently does not work because some of our IDL is wrong.
-    # return 0 if $idlTypeA->isNullable && $idlTypeB->isNullable;
+    # Two types are distinguishable for overload resolution if at most one of the two includes a nullable type.
+    return 0 if $idlTypeA->isNullable && $idlTypeB->isNullable;
 
     # Union types: idlTypeA and idlTypeB  are distinguishable if:
     # - Both types are either a union type or nullable union type, and each member type of the one is
@@ -2037,6 +2038,17 @@ sub GetOverloadThatMatches
     }
 }
 
+sub GetOverloadThatMatchesIgnoringUnionSubtypes
+{
+    my ($S, $parameterIndex, $matches) = @_;
+
+    for my $tuple (@{$S}) {
+        my $idlType = @{@{$tuple}[1]}[$parameterIndex];
+        my $optionality = @{@{$tuple}[2]}[$parameterIndex];
+        return @{$tuple}[0] if $matches->($idlType, $optionality);
+    }
+}
+
 sub getConditionalForFunctionConsideringOverloads
 {
     my $function = shift;
@@ -2086,9 +2098,17 @@ sub GenerateOverloadedFunctionOrConstructor
         my ($idlType, $optionality) = @_;
         return $idlType->name eq "Dictionary" || $codeGenerator->IsDictionaryType($idlType->name);
     };
-    my $isNullableOrDictionaryParameter = sub {
+    my $isNullableOrDictionaryParameterOrUnionContainingOne = sub {
         my ($idlType, $optionality) = @_;
-        return $idlType->isNullable || &$isDictionaryParameter($idlType, $optionality);
+        return 1 if $idlType->isNullable;
+        if ($idlType->isUnion) {
+            for my $idlSubtype (GetFlattenedMemberTypes($idlType)) {
+                return 1 if $idlType->isNullable || &$isDictionaryParameter($idlSubtype, $optionality);
+            }
+            return 0;
+        } else {
+            return &$isDictionaryParameter($idlType, $optionality);
+        }
     };
     my $isRegExpOrObjectParameter = sub {
         my ($idlType, $optionality) = @_;
@@ -2162,10 +2182,10 @@ END
             my $d = GetDistinguishingArgumentIndex($function, $S);
             push(@implContent, "        JSValue distinguishingArg = state->uncheckedArgument($d);\n");
 
-            my $overload = GetOverloadThatMatches($S, $d, \&$isOptionalParameter);
+            my $overload = GetOverloadThatMatchesIgnoringUnionSubtypes($S, $d, \&$isOptionalParameter);
             &$generateOverloadCallIfNecessary($overload, "distinguishingArg.isUndefined()");
 
-            $overload = GetOverloadThatMatches($S, $d, \&$isNullableOrDictionaryParameter);
+            $overload = GetOverloadThatMatchesIgnoringUnionSubtypes($S, $d, \&$isNullableOrDictionaryParameterOrUnionContainingOne);
             &$generateOverloadCallIfNecessary($overload, "distinguishingArg.isUndefinedOrNull()");
 
             for my $tuple (@{$S}) {
@@ -3518,9 +3538,11 @@ sub GenerateImplementation
                     if ($svgPropertyOrListPropertyType eq "float") { # Special case for JSSVGNumber
                         push(@implContent, "    podImpl = nativeValue;\n");
                     } else {
-                        push(@implContent, "    podImpl.set$implSetterFunctionName(nativeValue");
-                        push(@implContent, ", ec") if $setterMayThrowLegacyException;
-                        push(@implContent, ");\n");
+                        my $functionString = "podImpl.set$implSetterFunctionName(nativeValue";
+                        $functionString .= ", ec" if $setterMayThrowLegacyException;
+                        $functionString .= ")";
+                        $functionString = "propagateException(state, throwScope, $functionString)" if $attribute->signature->extendedAttributes->{SetterMayThrowException};
+                        push(@implContent, "    $functionString;\n");
                         push(@implContent, "    setDOMException(&state, throwScope, ec);\n") if $setterMayThrowLegacyException;
                     }
                     if ($svgPropertyType) {

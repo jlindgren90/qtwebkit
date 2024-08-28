@@ -134,9 +134,9 @@ private:
     ShareableBitmap(const WebCore::IntSize&, Flags, RefPtr<SharedMemory>);
 
 #if USE(CAIRO)
-    static size_t numBytesForSize(const WebCore::IntSize&);
+    static Checked<unsigned, RecordOverflow> numBytesForSize(const WebCore::IntSize&);
 #else
-    static size_t numBytesForSize(const WebCore::IntSize& size) { return size.width() * size.height() * 4; }
+    static Checked<unsigned, RecordOverflow> numBytesForSize(const WebCore::IntSize& size) { return size.area<RecordOverflow>() * 4; }
 #endif
 
 #if USE(CG)
@@ -150,7 +150,7 @@ private:
 #endif
 
     void* data() const;
-    size_t sizeInBytes() const { return numBytesForSize(m_size); }
+    size_t sizeInBytes() const { return numBytesForSize(m_size).unsafeGet(); }
 
     WebCore::IntSize m_size;
     Flags m_flags;

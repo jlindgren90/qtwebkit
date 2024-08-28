@@ -6998,7 +6998,7 @@ MediaProducer::MediaStateFlags HTMLMediaElement::mediaState() const
     if (!isPlaying())
         return state;
 
-    if (hasAudio && !muted())
+    if (hasAudio && !muted() && volume())
         state |= IsPlayingAudio;
 
     if (hasActiveVideo)

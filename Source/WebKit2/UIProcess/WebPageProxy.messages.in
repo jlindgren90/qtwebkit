@@ -417,7 +417,6 @@ messages -> WebPageProxy {
 #endif
 
     DidUpdateViewState()
-    SetPageActivityState(int32_t pageActivityState)
 
     DidSaveToPageCache()
 

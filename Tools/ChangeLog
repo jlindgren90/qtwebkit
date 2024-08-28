@@ -1,3 +1,56 @@
+2016-10-22  Dan Bernstein  <mitz@apple.com>
+
+        Improve MiniBrowser window titles for URLs without paths and with no title
+        <https://webkit.org/b/163843>
+
+        Reviewed by Darin Adler.
+
+        * MiniBrowser/mac/WK1BrowserWindowController.m:
+        (-[WK1BrowserWindowController fetch:]): While we’re here, deploy
+          +[NSURL _webkit_URLWithUserTypedString:] here to match the WK2BrowserWindowController
+          version of this method.
+        (-[WK1BrowserWindowController updateTitle:]): If the URL doesn’t have a lastPathComponent,
+          use the entire URL.
+        (-[WK1BrowserWindowController webView:didCommitLoadForFrame:]): Also while we’re here,
+          deploy +[NSURL _web_userVisibleString] here to match the WK2BrowserWindowController
+          behavior.
+
+        * MiniBrowser/mac/WK2BrowserWindowController.m:
+        (-[WK2BrowserWindowController updateTitle:]): If the URL doesn’t have a lastPathComponent,
+          use the entire URL.
+
+2016-10-21  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 163762: IntSize::area() should used checked arithmetic
+        <https://webkit.org/b/163762>
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Tests/WebCore/IntRect.cpp:
+        (TestWebKitAPI::TEST): Call unsafeGet().
+        * TestWebKitAPI/Tests/WebCore/IntSize.cpp:
+        (TestWebKitAPI::TEST): Ditto.
+
+2016-10-21  James Craig  <jcraig@apple.com>
+
+        Unreviewed: Added Aaron Chu <aaron_chu@apple.com> to contributors list.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-10-21  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r207582.
+        https://bugs.webkit.org/show_bug.cgi?id=163819
+
+        Not quite ready rdar://problem/28897179 (Requested by
+        alexchristensen on #webkit).
+
+        Reverted changeset:
+
+        "Re-enable URLParser for non-Safari Cocoa apps after r207321"
+        https://bugs.webkit.org/show_bug.cgi?id=163690
+        http://trac.webkit.org/changeset/207582
+
 2016-10-21  Jonathan Bedard  <jbedard@apple.com>
 
         WebKitTestRunnerApp packages .idl file
