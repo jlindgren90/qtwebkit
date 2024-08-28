@@ -4770,6 +4770,7 @@ void WebPage::insertTextAsync(const String& text, const EditingRange& replacemen
     Frame& frame = m_page->focusController().focusedOrMainFrame();
 
     Ref<Frame> protector(frame);
+
     bool replacesText = false;
 
     if (replacementEditingRange.location != notFound) {

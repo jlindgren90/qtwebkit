@@ -169,6 +169,7 @@ void DOMSelection::collapse(Node* node, unsigned offset)
 {
     if (!isValidForPosition(node))
         return;
+
     Ref<Frame> protector(*m_frame);
     m_frame->selection().moveTo(createLegacyEditingPosition(node, offset), DOWNSTREAM);
 }
@@ -180,6 +181,7 @@ ExceptionOr<void> DOMSelection::collapseToEnd()
     auto& selection = m_frame->selection();
     if (selection.isNone())
         return Exception { INVALID_STATE_ERR };
+
     Ref<Frame> protector(*m_frame);
     selection.moveTo(selection.selection().end(), DOWNSTREAM);
     return { };
@@ -192,6 +194,7 @@ ExceptionOr<void> DOMSelection::collapseToStart()
     auto& selection = m_frame->selection();
     if (selection.isNone())
         return Exception { INVALID_STATE_ERR };
+
     Ref<Frame> protector(*m_frame);
     selection.moveTo(selection.selection().start(), DOWNSTREAM);
     return { };
@@ -208,6 +211,7 @@ void DOMSelection::setBaseAndExtent(Node* baseNode, unsigned baseOffset, Node* e
 {
     if (!isValidForPosition(baseNode) || !isValidForPosition(extentNode))
         return;
+
     Ref<Frame> protector(*m_frame);
     m_frame->selection().moveTo(createLegacyEditingPosition(baseNode, baseOffset), createLegacyEditingPosition(extentNode, extentOffset), DOWNSTREAM);
 }
@@ -216,6 +220,7 @@ void DOMSelection::setPosition(Node* node, unsigned offset)
 {
     if (!isValidForPosition(node))
         return;
+
     Ref<Frame> protector(*m_frame);
     m_frame->selection().moveTo(createLegacyEditingPosition(node, offset), DOWNSTREAM);
 }
@@ -279,6 +284,7 @@ ExceptionOr<void> DOMSelection::extend(Node& node, unsigned offset)
         return Exception { INDEX_SIZE_ERR };
     if (!isValidForPosition(&node))
         return { };
+
     Ref<Frame> protector(*m_frame);
     m_frame->selection().setExtent(createLegacyEditingPosition(&node, offset), DOWNSTREAM);
     return { };
