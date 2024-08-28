@@ -1,3 +1,209 @@
+2016-11-01  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Creating a new pseudo-selector in the Styles sidebar doesn't work on first attempt
+        https://bugs.webkit.org/show_bug.cgi?id=164092
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/CSSStyleDeclarationSection.css:
+        (.style-declaration-section:not(.invalid-selector).rule-disabled > .header > .icon):
+        (.style-declaration-section.invalid-selector > .header > .icon):
+        (.style-declaration-section.invalid-selector > .header > .selector,):
+        (.style-declaration-section.rule-disabled > .header > .icon): Deleted.
+
+        * UserInterface/Views/CSSStyleDeclarationSection.js:
+        (WebInspector.CSSStyleDeclarationSection):
+        (WebInspector.CSSStyleDeclarationSection.prototype.refresh):
+        (WebInspector.CSSStyleDeclarationSection.prototype._handleIconElementClicked):
+        (WebInspector.CSSStyleDeclarationSection.prototype._updateSelectorIcon): Added.
+        Re-add logic removed by https://webkit.org/b/159734 for handling invalid selectors.  Instead
+        of just refreshing the section whenever the represented CSSRule changes selectors, we only
+        need to refresh if the selector no longer applies to the current element.
+
+        (WebInspector.CSSStyleDeclarationSection.prototype._handleMouseMove): Added.
+        Fix another issue discovered while adding the invalid selector warnings, where the title
+        attribute of each individual selector was no longer visible.  To fix this, whenever the user
+        moves their mouse over the selector input, the position is compared to each selector to find
+        the first one that matches, whose title is then applied to the input element.
+
+2016-11-01  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Improve debugger highlight in some exception cases
+        https://bugs.webkit.org/show_bug.cgi?id=164300
+
+        Reviewed by Matt Baker.
+
+        * UserInterface/Views/SourceCodeTextEditor.js:
+        (WebInspector.SourceCodeTextEditor.prototype.textEditorExecutionHighlightRange):
+        When walking up AST nodes and reach a throw statement, use that.
+
+2016-11-01  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Cleanup stale code in NetworkSidebarPanel
+        https://bugs.webkit.org/show_bug.cgi?id=164295
+
+        Reviewed by Matt Baker.
+
+        * UserInterface/Views/NetworkSidebarPanel.js:
+        (WebInspector.NetworkSidebarPanel.prototype.closed): Deleted.
+        This doesn't appear to be needed since NetworkSidebarPanel never
+        registered any event listeners.
+
+2016-11-01  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        REGRESSION (r191419): Web Inspector: Autocomplete is broken
+        https://bugs.webkit.org/show_bug.cgi?id=150493
+
+        Reviewed by Timothy Hatcher.
+
+        Fixed CodeMirror.undo() logic rolled out by r191539 <https://webkit.org/b/150537>
+
+        Added calls to CodeMirror.changeGeneration(true) which tells the history stack to "close"
+        the current event, preventing it from being consolidated with new changes.  If the user
+        typed fast enough, non-completion changes (like adding ":" in CSS) would get merged with
+        completion changes, causing calls to CodeMirror.undo() to undo those changes as well.  To
+        prevent this, a boolean variable is set to true whenever a completion "activity" is in
+        progress, defined by a sequence of completion related events.  When this "activity" first
+        starts, call CodeMirror.changeGeneration(true) to freeze the current history.
+
+        See original bug for more information <https://webkit.org/b/147720>.
+
+        * UserInterface/Controllers/CodeMirrorCompletionController.js:
+        (WebInspector.CodeMirrorCompletionController):
+        (WebInspector.CodeMirrorCompletionController.prototype.updateCompletions):
+        (WebInspector.CodeMirrorCompletionController.prototype.isCompletionChange):
+        (WebInspector.CodeMirrorCompletionController.prototype.hideCompletions):
+        (WebInspector.CodeMirrorCompletionController.prototype.close):
+        (WebInspector.CodeMirrorCompletionController.prototype.completionSuggestionsSelectedCompletion):
+        (WebInspector.CodeMirrorCompletionController.prototype._applyCompletionHint.update):
+        (WebInspector.CodeMirrorCompletionController.prototype._applyCompletionHint):
+        (WebInspector.CodeMirrorCompletionController.prototype._commitCompletionHint.update):
+        (WebInspector.CodeMirrorCompletionController.prototype._commitCompletionHint):
+        (WebInspector.CodeMirrorCompletionController.prototype._removeCompletionHint.update):
+        (WebInspector.CodeMirrorCompletionController.prototype._removeCompletionHint):
+        (WebInspector.CodeMirrorCompletionController.prototype._completeAtCurrentPosition):
+        (WebInspector.CodeMirrorCompletionController.prototype._handleBeforeChange):
+        (WebInspector.CodeMirrorCompletionController.prototype._createCompletionHintMarker): Deleted.
+        (WebInspector.CodeMirrorCompletionController.prototype._removeLastChangeFromHistory): Deleted.
+        (WebInspector.CodeMirrorCompletionController.prototype._removeCompletionHint.clearMarker): Deleted.
+
+2016-11-01  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Replace sublists inside DOM-related model objects with WI.Collection
+        https://bugs.webkit.org/show_bug.cgi?id=164098
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Models/DOMTree.js:
+        * UserInterface/Models/Frame.js:
+        Add support for WebInspector.Collection.
+
+        * UserInterface/Models/Script.js:
+        (WebInspector.Script):
+        * UserInterface/Views/DebuggerSidebarPanel.js:
+        (WebInspector.DebuggerSidebarPanel.prototype._addResourcesRecursivelyForFrame):
+        * UserInterface/Views/FrameTreeElement.js:
+        (WebInspector.FrameTreeElement):
+        (WebInspector.FrameTreeElement.prototype.onpopulate):
+        * UserInterface/Views/OpenResourceDialog.js:
+        (WebInspector.OpenResourceDialog.prototype._addResourcesForFrame):
+        Use new functions defined by changing to WebInspector.Collection.
+
+2016-11-01  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Fix double remove of ResourceCollection if type changes
+        https://bugs.webkit.org/show_bug.cgi?id=164268
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Models/ResourceCollection.js:
+        (WebInspector.ResourceCollection.prototype._resourceTypeDidChange):
+        Change logic so that a non-typed collection will not try to remove a resource that has
+        changed types from the sub-collection of its old type, since the sub-collection itself will
+        handle the removal inside its own event listener for the type change.
+
+2016-11-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Web Inspector: Add the support for custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=164266
+        <rdar://problem/29038883>
+
+        Reviewed by Joseph Pecoraro.
+
+        Show the custom element state in DOM node's details pane:
+         - "Element" for all builtin elements.
+         - "Element (Custom)" for any upgraded custom elements.
+         - "Element (Waiting to be upgraded)" for any element waiting to be upgraded.
+         - "Element (Failed to upgrade)" for any custom element that failed during construction or an upgrade.
+
+        And add "Jump to Definition" to the context menu of an node to find the custom element's definition.
+
+        * Localizations/en.lproj/localizedStrings.js: Added localized strings.
+        * UserInterface/Controllers/DOMTreeManager.js:
+        (WebInspector.DOMTreeManager.prototype._customElementStateChanged): Added. Update the state and fire
+        WebInspector.DOMTreeManager.Event.CustomElementStateChanged to update the node's details pane.
+        * UserInterface/Models/DOMNode.js:
+        (WebInspector.DOMNode): Set the custom element state or default to "builtin". Use null when the node
+        is not an element.
+        (WebInspector.DOMNode.prototype.isCustomElement): Added. Returns true if this is a successfully
+        constructed or upgraded custom element.
+        (WebInspector.DOMNode.prototype.customElementState): Added.
+        (WebInspector.DOMNode.CustomElementState): Added.
+        * UserInterface/Protocol/DOMObserver.js:
+        (WebInspector.DOMObserver.prototype.customElementStateChanged): Added.
+        * UserInterface/Protocol/RemoteObject.js:
+        (WebInspector.RemoteObject.prototype.getProperty): Added. Retrieves the property of a given name from
+        the remote backend.
+        * UserInterface/Views/DOMNodeDetailsSidebarPanel.js:
+        (WebInspector.DOMNodeDetailsSidebarPanel): Call _customElementStateChanged when the custom element
+        state changes by listening to WebInspector.DOMTreeManager.Event.CustomElementStateChanged.
+        (WebInspector.DOMNodeDetailsSidebarPanel.prototype.layout):
+        (WebInspector.DOMNodeDetailsSidebarPanel.prototype._refreshIdentity): Extracted from layout.
+        (WebInspector.DOMNodeDetailsSidebarPanel.prototype._customElementStateChanged): Added. 
+        (WebInspector.DOMNodeDetailsSidebarPanel.prototype._nodeTypeDisplayName): Include the custom element
+        state when it's not a builtin element (_customElementState returns null in that case).
+        (WebInspector.DOMNodeDetailsSidebarPanel.prototype._customElementState): Get the localized string for
+        each custom element state.
+        * UserInterface/Views/DOMTreeElement.js:
+        (WebInspector.DOMTreeElement.prototype._populateNodeContextMenu): Add "Jump to Definition" item in the
+        context menu of an element when it's a successfully constructed or upgraded custom element.
+
+2016-10-31  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Shadow DOM scoped styles are missing
+        https://bugs.webkit.org/show_bug.cgi?id=164247
+        <rdar://problem/29035061>
+
+        Reviewed by Antti Koivisto.
+
+        * UserInterface/Models/DOMNodeStyles.js:
+        (WebInspector.DOMNodeStyles.prototype.refresh.fetchedInlineStyles):
+        Fix incorrect WrapperPromise usage.
+
+2016-10-31  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Arrows for Styles scope bar item are misaligned
+        https://bugs.webkit.org/show_bug.cgi?id=164159
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/ScopeRadioButtonNavigationItem.css:
+        (.scope-radio-button-navigation-item > .scope-radio-button-item-select:focus):
+        (.scope-radio-button-navigation-item > .arrows):
+
+2016-10-31  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Entering ":n" in Open Resource Dialog, where n > number of lines, should jump to the last line
+        https://bugs.webkit.org/show_bug.cgi?id=160840
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TextEditor.js:
+        (WebInspector.TextEditor.prototype.revealPosition):
+        Since it is possible for the given position to be outside the bounds of the CodeMirror
+        instance, wait to get the line handler for the highlight animation until we have constrained
+        the position value.
+
 2016-10-28  Devin Rousso  <dcrousso+webkit@gmail.com>
 
         Web Inspector: Preferences for Text Editor behavior

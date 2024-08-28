@@ -23,13 +23,11 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PageThrottler_h
-#define PageThrottler_h
+#pragma once
 
+#include "ActivityState.h"
 #include "Timer.h"
-
 #include "UserActivity.h"
-#include "ViewState.h"
 #include <wtf/RefCounter.h>
 
 namespace WebCore {
@@ -75,5 +73,4 @@ private:
     PageActivityCounter m_pageLoadActivityCounter;
 };
 
-}
-#endif
+} // namespace WebCore

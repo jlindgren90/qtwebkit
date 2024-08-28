@@ -442,6 +442,7 @@ Internals::Internals(Document& document)
 
 #if ENABLE(MEDIA_STREAM)
     setMockMediaCaptureDevicesEnabled(true);
+    WebCore::Settings::setMediaCaptureRequiresSecureConnection(false);
 #endif
 
 #if ENABLE(WEB_RTC)
@@ -1095,6 +1096,30 @@ ExceptionOr<void> Internals::setScrollViewPosition(int x, int y)
     frameView.setConstrainsScrollingToContentEdge(constrainsScrollingToContentEdgeOldValue);
 
     return { };
+}
+
+ExceptionOr<Ref<ClientRect>> Internals::layoutViewportRect()
+{
+    Document* document = contextDocument();
+    if (!document || !document->frame())
+        return Exception { INVALID_ACCESS_ERR };
+
+    document->updateLayoutIgnorePendingStylesheets();
+
+    auto& frameView = *document->view();
+    return ClientRect::create(frameView.layoutViewportRect());
+}
+
+ExceptionOr<Ref<ClientRect>> Internals::visualViewportRect()
+{
+    Document* document = contextDocument();
+    if (!document || !document->frame())
+        return Exception { INVALID_ACCESS_ERR };
+
+    document->updateLayoutIgnorePendingStylesheets();
+
+    auto& frameView = *document->view();
+    return ClientRect::create(frameView.visualViewportRect());
 }
 
 ExceptionOr<void> Internals::setViewBaseBackgroundColor(const String& colorValue)
@@ -2130,6 +2155,15 @@ ExceptionOr<String> Internals::pageSizeAndMarginsInPixels(int pageNumber, int wi
         return Exception { INVALID_ACCESS_ERR };
 
     return PrintContext::pageSizeAndMarginsInPixels(frame(), pageNumber, width, height, marginTop, marginRight, marginBottom, marginLeft);
+}
+
+ExceptionOr<float> Internals::pageScaleFactor() const
+{
+    Document* document = contextDocument();
+    if (!document || !document->page())
+        return Exception { INVALID_ACCESS_ERR };
+
+    return document->page()->pageScaleFactor();
 }
 
 ExceptionOr<void> Internals::setPageScaleFactor(float scaleFactor, int x, int y)

@@ -1,3 +1,692 @@
+2016-11-02  Brent Fulgham  <bfulgham@apple.com>
+
+        REGRESSION(r203289):Assertion in MathOperator::stretchTo() on Wikipedia Page
+        https://bugs.webkit.org/show_bug.cgi?id=162933
+        <rdar://problem/28570590>
+
+        Reviewed by Dean Jackson.
+
+        * mathml/empty-mo-expected.txt: Added.
+        * mathml/empty-mo.html: Added.
+
+2016-11-01  Dean Jackson  <dino@apple.com>
+
+        Filter functions grayscale/invert/opacity/sepia should clamp values over 100%, not fail
+        https://bugs.webkit.org/show_bug.cgi?id=164310
+        <rdar://problems/29057705>
+
+        Reviewed by Sam Weinig.
+
+        Some of our tests were incorrectly suggesting values over 100% should fail.
+
+        * css3/filters/backdrop/backdropfilter-property-parsing-invalid-expected.txt:
+        * css3/filters/backdrop/backdropfilter-property-parsing-invalid.html:
+        * css3/filters/filter-property-parsing-expected.txt:
+        * css3/filters/filter-property-parsing-invalid-expected.txt:
+        * css3/filters/filter-property-parsing-invalid.html:
+        * css3/filters/filter-property-parsing.html:
+
+2016-11-02  Brent Fulgham  <bfulgham@apple.com>
+
+        WebKit nullptr dereference Archive Subframe
+        https://bugs.webkit.org/show_bug.cgi?id=164281
+        <rdar://problem/28943006>
+
+        Reviewed by Andy Estes.
+
+        * fast/dom/crash-with-bad-url-expected.txt: Added.
+        * fast/dom/crash-with-bad-url.html: Added.
+
+2016-11-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking media/modern-media-controls/scrubber-support/scrubber-support-drag.html as flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=164328
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-11-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Test gardening for media/modern-media-controls.
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-11-02  Youenn Fablet  <youenn@apple.com>
+
+        REGRESSION(r207753-207755): ASSERTION FAILED: m_parsedStyleSheetCache->isInMemoryCache()
+        https://bugs.webkit.org/show_bug.cgi?id=163905
+
+        Reviewed by Antti Koivisto.
+
+        * http/tests/security/cached-cross-origin-shared-css-stylesheet-expected.txt: Added.
+        * http/tests/security/cached-cross-origin-shared-css-stylesheet.html: Added.
+
+2016-11-02  Manuel Rego Casasnovas  <rego@igalia.com>
+
+        [css-grid] mimax(auto, <flex>) should be serialized as <flex>
+        https://bugs.webkit.org/show_bug.cgi?id=164316
+
+        Reviewed by Sergio Villar Senin.
+
+        Add new test case to verify it. We can only check it
+        using grid-auto-columns|rows, because grid-template-columns|rows
+        is serialized to the used breadth.
+
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set-expected.txt:
+        * fast/css-grid-layout/grid-auto-columns-rows-get-set.html:
+
+2016-11-02  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Readable Streams API] Enable creation of ReadableByteStreamController
+        https://bugs.webkit.org/show_bug.cgi?id=164014
+
+        Reviewed by Youenn Fablet.
+
+        Added test to check behaviour when using ReadableByteStreamController. 
+        Tests are also performed with Workers.
+
+        * TestExpectations:
+        * streams/readable-byte-stream-controller-expected.txt: Added.
+        * streams/readable-byte-stream-controller.html: Added.
+        * streams/readable-byte-stream-controller.js: Added.
+
+2016-11-02  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: fullscreen toggle support
+        https://bugs.webkit.org/show_bug.cgi?id=163728
+        <rdar://problem/27989486>
+
+        Reviewed by Darin Adler.
+
+        Adding new tests to check that clicking on the fullscreen button enters fullscreen and
+        that the fullscreen button is enabled when fullscreen is supported.
+
+        * media/modern-media-controls/fullscreen-support/fullscreen-support-click-expected.txt: Added.
+        * media/modern-media-controls/fullscreen-support/fullscreen-support-click.html: Added.
+        * media/modern-media-controls/fullscreen-support/fullscreen-support-enabled-expected.txt: Added.
+        * media/modern-media-controls/fullscreen-support/fullscreen-support-enabled.html: Added.
+        * platform/ios-simulator/TestExpectations:
+
+2016-11-02  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: PiP support
+        https://bugs.webkit.org/show_bug.cgi?id=163730
+        <rdar://problem/27989485>
+
+        Reviewed by Dean Jackson.
+
+        Adding new picture-in-picture tests.
+
+        * media/modern-media-controls/pip-support/pip-support-click-expected.txt: Added.
+        * media/modern-media-controls/pip-support/pip-support-click.html: Added.
+        * media/modern-media-controls/pip-support/pip-support-enabled-expected.txt: Added.
+        * media/modern-media-controls/pip-support/pip-support-enabled.html: Added.
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-11-01  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support IDBIndex getAll/getAllKeys.
+        <rdar://problem/28806933> and https://bugs.webkit.org/show_bug.cgi?id=164294
+
+        Reviewed by Alex Christensen.
+
+        * resources/js-test.js:
+        (areObjectsEqual):
+
+        * storage/indexeddb/modern/idbindex-getall-1-expected.txt: Added.
+        * storage/indexeddb/modern/idbindex-getall-1-private-expected.txt: Added.
+        * storage/indexeddb/modern/idbindex-getall-1-private.html: Added.
+        * storage/indexeddb/modern/idbindex-getall-1.html: Added.
+        * storage/indexeddb/modern/idbindex-getallkeys-1-expected.txt: Added.
+        * storage/indexeddb/modern/idbindex-getallkeys-1-private-expected.txt: Added.
+        * storage/indexeddb/modern/idbindex-getallkeys-1-private.html: Added.
+        * storage/indexeddb/modern/idbindex-getallkeys-1.html: Added.
+        * storage/indexeddb/modern/resources/idbindex-getall-1.js: Added.
+
+2016-11-01  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: Airplay support
+        https://bugs.webkit.org/show_bug.cgi?id=163729
+        <rdar://problem/27989484>
+
+        Reviewed by Dean Jackson.
+
+        Adding a new test to check that the AirPlay button in the media controls correctly shows
+        the availability of AirPlay routes and whether the media is playing via AirPlay.
+
+        * media/modern-media-controls/airplay-support/airplay-support-expected.txt: Added.
+        * media/modern-media-controls/airplay-support/airplay-support.html: Added.
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-11-01  Dean Jackson  <dino@apple.com>
+
+        Remove WebKitCSSFilterValue to make Hyatt happy
+        https://bugs.webkit.org/show_bug.cgi?id=164289
+        <rdar://problems/29050973>
+
+        Reviewed by Simon Fraser.
+
+        Update the filters tests now that WebKitCSSFilterValue no longer exists.
+        Unfortunately CSSFunctionValue isn't exposed to the Web, so we just
+        rely on the cssText of the resulting CSSStyleDeclaration.
+
+        I also moved all the script-tests into the HTML files, since there is
+        no point them being separate.
+
+        * css3/filters/backdrop/backdropfilter-property-computed-style-expected.txt:
+        * css3/filters/backdrop/backdropfilter-property-computed-style.html:
+        * css3/filters/backdrop/backdropfilter-property-parsing-expected.txt:
+        * css3/filters/backdrop/backdropfilter-property-parsing-invalid.html:
+        * css3/filters/backdrop/backdropfilter-property-parsing.html:
+        * css3/filters/backdrop/backdropfilter-property.html:
+        * css3/filters/backdrop/script-tests/backdropfilter-property-computed-style.js: Removed.
+        * css3/filters/backdrop/script-tests/backdropfilter-property-parsing-invalid.js: Removed.
+        * css3/filters/backdrop/script-tests/backdropfilter-property-parsing.js: Removed.
+        * css3/filters/backdrop/script-tests/backdropfilter-property.js: Removed.
+        * css3/filters/effect-reference-delete-crash.html:
+        * css3/filters/effect-reference-reset-style-delete-crash.html:
+        * css3/filters/filter-property-computed-style-expected.txt:
+        * css3/filters/filter-property-computed-style.html:
+        * css3/filters/filter-property-parsing-expected.txt:
+        * css3/filters/filter-property-parsing-invalid.html:
+        * css3/filters/filter-property-parsing.html:
+        * css3/filters/filter-property.html:
+        * css3/filters/script-tests/TEMPLATE.html: Removed.
+        * css3/filters/script-tests/effect-reference-delete-crash.js: Removed.
+        * css3/filters/script-tests/effect-reference-reset-style-delete-crash.js: Removed.
+        * css3/filters/script-tests/filter-property-computed-style.js: Removed.
+        * css3/filters/script-tests/filter-property-parsing-invalid.js: Removed.
+        * css3/filters/script-tests/filter-property-parsing.js: Removed.
+        * css3/filters/script-tests/filter-property.js: Removed.
+        * css3/filters/script-tests/unprefixed.js: Removed.
+        * css3/filters/unprefixed-expected.txt:
+        * css3/filters/unprefixed.html:
+
+2016-11-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/preloader/image-srcset.html as flaky on macOS.
+        https://bugs.webkit.org/show_bug.cgi?id=164277
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-11-01  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] restrict media capture secure connections
+        https://bugs.webkit.org/show_bug.cgi?id=164234
+        <rdar://problem/28944906>
+
+        Reviewed by Alex Christensen.
+
+        * http/tests/ssl/media-stream: Added.
+        * http/tests/ssl/media-stream/get-user-media-different-host-expected.txt: Added.
+        * http/tests/ssl/media-stream/get-user-media-different-host.html: Added.
+        * http/tests/ssl/media-stream/get-user-media-nested-expected.txt: Added.
+        * http/tests/ssl/media-stream/get-user-media-nested.html: Added.
+        * http/tests/ssl/media-stream/get-user-media-secure-connection-expected.txt: Added.
+        * http/tests/ssl/media-stream/get-user-media-secure-connection.html: Added.
+        * http/tests/ssl/media-stream/resources: Added.
+        * http/tests/ssl/media-stream/resources/get-user-media-frame.html: Added.
+        * http/tests/ssl/media-stream/resources/get-user-media.js: Added.
+        (else.createURL):
+        (createURL):
+
+2016-11-01  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Replace sublists inside DOM-related model objects with WI.Collection
+        https://bugs.webkit.org/show_bug.cgi?id=164098
+
+        Reviewed by Timothy Hatcher.
+
+        * http/tests/inspector/console/cross-domain-inspected-node-access-expected.txt:
+        * http/tests/inspector/console/cross-domain-inspected-node-access.html:
+        * http/tests/inspector/dom/disconnect-dom-tree-after-main-frame-navigation.html:
+        * inspector/css/manager-preferredInspectorStyleSheetForFrame-expected.txt:
+        * inspector/css/manager-preferredInspectorStyleSheetForFrame.html:
+        * inspector/dom/content-flow-list.html:
+        * inspector/dom/highlightFrame-expected.txt:
+        * inspector/dom/highlightFrame.html:
+        * inspector/dom/highlightNode-expected.txt:
+        * inspector/dom/highlightNode.html:
+        * inspector/dom/highlightSelector-expected.txt:
+        * inspector/dom/highlightSelector.html:
+        * inspector/model/frame-extra-scripts-expected.txt:
+        * inspector/model/frame-extra-scripts.html:
+        Change functionality to support WebInspector.Collection methods.
+
+2016-11-01  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: Placard support
+        https://bugs.webkit.org/show_bug.cgi?id=163731
+        <rdar://problem/28869598>
+
+        Reviewed by Dean Jackson.
+
+        Adding two new tests to check that the picture-in-picture and AirPlay placards are shown
+        based on the media presentation mode.
+
+        * media/modern-media-controls/placard-support/placard-support-airplay-expected.txt: Added.
+        * media/modern-media-controls/placard-support/placard-support-airplay.html: Added.
+        * media/modern-media-controls/placard-support/placard-support-pip-expected.txt: Added.
+        * media/modern-media-controls/placard-support/placard-support-pip.html: Added.
+        * platform/ios-simulator/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-11-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/storage/domStorage-events.html as flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=164278
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-11-01  Alex Christensen  <achristensen@webkit.org>
+
+        Percent-encode non-ASCII code points in hosts of URLs with unrecognized schemes
+        https://bugs.webkit.org/show_bug.cgi?id=164290
+
+        Reviewed by Tim Horton.
+
+        * fast/url/host-lowercase-per-scheme-expected.txt:
+        * fast/url/safari-extension-expected.txt:
+        * fetch/fetch-url-serialization-expected.txt:
+
+2016-11-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/css/pseudo-element-matches.html as flaky on mac-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=163932
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk2/TestExpectations:
+
+2016-11-01  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Fix double remove of ResourceCollection if type changes
+        https://bugs.webkit.org/show_bug.cgi?id=164268
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/unit-tests/resource-collection-expected.txt:
+        Fixed test to not expect a double remove.
+
+2016-11-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking inspector/storage/domStorage-events.html as flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=164278
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-11-01  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] load all media controller scripts and styles automatically
+        https://bugs.webkit.org/show_bug.cgi?id=164271
+
+        Reviewed by Dean Jackson.
+
+        We now load all media controller assets with the inclusion of a single script,
+        obtaining the list of JS files to include through the same file used to build
+        the modern-media-controls module, so that we don't need to specify this in two places.
+
+        * http/tests/media/modern-media-controls/skip-back-support/skip-back-support-button-click.html:
+        * media/modern-media-controls/elapsed-time-support/elapsed-time-support.html:
+        * media/modern-media-controls/media-controller/media-controller-constructor.html:
+        * media/modern-media-controls/media-controller/media-controller-resize.html:
+        * media/modern-media-controls/mute-support/mute-support-button-click.html:
+        * media/modern-media-controls/mute-support/mute-support-media-api.html:
+        * media/modern-media-controls/mute-support/mute-support-muted.html:
+        * media/modern-media-controls/playback-support/playback-support-autoplay.html:
+        * media/modern-media-controls/playback-support/playback-support-button-click.html:
+        * media/modern-media-controls/playback-support/playback-support-media-api.html:
+        * media/modern-media-controls/remaining-time-support/remaining-time-support.html:
+        * media/modern-media-controls/resources/media-controls-loader.js: Added.
+        * media/modern-media-controls/scrubber-support/scrubber-support-click.html:
+        * media/modern-media-controls/scrubber-support/scrubber-support-drag.html:
+        * media/modern-media-controls/scrubber-support/scrubber-support-media-api.html:
+        * media/modern-media-controls/start-support/start-support-audio.html:
+        * media/modern-media-controls/start-support/start-support-autoplay.html:
+        * media/modern-media-controls/start-support/start-support-click-to-start.html:
+        * media/modern-media-controls/start-support/start-support-error.html:
+        * media/modern-media-controls/start-support/start-support-fullscreen.html:
+        * media/modern-media-controls/start-support/start-support-manual-play.html:
+        * media/modern-media-controls/start-support/start-support-no-source.html:
+        * media/modern-media-controls/volume-support/volume-support-click.html:
+        * media/modern-media-controls/volume-support/volume-support-drag.html:
+        * media/modern-media-controls/volume-support/volume-support-media-api-mute.html:
+        * media/modern-media-controls/volume-support/volume-support-media-api.html:
+
+2016-11-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Web Inspector: Add the support for custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=164266
+
+        Reviewed by Joseph Pecoraro.
+
+        Added a Inspector protocol test for CustomElementState.
+
+        * inspector/dom/customElementState-expected.txt: Added.
+        * inspector/dom/customElementState.html: Added.
+
+2016-10-31  Simon Fraser  <simon.fraser@apple.com>
+
+        Add basic visual/layout viewport support for fixed position layout
+        https://bugs.webkit.org/show_bug.cgi?id=164261
+
+        Reviewed by Dean Jackson.
+
+        * fast/visual-viewport/nonzoomed-rects-expected.txt: Added.
+        * fast/visual-viewport/nonzoomed-rects.html: Added.
+        * fast/visual-viewport/zoomed-fixed-expected.txt: Added.
+        * fast/visual-viewport/zoomed-fixed-scroll-down-then-up-expected.txt: Added.
+        * fast/visual-viewport/zoomed-fixed-scroll-down-then-up.html: Added.
+        * fast/visual-viewport/zoomed-fixed.html: Added.
+        * fast/visual-viewport/zoomed-rects-expected.txt: Added.
+        * fast/visual-viewport/zoomed-rects.html: Added.
+        * platform/ios-simulator/fast/visual-viewport/nonzoomed-rects-expected.txt: Added.
+        * platform/ios-simulator/fast/visual-viewport/zoomed-fixed-scroll-down-then-up-expected.txt: Added.
+        * platform/ios-simulator/fast/visual-viewport/zoomed-rects-expected.txt: Added.
+        * resources/js-test-pre.js:
+        (evalAndLog):
+        (evalAndLogResult):
+        (shouldEvaluateTo):
+
+2016-10-29  Filip Pizlo  <fpizlo@apple.com>
+
+        JSC should support SharedArrayBuffer
+        https://bugs.webkit.org/show_bug.cgi?id=163986
+
+        Reviewed by Keith Miller.
+        
+        Adding tests. This is a work in progress.
+
+        * workers/sab: Added.
+        * workers/sab/simple-worker-1.js: Added.
+        (onmessage):
+        * workers/sab/simple-worker-2.js: Added.
+        (onmessage):
+        * workers/sab/simple.html: Added.
+
+2016-10-31  Simon Fraser  <simon.fraser@apple.com>
+
+        Make UIScriptController::zoomToScale() work on Mac WK1 and WK2
+        https://bugs.webkit.org/show_bug.cgi?id=164238
+
+        Reviewed by Dean Jackson.
+
+        * fast/zooming/uiscript-zooming-expected.txt: Added.
+        * fast/zooming/uiscript-zooming.html: Added.
+        * platform/ios-simulator-wk1/TestExpectations:
+
+2016-10-31  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove test workaround now that original issue is fixed
+        https://bugs.webkit.org/show_bug.cgi?id=164255
+
+        Reviewed by Saam Barati.
+
+        * inspector/debugger/resources/log-pause-location.js:
+        (TestPage.registerInitializer.window.logResolvedBreakpointLinesWithContext):
+        (TestPage.registerInitializer.window.logLinesWithContext):
+        (TestPage.registerInitializer.String.prototype.myPadStart): Deleted.
+        Use the real String.prototype.padStart now that it is fixed.
+
+2016-10-31  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Enable custom elements by default everywhere
+        https://bugs.webkit.org/show_bug.cgi?id=164242
+
+        Reviewed by Antti Koivisto.
+
+        Enable tests for custom elements everywhere. Also removed the superfluous expectations for shadow DOM tests.
+
+        * TestExpectations:
+        * platform/efl/TestExpectations:
+        * platform/gtk/TestExpectations:
+        * platform/mac/TestExpectations:
+        * platform/win/TestExpectations:
+
+2016-10-31  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207967.
+
+        This change seems to be the cause of at least one LayoutTest
+        becoming flaky.
+
+        Reverted changeset:
+
+        "REGRESSION(r207753-207755): ASSERTION FAILED:
+        m_parsedStyleSheetCache->isInMemoryCache()"
+        https://bugs.webkit.org/show_bug.cgi?id=163905
+        http://trac.webkit.org/changeset/207967
+
+2016-10-31  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Shadow DOM scoped styles are missing
+        https://bugs.webkit.org/show_bug.cgi?id=164247
+        <rdar://problem/29035061>
+
+        Reviewed by Antti Koivisto.
+
+        * inspector/css/shadow-scoped-style-expected.txt: Added.
+        * inspector/css/shadow-scoped-style.html: Added.
+
+2016-10-31  Nan Wang  <n_wang@apple.com>
+
+        AX: aria-sort is not exposed on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=164245
+
+        Reviewed by Chris Fleizach.
+
+        * accessibility/ios-simulator/aria-sort-ios-expected.txt: Added.
+        * accessibility/ios-simulator/aria-sort-ios.html: Added.
+
+2016-10-31  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r208178.
+
+        The test added with this change fails or times out on macOS
+        and iOS.
+
+        Reverted changeset:
+
+        "[Modern Media Controls] Media Controller: Airplay support"
+        https://bugs.webkit.org/show_bug.cgi?id=163729
+        http://trac.webkit.org/changeset/208178
+
+2016-10-31  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r208182.
+
+        Both of the tests added with this change time out on macOS
+        Release.
+
+        Reverted changeset:
+
+        "[Modern Media Controls] Media Controller: Placard support"
+        https://bugs.webkit.org/show_bug.cgi?id=163731
+        http://trac.webkit.org/changeset/208182
+
+2016-10-31  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support IDBObjectStore getAll/getAllKeys.
+        <rdar://problem/28806934> and https://bugs.webkit.org/show_bug.cgi?id=164097
+
+        Reviewed by Darin Adler.
+
+        * storage/indexeddb/modern/idbobjectstore-getall-1-expected.txt: Added.
+        * storage/indexeddb/modern/idbobjectstore-getall-1-private-expected.txt: Added.
+        * storage/indexeddb/modern/idbobjectstore-getall-1-private.html: Added.
+        * storage/indexeddb/modern/idbobjectstore-getall-1.html: Added.
+        * storage/indexeddb/modern/idbobjectstore-getallkeys-1-expected.txt: Added.
+        * storage/indexeddb/modern/idbobjectstore-getallkeys-1-private-expected.txt: Added.
+        * storage/indexeddb/modern/idbobjectstore-getallkeys-1-private.html: Added.
+        * storage/indexeddb/modern/idbobjectstore-getallkeys-1.html: Added.
+        * storage/indexeddb/modern/resources/idbobjectstore-getall-1.js: Added.
+
+2016-10-31  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking two http/tests/websocket/tests/hybi tests as flaky.
+        https://bugs.webkit.org/show_bug.cgi?id=164080
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-10-31  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skipping media/modern-media-controls/volume-support/volume-support-media-api.html on ios-simulator.
+        https://bugs.webkit.org/show_bug.cgi?id=164250
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-10-31  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Changing expectation from Failure to Skip for two insertReplacementText tests on ios-simulator.
+
+        Unreviewed test gardening.
+
+        These tests will always time out on ios-simulator due to reliance upon
+        testRunner.waitUntilDone().
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-10-31  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking three modern-media-controls tests as flaky.
+
+        Unreviewed test gardening.
+
+        * TestExpectations:
+
+2016-10-31  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: Placard support
+        https://bugs.webkit.org/show_bug.cgi?id=163731
+        <rdar://problem/28869598>
+
+        Reviewed by Dean Jackson.
+
+        Adding two new tests to check that the picture-in-picture and AirPlay placards are shown
+        based on the media presentation mode.
+
+        * http/tests/media/modern-media-controls/skip-back-support/skip-back-support-button-click.html:
+        * media/modern-media-controls/elapsed-time-support/elapsed-time-support.html:
+        * media/modern-media-controls/media-controller/media-controller-constructor.html:
+        * media/modern-media-controls/media-controller/media-controller-resize.html:
+        * media/modern-media-controls/mute-support/mute-support-button-click.html:
+        * media/modern-media-controls/mute-support/mute-support-media-api.html:
+        * media/modern-media-controls/mute-support/mute-support-muted.html:
+        * media/modern-media-controls/placard-support/placard-support-airplay-expected.txt: Added.
+        * media/modern-media-controls/placard-support/placard-support-airplay.html: Added.
+        * media/modern-media-controls/placard-support/placard-support-pip-expected.txt: Added.
+        * media/modern-media-controls/placard-support/placard-support-pip.html: Added.
+        * media/modern-media-controls/playback-support/playback-support-autoplay.html:
+        * media/modern-media-controls/playback-support/playback-support-button-click.html:
+        * media/modern-media-controls/playback-support/playback-support-media-api.html:
+        * media/modern-media-controls/remaining-time-support/remaining-time-support.html:
+        * media/modern-media-controls/scrubber-support/scrubber-support-click.html:
+        * media/modern-media-controls/scrubber-support/scrubber-support-drag.html:
+        * media/modern-media-controls/scrubber-support/scrubber-support-media-api.html:
+        * media/modern-media-controls/start-support/start-support-audio.html:
+        * media/modern-media-controls/start-support/start-support-autoplay.html:
+        * media/modern-media-controls/start-support/start-support-click-to-start.html:
+        * media/modern-media-controls/start-support/start-support-error.html:
+        * media/modern-media-controls/start-support/start-support-fullscreen.html:
+        * media/modern-media-controls/start-support/start-support-manual-play.html:
+        * media/modern-media-controls/start-support/start-support-no-source.html:
+        * media/modern-media-controls/volume-support/volume-support-click.html:
+        * media/modern-media-controls/volume-support/volume-support-drag.html:
+        * media/modern-media-controls/volume-support/volume-support-media-api-mute.html:
+        * media/modern-media-controls/volume-support/volume-support-media-api.html:
+        * LayoutTests/platform/ios-simulator/TestExpectations:
+        * LayoutTests/platform/mac/TestExpectations:
+
+2016-10-31  Simon Fraser  <simon.fraser@apple.com>
+
+        Implement IntersectionObserver
+        https://bugs.webkit.org/show_bug.cgi?id=159475
+
+        Reviewed by Ryosuke Niwa.
+        
+        Basic interface tests.
+
+        * intersection-observer/intersection-observer-entry-interface-expected.txt: Added.
+        * intersection-observer/intersection-observer-entry-interface.html: Added.
+        * intersection-observer/intersection-observer-interface-expected.txt: Added.
+        * intersection-observer/intersection-observer-interface.html: Added.
+
+2016-10-31  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: Airplay support
+        https://bugs.webkit.org/show_bug.cgi?id=163729
+
+        Reviewed by Dean Jackson.
+
+        Adding a new test to check that the AirPlay button in the media controls correctly shows the availability
+        of AirPlay routes and whether the media is playing via AirPlay.
+
+        * http/tests/media/modern-media-controls/skip-back-support/skip-back-support-button-click.html:
+        * media/modern-media-controls/airplay-support/airplay-support-expected.txt: Added.
+        * media/modern-media-controls/airplay-support/airplay-support.html: Added.
+        * media/modern-media-controls/elapsed-time-support/elapsed-time-support.html:
+        * media/modern-media-controls/media-controller/media-controller-constructor.html:
+        * media/modern-media-controls/media-controller/media-controller-resize.html:
+        * media/modern-media-controls/mute-support/mute-support-button-click.html:
+        * media/modern-media-controls/mute-support/mute-support-media-api.html:
+        * media/modern-media-controls/mute-support/mute-support-muted.html:
+        * media/modern-media-controls/playback-support/playback-support-autoplay.html:
+        * media/modern-media-controls/playback-support/playback-support-button-click.html:
+        * media/modern-media-controls/playback-support/playback-support-media-api.html:
+        * media/modern-media-controls/remaining-time-support/remaining-time-support.html:
+        * media/modern-media-controls/scrubber-support/scrubber-support-click.html:
+        * media/modern-media-controls/scrubber-support/scrubber-support-drag.html:
+        * media/modern-media-controls/scrubber-support/scrubber-support-media-api.html:
+        * media/modern-media-controls/start-support/start-support-audio.html:
+        * media/modern-media-controls/start-support/start-support-autoplay.html:
+        * media/modern-media-controls/start-support/start-support-click-to-start.html:
+        * media/modern-media-controls/start-support/start-support-error.html:
+        * media/modern-media-controls/start-support/start-support-fullscreen.html:
+        * media/modern-media-controls/start-support/start-support-manual-play.html:
+        * media/modern-media-controls/start-support/start-support-no-source.html:
+        * media/modern-media-controls/volume-support/volume-support-click.html:
+        * media/modern-media-controls/volume-support/volume-support-drag.html:
+        * media/modern-media-controls/volume-support/volume-support-media-api-mute.html:
+        * media/modern-media-controls/volume-support/volume-support-media-api.html:
+        * platform/mac/TestExpectations:
+
+2016-10-31  Ryosuke Niwa  <rniwa@webkit.org>
+
+        CSSStyleDeclaration should be annotated with CEReactions
+        https://bugs.webkit.org/show_bug.cgi?id=163968
+
+        Reviewed by Antti Koivisto.
+
+        Added a W3C style testharness.js test.
+
+        * fast/custom-elements/reactions/CSSStyleDeclaration-expected.txt: Added.
+        * fast/custom-elements/reactions/CSSStyleDeclaration.html: Added.
+
+2016-10-31  Zalan Bujtas  <zalan@apple.com>
+
+        ASSERTION FAILED: !m_trailingWhitespaceWidth in WebCore::SimpleLineLayout::LineState::removeTrailingWhitespace
+        https://bugs.webkit.org/show_bug.cgi?id=164076
+
+        Reviewed by Antti Koivisto.
+
+        * fast/text/simple-line-layout-with-zero-sized-font-expected.txt: Added.
+        * fast/text/simple-line-layout-with-zero-sized-font.html: Added.
+
 2016-10-31  Nan Wang  <n_wang@apple.com>
 
         AX: iOS Voiceover does not announce previously selected value from input type="date" form field

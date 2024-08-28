@@ -555,7 +555,7 @@
     {
         "name": "Custom Elements",
         "status": {
-            "status": "In Development"
+            "status": "Done"
         },
         "url": "http://w3c.github.io/webcomponents/spec/custom/",
         "webkit-url": "https://bugs.webkit.org/show_bug.cgi?id=150225",
@@ -845,6 +845,15 @@
         "documentation-url": "https://drafts.csswg.org/css-fonts-4/",
         "specification": "CSS Fonts Level 4",
         "description": "Allows selection of variation values along fonts' exposed axes."
+    },
+    {
+        "name": "ViewportAPI",
+        "status": {
+        	"status": "Under Consideration"
+        },
+        "url": "https://github.com/WICG/ViewportAPI",
+        "description": "A proposal to add explicit APIs to the Web for querying and setting the visual viewport.",
+        "keywords": ["visual viewport", "viewport", "viewportapi"]
     },
     {
         "name": "requestIdleCallback",

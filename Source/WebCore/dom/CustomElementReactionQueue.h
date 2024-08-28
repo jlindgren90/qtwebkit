@@ -25,8 +25,6 @@
 
 #pragma once
 
-#if ENABLE(CUSTOM_ELEMENTS)
-
 #include <wtf/Forward.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/Vector.h>
@@ -53,6 +51,7 @@ public:
     static void enqueueAttributeChangedCallbackIfNeeded(Element&, const QualifiedName&, const AtomicString& oldValue, const AtomicString& newValue);
     static void enqueuePostUpgradeReactions(Element&);
 
+    bool observesStyleAttribute() const;
     void invokeAll(Element&);
     void clear();
 
@@ -104,5 +103,3 @@ private:
 };
 
 }
-
-#endif

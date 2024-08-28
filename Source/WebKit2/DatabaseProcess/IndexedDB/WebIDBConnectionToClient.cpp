@@ -34,6 +34,7 @@
 #include "WebIDBConnectionToServerMessages.h"
 #include "WebIDBResult.h"
 #include <WebCore/IDBError.h>
+#include <WebCore/IDBGetAllRecordsData.h>
 #include <WebCore/IDBGetRecordData.h>
 #include <WebCore/IDBResultData.h>
 #include <WebCore/IDBValue.h>
@@ -144,7 +145,12 @@ template<class MessageType> void WebIDBConnectionToClient::handleGetResult(const
         return;
     }
 
-    auto& blobFilePaths = resultData.getResult().value().blobFilePaths();
+    if (resultData.type() == IDBResultType::GetAllRecordsSuccess && resultData.getAllResult().type() == IndexedDB::GetAllType::Keys) {
+        send(MessageType(resultData));
+        return;
+    }
+
+    auto blobFilePaths = resultData.type() == IDBResultType::GetAllRecordsSuccess ? resultData.getAllResult().allBlobFilePaths() : resultData.getResult().value().blobFilePaths();
     if (blobFilePaths.isEmpty()) {
         send(MessageType(resultData));
         return;
@@ -163,6 +169,11 @@ template<class MessageType> void WebIDBConnectionToClient::handleGetResult(const
 void WebIDBConnectionToClient::didGetRecord(const WebCore::IDBResultData& resultData)
 {
     handleGetResult<Messages::WebIDBConnectionToServer::DidGetRecord>(resultData);
+}
+
+void WebIDBConnectionToClient::didGetAllRecords(const WebCore::IDBResultData& resultData)
+{
+    handleGetResult<Messages::WebIDBConnectionToServer::DidGetAllRecords>(resultData);
 }
 
 void WebIDBConnectionToClient::didGetCount(const WebCore::IDBResultData& resultData)
@@ -288,6 +299,11 @@ void WebIDBConnectionToClient::putOrAdd(const IDBRequestData& request, const IDB
 void WebIDBConnectionToClient::getRecord(const IDBRequestData& request, const IDBGetRecordData& getRecordData)
 {
     DatabaseProcess::singleton().idbServer().getRecord(request, getRecordData);
+}
+
+void WebIDBConnectionToClient::getAllRecords(const IDBRequestData& request, const IDBGetAllRecordsData& getAllRecordsData)
+{
+    DatabaseProcess::singleton().idbServer().getAllRecords(request, getAllRecordsData);
 }
 
 void WebIDBConnectionToClient::getCount(const IDBRequestData& request, const IDBKeyRangeData& range)

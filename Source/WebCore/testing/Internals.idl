@@ -147,6 +147,9 @@ enum UserInterfaceLayoutDirection {
 
     [MayThrowException] void setScrollViewPosition(long x, long y);
 
+    [MayThrowException] ClientRect layoutViewportRect();
+    [MayThrowException] ClientRect visualViewportRect();
+
     [MayThrowException] void setViewBaseBackgroundColor(DOMString colorValue);
 
     [MayThrowException] void setPagination(DOMString mode, long gap, optional long pageLength = 0);
@@ -285,6 +288,8 @@ enum UserInterfaceLayoutDirection {
     [MayThrowException] DOMString pageSizeAndMarginsInPixels(long pageIndex, long width, long height, long marginTop, long marginRight, long marginBottom, long marginLeft);
 
     [MayThrowException] void setPageScaleFactor(unrestricted float scaleFactor, long x, long y);
+    [MayThrowException] float pageScaleFactor();
+
     [MayThrowException] void setPageZoomFactor(unrestricted float zoomFactor);
     [MayThrowException] void setTextZoomFactor(unrestricted float zoomFactor);
 

@@ -639,6 +639,7 @@ set(JavaScriptCore_SOURCES
     runtime/ArrayConventions.cpp
     runtime/ArrayIteratorPrototype.cpp
     runtime/ArrayPrototype.cpp
+    runtime/AtomicsObject.cpp
     runtime/AsyncFunctionConstructor.cpp
     runtime/AsyncFunctionPrototype.cpp
     runtime/BasicBlockLocation.cpp
@@ -878,9 +879,11 @@ set(JavaScriptCore_SOURCES
     wasm/JSWebAssembly.cpp
     wasm/WasmB3IRGenerator.cpp
     wasm/WasmCallingConvention.cpp
+    wasm/WasmFormat.cpp
     wasm/WasmMemory.cpp
     wasm/WasmModuleParser.cpp
     wasm/WasmPlan.cpp
+    wasm/WasmValidate.cpp
 
     wasm/js/JSWebAssemblyCompileError.cpp
     wasm/js/JSWebAssemblyInstance.cpp

@@ -3460,9 +3460,7 @@ sub GenerateImplementation
             }
 
             if ($attribute->extendedAttributes->{CEReactions}) {
-                push(@implContent, "#if ENABLE(CUSTOM_ELEMENTS)\n");
                 push(@implContent, "    CustomElementReactionStack customElementReactionStack;\n");
-                push(@implContent, "#endif\n");
                 $implIncludes{"CustomElementReactionQueue.h"} = 1;
             }
 
@@ -3519,9 +3517,7 @@ sub GenerateImplementation
                         my $forwardedAttribute = $codeGenerator->GetAttributeFromInterface($interface, $type->name, $putForwards);
 
                         if ($forwardedAttribute->extendedAttributes->{CEReactions}) {
-                            push(@implContent, "#if ENABLE(CUSTOM_ELEMENTS)\n");
                             push(@implContent, "    CustomElementReactionStack customElementReactionStack;\n");
-                            push(@implContent, "#endif\n");
                             $implIncludes{"CustomElementReactionQueue.h"} = 1;
                         }
 
@@ -3748,9 +3744,7 @@ END
             $implIncludes{"<runtime/Error.h>"} = 1;
 
             if ($function->extendedAttributes->{CEReactions}) {
-                push(@implContent, "#if ENABLE(CUSTOM_ELEMENTS)\n");
                 push(@implContent, "    CustomElementReactionStack customElementReactionStack;\n");
-                push(@implContent, "#endif\n");
                 $implIncludes{"CustomElementReactionQueue.h"} = 1;
             }
 
@@ -5145,6 +5139,8 @@ sub ShouldPassWrapperByReference
 {
     my ($parameter, $interface) = @_;
 
+    return 0 if $codeGenerator->IsCallbackInterface($parameter->type);
+
     my $nativeType = GetNativeType($interface, $parameter->type);
     return $codeGenerator->ShouldPassWrapperByReference($parameter) && (substr($nativeType, -1) eq '*' || $nativeType =~ /^RefPtr/);
 }
@@ -5312,7 +5308,7 @@ sub JSValueToNative
 
     AddToImplIncludesForIDLType($type, $conditional);
 
-    return ("to@{[$type->name]}($value)", 1) if $codeGenerator->IsTypedArrayType($type);
+    return ("toUnshared@{[$type->name]}($value)", 1) if $codeGenerator->IsTypedArrayType($type);
     return ("parseEnumeration<" . GetEnumerationClassName($type, $interface) . ">($stateReference, $value)", 1) if $codeGenerator->IsEnumType($type);
 
     # FIXME: EventListener should be a callback interface.

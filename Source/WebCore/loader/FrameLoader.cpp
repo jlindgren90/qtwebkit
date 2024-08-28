@@ -593,7 +593,7 @@ void FrameLoader::clear(Document* newDocument, bool clearWindowProperties, bool 
 
     // Do this after detaching the document so that the unload event works.
     if (clearWindowProperties) {
-        InspectorInstrumentation::frameWindowDiscarded(&m_frame, m_frame.document()->domWindow());
+        InspectorInstrumentation::frameWindowDiscarded(m_frame, m_frame.document()->domWindow());
         m_frame.document()->domWindow()->resetUnlessSuspendedForDocumentSuspension();
         m_frame.script().clearWindowShellsNotMatchingDOMWindow(newDocument->domWindow(), m_frame.document()->pageCacheState() == Document::AboutToEnterPageCache);
     }
@@ -869,7 +869,8 @@ void FrameLoader::loadURLIntoChildFrame(const URL& url, const String& referer, F
     ASSERT(childFrame);
 
 #if ENABLE(WEB_ARCHIVE) || ENABLE(MHTML)
-    auto subframeArchive = activeDocumentLoader()->popArchiveForSubframe(childFrame->tree().uniqueName(), url);
+    auto activeLoader = activeDocumentLoader();
+    auto subframeArchive = activeLoader ? activeLoader->popArchiveForSubframe(childFrame->tree().uniqueName(), url) : nullptr;
     if (subframeArchive) {
         childFrame->loader().loadArchive(WTFMove(subframeArchive));
         return;

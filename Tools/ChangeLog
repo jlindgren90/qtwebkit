@@ -1,3 +1,257 @@
+2016-11-02  Olivier Blin  <olivier.blin@softathome.com>
+
+        [GTK] Use libgcrypt instead of GnuTLS for CryptoDigest and SubtleCrypto HMAC implementation
+        https://bugs.webkit.org/show_bug.cgi?id=163125
+
+        Reviewed by Michael Catanzaro.
+
+        * gtk/install-dependencies: List libgcrypt for WebKitGTK+ build, and gnutls for jhbuild only.
+        gnutls is useful for glib-networking in jhbuild.
+
+2016-11-02  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        NetworkSession: Network process crash when converting main resource to download
+        https://bugs.webkit.org/show_bug.cgi?id=164220
+
+        Reviewed by Alex Christensen.
+
+        Split /webkit2/Downloads/policy-decision-download in two, one to test the full load when main resource is
+        converted to a download and another one to test the cancellation as the test was doing before. When doing the
+        full load, delay a bit the decide destination to ensure the load is aborted before the data task has became a
+        download.
+
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestDownloads.cpp:
+        (testPolicyResponseDownload):
+        (testPolicyResponseDownloadCancel):
+        (beforeAll):
+
+2016-11-01  Alex Christensen  <achristensen@webkit.org>
+
+        Remove PassRefPtr from DumpRenderTree
+        https://bugs.webkit.org/show_bug.cgi?id=164307
+
+        Reviewed by Sam Weinig.
+
+        * DumpRenderTree/PixelDumpSupport.h:
+        * DumpRenderTree/TestRunner.cpp:
+        (TestRunner::create):
+        * DumpRenderTree/TestRunner.h:
+        * DumpRenderTree/cg/PixelDumpSupportCG.cpp:
+        (createBitmapContext):
+        * DumpRenderTree/cg/PixelDumpSupportCG.h:
+        (BitmapContext::createByAdoptingBitmapAndContext):
+        * DumpRenderTree/ios/PixelDumpSupportIOS.mm:
+        (createBitmapContextFromWebView):
+        * DumpRenderTree/mac/PixelDumpSupportMac.mm:
+        (createBitmapContextFromWebView):
+        (createPagedBitmapContext):
+        * DumpRenderTree/mac/TestRunnerMac.mm:
+        * DumpRenderTree/win/PixelDumpSupportWin.cpp:
+        (createBitmapContextFromWebView):
+        * DumpRenderTree/win/TextInputController.h:
+
+2016-11-02  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Use GTestDBus instead of dbus-launch in WebKitTestBus.cpp
+        https://bugs.webkit.org/show_bug.cgi?id=161481
+
+        Reviewed by Michael Catanzaro.
+
+        * TestWebKitAPI/gtk/WebKit2Gtk/WebKitTestBus.cpp:
+        (WebKitTestBus::WebKitTestBus):
+        (WebKitTestBus::~WebKitTestBus):
+        (WebKitTestBus::run):
+        (WebKitTestBus::getOrCreateConnection):
+        (WebKitTestBus::createProxy):
+        * TestWebKitAPI/gtk/WebKit2Gtk/WebKitTestBus.h:
+
+2016-11-02  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Fix /webkit2/WebKitWebContext/get-plugins in the bots after r208273.
+
+        The test fails now if WEBKIT_TEST_PLUGIN_DIR contains symlinks, which is the case of the GTK+ bots.
+
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestWebKitWebContext.cpp:
+        (testWebContextGetPlugins): Use realpath with WEBKIT_TEST_PLUGIN_DIR when building the expected plugins path.
+
+2016-11-02  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Readable Streams API] Enable creation of ReadableByteStreamController
+        https://bugs.webkit.org/show_bug.cgi?id=164014
+
+        Reviewed by Youenn Fablet.
+
+        Enable the byte stream part of Readable Streams API by default.
+
+        * Scripts/webkitperl/FeatureList.pm:
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-11-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Remove CUSTOM_ELEMENTS build flag
+        https://bugs.webkit.org/show_bug.cgi?id=164267
+
+        Reviewed by Antti Koivisto.
+
+        Removed the build flag.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-11-01  Alex Christensen  <achristensen@webkit.org>
+
+        Percent-encode non-ASCII code points in hosts of URLs with unrecognized schemes
+        https://bugs.webkit.org/show_bug.cgi?id=164290
+
+        Reviewed by Tim Horton.
+
+        * TestWebKitAPI/Tests/WebCore/URLParser.cpp:
+        (TestWebKitAPI::checkRelativeURL):
+        (TestWebKitAPI::checkURLDifferences):
+        (TestWebKitAPI::checkRelativeURLDifferences):
+        Move helper functions to the top so I can use them from any tests.
+        (TestWebKitAPI::shouldFail):
+        (TestWebKitAPI::checkURL):
+        (TestWebKitAPI::TEST_F):
+
+2016-11-01  Hyowon Kim  <hw1008.kim@samsung.com>
+
+        [GTK] Failed to generate GeoClue2Interface files.
+        https://bugs.webkit.org/show_bug.cgi?id=164270
+
+        Reviewed by Michael Catanzaro.
+
+        To generate codes for D-Bus interfaces,
+        geoclue-2.0 package including D-Bus introspection XML files should be installed.
+
+        * gtk/install-dependencies: add geoclue-2.0 package.
+
+2016-11-01  Fujii Hironori  <Hironori.Fujii@sony.com>
+
+        [CMake] generate-bindings-all.pl uses USES_TERMINAL which leaves a noisy line in interactive Ninja build
+        https://bugs.webkit.org/show_bug.cgi?id=163868
+
+        Reviewed by Michael Catanzaro.
+
+        It takes long time for generate-bindings-all.pl to generate all
+        bindings.  So, it shows the progress while running and
+        USES_TERMINAL option of add_custom_target have been used to invoke
+        the command.  However, USES_TERMINAL leaves a noisy line in
+        Ninja's neat build log of interactive build.
+
+        A new CMake option SHOW_BINDINGS_GENERATION_PROGRESS is added to
+        stop using USES_TERMINAL only in case of interactive Ninja build.
+
+        * Scripts/webkitdirs.pm:
+        (generateBuildSystemFromCMakeProject): Enable
+        SHOW_BINDINGS_GENERATION_PROGRESS not in case of interactive
+        Ninja build.
+
+2016-10-31  Simon Fraser  <simon.fraser@apple.com>
+
+        Add basic visual/layout viewport support for fixed position layout
+        https://bugs.webkit.org/show_bug.cgi?id=164261
+
+        Reviewed by Dean Jackson.
+
+        Don't give tests in the "visual-viewport" directory a flexible viewport.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (shouldMakeViewportFlexible):
+        * WebKitTestRunner/TestOptions.cpp:
+        (WTR::shouldMakeViewportFlexible):
+
+2016-10-29  Filip Pizlo  <fpizlo@apple.com>
+
+        JSC should support SharedArrayBuffer
+        https://bugs.webkit.org/show_bug.cgi?id=163986
+
+        Reviewed by Keith Miller.
+        
+        Use the right kind of typed array API.
+
+        * DumpRenderTree/TestRunner.cpp:
+        (setAudioResultCallback):
+
+2016-10-31  Simon Fraser  <simon.fraser@apple.com>
+
+        Make UIScriptController::zoomToScale() work on Mac WK1 and WK2
+        https://bugs.webkit.org/show_bug.cgi?id=164238
+
+        Reviewed by Dean Jackson.
+
+        Implement UIScriptController::zoomToScale() for WTR and DRT on Mac.
+
+        * DumpRenderTree/mac/UIScriptControllerMac.mm:
+        (WTR::UIScriptController::zoomToScale):
+        * TestRunnerShared/UIScriptContext/UIScriptController.cpp:
+        * WebKitTestRunner/mac/UIScriptControllerMac.mm:
+        (WTR::UIScriptController::zoomToScale):
+
+2016-10-31  Dewei Zhu  <dewei_zhu@apple.com>
+
+        Update twisted version in webkitpy.thirdparty.autoinstalled module.
+        https://bugs.webkit.org/show_bug.cgi?id=154667
+
+        Reviewed by Ryosuke Niwa.
+
+        Use twisted_15_5_0 for the twisted module used by run-benchmark because there is a bug in twisted 12.1.0 which sometimes stops the test.
+        Installing twisted was introduced in https://bugs.webkit.org/show_bug.cgi?id=147082 for run-benchmark script.
+        Since buildbot relies on twisted 12.1.0 and has not been verified the compatibility on twisted 15.5.0, it would be more secure to use an individual version for run-benchmark script.
+
+        * Scripts/webkitpy/benchmark_runner/http_server_driver/http_server/twisted_http_server.py:
+        * Scripts/webkitpy/thirdparty/__init__.py:
+        (AutoinstallImportHook.find_module):
+        (AutoinstallImportHook._install_twisted_15_5_0):
+        (AutoinstallImportHook._install_twisted): Deleted.
+
+2016-10-31  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Enable custom elements by default everywhere
+        https://bugs.webkit.org/show_bug.cgi?id=164242
+
+        Reviewed by Antti Koivisto.
+
+        Enable custom elements API on every port by default.
+
+        * Scripts/webkitperl/FeatureList.pm:
+
+2016-10-31  Nan Wang  <n_wang@apple.com>
+
+        AX: aria-sort is not exposed on iOS
+        https://bugs.webkit.org/show_bug.cgi?id=164245
+
+        Reviewed by Chris Fleizach.
+
+        * DumpRenderTree/ios/AccessibilityUIElementIOS.mm:
+        (AccessibilityUIElement::stringAttributeValue):
+        * WebKitTestRunner/InjectedBundle/ios/AccessibilityUIElementIOS.mm:
+        (WTR::AccessibilityUIElement::stringAttributeValue):
+
+2016-10-31  Simon Fraser  <simon.fraser@apple.com>
+
+        Implement IntersectionObserver
+        https://bugs.webkit.org/show_bug.cgi?id=159475
+
+        Reviewed by Ryosuke Niwa.
+        
+        Add ENABLE_INTERSECTION_OBSERVER, enabled by default.
+
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig:
+
+2016-10-31  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r208154.
+
+        This change caused an assertion failure during API tests on
+        macOS.
+
+        Reverted changeset:
+
+        "NetworkSession: Network process crash when converting main
+        resource to download"
+        https://bugs.webkit.org/show_bug.cgi?id=164220
+        http://trac.webkit.org/changeset/208154
+
 2016-10-31  Said Abou-Hallawa  <sabouhallawa@apple.com>
 
         Unreviewed, change my status to be a WebKit reviewer

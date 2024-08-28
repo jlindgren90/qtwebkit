@@ -2059,7 +2059,7 @@ EncodedJSValue JSC_HOST_CALL functionTransferArrayBuffer(ExecState* exec)
         return JSValue::encode(throwException(exec, scope, createError(exec, ASCIILiteral("Expected an array buffer"))));
     
     ArrayBufferContents dummyContents;
-    buffer->impl()->transfer(dummyContents);
+    buffer->impl()->transferTo(dummyContents);
     
     return JSValue::encode(jsUndefined());
 }

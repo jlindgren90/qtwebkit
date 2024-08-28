@@ -1,3 +1,84 @@
+2016-11-01  Alex Christensen  <achristensen@webkit.org>
+
+        Remove PassRefPtr from DumpRenderTree
+        https://bugs.webkit.org/show_bug.cgi?id=164307
+
+        Reviewed by Sam Weinig.
+
+        * WebView/WebGeolocationPosition.mm:
+        (-[WebGeolocationPosition initWithGeolocationPosition:]):
+
+2016-11-02  Romain Bellessort  <romain.bellessort@crf.canon.fr>
+
+        [Readable Streams API] Enable creation of ReadableByteStreamController
+        https://bugs.webkit.org/show_bug.cgi?id=164014
+
+        Reviewed by Youenn Fablet.
+
+        Added flag for the byte stream part of Readable Streams API.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-11-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Remove CUSTOM_ELEMENTS build flag
+        https://bugs.webkit.org/show_bug.cgi?id=164267
+
+        Reviewed by Antti Koivisto.
+
+        Removed the build flag.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]):
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChanged:]):
+
+2016-11-01  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] restrict media capture secure connections
+        https://bugs.webkit.org/show_bug.cgi?id=164234
+        <rdar://problem/28944906>
+
+        Reviewed by Alex Christensen.
+
+        * WebView/WebPreferenceKeysPrivate.h:
+        * WebView/WebPreferences.mm:
+        (+[WebPreferences initialize]): Initialize WebKitMediaCaptureRequiresSecureConnectionPreferenceKey.
+        (-[WebPreferences mediaCaptureRequiresSecureConnection]): New.
+        (-[WebPreferences setMediaCaptureRequiresSecureConnection:]): New.
+        * WebView/WebPreferencesPrivate.h:
+
+        * WebView/WebView.mm:
+        (-[WebView _preferencesChanged:]): Sync mediaCaptureRequiresSecureConnection.
+
+2016-10-29  Filip Pizlo  <fpizlo@apple.com>
+
+        JSC should support SharedArrayBuffer
+        https://bugs.webkit.org/show_bug.cgi?id=163986
+
+        Reviewed by Keith Miller.
+        
+        Support the RuntimeFlag.
+
+        * WebView/WebPreferencesPrivate.h:
+
+2016-10-31  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        [WK1] Candidate visibility should not update as a result of selection during a dictionary lookup
+        https://bugs.webkit.org/show_bug.cgi?id=164236
+        <rdar://problem/28747712>
+
+        Reviewed by Beth Dakin.
+
+        See WebCore ChangeLog for more detail. Sets the Editor's isGettingDictionaryPopupInfo state to true during a
+        dictionary lookup.
+
+        * WebCoreSupport/WebEditorClient.mm:
+        (WebEditorClient::respondToChangedSelection):
+        * WebView/WebImmediateActionController.mm:
+        (+[WebImmediateActionController _dictionaryPopupInfoForRange:inFrame:withLookupOptions:indicatorOptions:transition:]):
+
 2016-10-31  Darin Adler  <darin@apple.com>
 
         Move ChildNode and ParentNode from ExceptionCode to Exception, add support for ExceptionOr<T&>

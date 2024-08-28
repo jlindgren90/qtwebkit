@@ -26,12 +26,11 @@
 #include "config.h"
 #include "CustomElementReactionQueue.h"
 
-#if ENABLE(CUSTOM_ELEMENTS)
-
 #include "CustomElementRegistry.h"
 #include "DOMWindow.h"
 #include "Document.h"
 #include "Element.h"
+#include "HTMLNames.h"
 #include "JSCustomElementInterface.h"
 #include "JSDOMBinding.h"
 #include "Microtasks.h"
@@ -190,6 +189,11 @@ void CustomElementReactionQueue::enqueuePostUpgradeReactions(Element& element)
         queue->m_items.append({CustomElementReactionQueueItem::Type::Connected});
 }
 
+bool CustomElementReactionQueue::observesStyleAttribute() const
+{
+    return m_interface->observesAttribute(HTMLNames::styleAttr.localName());
+}
+
 void CustomElementReactionQueue::invokeAll(Element& element)
 {
     while (!m_items.isEmpty()) {
@@ -277,5 +281,3 @@ CustomElementReactionStack::ElementQueue& CustomElementReactionStack::backupElem
 }
 
 }
-
-#endif

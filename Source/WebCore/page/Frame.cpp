@@ -285,7 +285,7 @@ void Frame::setDocument(RefPtr<Document>&& newDocument)
     if (newDocument)
         newDocument->didBecomeCurrentDocumentInFrame();
 
-    InspectorInstrumentation::frameDocumentUpdated(this);
+    InspectorInstrumentation::frameDocumentUpdated(*this);
 
     m_documentIsBeingReplaced = false;
 }

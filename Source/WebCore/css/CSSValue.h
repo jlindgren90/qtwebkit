@@ -112,7 +112,6 @@ public:
     bool isLineBoxContainValue() const { return m_classType == LineBoxContainClass; }
     bool isCalcValue() const {return m_classType == CalculationClass; }
     bool isFilterImageValue() const { return m_classType == FilterImageClass; }
-    bool isWebKitCSSFilterValue() const { return m_classType == WebKitCSSFilterClass; }
     bool isContentDistributionValue() const { return m_classType == CSSContentDistributionClass; }
 #if ENABLE(CSS_GRID_LAYOUT)
     bool isGridAutoRepeatValue() const { return m_classType == GridAutoRepeatClass; }
@@ -218,7 +217,6 @@ protected:
         // List class types must appear after ValueListClass.
         ValueListClass,
         ImageSetClass,
-        WebKitCSSFilterClass,
         WebKitCSSTransformClass,
 #if ENABLE(CSS_GRID_LAYOUT)
         GridLineNamesClass,

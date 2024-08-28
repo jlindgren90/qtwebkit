@@ -23,8 +23,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef CustomEvent_h
-#define CustomEvent_h
+#pragma once
 
 #include "Event.h"
 #include "JSValueInWrappedObject.h"
@@ -69,5 +68,3 @@ private:
 };
 
 } // namespace WebCore
-
-#endif // CustomEvent_h

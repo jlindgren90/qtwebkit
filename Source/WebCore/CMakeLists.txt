@@ -268,6 +268,7 @@ set(WebCore_NON_SVG_IDL_FILES
 
     Modules/streams/ByteLengthQueuingStrategy.idl
     Modules/streams/CountQueuingStrategy.idl
+    Modules/streams/ReadableByteStreamController.idl
     Modules/streams/ReadableStream.idl
     Modules/streams/ReadableStreamDefaultController.idl
     Modules/streams/ReadableStreamDefaultReader.idl
@@ -368,7 +369,6 @@ set(WebCore_NON_SVG_IDL_FILES
     css/StyleMedia.idl
     css/StyleSheet.idl
     css/StyleSheetList.idl
-    css/WebKitCSSFilterValue.idl
     css/WebKitCSSMatrix.idl
     css/WebKitCSSRegionRule.idl
     css/WebKitCSSTransformValue.idl
@@ -584,6 +584,9 @@ set(WebCore_NON_SVG_IDL_FILES
     page/EventSource.idl
     page/GlobalCrypto.idl
     page/History.idl
+    page/IntersectionObserver.idl
+    page/IntersectionObserverCallback.idl
+    page/IntersectionObserverEntry.idl
     page/Location.idl
     page/Navigator.idl
     page/NavigatorConcurrentHardware.idl
@@ -821,6 +824,7 @@ set(WebCore_SOURCES
     Modules/indexeddb/IDBDatabaseIdentifier.cpp
     Modules/indexeddb/IDBEventDispatcher.cpp
     Modules/indexeddb/IDBFactory.cpp
+    Modules/indexeddb/IDBGetAllResult.cpp
     Modules/indexeddb/IDBGetResult.cpp
     Modules/indexeddb/IDBIndex.cpp
     Modules/indexeddb/IDBKey.cpp
@@ -864,6 +868,7 @@ set(WebCore_SOURCES
     Modules/indexeddb/shared/IDBCursorInfo.cpp
     Modules/indexeddb/shared/IDBDatabaseInfo.cpp
     Modules/indexeddb/shared/IDBError.cpp
+    Modules/indexeddb/shared/IDBGetAllRecordsData.cpp
     Modules/indexeddb/shared/IDBGetRecordData.cpp
     Modules/indexeddb/shared/IDBIndexInfo.cpp
     Modules/indexeddb/shared/IDBObjectStoreInfo.cpp
@@ -1365,7 +1370,6 @@ set(WebCore_SOURCES
     css/StyleSheetList.cpp
     css/TransformFunctions.cpp
     css/ViewportStyleResolver.cpp
-    css/WebKitCSSFilterValue.cpp
     css/WebKitCSSMatrix.cpp
     css/WebKitCSSRegionRule.cpp
     css/WebKitCSSTransformValue.cpp
@@ -2039,6 +2043,8 @@ set(WebCore_SOURCES
     page/FrameTree.cpp
     page/FrameView.cpp
     page/History.cpp
+    page/IntersectionObserver.cpp
+    page/IntersectionObserverEntry.cpp
     page/Location.cpp
     page/MainFrame.cpp
     page/MouseEventWithHitTestResults.cpp
@@ -2163,6 +2169,7 @@ set(WebCore_SOURCES
     platform/ScrollbarThemeComposite.cpp
     platform/SharedBuffer.cpp
     platform/SharedBufferChunkReader.cpp
+    platform/StaticPasteboard.cpp
     platform/SystemSleepListener.cpp
     platform/Theme.cpp
     platform/ThreadGlobalData.cpp
@@ -3706,6 +3713,8 @@ set(WebCore_BUILTINS_SOURCES
     ${WEBCORE_DIR}/Modules/mediastream/RTCPeerConnectionInternals.js
     ${WEBCORE_DIR}/Modules/streams/ByteLengthQueuingStrategy.js
     ${WEBCORE_DIR}/Modules/streams/CountQueuingStrategy.js
+    ${WEBCORE_DIR}/Modules/streams/ReadableByteStreamController.js
+    ${WEBCORE_DIR}/Modules/streams/ReadableByteStreamInternals.js
     ${WEBCORE_DIR}/Modules/streams/ReadableStream.js
     ${WEBCORE_DIR}/Modules/streams/ReadableStreamDefaultController.js
     ${WEBCORE_DIR}/Modules/streams/ReadableStreamInternals.js

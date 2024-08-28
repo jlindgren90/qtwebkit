@@ -386,7 +386,7 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     , m_maximumRenderingSuppressionToken(0)
     , m_scrollPinningBehavior(DoNotPin)
     , m_useAsyncScrolling(false)
-    , m_viewState(parameters.viewState)
+    , m_activityState(parameters.activityState)
     , m_userActivity("Process suppression disabled for page.")
     , m_userActivityHysteresis([this](HysteresisState) { updateUserActivity(); })
     , m_pendingNavigationID(0)
@@ -507,7 +507,7 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     setPaginationLineGridEnabled(parameters.paginationLineGridEnabled);
     
     // If the page is created off-screen, its visibilityState should be prerender.
-    m_page->setViewState(m_viewState);
+    m_page->setActivityState(m_activityState);
     if (!isVisible())
         m_page->setIsPrerender();
     setPageSuppressed(false);
@@ -592,8 +592,8 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
 
 void WebPage::reinitializeWebPage(const WebPageCreationParameters& parameters)
 {
-    if (m_viewState != parameters.viewState)
-        setViewState(parameters.viewState, false, Vector<uint64_t>());
+    if (m_activityState != parameters.activityState)
+        setActivityState(parameters.activityState, false, Vector<uint64_t>());
     if (m_layerHostingMode != parameters.layerHostingMode)
         setLayerHostingMode(parameters.layerHostingMode);
 }
@@ -2711,7 +2711,7 @@ void WebPage::setCanStartMediaTimerFired()
 
 void WebPage::updateIsInWindow(bool isInitialState)
 {
-    bool isInWindow = m_viewState & WebCore::ViewState::IsInWindow;
+    bool isInWindow = m_activityState & WebCore::ActivityState::IsInWindow;
 
     if (!isInWindow) {
         m_setCanStartMediaTimer.stop();
@@ -2734,18 +2734,18 @@ void WebPage::updateIsInWindow(bool isInitialState)
         layoutIfNeeded();
 }
 
-void WebPage::setViewState(ViewState::Flags viewState, bool wantsDidUpdateViewState, const Vector<uint64_t>& callbackIDs)
+void WebPage::setActivityState(ActivityState::Flags activityState, bool wantsDidUpdateActivityState, const Vector<uint64_t>& callbackIDs)
 {
-    ViewState::Flags changed = m_viewState ^ viewState;
-    m_viewState = viewState;
+    ActivityState::Flags changed = m_activityState ^ activityState;
+    m_activityState = activityState;
 
-    m_page->setViewState(viewState);
+    m_page->setActivityState(activityState);
     for (auto* pluginView : m_pluginViews)
-        pluginView->viewStateDidChange(changed);
+        pluginView->activityStateDidChange(changed);
 
-    m_drawingArea->viewStateDidChange(changed, wantsDidUpdateViewState, callbackIDs);
+    m_drawingArea->activityStateDidChange(changed, wantsDidUpdateActivityState, callbackIDs);
 
-    if (changed & ViewState::IsInWindow)
+    if (changed & ActivityState::IsInWindow)
         updateIsInWindow();
 }
 
@@ -3290,6 +3290,7 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
 
 #if ENABLE(MEDIA_STREAM)
     settings.setMockCaptureDevicesEnabled(store.getBoolValueForKey(WebPreferencesKey::mockCaptureDevicesEnabledKey()));
+    settings.setMediaCaptureRequiresSecureConnection(store.getBoolValueForKey(WebPreferencesKey::mediaCaptureRequiresSecureConnectionKey()));
 #endif
 
     settings.setShouldConvertPositionStyleOnCopy(store.getBoolValueForKey(WebPreferencesKey::shouldConvertPositionStyleOnCopyKey()));
@@ -3356,9 +3357,7 @@ void WebPage::updatePreferences(const WebPreferencesStore& store)
     RuntimeEnabledFeatures::sharedFeatures().setCSSGridLayoutEnabled(store.getBoolValueForKey(WebPreferencesKey::cssGridLayoutEnabledKey()));
 #endif
 
-#if ENABLE(CUSTOM_ELEMENTS)
     RuntimeEnabledFeatures::sharedFeatures().setCustomElementsEnabled(store.getBoolValueForKey(WebPreferencesKey::customElementsEnabledKey()));
-#endif
 
 #if ENABLE(WEBGL2)
     RuntimeEnabledFeatures::sharedFeatures().setWebGL2Enabled(store.getBoolValueForKey(WebPreferencesKey::webGL2EnabledKey()));
@@ -5000,10 +4999,11 @@ static bool needsPlainTextQuirk(bool needsQuirks, const URL& url)
 
 void WebPage::didChangeSelection()
 {
+    Frame& frame = m_page->focusController().focusedOrMainFrame();
     // The act of getting Dictionary Popup info can make selection changes that we should not propagate to the UIProcess.
     // Specifically, if there is a caret selection, it will change to a range selection of the word around the caret. And
     // then it will change back.
-    if (m_isGettingDictionaryPopupInfo)
+    if (frame.editor().isGettingDictionaryPopupInfo())
         return;
 
     // Similarly, we don't want to propagate changes to the web process when inserting text asynchronously, since we will
@@ -5011,7 +5011,6 @@ void WebPage::didChangeSelection()
     if (m_isSelectingTextWhileInsertingAsynchronously)
         return;
 
-    Frame& frame = m_page->focusController().focusedOrMainFrame();
     FrameView* view = frame.view();
 
     // If there is a layout pending, we should avoid populating EditorState that require layout to be done or it will

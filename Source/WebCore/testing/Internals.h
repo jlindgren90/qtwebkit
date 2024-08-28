@@ -161,6 +161,10 @@ public:
     void invalidateFontCache();
 
     ExceptionOr<void> setScrollViewPosition(int x, int y);
+    
+    ExceptionOr<Ref<ClientRect>> layoutViewportRect();
+    ExceptionOr<Ref<ClientRect>> visualViewportRect();
+    
     ExceptionOr<void> setViewBaseBackgroundColor(const String& colorValue);
 
     ExceptionOr<void> setPagination(const String& mode, int gap, int pageLength);
@@ -291,6 +295,8 @@ public:
     int numberOfPages(float pageWidthInPixels = 800, float pageHeightInPixels = 600);
     ExceptionOr<String> pageProperty(const String& propertyName, int pageNumber) const;
     ExceptionOr<String> pageSizeAndMarginsInPixels(int pageNumber, int width, int height, int marginTop, int marginRight, int marginBottom, int marginLeft) const;
+
+    ExceptionOr<float> pageScaleFactor() const;
 
     ExceptionOr<void> setPageScaleFactor(float scaleFactor, int x, int y);
     ExceptionOr<void> setPageZoomFactor(float);

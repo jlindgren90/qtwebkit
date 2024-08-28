@@ -186,6 +186,7 @@ JS_BINDING_IDLS = \
     $(WebCore)/Modules/speech/SpeechSynthesisVoice.idl \
     $(WebCore)/Modules/streams/ByteLengthQueuingStrategy.idl \
     $(WebCore)/Modules/streams/CountQueuingStrategy.idl \
+    $(WebCore)/Modules/streams/ReadableByteStreamController.idl \
     $(WebCore)/Modules/streams/ReadableStream.idl \
     $(WebCore)/Modules/streams/ReadableStreamDefaultController.idl \
     $(WebCore)/Modules/streams/ReadableStreamDefaultReader.idl \
@@ -277,7 +278,6 @@ JS_BINDING_IDLS = \
     $(WebCore)/css/StyleMedia.idl \
     $(WebCore)/css/StyleSheet.idl \
     $(WebCore)/css/StyleSheetList.idl \
-    $(WebCore)/css/WebKitCSSFilterValue.idl \
     $(WebCore)/css/WebKitCSSMatrix.idl \
     $(WebCore)/css/WebKitCSSRegionRule.idl \
     $(WebCore)/css/WebKitCSSTransformValue.idl \
@@ -541,6 +541,9 @@ JS_BINDING_IDLS = \
     $(WebCore)/page/EventSource.idl \
     $(WebCore)/page/GlobalCrypto.idl \
     $(WebCore)/page/History.idl \
+    $(WebCore)/page/IntersectionObserver.idl \
+    $(WebCore)/page/IntersectionObserverCallback.idl \
+    $(WebCore)/page/IntersectionObserverEntry.idl \
     $(WebCore)/page/Location.idl \
     $(WebCore)/page/Navigator.idl \
     $(WebCore)/page/NavigatorConcurrentHardware.idl \
@@ -1330,6 +1333,8 @@ WebCore_BUILTINS_SOURCES = \
     $(WebCore)/Modules/mediastream/RTCPeerConnectionInternals.js \
     $(WebCore)/Modules/streams/ByteLengthQueuingStrategy.js \
     $(WebCore)/Modules/streams/CountQueuingStrategy.js \
+    $(WebCore)/Modules/streams/ReadableByteStreamController.js \
+    $(WebCore)/Modules/streams/ReadableByteStreamInternals.js \
     $(WebCore)/Modules/streams/ReadableStream.js \
     $(WebCore)/Modules/streams/ReadableStreamDefaultController.js \
     $(WebCore)/Modules/streams/ReadableStreamInternals.js \

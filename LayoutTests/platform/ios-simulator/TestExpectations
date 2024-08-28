@@ -1202,7 +1202,6 @@ fast/events/frame-scroll-fake-mouse-move.html [ Failure ]
 fast/events/frame-tab-focus.html [ Failure ]
 fast/events/ime-composition-events-001.html [ Failure ]
 fast/events/inputText-never-fired-on-keydown-cancel.html [ Failure ]
-fast/events/input-event-insert-replacement.html [ Failure ]
 fast/events/input-events-drag-and-drop.html [ Failure ]
 fast/events/input-events-insert-by-drop.html [ Failure ]
 fast/events/input-events-fired-when-typing.html [ Failure ]
@@ -1213,7 +1212,6 @@ fast/events/input-events-ime-recomposition.html [ Failure ]
 fast/events/input-events-ime-composition.html [ Failure ]
 fast/events/input-events-paste-rich-datatransfer.html [ Failure ]
 fast/events/input-events-spell-checking-datatransfer.html [ Failure ]
-fast/events/before-input-prevent-insert-replacement.html [ Failure ]
 fast/events/before-input-events-prevent-default.html [ Failure ]
 fast/events/before-input-events-prevent-default-in-textfield.html [ Failure ]
 fast/events/before-input-events-different-start-end-elements.html [ Failure ]
@@ -1897,6 +1895,8 @@ fast/dom/rtl-scroll-to-leftmost-and-resize.html
 fast/dynamic/paused-event-dispatch.html
 fast/events/anchor-image-scrolled-x-y.html
 fast/events/autoscroll-should-not-stop-on-keypress.html [ Skip ]
+fast/events/before-input-prevent-insert-replacement.html
+fast/events/input-event-insert-replacement.html
 fast/events/input-image-scrolled-x-y.html
 fast/events/mouse-cursor-image-set.html
 fast/events/recorded-keydown-event.html
@@ -2708,6 +2708,8 @@ webkit.org/b/164088 media/modern-media-controls/scrubber-support/scrubber-suppor
 webkit.org/b/164088 media/modern-media-controls/scrubber-support/scrubber-support-drag.html [ Skip ]
 webkit.org/b/164160 media/modern-media-controls/volume-support/volume-support-click.html [ Skip ]
 webkit.org/b/164160 media/modern-media-controls/volume-support/volume-support-drag.html [ Skip ]
+webkit.org/b/164250 media/modern-media-controls/volume-support/volume-support-media-api.html [ Skip ]
+webkit.org/b/164314 media/modern-media-controls/fullscreen-support/fullscreen-support-click.html [ Skip ]
 
 # This variation font test requires Skia which isn't available on iOS.
 webkit.org/b/163093 fast/text/variations/advances.html [ Failure ]
@@ -2740,3 +2742,8 @@ webkit.org/b/158836 imported/w3c/web-platform-tests/encrypted-media [ Skip ]
 
 # Only Mac has implemented DictionaryLookup
 fast/layers/prevent-hit-test-during-layout.html [ Skip ]
+
+# Internal APIs to test PiP and AirPlay are not available on iOS.
+media/modern-media-controls/airplay-support/airplay-support.html [ Skip ]
+media/modern-media-controls/pip-support [ Skip ]
+media/modern-media-controls/placard-support [ Skip ]

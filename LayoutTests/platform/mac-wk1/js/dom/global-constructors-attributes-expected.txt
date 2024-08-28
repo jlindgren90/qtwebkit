@@ -2038,6 +2038,11 @@ PASS Object.getOwnPropertyDescriptor(global, 'ShadowRoot').hasOwnProperty('get')
 PASS Object.getOwnPropertyDescriptor(global, 'ShadowRoot').hasOwnProperty('set') is false
 PASS Object.getOwnPropertyDescriptor(global, 'ShadowRoot').enumerable is false
 PASS Object.getOwnPropertyDescriptor(global, 'ShadowRoot').configurable is true
+PASS Object.getOwnPropertyDescriptor(global, 'SharedArrayBuffer').value is SharedArrayBuffer
+PASS Object.getOwnPropertyDescriptor(global, 'SharedArrayBuffer').hasOwnProperty('get') is false
+PASS Object.getOwnPropertyDescriptor(global, 'SharedArrayBuffer').hasOwnProperty('set') is false
+PASS Object.getOwnPropertyDescriptor(global, 'SharedArrayBuffer').enumerable is false
+PASS Object.getOwnPropertyDescriptor(global, 'SharedArrayBuffer').configurable is true
 PASS Object.getOwnPropertyDescriptor(global, 'SourceBuffer').value is SourceBuffer
 PASS Object.getOwnPropertyDescriptor(global, 'SourceBuffer').hasOwnProperty('get') is false
 PASS Object.getOwnPropertyDescriptor(global, 'SourceBuffer').hasOwnProperty('set') is false
@@ -2338,11 +2343,6 @@ PASS Object.getOwnPropertyDescriptor(global, 'WebKitAnimationEvent').hasOwnPrope
 PASS Object.getOwnPropertyDescriptor(global, 'WebKitAnimationEvent').hasOwnProperty('set') is false
 PASS Object.getOwnPropertyDescriptor(global, 'WebKitAnimationEvent').enumerable is false
 PASS Object.getOwnPropertyDescriptor(global, 'WebKitAnimationEvent').configurable is true
-PASS Object.getOwnPropertyDescriptor(global, 'WebKitCSSFilterValue').value is WebKitCSSFilterValue
-PASS Object.getOwnPropertyDescriptor(global, 'WebKitCSSFilterValue').hasOwnProperty('get') is false
-PASS Object.getOwnPropertyDescriptor(global, 'WebKitCSSFilterValue').hasOwnProperty('set') is false
-PASS Object.getOwnPropertyDescriptor(global, 'WebKitCSSFilterValue').enumerable is false
-PASS Object.getOwnPropertyDescriptor(global, 'WebKitCSSFilterValue').configurable is true
 PASS Object.getOwnPropertyDescriptor(global, 'WebKitCSSMatrix').value is WebKitCSSMatrix
 PASS Object.getOwnPropertyDescriptor(global, 'WebKitCSSMatrix').hasOwnProperty('get') is false
 PASS Object.getOwnPropertyDescriptor(global, 'WebKitCSSMatrix').hasOwnProperty('set') is false

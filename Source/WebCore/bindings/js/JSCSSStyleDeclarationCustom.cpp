@@ -33,6 +33,7 @@
 #include "CSSStyleDeclaration.h"
 #include "CSSStyleSheet.h"
 #include "CSSValue.h"
+#include "CustomElementReactionQueue.h"
 #include "HashTools.h"
 #include "JSCSSStyleDeclaration.h"
 #include "JSCSSValue.h"
@@ -322,6 +323,7 @@ bool JSCSSStyleDeclaration::getOwnPropertySlotDelegate(ExecState* state, Propert
 
 bool JSCSSStyleDeclaration::putDelegate(ExecState* state, PropertyName propertyName, JSValue value, PutPropertySlot&, bool& putResult)
 {
+    CustomElementReactionStack customElementReactionStack;
     auto propertyInfo = parseJavaScriptCSSPropertyName(propertyName);
     if (!propertyInfo.propertyID)
         return false;

@@ -36,6 +36,7 @@
 #include <runtime/AuxiliaryBarrierInlines.h>
 #include <runtime/IdentifierInlines.h>
 #include <runtime/JSCJSValueInlines.h>
+#include <runtime/JSObjectInlines.h>
 #include <runtime/ObjectConstructor.h>
 #include <runtime/StructureInlines.h>
 

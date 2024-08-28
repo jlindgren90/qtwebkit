@@ -1195,6 +1195,7 @@ webkit.org/b/148636 inspector/model/remote-object.html [ Pass Timeout ]
 webkit.org/b/148636 inspector/page/main-frame-resource.html [ Pass Timeout ]
 webkit.org/b/148636 inspector/model/remote-object-weak-collection.html [ Pass Failure ]
 webkit.org/b/153108 [ Debug ] inspector/model/scope-chain-node.html [ Pass Timeout ]
+webkit.org/b/164278 inspector/storage/domStorage-events.html [ Pass Failure ]
 webkit.org/b/155607 inspector/unit-tests/heap-snapshot.html [ Pass Timeout ]
 webkit.org/b/157999 inspector/unit-tests/heap-snapshot-collection-event.html [ Pass Timeout ]
 webkit.org/b/161361 inspector/unit-tests/yieldable-task.html [ Pass Failure ]
@@ -1215,12 +1216,8 @@ webkit.org/b/162305 inspector/css/manager-preferredInspectorStyleSheetForFrame.h
 
 webkit.org/b/149128 fast/text/control-characters [ ImageOnlyFailure ]
 
-webkit.org/b/148695 fast/shadow-dom [ Pass ]
-
 # Touch events is not enabled on Mac
 webkit.org/b/149592 fast/shadow-dom/touch-event-ios.html [ Failure ]
-
-webkit.org/b/150225 fast/custom-elements [ Pass ]
 
 # Marking test as flaky in El Capitan
 webkit.org/b/149819 [ Debug ElCapitan+ ] compositing/video/video-poster.html [ Pass Crash ]
@@ -1451,3 +1448,17 @@ webkit.org/b/163307 [ Debug ] loader/stateobjects/replacestate-size.html [ Skip 
 
 webkit.org/b/164088 [ Yosemite ] media/modern-media-controls/scrubber-support/scrubber-support-click.html [ Skip ]
 webkit.org/b/164088 [ Yosemite ] media/modern-media-controls/scrubber-support/scrubber-support-drag.html [ Skip ]
+
+# Internal APIs to test PiP and AirPlay are not available on Yosemite.
+[ Yosemite ] media/modern-media-controls/airplay-support/airplay-support.html [ Skip ]
+[ Yosemite ] media/modern-media-controls/pip-support [ Skip ]
+[ Yosemite ] media/modern-media-controls/placard-support [ Skip ]
+
+webkit.org/b/164323 media/modern-media-controls/airplay-support/airplay-support.html [ Pass Failure ]
+webkit.org/b/164325 [ ElCapitan ] media/modern-media-controls/pip-support/pip-support-click.html [ Timeout ]
+webkit.org/b/164326 [ ElCapitan ] media/modern-media-controls/pip-support/pip-support-enabled.html [ Failure ]
+webkit.org/b/164298 media/modern-media-controls/placard-support/placard-support-airplay.html [ Pass Timeout ]
+webkit.org/b/164322 [ ElCapitan ] media/modern-media-controls/placard-support/placard-support-pip.html [ Timeout ]
+webkit.org/b/164328 media/modern-media-controls/scrubber-support/scrubber-support-drag.html [ Pass Failure ]
+
+webkit.org/b/164277 fast/preloader/image-srcset.html [ Pass Failure ]

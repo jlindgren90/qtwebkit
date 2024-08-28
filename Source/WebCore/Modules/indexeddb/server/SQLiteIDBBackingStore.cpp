@@ -31,6 +31,8 @@
 #include "FileSystem.h"
 #include "IDBBindingUtilities.h"
 #include "IDBDatabaseException.h"
+#include "IDBGetAllRecordsData.h"
+#include "IDBGetAllResult.h"
 #include "IDBGetResult.h"
 #include "IDBKeyData.h"
 #include "IDBObjectStoreInfo.h"
@@ -1873,6 +1875,188 @@ IDBError SQLiteIDBBackingStore::getRecord(const IDBResourceIdentifier& transacti
         return error;
 
     resultValue = { { resultBuffer, WTFMove(blobURLs), WTFMove(blobFilePaths) } };
+    return { };
+}
+
+IDBError SQLiteIDBBackingStore::getAllRecords(const IDBResourceIdentifier& transactionIdentifier, const IDBGetAllRecordsData& getAllRecordsData, IDBGetAllResult& result)
+{
+    return getAllRecordsData.indexIdentifier ? getAllIndexRecords(transactionIdentifier, getAllRecordsData, result) : getAllObjectStoreRecords(transactionIdentifier, getAllRecordsData, result);
+}
+
+static const ASCIILiteral& queryForGetAllObjectStoreRecords(const IDBGetAllRecordsData& getAllRecordsData)
+{
+    static NeverDestroyed<const ASCIILiteral> lowerOpenUpperOpenKey("SELECT key FROM Records WHERE objectStoreID = ? AND key > CAST(? AS TEXT) AND key < CAST(? AS TEXT) ORDER BY key;");
+    static NeverDestroyed<const ASCIILiteral> lowerOpenUpperClosedKey("SELECT key FROM Records WHERE objectStoreID = ? AND key > CAST(? AS TEXT) AND key <= CAST(? AS TEXT) ORDER BY key;");
+    static NeverDestroyed<const ASCIILiteral> lowerClosedUpperOpenKey("SELECT key FROM Records WHERE objectStoreID = ? AND key >= CAST(? AS TEXT) AND key < CAST(? AS TEXT) ORDER BY key;");
+    static NeverDestroyed<const ASCIILiteral> lowerClosedUpperClosedKey("SELECT key FROM Records WHERE objectStoreID = ? AND key >= CAST(? AS TEXT) AND key <= CAST(? AS TEXT) ORDER BY key;");
+    static NeverDestroyed<const ASCIILiteral> lowerOpenUpperOpenValue("SELECT value, ROWID FROM Records WHERE objectStoreID = ? AND key > CAST(? AS TEXT) AND key < CAST(? AS TEXT) ORDER BY key;");
+    static NeverDestroyed<const ASCIILiteral> lowerOpenUpperClosedValue("SELECT value, ROWID FROM Records WHERE objectStoreID = ? AND key > CAST(? AS TEXT) AND key <= CAST(? AS TEXT) ORDER BY key;");
+    static NeverDestroyed<const ASCIILiteral> lowerClosedUpperOpenValue("SELECT value, ROWID FROM Records WHERE objectStoreID = ? AND key >= CAST(? AS TEXT) AND key < CAST(? AS TEXT) ORDER BY key;");
+    static NeverDestroyed<const ASCIILiteral> lowerClosedUpperClosedValue("SELECT value, ROWID FROM Records WHERE objectStoreID = ? AND key >= CAST(? AS TEXT) AND key <= CAST(? AS TEXT) ORDER BY key;");
+
+    if (getAllRecordsData.getAllType == IndexedDB::GetAllType::Keys) {
+        if (getAllRecordsData.keyRangeData.lowerOpen) {
+            if (getAllRecordsData.keyRangeData.upperOpen)
+                return lowerOpenUpperOpenKey.get();
+            return lowerOpenUpperClosedKey.get();
+        }
+
+        if (getAllRecordsData.keyRangeData.upperOpen)
+            return lowerClosedUpperOpenKey.get();
+        return lowerClosedUpperClosedKey.get();
+    }
+
+    if (getAllRecordsData.keyRangeData.lowerOpen) {
+        if (getAllRecordsData.keyRangeData.upperOpen)
+            return lowerOpenUpperOpenValue.get();
+        return lowerOpenUpperClosedValue.get();
+    }
+
+    if (getAllRecordsData.keyRangeData.upperOpen)
+        return lowerClosedUpperOpenValue.get();
+    return lowerClosedUpperClosedValue.get();
+}
+
+IDBError SQLiteIDBBackingStore::getAllObjectStoreRecords(const IDBResourceIdentifier& transactionIdentifier, const IDBGetAllRecordsData& getAllRecordsData, IDBGetAllResult& result)
+{
+    LOG(IndexedDB, "SQLiteIDBBackingStore::getAllObjectStoreRecords");
+
+    ASSERT(m_sqliteDB);
+    ASSERT(m_sqliteDB->isOpen());
+
+    auto* transaction = m_transactions.get(transactionIdentifier);
+    if (!transaction || !transaction->inProgress()) {
+        LOG_ERROR("Attempt to get records from database without an in-progress transaction");
+        return { IDBDatabaseException::UnknownError, ASCIILiteral("Attempt to get records from database without an in-progress transaction") };
+    }
+
+    auto key = getAllRecordsData.keyRangeData.lowerKey;
+    if (key.isNull())
+        key = IDBKeyData::minimum();
+    auto lowerBuffer = serializeIDBKeyData(key);
+    if (!lowerBuffer) {
+        LOG_ERROR("Unable to serialize lower IDBKey in lookup range");
+        return { IDBDatabaseException::UnknownError, ASCIILiteral("Unable to serialize lower IDBKey in lookup range") };
+    }
+
+    key = getAllRecordsData.keyRangeData.upperKey;
+    if (key.isNull())
+        key = IDBKeyData::maximum();
+    auto upperBuffer = serializeIDBKeyData(key);
+    if (!upperBuffer) {
+        LOG_ERROR("Unable to serialize upper IDBKey in lookup range");
+        return { IDBDatabaseException::UnknownError, ASCIILiteral("Unable to serialize upper IDBKey in lookup range") };
+    }
+
+    SQLiteStatement sql(*m_sqliteDB, queryForGetAllObjectStoreRecords(getAllRecordsData));
+    if (sql.prepare() != SQLITE_OK
+        || sql.bindInt64(1, getAllRecordsData.objectStoreIdentifier) != SQLITE_OK
+        || sql.bindBlob(2, lowerBuffer->data(), lowerBuffer->size()) != SQLITE_OK
+        || sql.bindBlob(3, upperBuffer->data(), upperBuffer->size()) != SQLITE_OK) {
+        LOG_ERROR("Could not get key range record from object store %" PRIi64 " from Records table (%i) - %s", getAllRecordsData.objectStoreIdentifier, m_sqliteDB->lastError(), m_sqliteDB->lastErrorMsg());
+        return { IDBDatabaseException::UnknownError, ASCIILiteral("Failed to look up record in object store by key range") };
+    }
+
+    result = { getAllRecordsData.getAllType };
+
+    uint32_t targetResults;
+    if (getAllRecordsData.count && getAllRecordsData.count.value())
+        targetResults = getAllRecordsData.count.value();
+    else
+        targetResults = std::numeric_limits<uint32_t>::max();
+
+    int sqlResult = sql.step();
+    uint32_t returnedResults = 0;
+
+    while (sqlResult == SQLITE_ROW && returnedResults < targetResults) {
+        if (getAllRecordsData.getAllType == IndexedDB::GetAllType::Values) {
+            Vector<uint8_t> buffer;
+            sql.getColumnBlobAsVector(0, buffer);
+            ThreadSafeDataBuffer resultBuffer = ThreadSafeDataBuffer::adoptVector(buffer);
+
+            auto recordID = sql.getColumnInt64(1);
+
+            ASSERT(recordID);
+            Vector<String> blobURLs, blobFilePaths;
+            auto error = getBlobRecordsForObjectStoreRecord(recordID, blobURLs, blobFilePaths);
+            ASSERT(blobURLs.size() == blobFilePaths.size());
+
+            if (!error.isNull())
+                return error;
+
+            result.addValue({ resultBuffer, WTFMove(blobURLs), WTFMove(blobFilePaths) });
+        } else {
+            Vector<uint8_t> keyData;
+            IDBKeyData key;
+            sql.getColumnBlobAsVector(0, keyData);
+
+            if (!deserializeIDBKeyData(keyData.data(), keyData.size(), key)) {
+                LOG_ERROR("Unable to deserialize key data from database while getting all key records");
+                return { IDBDatabaseException::UnknownError, ASCIILiteral("Unable to deserialize key data while getting all key records") };
+            }
+
+            result.addKey(WTFMove(key));
+        }
+
+        ++returnedResults;
+        sqlResult = sql.step();
+    }
+
+    if (sqlResult == SQLITE_OK || sqlResult == SQLITE_DONE || sqlResult == SQLITE_ROW) {
+        // Finished getting results
+        return { };
+    }
+
+    // There was an error fetching records from the database.
+    LOG_ERROR("Could not get record from object store %" PRIi64 " from Records table (%i) - %s", getAllRecordsData.objectStoreIdentifier, m_sqliteDB->lastError(), m_sqliteDB->lastErrorMsg());
+    return { IDBDatabaseException::UnknownError, ASCIILiteral("Error looking up record in object store by key range") };
+}
+
+IDBError SQLiteIDBBackingStore::getAllIndexRecords(const IDBResourceIdentifier& transactionIdentifier, const IDBGetAllRecordsData& getAllRecordsData, IDBGetAllResult& result)
+{
+    LOG(IndexedDB, "SQLiteIDBBackingStore::getAllIndexRecords - %s", getAllRecordsData.keyRangeData.loggingString().utf8().data());
+
+    ASSERT(m_sqliteDB);
+    ASSERT(m_sqliteDB->isOpen());
+
+    auto* transaction = m_transactions.get(transactionIdentifier);
+    if (!transaction || !transaction->inProgress()) {
+        LOG_ERROR("Attempt to get all index records from database without an in-progress transaction");
+        return { IDBDatabaseException::UnknownError, ASCIILiteral("Attempt to get all index records from database without an in-progress transaction") };
+    }
+
+    auto cursor = transaction->maybeOpenBackingStoreCursor(getAllRecordsData.objectStoreIdentifier, getAllRecordsData.indexIdentifier, getAllRecordsData.keyRangeData);
+    if (!cursor) {
+        LOG_ERROR("Cannot open cursor to perform index gets in database");
+        return { IDBDatabaseException::UnknownError, ASCIILiteral("Cannot open cursor to perform index gets in database") };
+    }
+
+    if (cursor->didError()) {
+        LOG_ERROR("Cursor failed while looking up index records in database");
+        return { IDBDatabaseException::UnknownError, ASCIILiteral("Cursor failed while looking up index records in database") };
+    }
+
+    result = { getAllRecordsData.getAllType };
+    uint32_t currentCount = 0;
+    uint32_t targetCount = getAllRecordsData.count ? getAllRecordsData.count.value() : 0;
+    if (!targetCount)
+        targetCount = std::numeric_limits<uint32_t>::max();
+    while (!cursor->didComplete() && !cursor->didError() && currentCount < targetCount) {
+        if (getAllRecordsData.getAllType == IndexedDB::GetAllType::Keys) {
+            IDBKeyData keyCopy = cursor->currentPrimaryKey();
+            result.addKey(WTFMove(keyCopy));
+        } else
+            result.addValue(cursor->currentValue() ? *cursor->currentValue() : IDBValue());
+
+        ++currentCount;
+        cursor->advance(1);
+    }
+
+    if (cursor->didError()) {
+        LOG_ERROR("Cursor failed while looking up index records in database");
+        return { IDBDatabaseException::UnknownError, ASCIILiteral("Cursor failed while looking up index records in database") };
+    }
+
     return { };
 }
 
