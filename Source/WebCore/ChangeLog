@@ -1,3 +1,554 @@
+2016-10-21  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Support horizontal-bt writing mode
+        https://bugs.webkit.org/show_bug.cgi?id=163797
+
+        Reviewed by Zalan Bujtas.
+
+        * css/parser/CSSParserFastPaths.cpp:
+        (WebCore::CSSParserFastPaths::isValidKeywordPropertyAndValue):
+
+2016-10-20  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win][Direct2D] Correct some memory leaks and other minor bugs
+        https://bugs.webkit.org/show_bug.cgi?id=163769
+
+        Reviewed by Alex Christensen.
+
+        Several D2D handles were being leaked.
+ 
+        Direct2D sometimes returns an infinite rect containing { -inf, -inf, FloatMax, FloatMax },
+        sometimes { -FloatMax, -FloatMax, inf, inf }, and various combinations thereof. This caused
+        most SVG drawing to decide no screen rect was contained in the "infinite rect" so nothing
+        would be drawn.
+        
+        Tested by existing layout tests. 
+
+        * platform/graphics/GraphicsContext.h:
+        * platform/graphics/win/FloatRectDirect2D.cpp:
+        (WebCore::isInfiniteRect): Recognize various infinite rects in Windows.
+        (WebCore::FloatRect::FloatRect): Convert a Windows infinite rect to the style
+        we use inside WebKit.
+        * platform/graphics/win/FontCascadeDirect2D.cpp:
+        (WebCore::FontCascade::drawGlyphs): Use cached brushes if possible.
+        * platform/graphics/win/GlyphPageTreeNodeDirect2D.cpp:
+        (WebCore::GlyphPage::fill): Don't terminate on this error case.
+        * platform/graphics/win/GradientDirect2D.cpp:
+        (WebCore::Gradient::generateGradient): Don't leak gradients.
+        * platform/graphics/win/GraphicsContextDirect2D.cpp:
+        (WebCore::GraphicsContextPlatformPrivate::brushWithColor): Added.
+        (WebCore::GraphicsContext::brushWithColor): Added.
+        (WebCore::GraphicsContextPlatformPrivate::concatCTM): Perform transform multiplication
+        in the right order (hint: it's not distributive).
+        (WebCore::GraphicsContext::drawWithShadow): Use convenience method.
+        (WebCore::GraphicsContext::fillRect): Ditto.
+        (WebCore::GraphicsContext::platformFillRoundedRect): Ditto.
+        (WebCore::GraphicsContext::clearRect): Ditto.
+        (WebCore::GraphicsContext::setPlatformStrokeColor): Ditto.
+        (WebCore::GraphicsContext::setPlatformFillColor): Ditto.
+        * platform/graphics/win/PathDirect2D.cpp:
+        (WebCore::Path::polygonPathFromPoints): No need to convert manually.
+        (WebCore::Path::~Path): Don't leak ID2D1Geometry entities.
+        (WebCore::Path::appendGeometry): Ditto.
+        (WebCore::Path::createGeometryWithFillMode): Ditto.
+        (WebCore::Path::Path): Ditto.
+        (WebCore::Path::operator=): Ditto.
+        (WebCore::Path::strokeBoundingRect): Provide an implementation.
+        (WebCore::Path::addRect): No need for manual casting here.
+
+2016-10-21  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Fix minor style issue in the signature of StaticRange::create
+        https://bugs.webkit.org/show_bug.cgi?id=163786
+        <rdar://problem/28853079>
+
+        Reviewed by Alex Christensen.
+
+        Change `Ref<WebCore::Node> &&` to `Ref<Node>&&`.
+
+        * dom/StaticRange.cpp:
+        (WebCore::StaticRange::create):
+
+2016-10-21  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Add support for -webkit-line-box-contain
+        https://bugs.webkit.org/show_bug.cgi?id=163794
+
+        Reviewed by Zalan Bujtas.
+
+        * css/parser/CSSPropertyParser.cpp:
+        (WebCore::consumeLineBoxContain):
+        (WebCore::CSSPropertyParser::parseSingleValue):
+
+2016-10-21  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Add support for @-webkit-region rules
+        https://bugs.webkit.org/show_bug.cgi?id=163787
+
+        Reviewed by Zalan Bujtas.
+
+        * css/StyleRule.cpp:
+        (WebCore::StyleRuleRegion::StyleRuleRegion):
+        * css/StyleRule.h:
+        * css/parser/CSSAtRuleID.cpp:
+        (WebCore::cssAtRuleID):
+        * css/parser/CSSAtRuleID.h:
+        * css/parser/CSSParserImpl.cpp:
+        (WebCore::CSSParserImpl::consumeAtRule):
+        (WebCore::CSSParserImpl::consumePageRule):
+        (WebCore::CSSParserImpl::consumeRegionRule):
+        * css/parser/CSSParserImpl.h:
+
+2016-10-21  David Kilzer  <ddkilzer@apple.com>
+
+        Bug 163757: Use IntSize::unclampedArea() in PDFDocumentImage::updateCachedImageIfNeeded()
+        <https://webkit.org/b/163757>
+
+        Reviewed by Brent Fulgham.
+
+        No new tests since there is no change in nominal behavior.
+
+        * platform/graphics/cg/PDFDocumentImage.cpp:
+        (WebCore::PDFDocumentImage::updateCachedImageIfNeeded): Use
+        IntSize::unclampedArea() where manual calculations were used
+        previously.  Also gets rid of more safeCast<size_t>() use.
+
+2016-10-21  Chris Dumez  <cdumez@apple.com>
+
+        [Web IDL] Support unions in our overload resolution algorithm
+        https://bugs.webkit.org/show_bug.cgi?id=163764
+
+        Reviewed by Darin Adler.
+
+        Support unions in our overload resolution algorithm as per:
+        - https://heycam.github.io/webidl/#es-overloads
+        - https://heycam.github.io/webidl/#dfn-distinguishable
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (IsIDLTypeDistinguishableWithUnionForOverloadResolution):
+        (AreTypesDistinguishableForOverloadResolution):
+        (GetOverloadThatMatches):
+        (GenerateOverloadedFunctionOrConstructor):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/TestObj.idl:
+
+2016-10-21  Chris Dumez  <cdumez@apple.com>
+
+        AudioNode.connect(): First parameter should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=163773
+
+        Reviewed by Darin Adler.
+
+        AudioNode.connect()'s first parameter should not be nullable:
+        - https://webaudio.github.io/web-audio-api/#idl-def-AudioNode.
+
+        We were throwing a SYNTAX_ERR when passing null, we now throw
+        a TypeError instead.
+
+        No new tests, updated existing test.
+
+        * Modules/webaudio/AudioBasicInspectorNode.cpp:
+        (WebCore::AudioBasicInspectorNode::connect):
+        * Modules/webaudio/AudioBasicInspectorNode.h:
+        * Modules/webaudio/AudioNode.cpp:
+        (WebCore::AudioNode::connect):
+        * Modules/webaudio/AudioNode.h:
+        * Modules/webaudio/AudioNode.idl:
+
+2016-10-21  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Implement InputEvent.getTargetRanges() for the input events spec
+        https://bugs.webkit.org/show_bug.cgi?id=162947
+        <rdar://problem/28853079>
+
+        Reviewed by Darin Adler.
+
+        Implements InputEvent.getTargetRanges(). See individual method changes below for more details. Adds a new hook
+        for subclasses of CompositeEditCommand to vend a list of target StaticRanges when retrieving target ranges for
+        an editing command on a contenteditable area.
+
+        Tests: fast/events/before-input-delete-empty-list-target-ranges.html
+               fast/events/before-input-delete-text-target-ranges.html
+               fast/events/before-input-replace-text-target-ranges.html
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+
+        Add StaticRange.idl, StaticRange.cpp and StaticRange.h.
+
+        * bindings/generic/RuntimeEnabledFeatures.h:
+        (WebCore::RuntimeEnabledFeatures::setInputEventsEnabled):
+        (WebCore::RuntimeEnabledFeatures::inputEventsEnabled):
+
+        Add a new runtime bindings flag for InputEvents and guard both InputEvent and StaticRange behind it.
+
+        * dom/DOMAllInOne.cpp:
+        * dom/InputEvent.cpp:
+        (WebCore::InputEvent::InputEvent):
+        * dom/InputEvent.h:
+        * dom/InputEvent.idl:
+        * dom/StaticRange.cpp: Copied from Source/WebCore/dom/InputEvent.cpp.
+        (WebCore::StaticRange::StaticRange):
+        (WebCore::StaticRange::create):
+        (WebCore::StaticRange::createFromRange):
+
+        Convenience method for creating a StaticRange from a Range's start/end container and offset.
+
+        (WebCore::StaticRange::startContainer):
+        (WebCore::StaticRange::endContainer):
+        (WebCore::StaticRange::collapsed):
+        * dom/StaticRange.h: Copied from Source/WebCore/dom/InputEvent.cpp.
+        (WebCore::StaticRange::startOffset):
+        (WebCore::StaticRange::endOffset):
+        * dom/StaticRange.idl: Copied from Source/WebCore/editing/ReplaceRangeWithTextCommand.h.
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::CompositeEditCommand::willApplyCommand):
+        (WebCore::CompositeEditCommand::targetRanges):
+
+        Virtual method that returns a list of target ranges which are associated with this command.
+
+        (WebCore::CompositeEditCommand::targetRangesForBindings):
+
+        Non-virtual method that calls the above targetRanges(). Takes whether or not the CompositeEditCommand is editing
+        a textarea or plain text input into account.
+
+        (WebCore::CompositeEditCommand::moveParagraphs):
+        * editing/CompositeEditCommand.h:
+        * editing/EditCommand.cpp:
+        (WebCore::EditCommand::frame):
+        * editing/EditCommand.h:
+        (WebCore::EditCommand::document):
+        * editing/Editor.cpp:
+        (WebCore::dispatchBeforeInputEvent):
+        (WebCore::dispatchInputEvent):
+        (WebCore::dispatchBeforeInputEvents):
+
+        Changed the `beforeinput` event dispatch to use the regular Node::dispatchEvent instead of dispatchScopedEvent.
+        This is because if the page prevents the `beforeinput` event, we need to know immediately in order to bail from
+        the default action.
+
+        (WebCore::dispatchInputEvents):
+        (WebCore::Editor::willApplyEditing):
+
+        Added a list of static ranges as a parameter when calling on the Editor to dispatch `beforeinput` events.
+        By default, this uses the composite edit command's targetRangesForBindings(), though it may be special cased
+        by subclasses of CompositeEditCommand (see ReplaceRangeWithTextCommand, SpellingCorrectionCommand, and
+        TypingCommand).
+
+        * editing/Editor.h:
+        * editing/ReplaceRangeWithTextCommand.cpp:
+        (WebCore::ReplaceRangeWithTextCommand::targetRanges):
+        * editing/ReplaceRangeWithTextCommand.h:
+        * editing/SpellingCorrectionCommand.cpp:
+        (WebCore::SpellingCorrectionCommand::targetRanges):
+        * editing/SpellingCorrectionCommand.h:
+        * editing/TypingCommand.cpp:
+        (WebCore::editActionIsDeleteByTyping):
+        (WebCore::TypingCommand::shouldDeferWillApplyCommandUntilAddingTypingCommand):
+        (WebCore::TypingCommand::willApplyCommand):
+        (WebCore::TypingCommand::willAddTypingToOpenCommand):
+        (WebCore::TypingCommand::deleteKeyPressed):
+        (WebCore::TypingCommand::forwardDeleteKeyPressed):
+
+        Moves the firing of the `beforeinput` until after the selection range to delete has been computed.
+
+        * editing/TypingCommand.h:
+
+2016-10-21  Antti Koivisto  <antti@apple.com>
+
+        Style resolver should be updated lazily
+        https://bugs.webkit.org/show_bug.cgi?id=163721
+
+        Reviewed by Andreas Kling.
+
+        Currently when stylesheets change in some way we generally update style resolvers and
+        invalidate style immediately. We should do this lazily to avoid unnecessary work.
+
+        Also improve naming of the stylesheet invalidation functions and use more optimal functions in some places.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::updateStyleIfNeededForNode):
+        * css/CSSStyleSheet.cpp:
+        (WebCore::CSSStyleSheet::didMutateRules):
+        (WebCore::CSSStyleSheet::didMutate):
+        (WebCore::CSSStyleSheet::setDisabled):
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::StyleResolver):
+
+            Initialize root style font with null font selector.
+            This avoids hitting a CSSFontSelector assert in fast/media/mq-relative-constraints-08.html where
+            media query evaluation requires font information before it is ready.
+            Exposed by increased laziness in this patch.
+
+        * dom/Document.cpp:
+        (WebCore::Document::setContentLanguage):
+        (WebCore::Document::updateLayoutIgnorePendingStylesheets):
+        (WebCore::Document::isPageBoxVisible):
+        (WebCore::Document::pageSizeAndMarginsInPixels):
+        (WebCore::Document::processHttpEquiv):
+        (WebCore::Document::setSelectedStylesheetSet):
+        (WebCore::Document::didInsertInDocumentShadowRoot):
+        (WebCore::Document::didRemoveInDocumentShadowRoot):
+        * dom/Document.h:
+        (WebCore::Document::inDocumentShadowRoots):
+
+            Track all shadow roots in the document. This allows us to find and flush style scopes cheaply.
+
+        * dom/Element.cpp:
+        (WebCore::Element::computedStyle):
+        * dom/ExtensionStyleSheets.cpp:
+        (WebCore::ExtensionStyleSheets::ExtensionStyleSheets):
+        (WebCore::ExtensionStyleSheets::clearPageUserSheet):
+        (WebCore::ExtensionStyleSheets::updatePageUserSheet):
+        (WebCore::ExtensionStyleSheets::invalidateInjectedStyleSheetCache):
+        (WebCore::ExtensionStyleSheets::addUserStyleSheet):
+        (WebCore::ExtensionStyleSheets::addAuthorStyleSheetForTesting):
+        (WebCore::ExtensionStyleSheets::addDisplayNoneSelector):
+        (WebCore::ExtensionStyleSheets::maybeAddContentExtensionSheet):
+        (WebCore::ExtensionStyleSheets::styleResolverChangedTimerFired): Deleted.
+
+            Since updates are now done lazily we don't need a special timer for extension stylesheets.
+
+        * dom/ExtensionStyleSheets.h:
+        * dom/ProcessingInstruction.cpp:
+        (WebCore::ProcessingInstruction::checkStyleSheet):
+        (WebCore::ProcessingInstruction::sheetLoaded):
+        (WebCore::ProcessingInstruction::removedFrom):
+        * dom/ShadowRoot.cpp:
+        (WebCore::ShadowRoot::ShadowRoot):
+        (WebCore::ShadowRoot::insertedInto):
+        (WebCore::ShadowRoot::removedFrom):
+        (WebCore::ShadowRoot::styleScope):
+        * dom/ShadowRoot.h:
+        * html/HTMLLinkElement.cpp:
+        (WebCore::HTMLLinkElement::setDisabledState):
+        (WebCore::HTMLLinkElement::parseAttribute):
+        (WebCore::HTMLLinkElement::process):
+        (WebCore::HTMLLinkElement::removePendingSheet):
+        * html/HTMLStyleElement.cpp:
+        (WebCore::HTMLStyleElement::parseAttribute):
+        * inspector/InspectorCSSAgent.cpp:
+        (WebCore::InspectorCSSAgent::createInspectorStyleSheetForDocument):
+        (WebCore::InspectorCSSAgent::forcePseudoState):
+        (WebCore::InspectorCSSAgent::resetPseudoStates):
+        * inspector/InspectorPageAgent.cpp:
+        (WebCore::InspectorPageAgent::setEmulatedMedia):
+        * page/Frame.cpp:
+        (WebCore::Frame::setPrinting):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::layout):
+        (WebCore::FrameView::setPagination):
+        (WebCore::FrameView::setViewportSizeForCSSViewportUnits):
+        * page/Page.cpp:
+        (WebCore::Page::setViewMode):
+        (WebCore::Page::setNeedsRecalcStyleInAllFrames):
+        (WebCore::Page::invalidateInjectedStyleSheetCacheInAllFrames):
+        * style/StyleScope.cpp:
+        (WebCore::Style::Scope::setPreferredStylesheetSetName):
+        (WebCore::Style::Scope::setSelectedStylesheetSetName):
+        (WebCore::Style::Scope::removePendingSheet):
+        (WebCore::Style::Scope::removeStyleSheetCandidateNode):
+        (WebCore::Style::Scope::activeStyleSheetsForInspector):
+        (WebCore::Style::Scope::flushPendingUpdate):
+
+            Also flush descendant shadow roots.
+
+        (WebCore::Style::Scope::scheduleUpdate):
+        (WebCore::Style::Scope::didChangeActiveStyleSheetCandidates):
+
+            Make lazy.
+
+        (WebCore::Style::Scope::didChangeStyleSheetContents):
+
+            Make lazy.
+
+        (WebCore::Style::Scope::didChangeStyleSheetEnvironment):
+
+            Environment changes also affect author shadow roots.
+
+        (WebCore::Style::Scope::styleSheetsForStyleSheetList):
+        (WebCore::Style::Scope::scheduleActiveSetUpdate): Deleted.
+        (WebCore::Style::Scope::didChangeCandidatesForActiveSet): Deleted.
+        (WebCore::Style::Scope::didChangeContentsOrInterpretation): Deleted.
+
+            Improved naming of these and split didChangeContentsOrInterpretation into two separate functions.
+
+        * style/StyleScope.h:
+        (WebCore::Style::Scope::styleSheetsForStyleSheetList): Deleted.
+        (WebCore::Style::Scope::setPreferredStylesheetSetName): Deleted.
+        (WebCore::Style::Scope::setSelectedStylesheetSetName): Deleted.
+        * svg/SVGFontFaceElement.cpp:
+        (WebCore::SVGFontFaceElement::rebuildFontFace):
+        (WebCore::SVGFontFaceElement::removedFrom):
+        * testing/Internals.cpp:
+        (WebCore::Internals::resetToConsistentState):
+
+            Ensure that cationsStyleSheetOverride really becomes empty. Some tests rely on not having suprise
+            inserted stylesheets. Previously this was racy and the patch affected order of things.
+
+        (WebCore::Internals::styleChangeType):
+        * xml/XMLTreeViewer.cpp:
+        (WebCore::XMLTreeViewer::transformDocumentToTreeView):
+        * xml/parser/XMLDocumentParser.cpp:
+        (WebCore::XMLDocumentParser::end):
+        * xml/parser/XMLDocumentParserLibxml2.cpp:
+        (WebCore::XMLDocumentParser::doEnd):
+
+2016-10-21  Xabier Rodriguez Calvar  <calvaris@igalia.com> and Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: [OpenWebRTC] Move SDPProcessorScriptResource(Gtk) to openwebrtc directory
+        https://bugs.webkit.org/show_bug.cgi?id=163778
+
+        Reviewed by Philippe Normand.
+
+        Move SDPProcessorScriptResourceGtk from the platform gtk directory to the port generic
+        openwebrtc directory to make it usable by other ports. Also drop the Gtk-suffix.
+
+        No change of behavior.
+
+        * PlatformGTK.cmake:
+        * platform/mediastream/gtk/SDPProcessorScriptResourceGtk.cpp:
+        (WebCore::SDPProcessorScriptResource::scriptString): Deleted.
+        * platform/mediastream/openwebrtc/SDPProcessorScriptResource.cpp: Renamed from Source/WebCore/platform/mediastream/gtk/SDPProcessorScriptResourceGtk.cpp.
+        (WebCore::SDPProcessorScriptResource::scriptString):
+
+2016-10-21  Miguel Gomez  <magomez@igalia.com>
+
+        [GTK] Several tests crashing on debug bot in (anonymous namespace)::MediaPlayerPrivateGStreamerBase::repaint
+        https://bugs.webkit.org/show_bug.cgi?id=163511
+
+        Reviewed by Carlos Garcia Campos.
+
+        Perform the video repaint in the main thread when accelerated compositing is disabled. Added a new method to
+        MediaPlayerClient to get whether accelerated compositing is enabled from the MediaPlayer. This is needed
+        because mediaPlayerAcceleratedCompositingEnabled() will return false while HTMLMediaElement doesn't have a
+        RenderVideo, even when accelerated compositing is enabled.
+
+        Covered by existent tests.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::mediaPlayerAcceleratedCompositingEnabled):
+        * html/HTMLMediaElement.h:
+        * platform/graphics/MediaPlayer.h:
+        (WebCore::MediaPlayerClient::mediaPlayerAcceleratedCompositingEnabled):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::MediaPlayerPrivateGStreamerBase):
+        (WebCore::MediaPlayerPrivateGStreamerBase::repaint):
+        (WebCore::MediaPlayerPrivateGStreamerBase::triggerRepaint):
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h:
+
+2016-10-21  Adam Bergkvist  <adam.bergkvist@ericsson.com>
+
+        WebRTC: [GTK] Add MediaEndpointOwr - an OpenWebRTC WebRTC backend
+        https://bugs.webkit.org/show_bug.cgi?id=163327
+
+        Reviewed by Philippe Normand.
+
+        Add MediaEndpointOwr which is a MediaEndpoint implementation (WebRTC backend) based on
+        OpenWebRTC [1]. The WebRTC backend can be tested with a manual test. Automatic testing
+        is still done with MockMediaEndpoint.
+
+        [1] http://www.openwebrtc.org/
+
+        Testing: Added manual test (webrtc-one-tab-p2p.html)
+
+        * CMakeLists.txt:
+        * platform/GStreamer.cmake:
+        * platform/mediastream/openwebrtc/MediaEndpointOwr.cpp: Added.
+        (WebCore::createMediaEndpointOwr):
+        (WebCore::MediaEndpointOwr::MediaEndpointOwr):
+        (WebCore::MediaEndpointOwr::~MediaEndpointOwr):
+        (WebCore::MediaEndpointOwr::setConfiguration):
+        (WebCore::cryptoDataCallback):
+        (WebCore::MediaEndpointOwr::generateDtlsInfo):
+        (WebCore::MediaEndpointOwr::getDefaultAudioPayloads):
+        (WebCore::MediaEndpointOwr::getDefaultVideoPayloads):
+        (WebCore::payloadsContainType):
+        (WebCore::MediaEndpointOwr::filterPayloads):
+        (WebCore::MediaEndpointOwr::updateReceiveConfiguration):
+        (WebCore::findRtxPayload):
+        (WebCore::MediaEndpointOwr::updateSendConfiguration):
+        (WebCore::MediaEndpointOwr::addRemoteCandidate):
+        (WebCore::MediaEndpointOwr::replaceMutedRemoteSourceMid):
+        (WebCore::MediaEndpointOwr::createMutedRemoteSource):
+        (WebCore::MediaEndpointOwr::replaceSendSource):
+        (WebCore::MediaEndpointOwr::stop):
+        (WebCore::MediaEndpointOwr::transceiverIndexForSession):
+        (WebCore::MediaEndpointOwr::sessionMid):
+        (WebCore::MediaEndpointOwr::matchTransceiverByMid):
+        (WebCore::MediaEndpointOwr::dispatchNewIceCandidate):
+        (WebCore::MediaEndpointOwr::dispatchGatheringDone):
+        (WebCore::MediaEndpointOwr::processIceTransportStateChange):
+        (WebCore::MediaEndpointOwr::dispatchDtlsFingerprint):
+        (WebCore::MediaEndpointOwr::unmuteRemoteSource):
+        (WebCore::MediaEndpointOwr::prepareSession):
+        (WebCore::MediaEndpointOwr::prepareMediaSession):
+        (WebCore::parseHelperServerUrl):
+        (WebCore::MediaEndpointOwr::ensureTransportAgentAndTransceivers):
+        (WebCore::MediaEndpointOwr::internalAddRemoteCandidate):
+        (WebCore::gotCandidate):
+        (WebCore::candidateGatheringDone):
+        (WebCore::iceConnectionStateChange):
+        (WebCore::gotIncomingSource):
+        * platform/mediastream/openwebrtc/MediaEndpointOwr.h: Added.
+        (WebCore::OwrTransceiver::create):
+        (WebCore::OwrTransceiver::~OwrTransceiver):
+        (WebCore::OwrTransceiver::mid):
+        (WebCore::OwrTransceiver::session):
+        (WebCore::OwrTransceiver::owrIceState):
+        (WebCore::OwrTransceiver::setOwrIceState):
+        (WebCore::OwrTransceiver::gotEndOfRemoteCandidates):
+        (WebCore::OwrTransceiver::markGotEndOfRemoteCandidates):
+        (WebCore::OwrTransceiver::OwrTransceiver):
+        * platform/mediastream/openwebrtc/RealtimeMediaSourceOwr.h:
+        (WebCore::RealtimeMediaSourceOwr::RealtimeMediaSourceOwr):
+        (WebCore::RealtimeMediaSourceOwr::swapOutShallowSource):
+        Add support for an initially muted source. This is used for early
+        creation of remote sources.
+
+2016-10-21  Javier Fernandez  <jfernandez@igalia.com>
+
+        [css-grid] Content Alignment broken with indefinite sized grid container
+        https://bugs.webkit.org/show_bug.cgi?id=163724
+
+        Reviewed by Manuel Rego Casasnovas.
+
+        The Grid Tracks sizing algorithm receives as parameter the
+        available space to be used as space for tracks. We hold a variable
+        to store the remaining free space for each dimension.
+
+        When the grid container size is indefinite we can't compute the
+        available free space after computing track sizes until such
+        indefinite size is resolved.
+
+        No new tests, just added some additional test cases.
+
+        * rendering/RenderGrid.cpp:
+        (WebCore::RenderGrid::layoutBlock): Compute freeSpace for Rows
+        after doing layout and resolving the indefinite height.
+
+2016-10-21  Jer Noble  <jer.noble@apple.com>
+
+        CRASH in SourceBuffer::sourceBufferPrivateDidReceiveSample + 2169
+        https://bugs.webkit.org/show_bug.cgi?id=163735
+
+        Reviewed by Eric Carlson.
+
+        Test: media/media-source/media-source-sample-wrong-track-id.html
+
+        When SourceBuffer receives a sample in sourceBufferPrivateDidReceiveSample() containing
+        a trackID not previously seen in an initialization segment, it creates a default TrackBuffer
+        object to contain that track's samples. One of the fields in TrackBuffer, description, is
+        normally filled out when an initialization segment is received, but with this default
+        TrackBuffer, it's still null when it's checked later in sourceBufferPrivateDidReceiveSample().
+
+        Rather than adding a null-check on trackBuffer.description, drop any sample that has a 
+        trackID which was not present during a previous initialization segment.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::sourceBufferPrivateDidReceiveSample):
+
 2016-10-20  Carlos Garcia Campos  <cgarcia@igalia.com>
 
         [GTK] Configures but fails to link with ENABLE_OPENGL=OFF
