@@ -640,7 +640,7 @@
 		0FB7F39A15ED8E4600F167B2 /* IndexingHeaderInlines.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FB7F38E15ED8E3800F167B2 /* IndexingHeaderInlines.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FB7F39B15ED8E4600F167B2 /* IndexingType.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FB7F38F15ED8E3800F167B2 /* IndexingType.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FB7F39C15ED8E4600F167B2 /* PropertyStorage.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FB7F39015ED8E3800F167B2 /* PropertyStorage.h */; settings = {ATTRIBUTES = (Private, ); }; };
-		0FB7F39D15ED8E4600F167B2 /* Reject.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FB7F39115ED8E3800F167B2 /* Reject.h */; settings = {ATTRIBUTES = (Private, ); }; };
+		0FB7F39D15ED8E4600F167B2 /* TypeError.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FB7F39115ED8E3800F167B2 /* TypeError.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FB7F39E15ED8E4600F167B2 /* SparseArrayValueMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FB7F39215ED8E3800F167B2 /* SparseArrayValueMap.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		0FBC0AE71496C7C400D4FBDD /* DFGExitProfile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0FBC0AE41496C7C100D4FBDD /* DFGExitProfile.cpp */; };
 		0FBC0AE81496C7C700D4FBDD /* DFGExitProfile.h in Headers */ = {isa = PBXBuildFile; fileRef = 0FBC0AE51496C7C100D4FBDD /* DFGExitProfile.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -1366,8 +1366,6 @@
 		79EE0C001B4AFB85000385C9 /* VariableEnvironment.h in Headers */ = {isa = PBXBuildFile; fileRef = 79EE0BFE1B4AFB85000385C9 /* VariableEnvironment.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		79F8FC1E1B9FED0F00CA66AB /* DFGMaximalFlushInsertionPhase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 79F8FC1C1B9FED0F00CA66AB /* DFGMaximalFlushInsertionPhase.cpp */; };
 		79F8FC1F1B9FED0F00CA66AB /* DFGMaximalFlushInsertionPhase.h in Headers */ = {isa = PBXBuildFile; fileRef = 79F8FC1D1B9FED0F00CA66AB /* DFGMaximalFlushInsertionPhase.h */; };
-		7B98D1361B60CD5F0023B1A4 /* JSWasmModule.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7B98D1341B60CD5A0023B1A4 /* JSWasmModule.cpp */; };
-		7B98D1371B60CD620023B1A4 /* JSWasmModule.h in Headers */ = {isa = PBXBuildFile; fileRef = 7B98D1351B60CD5A0023B1A4 /* JSWasmModule.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7BC547D31B6959A100959B58 /* WasmFormat.h in Headers */ = {isa = PBXBuildFile; fileRef = 7BC547D21B69599B00959B58 /* WasmFormat.h */; settings = {ATTRIBUTES = (Private, ); }; };
 		7C008CDA187124BB00955C24 /* JSPromiseDeferred.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7C008CD8187124BB00955C24 /* JSPromiseDeferred.cpp */; };
 		7C008CDB187124BB00955C24 /* JSPromiseDeferred.h in Headers */ = {isa = PBXBuildFile; fileRef = 7C008CD9187124BB00955C24 /* JSPromiseDeferred.h */; settings = {ATTRIBUTES = (Private, ); }; };
@@ -2984,7 +2982,7 @@
 		0FB7F38E15ED8E3800F167B2 /* IndexingHeaderInlines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IndexingHeaderInlines.h; sourceTree = "<group>"; };
 		0FB7F38F15ED8E3800F167B2 /* IndexingType.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IndexingType.h; sourceTree = "<group>"; };
 		0FB7F39015ED8E3800F167B2 /* PropertyStorage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PropertyStorage.h; sourceTree = "<group>"; };
-		0FB7F39115ED8E3800F167B2 /* Reject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Reject.h; sourceTree = "<group>"; };
+		0FB7F39115ED8E3800F167B2 /* TypeError.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TypeError.h; sourceTree = "<group>"; };
 		0FB7F39215ED8E3800F167B2 /* SparseArrayValueMap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SparseArrayValueMap.h; sourceTree = "<group>"; };
 		0FBC0AE41496C7C100D4FBDD /* DFGExitProfile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DFGExitProfile.cpp; sourceTree = "<group>"; };
 		0FBC0AE51496C7C100D4FBDD /* DFGExitProfile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = DFGExitProfile.h; sourceTree = "<group>"; };
@@ -3714,8 +3712,6 @@
 		79EE0BFE1B4AFB85000385C9 /* VariableEnvironment.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = VariableEnvironment.h; sourceTree = "<group>"; };
 		79F8FC1C1B9FED0F00CA66AB /* DFGMaximalFlushInsertionPhase.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = DFGMaximalFlushInsertionPhase.cpp; path = dfg/DFGMaximalFlushInsertionPhase.cpp; sourceTree = "<group>"; };
 		79F8FC1D1B9FED0F00CA66AB /* DFGMaximalFlushInsertionPhase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DFGMaximalFlushInsertionPhase.h; path = dfg/DFGMaximalFlushInsertionPhase.h; sourceTree = "<group>"; };
-		7B98D1341B60CD5A0023B1A4 /* JSWasmModule.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSWasmModule.cpp; sourceTree = "<group>"; };
-		7B98D1351B60CD5A0023B1A4 /* JSWasmModule.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSWasmModule.h; sourceTree = "<group>"; };
 		7BC547D21B69599B00959B58 /* WasmFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WasmFormat.h; sourceTree = "<group>"; };
 		7C008CD8187124BB00955C24 /* JSPromiseDeferred.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = JSPromiseDeferred.cpp; sourceTree = "<group>"; };
 		7C008CD9187124BB00955C24 /* JSPromiseDeferred.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JSPromiseDeferred.h; sourceTree = "<group>"; };
@@ -5834,8 +5830,6 @@
 				AD2FCC2E1DB839F700B3E736 /* JSWebAssembly.cpp */,
 				AD2FCC2F1DB839F700B3E736 /* JSWebAssembly.h */,
 				AD2FCB8A1DB5840000B3E736 /* js */,
-				7B98D1341B60CD5A0023B1A4 /* JSWasmModule.cpp */,
-				7B98D1351B60CD5A0023B1A4 /* JSWasmModule.h */,
 				53F40E8E1D5902820099A1B6 /* WasmB3IRGenerator.cpp */,
 				53F40E921D5A4AB30099A1B6 /* WasmB3IRGenerator.h */,
 				53FD04D11D7AB187003287D3 /* WasmCallingConvention.cpp */,
@@ -6350,7 +6344,7 @@
 				0F7C39FC1C8F659500480151 /* RegExpObjectInlines.h */,
 				BCD202BF0E1706A7002C7E82 /* RegExpPrototype.cpp */,
 				BCD202C00E1706A7002C7E82 /* RegExpPrototype.h */,
-				0FB7F39115ED8E3800F167B2 /* Reject.h */,
+				0FB7F39115ED8E3800F167B2 /* TypeError.h */,
 				70B0A9D01A9B66200001306A /* RuntimeFlags.h */,
 				527773DD1AAF83AC00BDE7E8 /* RuntimeType.cpp */,
 				52C0611D1AA51E1B00B4ADBA /* RuntimeType.h */,
@@ -8363,7 +8357,6 @@
 				BC18C42C0E16F5CD00B34460 /* JSValueRef.h in Headers */,
 				86E3C615167BABD7006D760A /* JSVirtualMachine.h in Headers */,
 				86E3C61D167BABEE006D760A /* JSVirtualMachineInternal.h in Headers */,
-				7B98D1371B60CD620023B1A4 /* JSWasmModule.h in Headers */,
 				DC605B5E1CE26EA200593718 /* ProfilerEvent.h in Headers */,
 				A7CA3AE817DA41AE006538AF /* JSWeakMap.h in Headers */,
 				A7482E93116A7CAD003B0712 /* JSWeakObjectMapRefInternal.h in Headers */,
@@ -8545,7 +8538,7 @@
 				623A37EC1B87A7C000754209 /* RegisterMap.h in Headers */,
 				0FC314121814559100033232 /* RegisterSet.h in Headers */,
 				A57D23EE1891B5540031C7FA /* RegularExpression.h in Headers */,
-				0FB7F39D15ED8E4600F167B2 /* Reject.h in Headers */,
+				0FB7F39D15ED8E4600F167B2 /* TypeError.h in Headers */,
 				A5BA15E8182340B300A82E69 /* RemoteInspector.h in Headers */,
 				A5BA15EA182340B400A82E69 /* RemoteInspectorConstants.h in Headers */,
 				A5BA15F0182345AF00A82E69 /* RemoteInspectionTarget.h in Headers */,
@@ -9845,7 +9838,6 @@
 				86E3C61A167BABEE006D760A /* JSValue.mm in Sources */,
 				14BD5A320A3E91F600BAF59C /* JSValueRef.cpp in Sources */,
 				86E3C61C167BABEE006D760A /* JSVirtualMachine.mm in Sources */,
-				7B98D1361B60CD5F0023B1A4 /* JSWasmModule.cpp in Sources */,
 				A7CA3AE717DA41AE006538AF /* JSWeakMap.cpp in Sources */,
 				A7482B9411671147003B0712 /* JSWeakObjectMapRefPrivate.cpp in Sources */,
 				709FB8671AE335C60039D069 /* JSWeakSet.cpp in Sources */,

@@ -184,7 +184,11 @@ namespace WebCore {
 
         // To keep Path() cheap, it does not allocate a PlatformPath immediately
         // meaning Path::platformPath() can return null (except on Qt).
+#if USE(DIRECT2D)
+        PlatformPathPtr platformPath() const { return m_path.get(); }
+#else
         PlatformPathPtr platformPath() const { return m_path; }
+#endif
 #if PLATFORM(QT)
         PlatformPathPtr ensurePlatformPath() { return platformPath(); }
 #else
@@ -222,10 +226,12 @@ namespace WebCore {
 #endif
 
     private:
-        PlatformPathPtr m_path { nullptr };
 #if USE(DIRECT2D)
+        COMPtr<ID2D1GeometryGroup> m_path;
         COMPtr<ID2D1PathGeometry> m_activePathGeometry;
         COMPtr<ID2D1GeometrySink> m_activePath;
+#else
+        PlatformPathPtr m_path { nullptr };
 #endif
     };
 

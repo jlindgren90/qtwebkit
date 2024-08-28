@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2012, 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -20,21 +20,31 @@
  * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
  * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#pragma once
-
-#include "CallFrame.h"
-#include "Error.h"
-
-namespace JSC {
-
-inline bool reject(ExecState* exec, ThrowScope& scope, bool throwException, ASCIILiteral message)
+class RemainingTimeSupport extends MediaControllerSupport
 {
-    if (throwException)
-        throwTypeError(exec, scope, message);
-    return false;
-}
 
-} // namespace JSC
+    // Protected
+
+    get control()
+    {
+        return this.mediaController.controls.timeControl.remainingTimeLabel;
+    }
+
+    get mediaEvents()
+    {
+        return ["timeupdate", "durationchange"];
+    }
+
+    syncControl()
+    {
+        const media = this.mediaController.media;
+        if (isNaN(media.duration))
+            return;
+
+        this.control.value = media.currentTime - media.duration;
+    }
+
+}

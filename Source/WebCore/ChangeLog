@@ -1,3 +1,1312 @@
+2016-10-26  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: remove unused bool return value from FrontendChannel::sendMessageToFrontend
+        https://bugs.webkit.org/show_bug.cgi?id=164046
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/InspectorClient.cpp:
+        (WebCore::InspectorClient::doDispatchMessageOnFrontendPage):
+        * inspector/InspectorClient.h:
+        * testing/Internals.cpp:
+        (WebCore::InspectorStubFrontend::sendMessageToFrontend):
+
+2016-10-26  Chris Dumez  <cdumez@apple.com>
+
+        The URLSearchParams constructor should take a union in parameter
+        https://bugs.webkit.org/show_bug.cgi?id=163906
+
+        Reviewed by Darin Adler.
+
+        The URLSearchParams constructor should take a union in parameter:
+        - https://url.spec.whatwg.org/#urlsearchparams
+
+        No new tests, no web-exposed behavior change.
+
+        * html/URLSearchParams.h:
+        (WebCore::URLSearchParams::create):
+        * html/URLSearchParams.idl:
+
+2016-10-26  Sam Weinig  <sam@webkit.org>
+
+        [WebIDL] Move more string conversions over to JSDOMConvert
+        https://bugs.webkit.org/show_bug.cgi?id=164021
+
+        Reviewed by Tim Horton.
+
+        * bindings/js/JSCSSStyleDeclarationCustom.cpp:
+        (WebCore::JSCSSStyleDeclaration::putDelegate):
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::open):
+        (WebCore::JSDOMWindow::showModalDialog):
+        (WebCore::handlePostMessage):
+        * bindings/js/JSHTMLCanvasElementCustom.cpp:
+        (WebCore::JSHTMLCanvasElement::toDataURL):
+        * bindings/js/JSHistoryCustom.cpp:
+        (WebCore::JSHistory::pushState):
+        (WebCore::JSHistory::replaceState):
+        Switch to convert functions.
+
+        * bindings/js/JSApplePaySessionCustom.cpp:
+        (WebCore::JSApplePaySession::completeShippingMethodSelection):
+        (WebCore::JSApplePaySession::completeShippingContactSelection):
+        * bindings/js/JSCryptoAlgorithmDictionary.cpp:
+        (WebCore::createAesKeyGenParams):
+        (WebCore::createRsaKeyGenParams):
+        * bindings/js/JSDocumentCustom.cpp:
+        (WebCore::JSDocument::getCSSCanvasContext):
+        * bindings/js/JSMockContentFilterSettingsCustom.cpp:
+        (WebCore::JSMockContentFilterSettings::setDecisionPoint):
+        (WebCore::toDecision):
+        * bindings/js/JSNodeFilterCustom.cpp:
+        (WebCore::JSNodeFilter::acceptNode):
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::toSmallerInt):
+        (WebCore::toSmallerUInt):
+        (WebCore::toInt8EnforceRange):
+        (WebCore::toUInt8EnforceRange):
+        (WebCore::toInt8Clamp):
+        (WebCore::toUInt8Clamp):
+        (WebCore::toInt8):
+        (WebCore::toUInt8):
+        (WebCore::toInt16EnforceRange):
+        (WebCore::toUInt16EnforceRange):
+        (WebCore::toInt16Clamp):
+        (WebCore::toUInt16Clamp):
+        (WebCore::toInt16):
+        (WebCore::toUInt16):
+        Use updated IntegerConversionConfiguration naming.
+
+        (WebCore::valueToStringTreatingNullAsEmptyString): Deleted.
+        (WebCore::valueToStringWithUndefinedOrNullCheck): Deleted.
+        (WebCore::valueToUSVStringTreatingNullAsEmptyString): Deleted.
+        (WebCore::valueToUSVStringWithUndefinedOrNullCheck): Deleted.
+        * bindings/js/JSDOMBinding.h:
+        Remove unused functions.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::convert):
+        Add StringConversionConfiguration, to match IntegerConversionConfiguration which moved here,
+        and make them both enum classes. Remove SFINAE based overloading of convert<>, which is not
+        needed if we get rid of the default parameter, which we can, since the two parameter convert
+        routes to the right place.
+
+        (WebCore::Converter<IDLNullable<T>>::convert):
+        Add overloads converts that take a Integer/String configuration.
+
+        (WebCore::Converter<IDLByte>::convert):
+        (WebCore::Converter<IDLOctet>::convert):
+        (WebCore::Converter<IDLShort>::convert):
+        (WebCore::Converter<IDLUnsignedShort>::convert):
+        (WebCore::Converter<IDLLong>::convert):
+        (WebCore::Converter<IDLUnsignedLong>::convert):
+        (WebCore::Converter<IDLLongLong>::convert):
+        (WebCore::Converter<IDLUnsignedLongLong>::convert):
+        Use updated IntegerConversionConfiguration naming.
+
+        (WebCore::Converter<IDLDOMString>::convert):
+        (WebCore::Converter<IDLUSVString>::convert):
+        Add a configuration parameter, similar to the one used for integers
+        that changes the behavior of string conversions to return an empty
+        string for null.
+
+        * bindings/js/JSDOMIterator.h:
+        (WebCore::iteratorCreate):
+        (WebCore::IteratorTraits>::asJS):
+        (WebCore::appendForEachArguments):
+        Simplify a bit by extracting the SFINAE helpers into a EnableIfMap and EnableIfSet.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetIntegerConversionConfiguration):
+        (GetStringConversionConfiguration):
+        (JSValueToNativeIsHandledByDOMConvert):
+        (JSValueToNative):
+        Add support for converting more string types and passing the StringConversionConfiguration.
+
+2016-10-26  Dan Bernstein  <mitz@apple.com>
+
+        When pasting web archive, width specifiers in srcset attribute change into density specifiers
+        https://bugs.webkit.org/show_bug.cgi?id=164027
+        <rdar://problem/28964948>
+
+        Reviewed by Tim Horton.
+
+        Updated editing/pasteboard/img-srcset-copy-paste-canonicalization.html.
+
+        * html/HTMLImageElement.cpp:
+        (WebCore::HTMLImageElement::completeURLsInAttributeValue): Use 'w' when writing out a width
+          specifier.
+
+2016-10-26  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: playback support
+        https://bugs.webkit.org/show_bug.cgi?id=163678
+        <rdar://problem/27989479>
+
+        Reviewed by Dean Jackson.
+
+        We introduce the PlaybackSupport class which brings support for playing and pausing
+        the media by clicking on the play/pause button in the media controls and correctly
+        reflecting the media's playback state as the media is played or paused via the media API.
+
+        * Modules/modern-media-controls/js-files:
+        * Modules/modern-media-controls/media/media-controller.js:
+        (MediaController):
+        * Modules/modern-media-controls/media/playback-support.js: Copied from Source/WebCore/Modules/modern-media-controls/media/media-controller.js.
+        (PlaybackSupport.prototype.get control):
+        (PlaybackSupport.prototype.get mediaEvents):
+        (PlaybackSupport.prototype.buttonWasClicked):
+        (PlaybackSupport.prototype.syncControl):
+        (PlaybackSupport):
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-10-26  Chris Dumez  <cdumez@apple.com>
+
+        Regression(r203848): 百度糯米 app fails to load content due to a JavaScript error
+        https://bugs.webkit.org/show_bug.cgi?id=163967
+        <rdar://problem/28707838>
+
+        Reviewed by Ryosuke Niwa.
+
+        Add quirk for 百度糯米 app making the 2 last parameters to Event.prototype.initEvent()
+        optional.
+
+        No new tests, change only impacts this specific application.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GeneratePropertiesHashTable):
+        * dom/Event.cpp:
+        (WebCore::Event::initEventForBindings):
+        * dom/Event.h:
+        * dom/Event.idl:
+        * platform/RuntimeApplicationChecks.h:
+        * platform/RuntimeApplicationChecks.mm:
+        (WebCore::IOSApplication::isBaiduNuomi):
+
+2016-10-26  Chris Dumez  <cdumez@apple.com>
+
+        First parameter to TextTrack.addCue() / removeCue() should not be nullable
+        https://bugs.webkit.org/show_bug.cgi?id=164020
+
+        Reviewed by Eric Carlson.
+
+        First parameter to TextTrack.addCue() / removeCue() should not be nullable:
+        - https://html.spec.whatwg.org/#texttrack
+
+        Firefox and Chrome agree with the specification.
+
+        Test: media/track/texttrack-addCue-null.html
+
+        * html/track/InbandDataTextTrack.cpp:
+        (WebCore::InbandDataTextTrack::removeDataCue):
+        (WebCore::InbandDataTextTrack::removeCue):
+        * html/track/InbandDataTextTrack.h:
+        * html/track/InbandGenericTextTrack.cpp:
+        (WebCore::InbandGenericTextTrack::addGenericCue):
+        (WebCore::InbandGenericTextTrack::removeGenericCue):
+        (WebCore::InbandGenericTextTrack::removeCue):
+        * html/track/InbandGenericTextTrack.h:
+        * html/track/TextTrack.cpp:
+        (WebCore::TextTrack::addCue):
+        (WebCore::TextTrack::removeCue):
+        * html/track/TextTrack.h:
+        * html/track/TextTrack.idl:
+
+2016-10-26  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: elapsed and remaining time support
+        https://bugs.webkit.org/show_bug.cgi?id=163679
+        <rdar://problem/28851675>
+
+        Reviewed by Dean Jackson.
+
+        We introduce the ElapsedTimeSupport and RemainingTimeSupport classes which bring
+        support for displaying the elapsed and remaining time in the time control.
+
+        Tests: media/modern-media-controls/elapsed-time-support/elapsed-time-support.html
+               media/modern-media-controls/remaining-time-support/remaining-time-support.html
+
+        * Modules/modern-media-controls/js-files:
+        * Modules/modern-media-controls/media/elapsed-time-support.js: Added.
+        (ElapsedTimeSupport.prototype.get control):
+        (ElapsedTimeSupport.prototype.get mediaEvents):
+        (ElapsedTimeSupport.prototype.syncControl):
+        (ElapsedTimeSupport):
+        * Modules/modern-media-controls/media/media-controller.js:
+        (MediaController):
+        * Modules/modern-media-controls/media/remaining-time-support.js: Added.
+        (RemainingTimeSupport.prototype.get control):
+        (RemainingTimeSupport.prototype.get mediaEvents):
+        (RemainingTimeSupport.prototype.syncControl):
+        (RemainingTimeSupport):
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-10-26  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Unify CSSCustomPropertyValue and CSSCustomPropertyDeclaration
+        https://bugs.webkit.org/show_bug.cgi?id=164019
+
+        Reviewed by Zalan Bujtas.
+
+        * CMakeLists.txt:
+        * WebCore.xcodeproj/project.pbxproj:
+        * css/CSSCustomPropertyDeclaration.cpp: Removed.
+        * css/CSSCustomPropertyDeclaration.h: Removed.
+        Get rid of CSSCustomPropertyDeclaration.
+
+        * css/CSSCustomPropertyValue.h:
+        Add new constructors to handle the new variable data format (either a CSSValueId or a
+        CSSVariableData object that holds parser tokens).
+
+        * css/CSSValue.cpp:
+        (WebCore::CSSValue::cssText):
+        (WebCore::CSSValue::destroy):
+        * css/CSSValue.h:
+        (WebCore::CSSValue::isCustomPropertyDeclaration): Deleted.
+        Get rid of CSSCustomPropertyDeclaration cases.
+
+        * css/CSSVariableData.h:
+        Switch to CSSCustomPropertyValue.
+
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::applyProperty):
+        We've renamed the old parser variable data to deprecatedValue to make it clear it's going
+        to be removed eventually.
+
+        * css/parser/CSSParserImpl.cpp:
+        (WebCore::filterProperties):
+        (WebCore::CSSParserImpl::consumeVariableValue):
+        * css/parser/CSSVariableParser.cpp:
+        (WebCore::CSSVariableParser::parseDeclarationValue):
+        * css/parser/CSSVariableParser.h:
+        Switch to CSSCustomPropertyValue.
+
+2016-10-26  Youenn Fablet  <youenn@apple.com>
+
+        Enable SDPProcessor for Mac bots
+        https://bugs.webkit.org/show_bug.cgi?id=163940
+
+        Reviewed by Eric Carlson.
+
+        Covered by activated tests.
+
+        Activating processing of SDPProcessor scripts for Mac bots.
+        Moving platform/mediastream/openwebrtc/SDPProcessorScriptResource.cpp to platform/mediastream/SDPProcessorScriptResource.cpp.
+        This file is not tied to openwebrtc and allows retrieving the SDPProcessor script resource file content.
+
+        * DerivedSources.make:
+        * PlatformGTK.cmake:
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/mediastream/SDPProcessorScriptResource.cpp:
+        (WebCore::SDPProcessorScriptResource::scriptString):
+        * platform/mediastream/openwebrtc/SDPProcessorScriptResource.cpp: Removed.
+
+2016-10-26  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Get functional pseudos parsing
+        https://bugs.webkit.org/show_bug.cgi?id=164018
+
+        Reviewed by Zalan Bujtas.
+
+        * css/parser/CSSParserValues.cpp:
+        (WebCore::CSSParserSelector::parsePseudoClassSelectorFromStringView):
+        Remove the ( check so that we can parse strings that end in (.
+
+        * css/parser/CSSSelectorParser.cpp:
+        (WebCore::CSSSelectorParser::consumePseudo):
+        Put in a hack that adds a ( to the end of the string so that it will be found in the map.
+
+2016-10-26  Zan Dobersek  <zdobersek@igalia.com>
+
+        Unreviewed. Fixing compiler warnings in PlaybackPipeline
+        that are popping up in GTK+ builds.
+
+        * platform/graphics/gstreamer/mse/PlaybackPipeline.cpp:
+        (WebCore::PlaybackPipeline::addSourceBuffer):
+        (WebCore::PlaybackPipeline::attachTrack):
+
+2016-10-26  Youenn Fablet  <youennf@gmail.com>
+
+        IceCandidate does not need to be refcounted
+        https://bugs.webkit.org/show_bug.cgi?id=163944
+
+        Reviewed by Eric Carlson.
+
+        No change of behavior.
+
+        Simplifying IceCandidate class into a simple structure, no longer refcounted.
+        Updated call sites accordingly.
+        Updated SDP parsing of candidates to return a Variant instead of having both a return and an out parameter.
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::addIceCandidateTask):
+        (WebCore::MediaEndpointPeerConnection::gotIceCandidate):
+        * Modules/mediastream/MediaEndpointPeerConnection.h:
+        * Modules/mediastream/SDPProcessor.cpp:
+        (WebCore::createCandidateObject):
+        (WebCore::createCandidate):
+        (WebCore::iceCandidateFromJSON):
+        (WebCore::configurationToJSON):
+        (WebCore::SDPProcessor::parseCandidateLine):
+        * Modules/mediastream/SDPProcessor.h:
+        (WebCore::SDPProcessor::ParsingResult::parsingStatus):
+        (WebCore::SDPProcessor::ParsingResult::candidate):
+        * platform/mediastream/IceCandidate.h:
+        * platform/mediastream/MediaEndpoint.cpp:
+        * platform/mediastream/MediaEndpoint.h:
+        * platform/mediastream/PeerMediaDescription.h:
+        (WebCore::PeerMediaDescription::iceCandidates):
+        (WebCore::PeerMediaDescription::addIceCandidate):
+        (WebCore::PeerMediaDescription::clone):
+        * platform/mediastream/openwebrtc/MediaEndpointOwr.cpp:
+        (WebCore::MediaEndpointOwr::updateSendConfiguration):
+        (WebCore::MediaEndpointOwr::addRemoteCandidate):
+        (WebCore::MediaEndpointOwr::dispatchNewIceCandidate):
+        (WebCore::MediaEndpointOwr::internalAddRemoteCandidate):
+        * platform/mediastream/openwebrtc/MediaEndpointOwr.h:
+        * platform/mock/MockMediaEndpoint.cpp:
+        (WebCore::MockMediaEndpoint::addRemoteCandidate):
+        (WebCore::MockMediaEndpoint::dispatchFakeIceCandidates):
+        * platform/mock/MockMediaEndpoint.h:
+
+2016-10-26  Andreas Kling  <akling@apple.com>
+
+        Fix mach port leak in ResourceUsageThread.
+        <https://webkit.org/b/164012>
+
+        Reviewed by Antti Koivisto.
+
+        The threads returned by task_threads() need to be deallocated.
+
+        * page/cocoa/ResourceUsageThreadCocoa.mm:
+        (WebCore::cpuUsage):
+
+2016-10-26  Nael Ouedraogo  <nael.ouedraogo@crf.canon.fr>
+
+        WebRTC: The RTCTrackEventInit dictionary needs required members
+        https://bugs.webkit.org/show_bug.cgi?id=158536
+
+        Reviewed by Chris Dumez.
+
+        Update RTCTrackEvent IDL as per specification.
+
+        No additional test required, rebase existing tests.
+
+        * Modules/mediastream/RTCTrackEvent.idl:
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][GTK+][MSE] Unreviewed debug build fix.
+
+        * platform/graphics/gstreamer/mse/AppendPipeline.cpp:
+        (WebCore::AppendPipeline::resetPipeline):
+        * platform/graphics/gstreamer/mse/AppendPipeline.h:
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [cmake][GStreamer][MSE][EME] Build MSE and EME code after refactoring
+        https://bugs.webkit.org/show_bug.cgi?id=162928
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Consolidate all the source file tree changes after refactoring.
+
+        This patch is co-authored with Philippe Normand <philn@igalia.com> (EME support).
+
+        * platform/GStreamer.cmake:
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [MSE][GStreamer] Enable QUOTA_EXCEEDED_ERR support for GStreamer
+        https://bugs.webkit.org/show_bug.cgi?id=162922
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        QUOTA_EXCEEDED_ERR should be reported by SourceBuffer when appropriate, at least on the
+        GStreamer implementation.
+
+        * Modules/mediasource/SourceBuffer.cpp:
+        (WebCore::SourceBuffer::appendBufferInternal):
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [MSE] Expose additional MediaSource methods to MediaSourcePrivate
+        https://bugs.webkit.org/show_bug.cgi?id=162920
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        The GStreamer MSE platform implementation needs to report duration changes and trigger
+        monitorSourceBuffers() calls.
+
+        * Modules/mediasource/MediaSource.cpp:
+        (WebCore::MediaSource::durationChanged):
+        * Modules/mediasource/MediaSource.h:
+        * platform/graphics/MediaSourcePrivateClient.h:
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][EME] ClearKey decryption support
+        https://bugs.webkit.org/show_bug.cgi?id=162918
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        This patch is authored by Philippe Normand <philn@igalia.com>.
+
+        * platform/graphics/gstreamer/eme/WebKitClearKeyDecryptorGStreamer.cpp: Added.
+        (webkit_media_clear_key_decrypt_class_init):
+        (webkit_media_clear_key_decrypt_init):
+        (webKitMediaClearKeyDecryptorFinalize):
+        (webKitMediaClearKeyDecryptorRequestDecryptionKey):
+        (webKitMediaClearKeyDecryptorHandleKeyResponse):
+        (webKitMediaClearKeyDecryptorSetupCipher):
+        (webKitMediaClearKeyDecryptorDecrypt):
+        (webKitMediaClearKeyDecryptorReleaseCipher):
+        * platform/graphics/gstreamer/eme/WebKitClearKeyDecryptorGStreamer.h: Added.
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][EME] Base class for decryption support
+        https://bugs.webkit.org/show_bug.cgi?id=162915
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Add common encryption base class.
+
+        This patch is authored by Philippe Normand <philn@igalia.com>.
+
+        * platform/graphics/gstreamer/eme/WebKitCommonEncryptionDecryptorGStreamer.cpp: Added.
+        (webkit_media_common_encryption_decrypt_class_init):
+        (webkit_media_common_encryption_decrypt_init):
+        (webKitMediaCommonEncryptionDecryptorFinalize):
+        (webkitMediaCommonEncryptionDecryptTransformCaps):
+        (webkitMediaCommonEncryptionDecryptTransformInPlace):
+        (webkitMediaCommonEncryptionDecryptSinkEventHandler):
+        (webKitMediaCommonEncryptionDecryptorChangeState):
+        (webKitMediaCommonEncryptionDecryptDefaultSetupCipher):
+        (webKitMediaCommonEncryptionDecryptDefaultReleaseCipher):
+        * platform/graphics/gstreamer/eme/WebKitCommonEncryptionDecryptorGStreamer.h: Added.
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][EME] Utility function to create decryptor
+        https://bugs.webkit.org/show_bug.cgi?id=162914
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Add a utility function to find a suitable GStreamer decryptor element.
+
+        This patch is authored by Philippe Normand <philn@igalia.com>.
+
+        * platform/graphics/gstreamer/GStreamerUtilities.cpp:
+        (WebCore::createGstDecryptor):
+        (WebCore::gstRegistryHasElementForMediaType): Deleted.
+        * platform/graphics/gstreamer/GStreamerUtilities.h:
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][MSE][EME] Remove MSE code from regular player and add EME support
+        https://bugs.webkit.org/show_bug.cgi?id=162911
+
+        Now that the MSE responsibility has been refactored to the dedicated
+        MediaPlayerPrivateGStreamerMSE subclass, the regular player no longer needs the MSE code,
+        just to expose some more methods to the subclass. Float timestamps have been migrated to
+        double. Also, small changes to accomodate the EME support are needed.
+
+        This patch is co-authored with Philippe Normand <philn@igalia.com> (EME support) and
+        Žan Doberšek <zandobersek@gmail.com> (double timestamps).
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.cpp:
+        (WebCore::busMessageCallback):
+        (WebCore::MediaPlayerPrivateGStreamer::registerMediaEngine):
+        (WebCore::initializeGStreamerAndRegisterWebKitElements):
+        (WebCore::MediaPlayerPrivateGStreamer::MediaPlayerPrivateGStreamer):
+        (WebCore::MediaPlayerPrivateGStreamer::~MediaPlayerPrivateGStreamer):
+        (WebCore::MediaPlayerPrivateGStreamer::load):
+        (WebCore::MediaPlayerPrivateGStreamer::playbackPosition):
+        (WebCore::MediaPlayerPrivateGStreamer::durationMediaTime):
+        (WebCore::MediaPlayerPrivateGStreamer::currentMediaTime):
+        (WebCore::MediaPlayerPrivateGStreamer::seek):
+        (WebCore::MediaPlayerPrivateGStreamer::doSeek):
+        (WebCore::MediaPlayerPrivateGStreamer::paused):
+        (WebCore::MediaPlayerPrivateGStreamer::notifyPlayerOfVideo):
+        (WebCore::MediaPlayerPrivateGStreamer::notifyPlayerOfAudio):
+        (WebCore::MediaPlayerPrivateGStreamer::notifyPlayerOfText):
+        (WebCore::MediaPlayerPrivateGStreamer::buffered):
+        (WebCore::MediaPlayerPrivateGStreamer::handleMessage):
+        (WebCore::MediaPlayerPrivateGStreamer::processMpegTsSection):
+        (WebCore::MediaPlayerPrivateGStreamer::fillTimerFired):
+        (WebCore::MediaPlayerPrivateGStreamer::maxTimeSeekable):
+        (WebCore::MediaPlayerPrivateGStreamer::maxTimeLoaded):
+        (WebCore::MediaPlayerPrivateGStreamer::didLoadingProgress):
+        (WebCore::MediaPlayerPrivateGStreamer::sourceChanged):
+        (WebCore::MediaPlayerPrivateGStreamer::didEnd):
+        (WebCore::MediaPlayerPrivateGStreamer::durationChanged):
+        (WebCore::MediaPlayerPrivateGStreamer::supportsType):
+        (WebCore::MediaPlayerPrivateGStreamer::createGSTPlayBin):
+        (WebCore::MediaPlayerPrivateGStreamer::handleSyncMessage):
+        (WebCore::MediaPlayerPrivateGStreamer::setAudioStreamProperties): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::commitLoad): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::pause): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::videoChangedCallback): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::videoSinkCapsChangedCallback): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::notifyPlayerOfVideoCaps): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::setRate): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::processTableOfContentsEntry): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::totalBytes): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::loadNextLocation): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::loadStateChanged): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::timeChanged): Deleted.
+        (WebCore::mimeTypeSet): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamer::createAudioSink): Deleted.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamer.h:
+        (WebCore::MediaPlayerPrivateGStreamer::configurePlaySink):
+        (WebCore::MediaPlayerPrivateGStreamer::isMediaSource):
+        (WebCore::MediaPlayerPrivateGStreamer::createWeakPtr): Deleted.
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][EME] Add EME support to base private player
+        https://bugs.webkit.org/show_bug.cgi?id=162908
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Add encryption key management support.
+
+        This patch is authored by Philippe Normand <philn@igalia.com>.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::registerWebKitGStreamerElements):
+        (WebCore::MediaPlayerPrivateGStreamerBase::handleSyncMessage):
+        (WebCore::MediaPlayerPrivateGStreamerBase::needKey):
+        (WebCore::MediaPlayerPrivateGStreamerBase::setCDMSession):
+        (WebCore::MediaPlayerPrivateGStreamerBase::keyAdded):
+        (WebCore::MediaPlayerPrivateGStreamerBase::createSession):
+        (WebCore::MediaPlayerPrivateGStreamerBase::dispatchDecryptionKey):
+        (WebCore::MediaPlayerPrivateGStreamerBase::supportsKeySystem):
+        (WebCore::MediaPlayerPrivateGStreamerBase::extendedSupportsType):
+        (WebCore::MediaPlayerPrivateGStreamerBase::~MediaPlayerPrivateGStreamerBase): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamerBase::setPipeline): Deleted.
+        (WebCore::MediaPlayerPrivateGStreamerBase::setStreamVolumeElement): Deleted.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h:
+        (WebCore::MediaPlayerPrivateGStreamerBase::pipeline):
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][MSE] WebKitMediaSourceGStreamer refactoring
+        https://bugs.webkit.org/show_bug.cgi?id=162902
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Move WebKitMediaSourceGStreamer to the mse directory, split public and private header
+        sections, manage stream data throttling and seek synchronization, audio/video/text stream
+        counting, improve GStreamer duration query, stream initialization, remove
+        MediaSourceClientGStreamer logic (factored out to its own class in another patch) and
+        interaction with MediaPlayerPrivateGStreamerMSE, PlaybackPipeline and
+        SourceBufferPrivateGStreamer.
+
+        * platform/graphics/gstreamer/WebKitMediaSourceGStreamer.cpp: Removed.
+        * platform/graphics/gstreamer/mse/WebKitMediaSourceGStreamer.cpp: Added.
+        (disabledAppsrcNeedData):
+        (disabledAppsrcEnoughData):
+        (disabledAppsrcSeekData):
+        (enabledAppsrcEnoughData):
+        (enabledAppsrcSeekData):
+        (getStreamByAppsrc):
+        (webkit_media_src_init):
+        (webKitMediaSrcFinalize):
+        (webKitMediaSrcSetProperty):
+        (webKitMediaSrcGetProperty):
+        (webKitMediaSrcDoAsyncStart):
+        (webKitMediaSrcDoAsyncDone):
+        (webKitMediaSrcChangeState):
+        (webKitMediaSrcGetSize):
+        (webKitMediaSrcQueryWithParent):
+        (webKitMediaSrcUpdatePresentationSize):
+        (webKitMediaSrcLinkStreamToSrcPad):
+        (webKitMediaSrcLinkParser):
+        (webKitMediaSrcFreeStream):
+        (webKitMediaSrcCheckAllTracksConfigured):
+        (webKitMediaSrcUriGetType):
+        (webKitMediaSrcGetProtocols):
+        (webKitMediaSrcGetUri):
+        (webKitMediaSrcSetUri):
+        (webKitMediaSrcUriHandlerInit):
+        (seekNeedsDataMainThread):
+        (notifyReadyForMoreSamplesMainThread):
+        (applicationMessageCallback):
+        (webKitMediaSrcSetMediaPlayerPrivate):
+        (webKitMediaSrcSetReadyForSamples):
+        (webKitMediaSrcPrepareSeek):
+        (WTF::adoptGRef):
+        (WTF::refGPtr<WebKitMediaSrc>):
+        (WTF::derefGPtr<WebKitMediaSrc>):
+        * platform/graphics/gstreamer/mse/WebKitMediaSourceGStreamer.h: Renamed from Source/WebCore/platform/graphics/gstreamer/WebKitMediaSourceGStreamer.h.
+        * platform/graphics/gstreamer/mse/WebKitMediaSourceGStreamerPrivate.h: Added.
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][MSE] Playback pipeline
+        https://bugs.webkit.org/show_bug.cgi?id=162901
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Encapsulate the responsibility to interact with the GStreamer playback pipeline and the
+        different streams managed by the WebKitMediaSrc element into a new PlaybackPipeline class.
+
+        * platform/graphics/gstreamer/mse/PlaybackPipeline.cpp: Added.
+        (getStreamByTrackId):
+        (getStreamBySourceBufferPrivate):
+        (pushSample):
+        (WebCore::PlaybackPipeline::create):
+        (WebCore::PlaybackPipeline::PlaybackPipeline):
+        (WebCore::PlaybackPipeline::~PlaybackPipeline):
+        (WebCore::PlaybackPipeline::setWebKitMediaSrc):
+        (WebCore::PlaybackPipeline::webKitMediaSrc):
+        (WebCore::PlaybackPipeline::addSourceBuffer):
+        (WebCore::PlaybackPipeline::removeSourceBuffer):
+        (WebCore::PlaybackPipeline::attachTrack):
+        (WebCore::PlaybackPipeline::reattachTrack):
+        (WebCore::PlaybackPipeline::notifyDurationChanged):
+        (WebCore::PlaybackPipeline::markEndOfStream):
+        (WebCore::PlaybackPipeline::flushAndEnqueueNonDisplayingSamples):
+        (WebCore::PlaybackPipeline::enqueueSample):
+        (WebCore::PlaybackPipeline::pipeline):
+        * platform/graphics/gstreamer/mse/PlaybackPipeline.h: Added.
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][MSE][EME] MSE specialization of Media Player Private for GStreamer
+        https://bugs.webkit.org/show_bug.cgi?id=162900
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Refactor MSE-specific logic to its own GStreamer player. This new MSE player coordinates
+        data appending, media playback and interaction with MediaSource by delegating to
+        AppendPipeline (one instance per SourceBuffer), PlaybackPipeline and
+        MediaSourceClientGStreamerMSE/MediaSourcePrivateClient respectively.
+
+        This patch is co-authored with Philippe Normand <philn@igalia.com> (EME support).
+
+        * platform/graphics/MediaPlayer.cpp:
+        (WebCore::buildMediaEnginesVector):
+        * platform/graphics/gstreamer/mse/MediaPlayerPrivateGStreamerMSE.cpp: Added.
+        (dumpReadyState):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::registerMediaEngine):
+        (WebCore::initializeGStreamerAndRegisterWebKitMSEElement):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::isAvailable):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::MediaPlayerPrivateGStreamerMSE):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::~MediaPlayerPrivateGStreamerMSE):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::load):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::pause):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::durationMediaTime):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::seek):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::configurePlaySink):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::changePipelineState):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::notifySeekNeedsDataForTime):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::doSeek):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::maybeFinishSeek):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::updatePlaybackRate):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::seeking):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::setReadyState):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::waitForSeekCompleted):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::seekCompleted):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::setRate):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::buffered):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::sourceChanged):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::updateStates):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::asyncStateChangeDone):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::isTimeBuffered):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::setMediaSourceClient):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::mediaSourceClient):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::durationChanged):
+        (WebCore::mimeTypeCache):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::getSupportedTypes):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::trackDetected):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::supportsType):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::dispatchDecryptionKey):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::markEndOfStream):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::currentMediaTime):
+        (WebCore::MediaPlayerPrivateGStreamerMSE::maxTimeSeekable):
+        * platform/graphics/gstreamer/mse/MediaPlayerPrivateGStreamerMSE.h: Added.
+        (WebCore::MediaPlayerPrivateGStreamerMSE::mediaSourcePrivateClient):
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][MSE] MediaSourceGStreamer refactoring
+        https://bugs.webkit.org/show_bug.cgi?id=162899
+
+        Reviewed by Žan Doberšek.
+
+        Move MediaSourceGStreamer to the mse directory, manage SourceBufferPrivates and delegate WebKitMediaSrc operations to the MSE private player.
+
+        * platform/graphics/gstreamer/mse/MediaSourceGStreamer.cpp: Renamed from Source/WebCore/platform/graphics/gstreamer/MediaSourceGStreamer.cpp.
+        (WebCore::MediaSourceGStreamer::open):
+        (WebCore::MediaSourceGStreamer::MediaSourceGStreamer):
+        (WebCore::MediaSourceGStreamer::~MediaSourceGStreamer):
+        (WebCore::MediaSourceGStreamer::addSourceBuffer):
+        (WebCore::MediaSourceGStreamer::removeSourceBuffer):
+        (WebCore::MediaSourceGStreamer::durationChanged):
+        (WebCore::MediaSourceGStreamer::markEndOfStream):
+        (WebCore::MediaSourceGStreamer::unmarkEndOfStream):
+        (WebCore::MediaSourceGStreamer::readyState):
+        (WebCore::MediaSourceGStreamer::setReadyState):
+        (WebCore::MediaSourceGStreamer::waitForSeekCompleted):
+        (WebCore::MediaSourceGStreamer::seekCompleted):
+        (WebCore::MediaSourceGStreamer::sourceBufferPrivateDidChangeActiveState):
+        (WebCore::MediaSourceGStreamer::buffered):
+        * platform/graphics/gstreamer/mse/MediaSourceGStreamer.h: Renamed from Source/WebCore/platform/graphics/gstreamer/MediaSourceGStreamer.h.
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][MSE] SourceBufferPrivateGStreamer refactoring
+        https://bugs.webkit.org/show_bug.cgi?id=162898
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Moved SourceBufferPrivateGStreamer to an mse directory and added unimplemented features (abort, enqueueing and sample flow control).
+
+        * platform/graphics/gstreamer/SourceBufferPrivateGStreamer.cpp: Removed.
+        * platform/graphics/gstreamer/mse/SourceBufferPrivateGStreamer.cpp: Added.
+        (WebCore::SourceBufferPrivateGStreamer::create):
+        (WebCore::SourceBufferPrivateGStreamer::SourceBufferPrivateGStreamer):
+        (WebCore::SourceBufferPrivateGStreamer::~SourceBufferPrivateGStreamer):
+        (WebCore::SourceBufferPrivateGStreamer::setClient):
+        (WebCore::SourceBufferPrivateGStreamer::append):
+        (WebCore::SourceBufferPrivateGStreamer::abort):
+        (WebCore::SourceBufferPrivateGStreamer::resetParserState):
+        (WebCore::SourceBufferPrivateGStreamer::removedFromMediaSource):
+        (WebCore::SourceBufferPrivateGStreamer::readyState):
+        (WebCore::SourceBufferPrivateGStreamer::setReadyState):
+        (WebCore::SourceBufferPrivateGStreamer::flushAndEnqueueNonDisplayingSamples):
+        (WebCore::SourceBufferPrivateGStreamer::enqueueSample):
+        (WebCore::SourceBufferPrivateGStreamer::isReadyForMoreSamples):
+        (WebCore::SourceBufferPrivateGStreamer::setReadyForMoreSamples):
+        (WebCore::SourceBufferPrivateGStreamer::notifyReadyForMoreSamples):
+        (WebCore::SourceBufferPrivateGStreamer::setActive):
+        (WebCore::SourceBufferPrivateGStreamer::stopAskingForMoreSamples):
+        (WebCore::SourceBufferPrivateGStreamer::notifyClientWhenReadyForMoreSamples):
+        (WebCore::SourceBufferPrivateGStreamer::didReceiveInitializationSegment):
+        (WebCore::SourceBufferPrivateGStreamer::didReceiveSample):
+        (WebCore::SourceBufferPrivateGStreamer::didReceiveAllPendingSamples):
+        * platform/graphics/gstreamer/mse/SourceBufferPrivateGStreamer.h: Renamed from Source/WebCore/platform/graphics/gstreamer/SourceBufferPrivateGStreamer.h.
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][MSE] MediaSourceClientGStreamerMSE
+        https://bugs.webkit.org/show_bug.cgi?id=162896
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        This class encapsulates the MediaSource interaction responsibility for the
+        GStreamer platform.
+
+        * platform/graphics/gstreamer/mse/MediaSourceClientGStreamerMSE.cpp: Added.
+        (WebCore::MediaSourceClientGStreamerMSE::create):
+        (WebCore::MediaSourceClientGStreamerMSE::MediaSourceClientGStreamerMSE):
+        (WebCore::MediaSourceClientGStreamerMSE::~MediaSourceClientGStreamerMSE):
+        (WebCore::MediaSourceClientGStreamerMSE::addSourceBuffer):
+        (WebCore::MediaSourceClientGStreamerMSE::duration):
+        (WebCore::MediaSourceClientGStreamerMSE::durationChanged):
+        (WebCore::MediaSourceClientGStreamerMSE::abort):
+        (WebCore::MediaSourceClientGStreamerMSE::append):
+        (WebCore::MediaSourceClientGStreamerMSE::markEndOfStream):
+        (WebCore::MediaSourceClientGStreamerMSE::removedFromMediaSource):
+        (WebCore::MediaSourceClientGStreamerMSE::flushAndEnqueueNonDisplayingSamples):
+        (WebCore::MediaSourceClientGStreamerMSE::enqueueSample):
+        (WebCore::MediaSourceClientGStreamerMSE::webKitMediaSrc):
+        (WebCore::MediaSourceClientGStreamerMSE::clearPlayerPrivate):
+        * platform/graphics/gstreamer/mse/MediaSourceClientGStreamerMSE.h: Added.
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer] GStreamer Media Sample
+        https://bugs.webkit.org/show_bug.cgi?id=162894
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Implement the MediaSample interface for the GStreamer platform.
+
+        * platform/graphics/gstreamer/mse/GStreamerMediaSample.cpp: Added.
+        (WebCore::GStreamerMediaSample::GStreamerMediaSample):
+        (WebCore::GStreamerMediaSample::create):
+        (WebCore::GStreamerMediaSample::createFakeSample):
+        (WebCore::GStreamerMediaSample::applyPtsOffset):
+        (WebCore::GStreamerMediaSample::offsetTimestampsBy):
+        (WebCore::GStreamerMediaSample::~GStreamerMediaSample):
+        * platform/graphics/gstreamer/mse/GStreamerMediaSample.h: Added.
+        (WebCore::GStreamerMediaSample::presentationTime):
+        (WebCore::GStreamerMediaSample::decodeTime):
+        (WebCore::GStreamerMediaSample::duration):
+        (WebCore::GStreamerMediaSample::trackID):
+        (WebCore::GStreamerMediaSample::setTrackID):
+        (WebCore::GStreamerMediaSample::sizeInBytes):
+        (WebCore::GStreamerMediaSample::sample):
+        (WebCore::GStreamerMediaSample::presentationSize):
+        (WebCore::GStreamerMediaSample::setTimestamps):
+        (WebCore::GStreamerMediaSample::isDivisable):
+        (WebCore::GStreamerMediaSample::divide):
+        (WebCore::GStreamerMediaSample::flags):
+        (WebCore::GStreamerMediaSample::platformSample):
+        (WebCore::GStreamerMediaSample::dump):
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer] GStreamer Media Description
+        https://bugs.webkit.org/show_bug.cgi?id=162893
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Implement the MediaDescription interface for the GStreamer platform.
+
+        * platform/graphics/gstreamer/mse/GStreamerMediaDescription.cpp: Added.
+        (WebCore::GStreamerMediaDescription::codec):
+        (WebCore::GStreamerMediaDescription::isVideo):
+        (WebCore::GStreamerMediaDescription::isAudio):
+        (WebCore::GStreamerMediaDescription::isText):
+        * platform/graphics/gstreamer/mse/GStreamerMediaDescription.h: Added.
+        (WebCore::GStreamerMediaDescription::create):
+        (WebCore::GStreamerMediaDescription::~GStreamerMediaDescription):
+        (WebCore::GStreamerMediaDescription::GStreamerMediaDescription):
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer][MSE][EME] Append Pipeline
+        https://bugs.webkit.org/show_bug.cgi?id=162874
+
+        Reviewed by Žan Doberšek.
+
+        This patch is co-authored with Xabier Rodriguez-Calvar <calvaris@igalia.com> (data starve
+        and last sample detection, debug features) and Philippe Normand <philn@igalia.com> (EME
+        support).
+
+        * platform/graphics/gstreamer/mse/AppendPipeline.cpp: Added.
+        (WebCore::dumpAppendState):
+        (WebCore::appendPipelineElementMessageCallback):
+        (WebCore::appendPipelineApplicationMessageCallback):
+        (WebCore::AppendPipeline::AppendPipeline):
+        (WebCore::AppendPipeline::~AppendPipeline):
+        (WebCore::AppendPipeline::clearPlayerPrivate):
+        (WebCore::AppendPipeline::handleElementMessage):
+        (WebCore::AppendPipeline::handleApplicationMessage):
+        (WebCore::AppendPipeline::handleAppsrcNeedDataReceived):
+        (WebCore::AppendPipeline::handleAppsrcAtLeastABufferLeft):
+        (WebCore::AppendPipeline::id):
+        (WebCore::AppendPipeline::setAppendState):
+        (WebCore::AppendPipeline::parseDemuxerSrcPadCaps):
+        (WebCore::AppendPipeline::appsinkCapsChanged):
+        (WebCore::AppendPipeline::checkEndOfAppend):
+        (WebCore::AppendPipeline::appsinkNewSample):
+        (WebCore::AppendPipeline::appsinkEOS):
+        (WebCore::AppendPipeline::didReceiveInitializationSegment):
+        (WebCore::AppendPipeline::trackId):
+        (WebCore::AppendPipeline::resetPipeline):
+        (WebCore::AppendPipeline::setAppsrcDataLeavingProbe):
+        (WebCore::AppendPipeline::removeAppsrcDataLeavingProbe):
+        (WebCore::AppendPipeline::abort):
+        (WebCore::AppendPipeline::pushNewBuffer):
+        (WebCore::AppendPipeline::reportAppsrcAtLeastABufferLeft):
+        (WebCore::AppendPipeline::reportAppsrcNeedDataReceived):
+        (WebCore::AppendPipeline::handleNewAppsinkSample):
+        (WebCore::AppendPipeline::connectDemuxerSrcPadToAppsinkFromAnyThread):
+        (WebCore::AppendPipeline::connectDemuxerSrcPadToAppsink):
+        (WebCore::AppendPipeline::disconnectDemuxerSrcPadFromAppsinkFromAnyThread):
+        (WebCore::appendPipelineAppsinkCapsChanged):
+        (WebCore::appendPipelineAppsrcDataLeaving):
+        (WebCore::appendPipelinePadProbeDebugInformation):
+        (WebCore::appendPipelineAppsrcNeedData):
+        (WebCore::appendPipelineDemuxerPadAdded):
+        (WebCore::appendPipelineDemuxerPadRemoved):
+        (WebCore::appendPipelineAppsinkNewSample):
+        (WebCore::appendPipelineAppsinkEOS):
+        * platform/graphics/gstreamer/mse/AppendPipeline.h: Added.
+        (WebCore::AppendPipeline::appendState):
+        (WebCore::AppendPipeline::mediaSourceClient):
+        (WebCore::AppendPipeline::sourceBufferPrivate):
+        (WebCore::AppendPipeline::bus):
+        (WebCore::AppendPipeline::pipeline):
+        (WebCore::AppendPipeline::appsrc):
+        (WebCore::AppendPipeline::appsink):
+        (WebCore::AppendPipeline::demuxerSrcPadCaps):
+        (WebCore::AppendPipeline::appsinkCaps):
+        (WebCore::AppendPipeline::track):
+        (WebCore::AppendPipeline::streamType):
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer] Drain query support
+        https://bugs.webkit.org/show_bug.cgi?id=162872
+
+        Reviewed by Žan Doberšek.
+
+        Under some circumstances, GStreamer deadlocks completely during MSE seeks on OpenGL ES
+        systems. This is because the video sink still holds samples. Proper DRAIN support
+        fixes this issue and is also good for all the platforms, not only OpenGL ES.
+
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.cpp:
+        (WebCore::MediaPlayerPrivateGStreamerBase::triggerDrain):
+        (WebCore::MediaPlayerPrivateGStreamerBase::drainCallback):
+        (WebCore::MediaPlayerPrivateGStreamerBase::createVideoSink):
+        (WebCore::MediaPlayerPrivateGStreamerBase::createVideoSinkGL): Deleted.
+        * platform/graphics/gstreamer/MediaPlayerPrivateGStreamerBase.h:
+        * platform/graphics/gstreamer/VideoSinkGStreamer.cpp:
+        (VideoRenderRequestScheduler::drain):
+        (webkitVideoSinkQuery):
+        (webkitVideoSinkEvent):
+        (webkit_video_sink_class_init):
+        (VideoRenderRequestScheduler::stop): Deleted.
+        (webkitVideoSinkProposeAllocation): Deleted.
+
+2016-10-26  Enrique Ocaña González  <eocanha@igalia.com>
+
+        [GStreamer] Track enhancements for MSE support
+        https://bugs.webkit.org/show_bug.cgi?id=162869
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Add 'id' field to Audio/VideoTrackPrivateGStreamer. Make TrackPrivateBaseGStreamer
+        work anyway in cases where the demuxer isn't contained in a GstPlaybin.
+
+        * platform/graphics/gstreamer/AudioTrackPrivateGStreamer.cpp:
+        (WebCore::AudioTrackPrivateGStreamer::AudioTrackPrivateGStreamer):
+        * platform/graphics/gstreamer/AudioTrackPrivateGStreamer.h:
+        * platform/graphics/gstreamer/TrackPrivateBaseGStreamer.cpp:
+        (WebCore::TrackPrivateBaseGStreamer::tagsChanged):
+        (WebCore::TrackPrivateBaseGStreamer::notifyTrackOfActiveChanged):
+        * platform/graphics/gstreamer/VideoTrackPrivateGStreamer.cpp:
+        (WebCore::VideoTrackPrivateGStreamer::VideoTrackPrivateGStreamer):
+        * platform/graphics/gstreamer/VideoTrackPrivateGStreamer.h:
+
+2016-10-26  Youenn Fablet  <youenn@apple.com>
+
+        Make CachedResourceLoader originsMatch check more efficient
+        https://bugs.webkit.org/show_bug.cgi?id=163938
+
+        Reviewed by Darin Adler.
+
+        No change of behavior.
+
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::shouldUpdateCachedResourceWithCurrentRequest):
+        (WebCore::originsMatch): Moved to SecurityOrigin.cpp.
+        * page/SecurityOrigin.cpp:
+        (WebCore::areOriginsMatching): Helper routine to check whether origins are matching.
+        (WebCore::originsMatch): Ensuring string comparison provides the same result as this function.
+        * page/SecurityOrigin.h:
+        (WebCore::SecurityOrigin::protocol):
+        (WebCore::SecurityOrigin::host):
+        (WebCore::SecurityOrigin::domain):
+
+2016-10-25  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Tell IDL result type to DFG to drop type checks in AI
+        https://bugs.webkit.org/show_bug.cgi?id=163900
+
+        Reviewed by Sam Weinig.
+
+        Add TestDOMJIT.idl for bindings generation tests.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GetResultTypeFilter):
+        (GenerateImplementation):
+        * bindings/scripts/test/JS/JSTestDOMJIT.cpp: Added.
+        (WebCore::JSTestDOMJITPrototype::create):
+        (WebCore::JSTestDOMJITPrototype::createStructure):
+        (WebCore::JSTestDOMJITPrototype::JSTestDOMJITPrototype):
+        (WebCore::JSTestDOMJITConstructor::prototypeForStructure):
+        (WebCore::JSTestDOMJITConstructor::initializeProperties):
+        (WebCore::JSTestDOMJITPrototype::finishCreation):
+        (WebCore::JSTestDOMJIT::JSTestDOMJIT):
+        (WebCore::JSTestDOMJIT::createPrototype):
+        (WebCore::JSTestDOMJIT::prototype):
+        (WebCore::BindingCaller<JSTestDOMJIT>::castForAttribute):
+        (WebCore::jsTestDOMJITAnyAttr):
+        (WebCore::jsTestDOMJITAnyAttrGetter):
+        (WebCore::TestDOMJITAnyAttrDOMJIT::TestDOMJITAnyAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITAnyAttr):
+        (WebCore::jsTestDOMJITBooleanAttr):
+        (WebCore::jsTestDOMJITBooleanAttrGetter):
+        (WebCore::TestDOMJITBooleanAttrDOMJIT::TestDOMJITBooleanAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITBooleanAttr):
+        (WebCore::jsTestDOMJITByteAttr):
+        (WebCore::jsTestDOMJITByteAttrGetter):
+        (WebCore::TestDOMJITByteAttrDOMJIT::TestDOMJITByteAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITByteAttr):
+        (WebCore::jsTestDOMJITOctetAttr):
+        (WebCore::jsTestDOMJITOctetAttrGetter):
+        (WebCore::TestDOMJITOctetAttrDOMJIT::TestDOMJITOctetAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITOctetAttr):
+        (WebCore::jsTestDOMJITShortAttr):
+        (WebCore::jsTestDOMJITShortAttrGetter):
+        (WebCore::TestDOMJITShortAttrDOMJIT::TestDOMJITShortAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITShortAttr):
+        (WebCore::jsTestDOMJITUnsignedShortAttr):
+        (WebCore::jsTestDOMJITUnsignedShortAttrGetter):
+        (WebCore::TestDOMJITUnsignedShortAttrDOMJIT::TestDOMJITUnsignedShortAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnsignedShortAttr):
+        (WebCore::jsTestDOMJITLongAttr):
+        (WebCore::jsTestDOMJITLongAttrGetter):
+        (WebCore::TestDOMJITLongAttrDOMJIT::TestDOMJITLongAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITLongAttr):
+        (WebCore::jsTestDOMJITUnsignedLongAttr):
+        (WebCore::jsTestDOMJITUnsignedLongAttrGetter):
+        (WebCore::TestDOMJITUnsignedLongAttrDOMJIT::TestDOMJITUnsignedLongAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnsignedLongAttr):
+        (WebCore::jsTestDOMJITLongLongAttr):
+        (WebCore::jsTestDOMJITLongLongAttrGetter):
+        (WebCore::TestDOMJITLongLongAttrDOMJIT::TestDOMJITLongLongAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITLongLongAttr):
+        (WebCore::jsTestDOMJITUnsignedLongLongAttr):
+        (WebCore::jsTestDOMJITUnsignedLongLongAttrGetter):
+        (WebCore::TestDOMJITUnsignedLongLongAttrDOMJIT::TestDOMJITUnsignedLongLongAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnsignedLongLongAttr):
+        (WebCore::jsTestDOMJITFloatAttr):
+        (WebCore::jsTestDOMJITFloatAttrGetter):
+        (WebCore::TestDOMJITFloatAttrDOMJIT::TestDOMJITFloatAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITFloatAttr):
+        (WebCore::jsTestDOMJITUnrestrictedFloatAttr):
+        (WebCore::jsTestDOMJITUnrestrictedFloatAttrGetter):
+        (WebCore::TestDOMJITUnrestrictedFloatAttrDOMJIT::TestDOMJITUnrestrictedFloatAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnrestrictedFloatAttr):
+        (WebCore::jsTestDOMJITDoubleAttr):
+        (WebCore::jsTestDOMJITDoubleAttrGetter):
+        (WebCore::TestDOMJITDoubleAttrDOMJIT::TestDOMJITDoubleAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITDoubleAttr):
+        (WebCore::jsTestDOMJITUnrestrictedDoubleAttr):
+        (WebCore::jsTestDOMJITUnrestrictedDoubleAttrGetter):
+        (WebCore::TestDOMJITUnrestrictedDoubleAttrDOMJIT::TestDOMJITUnrestrictedDoubleAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnrestrictedDoubleAttr):
+        (WebCore::jsTestDOMJITDomStringAttr):
+        (WebCore::jsTestDOMJITDomStringAttrGetter):
+        (WebCore::TestDOMJITDomStringAttrDOMJIT::TestDOMJITDomStringAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITDomStringAttr):
+        (WebCore::jsTestDOMJITByteStringAttr):
+        (WebCore::jsTestDOMJITByteStringAttrGetter):
+        (WebCore::TestDOMJITByteStringAttrDOMJIT::TestDOMJITByteStringAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITByteStringAttr):
+        (WebCore::jsTestDOMJITUsvStringAttr):
+        (WebCore::jsTestDOMJITUsvStringAttrGetter):
+        (WebCore::TestDOMJITUsvStringAttrDOMJIT::TestDOMJITUsvStringAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUsvStringAttr):
+        (WebCore::jsTestDOMJITNodeAttr):
+        (WebCore::jsTestDOMJITNodeAttrGetter):
+        (WebCore::TestDOMJITNodeAttrDOMJIT::TestDOMJITNodeAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITNodeAttr):
+        (WebCore::jsTestDOMJITBooleanNullableAttr):
+        (WebCore::jsTestDOMJITBooleanNullableAttrGetter):
+        (WebCore::TestDOMJITBooleanNullableAttrDOMJIT::TestDOMJITBooleanNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITBooleanNullableAttr):
+        (WebCore::jsTestDOMJITByteNullableAttr):
+        (WebCore::jsTestDOMJITByteNullableAttrGetter):
+        (WebCore::TestDOMJITByteNullableAttrDOMJIT::TestDOMJITByteNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITByteNullableAttr):
+        (WebCore::jsTestDOMJITOctetNullableAttr):
+        (WebCore::jsTestDOMJITOctetNullableAttrGetter):
+        (WebCore::TestDOMJITOctetNullableAttrDOMJIT::TestDOMJITOctetNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITOctetNullableAttr):
+        (WebCore::jsTestDOMJITShortNullableAttr):
+        (WebCore::jsTestDOMJITShortNullableAttrGetter):
+        (WebCore::TestDOMJITShortNullableAttrDOMJIT::TestDOMJITShortNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITShortNullableAttr):
+        (WebCore::jsTestDOMJITUnsignedShortNullableAttr):
+        (WebCore::jsTestDOMJITUnsignedShortNullableAttrGetter):
+        (WebCore::TestDOMJITUnsignedShortNullableAttrDOMJIT::TestDOMJITUnsignedShortNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnsignedShortNullableAttr):
+        (WebCore::jsTestDOMJITLongNullableAttr):
+        (WebCore::jsTestDOMJITLongNullableAttrGetter):
+        (WebCore::TestDOMJITLongNullableAttrDOMJIT::TestDOMJITLongNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITLongNullableAttr):
+        (WebCore::jsTestDOMJITUnsignedLongNullableAttr):
+        (WebCore::jsTestDOMJITUnsignedLongNullableAttrGetter):
+        (WebCore::TestDOMJITUnsignedLongNullableAttrDOMJIT::TestDOMJITUnsignedLongNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnsignedLongNullableAttr):
+        (WebCore::jsTestDOMJITLongLongNullableAttr):
+        (WebCore::jsTestDOMJITLongLongNullableAttrGetter):
+        (WebCore::TestDOMJITLongLongNullableAttrDOMJIT::TestDOMJITLongLongNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITLongLongNullableAttr):
+        (WebCore::jsTestDOMJITUnsignedLongLongNullableAttr):
+        (WebCore::jsTestDOMJITUnsignedLongLongNullableAttrGetter):
+        (WebCore::TestDOMJITUnsignedLongLongNullableAttrDOMJIT::TestDOMJITUnsignedLongLongNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnsignedLongLongNullableAttr):
+        (WebCore::jsTestDOMJITFloatNullableAttr):
+        (WebCore::jsTestDOMJITFloatNullableAttrGetter):
+        (WebCore::TestDOMJITFloatNullableAttrDOMJIT::TestDOMJITFloatNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITFloatNullableAttr):
+        (WebCore::jsTestDOMJITUnrestrictedFloatNullableAttr):
+        (WebCore::jsTestDOMJITUnrestrictedFloatNullableAttrGetter):
+        (WebCore::TestDOMJITUnrestrictedFloatNullableAttrDOMJIT::TestDOMJITUnrestrictedFloatNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnrestrictedFloatNullableAttr):
+        (WebCore::jsTestDOMJITDoubleNullableAttr):
+        (WebCore::jsTestDOMJITDoubleNullableAttrGetter):
+        (WebCore::TestDOMJITDoubleNullableAttrDOMJIT::TestDOMJITDoubleNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITDoubleNullableAttr):
+        (WebCore::jsTestDOMJITUnrestrictedDoubleNullableAttr):
+        (WebCore::jsTestDOMJITUnrestrictedDoubleNullableAttrGetter):
+        (WebCore::TestDOMJITUnrestrictedDoubleNullableAttrDOMJIT::TestDOMJITUnrestrictedDoubleNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUnrestrictedDoubleNullableAttr):
+        (WebCore::jsTestDOMJITDomStringNullableAttr):
+        (WebCore::jsTestDOMJITDomStringNullableAttrGetter):
+        (WebCore::TestDOMJITDomStringNullableAttrDOMJIT::TestDOMJITDomStringNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITDomStringNullableAttr):
+        (WebCore::jsTestDOMJITByteStringNullableAttr):
+        (WebCore::jsTestDOMJITByteStringNullableAttrGetter):
+        (WebCore::TestDOMJITByteStringNullableAttrDOMJIT::TestDOMJITByteStringNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITByteStringNullableAttr):
+        (WebCore::jsTestDOMJITUsvStringNullableAttr):
+        (WebCore::jsTestDOMJITUsvStringNullableAttrGetter):
+        (WebCore::TestDOMJITUsvStringNullableAttrDOMJIT::TestDOMJITUsvStringNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITUsvStringNullableAttr):
+        (WebCore::jsTestDOMJITNodeNullableAttr):
+        (WebCore::jsTestDOMJITNodeNullableAttrGetter):
+        (WebCore::TestDOMJITNodeNullableAttrDOMJIT::TestDOMJITNodeNullableAttrDOMJIT):
+        (WebCore::domJITGetterSetterForTestDOMJITNodeNullableAttr):
+        (WebCore::jsTestDOMJITConstructor):
+        (WebCore::setJSTestDOMJITConstructor):
+        (WebCore::JSTestDOMJIT::getConstructor):
+        (WebCore::JSTestDOMJIT::visitChildren):
+        * bindings/scripts/test/JS/JSTestDOMJIT.h: Added.
+        (WebCore::JSTestDOMJIT::create):
+        (WebCore::JSTestDOMJIT::createStructure):
+        (WebCore::JSTestDOMJIT::wrapped):
+        (WebCore::JSTestDOMJIT::finishCreation):
+        * bindings/scripts/test/TestDOMJIT.idl: Added.
+
+2016-10-25  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] Unreviewed build fix.
+
+        * platform/graphics/GraphicsContext.h: Add missing declaration.
+
+2016-10-25  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Updating attribute by textContent must create a single mutation record and custom element reaction
+        https://bugs.webkit.org/show_bug.cgi?id=164003
+
+        Reviewed by Chris Dumez.
+
+        The bug was caused by setTextContent not invoking setNodeValue for Attr nodes.
+        Use setNodeValue to match the specification: https://dom.spec.whatwg.org/#dom-node-textcontent
+
+        Test: fast/dom/MutationObserver/text-content-on-attr.html
+
+        * dom/Node.cpp:
+        (WebCore::Node::setTextContent):
+
+2016-10-25  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win][Direct2D] Use smart pointers for Direct2D Path types
+        https://bugs.webkit.org/show_bug.cgi?id=163994
+
+        Reviewed by Alex Christensen.
+
+        Tested by existing path tests.
+
+        * platform/graphics/Path.h:
+        (WebCore::Path::platformPath): Use a COMPtr for m_path.
+        * platform/graphics/win/GraphicsContextDirect2D.cpp:
+        (WebCore::GraphicsContext::systemFactory): Present better D2D debug output
+        when running a debug build.
+        (WebCore::GraphicsContext::platformInit): Initialize a D2D device from a
+        native GDI device context.
+        (WebCore::GraphicsContext::platformStrokeStyle): Added.
+        (WebCore::GraphicsContext::clipBounds): Simplify clip boundary calculations and
+        avoid doing math on infinities.
+        * platform/graphics/win/PathDirect2D.cpp:
+        (WebCore::scratchRenderTarget): Added.
+        (WebCore::Path::~Path): Switch to COMPtr implementation.
+        (WebCore::Path::ensurePlatformPath): Ditto.
+        (WebCore::Path::appendGeometry): Ditto.
+        (WebCore::Path::operator=): Ditto.
+        (WebCore::Path::initializePathState): Ditto.
+        (WebCore::Path::strokeContains): Provide an implementation.
+        (WebCore::Path::transform): Ditto.
+        (WebCore::Path::addEllipse): No need for explicit construction of the
+        D2D1::Point2F object.
+        (WebCore::Path::clear): Switch to COMPtr implementation.
+
+2016-10-25  Nan Wang  <n_wang@apple.com>
+
+        LayoutTest accessibility/mac/meter-gauge-value-description.html failing
+        https://bugs.webkit.org/show_bug.cgi?id=163997
+        <rdar://problem/28948637>
+
+        Reviewed by Chris Fleizach.
+
+        I hand-edited the Localizable.strings file in a previous patch and my changes
+        were replaced by running update-webkit-localizable-strings script. Changed the
+        key to be the same as the value to keep consistency with other entries.
+
+        Re-enabled the failing test.
+
+        * English.lproj/Localizable.strings:
+        * platform/LocalizedStrings.cpp:
+        (WebCore::AXMeterGaugeRegionOptimumText):
+        (WebCore::AXMeterGaugeRegionSuboptimalText):
+        (WebCore::AXMeterGaugeRegionLessGoodText):
+
+2016-10-25  Filip Pizlo  <fpizlo@apple.com>
+
+        HeapTimer should not hardcode all of its subclasses and USE(CF) shouldn't be a bizarre special case
+        https://bugs.webkit.org/show_bug.cgi?id=163947
+
+        Reviewed by Geoffrey Garen.
+
+        No new tests because no new behavior.
+
+        * platform/ios/WebSafeGCActivityCallbackIOS.h:
+        * platform/ios/WebSafeIncrementalSweeperIOS.h:
+
+2016-10-25  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Improvements to selector parsing
+        https://bugs.webkit.org/show_bug.cgi?id=163964
+
+        Reviewed by Zalan Bujtas.
+
+        * css/CSSSelector.cpp:
+        (WebCore::CSSSelector::setAttribute):
+        (WebCore::CSSSelector::setNth):
+        * css/CSSSelector.h:
+        (WebCore::CSSSelector::setAttributeValueMatchingIsCaseInsensitive):
+        * css/StyleSheetContents.cpp:
+        (WebCore::StyleSheetContents::StyleSheetContents):
+        (WebCore::StyleSheetContents::parserAppendRule):
+        (WebCore::StyleSheetContents::ruleAt):
+        (WebCore::StyleSheetContents::ruleCount):
+        (WebCore::StyleSheetContents::clearRules):
+        (WebCore::StyleSheetContents::wrapperInsertRule):
+        (WebCore::StyleSheetContents::wrapperDeleteRule):
+        * css/StyleSheetContents.h:
+        * css/parser/CSSParser.cpp:
+        (WebCore::CSSParserContext::CSSParserContext):
+        (WebCore::CSSParser::parseSelector):
+        * css/parser/CSSParserValues.h:
+        (WebCore::CSSParserSelector::setAttribute):
+        (WebCore::CSSParserSelector::setArgument):
+        (WebCore::CSSParserSelector::setNth):
+        * css/parser/CSSSelectorParser.cpp:
+        (WebCore::consumeLangArgumentList):
+        (WebCore::CSSSelectorParser::consumeCompoundSelector):
+        (WebCore::CSSSelectorParser::consumeAttribute):
+        (WebCore::isPseudoClassFunction):
+        (WebCore::isPseudoElementFunction):
+        (WebCore::CSSSelectorParser::consumePseudo):
+        (WebCore::CSSSelectorParser::consumeCombinator):
+
+2016-10-25  Beth Dakin  <bdakin@apple.com>
+
+        Numbered list should be represented without ‘…’
+        https://bugs.webkit.org/show_bug.cgi?id=163992
+        -and corresponding-
+        rdar://problem/28911337
+
+        Reviewed by Darin Adler.
+
+        * English.lproj/Localizable.strings:
+        * platform/LocalizedStrings.cpp:
+        (WebCore::insertListTypeNumbered):
+
 2016-10-25  Daniel Bates  <dabates@apple.com>
 
         REGRESSION (r178265): XSS Auditor fails to block document.write() of incomplete tag

@@ -1,3 +1,69 @@
+2016-10-26  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: remove unused bool return value from FrontendChannel::sendMessageToFrontend
+        https://bugs.webkit.org/show_bug.cgi?id=164046
+
+        Reviewed by Joseph Pecoraro.
+
+        * WebProcess/WebPage/WebInspector.cpp:
+        (WebKit::WebInspector::sendMessageToFrontend):
+        * WebProcess/WebPage/WebInspector.h:
+
+2016-10-26  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Add "has capture device" bit to media state flags
+        https://bugs.webkit.org/show_bug.cgi?id=163952
+
+        Unreviewed fix after r207839.
+
+        * WebProcess/WebPage/WebPage.cpp:
+        (WebKit::WebPage::setMuted): Take an MutedStateFlags, not a bool.
+        * WebProcess/WebPage/WebPage.h:
+
+2016-10-26  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Unreviewed. Update OptionsGTK.cmake and NEWS for 2.15.1 release.
+
+        * gtk/NEWS: Add release notes for 2.15.1.
+
+2016-10-26  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION(r206505) [GTK] Build broken with GTK+ 3.14
+        https://bugs.webkit.org/show_bug.cgi?id=162776
+
+        Reviewed by Xabier Rodriguez-Calvar.
+
+        Do not use gtk_widget_get_action_group() when GTK+ < 3.16, use g_object_set instead to attach the action group
+        to the menu widget.
+
+        * UIProcess/gtk/WebContextMenuProxyGtk.cpp:
+        (WebKit::WebContextMenuProxyGtk::append):
+        (WebKit::WebContextMenuProxyGtk::WebContextMenuProxyGtk):
+        (WebKit::WebContextMenuProxyGtk::~WebContextMenuProxyGtk):
+
+2016-10-25  Alex Christensen  <achristensen@webkit.org>
+
+        CMake build fix.
+
+        * PlatformMac.cmake:
+        * Shared/WebHitTestResultData.cpp:
+        (WebKit::WebHitTestResultData::WebHitTestResultData):
+        Explicitly call AtomicString::string to make the String constructor no longer ambiguous.
+        It couldn't decide whether to use operator const String& or operator NSString*.
+
+2016-10-25  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [SOUP] Network process assertion in NetworkDataTask::continueHTTPRedirection
+        https://bugs.webkit.org/show_bug.cgi?id=163941
+
+        Reviewed by Michael Catanzaro.
+
+        equalLettersIgnoringASCIICase() expects the second argument to be the letters to compare in lowercase, so use
+        "get" instead of "GET".
+
+        * NetworkProcess/soup/NetworkDataTaskSoup.cpp:
+        (WebKit::NetworkDataTaskSoup::continueHTTPRedirection):
+
 2016-10-25  Eric Carlson  <eric.carlson@apple.com>
 
         [MediaStream] Add "has capture device" bit to media state flags

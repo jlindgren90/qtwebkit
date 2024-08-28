@@ -1,3 +1,57 @@
+2016-10-26  JF Bastien  <jfbastien@apple.com>
+
+        WebAssembly API: implement Instance
+
+        As described in: https://github.com/WebAssembly/design/blob/master/JS.md#webassemblyinstance-objects
+
+         - Take ownership of Wasm::Plan's compilation result when successfully creating a JSWebAssemblyModule object.
+         - Construct a basic Instance with a Module.
+         - Handle second argument (importObject) of WebAssembly.Instance.
+         - Add reference text from the spec to WebAssembly.Module's code.
+         - Expose and test an empty 'exports' ModuleNamespaceObject on WebAssembly.Instance.
+
+        The implementation isn't complete yet: it relies on further work for which I've filed bugs.
+
+        WebAssembly API: implement Instance
+        https://bugs.webkit.org/show_bug.cgi?id=163998
+
+        Reviewed by Keith Miller.
+
+        * wasm/js-api/test_Instance.js: Added.
+        (EmptyModule): use the Builder, create the simplest Module possible, and create an Instance from it
+        * wasm/js-api/test_basic_api.js:
+        (const.c.in.constructorProperties.switch): basic tests of the API
+
+2016-10-26  Mark Lam  <mark.lam@apple.com>
+
+        JSGenericTypedArrayView::set() should check for exceptions.
+        https://bugs.webkit.org/show_bug.cgi?id=164007
+        <rdar://problem/28853775>
+
+        Reviewed by Filip Pizlo.
+
+        * stress/typed-array-view-set-should-not-crash-on-exception.js: Added.
+
+2016-10-25  Mark Lam  <mark.lam@apple.com>
+
+        String.prototype.replace() should throw an OutOfMemoryError when using too much memory.
+        https://bugs.webkit.org/show_bug.cgi?id=163996
+        <rdar://problem/28263117>
+
+        Reviewed by Geoffrey Garen.
+
+        * stress/string-prototype-replace-should-throw-out-of-memory-error-when-using-too-much-memory.js: Added.
+
+2016-10-25  Mark Lam  <mark.lam@apple.com>
+
+        JSStringJoiner::joinedLength() should limit joined string lengths to INT_MAX.
+        https://bugs.webkit.org/show_bug.cgi?id=163937
+        <rdar://problem/28642990>
+
+        Reviewed by Geoffrey Garen.
+
+        * stress/joined-strings-should-not-exceed-max-string-length.js: Added.
+
 2016-10-25  JF Bastien  <jfbastien@apple.com>
 
         WebAssembly JS API: simple Module test

@@ -26,7 +26,10 @@
 <script src="/modern-media-controls/controls/macos-media-controls.js" type="text/javascript"></script>
 <script src="/modern-media-controls/controls/macos-inline-media-controls.js" type="text/javascript"></script>
 <script src="/modern-media-controls/media/media-controller-support.js" type="text/javascript"></script>
+<script src="/modern-media-controls/media/elapsed-time-support.js" type="text/javascript"></script>
 <script src="/modern-media-controls/media/mute-support.js" type="text/javascript"></script>
+<script src="/modern-media-controls/media/playback-support.js" type="text/javascript"></script>
+<script src="/modern-media-controls/media/remaining-time-support.js" type="text/javascript"></script>
 <script src="/modern-media-controls/media/skip-back-support.js" type="text/javascript"></script>
 <script src="/modern-media-controls/media/start-support.js" type="text/javascript"></script>
 <script src="/modern-media-controls/media/media-controller.js" type="text/javascript"></script>
@@ -46,36 +49,33 @@ const shadowRoot = document.querySelector("div#shadow").attachShadow({ mode: "op
 const media = document.querySelector("video");
 const mediaController = createControls(shadowRoot, media, null);
 
-media.addEventListener("canplaythrough", event => {
-    media.currentTime = 50;
-    clickSkipBackButton();
-});
-
 let numberOfEvents = 0;
-media.addEventListener("seeked", function() {
-    debug("");
-    debug("seeked event was dispatched");
+function mediaDidSeek()
+{
+    debug("Media seeked to currentTime = " + media.currentTime);
 
     numberOfEvents++;
-
-    if (numberOfEvents == 1) {
-        shouldBe("media.currentTime", "20");
-        clickSkipBackButton();
-    } else if (numberOfEvents == 2) {
-        shouldBeCloseTo("media.currentTime", 0, 0.1);
+    if (numberOfEvents == 3) {
         debug("");
         shadowRoot.host.remove();
         media.remove();
         finishJSTest();
+        return;
     }
-});
 
-function clickSkipBackButton()
-{
     debug("");
     debug("Dispatching click event to the skip back button");
     mediaController.controls.skipBackButton.element.click();
 }
+
+function mediaCanPlay()
+{
+    media.removeEventListener("canplaythrough", mediaCanPlay);
+    media.addEventListener("seeked", mediaDidSeek);
+    media.currentTime = 50;
+}
+
+media.addEventListener("canplaythrough", mediaCanPlay);
 
 </script>
 <script src="../../../../../resources/js-test-post.js"></script>

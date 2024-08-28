@@ -1269,7 +1269,6 @@ set(WebCore_SOURCES
     css/CSSCrossfadeValue.cpp
     css/CSSCursorImageValue.cpp
     css/CSSCustomIdentValue.cpp
-    css/CSSCustomPropertyDeclaration.cpp
     css/CSSDefaultStyleSheets.cpp
     css/CSSFilterImageValue.cpp
     css/FontFaceSet.cpp
@@ -3628,7 +3627,7 @@ if (WebCore_SDP_PROCESSOR_SCRIPTS)
     #   dependency and having them built at the right moment
 
     add_custom_command(
-        OUTPUT ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScriptsData.cpp ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScripts.h
+        OUTPUT ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScriptsData.cpp ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScriptsData.h
         MAIN_DEPENDENCY ${WEBCORE_DIR}/Scripts/make-js-file-arrays.py
         DEPENDS ${WebCore_SDP_PROCESSOR_SCRIPTS}
         COMMAND "PYTHONPATH=${JavaScriptCore_SCRIPTS_DIR}" ${PYTHON_EXECUTABLE} ${WEBCORE_DIR}/Scripts/make-js-file-arrays.py ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScripts.h ${DERIVED_SOURCES_WEBCORE_DIR}/SDPProcessorScriptsData.cpp ${WebCore_SDP_PROCESSOR_SCRIPTS}

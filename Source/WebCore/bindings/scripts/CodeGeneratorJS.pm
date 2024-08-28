@@ -1859,6 +1859,10 @@ sub GeneratePropertiesHashTable
         push(@$hashValue1, $functionName);
 
         my $functionLength = GetFunctionLength($function);
+
+        # FIXME: Remove this once we can get rid of the quirk introduced in https://bugs.webkit.org/show_bug.cgi?id=163967.
+        $functionLength = 3 if $interfaceName eq "Event" and $function->signature->name eq "initEvent";
+
         push(@$hashValue2, $functionLength);
 
         push(@$hashSpecials, ComputeFunctionSpecial($interface, $function));
@@ -2489,6 +2493,42 @@ sub addUnscopableProperties
         push(@implContent, "    unscopables.putDirect(vm, Identifier::fromString(&vm, \"$unscopable\"), jsBoolean(true));\n");
     }
     push(@implContent, "    putDirectWithoutTransition(vm, vm.propertyNames->unscopablesSymbol, &unscopables, DontEnum | ReadOnly);\n");
+}
+
+sub GetResultTypeFilter
+{
+    my ($signature) = @_;
+    my $idlType = $signature->idlType;
+
+    my %TypeFilters = (
+        "any" => "SpecHeapTop",
+        "boolean" => "SpecBoolean",
+        "byte" => "SpecInt32Only",
+        "octet" => "SpecInt32Only",
+        "short" => "SpecInt32Only",
+        "unsigned short" => "SpecInt32Only",
+        "long" => "SpecInt32Only",
+        "unsigned long" => "SpecBytecodeNumber",
+        "long long" => "SpecBytecodeNumber",
+        "unsigned long long" => "SpecBytecodeNumber",
+        "float" => "SpecBytecodeNumber",
+        "unrestricted float" => "SpecBytecodeNumber",
+        "double" => "SpecBytecodeNumber",
+        "unrestricted double" => "SpecBytecodeNumber",
+        "DOMString" => "SpecString",
+        "ByteString" => "SpecString",
+        "USVString" => "SpecString",
+    );
+
+    if (exists $TypeFilters{$idlType->name}) {
+        my $resultType = "JSC::$TypeFilters{$idlType->name}";
+        if ($idlType->isNullable) {
+            die "\"any\" type must not become nullable." if $idlType->name eq "any";
+            $resultType = "($resultType | JSC::SpecOther)";
+        }
+        return $resultType;
+    }
+    return "SpecHeapTop";
 }
 
 sub GenerateImplementation
@@ -3268,8 +3308,9 @@ sub GenerateImplementation
                 my $domJITClassName = $generatorName . "DOMJIT";
                 my $getter = GetAttributeGetterName($interface, $generatorName, $attribute);
                 my $setter = IsReadonly($attribute) ? "nullptr" : GetAttributeSetterName($interface, $generatorName, $attribute);
+                my $resultType = GetResultTypeFilter($attribute->signature);
                 push(@implContent, "${domJITClassName}::$domJITClassName()\n");
-                push(@implContent, "    : JSC::DOMJIT::GetterSetter($getter, $setter, ${className}::info())\n");
+                push(@implContent, "    : JSC::DOMJIT::GetterSetter($getter, $setter, ${className}::info(), $resultType)\n");
                 push(@implContent, "{\n");
                 push(@implContent, "}\n\n");
 
@@ -5184,14 +5225,24 @@ sub GetIntegerConversionConfiguration
 {
     my $signature = shift;
 
-    return "EnforceRange" if $signature->extendedAttributes->{EnforceRange};
-    return "Clamp" if $signature->extendedAttributes->{Clamp};
-    return "NormalConversion";
+    return "IntegerConversionConfiguration::EnforceRange" if $signature->extendedAttributes->{EnforceRange};
+    return "IntegerConversionConfiguration::Clamp" if $signature->extendedAttributes->{Clamp};
+    return "IntegerConversionConfiguration::Normal";
+}
+
+sub GetStringConversionConfiguration
+{
+    my $signature = shift;
+
+    return "StringConversionConfiguration::TreatNullAsEmptyString" if $signature->extendedAttributes->{TreatNullAs} && $signature->extendedAttributes->{TreatNullAs} eq "EmptyString";
+    return "StringConversionConfiguration::Normal";
 }
 
 sub JSValueToNativeIsHandledByDOMConvert
 {
-    my $idlType = shift;
+    my ($idlType, $signature) = @_;
+
+    return 0 if $idlType->name eq "DOMString" && ($signature->extendedAttributes->{RequiresExistingAtomicString} || $signature->extendedAttributes->{AtomicString});
 
     return 1 if $idlType->isUnion;
     return 1 if $idlType->name eq "any";
@@ -5202,6 +5253,7 @@ sub JSValueToNativeIsHandledByDOMConvert
     return 1 if $codeGenerator->IsFloatingPointType($idlType->name);
     return 1 if $codeGenerator->IsSequenceOrFrozenArrayType($idlType->name);
     return 1 if $codeGenerator->IsDictionaryType($idlType->name);
+    return 1 if $codeGenerator->IsStringType($idlType->name);
     return 0;
 }
 
@@ -5219,34 +5271,25 @@ sub JSValueToNative
     $stateReference = "*state" unless $stateReference;
     $thisObjectReference = "*castedThis" unless $thisObjectReference;
 
-    if (JSValueToNativeIsHandledByDOMConvert($idlType)) {
+    if (JSValueToNativeIsHandledByDOMConvert($idlType, $signature)) {
         AddToImplIncludes("JSDOMConvert.h");
         AddToImplIncludesForIDLType($idlType, $conditional);
 
         my $IDLType = GetIDLType($interface, $idlType);
 
-        if ($codeGenerator->IsIntegerType($type)) {
-            my $conversionType = GetIntegerConversionConfiguration($signature);
-            return ("convert<$IDLType>($stateReference, $value, $conversionType)", 1);
-        }
+        my @conversionArguments = ();
+        push(@conversionArguments, "$stateReference");
+        push(@conversionArguments, "$value");
+        push(@conversionArguments, GetIntegerConversionConfiguration($signature)) if $codeGenerator->IsIntegerType($type);
+        push(@conversionArguments, GetStringConversionConfiguration($signature)) if $codeGenerator->IsStringType($type);
 
-        return ("convert<$IDLType>($stateReference, $value)", 1);
+        return ("convert<$IDLType>(" . join(", ", @conversionArguments) . ")", 1);
     }
 
     if ($type eq "DOMString") {
         return ("AtomicString($value.toString($statePointer)->toExistingAtomicString($statePointer))", 1) if $signature->extendedAttributes->{RequiresExistingAtomicString};
-
-        my $treatNullAs = $signature->extendedAttributes->{TreatNullAs};
-        return ("valueToStringTreatingNullAsEmptyString($statePointer, $value)", 1) if $treatNullAs && $treatNullAs eq "EmptyString";
-        return ("valueToStringWithUndefinedOrNullCheck($statePointer, $value)", 1) if $signature->isNullable;
         return ("$value.toString($statePointer)->toAtomicString($statePointer)", 1) if $signature->extendedAttributes->{AtomicString};
-        return ("$value.toWTFString($statePointer)", 1);
-    }
-    if ($type eq "USVString") {
-        my $treatNullAs = $signature->extendedAttributes->{TreatNullAs};
-        return ("valueToUSVStringTreatingNullAsEmptyString($statePointer, $value)", 1) if $treatNullAs && $treatNullAs eq "EmptyString";
-        return ("valueToUSVStringWithUndefinedOrNullCheck($statePointer, $value)", 1) if $signature->isNullable;
-        return ("valueToUSVString($statePointer, $value)", 1);
+        assert("Unhandled string conversion.");
     }
 
     if ($type eq "SerializedScriptValue") {
