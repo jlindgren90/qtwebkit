@@ -1,3 +1,35 @@
+2016-10-24  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Scope chain shouldn't show empty Closure sections
+        https://bugs.webkit.org/show_bug.cgi?id=152348
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Controllers/DebuggerManager.js:
+        (WebInspector.DebuggerManager.prototype._scopeChainNodeFromPayload):
+        * UserInterface/Models/ScopeChainNode.js:
+        (WebInspector.ScopeChainNode):
+        (WebInspector.ScopeChainNode.prototype.get empty):
+        Added support for new empty property.
+
+        * UserInterface/Views/ScopeChainDetailsSidebarPanel.js:
+        (WebInspector.ScopeChainDetailsSidebarPanel.prototype._generateCallFramesSection):
+        Only create and display a DetailsSection if the scope is not empty (via empty).
+
+2016-10-24  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Improve Quick Open sorting algorithm
+        https://bugs.webkit.org/show_bug.cgi?id=163705
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Models/ResourceQueryResult.js:
+        (WebInspector.ResourceQueryResult.prototype._calculateRank.getMultiplier):
+        (WebInspector.ResourceQueryResult.prototype._calculateRank):
+        Added logic to multiply the ranking increment/decrement based on whether the current match
+        is part of a sequence, whether that sequence began with a special character, and the length
+        of the current sequence.
+
 2016-10-19  Dean Jackson  <dino@apple.com>
 
         Support CSS Shapes Level 1 without a prefix

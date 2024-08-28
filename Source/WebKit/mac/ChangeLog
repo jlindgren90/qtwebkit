@@ -1,3 +1,47 @@
+2016-10-21  Alex Christensen  <achristensen@webkit.org>
+
+        URL::port should return Optional<uint16_t>
+        https://bugs.webkit.org/show_bug.cgi?id=163806
+
+        Reviewed by Darin Adler.
+
+        * WebCoreSupport/WebSecurityOrigin.mm:
+        (-[WebSecurityOrigin port]):
+
+2016-10-24  Dave Hyatt  <hyatt@apple.com>
+
+        Remove CSSCharsetRule from the CSS OM
+        https://bugs.webkit.org/show_bug.cgi?id=163891
+
+        Reviewed by Darin Adler.
+
+        * DOM/DOMCSSCharsetRule.mm:
+        (-[DOMCSSCharsetRule encoding]):
+
+2016-10-24  Youenn Fablet  <youenn@apple.com>
+
+        Activate WEB_RTC compilation flags for Mac bots
+        https://bugs.webkit.org/show_bug.cgi?id=163886
+
+        Reviewed by Eric Carlson.
+
+        * Configurations/FeatureDefines.xcconfig:
+
+2016-10-23  Chris Dumez  <cdumez@apple.com>
+
+        addEventListener() / removeEventListener() should use a union for last parameter
+        https://bugs.webkit.org/show_bug.cgi?id=163863
+
+        Reviewed by Darin Adler.
+
+        Cast BOOL to bool to help to compiler construct the new variant-type parameter.
+
+        * DOM/DOMNode.mm:
+        (-[DOMNode addEventListener:listener:useCapture:]):
+        (-[DOMNode addEventListener:::]):
+        (-[DOMNode removeEventListener:listener:useCapture:]):
+        (-[DOMNode removeEventListener:::]):
+
 2016-10-21  Wenson Hsieh  <wenson_hsieh@apple.com>
 
         Support (insertFrom|deleteBy)Composition and (insert|delete)CompositionText inputTypes for InputEvents

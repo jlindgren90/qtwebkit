@@ -1,3 +1,1236 @@
+2016-10-24  Zalan Bujtas  <zalan@apple.com>
+
+        Do not update selection rect on dirty lineboxes.
+        https://bugs.webkit.org/show_bug.cgi?id=163862
+        <rdar://problem/28813156>
+
+        Reviewed by Simon Fraser.
+
+        In certain cases RenderBlock::updateFirstLetter() triggers
+        unwanted render tree mutation while the caller assumes intact renderers.
+        This patch ensures that no renderers gets destroyed while computing the preferred widths
+        when we are outside of layout context.
+
+        Test: fast/css-generated-content/dynamic-first-letter-selection-clear-crash.html
+
+        * rendering/RenderBlock.cpp:
+        (WebCore::RenderBlock::computePreferredLogicalWidths):
+        (WebCore::RenderBlock::updateFirstLetter):
+        * rendering/RenderBlock.h:
+        * rendering/RenderListItem.cpp:
+        (WebCore::RenderListItem::insertOrMoveMarkerRendererIfNeeded):
+        * rendering/RenderRubyRun.cpp:
+        (WebCore::RenderRubyRun::updateFirstLetter):
+        * rendering/RenderRubyRun.h:
+        * rendering/RenderTable.cpp:
+        (WebCore::RenderTable::updateFirstLetter):
+        * rendering/RenderTable.h:
+        * rendering/svg/RenderSVGText.cpp:
+        (WebCore::RenderSVGText::updateFirstLetter):
+        * rendering/svg/RenderSVGText.h:
+
+2016-10-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207795.
+
+        Introduced API test failures on iOS and macOS.
+
+        Reverted changeset:
+
+        "URLParser should match old URL::parse with %2E in path"
+        https://bugs.webkit.org/show_bug.cgi?id=163929
+        http://trac.webkit.org/changeset/207795
+
+2016-10-24  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, attempt to fix Windows build after r207787
+        https://bugs.webkit.org/show_bug.cgi?id=163657
+
+        Make the constructor public in DOMJIT::AbstractHeapRepository to make Windows bot green.
+        It's a bit unfortunate that we need to introduce a workaround here.
+
+        * domjit/DOMJITAbstractHeapRepository.h:
+
+2016-10-24  Chris Dumez  <cdumez@apple.com>
+
+        event.(dataTransfer|clipboardData).getData('text/html') (onpaste, ondrop)
+        https://bugs.webkit.org/show_bug.cgi?id=19893
+        <rdar://problem/6055546>
+
+        Reviewed by Ryosuke Niwa.
+
+        We now write selection as HTML as well to the pasteboard so that
+        event.(dataTransfer|clipboardData).getData('text/html') now works.
+
+        I have verified manually that it is still possible to copy text from
+        Safari and paste it to Excel 2011 Mac after this change. The text is
+        now pasted as HTML instead of text, which is fine because Excel can
+        display HTML.
+
+        No new tests, unskipped existing tests.
+
+        * editing/Editor.h:
+        * editing/mac/EditorMac.mm:
+        (WebCore::Editor::selectionInHTMLFormat):
+        (WebCore::Editor::writeSelectionToPasteboard):
+        * platform/Pasteboard.h:
+        * platform/mac/PasteboardMac.mm:
+        (WebCore::Pasteboard::write):
+
+2016-10-24  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should match old URL::parse with %2E in path
+        https://bugs.webkit.org/show_bug.cgi?id=163929
+
+        Reviewed by Alexey Proskuryakov.
+
+        Covered by updated API tests, which show that URLParser now matches URL::parse in these cases.
+        Also covered by newly failing web platform tests, which were failing before URLParser was enabled.
+        If https://github.com/whatwg/url/issues/87 is resolved we can change behavior to match.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::isSingleDotPathSegment):
+        (WebCore::URLParser::isDoubleDotPathSegment):
+        (WebCore::URLParser::consumeSingleDotPathSegment):
+        (WebCore::URLParser::consumeDoubleDotPathSegment):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::isPercentEncodedDot): Deleted.
+
+2016-10-24  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] CMake build type is not set.
+        https://bugs.webkit.org/show_bug.cgi?id=163917
+
+        Reviewed by Alex Christensen.
+
+        The CMAKE_BUILD_TYPE variable should be set to Debug or Release.
+
+        * WebCore.vcxproj/WebCore.proj:
+
+2016-10-24  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Unreviewed, attempt to fix Windows build after r207787
+        https://bugs.webkit.org/show_bug.cgi?id=163657
+
+        According to the similar code in WebKit, I guess that
+        Visual C++ requires friend class declaration is done
+        in the private section to access private members.
+
+        And I also changed ::instance to ::shared to align to
+        the existing WebCore code.
+
+        * domjit/DOMJITAbstractHeapRepository.cpp:
+        (WebCore::DOMJIT::AbstractHeapRepository::shared):
+        (WebCore::DOMJIT::AbstractHeapRepository::instance): Deleted.
+        * domjit/DOMJITAbstractHeapRepository.h:
+        * domjit/JSNodeDOMJIT.cpp:
+        (WebCore::NodeFirstChildDOMJIT::callDOM):
+        (WebCore::NodeLastChildDOMJIT::callDOM):
+        (WebCore::NodeNextSiblingDOMJIT::callDOM):
+        (WebCore::NodePreviousSiblingDOMJIT::callDOM):
+        (WebCore::NodeParentNodeDOMJIT::callDOM):
+
+2016-10-24  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix the lifetime of strings used in LOG_WITH_STREAM
+        https://bugs.webkit.org/show_bug.cgi?id=163923
+
+        Reviewed by Brent Fulgham.
+
+        Make sure the const char* passed to WTFLog() outlives the call.
+
+        Removed logFunctionResult which wasn't used anywhere else, and encourages this bad
+        pattern.
+
+        * platform/LogMacros.h:
+        * platform/Logging.cpp:
+        (WebCore::logFunctionResult): Deleted.
+
+2016-10-24  Chris Dumez  <cdumez@apple.com>
+
+        Reduce special handling for typed arrays in JSDOMConvert.h
+        https://bugs.webkit.org/show_bug.cgi?id=163907
+
+        Reviewed by Sam Weinig.
+
+        Reduce special handling for typed arrays in JSDOMConvert.h by adding a toWrapped() static
+        function on JSGenericTypedArrayView, similarly to other wrapper types.
+
+        No new tests, no web-exposed behavior change.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::Converter<IDLInterface<JSC::GenericTypedArrayView<Adaptor>>>::convert): Deleted.
+
+2016-10-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207783.
+
+        This change appears to have caused fast/selectors/invalid-
+        functional-pseudo-class.html to crash on iOS and macOS
+
+        Reverted changeset:
+
+        "[CSS Parser] Fix :lang argument parsing"
+        https://bugs.webkit.org/show_bug.cgi?id=163913
+        http://trac.webkit.org/changeset/207783
+
+2016-10-24  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support new IDBKeyRange interfaces.
+        <rdar://problem/28806929> and https://bugs.webkit.org/show_bug.cgi?id=163910
+
+        Reviewed by Andy Estes.
+
+        No new tests (Covered by additions to existing test)
+
+        The "new IDBKeyRanges interfaces" really just means adding the instance method IDBKeyRange.contains.
+
+        * Modules/indexeddb/IDBKeyRange.cpp:
+        (WebCore::IDBKeyRange::contains):
+        * Modules/indexeddb/IDBKeyRange.h:
+        * Modules/indexeddb/IDBKeyRange.idl:
+
+2016-10-23  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Add a way for DOMJIT::Patchpoint to express effects
+        https://bugs.webkit.org/show_bug.cgi?id=163657
+
+        Reviewed by Saam Barati.
+
+        CallDOMPatchpoint now has the way to tell its effects to DFG and FTL compilers.
+        WebCore DOMJIT::AbstractHeapRepository will construct the hierarchy of the abstract
+        heap. And then it encodes these information into the pairs of the integers.
+
+        And this patch also changes the DOMJIT::PatchpointParams' parameter order.
+        So we change them in all the DOMJIT::CallDOMPatchpoint sites.
+
+        * CMakeLists.txt:
+        * ForwardingHeaders/domjit/DOMJITAbstractHeap.h: Copied from Source/JavaScriptCore/domjit/DOMJITCallDOMPatchpoint.h.
+        * ForwardingHeaders/domjit/DOMJITEffect.h: Copied from Source/JavaScriptCore/domjit/DOMJITCallDOMPatchpoint.h.
+        * ForwardingHeaders/domjit/DOMJITHeapRange.h: Copied from Source/JavaScriptCore/domjit/DOMJITCallDOMPatchpoint.h.
+        * WebCore.xcodeproj/project.pbxproj:
+        * domjit/DOMJITAbstractHeapRepository.cpp: Copied from Source/JavaScriptCore/domjit/DOMJITCallDOMPatchpoint.h.
+        (WebCore::DOMJIT::AbstractHeapRepository::AbstractHeapRepository):
+        (WebCore::DOMJIT::AbstractHeapRepository::instance):
+        * domjit/DOMJITAbstractHeapRepository.h: Copied from Source/JavaScriptCore/domjit/DOMJITCallDOMPatchpoint.h.
+        * domjit/DOMJITHelpers.h:
+        (WebCore::DOMJITHelpers::branchIfNotWorldIsNormal): Deleted.
+        (WebCore::DOMJITHelpers::branchIfNotWeakIsLive): Deleted.
+        (WebCore::DOMJITHelpers::tryLookUpWrapperCache): Deleted.
+        (WebCore::DOMJITHelpers::toWrapper): Deleted.
+        (WebCore::DOMJITHelpers::branchIfDOMWrapper): Deleted.
+        (WebCore::DOMJITHelpers::branchIfNotDOMWrapper): Deleted.
+        (WebCore::DOMJITHelpers::branchIfNode): Deleted.
+        (WebCore::DOMJITHelpers::branchIfNotNode): Deleted.
+        (WebCore::DOMJITHelpers::branchIfElement): Deleted.
+        (WebCore::DOMJITHelpers::branchIfNotElement): Deleted.
+        (WebCore::DOMJITHelpers::branchIfDocumentWrapper): Deleted.
+        (WebCore::DOMJITHelpers::branchIfNotDocumentWrapper): Deleted.
+        * domjit/JSNodeDOMJIT.cpp:
+        (WebCore::createCallDOMForOffsetAccess):
+        (WebCore::checkNode):
+        (WebCore::NodeFirstChildDOMJIT::checkDOM):
+        (WebCore::NodeFirstChildDOMJIT::callDOM):
+        (WebCore::NodeLastChildDOMJIT::checkDOM):
+        (WebCore::NodeLastChildDOMJIT::callDOM):
+        (WebCore::NodeNextSiblingDOMJIT::checkDOM):
+        (WebCore::NodeNextSiblingDOMJIT::callDOM):
+        (WebCore::NodePreviousSiblingDOMJIT::checkDOM):
+        (WebCore::NodePreviousSiblingDOMJIT::callDOM):
+        (WebCore::NodeParentNodeDOMJIT::checkDOM):
+        (WebCore::NodeParentNodeDOMJIT::callDOM):
+        (WebCore::NodeNodeTypeDOMJIT::checkDOM):
+        (WebCore::NodeNodeTypeDOMJIT::callDOM):
+
+2016-10-24  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Fix :lang argument parsing
+        https://bugs.webkit.org/show_bug.cgi?id=163913
+
+        Reviewed by Zalan Bujtas.
+
+        * css/SelectorPseudoClassAndCompatibilityElementMap.in:
+        Modify the map to support versions of the function pseudos
+        without the left paren included.
+
+        * css/parser/CSSParserValues.cpp:
+        (WebCore::CSSParserSelector::setLangArgumentList):
+        * css/parser/CSSParserValues.h:
+        Add a helper to just directly pass an AtomicString Vector through.
+
+        * css/parser/CSSSelectorParser.cpp:
+        (WebCore::consumeLangArgumentList):
+        (WebCore::CSSSelectorParser::consumePseudo):
+        Add a new consumeLangArgumentList to collect the languages into
+        an AtomicString Vector.
+
+2016-10-24  Alex Christensen  <achristensen@webkit.org>
+
+        Fix AppleWin build after r207720.
+
+        * html/canvas/OESVertexArrayObject.cpp:
+
+2016-10-24  Alex Christensen  <achristensen@webkit.org>
+
+        Fix AppleWin build after r207720.
+
+        * bindings/js/JSWebGLRenderingContextBaseCustom.cpp:
+
+2016-10-24  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build after r207767 and r207769
+
+        * css/CSSAllInOne.cpp:
+        * platform/network/curl/ResourceHandleManager.cpp:
+        (WebCore::getProtectionSpace):
+
+2016-10-24  Per Arne Vollan  <pvollan@apple.com>
+
+        [Win] AVCF based media engine does not block cross-site/cross-domain loads.
+        https://bugs.webkit.org/show_bug.cgi?id=163783
+
+        Reviewed by Brent Fulgham.
+
+        Prevent cross-site/cross-domain loads by setting appropriate AVCF options.
+
+        No new tests; covered by media/video-canvas-source.html. Media tests are
+        currently skipped on Windows.
+
+        * platform/graphics/avfoundation/cf/AVFoundationCFSoftLinking.h:
+        * platform/graphics/avfoundation/cf/MediaPlayerPrivateAVFoundationCF.cpp:
+        (WebCore::MediaPlayerPrivateAVFoundationCF::resolvedURL):
+        (WebCore::MediaPlayerPrivateAVFoundationCF::hasSingleSecurityOrigin):
+        (WebCore::AVFWrapper::createAssetForURL):
+        * platform/graphics/avfoundation/cf/MediaPlayerPrivateAVFoundationCF.h:
+
+2016-10-24  Anders Carlsson  <andersca@apple.com>
+
+        Fix build with newer versions of clang
+        https://bugs.webkit.org/show_bug.cgi?id=163908
+        rdar://problem/28852016
+
+        Reviewed by Tim Horton.
+
+        Use the macros that names the soft-linked functions in such a way that they won't conflict with actual functions.
+
+        * platform/ios/PlatformScreenIOS.mm:
+        (WebCore::screenIsMonochrome):
+        (WebCore::screenHasInvertedColors):
+        (WebCore::screenSize):
+        (WebCore::availableScreenSize):
+        (WebCore::screenScaleFactor):
+
+2016-10-24  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Remove unnecessary unused variable stubs
+        https://bugs.webkit.org/show_bug.cgi?id=163688
+
+        Reviewed by Simon Fraser.
+
+        * Modules/applepay/cocoa/PaymentCocoa.mm:
+        (WebCore::toDictionary):
+        * Modules/applepay/cocoa/PaymentContactCocoa.mm:
+        (WebCore::toDictionary):
+
+2016-10-24  Alex Christensen  <achristensen@webkit.org>
+
+        Try to fix Windows build after r207767
+        https://bugs.webkit.org/show_bug.cgi?id=163891
+
+        * DerivedSources.cpp:
+
+2016-10-24  Zan Dobersek  <zdobersek@igalia.com>
+
+        [CodeGenerator] Only allow a single interface or standalone dictionary per WebIDL file
+        https://bugs.webkit.org/show_bug.cgi?id=163889
+
+        Reviewed by Chris Dumez.
+
+        Assert that there's only one interface or standalone dictionary
+        per WebIDL input file, and exit from the generator otherwise.
+
+        This avoids potential linking issues where multiple enumeration
+        and dictionary bindings code can be generated if the source
+        WebIDL for them is specified in a file that contains multiple
+        interfaces or standalone dictionaries.
+
+        Additionally, the generator now also exits if it fails to
+        generate code for any interface of standalone dictionary. This
+        should avoid processing WebIDL files that are empty in
+        substance.
+
+        TestException.idl and TestInterface.idl files have their second
+        interfaces removed. In place of those a new testing IDL file is
+        added, TestInterfaceLeadingUnderscore.idl. Like the two removed
+        interfaces, it tests that the leading underscode in the
+        identifier is removed by the generator.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (ProcessDocument):
+        * bindings/scripts/test/JS/JSTestInterfaceLeadingUnderscore.cpp: Added.
+        (WebCore::JSTestInterfaceLeadingUnderscorePrototype::create):
+        (WebCore::JSTestInterfaceLeadingUnderscorePrototype::createStructure):
+        (WebCore::JSTestInterfaceLeadingUnderscorePrototype::JSTestInterfaceLeadingUnderscorePrototype):
+        (WebCore::JSTestInterfaceLeadingUnderscoreConstructor::prototypeForStructure):
+        (WebCore::JSTestInterfaceLeadingUnderscoreConstructor::initializeProperties):
+        (WebCore::JSTestInterfaceLeadingUnderscorePrototype::finishCreation):
+        (WebCore::JSTestInterfaceLeadingUnderscore::JSTestInterfaceLeadingUnderscore):
+        (WebCore::JSTestInterfaceLeadingUnderscore::createPrototype):
+        (WebCore::JSTestInterfaceLeadingUnderscore::prototype):
+        (WebCore::JSTestInterfaceLeadingUnderscore::destroy):
+        (WebCore::BindingCaller<JSTestInterfaceLeadingUnderscore>::castForAttribute):
+        (WebCore::jsTestInterfaceLeadingUnderscoreReadonly):
+        (WebCore::jsTestInterfaceLeadingUnderscoreReadonlyGetter):
+        (WebCore::jsTestInterfaceLeadingUnderscoreConstructor):
+        (WebCore::setJSTestInterfaceLeadingUnderscoreConstructor):
+        (WebCore::JSTestInterfaceLeadingUnderscore::getConstructor):
+        (WebCore::JSTestInterfaceLeadingUnderscoreOwner::isReachableFromOpaqueRoots):
+        (WebCore::JSTestInterfaceLeadingUnderscoreOwner::finalize):
+        (WebCore::toJSNewlyCreated):
+        (WebCore::toJS):
+        (WebCore::JSTestInterfaceLeadingUnderscore::toWrapped):
+        * bindings/scripts/test/JS/JSTestInterfaceLeadingUnderscore.h: Renamed from Source/WebCore/bindings/scripts/test/JS/JSreadonly.h.
+        (WebCore::JSTestInterfaceLeadingUnderscore::create):
+        (WebCore::JSTestInterfaceLeadingUnderscore::createStructure):
+        (WebCore::JSTestInterfaceLeadingUnderscore::finishCreation):
+        (WebCore::wrapperOwner):
+        (WebCore::wrapperKey):
+        (WebCore::toJS):
+        (WebCore::toJSNewlyCreated):
+        * bindings/scripts/test/JS/JSattribute.cpp: Removed.
+        * bindings/scripts/test/JS/JSattribute.h: Removed.
+        * bindings/scripts/test/JS/JSreadonly.cpp: Removed.
+        * bindings/scripts/test/TestException.idl:
+        * bindings/scripts/test/TestInterface.idl:
+        * bindings/scripts/test/TestInterfaceLeadingUnderscore.idl: Copied from Source/WebCore/bindings/scripts/test/TestException.idl.
+
+2016-10-21  Alex Christensen  <achristensen@webkit.org>
+
+        URL::port should return Optional<uint16_t>
+        https://bugs.webkit.org/show_bug.cgi?id=163806
+
+        Reviewed by Darin Adler.
+
+        A URL without a port is different than a URL with port 0.
+        This matches the spec, Chrome, and Firefox.
+
+        Covered by newly-passing web platform tests.
+
+        * Modules/indexeddb/IDBDatabaseIdentifier.h:
+        (WebCore::IDBDatabaseIdentifier::IDBDatabaseIdentifier):
+        (WebCore::IDBDatabaseIdentifier::isHashTableDeletedValue):
+        (WebCore::IDBDatabaseIdentifier::hash):
+        (WebCore::IDBDatabaseIdentifier::isValid):
+        (WebCore::IDBDatabaseIdentifier::isEmpty):
+        * Modules/websockets/WebSocket.cpp:
+        (WebCore::WebSocket::connect):
+        * Modules/websockets/WebSocketHandshake.cpp:
+        (WebCore::hostName):
+        * contentextensions/ContentExtensionsBackend.cpp:
+        (WebCore::ContentExtensions::ContentExtensionsBackend::processContentExtensionRulesForLoad):
+        (WebCore::ContentExtensions::applyBlockedStatusToRequest):
+        * html/HTMLPlugInImageElement.cpp:
+        (WebCore::HTMLPlugInImageElement::userDidClickSnapshot):
+        (WebCore::HTMLPlugInImageElement::subframeLoaderWillCreatePlugIn):
+        * html/URLUtils.h:
+        (WebCore::URLUtils<T>::protocol):
+        (WebCore::URLUtils<T>::host):
+        (WebCore::URLUtils<T>::port):
+        * loader/CrossOriginAccessControl.cpp:
+        (WebCore::isValidCrossOriginRedirectionURL):
+        * loader/DocumentLoader.cpp:
+        (WebCore::DocumentLoader::responseReceived):
+        (WebCore::isRemoteWebArchive):
+        (WebCore::DocumentLoader::maybeLoadEmpty):
+        * loader/DocumentThreadableLoader.cpp:
+        (WebCore::DocumentThreadableLoader::makeSimpleCrossOriginAccessRequest):
+        * loader/ResourceLoader.cpp:
+        (WebCore::ResourceLoader::didReceiveResponse):
+        * loader/cache/CachedResource.cpp:
+        (WebCore::shouldCacheSchemeIndefinitely):
+        (WebCore::CachedResource::freshnessLifetime):
+        * page/Location.cpp:
+        (WebCore::Location::protocol):
+        (WebCore::Location::host):
+        (WebCore::Location::port):
+        * page/Page.cpp:
+        (WebCore::Page::userStyleSheetLocationChanged):
+        * page/SecurityOrigin.cpp:
+        (WebCore::shouldTreatAsUniqueOrigin):
+        (WebCore::SecurityOrigin::SecurityOrigin):
+        (WebCore::SecurityOrigin::isSecure):
+        (WebCore::SecurityOrigin::canDisplay):
+        (WebCore::SecurityOrigin::toRawString):
+        (WebCore::SecurityOrigin::create):
+        (WebCore::SecurityOrigin::databaseIdentifier):
+        * page/SecurityOrigin.h:
+        (WebCore::SecurityOrigin::port):
+        * page/SecurityOriginData.cpp:
+        (WebCore::SecurityOriginData::debugString):
+        * page/SecurityOriginData.h:
+        (): Deleted.
+        * page/SecurityOriginHash.h:
+        (WebCore::SecurityOriginHash::hash):
+        * page/csp/ContentSecurityPolicy.cpp:
+        (WebCore::ContentSecurityPolicy::allowObjectFromSource):
+        (WebCore::ContentSecurityPolicy::allowChildFrameFromSource):
+        (WebCore::ContentSecurityPolicy::allowResourceFromSource):
+        (WebCore::ContentSecurityPolicy::allowConnectToSource):
+        (WebCore::ContentSecurityPolicy::allowBaseURI):
+        (WebCore::stripURLForUseInReport):
+        (WebCore::ContentSecurityPolicy::upgradeInsecureRequestIfNeeded):
+        * page/csp/ContentSecurityPolicySource.cpp:
+        (WebCore::ContentSecurityPolicySource::ContentSecurityPolicySource):
+        (WebCore::ContentSecurityPolicySource::portMatches):
+        * page/csp/ContentSecurityPolicySource.h:
+        * page/csp/ContentSecurityPolicySourceList.cpp:
+        (WebCore::ContentSecurityPolicySourceList::parse):
+        (WebCore::ContentSecurityPolicySourceList::parseSource):
+        (WebCore::ContentSecurityPolicySourceList::parsePort):
+        * page/csp/ContentSecurityPolicySourceList.h:
+        * platform/SchemeRegistry.h:
+        * platform/URL.cpp:
+        (WebCore::URL::protocol):
+        (WebCore::URL::port):
+        (WebCore::URL::serialize):
+        (WebCore::portAllowed):
+        (WebCore::defaultPortsMap): Deleted.
+        (WebCore::defaultPortForProtocol): Deleted.
+        (WebCore::isDefaultPortForProtocol): Deleted.
+        * platform/URL.h:
+        (WebCore::URL::hasPort): Deleted.
+        * platform/URLParser.cpp:
+        (WebCore::defaultPortForProtocol):
+        (WebCore::isDefaultPortForProtocol):
+        (WebCore::URLParser::parsePort):
+        (WebCore::isDefaultPort): Deleted.
+        * platform/network/CredentialStorage.cpp:
+        (WebCore::originStringFromURL):
+        * platform/network/ResourceHandle.cpp:
+        (WebCore::ResourceHandle::create):
+        (WebCore::ResourceHandle::loadResourceSynchronously):
+        * platform/network/cf/SocketStreamHandleImplCFNet.cpp:
+        (WebCore::SocketStreamHandleImpl::platformClose):
+        (WebCore::SocketStreamHandleImpl::port):
+        * workers/WorkerLocation.cpp:
+        (WebCore::WorkerLocation::protocol):
+        (WebCore::WorkerLocation::host):
+        (WebCore::WorkerLocation::port):
+
+2016-10-24  Zan Dobersek  <zdobersek@igalia.com>
+
+        [CodeGeneratorJS] Support enums for standalone dictionaries
+        https://bugs.webkit.org/show_bug.cgi?id=163885
+
+        Reviewed by Youenn Fablet.
+
+        Add support for enumerations in WebIDL files that specify
+        standalone dictionaries. Implementation of this is pretty
+        straight-forward and mirrors interface and callback generators
+        by calling GenerateEnumerations{Header,Implementation}Content()
+        functions in GenerateDictionary{Header,Implementation}().
+
+        In GenerateEnumerationsImplementationContent(), the
+        NeverDestroyed.h header is added to the implementation includes
+        since that class is used to hold an array of possible enum
+        values.
+
+        A test enum is added to the TestStandaloneDictionary.idl file
+        and the baselines are updated to reflect the new capability.
+
+        * bindings/scripts/CodeGenerator.pm:
+        (ProcessDocument):
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDictionary):
+        (GenerateEnumerationsImplementationContent):
+        (GenerateDictionaryHeader):
+        (GenerateDictionaryImplementation):
+        * bindings/scripts/test/JS/JSTestStandaloneDictionary.cpp:
+        (WebCore::convertEnumerationToJS):
+        (WebCore::parseEnumeration<TestStandaloneDictionary::EnumInStandaloneDictionaryFile>):
+        (WebCore::convertEnumeration<TestStandaloneDictionary::EnumInStandaloneDictionaryFile>):
+        (WebCore::expectedEnumerationValues<TestStandaloneDictionary::EnumInStandaloneDictionaryFile>):
+        (WebCore::convertDictionary<DictionaryImplName>):
+        * bindings/scripts/test/JS/JSTestStandaloneDictionary.h:
+        * bindings/scripts/test/TestStandaloneDictionary.idl:
+
+2016-10-24  Dave Hyatt  <hyatt@apple.com>
+
+        Remove CSSCharsetRule from the CSS OM
+        https://bugs.webkit.org/show_bug.cgi?id=163891
+
+        Reviewed by Darin Adler.
+
+        Remove CSSCharsetRule from the CSS OM. All other browser engines have made this
+        change. This eliminates the weird overloading of isCharsetRule to match both
+        CSSCharsetRule and StyleRuleCharset (only used by the new parser).
+
+        Fix the destroy() method in StyleRuleBase to clean up StyleRuleCharsets created
+        by the new parser properly.
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSCSSRuleCustom.cpp:
+        (WebCore::toJSNewlyCreated):
+        * css/CSSCharsetRule.cpp: Removed.
+        * css/CSSCharsetRule.h: Removed.
+        * css/CSSCharsetRule.idl: Removed.
+        * css/CSSPropertySourceData.h:
+        * css/CSSStyleSheet.cpp:
+        (WebCore::CSSStyleSheet::item):
+        (WebCore::CSSStyleSheet::rules):
+        * css/CSSStyleSheet.h:
+        * css/StyleRule.cpp:
+        (WebCore::StyleRuleBase::destroy):
+        * inspector/InspectorStyleSheet.cpp:
+        (WebCore::asCSSRuleList):
+
+2016-10-24  Zan Dobersek  <zdobersek@igalia.com>
+
+        [CodeGeneratorJS] Standalone dictionaries have misplaced build guards
+        https://bugs.webkit.org/show_bug.cgi?id=163881
+
+        Reviewed by Chris Dumez.
+
+        Build guards that are generated from the Conditional attribute
+        on WebIDL dictionary declarations properly guard the relevant
+        convertDictionary() functions for WebIDL files that also specify
+        interfaces. But for standalone dictionaries these build guards
+        should guard the complete header and implementation files, much
+        like this is done for files that originate from interfaces or
+        callbacks.
+
+        Before this patch, guarding a standalone dictionary resulted in
+        malformed output because GenerateHeaderContentHeader() and
+        GenerateImplementationContentHeader() functions both generated
+        the #if macro that would guard the whole file, but
+        GenerateDictionary{Header,Implementation}() didn't generate the
+        closing #endif.
+
+        CodeGeneratorJS.pm now passes the conditional string, if any,
+        to GenerateDictionary{Header,Implementation}Content() functions
+        in case of a non-standalone dictionary. Otherwise, the
+        conditional string, if any, is used to guard the complete
+        header and implementation files.
+
+        Generator tests are updated to cover various build guard
+        combinations on dictionaries in TestObj.idl, and the standalone
+        dictionary WebIDL file now has a Conditional attribute to check
+        that the build guards cover complete generated header and
+        implementation files.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateDictionaryHeaderContent):
+        (GenerateDictionariesHeaderContent):
+        (GenerateDictionaryImplementationContent):
+        (GenerateDictionariesImplementationContent):
+        (GenerateDictionaryHeader):
+        (GenerateDictionaryImplementation):
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        (WebCore::convertDictionary<TestObj::ConditionalDictionaryA>):
+        (WebCore::convertDictionary<TestObj::ConditionalDictionaryB>):
+        (WebCore::convertDictionary<TestObj::ConditionalDictionaryC>):
+        * bindings/scripts/test/JS/JSTestObj.h:
+        * bindings/scripts/test/JS/JSTestStandaloneDictionary.cpp:
+        * bindings/scripts/test/JS/JSTestStandaloneDictionary.h:
+        * bindings/scripts/test/TestObj.idl:
+        * bindings/scripts/test/TestStandaloneDictionary.idl:
+
+2016-10-24  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Separate media capture and audio playback muting
+        https://bugs.webkit.org/show_bug.cgi?id=163855
+        <rdar://problem/28827186>
+
+        Reviewed by Darin Adler.
+
+        Test: fast/mediastream/MediaStream-page-muted.html
+
+        Change page.muted from a bool to a bitfield so audio and media capture muted are independent.
+        Fix a couple of bugs in the mock media capture device uncovered by new test case.
+        
+        * Modules/mediastream/MediaStream.cpp:
+        (WebCore::MediaStream::pageMutedStateDidChange): page.isMuted -> page.mutedState.
+
+        * Modules/webaudio/AudioContext.cpp:
+        (WebCore::AudioContext::pageMutedStateDidChange): Ditto.
+
+        * html/HTMLMediaElement.cpp:
+        (WebCore::HTMLMediaElement::updateVolume): Ditto.
+        (WebCore::HTMLMediaElement::effectiveMuted): Ditto.
+
+        * page/MediaProducer.h: Add MutedState enum.
+
+        * page/Page.cpp:
+        (WebCore::Page::Page):
+        (WebCore::Page::setMuted): Take MutedStateFlags instead of bool. m_muted -> m_mutedState.
+        * page/Page.h:
+
+        * platform/mock/MockRealtimeMediaSource.cpp:
+        (WebCore::MockRealtimeMediaSource::startProducingData): Call setMuted.
+        (WebCore::MockRealtimeMediaSource::stopProducingData): Ditto.
+        * platform/mock/MockRealtimeMediaSource.h:
+
+        * platform/mock/MockRealtimeVideoSource.cpp:
+        (WebCore::MockRealtimeVideoSource::stopProducingData): Call correct base class method.
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::setPageMuted): Change parameter from a bool to a string.
+        * testing/Internals.h:
+
+        * testing/Internals.idl:
+
+2016-10-24  Darin Adler  <darin@apple.com>
+
+        Try to fix Windows build.
+
+        * bindings/js/JSWebGL2RenderingContextCustom.cpp: Rearranged includes
+        so they are inside the conditional as they should be.
+
+2016-10-24  Youenn Fablet  <youenn@apple.com>
+
+        Activate WEB_RTC compilation flags for Mac bots
+        https://bugs.webkit.org/show_bug.cgi?id=163886
+
+        Reviewed by Eric Carlson.
+
+        Covered by existing tests.
+
+        Fixing compilation errors due to missing WEBCORE_EXPORT, missing method and missing override keywords.
+
+        * Configurations/FeatureDefines.xcconfig:
+        * DerivedSources.make:
+        * Modules/mediastream/MediaEndpointPeerConnection.h:
+        * Modules/mediastream/RTCPeerConnection.h:
+        * Modules/mediastream/RTCPeerConnection.idl:
+        * Modules/mediastream/SDPProcessor.cpp:
+        (WebCore::SDPProcessor::generate):
+        (WebCore::SDPProcessor::parse):
+        * WebCore.xcodeproj/project.pbxproj:
+        * platform/mediastream/mac/MockRealtimeVideoSourceMac.mm:
+        (WebCore::MockRealtimeVideoSource::createMuted):
+
+2016-10-24  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support IDBIndex name assignment.
+        <rdar://problem/28806932> and https://bugs.webkit.org/show_bug.cgi?id=163805
+
+        Reviewed by Alex Christensen.
+
+        Tests: storage/indexeddb/modern/index-rename-1-private.html
+               storage/indexeddb/modern/index-rename-1.html
+
+        Touches a *lot* of code sites, but none of them are particularly interesting.
+        They are all just getting the new name spread out to all of the various objects that need it.
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::renameIndex):
+        * Modules/indexeddb/IDBDatabase.h:
+
+        * Modules/indexeddb/IDBIndex.cpp:
+        (WebCore::IDBIndex::IDBIndex):
+        (WebCore::IDBIndex::setName):
+        (WebCore::IDBIndex::rollbackInfoForVersionChangeAbort):
+        * Modules/indexeddb/IDBIndex.h:
+        * Modules/indexeddb/IDBIndex.idl:
+
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::rollbackForVersionChangeAbort):
+        (WebCore::IDBObjectStore::renameReferencedIndex):
+        (WebCore::IDBObjectStore::rollbackInfoForVersionChangeAbort): Deleted.
+        * Modules/indexeddb/IDBObjectStore.h:
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::internalAbort):
+        (WebCore::IDBTransaction::renameIndex):
+        (WebCore::IDBTransaction::renameIndexOnServer):
+        (WebCore::IDBTransaction::didRenameIndexOnServer):
+        * Modules/indexeddb/IDBTransaction.h:
+
+        * Modules/indexeddb/client/IDBConnectionProxy.cpp:
+        (WebCore::IDBClient::IDBConnectionProxy::renameIndex):
+        * Modules/indexeddb/client/IDBConnectionProxy.h:
+
+        * Modules/indexeddb/client/IDBConnectionToServer.cpp:
+        (WebCore::IDBClient::IDBConnectionToServer::renameIndex):
+        (WebCore::IDBClient::IDBConnectionToServer::didRenameIndex):
+        * Modules/indexeddb/client/IDBConnectionToServer.h:
+        * Modules/indexeddb/client/IDBConnectionToServerDelegate.h:
+
+        * Modules/indexeddb/client/TransactionOperation.h:
+        (WebCore::IDBClient::createTransactionOperation):
+
+        * Modules/indexeddb/server/IDBBackingStore.h:
+
+        * Modules/indexeddb/server/IDBConnectionToClient.cpp:
+        (WebCore::IDBServer::IDBConnectionToClient::didRenameIndex):
+        * Modules/indexeddb/server/IDBConnectionToClient.h:
+        * Modules/indexeddb/server/IDBConnectionToClientDelegate.h:
+
+        * Modules/indexeddb/server/IDBServer.cpp:
+        (WebCore::IDBServer::IDBServer::renameIndex):
+        * Modules/indexeddb/server/IDBServer.h:
+
+        * Modules/indexeddb/server/MemoryBackingStoreTransaction.cpp:
+        (WebCore::IDBServer::MemoryBackingStoreTransaction::indexRenamed):
+        (WebCore::IDBServer::MemoryBackingStoreTransaction::abort):
+        * Modules/indexeddb/server/MemoryBackingStoreTransaction.h:
+
+        * Modules/indexeddb/server/MemoryIDBBackingStore.cpp:
+        (WebCore::IDBServer::MemoryIDBBackingStore::renameIndex):
+        * Modules/indexeddb/server/MemoryIDBBackingStore.h:
+
+        * Modules/indexeddb/server/MemoryIndex.h:
+        (WebCore::IDBServer::MemoryIndex::rename):
+
+        * Modules/indexeddb/server/MemoryObjectStore.cpp:
+        (WebCore::IDBServer::MemoryObjectStore::renameIndex):
+        * Modules/indexeddb/server/MemoryObjectStore.h:
+
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.cpp:
+        (WebCore::IDBServer::SQLiteIDBBackingStore::renameIndex):
+        * Modules/indexeddb/server/SQLiteIDBBackingStore.h:
+
+        * Modules/indexeddb/server/UniqueIDBDatabase.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabase::renameIndex):
+        (WebCore::IDBServer::UniqueIDBDatabase::performRenameIndex):
+        (WebCore::IDBServer::UniqueIDBDatabase::didPerformRenameIndex):
+        * Modules/indexeddb/server/UniqueIDBDatabase.h:
+
+        * Modules/indexeddb/server/UniqueIDBDatabaseConnection.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabaseConnection::didRenameIndex):
+        * Modules/indexeddb/server/UniqueIDBDatabaseConnection.h:
+
+        * Modules/indexeddb/server/UniqueIDBDatabaseTransaction.cpp:
+        (WebCore::IDBServer::UniqueIDBDatabaseTransaction::renameIndex):
+        * Modules/indexeddb/server/UniqueIDBDatabaseTransaction.h:
+
+        * Modules/indexeddb/shared/IDBIndexInfo.h:
+        (WebCore::IDBIndexInfo::rename):
+
+        * Modules/indexeddb/shared/IDBObjectStoreInfo.cpp:
+        (WebCore::IDBObjectStoreInfo::infoForExistingIndex):
+        * Modules/indexeddb/shared/IDBObjectStoreInfo.h:
+
+        * Modules/indexeddb/shared/IDBResultData.cpp:
+        (WebCore::IDBResultData::renameIndexSuccess):
+        * Modules/indexeddb/shared/IDBResultData.h:
+
+        * Modules/indexeddb/shared/InProcessIDBServer.cpp:
+        (WebCore::InProcessIDBServer::didRenameIndex):
+        (WebCore::InProcessIDBServer::renameIndex):
+        * Modules/indexeddb/shared/InProcessIDBServer.h:
+
+2016-10-24  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Fix -webkit-box-reflect parsing
+        https://bugs.webkit.org/show_bug.cgi?id=163890
+
+        Reviewed by Zalan Bujtas.
+
+        * css/parser/CSSPropertyParser.cpp:
+        (WebCore::consumeReflect):
+        Do a WTFMove on the mask instead of a .releaseNonNull(), since mask can be a nullptr.
+        Exactly matches the old parser.
+
+        * css/parser/CSSPropertyParserHelpers.cpp:
+        (WebCore::CSSPropertyParserHelpers::CalcParser::consumeValue):
+        (WebCore::CSSPropertyParserHelpers::CalcParser::consumeNumber):
+        (WebCore::CSSPropertyParserHelpers::consumeInteger):
+        (WebCore::CSSPropertyParserHelpers::consumeNumber):
+        (WebCore::CSSPropertyParserHelpers::consumeLength):
+        (WebCore::CSSPropertyParserHelpers::consumePercent):
+        (WebCore::CSSPropertyParserHelpers::consumeAngle):
+        (WebCore::CSSPropertyParserHelpers::consumeTime):
+        (WebCore::CSSPropertyParserHelpers::consumeUrl):
+        (WebCore::CSSPropertyParserHelpers::consumeColor):
+        (WebCore::CSSPropertyParserHelpers::consumeDeprecatedGradientPoint):
+        (WebCore::CSSPropertyParserHelpers::consumeDeprecatedGradientColorStop):
+        (WebCore::CSSPropertyParserHelpers::consumeCrossFade):
+        (WebCore::CSSPropertyParserHelpers::consumeImageSet):
+        Clean up all instances of CSSPrimitiveValue::create to use the CSSValuePool.
+
+2016-10-21  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Concatenate JS and CSS files into a single JS and CSS resources
+        https://bugs.webkit.org/show_bug.cgi?id=163785
+        <rdar://problem/28890058>
+
+        Reviewed by Darin Adler.
+
+        Concatenate CSS and JS resources for modern media controls into single JS and CSS files
+        during build and load these single resources alone at runtime.
+
+        * Modules/modern-media-controls/js-files: Added.
+        * WebCore.xcodeproj/project.pbxproj:
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderThemeMac::mediaControlsStyleSheet):
+        (WebCore::RenderThemeMac::mediaControlsScript):
+
+2016-10-24  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Unprefix -webkit-writing-mode
+        https://bugs.webkit.org/show_bug.cgi?id=163870
+
+        Reviewed by Zalan Bujtas.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::ComputedStyleExtractor::propertyValue):
+        Change -webkit-writing mode to writing-mode.
+
+        * css/CSSPrimitiveValueMappings.h:
+        (WebCore::CSSPrimitiveValue::operator WritingMode):
+        (WebCore::CSSPrimitiveValue::operator SVGWritingMode): Deleted.
+        Eliminate the SVGWritingMode converters. Add support for the unique SVG-specific
+        values to the WritingMode converters.
+
+        * css/CSSPropertyNames.in:
+        Alias -webkit-writing-mode to writing-mode. Move writing-mode up to be
+        high priority like -webkit-writing mode was. Alias -epub-writing-mode to writing-mode
+        instead of to -webkit-writing-mode.
+
+        * css/SVGCSSComputedStyleDeclaration.cpp:
+        (WebCore::ComputedStyleExtractor::svgPropertyValue):
+        Remove writing-mode from SVG computed style, since the base CSSComputedStyleDeclaration handles it.
+
+        * css/StyleBuilderCustom.h:
+        (WebCore::StyleBuilderCustom::applyValueWritingMode):
+        (WebCore::StyleBuilderCustom::applyValueWebkitWritingMode): Deleted.
+        Renamed applyValueWebkitWritingMode to applyValueWritingMode. Removed the SVG code, since
+        the underlying converter for WritingMode now handles those values.
+
+        * css/StyleResolver.cpp:
+        (WebCore::extractDirectionAndWritingMode):
+        Rename -webkit-writing-mode to writing-mode.
+
+        * css/parser/CSSParser.cpp:
+        (WebCore::isValidKeywordPropertyAndValue):
+        Eliminate -webkit-writing-mode and make sure writing-mode handles both the SVG values
+        and the normal values.
+
+        * css/parser/CSSParserFastPaths.cpp:
+        (WebCore::CSSParserFastPaths::isValidKeywordPropertyAndValue):
+        (WebCore::CSSParserFastPaths::isKeywordPropertyID):
+        Same deal here.
+
+        * html/track/TextTrackCueGeneric.cpp:
+        (WebCore::TextTrackCueGenericBoxElement::applyCSSProperties):
+        * html/track/VTTCue.cpp:
+        (WebCore::VTTCueBox::applyCSSProperties):
+        Cue stuff was setting -webkit-writing-mode, so make it set writing-mode instead now.
+
+        * rendering/RenderLineBreak.cpp:
+        (WebCore::RenderLineBreak::collectSelectionRects):
+        * rendering/RenderText.cpp:
+        (WebCore::RenderText::collectSelectionRects):
+        Switch the SVG-specific code here over to accessing the RenderStyle writing-mode and not
+        the SVG-specific one.
+
+        * rendering/style/RenderStyle.h:
+        (WebCore::RenderStyle::isVerticalWritingMode):
+        Add a helper function for asking if something is vertical writing mode.
+
+        * rendering/style/SVGRenderStyle.cpp:
+        * rendering/style/SVGRenderStyle.h:
+        * rendering/style/SVGRenderStyleDefs.h:
+        (WebCore::SVGRenderStyle::diff):
+        Remove the SVG writing mode code.
+
+        * rendering/svg/RenderSVGInlineText.cpp:
+        (WebCore::RenderSVGInlineText::computeNewScaledFontForStyle):
+        Make sure to force SVG font descriptions to be horizontal, since SVG controls
+        its own glyph orientation.
+
+        * rendering/svg/SVGRenderTreeAsText.cpp:
+        (WebCore::writeSVGInlineTextBox):
+        * rendering/svg/SVGTextChunk.cpp:
+        (WebCore::SVGTextChunk::SVGTextChunk):
+        * rendering/svg/SVGTextLayoutEngine.cpp:
+        (WebCore::SVGTextLayoutEngine::layoutInlineTextBox):
+        * rendering/svg/SVGTextQuery.cpp:
+        (WebCore::SVGTextQuery::executeQuery):
+        Changed to access the RenderStyle writing mode instead of the SVG-specific one.
+
+2016-10-23  Antti Koivisto  <antti@apple.com>
+
+        Avoid unnecessary full style resolution in getComputedStyle for non-inherited properties
+        https://bugs.webkit.org/show_bug.cgi?id=163875
+
+        Reviewed by Andreas Kling.
+
+        Test: fast/css/getComputedStyle/getComputedStyle-style-resolution.html
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::hasValidStyleForProperty):
+
+            For non-inherited properties we don't need to update style even if some ancestor style is invalid
+            as long as explicit 'inherit' is not being used.
+            We still need to update if we find out that the whole subtree we are in is invalid.
+
+        (WebCore::updateStyleIfNeededForProperty):
+
+            Pass the property.
+
+        (WebCore::ComputedStyleExtractor::customPropertyValue):
+        (WebCore::ComputedStyleExtractor::propertyValue):
+        (WebCore::CSSComputedStyleDeclaration::length):
+        (WebCore::elementOrItsAncestorNeedsStyleRecalc): Deleted.
+        (WebCore::updateStyleIfNeededForElement): Deleted.
+        * css/StyleResolver.cpp:
+        (WebCore::StyleResolver::colorFromPrimitiveValue):
+
+            Mark style as using explicit inheritance if 'currentcolor' value is used.
+
+2016-10-24  Youenn Fablet  <youenn@apple.com>
+
+        ASSERTION FAILED: canvas()->securityOrigin()->toString() == cachedImage.origin()->toString()
+        https://bugs.webkit.org/show_bug.cgi?id=163242
+
+        Reviewed by Darin Adler.
+
+        Test: http/tests/security/cross-origin-cached-images-canvas.html
+
+        We were previously on Origin HTTP header to check whether requests were made from different origins.
+        This is fine for CORS enabled requests but not for GET no CORS requests since they will not have any Origin header.
+
+        Now that CachedResource and CachedResourceRequest own their origin, it is best to use these directly.
+
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::isRequestMatchingResourceOrigin):
+        (WebCore::CachedResourceLoader::shouldUpdateCachedResourceWithCurrentRequest):
+
+2016-10-24  Youenn Fablet  <youenn@apple.com>
+
+        Remove CachedResource::passesSameOriginPolicyCheck
+        https://bugs.webkit.org/show_bug.cgi?id=163593
+
+        Reviewed by Andreas Kling.
+
+        No change of behavior.
+
+        Removing no-longer used code.
+
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::redirectReceived):
+        (WebCore::CachedResource::passesAccessControlCheck): Deleted.
+        (WebCore::CachedResource::passesSameOriginPolicyCheck): Deleted.
+        (WebCore::CachedResource::responseForSameOriginPolicyChecks): Deleted.
+        * loader/cache/CachedResource.h:
+        (WebCore::CachedResource::response):
+
+2016-10-24  Youenn Fablet  <youenn@apple.com>
+
+        Redirections should be upgraded if CSP policy says so
+        https://bugs.webkit.org/show_bug.cgi?id=163544
+
+        Reviewed by Darin Adler.
+
+        Test: http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/basic-upgrade-after-redirect.https.html
+
+        Introducing CachedResourceLoader::updateRequestAfterRedirection to do the checks that CachedResourceLoader is doing
+        to the initial request, but for redirection requests.
+
+        Implemented URL upgrade according CSP policy, as specified by fetch algorithm.
+        Minor refactoring in CachedResourceRequest to share some code.
+        Fixing some constness issues.
+
+        * loader/SubresourceLoader.cpp:
+        (WebCore::SubresourceLoader::willSendRequestInternal):
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::allowedByContentSecurityPolicy):
+        (WebCore::CachedResourceLoader::canRequestAfterRedirection):
+        (WebCore::CachedResourceLoader::updateRequestAfterRedirection):
+        * loader/cache/CachedResourceLoader.h:
+        * loader/cache/CachedResourceRequest.cpp:
+        (WebCore::upgradeInsecureResourceRequestIfNeeded):
+        (WebCore::CachedResourceRequest::upgradeInsecureRequestIfNeeded):
+        * loader/cache/CachedResourceRequest.h:
+
+2016-10-22  Sam Weinig  <sam@webkit.org>
+
+        [WebIDL] Add IDLType based toJS conversion
+        https://bugs.webkit.org/show_bug.cgi?id=163861
+
+        Reviewed by Darin Adler.
+
+        Adds toJS<IDLType>() functions to be the new way of converting
+        from implementation types to JS types. These are implemented via
+        a similar mechanism to the convert<IDL>() functions, though specializations
+        of a JSConverter struct (rather than the Converter structs). This allows
+        us to support arbitrarily complex aggregate types easily (e.g. sequence<(Node or DOMString?)>).
+
+        * Modules/geolocation/Geoposition.idl:
+        * dom/Event.idl:
+        Add typedef for DOMTimeStamp. Eventually, our IDLParser should do this for us, but
+        for now it allows us to simplify the type system.
+
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::JSValueTraits::arrayJSValue): Deleted.
+        (WebCore::JSValueTraits<String>::arrayJSValue): Deleted.
+        (WebCore::JSValueTraits<double>::arrayJSValue): Deleted.
+        (WebCore::JSValueTraits<float>::arrayJSValue): Deleted.
+        (WebCore::jsArray): Deleted.
+        (WebCore::jsFrozenArray): Deleted.
+        (WebCore::NativeValueTraits<String>::nativeValue): Deleted.
+        (WebCore::NativeValueTraits<unsigned>::nativeValue): Deleted.
+        (WebCore::NativeValueTraits<float>::nativeValue): Deleted.
+        (WebCore::NativeValueTraits<double>::nativeValue): Deleted.
+        (WebCore::toNullableJSNumber): Deleted.
+        (WebCore::toJSArray): Deleted.
+        (WebCore::toJSBoolean): Deleted.
+        (WebCore::toJSNumber): Deleted.
+        (WebCore::toJSString): Deleted.
+        Remove many now-unneeded conversion functions.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::toJS):
+        Add 5 primary toJS functions which take combinations of the following
+        arguments: ExecState, JSDOMGlobalObject, ThrowScope.  All take the value 
+        to be converted as well, except in the case of the throwScope ones, where
+        they take the value in an ExceptionOr<>.
+
+        To simplify the implementations of the JSConverter specializations, avoiding
+        the need for each one to implement their conversion up to 3 times (one for just
+        the value, one for the value and the ExecState, and one for the value, the ExecState
+        and the global object), each JSConverter instead specifies whether it's converter
+        needs an ExecState or global object via a static constexpr. We then use the 
+        JSConverterOverloader template, to call the correct function. This can probably be
+        improved in the future, by inferring the number of arguments needed via SFINAE, but
+        this seemed like a more straightforward first cut.
+
+        (WebCore::JSConverter<IDLNullable<T>>::convert):
+        (WebCore::JSConverter<IDLBoolean>::convert):
+        (WebCore::JSConverter<IDLInterface<T>>::convert):
+        (WebCore::JSConverter<IDLAny>::convert):
+        (WebCore::JSConverter<IDLByte>::convert):
+        (WebCore::JSConverter<IDLOctet>::convert):
+        (WebCore::JSConverter<IDLShort>::convert):
+        (WebCore::JSConverter<IDLUnsignedShort>::convert):
+        (WebCore::JSConverter<IDLLong>::convert):
+        (WebCore::JSConverter<IDLUnsignedLong>::convert):
+        (WebCore::JSConverter<IDLLongLong>::convert):
+        (WebCore::JSConverter<IDLUnsignedLongLong>::convert):
+        (WebCore::JSConverter<IDLFloat>::convert):
+        (WebCore::JSConverter<IDLUnrestrictedFloat>::convert):
+        (WebCore::JSConverter<IDLDouble>::convert):
+        (WebCore::JSConverter<IDLUnrestrictedDouble>::convert):
+        (WebCore::JSConverter<IDLDOMString>::convert):
+        (WebCore::JSConverter<IDLUSVString>::convert):
+        (WebCore::JSConverter<IDLSequence<T>>::convert):
+        (WebCore::JSConverter<IDLFrozenArray<T>>::convert):
+        (WebCore::JSConverter<IDLEnumeration<T>>::convert):
+        (WebCore::JSConverter<IDLUnion<T...>>::convert):
+        There is slightly more duplication than I would have liked, for instance we have a
+        specialization for each numeric type, even though they are all the same, but that is
+        something that can be improved going forward.
+
+        (WebCore::Converter<IDLUnion<T...>>::convert)
+        Fix the normal IDLUnion converter to work with boolean types. This was caught by the
+        test case I added via TypeConversions.idl.
+        
+        * bindings/js/JSDOMStringMapCustom.cpp:
+        (WebCore::JSDOMStringMap::getOwnPropertySlotDelegate):
+        * bindings/js/JSDOMWindowCustom.cpp:
+        (WebCore::JSDOMWindow::setTimeout):
+        (WebCore::JSDOMWindow::setInterval):
+        * bindings/js/JSDataTransferCustom.cpp:
+        (WebCore::JSDataTransfer::types):
+        * bindings/js/JSMediaStreamTrackCustom.cpp:
+        (WebCore::JSMediaStreamTrack::getCapabilities):
+        * bindings/js/JSMutationCallback.cpp:
+        (WebCore::JSMutationCallback::call):
+        * bindings/js/JSSVGLengthCustom.cpp:
+        (WebCore::JSSVGLength::value):
+        Switch to use new toJS<> functions.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (AddStringifierOperationIfNeeded):
+        Fix stringifier function signature to contain an idlType.
+
+        (GenerateEnumerationsHeaderContent):
+        Remove now unnecessary JSValueTraits specializations.
+
+        (JSValueToNativeIsHandledByDOMConvert):
+        Renamed from IsHandledByDOMConvert, since that name is now ambiguous.
+
+        (JSValueToNative):
+        Update for new name of IsHandledByDOMConvert.
+
+        (NativeToJSValueIsHandledByDOMConvert):
+        Predicate guarding what types currently work with the new conversion system.
+
+        (NativeToJSValueDOMConvertNeedsState):
+        Predicate for determining if the ExecState is needed in the conversion function.
+
+        (NativeToJSValueDOMConvertNeedsGlobalObject):
+        Predicate for determining if the global object is needed in the conversion function.
+
+        (NativeToJSValue):
+        Move things around a little bit and start converting use the new toJS<> when possible.
+
+        * bindings/scripts/IDLParser.pm:
+        (parseAttributeOrOperationRest):
+        Fix a missing place where were not setting the idlType.
+ 
+        * bindings/scripts/test/JS/JSTestActiveDOMObject.cpp:
+        * bindings/scripts/test/JS/JSTestCEReactions.cpp:
+        * bindings/scripts/test/JS/JSTestCEReactionsStringifier.cpp:
+        * bindings/scripts/test/JS/JSTestCallback.cpp:
+        * bindings/scripts/test/JS/JSTestCallbackFunction.cpp:
+        * bindings/scripts/test/JS/JSTestEventConstructor.cpp:
+        * bindings/scripts/test/JS/JSTestException.cpp:
+        * bindings/scripts/test/JS/JSTestGlobalObject.cpp:
+        * bindings/scripts/test/JS/JSTestInterface.cpp:
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        * bindings/scripts/test/JS/JSTestNondeterministic.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        * bindings/scripts/test/JS/JSTestObj.h:
+        * bindings/scripts/test/JS/JSTestSerialization.cpp:
+        * bindings/scripts/test/JS/JSTestSerializedScriptValueInterface.cpp:
+        * bindings/scripts/test/JS/JSTestTypedefs.cpp:
+        * bindings/scripts/test/JS/JSattribute.cpp:
+        Update test results.
+
+        * testing/TypeConversions.h:
+        (WebCore::TypeConversions::testUnion):
+        (WebCore::TypeConversions::setTestUnion):
+        (WebCore::TypeConversions::typeConversionsDictionarySequenceValue):
+        (WebCore::TypeConversions::typeConversionsDictionaryUnionValue):
+        * testing/TypeConversions.idl:
+        Add a testUnion attribute, now that we can return unions to JS.
+
+2016-10-23  Zalan Bujtas  <zalan@apple.com>
+
+        Unreviewed, rolling out r207727.
+
+        broke 15 selection test cases.
+
+        Reverted changeset:
+
+        "Do not update selection rect on dirty lineboxes."
+        https://bugs.webkit.org/show_bug.cgi?id=163862
+        http://trac.webkit.org/changeset/207727
+
+2016-10-23  Chris Dumez  <cdumez@apple.com>
+
+        addEventListener() / removeEventListener() should use a union for last parameter
+        https://bugs.webkit.org/show_bug.cgi?id=163863
+
+        Reviewed by Darin Adler.
+
+        addEventListener() / removeEventListener() should use a union for last parameter:
+        - https://dom.spec.whatwg.org/#eventtarget
+
+        No new tests, no Web-exposed behavior change.
+
+        * bindings/js/JSDOMConvert.h:
+        * dom/EventTarget.cpp:
+        (WebCore::EventTarget::addEventListenerForBindings):
+        (WebCore::EventTarget::removeEventListenerForBindings):
+        * dom/EventTarget.h:
+        * dom/EventTarget.idl:
+
 2016-10-23  Zalan Bujtas  <zalan@apple.com>
 
         Do not update selection rect on dirty lineboxes.

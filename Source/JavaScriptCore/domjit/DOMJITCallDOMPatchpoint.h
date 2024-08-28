@@ -27,6 +27,7 @@
 
 #if ENABLE(JIT)
 
+#include "DOMJITEffect.h"
 #include "DOMJITPatchpoint.h"
 #include "RegisterSet.h"
 
@@ -44,6 +45,8 @@ public:
     // And after that, we will automatically pass a global object when the result type includes a DOM wrapper thing.
     // https://bugs.webkit.org/show_bug.cgi?id=162980
     bool requireGlobalObject { true };
+
+    Effect effect { };
 
 private:
     CallDOMPatchpoint() = default;

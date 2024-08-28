@@ -410,19 +410,6 @@ void CachedResource::finish()
         m_status = Cached;
 }
 
-bool CachedResource::passesAccessControlCheck(SecurityOrigin& securityOrigin)
-{
-    String errorDescription;
-    return WebCore::passesAccessControlCheck(response(), resourceRequest().allowCookies() ? AllowStoredCredentials : DoNotAllowStoredCredentials, securityOrigin, errorDescription);
-}
-
-bool CachedResource::passesSameOriginPolicyCheck(SecurityOrigin& securityOrigin)
-{
-    if (securityOrigin.canRequest(responseForSameOriginPolicyChecks().url()))
-        return true;
-    return passesAccessControlCheck(securityOrigin);
-}
-
 void CachedResource::setCrossOrigin()
 {
     ASSERT(m_options.mode != FetchOptions::Mode::SameOrigin);
@@ -453,7 +440,7 @@ bool CachedResource::isExpired() const
     return computeCurrentAge(m_response, m_responseTimestamp) > freshnessLifetime(m_response);
 }
 
-static inline bool shouldCacheSchemeIndefinitely(const String& scheme)
+static inline bool shouldCacheSchemeIndefinitely(StringView scheme)
 {
 #if PLATFORM(COCOA)
     if (equalLettersIgnoringASCIICase(scheme, "applewebdata"))
@@ -469,12 +456,12 @@ static inline bool shouldCacheSchemeIndefinitely(const String& scheme)
 std::chrono::microseconds CachedResource::freshnessLifetime(const ResourceResponse& response) const
 {
     if (!response.url().protocolIsInHTTPFamily()) {
-        String protocol = response.url().protocol();
+        StringView protocol = response.url().protocol();
         if (!shouldCacheSchemeIndefinitely(protocol)) {
             // Don't cache non-HTTP main resources since we can't check for freshness.
             // FIXME: We should not cache subresources either, but when we tried this
             // it caused performance and flakiness issues in our test infrastructure.
-            if (m_type == MainResource || SchemeRegistry::shouldAlwaysRevalidateURLScheme(protocol))
+            if (m_type == MainResource || SchemeRegistry::shouldAlwaysRevalidateURLScheme(protocol.toStringWithoutCopying()))
                 return 0us;
         }
 
@@ -484,22 +471,13 @@ std::chrono::microseconds CachedResource::freshnessLifetime(const ResourceRespon
     return computeFreshnessLifetimeForHTTPFamily(response, m_responseTimestamp);
 }
 
-void CachedResource::redirectReceived(ResourceRequest& request, const ResourceResponse& response)
+void CachedResource::redirectReceived(ResourceRequest&, const ResourceResponse& response)
 {
     m_requestedFromNetworkingLayer = true;
     if (response.isNull())
         return;
 
-    // Redirect to data: URL uses the last HTTP response for SOP.
-    if (response.isHTTP() && request.url().protocolIsData())
-        m_redirectResponseForSameOriginPolicyChecks = response;
-
     updateRedirectChainStatus(m_redirectChainCacheStatus, response);
-}
-
-const ResourceResponse& CachedResource::responseForSameOriginPolicyChecks() const
-{
-    return m_redirectResponseForSameOriginPolicyChecks.isNull() ? m_response : m_redirectResponseForSameOriginPolicyChecks;
 }
 
 void CachedResource::setResponse(const ResourceResponse& response)

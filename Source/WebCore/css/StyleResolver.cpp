@@ -1292,7 +1292,7 @@ void extractDirectionAndWritingMode(const RenderStyle& style, const StyleResolve
     direction = style.direction();
     writingMode = style.writingMode();
 
-    bool hadImportantWebkitWritingMode = false;
+    bool hadImportantWritingMode = false;
     bool hadImportantDirection = false;
 
     for (const auto& matchedProperties : matchResult.matchedProperties()) {
@@ -1301,10 +1301,10 @@ void extractDirectionAndWritingMode(const RenderStyle& style, const StyleResolve
             if (!property.value()->isPrimitiveValue())
                 continue;
             switch (property.id()) {
-            case CSSPropertyWebkitWritingMode:
-                if (!hadImportantWebkitWritingMode || property.isImportant()) {
+            case CSSPropertyWritingMode:
+                if (!hadImportantWritingMode || property.isImportant()) {
                     writingMode = downcast<CSSPrimitiveValue>(*property.value());
-                    hadImportantWebkitWritingMode = property.isImportant();
+                    hadImportantWritingMode = property.isImportant();
                 }
                 break;
             case CSSPropertyDirection:
@@ -1817,6 +1817,8 @@ Color StyleResolver::colorFromPrimitiveValue(const CSSPrimitiveValue& value, boo
     case CSSValueWebkitFocusRingColor:
         return RenderTheme::focusRingColor();
     case CSSValueCurrentcolor:
+        // Color is an inherited property so depending on it effectively makes the property inherited.
+        state.style()->setHasExplicitlyInheritedProperties();
         return state.style()->color();
     default: {
         return StyleColor::colorFromKeyword(ident);

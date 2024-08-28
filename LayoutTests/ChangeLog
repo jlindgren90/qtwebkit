@@ -1,3 +1,306 @@
+2016-10-24  Zalan Bujtas  <zalan@apple.com>
+
+        Do not update selection rect on dirty lineboxes.
+        https://bugs.webkit.org/show_bug.cgi?id=163862
+        <rdar://problem/28813156>
+
+        Reviewed by Simon Fraser.
+
+        * fast/css-generated-content/dynamic-first-letter-selection-clear-crash-expected.txt: Added.
+        * fast/css-generated-content/dynamic-first-letter-selection-clear-crash.html: Added.
+
+2016-10-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Unreviewed, rolling out r207795.
+
+        Introduced API test failures on iOS and macOS.
+
+        Reverted changeset:
+
+        "URLParser should match old URL::parse with %2E in path"
+        https://bugs.webkit.org/show_bug.cgi?id=163929
+        http://trac.webkit.org/changeset/207795
+
+2016-10-24  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        Arrow functions with concise bodies cannot return regular expressions
+        https://bugs.webkit.org/show_bug.cgi?id=163162
+
+        Reviewed by Filip Pizlo.
+
+        * fast/regex/dom/non-pattern-characters-expected.txt:
+        * js/arrowfunction-syntax-errors-expected.txt:
+        * js/regexp-compile-crash-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.4_Comments/S7.4_A4_T1-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.4_Comments/S7.4_A4_T4-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A1.2_T2-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A1.3_T1-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A1.3_T3-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A1.5_T1-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A1.5_T3-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A2.2_T1-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A2.3_T1-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A2.3_T3-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A2.5_T1-expected.txt:
+        * sputnik/Conformance/07_Lexical_Conventions/7.8_Literals/7.8.5_Regular_Expression_Literals/S7.8.5_A2.5_T3-expected.txt:
+
+2016-10-24  Chris Dumez  <cdumez@apple.com>
+
+        event.(dataTransfer|clipboardData).getData('text/html') (onpaste, ondrop)
+        https://bugs.webkit.org/show_bug.cgi?id=19893
+        <rdar://problem/6055546>
+
+        Reviewed by Ryosuke Niwa.
+
+        Unskip corresponding tests on Mac.
+
+        * editing/pasteboard/onpaste-text-html-expected.txt:
+        * fast/events/ondrop-text-html-expected.txt:
+        * platform/mac/TestExpectations:
+        * platform/wk2/TestExpectations:
+
+2016-10-24  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should match old URL::parse with %2E in path
+        https://bugs.webkit.org/show_bug.cgi?id=163929
+
+        Reviewed by Alexey Proskuryakov.
+
+        * fast/url/path-expected.txt:
+        * fast/url/standard-url-expected.txt:
+        * fetch/fetch-url-serialization-expected.txt:
+
+2016-10-24  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support new IDBKeyRange interfaces.
+        <rdar://problem/28806929> and https://bugs.webkit.org/show_bug.cgi?id=163910
+
+        Reviewed by Andy Estes.
+
+        * storage/indexeddb/keyrange-expected.txt:
+        * storage/indexeddb/keyrange-private-expected.txt:
+        * storage/indexeddb/resources/keyrange.js:
+
+2016-10-23  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [DOMJIT] Add a way for DOMJIT::Patchpoint to express effects
+        https://bugs.webkit.org/show_bug.cgi?id=163657
+
+        Reviewed by Saam Barati.
+
+        * js/dom/domjit-accessor-different-effect-expected.txt: Added.
+        * js/dom/domjit-accessor-different-effect.html: Added.
+        * js/dom/domjit-accessor-effect-expected.txt: Added.
+        * js/dom/domjit-accessor-effect-should-overlap-with-call-expected.txt: Added.
+        * js/dom/domjit-accessor-effect-should-overlap-with-call.html: Added.
+        * js/dom/domjit-accessor-effect.html: Added.
+        * js/dom/domjit-accessor-licm-expected.txt: Added.
+        * js/dom/domjit-accessor-licm.html: Added.
+        * js/dom/domjit-accessor-node-type-effect-should-not-overlap-with-call-since-pure-expected.txt: Added.
+        * js/dom/domjit-accessor-node-type-effect-should-not-overlap-with-call-since-pure.html: Added.
+
+2016-10-24  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Font variations test gardening
+
+        Unreviewed.
+
+        * platform/mac/TestExpectations:
+
+2016-10-24  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Scope chain shouldn't show empty Closure sections
+        https://bugs.webkit.org/show_bug.cgi?id=152348
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/model/scope-chain-node-expected.txt:
+        * inspector/model/scope-chain-node.html:
+        Added "empty" indicators to scopes without any property descriptors.
+
+2016-10-24  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Improve Quick Open sorting algorithm
+        https://bugs.webkit.org/show_bug.cgi?id=163705
+
+        Reviewed by Joseph Pecoraro.
+
+        * inspector/unit-tests/resource-query-controller-expected.txt:
+        * inspector/unit-tests/resource-query-controller.html:
+        Changed the ExecuteQueryGeneralRankings and ExecuteQueryPositionRankings tests to reflect
+        the new ranking logic.  Added ExecuteQueryConsecutiveRankings to test more realistic
+        scenarios and ensure better ranking.
+
+2016-10-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline tests for ios-simulator after r207757.
+        https://bugs.webkit.org/show_bug.cgi?id=163904
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/svg/W3C-SVG-1.1/text-align-06-b-expected.txt:
+        * platform/ios-simulator/svg/batik/text/verticalText-expected.txt:
+        * platform/ios-simulator/svg/batik/text/verticalTextOnPath-expected.txt:
+        * platform/ios-simulator/svg/text/text-align-06-b-expected.txt:
+        * platform/ios-simulator/svg/text/text-vkern-expected.txt:
+
+2016-10-24  Alex Christensen  <achristensen@webkit.org>
+
+        Rebase tests after r207767
+        https://bugs.webkit.org/show_bug.cgi?id=163891
+
+        * js/dom/global-constructors-attributes-expected.txt:
+        * platform/efl/js/dom/global-constructors-attributes-expected.txt:
+        * platform/gtk/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+        * platform/win/js/dom/global-constructors-attributes-expected.txt:
+        No more CSSCharsetRule.
+
+2016-10-24  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline inspector/dom/getAccessibilityPropertiesForNode.html
+        https://bugs.webkit.org/show_bug.cgi?id=163901
+
+        Unreviewed test gardening.
+
+        * inspector/dom/getAccessibilityPropertiesForNode-expected.txt:
+
+2016-10-24  Dave Hyatt  <hyatt@apple.com>
+
+        Remove CSSCharsetRule from the CSS OM
+        https://bugs.webkit.org/show_bug.cgi?id=163891
+
+        Reviewed by Darin Adler.
+
+        * fast/dom/Window/resources/window-properties.js:
+        * fast/dom/dom-constructors-expected.txt:
+        * fast/dom/dom-constructors.html:
+        * fast/encoding/css-charset-default.xhtml:
+        * fast/encoding/css-charset-dom-expected.txt: Removed.
+        * fast/encoding/css-charset-dom.html: Removed.
+        * platform/mac/fast/dom/Window/window-lookup-precedence-expected.txt:
+
+2016-10-24  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Separate media capture and audio playback muting
+        https://bugs.webkit.org/show_bug.cgi?id=163855
+        <rdar://problem/28827186>
+
+        Reviewed by Darin Adler.
+
+        * fast/mediastream/MediaStream-page-muted-expected.txt: Added.
+        * fast/mediastream/MediaStream-page-muted.html: Added.
+        * media/video-muted-after-setting-page-muted-state.html: Updated.
+
+2016-10-24  Youenn Fablet  <youenn@apple.com>
+
+        Activate WEB_RTC compilation flags for Mac bots
+        https://bugs.webkit.org/show_bug.cgi?id=163886
+
+        Reviewed by Eric Carlson.
+
+        * platform/mac-yosemite/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac-wk1/js/dom/global-constructors-attributes-expected.txt:
+        * platform/mac/js/dom/global-constructors-attributes-expected.txt:
+
+2016-10-24  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support IDBIndex name assignment.
+        <rdar://problem/28806932> and https://bugs.webkit.org/show_bug.cgi?id=163805
+
+        Reviewed by Alex Christensen.
+
+        * storage/indexeddb/modern/index-rename-1-expected.txt: Added.
+        * storage/indexeddb/modern/index-rename-1-private-expected.txt: Added.
+        * storage/indexeddb/modern/index-rename-1-private.html: Added.
+        * storage/indexeddb/modern/index-rename-1.html: Added.
+        * storage/indexeddb/modern/resources/index-rename-1.js: Added.
+
+        * storage/indexeddb/readonly-expected.txt:
+        * storage/indexeddb/readonly-private-expected.txt:
+        * storage/indexeddb/resources/readonly.js: Removed the test that verifies that index names are
+          readonly as they are no longer readonly.
+
+2016-10-24  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Unprefix -webkit-writing-mode
+        https://bugs.webkit.org/show_bug.cgi?id=163870
+
+        Reviewed by Zalan Bujtas.
+
+        * fast/css/getComputedStyle/computed-style-expected.txt:
+        * fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * platform/mac/svg/W3C-SVG-1.1/text-align-06-b-expected.txt:
+        * platform/mac/svg/text/text-align-06-b-expected.txt:
+        * svg/css/getComputedStyle-basic-expected.txt:
+
+2016-10-24  Youenn Fablet  <youenn@apple.com>
+
+        svg/as-image/svg-image-with-data-uri-use-data-uri.svg is flaky after r207754
+        https://bugs.webkit.org/show_bug.cgi?id=163887
+
+        Unreviewed.
+
+        * TestExpectations: Marking svg/as-image/svg-image-with-data-uri-use-data-uri.svg as crashing.
+
+2016-10-23  Antti Koivisto  <antti@apple.com>
+
+        Avoid unnecessary full style resolution in getComputedStyle for non-inherited properties
+        https://bugs.webkit.org/show_bug.cgi?id=163875
+
+        Reviewed by Andreas Kling.
+
+        * fast/css/getComputedStyle/getComputedStyle-style-resolution-expected.txt: Added.
+        * fast/css/getComputedStyle/getComputedStyle-style-resolution.html: Added.
+
+2016-10-24  Youenn Fablet  <youenn@apple.com>
+
+        ASSERTION FAILED: canvas()->securityOrigin()->toString() == cachedImage.origin()->toString()
+        https://bugs.webkit.org/show_bug.cgi?id=163242
+
+        Reviewed by Darin Adler.
+
+        * http/tests/security/cross-origin-cached-images-canvas-expected.txt: Added.
+        * http/tests/security/cross-origin-cached-images-canvas.html: Added.
+        * http/tests/security/resources/cross-origin-cached-image-canvas-iframe.html: Added.
+
+2016-10-24  Youenn Fablet  <youenn@apple.com>
+
+        Redirections should be upgraded if CSP policy says so
+        https://bugs.webkit.org/show_bug.cgi?id=163544
+
+        Reviewed by Darin Adler.
+
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/basic-upgrade-after-redirect.https-expected.txt: Added.
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/basic-upgrade-after-redirect.https.html: Added.
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-redirect-https-to-http-script-in-iframe-expected.txt:
+        * http/tests/security/contentSecurityPolicy/upgrade-insecure-requests/upgrade-redirect-https-to-http-script-in-iframe.html:
+        * platform/mac/TestExpectations:
+
+2016-10-22  Sam Weinig  <sam@webkit.org>
+
+        [WebIDL] Add IDLType based toJS conversion
+        https://bugs.webkit.org/show_bug.cgi?id=163861
+
+        Reviewed by Darin Adler.
+
+        * js/dom/webidl-type-mapping-expected.txt:
+        * js/dom/webidl-type-mapping.html:
+
+2016-10-23  Zalan Bujtas  <zalan@apple.com>
+
+        Unreviewed, rolling out r207727.
+
+        broke 15 selection test cases.
+
+        Reverted changeset:
+
+        "Do not update selection rect on dirty lineboxes."
+        https://bugs.webkit.org/show_bug.cgi?id=163862
+        http://trac.webkit.org/changeset/207727
+
 2016-10-23  Zalan Bujtas  <zalan@apple.com>
 
         Do not update selection rect on dirty lineboxes.

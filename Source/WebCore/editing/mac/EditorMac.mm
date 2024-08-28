@@ -311,6 +311,11 @@ RefPtr<SharedBuffer> Editor::selectionInWebArchiveFormat()
     return SharedBuffer::wrapCFData(archive->rawDataRepresentation().get());
 }
 
+String Editor::selectionInHTMLFormat()
+{
+    return createMarkup(*selectedRange(), nullptr, AnnotateForInterchange, false, ResolveNonLocalURLs);
+}
+
 RefPtr<SharedBuffer> Editor::imageInWebArchiveFormat(Element& imageElement)
 {
     RefPtr<LegacyWebArchive> archive = LegacyWebArchive::create(imageElement);
@@ -394,6 +399,7 @@ void Editor::writeSelectionToPasteboard(Pasteboard& pasteboard)
     content.dataInWebArchiveFormat = selectionInWebArchiveFormat();
     content.dataInRTFDFormat = [attributedString containsAttachments] ? dataInRTFDFormat(attributedString) : 0;
     content.dataInRTFFormat = dataInRTFFormat(attributedString);
+    content.dataInHTMLFormat = selectionInHTMLFormat();
     content.dataInStringFormat = stringSelectionForPasteboardWithImageAltText();
     client()->getClientPasteboardDataForRange(selectedRange().get(), content.clientTypes, content.clientData);
 

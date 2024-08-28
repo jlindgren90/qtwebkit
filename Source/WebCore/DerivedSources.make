@@ -158,6 +158,7 @@ JS_BINDING_IDLS = \
     $(WebCore)/Modules/mediastream/RTCPeerConnection.idl \
     $(WebCore)/Modules/mediastream/RTCRtpReceiver.idl \
     $(WebCore)/Modules/mediastream/RTCRtpSender.idl \
+    $(WebCore)/Modules/mediastream/RTCRtpTransceiver.idl \
     $(WebCore)/Modules/mediastream/RTCSessionDescription.idl \
     $(WebCore)/Modules/mediastream/RTCStatsReport.idl \
     $(WebCore)/Modules/mediastream/RTCStatsResponse.idl \
@@ -240,7 +241,6 @@ JS_BINDING_IDLS = \
     $(WebCore)/crypto/CryptoKeyPair.idl \
     $(WebCore)/crypto/SubtleCrypto.idl \
     $(WebCore)/crypto/WebKitSubtleCrypto.idl \
-    $(WebCore)/css/CSSCharsetRule.idl \
     $(WebCore)/css/CSSFontFaceLoadEvent.idl \
     $(WebCore)/css/CSSFontFaceRule.idl \
     $(WebCore)/css/CSSImportRule.idl \
