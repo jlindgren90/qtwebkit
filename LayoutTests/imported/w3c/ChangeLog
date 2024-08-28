@@ -1,3 +1,47 @@
+2016-10-20  Zan Dobersek  <zdobersek@igalia.com>
+
+        Import W3C EME tests
+        https://bugs.webkit.org/show_bug.cgi?id=163214
+
+        Reviewed by Youenn Fablet.
+
+        Import the W3C EME tests from the web-platform-tests repository on GitHub.
+        The import was done via the import-w3c-tests script.
+
+        All the tests are still missing baselines, and they're skipped on all platforms.
+        The baselines will be added incrementally as the implementation grows. The idlharness.html
+        test will be unskipped first when the navigator.requestMediaKeySystemAccess() is added.
+
+        * resources/ImportExpectations: Skip Google EME tests.
+        * web-platform-tests/encrypted-media/: Added. The file list is omitted for clarity.
+
+2016-10-20  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support IDBObjectStore name assignment.
+        <rdar://problem/28806931> and https://bugs.webkit.org/show_bug.cgi?id=163749
+
+        Reviewed by Alex Christensen.
+
+        * web-platform-tests/IndexedDB/idbobjectstore-rename-errors-expected.txt:
+        * web-platform-tests/IndexedDB/idbobjectstore-rename-store-expected.txt:
+
+2016-10-20  Chris Dumez  <cdumez@apple.com>
+
+        Make table.deleteRow(-1) a no-op when there are no rows
+        https://bugs.webkit.org/show_bug.cgi?id=163746
+
+        Reviewed by Alex Christensen.
+
+        Import test coverage from:
+        - https://github.com/w3c/web-platform-tests/pull/4001
+
+        * web-platform-tests/html/semantics/tabular-data/the-table-element/remove-row-expected.txt:
+        * web-platform-tests/html/semantics/tabular-data/the-table-element/remove-row.html:
+        * web-platform-tests/html/semantics/tabular-data/the-tbody-element/deleteRow-expected.txt:
+        * web-platform-tests/html/semantics/tabular-data/the-tbody-element/deleteRow.html:
+        * web-platform-tests/html/semantics/tabular-data/the-tr-element/deleteCell-expected.txt:
+        * web-platform-tests/html/semantics/tabular-data/the-tr-element/deleteCell.html:
+
 2016-10-19  Dean Jackson  <dino@apple.com>
 
         Import W3C CSS Shapes tests

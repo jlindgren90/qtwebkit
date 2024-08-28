@@ -451,6 +451,7 @@ set(JavaScriptCore_SOURCES
 
     heap/AllocatorAttributes.cpp
     heap/CodeBlockSet.cpp
+    heap/CollectionScope.cpp
     heap/ConservativeRoots.cpp
     heap/DeferGC.cpp
     heap/DestructionMode.cpp
@@ -464,7 +465,6 @@ set(JavaScriptCore_SOURCES
     heap/Heap.cpp
     heap/HeapCell.cpp
     heap/HeapHelperPool.cpp
-    heap/HeapOperation.cpp
     heap/HeapProfiler.cpp
     heap/HeapSnapshot.cpp
     heap/HeapSnapshotBuilder.cpp
@@ -480,6 +480,7 @@ set(JavaScriptCore_SOURCES
     heap/MarkedAllocator.cpp
     heap/MarkedBlock.cpp
     heap/MarkedSpace.cpp
+    heap/MutatorState.cpp
     heap/SlotVisitor.cpp
     heap/Weak.cpp
     heap/WeakBlock.cpp
@@ -861,12 +862,12 @@ set(JavaScriptCore_SOURCES
     tools/JSDollarVMPrototype.cpp
 
     wasm/JSWASMModule.cpp
+    wasm/JSWebAssembly.cpp
     wasm/WASMB3IRGenerator.cpp
     wasm/WASMCallingConvention.cpp
     wasm/WASMMemory.cpp
     wasm/WASMModuleParser.cpp
     wasm/WASMPlan.cpp
-    wasm/WebAssemblyObject.cpp
 
     wasm/js/JSWebAssemblyCompileError.cpp
     wasm/js/JSWebAssemblyInstance.cpp
@@ -882,6 +883,7 @@ set(JavaScriptCore_SOURCES
     wasm/js/WebAssemblyMemoryPrototype.cpp
     wasm/js/WebAssemblyModuleConstructor.cpp
     wasm/js/WebAssemblyModulePrototype.cpp
+    wasm/js/WebAssemblyPrototype.cpp
     wasm/js/WebAssemblyRuntimeErrorConstructor.cpp
     wasm/js/WebAssemblyRuntimeErrorPrototype.cpp
     wasm/js/WebAssemblyTableConstructor.cpp
@@ -946,6 +948,7 @@ set(JavaScriptCore_OBJECT_LUT_SOURCES
     wasm/js/WebAssemblyMemoryPrototype.cpp
     wasm/js/WebAssemblyModuleConstructor.cpp
     wasm/js/WebAssemblyModulePrototype.cpp
+    wasm/js/WebAssemblyPrototype.cpp
     wasm/js/WebAssemblyRuntimeErrorConstructor.cpp
     wasm/js/WebAssemblyRuntimeErrorPrototype.cpp
     wasm/js/WebAssemblyTableConstructor.cpp
