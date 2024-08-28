@@ -29,7 +29,6 @@
 #include "ScrollTypes.h"
 #include "Timer.h"
 #include "Widget.h"
-#include <wtf/PassRefPtr.h>
 #include <wtf/WeakPtr.h>
 
 namespace WebCore {
@@ -47,7 +46,7 @@ class PlatformGestureEvent;
 class Scrollbar : public Widget {
 public:
     // Must be implemented by platforms that can't simply use the Scrollbar base class.  Right now the only platform that is not using the base class is GTK.
-    WEBCORE_EXPORT static PassRefPtr<Scrollbar> createNativeScrollbar(ScrollableArea&, ScrollbarOrientation, ScrollbarControlSize);
+    WEBCORE_EXPORT static Ref<Scrollbar> createNativeScrollbar(ScrollableArea&, ScrollbarOrientation, ScrollbarControlSize);
 
     virtual ~Scrollbar();
 

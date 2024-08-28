@@ -1,3 +1,428 @@
+2016-10-25  Youenn Fablet  <youenn@apple.com>
+
+        MediaEndpointConfiguration does not need to be refcounted
+        https://bugs.webkit.org/show_bug.cgi?id=163888
+
+        Reviewed by Eric Carlson.
+
+        No change of behavior.
+
+        Updating MediaEndpoint to take a MediaEndpointConfiguration&& instead of a RefPtr<MediaEndpointConfiguration>&&.
+        This allows ensuring that the configuration is not null and removes the need to ref-count it.
+
+        Removing ref-counting from MediaEndpointConfiguration and its related IceServer that is now a struct.
+        Updated MediaEndpointOwr and mock implementations accordingly.
+
+        * Modules/mediastream/MediaEndpointPeerConnection.cpp:
+        (WebCore::MediaEndpointPeerConnection::setConfiguration):
+        * platform/mediastream/MediaEndpoint.cpp:
+        * platform/mediastream/MediaEndpoint.h:
+        * platform/mediastream/MediaEndpointConfiguration.cpp:
+        (WebCore::MediaEndpointConfiguration::MediaEndpointConfiguration):
+        * platform/mediastream/MediaEndpointConfiguration.h:
+        (WebCore::MediaEndpointConfiguration::iceServers):
+        * platform/mediastream/openwebrtc/MediaEndpointOwr.cpp:
+        (WebCore::MediaEndpointOwr::setConfiguration):
+        (WebCore::MediaEndpointOwr::ensureTransportAgentAndTransceivers):
+        * platform/mediastream/openwebrtc/MediaEndpointOwr.h:
+        * platform/mock/MockMediaEndpoint.cpp:
+        * platform/mock/MockMediaEndpoint.h:
+
+2016-10-25  Youenn Fablet  <youenn@apple.com>
+
+        CachedResourceLoader should set headers of the HTTP request prior checking for the cache
+        https://bugs.webkit.org/show_bug.cgi?id=163103
+
+        Reviewed by Darin Adler.
+
+        No expected change of behavior.
+
+        Moved referrer, user-agent, and origin headers setting to CachedResourceRequest/CachedResourceLoader before checking the cache.
+        This allows simplifying vary header checks and is more inline with the fetch specification.
+
+        To compute the referrer value, we need to know whether the request is cross-origin.
+        A helper function isRequestCrossOrigin is added for that purpose and is also used in CachedResource to set its initial response tainting.
+
+        We should disable setting user-agent and origin headers by FrameLoader for subresources since this is now done in CachedResourceLoader.
+        This could be done as a follow-up patch.
+
+        * loader/cache/CachedResource.cpp:
+        (WebCore::CachedResource::CachedResource):
+        (WebCore::CachedResource::load):
+        (WebCore::CachedResource::varyHeaderValuesMatch):
+        (WebCore::addAdditionalRequestHeadersToRequest): Deleted.
+        (WebCore::CachedResource::addAdditionalRequestHeaders): Deleted.
+        * loader/cache/CachedResource.h:
+        * loader/cache/CachedResourceLoader.cpp:
+        (WebCore::CachedResourceLoader::updateHTTPRequestHeaders):
+        (WebCore::CachedResourceLoader::requestResource):
+        (WebCore::CachedResourceLoader::determineRevalidationPolicy):
+        * loader/cache/CachedResourceLoader.h:
+        * loader/cache/CachedResourceRequest.cpp:
+        (WebCore::CachedResourceRequest::updateForAccessControl):
+        (WebCore::CachedResourceRequest::updateReferrerOriginAndUserAgentHeaders):
+        (WebCore::isRequestCrossOrigin):
+        * loader/cache/CachedResourceRequest.h:
+        (WebCore::CachedResourceRequest::setOrigin):
+
+2016-10-25  Andreas Kling  <akling@apple.com>
+
+        More PassRefPtr purging in WebCore.
+        <https://webkit.org/b/163895>
+
+        Reviewed by Antti Koivisto.
+
+        Remove PassRefPtr usage in RenderStyle, RenderTheme and Scrollbar, then fix up all the fallout.
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::contentToCSSValue):
+        (WebCore::shapePropertyValue):
+        (WebCore::ComputedStyleExtractor::propertyValue):
+        * css/StyleBuilderConverter.h:
+        (WebCore::StyleBuilderConverter::convertQuotes):
+        * html/HTMLSelectElement.cpp:
+        (WebCore::HTMLSelectElement::usesMenuList):
+        (WebCore::HTMLSelectElement::platformHandleKeydownEvent):
+        (WebCore::HTMLSelectElement::menuListDefaultEventHandler):
+        * html/InputType.cpp:
+        (WebCore::InputType::themeSupportsDataListUI):
+        * html/TextFieldInputType.cpp:
+        (WebCore::TextFieldInputType::shouldHaveSpinButton):
+        (WebCore::TextFieldInputType::shouldHaveCapsLockIndicator):
+        * loader/SubframeLoader.cpp:
+        (WebCore::SubframeLoader::loadPlugin):
+        * page/FrameView.cpp:
+        (WebCore::FrameView::createScrollbar):
+        * page/FrameView.h:
+        * page/animation/CSSPropertyAnimation.cpp:
+        (WebCore::RefCountedPropertyWrapper::RefCountedPropertyWrapper):
+        (WebCore::PropertyWrapperClipPath::PropertyWrapperClipPath):
+        (WebCore::PropertyWrapperShape::PropertyWrapperShape):
+        (WebCore::StyleImagePropertyWrapper::StyleImagePropertyWrapper):
+        (WebCore::FillLayerRefCountedPropertyWrapper::FillLayerRefCountedPropertyWrapper):
+        (WebCore::FillLayerStyleImagePropertyWrapper::FillLayerStyleImagePropertyWrapper):
+        * platform/PopupMenuClient.h:
+        * platform/ScrollView.cpp:
+        (WebCore::ScrollView::createScrollbar):
+        * platform/ScrollView.h:
+        * platform/Scrollbar.cpp:
+        (WebCore::Scrollbar::createNativeScrollbar):
+        * platform/Scrollbar.h:
+        * rendering/FilterEffectRenderer.cpp:
+        (WebCore::FilterEffectRenderer::buildReferenceFilter):
+        * rendering/FilterEffectRenderer.h:
+        * rendering/RenderLayer.cpp:
+        (WebCore::RenderLayer::createScrollbar):
+        (WebCore::RenderLayer::createLocalTransformState):
+        (WebCore::RenderLayer::hitTestLayerByApplyingTransform):
+        * rendering/RenderLayer.h:
+        * rendering/RenderListBox.cpp:
+        (WebCore::RenderListBox::createScrollbar):
+        * rendering/RenderListBox.h:
+        * rendering/RenderMenuList.cpp:
+        (RenderMenuList::createScrollbar):
+        * rendering/RenderMenuList.h:
+        * rendering/RenderScrollbar.cpp:
+        (WebCore::RenderScrollbar::createCustomScrollbar):
+        * rendering/RenderScrollbar.h:
+        * rendering/RenderSearchField.cpp:
+        (WebCore::RenderSearchField::createScrollbar):
+        * rendering/RenderSearchField.h:
+        * rendering/RenderTheme.h:
+        (WebCore::RenderTheme::defaultTheme):
+        * rendering/RenderThemeEfl.cpp:
+        (WebCore::RenderThemeEfl::create):
+        (WebCore::RenderTheme::themeForPage):
+        * rendering/RenderThemeEfl.h:
+        * rendering/RenderThemeGtk.cpp:
+        (WebCore::RenderTheme::themeForPage):
+        * rendering/RenderThemeIOS.mm:
+        (WebCore::RenderTheme::themeForPage):
+        * rendering/RenderThemeMac.mm:
+        (WebCore::RenderTheme::themeForPage):
+        * rendering/RenderThemeWin.cpp:
+        (WebCore::RenderTheme::themeForPage):
+        * rendering/RenderWidget.cpp:
+        (WebCore::RenderWidget::setWidget):
+        * rendering/RenderWidget.h:
+        * rendering/style/CursorData.h:
+        (WebCore::CursorData::CursorData):
+        (WebCore::CursorData::setImage):
+        * rendering/style/FillLayer.h:
+        (WebCore::FillLayer::setImage):
+        * rendering/style/QuotesData.cpp:
+        (WebCore::QuotesData::create):
+        * rendering/style/QuotesData.h:
+        * rendering/style/RenderStyle.cpp:
+        (WebCore::RenderStyle::addCursor):
+        (WebCore::RenderStyle::setCursorList):
+        (WebCore::RenderStyle::setQuotes):
+        (WebCore::RenderStyle::setWillChange):
+        (WebCore::RenderStyle::setContent):
+        (WebCore::RenderStyle::setListStyleImage):
+        (WebCore::RenderStyle::setBorderImageSource):
+        * rendering/style/RenderStyle.h:
+        (WebCore::RenderStyle::setMaskImage):
+        (WebCore::RenderStyle::setMaskBoxImageSource):
+        (WebCore::RenderStyle::setBoxReflect):
+        (WebCore::RenderStyle::setShapeOutside):
+        (WebCore::RenderStyle::setClipPath):
+        * rendering/style/StyleCachedImage.cpp:
+        (WebCore::StyleCachedImage::cssValue):
+        * rendering/style/StyleCachedImage.h:
+        * rendering/style/StyleGeneratedImage.cpp:
+        (WebCore::StyleGeneratedImage::cssValue):
+        * rendering/style/StyleGeneratedImage.h:
+        * rendering/style/StyleImage.h:
+        * rendering/style/StyleMultiColData.h:
+        * rendering/style/StyleRareInheritedData.h:
+
+2016-10-24  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Custom elements reactions should have a queue per element
+        https://bugs.webkit.org/show_bug.cgi?id=163878
+
+        Reviewed by Antti Koivisto.
+
+        This patch splits the custom elements reaction queue into per element to match the latest HTML specifications:
+        https://html.spec.whatwg.org/multipage/scripting.html#custom-element-reaction-queue
+        and introduces the backup element queue:
+        https://html.spec.whatwg.org/multipage/scripting.html#backup-element-queue
+
+        In terms of code changes, CustomElementReactionStack now holds onto ElementQueue, an ordered list of elements,
+        and make each ElementRareData keep its own CustomElementReactionQueue. CustomElementReactionQueue is created
+        for each custom element when it is synchronously constructed or enqueued to upgrade.
+
+        Because each reaction queue is now specific to each element, CustomElementReactionQueue instead of
+        CustomElementReactionQueueItem stores JSCustomElementInterface.
+
+        The backup element queue is created as a singleton returned by CustomElementReactionStack's backupElementQueue,
+        and ensureBackupQueue() schedules a new mirotask to process the backup queue when there isn't already one.
+
+        ensureCurrentQueue() now returns a reference to CustomElementReactionQueue instead of a pointer since it can
+        fallback to the backup queue when the stack is empty as specified:
+        https://html.spec.whatwg.org/multipage/scripting.html#enqueue-an-element-on-the-appropriate-element-queue
+
+        Note that ensureCurrentQueue() may insert the same element multiple times into the element queue for now since
+        avoiding this duplication would require either doing O(n) iteration on m_elements or adding a HashSet.
+        We can revisit this in the future if the reaction queue is found to grow beyond a few entries since elements in
+        the element queue will have duplicates only when each reaction queue has more than one item.
+
+        Tests: fast/custom-elements/backup-element-queue.html
+               fast/custom-elements/custom-element-reaction-queue.html
+
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::upgradeElement):
+        * dom/CustomElementReactionQueue.cpp:
+        (WebCore::CustomElementReactionQueueItem::CustomElementReactionQueueItem):
+        (WebCore::CustomElementReactionQueueItem::invoke): Removed the check for isFailedCustomElement since the queue
+        is explicitly cleared in Element::setIsFailedCustomElement.
+        (WebCore::CustomElementReactionQueue::CustomElementReactionQueue): Now takes JSCustomElementInterface since
+        each item in the queue no longer stores Element or JSCustomElementInterface.
+        (WebCore::CustomElementReactionQueue::clear):
+        (WebCore::CustomElementReactionQueue::enqueueElementUpgrade):
+        (WebCore::CustomElementReactionQueue::enqueueElementUpgradeIfDefined):
+        (WebCore::CustomElementReactionQueue::enqueueConnectedCallbackIfNeeded):
+        (WebCore::CustomElementReactionQueue::enqueueDisconnectedCallbackIfNeeded):
+        (WebCore::CustomElementReactionQueue::enqueueAdoptedCallbackIfNeeded):
+        (WebCore::CustomElementReactionQueue::enqueueAttributeChangedCallbackIfNeeded):
+        (WebCore::CustomElementReactionQueue::enqueuePostUpgradeReactions):
+        (WebCore::CustomElementReactionQueue::invokeAll):
+        (WebCore::CustomElementReactionStack::ElementQueue::add): Added.
+        (WebCore::CustomElementReactionStack::ElementQueue::invokeAll): Added.
+        (WebCore::CustomElementReactionStack::ensureCurrentQueue):
+        (WebCore::BackupElementQueueMicrotask): Added.
+        (WebCore::CustomElementReactionStack::ensureBackupQueue): Added.
+        (WebCore::CustomElementReactionStack::processBackupQueue): Added.
+        (WebCore::CustomElementReactionStack::backupElementQueue): Added.
+        * dom/CustomElementReactionQueue.h:
+        * dom/CustomElementRegistry.cpp:
+        (WebCore::enqueueUpgradeInShadowIncludingTreeOrder):
+        * dom/Document.cpp:
+        (WebCore::createFallbackHTMLElement):
+        * dom/Element.cpp:
+        (WebCore::Element::setIsDefinedCustomElement): Create a new reaction queue if there isn't already one; when
+        this element had been upgraded, the reaction queue have already been created in Element::enqueueToUpgrade.
+        (WebCore::Element::setIsFailedCustomElement): Clear the reaction queue when the upgrading had failed.
+        (WebCore::Element::enqueueToUpgrade): Added.
+        (WebCore::Element::reactionQueue): Added.
+        * dom/Element.h:
+        * dom/ElementRareData.h:
+        (WebCore::ElementRareData::customElementReactionQueue): Replaced customElementInterface.
+        (WebCore::ElementRareData::setCustomElementReactionQueue): Replaced setCustomElementReactionQueue.
+
+2016-10-24  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Update SubtleCrypto::generateKey to match the latest spec
+        https://bugs.webkit.org/show_bug.cgi?id=163718
+        <rdar://problem/28864380>
+
+        Reviewed by Chris Dumez.
+
+        This patch does following few things:
+        1. It updates the SubtleCrypto::generateKey method to match the latest spec:
+           https://www.w3.org/TR/WebCryptoAPI/#SubtleCrypto-method-generateKey.
+           It also refers to the latest Editor's Draft at a certain degree:
+           https://w3c.github.io/webcrypto/Overview.html#SubtleCrypto-method-generateKey.
+        2. It implements generateKey operations of following algorithms: AES-CBC, AES-KW,
+           HMAC, RSAES-PKCS1-V1_5, RSASSA-PKCS1-V1_5, and RSA-OAEP.
+        3. It replaces SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS with
+        SPECIALIZE_TYPE_TRAITS_CRYPTO_ALGORITHM_PARAMETERS_DEPRECATED for deprecated params.
+        4. It fixes https://bugs.webkit.org/show_bug.cgi?id=129750 as well.
+
+        Tests: crypto/subtle/aes-cbc-generate-key-length-128.html
+               crypto/subtle/aes-cbc-generate-key-length-192.html
+               crypto/subtle/aes-cbc-generate-key-length-256.html
+               crypto/subtle/aes-generate-key-malformed-parameters.html
+               crypto/subtle/aes-kw-generate-key.html
+               crypto/subtle/generate-key-malformed-paramters.html
+               crypto/subtle/hmac-generate-key-customized-length.html
+               crypto/subtle/hmac-generate-key-hash-object.html
+               crypto/subtle/hmac-generate-key-malformed-parameters.html
+               crypto/subtle/hmac-generate-key-sha1.html
+               crypto/subtle/hmac-generate-key-sha224.html
+               crypto/subtle/hmac-generate-key-sha256.html
+               crypto/subtle/hmac-generate-key-sha384.html
+               crypto/subtle/hmac-generate-key-sha512.html
+               crypto/subtle/rsa-generate-key-malformed-parameters.html
+               crypto/subtle/rsa-oaep-generate-key.html
+               crypto/subtle/rsaes-pkcs1-v1_5-generate-key-extractable.html
+               crypto/subtle/rsaes-pkcs1-v1_5-generate-key.html
+               crypto/subtle/rsassa-pkcs1-v1_5-generate-key.html
+               crypto/webkitSubtle/hmac-generate-key.html:
+               crypto/workers/subtle/aes-generate-key.html
+               crypto/workers/subtle/hmac-generate-key.html
+               crypto/workers/subtle/rsa-generate-key.html
+
+        * CMakeLists.txt:
+        * DerivedSources.make:
+        * Modules/encryptedmedia/CDMSessionClearKey.cpp:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/JSSubtleCryptoCustom.cpp: Added.
+        (WebCore::toHashIdentifier):
+        (WebCore::normalizeCryptoAlgorithmParameters):
+        (WebCore::cryptoKeyUsagesFromJSValue):
+        (WebCore::createAlgorithm):
+        (WebCore::rejectWithException):
+        (WebCore::jsSubtleCryptoFunctionGenerateKeyPromise):
+        (WebCore::JSSubtleCrypto::generateKey):
+        * bindings/js/JSWebKitSubtleCryptoCustom.cpp:
+        (WebCore::JSWebKitSubtleCrypto::generateKey):
+        * crypto/CryptoAlgorithm.cpp:
+        (WebCore::CryptoAlgorithm::generateKey):
+        * crypto/CryptoAlgorithm.h:
+        * crypto/CryptoAlgorithmParameters.h: Added.
+        (WebCore::CryptoAlgorithmParameters::CryptoAlgorithmParameters):
+        (WebCore::CryptoAlgorithmParameters::~CryptoAlgorithmParameters):
+        (WebCore::CryptoAlgorithmParameters::parametersClass):
+        * crypto/CryptoAlgorithmParameters.idl: Added.
+        * crypto/CryptoAlgorithmParametersDeprecated.h:
+        * crypto/CryptoKey.cpp:
+        (WebCore::CryptoKey::setUsagesBitmap):
+        * crypto/CryptoKey.h:
+        * crypto/CryptoKeyPair.idl:
+        * crypto/SubtleCrypto.idl:
+        * crypto/algorithms/CryptoAlgorithmAES_CBC.cpp:
+        (WebCore::CryptoAlgorithmAES_CBC::generateKey):
+        * crypto/algorithms/CryptoAlgorithmAES_CBC.h:
+        * crypto/algorithms/CryptoAlgorithmAES_KW.cpp:
+        (WebCore::CryptoAlgorithmAES_KW::generateKey):
+        * crypto/algorithms/CryptoAlgorithmAES_KW.h:
+        * crypto/algorithms/CryptoAlgorithmHMAC.cpp:
+        (WebCore::CryptoAlgorithmHMAC::generateKey):
+        * crypto/algorithms/CryptoAlgorithmHMAC.h:
+        * crypto/algorithms/CryptoAlgorithmRSAES_PKCS1_v1_5.cpp:
+        (WebCore::CryptoAlgorithmRSAES_PKCS1_v1_5::generateKey):
+        * crypto/algorithms/CryptoAlgorithmRSAES_PKCS1_v1_5.h:
+        * crypto/algorithms/CryptoAlgorithmRSASSA_PKCS1_v1_5.cpp:
+        (WebCore::CryptoAlgorithmRSASSA_PKCS1_v1_5::generateKey):
+        * crypto/algorithms/CryptoAlgorithmRSASSA_PKCS1_v1_5.h:
+        * crypto/algorithms/CryptoAlgorithmRSA_OAEP.cpp:
+        (WebCore::CryptoAlgorithmRSA_OAEP::generateKey):
+        * crypto/algorithms/CryptoAlgorithmRSA_OAEP.h:
+        * crypto/gnutls/CryptoKeyRSAGnuTLS.cpp:
+        (WebCore::CryptoKeyRSA::generatePair):
+        * crypto/keys/CryptoKeyAES.cpp:
+        (WebCore::CryptoKeyAES::generate):
+        * crypto/keys/CryptoKeyHMAC.cpp:
+        (WebCore::CryptoKeyHMAC::generate):
+        * crypto/keys/CryptoKeyRSA.h:
+        * crypto/mac/CryptoKeyRSAMac.cpp:
+        (WebCore::CryptoKeyRSA::generatePair):
+        * crypto/parameters/AesKeyGenParams.idl: Added.
+        * crypto/parameters/CryptoAlgorithmAesCbcParamsDeprecated.h:
+        * crypto/parameters/CryptoAlgorithmAesKeyGenParams.h: Added.
+        * crypto/parameters/CryptoAlgorithmAesKeyGenParamsDeprecated.h:
+        * crypto/parameters/CryptoAlgorithmHmacKeyGenParams.h: Added.
+        * crypto/parameters/CryptoAlgorithmHmacKeyParamsDeprecated.h:
+        * crypto/parameters/CryptoAlgorithmHmacParamsDeprecated.h:
+        * crypto/parameters/CryptoAlgorithmRsaHashedKeyGenParams.h: Added.
+        * crypto/parameters/CryptoAlgorithmRsaKeyGenParams.h: Added.
+        (WebCore::CryptoAlgorithmRsaKeyGenParams::arrayToVector):
+        * crypto/parameters/CryptoAlgorithmRsaKeyGenParamsDeprecated.h:
+        * crypto/parameters/CryptoAlgorithmRsaKeyParamsWithHashDeprecated.h:
+        * crypto/parameters/CryptoAlgorithmRsaOaepParamsDeprecated.h:
+        * crypto/parameters/CryptoAlgorithmRsaSsaParamsDeprecated.h:
+        * crypto/parameters/HmacKeyGenParams.idl: Added.
+        * crypto/parameters/RsaHashedKeyGenParams.idl: Added.
+        * crypto/parameters/RsaKeyGenParams.idl: Added.
+
+2016-10-24  Chris Dumez  <cdumez@apple.com>
+
+        IDBDatabase.createObjectStore() should take a IDBObjectStoreParameters dictionary in parameter
+        https://bugs.webkit.org/show_bug.cgi?id=163916
+
+        Reviewed by Darin Adler.
+
+        IDBDatabase.createObjectStore() should take a IDBObjectStoreParameters dictionary in parameter:
+        - https://www.w3.org/TR/IndexedDB/#idl-def-IDBDatabase
+        - https://www.w3.org/TR/IndexedDB/#idl-def-IDBObjectStoreParameters
+
+        Align our IDL with the specification.
+
+        No new tests, no expected Web-exposed behavior change.
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::createObjectStore):
+        * Modules/indexeddb/IDBDatabase.h:
+        * Modules/indexeddb/IDBDatabase.idl:
+        * Modules/indexeddb/IDBKeyPath.cpp:
+        (WebCore::IDBKeyPath::IDBKeyPath):
+        * Modules/indexeddb/IDBKeyPath.h:
+        * WebCore.xcodeproj/project.pbxproj:
+        * bindings/js/IDBBindingUtilities.cpp:
+        (WebCore::idbKeyPathFromValue): Deleted.
+        * bindings/js/IDBBindingUtilities.h:
+        * bindings/js/JSIDBDatabaseCustom.cpp: Removed.
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateParametersCheck):
+        (GenerateConstructorDefinition):
+        * dom/MessageEvent.cpp:
+        (WebCore::MessageEvent::MessageEvent):
+        (WebCore::MessageEvent::create):
+        * dom/MessageEvent.h:
+        * testing/TypeConversions.h:
+        (WebCore::TypeConversions::setTypeConversionsDictionary):
+
+2016-10-24  Alex Christensen  <achristensen@webkit.org>
+
+        URLParser should match old URL::parse with %2E in path
+        https://bugs.webkit.org/show_bug.cgi?id=163929
+
+        Reviewed by Alexey Proskuryakov.
+
+        Covered by updated API tests, which show that URLParser now matches URL::parse in these cases.
+        Also covered by newly failing web platform tests, which were failing before URLParser was enabled.
+        If https://github.com/whatwg/url/issues/87 is resolved we can change behavior to match.
+
+        * platform/URLParser.cpp:
+        (WebCore::URLParser::isSingleDotPathSegment):
+        (WebCore::URLParser::isDoubleDotPathSegment):
+        (WebCore::URLParser::consumeSingleDotPathSegment):
+        (WebCore::URLParser::consumeDoubleDotPathSegment):
+        (WebCore::URLParser::parse):
+        (WebCore::URLParser::isPercentEncodedDot): Deleted.
+
 2016-10-24  Zalan Bujtas  <zalan@apple.com>
 
         Do not update selection rect on dirty lineboxes.
