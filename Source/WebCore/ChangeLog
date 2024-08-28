@@ -1,3 +1,105 @@
+2016-10-20  Zalan Bujtas  <zalan@apple.com>
+
+        Stop searching for first-letter containers at multi-column boundary.
+        https://bugs.webkit.org/show_bug.cgi?id=163739
+        <rdar://problem/28810750>
+
+        We should not cross the multi-column boundary while searching for the first-letter container.
+        While moving first-letter renderers to a multi-column parent, it could result in finding the wrong
+        container and end up adding a new wrapper under the original container (from where we are moving the renderers).    
+
+        Reviewed by David Hyatt.
+
+        Test: fast/css-generated-content/first-letter-move-to-multicolumn-crash.html
+
+        * rendering/RenderBoxModelObject.cpp:
+        (WebCore::RenderBoxModelObject::moveChildrenTo):
+        * rendering/RenderTextFragment.cpp:
+        (WebCore::RenderTextFragment::blockForAccompanyingFirstLetter):
+
+2016-10-19  Dean Jackson  <dino@apple.com>
+
+        Support CSS Shapes Level 1 without a prefix
+        https://bugs.webkit.org/show_bug.cgi?id=163709
+        <rdar://problem/28859369>
+
+        Reviewed by Myles Maxfield.
+
+        Support the unprefixed form of CSS Shapes, now that
+        it is in CR.
+
+        We have a few failing tests:
+
+        - Some image-based shaping failures, now skipped.
+          https://bugs.webkit.org/show_bug.cgi?id=163706
+
+        - Some false negatives, where my understanding
+          of the CSS OM seems to suggest that the W3C tests
+          are incorrect.
+          https://bugs.webkit.org/show_bug.cgi?id=163708
+
+        Tests: imported/w3c/csswg-test/css-shapes-1
+
+        * css/CSSComputedStyleDeclaration.cpp:
+        (WebCore::ComputedStyleExtractor::propertyValue):
+        * css/CSSPropertyNames.in:
+        * css/CSSValueKeywords.in:
+        * css/parser/CSSParser.cpp:
+        (WebCore::isSimpleLengthPropertyID):
+        (WebCore::CSSParser::parseValue):
+        * css/parser/CSSPropertyParser.cpp:
+        (WebCore::CSSPropertyParser::parseSingleValue):
+        * page/animation/CSSPropertyAnimation.cpp:
+        (WebCore::CSSPropertyAnimationWrapperMap::CSSPropertyAnimationWrapperMap):
+
+2016-10-20  Dave Hyatt  <hyatt@apple.com>
+
+        [CSS Parser] Fix region, column and page break parsing
+        https://bugs.webkit.org/show_bug.cgi?id=163743
+
+        Reviewed by Simon Fraser.
+
+        * css/parser/CSSParserFastPaths.cpp:
+        (WebCore::CSSParserFastPaths::isValidKeywordPropertyAndValue):
+        Add the missing values for break support.
+
+        * css/parser/CSSPropertyParser.cpp:
+        (WebCore::isLegacyBreakProperty):
+        (WebCore::CSSPropertyParser::parseValueStart):
+        Add a special case for handling legacy break properties. Blink treats them like
+        shorthands, but we can't do that without breaking the old parser, so for now
+        we add a special case.
+
+        (WebCore::mapFromPageBreakBetween):
+        (WebCore::mapFromColumnBreakBetween):
+        (WebCore::mapFromRegionBreakBetween):
+        Updated to have the AvoidXXX values (where XXX is Column/Page/Region).
+
+        (WebCore::CSSPropertyParser::parseShorthand):
+        Remove the consumeLegacyBreak from the shorthand function, since we can't treat
+        the legacy break properties as shorthands yet.
+
+2016-10-20  Sam Weinig  <sam@webkit.org>
+
+        Add convenience function that combines WTF::visit(...) with WTF::makeVisitor(...)
+        https://bugs.webkit.org/show_bug.cgi?id=163713
+
+        Reviewed by Dan Bernstein.
+
+        Switch uses of WTF::visit to use WTF::switchOn.
+
+        * dom/MessageEvent.cpp:
+        (WebCore::MessageEvent::source):
+        * dom/Node.cpp:
+        (WebCore::nodeSetPreTransformedFromNodeOrStringVector):
+        (WebCore::Node::convertNodesOrStringsIntoNode):
+        * html/HTMLSelectElement.cpp:
+        (WebCore::HTMLSelectElement::add):
+        * html/track/TrackEvent.cpp:
+        (WebCore::TrackEvent::TrackEvent):
+        * testing/TypeConversions.h:
+        (WebCore::TypeConversions::typeConversionsDictionaryUnionType):
+
 2016-10-20  Dave Hyatt  <hyatt@apple.com>
 
         [CSS Parser] Fix font family parsing and add CSS region property parsing

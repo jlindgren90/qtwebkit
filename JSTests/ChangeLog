@@ -1,5 +1,26 @@
 2016-10-20  Caitlin Potter  <caitp@igalia.com>
 
+        [JSC] disallow references to `await` in AsyncFunction formal parameters
+        https://bugs.webkit.org/show_bug.cgi?id=163694
+
+        Reviewed by Saam Barati.
+
+        * stress/async-await-syntax.js:
+
+2016-10-20  Keith Miller  <keith_miller@apple.com>
+
+        Invalid assertion in arguments elimination
+        https://bugs.webkit.org/show_bug.cgi?id=163740
+        <rdar://problem/27911462>
+
+        Reviewed by Michael Saboff.
+
+        * stress/direct-arguments-osr-entry.js: Added.
+        (foo.):
+        (foo):
+
+2016-10-20  Caitlin Potter  <caitp@igalia.com>
+
         [JSC] throw TypeError when constructing dynamically created JSGeneratorFunction
         https://bugs.webkit.org/show_bug.cgi?id=163714
 
