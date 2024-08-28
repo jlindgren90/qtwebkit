@@ -425,7 +425,7 @@ enum UserInterfaceLayoutDirection {
     [MayThrowException] DOMString pageOverlayLayerTreeAsText();
 
     void setPageMuted(DOMString mutedState);
-    boolean isPagePlayingAudio();
+    DOMString pageMediaState();
 
     void setPageDefersLoading(boolean defersLoading);
 

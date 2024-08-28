@@ -1,3 +1,513 @@
+2016-10-25  Daniel Bates  <dabates@apple.com>
+
+        REGRESSION (r178265): XSS Auditor fails to block document.write() of incomplete tag
+        https://bugs.webkit.org/show_bug.cgi?id=163978
+        <rdar://problem/25962131>
+
+        Reviewed by Darin Adler.
+
+        During the tokenization process of an HTML tag the start and end positions of each of its
+        attributes is tracked so that the XSS Auditor can request a snippet around a suspected
+        injected attribute. We need to take care to consider document.write() boundaries when
+        tracking the start and end positions of each HTML tag and attribute so that the XSS Auditor
+        receives the correct snippet. Following r178265 we no longer consider document.write()
+        boundaries when tracking the start and end positions of attributes. So, the substring
+        represented by the start and end positions of an attribute may correspond to some other
+        attribute in the tag. Therefore the XSS Auditor may fail to block an injection because the
+        snippet it requested may not be the snippet that it intended to request.
+
+        Tests: http/tests/security/xssAuditor/dom-write-location-dom-write-open-img-onerror.html
+               http/tests/security/xssAuditor/dom-write-location-open-img-onerror.html
+               http/tests/security/xssAuditor/nested-dom-write-location-open-img-onerror.html
+
+        * html/parser/HTMLSourceTracker.cpp:
+        (WebCore::HTMLSourceTracker::startToken): Set the attribute base offset to be the token
+        start position.
+        (WebCore::HTMLSourceTracker::source): Use the specified attribute start position as-is. We no
+        longer adjust it here because it was adjusted with respect to the attribute base offset, which
+        takes into account document.write() boundaries.
+        * html/parser/HTMLToken.h:
+        (WebCore::HTMLToken::setAttributeBaseOffset): Added.
+        (WebCore::HTMLToken::beginAttribute): Subtract attribute base offset from the specified offset.
+        (WebCore::HTMLToken::endAttribute): Ditto.
+        * html/parser/HTMLTokenizer.h:
+        (WebCore::HTMLTokenizer::setTokenAttributeBaseOffset): Added.
+
+2016-10-25  Chris Dumez  <cdumez@apple.com>
+
+        IDBDatabase.transaction() should take a union in parameter
+        https://bugs.webkit.org/show_bug.cgi?id=163966
+
+        Reviewed by Sam Weinig.
+
+        IDBDatabase.transaction() should take a union in parameter:
+        - https://www.w3.org/TR/IndexedDB/#widl-IDBDatabase-transaction-IDBTransaction-DOMString-sequence-DOMString--storeNames-IDBTransactionMode-mode
+
+        No new tests, no expected Web-exposed behavior change.
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::transaction):
+        * Modules/indexeddb/IDBDatabase.h:
+        * Modules/indexeddb/IDBDatabase.idl:
+
+2016-10-25  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support IDBObjectStore openKeyCursor.
+        <rdar://problem/28806930> and https://bugs.webkit.org/show_bug.cgi?id=163954
+
+        Reviewed by Andy Estes.
+
+        No new tests (Covered by changes to existing tests)
+
+        * Modules/indexeddb/IDBCursor.cpp:
+        (WebCore::IDBCursor::create):
+        * Modules/indexeddb/IDBCursor.h:
+
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::openCursor):
+        (WebCore::IDBObjectStore::openKeyCursor):
+        * Modules/indexeddb/IDBObjectStore.h:
+        * Modules/indexeddb/IDBObjectStore.idl:
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::requestOpenCursor):
+
+        * Modules/indexeddb/server/MemoryObjectStoreCursor.cpp:
+        (WebCore::IDBServer::MemoryObjectStoreCursor::currentData): Only grab the current value
+          if the cursor is KeyAndValue.
+
+        * Modules/indexeddb/server/SQLiteIDBCursor.cpp:
+        (WebCore::IDBServer::SQLiteIDBCursor::SQLiteIDBCursor):
+        (WebCore::IDBServer::SQLiteIDBCursor::internalAdvanceOnce): Only save off the data for an
+          object store cursor if it's both KeyAndValue.
+        * Modules/indexeddb/server/SQLiteIDBCursor.h:
+
+        * Modules/indexeddb/shared/IDBCursorInfo.cpp:
+        (WebCore::IDBCursorInfo::objectStoreCursor): Allow for a KeyOnly ObjectStoreCursor.
+        * Modules/indexeddb/shared/IDBCursorInfo.h:
+
+2016-10-25  Wenson Hsieh  <wenson_hsieh@apple.com>
+
+        Support InputEvent.dataTransfer for the InputEvent spec
+        https://bugs.webkit.org/show_bug.cgi?id=163213
+        <rdar://problem/28700407>
+
+        Reviewed by Ryosuke Niwa.
+
+        Adds support for the dataTransfer attribute of InputEvent, which contains both HTML and plain text
+        representations of inserted content corresponding to input types "insertFromPaste", "insertFromDrop" and
+        "insertReplacementText". The specification calls for the data transfer's drag data item list to contain this
+        information via two entries with type strings "text/html" and "text/plain". However, WebKit does not yet support
+        the DataTransfer.items -- in lieu of this, we will provide this information for now via getData("text/plain")
+        and getData("text/html"), respectively.
+
+        To support this attribute, we need a special type of DataTransfer which is readonly and returns canned data
+        given a type string. To implement this, we introduce StaticPasteboard, a type of Pasteboard which is initialized
+        with a map of type string to data. When asked for its data via getData, the StaticPasteboard searches its map
+        for the requested type and returns the result, if any.
+
+        An editing command may now create a new DataTransfer via DataTransfer::createForInputEvent from HTML and
+        plaintext strings, and then vend this information to its dispatched input events by overriding
+        CompositeEditCommand::inputEventDataTransfer.
+
+        Some further work will be needed to ensure that all information exposed via this DataTransfer does not contain
+        hidden content. To do this, we should create a new Document, "paste" the contents of our copied HTML string into
+        it, then simulate selecting the content and generating markup from the selection to create a sanitized
+        DocumentFragment corresponding to the original copied HTML. This will be addressed in a future patch.
+
+        Tests: fast/events/input-events-paste-rich-datatransfer.html
+               fast/events/input-events-spell-checking-datatransfer.html
+
+        * PlatformEfl.cmake:
+        * PlatformGTK.cmake:
+        * PlatformWin.cmake:
+
+        Add StaticPasteboard.cpp.
+
+        * WebCore.xcodeproj/project.pbxproj:
+        * dom/DataTransfer.cpp:
+        (WebCore::DataTransfer::DataTransfer):
+        (WebCore::DataTransfer::createForInputEvent):
+
+        Initializes a new DataTransfer for the purposes of input events. This takes a HTML and plain text
+        representations of the data being inserted and creates a new readonly DataTransfer backed by a StaticPasteboard
+        that only knows how to map the "text/plain" data type to the given plaintext string and "text/html" to the
+        given HTML text.
+
+        * dom/DataTransfer.h:
+        * dom/InputEvent.cpp:
+        (WebCore::InputEvent::create):
+        (WebCore::InputEvent::InputEvent):
+        (WebCore::InputEvent::dataTransfer):
+        * dom/InputEvent.h:
+        * dom/InputEvent.idl:
+
+        Add the InputEvent.dataTransfer attribute.
+
+        * dom/Node.cpp:
+        * editing/CompositeEditCommand.cpp:
+        (WebCore::CompositeEditCommand::inputEventDataTransfer):
+
+        Add a new hook for CompositeEditCommands to vend a DataTransfer for the purposes of input events. By default,
+        this is null.
+
+        * editing/CompositeEditCommand.h:
+        * editing/Editor.cpp:
+        (WebCore::dispatchBeforeInputEvent):
+        (WebCore::dispatchInputEvent):
+        (WebCore::dispatchBeforeInputEvents):
+        (WebCore::dispatchInputEvents):
+        (WebCore::Editor::willApplyEditing):
+        (WebCore::Editor::appliedEditing):
+        * editing/ReplaceRangeWithTextCommand.cpp:
+        (WebCore::ReplaceRangeWithTextCommand::willApplyCommand):
+        (WebCore::ReplaceRangeWithTextCommand::doApply):
+        (WebCore::ReplaceRangeWithTextCommand::inputEventDataTransfer):
+        * editing/ReplaceRangeWithTextCommand.h:
+        * editing/ReplaceSelectionCommand.cpp:
+        (WebCore::ReplaceSelectionCommand::willApplyCommand):
+
+        Initialize the ReplacementFragment here before applying the command, adjusting the DocumentFragment to be
+        inserted in the process.
+
+        (WebCore::ReplaceSelectionCommand::doApply):
+        (WebCore::ReplaceSelectionCommand::inputEventDataTransfer):
+        (WebCore::ReplaceSelectionCommand::ensureReplacementFragment):
+
+        Returns the ReplacementFragment used to apply the command, initializing it if necessary and stripping extraneous
+        nodes off of the document fragment in the process. Since ReplaceSelectionCommand may be used as a top-level
+        editing command or a child of another CompositeEditCommand such as the ReplaceRangeWithTextCommand, the
+        ReplacementFragment may be initialized either in willApplyCommand or in doApply.
+
+        * editing/ReplaceSelectionCommand.h:
+        * editing/SpellingCorrectionCommand.cpp:
+        (WebCore::SpellingCorrectionCommand::willApplyCommand):
+        (WebCore::SpellingCorrectionCommand::doApply):
+        (WebCore::SpellingCorrectionCommand::inputEventDataTransfer):
+        * editing/SpellingCorrectionCommand.h:
+
+        Using the replacement text fragment, create and return a DataTransfer for input events.
+
+        * platform/Pasteboard.h:
+        * platform/StaticPasteboard.cpp: Added.
+        (WebCore::StaticPasteboard::create):
+        (WebCore::StaticPasteboard::StaticPasteboard):
+        (WebCore::StaticPasteboard::hasData):
+        (WebCore::StaticPasteboard::types):
+        (WebCore::StaticPasteboard::readString):
+        * platform/StaticPasteboard.h: Copied from Source/WebCore/dom/InputEvent.cpp.
+        * platform/efl/PasteboardEfl.cpp:
+        (WebCore::Pasteboard::writeMarkup):
+        (WebCore::Pasteboard::write):
+        (WebCore::Pasteboard::read):
+        * platform/gtk/PasteboardGtk.cpp:
+        (WebCore::Pasteboard::writeMarkup):
+        * platform/ios/PasteboardIOS.mm:
+        (WebCore::Pasteboard::writeMarkup):
+        * platform/mac/PasteboardMac.mm:
+        (WebCore::Pasteboard::Pasteboard):
+        (WebCore::Pasteboard::writeMarkup):
+        * platform/win/PasteboardWin.cpp:
+        (WebCore::Pasteboard::write):
+        (WebCore::Pasteboard::read):
+
+        To account for virtual methods on Pasteboard, add implementations for methods that were previously defined but
+        unimplemented on these platforms.
+
+2016-10-25  Andy Estes  <aestes@apple.com>
+
+        Implement rel=noopener
+        https://bugs.webkit.org/show_bug.cgi?id=155166
+        <rdar://problem/25193787>
+
+        Reviewed by Brent Fulgham.
+
+        Added support for rel=noopener to a and area elements.
+
+        Tests: fast/dom/Window/a-rel-noopener.html
+               fast/dom/Window/area-rel-noopener.html
+
+        * html/HTMLAnchorElement.cpp:
+        (WebCore::HTMLAnchorElement::HTMLAnchorElement): Stopped initializing m_linkRelations to 0.
+        (WebCore::HTMLAnchorElement::parseAttribute): Declared static AtomicStrings for "noreferrer"
+        and "noopener", and created a SpaceSplitString from the rel attribute value to test for these
+        two values.
+        (WebCore::HTMLAnchorElement::hasRel): Updated to use OptionSet::contains().
+        (WebCore::HTMLAnchorElement::relList): Added a check for "noopener".
+        (WebCore::HTMLAnchorElement::handleClick): Passed NewFrameOpenerPolicy::Suppress to
+        FrameLoader::urlSelected() if rel=noopener was specified.
+        * html/HTMLAnchorElement.h: Changed the Relation enum to an enum class, removed unused enum
+        values, and changed m_linkRelations from a 30-bit unsigned integer to an OptionSet<Relation>
+        (HTMLAnchorElement is still 128 bytes on 64-bit).
+        * loader/FrameLoader.cpp:
+        (WebCore::FrameLoader::urlSelected): Changed to only compute a NewFrameOpenerPolicy from the
+        referrer policy if an explicit NewFrameOpenerPolicy isn't specified. Removed the version of
+        urlSelected() that did not take a downloadAttribute parameter.
+        * loader/FrameLoader.h: Added an Optional<NewFrameOpenerPolicy> parameter to urlSelected(),
+        and set a default argument for downloadAttribute instead of having a second version of
+        urlSelected().
+
+2016-10-25  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Add "has capture device" bit to media state flags
+        https://bugs.webkit.org/show_bug.cgi?id=163952
+
+        Reviewed by Jer Noble.
+
+        No new tests, updated fast/mediastream/MediaStream-page-muted.html, media/muted-video-is-playing-audio.html,
+        and webaudio/web-audio-is-playing.html.
+
+        * Modules/mediastream/MediaStream.cpp:
+        (WebCore::MediaStream::mediaState): Set HasMediaCaptureDevice, only set HasActiveMediaCaptureDevice when
+          actually producing data.
+
+        * page/MediaProducer.h: Add HasMediaCaptureDevice bit.
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::pageMediaState): Return a string representing MediaStateFlags.
+        (WebCore::Internals::isPagePlayingAudio): Deleted.
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-10-25  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r207827 and r207828.
+        https://bugs.webkit.org/show_bug.cgi?id=163965
+
+        Caused LayoutTest webaudio/web-audio-is-playing.html to time
+        out on macOS. (Requested by ryanhaddad on #webkit).
+
+        Reverted changesets:
+
+        "[MediaStream] Add "has capture device" bit to media state
+        flags"
+        https://bugs.webkit.org/show_bug.cgi?id=163952
+        http://trac.webkit.org/changeset/207827
+
+        "[MediaStream] Add "has capture device" bit to media state
+        flags"
+        https://bugs.webkit.org/show_bug.cgi?id=163952
+        http://trac.webkit.org/changeset/207828
+
+2016-10-25  Antoine Quint  <graouts@apple.com>
+
+        [Modern Media Controls] Media Controller: skip back support
+        https://bugs.webkit.org/show_bug.cgi?id=163725
+        <rdar://problem/27989480>
+
+        Reviewed by Dean Jackson.
+
+        We introduce the SkipBackSupport class which brings support for skipping back
+        30 seconds into the media by clicking on the skip back button in the media controls.
+
+        Test: http/tests/media/modern-media-controls/skip-back-support/skip-back-support-button-click.html
+
+        * Modules/modern-media-controls/js-files:
+        * Modules/modern-media-controls/media/media-controller.js:
+        (MediaController):
+        * Modules/modern-media-controls/media/skip-back-support.js: Copied from Source/WebCore/Modules/modern-media-controls/media/media-controller.js.
+        (SkipBackSupport.prototype.get control):
+        (SkipBackSupport.prototype.buttonWasClicked):
+        (SkipBackSupport):
+        * WebCore.xcodeproj/project.pbxproj:
+
+2016-10-25  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r207578.
+        https://bugs.webkit.org/show_bug.cgi?id=163962
+
+        Broke quip.com so that user can no longer type a space
+        (Requested by rniwa on #webkit).
+
+        Reverted changeset:
+
+        "Add a plain space instead of &nbsp; between text nodes"
+        https://bugs.webkit.org/show_bug.cgi?id=123163
+        http://trac.webkit.org/changeset/207578
+
+2016-10-25  Chris Dumez  <cdumez@apple.com>
+
+        LOG_WITH_STREAM() macro should not have a semi colon at the end
+        https://bugs.webkit.org/show_bug.cgi?id=163951
+
+        Reviewed by Simon Fraser.
+
+        * platform/LogMacros.h:
+
+2016-10-25  Chris Dumez  <cdumez@apple.com>
+
+        IDBObjectStore.createIndex() should take a union in parameter
+        https://bugs.webkit.org/show_bug.cgi?id=163935
+
+        Reviewed by Darin Adler.
+
+        IDBObjectStore.createIndex() should take a union in parameter:
+        - https://www.w3.org/TR/IndexedDB/#idl-def-IDBObjectStore
+
+        No new tests, no expected Web-exposed behavior change.
+
+        * Modules/indexeddb/IDBDatabase.cpp:
+        (WebCore::IDBDatabase::createObjectStore):
+        * Modules/indexeddb/IDBKeyPath.cpp:
+        (WebCore::isIDBKeyPathValid):
+        (WebCore::IDBKeyPath::isValid): Deleted.
+        * Modules/indexeddb/IDBKeyPath.h:
+        (WebCore::IDBKeyPath::isNull):
+        * Modules/indexeddb/IDBObjectStore.cpp:
+        (WebCore::IDBObjectStore::createIndex):
+        * Modules/indexeddb/IDBObjectStore.h:
+        * Modules/indexeddb/IDBObjectStore.idl:
+
+2016-10-24  Sam Weinig  <sam@webkit.org>
+
+        [WebIDL] Move more types over to the new JSConverter based toJS functions
+        https://bugs.webkit.org/show_bug.cgi?id=163920
+
+        Reviewed by Darin Adler.
+
+        - Adds WebIDL-extension type IDLDate, and use it for Date conversions.
+        - Move JSDOMIterator over to using IDLType based conversions. Make them more
+          explicit by adding a traits template argument which describes the iterator.
+        - Add correct parsing for WebIDL iterable, parsing the parameter types into
+          domTypes.
+        - Support non-Optional nullable types via trait-like functions on IDLTypes.
+
+
+        * bindings/generic/IDLTypes.h:
+        (WebCore::IDLType::isNullValue):
+        (WebCore::IDLType::extractValueFromNullable):
+        (WebCore::IDLString::isNullValue):
+        (WebCore::IDLString::extractValueFromNullable):
+        (WebCore::IDLInterface::isNullValue):
+        (WebCore::IDLInterface::extractValueFromNullable):
+        (WebCore::IDLDate::isNullValue):
+        (WebCore::IDLDate::extractValueFromNullable):
+        Add isNullValue and extractValueFromNullable functions to allow non-Optional
+        based nullable types.
+        
+        * Modules/plugins/QuickTimePluginReplacement.mm:
+        (WebCore::QuickTimePluginReplacement::installReplacement):
+        * bindings/js/IDBBindingUtilities.cpp:
+        (WebCore::toJS):
+        * bindings/js/JSCSSStyleDeclarationCustom.cpp:
+        (WebCore::stylePropertyGetter):
+        * bindings/js/JSCustomElementInterface.cpp:
+        (WebCore::JSCustomElementInterface::invokeAttributeChangedCallback):
+        Switch to IDLType based toJS.
+
+        * bindings/js/JSDOMBinding.cpp:
+        (WebCore::jsStringOrNull): Deleted.
+        (WebCore::jsDateOrNull): Deleted.
+        * bindings/js/JSDOMBinding.h:
+        (WebCore::jsPair): Deleted.
+        (WebCore::toJSNullableString): Deleted.
+        Remove now unusued toJS functions.
+
+        * bindings/js/JSDOMConvert.h:
+        (WebCore::JSConverter<IDLNullable<T>>::convert):
+        Use new functions to detect and extract nullable values.
+
+        (WebCore::Converter<IDLBufferSource>::convert):
+        Moved to be with the other converters.
+
+        (WebCore::Converter<IDLDate>::convert):
+        (WebCore::JSConverter<IDLDate>::convert):
+        Added.
+
+        * bindings/js/JSDOMIterator.h:
+        (WebCore::jsPair):
+        (WebCore::iteratorCreate):
+        (WebCore::IteratorTraits>::asJS):
+        (WebCore::appendForEachArguments):
+        (WebCore::iteratorForEach):
+        (WebCore::IteratorTraits>::destroy):
+        (WebCore::IteratorTraits>::next):
+        (WebCore::IteratorTraits>::finishCreation):
+        (WebCore::IteratorInspector::decltype): Deleted.
+        (WebCore::IteratorInspector::test): Deleted.
+        (WebCore::JSDOMIterator<JSWrapper>::asJS): Deleted.
+        (WebCore::JSDOMIterator<JSWrapper>::destroy): Deleted.
+        (WebCore::JSDOMIterator<JSWrapper>::next): Deleted.
+        (WebCore::JSDOMIteratorPrototype<JSWrapper>::next): Deleted.
+        (WebCore::JSDOMIteratorPrototype<JSWrapper>::finishCreation): Deleted.
+        Switch to new Traits based model, and have the generated code pass in 
+        the type (map or set) and key/value types. With the explicit types known,
+        we can use the new toJS functions.
+        
+        Also, moved the jsPair functions here from JSDOMBinding.h, since this was
+        the only place it was used.
+
+        * bindings/scripts/CodeGeneratorJS.pm:
+        (GenerateImplementationIterableFunctions):
+        Add iterator trait definition and update for new parameters to JSDOMIterator
+        and JSDOMIteratorPrototype.
+
+        (GetBaseIDLType):
+        Add IDLDate, and move IDLBufferSource up to the simple path.
+
+        (JSValueToNativeIsHandledByDOMConvert):
+        Allow Date.
+
+        (JSValueToNative):
+        Remove special case for Date.
+
+        (NativeToJSValueIsHandledByDOMConvert):
+        Allow Date and remove restriction of nullable string-like types.
+
+        (NativeToJSValueDOMConvertNeedsState):
+        Add Date to list of types needing state.
+
+        (NativeToJSValue):
+        Remove special cases for Date and nullable-strings.
+
+        * bindings/scripts/IDLParser.pm:
+        (parseOptionalIterableInterface):
+        Add correct parsing of iterable.
+
+        * bindings/scripts/test/JS/JSTestIterable.cpp:
+        * bindings/scripts/test/JS/JSTestNode.cpp:
+        * bindings/scripts/test/JS/JSTestObj.cpp:
+        Update test results.
+
+2016-10-25  Eric Carlson  <eric.carlson@apple.com>
+
+        [MediaStream] Add "has capture device" bit to media state flags
+        https://bugs.webkit.org/show_bug.cgi?id=163952
+
+        Reviewed by Jer Noble.
+
+        No new tests, updated fast/mediastream/MediaStream-page-muted.html and media/muted-video-is-playing-audio.html.
+
+        * Modules/mediastream/MediaStream.cpp:
+        (WebCore::MediaStream::mediaState): Set HasMediaCaptureDevice, only set HasActiveMediaCaptureDevice when
+          actually producing data.
+
+        * page/MediaProducer.h: Add HasMediaCaptureDevice bit.
+
+        * testing/Internals.cpp:
+        (WebCore::Internals::pageMediaState): Return a string representing MediaStateFlags.
+        (WebCore::Internals::isPagePlayingAudio): Deleted.
+        * testing/Internals.h:
+        * testing/Internals.idl:
+
+2016-10-25  Brady Eidson  <beidson@apple.com>
+
+        IndexedDB 2.0: Support new IDBTransaction interfaces.
+        <rdar://problem/28806928> and https://bugs.webkit.org/show_bug.cgi?id=163927
+
+        Reviewed by Sam Weinig.
+
+        Tests: storage/indexeddb/modern/idbtransaction-objectstores-1-private.html
+               storage/indexeddb/modern/idbtransaction-objectstores-1.html
+               At least partially passing results on 5 previously failed W3C tests.
+
+        The "new IDBTransaction interfaces" really just means adding the property IDBTransaction.objectStoreNames.
+
+        * Modules/indexeddb/IDBTransaction.cpp:
+        (WebCore::IDBTransaction::objectStoreNames):
+        * Modules/indexeddb/IDBTransaction.h:
+        * Modules/indexeddb/IDBTransaction.idl:
+
 2016-10-25  Youenn Fablet  <youenn@apple.com>
 
         MediaEndpointConfiguration does not need to be refcounted

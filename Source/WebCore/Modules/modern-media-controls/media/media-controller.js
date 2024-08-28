@@ -38,8 +38,9 @@ class MediaController
         this.controls = new MacOSInlineMediaControls
         shadowRoot.appendChild(this.controls.element);        
 
-        new StartSupport(this);
         new MuteSupport(this);
+        new SkipBackSupport(this);
+        new StartSupport(this);
 
         this._updateControlsSize();
         media.addEventListener("resize", this);

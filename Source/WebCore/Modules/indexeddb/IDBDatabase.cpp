@@ -146,21 +146,21 @@ ExceptionOr<Ref<IDBObjectStore>> IDBDatabase::createObjectStore(const String& na
     if (m_info.hasObjectStore(name))
         return Exception { IDBDatabaseException::ConstraintError, ASCIILiteral("Failed to execute 'createObjectStore' on 'IDBDatabase': An object store with the specified name already exists.") };
 
-    IDBKeyPath keyPath(WTFMove(parameters.keyPath));
-    if (!keyPath.isNull() && !keyPath.isValid())
+    auto& keyPath = parameters.keyPath;
+    if (keyPath && !isIDBKeyPathValid(keyPath.value()))
         return Exception { IDBDatabaseException::SyntaxError, ASCIILiteral("Failed to execute 'createObjectStore' on 'IDBDatabase': The keyPath option is not a valid key path.") };
 
-    if (parameters.autoIncrement && ((keyPath.type() == IDBKeyPath::Type::String && keyPath.string().isEmpty()) || keyPath.type() == IDBKeyPath::Type::Array))
+    if (keyPath && parameters.autoIncrement && ((WTF::holds_alternative<String>(keyPath.value()) && WTF::get<String>(keyPath.value()).isEmpty()) || WTF::holds_alternative<Vector<String>>(keyPath.value())))
         return Exception { IDBDatabaseException::InvalidAccessError, ASCIILiteral("Failed to execute 'createObjectStore' on 'IDBDatabase': The autoIncrement option was set but the keyPath option was empty or an array.") };
 
     // Install the new ObjectStore into the connection's metadata.
-    auto info = m_info.createNewObjectStore(name, keyPath, parameters.autoIncrement);
+    auto info = m_info.createNewObjectStore(name, WTFMove(keyPath), parameters.autoIncrement);
 
     // Create the actual IDBObjectStore from the transaction, which also schedules the operation server side.
     return m_versionChangeTransaction->createObjectStore(info);
 }
 
-ExceptionOr<Ref<IDBTransaction>> IDBDatabase::transaction(const Vector<String>& objectStores, const String& modeString)
+ExceptionOr<Ref<IDBTransaction>> IDBDatabase::transaction(StringOrVectorOfStrings&& storeNames, const String& modeString)
 {
     LOG(IndexedDB, "IDBDatabase::transaction");
 
@@ -168,6 +168,12 @@ ExceptionOr<Ref<IDBTransaction>> IDBDatabase::transaction(const Vector<String>& 
 
     if (m_closePending)
         return Exception { IDBDatabaseException::InvalidStateError, ASCIILiteral("Failed to execute 'transaction' on 'IDBDatabase': The database connection is closing.") };
+
+    Vector<String> objectStores;
+    if (WTF::holds_alternative<Vector<String>>(storeNames))
+        objectStores = WTFMove(WTF::get<Vector<String>>(storeNames));
+    else
+        objectStores.append(WTFMove(WTF::get<String>(storeNames)));
 
     if (objectStores.isEmpty())
         return Exception { IDBDatabaseException::InvalidAccessError, ASCIILiteral("Failed to execute 'transaction' on 'IDBDatabase': The storeNames parameter was empty.") };
@@ -196,15 +202,6 @@ ExceptionOr<Ref<IDBTransaction>> IDBDatabase::transaction(const Vector<String>& 
     m_activeTransactions.set(info.identifier(), transaction.ptr());
 
     return WTFMove(transaction);
-}
-
-ExceptionOr<Ref<IDBTransaction>> IDBDatabase::transaction(const String& objectStore, const String& mode)
-{
-    ASSERT(currentThread() == originThreadID());
-
-    Vector<String> objectStores(1);
-    objectStores[0] = objectStore;
-    return transaction(objectStores, mode);
 }
 
 ExceptionOr<void> IDBDatabase::deleteObjectStore(const String& objectStoreName)

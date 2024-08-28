@@ -136,6 +136,7 @@ class ContextMenuClient;
 class FindClient;
 class FindMatchesClient;
 class FormClient;
+class FullscreenClient;
 class HistoryClient;
 class LoaderClient;
 class Navigation;
@@ -343,6 +344,9 @@ public:
 
 #if ENABLE(FULLSCREEN_API)
     WebFullScreenManagerProxy* fullScreenManager();
+
+    API::FullscreenClient& fullscreenClient() const { return *m_fullscreenClient; }
+    void setFullscreenClient(std::unique_ptr<API::FullscreenClient>);
 #endif
 #if (PLATFORM(IOS) && HAVE(AVKIT)) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
     WebPlaybackSessionManagerProxy* playbackSessionManager();
@@ -1646,6 +1650,7 @@ private:
 
 #if ENABLE(FULLSCREEN_API)
     RefPtr<WebFullScreenManagerProxy> m_fullScreenManager;
+    std::unique_ptr<API::FullscreenClient> m_fullscreenClient;
 #endif
 #if (PLATFORM(IOS) && HAVE(AVKIT)) || (PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE))
     RefPtr<WebPlaybackSessionManagerProxy> m_playbackSessionManager;

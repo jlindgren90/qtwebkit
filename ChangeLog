@@ -1,3 +1,31 @@
+2016-10-25  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] Don't enable ld.gold by default on non-ELF platforms
+        https://bugs.webkit.org/show_bug.cgi?id=163946
+
+        Reviewed by Alex Christensen.
+
+        For example, MinGW toolchain may be shipped with gold, but it fails to link
+        WebKit.
+
+        * Source/cmake/OptionsCommon.cmake:
+
+2016-10-25  Konstantin Tokarev  <annulen@yandex.ru>
+
+        [cmake] Don't add -fPIC flag when on Windows (MinGW)
+        https://bugs.webkit.org/show_bug.cgi?id=163949
+
+        Reviewed by Michael Catanzaro.
+
+        -fPIC flag does not do anything on Windows and produces warning noise
+        with MinGW. There is no position independent code in Unix sense on
+        32-bit Windows, and 64-bit Windows code is always relocatable.
+
+        For reference see
+        https://gcc.gnu.org/ml/gcc-patches/2015-08/msg00836.html
+
+        * Source/cmake/WebKitHelpers.cmake:
+
 2016-10-21  Csaba Osztrogonác  <ossy@webkit.org>
 
         [EFL] REGRESSION(r207616): Build is broken due to missing libgeoclue-dev package

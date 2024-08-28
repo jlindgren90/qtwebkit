@@ -29,6 +29,7 @@
 #if ENABLE(INDEXED_DATABASE)
 
 #include "DOMError.h"
+#include "DOMStringList.h"
 #include "DOMWindow.h"
 #include "Event.h"
 #include "EventNames.h"
@@ -166,6 +167,20 @@ IDBTransaction::~IDBTransaction()
 IDBClient::IDBConnectionProxy& IDBTransaction::connectionProxy()
 {
     return m_database->connectionProxy();
+}
+
+Ref<DOMStringList> IDBTransaction::objectStoreNames() const
+{
+    ASSERT(currentThread() == m_database->originThreadID());
+
+    const Vector<String> names = isVersionChange() ? m_database->info().objectStoreNames() : m_info.objectStores();
+
+    Ref<DOMStringList> objectStoreNames = DOMStringList::create();
+    for (auto& name : names)
+        objectStoreNames->append(name);
+
+    objectStoreNames->sort();
+    return objectStoreNames;
 }
 
 const String& IDBTransaction::mode() const
@@ -715,6 +730,9 @@ Ref<IDBRequest> IDBTransaction::requestOpenCursor(ExecState& execState, IDBObjec
 {
     LOG(IndexedDB, "IDBTransaction::requestOpenCursor");
     ASSERT(currentThread() == m_database->originThreadID());
+
+    if (info.cursorType() == IndexedDB::CursorType::KeyOnly)
+        return doRequestOpenCursor(execState, IDBCursor::create(*this, objectStore, info));
 
     return doRequestOpenCursor(execState, IDBCursorWithValue::create(*this, objectStore, info));
 }
