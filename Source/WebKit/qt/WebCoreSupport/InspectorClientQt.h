@@ -60,7 +60,7 @@ public:
     void hideHighlight() override;
 
     ConnectionType connectionType() const override;
-    bool sendMessageToFrontend(const String&) override;
+    void sendMessageToFrontend(const String&) override;
 
     void releaseFrontendPage();
 

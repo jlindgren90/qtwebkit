@@ -107,9 +107,9 @@ void StylePainterQStyle::setupStyleOption()
     }
 }
 
-PassRefPtr<RenderTheme> RenderThemeQStyle::create(Page* page)
+Ref<RenderTheme> RenderThemeQStyle::create(Page* page)
 {
-    return adoptRef(new RenderThemeQStyle(page));
+    return adoptRef(*new RenderThemeQStyle(page));
 }
 
 static QtStyleFactoryFunction styleFactoryFunction;

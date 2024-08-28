@@ -31,6 +31,7 @@ static QString undoNameForEditAction(const EditAction editAction)
         return QString();
     case EditActionInsert:
     case EditActionInsertReplacement:
+    case EditActionInsertFromDrop:
         return QObject::tr("Insert");
     case EditActionSetColor:
         return QObject::tr("Set Color");
@@ -84,7 +85,7 @@ static QString undoNameForEditAction(const EditAction editAction)
         return QObject::tr("Outline");
     case EditActionUnscript:
         return QObject::tr("Unscript");
-    case EditActionDrag:
+    case EditActionDeleteByDrag:
         return QObject::tr("Drag");
     case EditActionCut:
         return QObject::tr("Cut");
@@ -105,9 +106,13 @@ static QString undoNameForEditAction(const EditAction editAction)
     case EditActionTypingDeleteWordForward:
     case EditActionTypingDeleteLineBackward:
     case EditActionTypingDeleteLineForward:
+    case EditActionTypingDeletePendingComposition:
+    case EditActionTypingDeleteFinalComposition:
     case EditActionTypingInsertText:
     case EditActionTypingInsertLineBreak:
     case EditActionTypingInsertParagraph:
+    case EditActionTypingInsertPendingComposition:
+    case EditActionTypingInsertFinalComposition:
         return QObject::tr("Typing");
     case EditActionCreateLink:
         return QObject::tr("Create Link");

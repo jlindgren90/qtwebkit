@@ -418,17 +418,18 @@ void GraphicsContext3D::getIntegerv(GC3Denum pname, GC3Dint* value)
         *value /= 4;
         break;
     case MAX_VARYING_VECTORS:
-        if (isGLES2Compliant()) {
-            ASSERT(::glGetError() == GL_NO_ERROR);
-            ::glGetIntegerv(GL_MAX_VARYING_VECTORS, value);
-            if (::glGetError() == GL_INVALID_ENUM) {
-                ::glGetIntegerv(GL_MAX_VARYING_COMPONENTS, value);
-                *value /= 4;
-            }
-        } else {
+        // FIXME: undefined reference to glGetError
+        // if (isGLES2Compliant()) {
+        //     ASSERT(::glGetError() == GL_NO_ERROR);
+        //     ::glGetIntegerv(GL_MAX_VARYING_VECTORS, value);
+        //     if (::glGetError() == GL_INVALID_ENUM) {
+        //         ::glGetIntegerv(GL_MAX_VARYING_COMPONENTS, value);
+        //         *value /= 4;
+        //     }
+        // } else {
             ::glGetIntegerv(GL_MAX_VARYING_FLOATS, value);
             *value /= 4;
-        }
+        // }
         break;
 #endif
     case MAX_TEXTURE_SIZE:

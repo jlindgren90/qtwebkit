@@ -55,7 +55,7 @@ void Download::resume(const IPC::DataReference&, const WTF::String&, const Sandb
     notImplemented();
 }
 
-void Download::cancelNetworkLoad()
+void Download::platformCancelNetworkLoad()
 {
     ASSERT(m_qtDownloader);
     m_qtDownloader->cancel();

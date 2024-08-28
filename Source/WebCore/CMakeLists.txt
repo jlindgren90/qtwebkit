@@ -3696,7 +3696,8 @@ GENERATE_BINDINGS(WebCoreTestSupportBindings
     GENERATOR JS)
 
 # WebCoreTestSupportBindings needs InternalSettingsGenerated.idl
-add_custom_target(InternalSettingsGenerated DEPENDS ${DERIVED_SOURCES_WEBCORE_DIR}/InternalSettingsGenerated.idl)
+# which is a byproduct of generating SettingsMacros.h
+add_custom_target(InternalSettingsGenerated DEPENDS ${DERIVED_SOURCES_WEBCORE_DIR}/SettingsMacros.h)
 add_dependencies(WebCoreTestSupportBindings InternalSettingsGenerated)
 
 # WebCore JS Builtins
