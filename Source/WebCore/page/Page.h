@@ -508,6 +508,9 @@ public:
 
     WEBCORE_EXPORT void setTimerAlignmentIntervalIncreaseLimit(std::chrono::milliseconds);
 
+    bool isControlledByAutomation() const { return m_controlledByAutomation; }
+    void setControlledByAutomation(bool controlled) { m_controlledByAutomation = controlled; }
+
 private:
     WEBCORE_EXPORT void initGroup();
 
@@ -686,6 +689,8 @@ private:
     
     bool m_allowsMediaDocumentInlinePlayback { false };
     bool m_showAllPlugins { false };
+
+    bool m_controlledByAutomation { false };
 };
 
 inline PageGroup& Page::group()

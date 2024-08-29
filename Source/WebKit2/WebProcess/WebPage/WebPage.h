@@ -948,6 +948,9 @@ public:
 
     WebURLSchemeHandlerProxy* urlSchemeHandlerForScheme(const String&);
 
+    bool isControlledByAutomation() const;
+    void setControlledByAutomation(bool);
+
 private:
     WebPage(uint64_t pageID, const WebPageCreationParameters&);
 

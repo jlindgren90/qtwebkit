@@ -453,6 +453,8 @@ WebPage::WebPage(uint64_t pageID, const WebPageCreationParameters& parameters)
     WebCore::provideUserMediaTo(m_page.get(), new WebUserMediaClient(*this));
 #endif
 
+    m_page->setControlledByAutomation(parameters.controlledByAutomation);
+
 #if ENABLE(REMOTE_INSPECTOR)
     m_page->setRemoteInspectionAllowed(parameters.allowsRemoteInspection);
     m_page->setRemoteInspectionNameOverride(parameters.remoteInspectionNameOverride);
@@ -2477,6 +2479,16 @@ void WebPage::centerSelectionInVisibleArea()
     Frame& frame = m_page->focusController().focusedOrMainFrame();
     frame.selection().revealSelection(ScrollAlignment::alignCenterAlways);
     m_findController.showFindIndicatorInSelection();
+}
+
+bool WebPage::isControlledByAutomation() const
+{
+    return m_page->isControlledByAutomation();
+}
+
+void WebPage::setControlledByAutomation(bool controlled)
+{
+    m_page->setControlledByAutomation(controlled);
 }
 
 #if ENABLE(REMOTE_INSPECTOR)
