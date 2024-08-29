@@ -79,8 +79,9 @@ enum JSType : uint8_t {
     ClosureObjectType,
 
     RegExpObjectType,
+    ProxyObjectType,
 
-    LastJSCObjectType = RegExpObjectType,
+    LastJSCObjectType = ProxyObjectType,
 };
 
 COMPILE_ASSERT(sizeof(JSType) == sizeof(uint8_t), sizeof_jstype_is_one_byte);

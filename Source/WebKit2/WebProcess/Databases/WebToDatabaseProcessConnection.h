@@ -41,7 +41,7 @@ class SessionID;
 
 namespace WebKit {
 
-class WebToDatabaseProcessConnection : public RefCounted<WebToDatabaseProcessConnection>, private IPC::Connection::Client, private IPC::MessageSender {
+class WebToDatabaseProcessConnection : public RefCounted<WebToDatabaseProcessConnection>, public IPC::Connection::Client, public IPC::MessageSender {
 public:
     static Ref<WebToDatabaseProcessConnection> create(IPC::Connection::Identifier connectionIdentifier)
     {
@@ -72,8 +72,7 @@ private:
     RefPtr<IPC::Connection> m_connection;
 
 #if ENABLE(INDEXED_DATABASE)
-    HashMap<WebCore::SessionID, RefPtr<WebIDBConnectionToServer>> m_webIDBConnectionsBySession;
-    HashMap<uint64_t, RefPtr<WebIDBConnectionToServer>> m_webIDBConnectionsByIdentifier;
+    HashMap<uint64_t, RefPtr<WebIDBConnectionToServer>> m_webIDBConnections;
 #endif
 };
 

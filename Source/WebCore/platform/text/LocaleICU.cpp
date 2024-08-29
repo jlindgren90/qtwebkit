@@ -50,21 +50,14 @@ std::unique_ptr<Locale> Locale::create(const AtomicString& locale)
 
 LocaleICU::LocaleICU(const char* locale)
     : m_locale(locale)
-    , m_numberFormat(0)
-    , m_didCreateDecimalFormat(false)
-#if ENABLE(DATE_AND_TIME_INPUT_TYPES)
-    , m_shortDateFormat(0)
-    , m_mediumTimeFormat(0)
-    , m_shortTimeFormat(0)
-    , m_didCreateShortDateFormat(false)
-    , m_didCreateTimeFormat(false)
-#endif
 {
 }
 
 LocaleICU::~LocaleICU()
 {
+#if !UCONFIG_NO_FORMATTING
     unum_close(m_numberFormat);
+#endif
 #if ENABLE(DATE_AND_TIME_INPUT_TYPES)
     udat_close(m_shortDateFormat);
     udat_close(m_mediumTimeFormat);
@@ -72,6 +65,7 @@ LocaleICU::~LocaleICU()
 #endif
 }
 
+#if !UCONFIG_NO_FORMATTING
 String LocaleICU::decimalSymbol(UNumberFormatSymbol symbol)
 {
     UErrorCode status = U_ZERO_ERROR;
@@ -102,9 +96,11 @@ String LocaleICU::decimalTextAttribute(UNumberFormatTextAttribute tag)
         return String();
     return String::adopt(buffer);
 }
+#endif
 
 void LocaleICU::initializeLocaleData()
 {
+#if !UCONFIG_NO_FORMATTING
     if (m_didCreateDecimalFormat)
         return;
     m_didCreateDecimalFormat = true;
@@ -128,6 +124,7 @@ void LocaleICU::initializeLocaleData()
     symbols.append(decimalSymbol(UNUM_GROUPING_SEPARATOR_SYMBOL));
     ASSERT(symbols.size() == DecimalSymbolsSize);
     setLocaleData(symbols, decimalTextAttribute(UNUM_POSITIVE_PREFIX), decimalTextAttribute(UNUM_POSITIVE_SUFFIX), decimalTextAttribute(UNUM_NEGATIVE_PREFIX), decimalTextAttribute(UNUM_NEGATIVE_SUFFIX));
+#endif
 }
 
 #if ENABLE(DATE_AND_TIME_INPUT_TYPES)

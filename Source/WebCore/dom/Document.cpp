@@ -62,7 +62,7 @@
 #include "EventHandler.h"
 #include "ExtensionStyleSheets.h"
 #include "FocusController.h"
-#include "FontLoader.h"
+#include "FontFaceSet.h"
 #include "FormController.h"
 #include "FrameLoader.h"
 #include "FrameLoaderClient.h"
@@ -963,12 +963,15 @@ RefPtr<Node> Document::importNode(Node* importedNode, bool deep, ExceptionCode& 
     }
 
     switch (importedNode->nodeType()) {
+    case DOCUMENT_FRAGMENT_NODE:
+        if (importedNode->isShadowRoot())
+            break;
+        FALLTHROUGH;
     case ELEMENT_NODE:
     case TEXT_NODE:
     case CDATA_SECTION_NODE:
     case PROCESSING_INSTRUCTION_NODE:
     case COMMENT_NODE:
-    case DOCUMENT_FRAGMENT_NODE:
         return importedNode->cloneNodeInternal(document(), deep ? CloningOperation::Everything : CloningOperation::OnlySelf);
 
     case ATTRIBUTE_NODE:
@@ -1269,7 +1272,7 @@ String Document::defaultCharset() const
 {
     if (Settings* settings = this->settings())
         return settings->defaultTextEncodingName();
-    return String();
+    return UTF8Encoding().domName();
 }
 
 void Document::setCharset(const String& charset)
@@ -6677,14 +6680,10 @@ Document& Document::ensureTemplateDocument()
 }
 #endif
 
-#if ENABLE(FONT_LOAD_EVENTS)
-RefPtr<FontLoader> Document::fonts()
+Ref<FontFaceSet> Document::fonts()
 {
-    if (!m_fontloader)
-        m_fontloader = FontLoader::create(this);
-    return m_fontloader;
+    return fontSelector().fontFaceSet();
 }
-#endif
 
 float Document::deviceScaleFactor() const
 {

@@ -475,6 +475,7 @@ WebPageProxy::WebPageProxy(PageClient& pageClient, WebProcessProxy& process, uin
     updateViewState();
     updateActivityToken();
     updateProccessSuppressionState();
+    updateHiddenPageThrottlingAutoIncreases();
     
 #if HAVE(OUT_OF_PROCESS_LAYER_HOSTING)
     m_layerHostingMode = m_viewState & ViewState::IsInWindow ? m_pageClient.viewLayerHostingMode() : LayerHostingMode::OutOfProcess;
@@ -878,9 +879,6 @@ void WebPageProxy::close()
     m_policyClient = std::make_unique<API::PolicyClient>();
     m_formClient = std::make_unique<API::FormClient>();
     m_uiClient = std::make_unique<API::UIClient>();
-#if PLATFORM(EFL)
-    m_uiPopupMenuClient.initialize(nullptr);
-#endif
     m_findClient = std::make_unique<API::FindClient>();
     m_findMatchesClient = std::make_unique<API::FindMatchesClient>();
     m_diagnosticLoggingClient = std::make_unique<API::DiagnosticLoggingClient>();
@@ -1538,6 +1536,14 @@ void WebPageProxy::updateProccessSuppressionState()
         m_preventProcessSuppressionCount = nullptr;
     else if (!m_preventProcessSuppressionCount)
         m_preventProcessSuppressionCount = m_process->processPool().processSuppressionDisabledForPageCount();
+}
+
+void WebPageProxy::updateHiddenPageThrottlingAutoIncreases()
+{
+    if (!m_preferences->hiddenPageDOMTimerThrottlingAutoIncreases())
+        m_hiddenPageDOMTimerThrottlingAutoIncreasesCount = nullptr;
+    else if (!m_hiddenPageDOMTimerThrottlingAutoIncreasesCount)
+        m_hiddenPageDOMTimerThrottlingAutoIncreasesCount = m_process->processPool().hiddenPageThrottlingAutoIncreasesCount();
 }
 
 void WebPageProxy::layerHostingModeDidChange()
@@ -2852,6 +2858,7 @@ void WebPageProxy::preferencesDidChange()
 #endif
 
     updateProccessSuppressionState();
+    updateHiddenPageThrottlingAutoIncreases();
 
     m_pageClient.preferencesDidChange();
 
@@ -4252,11 +4259,7 @@ void WebPageProxy::failedToShowPopupMenu()
 void WebPageProxy::showPopupMenu(const IntRect& rect, uint64_t textDirection, const Vector<WebPopupItem>& items, int32_t selectedIndex, const PlatformPopupMenuData& data)
 {
     if (m_activePopupMenu) {
-#if PLATFORM(EFL)
-        m_uiPopupMenuClient.hidePopupMenu(this);
-#else
         m_activePopupMenu->hidePopupMenu();
-#endif
         m_activePopupMenu->invalidate();
         m_activePopupMenu = nullptr;
     }
@@ -4269,15 +4272,9 @@ void WebPageProxy::showPopupMenu(const IntRect& rect, uint64_t textDirection, co
     // Since showPopupMenu() can spin a nested run loop we need to turn off the responsiveness timer.
     m_process->responsivenessTimer().stop();
 
-#if PLATFORM(EFL)
-    UNUSED_PARAM(data);
-    m_uiPopupMenuClient.showPopupMenu(this, m_activePopupMenu.get(), rect, static_cast<TextDirection>(textDirection), m_pageScaleFactor, items, selectedIndex);
-#else
-
     // Showing a popup menu runs a nested runloop, which can handle messages that cause |this| to get closed.
     Ref<WebPageProxy> protect(*this);
     m_activePopupMenu->showPopupMenu(rect, static_cast<TextDirection>(textDirection), m_pageScaleFactor, items, data, selectedIndex);
-#endif
 }
 
 void WebPageProxy::hidePopupMenu()
@@ -4285,11 +4282,7 @@ void WebPageProxy::hidePopupMenu()
     if (!m_activePopupMenu)
         return;
 
-#if PLATFORM(EFL)
-    m_uiPopupMenuClient.hidePopupMenu(this);
-#else
     m_activePopupMenu->hidePopupMenu();
-#endif
     m_activePopupMenu->invalidate();
     m_activePopupMenu = nullptr;
 }
@@ -5404,28 +5397,45 @@ void WebPageProxy::requestGeolocationPermissionForFrame(uint64_t geolocationID, 
     request->deny();
 }
 
-void WebPageProxy::requestUserMediaPermissionForFrame(uint64_t userMediaID, uint64_t frameID, String originIdentifier, const Vector<String>& audioDeviceUIDs, const Vector<String>& videoDeviceUIDs)
+void WebPageProxy::requestUserMediaPermissionForFrame(uint64_t userMediaID, uint64_t frameID, String userMediaDocumentOriginIdentifier, String topLevelDocumentOriginIdentifier, const Vector<String>& audioDeviceUIDs, const Vector<String>& videoDeviceUIDs)
 {
+#if ENABLE(MEDIA_STREAM)
     WebFrameProxy* frame = m_process->webFrame(frameID);
     MESSAGE_CHECK(frame);
 
-    RefPtr<API::SecurityOrigin> origin = API::SecurityOrigin::create(SecurityOrigin::createFromDatabaseIdentifier(originIdentifier));
+    RefPtr<API::SecurityOrigin> userMediaOrigin = API::SecurityOrigin::create(SecurityOrigin::createFromDatabaseIdentifier(userMediaDocumentOriginIdentifier));
+    RefPtr<API::SecurityOrigin> topLevelOrigin = API::SecurityOrigin::create(SecurityOrigin::createFromDatabaseIdentifier(topLevelDocumentOriginIdentifier));
     RefPtr<UserMediaPermissionRequestProxy> request = m_userMediaPermissionRequestManager.createRequest(userMediaID, audioDeviceUIDs, videoDeviceUIDs);
 
-    if (!m_uiClient->decidePolicyForUserMediaPermissionRequest(*this, *frame, *origin.get(), *request.get()))
+    if (!m_uiClient->decidePolicyForUserMediaPermissionRequest(*this, *frame, *userMediaOrigin.get(), *topLevelOrigin.get(), *request.get()))
         request->deny();
+#else
+    UNUSED_PARAM(userMediaID);
+    UNUSED_PARAM(frameID);
+    UNUSED_PARAM(userMediaDocumentOriginIdentifier);
+    UNUSED_PARAM(topLevelDocumentOriginIdentifier);
+    UNUSED_PARAM(audioDeviceUIDs);
+    UNUSED_PARAM(videoDeviceUIDs);
+#endif
 }
 
-void WebPageProxy::checkUserMediaPermissionForFrame(uint64_t userMediaID, uint64_t frameID, String originIdentifier)
+void WebPageProxy::checkUserMediaPermissionForFrame(uint64_t userMediaID, uint64_t frameID, String userMediaDocumentOriginIdentifier, String topLevelDocumentOriginIdentifier)
 {
+#if ENABLE(MEDIA_STREAM)
     WebFrameProxy* frame = m_process->webFrame(frameID);
     MESSAGE_CHECK(frame);
 
-    RefPtr<API::SecurityOrigin> origin = API::SecurityOrigin::create(SecurityOrigin::createFromDatabaseIdentifier(originIdentifier));
     RefPtr<UserMediaPermissionCheckProxy> request = m_userMediaPermissionRequestManager.createUserMediaPermissionCheck(userMediaID);
-
-    if (!m_uiClient->checkUserMediaPermissionForOrigin(*this, *frame, *origin.get(), *request.get()))
-        request->setHasPersistentPermission(false);
+    RefPtr<API::SecurityOrigin> userMediaOrigin = API::SecurityOrigin::create(SecurityOrigin::createFromDatabaseIdentifier(userMediaDocumentOriginIdentifier));
+    RefPtr<API::SecurityOrigin> topLevelOrigin = API::SecurityOrigin::create(SecurityOrigin::createFromDatabaseIdentifier(topLevelDocumentOriginIdentifier));
+    if (!m_uiClient->checkUserMediaPermissionForOrigin(*this, *frame, *userMediaOrigin.get(), *topLevelOrigin.get(), *request.get()))
+        request->setUserMediaAccessInfo(emptyString(), false);
+#else
+    UNUSED_PARAM(userMediaID);
+    UNUSED_PARAM(frameID);
+    UNUSED_PARAM(userMediaDocumentOriginIdentifier);
+    UNUSED_PARAM(topLevelDocumentOriginIdentifier);
+#endif
 }
 
 void WebPageProxy::requestNotificationPermission(uint64_t requestID, const String& originString)
@@ -6076,7 +6086,15 @@ void WebPageProxy::isPlayingMediaDidChange(MediaProducer::MediaStateFlags state,
     if ((oldState & MediaProducer::IsPlayingAudio) == (m_mediaState & MediaProducer::IsPlayingAudio))
         return;
 
+#if PLATFORM(MAC)
+    m_pageClient.isPlayingMediaDidChange();
+#endif
     m_uiClient->isPlayingAudioDidChange(*this);
+}
+
+bool WebPageProxy::isPlayingVideoWithAudio() const
+{
+    return m_mediaState & MediaProducer::IsPlayingAudio && m_mediaState & MediaProducer::IsPlayingVideo;
 }
 
 #if ENABLE(MEDIA_SESSION)

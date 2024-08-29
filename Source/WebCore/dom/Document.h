@@ -46,6 +46,7 @@
 #include "ScriptExecutionContext.h"
 #include "StringWithDirection.h"
 #include "StyleChange.h"
+#include "Supplementable.h"
 #include "TextResourceDecoder.h"
 #include "Timer.h"
 #include "TreeScope.h"
@@ -197,9 +198,7 @@ class ScriptedAnimationController;
 class TextAutosizer;
 #endif
 
-#if ENABLE(FONT_LOAD_EVENTS)
-class FontLoader;
-#endif
+class FontFaceSet;
 
 typedef int ExceptionCode;
 
@@ -288,7 +287,12 @@ enum class HttpEquivPolicy {
     DisabledByContentDispositionAttachmentSandbox
 };
 
-class Document : public ContainerNode, public TreeScope, public ScriptExecutionContext, public FontSelectorClient {
+class Document
+    : public ContainerNode
+    , public TreeScope
+    , public ScriptExecutionContext
+    , public FontSelectorClient
+    , public Supplementable<Document> {
 public:
     static Ref<Document> create(Frame* frame, const URL& url)
     {
@@ -1264,9 +1268,7 @@ public:
 
     WEBCORE_EXPORT virtual SecurityOrigin* topOrigin() const override final;
 
-#if ENABLE(FONT_LOAD_EVENTS)
-    RefPtr<FontLoader> fonts();
-#endif
+    Ref<FontFaceSet> fonts();
 
     void ensurePlugInsInjectedScript(DOMWrapperWorld&);
 
@@ -1739,10 +1741,6 @@ private:
 #endif
 
     RefPtr<CSSFontSelector> m_fontSelector;
-
-#if ENABLE(FONT_LOAD_EVENTS)
-    RefPtr<FontLoader> m_fontloader;
-#endif
 
 #if ENABLE(WEB_REPLAY)
     RefPtr<JSC::InputCursor> m_inputCursor;

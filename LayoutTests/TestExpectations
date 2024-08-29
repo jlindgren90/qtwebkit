@@ -295,6 +295,7 @@ webkit.org/b/154310 [ Debug ] imported/w3c/web-platform-tests/html/dom/reflectio
 imported/w3c/web-platform-tests/XMLHttpRequest/send-entity-body-document.htm [ Pass Failure ]
 imported/w3c/web-platform-tests/dom/nodes/MutationObserver-childList.html [ Timeout ]
 imported/w3c/web-platform-tests/dom/nodes/Document-createElement-namespace.html [ Pass Failure ]
+imported/w3c/web-platform-tests/html/semantics/embedded-content/the-area-element/area-coords.html [ Pass Failure Crash ]
 
 # W3C XMLHttpRequest tests
 imported/w3c/web-platform-tests/XMLHttpRequest/xmlhttprequest-timeout-aborted.html [ Slow ]
@@ -816,8 +817,29 @@ http/tests/security/contentSecurityPolicy/1.1/form-action-src-get-allowed.html [
 http/tests/security/contentSecurityPolicy/1.1/form-action-src-get-blocked.html [ Pass ]
 http/tests/security/contentSecurityPolicy/1.1/form-action-src-javascript-blocked.html [ Pass ]
 http/tests/security/contentSecurityPolicy/1.1/form-action-src-redirect-blocked.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/base-uri-allow.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/base-uri-default-ignored.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/base-uri-deny.html [ Pass ]
 http/tests/security/contentSecurityPolicy/1.1/report-uri-effective-directive.php [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-basics.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-block-cross-origin-image-from-script.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-block-cross-origin-image.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-block-image-from-script.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-block-image-https.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-block-image.html [ Pass ]
 webkit.org/b/154203 http/tests/security/contentSecurityPolicy/1.1/frame-ancestors/frame-ancestors-overrides-xfo.html
+webkit.org/b/154203 http/tests/security/contentSecurityPolicy/1.1/scripthash-default-src.html
+webkit.org/b/154203 http/tests/security/contentSecurityPolicy/1.1/stylehash-default-src.html
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-affects-child.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-invalid.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-mismatched-data.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-mismatched-url.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-notype-data.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-notype-url.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-nourl-allowed.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-nourl-blocked.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-url-01.html [ Pass ]
+http/tests/security/contentSecurityPolicy/1.1/plugintypes-url-02.html [ Pass ]
 webkit.org/b/111869 http/tests/security/contentSecurityPolicy/eval-blocked-and-sends-report.html
 webkit.org/b/115700 http/tests/security/contentSecurityPolicy/inline-event-handler-blocked-after-injecting-meta.html [ Failure ]
 webkit.org/b/153148 http/tests/security/contentSecurityPolicy/eval-allowed-in-report-only-mode-and-sends-report.html
@@ -841,6 +863,7 @@ webkit.org/b/153160 http/tests/security/contentSecurityPolicy/plugin-in-iframe-w
 webkit.org/b/153161 http/tests/security/contentSecurityPolicy/register-bypassing-scheme-partial.html [ Failure ]
 webkit.org/b/153162 http/tests/security/contentSecurityPolicy/report-multiple-violations-01.html [ Failure ]
 webkit.org/b/153162 http/tests/security/contentSecurityPolicy/report-multiple-violations-02.html [ Failure ]
+webkit.org/b/154522 http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-base-uri-deny.html
 http/tests/security/contentSecurityPolicy/script-src-blocked-error-event.html [ Pass Failure ]
 
 # These state object tests purposefully stress a resource limit, and take multiple seconds to run.
@@ -857,14 +880,14 @@ fast/multicol/multicol-with-child-renderLayer-for-input.html [ ImageOnlyFailure 
 ### START OF IndexedDB failures
 
 # Our IDL parser test harness is not what this test expects
-imported/w3c/web-platform-tests/IndexedDB/interfaces.html [ Skip ]
+imported/w3c/indexeddb/interfaces.html [ Skip ]
 
 # W3C IDB tests where the test is wrong (the spec, other browsers, and WebKit all agree)
 # Covered by https://github.com/w3c/web-platform-tests/issues/2456
-imported/w3c/web-platform-tests/IndexedDB/idbindex_get7.htm [ Failure ]
-imported/w3c/web-platform-tests/IndexedDB/idbindex_getKey7.htm [ Failure ]
-imported/w3c/web-platform-tests/IndexedDB/idbindex_openCursor2.htm [ Failure ]
-imported/w3c/web-platform-tests/IndexedDB/idbindex_openKeyCursor3.htm [ Failure ]
+imported/w3c/indexeddb/idbindex_get7.htm [ Failure ]
+imported/w3c/indexeddb/idbindex_getKey7.htm [ Failure ]
+imported/w3c/indexeddb/idbindex_openCursor2.htm [ Failure ]
+imported/w3c/indexeddb/idbindex_openKeyCursor3.htm [ Failure ]
 
 # Times out for unexplored reasons                                                             
 storage/indexeddb/database-quota.html [ Skip ]
@@ -930,8 +953,8 @@ storage/indexeddb/deletedatabase-delayed-by-versionchange.html [ Skip ]
 storage/indexeddb/properties-disabled-at-runtime.html [ Failure ]
 
 # Completes with passing results, but too slowly for our test timeouts.
-imported/w3c/web-platform-tests/IndexedDB/idbindex-multientry-big.htm [ Failure ]
-imported/w3c/web-platform-tests/IndexedDB/idbcursor_iterating.htm [ Failure ]
+imported/w3c/indexeddb/idbindex-multientry-big.htm [ Failure ]
+imported/w3c/indexeddb/idbcursor_iterating.htm [ Failure ]
 
 # SQLite backend tests that timeout
 storage/indexeddb/modern/transaction-scheduler-1.html [ Skip ]
@@ -939,6 +962,9 @@ storage/indexeddb/modern/transaction-scheduler-2.html [ Skip ]
 storage/indexeddb/modern/transaction-scheduler-5.html [ Skip ]
 storage/indexeddb/modern/transaction-scheduler-6.html [ Skip ]
 storage/indexeddb/transaction-coordination-within-database.html [ Skip ]
+
+# Inspector doesn't support modern IDB yet
+webkit.org/b/154686 inspector/indexeddb/requestDatabaseNames.html [ Skip ]
 
 ### END OF IndexedDB failures
 ########################################

@@ -40,7 +40,7 @@ class BackendDispatcher;
 
 typedef String ErrorString;
 
-class SupplementalBackendDispatcher : public RefCounted<SupplementalBackendDispatcher> {
+class JS_EXPORT_PRIVATE SupplementalBackendDispatcher : public RefCounted<SupplementalBackendDispatcher> {
 public:
     SupplementalBackendDispatcher(BackendDispatcher&);
     virtual ~SupplementalBackendDispatcher();
@@ -49,9 +49,9 @@ protected:
     Ref<BackendDispatcher> m_backendDispatcher;
 };
 
-class BackendDispatcher : public RefCounted<BackendDispatcher> {
+class JS_EXPORT_PRIVATE BackendDispatcher : public RefCounted<BackendDispatcher> {
 public:
-    JS_EXPORT_PRIVATE static Ref<BackendDispatcher> create(Ref<FrontendRouter>&&);
+    static Ref<BackendDispatcher> create(Ref<FrontendRouter>&&);
 
     class JS_EXPORT_PRIVATE CallbackBase : public RefCounted<CallbackBase> {
     public:
@@ -83,15 +83,16 @@ public:
     };
 
     void registerDispatcherForDomain(const String& domain, SupplementalBackendDispatcher*);
-    JS_EXPORT_PRIVATE void dispatch(const String& message);
+    void dispatch(const String& message);
 
-    JS_EXPORT_PRIVATE void sendResponse(long requestId, RefPtr<InspectorObject>&& result);
-    JS_EXPORT_PRIVATE void sendPendingErrors();
+    void sendResponse(long requestId, RefPtr<InspectorObject>&& result);
+    void sendPendingErrors();
 
     void reportProtocolError(CommonErrorCode, const String& errorMessage);
-    JS_EXPORT_PRIVATE void reportProtocolError(Optional<long> relatedRequestId, CommonErrorCode, const String& errorMessage);
+    void reportProtocolError(Optional<long> relatedRequestId, CommonErrorCode, const String& errorMessage);
 
     template<typename T>
+    WTF_HIDDEN_DECLARATION
     T getPropertyValue(InspectorObject*, const String& name, bool* out_optionalValueFound, T defaultValue, std::function<bool(InspectorValue&, T&)>, const char* typeName);
 
     int getInteger(InspectorObject*, const String& name, bool* valueFound);

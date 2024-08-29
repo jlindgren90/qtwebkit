@@ -148,6 +148,7 @@ public:
         UserContentController,
         UserContentExtension,
         UserContentExtensionStore,
+        UserContentWorld,
         UserMediaPermissionCheck,
         UserMediaPermissionRequest,
         Vibration,

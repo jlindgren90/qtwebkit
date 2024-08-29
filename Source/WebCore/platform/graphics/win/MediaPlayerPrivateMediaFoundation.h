@@ -57,49 +57,49 @@ public:
     static MediaPlayer::SupportsType supportsType(const MediaEngineSupportParameters&);
     static bool isAvailable();
 
-    void load(const String& url) override;
-    void cancelLoad() override;
+    virtual void load(const String& url);
+    virtual void cancelLoad();
 
-    void play() override;
-    void pause() override;
+    virtual void play();
+    virtual void pause();
 
-    bool supportsFullscreen() const override;
+    virtual bool supportsFullscreen() const;
 
-    FloatSize naturalSize() const override;
+    virtual FloatSize naturalSize() const;
 
-    bool hasVideo() const override;
-    bool hasAudio() const override;
+    virtual bool hasVideo() const;
+    virtual bool hasAudio() const;
 
-    void setVisible(bool) override;
+    virtual void setVisible(bool);
 
-    bool seeking() const override;
-    void seek(float) override;
+    virtual bool seeking() const;
+    virtual void seekDouble(double) override;
 
-    void setRate(float) override;
+    virtual void setRateDouble(double) override;
 
-    float duration() const override;
+    virtual double durationDouble() const override;
 
-    float currentTime() const override;
+    virtual float currentTime() const override;
 
-    bool paused() const override;
+    virtual bool paused() const;
 
-    void setVolume(float) override;
+    virtual void setVolume(float) override;
 
-    bool supportsMuting() const override;
-    void setMuted(bool) override;
+    virtual bool supportsMuting() const override;
+    virtual void setMuted(bool) override;
 
-    MediaPlayer::NetworkState networkState() const override;
-    MediaPlayer::ReadyState readyState() const override;
+    virtual MediaPlayer::NetworkState networkState() const;
+    virtual MediaPlayer::ReadyState readyState() const;
 
-    float maxTimeSeekable() const override;
+    virtual float maxTimeSeekable() const override;
 
-    std::unique_ptr<PlatformTimeRanges> buffered() const override;
+    virtual std::unique_ptr<PlatformTimeRanges> buffered() const;
 
-    bool didLoadingProgress() const override;
+    virtual bool didLoadingProgress() const;
 
-    void setSize(const IntSize&) override;
+    virtual void setSize(const IntSize&);
 
-    void paint(GraphicsContext&, const FloatRect&) override;
+    virtual void paint(GraphicsContext&, const FloatRect&) override;
 
 private:
     MediaPlayer* m_player;
@@ -109,19 +109,13 @@ private:
     bool m_paused;
     bool m_hasAudio;
     bool m_hasVideo;
-    bool m_preparingToPlay;
-    float m_volume;
     HWND m_hwndVideo;
-    MediaPlayer::NetworkState m_networkState;
     MediaPlayer::ReadyState m_readyState;
     FloatRect m_lastPaintRect;
 
     class MediaPlayerListener;
     HashSet<MediaPlayerListener*> m_listeners;
     Lock m_mutexListeners;
-
-    FloatSize m_cachedNaturalSize;
-    mutable Lock m_cachedNaturalSizeLock;
 
     WeakPtrFactory<MediaPlayerPrivateMediaFoundation> m_weakPtrFactory;
     COMPtr<IMFMediaSession> m_mediaSession;
@@ -132,7 +126,6 @@ private:
     COMPtr<IMFVideoDisplayControl> m_videoDisplay;
 
     bool createSession();
-    bool startSession();
     bool endSession();
     bool startCreateMediaSource(const String& url);
     bool endCreatedMediaSource(IMFAsyncResult*);
@@ -142,16 +135,8 @@ private:
     bool createOutputNode(COMPtr<IMFStreamDescriptor> sourceSD, COMPtr<IMFTopologyNode>&);
     bool createSourceStreamNode(COMPtr<IMFStreamDescriptor> sourceSD, COMPtr<IMFTopologyNode>&);
 
-    void updateReadyState();
-
-    COMPtr<IMFVideoDisplayControl> videoDisplay();
-
     void onCreatedMediaSource();
     void onTopologySet();
-    void onBufferingStarted();
-    void onBufferingStopped();
-    void onSessionStarted();
-    void onSessionEnded();
 
     LPCWSTR registerVideoWindowClass();
     void createVideoWindow();
@@ -161,12 +146,9 @@ private:
 
     void addListener(MediaPlayerListener*);
     void removeListener(MediaPlayerListener*);
-    void setNaturalSize(const FloatSize&);
     void notifyDeleted();
 
     static LRESULT CALLBACK VideoViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-
-    bool setAllChannelVolumes(float);
 
     class MediaPlayerListener {
     public:

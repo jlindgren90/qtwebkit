@@ -981,6 +981,24 @@
     return IMPL->unforgeableMethod();
 }
 
+- (NSString *)nullableStringMethod
+{
+    WebCore::JSMainThreadNullState state;
+    return IMPL->nullableStringMethod();
+}
+
+- (NSString *)nullableStringStaticMethod
+{
+    WebCore::JSMainThreadNullState state;
+    return IMPL->nullableStringStaticMethod();
+}
+
+- (NSString *)nullableStringSpecialMethod:(unsigned)index
+{
+    WebCore::JSMainThreadNullState state;
+    return IMPL->nullableStringSpecialMethod(index);
+}
+
 - (void)methodWithEnumArg:(DOMTestEnumType *)enumArg
 {
     WebCore::JSMainThreadNullState state;
@@ -1273,16 +1291,16 @@
     IMPL->convert2(core(value));
 }
 
-- (void)convert4:(DOMTestNode *)value
+- (void)convert3:(NSString *)value
 {
     WebCore::JSMainThreadNullState state;
-    IMPL->convert4(core(value));
+    IMPL->convert3(value);
 }
 
-- (void)convert5:(DOMTestNode *)value
+- (void)convert4:(NSString *)value
 {
     WebCore::JSMainThreadNullState state;
-    IMPL->convert5(core(value));
+    IMPL->convert4(value);
 }
 
 - (DOMSVGPoint *)mutablePointFunction

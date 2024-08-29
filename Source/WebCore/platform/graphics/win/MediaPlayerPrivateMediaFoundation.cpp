@@ -38,16 +38,10 @@
 #endif
 #include "SoftLinking.h"
 
-#if PLATFORM(QT)
-#include "QWebPageClient.h"
-#include <QWindow>
-#endif
-
 #if USE(MEDIA_FOUNDATION)
 
 #include <wtf/MainThread.h>
 #include <wtf/NeverDestroyed.h>
-#include <wtf/text/win/WCharStringExtras.h>
 
 SOFT_LINK_LIBRARY(Mf);
 SOFT_LINK_OPTIONAL(Mf, MFCreateSourceResolver, HRESULT, STDAPICALLTYPE, (IMFSourceResolver**));
@@ -94,13 +88,10 @@ MediaPlayerPrivateMediaFoundation::MediaPlayerPrivateMediaFoundation(MediaPlayer
     : m_player(player)
     , m_visible(false)
     , m_loadingProgress(false)
-    , m_paused(true)
+    , m_paused(false)
     , m_hasAudio(false)
     , m_hasVideo(false)
-    , m_preparingToPlay(false)
     , m_hwndVideo(nullptr)
-    , m_volume(1.0)
-    , m_networkState(MediaPlayer::Empty)
     , m_readyState(MediaPlayer::HaveNothing)
     , m_weakPtrFactory(this)
 {
@@ -149,7 +140,7 @@ static const HashSet<String, ASCIICaseInsensitiveHash>& mimeTypeCache()
     if (SUCCEEDED(hr)) {
         CALPWSTR mimeTypeArray = propVarMimeTypeArray.calpwstr;
         for (unsigned i = 0; i < mimeTypeArray.cElems; i++)
-            cachedTypes.get().add(nullTerminatedWCharToString(mimeTypeArray.pElems[i]));
+            cachedTypes.get().add(mimeTypeArray.pElems[i]);
     }
 
     PropVariantClear(&propVarMimeTypeArray);
@@ -175,17 +166,7 @@ MediaPlayer::SupportsType MediaPlayerPrivateMediaFoundation::supportsType(const 
 
 void MediaPlayerPrivateMediaFoundation::load(const String& url)
 {
-    {
-        LockHolder locker(m_cachedNaturalSizeLock);
-        m_cachedNaturalSize = FloatSize();
-    }
-
     startCreateMediaSource(url);
-
-    m_networkState = MediaPlayer::Loading;
-    m_player->networkStateChanged();
-    m_readyState = MediaPlayer::HaveNothing;
-    m_player->readyStateChanged();
 }
 
 void MediaPlayerPrivateMediaFoundation::cancelLoad()
@@ -195,9 +176,19 @@ void MediaPlayerPrivateMediaFoundation::cancelLoad()
 
 void MediaPlayerPrivateMediaFoundation::play()
 {
-    m_paused = !startSession();
+    if (!m_mediaSession)
+        return;
 
-    m_preparingToPlay = false;
+    PROPVARIANT varStart;
+    PropVariantInit(&varStart);
+    varStart.vt = VT_EMPTY;
+
+    HRESULT hr = m_mediaSession->Start(nullptr, &varStart);
+    ASSERT(SUCCEEDED(hr));
+
+    PropVariantClear(&varStart);
+
+    m_paused = !SUCCEEDED(hr);
 }
 
 void MediaPlayerPrivateMediaFoundation::pause()
@@ -213,10 +204,9 @@ bool MediaPlayerPrivateMediaFoundation::supportsFullscreen() const
     return true;
 }
 
-FloatSize MediaPlayerPrivateMediaFoundation::naturalSize() const
+FloatSize MediaPlayerPrivateMediaFoundation::naturalSize() const 
 {
-    LockHolder locker(m_cachedNaturalSizeLock);
-    return m_cachedNaturalSize;
+    return m_size;
 }
 
 bool MediaPlayerPrivateMediaFoundation::hasVideo() const
@@ -240,7 +230,7 @@ bool MediaPlayerPrivateMediaFoundation::seeking() const
     return false;
 }
 
-void MediaPlayerPrivateMediaFoundation::seek(float time)
+void MediaPlayerPrivateMediaFoundation::seekDouble(double time)
 {
     PROPVARIANT propVariant;
     PropVariantInit(&propVariant);
@@ -254,7 +244,7 @@ void MediaPlayerPrivateMediaFoundation::seek(float time)
     m_player->timeChanged();
 }
 
-void MediaPlayerPrivateMediaFoundation::setRate(float rate)
+void MediaPlayerPrivateMediaFoundation::setRateDouble(double rate)
 {
     COMPtr<IMFRateControl> rateControl;
 
@@ -268,7 +258,7 @@ void MediaPlayerPrivateMediaFoundation::setRate(float rate)
     rateControl->SetRate(reduceSamplesInStream, rate);
 }
 
-float MediaPlayerPrivateMediaFoundation::duration() const
+double MediaPlayerPrivateMediaFoundation::durationDouble() const
 {
     if (!m_mediaSource)
         return 0;
@@ -282,7 +272,7 @@ float MediaPlayerPrivateMediaFoundation::duration() const
         duration = 0;
     descriptor->Release();
     
-    return static_cast<float>(duration) / tenMegahertz;
+    return static_cast<double>(duration) / tenMegahertz;
 }
 
 float MediaPlayerPrivateMediaFoundation::currentTime() const
@@ -298,27 +288,16 @@ bool MediaPlayerPrivateMediaFoundation::paused() const
     return m_paused;
 }
 
-bool MediaPlayerPrivateMediaFoundation::setAllChannelVolumes(float volume)
-{
-    if (!MFGetServicePtr())
-        return false;
-
-    COMPtr<IMFAudioStreamVolume> audioVolume;
-    if (!SUCCEEDED(MFGetServicePtr()(m_mediaSession.get(), MR_STREAM_VOLUME_SERVICE, __uuidof(IMFAudioStreamVolume), (void **)&audioVolume)))
-        return false;
-
-    UINT32 channelsCount;
-    HRESULT hr = audioVolume->GetChannelCount(&channelsCount);
-    ASSERT(SUCCEEDED(hr));
-
-    Vector<float> volumes(channelsCount, volume);
-    return SUCCEEDED(audioVolume->SetAllVolumes(channelsCount, volumes.data()));
-}
-
 void MediaPlayerPrivateMediaFoundation::setVolume(float volume)
 {
-    if (setAllChannelVolumes(volume))
-        m_volume = volume;
+    if (!MFGetServicePtr())
+        return;
+
+    COMPtr<IMFSimpleAudioVolume> audioVolume;
+    if (SUCCEEDED(MFGetServicePtr()(m_mediaSession.get(), MR_POLICY_VOLUME_SERVICE, __uuidof(IMFSimpleAudioVolume), (void **)&audioVolume))) {
+        HRESULT hr = audioVolume->SetMasterVolume(volume);
+        ASSERT(SUCCEEDED(hr));
+    }
 }
 
 bool MediaPlayerPrivateMediaFoundation::supportsMuting() const
@@ -328,12 +307,20 @@ bool MediaPlayerPrivateMediaFoundation::supportsMuting() const
 
 void MediaPlayerPrivateMediaFoundation::setMuted(bool muted)
 {
-    setAllChannelVolumes(muted ? 0.0 : m_volume);
+    if (!MFGetServicePtr())
+        return;
+
+    COMPtr<IMFSimpleAudioVolume> audioVolume;
+    if (SUCCEEDED(MFGetServicePtr()(m_mediaSession.get(), MR_POLICY_VOLUME_SERVICE, __uuidof(IMFSimpleAudioVolume), (void **)&audioVolume))) {
+        HRESULT hr = audioVolume->SetMute(muted ? TRUE : FALSE);
+        ASSERT(SUCCEEDED(hr));
+    }
 }
 
 MediaPlayer::NetworkState MediaPlayerPrivateMediaFoundation::networkState() const
 { 
-    return m_networkState;
+    notImplemented();
+    return MediaPlayer::Empty;
 }
 
 MediaPlayer::ReadyState MediaPlayerPrivateMediaFoundation::readyState() const
@@ -363,8 +350,7 @@ void MediaPlayerPrivateMediaFoundation::setSize(const IntSize& size)
 {
     m_size = size;
 
-    auto videoDisplay = this->videoDisplay();
-    if (!videoDisplay)
+    if (!m_videoDisplay)
         return;
 
     IntPoint positionInWindow(m_lastPaintRect.location());
@@ -393,7 +379,7 @@ void MediaPlayerPrivateMediaFoundation::setSize(const IntSize& size)
         ::MoveWindow(m_hwndVideo, x, y, w, h, FALSE);
 
     RECT rc = { 0, 0, w, h };
-    videoDisplay->SetVideoPosition(nullptr, &rc);
+    m_videoDisplay->SetVideoPosition(nullptr, &rc);
 }
 
 void MediaPlayerPrivateMediaFoundation::paint(GraphicsContext& context, const FloatRect& rect)
@@ -426,23 +412,6 @@ bool MediaPlayerPrivateMediaFoundation::createSession()
     return true;
 }
 
-bool MediaPlayerPrivateMediaFoundation::startSession()
-{
-    if (!m_mediaSession)
-        return false;
-
-    PROPVARIANT varStart;
-    PropVariantInit(&varStart);
-    varStart.vt = VT_EMPTY;
-
-    HRESULT hr = m_mediaSession->Start(nullptr, &varStart);
-    ASSERT(SUCCEEDED(hr));
-
-    PropVariantClear(&varStart);
-
-    return SUCCEEDED(hr);
-}
-
 bool MediaPlayerPrivateMediaFoundation::endSession()
 {
     if (m_mediaSession) {
@@ -468,7 +437,7 @@ bool MediaPlayerPrivateMediaFoundation::startCreateMediaSource(const String& url
         return false;
 
     COMPtr<IUnknown> cancelCookie;
-    Vector<wchar_t> urlSource = stringToNullTerminatedWChar(url);
+    Vector<UChar> urlSource = url.charactersWithNullTermination();
 
     AsyncCallback* callback = new AsyncCallback(this, false);
 
@@ -533,54 +502,11 @@ bool MediaPlayerPrivateMediaFoundation::endGetEvent(IMFAsyncResult* asyncResult)
         break;
     }
 
-    case MESessionStarted: {
-        auto weakPtr = m_weakPtrFactory.createWeakPtr();
-        callOnMainThread([weakPtr] {
-            if (!weakPtr)
-                return;
-            weakPtr->onSessionStarted();
-        });
+    case MESessionClosed:
         break;
-    }
-
-    case MEBufferingStarted: {
-        auto weakPtr = m_weakPtrFactory.createWeakPtr();
-        callOnMainThread([weakPtr] {
-            if (!weakPtr)
-                return;
-            weakPtr->onBufferingStarted();
-        });
-        break;
-    }
-
-    case MEBufferingStopped: {
-        auto weakPtr = m_weakPtrFactory.createWeakPtr();
-        callOnMainThread([weakPtr] {
-            if (!weakPtr)
-                return;
-            weakPtr->onBufferingStopped();
-        });
-        break;
-    }
-
-    case MESessionEnded: {
-        auto weakPtr = m_weakPtrFactory.createWeakPtr();
-        callOnMainThread([weakPtr] {
-            if (!weakPtr)
-                return;
-            weakPtr->onSessionEnded();
-        });
-        break;
-    }
 
     case MEMediaSample:
         break;
-
-    case MEError: {
-        HRESULT status = S_OK;
-        event->GetStatus(&status);
-        break;
-    }
     }
 
     if (mediaEventType != MESessionClosed) {
@@ -705,16 +631,7 @@ void MediaPlayerPrivateMediaFoundation::createVideoWindow()
     view = m_player->cachedResourceLoader()->document()->view();
     if (!view || !view->hostWindow())
         return;
-
-    PlatformPageClient pageClient = view->hostWindow()->platformPageClient();
-#if PLATFORM(QT)
-    QWindow* ownerWindow = pageClient ? pageClient->ownerWindow() : nullptr;
-    if (!ownerWindow)
-        return;
-    hWndParent = (HWND)ownerWindow->winId();
-#else
-    hWndParent = pageClient;
-#endif
+    hWndParent = view->hostWindow()->platformPageClient();
 
     m_hwndVideo = CreateWindowEx(WS_EX_NOACTIVATE | WS_EX_TRANSPARENT, registerVideoWindowClass(), 0, WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
         0, 0, 0, 0, hWndParent, 0, 0, 0);
@@ -760,12 +677,6 @@ void MediaPlayerPrivateMediaFoundation::notifyDeleted()
 
     for (HashSet<MediaPlayerListener*>::const_iterator it = m_listeners.begin(); it != m_listeners.end(); ++it)
         (*it)->onMediaPlayerDeleted();
-}
-
-void MediaPlayerPrivateMediaFoundation::setNaturalSize(const FloatSize& size)
-{
-    LockHolder locker(m_cachedNaturalSizeLock);
-    m_cachedNaturalSize = size;
 }
 
 bool MediaPlayerPrivateMediaFoundation::createOutputNode(COMPtr<IMFStreamDescriptor> sourceSD, COMPtr<IMFTopologyNode>& node)
@@ -852,62 +763,6 @@ bool MediaPlayerPrivateMediaFoundation::createSourceStreamNode(COMPtr<IMFStreamD
     return true;
 }
 
-void MediaPlayerPrivateMediaFoundation::updateReadyState()
-{
-    if (!MFGetServicePtr())
-        return;
-
-    COMPtr<IPropertyStore> prop;
-
-    // Get the property store from the media session.
-    HRESULT hr = MFGetServicePtr()(m_mediaSession.get(), MFNETSOURCE_STATISTICS_SERVICE, IID_PPV_ARGS(&prop));
-
-    if (FAILED(hr))
-        return;
-
-    PROPERTYKEY key;
-    key.fmtid = MFNETSOURCE_STATISTICS;
-    key.pid = MFNETSOURCE_BUFFERPROGRESS_ID;
-
-    PROPVARIANT var;
-    hr = prop->GetValue(key, &var);
-
-    const LONG percentageOfPlaybackBufferFilled = var.lVal;
-
-    PropVariantClear(&var);
-
-    if (FAILED(hr))
-        return;
-
-    MediaPlayer::ReadyState oldReadyState = m_readyState;
-    if (percentageOfPlaybackBufferFilled >= 100) {
-        m_readyState = MediaPlayer::HaveEnoughData;
-        if (m_preparingToPlay) {
-            pause();
-            m_preparingToPlay = false;
-        }
-    } else if (percentageOfPlaybackBufferFilled > 0)
-        m_readyState = MediaPlayer::HaveFutureData;
-    else
-        m_readyState = MediaPlayer::HaveCurrentData;
-
-    if (m_readyState != oldReadyState)
-        m_player->readyStateChanged();
-}
-
-COMPtr<IMFVideoDisplayControl> MediaPlayerPrivateMediaFoundation::videoDisplay()
-{
-    if (m_videoDisplay)
-        return m_videoDisplay;
-
-    if (!MFGetServicePtr())
-        return nullptr;
-
-    MFGetServicePtr()(m_mediaSession.get(), MR_VIDEO_RENDER_SERVICE, IID_PPV_ARGS(&m_videoDisplay));
-
-    return m_videoDisplay;
-}
-
 void MediaPlayerPrivateMediaFoundation::onCreatedMediaSource()
 {
     if (!createTopologyFromSource())
@@ -920,42 +775,21 @@ void MediaPlayerPrivateMediaFoundation::onCreatedMediaSource()
 
 void MediaPlayerPrivateMediaFoundation::onTopologySet()
 {
-    // This method is called on the main thread as a result of load() being called.
+    if (!MFGetServicePtr())
+        return;
 
-    if (auto videoDisplay = this->videoDisplay()) {
+    if (SUCCEEDED(MFGetServicePtr()(m_mediaSession.get(), MR_VIDEO_RENDER_SERVICE, IID_PPV_ARGS(&m_videoDisplay)))) {
+        ASSERT(m_videoDisplay);
         RECT rc = { 0, 0, m_size.width(), m_size.height() };
-        videoDisplay->SetVideoPosition(nullptr, &rc);
+        m_videoDisplay->SetVideoPosition(nullptr, &rc);
     }
 
-    // It is expected that we start buffering data from the network now.
-    // We call startSession() to start buffering video data.
-    // When we have received enough data, we pause, so that we don't actually start the playback.
-    ASSERT(m_paused);
-    ASSERT(!m_preparingToPlay);
-    m_preparingToPlay = startSession();
-}
+    m_readyState = MediaPlayer::HaveFutureData;
 
-void MediaPlayerPrivateMediaFoundation::onBufferingStarted()
-{
-    updateReadyState();
-}
+    ASSERT(m_player);
+    m_player->readyStateChanged();
 
-void MediaPlayerPrivateMediaFoundation::onBufferingStopped()
-{
-    updateReadyState();
-}
-
-void MediaPlayerPrivateMediaFoundation::onSessionStarted()
-{
-    updateReadyState();
-}
-
-void MediaPlayerPrivateMediaFoundation::onSessionEnded()
-{
-    m_networkState = MediaPlayer::Loaded;
-    m_player->networkStateChanged();
-
-    m_paused = true;
+    play();
     m_player->playbackStateChanged();
 }
 
@@ -1333,7 +1167,6 @@ HRESULT MediaPlayerPrivateMediaFoundation::CustomVideoPresenter::ActivateObject(
 
     if (riid == IID_IMFVideoPresenter) {
         *ppv = static_cast<IMFVideoPresenter*>(this);
-        AddRef();
         return S_OK;
     }
     return E_FAIL;
@@ -1582,22 +1415,6 @@ static bool areMediaTypesEqual(IMFMediaType* type1, IMFMediaType* type2)
     return S_OK == type1->IsEqual(type2, &flags);
 }
 
-static FloatSize calculateNaturalSize(IMFMediaType* mediaType)
-{
-    UINT32 width = 0, height = 0;
-    HRESULT hr = MFGetAttributeSize(mediaType, MF_MT_FRAME_SIZE, &width, &height);
-    if (FAILED(hr) || !height)
-        return FloatSize();
-
-    UINT32 pixelAspectRatioNumerator = 0;
-    UINT32 pixelAspectRatioDenominator = 0;
-    hr = MFGetAttributeRatio(mediaType, MF_MT_PIXEL_ASPECT_RATIO, &pixelAspectRatioNumerator, &pixelAspectRatioDenominator);
-    if (SUCCEEDED(hr) && pixelAspectRatioNumerator && pixelAspectRatioDenominator)
-        return FloatSize(float(width) * pixelAspectRatioNumerator / pixelAspectRatioDenominator, height);
-
-    return FloatSize();
-}
-
 HRESULT MediaPlayerPrivateMediaFoundation::CustomVideoPresenter::setMediaType(IMFMediaType* mediaType)
 {
     if (!mediaType) {
@@ -1654,10 +1471,6 @@ HRESULT MediaPlayerPrivateMediaFoundation::CustomVideoPresenter::setMediaType(IM
         const MFRatio defaultFrameRate = { 30, 1 };
         m_scheduler.setFrameRate(defaultFrameRate);
     }
-
-    // Update natural size
-    if (m_mediaPlayer)
-        m_mediaPlayer->setNaturalSize(calculateNaturalSize(mediaType));
 
     ASSERT(mediaType);
     m_mediaType = mediaType;
@@ -2915,7 +2728,6 @@ HRESULT MediaPlayerPrivateMediaFoundation::Direct3DPresenter::presentSample(IMFS
                 D3DSURFACE_DESC desc;
                 if (SUCCEEDED(surface->GetDesc(&desc)))
                     format = desc.Format;
-                m_memSurface.clear();
                 hr = m_device->CreateOffscreenPlainSurface(width, height, format, D3DPOOL_SYSTEMMEM, &m_memSurface, nullptr);
                 m_width = width;
                 m_height = height;
@@ -2995,30 +2807,6 @@ void MediaPlayerPrivateMediaFoundation::Direct3DPresenter::paintCurrentFrame(Web
             ctxt->drawSurfaceToContext(image, destRect, srcRect, context);
             cairo_surface_destroy(image);
         }
-#elif PLATFORM(QT)
-        D3DFORMAT format = D3DFMT_UNKNOWN;
-        D3DSURFACE_DESC desc;
-        if (SUCCEEDED(m_memSurface->GetDesc(&desc)))
-            format = desc.Format;
-
-        QImage::Format imageFormat = QImage::Format_Invalid;
-
-        switch (format) {
-        case D3DFMT_A8R8G8B8:
-            imageFormat = QImage::Format_ARGB32_Premultiplied;
-            break;
-        case D3DFMT_X8R8G8B8:
-            imageFormat = QImage::Format_RGB32;
-            break;
-        }
-
-        ASSERT(imageFormat != QImage::Format_Invalid);
-
-        QImage image(static_cast<unsigned char*>(data), width, height, pitch, imageFormat);
-
-        FloatRect srcRect(0, 0, width, height);
-        QPainter* p = context.platformContext();
-        p->drawImage(destRect, image, srcRect);
 #else
 #error "Platform needs to implement drawing of Direct3D surface to graphics context!"
 #endif
@@ -3175,8 +2963,7 @@ HRESULT MediaPlayerPrivateMediaFoundation::Direct3DPresenter::updateDestRect()
         return S_FALSE;
 
     RECT rcView;
-    if (!GetClientRect(m_hwnd, &rcView))
-        return E_FAIL;
+    GetClientRect(m_hwnd, &rcView);
 
     // Clip to the client area of the window.
     if (m_destRect.right > rcView.right)

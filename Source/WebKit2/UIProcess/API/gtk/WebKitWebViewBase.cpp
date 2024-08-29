@@ -345,11 +345,7 @@ static void webkitWebViewBaseSetToplevelOnScreenWindow(WebKitWebViewBase* webVie
                          G_CALLBACK(toplevelWindowFocusOutEvent), webViewBase);
     priv->toplevelWindowStateEventID =
         g_signal_connect(priv->toplevelOnScreenWindow, "window-state-event", G_CALLBACK(toplevelWindowStateEvent), webViewBase);
-
-    if (gtk_widget_get_realized(GTK_WIDGET(window)))
-        gtk_widget_realize(GTK_WIDGET(webViewBase));
-    else
-        priv->toplevelWindowRealizedID = g_signal_connect_swapped(window, "realize", G_CALLBACK(toplevelWindowRealized), webViewBase);
+    gtk_widget_realize(GTK_WIDGET(webViewBase));
 }
 
 static void webkitWebViewBaseRealize(GtkWidget* widget)

@@ -5547,30 +5547,30 @@ bool CSSParser::parseGridGapShorthand(bool important)
     if (!value)
         return false;
 
-    ValueWithCalculation columnValueWithCalculation(*value);
-    if (!validateUnit(columnValueWithCalculation, FLength | FNonNeg))
+    ValueWithCalculation rowValueWithCalculation(*value);
+    if (!validateUnit(rowValueWithCalculation, FLength | FNonNeg))
         return false;
 
-    RefPtr<CSSPrimitiveValue> columnGap = createPrimitiveNumericValue(columnValueWithCalculation);
+    RefPtr<CSSPrimitiveValue> rowGap = createPrimitiveNumericValue(rowValueWithCalculation);
 
     value = m_valueList->next();
     if (!value) {
-        addProperty(CSSPropertyWebkitGridColumnGap, columnGap, important);
-        addProperty(CSSPropertyWebkitGridRowGap, columnGap, important);
+        addProperty(CSSPropertyWebkitGridColumnGap, rowGap, important);
+        addProperty(CSSPropertyWebkitGridRowGap, rowGap, important);
         return true;
     }
 
-    ValueWithCalculation rowValueWithCalculation(*value);
-    if (!validateUnit(rowValueWithCalculation, FLength | FNonNeg))
+    ValueWithCalculation columnValueWithCalculation(*value);
+    if (!validateUnit(columnValueWithCalculation, FLength | FNonNeg))
         return false;
 
     if (m_valueList->next())
         return false;
 
-    RefPtr<CSSPrimitiveValue> rowGap = createPrimitiveNumericValue(rowValueWithCalculation);
+    RefPtr<CSSPrimitiveValue> columnGap = createPrimitiveNumericValue(columnValueWithCalculation);
 
-    addProperty(CSSPropertyWebkitGridColumnGap, columnGap, important);
     addProperty(CSSPropertyWebkitGridRowGap, rowGap, important);
+    addProperty(CSSPropertyWebkitGridColumnGap, columnGap, important);
 
     return true;
 }
@@ -5616,7 +5616,7 @@ bool CSSParser::parseGridTemplateRowsAndAreasAndColumns(bool important)
         ++rowCount;
 
         // Handle template-rows's track-size.
-        if (m_valueList->current() && !isForwardSlashOperator(*m_valueList->current()) && m_valueList->current()->unit != CSSParserValue::ValueList && m_valueList->current()->unit != CSSPrimitiveValue::CSS_STRING) {
+        if (m_valueList->current() && m_valueList->current()->unit != CSSParserValue::Operator && m_valueList->current()->unit != CSSParserValue::ValueList && m_valueList->current()->unit != CSSPrimitiveValue::CSS_STRING) {
             RefPtr<CSSValue> value = parseGridTrackSize(*m_valueList);
             if (!value)
                 return false;
@@ -5689,7 +5689,7 @@ bool CSSParser::parseGridTemplateShorthand(bool important)
     }
 
 
-    // 3- [<line-names>? <string> [<track-size> <line-names>]? ]+ syntax.
+    // 3- [<line-names>? <string> <track-size>? <line-names>? ]+ syntax.
     // It requires to rewind parsing due to previous syntax failures.
     m_valueList->setCurrentIndex(0);
     return parseGridTemplateRowsAndAreasAndColumns(important);
@@ -11904,6 +11904,12 @@ inline bool CSSParser::detectFunctionTypeToken(int length)
             m_token = MATCHESFUNCTION;
             return true;
         }
+#if ENABLE(SHADOW_DOM)
+        if (isEqualToCSSIdentifier(name, "slotted")) {
+            m_token = SLOTTEDFUNCTION;
+            return true;
+        }
+#endif
         return false;
 
     case 9:

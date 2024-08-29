@@ -1608,11 +1608,6 @@ char* JIT_OPERATION triggerOSREntryNow(
 
         if (!codeBlock->hasOptimizedReplacement())
             return nullptr;
-
-        if (jitCode->osrEntryRetry < Options::ftlOSREntryRetryThreshold()) {
-            jitCode->osrEntryRetry++;
-            return nullptr;
-        }
     }
     
     // It's time to try to compile code for OSR entry.

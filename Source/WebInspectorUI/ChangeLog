@@ -1,3 +1,233 @@
+2016-02-26  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Option-clicking on the a CSS property sometimes doesn't work
+        https://bugs.webkit.org/show_bug.cgi?id=154384
+        <rdar://problem/24714755>
+
+        Reviewed by Timothy Hatcher.
+
+        It seems as though there were race conditions between CodeMirror's event
+        and the native mousemove such that if CodeMirror fired second, the current
+        candidate was cleared, and would not reset itself until the cursor was
+        moved, at which point the same issue could happen. To fix this, the current
+        candidate is no longer cleared by CodeMirror's event and is instead only
+        modified by the native mouse-events.
+
+        * UserInterface/Controllers/CodeMirrorTokenTrackingController.js:
+        (WebInspector.CodeMirrorTokenTrackingController.prototype._hidePopover):
+
+2016-02-25  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Unify selected item colors
+        https://bugs.webkit.org/show_bug.cgi?id=154668
+        <rdar://problem/24832178>
+
+        Reviewed by Timothy Hatcher.
+
+        Use the same CSS variable color for all selected items.
+
+        * UserInterface/Views/TreeOutline.css:
+        (.tree-outline:matches(:focus, .force-focus) .item.selected):
+        * UserInterface/Views/VisualStyleCommaSeparatedKeywordEditor.css:
+        (.visual-style-property-container.comma-separated-keyword-editor > .visual-style-property-value-container > .visual-style-comma-separated-keyword-list > .visual-style-comma-separated-keyword-item.selected):
+        * UserInterface/Views/VisualStyleSelectorTreeItem.css:
+        (.item.visual-style-selector-item.selected):
+        * UserInterface/Views/VisualStyleTabbedPropertiesRow.css:
+        (.visual-style-tabbed-properties-row > .visual-style-tabbed-properties-row-container > button.selected):
+
+2016-02-24  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Expose Proxy target and handler internal properties to Inspector
+        https://bugs.webkit.org/show_bug.cgi?id=154663
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Models/NativeFunctionParameters.js:
+        * UserInterface/Views/ObjectTreePropertyTreeElement.js:
+        (WebInspector.ObjectTreePropertyTreeElement.prototype._functionParameterString):
+        Improve the native parameter list for the global Reflect object methods.
+        Include "enumerate" even though it is deprecated, because we implement it.
+
+2016-02-24  Devin Rousso  <dcrousso+webkit@gmail.com>
+
+        Web Inspector: Visual Styles sidebar should support multiple animations
+        https://bugs.webkit.org/show_bug.cgi?id=154546
+        <rdar://problem/24773861>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/VisualStyleDetailsPanel.js:
+        (WebInspector.VisualStyleDetailsPanel.prototype._populateTransitionSection):
+        Set additional flags on the optional properties of transition to ensure
+        that the initial value of a new row is not considered invalid.
+
+        (WebInspector.VisualStyleDetailsPanel.prototype._populateAnimationSection):
+        Added a comma-separated keyword list to provide support for multiple
+        animations per rule.
+
+2016-02-24  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Remove unused Profile.png images
+
+        https://bugs.webkit.org/show_bug.cgi?id=154647
+        rdar://problem/24820825
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Images/Profile.png: Removed.
+        * UserInterface/Images/Profile@2x.png: Removed.
+        * UserInterface/Images/gtk/Profile.png: Removed.
+        * UserInterface/Images/gtk/Profile@2x.png: Removed.
+        * UserInterface/Views/TimelineIcons.css:
+        (.profile-icon .icon): Deleted.
+
+2016-02-24  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: TimelineViews should use the recording's end time when entire ruler range is selected
+        https://bugs.webkit.org/show_bug.cgi?id=154644
+        <rdar://problem/24818442>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TimelineRecordingContentView.js:
+        (WebInspector.TimelineRecordingContentView):
+        (WebInspector.TimelineRecordingContentView.prototype._currentContentViewDidChange):
+        (WebInspector.TimelineRecordingContentView.prototype._timeRangeSelectionChanged):
+        Update current timeline view when entire range selected.
+
+        (WebInspector.TimelineRecordingContentView.prototype._updateTimes):
+        Live-update the OverviewTimelineView during recording when entire range selected.
+        
+        (WebInspector.TimelineRecordingContentView.prototype._updateTimelineViewSelection):
+        Update timeline view start and end times. When entire range selected, use the recording
+        end time or current time (while capturing).
+
+2016-02-24  Timothy Hatcher  <timothy@apple.com>
+
+        Follow up fix for the TimelineRuler "select all" mode to fix zeroTime.
+
+        https://bugs.webkit.org/show_bug.cgi?id=154561
+        rdar://problem/24779872
+
+        * UserInterface/Views/TimelineRuler.js:
+        (WebInspector.TimelineRuler.prototype.set zeroTime): Change selectionStartTime
+        before _zeroTime so the check for entireRangeSelected still works.
+
+2016-02-24  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: TimelineRuler should have a "select all" mode
+        https://bugs.webkit.org/show_bug.cgi?id=154561
+        <rdar://problem/24779872>
+
+        Reviewed by Timothy Hatcher.
+
+        TimelineRuler is initialized with a selected range of [0, Number.MAX_VALUE),
+        indicating the entire timeline is selected. This patch makes it possible to
+        return the ruler to this state, after being overwritten by a custom selection.
+        When no custom selection exists, the selection handles are hidden.
+
+        * UserInterface/Views/TimelineRuler.css:
+        (.timeline-ruler.selection-hidden > :matches(.selection-drag, .selection-handle, .shaded-area)):
+        Style for hiding selection controls as needed.
+
+        * UserInterface/Views/TimelineRuler.js:
+        (WebInspector.TimelineRuler):
+        Represent unbounded selection interval as [0, Number.MAX_VALUE).
+
+        (WebInspector.TimelineRuler.prototype.set allowsTimeRangeSelection):
+        Register double-click event listener.
+
+        (WebInspector.TimelineRuler.prototype.set zeroTime):
+        (WebInspector.TimelineRuler.prototype.get entireRangeSelected):
+        (WebInspector.TimelineRuler.prototype.selectEntireRange):
+        Let clients check and set the selection of the entire range without needing
+        to use the internal sentinel values 0 and Number.MAX_VALUE.
+
+        (WebInspector.TimelineRuler.prototype._updateSelection):
+        Update ruler styles and dispatch selection change event when entire
+        range is selected.
+
+        (WebInspector.TimelineRuler.prototype._handleDoubleClick):
+        If a user-defined selection exists, select the entire range.
+
+2016-02-24  Nikita Vasilyev  <nvasilyev@apple.com>
+
+        Web Inspector: Dim selected items when docked Inspector window is inactive
+        https://bugs.webkit.org/show_bug.cgi?id=154526
+        <rdar://problem/24764365>
+
+        Abstract selected item and SVG glyph colors into CSS variables.
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/BezierEditor.css:
+        (.bezier-editor > .bezier-preview > div):
+        * UserInterface/Views/ButtonNavigationItem.css:
+        (.navigation-bar .item.button > .glyph):
+        (.navigation-bar .item.button:not(.disabled):active > .glyph):
+        (.navigation-bar .item.button:not(.disabled):matches(:focus, .activate.activated, .radio.selected) > .glyph):
+        (.navigation-bar .item.button:not(.disabled):active:matches(:focus, .activate.activated, .radio.selected) > .glyph):
+        (.navigation-bar .item.button.disabled > .glyph):
+        * UserInterface/Views/ButtonToolbarItem.css:
+        (.toolbar .item.button:not(.disabled):matches(:focus, .activate.activated) > .glyph):
+        (.toolbar .item.button:not(.disabled):active:matches(:focus, .activate.activated) > .glyph):
+        * UserInterface/Views/CSSStyleDetailsSidebarPanel.css:
+        (.sidebar > .panel.details.css-style > .content ~ .options-container > .toggle-class-toggle.selected):
+        (.sidebar > .panel.details.css-style > .content ~ .options-container > .toggle-class-toggle:not(.selected):hover):
+        * UserInterface/Views/ConsoleMessageView.css:
+        (.console-user-command.special-user-log > .console-message-text):
+        * UserInterface/Views/DOMTreeOutline.css:
+        (.tree-outline.dom li.pseudo-class-enabled > .selection::before):
+        * UserInterface/Views/Main.css:
+        (input[type=range]::-webkit-slider-runnable-track::before):
+        * UserInterface/Views/RadioButtonNavigationItem.css:
+        (.navigation-bar .item.radio.button.text-only:hover):
+        (.navigation-bar .item.radio.button.text-only.selected):
+        (.navigation-bar .item.radio.button.text-only:active):
+        (.navigation-bar .item.radio.button.text-only.selected:active):
+        * UserInterface/Views/ScopeBar.css:
+        (.scope-bar > li.multiple:matches(.selected, :hover, :active) > .arrows):
+        (.scope-bar > li:hover):
+        (.scope-bar > li.selected):
+        (.scope-bar > li:active):
+        (.scope-bar > li.selected:active):
+        * UserInterface/Views/Variables.css:
+        (:root):
+        (body.window-inactive):
+        * UserInterface/Views/VisualStyleDetailsPanel.css:
+        (.sidebar > .panel.details.css-style .visual > .details-section .details-section.has-set-property > .header > span::after):
+        * UserInterface/Views/VisualStyleKeywordIconList.css:
+        (.visual-style-property-container.keyword-icon-list > .visual-style-property-value-container > .keyword-icon-list-container > .keyword-icon:matches(.computed, .selected)):
+        (.visual-style-property-container.keyword-icon-list > .visual-style-property-value-container > .keyword-icon-list-container > .keyword-icon.selected):
+
+2016-02-23  Dan Bernstein  <mitz@apple.com>
+
+        [Xcode] Linker errors display mangled names, but no longer should
+        https://bugs.webkit.org/show_bug.cgi?id=154632
+
+        Reviewed by Sam Weinig.
+
+        * Configurations/Base.xcconfig: Stop setting LINKER_DISPLAYS_MANGLED_NAMES to YES.
+
+2016-02-22  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Timelines sidebar and overview attempt to access undefined properties when FPS instrument is absent
+        https://bugs.webkit.org/show_bug.cgi?id=154567
+        <rdar://problem/24781536>
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/TimelineOverview.js:
+        (WebInspector.TimelineOverview):
+        The viewMode property should be in a valid state before attempting
+        to access the current view mode settings.
+
+        * UserInterface/Views/TimelineSidebarPanel.js:
+        (WebInspector.TimelineSidebarPanel.prototype.get minimumWidth):
+        (WebInspector.TimelineSidebarPanel.prototype._updateViewModeIfNeeded):
+        (WebInspector.TimelineSidebarPanel):
+        Added missing checks for FPSInstrument support.
+
 2016-02-22  Nikita Vasilyev  <nvasilyev@apple.com>
 
         REGRESSION (r196620): Web Inspector: Filter bar in the left sidebar is 1px shorter than the console prompt

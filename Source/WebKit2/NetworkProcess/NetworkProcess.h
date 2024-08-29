@@ -46,6 +46,7 @@
 #endif
 
 namespace WebCore {
+class DownloadID;
 class CertificateInfo;
 class NetworkStorageSession;
 class SecurityOrigin;
@@ -57,6 +58,8 @@ namespace WebKit {
 class AuthenticationManager;
 class NetworkConnectionToWebProcess;
 class NetworkProcessSupplement;
+enum class WebsiteDataFetchOption;
+enum class WebsiteDataType;
 struct NetworkProcessCreationParameters;
 
 class NetworkProcess : public ChildProcess, public DownloadManager::Client {
@@ -107,6 +110,10 @@ public:
     QNetworkAccessManager& networkAccessManager() { return m_networkAccessManager; }
 #endif
 
+#if USE(NETWORK_SESSION)
+    void findPendingDownloadLocation(NetworkDataTask&, ResponseCompletionHandler);
+#endif
+    
     void prefetchDNS(const String&);
 
     NetworkProcess();
@@ -142,6 +149,9 @@ private:
     virtual void didDestroyDownload() override;
     virtual IPC::Connection* downloadProxyConnection() override;
     virtual AuthenticationManager& downloadsAuthenticationManager() override;
+#if USE(NETWORK_SESSION)
+    virtual void pendingDownloadCanceled(DownloadID) override;
+#endif
 
     // Message Handlers
     void didReceiveNetworkProcessMessage(IPC::Connection&, IPC::MessageDecoder&);
@@ -151,9 +161,9 @@ private:
     void ensurePrivateBrowsingSession(WebCore::SessionID);
     void destroyPrivateBrowsingSession(WebCore::SessionID);
 
-    void fetchWebsiteData(WebCore::SessionID, uint64_t websiteDataTypes, uint64_t callbackID);
-    void deleteWebsiteData(WebCore::SessionID, uint64_t websiteDataTypes, std::chrono::system_clock::time_point modifiedSince, uint64_t callbackID);
-    void deleteWebsiteDataForOrigins(WebCore::SessionID, uint64_t websiteDataTypes, const Vector<WebCore::SecurityOriginData>& origins, const Vector<String>& cookieHostNames, uint64_t callbackID);
+    void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, OptionSet<WebsiteDataFetchOption>, uint64_t callbackID);
+    void deleteWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, std::chrono::system_clock::time_point modifiedSince, uint64_t callbackID);
+    void deleteWebsiteDataForOrigins(WebCore::SessionID, OptionSet<WebsiteDataType>, const Vector<WebCore::SecurityOriginData>& origins, const Vector<String>& cookieHostNames, uint64_t callbackID);
 
     void clearCachedCredentials();
 
@@ -169,6 +179,7 @@ private:
 #if USE(NETWORK_SESSION)
     void continueCanAuthenticateAgainstProtectionSpace(DownloadID, bool canAuthenticate);
     void continueWillSendRequest(DownloadID, const WebCore::ResourceRequest&);
+    void continueDecidePendingDownloadDestination(DownloadID, String destination, const SandboxExtension::Handle& sandboxExtensionHandle, bool allowOverwrite);
 #endif
     void setCacheModel(uint32_t);
     void allowSpecificHTTPSCertificateForHost(const WebCore::CertificateInfo&, const String& host);

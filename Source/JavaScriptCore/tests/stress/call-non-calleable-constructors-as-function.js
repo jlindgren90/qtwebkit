@@ -49,9 +49,9 @@ test(DataView);
 // https://tc39.github.io/ecma262/#sec-promise-constructor
 test(Promise);
 // https://tc39.github.io/ecma262/#sec-proxy-constructor
-// test(Proxy); // disabled for Qt
+test(Proxy);
 
-let expectedNumTests = 32;
+let expectedNumTests = 34;
 if (numTests != expectedNumTests) {
     errors += "Not all tests were run: ran " + numTests + " out of " + expectedNumTests + " \n";
 }

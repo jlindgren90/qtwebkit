@@ -1252,6 +1252,24 @@ glong webkit_dom_test_obj_unforgeable_method(WebKitDOMTestObj* self)
     return result;
 }
 
+gchar* webkit_dom_test_obj_nullable_string_method(WebKitDOMTestObj* self)
+{
+    WebCore::JSMainThreadNullState state;
+    g_return_val_if_fail(WEBKIT_DOM_IS_TEST_OBJ(self), 0);
+    WebCore::TestObj* item = WebKit::core(self);
+    gchar* result = convertToUTF8String(item->nullableStringMethod());
+    return result;
+}
+
+gchar* webkit_dom_test_obj_nullable_string_special_method(WebKitDOMTestObj* self, gulong index)
+{
+    WebCore::JSMainThreadNullState state;
+    g_return_val_if_fail(WEBKIT_DOM_IS_TEST_OBJ(self), 0);
+    WebCore::TestObj* item = WebKit::core(self);
+    gchar* result = convertToUTF8String(item->nullableStringSpecialMethod(index));
+    return result;
+}
+
 void webkit_dom_test_obj_method_with_enum_arg(WebKitDOMTestObj* self, WebKitDOMTestEnumType* enumArg)
 {
     WebCore::JSMainThreadNullState state;
@@ -1559,24 +1577,24 @@ void webkit_dom_test_obj_convert2(WebKitDOMTestObj* self, WebKitDOMTestNode* val
     item->convert2(convertedValue);
 }
 
-void webkit_dom_test_obj_convert4(WebKitDOMTestObj* self, WebKitDOMTestNode* value)
+void webkit_dom_test_obj_convert3(WebKitDOMTestObj* self, const gchar* value)
 {
     WebCore::JSMainThreadNullState state;
     g_return_if_fail(WEBKIT_DOM_IS_TEST_OBJ(self));
-    g_return_if_fail(WEBKIT_DOM_IS_TEST_NODE(value));
+    g_return_if_fail(value);
     WebCore::TestObj* item = WebKit::core(self);
-    WebCore::TestNode* convertedValue = WebKit::core(value);
-    item->convert4(convertedValue);
+    WTF::String convertedValue = WTF::String::fromUTF8(value);
+    item->convert3(convertedValue);
 }
 
-void webkit_dom_test_obj_convert5(WebKitDOMTestObj* self, WebKitDOMTestNode* value)
+void webkit_dom_test_obj_convert4(WebKitDOMTestObj* self, const gchar* value)
 {
     WebCore::JSMainThreadNullState state;
     g_return_if_fail(WEBKIT_DOM_IS_TEST_OBJ(self));
-    g_return_if_fail(WEBKIT_DOM_IS_TEST_NODE(value));
+    g_return_if_fail(value);
     WebCore::TestObj* item = WebKit::core(self);
-    WebCore::TestNode* convertedValue = WebKit::core(value);
-    item->convert5(convertedValue);
+    WTF::String convertedValue = WTF::String::fromUTF8(value);
+    item->convert4(convertedValue);
 }
 
 WebKitDOMSVGPoint* webkit_dom_test_obj_mutable_point_function(WebKitDOMTestObj* self)

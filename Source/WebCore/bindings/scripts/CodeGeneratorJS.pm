@@ -1066,16 +1066,6 @@ sub GenerateHeader
         push(@headerContent, "    static void destroy(JSC::JSCell*);\n");
     }
 
-    if ($interface->iterable) {
-        push(@headerContent, "\n");
-        if ($interface->iterable->keyType) {
-            my $keyType = GetNativeType($interface->iterable->keyType);
-            push(@headerContent, "    using IteratorKey = $keyType;\n");
-        }
-        my $valueType = GetNativeType($interface->iterable->valueType);
-        push(@headerContent, "    using IteratorValue = $valueType;\n");
-    }
-
     # Class info
     if ($interfaceName eq "Node") {
         push(@headerContent, "\n");
@@ -4184,21 +4174,12 @@ sub JSValueToNative
     return "valueToDate(state, $value)" if $type eq "Date";
 
     if ($type eq "DOMString") {
-        # FIXME: This implements [TreatNullAs=NullString] and [TreatUndefinedAs=NullString],
-        # but the Web IDL spec requires [TreatNullAs=EmptyString] and [TreatUndefinedAs=EmptyString].
-        if (($signature->extendedAttributes->{"TreatNullAs"} and $signature->extendedAttributes->{"TreatNullAs"} eq "NullString") and ($signature->extendedAttributes->{"TreatUndefinedAs"} and $signature->extendedAttributes->{"TreatUndefinedAs"} eq "NullString")) {
-            return "valueToStringWithUndefinedOrNullCheck(state, $value)"
-        }
         if ($signature->extendedAttributes->{"TreatNullAs"} and $signature->extendedAttributes->{"TreatNullAs"} eq "NullString") {
             return "valueToStringWithNullCheck(state, $value)"
         }
-        if ($signature->isNullable) {
-            return "valueToStringWithUndefinedOrNullCheck(state, $value)";
-        }
-        if ($signature->extendedAttributes->{"AtomicString"}) {
-            return "$value.toString(state)->toAtomicString(state)";
-        }
-        # FIXME: Add the case for 'if ($signature->extendedAttributes->{"TreatUndefinedAs"} and $signature->extendedAttributes->{"TreatUndefinedAs"} eq "NullString"))'.
+        return "valueToStringWithUndefinedOrNullCheck(state, $value)" if $signature->isNullable;
+        return "$value.toString(state)->toAtomicString(state)" if $signature->extendedAttributes->{"AtomicString"};
+
         return "$value.toString(state)->value(state)";
     }
 
@@ -4303,13 +4284,6 @@ sub NativeToJSValue
 
     if ($codeGenerator->IsStringType($type)) {
         AddToImplIncludes("URL.h", $conditional);
-        my $conv = $signature->extendedAttributes->{"TreatReturnedNullStringAs"};
-        if (defined $conv) {
-            return "jsStringOrNull(state, $value)" if $conv eq "Null";
-            return "jsStringOrUndefined(state, $value)" if $conv eq "Undefined";
-
-            die "Unknown value for TreatReturnedNullStringAs extended attribute";
-        }
         return "jsStringOrNull(state, $value)" if $signature->isNullable;
         AddToImplIncludes("<runtime/JSString.h>", $conditional);
         return "jsStringWithCache(state, $value)";
