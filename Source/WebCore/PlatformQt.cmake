@@ -422,6 +422,7 @@ set(WebCore_FORWARDING_HEADERS_DIRECTORIES
     rendering
     storage
 
+    Modules/indexeddb
     Modules/indexeddb/legacy
     Modules/indexeddb/shared
 

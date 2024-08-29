@@ -108,6 +108,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/DefaultUndoController.cpp
     UIProcess/LegacySessionStateCodingNone.cpp
 
+    UIProcess/API/APIUserContentWorld.cpp
     UIProcess/API/C/qt/WKIconDatabaseQt.cpp
 
     UIProcess/API/cpp/qt/WKStringQt.cpp

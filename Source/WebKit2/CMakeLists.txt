@@ -820,7 +820,8 @@ list(APPEND WebKit2_HEADERS
 
 list(APPEND WebKit2_SOURCES
     ${DERIVED_SOURCES_WEBKIT2_DIR}/InspectorBackendDispatchers.cpp
-    ${DERIVED_SOURCES_WEBKIT2_DIR}/InspectorProtocolObjects.cpp
+    # FIXME: multiple definitions (conflicts with JavaScriptCore)
+    # ${DERIVED_SOURCES_WEBKIT2_DIR}/InspectorProtocolObjects.cpp
 )
 
 WEBKIT_FRAMEWORK(WebKit2)
