@@ -40,13 +40,13 @@ namespace IDBServer {
 class MemoryObjectStore;
 
 class MemoryIDBBackingStore : public IDBBackingStore {
+    friend std::unique_ptr<MemoryIDBBackingStore> std::make_unique<MemoryIDBBackingStore>(const WebCore::IDBDatabaseIdentifier&);
 public:
     static std::unique_ptr<MemoryIDBBackingStore> create(const IDBDatabaseIdentifier&);
     
-    MemoryIDBBackingStore(const IDBDatabaseIdentifier&);
     virtual ~MemoryIDBBackingStore() override final;
 
-    virtual IDBError getOrEstablishDatabaseInfo(IDBDatabaseInfo&) override final;
+    virtual const IDBDatabaseInfo& getOrEstablishDatabaseInfo() override final;
     void setDatabaseInfo(const IDBDatabaseInfo&);
 
     virtual IDBError beginTransaction(const IDBTransactionInfo&) override final;
@@ -71,14 +71,14 @@ public:
 
     virtual IDBObjectStoreInfo* infoForObjectStore(uint64_t objectStoreIdentifier) override final;
     virtual void deleteBackingStore() override final;
-
     virtual bool supportsSimultaneousTransactions() override final { return true; }
-    virtual bool isEphemeral() override final { return true; }
 
     void removeObjectStoreForVersionChangeAbort(MemoryObjectStore&);
     void restoreObjectStoreForVersionChangeAbort(Ref<MemoryObjectStore>&&);
 
 private:
+    MemoryIDBBackingStore(const IDBDatabaseIdentifier&);
+
     RefPtr<MemoryObjectStore> takeObjectStoreByIdentifier(uint64_t identifier);
 
     IDBDatabaseIdentifier m_identifier;
