@@ -375,7 +375,7 @@ public Q_SLOTS:
     void goForwardTo(int index);
     void postMessage(const QString&);
     void evaluateJavaScript(const QString& script, const QJSValue& value = QJSValue());
-    void findText(const QString& string, FindFlags options = 0);
+    void findText(const QString& string, FindFlags options = {});
 
 Q_SIGNALS:
     void loadVisuallyCommitted();

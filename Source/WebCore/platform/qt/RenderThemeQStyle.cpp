@@ -652,6 +652,9 @@ ControlPart RenderThemeQStyle::initializeCommonQStyleOptions(QStyleFacadeOption 
     case RadioPart:
     case CheckboxPart:
         option.state |= (isChecked(o) ? QStyleFacade::State_On : QStyleFacade::State_Off);
+        break;
+    default:
+        break;
     }
 
     return result;
