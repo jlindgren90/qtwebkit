@@ -53,7 +53,7 @@ public:
 
     void initCustomEvent(const AtomicString& type, bool canBubble, bool cancelable, JSC::JSValue detail);
 
-    virtual EventInterface eventInterface() const override;
+    EventInterface eventInterface() const override;
 
     JSValueInWrappedObject& detail() { return m_detail; }
     
