@@ -1,3 +1,938 @@
+2016-03-03  Filip Pizlo  <fpizlo@apple.com>
+
+        Unreviewed, remove test with flaky timeout that doesn't test anything anymore. This test
+        was relevant back when arguments got torn off; something that we don't do anymore. It
+        uses a loop that waits for the top-tier compiler to compile it. We don't write tests
+        like that anymore.
+
+        * js/dfg-osr-exit-between-create-and-tearoff-arguments-expected.txt: Removed.
+        * js/dfg-osr-exit-between-create-and-tearoff-arguments.html: Removed.
+        * js/script-tests/dfg-osr-exit-between-create-and-tearoff-arguments.js: Removed.
+
+2016-03-03  Keith Miller  <keith_miller@apple.com>
+
+        JSArrayBuffers should be collected less aggressively
+        https://bugs.webkit.org/show_bug.cgi?id=154982
+
+        Reviewed by Geoffrey Garen.
+
+        * js/arraybuffer-wrappers-expected.txt: Added.
+        * js/arraybuffer-wrappers.html: Added.
+        * js/script-tests/arraybuffer-wrappers.js: Added.
+        (prototype.types.forEach):
+
+2016-03-03  Simon Fraser  <simon.fraser@apple.com>
+
+        Use larger tiles when possible to reduce per-tile painting overhead
+        https://bugs.webkit.org/show_bug.cgi?id=154985
+        rdar://problem/23635219
+
+        Reviewed by Tim Horton.
+        
+        Rebaseline tests with new tile sizes. Add new tests that explicitly test tile size on
+        pages with different scrollability.
+
+        * tiled-drawing/background-transparency-toggle-expected.txt:
+        * tiled-drawing/scrolling/fast-scroll-iframe-latched-iframe-expected.txt:
+        * tiled-drawing/scrolling/fast-scroll-iframe-latched-iframe-with-handler-expected.txt:
+        * tiled-drawing/scrolling/fast-scroll-iframe-latched-mainframe-expected.txt:
+        * tiled-drawing/scrolling/fast-scroll-iframe-latched-mainframe-with-handler-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-background-no-image-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-body-layer-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-opacity-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-positioned-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-html-background-expected.txt:
+        * tiled-drawing/scrolling/fixed-background/fixed-non-propagated-body-background-expected.txt:
+        * tiled-drawing/tile-coverage-after-scroll-expected.txt:
+        * tiled-drawing/tile-coverage-after-scroll-speculative-expected.txt:
+        * tiled-drawing/tile-coverage-scroll-to-bottom-expected.txt:
+        * tiled-drawing/tile-coverage-slow-scrolling-expected.txt:
+        * tiled-drawing/tile-coverage-speculative-expected.txt:
+        * tiled-drawing/tile-size-both-scrollable-expected.txt: Copied from LayoutTests/tiled-drawing/scrolling/fixed-background/fixed-background-no-image-expected.txt.
+        * tiled-drawing/tile-size-both-scrollable.html: Added.
+        * tiled-drawing/tile-size-horizontally-scrollable-expected.txt: Copied from LayoutTests/tiled-drawing/scrolling/fixed-background/fixed-background-no-image-expected.txt.
+        * tiled-drawing/tile-size-horizontally-scrollable.html: Added.
+        * tiled-drawing/tile-size-unscrollable-expected.txt: Added.
+        * tiled-drawing/tile-size-unscrollable.html: Added.
+        * tiled-drawing/tile-size-vertically-scrollable-expected.txt: Copied from LayoutTests/tiled-drawing/scrolling/fixed-background/fixed-background-no-image-expected.txt.
+        * tiled-drawing/tile-size-vertically-scrollable.html: Added.
+        * tiled-drawing/visible-rect-content-inset-expected.txt:
+
+2016-03-03  Simon Fraser  <simon.fraser@apple.com>
+
+        Fix an image resource URL in tiled scrolling tests
+        https://bugs.webkit.org/show_bug.cgi?id=154981
+
+        Reviewed by Tim Horton.
+        
+        These tests had an incorrect url to compositing/resources/simple_image.png.
+
+        * tiled-drawing/scrolling/fixed-background/fixed-background-composited-expected.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-background-composited.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-background-negative-z-index-fixed-expected.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-background-negative-z-index-fixed.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-body-layer.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-opacity.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-positioned.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-transformed.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background-zoomed.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-body-background.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-html-background.html:
+        * tiled-drawing/scrolling/fixed-background/fixed-non-propagated-body-background.html:
+
+2016-03-03  Keith Miller  <keith_miller@apple.com>
+
+        Array prototype JS builtins should support Symbol.species
+        https://bugs.webkit.org/show_bug.cgi?id=154710
+
+        Reviewed by Geoffrey Garen.
+
+        Add test that checks the Array object created by a species
+        constructor in Array.prototype functions cannot come from a
+        different global object without subclassing.
+
+        * js/array-species-different-globalobjects-expected.txt: Added.
+        * js/array-species-different-globalobjects.html: Added.
+
+2016-03-03  Michael Saboff  <msaboff@apple.com>
+
+        [ES6] Make Unicode RegExp pattern parsing conform to the spec
+        https://bugs.webkit.org/show_bug.cgi?id=154988
+
+        Reviewed by Benjamin Poulain.
+
+        Added tests cases.
+
+        * js/regexp-unicode-expected.txt:
+        * js/script-tests/regexp-unicode.js:
+        (shouldThrowInvalidEscape):
+
+
+        [ES6] Add support for Symbol.toPrimitive
+        https://bugs.webkit.org/show_bug.cgi?id=154877
+
+        Reviewed by Saam Barati.
+
+        Update test for Symbol.toPrimitive.
+
+        * js/Object-getOwnPropertyNames-expected.txt:
+        * js/script-tests/Object-getOwnPropertyNames.js:
+
+2016-03-02  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Disallow custom elements inside template elements and share the registry for windowless documents
+        https://bugs.webkit.org/show_bug.cgi?id=154944
+        <rdar://problem/24944875>
+
+        Reviewed by Antti Koivisto.
+
+        Added various tests to ensure the custom elements registry is not shared between documents with
+        distinct browsing context (e.g. iframes) but shared among the ones that share a single browsing context
+        (e.g. documents created by DOMImplementation).
+
+        Also added a test case for defineCustomElement to ensure it throws NotSupportedError when it's called on
+        a template element's inert owner document as well as a basic test case for document.write.
+
+        * fast/custom-elements/Document-defineCustomElement-expected.txt:
+        * fast/custom-elements/Document-defineCustomElement.html: Added a new test case.
+        * fast/custom-elements/parser/parser-constructs-custom-element-in-document-write-expected.txt: Added.
+        * fast/custom-elements/parser/parser-constructs-custom-element-in-document-write.html: Added.
+        * fast/custom-elements/parser/parser-uses-registry-of-owner-document-expected.txt: Added.
+        * fast/custom-elements/parser/parser-uses-registry-of-owner-document.html: Added.
+
+2016-03-03  Zalan Bujtas  <zalan@apple.com>
+
+        Subpixel rendering: Make collapsed borders painting subpixel aware.
+        https://bugs.webkit.org/show_bug.cgi?id=154980
+
+        Reviewed by David Hyatt.
+
+        This patch enables collapsed borders with odd pixel width paint on subpixel position.
+        Currently borders with odd pixels are split at integral position so that border-width: 3px;
+        paints 1px on the left(top) and 2px on the right(bottom) side. With this patch
+        we paint 1.5px on both sides(on 2x display).
+
+        * fast/table/hidpi-collapsed-border-with-odd-pixel-width-expected.html: Added.
+        * fast/table/hidpi-collapsed-border-with-odd-pixel-width.html: Added.
+
+2016-03-03  Filip Pizlo  <fpizlo@apple.com>
+
+        DFG should be able to compile StringReplace
+        https://bugs.webkit.org/show_bug.cgi?id=154979
+
+        Reviewed by Benjamin Poulain.
+
+        Add a microbenchmark for a case of StringReplace that we hadn't covered with a microbenchmark
+        yet: using something absurd for the replace value. This is interesting for implementing the
+        32_64 version of StringReplace, which gets really weird in the absurd case because of how it
+        consumes the entire register file while making the call on x86-32.
+
+        * js/regress/script-tests/string-replace-generic.js: Added.
+        * js/regress/string-replace-generic-expected.txt: Added.
+        * js/regress/string-replace-generic.html: Added.
+
+2016-03-03  Dave Hyatt  <hyatt@apple.com>
+
+        Add support for the "last" value of hanging-punctuation
+        https://bugs.webkit.org/show_bug.cgi?id=154977
+
+        Reviewed by Darin Adler and Simon Fraser.
+
+        * fast/text/hanging-punctuation-first-and-last-together-expected.html: Added.
+        * fast/text/hanging-punctuation-first-and-last-together.html: Added.
+        * fast/text/hanging-punctuation-first-ws-expected.html: Added.
+        * fast/text/hanging-punctuation-first-ws.html: Added.
+        * fast/text/hanging-punctuation-last-expected.html: Added.
+        * fast/text/hanging-punctuation-last-rtl-expected.html: Added.
+        * fast/text/hanging-punctuation-last-rtl.html: Added.
+        * fast/text/hanging-punctuation-last-ws-expected.html: Added.
+        * fast/text/hanging-punctuation-last-ws.html: Added.
+        * fast/text/hanging-punctuation-last.html: Added.
+
+2016-03-03  Brady Eidson  <beidson@apple.com>
+
+        storage/indexeddb/delete-in-upgradeneeded-close-in-open-success.html flaky on mac-wk2.
+        https://bugs.webkit.org/show_bug.cgi?id=154747
+
+        Reviewed by Alex Christensen.
+        
+        This callback coming out of order like this is okay, so the test should just allow it.
+
+        It makes sense that the flake is WK2-only, since WK1 has a much more well defined order 
+        with thread-hopping versus process-hopping.
+
+        * storage/indexeddb/delete-in-upgradeneeded-close-in-open-success-expected.txt:
+        * storage/indexeddb/delete-in-upgradeneeded-close-in-open-success-private-expected.txt:
+        * storage/indexeddb/resources/delete-in-upgradeneeded-close-in-open-success.js:
+
+2016-03-03  Brady Eidson  <beidson@apple.com>
+
+        storage/indexeddb/intversion-open-in-upgradeneeded.html is flaky on mac-wk2 debug.
+        https://bugs.webkit.org/show_bug.cgi?id=154706
+
+        Rubberstamped by Alex Christensen.
+
+        This test was fixed by http://trac.webkit.org/changeset/197474.
+        
+        Unskipping it now.
+        
+        * platform/mac-wk2/TestExpectations:
+
+2016-03-03  Chris Dumez  <cdumez@apple.com>
+
+        Drop [TreatNullAs=EmptyString] from URL interface attributes
+        https://bugs.webkit.org/show_bug.cgi?id=154951
+
+        Reviewed by Darin Adler.
+
+        Update existing tests now that URL interface attributes no longer treat
+        null as the empty string.
+
+        * fast/dom/DOMURL/set-href-attribute-hash-expected.txt:
+        * fast/dom/DOMURL/set-href-attribute-hash.html:
+        * fast/dom/DOMURL/set-href-attribute-host-expected.txt:
+        * fast/dom/DOMURL/set-href-attribute-host.html:
+        * fast/dom/DOMURL/set-href-attribute-hostname-expected.txt:
+        * fast/dom/DOMURL/set-href-attribute-hostname.html:
+        * fast/dom/DOMURL/set-href-attribute-pathname-expected.txt:
+        * fast/dom/DOMURL/set-href-attribute-pathname.html:
+        * fast/dom/DOMURL/set-href-attribute-protocol-expected.txt:
+        * fast/dom/DOMURL/set-href-attribute-protocol.html:
+        * fast/dom/DOMURL/set-href-attribute-search-expected.txt:
+        * fast/dom/DOMURL/set-href-attribute-search.html:
+
+2016-03-03  Javier Fernandez  <jfernandez@igalia.com>
+
+        [CSS Box Alignment] New CSS Value 'normal' for Content Alignment
+        https://bugs.webkit.org/show_bug.cgi?id=154282
+
+        The Box Alignment specification defines a new value 'normal' to be used
+        as default for the different layout models, which will define the
+        specific behavior for each case. This patch adds a new CSS value in the
+        parsing logic and adapts the Content Alignment properties to the new
+        value.
+
+        Since the 'normal' vlaue, initial/default for both justify-content
+        and align-content CSS properties, behaves now as 'stretch' instead
+        of o'start' we have to rebaseline those tests affected by the new
+        default value.
+
+        Reviewed by David Hyatt.
+
+        * css3/flexbox/css-properties-expected.txt:
+        * css3/flexbox/css-properties.html:
+        * css3/parse-align-content-expected.txt:
+        * css3/parse-align-content.html:
+        * css3/parse-justify-content-expected.txt:
+        * css3/parse-justify-content.html:
+        * css3/resources/alignment-parsing-utils.js:
+        (checkBadValues):
+        * fast/css-grid-layout/auto-content-resolution-columns.html:
+        * fast/css-grid-layout/grid-auto-columns-rows-update.html:
+        * fast/css-grid-layout/grid-auto-flow-resolution.html:
+        * fast/css-grid-layout/grid-columns-rows-get-set-multiple.html:
+        * fast/css-grid-layout/grid-columns-rows-get-set.html:
+        * fast/css-grid-layout/grid-container-change-named-grid-lines-recompute-child.html:
+        * fast/css-grid-layout/grid-content-sized-columns-resolution.html:
+        * fast/css-grid-layout/grid-dynamic-updates-relayout.html:
+        * fast/css-grid-layout/grid-element-min-max-width.html:
+        * fast/css-grid-layout/grid-element-repeat-get-set.html:
+        * fast/css-grid-layout/grid-initialize-span-one-items.html:
+        * fast/css-grid-layout/grid-item-addition-auto-placement-update.html:
+        * fast/css-grid-layout/grid-item-addition-track-breadth-update.html:
+        * fast/css-grid-layout/grid-item-bad-named-area-auto-placement.html:
+        * fast/css-grid-layout/grid-item-margin-auto-columns-rows-horizontal-ltr.html:
+        * fast/css-grid-layout/grid-item-margin-auto-columns-rows-horizontal-rtl.html:
+        * fast/css-grid-layout/grid-item-margin-auto-columns-rows-vertical-ltr.html:
+        * fast/css-grid-layout/grid-item-margin-auto-columns-rows-vertical-rtl.html:
+        * fast/css-grid-layout/grid-item-multiple-minmax-content-resolution.html:
+        * fast/css-grid-layout/grid-item-named-grid-area-resolution.html:
+        * fast/css-grid-layout/grid-item-negative-indexes.html:
+        * fast/css-grid-layout/grid-item-order-in-content-sized-columns-resolution.html:
+        * fast/css-grid-layout/grid-item-removal-auto-placement-update.html:
+        * fast/css-grid-layout/grid-item-removal-track-breadth-update.html:
+        * fast/css-grid-layout/grid-update-sizes-after-distributing-all.html:
+        * fast/css-grid-layout/implicit-columns-auto-resolution.html:
+        * fast/css-grid-layout/implicit-position-dynamic-change.html:
+        * fast/css-grid-layout/mark-as-infinitely-growable.html:
+        * fast/css-grid-layout/maximize-tracks-definite-indefinite-width.html:
+        * fast/css-grid-layout/minmax-spanning-resolution-columns.html:
+        * fast/css-grid-layout/named-grid-line-get-set.html:
+        * fast/css-grid-layout/named-grid-lines-computed-style-implicit-tracks.html:
+        * fast/css-grid-layout/named-grid-lines-with-named-grid-areas-resolution.html:
+        * fast/css-grid-layout/percent-intrinsic-track-breadth.html:
+        * fast/css-grid-layout/percent-track-breadths-regarding-container-size.html:
+        * fast/css-grid-layout/resources/grid-definitions-parsing-utils.js:
+        (checkGridTemplatesSetJSValues):
+        * fast/css-grid-layout/resources/grid-template-shorthand-parsing-utils.js:
+        (checkGridDefinitionsSetJSValues):
+        (testGridDefinitionsSetBadJSValues):
+        * fast/css/getComputedStyle/computed-style-expected.txt:
+        * fast/css/getComputedStyle/computed-style-without-renderer-expected.txt:
+        * svg/css/getComputedStyle-basic-expected.txt:
+
+2016-03-02  Chris Dumez  <cdumez@apple.com>
+
+        HTMLFormElement's named property getter does not return a RadioNodelist
+        https://bugs.webkit.org/show_bug.cgi?id=154949
+
+        Reviewed by Ryosuke Niwa.
+
+        Add layout test to confirm that HTMLFormElement's named property getter
+        does indeed return a RadioNodeList when there are several matches.
+
+        * fast/dom/HTMLFormElement/named-property-getter-radionodelist-expected.txt: Added.
+        * fast/dom/HTMLFormElement/named-property-getter-radionodelist.html: Added.
+
+2016-03-02  Chris Dumez  <cdumez@apple.com>
+
+        Drop [TreatNullAs=LegacyNullString] from HTMLBaseElement.href
+        https://bugs.webkit.org/show_bug.cgi?id=154952
+
+        Reviewed by Ryosuke Niwa.
+
+        Update existing layout test now that HTMLBaseElement.href setter no
+        longer treats null as the empty string.
+
+        * fast/dom/HTMLBaseElement/href-attribute-resolves-with-respect-to-document-expected.txt:
+        * fast/dom/HTMLBaseElement/href-attribute-resolves-with-respect-to-document.html:
+
+2016-03-02  Zalan Bujtas  <zalan@apple.com>
+
+        Paint table borders on empty cells even in quirks mode.
+        https://bugs.webkit.org/show_bug.cgi?id=154928
+
+        Reviewed by David Hyatt.
+
+        Enable border painting for empty cells unless 'empty-cells: hide' is set. 
+        This is inline with FF and Chrome behaviour.
+
+        * fast/table/border-on-empty-table-cells-quirks-mode-expected.html: Added.
+        * fast/table/border-on-empty-table-cells-quirks-mode.html: Added.
+
+2016-03-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking storage/indexeddb/odd-strings.html as flaky on mac-wk1
+        https://bugs.webkit.org/show_bug.cgi?id=154619
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+
+2016-03-02  Brady Eidson  <beidson@apple.com>
+
+        Unreviewed test gardening.
+
+        * platform/wk2/TestExpectations: Mark two tests that are very slow as [ Slow ].
+
+2016-03-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Skip unsupported test fast/text/complex-small-caps-non-bmp-capitalize.html on ios-simulator
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-02  Brady Eidson  <beidson@apple.com>
+
+        Modern IDB: Close UniqueIDBDatabases once they become unused.
+        https://bugs.webkit.org/show_bug.cgi?id=154922
+
+        Reviewed by Alex Christensen.
+
+        * platform/mac-wk1/TestExpectations:
+        * storage/indexeddb/modern/256-open-databases-expected.txt: Added.
+        * storage/indexeddb/modern/256-open-databases.html: Added.
+        * storage/indexeddb/modern/exceed-open-file-limit-expected.txt: Added.
+        * storage/indexeddb/modern/exceed-open-file-limit.html: Added.
+        * storage/indexeddb/modern/resources/256-open-databases.js: Added.
+        * storage/indexeddb/modern/resources/exceed-open-file-limit.js: Added.
+
+2016-03-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline fast/transforms/bounding-rect-zoom.html for ios-simulator after r197450
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/fast/transforms/bounding-rect-zoom-expected.txt:
+
+2016-03-02  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline imported/w3c/web-platform-tests/html/dom/reflection-forms.html for ios-simulator after r197458
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/dom/reflection-forms-expected.txt:
+
+2016-03-02  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Add a custom element test for synchronous element construction in HTML parser
+        https://bugs.webkit.org/show_bug.cgi?id=154932
+
+        Reviewed by Antti Koivisto.
+
+        Added a test.
+
+        * fast/custom-elements/parser/parser-constructs-custom-element-synchronously-expected.txt: Added.
+        * fast/custom-elements/parser/parser-constructs-custom-element-synchronously.html: Added.
+
+2016-03-02  Filip Pizlo  <fpizlo@apple.com>
+
+        Add a benchmark for string transcoding.
+
+        Rubber stamped by Saam Barati.
+
+        I wrote some code like this while working on
+        https://github.com/WebAssembly/design/pull/573. I thought I'd add it as a benchmark since
+        it stresses things that we may not have good bench coverage for.
+
+        * js/regress/script-tests/string-transcoding.js: Added.
+        (decodeUTF8):
+        (encodeUTF8):
+        (arraysEqual):
+        (arrayToString):
+        (setHeader):
+        (print):
+        (tryArray):
+        (doSteps):
+        * js/regress/string-transcoding-expected.txt: Added.
+        * js/regress/string-transcoding.html: Added.
+
+2016-03-02  Dave Hyatt  <hyatt@apple.com>
+
+        Add support for the "first" value of the hanging-punctuation property.
+        https://bugs.webkit.org/show_bug.cgi?id=154919
+
+        Reviewed by Simon Fraser.
+
+        * fast/text/hanging-punctuation-first-expected.html: Added.
+        * fast/text/hanging-punctuation-first-rtl-expected.html: Added.
+        * fast/text/hanging-punctuation-first-rtl.html: Added.
+        * fast/text/hanging-punctuation-first.html: Added.
+
+2016-03-01  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Make HTML parser construct custom elements
+        https://bugs.webkit.org/show_bug.cgi?id=154908
+
+        Reviewed by Antti Koivisto.
+
+        Added W3C testharness.js based tests for instantiating custom elements inside the HTML parser.
+
+        * fast/custom-elements/parser: Added.
+        * fast/custom-elements/parser/parser-constructs-custom-elements-expected.txt: Added.
+        * fast/custom-elements/parser/parser-constructs-custom-elements.html: Added.
+        * fast/custom-elements/parser/parser-fallsback-to-unknown-element-expected.txt: Added.
+        * fast/custom-elements/parser/parser-fallsback-to-unknown-element.html: Added.
+        * fast/custom-elements/parser/parser-sets-attributes-and-children-expected.txt: Added.
+        * fast/custom-elements/parser/parser-sets-attributes-and-children.html: Added.
+        * fast/custom-elements/parser/parser-uses-constructed-element-expected.txt: Added.
+        * fast/custom-elements/parser/parser-uses-constructed-element.html: Added.
+
+2016-03-02  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLInputElement.maxLength with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=154906
+
+        Reviewed by Ryosuke Niwa.
+
+        Update test now that input.maxLength initially returns -1
+        instead of 524288.
+
+        * fast/forms/input-maxlength-expected.txt:
+        * fast/forms/input-maxlength.html:
+
+2016-03-02  Zalan Bujtas  <zalan@apple.com>
+
+        Subpixel layout: Enable vertical/horizontal subpixel spacing for tables.
+        https://bugs.webkit.org/show_bug.cgi?id=154899
+
+        Reviewed by Simon Fraser.
+
+        This patch enables authors to specify device pixel values for table border spacing.
+        (see border-spacing)
+
+        * fast/table/hidpi-vertical-and-horizontal-spacing-expected.html: Added.
+        * fast/table/hidpi-vertical-and-horizontal-spacing.html: Added.
+
+2016-03-02  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        [AX][GTK] Position-related tests need new baseline after r196439
+        https://bugs.webkit.org/show_bug.cgi?id=154917
+
+        The tests in question include the position accessed via the component
+        interface. The result changed by one pixel after r196439.
+
+        Unreviewed gardening.
+
+        * platform/gtk/accessibility/image-link-expected.txt: new baseline
+        * platform/gtk/accessibility/math-multiscript-attributes-expected.txt: new baseline
+        * platform/gtk/accessibility/table-attributes-expected.txt: new baseline
+        * platform/gtk/accessibility/table-cell-spans-expected.txt: new baseline
+        * platform/gtk/accessibility/table-cells-expected.txt: new baseline
+        * platform/gtk/accessibility/table-detection-expected.txt: new baseline
+        * platform/gtk/accessibility/table-sections-expected.txt: new baseline
+
+2016-02-26  Ryosuke Niwa  <rniwa@webkit.org>
+
+        Contents inside a shadow host with a negative tabindex should not be tab focusable
+        https://bugs.webkit.org/show_bug.cgi?id=154769
+
+        Reviewed by Antti Koivisto.
+
+        Added a test for navigating across shadow boundaries.
+
+        * fast/shadow-dom/negative-tabindex-on-shadow-host-expected.txt: Added.
+        * fast/shadow-dom/negative-tabindex-on-shadow-host.html: Added.
+        * platform/ios-simulator/TestExpectations:
+
+2016-03-01  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        Small-caps non-BMP characters are garbled in the complex text codepath
+        https://bugs.webkit.org/show_bug.cgi?id=154875
+
+        Reviewed by Michael Saboff.
+
+        * fast/text/complex-small-caps-non-bmp-capitalize-expected.html: Added.
+        * fast/text/complex-small-caps-non-bmp-capitalize.html: Added.
+        * fast/text/regress-154875-expected.txt: Deleted
+        * fast/text/regress-154875.html: Deleted
+
+2016-03-01  Michael Saboff  <msaboff@apple.com>
+
+        [ES6] Add support for Unicode regular expressions
+        https://bugs.webkit.org/show_bug.cgi?id=154842
+
+        Reviewed by Filip Pizlo.
+
+        Added a new test for the added unicode regular expression processing.
+
+        Updated several tests for the y flag changes and "unicode" property.
+
+        * js/regexp-unicode-expected.txt: Added.
+        * js/regexp-unicode.html: Added.
+        * js/script-tests/regexp-unicode.js: Added.
+        New test.
+
+        * js/Object-getOwnPropertyNames-expected.txt:
+        * js/regexp-flags-expected.txt:
+        * js/script-tests/Object-getOwnPropertyNames.js:
+        * js/script-tests/regexp-flags.js:
+        (RegExp.prototype.hasOwnProperty):
+        Updated tests.
+
+2016-03-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking fast/text/crash-complex-text-surrogate.html as flaky on mac
+        https://bugs.webkit.org/show_bug.cgi?id=154709
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-03-01  Michael Saboff  <msaboff@apple.com>
+
+        ASSERT in platform/graphics/mac/ComplexTextController.cpp::capitalize()
+        https://bugs.webkit.org/show_bug.cgi?id=154875
+
+        Reviewed by Myles C. Maxfield.
+
+        New test.
+
+        * fast/text/regress-154875-expected.txt: Added.
+        * fast/text/regress-154875.html: Added.
+
+2016-03-01  Filip Pizlo  <fpizlo@apple.com>
+
+        FTL should simplify StringReplace with an empty replacement string
+        https://bugs.webkit.org/show_bug.cgi?id=154871
+
+        Reviewed by Michael Saboff.
+
+        Really add this new test.
+
+        * js/regress/script-tests/string-replace-empty.js: Added.
+        * js/regress/string-replace-empty-expected.txt: Added.
+        * js/regress/string-replace-empty.html: Added.
+
+2016-02-29  Filip Pizlo  <fpizlo@apple.com>
+
+        Turn String.prototype.replace into an intrinsic
+        https://bugs.webkit.org/show_bug.cgi?id=154835
+
+        Reviewed by Michael Saboff.
+
+        * js/regress/script-tests/string-replace.js: Added.
+        * js/regress/string-replace-expected.txt: Added.
+        * js/regress/string-replace.html: Added.
+
+2016-03-01  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline isplaylists/extent-includes tests for mac-wk1
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/displaylists/extent-includes-shadow-expected.txt:
+        * platform/mac-wk1/displaylists/extent-includes-transforms-expected.txt:
+
+2016-02-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking webgl/1.0.2/conformance/extensions/get-extension.html as flaky on mac, removing wk1 specific flakiness expectation.
+        https://bugs.webkit.org/show_bug.cgi?id=152506
+
+        Unreviewed test gardening.
+
+        * platform/mac-wk1/TestExpectations:
+        * platform/mac/TestExpectations:
+
+2016-02-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Marking storage/indexeddb/deletedatabase-delayed-by-open-and-versionchange.html as flaky on mac
+        https://bugs.webkit.org/show_bug.cgi?id=154748
+
+        Unreviewed test gardening.
+
+        * platform/mac/TestExpectations:
+
+2016-02-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Re-enable passing fast/multicol/newmulticol tests on ios-simulator
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/TestExpectations:
+
+2016-02-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Removing unnecessary ios-simulator-wk2 expectation file.
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator-wk2/imported/w3c/web-platform-tests/html/semantics/forms/the-input-element/type-change-state-expected.txt: Removed.
+
+2016-02-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline imported/w3c/web-platform-tests/html/dom/reflection-forms.html after r197355
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/dom/reflection-forms-expected.txt:
+
+2016-02-29  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline imported/w3c/web-platform-tests/html/dom/reflection-embedded.html for ios-simulator after r197237 
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/dom/reflection-embedded-expected.txt:
+
+2016-02-28  Filip Pizlo  <fpizlo@apple.com>
+
+        B3 should have global store elimination
+        https://bugs.webkit.org/show_bug.cgi?id=154658
+
+        Reviewed by Benjamin Poulain.
+
+        These two benchmarks both speed up significantly with this change.
+
+        * js/regress/build-large-object-expected.txt: Added.
+        * js/regress/build-large-object.html: Added.
+        * js/regress/many-repeat-stores-expected.txt: Added.
+        * js/regress/many-repeat-stores.html: Added.
+        * js/regress/script-tests/build-large-object.js: Added.
+        * js/regress/script-tests/many-repeat-stores.js: Added.
+
+2016-02-29  Youenn Fablet  <youenn.fablet@crf.canon.fr>
+
+        streams/pipe-to.html flaky on mac-wk1 debug
+        https://bugs.webkit.org/show_bug.cgi?id=154687
+
+        Reviewed by Darin Adler.
+
+        * TestExpectations: Marking streams/pipe-to.html as slow.
+        * streams/pipe-to.html: Increasing the timeout value.
+
+2016-02-29  Adrien Plazas  <aplazas@igalia.com>
+
+        [GTK] Touch slider test fails due to assertion in webkitWebViewBaseTouchEvent()
+        https://bugs.webkit.org/show_bug.cgi?id=153829
+
+        Reviewed by Carlos Garcia Campos.
+
+        * platform/gtk/TestExpectations:
+        Remove now passing tests from the expected failures.
+
+2016-02-28  Antti Koivisto  <antti@apple.com>
+
+        ::slotted doesn't work in nested shadow trees
+        https://bugs.webkit.org/show_bug.cgi?id=154765
+        <rdar://problem/24870995>
+
+        Reviewed by Ryosuke Niwa.
+
+        * fast/shadow-dom/css-scoping-shadow-slotted-nested-expected.html: Added.
+        * fast/shadow-dom/css-scoping-shadow-slotted-nested.html: Added.
+
+2016-02-28  Tim Horton  <timothy_horton@apple.com>
+
+        Switch to application/vnd.apple.folder for <attachment> folder special-case
+        https://bugs.webkit.org/show_bug.cgi?id=154786
+        <rdar://problem/24416632>
+
+        Reviewed by Anders Carlsson.
+
+        * fast/attachment/attachment-folder-icon-expected.html:
+        * fast/attachment/attachment-folder-icon.html:
+
+2016-02-28  Tim Horton  <timothy_horton@apple.com>
+
+        Variables can resolve to the wrong value when elements differ in nothing but inherited variable value
+        https://bugs.webkit.org/show_bug.cgi?id=154785
+
+        Reviewed by Antti Koivisto.
+
+        * fast/css/variables/avoid-matched-property-cache-expected.html: Added.
+        * fast/css/variables/avoid-matched-property-cache.html: Added.
+        Add a test. The non-standard element is necessary because the resolved property
+        cache is already disabled when using the "simple" default style sheet, and
+        it seems better to use a totally non-standard element than one that might
+        end up in the "simple" default style sheet in the future and would silently
+        invalidate the test.
+
+2016-02-28  Skachkov Oleksandr  <gskachkov@gmail.com>
+
+        [ES6] Arrow function syntax. Emit loading&putting this/super only if they are used in arrow function
+        https://bugs.webkit.org/show_bug.cgi?id=153981
+
+        Reviewed by Saam Barati.
+
+        Added new benchmark tests for invoking arrow function within function, class's constructor and method
+
+        * js/regress/arrowfunction-call-in-class-constructor-expected.txt: Added.
+        * js/regress/arrowfunction-call-in-class-constructor.html: Added.
+        * js/regress/arrowfunction-call-in-class-method-expected.txt: Added.
+        * js/regress/arrowfunction-call-in-class-method.html: Added.
+        * js/regress/arrowfunction-call-in-function-expected.txt: Added.
+        * js/regress/arrowfunction-call-in-function.html: Added.
+        * js/regress/script-tests/arrowfunction-call-in-class-constructor.js: Added.
+        * js/regress/script-tests/arrowfunction-call-in-class-method.js: Added.
+        * js/regress/script-tests/arrowfunction-call-in-function.js: Added.
+        * js/regress/script-tests/arrowfunction-call.js:
+
+2016-02-27  Sukolsak Sakshuwong  <sukolsak@gmail.com>
+
+        Removing ios-simulator baseline for js/number-toLocaleString.html
+        https://bugs.webkit.org/show_bug.cgi?id=154524
+
+        Reviewed by Darin Adler.
+
+        The default locale issue has been fixed in r197261.
+        Infinity.toLocaleString() should return "∞" as expected.
+
+        * platform/ios-simulator/js/number-toLocaleString-expected.txt: Removed.
+
+2016-02-27  Chris Dumez  <cdumez@apple.com>
+
+        Prevent cross-origin access to Location.assign() / Location.reload()
+        https://bugs.webkit.org/show_bug.cgi?id=154779
+
+        Reviewed by Darin Adler.
+
+        Update existing layout tests now that we prevent cross-origin access to
+        Location.assign() / Location.reload().
+
+        * http/tests/security/cross-frame-access-getOwnPropertyDescriptor-expected.txt:
+        * http/tests/security/cross-frame-access-getOwnPropertyDescriptor.html:
+        * http/tests/security/cross-frame-access-location-get-expected.txt:
+        * http/tests/security/cross-frame-access-location-get-override-expected.txt:
+        * http/tests/security/cross-frame-access-location-get-override.html:
+        * http/tests/security/cross-frame-access-location-get.html:
+        * http/tests/security/xss-DENIED-defineProperty-expected.txt:
+
+2016-02-27  Andy VanWagoner  <thetalecrafter@gmail.com>
+
+        Intl.Collator uses POSIX locale (detected by js/intl-collator.html on iOS Simulator)
+        https://bugs.webkit.org/show_bug.cgi?id=152448
+
+        Reviewed by Darin Adler.
+
+        Add tests for default locale in test runner to be en-US.
+
+        * js/intl-collator-expected.txt:
+        * js/intl-datetimeformat-expected.txt:
+        * js/intl-numberformat-expected.txt:
+        * js/script-tests/intl-collator.js:
+        * js/script-tests/intl-datetimeformat.js:
+        * js/script-tests/intl-numberformat.js:
+
+2016-02-27  Chris Dumez  <cdumez@apple.com>
+
+        Align HTMLMarqueeElement.scrollAmount / scrollDelay with the specification
+        https://bugs.webkit.org/show_bug.cgi?id=154781
+
+        Reviewed by Darin Adler.
+
+        Update existing test to reflect the behavior changes.
+
+        * fast/html/marquee-element-expected.txt:
+        * fast/html/marquee-element.html:
+
+2016-02-27  Alexey Proskuryakov  <ap@apple.com>
+
+        Mark failing reftests as such, now that we detect reftest failures.
+
+        * platform/ios-simulator/TestExpectations:
+
+2016-02-27  Alexey Proskuryakov  <ap@apple.com>
+
+        REGRESSION(r195795): [WK2] fast/text/crash-complex-text-surrogate.html is flakey
+        https://bugs.webkit.org/show_bug.cgi?id=154709
+
+        The test has been made made non-flaky, but it also needs new results.
+
+        * platform/mac/fast/text/crash-complex-text-surrogate-expected.txt:
+
+2016-02-26  Chris Dumez  <cdumez@apple.com>
+
+        Fix the behavior of reflecting IDL attributes of type unsigned long
+        https://bugs.webkit.org/show_bug.cgi?id=154771
+
+        Reviewed by Ryosuke Niwa.
+
+        Add test coverage for the behavior of reflecting IDL attributes of type
+        unsigned long.
+
+        * fast/dom/reflect-unsigned-long-expected.txt: Added.
+        * fast/dom/reflect-unsigned-long.html: Added.
+
+2016-02-26  Zalan Bujtas  <zalan@apple.com>
+
+        REGRESSION (188611): Search field Cancel button should not overlap search text on extensions page.
+        https://bugs.webkit.org/show_bug.cgi?id=154692
+        <rdar://problem/22840453>
+
+        Reviewed by Brent Fulgham.
+
+        Adjust the cancel button position using the actual size of the cancel button.
+
+        When the input box and the font height trigger different cancel button sizes, we need to readjust
+        the rectangle returned by cancelButtonRectForBounds.
+        This fixes both the mispositioned cancel button and the squared off icon when the input field is zoomed all the way in.
+
+        * fast/forms/search/search-padding-cancel-results-buttons-expected.txt:
+        * platform/mac/fast/css/focus-ring-exists-for-search-field-expected.txt:
+        * platform/mac/fast/css/text-input-with-webkit-border-radius-expected.txt:
+        * platform/mac/fast/css/text-overflow-input-expected.txt:
+        * platform/mac/fast/forms/box-shadow-override-expected.txt:
+        * platform/mac/fast/forms/control-restrict-line-height-expected.txt:
+        * platform/mac/fast/forms/input-appearance-height-expected.txt:
+        * platform/mac/fast/forms/placeholder-position-expected.txt:
+        * platform/mac/fast/forms/placeholder-pseudo-style-expected.txt:
+        * platform/mac/fast/forms/search-cancel-button-style-sharing-expected.txt:
+        * platform/mac/fast/forms/search-display-none-cancel-button-expected.txt:
+        * platform/mac/fast/forms/search-rtl-expected.txt:
+        * platform/mac/fast/forms/search-styled-expected.txt:
+        * platform/mac/fast/forms/search-vertical-alignment-expected.txt:
+        * platform/mac/fast/forms/search/search-size-with-decorations-expected.txt:
+        * platform/mac/fast/forms/searchfield-heights-expected.txt:
+        * platform/mac/fast/repaint/search-field-cancel-expected.txt:
+        * platform/mac/fast/replaced/width100percent-searchfield-expected.txt:
+
+2016-02-26  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197216.
+        https://bugs.webkit.org/show_bug.cgi?id=154766
+
+        Test simply needs updated result (Requested by litherum on
+        #webkit).
+
+        Reverted changeset:
+
+        "Unreviewed, rolling out r197158."
+        https://bugs.webkit.org/show_bug.cgi?id=154758
+        http://trac.webkit.org/changeset/197216
+
+2016-02-26  Ryan Haddad  <ryanhaddad@apple.com>
+
+        Rebaseline tests for ios-simulator after r197162
+
+        Unreviewed test gardening.
+
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/dom/interfaces-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/forms/the-input-element/type-change-state-expected.txt:
+        * platform/ios-simulator/imported/w3c/web-platform-tests/html/semantics/selectors/pseudo-classes/indeterminate-radio-expected.txt: Added.
+
+2016-02-26  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197158.
+        https://bugs.webkit.org/show_bug.cgi?id=154758
+
+        This change did not fix the failing test (Requested by
+        ryanhaddad on #webkit).
+
+        Reverted changeset:
+
+        "REGRESSION(r195795): [WK2] fast/text/crash-complex-text-
+        surrogate.html is flakey"
+        https://bugs.webkit.org/show_bug.cgi?id=154709
+        http://trac.webkit.org/changeset/197158
+
+2016-02-26  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r197160.
+        https://bugs.webkit.org/show_bug.cgi?id=154757
+
+        This change causes editing/mac/attributed-string/font-
+        size.html to fail on El Capitan WK1 (Requested by ryanhaddad
+        on #webkit).
+
+        Reverted changeset:
+
+        "Font size computed style is innaccurate"
+        https://bugs.webkit.org/show_bug.cgi?id=154705
+        http://trac.webkit.org/changeset/197160
+
 2016-02-26  Ryan Haddad  <ryanhaddad@apple.com>
 
         Skip js/basic-map.html on Mac since it is already run in JSC tests

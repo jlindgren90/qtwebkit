@@ -49,6 +49,14 @@ SOFT_LINK_CLASS(AVKit, AVValueTiming)
 using namespace WebCore;
 
 @interface WebPlaybackControlsManager : NSObject {
+    NSTimeInterval _contentDuration;
+    AVValueTiming *_timing;
+    NSTimeInterval _seekToTime;
+    NSArray *_seekableTimeRanges;
+    BOOL _hasEnabledAudio;
+    BOOL _hasEnabledVideo;
+    float _rate;
+
 @private
     WebCore::WebVideoFullscreenInterfaceMac* _webVideoFullscreenInterfaceMac;
 }
@@ -71,6 +79,14 @@ using namespace WebCore;
 #endif
 
 @implementation WebPlaybackControlsManager
+
+@synthesize contentDuration=_contentDuration;
+@synthesize timing=_timing;
+@synthesize seekToTime=_seekToTime;
+@synthesize seekableTimeRanges=_seekableTimeRanges;
+@synthesize hasEnabledAudio=_hasEnabledAudio;
+@synthesize hasEnabledVideo=_hasEnabledVideo;
+@synthesize rate=_rate;
 
 - (instancetype)initWithWebVideoFullscreenInterfaceMac:(WebCore::WebVideoFullscreenInterfaceMac*)webVideoFullscreenInterfaceMac
 {
@@ -245,6 +261,10 @@ void WebVideoFullscreenInterfaceMac::exitFullscreen(const IntRect&, NSWindow *)
 {
 }
 
+void WebVideoFullscreenInterfaceMac::exitFullscreenWithoutAnimationToMode(HTMLMediaElementEnums::VideoFullscreenMode)
+{
+}
+
 void WebVideoFullscreenInterfaceMac::cleanupFullscreen()
 {
 }
@@ -254,6 +274,10 @@ void WebVideoFullscreenInterfaceMac::invalidate()
 }
 
 void WebVideoFullscreenInterfaceMac::preparedToReturnToInline(bool, const IntRect&, NSWindow *)
+{
+}
+
+void WebVideoFullscreenInterfaceMac::setExternalPlayback(bool, ExternalPlaybackTargetType, WTF::String)
 {
 }
 

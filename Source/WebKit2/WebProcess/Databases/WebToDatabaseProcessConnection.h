@@ -72,7 +72,8 @@ private:
     RefPtr<IPC::Connection> m_connection;
 
 #if ENABLE(INDEXED_DATABASE)
-    HashMap<uint64_t, RefPtr<WebIDBConnectionToServer>> m_webIDBConnections;
+    HashMap<WebCore::SessionID, RefPtr<WebIDBConnectionToServer>> m_webIDBConnectionsBySession;
+    HashMap<uint64_t, RefPtr<WebIDBConnectionToServer>> m_webIDBConnectionsByIdentifier;
 #endif
 };
 

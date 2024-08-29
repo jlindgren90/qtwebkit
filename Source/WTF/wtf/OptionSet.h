@@ -27,7 +27,6 @@
 #define OptionSet_h
 
 #include <initializer_list>
-#include <iterator>
 #include <type_traits>
 #include <wtf/Assertions.h>
 #include <wtf/MathExtras.h>
@@ -69,7 +68,7 @@ public:
 
     static OptionSet fromRaw(StorageType storageType)
     {
-        return OptionSet(static_cast<T>(storageType), FromRawValue);
+        return static_cast<T>(storageType);
     }
 
     constexpr OptionSet() = default;
@@ -91,10 +90,8 @@ public:
     // in a constexpr function.
     OptionSet(std::initializer_list<T> initializerList)
     {
-        for (auto& option : initializerList) {
-            ASSERT_WITH_MESSAGE(hasOneBitSet(static_cast<StorageType>(option)), "Enumerator is not a positive power of two.");
+        for (auto& option : initializerList)
             m_storage |= static_cast<StorageType>(option);
-        }
     }
 
     constexpr StorageType toRaw() const { return m_storage; }
@@ -117,11 +114,6 @@ public:
     }
 
 private:
-    enum InitializationTag { FromRawValue };
-    constexpr OptionSet(T t, InitializationTag)
-        : m_storage(static_cast<StorageType>(t))
-    {
-    }
     StorageType m_storage { 0 };
 };
 

@@ -150,10 +150,10 @@ Vector<Operand<FloatType>> floatingPointOperands()
 static Vector<Int64Operand> int64Operands()
 {
     Vector<Int64Operand> operands;
+    for (const auto& doubleOperand : floatingPointOperands<double>())
+        operands.append({ doubleOperand.name, bitwise_cast<int64_t>(doubleOperand.value) });
     operands.append({ "1", 1 });
     operands.append({ "-1", -1 });
-    operands.append({ "42", 42 });
-    operands.append({ "-42", -42 });
     operands.append({ "int64-max", std::numeric_limits<int64_t>::max() });
     operands.append({ "int64-min", std::numeric_limits<int64_t>::min() });
     operands.append({ "int32-max", std::numeric_limits<int32_t>::max() });

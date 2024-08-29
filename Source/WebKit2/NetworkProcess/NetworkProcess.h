@@ -116,6 +116,9 @@ public:
     
     void prefetchDNS(const String&);
 
+    void ensurePrivateBrowsingSession(WebCore::SessionID);
+
+private:
     NetworkProcess();
 
 private:
@@ -158,7 +161,6 @@ private:
     void didReceiveSyncNetworkProcessMessage(IPC::Connection&, IPC::MessageDecoder&, std::unique_ptr<IPC::MessageEncoder>&);
     void initializeNetworkProcess(const NetworkProcessCreationParameters&);
     void createNetworkConnectionToWebProcess();
-    void ensurePrivateBrowsingSession(WebCore::SessionID);
     void destroyPrivateBrowsingSession(WebCore::SessionID);
 
     void fetchWebsiteData(WebCore::SessionID, OptionSet<WebsiteDataType>, OptionSet<WebsiteDataFetchOption>, uint64_t callbackID);

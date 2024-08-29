@@ -201,9 +201,9 @@ Structure::Structure(VM& vm, JSGlobalObject* globalObject, JSValue prototype, co
     setHasGetterSetterProperties(classInfo->hasStaticSetterOrReadonlyProperties());
     setHasCustomGetterSetterProperties(false);
     setHasReadOnlyOrGetterSetterPropertiesExcludingProto(classInfo->hasStaticSetterOrReadonlyProperties());
-    setHasNonEnumerableProperties(false);
+    setIsQuickPropertyAccessAllowedForEnumeration(true);
     setAttributesInPrevious(0);
-    setPreventExtensions(false);
+    setDidPreventExtensions(false);
     setDidTransition(false);
     setStaticFunctionsReified(false);
     setHasRareData(false);
@@ -233,9 +233,9 @@ Structure::Structure(VM& vm)
     setHasGetterSetterProperties(m_classInfo->hasStaticSetterOrReadonlyProperties());
     setHasCustomGetterSetterProperties(false);
     setHasReadOnlyOrGetterSetterPropertiesExcludingProto(m_classInfo->hasStaticSetterOrReadonlyProperties());
-    setHasNonEnumerableProperties(false);
+    setIsQuickPropertyAccessAllowedForEnumeration(true);
     setAttributesInPrevious(0);
-    setPreventExtensions(false);
+    setDidPreventExtensions(false);
     setDidTransition(false);
     setStaticFunctionsReified(false);
     setHasRareData(false);
@@ -264,9 +264,9 @@ Structure::Structure(VM& vm, Structure* previous, DeferredStructureTransitionWat
     setHasGetterSetterProperties(previous->hasGetterSetterProperties());
     setHasCustomGetterSetterProperties(previous->hasCustomGetterSetterProperties());
     setHasReadOnlyOrGetterSetterPropertiesExcludingProto(previous->hasReadOnlyOrGetterSetterPropertiesExcludingProto());
-    setHasNonEnumerableProperties(previous->hasNonEnumerableProperties());
+    setIsQuickPropertyAccessAllowedForEnumeration(previous->isQuickPropertyAccessAllowedForEnumeration());
     setAttributesInPrevious(0);
-    setPreventExtensions(previous->preventExtensions());
+    setDidPreventExtensions(previous->didPreventExtensions());
     setDidTransition(true);
     setStaticFunctionsReified(previous->staticFunctionsReified());
     setHasRareData(false);
@@ -625,7 +625,7 @@ Structure* Structure::preventExtensionsTransition(VM& vm, Structure* structure)
     structure->materializePropertyMapIfNecessary(vm, deferGC);
     transition->propertyTable().set(vm, transition, structure->copyPropertyTableForPinning(vm));
     transition->m_offset = structure->m_offset;
-    transition->setPreventExtensions(true);
+    transition->setDidPreventExtensions(true);
     transition->pin();
 
     transition->checkOffsetConsistency();
@@ -691,7 +691,7 @@ Structure* Structure::nonPropertyTransition(VM& vm, Structure* structure, NonPro
 // In future we may want to cache this property.
 bool Structure::isSealed(VM& vm)
 {
-    if (isExtensible())
+    if (isStructureExtensible())
         return false;
 
     DeferGC deferGC(vm.heap);
@@ -710,7 +710,7 @@ bool Structure::isSealed(VM& vm)
 // In future we may want to cache this property.
 bool Structure::isFrozen(VM& vm)
 {
-    if (isExtensible())
+    if (isStructureExtensible())
         return false;
 
     DeferGC deferGC(vm.heap);
@@ -986,7 +986,7 @@ PropertyOffset Structure::add(VM& vm, PropertyName propertyName, unsigned attrib
 
     checkConsistency();
     if (attributes & DontEnum)
-        setHasNonEnumerableProperties(true);
+        setIsQuickPropertyAccessAllowedForEnumeration(false);
 
     auto rep = propertyName.uid();
 
@@ -1044,7 +1044,7 @@ void Structure::getPropertyNamesFromStructure(VM& vm, PropertyNameArray& propert
 
     PropertyTable::iterator end = propertyTable()->end();
     for (PropertyTable::iterator iter = propertyTable()->begin(); iter != end; ++iter) {
-        ASSERT(hasNonEnumerableProperties() || !(iter->attributes & DontEnum));
+        ASSERT(!isQuickPropertyAccessAllowedForEnumeration() || !(iter->attributes & DontEnum));
         if (!(iter->attributes & DontEnum) || mode.includeDontEnumProperties()) {
             if (iter->key->isSymbol() && !propertyNames.includeSymbolProperties())
                 continue;
@@ -1311,7 +1311,7 @@ void Structure::checkConsistency()
     if (!propertyTable())
         return;
 
-    if (!hasNonEnumerableProperties()) {
+    if (isQuickPropertyAccessAllowedForEnumeration()) {
         PropertyTable::iterator end = propertyTable()->end();
         for (PropertyTable::iterator iter = propertyTable()->begin(); iter != end; ++iter) {
             ASSERT(!(iter->attributes & DontEnum));
@@ -1381,9 +1381,9 @@ bool Structure::canCachePropertyNameEnumerator() const
     return true;
 }
     
-bool Structure::canAccessPropertiesQuickly() const
+bool Structure::canAccessPropertiesQuicklyForEnumeration() const
 {
-    if (hasNonEnumerableProperties())
+    if (!isQuickPropertyAccessAllowedForEnumeration())
         return false;
     if (hasGetterSetterProperties())
         return false;

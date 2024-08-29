@@ -628,6 +628,28 @@ inline JSValue JSValue::toPrimitive(ExecState* exec, PreferredPrimitiveType pref
     return isCell() ? asCell()->toPrimitive(exec, preferredType) : asValue();
 }
 
+inline PreferredPrimitiveType toPreferredPrimitiveType(ExecState* exec, JSValue value)
+{
+    if (!value.isString()) {
+        throwTypeError(exec, "Primitive hint is not a string.");
+        return NoPreference;
+    }
+
+    StringImpl* hintString = jsCast<JSString*>(value)->value(exec).impl();
+    if (exec->hadException())
+        return NoPreference;
+
+    if (WTF::equal(hintString, "default"))
+        return NoPreference;
+    if (WTF::equal(hintString, "number"))
+        return PreferNumber;
+    if (WTF::equal(hintString, "string"))
+        return PreferString;
+
+    throwTypeError(exec, "Expected primitive hint to match one of 'default', 'number', 'string'.");
+    return NoPreference;
+}
+
 inline bool JSValue::getPrimitiveNumber(ExecState* exec, double& number, JSValue& value)
 {
     if (isInt32()) {
@@ -754,6 +776,13 @@ ALWAYS_INLINE JSValue JSValue::get(ExecState* exec, unsigned propertyName, Prope
     if (object->getPropertySlot(exec, propertyName, slot))
         return slot.getValue(exec, propertyName);
     return jsUndefined();
+}
+
+ALWAYS_INLINE JSValue JSValue::get(ExecState* exec, uint64_t propertyName) const
+{
+    if (LIKELY(propertyName <= std::numeric_limits<unsigned>::max()))
+        return get(exec, static_cast<unsigned>(propertyName));
+    return get(exec, Identifier::from(exec, static_cast<double>(propertyName)));
 }
 
 inline void JSValue::put(ExecState* exec, PropertyName propertyName, JSValue value, PutPropertySlot& slot)

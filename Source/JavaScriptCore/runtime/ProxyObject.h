@@ -28,6 +28,7 @@
 
 #include "JSGlobalObject.h"
 #include "JSObject.h"
+#include "RuntimeType.h"
 
 namespace JSC {
 
@@ -35,7 +36,9 @@ class ProxyObject : public JSNonFinalObject {
 public:
     typedef JSNonFinalObject Base;
 
-    const static unsigned StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot | TypeOfShouldCallGetCallData | InterceptsGetOwnPropertySlotByIndexEvenWhenLengthIsNotZero;
+    // We lie an say we override getPropertyNames() because it prevents
+    // property name enumeration caching.
+    const static unsigned StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot | TypeOfShouldCallGetCallData | InterceptsGetOwnPropertySlotByIndexEvenWhenLengthIsNotZero | OverridesGetPropertyNames;
 
     static ProxyObject* create(ExecState* exec, Structure* structure, JSValue target, JSValue handler)
     {
@@ -47,7 +50,11 @@ public:
 
     static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
     {
-        return Structure::create(vm, globalObject, prototype, TypeInfo(ProxyObjectType, StructureFlags), info(), NonArray | MayHaveIndexedAccessors);
+        Structure* result = Structure::create(vm, globalObject, prototype, TypeInfo(ProxyObjectType, StructureFlags), info(), NonArray | MayHaveIndexedAccessors);
+        result->setIsQuickPropertyAccessAllowedForEnumeration(false);
+        RELEASE_ASSERT(!result->canAccessPropertiesQuicklyForEnumeration());
+        RELEASE_ASSERT(!result->canCachePropertyNameEnumerator());
+        return result;
     }
 
     DECLARE_EXPORT_INFO;
@@ -69,6 +76,14 @@ private:
     static ConstructType getConstructData(JSCell*, ConstructData&);
     static bool deleteProperty(JSCell*, ExecState*, PropertyName);
     static bool deletePropertyByIndex(JSCell*, ExecState*, unsigned propertyName);
+    static bool preventExtensions(JSObject*, ExecState*);
+    static bool isExtensible(JSObject*, ExecState*);
+    static bool defineOwnProperty(JSObject*, ExecState*, PropertyName, const PropertyDescriptor&, bool shouldThrow);
+    static void getOwnPropertyNames(JSObject*, ExecState*, PropertyNameArray&, EnumerationMode);
+    static NO_RETURN_DUE_TO_CRASH void getOwnNonIndexPropertyNames(JSObject*, ExecState*, PropertyNameArray&, EnumerationMode);
+    static NO_RETURN_DUE_TO_CRASH void getStructurePropertyNames(JSObject*, ExecState*, PropertyNameArray&, EnumerationMode);
+    static NO_RETURN_DUE_TO_CRASH void getGenericPropertyNames(JSObject*, ExecState*, PropertyNameArray&, EnumerationMode);
+    static bool setPrototype(JSObject*, ExecState*, JSValue prototype, bool shouldThrowIfCantSet);
     static void visitChildren(JSCell*, SlotVisitor&);
 
     bool getOwnPropertySlotCommon(ExecState*, PropertyName, PropertySlot&);
@@ -78,6 +93,11 @@ private:
     bool performDelete(ExecState*, PropertyName, DefaultDeleteFunction);
     template <typename PerformDefaultPutFunction>
     void performPut(ExecState*, JSValue putValue, JSValue thisValue, PropertyName, PerformDefaultPutFunction);
+    bool performPreventExtensions(ExecState*);
+    bool performIsExtensible(ExecState*);
+    bool performDefineOwnProperty(ExecState*, PropertyName, const PropertyDescriptor&, bool shouldThrow);
+    void performGetOwnPropertyNames(ExecState*, PropertyNameArray&, EnumerationMode);
+    bool performSetPrototype(ExecState*, JSValue prototype, bool shouldThrowIfCantSet);
 
     WriteBarrier<JSObject> m_target;
     WriteBarrier<Unknown> m_handler;

@@ -103,7 +103,10 @@ inline void* tryVMAllocate(size_t vmAlignment, size_t vmSize)
     vmValidate(vmSize);
     vmValidate(vmAlignment);
 
-    size_t mappedSize = vmAlignment - vmPageSize + vmSize;
+    // We use getpagesize() here instead of vmPageSize because vmPageSize is
+    // allowed to be larger than the OS's true page size.
+
+    size_t mappedSize = vmAlignment - getpagesize() + vmSize;
     char* mapped = static_cast<char*>(tryVMAllocate(mappedSize));
     if (!mapped)
         return nullptr;

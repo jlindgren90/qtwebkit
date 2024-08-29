@@ -113,9 +113,6 @@ public:
     const IntSize& textAutosizingWindowSizeOverride() const { return m_textAutosizingWindowSizeOverride; }
 #endif
 
-    WEBCORE_EXPORT void setAntialiasedFontDilationEnabled(bool);
-    bool antialiasedFontDilationEnabled() const { return m_antialiasedFontDilationEnabled; }
-
     // Only set by Layout Tests.
     WEBCORE_EXPORT void setMediaTypeOverride(const String&);
     const String& mediaTypeOverride() const { return m_mediaTypeOverride; }
@@ -201,6 +198,9 @@ public:
 #if PLATFORM(COCOA)
     WEBCORE_EXPORT static void setQTKitEnabled(bool flag);
     static bool isQTKitEnabled() { return gQTKitEnabled; }
+
+    WEBCORE_EXPORT static void setCookieStoragePartitioningEnabled(bool flag);
+    static bool cookieStoragePartitioningEnabled() { return gCookieStoragePartitioningEnabled; }
 #else
     static bool isQTKitEnabled() { return false; }
 #endif
@@ -323,7 +323,6 @@ private:
     bool m_needsAdobeFrameReloadingQuirk : 1;
     bool m_usesPageCache : 1;
     unsigned m_fontRenderingMode : 1;
-    bool m_antialiasedFontDilationEnabled : 1;
     bool m_showTiledScrollingIndicator : 1;
     bool m_backgroundShouldExtendBeyondPage : 1;
     bool m_dnsPrefetchingEnabled : 1;
@@ -357,6 +356,7 @@ private:
 
 #if PLATFORM(COCOA)
     WEBCORE_EXPORT static bool gQTKitEnabled;
+    static bool gCookieStoragePartitioningEnabled;
 #endif
 
     static bool gMockScrollbarsEnabled;

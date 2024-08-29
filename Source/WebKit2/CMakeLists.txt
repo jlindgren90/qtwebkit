@@ -409,6 +409,7 @@ set(WebKit2_SOURCES
     UIProcess/API/APIURLSchemeHandlerTask.cpp
     UIProcess/API/APIUserContentExtension.cpp
     UIProcess/API/APIUserContentExtensionStore.cpp
+    UIProcess/API/APIUserContentWorld.cpp
     UIProcess/API/APIWebsiteDataStore.cpp
     UIProcess/API/APIWindowFeatures.cpp
 
@@ -722,7 +723,6 @@ set(WebKit2_MESSAGES_IN_FILES
     WebProcess/WebPage/WebInspector.messages.in
     WebProcess/WebPage/WebInspectorUI.messages.in
     WebProcess/WebPage/WebPage.messages.in
-    WebProcess/WebPage/WebPageGroupProxy.messages.in
 )
 
 set(WebProcess_LIBRARIES

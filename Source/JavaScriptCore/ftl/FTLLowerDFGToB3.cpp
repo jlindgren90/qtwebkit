@@ -1905,8 +1905,8 @@ private:
             LValue value = lowDouble(m_node->child1());
             result = m_out.doubleFloor(m_out.doubleAdd(value, m_out.constDouble(0.5)));
         } else {
-            LBasicBlock realPartIsMoreThanHalf = m_out.newBlock();
-            LBasicBlock continuation = m_out.newBlock();
+            LBasicBlock realPartIsMoreThanHalf = FTL_NEW_BLOCK(m_out, ("ArithRound should round down"));
+            LBasicBlock continuation = FTL_NEW_BLOCK(m_out, ("ArithRound continuation"));
 
             LValue value = lowDouble(m_node->child1());
             LValue integerValue = m_out.doubleCeil(value);
