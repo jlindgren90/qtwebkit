@@ -35,7 +35,7 @@ class ProxyObject : public JSNonFinalObject {
 public:
     typedef JSNonFinalObject Base;
 
-    const static unsigned StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot;
+    const static unsigned StructureFlags = Base::StructureFlags | OverridesGetOwnPropertySlot | TypeOfShouldCallGetCallData;
 
     static ProxyObject* create(ExecState* exec, Structure* structure, JSValue target, JSValue handler)
     {
@@ -61,6 +61,8 @@ private:
 
     static bool getOwnPropertySlot(JSObject*, ExecState*, PropertyName, PropertySlot&);
     static bool getOwnPropertySlotByIndex(JSObject*, ExecState*, unsigned propertyName, PropertySlot&);
+    static CallType getCallData(JSCell*, CallData&);
+    static ConstructType getConstructData(JSCell*, ConstructData&);
     static void visitChildren(JSCell*, SlotVisitor&);
 
     bool getOwnPropertySlotCommon(ExecState*, PropertyName, PropertySlot&);
@@ -69,6 +71,8 @@ private:
 
     WriteBarrier<JSObject> m_target;
     WriteBarrier<Unknown> m_handler;
+    bool m_isCallable : 1;
+    bool m_isConstructible : 1;
 };
 
 } // namespace JSC

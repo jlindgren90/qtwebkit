@@ -199,7 +199,7 @@ void ComposedTreeIterator::traverseSiblingInSlot(int direction)
 }
 #endif
 
-String composedTreeAsText(ContainerNode& root, ComposedTreeAsTextMode mode)
+String composedTreeAsText(ContainerNode& root)
 {
     TextStream stream;
     auto descendants = composedTreeDescendants(root);
@@ -207,18 +207,13 @@ String composedTreeAsText(ContainerNode& root, ComposedTreeAsTextMode mode)
         writeIndent(stream, it.depth());
 
         if (is<Text>(*it)) {
-            stream << "#text";
-            if (mode == ComposedTreeAsTextMode::WithPointers)
-                stream << " " << &*it;
-            stream << "\n";
+            stream << "#text\n";
             continue;
         }
         auto& element = downcast<Element>(*it);
         stream << element.localName();
         if (element.shadowRoot())
             stream << " (shadow root)";
-        if (mode == ComposedTreeAsTextMode::WithPointers)
-            stream << " " << &*it;
         stream << "\n";
     }
     return stream.release();

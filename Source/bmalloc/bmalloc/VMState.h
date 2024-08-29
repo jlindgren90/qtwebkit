@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,30 +23,57 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef MediumTraits_h
-#define MediumTraits_h
-
-#include "Sizes.h"
-#include "VMAllocate.h"
+#ifndef VMState_h
+#define VMState_h
 
 namespace bmalloc {
 
-template<class Traits> class Chunk;
-template<class Traits> class Line;
-template<class Traits> class Page;
+class VMState {
+public:
+    enum class HasPhysical : bool {
+        False = false,
+        True = true
+    };
 
-struct MediumTraits {
-    typedef Chunk<MediumTraits> ChunkType;
-    typedef Line<MediumTraits> LineType;
-    typedef Page<MediumTraits> PageType;
+    enum State : unsigned {
+        Invalid = 0x0,
+        Physical = 0x1,
+        Virtual = 0x2,
+        Mixed = 0x3
+    };
 
-    static const size_t lineSize = mediumLineSize;
-    static const size_t minimumObjectSize = smallMax + alignment;
-    static const size_t chunkSize = mediumChunkSize;
-    static const size_t chunkOffset = mediumChunkOffset;
-    static const uintptr_t chunkMask = mediumChunkMask;
+    VMState(State vmState)
+        : m_state(vmState)
+    {
+    }
+
+    explicit VMState(unsigned vmState)
+        : m_state(static_cast<State>(vmState))
+    {
+    }
+
+    inline bool hasPhysical()
+    {
+        return !!(m_state & VMState::Physical);
+    }
+
+    inline bool hasVirtual()
+    {
+        return !!(m_state & VMState::Virtual);
+    }
+
+    inline void merge(VMState otherVMState)
+    {
+        m_state = static_cast<State>(m_state | otherVMState.m_state);
+    }
+
+    bool operator==(VMState other) const { return m_state == other.m_state; }
+    explicit operator unsigned() const { return m_state; }
+
+private:
+    State m_state;
 };
 
 } // namespace bmalloc
 
-#endif // MediumTraits_h
+#endif // VMState_h

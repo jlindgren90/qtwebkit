@@ -143,13 +143,15 @@ bool EditorState::decode(IPC::ArgumentDecoder& decoder, EditorState& result)
 #if PLATFORM(IOS) || PLATFORM(GTK) || PLATFORM(MAC)
 void EditorState::PostLayoutData::encode(IPC::ArgumentEncoder& encoder) const
 {
-#if PLATFORM(IOS) || PLATFORM(GTK)
     encoder << typingAttributes;
+#if PLATFORM(IOS) || PLATFORM(GTK)
     encoder << caretRectAtStart;
 #endif
 #if PLATFORM(IOS) || PLATFORM(MAC)
     encoder << selectionClipRect;
     encoder << selectedTextLength;
+    encoder << textAlignment;
+    encoder << textColor;
 #endif
 #if PLATFORM(IOS)
     encoder << caretRectAtEnd;
@@ -170,9 +172,9 @@ void EditorState::PostLayoutData::encode(IPC::ArgumentEncoder& encoder) const
 
 bool EditorState::PostLayoutData::decode(IPC::ArgumentDecoder& decoder, PostLayoutData& result)
 {
-#if PLATFORM(IOS) || PLATFORM(GTK)
     if (!decoder.decode(result.typingAttributes))
         return false;
+#if PLATFORM(IOS) || PLATFORM(GTK)
     if (!decoder.decode(result.caretRectAtStart))
         return false;
 #endif
@@ -180,6 +182,10 @@ bool EditorState::PostLayoutData::decode(IPC::ArgumentDecoder& decoder, PostLayo
     if (!decoder.decode(result.selectionClipRect))
         return false;
     if (!decoder.decode(result.selectedTextLength))
+        return false;
+    if (!decoder.decode(result.textAlignment))
+        return false;
+    if (!decoder.decode(result.textColor))
         return false;
 #endif
 #if PLATFORM(IOS)

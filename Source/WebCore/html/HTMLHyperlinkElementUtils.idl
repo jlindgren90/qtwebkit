@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Apple Inc. All rights reserved.
+ * Copyright (C) 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,33 +23,29 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef WKPluginSiteDataManager_h
-#define WKPluginSiteDataManager_h
+[
+    NoInterfaceObject
+] interface HTMLHyperlinkElementUtils {
+    [Reflect, URL] attribute DOMString href;
+    readonly attribute DOMString origin;
 
-#include <WebKit/WKBase.h>
-
-#ifdef __cplusplus
-extern "C" {
+#if defined(LANGUAGE_OBJECTIVE_C) && LANGUAGE_OBJECTIVE_C
+    readonly attribute DOMString protocol;
+    readonly attribute DOMString host;
+    readonly attribute DOMString hostname;
+    readonly attribute DOMString port;
+    readonly attribute DOMString pathname;
+    readonly attribute DOMString search;
+    readonly attribute DOMString hash;
+#else
+    attribute DOMString protocol;
+    attribute DOMString username;
+    attribute DOMString password;
+    attribute DOMString host;
+    attribute DOMString hostname;
+    attribute DOMString port;
+    attribute DOMString pathname;
+    attribute DOMString search;
+    attribute DOMString hash;
 #endif
-
-WK_EXPORT WKTypeID WKPluginSiteDataManagerGetTypeID();
-
-typedef void (*WKPluginSiteDataManagerGetSitesWithDataFunction)(WKArrayRef, WKErrorRef, void*);
-WK_EXPORT void WKPluginSiteDataManagerGetSitesWithData(WKPluginSiteDataManagerRef manager, void* context, WKPluginSiteDataManagerGetSitesWithDataFunction function);
-
-enum {
-    kWKClearSiteDataFlagsClearAll = 0,
-    kWKClearSiteDataFlagsClearCache = 1 << 0,
 };
-typedef uint64_t WKClearSiteDataFlags;
-
-typedef void (*WKPluginSiteDataManagerClearSiteDataFunction)(WKErrorRef, void*);
-
-WK_EXPORT void WKPluginSiteDataManagerClearSiteData(WKPluginSiteDataManagerRef manager, WKArrayRef sites, WKClearSiteDataFlags flags, uint64_t maxAgeInSeconds, void* context, WKPluginSiteDataManagerClearSiteDataFunction function);
-WK_EXPORT void WKPluginSiteDataManagerClearAllSiteData(WKPluginSiteDataManagerRef manager, void* context, WKPluginSiteDataManagerClearSiteDataFunction function);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif // WKPluginSiteDataManager_h

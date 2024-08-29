@@ -1,128 +1,3 @@
-2018-09-21  Mike Gorse  <mgorse@suse.com>
-
-        Build tools should work when the /usr/bin/python is python3
-        https://bugs.webkit.org/show_bug.cgi?id=156674
-
-        Reviewed by Michael Catanzaro.
-
-        * Scripts/copy-user-interface-resources.pl: Use $PYTHON if set
-        in the environment.
-
-2016-04-14  Carlos Garcia Campos  <cgarcia@igalia.com>
-
-        Unreviewed. REGRESSION: Web Inspector: Remote inspector doesn't work
-        https://bugs.webkit.org/show_bug.cgi?id=156543
-
-        WebSocket connection is blocked by CSP, but needed by the remote web inspector to work, so allow connect to ws
-        URLs from the web inspector.
-
-        * UserInterface/Main.html:
-
-2016-03-17  Carlos Garcia Campos  <cgarcia@igalia.com>
-
-        REGRESSION (r197724): [GTK] Web Inspector: Images being blocked by CSP 2.0
-        https://bugs.webkit.org/show_bug.cgi?id=155432
-
-        Reviewed by Daniel Bates.
-
-        Allow Web Inspector to load resource: image resources.
-
-        * UserInterface/Main.html:
-
-2016-03-08  Joseph Pecoraro  <pecoraro@apple.com>
-
-        Web Inspector: Images being blocked by CSP 2.0
-        https://bugs.webkit.org/show_bug.cgi?id=155182
-        <rdar://problem/25040640>
-
-        Reviewed by Daniel Bates.
-
-        * UserInterface/Main.html:
-        Allow Web Inspector to load file: and blob: image resources.
-        Also blob: media and font resources.
-
-2016-02-28  Nikita Vasilyev  <nvasilyev@apple.com>
-
-        Web Inspector: DataGrid's resizers aren't horizontally centered
-        https://bugs.webkit.org/show_bug.cgi?id=154787
-        <rdar://problem/24876901>
-
-        Reviewed by Timothy Hatcher.
-
-        * UserInterface/Views/DataGrid.css:
-        (.data-grid .resizer):
-        Use CSS transforms as margin-left doesn't support sub-pixel values.
-
-2016-02-26  Nikita Vasilyev  <nvasilyev@apple.com>
-
-        Web Inspector: Increase clickable area of the console prompt
-        https://bugs.webkit.org/show_bug.cgi?id=154719
-        <rdar://problem/24854538>
-
-        Reviewed by Timothy Hatcher.
-
-        Clicking on the area around CodeMirror element now moves
-        focus to the console prompt.
-
-        * UserInterface/Views/QuickConsole.js:
-        (WebInspector.QuickConsole.prototype._handleMouseDown):
-        Only capture mousedown events on .quick-console.
-        Don't capture clicks on CodeMirror.
-
-        * UserInterface/Views/QuickConsole.css:
-        (.quick-console > .console-prompt):
-        (.quick-console > .console-prompt > .CodeMirror):
-        Make sure .console-prompt is never an event.target for _handleMouseDown.
-
-2016-02-26  Nikita Vasilyev  <nvasilyev@apple.com>
-
-        REGRESSION (r196741): Web Inspector: Bottom section of Layers sidebar is 1px shorter than the console prompt
-        https://bugs.webkit.org/show_bug.cgi?id=154773
-        <rdar://problem/24873345>
-
-        Reviewed by Timothy Hatcher.
-
-        * UserInterface/Views/LayerTreeDetailsSidebarPanel.css:
-        (.sidebar > .panel.details.layer-tree > .content):
-        (.panel.details.layer-tree .bottom-bar):
-
-2016-02-26  Devin Rousso  <dcrousso+webkit@gmail.com>
-
-        Web Inspector: Option-clicking on the a CSS property sometimes doesn't work
-        https://bugs.webkit.org/show_bug.cgi?id=154384
-        <rdar://problem/24714755>
-
-        Reviewed by Timothy Hatcher.
-
-        It seems as though there were race conditions between CodeMirror's event
-        and the native mousemove such that if CodeMirror fired second, the current
-        candidate was cleared, and would not reset itself until the cursor was
-        moved, at which point the same issue could happen. To fix this, the current
-        candidate is no longer cleared by CodeMirror's event and is instead only
-        modified by the native mouse-events.
-
-        * UserInterface/Controllers/CodeMirrorTokenTrackingController.js:
-        (WebInspector.CodeMirrorTokenTrackingController.prototype._hidePopover):
-
-2016-02-22  Matt Baker  <mattbaker@apple.com>
-
-        Web Inspector: Timelines sidebar and overview attempt to access undefined properties when FPS instrument is absent
-        https://bugs.webkit.org/show_bug.cgi?id=154567
-        <rdar://problem/24781536>
-
-        Reviewed by Joseph Pecoraro.
-
-        * UserInterface/Views/TimelineOverview.js:
-        (WebInspector.TimelineOverview):
-        The viewMode property should be in a valid state before attempting
-        to access the current view mode settings.
-
-        * UserInterface/Views/TimelineSidebarPanel.js:
-        (WebInspector.TimelineSidebarPanel.prototype.get minimumWidth):
-        (WebInspector.TimelineSidebarPanel.prototype._updateViewModeIfNeeded):
-        (WebInspector.TimelineSidebarPanel):
-        Added missing checks for FPSInstrument support.
-
 2016-02-22  Nikita Vasilyev  <nvasilyev@apple.com>
 
         REGRESSION (r196620): Web Inspector: Filter bar in the left sidebar is 1px shorter than the console prompt
@@ -250,6 +125,21 @@
         (WebInspector.InlineSwatch.prototype._handleContextMenuEvent):
         Prevents context menu events from having an effect if there is no value
         for them to modify.
+
+2016-02-19  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: CSS var() function should be syntax highlighted
+        https://bugs.webkit.org/show_bug.cgi?id=154406
+        <rdar://problem/24726136>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Models/CSSCompletions.js:
+        Added "var" to CodeMirror value keywords for syntax highlighting.
+
+        * UserInterface/Models/CSSKeywordCompletions.js:
+        (WebInspector.CSSKeywordCompletions.forProperty):
+        Added "var" to accepted keywords for auto-completion.
 
 2016-02-18  Devin Rousso  <dcrousso+webkit@gmail.com>
 
