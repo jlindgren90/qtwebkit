@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2014, 2015 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,16 +23,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef LineMetadata_h
-#define LineMetadata_h
+#ifndef BeginTag_h
+#define BeginTag_h
+
+#include "BoundaryTag.h"
 
 namespace bmalloc {
 
-struct LineMetadata {
-    unsigned short startOffset;
-    unsigned short objectCount;
+class BeginTag : public BoundaryTag {
 };
 
 } // namespace bmalloc
 
-#endif // LineMetadata_h
+#endif // BeginTag_h

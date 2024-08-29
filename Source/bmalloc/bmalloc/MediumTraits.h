@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2014 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,53 +23,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef Object_h
-#define Object_h
+#ifndef MediumTraits_h
+#define MediumTraits_h
 
-#include <cstddef>
+#include "Sizes.h"
+#include "VMAllocate.h"
 
 namespace bmalloc {
 
-class Chunk;
-class SmallLine;
-class SmallPage;
+template<class Traits> class Chunk;
+template<class Traits> class Line;
+template<class Traits> class Page;
 
-class Object {
-public:
-    Object(void*);
-    Object(Chunk*, void*);
-    Object(Chunk* chunk, size_t offset)
-        : m_chunk(chunk)
-        , m_offset(offset)
-    {
-    }
-    
-    Chunk* chunk() { return m_chunk; }
-    size_t offset() { return m_offset; }
-    char* begin();
+struct MediumTraits {
+    typedef Chunk<MediumTraits> ChunkType;
+    typedef Line<MediumTraits> LineType;
+    typedef Page<MediumTraits> PageType;
 
-    SmallLine* line();
-    SmallPage* page();
-    
-    Object operator+(size_t);
-    bool operator<=(const Object&);
-
-private:
-    Chunk* m_chunk;
-    size_t m_offset;
+    static const size_t lineSize = mediumLineSize;
+    static const size_t minimumObjectSize = smallMax + alignment;
+    static const size_t chunkSize = mediumChunkSize;
+    static const size_t chunkOffset = mediumChunkOffset;
+    static const uintptr_t chunkMask = mediumChunkMask;
 };
 
-inline Object Object::operator+(size_t offset)
-{
-    return Object(m_chunk, m_offset + offset);
-}
+} // namespace bmalloc
 
-inline bool Object::operator<=(const Object& other)
-{
-    BASSERT(m_chunk == other.m_chunk);
-    return m_offset <= other.m_offset;
-}
-
-}; // namespace bmalloc
-
-#endif // Object_h
+#endif // MediumTraits_h

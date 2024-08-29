@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2014 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,7 +27,6 @@
 #define VMAllocate_h
 
 #include "BAssert.h"
-#include "Logging.h"
 #include "Range.h"
 #include "Sizes.h"
 #include "Syscall.h"
@@ -36,7 +35,6 @@
 #include <unistd.h>
 
 #if BOS(DARWIN)
-#include <mach/vm_page_size.h>
 #include <mach/vm_statistics.h>
 #endif
 
@@ -48,80 +46,63 @@ namespace bmalloc {
 #define BMALLOC_VM_TAG -1
 #endif
 
-inline size_t vmPageSize()
-{
-    static size_t cached;
-    if (!cached)
-        cached = sysconf(_SC_PAGESIZE);
-    return cached;
-}
-
-inline size_t vmPageShift()
-{
-    static size_t cached;
-    if (!cached)
-        cached = log2(vmPageSize());
-    return cached;
-}
-
 inline size_t vmSize(size_t size)
 {
-    return roundUpToMultipleOf(vmPageSize(), size);
+    return roundUpToMultipleOf<vmPageSize>(size);
 }
 
 inline void vmValidate(size_t vmSize)
 {
+    // We use getpagesize() here instead of vmPageSize because vmPageSize is
+    // allowed to be larger than the OS's true page size.
+
     UNUSED(vmSize);
     BASSERT(vmSize);
-    BASSERT(vmSize == roundUpToMultipleOf(vmPageSize(), vmSize));
+    BASSERT(vmSize == roundUpToMultipleOf(static_cast<size_t>(getpagesize()), vmSize));
 }
 
 inline void vmValidate(void* p, size_t vmSize)
 {
+    // We use getpagesize() here instead of vmPageSize because vmPageSize is
+    // allowed to be larger than the OS's true page size.
+
     vmValidate(vmSize);
     
     UNUSED(p);
     BASSERT(p);
-    BASSERT(p == mask(p, ~(vmPageSize() - 1)));
-}
-
-inline size_t vmPageSizePhysical()
-{
-#if (BPLATFORM(IOS) && __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000)
-    return vm_kernel_page_size;
-#else
-    static size_t cached;
-    if (!cached)
-        cached = sysconf(_SC_PAGESIZE);
-    return cached;
-#endif
-}
-
-inline void vmValidatePhysical(size_t vmSize)
-{
-    UNUSED(vmSize);
-    BASSERT(vmSize);
-    BASSERT(vmSize == roundUpToMultipleOf(vmPageSizePhysical(), vmSize));
-}
-
-inline void vmValidatePhysical(void* p, size_t vmSize)
-{
-    vmValidatePhysical(vmSize);
-    
-    UNUSED(p);
-    BASSERT(p);
-    BASSERT(p == mask(p, ~(vmPageSizePhysical() - 1)));
+    BASSERT(p == mask(p, ~(getpagesize() - 1)));
 }
 
 inline void* tryVMAllocate(size_t vmSize)
 {
     vmValidate(vmSize);
     void* result = mmap(0, vmSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, BMALLOC_VM_TAG, 0);
-    if (result == MAP_FAILED) {
-        logVMFailure();
+    if (result == MAP_FAILED)
         return nullptr;
-    }
     return result;
+}
+
+inline bool tryVMExtend(void* p, size_t vmOldSize, size_t vmNewSize)
+{
+    vmValidate(vmOldSize);
+    vmValidate(vmNewSize);
+    
+    BASSERT(vmOldSize < vmNewSize);
+
+    void* nextAddress = static_cast<char*>(p) + vmOldSize;
+    size_t extentionSize = vmNewSize - vmOldSize;
+
+    void* result = mmap(nextAddress, extentionSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, BMALLOC_VM_TAG, 0);
+
+    if (result == MAP_FAILED)
+        return false;
+
+    if (result != nextAddress) {
+        munmap(result, extentionSize);
+        return false;
+    }
+    
+    return true;
 }
 
 inline void* vmAllocate(size_t vmSize)
@@ -145,10 +126,7 @@ inline void* tryVMAllocate(size_t vmAlignment, size_t vmSize)
     vmValidate(vmSize);
     vmValidate(vmAlignment);
 
-    size_t mappedSize = vmAlignment + vmSize;
-    if (mappedSize < vmAlignment || mappedSize < vmSize) // Check for overflow
-        return nullptr;
-
+    size_t mappedSize = std::max(vmSize, vmAlignment) + vmAlignment;
     char* mapped = static_cast<char*>(tryVMAllocate(mappedSize));
     if (!mapped)
         return nullptr;
@@ -156,8 +134,6 @@ inline void* tryVMAllocate(size_t vmAlignment, size_t vmSize)
 
     char* aligned = roundUpToMultipleOf(vmAlignment, mapped);
     char* alignedEnd = aligned + vmSize;
-    
-    RELEASE_BASSERT(alignedEnd <= mappedEnd);
     
     if (size_t leftExtra = aligned - mapped)
         vmDeallocate(mapped, leftExtra);
@@ -177,7 +153,7 @@ inline void* vmAllocate(size_t vmAlignment, size_t vmSize)
 
 inline void vmDeallocatePhysicalPages(void* p, size_t vmSize)
 {
-    vmValidatePhysical(p, vmSize);
+    vmValidate(p, vmSize);
 #if BOS(DARWIN)
     SYSCALL(madvise(p, vmSize, MADV_FREE_REUSABLE));
 #else
@@ -187,7 +163,7 @@ inline void vmDeallocatePhysicalPages(void* p, size_t vmSize)
 
 inline void vmAllocatePhysicalPages(void* p, size_t vmSize)
 {
-    vmValidatePhysical(p, vmSize);
+    vmValidate(p, vmSize);
 #if BOS(DARWIN)
     SYSCALL(madvise(p, vmSize, MADV_FREE_REUSE));
 #else
@@ -198,8 +174,8 @@ inline void vmAllocatePhysicalPages(void* p, size_t vmSize)
 // Trims requests that are un-page-aligned.
 inline void vmDeallocatePhysicalPagesSloppy(void* p, size_t size)
 {
-    char* begin = roundUpToMultipleOf(vmPageSizePhysical(), static_cast<char*>(p));
-    char* end = roundDownToMultipleOf(vmPageSizePhysical(), static_cast<char*>(p) + size);
+    char* begin = roundUpToMultipleOf<vmPageSize>(static_cast<char*>(p));
+    char* end = roundDownToMultipleOf<vmPageSize>(static_cast<char*>(p) + size);
 
     if (begin >= end)
         return;
@@ -207,11 +183,11 @@ inline void vmDeallocatePhysicalPagesSloppy(void* p, size_t size)
     vmDeallocatePhysicalPages(begin, end - begin);
 }
 
-// Expands requests that are un-page-aligned.
+// Expands requests that are un-page-aligned. NOTE: Allocation must proceed left-to-right.
 inline void vmAllocatePhysicalPagesSloppy(void* p, size_t size)
 {
-    char* begin = roundDownToMultipleOf(vmPageSizePhysical(), static_cast<char*>(p));
-    char* end = roundUpToMultipleOf(vmPageSizePhysical(), static_cast<char*>(p) + size);
+    char* begin = roundUpToMultipleOf<vmPageSize>(static_cast<char*>(p));
+    char* end = roundUpToMultipleOf<vmPageSize>(static_cast<char*>(p) + size);
 
     if (begin >= end)
         return;

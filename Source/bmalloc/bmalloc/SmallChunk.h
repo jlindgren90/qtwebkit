@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Apple Inc. All rights reserved.
+ * Copyright (C) 2014 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,25 +23,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
  */
 
-#ifndef XLargeMap_h
-#define XLargeMap_h
+#ifndef SmallChunk_h
+#define SmallChunk_h
 
-#include "Vector.h"
-#include "XLargeRange.h"
-#include <algorithm>
+#include "Chunk.h"
+#include "SmallLine.h"
+#include "SmallPage.h"
+#include "SmallTraits.h"
 
 namespace bmalloc {
 
-class XLargeMap {
-public:
-    void add(const XLargeRange&);
-    XLargeRange remove(size_t alignment, size_t);
-    Vector<XLargeRange>& ranges() { return m_free; }
+typedef Chunk<SmallTraits> SmallChunk;
 
-private:
-    Vector<XLargeRange> m_free;
-};
+}; // namespace bmalloc
 
-} // namespace bmalloc
-
-#endif // XLargeMap_h
+#endif // SmallChunk
