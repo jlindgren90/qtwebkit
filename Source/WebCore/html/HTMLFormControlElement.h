@@ -24,6 +24,7 @@
 #ifndef HTMLFormControlElement_h
 #define HTMLFormControlElement_h
 
+#include "Autofill.h"
 #include "FormAssociatedElement.h"
 #include "LabelableElement.h"
 
@@ -120,6 +121,10 @@ public:
     String autocomplete() const;
     void setAutocomplete(const String&);
 
+    AutofillMantle autofillMantle() const;
+
+    WEBCORE_EXPORT AutofillData autofillData() const;
+
     using Node::ref;
     using Node::deref;
 
@@ -166,7 +171,7 @@ private:
     bool isFormControlElement() const final { return true; }
     bool alwaysCreateUserAgentShadowRoot() const override { return true; }
 
-    short tabIndex() const final;
+    int tabIndex() const final;
 
     HTMLFormElement* virtualForm() const override;
     bool isValidFormControlElement() const;

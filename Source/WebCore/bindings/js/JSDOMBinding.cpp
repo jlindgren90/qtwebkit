@@ -677,6 +677,13 @@ void throwNotSupportedError(JSC::ExecState& state, const char* message)
     state.vm().throwException(&state, createDOMException(&state, NOT_SUPPORTED_ERR, &messageString));
 }
 
+void throwInvalidStateError(JSC::ExecState& state, const char* message)
+{
+    ASSERT(!state.hadException());
+    String messageString(message);
+    state.vm().throwException(&state, createDOMException(&state, INVALID_STATE_ERR, &messageString));
+}
+
 JSC::EncodedJSValue throwArgumentMustBeEnumError(JSC::ExecState& state, unsigned argumentIndex, const char* argumentName, const char* functionInterfaceName, const char* functionName, const char* expectedValues)
 {
     StringBuilder builder;
@@ -743,7 +750,7 @@ void callFunctionWithCurrentArguments(JSC::ExecState& state, JSC::JSObject& this
 {
     JSC::CallData callData;
     JSC::CallType callType = JSC::getCallData(&function, callData);
-    ASSERT(callType != CallTypeNone);
+    ASSERT(callType != CallType::None);
 
     JSC::MarkedArgumentBuffer arguments;
     for (unsigned i = 0; i < state.argumentCount(); ++i)
@@ -768,7 +775,7 @@ static EncodedJSValue JSC_HOST_CALL callThrowTypeError(ExecState* exec)
 CallType DOMConstructorObject::getCallData(JSCell*, CallData& callData)
 {
     callData.native.function = callThrowTypeError;
-    return CallTypeHost;
+    return CallType::Host;
 }
 
 } // namespace WebCore

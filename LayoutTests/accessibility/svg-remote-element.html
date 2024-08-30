@@ -22,6 +22,10 @@ function pageY(element) {
     return element.clickPointY - element.height/2;
 }
 
+function label(axElement) {
+    return accessibilityController.platformName == "atk" ? axElement.title : axElement.description;
+}
+
 function runAXTest() {    
     var container = accessibilityController.accessibleElementById("svg-image");
 
@@ -32,28 +36,28 @@ function runAXTest() {
 
     var face = container.childAtIndex(0);
     debug('Face role: ' + face.role);
-    debug('Face label: ' + platformValueForW3CName(face, true));
+    debug('Face label: ' + label(face));
     debug('FaceX: ' + (pageX(face) - x));
     debug('FaceY: ' + Math.abs(pageY(face) - y));
     debug('<br>');
 
     var eye = container.childAtIndex(1);
     debug('Eye role: ' + eye.role);
-    debug('Eye label: ' + platformValueForW3CName(eye, true));
+    debug('Eye label: ' + label(eye));
     debug('EyeX: ' + (pageX(eye) - x));
     debug('EyeY: ' + Math.abs(pageY(eye) - y));
     debug('<br>');
 
     var nose = container.childAtIndex(3);
     debug('Nose role: ' + nose.role);
-    debug('Nose label: ' + platformValueForW3CName(nose, true));
+    debug('Nose label: ' + label(nose));
     debug('NoseX: ' + (pageX(nose) - x));
     debug('NoseY: ' + Math.abs(pageY(nose) - y));
     debug('<br>');
 
     var mouth = container.childAtIndex(4);
     debug('Mouth role: ' + mouth.role);
-    debug('Mouth label: ' + platformValueForW3CName(mouth, true));
+    debug('Mouth label: ' + label(mouth));
     debug('MouthX: ' + (pageX(mouth) - x));
     debug('MouthY: ' + Math.floor(Math.abs(pageY(mouth) - y)));
     debug('<br>');

@@ -29,7 +29,10 @@
 
     if (window.accessibilityController) {
         var image = accessibilityController.accessibleElementById("Sudan");
-        shouldBeEqualToString("platformValueForW3CName(image)", "Sudan");
+        if (accessibilityController.platformName == "atk")
+            debug("SVG Element: " + image.title);
+        else
+            debug("SVG Element: " + image.description);
     }
 
 </script>

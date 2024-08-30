@@ -263,7 +263,7 @@ VM& JSDOMWindowBase::commonVM()
 #endif
 
 #if PLATFORM(MAC)
-        if (applicationIsITunes() || applicationIsIBooks() || Settings::shouldRewriteConstAsVar())
+        if (MacApplication::isITunes() || MacApplication::isIBooks() || Settings::shouldRewriteConstAsVar())
             vm->setShouldRewriteConstAsVar(true);
 #endif
 
@@ -308,7 +308,7 @@ JSDOMWindow* toJSDOMWindow(JSValue value)
             return jsCast<JSDOMWindow*>(object);
         if (classInfo == JSDOMWindowShell::info())
             return jsCast<JSDOMWindowShell*>(object)->window();
-        value = object->prototype();
+        value = object->getPrototypeDirect();
     }
     return 0;
 }

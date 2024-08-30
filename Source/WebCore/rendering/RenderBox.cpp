@@ -3123,22 +3123,17 @@ LayoutUnit RenderBox::computeReplacedLogicalHeightUsing(SizeType heightType, Len
         case Percent:
         case Calculated:
         {
-            auto* container = isOutOfFlowPositioned() ? this->container() : containingBlock();
-            while (container && container->isAnonymous()) {
-                // Stop at rendering context root.
-                if (is<RenderView>(*container) || is<RenderNamedFlowThread>(*container))
-                    break;
-                container = container->containingBlock();
-                downcast<RenderBlock>(*container).addPercentHeightDescendant(const_cast<RenderBox&>(*this));
+            auto cb = isOutOfFlowPositioned() ? container() : containingBlock();
+            while (cb && cb->isAnonymous() && !is<RenderView>(*cb)) {
+                cb = cb->containingBlock();
+                downcast<RenderBlock>(*cb).addPercentHeightDescendant(const_cast<RenderBox&>(*this));
             }
 
             // FIXME: This calculation is not patched for block-flow yet.
             // https://bugs.webkit.org/show_bug.cgi?id=46500
-            if (container->isOutOfFlowPositioned()
-                && container->style().height().isAuto()
-                && !(container->style().top().isAuto() || container->style().bottom().isAuto())) {
-                ASSERT_WITH_SECURITY_IMPLICATION(container->isRenderBlock());
-                auto& block = downcast<RenderBlock>(*container);
+            if (cb->isOutOfFlowPositioned() && cb->style().height().isAuto() && !(cb->style().top().isAuto() || cb->style().bottom().isAuto())) {
+                ASSERT_WITH_SECURITY_IMPLICATION(cb->isRenderBlock());
+                RenderBlock& block = downcast<RenderBlock>(*cb);
                 LogicalExtentComputedValues computedValues;
                 block.computeLogicalHeight(block.logicalHeight(), 0, computedValues);
                 LayoutUnit newContentHeight = computedValues.m_extent - block.borderAndPaddingLogicalHeight() - block.scrollbarLogicalHeight();
@@ -3151,7 +3146,7 @@ LayoutUnit RenderBox::computeReplacedLogicalHeightUsing(SizeType heightType, Len
             // https://bugs.webkit.org/show_bug.cgi?id=46496
             LayoutUnit availableHeight;
             if (isOutOfFlowPositioned())
-                availableHeight = containingBlockLogicalHeightForPositioned(downcast<RenderBoxModelObject>(container));
+                availableHeight = containingBlockLogicalHeightForPositioned(downcast<RenderBoxModelObject>(cb));
             else {
                 availableHeight = containingBlockLogicalHeightForContent(IncludeMarginBorderPadding);
                 // It is necessary to use the border-box to match WinIE's broken
@@ -3159,16 +3154,15 @@ LayoutUnit RenderBox::computeReplacedLogicalHeightUsing(SizeType heightType, Len
                 // table cells using percentage heights.
                 // FIXME: This needs to be made block-flow-aware.  If the cell and image are perpendicular block-flows, this isn't right.
                 // https://bugs.webkit.org/show_bug.cgi?id=46997
-                while (container && !is<RenderView>(*container)
-                    && (container->style().logicalHeight().isAuto() || container->style().logicalHeight().isPercentOrCalculated())) {
-                    if (container->isTableCell()) {
+                while (cb && !is<RenderView>(*cb) && (cb->style().logicalHeight().isAuto() || cb->style().logicalHeight().isPercentOrCalculated())) {
+                    if (cb->isTableCell()) {
                         // Don't let table cells squeeze percent-height replaced elements
                         // <http://bugs.webkit.org/show_bug.cgi?id=15359>
                         availableHeight = std::max(availableHeight, intrinsicLogicalHeight());
                         return valueForLength(logicalHeight, availableHeight - borderAndPaddingLogicalHeight());
                     }
-                    downcast<RenderBlock>(*container).addPercentHeightDescendant(const_cast<RenderBox&>(*this));
-                    container = container->containingBlock();
+                    downcast<RenderBlock>(*cb).addPercentHeightDescendant(const_cast<RenderBox&>(*this));
+                    cb = cb->containingBlock();
                 }
             }
             return adjustContentBoxLogicalHeightForBoxSizing(valueForLength(logicalHeight, availableHeight));

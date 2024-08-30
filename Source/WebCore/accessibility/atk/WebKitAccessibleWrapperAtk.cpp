@@ -45,6 +45,7 @@
 #include "HTMLTableElement.h"
 #include "HostWindow.h"
 #include "RenderObject.h"
+#include "SVGElement.h"
 #include "Settings.h"
 #include "TextIterator.h"
 #include "VisibleUnits.h"
@@ -125,7 +126,57 @@ static const gchar* webkitAccessibleGetName(AtkObject* object)
             return cacheAndReturnAtkProperty(object, AtkCachedAccessibleName, text.text);
     }
 
-    return cacheAndReturnAtkProperty(object, AtkCachedAccessibleName, "");
+    if (coreObject->isControl()) {
+        AccessibilityObject* label = coreObject->correspondingLabelForControlElement();
+        if (label) {
+            AtkObject* atkObject = label->wrapper();
+            if (ATK_IS_TEXT(atkObject))
+                return atk_text_get_text(ATK_TEXT(atkObject), 0, -1);
+        }
+
+        // Try text under the node.
+        String textUnder = coreObject->textUnderElement();
+        if (textUnder.length())
+            return cacheAndReturnAtkProperty(object, AtkCachedAccessibleName, textUnder);
+    }
+
+    if (is<SVGElement>(coreObject->element())) {
+        Vector<AccessibilityText> textOrder;
+        coreObject->accessibilityText(textOrder);
+
+        for (const auto& text : textOrder) {
+            if (text.textSource != HelpText && text.textSource != SummaryText)
+                return cacheAndReturnAtkProperty(object, AtkCachedAccessibleName, text.text);
+        }
+        // FIXME: This is to keep the next blocks from returning duplicate text.
+        // This behavior should be extended to all elements; not just SVG.
+        return cacheAndReturnAtkProperty(object, AtkCachedAccessibleName, "");
+    }
+
+    if (coreObject->isImage() || coreObject->isInputImage() || coreObject->isImageMap() || coreObject->isImageMapLink()) {
+        Node* node = coreObject->node();
+        if (is<HTMLElement>(node)) {
+            // Get the attribute rather than altText String so as not to fall back on title.
+            const AtomicString& alt = downcast<HTMLElement>(*node).getAttribute(HTMLNames::altAttr);
+            if (!alt.isEmpty())
+                return cacheAndReturnAtkProperty(object, AtkCachedAccessibleName, alt);
+        }
+    }
+
+    // Fallback for the webArea object: just return the document's title.
+    if (coreObject->isWebArea()) {
+        Document* document = coreObject->document();
+        if (document)
+            return cacheAndReturnAtkProperty(object, AtkCachedAccessibleName, document->title());
+    }
+
+    // Nothing worked so far, try with the AccessibilityObject's
+    // title() before going ahead with stringValue().
+    String axTitle = accessibilityTitle(coreObject);
+    if (!axTitle.isEmpty())
+        return cacheAndReturnAtkProperty(object, AtkCachedAccessibleName, axTitle);
+
+    return cacheAndReturnAtkProperty(object, AtkCachedAccessibleName, coreObject->stringValue());
 }
 
 static const gchar* webkitAccessibleGetDescription(AtkObject* object)
@@ -133,16 +184,33 @@ static const gchar* webkitAccessibleGetDescription(AtkObject* object)
     g_return_val_if_fail(WEBKIT_IS_ACCESSIBLE(object), 0);
     returnValIfWebKitAccessibleIsInvalid(WEBKIT_ACCESSIBLE(object), 0);
 
-    Vector<AccessibilityText> textOrder;
-    core(object)->accessibilityText(textOrder);
+    AccessibilityObject* coreObject = core(object);
+    Node* node = nullptr;
+    if (coreObject->isAccessibilityRenderObject())
+        node = coreObject->node();
 
-    bool nameTextAvailable = false;
-    for (const auto& text : textOrder) {
-        // WebCore Accessibility should provide us with the text alternative computation
-        // in the order defined by that spec. So take the first thing that our platform
-        // does not expose via the AtkObject name.
-        if (text.textSource == HelpText || text.textSource == SummaryText)
-            return cacheAndReturnAtkProperty(object, AtkCachedAccessibleDescription, text.text);
+    if (is<SVGElement>(node)) {
+        Vector<AccessibilityText> textOrder;
+        coreObject->accessibilityText(textOrder);
+
+        for (const auto& text : textOrder) {
+            if (text.textSource == HelpText || text.textSource == SummaryText || text.textSource == TitleTagText)
+                return cacheAndReturnAtkProperty(object, AtkCachedAccessibleDescription, text.text);
+        }
+        // FIXME: This is to keep the next blocks from returning duplicate text.
+        // This behavior should be extended to all elements; not just SVG.
+        return cacheAndReturnAtkProperty(object, AtkCachedAccessibleDescription, "");
+    }
+
+    if (!is<HTMLElement>(node) || coreObject->ariaRoleAttribute() != UnknownRole || coreObject->isImage())
+        return cacheAndReturnAtkProperty(object, AtkCachedAccessibleDescription, accessibilityDescription(coreObject));
+
+    // atk_table_get_summary returns an AtkObject. We have no summary object, so expose summary here.
+    if (coreObject->roleValue() == TableRole) {
+        const AtomicString& summary = downcast<HTMLTableElement>(*node).summary();
+        if (!summary.isEmpty())
+            return cacheAndReturnAtkProperty(object, AtkCachedAccessibleDescription, summary);
+    }
 
         // If there is no other text alternative, the title tag contents will have been
         // used for the AtkObject name. We don't want to duplicate it here.
@@ -547,6 +615,7 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
         return ATK_ROLE_APPLICATION;
     case DocumentRegionRole:
     case RadioGroupRole:
+    case SVGRootRole:
     case TabPanelRole:
         return ATK_ROLE_PANEL;
     case GroupRole:
@@ -597,6 +666,7 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
 #endif
     case DivRole:
     case PreRole:
+    case SVGTextRole:
         return ATK_ROLE_SECTION;
     case FooterRole:
         return ATK_ROLE_FOOTER;
@@ -673,6 +743,8 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
 #endif
 #if ATK_CHECK_VERSION(2, 15, 2)
     case InlineRole:
+    case SVGTextPathRole:
+    case SVGTSpanRole:
         return ATK_ROLE_STATIC;
 #endif
     default:

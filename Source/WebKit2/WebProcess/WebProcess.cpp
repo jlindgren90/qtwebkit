@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009, 2010, 2012, 2014 Apple Inc. All rights reserved.
+ * Copyright (C) 2009-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -58,6 +58,7 @@
 #include "WebProcessMessages.h"
 #include "WebProcessPoolMessages.h"
 #include "WebProcessProxyMessages.h"
+#include "WebResourceLoadStatisticsStoreMessages.h"
 #include "WebsiteData.h"
 #include "WebsiteDataType.h"
 #include <JavaScriptCore/JSLock.h>
@@ -86,6 +87,9 @@
 #include <WebCore/PageGroup.h>
 #include <WebCore/PlatformMediaSessionManager.h>
 #include <WebCore/ResourceHandle.h>
+#include <WebCore/ResourceLoadObserver.h>
+#include <WebCore/ResourceLoadStatistics.h>
+#include <WebCore/ResourceLoadStatisticsStore.h>
 #include <WebCore/RuntimeApplicationChecks.h>
 #include <WebCore/RuntimeEnabledFeatures.h>
 #include <WebCore/SchemeRegistry.h>
@@ -169,9 +173,11 @@ WebProcess::WebProcess()
     , m_hasRichContentServices(false)
 #endif
     , m_nonVisibleProcessCleanupTimer(*this, &WebProcess::nonVisibleProcessCleanupTimerFired)
+    , m_statisticsChangedTimer(*this, &WebProcess::statisticsChangedTimerFired)
 #if PLATFORM(IOS)
     , m_webSQLiteDatabaseTracker(*this)
 #endif
+    , m_resourceLoadStatisticsStorage(WebCore::ResourceLoadStatisticsStore::create())
 {
     // Initialize our platform strategies.
     WebPlatformStrategies::initialize();
@@ -201,6 +207,14 @@ WebProcess::WebProcess()
 #if PLATFORM(IOS)
     PageCache::singleton().setShouldClearBackingStores(true);
 #endif
+
+    ResourceLoadObserver::sharedObserver().setStatisticsStore(m_resourceLoadStatisticsStorage.copyRef());
+    m_resourceLoadStatisticsStorage->setNotificationCallback([this] {
+        if (m_statisticsChangedTimer.isActive())
+            return;
+        
+        m_statisticsChangedTimer.startOneShot(std::chrono::seconds(5));
+    });
 }
 
 WebProcess::~WebProcess()
@@ -323,6 +337,8 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
 #endif
 
     setDefaultRequestTimeoutInterval(parameters.defaultRequestTimeoutInterval);
+
+    setResourceLoadStatisticsEnabled(parameters.resourceLoadStatisticsEnabled);
 
     if (parameters.shouldAlwaysUseComplexTextCodePath)
         setAlwaysUsesComplexTextCodePath(true);
@@ -1290,6 +1306,19 @@ void WebProcess::nonVisibleProcessCleanupTimerFired()
 #if PLATFORM(COCOA)
     destroyRenderingResources();
 #endif
+}
+
+void WebProcess::statisticsChangedTimerFired()
+{
+    if (m_resourceLoadStatisticsStorage->isEmpty())
+        return;
+
+    parentProcessConnection()->send(Messages::WebResourceLoadStatisticsStore::ResourceLoadStatisticsUpdated(m_resourceLoadStatisticsStorage->takeStatistics()), 0);
+}
+
+void WebProcess::setResourceLoadStatisticsEnabled(bool enabled)
+{
+    WebCore::Settings::setResourceLoadStatisticsEnabled(enabled);
 }
 
 RefPtr<API::Object> WebProcess::transformHandlesToObjects(API::Object* object)

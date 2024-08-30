@@ -316,6 +316,9 @@ imported/w3c/web-platform-tests/XMLHttpRequest/send-redirect-bogus.htm [ Skip ]
 imported/w3c/web-platform-tests/XMLHttpRequest/send-redirect-to-cors.htm [ Skip ]
 imported/w3c/web-platform-tests/XMLHttpRequest/send-redirect-to-non-cors.htm [ Skip ]
 
+# Tests that are flaky as failing assertions print a new token generated for each test run.
+imported/w3c/web-platform-tests/fetch/api/basic/scheme-blob.html [ Failure ]
+imported/w3c/web-platform-tests/fetch/api/basic/scheme-blob-worker.html [ Failure ]
 
 # New W3C ref tests that are failing.
 webkit.org/b/148856 imported/w3c/web-platform-tests/html/semantics/embedded-content/the-video-element/video_initially_paused.html [ ImageOnlyFailure ]
@@ -865,6 +868,7 @@ webkit.org/b/153161 http/tests/security/contentSecurityPolicy/register-bypassing
 webkit.org/b/153162 http/tests/security/contentSecurityPolicy/report-multiple-violations-01.html [ Failure ]
 webkit.org/b/153162 http/tests/security/contentSecurityPolicy/report-multiple-violations-02.html [ Failure ]
 webkit.org/b/154522 http/tests/security/contentSecurityPolicy/1.1/securitypolicyviolation-base-uri-deny.html
+webkit.org/b/155132 http/tests/security/contentSecurityPolicy/video-with-https-url-allowed-by-csp-media-src-star.html [ Failure ]
 http/tests/security/contentSecurityPolicy/script-src-blocked-error-event.html [ Pass Failure ]
 
 # These state object tests purposefully stress a resource limit, and take multiple seconds to run.
@@ -966,6 +970,11 @@ storage/indexeddb/transaction-coordination-within-database.html [ Skip ]
 
 # Inspector doesn't support modern IDB yet
 webkit.org/b/154686 inspector/indexeddb/requestDatabaseNames.html [ Skip ]
+
+# These two IDB tests are, by their nature, very slow
+# Skip these until we have a fix for webkit.org/b/155041
+storage/indexeddb/modern/exceed-open-file-limit.html [ Skip ]
+webkit.org/b/155028 storage/indexeddb/modern/256-open-databases.html [ Skip ]
 
 ### END OF IndexedDB failures
 ########################################

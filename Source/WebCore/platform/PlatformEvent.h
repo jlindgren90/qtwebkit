@@ -63,6 +63,7 @@ public:
         TouchMove,
         TouchEnd,
         TouchCancel,
+        TouchForceChange,
 #endif
 
 #if ENABLE(MAC_GESTURE_EVENTS)

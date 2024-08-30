@@ -66,7 +66,7 @@
 #import <WebCore/Pasteboard.h>
 #import <WebCore/Path.h>
 #import <WebCore/PathUtilities.h>
-#import <WebCore/RuntimeApplicationChecksIOS.h>
+#import <WebCore/RuntimeApplicationChecks.h>
 #import <WebCore/Scrollbar.h>
 #import <WebCore/SoftLinking.h>
 #import <WebCore/TextIndicator.h>
@@ -1083,6 +1083,14 @@ static inline bool isSamePair(UIGestureRecognizer *a, UIGestureRecognizer *b, UI
     [_actionSheetAssistant showImageSheet];
 }
 
+- (void)_showAttachmentSheet
+{
+    id <WKUIDelegatePrivate> uiDelegate = static_cast<id <WKUIDelegatePrivate>>([_webView UIDelegate]);
+    
+    if ([uiDelegate respondsToSelector:@selector(_webView:showCustomSheetForElement:)])
+        [uiDelegate _webView:_webView showCustomSheetForElement:[[_WKActivatedElementInfo alloc] _initWithType:_WKActivatedElementTypeAttachment URL:[NSURL _web_URLWithWTFString:_positionInformation.url] location:_positionInformation.point title:_positionInformation.title rect:_positionInformation.bounds image:nil]];
+}
+
 - (void)_showLinkSheet
 {
     [_actionSheetAssistant showLinkSheet];
@@ -1107,6 +1115,9 @@ static inline bool isSamePair(UIGestureRecognizer *a, UIGestureRecognizer *b, UI
             return @selector(_showDataDetectorsSheet);
         return @selector(_showLinkSheet);
     }
+    
+    if (_positionInformation.isAttachment)
+        return @selector(_showAttachmentSheet);
 
     return nil;
 }
@@ -2811,6 +2822,106 @@ static UITextAutocapitalizationType toUITextAutocapitalize(WebAutocapitalizeType
          [_traits setKeyboardType:UIKeyboardTypeDefault];
     }
 
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 100000
+    switch (_assistedNodeInformation.autofillFieldName) {
+    case WebCore::AutofillFieldName::Name:
+        [_traits setTextContentType:UITextContentTypeName];
+        break;
+    case WebCore::AutofillFieldName::HonorificPrefix:
+        [_traits setTextContentType:UITextContentTypeNamePrefix];
+        break;
+    case WebCore::AutofillFieldName::GivenName:
+        [_traits setTextContentType:UITextContentTypeMiddleName];
+        break;
+    case WebCore::AutofillFieldName::AdditionalName:
+        [_traits setTextContentType:UITextContentTypeMiddleName];
+        break;
+    case WebCore::AutofillFieldName::FamilyName:
+        [_traits setTextContentType:UITextContentTypeFamilyName];
+        break;
+    case WebCore::AutofillFieldName::HonorificSuffix:
+        [_traits setTextContentType:UITextContentTypeNameSuffix];
+        break;
+    case WebCore::AutofillFieldName::Nickname:
+        [_traits setTextContentType:UITextContentTypeNickname];
+        break;
+    case WebCore::AutofillFieldName::OrganizationTitle:
+        [_traits setTextContentType:UITextContentTypeJobTitle];
+        break;
+    case WebCore::AutofillFieldName::Organization:
+        [_traits setTextContentType:UITextContentTypeOrganizationName];
+        break;
+    case WebCore::AutofillFieldName::StreetAddress:
+        [_traits setTextContentType:UITextContentTypeFullStreetAddress];
+        break;
+    case WebCore::AutofillFieldName::AddressLine1:
+        [_traits setTextContentType:UITextContentTypeStreetAddressLine1];
+        break;
+    case WebCore::AutofillFieldName::AddressLine2:
+        [_traits setTextContentType:UITextContentTypeStreetAddressLine2];
+        break;
+    case WebCore::AutofillFieldName::AddressLevel3:
+        [_traits setTextContentType:UITextContentTypeSublocality];
+        break;
+    case WebCore::AutofillFieldName::AddressLevel2:
+        [_traits setTextContentType:UITextContentTypeAddressCity];
+        break;
+    case WebCore::AutofillFieldName::AddressLevel1:
+        [_traits setTextContentType:UITextContentTypeAddressState];
+        break;
+    case WebCore::AutofillFieldName::CountryName:
+        [_traits setTextContentType:UITextContentTypeCountryName];
+        break;
+    case WebCore::AutofillFieldName::PostalCode:
+        [_traits setTextContentType:UITextContentTypePostalCode];
+        break;
+    case WebCore::AutofillFieldName::Tel:
+        [_traits setTextContentType:UITextContentTypeTelephoneNumber];
+        break;
+    case WebCore::AutofillFieldName::Email:
+        [_traits setTextContentType:UITextContentTypeEmailAddress];
+        break;
+    case WebCore::AutofillFieldName::URL:
+        [_traits setTextContentType:UITextContentTypeURL];
+        break;
+    case WebCore::AutofillFieldName::None:
+    case WebCore::AutofillFieldName::Username:
+    case WebCore::AutofillFieldName::NewPassword:
+    case WebCore::AutofillFieldName::CurrentPassword:
+    case WebCore::AutofillFieldName::AddressLine3:
+    case WebCore::AutofillFieldName::AddressLevel4:
+    case WebCore::AutofillFieldName::Country:
+    case WebCore::AutofillFieldName::CcName:
+    case WebCore::AutofillFieldName::CcGivenName:
+    case WebCore::AutofillFieldName::CcAdditionalName:
+    case WebCore::AutofillFieldName::CcFamilyName:
+    case WebCore::AutofillFieldName::CcNumber:
+    case WebCore::AutofillFieldName::CcExp:
+    case WebCore::AutofillFieldName::CcExpMonth:
+    case WebCore::AutofillFieldName::CcExpYear:
+    case WebCore::AutofillFieldName::CcCsc:
+    case WebCore::AutofillFieldName::CcType:
+    case WebCore::AutofillFieldName::TransactionCurrency:
+    case WebCore::AutofillFieldName::TransactionAmount:
+    case WebCore::AutofillFieldName::Language:
+    case WebCore::AutofillFieldName::Bday:
+    case WebCore::AutofillFieldName::BdayDay:
+    case WebCore::AutofillFieldName::BdayMonth:
+    case WebCore::AutofillFieldName::BdayYear:
+    case WebCore::AutofillFieldName::Sex:
+    case WebCore::AutofillFieldName::Photo:
+    case WebCore::AutofillFieldName::TelCountryCode:
+    case WebCore::AutofillFieldName::TelNational:
+    case WebCore::AutofillFieldName::TelAreaCode:
+    case WebCore::AutofillFieldName::TelLocal:
+    case WebCore::AutofillFieldName::TelLocalPrefix:
+    case WebCore::AutofillFieldName::TelLocalSuffix:
+    case WebCore::AutofillFieldName::TelExtension:
+    case WebCore::AutofillFieldName::Impp:
+        break;
+    };
+#endif
+
     return _traits.get();
 }
 
@@ -3545,6 +3656,21 @@ static bool isAssistableInputType(InputType type)
 }
 #endif
 
+- (BOOL)actionSheetAssistant:(WKActionSheetAssistant *)assistant showCustomSheetForElement:(_WKActivatedElementInfo *)element
+{
+    id <WKUIDelegatePrivate> uiDelegate = static_cast<id <WKUIDelegatePrivate>>([_webView UIDelegate]);
+    
+    if ([uiDelegate respondsToSelector:@selector(_webView:showCustomSheetForElement:)]) {
+        if ([uiDelegate _webView:_webView showCustomSheetForElement:element]) {
+            // Prevent tap-and-hold and drag.
+            [UIApp _cancelAllTouches];
+            return YES;
+        }
+    }
+
+    return NO;
+}
+
 - (RetainPtr<NSArray>)actionSheetAssistant:(WKActionSheetAssistant *)assistant decideActionsForElement:(_WKActivatedElementInfo *)element defaultActions:(RetainPtr<NSArray>)defaultActions
 {
     return _page->uiClient().actionsForElement(element, WTFMove(defaultActions));
@@ -3606,7 +3732,7 @@ static bool isAssistableInputType(InputType type)
         return NO;
 
     [self ensurePositionInformationIsUpToDate:position];
-    if (!_positionInformation.isLink && !_positionInformation.isImage)
+    if (!_positionInformation.isLink && !_positionInformation.isImage && !_positionInformation.isAttachment)
         return NO;
     
     String absoluteLinkURL = _positionInformation.url;
@@ -3637,6 +3763,8 @@ static bool isAssistableInputType(InputType type)
     BOOL canShowImagePreview = _positionInformation.isImage && supportsImagePreview;
     BOOL canShowLinkPreview = _positionInformation.isLink || canShowImagePreview;
     BOOL useImageURLForLink = NO;
+    BOOL supportsAttachmentPreview = [uiDelegate respondsToSelector:@selector(_attachmentListForWebView:)] && [uiDelegate respondsToSelector:@selector(_webView:indexIntoAttachmentListForElement:)];
+    BOOL canShowAttachmentPreview = _positionInformation.isAttachment && supportsAttachmentPreview;
 
     if (canShowImagePreview && _positionInformation.isAnimatedImage) {
         canShowImagePreview = NO;
@@ -3644,7 +3772,7 @@ static bool isAssistableInputType(InputType type)
         useImageURLForLink = YES;
     }
 
-    if (!canShowLinkPreview && !canShowImagePreview)
+    if (!canShowLinkPreview && !canShowImagePreview && !canShowAttachmentPreview)
         return nil;
 
     String absoluteLinkURL = _positionInformation.url;
@@ -3663,7 +3791,6 @@ static bool isAssistableInputType(InputType type)
             dataForPreview[UIPreviewDataLink] = [NSURL _web_URLWithWTFString:_positionInformation.url];
         if (_positionInformation.isDataDetectorLink) {
             NSDictionary *context = nil;
-            id <WKUIDelegatePrivate> uiDelegate = static_cast<id <WKUIDelegatePrivate>>([_webView UIDelegate]);
             if ([uiDelegate respondsToSelector:@selector(_dataDetectionContextForWebView:)])
                 context = [uiDelegate _dataDetectionContextForWebView:_webView];
 
@@ -3680,6 +3807,13 @@ static bool isAssistableInputType(InputType type)
     } else if (canShowImagePreview) {
         *type = UIPreviewItemTypeImage;
         dataForPreview[UIPreviewDataLink] = [NSURL _web_URLWithWTFString:_positionInformation.imageURL];
+    } else if (canShowAttachmentPreview) {
+        // FIXME: Should use UIKit constants.
+        enum { WKUIPreviewItemTypeAttachment = 5 };
+        *type = static_cast<UIPreviewItemType>(WKUIPreviewItemTypeAttachment);
+        const auto& element = [[_WKActivatedElementInfo alloc] _initWithType:_WKActivatedElementTypeAttachment URL:[NSURL _web_URLWithWTFString:_positionInformation.url] location:_positionInformation.point title:_positionInformation.title rect:_positionInformation.bounds image:nil];
+        dataForPreview[@"UIPreviewDataAttachmentList"] = [uiDelegate _attachmentListForWebView:_webView];
+        dataForPreview[@"UIPreviewDataAttachmentIndex"] = [NSNumber numberWithUnsignedInteger:[uiDelegate _webView:_webView indexIntoAttachmentListForElement:element]];
     }
     
     return dataForPreview;

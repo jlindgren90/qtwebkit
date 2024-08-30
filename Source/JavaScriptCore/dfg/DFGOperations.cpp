@@ -167,6 +167,11 @@ JSCell* JIT_OPERATION operationCreateThis(ExecState* exec, JSObject* constructor
     if (constructor->type() == JSFunctionType)
         return constructEmptyObject(exec, jsCast<JSFunction*>(constructor)->rareData(exec, inlineCapacity)->objectAllocationProfile()->structure());
 
+    JSValue proto = constructor->get(exec, exec->propertyNames().prototype);
+    if (vm.exception())
+        return nullptr;
+    if (proto.isObject())
+        return constructEmptyObject(exec, asObject(proto));
     return constructEmptyObject(exec);
 }
 
@@ -614,28 +619,30 @@ EncodedJSValue JIT_OPERATION operationArrayPopAndRecoverLength(ExecState* exec, 
     return JSValue::encode(array->pop(exec));
 }
         
-EncodedJSValue JIT_OPERATION operationRegExpExec(ExecState* exec, JSCell* base, JSCell* argument)
+EncodedJSValue JIT_OPERATION operationRegExpExecString(ExecState* exec, JSGlobalObject* globalObject, RegExpObject* regExpObject, JSString* argument)
 {
-    VM& vm = exec->vm();
+    VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
     
-    if (!base->inherits(RegExpObject::info()))
-        return throwVMTypeError(exec);
-
-    JSString* input;
-    if (argument->isString())
-        input = asString(argument);
-    else {
-        input = JSValue(argument).toStringOrNull(exec);
-        if (!input)
-            return JSValue::encode(jsUndefined());
-    }
-    return JSValue::encode(asRegExpObject(base)->exec(exec, input));
+    return JSValue::encode(regExpObject->execInline(exec, globalObject, argument));
 }
         
-EncodedJSValue JIT_OPERATION operationRegExpExecGeneric(ExecState* exec, EncodedJSValue encodedBase, EncodedJSValue encodedArgument)
+EncodedJSValue JIT_OPERATION operationRegExpExec(ExecState* exec, JSGlobalObject* globalObject, RegExpObject* regExpObject, EncodedJSValue encodedArgument)
 {
-    VM& vm = exec->vm();
+    VM& vm = globalObject->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+    
+    JSValue argument = JSValue::decode(encodedArgument);
+
+    JSString* input = argument.toStringOrNull(exec);
+    if (!input)
+        return JSValue::encode(jsUndefined());
+    return JSValue::encode(regExpObject->execInline(exec, globalObject, input));
+}
+        
+EncodedJSValue JIT_OPERATION operationRegExpExecGeneric(ExecState* exec, JSGlobalObject* globalObject, EncodedJSValue encodedBase, EncodedJSValue encodedArgument)
+{
+    VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
     JSValue base = JSValue::decode(encodedBase);
@@ -647,33 +654,33 @@ EncodedJSValue JIT_OPERATION operationRegExpExecGeneric(ExecState* exec, Encoded
     JSString* input = argument.toStringOrNull(exec);
     if (!input)
         return JSValue::encode(jsUndefined());
-    return JSValue::encode(asRegExpObject(base)->exec(exec, input));
+    return JSValue::encode(asRegExpObject(base)->exec(exec, globalObject, input));
 }
         
-size_t JIT_OPERATION operationRegExpTest(ExecState* exec, JSCell* base, JSCell* argument)
+size_t JIT_OPERATION operationRegExpTestString(ExecState* exec, JSGlobalObject* globalObject, RegExpObject* regExpObject, JSString* input)
 {
-    VM& vm = exec->vm();
+    VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
-    if (!base->inherits(RegExpObject::info())) {
-        throwTypeError(exec);
-        return false;
-    }
-
-    JSString* input;
-    if (argument->isString())
-        input = asString(argument);
-    else {
-        input = JSValue(argument).toStringOrNull(exec);
-        if (!input)
-            return false;
-    }
-    return asRegExpObject(base)->test(exec, input);
+    return regExpObject->testInline(exec, globalObject, input);
 }
 
-size_t JIT_OPERATION operationRegExpTestGeneric(ExecState* exec, EncodedJSValue encodedBase, EncodedJSValue encodedArgument)
+size_t JIT_OPERATION operationRegExpTest(ExecState* exec, JSGlobalObject* globalObject, RegExpObject* regExpObject, EncodedJSValue encodedArgument)
 {
-    VM& vm = exec->vm();
+    VM& vm = globalObject->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    JSValue argument = JSValue::decode(encodedArgument);
+
+    JSString* input = argument.toStringOrNull(exec);
+    if (!input)
+        return false;
+    return regExpObject->testInline(exec, globalObject, input);
+}
+
+size_t JIT_OPERATION operationRegExpTestGeneric(ExecState* exec, JSGlobalObject* globalObject, EncodedJSValue encodedBase, EncodedJSValue encodedArgument)
+{
+    VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
     JSValue base = JSValue::decode(encodedBase);
@@ -687,7 +694,7 @@ size_t JIT_OPERATION operationRegExpTestGeneric(ExecState* exec, EncodedJSValue 
     JSString* input = argument.toStringOrNull(exec);
     if (!input)
         return false;
-    return asRegExpObject(base)->test(exec, input);
+    return asRegExpObject(base)->test(exec, globalObject, input);
 }
 
 size_t JIT_OPERATION operationCompareStrictEqCell(ExecState* exec, EncodedJSValue encodedOp1, EncodedJSValue encodedOp2)
@@ -990,7 +997,7 @@ size_t JIT_OPERATION operationObjectIsObject(ExecState* exec, JSGlobalObject* gl
         return false;
     if (object->inlineTypeFlags() & TypeOfShouldCallGetCallData) {
         CallData callData;
-        if (object->methodTable(vm)->getCallData(object, callData) != CallTypeNone)
+        if (object->methodTable(vm)->getCallData(object, callData) != CallType::None)
             return false;
     }
     
@@ -1010,7 +1017,7 @@ size_t JIT_OPERATION operationObjectIsFunction(ExecState* exec, JSGlobalObject* 
         return true;
     if (object->inlineTypeFlags() & TypeOfShouldCallGetCallData) {
         CallData callData;
-        if (object->methodTable(vm)->getCallData(object, callData) != CallTypeNone)
+        if (object->methodTable(vm)->getCallData(object, callData) != CallType::None)
             return true;
     }
     
@@ -1030,7 +1037,7 @@ JSCell* JIT_OPERATION operationTypeOfObject(ExecState* exec, JSGlobalObject* glo
         return vm.smallStrings.functionString();
     if (object->inlineTypeFlags() & TypeOfShouldCallGetCallData) {
         CallData callData;
-        if (object->methodTable(vm)->getCallData(object, callData) != CallTypeNone)
+        if (object->methodTable(vm)->getCallData(object, callData) != CallType::None)
             return vm.smallStrings.functionString();
     }
     
@@ -1050,7 +1057,7 @@ int32_t JIT_OPERATION operationTypeOfObjectAsTypeofType(ExecState* exec, JSGloba
         return static_cast<int32_t>(TypeofType::Function);
     if (object->inlineTypeFlags() & TypeOfShouldCallGetCallData) {
         CallData callData;
-        if (object->methodTable(vm)->getCallData(object, callData) != CallTypeNone)
+        if (object->methodTable(vm)->getCallData(object, callData) != CallType::None)
             return static_cast<int32_t>(TypeofType::Function);
     }
     
@@ -1383,6 +1390,15 @@ int64_t JIT_OPERATION operationConvertBoxedDoubleToInt52(EncodedJSValue encodedV
 int64_t JIT_OPERATION operationConvertDoubleToInt52(double value)
 {
     return tryConvertToInt52(value);
+}
+
+size_t JIT_OPERATION operationDefaultHasInstance(ExecState* exec, JSCell* value, JSCell* proto) // Returns jsBoolean(True|False) on 64-bit.
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+    if (JSObject::defaultHasInstance(exec, value, proto))
+        return 1;
+    return 0;
 }
 
 void JIT_OPERATION operationProcessTypeProfilerLogDFG(ExecState* exec) 
