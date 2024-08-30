@@ -417,6 +417,9 @@ private:
         case OverridesHasInstance:
         case InstanceOf:
         case InstanceOfCustom:
+        case IsArrayObject:
+        case IsJSArray:
+        case IsArrayConstructor:
         case IsUndefined:
         case IsBoolean:
         case IsNumber:
@@ -487,6 +490,11 @@ private:
         case AllocatePropertyStorage:
         case ReallocatePropertyStorage: {
             changed |= setPrediction(SpecOther);
+            break;
+        }
+
+        case CallObjectConstructor: {
+            changed |= setPrediction(SpecObject);
             break;
         }
 
@@ -744,7 +752,6 @@ private:
         case DFG::Jump:
         case Branch:
         case Switch:
-        case Breakpoint:
         case ProfileWillCall:
         case ProfileDidCall:
         case ProfileType:
@@ -1016,7 +1023,6 @@ private:
     
 bool performPredictionPropagation(Graph& graph)
 {
-    SamplingRegion samplingRegion("DFG Prediction Propagation Phase");
     return runPhase<PredictionPropagationPhase>(graph);
 }
 

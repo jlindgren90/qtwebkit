@@ -1,3 +1,343 @@
+2016-03-29  Srinivasan Vijayaraghavan  <svijayaraghavan@apple.com>
+
+        Add machine-readable results for JSC stress tests
+        https://bugs.webkit.org/show_bug.cgi?id=155771
+
+        Reviewed by Darin Adler and Dean Johnson
+
+        Add an option to output JSC stress test results to a user-specified file in JSON format.
+
+        * Scripts/run-javascriptcore-tests:
+        (runJSCStressTests): Add JSON output support
+        (readAllLines): Remove trailing newline from the end of each item
+
+2016-03-29  Alex Christensen  <achristensen@webkit.org>
+
+        Fix Windows build.
+
+        * TestWebKitAPI/PlatformWin.cmake:
+
+2016-03-29  Timothy Hatcher  <timothy@apple.com>
+
+        Update WebKit nightly to have a red needle to better match Safari
+
+        https://bugs.webkit.org/show_bug.cgi?id=155983
+
+        Reviewed by Joseph Pecoraro.
+
+        * WebKitLauncher/webkit.icns:
+
+2016-03-28  Joanmarie Diggs  <jdiggs@igalia.com>
+
+        Adding myself as a reviewer.
+
+        Unreviewed.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-03-25  Dewei Zhu  <dewei_zhu@apple.com>
+
+        Dromaeo patch used by run-benchmark should not include an invalid address.
+        https://bugs.webkit.org/show_bug.cgi?id=155910
+
+        Reviewed by Ryosuke Niwa.
+
+        Should not use invalid 'http://127.0.0.1/Icons/w3c_home' in the patched version of test.
+        * Scripts/webkitpy/benchmark_runner/data/patches/Dromaeo.patch:
+
+2016-03-25  Daniel Bates  <dabates@apple.com>
+
+        Add WebKitSystemInterface for iOS 9.3
+        https://bugs.webkit.org/show_bug.cgi?id=155893
+
+        Rubber-stamped by Alexey Proskuryakov.
+
+        * Scripts/copy-webkitlibraries-to-product-directory:
+
+2016-03-25  Daniel Bates  <dabates@apple.com>
+
+        Use webkitdirs::determineXcodeSDK() instead of webkitdirs::willUseIOSDeviceSDK()
+        in copy-webkitlibraries-to-product-directory
+        https://bugs.webkit.org/show_bug.cgi?id=155869
+
+        Reviewed by Alexey Proskuryakov.
+
+        It is sufficient and more direct to call webkitdirs::determineXcodeSDK() instead of
+        webkitdirs::willUseIOSDeviceSDK() to process the --sdk/--device/--ios-simulator command
+        line argument.
+
+        * Scripts/copy-webkitlibraries-to-product-directory:
+
+2016-03-25  Konstantin Tokarev  <annulen@yandex.ru>
+
+        Turned on ENABLE_REQUEST_ANIMATION_FRAME by default for any port.
+        https://bugs.webkit.org/show_bug.cgi?id=155882
+
+        Reviewed by Michael Catanzaro.
+
+        It was already enabled in all trunk ports, and is required for
+        WebInspectorUI to work.
+
+        * Scripts/webkitperl/FeatureList.pm:
+
+2016-03-24  Jeremy Zerfas  <WebKit@JeremyZerfas.com>
+
+        Improve update-webkit-dependency script.
+        https://bugs.webkit.org/show_bug.cgi?id=155576
+
+        Reviewed by Brent Fulgham.
+
+        * Scripts/update-webkit-dependency:
+        -Updated script to also use ETags for helping to determine whether dependency is up to date.
+        -Updated script so it usually won't need to download the entire dependency each time it is
+         ran.
+        -Updated script to ensure zip file contains expected directories before trying to install.
+        -Added some more error checking and improved error messages.
+        (lastModifiedToUnixTime): Deleted.
+
+        * Scripts/update-webkit-wincairo-libs:
+        -Corrected comment about what script does.
+
+2016-03-24 Bill Ming <mbbill@gmail.com>
+
+        Fix webkitpy tests after r198617
+        https://bugs.webkit.org/show_bug.cgi?id=155827
+
+        Reviewed by Alex Christensen.
+
+        * Scripts/webkitpy/tool/steps/confirmdiff.py:
+        (ConfirmDiff._show_pretty_diff):
+
+2016-03-23  Bill Ming  <mbbill@gmail.com>
+
+        webkit-patch failed to open pretty diff on Windows
+        https://bugs.webkit.org/show_bug.cgi?id=155827
+
+        Reviewed by Alex Christensen.
+
+        * Scripts/webkitpy/tool/steps/confirmdiff.py:
+        (ConfirmDiff._show_pretty_diff):
+
+2016-03-23  Jer Noble  <jer.noble@apple.com>
+
+        [ios-sim] RequiresUserActionForPlaybackTest.DoesNotRequireUserActionForMediaPlayback and RequiresUserActionForVideoButNotAudioPlayback failing
+        https://bugs.webkit.org/show_bug.cgi?id=155764
+
+        Reviewed by Eric Carlson.
+
+        Remove the requirement for media elements to have webkit-playsinline attributes on iOS.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/RequiresUserActionForPlayback.mm:
+        (RequiresUserActionForPlaybackTest::SetUp):
+
+2016-03-23  Anders Carlsson  <andersca@apple.com>
+
+        Crash when using KVO from within -[WebView initWithCoder:]
+        https://bugs.webkit.org/show_bug.cgi?id=155816
+        rdar://problem/17073265
+
+        Reviewed by Dan Bernstein.
+
+        Add test.
+
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/mac/EarlyKVOCrash.mm: Added.
+        (-[EarlyKVOCrashResponder initWithWebView:]):
+        (-[EarlyKVOCrashResponder initWithCoder:]):
+        (-[EarlyKVOCrashResponder dealloc]):
+        (-[EarlyKVOCrashResponder encodeWithCoder:]):
+        (TestWebKitAPI::TEST):
+
+2016-03-23  Lucas Forschler  <lforschler@apple.com>
+
+        Teach kill-old-processes about perl 5.18.
+        
+        Reviewed by Alexey Proskuryakov
+
+        * BuildSlaveSupport/kill-old-processes:
+        (main):
+
+2016-03-22  Keith Rollin  <krollin@apple.com>
+
+        Unreviewed: add Keith Rollin to the committers list.
+
+        * Scripts/webkitpy/common/config/contributors.json:
+
+2016-03-22  Per Arne Vollan  <peavo@outlook.com>
+
+        [Win] [64-bit] Remove MSVC 2013 FMA3 Bug Workaround
+        https://bugs.webkit.org/show_bug.cgi?id=141499
+
+        Reviewed by Brent Fulgham.
+
+        As we have moved on to VS2015, this workaround is no longer needed.
+
+        * DumpRenderTree/cg/ImageDiffCG.cpp:
+        (main):
+        * DumpRenderTree/win/DumpRenderTree.cpp:
+        (main):
+        * DumpRenderTree/win/ImageDiffCairo.cpp:
+        (main):
+        * MiniBrowser/win/Common.cpp:
+        (DllMain):
+        * TestWebKitAPI/win/main.cpp:
+        (main):
+        * win/DLLLauncher/DLLLauncherMain.cpp:
+        (wWinMain):
+
+2016-03-22  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSC] ASMBench cannot be run without JSBENCH_PATH
+        https://bugs.webkit.org/show_bug.cgi?id=155751
+
+        Reviewed by Saam Barati.
+
+        Check ASMBENCH_PATH instead of JSBENCH_PATH for ASMBench files.
+
+        * Scripts/run-jsc-benchmarks:
+
+2016-03-21  Brent Fulgham  <bfulgham@apple.com>
+
+        [Win] SharedBuffer::copy() can cause a segmentation fault.
+        https://bugs.webkit.org/show_bug.cgi?id=155739
+
+        Reviewed by Ryosuke Niwa.
+
+        * TestWebKitAPI/PlatformWin.cmake: Build and run the
+        SharedBuffer tests.
+
+2016-03-22  Csaba Osztrogonác  <ossy@webkit.org>
+
+        [buildbot] Move ARM Linux bots to JSCOnly port
+        https://bugs.webkit.org/show_bug.cgi?id=155655
+
+        Reviewed by Lucas Forschler.
+
+        * BuildSlaveSupport/build.webkit.org-config/config.json:
+        * BuildSlaveSupport/build.webkit.org-config/master.cfg:
+        (ConfigureBuild.__init__):
+        (appendCustomBuildFlags):
+        (CompileJSCOnly):
+        (Factory.__init__):
+        (BuildAndRemoteJSCTestsFactory):
+        (BuildAndRemoteJSCTestsFactory.__init__):
+        * BuildSlaveSupport/build.webkit.org-config/mastercfg_unittest.py:
+        * BuildSlaveSupport/clean-build:
+        (main):
+
+2016-03-21  Brent Fulgham  <bfulgham@apple.com>
+
+        Improve SharedBuffer testing
+        https://bugs.webkit.org/show_bug.cgi?id=93078
+        <rdar://problem/25277829>
+
+        Reviewed by Ryosuke Niwa.
+
+        Based on a Blink patch by Huang Dongsung <luxtella@company100.net>.
+        <https://src.chromium.org/viewvc/blink?revision=153850&view=revision,
+        and a Blink patch by <tyoshino@chromium.org>
+        <https://src.chromium.org/viewvc/blink?view=rev&revision=151617>
+
+        Add three test cases from the Blink project that cover various append,
+        copy, and createArrayBuffer calls.
+
+        * TestWebKitAPI/Tests/WebCore/SharedBuffer.cpp:
+        (TestWebKitAPI::TEST_F):
+
+2016-03-21  Hyungwook Lee  <hyungwook.lee@navercorp.com>
+
+        [Win] Connect layoutTestController.findString() to support testing
+        https://bugs.webkit.org/show_bug.cgi?id=50234
+
+        Reviewed by Alex Christensen.
+
+        Implement TestRunner::findString().
+
+        * DumpRenderTree/win/TestRunnerWin.cpp:
+        (TestRunner::findString):
+
+2016-03-20  Dan Bernstein  <mitz@apple.com>
+
+        [Mac] Determine TARGET_MAC_OS_X_VERSION_MAJOR from MACOSX_DEPLOYMENT_TARGET rather than from MAC_OS_X_VERSION_MAJOR
+        https://bugs.webkit.org/show_bug.cgi?id=155707
+        <rdar://problem/24980691>
+
+        Reviewed by Darin Adler.
+
+        * ContentExtensionTester/Configurations/Base.xcconfig: Set TARGET_MAC_OS_X_VERSION_MAJOR
+          based on the last component of MACOSX_DEPLOYMENT_TARGET.
+        * ContentExtensionTester/Configurations/DebugRelease.xcconfig: For engineering builds,
+          preserve the behavior of TARGET_MAC_OS_X_VERSION_MAJOR being the host’s OS version.
+
+        Similarly for these projects:
+
+        * DumpRenderTree/mac/Configurations/Base.xcconfig:
+        * DumpRenderTree/mac/Configurations/DebugRelease.xcconfig:
+        * LayoutTestRelay/Configurations/Base.xcconfig:
+        * LayoutTestRelay/Configurations/DebugRelease.xcconfig:
+        * MiniBrowser/Configurations/Base.xcconfig:
+        * MiniBrowser/Configurations/DebugRelease.xcconfig:
+        * TestWebKitAPI/Configurations/Base.xcconfig:
+        * TestWebKitAPI/Configurations/DebugRelease.xcconfig:
+        * WebEditingTester/Configurations/Base.xcconfig:
+        * WebEditingTester/Configurations/DebugRelease.xcconfig:
+        * WebKitTestRunner/Configurations/Base.xcconfig:
+        * WebKitTestRunner/Configurations/DebugRelease.xcconfig:
+
+2016-03-20  Dan Bernstein  <mitz@apple.com>
+
+        Update build settings
+
+        Rubber-stamped by Andy Estes.
+
+        * ContentExtensionTester/Configurations/DebugRelease.xcconfig:
+        * DumpRenderTree/mac/Configurations/DebugRelease.xcconfig:
+        * LayoutTestRelay/Configurations/DebugRelease.xcconfig:
+        * MiniBrowser/Configurations/DebugRelease.xcconfig:
+        * TestWebKitAPI/Configurations/DebugRelease.xcconfig:
+        * TestWebKitAPI/Configurations/FeatureDefines.xcconfig: Synced up to the ones in ../Source.
+        * WebEditingTester/Configurations/DebugRelease.xcconfig:
+        * WebKitTestRunner/Configurations/DebugRelease.xcconfig:
+        * asan/asan.xcconfig:
+
+2016-03-18  Sam Weinig  <sam@webkit.org>
+
+        Add test for HashMap::ensure that shows that moving into the lambda does not incure extra cost
+        https://bugs.webkit.org/show_bug.cgi?id=155621
+
+        Reviewed by Alex Christensen.
+
+        * TestWebKitAPI/Tests/WTF/HashMap.cpp:
+        (TestWebKitAPI::ObjectWithRefLogger::ObjectWithRefLogger):
+        (TestWebKitAPI::testMovingUsingEnsure):
+        (TestWebKitAPI::testMovingUsingAdd):
+        Add tests ensuring that objects moved into a map using ensure don't
+        have extra ref-churn.
+
+2016-03-17  Tim Horton  <timothy_horton@apple.com>
+
+        Fix some deprecation warnings in WebEditingTester
+        https://bugs.webkit.org/show_bug.cgi?id=155601
+
+        Reviewed by Simon Fraser.
+
+        * WebEditingTester/AppDelegate.m:
+        (-[WebEditingAppDelegate showOperations:]):
+        (-[WebEditingAppDelegate _updateNewWindowKeyEquivalents]):
+
+2016-03-17  Tim Horton  <timothy_horton@apple.com>
+
+        Find-in-page indicator in Mail viewer is the wrong scale and cut off
+        https://bugs.webkit.org/show_bug.cgi?id=155605
+        <rdar://problem/23948165>
+
+        Reviewed by Simon Fraser.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/FindInPage.mm:
+        (TEST):
+        Add a test that ensures that the find result image is correctly @2x.
+        The NSImage size should be in points.
+
 2016-03-16  Commit Queue  <commit-queue@webkit.org>
 
         Unreviewed, rolling out r198187.

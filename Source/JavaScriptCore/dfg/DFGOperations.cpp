@@ -26,6 +26,7 @@
 #include "config.h"
 #include "DFGOperations.h"
 
+#include "ArrayConstructor.h"
 #include "ButterflyInlines.h"
 #include "ClonedArguments.h"
 #include "CodeBlock.h"
@@ -52,6 +53,7 @@
 #include "Repatch.h"
 #include "ScopedArguments.h"
 #include "StringConstructor.h"
+#include "SuperSampler.h"
 #include "Symbol.h"
 #include "TypeProfilerLog.h"
 #include "TypedArrayInlines.h"
@@ -173,6 +175,19 @@ JSCell* JIT_OPERATION operationCreateThis(ExecState* exec, JSObject* constructor
     if (proto.isObject())
         return constructEmptyObject(exec, asObject(proto));
     return constructEmptyObject(exec);
+}
+
+JSCell* JIT_OPERATION operationObjectConstructor(ExecState* exec, JSGlobalObject* globalObject, EncodedJSValue encodedTarget)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue value = JSValue::decode(encodedTarget);
+    ASSERT(!value.isObject());
+
+    if (value.isUndefinedOrNull())
+        return constructEmptyObject(exec, globalObject->objectPrototype());
+    return value.toObject(exec, globalObject);
 }
 
 EncodedJSValue JIT_OPERATION operationValueBitAnd(ExecState* exec, EncodedJSValue encodedOp1, EncodedJSValue encodedOp2)
@@ -621,6 +636,8 @@ EncodedJSValue JIT_OPERATION operationArrayPopAndRecoverLength(ExecState* exec, 
         
 EncodedJSValue JIT_OPERATION operationRegExpExecString(ExecState* exec, JSGlobalObject* globalObject, RegExpObject* regExpObject, JSString* argument)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
     
@@ -629,6 +646,8 @@ EncodedJSValue JIT_OPERATION operationRegExpExecString(ExecState* exec, JSGlobal
         
 EncodedJSValue JIT_OPERATION operationRegExpExec(ExecState* exec, JSGlobalObject* globalObject, RegExpObject* regExpObject, EncodedJSValue encodedArgument)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
     
@@ -642,6 +661,8 @@ EncodedJSValue JIT_OPERATION operationRegExpExec(ExecState* exec, JSGlobalObject
         
 EncodedJSValue JIT_OPERATION operationRegExpExecGeneric(ExecState* exec, JSGlobalObject* globalObject, EncodedJSValue encodedBase, EncodedJSValue encodedArgument)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
@@ -659,6 +680,8 @@ EncodedJSValue JIT_OPERATION operationRegExpExecGeneric(ExecState* exec, JSGloba
         
 size_t JIT_OPERATION operationRegExpTestString(ExecState* exec, JSGlobalObject* globalObject, RegExpObject* regExpObject, JSString* input)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
@@ -667,6 +690,8 @@ size_t JIT_OPERATION operationRegExpTestString(ExecState* exec, JSGlobalObject* 
 
 size_t JIT_OPERATION operationRegExpTest(ExecState* exec, JSGlobalObject* globalObject, RegExpObject* regExpObject, EncodedJSValue encodedArgument)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
@@ -680,6 +705,8 @@ size_t JIT_OPERATION operationRegExpTest(ExecState* exec, JSGlobalObject* global
 
 size_t JIT_OPERATION operationRegExpTestGeneric(ExecState* exec, JSGlobalObject* globalObject, EncodedJSValue encodedBase, EncodedJSValue encodedArgument)
 {
+    SuperSamplerScope superSamplerScope;
+    
     VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
 
@@ -695,6 +722,22 @@ size_t JIT_OPERATION operationRegExpTestGeneric(ExecState* exec, JSGlobalObject*
     if (!input)
         return false;
     return asRegExpObject(base)->test(exec, globalObject, input);
+}
+
+size_t JIT_OPERATION operationIsArrayConstructor(ExecState* exec, EncodedJSValue encodedTarget)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    return isArrayConstructor(JSValue::decode(encodedTarget));
+}
+
+size_t JIT_OPERATION operationIsArrayObject(ExecState* exec, EncodedJSValue encodedTarget)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    return isArray(exec, JSValue::decode(encodedTarget));
 }
 
 size_t JIT_OPERATION operationCompareStrictEqCell(ExecState* exec, EncodedJSValue encodedOp1, EncodedJSValue encodedOp2)

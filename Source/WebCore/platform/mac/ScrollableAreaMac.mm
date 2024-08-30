@@ -37,6 +37,13 @@
 
 namespace WebCore {
 
+// It's conceivable that in the future, we may want some scrollbars to be on the right while other scrollbars in the same document are on the left.
+// This non-static function on the ScrollableArea makes that possible.
+bool ScrollableArea::verticalScrollbarIsOnLeft() const
+{
+    return systemLanguageIsRTL();
+}
+
 bool ScrollableArea::systemLanguageIsRTL()
 {
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
@@ -44,6 +51,15 @@ bool ScrollableArea::systemLanguageIsRTL()
     return result;
 #else
     return false;
+#endif
+}
+
+void ScrollableArea::setScrollbarLayoutDirection(NSScrollerImp *scroller) const
+{
+#if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101200
+    scroller.userInterfaceLayoutDirection = verticalScrollbarIsOnLeft() ? NSUserInterfaceLayoutDirectionRightToLeft : NSUserInterfaceLayoutDirectionLeftToRight;
+#else
+    UNUSED_PARAM(scroller);
 #endif
 }
 

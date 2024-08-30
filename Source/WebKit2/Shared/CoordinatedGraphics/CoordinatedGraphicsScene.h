@@ -76,7 +76,7 @@ public:
     void setScrollPosition(const WebCore::FloatPoint&);
 #endif
     void detach();
-    void appendUpdate(std::function<void()>);
+    void appendUpdate(std::function<void()>&&);
 
     WebCore::TextureMapperLayer* findScrollableContentsLayerAt(const WebCore::FloatPoint&);
 
@@ -134,8 +134,8 @@ private:
     void syncRemoteContent();
     void adjustPositionForFixedLayers(const WebCore::FloatPoint& contentPosition);
 
-    void dispatchOnMainThread(std::function<void()>);
-    void dispatchOnClientRunLoop(std::function<void()>);
+    void dispatchOnMainThread(std::function<void()>&&);
+    void dispatchOnClientRunLoop(std::function<void()>&&);
     void updateViewport();
     void renderNextFrame();
     void purgeBackingStores();

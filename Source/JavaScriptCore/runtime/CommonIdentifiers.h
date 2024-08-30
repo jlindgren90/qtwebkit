@@ -302,14 +302,14 @@
     macro(yield)
 
 #define JSC_COMMON_PRIVATE_IDENTIFIERS_EACH_WELL_KNOWN_SYMBOL_NOT_IMPLEMENTED_YET(macro)\
-    macro(isConcatSpreadable) \
-    macro(match) \
     macro(replace) \
-    macro(split) \
+    macro(split)
 
 #define JSC_COMMON_PRIVATE_IDENTIFIERS_EACH_WELL_KNOWN_SYMBOL(macro) \
     macro(hasInstance) \
+    macro(isConcatSpreadable) \
     macro(iterator) \
+    macro(match) \
     macro(search) \
     macro(species) \
     macro(toPrimitive) \
@@ -346,6 +346,8 @@
     macro(floor) \
     macro(isFinite) \
     macro(isNaN) \
+    macro(create) \
+    macro(defineProperty) \
     macro(getPrototypeOf) \
     macro(getOwnPropertyDescriptor) \
     macro(getOwnPropertyNames) \
@@ -381,6 +383,7 @@
     macro(Uint32Array) \
     macro(Float32Array) \
     macro(Float64Array) \
+    macro(exec) \
     macro(generator) \
     macro(generatorNext) \
     macro(generatorState) \
@@ -399,7 +402,12 @@
     macro(hasInstanceBoundFunction) \
     macro(instanceOf) \
     macro(isArray) \
+    macro(isJSArray) \
     macro(isArrayConstructor) \
+    macro(concatMemcpy) \
+    macro(appendMemcpy) \
+    macro(predictFinalLengthFromArgumunts) \
+    macro(print) \
     macro(isSet) \
     macro(isMap) \
     macro(SetIterator) \

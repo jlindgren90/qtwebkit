@@ -704,7 +704,8 @@ public:
 }
 
 - (void)_setUnsignedIntValue:(unsigned int)value forKey:(NSString *)key
-{    if ([self _unsignedIntValueForKey:key] == value)
+{
+    if ([self _unsignedIntValueForKey:key] == value)
         return;
     NSString *_key = KEY(key);
 #if PLATFORM(IOS)
@@ -1577,7 +1578,7 @@ public:
 #if !PLATFORM(IOS)
 - (PDFDisplayMode)PDFDisplayMode
 {
-    PDFDisplayMode value = [self _integerValueForKey:WebKitPDFDisplayModePreferenceKey];
+    PDFDisplayMode value = static_cast<PDFDisplayMode>([self _integerValueForKey:WebKitPDFDisplayModePreferenceKey]);
     if (value != kPDFDisplaySinglePage && value != kPDFDisplaySinglePageContinuous && value != kPDFDisplayTwoUp && value != kPDFDisplayTwoUpContinuous) {
         // protect against new modes from future versions of OS X stored in defaults
         value = kPDFDisplaySinglePageContinuous;

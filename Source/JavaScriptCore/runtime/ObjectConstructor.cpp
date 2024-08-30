@@ -99,6 +99,8 @@ void ObjectConstructor::finishCreation(VM& vm, JSGlobalObject* globalObject, Obj
     // no. of arguments for constructor
     putDirectWithoutTransition(vm, vm.propertyNames->length, jsNumber(1), ReadOnly | DontEnum | DontDelete);
 
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->createPrivateName, objectConstructorCreate, DontEnum, 2);
+    JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->definePropertyPrivateName, objectConstructorDefineProperty, DontEnum, 3);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->getPrototypeOfPrivateName, objectConstructorGetPrototypeOf, DontEnum, 1);
     JSC_NATIVE_FUNCTION_WITHOUT_TRANSITION(vm.propertyNames->getOwnPropertyNamesPrivateName, objectConstructorGetOwnPropertyNames, DontEnum, 1);
 }
@@ -243,13 +245,17 @@ JSValue objectConstructorGetOwnPropertyDescriptors(ExecState* exec, JSObject* ob
         return jsUndefined();
 
     JSObject* descriptors = constructEmptyObject(exec);
+    if (exec->hadException())
+        return jsUndefined();
 
     for (auto& propertyName : properties) {
         JSValue fromDescriptor = objectConstructorGetOwnPropertyDescriptor(exec, object, propertyName);
         if (exec->hadException())
             return jsUndefined();
 
-        descriptors->putDirect(exec->vm(), propertyName, fromDescriptor, 0);
+        PutPropertySlot slot(descriptors);
+        descriptors->putOwnDataPropertyMayBeIndex(exec, propertyName, fromDescriptor, slot);
+        ASSERT(!exec->hadException());
     }
 
     return descriptors;

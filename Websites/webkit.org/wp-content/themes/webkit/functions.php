@@ -60,6 +60,38 @@ add_filter('the_content', function($content) {
     return $content;
 });
 
+add_action('wp_head', function () {
+    if (!is_single()) return;
+
+    $style = get_post_meta(get_the_ID(), 'style', true);
+    if (!empty($style))
+        echo '<style type="text/css">' . $style . '</style>';
+
+    $script = get_post_meta(get_the_ID(), 'script', true);
+    if (!empty($script))
+        echo '<script type="text/javascript">' . $script . '</script>';
+});
+
+add_action('the_post', function($post) {
+    global $pages;
+    if (!is_single()) return;
+
+    $content = $post->post_content;
+    if (strpos($content, 'abovetitle') === false) return;
+    if (strpos($content, '<img') !== 0) return;
+
+    $post->post_title_img = substr($content, 0, strpos($content, ">\n") + 3);
+    $post->post_content = str_replace($post->post_title_img, '', $content);
+    $pages = array($post->post_content);
+});
+
+function before_the_title() {
+    $post = get_post();
+
+    if ( isset($post->post_title_img) )
+        echo wp_make_content_images_responsive($post->post_title_img);
+}
+
 // Hide category 41: Legacy from archives
 add_filter('pre_get_posts', function ($query) {
     if ( $query->is_home() )

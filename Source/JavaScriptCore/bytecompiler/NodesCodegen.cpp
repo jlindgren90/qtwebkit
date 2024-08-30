@@ -45,7 +45,6 @@
 #include "PropertyNameArray.h"
 #include "RegExpCache.h"
 #include "RegExpObject.h"
-#include "SamplingTool.h"
 #include "StackAlignment.h"
 #include "TemplateRegistryKey.h"
 #include <wtf/Assertions.h>
@@ -2151,6 +2150,8 @@ RegisterID* EmptyLetExpression::emitBytecode(BytecodeGenerator& generator, Regis
         generator.emitPutToScope(scope.get(), var, value.get(), generator.isStrictMode() ? ThrowIfNotFound : DoNotThrowIfNotFound, Initialization);
         generator.emitProfileType(value.get(), var, position(), JSTextPosition(-1, position().offset + m_ident.length(), -1)); 
     }
+
+    generator.liftTDZCheckIfPossible(var);
 
     // It's safe to return null here because this node will always be a child node of DeclarationStatement which ignores our return value.
     return nullptr;

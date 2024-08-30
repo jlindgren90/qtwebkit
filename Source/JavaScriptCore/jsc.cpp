@@ -51,10 +51,10 @@
 #include "JSWASMModule.h"
 #include "ProfilerDatabase.h"
 #include "SamplingProfiler.h"
-#include "SamplingTool.h"
 #include "StackVisitor.h"
 #include "StructureInlines.h"
 #include "StructureRareDataInlines.h"
+#include "SuperSampler.h"
 #include "TestRunnerUtils.h"
 #include "TypeProfilerLog.h"
 #include "WASMModuleParser.h"
@@ -447,7 +447,7 @@ public:
 
     static Structure* createStructure(VM& vm, JSGlobalObject* globalObject, JSValue prototype)
     {
-        return Structure::create(vm, globalObject, prototype, TypeInfo(ObjectType, StructureFlags), info(), ArrayClass);
+        return Structure::create(vm, globalObject, prototype, TypeInfo(ArrayType, StructureFlags), info(), ArrayClass);
     }
 
 protected:
@@ -568,6 +568,7 @@ static EncodedJSValue JSC_HOST_CALL functionGetHiddenValue(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionSetHiddenValue(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionPrint(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionDebug(ExecState*);
+static EncodedJSValue JSC_HOST_CALL functionDataLogValue(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionDescribe(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionDescribeArray(ExecState*);
 static EncodedJSValue JSC_HOST_CALL functionJSCStack(ExecState*);
@@ -733,7 +734,8 @@ protected:
     void finishCreation(VM& vm, const Vector<String>& arguments)
     {
         Base::finishCreation(vm);
-        
+
+        addFunction(vm, "dataLogValue", functionDataLogValue, 1);
         addFunction(vm, "debug", functionDebug, 1);
         addFunction(vm, "describe", functionDescribe, 1);
         addFunction(vm, "describeArray", functionDescribeArray, 1);
@@ -831,6 +833,7 @@ protected:
         }
 
         putDirect(vm, Identifier::fromString(globalExec(), "console"), jsUndefined());
+        putDirect(vm, vm.propertyNames->printPrivateName, JSFunction::create(vm, this, 1, vm.propertyNames->printPrivateName.string(), functionPrint));
     }
 
     void addFunction(VM& vm, const char* name, NativeFunction function, unsigned arguments)
@@ -1124,6 +1127,12 @@ EncodedJSValue JSC_HOST_CALL functionDumpCallFrame(ExecState* exec)
 EncodedJSValue JSC_HOST_CALL functionDebug(ExecState* exec)
 {
     fprintf(stderr, "--> %s\n", exec->argument(0).toString(exec)->view(exec).get().utf8().data());
+    return JSValue::encode(jsUndefined());
+}
+
+EncodedJSValue JSC_HOST_CALL functionDataLogValue(ExecState* exec)
+{
+    dataLog("value is: ", exec->argument(0), "\n");
     return JSValue::encode(jsUndefined());
 }
 
@@ -1923,8 +1932,6 @@ static bool runWithScripts(GlobalObject* globalObject, const Vector<Script>& scr
             fileName = ASCIILiteral("[Command Line]");
         }
 
-        vm.startSampling();
-
         if (module) {
             if (!promise)
                 promise = loadAndEvaluateModule(globalObject->globalExec(), jscSource(scriptBuffer, fileName));
@@ -1940,20 +1947,9 @@ static bool runWithScripts(GlobalObject* globalObject, const Vector<Script>& scr
             dumpException(globalObject, evaluationException);
         }
 
-        vm.stopSampling();
         globalObject->globalExec()->clearException();
     }
 
-#if ENABLE(SAMPLING_FLAGS)
-    SamplingFlags::stop();
-#endif
-#if ENABLE(SAMPLING_REGIONS)
-    SamplingRegion::dump();
-#endif
-    vm.dumpSampleData(globalObject->globalExec());
-#if ENABLE(SAMPLING_COUNTERS)
-    AbstractSamplingCounter::dump();
-#endif
 #if ENABLE(REGEXP_TRACING)
     vm.dumpRegExpTrace();
 #endif
@@ -2213,6 +2209,8 @@ int jscmain(int argc, char** argv)
         JSLockHolder locker(vm);
         vm->heap.collectAllGarbage();
     }
+
+    printSuperSamplerState();
 
     return result;
 }

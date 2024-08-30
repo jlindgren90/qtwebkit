@@ -184,7 +184,7 @@ void RenderTableRow::layout()
             cell->setChildNeedsLayout(MarkOnlyThis);
 
         if (cell->needsLayout()) {
-            cell->computeAndSetBlockDirectionMargins(table());
+            cell->computeAndSetBlockDirectionMargins(*table());
             cell->layout();
         }
     }

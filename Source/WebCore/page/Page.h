@@ -518,6 +518,9 @@ public:
     String captionUserPreferencesStyleSheet();
     void setCaptionUserPreferencesStyleSheet(const String&);
 
+    bool isResourceCachingDisabled() const { return m_resourceCachingDisabled; }
+    void setResourceCachingDisabled(bool disabled) { m_resourceCachingDisabled = disabled; }
+
 private:
     WEBCORE_EXPORT void initGroup();
 
@@ -698,8 +701,8 @@ private:
     
     bool m_allowsMediaDocumentInlinePlayback { false };
     bool m_showAllPlugins { false };
-
     bool m_controlledByAutomation { false };
+    bool m_resourceCachingDisabled { false };
 };
 
 inline PageGroup& Page::group()

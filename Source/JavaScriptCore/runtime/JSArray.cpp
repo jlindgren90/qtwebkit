@@ -392,6 +392,37 @@ bool JSArray::setLengthWithArrayStorage(ExecState* exec, unsigned newLength, boo
     return true;
 }
 
+bool JSArray::appendMemcpy(ExecState* exec, VM& vm, JSC::JSArray* otherArray)
+{
+    if (!canFastCopy(vm, otherArray))
+        return false;
+
+    IndexingType type = indexingType();
+    if (type != memCopyWithIndexingType(otherArray->indexingType()))
+        return false;
+
+    unsigned oldLength = length();
+    unsigned otherLength = otherArray->length();
+    unsigned newLength = oldLength + otherLength;
+    if (newLength >= MIN_SPARSE_ARRAY_INDEX)
+        return false;
+
+    if (!ensureLength(vm, newLength))
+        return false;
+    ASSERT(type == indexingType());
+    if (length() != newLength) {
+        throwOutOfMemoryError(exec);
+        return false;
+    }
+
+    if (type == ArrayWithDouble)
+        memcpy(butterfly()->contiguousDouble().data() + oldLength, otherArray->butterfly()->contiguousDouble().data(), sizeof(JSValue) * otherLength);
+    else
+        memcpy(butterfly()->contiguous().data() + oldLength, otherArray->butterfly()->contiguous().data(), sizeof(JSValue) * otherLength);
+
+    return true;
+}
+
 bool JSArray::setLength(ExecState* exec, unsigned newLength, bool throwException)
 {
     Butterfly* butterfly = m_butterfly.get();
@@ -421,7 +452,10 @@ bool JSArray::setLength(ExecState* exec, unsigned newLength, bool throwException
                 ensureArrayStorage(exec->vm()));
         }
         if (newLength > butterfly->publicLength()) {
-            ensureLength(exec->vm(), newLength);
+            if (!ensureLength(exec->vm(), newLength)) {
+                throwOutOfMemoryError(exec);
+                return false;
+            }
             return true;
         }
 
@@ -716,38 +750,6 @@ JSArray* JSArray::fastSlice(ExecState& exec, unsigned startIndex, unsigned count
     }
 }
 
-EncodedJSValue JSArray::fastConcatWith(ExecState& exec, JSArray& otherArray)
-{
-    auto newArrayType = indexingType();
-
-    VM& vm = exec.vm();
-    ASSERT(newArrayType == fastConcatType(vm, *this, otherArray));
-
-    unsigned thisArraySize = m_butterfly.get()->publicLength();
-    unsigned otherArraySize = otherArray.m_butterfly.get()->publicLength();
-    ASSERT(thisArraySize + otherArraySize < MIN_SPARSE_ARRAY_INDEX);
-
-    Structure* resultStructure = exec.lexicalGlobalObject()->arrayStructureForIndexingTypeDuringAllocation(newArrayType);
-    JSArray* resultArray = JSArray::tryCreateUninitialized(vm, resultStructure, thisArraySize + otherArraySize);
-    if (!resultArray)
-        return JSValue::encode(throwOutOfMemoryError(&exec));
-
-    auto& resultButterfly = *resultArray->butterfly();
-    auto& otherButterfly = *otherArray.butterfly();
-    if (newArrayType == ArrayWithDouble) {
-        auto buffer = resultButterfly.contiguousDouble().data();
-        memcpy(buffer, m_butterfly.get()->contiguousDouble().data(), sizeof(JSValue) * thisArraySize);
-        memcpy(buffer + thisArraySize, otherButterfly.contiguousDouble().data(), sizeof(JSValue) * otherArraySize);
-    } else {
-        auto buffer = resultButterfly.contiguous().data();
-        memcpy(buffer, m_butterfly.get()->contiguous().data(), sizeof(JSValue) * thisArraySize);
-        memcpy(buffer + thisArraySize, otherButterfly.contiguous().data(), sizeof(JSValue) * otherArraySize);
-    }
-
-    resultButterfly.setPublicLength(thisArraySize + otherArraySize);
-    return JSValue::encode(resultArray);
-}
-
 bool JSArray::shiftCountWithArrayStorage(VM& vm, unsigned startIndex, unsigned count, ArrayStorage* storage)
 {
     unsigned oldLength = storage->length();
@@ -1014,7 +1016,10 @@ bool JSArray::unshiftCountWithAnyIndexingType(ExecState* exec, unsigned startInd
         if (oldLength - startIndex >= MIN_SPARSE_ARRAY_INDEX)
             return unshiftCountWithArrayStorage(exec, startIndex, count, ensureArrayStorage(exec->vm()));
         
-        ensureLength(exec->vm(), oldLength + count);
+        if (!ensureLength(exec->vm(), oldLength + count)) {
+            throwOutOfMemoryError(exec);
+            return false;
+        }
         butterfly = m_butterfly.get();
 
         // We have to check for holes before we start moving things around so that we don't get halfway 
@@ -1047,7 +1052,10 @@ bool JSArray::unshiftCountWithAnyIndexingType(ExecState* exec, unsigned startInd
         if (oldLength - startIndex >= MIN_SPARSE_ARRAY_INDEX)
             return unshiftCountWithArrayStorage(exec, startIndex, count, ensureArrayStorage(exec->vm()));
         
-        ensureLength(exec->vm(), oldLength + count);
+        if (!ensureLength(exec->vm(), oldLength + count)) {
+            throwOutOfMemoryError(exec);
+            return false;
+        }
         butterfly = m_butterfly.get();
         
         // We have to check for holes before we start moving things around so that we don't get halfway 

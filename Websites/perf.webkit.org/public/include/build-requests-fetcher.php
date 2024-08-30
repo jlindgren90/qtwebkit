@@ -7,6 +7,7 @@ class BuildRequestsFetcher {
         $this->db = $db;
         $this->rows = null;
         $this->root_sets = array();
+        $this->roots_by_id = array();
         $this->roots = array();
         $this->root_sets_by_id = array();
     }
@@ -92,17 +93,22 @@ class BuildRequestsFetcher {
 
         $root_ids = array();
         foreach ($root_rows as $row) {
-            $repository = $row['repository_id'];
+            $repository_id = $resolve_ids ? $row['repository_name'] : $row['repository_id'];
             $revision = $row['commit_revision'];
             $commit_time = $row['commit_time'];
-            $root_id = $root_set_id . '-' . $repository;
-            array_push($root_ids, $root_id);
-            $repository_id = $resolve_ids ? $row['repository_name'] : $row['repository_id'];
+            array_push($root_ids, $row['commit_id']);
+
+            $root_id = $row['commit_id'];
+            if (array_key_exists($root_id, $this->roots_by_id))
+                continue;
+
             array_push($this->roots, array(
                 'id' => $root_id,
                 'repository' => $repository_id,
                 'revision' => $revision,
                 'time' => Database::to_js_time($commit_time)));
+
+            $this->roots_by_id[$root_id] = TRUE;
         }
 
         $this->root_sets_by_id[$root_set_id] = TRUE;

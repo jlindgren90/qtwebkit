@@ -1028,7 +1028,18 @@ private:
             fixEdge<Int32Use>(node->child1());
             break;
         }
-            
+
+        case CallObjectConstructor: {
+            if (node->child1()->shouldSpeculateObject()) {
+                fixEdge<ObjectUse>(node->child1());
+                node->convertToIdentity();
+                break;
+            }
+
+            fixEdge<UntypedUse>(node->child1());
+            break;
+        }
+
         case ToThis: {
             fixupToThis(node);
             break;
@@ -1496,9 +1507,11 @@ private:
         case NewObject:
         case NewArrayBuffer:
         case NewRegexp:
-        case Breakpoint:
         case ProfileWillCall:
         case ProfileDidCall:
+        case IsArrayObject:
+        case IsJSArray:
+        case IsArrayConstructor:
         case IsUndefined:
         case IsBoolean:
         case IsNumber:
@@ -2456,7 +2469,6 @@ private:
     
 bool performFixup(Graph& graph)
 {
-    SamplingRegion samplingRegion("DFG Fixup Phase");
     return runPhase<FixupPhase>(graph);
 }
 

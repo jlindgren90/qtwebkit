@@ -170,8 +170,18 @@ static NSURLSessionAuthChallengeDisposition toNSURLSessionAuthChallengeDispositi
     else if (error) {
         auto downloadID = _session->takeDownloadID(task.taskIdentifier);
         if (downloadID.downloadID()) {
-            if (auto* download = WebKit::NetworkProcess::singleton().downloadManager().download(downloadID))
-                download->didFail(error, { });
+            if (auto* download = WebKit::NetworkProcess::singleton().downloadManager().download(downloadID)) {
+                NSData *resumeData = nil;
+                if (id userInfo = error.userInfo) {
+                    if ([userInfo isKindOfClass:[NSDictionary class]])
+                        resumeData = userInfo[@"NSURLSessionDownloadTaskResumeData"];
+                }
+                
+                if (resumeData && [resumeData isKindOfClass:[NSData class]])
+                    download->didFail(error, { static_cast<const uint8_t*>(resumeData.bytes), resumeData.length });
+                else
+                    download->didFail(error, { });
+            }
         }
     }
 }
@@ -190,7 +200,7 @@ static NSURLSessionAuthChallengeDisposition toNSURLSessionAuthChallengeDispositi
         WebCore::ResourceResponse resourceResponse(response);
         copyTimingData([dataTask _timingData], resourceResponse.resourceLoadTiming());
         auto completionHandlerCopy = Block_copy(completionHandler);
-        networkDataTask->didReceiveResponse(resourceResponse, [completionHandlerCopy, resourceResponse](WebCore::PolicyAction policyAction) {
+        networkDataTask->didReceiveResponse(resourceResponse, [completionHandlerCopy](WebCore::PolicyAction policyAction) {
             completionHandlerCopy(toNSURLSessionResponseDisposition(policyAction));
             Block_release(completionHandlerCopy);
         });
@@ -266,9 +276,20 @@ static RefPtr<CustomProtocolManager>& globalCustomProtocolManager()
     return customProtocolManager.get();
 }
 
+static RetainPtr<CFDataRef>& globalSourceApplicationAuditTokenData()
+{
+    static NeverDestroyed<RetainPtr<CFDataRef>> sourceApplicationAuditTokenData;
+    return sourceApplicationAuditTokenData.get();
+}
+
 void NetworkSession::setCustomProtocolManager(CustomProtocolManager* customProtocolManager)
 {
     globalCustomProtocolManager() = customProtocolManager;
+}
+    
+void NetworkSession::setSourceApplicationAuditTokenData(RetainPtr<CFDataRef>&& data)
+{
+    globalSourceApplicationAuditTokenData() = data;
 }
 
 Ref<NetworkSession> NetworkSession::create(Type type, WebCore::SessionID sessionID, CustomProtocolManager* customProtocolManager, std::unique_ptr<WebCore::NetworkStorageSession> networkStorageSession)
@@ -291,6 +312,9 @@ NetworkSession::NetworkSession(Type type, WebCore::SessionID sessionID, CustomPr
 
     NSURLSessionConfiguration *configuration = configurationForType(type);
 
+    if (auto& data = globalSourceApplicationAuditTokenData())
+        configuration._sourceApplicationAuditTokenData = (NSData *)data.get();
+    
     if (customProtocolManager)
         customProtocolManager->registerProtocolClass(configuration);
     

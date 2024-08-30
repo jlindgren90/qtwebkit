@@ -109,10 +109,11 @@ ALWAYS_INLINE bool JSStringJoiner::appendWithoutSideEffects(ExecState& state, JS
     // If we might make an effectful calls, return false. Otherwise return true.
 
     if (value.isCell()) {
+        JSString* jsString;
         if (!value.asCell()->isString())
             return false;
-
-        append(asString(value)->viewWithUnderlyingString(state));
+        jsString = asString(value);
+        append(jsString->viewWithUnderlyingString(state));
         return true;
     }
 

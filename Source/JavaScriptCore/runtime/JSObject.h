@@ -627,6 +627,7 @@ public:
     //  - does not walk the prototype chain (to check for accessors or non-writable properties).
     // This is used by JSLexicalEnvironment.
     bool putOwnDataProperty(VM&, PropertyName, JSValue, PutPropertySlot&);
+    bool putOwnDataPropertyMayBeIndex(ExecState*, PropertyName, JSValue, PutPropertySlot&);
 
     // Fast access to known property offsets.
     JSValue getDirect(PropertyOffset offset) const { return locationForOffset(offset)->get(); }
@@ -867,16 +868,18 @@ protected:
         
     // Call this if you want setIndexQuickly to succeed and you're sure that
     // the array is contiguous.
-    void ensureLength(VM& vm, unsigned length)
+    bool WARN_UNUSED_RETURN ensureLength(VM& vm, unsigned length)
     {
         ASSERT(length < MAX_ARRAY_INDEX);
         ASSERT(hasContiguous(indexingType()) || hasInt32(indexingType()) || hasDouble(indexingType()) || hasUndecided(indexingType()));
 
+        bool result = true;
         if (m_butterfly.get()->vectorLength() < length)
-            ensureLengthSlow(vm, length);
+            result = ensureLengthSlow(vm, length);
             
         if (m_butterfly.get()->publicLength() < length)
             m_butterfly.get()->setPublicLength(length);
+        return result;
     }
         
     // Call this if you want to shrink the butterfly backing store, and you're
@@ -932,7 +935,7 @@ private:
     JS_EXPORT_PRIVATE void convertInt32ToDoubleOrContiguousWhilePerformingSetIndex(VM&, unsigned index, JSValue);
     JS_EXPORT_PRIVATE void convertDoubleToContiguousWhilePerformingSetIndex(VM&, unsigned index, JSValue);
         
-    void ensureLengthSlow(VM&, unsigned length);
+    bool ensureLengthSlow(VM&, unsigned length);
         
     ContiguousJSValues ensureInt32Slow(VM&);
     ContiguousDoubles ensureDoubleSlow(VM&);
@@ -1480,6 +1483,19 @@ inline bool JSObject::putOwnDataProperty(VM& vm, PropertyName propertyName, JSVa
     ASSERT(!structure()->hasCustomGetterSetterProperties());
 
     return putDirectInternal<PutModePut>(vm, propertyName, value, 0, slot);
+}
+
+inline bool JSObject::putOwnDataPropertyMayBeIndex(ExecState* exec, PropertyName propertyName, JSValue value, PutPropertySlot& slot)
+{
+    ASSERT(value);
+    ASSERT(!Heap::heap(value) || Heap::heap(value) == Heap::heap(this));
+    ASSERT(!structure()->hasGetterSetterProperties());
+    ASSERT(!structure()->hasCustomGetterSetterProperties());
+
+    if (Optional<uint32_t> index = parseIndex(propertyName))
+        return putDirectIndex(exec, index.value(), value, 0, PutDirectIndexLikePutDirect);
+
+    return putDirectInternal<PutModePut>(exec->vm(), propertyName, value, 0, slot);
 }
 
 inline bool JSObject::putDirect(VM& vm, PropertyName propertyName, JSValue value, unsigned attributes)

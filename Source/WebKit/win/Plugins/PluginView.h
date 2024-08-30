@@ -36,7 +36,6 @@
 #include "Timer.h"
 #include <wtf/HashMap.h>
 #include <wtf/HashSet.h>
-#include <wtf/PassRefPtr.h>
 #include <wtf/RefPtr.h>
 #include <wtf/Vector.h>
 #include <wtf/text/CString.h>
@@ -340,7 +339,7 @@ namespace WebCore {
 
 #if OS(WINDOWS)
         void paintIntoTransformedContext(HDC);
-        PassRefPtr<Image> snapshot();
+        RefPtr<Image> snapshot();
 #endif
 
         float deviceScaleFactor() const;

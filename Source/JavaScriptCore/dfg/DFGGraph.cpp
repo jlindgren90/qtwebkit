@@ -78,7 +78,7 @@ Graph::Graph(VM& vm, Plan& plan, LongLivedState& longLivedState)
 {
     ASSERT(m_profiledBlock);
     
-    m_hasDebuggerEnabled = m_profiledBlock->globalObject()->hasDebugger()
+    m_hasDebuggerEnabled = m_profiledBlock->globalObject()->hasInteractiveDebugger()
         || Options::forceDebuggerBytecodeGeneration();
 }
 
@@ -567,8 +567,6 @@ void Graph::dethread()
     
     if (logCompilationChanges())
         dataLog("Dethreading DFG graph.\n");
-    
-    SamplingRegion samplingRegion("DFG Dethreading");
     
     for (BlockIndex blockIndex = m_blocks.size(); blockIndex--;) {
         BasicBlock* block = m_blocks[blockIndex].get();
