@@ -63,6 +63,11 @@ String WebsiteDataStore::defaultWebSQLDatabaseDirectory()
     return WebKit::QtWebContext::preparedStoragePath(WebKit::QtWebContext::DatabaseStorage);
 }
 
+String WebsiteDataStore::defaultResourceLoadStatisticsDirectory()
+{
+    return String();
+}
+
 String WebsiteDataStore::cacheDirectoryFileSystemRepresentation(const String& directoryName)
 {
     return String();
