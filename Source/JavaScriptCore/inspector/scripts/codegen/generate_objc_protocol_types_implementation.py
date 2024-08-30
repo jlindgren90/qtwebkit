@@ -100,6 +100,7 @@ class ObjCProtocolTypesImplementationGenerator(ObjCGenerator):
         if self.get_generator_setting('generate_frontend', False):
             lines.append('')
             lines.append(self._generate_init_method_for_payload(domain, declaration))
+            lines.append(self._generate_init_method_for_json_object(domain, declaration))
         required_members = [member for member in declaration.type_members if not member.is_optional]
         if required_members:
             lines.append('')
@@ -111,6 +112,17 @@ class ObjCProtocolTypesImplementationGenerator(ObjCGenerator):
             lines.append(self._generate_getter_for_member(domain, declaration, member))
         lines.append('')
         lines.append('@end')
+        return '\n'.join(lines)
+
+    def _generate_init_method_for_json_object(self, domain, declaration):
+        lines = []
+        lines.append('- (instancetype)initWithJSONObject:(RWIProtocolJSONObject *)jsonObject')
+        lines.append('{')
+        lines.append('    if (!(self = [super initWithInspectorObject:[jsonObject toInspectorObject].get()]))')
+        lines.append('        return nil;')
+        lines.append('')
+        lines.append('    return self;')
+        lines.append('}')
         return '\n'.join(lines)
 
     def _generate_init_method_for_payload(self, domain, declaration):
@@ -143,8 +155,7 @@ class ObjCProtocolTypesImplementationGenerator(ObjCGenerator):
         lines = []
         lines.append('- (instancetype)initWith%s;' % ' '.join(pairs))
         lines.append('{')
-        lines.append('    self = [super init];')
-        lines.append('    if (!self)')
+        lines.append('    if (!(self = [super init]))')
         lines.append('        return nil;')
         lines.append('')
 

@@ -32,17 +32,21 @@ WebInspector.HeapObserver = class HeapObserver
         WebInspector.heapManager.garbageCollected(collection);
     }
 
-    trackingStart(timestamp, snapshotData)
+    trackingStart(timestamp, snapshotStringData)
     {
-        let payload = JSON.parse(snapshotData);
-        let snapshot = WebInspector.HeapSnapshot.fromPayload(payload);
-        // FIXME: Heap Allocations Timeline.
+        let workerProxy = WebInspector.HeapSnapshotWorkerProxy.singleton();
+        workerProxy.createSnapshot(snapshotStringData, ({objectId, snapshot: serializedSnapshot}) => {
+            let snapshot = WebInspector.HeapSnapshotProxy.deserialize(objectId, serializedSnapshot);
+            WebInspector.timelineManager.heapTrackingStarted(timestamp, snapshot);
+        });
     }
 
-    trackingComplete(timestamp, snapshotData)
+    trackingComplete(timestamp, snapshotStringData)
     {
-        let payload = JSON.parse(snapshotData);
-        let snapshot = WebInspector.HeapSnapshot.fromPayload(payload);
-        // FIXME: Heap Allocations Timeline.
+        let workerProxy = WebInspector.HeapSnapshotWorkerProxy.singleton();
+        workerProxy.createSnapshot(snapshotStringData, ({objectId, snapshot: serializedSnapshot}) => {
+            let snapshot = WebInspector.HeapSnapshotProxy.deserialize(objectId, serializedSnapshot);
+            WebInspector.timelineManager.heapTrackingCompleted(timestamp, snapshot);
+        });
     }
 };

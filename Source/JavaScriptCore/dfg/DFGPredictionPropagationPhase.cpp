@@ -483,7 +483,6 @@ private:
         }
             
         case GetButterfly:
-        case GetButterflyReadOnly:
         case GetIndexedPropertyStorage:
         case AllocatePropertyStorage:
         case ReallocatePropertyStorage: {
@@ -641,7 +640,6 @@ private:
         case CheckTierUpInLoop:
         case CheckTierUpAtReturn:
         case CheckTierUpAndOSREnter:
-        case CheckTierUpWithNestedTriggerAndOSREnter:
         case InvalidationPoint:
         case CheckInBounds:
         case ValueToInt32:
@@ -754,6 +752,7 @@ private:
         case ThrowReferenceError:
         case ForceOSRExit:
         case SetArgument:
+        case SetFunctionName:
         case CheckStructure:
         case CheckCell:
         case CheckNotEmpty:

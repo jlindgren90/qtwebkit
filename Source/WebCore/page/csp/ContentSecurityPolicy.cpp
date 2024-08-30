@@ -52,6 +52,7 @@
 #include <inspector/InspectorValues.h>
 #include <inspector/ScriptCallStack.h>
 #include <inspector/ScriptCallStackFactory.h>
+#include <wtf/TemporaryChange.h>
 #include <wtf/text/TextPosition.h>
 
 using namespace Inspector;
@@ -66,8 +67,9 @@ ContentSecurityPolicy::ContentSecurityPolicy(ScriptExecutionContext& scriptExecu
     updateSourceSelf(*scriptExecutionContext.securityOrigin());
 }
 
-ContentSecurityPolicy::ContentSecurityPolicy(const SecurityOrigin& securityOrigin)
-    : m_sandboxFlags(SandboxNone)
+ContentSecurityPolicy::ContentSecurityPolicy(const SecurityOrigin& securityOrigin, const Frame* frame)
+    : m_frame(frame)
+    , m_sandboxFlags(SandboxNone)
 {
     updateSourceSelf(securityOrigin);
 }
@@ -92,8 +94,9 @@ ContentSecurityPolicyResponseHeaders ContentSecurityPolicy::responseHeaders() co
     return result;
 }
 
-void ContentSecurityPolicy::didReceiveHeaders(const ContentSecurityPolicyResponseHeaders& headers)
+void ContentSecurityPolicy::didReceiveHeaders(const ContentSecurityPolicyResponseHeaders& headers, ReportParsingErrors reportParsingErrors)
 {
+    TemporaryChange<bool> isReportingEnabled(m_isReportingEnabled, reportParsingErrors == ReportParsingErrors::Yes);
     for (auto& header : headers.m_headers)
         didReceiveHeader(header.first, header.second, ContentSecurityPolicy::PolicyFrom::HTTPHeader);
 }
@@ -165,6 +168,16 @@ bool ContentSecurityPolicy::protocolMatchesSelf(const URL& url) const
     if (equalLettersIgnoringASCIICase(m_selfSourceProtocol, "http"))
         return url.protocolIsInHTTPFamily();
     return equalIgnoringASCIICase(url.protocol(), m_selfSourceProtocol);
+}
+
+template<bool (ContentSecurityPolicyDirectiveList::*allowed)(const Frame&, const URL&, ContentSecurityPolicy::ReportingStatus) const>
+static bool isAllowedByAllWithFrame(const CSPDirectiveListVector& policies, const Frame& frame, const URL& url, ContentSecurityPolicy::ReportingStatus reportingStatus)
+{
+    for (auto& policy : policies) {
+        if (!(policy.get()->*allowed)(frame, url, reportingStatus))
+            return false;
+    }
+    return true;
 }
 
 template<bool (ContentSecurityPolicyDirectiveList::*allowed)(ContentSecurityPolicy::ReportingStatus) const>
@@ -325,6 +338,16 @@ bool ContentSecurityPolicy::allowEval(JSC::ExecState* state, bool overrideConten
     return overrideContentSecurityPolicy || isAllowedByAllWithState<&ContentSecurityPolicyDirectiveList::allowEval>(m_policies, state, reportingStatus);
 }
 
+bool ContentSecurityPolicy::allowFrameAncestors(const Frame& frame, const URL& url, bool overrideContentSecurityPolicy, ContentSecurityPolicy::ReportingStatus reportingStatus) const
+{
+    if (overrideContentSecurityPolicy)
+        return true;
+    Frame& topFrame = frame.tree().top();
+    if (&frame == &topFrame)
+        return true;
+    return isAllowedByAllWithFrame<&ContentSecurityPolicyDirectiveList::allowFrameAncestors>(m_policies, frame, url, reportingStatus);
+}
+
 String ContentSecurityPolicy::evalDisabledErrorMessage() const
 {
     for (auto& policy : m_policies) {
@@ -437,20 +460,37 @@ void ContentSecurityPolicy::reportViolation(const String& directiveText, const S
 {
     logToConsole(consoleMessage, contextURL, contextLine, state);
 
-    // FIXME: Support sending reports from worker.
-    if (!is<Document>(m_scriptExecutionContext))
+    if (!m_isReportingEnabled)
         return;
 
-    Document& document = downcast<Document>(*m_scriptExecutionContext);
+    // FIXME: Support sending reports from worker.
+    if (!is<Document>(m_scriptExecutionContext) && !m_frame)
+        return;
+
+    // FIXME: We should not hardcode the directive names. We should make use of the constants in ContentSecurityPolicyDirectiveList.cpp.
+    // See <https://bugs.webkit.org/show_bug.cgi?id=155133>.
+    ASSERT(!m_frame || effectiveDirective == "frame-ancestors");
+
+    Document& document = is<Document>(m_scriptExecutionContext) ? downcast<Document>(*m_scriptExecutionContext) : *m_frame->document();
     Frame* frame = document.frame();
+    ASSERT(!m_frame || m_frame == frame);
     if (!frame)
         return;
 
-    String documentURI = document.url().strippedForUseAsReferrer();
-    String referrer = document.referrer();
-    String blockedURI = stripURLForUseInReport(document, blockedURL);
+    String documentURI;
+    String blockedURI;
+    if (is<Document>(m_scriptExecutionContext)) {
+        documentURI = document.url().strippedForUseAsReferrer();
+        blockedURI = stripURLForUseInReport(document, blockedURL);
+    } else {
+        // The URL of |document| may not have been initialized (say, when reporting a frame-ancestors violation).
+        // So, we use the URL of the blocked document for the protected document URL.
+        documentURI = blockedURL;
+        blockedURI = blockedURL;
+    }
     String violatedDirective = directiveText;
     String originalPolicy = header;
+    String referrer = document.referrer();
     ASSERT(document.loader());
     unsigned short statusCode = document.url().protocolIs("http") && document.loader() ? document.loader()->response().httpStatusCode() : 0;
 
@@ -596,9 +636,14 @@ void ContentSecurityPolicy::reportMissingReportURI(const String& policy) const
 
 void ContentSecurityPolicy::logToConsole(const String& message, const String& contextURL, const WTF::OrdinalNumber& contextLine, JSC::ExecState* state) const
 {
+    if (!m_isReportingEnabled)
+        return;
+
     // FIXME: <http://webkit.org/b/114317> ContentSecurityPolicy::logToConsole should include a column number
     if (m_scriptExecutionContext)
         m_scriptExecutionContext->addConsoleMessage(MessageSource::Security, MessageLevel::Error, message, contextURL, contextLine.oneBasedInt(), 0, state);
+    else if (m_frame && m_frame->document())
+        static_cast<ScriptExecutionContext*>(m_frame->document())->addConsoleMessage(MessageSource::Security, MessageLevel::Error, message, contextURL, contextLine.oneBasedInt(), 0, state);
 }
 
 void ContentSecurityPolicy::reportBlockedScriptExecutionToInspector(const String& directiveText) const

@@ -218,6 +218,7 @@
     macro(sourceCode) \
     macro(sourceURL) \
     macro(stack) \
+    macro(sticky) \
     macro(subarray) \
     macro(target) \
     macro(test) \
@@ -339,13 +340,16 @@
     macro(RegExp) \
     macro(Map) \
     macro(Promise) \
+    macro(Reflect) \
     macro(InternalPromise) \
     macro(abs) \
     macro(floor) \
     macro(isFinite) \
     macro(isNaN) \
     macro(getPrototypeOf) \
+    macro(getOwnPropertyDescriptor) \
     macro(getOwnPropertyNames) \
+    macro(ownKeys) \
     macro(RangeError) \
     macro(TypeError) \
     macro(typedArrayLength) \
@@ -387,6 +391,7 @@
     macro(Collator) \
     macro(DateTimeFormat) \
     macro(NumberFormat) \
+    macro(intlSubstituteValue) \
     macro(thisTimeValue) \
     macro(newTargetLocal) \
     macro(derivedConstructor) \

@@ -231,7 +231,6 @@ typedef enum {
 @end
 
 @interface UIGestureRecognizer ()
-- (void)requireOtherGestureToFail:(UIGestureRecognizer *)gestureRecognizer;
 #if __IPHONE_OS_VERSION_MAX_ALLOWED < 90200
 @property(nonatomic, copy) NSArray<NSNumber *> *allowedTouchTypes;
 #endif
@@ -316,6 +315,8 @@ typedef enum {
 
 @interface UITapGestureRecognizer ()
 @property (nonatomic, readonly) CGPoint location;
+@property (nonatomic) CGFloat allowableMovement;
+@property (nonatomic, readonly) CGPoint centroid;
 @end
 
 @class WebEvent;

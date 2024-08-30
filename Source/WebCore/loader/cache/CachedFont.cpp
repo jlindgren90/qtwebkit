@@ -40,15 +40,6 @@
 #include "WOFFFileFormat.h"
 #include <wtf/Vector.h>
 
-#if ENABLE(SVG_FONTS)
-#include "NodeList.h"
-#include "SVGDocument.h"
-#include "SVGElement.h"
-#include "SVGFontElement.h"
-#include "SVGGElement.h"
-#include "SVGNames.h"
-#endif
-
 namespace WebCore {
 
 CachedFont::CachedFont(const ResourceRequest& resourceRequest, SessionID sessionID, Type type)
@@ -103,9 +94,9 @@ bool CachedFont::ensureCustomFontData(SharedBuffer* data)
         RefPtr<SharedBuffer> buffer(data);
 
 #if !PLATFORM(COCOA)
-        if (isWOFF(*buffer)) {
+        if (isWOFF(buffer.get())) {
             Vector<char> convertedFont;
-            if (!convertWOFFToSfnt(*buffer, convertedFont))
+            if (!convertWOFFToSfnt(buffer.get(), convertedFont))
                 buffer = nullptr;
             else
                 buffer = SharedBuffer::adoptVector(convertedFont);

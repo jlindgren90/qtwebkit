@@ -145,8 +145,6 @@ JSCell* JIT_OPERATION operationStrCat3(ExecState*, EncodedJSValue, EncodedJSValu
 char* JIT_OPERATION operationFindSwitchImmTargetForDouble(ExecState*, EncodedJSValue, size_t tableIndex);
 char* JIT_OPERATION operationSwitchString(ExecState*, size_t tableIndex, JSString*);
 int32_t JIT_OPERATION operationSwitchStringAndGetBranchOffset(ExecState*, size_t tableIndex, JSString*);
-char* JIT_OPERATION operationGetButterfly(ExecState*, JSCell*);
-char* JIT_OPERATION operationGetArrayBufferVector(ExecState*, JSCell*);
 void JIT_OPERATION operationNotifyWrite(ExecState*, WatchpointSet*);
 void JIT_OPERATION operationThrowStackOverflowForVarargs(ExecState*) WTF_INTERNAL;
 int32_t JIT_OPERATION operationSizeOfVarargs(ExecState*, EncodedJSValue arguments, int32_t firstVarArgOffset);
@@ -169,8 +167,8 @@ double JIT_OPERATION operationRandom(JSGlobalObject*);
 
 #if ENABLE(FTL_JIT)
 void JIT_OPERATION triggerTierUpNow(ExecState*) WTF_INTERNAL;
-void JIT_OPERATION triggerTierUpNowInLoop(ExecState*) WTF_INTERNAL;
-char* JIT_OPERATION triggerOSREntryNow(ExecState*, int32_t bytecodeIndex, int32_t streamIndex) WTF_INTERNAL;
+void JIT_OPERATION triggerTierUpNowInLoop(ExecState*, unsigned bytecodeIndex) WTF_INTERNAL;
+char* JIT_OPERATION triggerOSREntryNow(ExecState*, unsigned bytecodeIndex) WTF_INTERNAL;
 #endif // ENABLE(FTL_JIT)
 
 } // extern "C"

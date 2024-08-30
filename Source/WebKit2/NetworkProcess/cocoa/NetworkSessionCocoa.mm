@@ -77,7 +77,8 @@ static NSURLSessionAuthChallengeDisposition toNSURLSessionAuthChallengeDispositi
 }
 
 @interface WKNetworkSessionDelegate : NSObject <NSURLSessionDataDelegate> {
-    WebKit::NetworkSession* _session;
+    RefPtr<WebKit::NetworkSession> _session;
+    bool _sessionDestroyed;
 }
 
 - (id)initWithNetworkSession:(WebKit::NetworkSession&)session;
@@ -97,6 +98,11 @@ static NSURLSessionAuthChallengeDisposition toNSURLSessionAuthChallengeDispositi
     return self;
 }
 
+- (void)URLSession:(NSURLSession *)session didBecomeInvalidWithError:(nullable NSError *)error
+{
+    _session = nullptr;
+}
+
 - (void)URLSession:(NSURLSession *)session task:(NSURLSessionTask *)task didSendBodyData:(int64_t)bytesSent totalBytesSent:(int64_t)totalBytesSent totalBytesExpectedToSend:(int64_t)totalBytesExpectedToSend
 {
     auto storedCredentials = session.configuration.URLCredentialStorage ? WebCore::StoredCredentials::AllowStoredCredentials : WebCore::StoredCredentials::DoNotAllowStoredCredentials;
@@ -113,6 +119,9 @@ static NSURLSessionAuthChallengeDisposition toNSURLSessionAuthChallengeDispositi
             completionHandlerCopy(request.nsURLRequest(WebCore::UpdateHTTPBody));
             Block_release(completionHandlerCopy);
         });
+    } else {
+        ASSERT_NOT_REACHED();
+        completionHandler(nil);
     }
 }
 
@@ -137,6 +146,8 @@ static NSURLSessionAuthChallengeDisposition toNSURLSessionAuthChallengeDispositi
                     urlToStore = authenticationChallenge.failureResponse().url();
                 if (auto storageSession = WebKit::SessionTracker::storageSession(sessionID))
                     storageSession->credentialStorage().set(nonPersistentCredential, authenticationChallenge.protectionSpace(), urlToStore);
+                else
+                    ASSERT_NOT_REACHED();
 
                 completionHandlerCopy(toNSURLSessionAuthChallengeDisposition(disposition), nonPersistentCredential.nsCredential());
             } else
@@ -145,6 +156,9 @@ static NSURLSessionAuthChallengeDisposition toNSURLSessionAuthChallengeDispositi
             Block_release(completionHandlerCopy);
         };
         networkDataTask->didReceiveChallenge(challenge, challengeCompletionHandler);
+    } else {
+        ASSERT_NOT_REACHED();
+        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
     }
 }
 
@@ -180,7 +194,8 @@ static NSURLSessionAuthChallengeDisposition toNSURLSessionAuthChallengeDispositi
             completionHandlerCopy(toNSURLSessionResponseDisposition(policyAction));
             Block_release(completionHandlerCopy);
         });
-    }
+    } else
+        completionHandler(NSURLSessionResponseCancel);
 }
 
 - (void)URLSession:(NSURLSession *)session dataTask:(NSURLSessionDataTask *)dataTask didReceiveData:(NSData *)data
@@ -256,17 +271,23 @@ void NetworkSession::setCustomProtocolManager(CustomProtocolManager* customProto
     globalCustomProtocolManager() = customProtocolManager;
 }
 
+Ref<NetworkSession> NetworkSession::create(Type type, WebCore::SessionID sessionID, CustomProtocolManager* customProtocolManager, std::unique_ptr<WebCore::NetworkStorageSession> networkStorageSession)
+{
+    return adoptRef(*new NetworkSession(type, sessionID, customProtocolManager, WTFMove(networkStorageSession)));
+}
+
 NetworkSession& NetworkSession::defaultSession()
 {
     ASSERT(isMainThread());
-    static NeverDestroyed<NetworkSession> session(NetworkSession::Type::Normal, WebCore::SessionID::defaultSessionID(), globalCustomProtocolManager().get(), &WebCore::NetworkStorageSession::defaultStorageSession());
-    return session;
+    static NetworkSession* session = &NetworkSession::create(NetworkSession::Type::Normal, WebCore::SessionID::defaultSessionID(), globalCustomProtocolManager().get(), nullptr).leakRef();
+    return *session;
 }
 
-NetworkSession::NetworkSession(Type type, WebCore::SessionID sessionID, CustomProtocolManager* customProtocolManager, WebCore::NetworkStorageSession* networkStorageSession)
+NetworkSession::NetworkSession(Type type, WebCore::SessionID sessionID, CustomProtocolManager* customProtocolManager, std::unique_ptr<WebCore::NetworkStorageSession> networkStorageSession)
     : m_sessionID(sessionID)
+    , m_networkStorageSession(WTFMove(networkStorageSession))
 {
-    m_sessionDelegate = adoptNS([[WKNetworkSessionDelegate alloc] initWithNetworkSession:*this]);
+    relaxAdoptionRequirement();
 
     NSURLSessionConfiguration *configuration = configurationForType(type);
 
@@ -279,19 +300,40 @@ NetworkSession::NetworkSession(Type type, WebCore::SessionID sessionID, CustomPr
     setCollectsTimingData();
 #endif
 
-    if (networkStorageSession) {
-        if (CFHTTPCookieStorageRef storage = networkStorageSession->cookieStorage().get())
+    if (m_networkStorageSession) {
+        ASSERT(type == Type::Ephemeral);
+        if (CFHTTPCookieStorageRef storage = m_networkStorageSession->cookieStorage().get())
+            configuration.HTTPCookieStorage = [[[NSHTTPCookieStorage alloc] _initWithCFHTTPCookieStorage:storage] autorelease];
+    } else {
+        ASSERT(type == Type::Normal);
+        if (CFHTTPCookieStorageRef storage = WebCore::NetworkStorageSession::defaultStorageSession().cookieStorage().get())
             configuration.HTTPCookieStorage = [[[NSHTTPCookieStorage alloc] _initWithCFHTTPCookieStorage:storage] autorelease];
     }
-    m_sessionWithCredentialStorage = [NSURLSession sessionWithConfiguration:configuration delegate:static_cast<id>(m_sessionDelegate.get()) delegateQueue:[NSOperationQueue mainQueue]];
+
+    m_sessionWithCredentialStorageDelegate = adoptNS([[WKNetworkSessionDelegate alloc] initWithNetworkSession:*this]);
+    m_sessionWithCredentialStorage = [NSURLSession sessionWithConfiguration:configuration delegate:static_cast<id>(m_sessionWithCredentialStorageDelegate.get()) delegateQueue:[NSOperationQueue mainQueue]];
+
     configuration.URLCredentialStorage = nil;
-    m_sessionWithoutCredentialStorage = [NSURLSession sessionWithConfiguration:configuration delegate:static_cast<id>(m_sessionDelegate.get()) delegateQueue:[NSOperationQueue mainQueue]];
+    m_sessionWithoutCredentialStorageDelegate = adoptNS([[WKNetworkSessionDelegate alloc] initWithNetworkSession:*this]);
+    m_sessionWithoutCredentialStorage = [NSURLSession sessionWithConfiguration:configuration delegate:static_cast<id>(m_sessionWithoutCredentialStorageDelegate.get()) delegateQueue:[NSOperationQueue mainQueue]];
 }
 
 NetworkSession::~NetworkSession()
 {
+}
+
+void NetworkSession::invalidateAndCancel()
+{
     [m_sessionWithCredentialStorage invalidateAndCancel];
     [m_sessionWithoutCredentialStorage invalidateAndCancel];
+}
+
+
+WebCore::NetworkStorageSession& NetworkSession::networkStorageSession()
+{
+    if (!m_networkStorageSession)
+        return WebCore::NetworkStorageSession::defaultStorageSession();
+    return *m_networkStorageSession;
 }
 
 #if !USE(CREDENTIAL_STORAGE_WITH_NETWORK_SESSION)

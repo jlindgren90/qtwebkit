@@ -1,7 +1,7 @@
 # Copyright (C) 2009 Google Inc. All rights reserved.
 # Copyright (C) 2010 Chris Jerdonek (chris.jerdonek@gmail.com)
 # Copyright (C) 2010 ProFUSION embedded systems
-# Copyright (C) 2013-2017 Apple Inc. All rights reserved.
+# Copyright (C) 2013, 2015 Apple Inc. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -136,44 +136,14 @@ _PATH_RULES_SPECIFIER = [
 
     ([# TestNetscapePlugIn has no config.h and uses funny names like
       # NPP_SetWindow.
-      os.path.join('Tools', 'DumpRenderTree', 'TestNetscapePlugIn'),
-      # Qt tests and examples follow Qt coding style
-      os.path.join('Source', 'WebKit', 'qt', 'docs'),
-      os.path.join('Source', 'WebKit', 'qt', 'examples'),
-      os.path.join('Source', 'WebKit', 'qt', 'tests')],
+      os.path.join('Tools', 'DumpRenderTree', 'TestNetscapePlugIn')],
      ["-build/include",
-      "-readability/naming",
-      "-readability/parameter_name",
-      "-whitespace/braces",
-      "-whitespace/comments"]),
+      "-readability/naming"]),
     ([# There is no clean way to avoid "yy_*" names used by flex.
       os.path.join('Source', 'WebCore', 'css', 'CSSParser.cpp'),
       # TestWebKitAPI uses funny macros like EXPECT_WK_STREQ.
-      os.path.join('Tools', 'TestWebKitAPI'),
-      # Qt code uses '_' in some places (such as private slots
-      # and on test xxx_data methos on tests)
-      "Source/JavaScriptCore/qt/",
-      "Source/WebKit/qt/tests/",
-      "Source/WebKit/qt/declarative/",
-      "Source/WebKit/qt/examples/"],
+      os.path.join('Tools', 'TestWebKitAPI')],
      ["-readability/naming"]),
-
-    ([# The Qt APIs use Qt declaration style, it puts the * to
-      # the variable name, not to the class, and variables should
-      # always be named in headers.
-      # Also header guards are named differently
-      "Source/WebKit/qt/Api/",
-      "Source/WebKit/qt/WidgetApi/",
-      "Source/WebKit2/UIProcess/API/qt"],
-     ["-build/header_guard",
-      "-readability/naming",
-      "-readability/parameter_name",
-      "-whitespace/declaration"]),
-
-     ([# Qt's MiniBrowser has no config.h
-       "Tools/MiniBrowser/qt",
-       "Tools/MiniBrowser/qt/raw"],
-      ["-build/include"]),
 
     ([# The GTK+ APIs use GTK+ naming style, which includes
       # lower-cased, underscore-separated values, whitespace before
@@ -281,12 +251,6 @@ _PATH_RULES_SPECIFIER = [
       "+pep8/W191",  # Tabs
       "+pep8/W291",  # Trailing white space
       "+whitespace/carriage_return"]),
-
-    ([# Source/JavaScriptCore/disassembler/udis86/ is generated code.
-      os.path.join('Source', 'JavaScriptCore', 'disassembler', 'udis86')],
-     ["-readability/naming/underscores",
-      "-whitespace/declaration",
-      "-whitespace/indent"]),
 
     ([# There is no way to avoid the symbols __jit_debug_register_code
       # and __jit_debug_descriptor when integrating with gdb.
