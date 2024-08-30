@@ -28,10 +28,16 @@ import logging
 import string
 from string import Template
 
-from generator import Generator
-from models import EnumType, ObjectType, ArrayType, AliasedType, PrimitiveType, Frameworks
-from objc_generator import ObjCGenerator
-from objc_generator_templates import ObjCGeneratorTemplates as ObjCTemplates
+try:
+    from .generator import Generator
+    from .models import EnumType, ObjectType, ArrayType, AliasedType, PrimitiveType, Frameworks
+    from .objc_generator import ObjCGenerator
+    from .objc_generator_templates import ObjCGeneratorTemplates as ObjCTemplates
+except ValueError:
+    from generator import Generator
+    from models import EnumType, ObjectType, ArrayType, AliasedType, PrimitiveType, Frameworks
+    from objc_generator import ObjCGenerator
+    from objc_generator_templates import ObjCGeneratorTemplates as ObjCTemplates
 
 log = logging.getLogger('global')
 
