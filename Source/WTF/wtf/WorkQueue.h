@@ -40,12 +40,12 @@
 
 #if PLATFORM(EFL)
 #include <DispatchQueueEfl.h>
+#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
+#include <QSocketNotifier>
 #elif USE(GLIB)
 #include <wtf/Condition.h>
 #include <wtf/RunLoop.h>
 #include <wtf/glib/GRefPtr.h>
-#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-#include <QSocketNotifier>
 #elif OS(WINDOWS)
 #include <wtf/HashMap.h>
 #include <wtf/Vector.h>
@@ -118,6 +118,10 @@ private:
 
 #if PLATFORM(EFL)
     RefPtr<DispatchQueue> m_dispatchQueue;
+#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
+    class WorkItemQt;
+    QThread* m_workThread;
+    friend class WorkItemQt;
 #elif USE(GLIB)
     ThreadIdentifier m_workQueueThread;
     Lock m_initializeRunLoopConditionMutex;
@@ -125,10 +129,6 @@ private:
     RunLoop* m_runLoop;
     Lock m_terminateRunLoopConditionMutex;
     Condition m_terminateRunLoopCondition;
-#elif PLATFORM(QT) && USE(UNIX_DOMAIN_SOCKETS)
-    class WorkItemQt;
-    QThread* m_workThread;
-    friend class WorkItemQt;
 #elif OS(DARWIN)
     static void executeFunction(void*);
     dispatch_queue_t m_dispatchQueue;

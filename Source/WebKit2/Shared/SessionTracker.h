@@ -34,6 +34,7 @@ class NetworkStorageSession;
 #include <wtf/HashMap.h>
 #include <wtf/Noncopyable.h>
 #include <wtf/text/WTFString.h>
+#include <functional>
 
 namespace WebKit {
 
