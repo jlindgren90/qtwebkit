@@ -68,7 +68,7 @@ std::unique_ptr<DrawingAreaProxy> QtPageClient::createDrawingAreaProxy()
     return QQuickWebViewPrivate::get(m_webView)->createDrawingAreaProxy();
 }
 
-void QtPageClient::setViewNeedsDisplay(const WebCore::IntRect& rect)
+void QtPageClient::setViewNeedsDisplay(const WebCore::Region& region)
 {
     QQuickWebViewPrivate::get(m_webView)->setNeedsDisplay();
 }
@@ -314,16 +314,6 @@ void QtPageClient::beganEnterFullScreen(const IntRect& initialFrame, const IntRe
 void QtPageClient::beganExitFullScreen(const IntRect& initialFrame, const IntRect& finalFrame)
 {
     notImplemented();
-}
-
-void QtPageClient::displayView()
-{
-    // FIXME: Implement.
-}
-
-void QtPageClient::scrollView(const WebCore::IntRect& scrollRect, const WebCore::IntSize& scrollOffset)
-{
-    // FIXME: Implement.
 }
 
 WebCore::IntSize QtPageClient::viewSize()
