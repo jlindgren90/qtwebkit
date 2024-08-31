@@ -229,6 +229,20 @@ void ImageFrame::setStatus(FrameStatus status)
     m_status = status;
 }
 
+#if PLATFORM(QT)
+NativeImagePtr ImageFrame::asNewNativeImage() const
+{
+    QImage::Format format;
+    if (m_hasAlpha)
+        format = m_premultiplyAlpha ? QImage::Format_ARGB32_Premultiplied : QImage::Format_ARGB32;
+    else
+        format = QImage::Format_RGB32;
+
+    QImage img(reinterpret_cast<uchar*>(m_bytes), m_size.width(), m_size.height(), sizeof(PixelData) * m_size.width(), format);
+    return QPixmap::fromImage(img);
+}
+#endif
+
 namespace {
 
 enum MatchType {
