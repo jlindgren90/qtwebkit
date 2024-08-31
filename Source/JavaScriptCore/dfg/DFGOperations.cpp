@@ -26,6 +26,7 @@
 #include "config.h"
 #include "DFGOperations.h"
 
+#include "ArrayConstructor.h"
 #include "ButterflyInlines.h"
 #include "ClonedArguments.h"
 #include "CodeBlock.h"
@@ -174,6 +175,19 @@ JSCell* JIT_OPERATION operationCreateThis(ExecState* exec, JSObject* constructor
     if (proto.isObject())
         return constructEmptyObject(exec, asObject(proto));
     return constructEmptyObject(exec);
+}
+
+JSCell* JIT_OPERATION operationObjectConstructor(ExecState* exec, JSGlobalObject* globalObject, EncodedJSValue encodedTarget)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
+    JSValue value = JSValue::decode(encodedTarget);
+    ASSERT(!value.isObject());
+
+    if (value.isUndefinedOrNull())
+        return constructEmptyObject(exec, globalObject->objectPrototype());
+    return value.toObject(exec, globalObject);
 }
 
 EncodedJSValue JIT_OPERATION operationValueBitAnd(ExecState* exec, EncodedJSValue encodedOp1, EncodedJSValue encodedOp2)
@@ -691,7 +705,7 @@ size_t JIT_OPERATION operationRegExpTest(ExecState* exec, JSGlobalObject* global
 
 size_t JIT_OPERATION operationRegExpTestGeneric(ExecState* exec, JSGlobalObject* globalObject, EncodedJSValue encodedBase, EncodedJSValue encodedArgument)
 {
-    SuperSamplerScope superSamplerScope;
+    SuperSamplerScope superSamplerScope(false);
     
     VM& vm = globalObject->vm();
     NativeCallFrameTracer tracer(&vm, exec);
@@ -708,6 +722,22 @@ size_t JIT_OPERATION operationRegExpTestGeneric(ExecState* exec, JSGlobalObject*
     if (!input)
         return false;
     return asRegExpObject(base)->test(exec, globalObject, input);
+}
+
+size_t JIT_OPERATION operationIsArrayConstructor(ExecState* exec, EncodedJSValue encodedTarget)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    return isArrayConstructor(JSValue::decode(encodedTarget));
+}
+
+size_t JIT_OPERATION operationIsArrayObject(ExecState* exec, EncodedJSValue encodedTarget)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    return isArray(exec, JSValue::decode(encodedTarget));
 }
 
 size_t JIT_OPERATION operationCompareStrictEqCell(ExecState* exec, EncodedJSValue encodedOp1, EncodedJSValue encodedOp2)
@@ -1006,6 +1036,9 @@ JSCell* JIT_OPERATION operationCreateClonedArgumentsDuringExit(ExecState* exec, 
 
 void JIT_OPERATION operationCopyRest(ExecState* exec, JSCell* arrayAsCell, Register* argumentStart, unsigned numberOfParamsToSkip, unsigned arraySize)
 {
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
     ASSERT(arraySize);
     JSArray* array = jsCast<JSArray*>(arrayAsCell);
     ASSERT(arraySize == array->length());
@@ -1279,6 +1312,9 @@ JSCell* JIT_OPERATION operationStrCat3(ExecState* exec, EncodedJSValue a, Encode
 char* JIT_OPERATION operationFindSwitchImmTargetForDouble(
     ExecState* exec, EncodedJSValue encodedValue, size_t tableIndex)
 {
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
     CodeBlock* codeBlock = exec->codeBlock();
     SimpleJumpTable& table = codeBlock->switchJumpTable(tableIndex);
     JSValue value = JSValue::decode(encodedValue);
@@ -1487,6 +1523,78 @@ void JIT_OPERATION debugOperationPrintSpeculationFailure(ExecState* exec, void* 
         scratchPointer += sizeof(EncodedJSValue);
     }
     dataLog("\n");
+}
+
+JSCell* JIT_OPERATION operationResolveScope(ExecState* exec, JSScope* scope, UniquedStringImpl* impl)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    JSObject* resolvedScope = JSScope::resolve(exec, scope, Identifier::fromUid(exec, impl));
+    return resolvedScope;
+}
+
+EncodedJSValue JIT_OPERATION operationGetDynamicVar(ExecState* exec, JSObject* scope, UniquedStringImpl* impl, unsigned getPutInfoBits)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    const Identifier& ident = Identifier::fromUid(exec, impl);
+    GetPutInfo getPutInfo(getPutInfoBits);
+
+    PropertySlot slot(scope, PropertySlot::InternalMethodType::Get);
+    if (!scope->getPropertySlot(exec, ident, slot)) {
+        if (getPutInfo.resolveMode() == ThrowIfNotFound)
+            vm.throwException(exec, createUndefinedVariableError(exec, ident));
+        return JSValue::encode(jsUndefined());
+    }
+
+    if (scope->isGlobalLexicalEnvironment()) {
+        // When we can't statically prove we need a TDZ check, we must perform the check on the slow path.
+        JSValue result = slot.getValue(exec, ident);
+        if (result == jsTDZValue()) {
+            exec->vm().throwException(exec, createTDZError(exec));
+            return JSValue::encode(jsUndefined());
+        }
+        return JSValue::encode(result);
+    }
+
+    return JSValue::encode(slot.getValue(exec, ident));
+}
+
+void JIT_OPERATION operationPutDynamicVar(ExecState* exec, JSObject* scope, EncodedJSValue value, UniquedStringImpl* impl, unsigned getPutInfoBits)
+{
+    VM& vm = exec->vm();
+    NativeCallFrameTracer tracer(&vm, exec);
+
+    const Identifier& ident = Identifier::fromUid(exec, impl);
+    GetPutInfo getPutInfo(getPutInfoBits);
+    bool hasProperty = scope->hasProperty(exec, ident);
+    if (hasProperty
+        && scope->isGlobalLexicalEnvironment()
+        && !isInitialization(getPutInfo.initializationMode())) {
+        // When we can't statically prove we need a TDZ check, we must perform the check on the slow path.
+        PropertySlot slot(scope, PropertySlot::InternalMethodType::Get);
+        JSGlobalLexicalEnvironment::getOwnPropertySlot(scope, exec, ident, slot);
+        if (slot.getValue(exec, ident) == jsTDZValue()) {
+            exec->vm().throwException(exec, createTDZError(exec));
+            return;
+        }
+    }
+
+    if (getPutInfo.resolveMode() == ThrowIfNotFound && !hasProperty) {
+        exec->vm().throwException(exec, createUndefinedVariableError(exec, ident));
+        return;
+    }
+
+    CodeOrigin origin = exec->codeOrigin();
+    bool strictMode;
+    if (origin.inlineCallFrame)
+        strictMode = origin.inlineCallFrame->baselineCodeBlock->isStrictMode();
+    else
+        strictMode = exec->codeBlock()->isStrictMode();
+    PutPropertySlot slot(scope, strictMode, PutPropertySlot::UnknownContext, isInitialization(getPutInfo.initializationMode()));
+    scope->methodTable()->put(scope, exec, ident, JSValue::decode(value), slot);
 }
 
 extern "C" void JIT_OPERATION triggerReoptimizationNow(CodeBlock* codeBlock, OSRExitBase* exit)

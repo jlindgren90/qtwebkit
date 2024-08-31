@@ -15,7 +15,6 @@ set(DumpRenderTree_SOURCES
 
 set(DumpRenderTree_LIBRARIES
     JavaScriptCore
-    WTF
     WebCoreTestSupport
 )
 
@@ -113,12 +112,9 @@ include_directories(SYSTEM ${DumpRenderTree_SYSTEM_INCLUDE_DIRECTORIES})
 
 add_executable(DumpRenderTree ${DumpRenderTree_SOURCES})
 target_link_libraries(DumpRenderTree ${DumpRenderTree_LIBRARIES})
-set_target_properties(DumpRenderTree PROPERTIES FOLDER "Tools")
 
-if (ENABLE_NETSCAPE_PLUGIN_API)
-    add_library(TestNetscapePlugin SHARED ${TestNetscapePlugin_SOURCES})
-    target_link_libraries(TestNetscapePlugin ${TestNetscapePlugin_LIBRARIES})
-endif ()
+add_library(TestNetscapePlugin SHARED ${TestNetscapePlugin_SOURCES})
+target_link_libraries(TestNetscapePlugin ${TestNetscapePlugin_LIBRARIES})
 
 if (WIN32)
     add_dependencies(DumpRenderTree DumpRenderTreeLib)

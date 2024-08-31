@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2009 Google Inc. All rights reserved.
- * Copyright (C) 2013 Apple Inc. All rights reserved. 
+ * Copyright (C) 2013-2016 Apple Inc. All rights reserved. 
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -123,6 +123,9 @@ public:
     bool deviceOrientationEventEnabled() const { return m_isDeviceOrientationEnabled; }
     bool ondeviceorientationEnabled() const { return m_isDeviceOrientationEnabled; }
 
+    void setLinkPreloadEnabled(bool isEnabled) { m_isLinkPreloadEnabled = isEnabled; }
+    bool linkPreloadEnabled() const { return m_isLinkPreloadEnabled; }
+
 #if ENABLE(JAVASCRIPT_I18N_API)
     bool javaScriptI18NAPIEnabled() const;
     void setJavaScriptI18NAPIEnabled(bool isEnabled) { m_isJavaScriptI18NAPIEnabled = isEnabled; }
@@ -227,6 +230,11 @@ public:
     bool fetchAPIEnabled() const { return m_isFetchAPIEnabled; }
 #endif
 
+#if ENABLE(DOWNLOAD_ATTRIBUTE)
+    void setDownloadAttributeEnabled(bool isEnabled) { m_isDownloadAttributeEnabled = isEnabled; }
+    bool downloadAttributeEnabled() const { return m_isDownloadAttributeEnabled; }
+#endif
+
     WEBCORE_EXPORT static RuntimeEnabledFeatures& sharedFeatures();
 
 private:
@@ -243,6 +251,7 @@ private:
     bool m_isTouchEnabled;
     bool m_isDeviceMotionEnabled;
     bool m_isDeviceOrientationEnabled;
+    bool m_isLinkPreloadEnabled;
     bool m_isCSSShapesEnabled;
     bool m_isCSSRegionsEnabled;
     bool m_isCSSCompositingEnabled;
@@ -326,6 +335,10 @@ private:
 
 #if ENABLE(FETCH_API)
     bool m_isFetchAPIEnabled { false };
+#endif
+
+#if ENABLE(DOWNLOAD_ATTRIBUTE)
+    bool m_isDownloadAttributeEnabled { false };
 #endif
 
     friend class WTF::NeverDestroyed<RuntimeEnabledFeatures>;

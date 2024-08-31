@@ -24,10 +24,8 @@
  *
  */
 
-#ifndef SerializedScriptValue_h
-#define SerializedScriptValue_h
+#pragma once
 
-#include "ScriptState.h"
 #include <bindings/ScriptValue.h>
 #include <heap/Strong.h>
 #include <runtime/ArrayBuffer.h>
@@ -73,6 +71,7 @@ public:
     static Ref<SerializedScriptValue> nullValue();
 
     WEBCORE_EXPORT JSC::JSValue deserialize(JSC::ExecState*, JSC::JSGlobalObject*, MessagePortArray*, SerializationErrorMode = Throwing);
+    JSC::JSValue deserialize(JSC::ExecState*, JSC::JSGlobalObject*, MessagePortArray*, SerializationErrorMode, const Vector<String>& blobURLs, const Vector<String>& blobFilePaths);
 
     static uint32_t wireFormatVersion();
 
@@ -84,9 +83,11 @@ public:
 
     const Vector<uint8_t>& data() const { return m_data; }
     bool hasBlobURLs() const { return !m_blobURLs.isEmpty(); }
+
 #if ENABLE(INDEXED_DATABASE)
+    Vector<String> blobURLsIsolatedCopy() const;
     void writeBlobsToDiskForIndexedDB(std::function<void (const IDBValue&)> completionHandler);
-#endif
+#endif // ENABLE(INDEXED_DATABASE)
 
     static Ref<SerializedScriptValue> createFromWireBytes(Vector<uint8_t>&& data)
     {
@@ -112,5 +113,3 @@ private:
 };
 
 }
-
-#endif // SerializedScriptValue_h

@@ -1,6 +1,8 @@
 include(CheckCXXSourceCompiles)
 include(CheckFunctionExists)
 
+set_property(DIRECTORY . PROPERTY FOLDER "WebKit2")
+
 set(WebKit2_INCLUDE_DIRECTORIES
     "${JAVASCRIPTCORE_DIR}/llint"
     "${WEBKIT2_DIR}"
@@ -271,7 +273,6 @@ set(WebKit2_SOURCES
     Shared/WebMediaSessionMetadata.cpp
     Shared/WebMemorySampler.cpp
     Shared/WebMouseEvent.cpp
-    Shared/WebOpenPanelParameters.cpp
     Shared/WebPageCreationParameters.cpp
     Shared/WebPageGroupData.cpp
     Shared/WebPlatformTouchPoint.cpp
@@ -400,12 +401,14 @@ set(WebKit2_SOURCES
     UIProcess/WebVibrationProxy.cpp
     UIProcess/WebViewportAttributes.cpp
 
+    UIProcess/API/APIExperimentalFeature.cpp
     UIProcess/API/APIFrameInfo.cpp
     UIProcess/API/APIHitTestResult.cpp
     UIProcess/API/APINavigation.cpp
     UIProcess/API/APINavigationData.cpp
     UIProcess/API/APIPageConfiguration.cpp
     UIProcess/API/APIProcessPoolConfiguration.cpp
+    UIProcess/API/APIOpenPanelParameters.cpp
     UIProcess/API/APISession.cpp
     UIProcess/API/APISessionState.cpp
     UIProcess/API/APIURLSchemeHandlerTask.cpp
@@ -450,7 +453,7 @@ set(WebKit2_SOURCES
     UIProcess/API/C/WKNotification.cpp
     UIProcess/API/C/WKNotificationManager.cpp
     UIProcess/API/C/WKNotificationPermissionRequest.cpp
-    UIProcess/API/C/WKOpenPanelParameters.cpp
+    UIProcess/API/C/WKOpenPanelParametersRef.cpp
     UIProcess/API/C/WKOpenPanelResultListener.cpp
     UIProcess/API/C/WKPage.cpp
     UIProcess/API/C/WKPageConfigurationRef.cpp
@@ -882,7 +885,6 @@ endif ()
 add_executable(WebProcess ${WebProcess_SOURCES})
 add_webkit2_prefix_header(WebProcess)
 target_link_libraries(WebProcess ${WebProcess_LIBRARIES})
-set_target_properties(WebProcess PROPERTIES FOLDER "WebKit")
 
 if (WebKit2_WebProcess_OUTPUT_NAME)
     set_target_properties(WebProcess PROPERTIES OUTPUT_NAME ${WebKit2_WebProcess_OUTPUT_NAME})
@@ -891,18 +893,16 @@ endif ()
 add_executable(NetworkProcess ${NetworkProcess_SOURCES})
 add_webkit2_prefix_header(NetworkProcess)
 target_link_libraries(NetworkProcess ${NetworkProcess_LIBRARIES})
-set_target_properties(NetworkProcess PROPERTIES FOLDER "WebKit")
 
 if (WebKit2_NetworkProcess_OUTPUT_NAME)
     set_target_properties(NetworkProcess PROPERTIES OUTPUT_NAME ${WebKit2_NetworkProcess_OUTPUT_NAME})
 endif ()
 
-if (ENABLE_PLUGIN_PROCESS AND NOT APPLE)
+if (ENABLE_PLUGIN_PROCESS AND NOT "${PORT}" STREQUAL "Mac")
     add_definitions(-DENABLE_PLUGIN_PROCESS=1)
     add_executable(PluginProcess ${PluginProcess_SOURCES})
     add_webkit2_prefix_header(PluginProcess)
     target_link_libraries(PluginProcess ${PluginProcess_LIBRARIES})
-    set_target_properties(PluginProcess PROPERTIES FOLDER "WebKit")
     install(TARGETS PluginProcess DESTINATION "${LIBEXEC_INSTALL_DIR}")
 
     if (WebKit2_PluginProcess_OUTPUT_NAME)
@@ -910,12 +910,11 @@ if (ENABLE_PLUGIN_PROCESS AND NOT APPLE)
     endif ()
 endif ()
 
-if (ENABLE_DATABASE_PROCESS AND NOT APPLE)
+if (ENABLE_DATABASE_PROCESS AND NOT "${PORT}" STREQUAL "Mac")
     add_definitions(-DENABLE_DATABASE_PROCESS=1)
     add_executable(DatabaseProcess ${DatabaseProcess_SOURCES})
     add_webkit2_prefix_header(DatabaseProcess)
     target_link_libraries(DatabaseProcess ${DatabaseProcess_LIBRARIES})
-    set_target_properties(DatabaseProcess PROPERTIES FOLDER "WebKit")
     install(TARGETS DatabaseProcess DESTINATION "${LIBEXEC_INSTALL_DIR}")
 
     if (WebKit2_DatabaseProcess_OUTPUT_NAME)
@@ -923,7 +922,7 @@ if (ENABLE_DATABASE_PROCESS AND NOT APPLE)
     endif ()
 endif ()
 
-if (APPLE)
+if ("${PORT}" STREQUAL "Mac")
     set(_web_xpc_dir ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.WebContent.Development.xpc/Contents)
     make_directory(${_web_xpc_dir}/MacOS)
     make_directory(${_web_xpc_dir}/Resources)
@@ -932,6 +931,7 @@ if (APPLE)
     add_custom_target(WebContentProcessNib COMMAND
         ibtool --compile ${_web_xpc_dir}/Resources/WebContentProcess.nib ${WEBKIT2_DIR}/Resources/WebContentProcess.xib
         VERBATIM)
+    add_dependencies(WebKit2 WebContentProcessNib)
 
     # FIXME: This shouldn't be two operations.
     file(COPY ${WEBKIT2_DIR}/WebProcess/EntryPoint/mac/XPCService/WebContentService/Info-OSX.plist DESTINATION ${_web_xpc_dir})
@@ -942,7 +942,6 @@ if (APPLE)
 
     set(_net_xpc_dir ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/WebKit.framework/Versions/A/XPCServices/com.apple.WebKit.Networking.Development.xpc/Contents)
     make_directory(${_net_xpc_dir}/MacOS)
-    make_directory(${_net_xpc_dir}/Resources)
     make_directory(${_net_xpc_dir}/_CodeSignature)
 
     # FIXME: This shouldn't be two operations.

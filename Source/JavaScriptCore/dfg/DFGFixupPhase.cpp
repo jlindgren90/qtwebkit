@@ -140,8 +140,8 @@ private:
                 node->setArithMode(Arith::CheckOverflow);
             else {
                 node->setArithMode(Arith::DoOverflow);
-                node->setResult(NodeResultDouble);
                 node->clearFlags(NodeMustGenerate);
+                node->setResult(enableInt52() ? NodeResultInt52 : NodeResultDouble);
             }
             break;
         }
@@ -453,6 +453,18 @@ private:
             if (Node::shouldSpeculateNumberOrBoolean(node->child1().node(), node->child2().node())) {
                 fixDoubleOrBooleanEdge(node->child1());
                 fixDoubleOrBooleanEdge(node->child2());
+            }
+            if (node->op() != CompareEq
+                && node->child1()->shouldSpeculateNotCell()
+                && node->child2()->shouldSpeculateNotCell()) {
+                if (node->child1()->shouldSpeculateNumberOrBoolean())
+                    fixDoubleOrBooleanEdge(node->child1());
+                else
+                    fixEdge<DoubleRepUse>(node->child1());
+                if (node->child2()->shouldSpeculateNumberOrBoolean())
+                    fixDoubleOrBooleanEdge(node->child2());
+                else
+                    fixEdge<DoubleRepUse>(node->child2());
                 node->clearFlags(NodeMustGenerate);
                 break;
             }
@@ -1030,7 +1042,18 @@ private:
             fixEdge<Int32Use>(node->child1());
             break;
         }
-            
+
+        case CallObjectConstructor: {
+            if (node->child1()->shouldSpeculateObject()) {
+                fixEdge<ObjectUse>(node->child1());
+                node->convertToIdentity();
+                break;
+            }
+
+            fixEdge<UntypedUse>(node->child1());
+            break;
+        }
+
         case ToThis: {
             fixupToThis(node);
             break;
@@ -1066,6 +1089,12 @@ private:
         case AllocatePropertyStorage:
         case ReallocatePropertyStorage: {
             fixEdge<KnownCellUse>(node->child1());
+            break;
+        }
+
+        case TryGetById: {
+            if (node->child1()->shouldSpeculateCell())
+                fixEdge<CellUse>(node->child1());
             break;
         }
 
@@ -1446,12 +1475,6 @@ private:
             break;
         }
 
-        case NewArrowFunction: {
-            fixEdge<CellUse>(node->child1());
-            fixEdge<CellUse>(node->child2());
-            break;
-        }
-
         case SetFunctionName: {
             // The first child is guaranteed to be a cell because op_set_function_name is only used
             // on a newly instantiated function object (the first child).
@@ -1463,6 +1486,13 @@ private:
         case CopyRest: {
             fixEdge<KnownCellUse>(node->child1());
             fixEdge<KnownInt32Use>(node->child2());
+            break;
+        }
+
+        case ResolveScope:
+        case GetDynamicVar:
+        case PutDynamicVar: {
+            fixEdge<KnownCellUse>(node->child1());
             break;
         }
 
@@ -1501,11 +1531,16 @@ private:
         case NewRegexp:
         case ProfileWillCall:
         case ProfileDidCall:
+        case DeleteById:
+        case IsArrayObject:
+        case IsJSArray:
+        case IsArrayConstructor:
         case IsUndefined:
         case IsBoolean:
         case IsNumber:
         case IsObjectOrNull:
         case IsFunction:
+        case IsRegExpObject:
         case CreateDirectArguments:
         case CreateClonedArguments:
         case Jump:

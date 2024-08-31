@@ -27,6 +27,7 @@ if (USE_THIN_ARCHIVES)
 endif ()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+define_property(TARGET PROPERTY FOLDER INHERITED BRIEF_DOCS "folder" FULL_DOCS "IDE folder name")
 
 if (COMPILER_IS_GCC_OR_CLANG)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fno-exceptions -fno-strict-aliasing")

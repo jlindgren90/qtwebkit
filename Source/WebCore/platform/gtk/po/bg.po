@@ -597,7 +597,7 @@ msgctxt ""
 msgid "Off"
 msgstr "Изключени"
 
-#: ../LocalizedStringsGtk.cpp:806
+#: ../LocalizedStringsGtk.cpp:805
 msgctxt "Menu item label for the automatically chosen track"
 msgid "Auto"
 msgstr "Автоматично"

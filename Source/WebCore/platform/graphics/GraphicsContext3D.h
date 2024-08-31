@@ -737,6 +737,7 @@ public:
             , shareResources(true)
             , preferDiscreteGPU(false)
             , forceSoftwareRenderer(false)
+            , useGLES3(false)
             , devicePixelRatio(1)
         {
         }
@@ -751,6 +752,7 @@ public:
         bool shareResources;
         bool preferDiscreteGPU;
         bool forceSoftwareRenderer;
+        bool useGLES3;
         float devicePixelRatio;
     };
 
@@ -1303,7 +1305,7 @@ private:
     void readPixelsAndConvertToBGRAIfNecessary(int x, int y, int width, int height, unsigned char* pixels);
 
 #if PLATFORM(IOS)
-    bool setRenderbufferStorageFromDrawable(GC3Dsizei width, GC3Dsizei height);
+    void setRenderbufferStorageFromDrawable(GC3Dsizei width, GC3Dsizei height);
 #endif
 
     bool reshapeFBOs(const IntSize&);

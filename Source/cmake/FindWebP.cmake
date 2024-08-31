@@ -48,5 +48,4 @@ find_library(
 mark_as_advanced(WEBP_LIBRARIES)
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(WebP REQUIRED_VARS WEBP_INCLUDE_DIRS WEBP_LIBRARIES
-                                  FOUND_VAR WEBP_FOUND)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(WEBP DEFAULT_MSG WEBP_INCLUDE_DIRS WEBP_LIBRARIES)

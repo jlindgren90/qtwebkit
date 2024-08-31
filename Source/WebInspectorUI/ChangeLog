@@ -1,3 +1,619 @@
+2016-04-18  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: DataGrid should be virtualized so it only renders visible rows
+
+        https://bugs.webkit.org/show_bug.cgi?id=156663
+        rdar://problem/25765256
+
+        Reviewed by Joseph Pecoraro.
+
+        * UserInterface/Views/ComputedStyleDetailsPanel.js:
+        (WebInspector.ComputedStyleDetailsPanel.prototype.set containerRegions):
+        Call updateLayoutIfNeeded since we don't use views here.
+
+        * UserInterface/Views/ConsoleMessageView.js:
+        (WebInspector.ConsoleMessageView.prototype._formatParameterAsTable):
+        Set inline and variableHeightRows to true, remove direct classList add. Call updateLayoutIfNeeded since we don't use views here.
+
+        * UserInterface/Views/DOMTreeDataGrid.js:
+        (WebInspector.DOMTreeDataGrid):
+        Set inline to true, remove direct classList add.
+
+        * UserInterface/Views/DataGrid.css:
+        (.data-grid td):
+        (.data-grid table.data):
+        (.data-grid:not(.variable-height-rows) table.data):
+        (.data-grid:not(.variable-height-rows) table.data.odd-first-zebra-stripe):
+        (.data-grid.variable-height-rows table.data tr:nth-child(odd)):
+        (.data-grid.variable-height-rows table.data tr:nth-child(even)):
+        (.data-grid.variable-height-rows.odd-first-zebra-stripe table.data tr:nth-child(odd)):
+        (.data-grid.variable-height-rows.odd-first-zebra-stripe table.data tr:nth-child(even)):
+        (.data-grid.variable-height-rows table.data tr.filler):
+        Updated styles to support variable height rows directly and flipping the order of the stripes
+        when the virtual table starts at an odd row.
+
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid): Added rowHeight and rows.
+        (WebInspector.DataGrid.prototype.get inline): Added.
+        (WebInspector.DataGrid.prototype.set inline): Added.
+        (WebInspector.DataGrid.prototype.get variableHeightRows): Added.
+        (WebInspector.DataGrid.prototype.set variableHeightRows): Added.
+        (WebInspector.DataGrid.prototype.layout): Call _updateVisibleRows.
+        (WebInspector.DataGrid.prototype._noteRowsChanged): Added.
+        (WebInspector.DataGrid.prototype._updateVisibleRows): Added.
+        (WebInspector.DataGrid.prototype._sortNodesCallback): Update to not use the DOM.
+        (WebInspector.DataGridNode.prototype.set hasChildren): Call needsLayout.
+        (WebInspector.DataGridNode.prototype.collapse): Call needsLayout.
+        (WebInspector.DataGridNode.prototype.expand): Call needsLayout.
+        (WebInspector.DataGridNode.prototype._attach): Call _noteRowsChanged.
+        (WebInspector.DataGridNode.prototype._detach): Call _noteRowsChanged.
+
+        * UserInterface/Views/DatabaseUserQuerySuccessView.js:
+        (WebInspector.DatabaseUserQuerySuccessView):
+        Set inline to true, remove direct classList add. Call updateLayoutIfNeeded since we don't use views here.
+
+        * UserInterface/Views/DetailsSection.css:
+        (.details-section > .content .data-grid td.value-column):
+        (.details-section > .content .data-grid table.data): Deleted.
+        (.details-section > .content .data-grid tr:nth-child(even)): Deleted.
+        (.details-section > .content .data-grid tr:nth-child(odd)): Deleted.
+        Now handled by DataGrid.css directly.
+
+        * UserInterface/Views/DetailsSectionDataGridRow.js:
+        (WebInspector.DetailsSectionDataGridRow.prototype.set dataGrid):
+        Set inline and variableHeightRows to true, remove direct classList add. Call updateLayoutIfNeeded since we don't use views here.
+
+        * UserInterface/Views/HeapSnapshotInstancesContentView.css:
+        (.heap-snapshot > .data-grid tr:matches(.selected, :hover) td .go-to-arrow):
+        (.heap-snapshot .icon):
+        Remove margin-top to fit inside 20px row instead of 21px.
+
+        * UserInterface/Views/IndexedDatabaseObjectStoreContentView.css:
+        (.content-view.indexed-database-object-store > .data-grid table.data): Deleted.
+        (.content-view.indexed-database-object-store > .data-grid table.data tr:nth-child(even)): Deleted.
+        (.content-view.indexed-database-object-store > .data-grid table.data tr:nth-child(odd)): Deleted.
+        (.content-view.indexed-database-object-store > .data-grid table.data tr.filler): Deleted.
+        Now handled by DataGrid.css directly.
+
+        * UserInterface/Views/IndexedDatabaseObjectStoreContentView.js:
+        (WebInspector.IndexedDatabaseObjectStoreContentView):
+        Set variableHeightRows to true.
+
+        * UserInterface/Views/LayerTreeDetailsSidebarPanel.js:
+        (WebInspector.LayerTreeDetailsSidebarPanel.prototype._buildDataGridSection):
+        Set inline to true, remove direct classList add. Call updateLayoutIfNeeded since we don't use views here.
+
+        * UserInterface/Views/LogContentView.css:
+        (.console-item .data-grid table.data): Deleted.
+        (.console-item .data-grid table.data tr:nth-child(even)): Deleted.
+        Now handled by DataGrid.css directly.
+
+        * UserInterface/Views/NetworkGridContentView.css:
+        (.content-view.network-grid > .data-grid td): Deleted.
+        (.content-view.network-grid > .data-grid table.data): Deleted.
+        Now handled by DataGrid.css directly.
+
+        * UserInterface/Views/ProbeSetDataGrid.js:
+        (WebInspector.ProbeSetDataGrid):
+        Set inline to true, remove direct classList add.
+
+        * UserInterface/Views/ProfileView.css:
+        (.profile > .data-grid td .icon):
+        (.profile > .data-grid tr:matches(.selected, :hover) .go-to-arrow):
+        Remove margin-top to fit inside 20px row instead of 21px.
+
+        * UserInterface/Views/TimelineRecordingContentView.css:
+        (.content-view.timeline-recording > .content-browser > .content-view-container > .timeline-view > .data-grid td): Deleted.
+        (.content-view.timeline-recording > .content-browser > .content-view-container > .timeline-view > .data-grid table.data): Deleted.
+        Now handled by DataGrid.css directly.
+
+        * UserInterface/Views/Variables.css:
+        (:root): Added zebra stripe colors.
+
+2016-04-19  Joseph Pecoraro  <pecoraro@apple.com>
+
+        REGRESSION (r199635) Web Inspector: Percentages in Heap Allocations view are too large
+        https://bugs.webkit.org/show_bug.cgi?id=156729
+        <rdar://problem/25796002>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/HeapSnapshotInstanceDataGridNode.js:
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype.createCellContent):
+        Fix callsite that failed to be updated once percentageString
+        required 0..1 input instead of 0..100.
+
+2016-04-18  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: NavigationSidebarPanel does a lot of style recalc and layout on busy sites
+
+        https://bugs.webkit.org/show_bug.cgi?id=156704
+        rdar://problem/25778744
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/NavigationSidebarPanel.js:
+        (WebInspector.NavigationSidebarPanel):
+        (WebInspector.NavigationSidebarPanel.prototype._treeElementDisclosureDidChange):
+        Use _updateContentOverflowShadowVisibilitySoon in more places so the style recalc
+        and layout changes are coalesced into one action after all rapid fire calls.
+
+2016-04-18  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Database query result DataGrids have misaligned header columns
+
+        https://bugs.webkit.org/show_bug.cgi?id=156701
+        rdar://problem/25778310
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Views/DataGrid.js:
+        (WebInspector.DataGrid.prototype.autoSizeColumns): Set the width on the <col> element
+        for the body table to match the <col> in the header.
+
+2016-04-18  Timothy Hatcher  <timothy@apple.com>
+
+        Web Inspector: Fix the debounce function
+
+        https://bugs.webkit.org/show_bug.cgi?id=156696
+        rdar://problem/25778133
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Base/Utilities.js:
+        (Function.prototype.debounce): Store the timeout on the original function instead
+        of the bound function. Also simplify the implementation with arrow functions
+        and eliminate the bind altogether.
+
+2016-04-16  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: Adopt Number.prototype.toLocaleString For All Sizes and Times
+        https://bugs.webkit.org/show_bug.cgi?id=152033
+        <rdar://problem/23815589>
+
+        Reviewed by Timothy Hatcher.
+
+        Update string formatters to localize float and percentage strings. Hook up
+        console message formatters to use String.standardFormatters so that console
+        statements (e.g. console.log("%.3f", 3.14159)) are properly formatted.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        * UserInterface/Base/Utilities.js:
+        (value):
+        tokenizeFormatString should default to 6 digits when no precision
+        sub-specifier is provided.
+
+        percentageString should localize formatting, and take a fraction value
+        (0 to 1) instead of a percentage.
+
+        secondsToString should perform special-case formatting for zero values
+        ("0ms") instead of the general purpose float formatter.
+
+        (value.d):
+        Switch to parseInt to floor floating point values and support numeric strings.
+        Return NaN instead of zero when passed a value that can't be converted to integer.
+
+        (value.f):
+        Switch to parseFloat to support numeric strings, and localize formatting.
+        Remove precision check, as it will never be less than zero. Return NaN
+        instead of zero when passed a value that can't be converted to float.
+
+        (prettyFunctionName):
+        Convert substitutions (an arguments object) to an array before calling join.
+
+        * UserInterface/Views/ConsoleMessageView.js:
+        (WebInspector.ConsoleMessageView.prototype._formatWithSubstitutionString.floatFormatter):
+        Use String.standardFormatters.f.
+
+        (WebInspector.ConsoleMessageView.prototype._formatWithSubstitutionString.integerFormatter):
+        Use String.standardFormatters.d.
+
+        * UserInterface/Views/LayoutTimelineDataGridNode.js:
+        (WebInspector.LayoutTimelineDataGridNode.prototype.createCellContent):
+        (WebInspector.LayoutTimelineDataGridNode):
+        Use integer formatting for pixel values.
+
+        * UserInterface/Views/ProfileDataGridNode.js:
+        (WebInspector.ProfileDataGridNode.prototype._recalculateData):
+        (WebInspector.ProfileDataGridNode.prototype._totalTimeContent):
+        Treat percentage as a fraction from 0 to 1.
+
+        * UserInterface/Views/ResourceDetailsSidebarPanel.js:
+        (WebInspector.ResourceDetailsSidebarPanel.prototype._refreshImageSizeSection):
+        Use integer formatting for pixel values.
+
+2016-04-16  Matt Baker  <mattbaker@apple.com>
+
+        display:inline on the tbody is causing the width of the iframe to be shrunk to the minimum size of its text.
+        https://bugs.webkit.org/show_bug.cgi?id=15666
+
+        Reviewed by Timothy Hatcher.
+
+        Fix a regression caused by the recent Timelines UI redesign, and
+        reorder TimelineDataGrid's constructor arguments now that most
+        timeline views no longer have an associated tree outline.
+
+        * UserInterface/Views/HeapAllocationsTimelineView.js:
+        (WebInspector.HeapAllocationsTimelineView):
+        * UserInterface/Views/LayoutTimelineView.js:
+        (WebInspector.LayoutTimelineView):
+        * UserInterface/Views/NetworkGridContentView.js:
+        (WebInspector.NetworkGridContentView):
+        * UserInterface/Views/NetworkTimelineView.js:
+        (WebInspector.NetworkTimelineView):
+        * UserInterface/Views/RenderingFrameTimelineView.js:
+        (WebInspector.RenderingFrameTimelineView):
+        * UserInterface/Views/ScriptDetailsTimelineView.js:
+        (WebInspector.ScriptDetailsTimelineView):
+        Reorder constructor parameters and omit optional treeOutline and
+        synchronizerDelegate arguments when they aren't needed.
+
+        * UserInterface/Views/TimelineDataGrid.js:
+        (WebInspector.TimelineDataGrid):
+        Reorder constructor arguments so that treeOutline can be optional.
+        (WebInspector.TimelineDataGrid.prototype._refreshDirtyDataGridNodes):
+        Nodes should be refreshed and re-inserted in the data grid without
+        requiring a grid synchronizer. If a synchronizer exists, re-insert
+        the tree element for the node. Since the syncronizer is disabled the
+        order of grid/tree operations doesn't matter.
+
+2016-04-15  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: sourceMappingURL not used when sourceURL is set
+        https://bugs.webkit.org/show_bug.cgi?id=156021
+        <rdar://problem/25438417>
+
+        Reviewed by Timothy Hatcher.
+
+        Previously Debugger.sourceParsed only providing the sourceURL, and
+        wiping out the resourceURL, meant that a Script from a Resource that
+        set a sourceURL directive would fail to be associated with its Resource.
+
+        This would result in duplicated tree elements in the Resources Sidebar,
+        one for the Resource, and one for the Script. With the Script getting
+        ultimately getting the SourceMap resources. However, since the frontend
+        prefers Resources over Scripts when possible, an error that generated
+        from the script would point to a location in the Resource, not following
+        source maps.
+
+        By always providing the resource URL in Debugger.sourceParsed, a Script
+        can better be associated with its Resource. The result is now a single
+        shared tree element in the Resources Sidebar, and the Resource getting
+        the SourceMap resources. Now the script error goes through the Resource
+        to its SourceMap resources as we would expect.
+
+        * UserInterface/Protocol/DebuggerObserver.js:
+        (WebInspector.DebuggerObserver):
+        (WebInspector.DebuggerObserver.prototype.scriptParsed):
+        We now have to handle two different signatures of scriptParsed. One
+        for legacy, and one for non-legacy. Cache that value early on, since
+        scriptParsed happens a lot.
+
+        * UserInterface/Protocol/InspectorBackend.js:
+        (InspectorBackend.Agent.prototype.hasEventParameter):
+        Runtime check a protocol event to see if it has a parameter. This
+        is used to check if Debugger.sourceParsed is legacy or not based
+        on if it has the legacy "hasSourceURL" parameter.
+
+        * UserInterface/Models/Script.js:
+        (WebInspector.Script):
+        (WebInspector.Script.prototype.get sourceURL):
+        Treat sourceURL and url separately.
+
+        (WebInspector.Script.prototype.get displayName):
+        Handle both the url and sourceURL in displayName.
+
+        * UserInterface/Controllers/DebuggerManager.js:
+        (WebInspector.DebuggerManager.prototype.get knownNonResourceScripts):
+        (WebInspector.DebuggerManager.prototype.debuggerDidPause):
+        (WebInspector.DebuggerManager.prototype.scriptDidParse):
+        * UserInterface/Protocol/RemoteObject.js:
+        (WebInspector.RemoteObject.prototype.findFunctionSourceCodeLocation):
+        Update code that checks the sourceURL to explicitly use sourceURL.
+
+        * UserInterface/Controllers/SourceMapManager.js:
+        (WebInspector.SourceMapManager.prototype.downloadSourceMap):
+        For legacy backends, or in case we get a resource that has an incomplete
+        baseURL, attempt to get an absolute URL based on the main resource.
+
+        * UserInterface/Views/DebuggerSidebarPanel.js:
+        (WebInspector.DebuggerSidebarPanel.prototype._addScript):
+        * UserInterface/Views/ResourceSidebarPanel.js:
+        (WebInspector.ResourceSidebarPanel.prototype._scriptWasAdded):
+        Ignore scripts without a url or sourceURL.
+
+2016-04-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Cleanup inspector/debugger tests
+        https://bugs.webkit.org/show_bug.cgi?id=156619
+
+        Reviewed by Brian Burg.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector.loaded):
+        * UserInterface/Controllers/DebuggerManager.js:
+        Remove agent checks for agents that are always available.
+
+2016-04-14  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Add a JavaScript Formatting test for template strings
+        https://bugs.webkit.org/show_bug.cgi?id=156600
+
+        Reviewed by Brian Burg.
+
+        * Tools/Formatting/index.html:
+
+2016-04-14  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        REGRESSION: Web Inspector: Remote inspector doesn't work
+        https://bugs.webkit.org/show_bug.cgi?id=156543
+
+        Reviewed by Timothy Hatcher.
+
+        WebSocket connection is blocked by CSP, but needed by the remote web inspector to work, so allow connect to ws
+        URLs from the web inspector. Also add stubs for zoomFactor and setZoomFactor to InspectorFrontendHostStub,
+        required after r199396.
+
+        * UserInterface/Base/InspectorFrontendHostStub.js:
+        (window.InspectorFrontendHost.WebInspector.InspectorFrontendHostStub.prototype.setZoomFactor):
+        (window.InspectorFrontendHost.WebInspector.InspectorFrontendHostStub.prototype.zoomFactor):
+        * UserInterface/Main.html:
+
+2016-04-12  Brian Burg  <bburg@apple.com>
+
+        Web Inspector: save inspector's zoom factor as a persistent setting across sessions
+        https://bugs.webkit.org/show_bug.cgi?id=156522
+        <rdar://problem/25635774>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Base/Main.js:
+        (WebInspector.loaded):
+        Initialize the setting and immediately set the zoom before the frontend page loads.
+
+        (WebInspector._increaseZoom):
+        (WebInspector._decreaseZoom):
+        (WebInspector._resetZoom):
+        Use the internal get/set method which updates the WebInspector.Setting.
+
+        (WebInspector._setZoomFactor):
+        Added. Round-trip through the frontend host method in case it further clamps the value.
+
+        (WebInspector._zoomFactor):
+        Added. Just return the setting, since there's no other way for zoom to have changed.
+
+2016-04-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Show the normal Native icon for all Internal objects in Heap Snapshots
+        https://bugs.webkit.org/show_bug.cgi?id=156513
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/HeapSnapshotClusterContentView.js:
+        (WebInspector.HeapSnapshotClusterContentView.iconStyleClassNameForClassName):
+        Show the native icon for internal objects.
+
+2016-04-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Keyboard shortcut for "Inspect Element" only works when Web Inspector is open.
+        https://bugs.webkit.org/show_bug.cgi?id=111193
+        <rdar://problem/13325889>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Controllers/DOMTreeManager.js:
+        (WebInspector.DOMTreeManager.prototype.set inspectModeEnabled):
+        (WebInspector.DOMTreeManager.set inspectModeEnabled.callback):
+        * UserInterface/Protocol/InspectorFrontendAPI.js:
+        (InspectorFrontendAPI.setElementSelectionEnabled):
+        Frontend API to enable element selection.
+
+2016-04-12  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Should be able to expand Objects in Heap Allocations View to see exactly what it retains
+        https://bugs.webkit.org/show_bug.cgi?id=156419
+        <rdar://problem/25633863>
+
+        Reviewed by Timothy Hatcher.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        * UserInterface/Main.html:
+        Remove strings, and fix sort.
+
+        * UserInterface/Models/HeapSnapshotRootPath.js:
+        (WebInspector.HeapSnapshotRootPath.pathComponentForIndividualEdge):
+        (WebInspector.HeapSnapshotRootPath.canPropertyNameBeDotAccess):
+        (WebInspector.HeapSnapshotRootPath.prototype.appendPropertyName):
+        (WebInspector.HeapSnapshotRootPath.prototype._canPropertyNameBeDotAccess):
+        Provide a helper to get an path component string for an individual edge.
+
+        * UserInterface/Models/PropertyPreview.js:
+        (WebInspector.PropertyPreview):
+        Fix an assert that may have errantly fired for an empty string name.
+
+        * UserInterface/Proxies/HeapSnapshotNodeProxy.js:
+        (WebInspector.HeapSnapshotNodeProxy):
+        (WebInspector.HeapSnapshotNodeProxy.deserialize):
+        Include "hasChildren" property in the original proxy message.
+
+        (WebInspector.HeapSnapshotNodeProxy.prototype.retainedNodes):
+        The method now also returns a list of edges for each of the retained nodes.
+
+        * UserInterface/Views/HeapSnapshotInstanceDataGridNode.js:
+        (WebInspector.HeapSnapshotInstanceDataGridNode):
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype.createCellContent):
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype.sort):
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype._populate):
+        An instance DataGrid node can now show children. It can expand to show
+        its retained node graph.
+
+        * UserInterface/Workers/HeapSnapshot/HeapSnapshot.js:
+        (HeapSnapshot.instancesWithClassName):
+        (HeapSnapshot.prototype.dominatedNodes):
+        (HeapSnapshot.prototype.retainers):
+        (HeapSnapshot.prototype.serializeNode):
+        Remove unnecessary calls to bind in favor of using the `thisObject` argument.
+
+        (HeapSnapshot.prototype.retainedNodes):
+        Return a parallel list of edges for each of the nodes.
+
+        * UserInterface/Views/HeapSnapshotClassDataGridNode.js:
+        (WebInspector.HeapSnapshotClassDataGridNode.prototype.createCellContent):
+        (WebInspector.HeapSnapshotClassDataGridNode.prototype._populate):
+        * UserInterface/Views/HeapSnapshotClusterContentView.js:
+        (WebInspector.HeapSnapshotClusterContentView.prototype.get summaryContentView):
+        (WebInspector.HeapSnapshotClusterContentView.prototype.get instancesContentView):
+        (WebInspector.HeapSnapshotClusterContentView.prototype.shown):
+        (WebInspector.HeapSnapshotClusterContentView):
+        (WebInspector.HeapSnapshotClusterContentView.prototype.get navigationItems): Deleted.
+        (WebInspector.HeapSnapshotClusterContentView.prototype._contentViewExtraArguments): Deleted.
+        (WebInspector.HeapSnapshotClusterContentView.prototype._toggleShowInternalObjectsSetting): Deleted.
+        (WebInspector.HeapSnapshotClusterContentView.prototype._updateViewsForShowInternalObjectsSettingValue): Deleted.
+        (WebInspector.HeapSnapshotClusterContentView.prototype._updateShowInternalObjectsButtonNavigationItem): Deleted.
+        * UserInterface/Views/HeapSnapshotInstancesContentView.js:
+        (WebInspector.HeapSnapshotInstancesContentView):
+        (WebInspector.HeapSnapshotInstancesContentView.prototype.get showInternalObjects): Deleted.
+        (WebInspector.HeapSnapshotInstancesContentView.prototype.set showInternalObjects): Deleted.
+        * UserInterface/Views/HeapSnapshotInstancesDataGridTree.js:
+        (WebInspector.HeapSnapshotInstancesDataGridTree.prototype._populateTopLevel):
+        (WebInspector.HeapSnapshotInstancesDataGridTree):
+        (WebInspector.HeapSnapshotInstancesDataGridTree.prototype.get includeInternalObjects): Deleted.
+        (WebInspector.HeapSnapshotInstancesDataGridTree.prototype.set includeInternalObjects): Deleted.
+        * UserInterface/Views/HeapSnapshotSummaryContentView.js:
+        Remove the show/hide internal objects button. In the Instances view we will
+        only show non-Internal objects at the top level, and show internal objects
+        when those instances are expanded.
+
+2016-04-12  Matt Baker  <mattbaker@apple.com>
+
+        Web Inspector: clearing the console should exit all console groups
+        https://bugs.webkit.org/show_bug.cgi?id=156496
+        <rdar://problem/25676416>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/LogContentView.js:
+        (WebInspector.LogContentView.prototype._logCleared):
+        Reset nesting level to zero.
+
+2016-04-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Tab Bar items get unreadable at narrow window widths, should collapse earlier
+        https://bugs.webkit.org/show_bug.cgi?id=156477
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/TabBar.js:
+        (WebInspector.TabBar.prototype.layout):
+        Hide-titles sooner since a width of 60 results in only a few characters
+        and looks poor.
+
+2016-04-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Unstyled nodes in ObjectTree previews look poor
+        https://bugs.webkit.org/show_bug.cgi?id=156475
+        <rdar://problem/25667351>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/ObjectPreviewView.js:
+        (WebInspector.ObjectPreviewView.prototype._appendPreview):
+        Treat nodes as simple values.
+
+        (WebInspector.ObjectPreviewView.prototype._initTitleElement):
+        (WebInspector.ObjectPreviewView.prototype._appendValuePreview):
+        Format nodes nicely, and treat them as lossy since they have properties.
+
+2016-04-11  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: HeapSnapshot instance property path popover should include a descriptive header
+        https://bugs.webkit.org/show_bug.cgi?id=156431
+        <rdar://problem/25633594>
+
+        Reviewed by Timothy Hatcher.
+
+        * Localizations/en.lproj/localizedStrings.js:
+        * UserInterface/Views/HeapSnapshotInstanceDataGridNode.js:
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype._mouseoverHandler.appendTitle):
+        Title for the popover. Because localization may change the location of the @1234
+        in the string, localize first with a placeholder, and then replace the placeholder
+        with the @1234 link.
+
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype._mouseoverHandler.appendPath):
+        Give the table a container for extra padding.
+
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype._mouseoverHandler.appendPathRow):
+        Do not include the space before @1234 as part of the clickable link.
+
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype._mouseoverHandler):
+        Include a title when the popover shows a root path.
+
+        * UserInterface/Views/HeapSnapshotInstancesContentView.css:
+        (.heap-snapshot-instance-popover-content > .title):
+        (.heap-snapshot-instance-popover-content):
+        (.heap-snapshot-instance-popover-content > .table-container):
+        (.heap-snapshot-instance-popover-content table):
+        Provide styles for the title. Let the title extend across the entire
+        popover horizontally, but pad the table so that it appears more
+        centered under the title. Because the table has border collapse we have
+        to wrap it in a container to give it back the padding we want.
+
+2016-04-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: XHRs and Web Worker scripts are not searchable
+        https://bugs.webkit.org/show_bug.cgi?id=154214
+        <rdar://problem/24643587>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/SearchSidebarPanel.js:
+        (WebInspector.SearchSidebarPanel.prototype.performSearch.resourceCallback):
+        (WebInspector.SearchSidebarPanel.prototype.performSearch.resourcesCallback):
+        Carry forward the requestId property if it is available.
+
+2016-04-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        Web Inspector: Allocation snapshot hover persists after switching tabs
+        https://bugs.webkit.org/show_bug.cgi?id=156430
+        <rdar://problem/25633800>
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/HeapSnapshotInstanceDataGridNode.js:
+        (WebInspector.HeapSnapshotInstanceDataGridNode.prototype._mouseoverHandler):
+        Don't show the popover if the tree is no longer visible.
+
+        * UserInterface/Views/HeapSnapshotInstancesContentView.js:
+        (WebInspector.HeapSnapshotInstancesContentView.prototype.shown):
+        * UserInterface/Views/HeapSnapshotInstancesDataGridTree.js:
+        (WebInspector.HeapSnapshotInstancesDataGridTree):
+        (WebInspector.HeapSnapshotInstancesDataGridTree.prototype.get visible):
+        (WebInspector.HeapSnapshotInstancesDataGridTree.prototype.shown):
+        (WebInspector.HeapSnapshotInstancesDataGridTree.prototype.hidden):
+        Give the tree a visible state and have its containing ContentView
+        update it with normal ContentView shown/hidden.
+
+        * UserInterface/Views/Popover.js:
+        We are presenting while we were dismissing, so completely clear the
+        dismissing state.
+
+2016-04-08  Joseph Pecoraro  <pecoraro@apple.com>
+
+        JSContext Inspector: Fix asserts and uncaught exception showing Timeline Tab
+        https://bugs.webkit.org/show_bug.cgi?id=156411
+
+        Reviewed by Timothy Hatcher.
+
+        * UserInterface/Views/OverviewTimelineView.js:
+        (WebInspector.OverviewTimelineView):
+        (WebInspector.OverviewTimelineView.prototype.closed):
+        Gracefully handle if we do not have a Network Timeline.
+
+        * UserInterface/Views/TimelineTabContentView.js:
+        (WebInspector.TimelineTabContentView.prototype._changeViewMode):
+        This function is always called by the constructor, so the assert
+        is not useful since it can be called when FPS is not supported.
+
 2016-04-08  Matt Baker  <mattbaker@apple.com>
 
         Web Inspector: Attempting to dismiss a popover that is already being dismissed causes an error

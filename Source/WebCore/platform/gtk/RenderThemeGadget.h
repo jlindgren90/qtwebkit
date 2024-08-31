@@ -75,9 +75,8 @@ public:
     Color backgroundColor() const;
     double opacity() const;
 
-    GtkStyleContext* context() const { return m_context.get(); }
-
 protected:
+    GtkStyleContext* context() const { return m_context.get(); }
     GtkBorder marginBox() const;
     GtkBorder borderBox() const;
     GtkBorder paddingBox() const;
@@ -87,7 +86,7 @@ protected:
 
 class RenderThemeBoxGadget final : public RenderThemeGadget {
 public:
-    RenderThemeBoxGadget(const RenderThemeGadget::Info&, GtkOrientation, const Vector<RenderThemeGadget::Info> children, RenderThemeGadget* parent = nullptr);
+    RenderThemeBoxGadget(const RenderThemeGadget::Info&, const Vector<RenderThemeGadget::Info> children, RenderThemeGadget* parent = nullptr);
 
     IntSize preferredSize() const override;
 
@@ -95,7 +94,6 @@ public:
 
 private:
     Vector<std::unique_ptr<RenderThemeGadget>> m_children;
-    GtkOrientation m_orientation { GTK_ORIENTATION_HORIZONTAL };
 };
 
 class RenderThemeTextFieldGadget final : public RenderThemeGadget {
@@ -160,8 +158,6 @@ public:
         SecondaryForward = 1 << 3
     };
     OptionSet<Steppers> steppers() const { return m_steppers; };
-
-    void renderStepper(cairo_t*, const FloatRect&, RenderThemeGadget*, GtkOrientation, Steppers);
 
 private:
     OptionSet<Steppers> m_steppers;

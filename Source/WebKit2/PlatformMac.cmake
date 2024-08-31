@@ -73,6 +73,7 @@ list(APPEND WebKit2_SOURCES
     Shared/API/Cocoa/WKRemoteObject.mm
     Shared/API/Cocoa/WKRemoteObjectCoder.mm
     Shared/API/Cocoa/WebKit.m
+    Shared/API/Cocoa/_WKExperimentalFeature.mm
     Shared/API/Cocoa/_WKFrameHandle.mm
     Shared/API/Cocoa/_WKHitTestResult.mm
     Shared/API/Cocoa/_WKNSFileManagerExtras.mm
@@ -122,6 +123,7 @@ list(APPEND WebKit2_SOURCES
     Shared/mac/ArgumentCodersMac.mm
     Shared/mac/AttributedString.mm
     Shared/mac/ChildProcessMac.mm
+    Shared/mac/CodeSigning.mm
     Shared/mac/ColorSpaceData.mm
     Shared/mac/CookieStorageShim.mm
     Shared/mac/CookieStorageShimLibrary.cpp
@@ -180,6 +182,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/WKNavigationAction.mm
     UIProcess/API/Cocoa/WKNavigationData.mm
     UIProcess/API/Cocoa/WKNavigationResponse.mm
+    UIProcess/API/Cocoa/WKOpenPanelParameters.mm
     UIProcess/API/Cocoa/WKPreferences.mm
     UIProcess/API/Cocoa/WKPreviewActionItem.mm
     UIProcess/API/Cocoa/WKPreviewActionItemIdentifiers.mm
@@ -202,6 +205,7 @@ list(APPEND WebKit2_SOURCES
     UIProcess/API/Cocoa/_WKDownload.mm
     UIProcess/API/Cocoa/_WKElementAction.mm
     UIProcess/API/Cocoa/_WKErrorRecoveryAttempting.mm
+    UIProcess/API/Cocoa/_WKExperimentalFeature.mm
     UIProcess/API/Cocoa/_WKProcessPoolConfiguration.mm
     UIProcess/API/Cocoa/_WKSessionState.mm
     UIProcess/API/Cocoa/_WKThumbnailView.mm
@@ -417,10 +421,6 @@ list(APPEND WebKit2_INCLUDE_DIRECTORIES
     "${WEBCORE_DIR}/page"
 )
 
-set(WEBKIT2_EXTRA_DEPENDENCIES
-     WebKit2-forwarding-headers
-)
-
 set(XPCService_SOURCES
     Shared/EntryPointUtilities/mac/XPCService/XPCServiceEntryPoint.mm
     Shared/EntryPointUtilities/mac/XPCService/XPCServiceMain.mm
@@ -447,8 +447,8 @@ list(APPEND DatabaseProcess_SOURCES
 )
 
 # FIXME: These should not have Development in production builds.
-set(WebKit2_WebProcess_OUTPUT_NAME com.apple.WebKit.WebContent.Development.xpc)
-set(WebKit2_NetworkProcess_OUTPUT_NAME com.apple.WebKit.Networking.Development.xpc)
+set(WebKit2_WebProcess_OUTPUT_NAME com.apple.WebKit.WebContent.Development)
+set(WebKit2_NetworkProcess_OUTPUT_NAME com.apple.WebKit.Networking.Development)
 
 add_definitions("-include WebKit2Prefix.h")
 

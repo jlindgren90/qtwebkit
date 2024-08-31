@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.12)
 include(WebKitCommon)
+set_property(DIRECTORY . PROPERTY FOLDER "WebKit")
 
 set(WebKit_SOURCES
     Storage/StorageAreaImpl.cpp
@@ -34,7 +35,6 @@ set(WebKit_SYSTEM_INCLUDE_DIRECTORIES
 
 set(WebKit_LIBRARIES
     PRIVATE JavaScriptCore${DEBUG_SUFFIX}
-    PRIVATE WTF${DEBUG_SUFFIX}
     PRIVATE WebCore${DEBUG_SUFFIX}
 )
 

@@ -375,13 +375,13 @@ bool ContentSecurityPolicy::allowPluginType(const String& type, const String& ty
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowScriptFromSource(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowScriptFromSource(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
     if (SchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForScript, url);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForScript, url, redirectResponseReceived == RedirectResponseReceived::Yes);
     if (!violatedDirective)
         return true;
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::scriptSrc, *violatedDirective, url, "Refused to load");
@@ -389,7 +389,7 @@ bool ContentSecurityPolicy::allowScriptFromSource(const URL& url, bool overrideC
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowObjectFromSource(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowObjectFromSource(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
@@ -398,7 +398,7 @@ bool ContentSecurityPolicy::allowObjectFromSource(const URL& url, bool overrideC
     // As per section object-src of the Content Security Policy Level 3 spec., <http://w3c.github.io/webappsec-csp> (Editor's Draft, 29 February 2016),
     // "If plugin content is loaded without an associated URL (perhaps an object element lacks a data attribute, but loads some default plugin based
     // on the specified type), it MUST be blocked if object-src's value is 'none', but will otherwise be allowed".
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForObjectSource, url, ContentSecurityPolicySourceListDirective::ShouldAllowEmptyURLIfSourceListIsNotNone::Yes);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForObjectSource, url, redirectResponseReceived == RedirectResponseReceived::Yes, ContentSecurityPolicySourceListDirective::ShouldAllowEmptyURLIfSourceListIsNotNone::Yes);
     if (!violatedDirective)
         return true;
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::objectSrc, *violatedDirective, url, "Refused to load");
@@ -406,13 +406,13 @@ bool ContentSecurityPolicy::allowObjectFromSource(const URL& url, bool overrideC
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowChildFrameFromSource(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowChildFrameFromSource(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
     if (SchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForFrame, url);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForFrame, url, redirectResponseReceived == RedirectResponseReceived::Yes);
     if (!violatedDirective)
         return true;
     const char* effectiveViolatedDirective = violatedDirective->name() == ContentSecurityPolicyDirectiveNames::frameSrc ? ContentSecurityPolicyDirectiveNames::frameSrc : ContentSecurityPolicyDirectiveNames::childSrc;
@@ -421,13 +421,13 @@ bool ContentSecurityPolicy::allowChildFrameFromSource(const URL& url, bool overr
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowChildContextFromSource(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowChildContextFromSource(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
     if (SchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForChildContext, url);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForChildContext, url, redirectResponseReceived == RedirectResponseReceived::Yes);
     if (!violatedDirective)
         return true;
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::childSrc, *violatedDirective, url, "Refused to load");
@@ -435,13 +435,13 @@ bool ContentSecurityPolicy::allowChildContextFromSource(const URL& url, bool ove
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowImageFromSource(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowImageFromSource(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
     if (SchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForImage, url);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForImage, url, redirectResponseReceived == RedirectResponseReceived::Yes);
     if (!violatedDirective)
         return true;
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::imgSrc, *violatedDirective, url, "Refused to load");
@@ -449,13 +449,13 @@ bool ContentSecurityPolicy::allowImageFromSource(const URL& url, bool overrideCo
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowStyleFromSource(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowStyleFromSource(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
     if (SchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForStyle, url);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForStyle, url, redirectResponseReceived == RedirectResponseReceived::Yes);
     if (!violatedDirective)
         return true;
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::styleSrc, *violatedDirective, url, "Refused to load");
@@ -463,13 +463,13 @@ bool ContentSecurityPolicy::allowStyleFromSource(const URL& url, bool overrideCo
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowFontFromSource(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowFontFromSource(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
     if (SchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForFont, url);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForFont, url, redirectResponseReceived == RedirectResponseReceived::Yes);
     if (!violatedDirective)
         return true;
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::fontSrc, *violatedDirective, url, "Refused to load");
@@ -477,13 +477,13 @@ bool ContentSecurityPolicy::allowFontFromSource(const URL& url, bool overrideCon
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowMediaFromSource(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowMediaFromSource(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
     if (SchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForMedia, url);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForMedia, url, redirectResponseReceived == RedirectResponseReceived::Yes);
     if (!violatedDirective)
         return true;
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::mediaSrc, *violatedDirective, url, "Refused to load");
@@ -491,13 +491,13 @@ bool ContentSecurityPolicy::allowMediaFromSource(const URL& url, bool overrideCo
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowConnectToSource(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowConnectToSource(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
     if (SchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForConnectSource, url);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForConnectSource, url, redirectResponseReceived == RedirectResponseReceived::Yes);
     if (!violatedDirective)
         return true;
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::connectSrc, *violatedDirective, url, "Refused to connect to");
@@ -505,13 +505,13 @@ bool ContentSecurityPolicy::allowConnectToSource(const URL& url, bool overrideCo
     return violatedDirective->directiveList().isReportOnly();
 }
 
-bool ContentSecurityPolicy::allowFormAction(const URL& url, bool overrideContentSecurityPolicy) const
+bool ContentSecurityPolicy::allowFormAction(const URL& url, bool overrideContentSecurityPolicy, RedirectResponseReceived redirectResponseReceived) const
 {
     if (overrideContentSecurityPolicy)
         return true;
     if (SchemeRegistry::schemeShouldBypassContentSecurityPolicy(url.protocol()))
         return true;
-    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForFormAction, url);
+    const ContentSecurityPolicyDirective* violatedDirective = violatedDirectiveInAnyPolicy(&ContentSecurityPolicyDirectiveList::violatedDirectiveForFormAction, url, redirectResponseReceived == RedirectResponseReceived::Yes);
     if (!violatedDirective)
         return true;
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::formAction, *violatedDirective, url, "Refused to load");
@@ -531,16 +531,6 @@ bool ContentSecurityPolicy::allowBaseURI(const URL& url, bool overrideContentSec
     String consoleMessage = consoleMessageForViolation(ContentSecurityPolicyDirectiveNames::baseURI, *violatedDirective, url, "Refused to change the document base URL to");
     reportViolation(ContentSecurityPolicyDirectiveNames::baseURI, *violatedDirective, url, consoleMessage, String(), TextPosition(WTF::OrdinalNumber::beforeFirst(), WTF::OrdinalNumber()));
     return violatedDirective->directiveList().isReportOnly();
-}
-
-ContentSecurityPolicy::ReflectedXSSDisposition ContentSecurityPolicy::reflectedXSSDisposition() const
-{
-    ReflectedXSSDisposition disposition = ReflectedXSSUnset;
-    for (auto& policy : m_policies) {
-        if (policy->reflectedXSSDisposition() > disposition)
-            disposition = std::max(disposition, policy->reflectedXSSDisposition());
-    }
-    return disposition;
 }
 
 static String stripURLForUseInReport(Document& document, const URL& url)
@@ -685,11 +675,6 @@ void ContentSecurityPolicy::reportInvalidPluginTypes(const String& pluginType) c
 void ContentSecurityPolicy::reportInvalidSandboxFlags(const String& invalidFlags) const
 {
     logToConsole("Error while parsing the 'sandbox' Content Security Policy directive: " + invalidFlags);
-}
-
-void ContentSecurityPolicy::reportInvalidReflectedXSS(const String& invalidValue) const
-{
-    logToConsole("The 'reflected-xss' Content Security Policy directive has the invalid value \"" + invalidValue + "\". Value values are \"allow\", \"filter\", and \"block\".");
 }
 
 void ContentSecurityPolicy::reportInvalidDirectiveInReportOnlyMode(const String& directiveName) const

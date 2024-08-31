@@ -68,8 +68,9 @@
 #include "ScopedArguments.h"
 #include "ScopedArgumentsTable.h"
 #include "ScratchRegisterAllocator.h"
-#include "ShadowChicken.h"
 #include "SetupVarargsFrame.h"
+#include "ShadowChicken.h"
+#include "StructureStubInfo.h"
 #include "VirtualRegister.h"
 #include "Watchdog.h"
 #include <atomic>
@@ -482,6 +483,9 @@ private:
         case DFG::Check:
             compileNoOp();
             break;
+        case CallObjectConstructor:
+            compileCallObjectConstructor();
+            break;
         case ToThis:
             compileToThis();
             break;
@@ -595,9 +599,12 @@ private:
         case PutStructure:
             compilePutStructure();
             break;
+        case TryGetById:
+            compileGetById(AccessType::GetPure);
+            break;
         case GetById:
         case GetByIdFlush:
-            compileGetById();
+            compileGetById(AccessType::Get);
             break;
         case In:
             compileIn();
@@ -657,7 +664,6 @@ private:
             compileCreateActivation();
             break;
         case NewFunction:
-        case NewArrowFunction:
         case NewGeneratorFunction:
             compileNewFunction();
             break;
@@ -848,6 +854,15 @@ private:
         case IsString:
             compileIsString();
             break;
+        case IsArrayObject:
+            compileIsArrayObject();
+            break;
+        case IsJSArray:
+            compileIsJSArray();
+            break;
+        case IsArrayConstructor:
+            compileIsArrayConstructor();
+            break;
         case IsObject:
             compileIsObject();
             break;
@@ -856,6 +871,9 @@ private:
             break;
         case IsFunction:
             compileIsFunction();
+            break;
+        case IsRegExpObject:
+            compileIsRegExpObject();
             break;
         case TypeOf:
             compileTypeOf();
@@ -952,6 +970,15 @@ private:
             break;
         case RecordRegExpCachedResult:
             compileRecordRegExpCachedResult();
+            break;
+        case ResolveScope:
+            compileResolveScope();
+            break;
+        case GetDynamicVar:
+            compileGetDynamicVar();
+            break;
+        case PutDynamicVar:
+            compilePutDynamicVar();
             break;
 
         case PhantomLocal:
@@ -1412,6 +1439,28 @@ private:
     {
         DFG_NODE_DO_TO_CHILDREN(m_graph, m_node, speculate);
     }
+
+    void compileCallObjectConstructor()
+    {
+        LValue value = lowJSValue(m_node->child1());
+
+        LBasicBlock isCellCase = m_out.newBlock();
+        LBasicBlock slowCase = m_out.newBlock();
+        LBasicBlock continuation = m_out.newBlock();
+
+        m_out.branch(isCell(value, provenType(m_node->child1())), usually(isCellCase), rarely(slowCase));
+
+        LBasicBlock lastNext = m_out.appendTo(isCellCase, slowCase);
+        ValueFromBlock fastResult = m_out.anchor(value);
+        m_out.branch(isObject(value), usually(continuation), rarely(slowCase));
+
+        m_out.appendTo(slowCase, continuation);
+        ValueFromBlock slowResult = m_out.anchor(vmCall(m_out.int64, m_out.operation(operationToObject), m_callFrame, value));
+        m_out.jump(continuation);
+
+        m_out.appendTo(continuation, lastNext);
+        setJSValue(m_out.phi(m_out.int64, fastResult, slowResult));
+    }
     
     void compileToThis()
     {
@@ -1426,7 +1475,11 @@ private:
         
         LBasicBlock lastNext = m_out.appendTo(isCellCase, slowCase);
         ValueFromBlock fastResult = m_out.anchor(value);
-        m_out.branch(isType(value, FinalObjectType), usually(continuation), rarely(slowCase));
+        m_out.branch(
+            m_out.testIsZero32(
+                m_out.load8ZeroExt32(value, m_heaps.JSCell_typeInfoFlags),
+                m_out.constInt32(OverridesToThis)),
+            usually(continuation), rarely(slowCase));
         
         m_out.appendTo(slowCase, continuation);
         J_JITOperation_EJ function;
@@ -2127,10 +2180,10 @@ private:
         LValue value = lowInt32(m_node->child1());
 
         if (doesOverflow(m_node->arithMode())) {
-            setDouble(m_out.unsignedToDouble(value));
+            setStrictInt52(m_out.zeroExtPtr(value));
             return;
         }
-        
+
         speculate(Overflow, noValue(), 0, m_out.lessThan(value, m_out.int32Zero));
         setInt32(value);
     }
@@ -2304,11 +2357,12 @@ private:
             cell, m_heaps.JSCell_structureID);
     }
     
-    void compileGetById()
+    void compileGetById(AccessType type)
     {
+        ASSERT(type == AccessType::Get || type == AccessType::GetPure);
         switch (m_node->child1().useKind()) {
         case CellUse: {
-            setJSValue(getById(lowCell(m_node->child1())));
+            setJSValue(getById(lowCell(m_node->child1()), type));
             return;
         }
             
@@ -2326,12 +2380,18 @@ private:
                 isCell(value, provenType(m_node->child1())), unsure(cellCase), unsure(notCellCase));
             
             LBasicBlock lastNext = m_out.appendTo(cellCase, notCellCase);
-            ValueFromBlock cellResult = m_out.anchor(getById(value));
+            ValueFromBlock cellResult = m_out.anchor(getById(value, type));
             m_out.jump(continuation);
-            
+
+            J_JITOperation_EJI getByIdFunction;
+            if (type == AccessType::Get)
+                getByIdFunction = operationGetByIdGeneric;
+            else
+                getByIdFunction = operationTryGetByIdGeneric;
+
             m_out.appendTo(notCellCase, continuation);
             ValueFromBlock notCellResult = m_out.anchor(vmCall(
-                m_out.int64, m_out.operation(operationGetByIdGeneric),
+                m_out.int64, m_out.operation(getByIdFunction),
                 m_callFrame, value,
                 m_out.constIntPtr(m_graph.identifiers()[m_node->identifierNumber()])));
             m_out.jump(continuation);
@@ -2361,6 +2421,8 @@ private:
         B3::PatchpointValue* patchpoint = m_out.patchpoint(Void);
         patchpoint->appendSomeRegister(base);
         patchpoint->appendSomeRegister(value);
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
         patchpoint->clobber(RegisterSet::macroScratchRegisters());
 
         // FIXME: If this is a PutByIdFlush, we might want to late-clobber volatile registers.
@@ -3337,7 +3399,7 @@ private:
     
     void compileNewFunction()
     {
-        ASSERT(m_node->op() == NewFunction || m_node->op() == NewArrowFunction || m_node->op() == NewGeneratorFunction);
+        ASSERT(m_node->op() == NewFunction || m_node->op() == NewGeneratorFunction);
         bool isGeneratorFunction = m_node->op() == NewGeneratorFunction;
         
         LValue scope = lowCell(m_node->child1());
@@ -4823,6 +4885,8 @@ private:
         RefPtr<PatchpointExceptionHandle> exceptionHandle =
             preparePatchpointForExceptions(patchpoint);
         
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
         patchpoint->clobber(RegisterSet::macroScratchRegisters());
         patchpoint->clobberLate(RegisterSet::volatileRegistersForJSCall());
         patchpoint->resultConstraint = ValueRep::reg(GPRInfo::returnValueGPR);
@@ -4911,6 +4975,9 @@ private:
 
         PatchpointValue* patchpoint = m_out.patchpoint(Void);
         patchpoint->appendVector(arguments);
+
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
 
         // Prevent any of the arguments from using the scratch register.
         patchpoint->clobberEarly(RegisterSet::macroScratchRegisters());
@@ -5029,6 +5096,9 @@ private:
         RefPtr<PatchpointExceptionHandle> exceptionHandle =
             preparePatchpointForExceptions(patchpoint);
         
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
+
         patchpoint->clobber(RegisterSet::macroScratchRegisters());
         patchpoint->clobberLate(RegisterSet::volatileRegistersForJSCall());
         patchpoint->resultConstraint = ValueRep::reg(GPRInfo::returnValueGPR);
@@ -5693,6 +5763,55 @@ private:
         setBoolean(m_out.phi(m_out.boolean, notCellResult, cellResult));
     }
 
+    void compileIsArrayObject()
+    {
+        LValue value = lowJSValue(m_node->child1());
+
+        LBasicBlock cellCase = m_out.newBlock();
+        LBasicBlock notArrayCase = m_out.newBlock();
+        LBasicBlock continuation = m_out.newBlock();
+
+        ValueFromBlock notCellResult = m_out.anchor(m_out.booleanFalse);
+        m_out.branch(isCell(value, provenType(m_node->child1())), unsure(cellCase), unsure(continuation));
+
+        LBasicBlock lastNext = m_out.appendTo(cellCase, notArrayCase);
+        ValueFromBlock arrayResult = m_out.anchor(m_out.booleanTrue);
+        m_out.branch(isArray(value, provenType(m_node->child1())), unsure(continuation), unsure(notArrayCase));
+
+        m_out.appendTo(notArrayCase, continuation);
+        ValueFromBlock notArrayResult = m_out.anchor(vmCall(m_out.boolean, m_out.operation(operationIsArrayObject), m_callFrame, value));
+        m_out.jump(continuation);
+
+        m_out.appendTo(continuation, lastNext);
+        setBoolean(m_out.phi(m_out.boolean, notCellResult, arrayResult, notArrayResult));
+    }
+
+    void compileIsJSArray()
+    {
+        LValue value = lowJSValue(m_node->child1());
+
+        LBasicBlock isCellCase = m_out.newBlock();
+        LBasicBlock continuation = m_out.newBlock();
+
+        ValueFromBlock notCellResult = m_out.anchor(m_out.booleanFalse);
+        m_out.branch(
+            isCell(value, provenType(m_node->child1())), unsure(isCellCase), unsure(continuation));
+
+        LBasicBlock lastNext = m_out.appendTo(isCellCase, continuation);
+        ValueFromBlock cellResult = m_out.anchor(isArray(value, provenType(m_node->child1())));
+        m_out.jump(continuation);
+
+        m_out.appendTo(continuation, lastNext);
+        setBoolean(m_out.phi(m_out.boolean, notCellResult, cellResult));
+    }
+
+    void compileIsArrayConstructor()
+    {
+        LValue value = lowJSValue(m_node->child1());
+
+        setBoolean(vmCall(m_out.boolean, m_out.operation(operationIsArrayConstructor), m_callFrame, value));
+    }
+
     void compileIsObject()
     {
         LValue value = lowJSValue(m_node->child1());
@@ -5811,7 +5930,26 @@ private:
             m_out.boolean, notCellResult, functionResult, objectResult, slowResult);
         setBoolean(result);
     }
-    
+
+    void compileIsRegExpObject()
+    {
+        LValue value = lowJSValue(m_node->child1());
+
+        LBasicBlock isCellCase = m_out.newBlock();
+        LBasicBlock continuation = m_out.newBlock();
+
+        ValueFromBlock notCellResult = m_out.anchor(m_out.booleanFalse);
+        m_out.branch(
+            isCell(value, provenType(m_node->child1())), unsure(isCellCase), unsure(continuation));
+
+        LBasicBlock lastNext = m_out.appendTo(isCellCase, continuation);
+        ValueFromBlock cellResult = m_out.anchor(isRegExpObject(value, provenType(m_node->child1())));
+        m_out.jump(continuation);
+
+        m_out.appendTo(continuation, lastNext);
+        setBoolean(m_out.phi(m_out.boolean, notCellResult, cellResult));
+    }
+
     void compileTypeOf()
     {
         Edge child = m_node->child1();
@@ -5843,6 +5981,8 @@ private:
                 UniquedStringImpl* str = bitwise_cast<UniquedStringImpl*>(string->tryGetValueImpl());
                 B3::PatchpointValue* patchpoint = m_out.patchpoint(Int64);
                 patchpoint->appendSomeRegister(cell);
+                patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+                patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
                 patchpoint->clobber(RegisterSet::macroScratchRegisters());
 
                 State* state = &m_ftlState;
@@ -7295,13 +7435,15 @@ private:
         return m_out.phi(m_out.intPtr, fastButterfly, slowButterfly);
     }
     
-    LValue getById(LValue base)
+    LValue getById(LValue base, AccessType type)
     {
         Node* node = m_node;
         UniquedStringImpl* uid = m_graph.identifiers()[node->identifierNumber()];
 
         B3::PatchpointValue* patchpoint = m_out.patchpoint(Int64);
         patchpoint->appendSomeRegister(base);
+        patchpoint->append(m_tagMask, ValueRep::reg(GPRInfo::tagMaskRegister));
+        patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
 
         // FIXME: If this is a GetByIdFlush, we might get some performance boost if we claim that it
         // clobbers volatile registers late. It's not necessary for correctness, though, since the
@@ -7333,7 +7475,7 @@ private:
                 auto generator = Box<JITGetByIdGenerator>::create(
                     jit.codeBlock(), node->origin.semantic, callSiteIndex,
                     params.unavailableRegisters(), JSValueRegs(params[1].gpr()),
-                    JSValueRegs(params[0].gpr()), AccessType::Get);
+                    JSValueRegs(params[0].gpr()), type);
 
                 generator->generateFastPath(jit);
                 CCallHelpers::Label done = jit.label();
@@ -7342,11 +7484,17 @@ private:
                     [=] (CCallHelpers& jit) {
                         AllowMacroScratchRegisterUsage allowScratch(jit);
 
+                        J_JITOperation_ESsiJI optimizationFunction;
+                        if (type == AccessType::Get)
+                            optimizationFunction = operationGetByIdOptimize;
+                        else
+                            optimizationFunction = operationTryGetByIdOptimize;
+
                         generator->slowPathJump().link(&jit);
                         CCallHelpers::Label slowPathBegin = jit.label();
                         CCallHelpers::Call slowPathCall = callOperation(
                             *state, params.unavailableRegisters(), jit, node->origin.semantic,
-                            exceptions.get(), operationGetByIdOptimize, params[0].gpr(),
+                            exceptions.get(), optimizationFunction, params[0].gpr(),
                             CCallHelpers::TrustedImmPtr(generator->stubInfo()), params[1].gpr(),
                             CCallHelpers::TrustedImmPtr(uid)).call();
                         jit.jump().linkTo(done, &jit);
@@ -7409,6 +7557,27 @@ private:
         }
         
         DFG_CRASH(m_graph, m_node, "Bad use kinds");
+    }
+
+    void compileResolveScope()
+    {
+        UniquedStringImpl* uid = m_graph.identifiers()[m_node->identifierNumber()];
+        setJSValue(vmCall(m_out.intPtr, m_out.operation(operationResolveScope),
+            m_callFrame, lowCell(m_node->child1()), m_out.constIntPtr(uid)));
+    }
+
+    void compileGetDynamicVar()
+    {
+        UniquedStringImpl* uid = m_graph.identifiers()[m_node->identifierNumber()];
+        setJSValue(vmCall(m_out.int64, m_out.operation(operationGetDynamicVar),
+            m_callFrame, lowCell(m_node->child1()), m_out.constIntPtr(uid), m_out.constInt32(m_node->getPutInfo())));
+    }
+
+    void compilePutDynamicVar()
+    {
+        UniquedStringImpl* uid = m_graph.identifiers()[m_node->identifierNumber()];
+        setJSValue(vmCall(Void, m_out.operation(operationPutDynamicVar),
+            m_callFrame, lowCell(m_node->child1()), lowJSValue(m_node->child2()), m_out.constIntPtr(uid), m_out.constInt32(m_node->getPutInfo())));
     }
     
     void compareEqObjectOrOtherToObject(Edge leftChild, Edge rightChild)
@@ -9727,6 +9896,15 @@ private:
         
         jsValueToStrictInt52(edge, lowJSValue(edge, ManualOperandSpeculation));
     }
+
+    LValue isArray(LValue cell, SpeculatedType type = SpecFullTop)
+    {
+        if (LValue proven = isProvenValue(type & SpecCell, SpecArray))
+            return proven;
+        return m_out.equal(
+            m_out.load8ZeroExt32(cell, m_heaps.JSCell_typeInfoType),
+            m_out.constInt32(ArrayType));
+    }
     
     LValue isObject(LValue cell, SpeculatedType type = SpecFullTop)
     {
@@ -9844,7 +10022,16 @@ private:
             m_out.load8ZeroExt32(cell, m_heaps.JSCell_typeInfoFlags),
             m_out.constInt32(MasqueradesAsUndefined | TypeOfShouldCallGetCallData));
     }
-    
+
+    LValue isRegExpObject(LValue cell, SpeculatedType type = SpecFullTop)
+    {
+        if (LValue proven = isProvenValue(type & SpecCell, SpecRegExpObject))
+            return proven;
+        return m_out.equal(
+            m_out.load8ZeroExt32(cell, m_heaps.JSCell_typeInfoType),
+            m_out.constInt32(RegExpObjectType));
+    }
+
     LValue isType(LValue cell, JSType type)
     {
         return m_out.equal(

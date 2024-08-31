@@ -30,7 +30,7 @@ class BuildbotBuildEntry {
     buildNumber() { return this._buildNumber; }
     slaveName() { return this._slaveName; }
     buildRequestId() { return this._buildRequestId; }
-    isPending() { return !this._buildNumber; }
+    isPending() { return typeof(this._buildNumber) != 'number'; }
     isInProgress() { return this._isInProgress; }
     hasFinished() { return !this.isPending() && !this.isInProgress(); }
     url() { return this.isPending() ? this._syncer.url() : this._syncer.urlForBuildNumber(this._buildNumber); }
@@ -44,7 +44,7 @@ class BuildbotBuildEntry {
             if (request.isPending())
                 return 'scheduled';
         } else if (this.isInProgress()) {
-            if (!request.hasStarted())
+            if (!request.hasStarted() || request.isScheduled())
                 return 'running';
         } else if (this.hasFinished()) {
             if (!request.hasFinished())
@@ -101,7 +101,7 @@ class BuildbotSyncer {
         return this._remote.postFormUrlencodedData(this.pathForForceBuild(), properties);
     }
 
-    scheduleFirstRequestInGroupIfAvailable(newRequest)
+    scheduleRequestInGroupIfAvailable(newRequest, slaveName)
     {
         assert(newRequest instanceof BuildRequest);
 
@@ -122,6 +122,12 @@ class BuildbotSyncer {
             if (usedSlaves.size || this._slavesWithNewRequests.size)
                 return null;
             return this.scheduleRequest(newRequest, null);
+        }
+
+        if (slaveName) {
+            if (!usedSlaves.has(slaveName) && !this._slavesWithNewRequests.has(slaveName))
+                return this.scheduleRequest(newRequest, slaveName);
+            return null;
         }
 
         for (let slaveName of this._slaveList) {
@@ -179,16 +185,16 @@ class BuildbotSyncer {
         });
     }
 
-    pathForPendingBuildsJSON() { return `/json/builders/${this._builderName}/pendingBuilds`; }
+    pathForPendingBuildsJSON() { return `/json/builders/${escape(this._builderName)}/pendingBuilds`; }
     pathForBuildJSON(selectedBuilds)
     {
-        return `/json/builders/${this._builderName}/builds/?`
+        return `/json/builders/${escape(this._builderName)}/builds/?`
             + selectedBuilds.map(function (number) { return 'select=' + number; }).join('&');
     }
-    pathForForceBuild() { return `/builders/${this._builderName}/force`; }
+    pathForForceBuild() { return `/builders/${escape(this._builderName)}/force`; }
 
-    url() { return this._remote.url(`/builders/${this._builderName}/`); }
-    urlForBuildNumber(number) { return this._remote.url(`/builders/${this._builderName}/builds/${number}`); }
+    url() { return this._remote.url(`/builders/${escape(this._builderName)}/`); }
+    urlForBuildNumber(number) { return this._remote.url(`/builders/${escape(this._builderName)}/builds/${number}`); }
 
     _propertiesForBuildRequest(buildRequest)
     {

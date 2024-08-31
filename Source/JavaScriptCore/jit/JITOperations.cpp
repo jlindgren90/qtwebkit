@@ -60,6 +60,7 @@
 #include "Repatch.h"
 #include "ScopedArguments.h"
 #include "ShadowChicken.h"
+#include "StructureStubInfo.h"
 #include "SuperSampler.h"
 #include "TestRunnerUtils.h"
 #include "TypeProfilerLog.h"
@@ -170,6 +171,20 @@ EncodedJSValue JIT_OPERATION operationTryGetById(ExecState* exec, StructureStubI
     return JSValue::encode(slot.getPureResult());
 }
 
+
+EncodedJSValue JIT_OPERATION operationTryGetByIdGeneric(ExecState* exec, EncodedJSValue base, UniquedStringImpl* uid)
+{
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+    Identifier ident = Identifier::fromUid(vm, uid);
+
+    JSValue baseValue = JSValue::decode(base);
+    PropertySlot slot(baseValue, PropertySlot::InternalMethodType::VMInquiry);
+    baseValue.getPropertySlot(exec, ident, slot);
+
+    return JSValue::encode(slot.getPureResult());
+}
+
 EncodedJSValue JIT_OPERATION operationTryGetByIdOptimize(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue base, UniquedStringImpl* uid)
 {
     VM* vm = &exec->vm();
@@ -180,7 +195,7 @@ EncodedJSValue JIT_OPERATION operationTryGetByIdOptimize(ExecState* exec, Struct
     PropertySlot slot(baseValue, PropertySlot::InternalMethodType::VMInquiry);
 
     baseValue.getPropertySlot(exec, ident, slot);
-    if (stubInfo->considerCaching() && !slot.isTaintedByProxy() && (slot.isCacheableValue() || slot.isCacheableGetter() || slot.isUnset()))
+    if (stubInfo->considerCaching(baseValue.structureOrNull()) && !slot.isTaintedByProxy() && (slot.isCacheableValue() || slot.isCacheableGetter() || slot.isUnset()))
         repatchGetByID(exec, baseValue, ident, slot, *stubInfo, GetByIDKind::Pure);
 
     return JSValue::encode(slot.getPureResult());
@@ -188,6 +203,8 @@ EncodedJSValue JIT_OPERATION operationTryGetByIdOptimize(ExecState* exec, Struct
 
 EncodedJSValue JIT_OPERATION operationGetById(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue base, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -203,6 +220,8 @@ EncodedJSValue JIT_OPERATION operationGetById(ExecState* exec, StructureStubInfo
 
 EncodedJSValue JIT_OPERATION operationGetByIdGeneric(ExecState* exec, EncodedJSValue base, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -215,6 +234,8 @@ EncodedJSValue JIT_OPERATION operationGetByIdGeneric(ExecState* exec, EncodedJSV
 
 EncodedJSValue JIT_OPERATION operationGetByIdOptimize(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue base, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     Identifier ident = Identifier::fromUid(vm, uid);
@@ -224,7 +245,7 @@ EncodedJSValue JIT_OPERATION operationGetByIdOptimize(ExecState* exec, Structure
     PropertySlot slot(baseValue, PropertySlot::InternalMethodType::Get);
     
     bool hasResult = baseValue.getPropertySlot(exec, ident, slot);
-    if (stubInfo->considerCaching())
+    if (stubInfo->considerCaching(baseValue.structureOrNull()))
         repatchGetByID(exec, baseValue, ident, slot, *stubInfo, GetByIDKind::Normal);
     
     return JSValue::encode(hasResult? slot.getValue(exec, ident) : jsUndefined());
@@ -232,6 +253,8 @@ EncodedJSValue JIT_OPERATION operationGetByIdOptimize(ExecState* exec, Structure
 
 EncodedJSValue JIT_OPERATION operationInOptimize(ExecState* exec, StructureStubInfo* stubInfo, JSCell* base, UniquedStringImpl* key)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -249,7 +272,7 @@ EncodedJSValue JIT_OPERATION operationInOptimize(ExecState* exec, StructureStubI
     
     RELEASE_ASSERT(accessType == stubInfo->accessType);
     
-    if (stubInfo->considerCaching())
+    if (stubInfo->considerCaching(asObject(base)->structure()))
         repatchIn(exec, base, ident, result, slot, *stubInfo);
     
     return JSValue::encode(jsBoolean(result));
@@ -257,6 +280,8 @@ EncodedJSValue JIT_OPERATION operationInOptimize(ExecState* exec, StructureStubI
 
 EncodedJSValue JIT_OPERATION operationIn(ExecState* exec, StructureStubInfo* stubInfo, JSCell* base, UniquedStringImpl* key)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -274,6 +299,8 @@ EncodedJSValue JIT_OPERATION operationIn(ExecState* exec, StructureStubInfo* stu
 
 EncodedJSValue JIT_OPERATION operationGenericIn(ExecState* exec, JSCell* base, EncodedJSValue key)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
 
@@ -282,6 +309,8 @@ EncodedJSValue JIT_OPERATION operationGenericIn(ExecState* exec, JSCell* base, E
 
 void JIT_OPERATION operationPutByIdStrict(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue encodedValue, EncodedJSValue encodedBase, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -297,6 +326,8 @@ void JIT_OPERATION operationPutByIdStrict(ExecState* exec, StructureStubInfo* st
 
 void JIT_OPERATION operationPutByIdNonStrict(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue encodedValue, EncodedJSValue encodedBase, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -311,6 +342,8 @@ void JIT_OPERATION operationPutByIdNonStrict(ExecState* exec, StructureStubInfo*
 
 void JIT_OPERATION operationPutByIdDirectStrict(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue encodedValue, EncodedJSValue encodedBase, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -325,6 +358,8 @@ void JIT_OPERATION operationPutByIdDirectStrict(ExecState* exec, StructureStubIn
 
 void JIT_OPERATION operationPutByIdDirectNonStrict(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue encodedValue, EncodedJSValue encodedBase, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -339,6 +374,8 @@ void JIT_OPERATION operationPutByIdDirectNonStrict(ExecState* exec, StructureStu
 
 void JIT_OPERATION operationPutByIdStrictOptimize(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue encodedValue, EncodedJSValue encodedBase, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -356,12 +393,14 @@ void JIT_OPERATION operationPutByIdStrictOptimize(ExecState* exec, StructureStub
     if (accessType != static_cast<AccessType>(stubInfo->accessType))
         return;
     
-    if (stubInfo->considerCaching())
+    if (stubInfo->considerCaching(structure))
         repatchPutByID(exec, baseValue, structure, ident, slot, *stubInfo, NotDirect);
 }
 
 void JIT_OPERATION operationPutByIdNonStrictOptimize(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue encodedValue, EncodedJSValue encodedBase, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -379,12 +418,14 @@ void JIT_OPERATION operationPutByIdNonStrictOptimize(ExecState* exec, StructureS
     if (accessType != static_cast<AccessType>(stubInfo->accessType))
         return;
     
-    if (stubInfo->considerCaching())
+    if (stubInfo->considerCaching(structure))
         repatchPutByID(exec, baseValue, structure, ident, slot, *stubInfo, NotDirect);
 }
 
 void JIT_OPERATION operationPutByIdDirectStrictOptimize(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue encodedValue, EncodedJSValue encodedBase, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -402,12 +443,14 @@ void JIT_OPERATION operationPutByIdDirectStrictOptimize(ExecState* exec, Structu
     if (accessType != static_cast<AccessType>(stubInfo->accessType))
         return;
     
-    if (stubInfo->considerCaching())
+    if (stubInfo->considerCaching(structure))
         repatchPutByID(exec, baseObject, structure, ident, slot, *stubInfo, Direct);
 }
 
 void JIT_OPERATION operationPutByIdDirectNonStrictOptimize(ExecState* exec, StructureStubInfo* stubInfo, EncodedJSValue encodedValue, EncodedJSValue encodedBase, UniquedStringImpl* uid)
 {
+    SuperSamplerScope superSamplerScope(false);
+    
     VM* vm = &exec->vm();
     NativeCallFrameTracer tracer(vm, exec);
     
@@ -425,7 +468,7 @@ void JIT_OPERATION operationPutByIdDirectNonStrictOptimize(ExecState* exec, Stru
     if (accessType != static_cast<AccessType>(stubInfo->accessType))
         return;
     
-    if (stubInfo->considerCaching())
+    if (stubInfo->considerCaching(structure))
         repatchPutByID(exec, baseObject, structure, ident, slot, *stubInfo, Direct);
 }
 
@@ -1072,6 +1115,9 @@ EncodedJSValue JIT_OPERATION operationNewGeneratorFunctionWithInvalidatedRealloc
 
 void JIT_OPERATION operationSetFunctionName(ExecState* exec, JSCell* funcCell, EncodedJSValue encodedName)
 {
+    VM* vm = &exec->vm();
+    NativeCallFrameTracer tracer(vm, exec);
+
     JSFunction* func = jsCast<JSFunction*>(funcCell);
     JSValue name = JSValue::decode(encodedName);
     func->setFunctionName(exec, name);
@@ -1820,7 +1866,13 @@ EncodedJSValue JIT_OPERATION operationGetByValString(ExecState* exec, EncodedJSV
     return JSValue::encode(result);
 }
 
-EncodedJSValue JIT_OPERATION operationDeleteById(ExecState* exec, EncodedJSValue encodedBase, const Identifier* identifier)
+EncodedJSValue JIT_OPERATION operationDeleteByIdJSResult(ExecState* exec, EncodedJSValue base, UniquedStringImpl* uid)
+{
+    return JSValue::encode(jsBoolean(operationDeleteById(exec, base, uid)));
+}
+
+
+size_t JIT_OPERATION operationDeleteById(ExecState* exec, EncodedJSValue encodedBase, UniquedStringImpl* uid)
 {
     VM& vm = exec->vm();
     NativeCallFrameTracer tracer(&vm, exec);
@@ -1828,11 +1880,10 @@ EncodedJSValue JIT_OPERATION operationDeleteById(ExecState* exec, EncodedJSValue
     JSObject* baseObj = JSValue::decode(encodedBase).toObject(exec);
     if (!baseObj)
         JSValue::encode(JSValue());
-    bool couldDelete = baseObj->methodTable(vm)->deleteProperty(baseObj, exec, *identifier);
-    JSValue result = jsBoolean(couldDelete);
+    bool couldDelete = baseObj->methodTable(vm)->deleteProperty(baseObj, exec, Identifier::fromUid(&vm, uid));
     if (!couldDelete && exec->codeBlock()->isStrictMode())
         vm.throwException(exec, createTypeError(exec, ASCIILiteral("Unable to delete property.")));
-    return JSValue::encode(result);
+    return couldDelete;
 }
 
 EncodedJSValue JIT_OPERATION operationInstanceOf(ExecState* exec, EncodedJSValue encodedValue, EncodedJSValue encodedProto)
@@ -1994,7 +2045,7 @@ void JIT_OPERATION operationPutToScope(ExecState* exec, Instruction* bytecodePC)
     bool hasProperty = scope->hasProperty(exec, ident);
     if (hasProperty
         && scope->isGlobalLexicalEnvironment()
-        && getPutInfo.initializationMode() != Initialization) {
+        && !isInitialization(getPutInfo.initializationMode())) {
         // When we can't statically prove we need a TDZ check, we must perform the check on the slow path.
         PropertySlot slot(scope, PropertySlot::InternalMethodType::Get);
         JSGlobalLexicalEnvironment::getOwnPropertySlot(scope, exec, ident, slot);
@@ -2009,7 +2060,7 @@ void JIT_OPERATION operationPutToScope(ExecState* exec, Instruction* bytecodePC)
         return;
     }
 
-    PutPropertySlot slot(scope, codeBlock->isStrictMode(), PutPropertySlot::UnknownContext, getPutInfo.initializationMode() == Initialization);
+    PutPropertySlot slot(scope, codeBlock->isStrictMode(), PutPropertySlot::UnknownContext, isInitialization(getPutInfo.initializationMode()));
     scope->methodTable()->put(scope, exec, ident, value, slot);
     
     if (exec->vm().exception())

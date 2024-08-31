@@ -36,7 +36,6 @@
 #include "FrameView.h"
 #include "HTMLAudioElement.h"
 #include "HTMLMediaElement.h"
-#include "HTMLMediaElementEnums.h"
 #include "HTMLNames.h"
 #include "HTMLVideoElement.h"
 #include "HitTestResult.h"
@@ -147,8 +146,8 @@ bool MediaElementSession::playbackPermitted(const HTMLMediaElement& element) con
     if (pageExplicitlyAllowsElementToAutoplayInline(element))
         return true;
 
-    if (requiresFullscreenForVideoPlayback(element) && !ScriptController::processingUserGestureForMedia()) {
-        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE");
+    if (requiresFullscreenForVideoPlayback(element) && !fullscreenPermitted(element)) {
+        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of fullscreen restriction");
         return false;
     }
 
@@ -156,12 +155,12 @@ bool MediaElementSession::playbackPermitted(const HTMLMediaElement& element) con
         return true;
 
     if (m_restrictions & RequireUserGestureForVideoRateChange && element.isVideo() && !ScriptController::processingUserGestureForMedia()) {
-        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE");
+        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of video rate change restriction");
         return false;
     }
 
     if (m_restrictions & RequireUserGestureForAudioRateChange && (!element.isVideo() || element.hasAudio()) && !ScriptController::processingUserGestureForMedia()) {
-        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE");
+        LOG(Media, "MediaElementSession::playbackPermitted - returning FALSE because of audio rate change restriction");
         return false;
     }
 
@@ -215,9 +214,7 @@ bool MediaElementSession::pageAllowsPlaybackAfterResuming(const HTMLMediaElement
 
 bool MediaElementSession::canControlControlsManager(const HTMLMediaElement& element) const
 {
-    // FIXME: rdar://problem/25537071 Audio elements should be able to have a controls manager as well.
-    // Audio elements should probably only have a controls manager if they started playing via a user gesture.
-    if (!element.isVideo())
+    if (!element.hasAudio())
         return false;
 
     if (!playbackPermitted(element))
@@ -227,10 +224,8 @@ bool MediaElementSession::canControlControlsManager(const HTMLMediaElement& elem
     if (!renderer)
         return false;
 
-    if (renderer->clientWidth() >= elementMainContentMinimumWidth && renderer->clientHeight() >= elementMainContentMinimumHeight) {
-        if (element.hasAudio() && element.hasVideo())
+    if (element.hasVideo() && renderer->clientWidth() >= elementMainContentMinimumWidth && renderer->clientHeight() >= elementMainContentMinimumHeight)
             return true;
-    }
 
     if (ScriptController::processingUserGestureForMedia())
         return true;
@@ -260,8 +255,7 @@ void MediaElementSession::showPlaybackTargetPicker(const HTMLMediaElement& eleme
     }
 #endif
 
-    String customMenuItemTitle = element.playbackTargetPickerCustomActionName();
-    element.document().showPlaybackTargetPicker(*this, is<HTMLVideoElement>(element), customMenuItemTitle);
+    element.document().showPlaybackTargetPicker(*this, is<HTMLVideoElement>(element));
 }
 
 bool MediaElementSession::hasWirelessPlaybackTargets(const HTMLMediaElement&) const
@@ -364,16 +358,20 @@ void MediaElementSession::externalOutputDeviceAvailableDidChange(bool hasTargets
 
 bool MediaElementSession::canPlayToWirelessPlaybackTarget() const
 {
+#if !PLATFORM(IOS)
     if (!m_playbackTarget || !m_playbackTarget->hasActiveRoute())
         return false;
+#endif
 
     return client().canPlayToWirelessPlaybackTarget();
 }
 
 bool MediaElementSession::isPlayingToWirelessPlaybackTarget() const
 {
+#if !PLATFORM(IOS)
     if (!m_playbackTarget || !m_playbackTarget->hasActiveRoute())
         return false;
+#endif
 
     return client().isPlayingToWirelessPlaybackTarget();
 }
@@ -383,11 +381,6 @@ void MediaElementSession::setShouldPlayToPlaybackTarget(bool shouldPlay)
     LOG(Media, "MediaElementSession::setShouldPlayToPlaybackTarget - shouldPlay %s", shouldPlay ? "TRUE" : "FALSE");
     m_shouldPlayToPlaybackTarget = shouldPlay;
     client().setShouldPlayToPlaybackTarget(shouldPlay);
-}
-
-void MediaElementSession::customPlaybackActionSelected()
-{
-    client().customPlaybackActionSelected();
 }
 
 void MediaElementSession::mediaStateDidChange(const HTMLMediaElement& element, MediaProducer::MediaStateFlags state)

@@ -191,6 +191,8 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case ArithCos:
     case ArithLog:
     case ValueAdd:
+    case TryGetById:
+    case DeleteById:
     case GetById:
     case GetByIdFlush:
     case PutById:
@@ -251,6 +253,9 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case OverridesHasInstance:
     case InstanceOf:
     case InstanceOfCustom:
+    case IsArrayObject:
+    case IsJSArray:
+    case IsArrayConstructor:
     case IsUndefined:
     case IsBoolean:
     case IsNumber:
@@ -258,8 +263,10 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case IsObject:
     case IsObjectOrNull:
     case IsFunction:
+    case IsRegExpObject:
     case TypeOf:
     case LogicalNot:
+    case CallObjectConstructor:
     case ToPrimitive:
     case ToString:
     case SetFunctionName:
@@ -274,7 +281,6 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case CreateClonedArguments:
     case GetFromArguments:
     case PutToArguments:
-    case NewArrowFunction:
     case NewFunction:
     case NewGeneratorFunction:
     case Jump:
@@ -339,6 +345,9 @@ bool safeToExecute(AbstractStateType& state, Graph& graph, Node* node)
     case GetRegExpObjectLastIndex:
     case SetRegExpObjectLastIndex:
     case RecordRegExpCachedResult:
+    case GetDynamicVar:
+    case PutDynamicVar:
+    case ResolveScope:
         return true;
 
     case BottomValue:

@@ -51,13 +51,14 @@ public:
         return adoptRef(*new CustomEvent(type, initializer));
     }
 
-    void initCustomEvent(const AtomicString& type, bool canBubble, bool cancelable, JSC::JSValue detail);
+    void initCustomEvent(JSC::ExecState&, const AtomicString& type, bool canBubble, bool cancelable, JSC::JSValue detail);
 
     EventInterface eventInterface() const override;
 
     JSValueInWrappedObject& detail() { return m_detail; }
     
-    RefPtr<SerializedScriptValue> trySerializeDetail(JSC::ExecState*);
+    RefPtr<SerializedScriptValue> trySerializeDetail(JSC::ExecState&);
+    void visitAdditionalChildren(JSC::SlotVisitor&);
 
 private:
     CustomEvent();

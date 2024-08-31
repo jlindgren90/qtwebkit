@@ -601,7 +601,7 @@ msgctxt ""
 msgid "Off"
 msgstr "Kapalı"
 
-#: ../LocalizedStringsGtk.cpp:795
+#: ../LocalizedStringsGtk.cpp:805
 msgctxt "Menu item label for the automatically chosen track"
 msgid "Auto"
 msgstr "Otomatik"

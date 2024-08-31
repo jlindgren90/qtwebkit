@@ -1,3 +1,499 @@
+2016-04-19  Keith Miller  <keith_miller@apple.com>
+
+        ObjcInstance::stringValue should not call NSObject's description method
+        https://bugs.webkit.org/show_bug.cgi?id=156758
+
+        Reviewed by Geoffrey Garen.
+
+        Add new methods to ObjCController that expose two Types of WebScriptObjects. The first is
+        an NSObject and the second is an NSArray of NSObjects. These are used to test that we don't
+        call the NSObjects description method without first swizzling it.
+
+        * DumpRenderTree/mac/ObjCController.m:
+        (+[ObjCController isSelectorExcludedFromWebScript:]):
+        (+[ObjCController webScriptNameForSelector:]):
+        (-[ObjCController testArrayOfObjects]):
+        (-[ObjCController testObject]):
+
+2016-04-18  Dan Bernstein  <mitz@apple.com>
+
+        Fixed building with old Xcode.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/Preferences.mm:
+        (TEST):
+
+2016-04-18  Dean Jackson  <dino@apple.com>
+
+        New SPI to export a dictionary of runtime features
+        https://bugs.webkit.org/show_bug.cgi?id=156645
+        <rdar://problem/23621666>
+
+        Reviewed by Darin Adler.
+
+        Test the experimental features SPI on WKPreferences.
+
+        * TestWebKitAPI/Tests/WebKit2Cocoa/Preferences.mm:
+
+2016-04-18  Yusuke Suzuki  <utatane.tea@gmail.com>
+
+        [JSCOnly] Implement RunLoop and remove glib dependency
+        https://bugs.webkit.org/show_bug.cgi?id=155706
+
+        Reviewed by Michael Catanzaro.
+
+        Add TestWTF to JSCOnly port to test WorkQueue and RunLoop.
+        Platform specific ones locate under jsconly directory since
+        it is not `generic` (Since it includes the GLIB event loop case).
+
+        * CMakeLists.txt:
+        * TestWebKitAPI/PlatformJSCOnly.cmake: Added.
+        * TestWebKitAPI/PlatformUtilities.h:
+        * TestWebKitAPI/Tests/WTF/RunLoop.cpp:
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/config.h:
+        * TestWebKitAPI/jsconly/PlatformUtilitiesJSCOnly.cpp: Renamed from Source/WTF/wtf/none/RunLoopNone.cpp.
+        (TestWebKitAPI::Util::run):
+        (TestWebKitAPI::Util::sleep):
+        * TestWebKitAPI/jsconly/main.cpp: Renamed from Source/WTF/wtf/none/WorkQueueNone.cpp.
+        (main):
+
+2016-04-18  Jon Lee  <jonlee@apple.com>
+
+        Update Animometer plan.
+        https://bugs.webkit.org/show_bug.cgi?id=156652
+
+        Reviewed by Darin Adler.
+
+        * Scripts/webkitpy/benchmark_runner/data/plans/animometer.plan: Update to r199616.
+
+2016-04-18  Dana Burkart  <dburkart@apple.com>
+
+        svn-apply: add option for ignoring changes to ChangeLog files
+        https://bugs.webkit.org/show_bug.cgi?id=156618
+
+        Reviewed by Darin Adler.
+
+        This change adds a new option to svn-apply, --skip-changelogs, which short-circuits out of
+        patch() if the file in question is a ChangeLog.
+
+        * Scripts/svn-apply:
+        (patch):
+
+2016-04-18  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Pending API Request URL is wrong after reloading
+        https://bugs.webkit.org/show_bug.cgi?id=139342
+
+        Reviewed by Darin Adler.
+
+        Update test case to check that the active URL should remain the
+        same after a reload.
+
+        * TestWebKitAPI/Tests/WebKit2/PendingAPIRequestURL.cpp:
+        (TestWebKitAPI::TEST):
+
+2016-04-18  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Pending API request URL no set when loading Data, Alternate HTML or plain text
+        https://bugs.webkit.org/show_bug.cgi?id=136916
+
+        Reviewed by Darin Adler.
+
+        Add new test to check that active URL is the requested one right
+        after calling WKPage load methods.
+
+        * TestWebKitAPI/PlatformEfl.cmake:
+        * TestWebKitAPI/PlatformGTK.cmake:
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2/PendingAPIRequestURL.cpp: Added.
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/gtk/WebKit2Gtk/WebViewTest.cpp:
+        (WebViewTest::loadPlainText): Remove FIXME.
+        (WebViewTest::loadBytes): Ditto.
+        (WebViewTest::loadAlternateHTML): Ditto.
+
+2016-04-18  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199660.
+        https://bugs.webkit.org/show_bug.cgi?id=156691
+
+        It broke the iOS build (Requested by KaL on #webkit).
+
+        Reverted changeset:
+
+        "Pending API request URL no set when loading Data, Alternate
+        HTML or plain text"
+        https://bugs.webkit.org/show_bug.cgi?id=136916
+        http://trac.webkit.org/changeset/199660
+
+2016-04-18  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        Pending API request URL no set when loading Data, Alternate HTML or plain text
+        https://bugs.webkit.org/show_bug.cgi?id=136916
+
+        Reviewed by Darin Adler.
+
+        Add new test to check that active URL is the requested one right
+        after calling WKPage load methods.
+
+        * TestWebKitAPI/PlatformEfl.cmake:
+        * TestWebKitAPI/PlatformGTK.cmake:
+        * TestWebKitAPI/TestWebKitAPI.xcodeproj/project.pbxproj:
+        * TestWebKitAPI/Tests/WebKit2/PendingAPIRequestURL.cpp: Added.
+        (TestWebKitAPI::TEST):
+        * TestWebKitAPI/gtk/WebKit2Gtk/WebViewTest.cpp:
+        (WebViewTest::loadPlainText): Remove FIXME.
+        (WebViewTest::loadBytes): Ditto.
+        (WebViewTest::loadAlternateHTML): Ditto.
+
+2016-04-18  Jeremy Huddleston Sequoia  <jeremyhu@apple.com>
+
+        Fix incorrect assumption that APPLE implies Mac.
+        https://bugs.webkit.org/show_bug.cgi?id=156679
+
+        Addresses build failure introduced in r198947
+
+        Reviewed by Alex Christensen.
+
+        * CMakeLists.txt:
+
+2016-04-18  Carlos Garcia Campos  <cgarcia@igalia.com>
+
+        [GTK] Test /webkit2/WebKitWebView/mouse-target fails with overlay scrollbars
+        https://bugs.webkit.org/show_bug.cgi?id=156621
+
+        Reviewed by Martin Robinson.
+
+        This is a problem of the test itself, we are using an overflow that is not actually scrollable, but that shows
+        scrollbar troughs when not using overlay scrollbars because it's marked as scrollable. It would be easier to
+        simply use the main frame scrollbars to test that and it will work no matter of scrollbars are overlay or not.
+
+        * TestWebKitAPI/Tests/WebKit2Gtk/TestUIClient.cpp:
+        (testWebViewMouseTarget): Remove the div and move the mouse over the main frame scrollbar to test scrolbars hit test.
+
+2016-04-17  Gyuyoung Kim  <gyuyoung.kim@webkit.org>
+
+        [EFL] Bump gstreamer from 1.4.4 to 1.6.3
+        https://bugs.webkit.org/show_bug.cgi?id=156655
+
+        Reviewed by Antonio Gomes.
+
+        To support html5 video feature, we should bump gstreamer version.
+
+        * efl/jhbuild.modules:
+        * efl/patches/gst-libav.patch: Update against newer version.
+        * efl/patches/gst-plugins-bad-remove-gnustep-support.patch: Removed because this patch was merged.
+
+2016-04-16  Sam Weinig  <sam@webkit.org>
+
+        More build fixing.
+
+        * MiniBrowser/mac/BrowserWindowController.m:
+        (-[BrowserWindowController share:]):
+
+2016-04-16  Sam Weinig  <sam@webkit.org>
+
+        Another build fix.
+
+        * MiniBrowser/mac/BrowserWindowController.m:
+        (-[BrowserWindowController sharingServicePicker:sharingServicesForItems:proposedSharingServices:]):
+
+2016-04-16  Sam Weinig  <sam@webkit.org>
+
+        Fix 32-bit build.
+
+        * MiniBrowser/mac/BrowserWindowController.m:
+        (-[BrowserWindowController share:]):
+        (-[BrowserWindowController fetch:]):
+        (-[BrowserWindowController sharingService:transitionImageForShareItem:contentRect:]):
+
+2016-04-15  Sam Weinig  <sam@webkit.org>
+
+        Add support for NSSharingService to MiniBrowser, for no great reasons
+        https://bugs.webkit.org/show_bug.cgi?id=156658
+
+        Reviewed by Darin Adler.
+
+        * MiniBrowser/mac/BrowserWindow.xib:
+        * MiniBrowser/mac/BrowserWindowController.h:
+        Add the share button.
+
+        * MiniBrowser/mac/BrowserWindowController.m:
+        (-[BrowserWindowController windowDidLoad]):
+        Set the share button to fire it's actions on mouse down, as it is supposed to act like a menu.
+
+        (-[BrowserWindowController share:]):
+        Show the picker when the button is pressed.
+        (-[BrowserWindowController mainContentView]):
+        Add a new override to get the main content view of derived classes (either a WKWebView or the WebView).
+
+        (-[BrowserWindowController sharingServicePicker:sharingServicesForItems:proposedSharingServices:]):
+        (-[BrowserWindowController sharingServicePicker:delegateForSharingService:]):
+        (-[BrowserWindowController sharingServicePicker:didChooseSharingService:]):
+        (-[BrowserWindowController sharingService:sourceFrameOnScreenForShareItem:]):
+        (-[BrowserWindowController sharingService:transitionImageForShareItem:contentRect:]):
+        (-[BrowserWindowController sharingService:sourceWindowForShareItems:sharingContentScope:]):
+        Add delegate methods.
+
+        * MiniBrowser/mac/WK1BrowserWindowController.m:
+        (-[WK1BrowserWindowController mainContentView]):
+        * MiniBrowser/mac/WK2BrowserWindowController.m:
+        (-[WK2BrowserWindowController mainContentView]):
+        Implement to return the web view.
+
+2016-04-16  Alexey Proskuryakov  <ap@apple.com>
+
+        Build fix.
+
+        Temporary workaround for rdar://problem/25754945.
+
+        * LayoutTestRelay/LayoutTestRelay/CoreSimulatorSPI.h:
+
+2016-04-15  Commit Queue  <commit-queue@webkit.org>
+
+        Unreviewed, rolling out r199600.
+        https://bugs.webkit.org/show_bug.cgi?id=156642
+
+        It didn't help (Requested by ap_ on #webkit).
+
+        Reverted changeset:
+
+        "Build fix."
+        http://trac.webkit.org/changeset/199600
+
+2016-04-15  Alexey Proskuryakov  <ap@apple.com>
+
+        Build fix.
+
+        * LayoutTestRelay/LayoutTestRelay/main.m: Allow some deprecated methods.
+
+2016-04-14  Alexey Proskuryakov  <ap@apple.com>
+
+        Some GuardMalloc bots are not happy when running many parallel processes
+        https://bugs.webkit.org/show_bug.cgi?id=156614
+        rdar://problem/24711525
+
+        Reviewed by David Kilzer.
+
+        * Scripts/webkitpy/port/mac.py: (MacPort.default_child_processes):
+
+2016-04-14  Brent Fulgham  <bfulgham@apple.com>
+
+        Make <a download> a runtime enabled option
+        https://bugs.webkit.org/show_bug.cgi?id=156583
+        <rdar://problem/25733449>
+
+        Reviewed by Alex Christensen.
+
+        * DumpRenderTree/mac/DumpRenderTree.mm:
+        (resetWebPreferencesToConsistentValues):
+        * WebKitTestRunner/InjectedBundle/InjectedBundle.cpp:
+        (WTR::InjectedBundle::beginTesting):
+        * WebKitTestRunner/InjectedBundle/TestRunner.cpp:
+        (WTR::TestRunner::setDownloadAttributeEnabled):
+        * WebKitTestRunner/InjectedBundle/TestRunner.h:
+
+2016-04-14  Anders Carlsson  <andersca@apple.com>
+
+        Another build fix attempt.
+
+        * MiniBrowser/mac/WK2BrowserWindowController.m:
+
+2016-04-14  Anders Carlsson  <andersca@apple.com>
+
+        Fix build.
+
+        * MiniBrowser/mac/WK2BrowserWindowController.m:
+        (-[WK2BrowserWindowController webView:runOpenPanelWithParameters:initiatedByFrame:completionHandler:webView:runOpenPanelWithParameters:initiatedByFrame:completionHandler:]):
+
+2016-04-14  Anders Carlsson  <andersca@apple.com>
+
+        [Mac] Add API for open panel handling to WKWebView
+        https://bugs.webkit.org/show_bug.cgi?id=137759
+        rdar://problem/23278623
+
+        Reviewed by Tim Horton.
+
+        Have MiniBrowser implement the new delegate method.
+
+        * MiniBrowser/mac/WK2BrowserWindowController.m:
+        (-[WK2BrowserWindowController webView:runOpenPanelWithParameters:initiatedByFrame:completionHandler:]):
+
+2016-04-14  Jiewen Tan  <jiewen_tan@apple.com>
+
+        Unreviewed, rolling out r199554.
+
+        The change breaks Yosemite Release/Debug build
+
+        Reverted changeset:
+
+        "[Mac] Add API for open panel handling to WKWebView"
+        https://bugs.webkit.org/show_bug.cgi?id=137759
+        http://trac.webkit.org/changeset/199554
+
+2016-04-14  Anders Carlsson  <andersca@apple.com>
+
+        [Mac] Add API for open panel handling to WKWebView
+        https://bugs.webkit.org/show_bug.cgi?id=137759
+        rdar://problem/23278623
+
+        Reviewed by Tim Horton.
+
+        Have MiniBrowser implement the new delegate method.
+
+        * MiniBrowser/mac/WK2BrowserWindowController.m:
+        (-[WK2BrowserWindowController webView:runOpenPanelWithParameters:initiatedByFrame:completionHandler:]):
+
+2016-04-14  Jon Lee  <jonlee@apple.com>
+
+        Update Animometer plan
+        https://bugs.webkit.org/show_bug.cgi?id=156569
+
+        Reviewed by Alex Christensen.
+
+        * Scripts/webkitpy/benchmark_runner/data/plans/animometer.plan: Update to r199328. Includes update to screen
+        resolution, starting with complexity of 1, and fixing SVG, multiply, and text tests.
+
+2016-04-13  Alex Christensen  <achristensen@webkit.org>
+
+        CMake MiniBrowser should be an app bundle
+        https://bugs.webkit.org/show_bug.cgi?id=156521
+
+        Reviewed by Brent Fulgham.
+
+        * MiniBrowser/mac/CMakeLists.txt:
+        Make an app bundle and compile nibs.
+        * MiniBrowser/mac/Info.plist:
+        CMake doesn't know what to do with :rfc1034identifier and there's no reason to keep it.  This is just MiniBrowser.
+
+2016-04-13  Chris Dumez  <cdumez@apple.com>
+
+        We should not speculatively revalidate cached redirects
+        https://bugs.webkit.org/show_bug.cgi?id=156548
+        <rdar://problem/25583886>
+
+        Reviewed by Darin Adler.
+
+        Re-enable speculative loading in the context of layout tests. This was
+        turned off by mistake when speculative loading was turned into a
+        setting recently.
+
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::generatePageConfiguration):
+
+2016-04-12  Alexey Proskuryakov  <ap@apple.com>
+
+        Python test webkitpy.common.system.executive_unittest.ExecutiveTest.serial_test_kill_process is flaky
+        https://bugs.webkit.org/show_bug.cgi?id=155367
+
+        Reviewed by Darin Adler.
+
+        * Scripts/webkitpy/common/system/executive.py: (Executive.kill_process):
+        Don't flakily consume the return code with waitpid, callers need to do waitpid on
+        their own. Not sure if this line of code was even intentional.
+
+2016-04-12  Myles C. Maxfield  <mmaxfield@apple.com>
+
+        [OS X] Flakey crash after ScrollAnimatorMac destruction
+        https://bugs.webkit.org/show_bug.cgi?id=156372
+
+        Reviewed by Darin Adler.
+
+        Implement the new <!-- webkit-test-runner --> flag.
+
+        * WebKitTestRunner/TestController.cpp:
+        (WTR::TestController::createWebViewWithOptions):
+        (WTR::TestController::ensureViewSupportsOptionsForTest):
+        (WTR::TestController::resetPreferencesToConsistentValues):
+        (WTR::TestController::resetStateToConsistentValues):
+        (WTR::updateTestOptionsFromTestHeader):
+        * WebKitTestRunner/TestController.h:
+        * WebKitTestRunner/TestInvocation.cpp:
+        (WTR::TestInvocation::invoke):
+        * WebKitTestRunner/TestOptions.h:
+        * WebKitTestRunner/mac/PlatformWebViewMac.mm:
+        (WKR::PlatformWebView::viewSupportsOptions):
+
+2016-04-12  Tomas Popela  <tpopela@redhat.com>
+
+        Modify the CXXFLAGS in webkitdirs.pm just on architectures where the flags are supported
+        https://bugs.webkit.org/show_bug.cgi?id=156338
+
+        Reviewed by Michael Catanzaro.
+
+        Add the "-march=pentium4 -msse2 -mfpmath=sse " into the CXXFLAGS just
+        for the i686 where it is supported and not for other architectures
+        (such as s390(x) and ppc(64)) where the build will fail with these
+        CXXFLAGS.
+
+        * Scripts/webkitdirs.pm:
+        (generateBuildSystemFromCMakeProject):
+
+2016-04-11  Alex Christensen  <achristensen@webkit.org>
+
+        Build MiniBrowser with CMake on Mac
+        https://bugs.webkit.org/show_bug.cgi?id=156471
+
+        Reviewed by Daniel Bates.
+
+        * CMakeLists.txt:
+        * DumpRenderTree/CMakeLists.txt:
+        * DumpRenderTree/PlatformWin.cmake:
+        * MiniBrowser/mac/CMakeLists.txt: Added.
+
+2016-04-11  Ryuan Choi  <ryuan.choi@navercorp.com>
+
+        [EFL] Do not pass context to EwkViewCreate
+        https://bugs.webkit.org/show_bug.cgi?id=156461
+
+        Reviewed by Darin Adler.
+
+        * TestWebKitAPI/Tests/WebKit2/CoordinatedGraphics/WKViewUserViewportToContents.cpp:
+        (TestWebKitAPI::TEST): Removed context argument from EwkViewCreate calls.
+        * TestWebKitAPI/efl/PlatformWebView.cpp:
+        (TestWebKitAPI::PlatformWebView::PlatformWebView): Ditto.
+        * WebKitTestRunner/efl/PlatformWebViewEfl.cpp:
+        (WTR::PlatformWebView::PlatformWebView): Ditto.
+
+2016-04-11  Fujii Hironori  <Hironori.Fujii@jp.sony.com>
+
+        [CMake] Make FOLDER property INHERITED
+        https://bugs.webkit.org/show_bug.cgi?id=156460
+
+        Reviewed by Brent Fulgham.
+
+        * CMakeLists.txt:
+        * DumpRenderTree/CMakeLists.txt:
+        * DumpRenderTree/PlatformWin.cmake:
+        * ImageDiff/CMakeLists.txt:
+        * MiniBrowser/efl/CMakeLists.txt:
+        * MiniBrowser/gtk/CMakeLists.txt:
+        * MiniBrowser/win/CMakeLists.txt:
+        Set FOLDER property as a directory property not a target property
+
+2016-04-10  Caitlin Potter  <caitp@igalia.com>
+
+        [Tools] correctly check for braces in multiline branches in macro definition
+        https://bugs.webkit.org/show_bug.cgi?id=156441
+
+        Reviewed by Darin Adler.
+
+        Prevents emitting whitespace/braces warning for code like the
+        following:
+
+        ```
+        #define MACRO(x) \
+            if (x) { \
+                doTheThing(); \
+                continue; \
+            }
+        ```
+
+        * Scripts/webkitpy/style/checkers/cpp.py:
+        (check_braces):
+        * Scripts/webkitpy/style/checkers/cpp_unittest.py:
+        (WebKitStyleTest.test_line_breaking):
+
 2016-04-08  Youenn Fablet  <youenn.fablet@crf.canon.fr>
 
         Testharness-based tests that time out should be able to produce a detailed output

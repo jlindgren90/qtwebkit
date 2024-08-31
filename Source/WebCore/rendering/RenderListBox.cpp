@@ -726,7 +726,9 @@ bool RenderListBox::nodeAtPoint(const HitTestRequest& request, HitTestResult& re
 
 LayoutRect RenderListBox::controlClipRect(const LayoutPoint& additionalOffset) const
 {
-    LayoutRect clipRect = contentBoxRect();
+    // Clip against the padding box, to give <option>s and overlay scrollbar some extra space
+    // to get painted.
+    LayoutRect clipRect = paddingBoxRect();
     if (verticalScrollbarIsOnLeft() && (!layer() || !layer()->verticalScrollbarIsOnLeft()))
         clipRect.move(m_vBar->occupiedWidth(), 0);
     clipRect.moveBy(additionalOffset);
