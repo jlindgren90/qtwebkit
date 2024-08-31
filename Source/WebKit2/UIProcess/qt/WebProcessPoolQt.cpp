@@ -54,6 +54,11 @@ String WebProcessPool::legacyPlatformDefaultApplicationCacheDirectory()
     return API::WebsiteDataStore::defaultApplicationCacheDirectory();
 }
 
+String WebProcessPool::legacyPlatformDefaultMediaCacheDirectory()
+{
+    return API::WebsiteDataStore::defaultMediaCacheDirectory();
+}
+
 void WebProcessPool::platformInitializeWebProcess(WebProcessCreationParameters& parameters)
 {
     qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");

@@ -28,7 +28,7 @@
 #include "qwebpermissionrequest_p.h"
 #include <WKArray.h>
 #include <WKHitTestResult.h>
-#include <WKOpenPanelParameters.h>
+#include <WKOpenPanelParametersRef.h>
 #include <WKRetainPtr.h>
 
 namespace WebKit {

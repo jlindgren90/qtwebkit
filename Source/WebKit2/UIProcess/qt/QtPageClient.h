@@ -116,6 +116,8 @@ public:
     void beganExitFullScreen(const WebCore::IntRect& initialFrame, const WebCore::IntRect& finalFrame) final;
 #endif
 
+    UserInterfaceLayoutDirection userInterfaceLayoutDirection() override { return UserInterfaceLayoutDirection::LTR; }
+
 private:
     QQuickWebView* m_webView;
     QtWebPageEventHandler* m_eventHandler;

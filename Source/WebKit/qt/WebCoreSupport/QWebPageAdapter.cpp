@@ -1177,7 +1177,7 @@ void QWebPageAdapter::triggerAction(QWebPageAdapter::MenuAction action, QWebHitT
         if (HTMLMediaElement* mediaElt = mediaElement(hitTestResult->innerNonSharedNode)) {
             if (mediaElt->isVideo() && mediaElt->supportsFullscreen(HTMLMediaElementEnums::VideoFullscreenModeStandard)) {
                 UserGestureIndicator indicator(DefinitelyProcessingUserGesture);
-                mediaElt->toggleFullscreenState();
+                mediaElt->toggleStandardFullscreenState();
             }
         }
         break;
