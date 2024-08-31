@@ -311,6 +311,7 @@ public:
 
     void setUseFixedLayout(bool useFixedLayout, ExceptionCode&);
     void setFixedLayoutSize(int width, int height, ExceptionCode&);
+    void setViewExposedRect(float left, float top, float width, float height, ExceptionCode&);
 
     void setHeaderHeight(float);
     void setFooterHeight(float);
@@ -356,8 +357,9 @@ public:
 
     bool isFromCurrentWorld(Deprecated::ScriptValue) const;
 
-    void setUsesOverlayScrollbars(bool enabled);
-    void setUsesMockScrollAnimator(bool enabled);
+    void setUsesOverlayScrollbars(bool);
+    void setUsesMockScrollAnimator(bool);
+    void setMockScrollbarsEnabled(bool);
 
     String getCurrentCursorInfo(ExceptionCode&);
 

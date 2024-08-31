@@ -64,6 +64,7 @@ enum AutoFillButtonType {
 };
 
 [
+    UsePointersEvenForNonNullableObjectArguments,
     NoInterfaceObject,
 ] interface Internals {
     DOMString address(Node node);
@@ -293,6 +294,8 @@ enum AutoFillButtonType {
     [RaisesException] void setUseFixedLayout(boolean useFixedLayout);
     [RaisesException] void setFixedLayoutSize(long width, long height);
 
+    [RaisesException] void setViewExposedRect(unrestricted float x, unrestricted float y, unrestricted float width, unrestricted float height);
+
     void setHeaderHeight(unrestricted float height);
     void setFooterHeight(unrestricted float height);
 
@@ -357,6 +360,7 @@ enum AutoFillButtonType {
 
     void setUsesOverlayScrollbars(boolean enabled);
     void setUsesMockScrollAnimator(boolean enabled);
+    void setMockScrollbarsEnabled(boolean enabled);
 
     void forceReload(boolean endToEnd);
 

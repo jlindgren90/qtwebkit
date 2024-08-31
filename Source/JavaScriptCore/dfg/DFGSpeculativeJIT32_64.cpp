@@ -194,7 +194,7 @@ void SpeculativeJIT::cachedGetById(
     JITGetByIdGenerator gen(
         m_jit.codeBlock(), codeOrigin, callSite, usedRegisters,
         JSValueRegs(baseTagGPROrNone, basePayloadGPR),
-        JSValueRegs(resultTagGPR, resultPayloadGPR));
+        JSValueRegs(resultTagGPR, resultPayloadGPR), AccessType::Get);
     
     gen.generateFastPath(m_jit);
     
@@ -2306,6 +2306,7 @@ void SpeculativeJIT::compile(Node* node)
     case ArithRound:
     case ArithFloor:
     case ArithCeil:
+    case ArithTrunc:
         compileArithRounding(node);
         break;
 
@@ -3047,6 +3048,11 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
         
+    case RecordRegExpCachedResult: {
+        compileRecordRegExpCachedResult(node);
+        break;
+    }
+        
     case ArrayPush: {
         ASSERT(node->arrayMode().isJSArray());
         
@@ -3492,7 +3498,7 @@ void SpeculativeJIT::compile(Node* node)
             GPRReg resultGPR = result.gpr();
             GPRReg storageGPR = storage.gpr();
 
-            emitAllocateJSArray(resultGPR, structure, storageGPR, numElements);
+            emitAllocateRawObject(resultGPR, structure, storageGPR, numElements, numElements);
             
             // At this point, one way or another, resultGPR and storageGPR have pointers to
             // the JSArray and the Butterfly, respectively.
@@ -3728,7 +3734,7 @@ void SpeculativeJIT::compile(Node* node)
             GPRReg resultGPR = result.gpr();
             GPRReg storageGPR = storage.gpr();
 
-            emitAllocateJSArray(resultGPR, globalObject->arrayStructureForIndexingTypeDuringAllocation(indexingType), storageGPR, numElements);
+            emitAllocateRawObject(resultGPR, globalObject->arrayStructureForIndexingTypeDuringAllocation(indexingType), storageGPR, numElements, numElements);
             
             if (node->indexingType() == ArrayWithDouble) {
                 JSValue* data = m_jit.codeBlock()->constantBuffer(node->startConstant());
@@ -3805,11 +3811,6 @@ void SpeculativeJIT::compile(Node* node)
         
         // FIXME: make the callOperation above explicitly return a cell result, or jitAssert the tag is a cell tag.
         cellResult(resultPayload.gpr(), node);
-        break;
-    }
-
-    case CallObjectConstructor: {
-        compileCallObjectConstructor(node);
         break;
     }
         
@@ -4461,21 +4462,6 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
-    case IsJSArray: {
-        compileIsJSArray(node);
-        break;
-    }
-
-    case IsArrayObject: {
-        compileIsArrayObject(node);
-        break;
-    }
-
-    case IsArrayConstructor: {
-        compileIsArrayConstructor(node);
-        break;
-    }
-
     case IsObject: {
         JSValueOperand value(this, node->child1());
         GPRTemporary result(this, Reuse, value, TagWord);
@@ -4958,6 +4944,24 @@ void SpeculativeJIT::compile(Node* node)
         break;
     }
 
+    case LogShadowChickenPrologue: {
+        flushRegisters();
+        prepareForExternalCall();
+        m_jit.emitStoreCodeOrigin(node->origin.semantic);
+        m_jit.logShadowChickenProloguePacket();
+        noResult(node);
+        break;
+    }
+
+    case LogShadowChickenTail: {
+        flushRegisters();
+        prepareForExternalCall();
+        m_jit.emitStoreCodeOrigin(node->origin.semantic);
+        m_jit.logShadowChickenTailPacket();
+        noResult(node);
+        break;
+    }
+
     case ForceOSRExit: {
         terminateSpeculativeExecution(InadequateCoverage, JSValueRegs(), 0);
         break;
@@ -4997,7 +5001,10 @@ void SpeculativeJIT::compile(Node* node)
         noResult(node);
         break;
         
-        
+    case MaterializeNewObject:
+        compileMaterializeNewObject(node);
+        break;
+
     case Unreachable:
         RELEASE_ASSERT_NOT_REACHED();
         break;
@@ -5024,7 +5031,6 @@ void SpeculativeJIT::compile(Node* node)
     case PhantomCreateActivation:
     case PutHint:
     case CheckStructureImmediate:
-    case MaterializeNewObject:
     case MaterializeCreateActivation:
     case PutStack:
     case KillStack:

@@ -30,7 +30,7 @@ enum FontFaceSetLoadStatus {
 
 [
     ConstructorCallWith=Document,
-    Constructor(sequence<FontFace> initialFaces)
+    Constructor(sequence<FontFace> initialFaces),
 ] interface FontFaceSet : EventTarget {
     boolean has(FontFace font);
 

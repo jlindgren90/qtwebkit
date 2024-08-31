@@ -148,6 +148,10 @@ namespace WebCore {
 #if PLATFORM(QT)
     String contextMenuItemTagToggleVideoFullscreen();
 #endif
+#if PLATFORM(MAC) && ENABLE(VIDEO_PRESENTATION_MODE)
+    String contextMenuItemTagEnterVideoEnhancedFullscreen();
+    String contextMenuItemTagExitVideoEnhancedFullscreen();
+#endif
     String contextMenuItemTagMediaPlayPause();
     String contextMenuItemTagMediaPlay();
     String contextMenuItemTagMediaPause();
@@ -174,6 +178,7 @@ namespace WebCore {
     String AXFooterRoleDescriptionText();
     String AXFileUploadButtonText();
     String AXSearchFieldCancelButtonText();
+    String AXAttachmentRoleText();
     
     String AXButtonActionVerb();
     String AXRadioButtonActionVerb();

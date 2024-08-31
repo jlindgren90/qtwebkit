@@ -750,7 +750,7 @@ LayoutUnit RenderGrid::minSizeForChild(RenderBox& child, GridTrackSizingDirectio
     if (isRowAxis)
         return child.computeLogicalWidthInRegionUsing(MinSize, childMinSize, contentLogicalWidth(), *this, nullptr);
 
-    return child.computeContentAndScrollbarLogicalHeightUsing(MinSize, childMinSize, child.logicalHeight()).valueOr(0);
+    return child.computeLogicalHeightUsing(MinSize, childMinSize, Nullopt).valueOr(0);
 }
 
 LayoutUnit RenderGrid::minContentForChild(RenderBox& child, GridTrackSizingDirection direction, Vector<GridTrack>& columnTracks)
@@ -1517,22 +1517,44 @@ void RenderGrid::offsetAndBreadthForPositionedChild(const RenderBox& child, Grid
         || (endLine < firstExplicitLine)
         || (endLine > lastExplicitLine);
 
-    LayoutUnit start = startIsAuto ? LayoutUnit() : (isRowAxis ?  m_columnPositions[startLine] : m_rowPositions[startLine]);
-    LayoutUnit end = endIsAuto ? (isRowAxis ? logicalWidth() : logicalHeight()) : (isRowAxis ?  m_columnPositions[endLine] : m_rowPositions[endLine]);
-
-    breadth = end - start;
-
-    if (startIsAuto)
-        breadth -= isRowAxis ? borderStart() : borderBefore();
-    else
-        start -= isRowAxis ? borderStart() : borderBefore();
-
-    if (endIsAuto) {
-        breadth -= isRowAxis ? borderEnd() : borderAfter();
-        breadth -= scrollbarLogicalWidth();
+    // We're normalizing the positions to avoid issues with RTL (as they're stored in the same order than LTR but adding an offset).
+    LayoutUnit start;
+    if (!startIsAuto) {
+        if (isRowAxis)
+            start = m_columnPositions[startLine] - m_columnPositions[0] + paddingStart();
+        else
+            start = m_rowPositions[startLine] - m_rowPositions[0] + paddingBefore();
     }
 
+    LayoutUnit end = isRowAxis ? clientLogicalWidth() : clientLogicalHeight();
+    if (!endIsAuto) {
+        if (isRowAxis)
+            end = m_columnPositions[endLine] - m_columnPositions[0] + paddingStart();
+        else
+            end = m_rowPositions[endLine] - m_rowPositions[0] + paddingBefore();
+
+        // These vectors store line positions including gaps, but we shouldn't consider them for the edges of the grid.
+        if (endLine > firstExplicitLine && endLine < lastExplicitLine)
+            end -= guttersSize(direction, 2);
+    }
+
+    breadth = end - start;
     offset = start;
+
+    if (isRowAxis && !style().isLeftToRightDirection() && !child.style().hasStaticInlinePosition(child.isHorizontalWritingMode())) {
+        // If the child doesn't have a static inline position (i.e. "left" and/or "right" aren't "auto",
+        // we need to calculate the offset from the left (even if we're in RTL).
+        if (endIsAuto)
+            offset = LayoutUnit();
+        else {
+            LayoutUnit alignmentOffset =  m_columnPositions[0] - borderAndPaddingStart();
+            LayoutUnit offsetFromLastLine = m_columnPositions[m_columnPositions.size() - 1] - m_columnPositions[endLine];
+            offset = paddingLeft() +  alignmentOffset + offsetFromLastLine;
+
+            if (endLine > firstExplicitLine && endLine < lastExplicitLine)
+                offset += guttersSize(direction, 2);
+        }
+    }
 
     if (child.parent() == this && !startIsAuto) {
         // If column/row start is "auto" the static position has been already set in prepareChildForPositionedLayout().
@@ -1591,6 +1613,9 @@ void RenderGrid::populateGridPositions(GridSizingData& sizingData)
     // FIXME: This will affect the computed style value of grid tracks size, since we are
     // using these positions to compute them.
 
+    // The grid container's frame elements (border, padding and <content-position> offset) are sensible to the
+    // inline-axis flow direction. However, column lines positions are 'direction' unaware. This simplification
+    // allows us to use the same indexes to identify the columns independently on the inline-axis direction.
     unsigned numberOfTracks = sizingData.columnTracks.size();
     unsigned numberOfLines = numberOfTracks + 1;
     unsigned lastLine = numberOfLines - 1;
@@ -1599,7 +1624,7 @@ void RenderGrid::populateGridPositions(GridSizingData& sizingData)
     LayoutUnit trackGap = guttersSize(ForColumns, 2);
     m_columnPositions.resize(numberOfLines);
     m_columnPositions[0] = borderAndPaddingStart() + offset.positionOffset;
-    for (unsigned i = 0; i < lastLine; ++i)
+    for (unsigned i = 0; i < nextToLastLine; ++i)
         m_columnPositions[i + 1] = m_columnPositions[i] + offset.distributionOffset + sizingData.columnTracks[i].baseSize() + trackGap;
     m_columnPositions[lastLine] = m_columnPositions[nextToLastLine] + sizingData.columnTracks[nextToLastLine].baseSize();
 
@@ -1611,7 +1636,7 @@ void RenderGrid::populateGridPositions(GridSizingData& sizingData)
     trackGap = guttersSize(ForRows, 2);
     m_rowPositions.resize(numberOfLines);
     m_rowPositions[0] = borderAndPaddingBefore() + offset.positionOffset;
-    for (unsigned i = 0; i < lastLine; ++i)
+    for (unsigned i = 0; i < nextToLastLine; ++i)
         m_rowPositions[i + 1] = m_rowPositions[i] + offset.distributionOffset + sizingData.rowTracks[i].baseSize() + trackGap;
     m_rowPositions[lastLine] = m_rowPositions[nextToLastLine] + sizingData.rowTracks[nextToLastLine].baseSize();
 }

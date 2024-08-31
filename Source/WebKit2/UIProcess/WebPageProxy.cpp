@@ -71,6 +71,7 @@
 #include "TextCheckerState.h"
 #include "UserMediaPermissionRequestProxy.h"
 #include "WKContextPrivate.h"
+#include "WebAutomationSession.h"
 #include "WebBackForwardList.h"
 #include "WebBackForwardListItem.h"
 #include "WebCertificateInfo.h"
@@ -2115,6 +2116,11 @@ void WebPageProxy::receivedPolicyDecision(PolicyAction action, WebFrameProxy* fr
     if (action == PolicyIgnore)
         m_pageLoadState.clearPendingAPIRequestURL(transaction);
 
+#if ENABLE(DOWNLOAD_ATTRIBUTE)
+    if (m_syncNavigationActionHasDownloadAttribute && action == PolicyUse)
+        action = PolicyDownload;
+#endif
+
     DownloadID downloadID = { };
     if (action == PolicyDownload) {
         // Create a download proxy.
@@ -3188,6 +3194,11 @@ void WebPageProxy::didFinishLoadForFrame(uint64_t frameID, uint64_t navigationID
     if (isMainFrame)
         m_pageLoadState.didFinishLoad(transaction);
 
+    if (isMainFrame && m_controlledByAutomation) {
+        if (auto* automationSession = process().processPool().automationSession())
+            automationSession->navigationOccurredForPage(*this);
+    }
+
     frame->didFinishLoad();
 
     m_pageLoadState.commitChanges();
@@ -3224,6 +3235,11 @@ void WebPageProxy::didFailLoadForFrame(uint64_t frameID, uint64_t navigationID, 
     if (isMainFrame)
         m_pageLoadState.didFailLoad(transaction);
 
+    if (isMainFrame && m_controlledByAutomation) {
+        if (auto* automationSession = process().processPool().automationSession())
+            automationSession->navigationOccurredForPage(*this);
+    }
+
     frame->didFailLoad();
 
     m_pageLoadState.commitChanges();
@@ -3255,6 +3271,11 @@ void WebPageProxy::didSameDocumentNavigationForFrame(uint64_t frameID, uint64_t 
     bool isMainFrame = frame->isMainFrame();
     if (isMainFrame)
         m_pageLoadState.didSameDocumentNavigation(transaction, url);
+
+    if (isMainFrame && m_controlledByAutomation) {
+        if (auto* automationSession = process().processPool().automationSession())
+            automationSession->navigationOccurredForPage(*this);
+    }
 
     m_pageLoadState.clearPendingAPIRequestURL(transaction);
     frame->didSameDocumentNavigation(url);
@@ -3413,6 +3434,9 @@ void WebPageProxy::decidePolicyForNavigationAction(uint64_t frameID, const Secur
 
     m_inDecidePolicyForNavigationAction = true;
     m_syncNavigationActionPolicyActionIsValid = false;
+#if ENABLE(DOWNLOAD_ATTRIBUTE)
+    m_syncNavigationActionHasDownloadAttribute = !navigationActionData.downloadAttribute.isNull();
+#endif
 
     if (m_navigationClient) {
         RefPtr<API::FrameInfo> destinationFrameInfo;
@@ -5244,7 +5268,6 @@ WebPageCreationParameters WebPageProxy::creationParameters()
     parameters.userContentControllerID = m_userContentController->identifier();
     parameters.visitedLinkTableID = m_visitedLinkStore->identifier();
     parameters.websiteDataStoreID = m_websiteDataStore->identifier();
-    parameters.mediaShouldUsePersistentCache = m_websiteDataStore->isPersistent();
     parameters.canRunBeforeUnloadConfirmPanel = m_uiClient->canRunBeforeUnloadConfirmPanel();
     parameters.canRunModal = m_canRunModal;
     parameters.deviceScaleFactor = deviceScaleFactor();
@@ -6085,20 +6108,26 @@ void WebPageProxy::isPlayingMediaDidChange(MediaProducer::MediaStateFlags state,
     MediaProducer::MediaStateFlags oldState = m_mediaState;
     m_mediaState = state;
 
-#if PLATFORM(MAC)
-    if ((oldState & playingMediaMask) != (m_mediaState & playingMediaMask))
-        m_pageClient.isPlayingMediaDidChange();
-#endif
-
     playingMediaMask |= MediaProducer::HasActiveMediaCaptureDevice;
     if ((oldState & playingMediaMask) != (m_mediaState & playingMediaMask))
         m_uiClient->isPlayingAudioDidChange(*this);
 }
 
-bool WebPageProxy::isPlayingVideoWithAudio() const
+#if PLATFORM(MAC)
+void WebPageProxy::videoControlsManagerDidChange()
 {
-    return m_mediaState & MediaProducer::IsPlayingAudio && m_mediaState & MediaProducer::IsPlayingVideo;
+    m_pageClient.videoControlsManagerDidChange();
 }
+
+bool WebPageProxy::hasActiveVideoForControlsManager() const
+{
+#if ENABLE(VIDEO_PRESENTATION_MODE)
+    return m_videoFullscreenManager && m_videoFullscreenManager->controlsManagerInterface() && m_mediaState & MediaProducer::HasAudioOrVideo;
+#else
+    return false;
+#endif
+}
+#endif
 
 #if ENABLE(MEDIA_SESSION)
 void WebPageProxy::hasMediaSessionWithActiveMediaElementsDidChange(bool state)

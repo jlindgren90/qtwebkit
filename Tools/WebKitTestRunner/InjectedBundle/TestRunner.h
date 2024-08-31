@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010, 2011, 2012 Apple Inc. All rights reserved.
+ * Copyright (C) 2010-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -70,9 +70,11 @@ public:
     void dumpAsText(bool dumpPixels);
     void waitForPolicyDelegate();
     void dumpChildFramesAsText() { m_whatToDump = AllFramesText; }
+    void waitUntilDownloadFinished();
     void waitUntilDone();
     void notifyDone();
     double preciseTime();
+    double timeout() { return m_timeout; }
 
     // Other dumping.
     void dumpBackForwardList() { m_shouldDumpBackForwardListsForAllWindows = true; }
@@ -103,6 +105,8 @@ public:
     void setXSSAuditorEnabled(bool);
     void setShadowDOMEnabled(bool);
     void setCustomElementsEnabled(bool);
+    void setWebGL2Enabled(bool);
+    void setFetchAPIEnabled(bool);
     void setAllowUniversalAccessFromFileURLs(bool);
     void setAllowFileAccessFromFileURLs(bool);
     void setPluginsEnabled(bool);
@@ -198,6 +202,7 @@ public:
     bool waitToDump() const { return m_waitToDump; }
     void waitToDumpWatchdogTimerFired();
     void invalidateWaitToDumpWatchdogTimer();
+    bool shouldFinishAfterDownload() const { return m_shouldFinishAfterDownload; }
 
     bool shouldAllowEditing() const { return m_shouldAllowEditing; }
 
@@ -244,6 +249,8 @@ public:
     void setBackingScaleFactor(double, JSValueRef);
 
     void setWindowIsKey(bool);
+
+    void setViewSize(double width, double height);
 
     void callAddChromeInputFieldCallback();
     void callRemoveChromeInputFieldCallback();
@@ -292,7 +299,7 @@ public:
     void queueNonLoadingScript(JSStringRef script);
 
     bool secureEventInputIsEnabled() const;
-    
+
     JSValueRef failNextNewCodeBlock();
     JSValueRef numberOfDFGCompiles(JSValueRef theFunction);
     JSValueRef neverInlineFunction(JSValueRef theFunction);
@@ -367,6 +374,7 @@ private:
     double m_databaseMaxQuota;
 
     bool m_shouldDecideNavigationPolicyAfterDelay { false };
+    bool m_shouldFinishAfterDownload { false };
 
     bool m_userStyleSheetEnabled;
     WKRetainPtr<WKStringRef> m_userStyleSheetLocation;

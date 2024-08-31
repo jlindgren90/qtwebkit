@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2003, 2007, 2009 Apple Inc. All rights reserved.
+ *  Copyright (C) 2003, 2007, 2009, 2016 Apple Inc. All rights reserved.
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Library General Public
@@ -46,6 +46,7 @@
     macro(GamepadButton) \
     macro(GamepadEvent) \
     macro(GeneratorFunction) \
+    macro(Headers) \
     macro(HTMLAudioElement) \
     macro(HTMLSlotElement) \
     macro(IDBCursor) \
@@ -76,6 +77,8 @@
     macro(ReferenceError) \
     macro(Reflect) \
     macro(RegExp) \
+    macro(Response) \
+    macro(Request) \
     macro(Set)\
     macro(SetIterator)\
     macro(ShadowRoot) \
@@ -87,6 +90,8 @@
     macro(UTC) \
     macro(WeakMap)\
     macro(WeakSet)\
+    macro(WebGL2RenderingContext) \
+    macro(WebGLVertexArrayObject) \
     macro(WebSocket) \
     macro(__defineGetter__) \
     macro(__defineSetter__) \
@@ -138,6 +143,7 @@
     macro(exec) \
     macro(executionCount) \
     macro(exitKind) \
+    macro(fetch) \
     macro(flags) \
     macro(focus) \
     macro(forEach) \
@@ -302,12 +308,12 @@
     macro(yield)
 
 #define JSC_COMMON_PRIVATE_IDENTIFIERS_EACH_WELL_KNOWN_SYMBOL_NOT_IMPLEMENTED_YET(macro)\
+    macro(isConcatSpreadable) \
     macro(replace) \
     macro(split)
 
 #define JSC_COMMON_PRIVATE_IDENTIFIERS_EACH_WELL_KNOWN_SYMBOL(macro) \
     macro(hasInstance) \
-    macro(isConcatSpreadable) \
     macro(iterator) \
     macro(match) \
     macro(search) \
@@ -344,6 +350,7 @@
     macro(InternalPromise) \
     macro(abs) \
     macro(floor) \
+    macro(trunc) \
     macro(isFinite) \
     macro(isNaN) \
     macro(create) \
@@ -352,6 +359,7 @@
     macro(getOwnPropertyDescriptor) \
     macro(getOwnPropertyNames) \
     macro(ownKeys) \
+    macro(Error) \
     macro(RangeError) \
     macro(TypeError) \
     macro(typedArrayLength) \
@@ -367,6 +375,7 @@
     macro(promiseRejectReactions) \
     macro(promiseResult) \
     macro(push) \
+    macro(repeatCharacter) \
     macro(capabilities) \
     macro(starDefault) \
     macro(InspectorInstrumentation) \
@@ -402,14 +411,10 @@
     macro(hasInstanceBoundFunction) \
     macro(instanceOf) \
     macro(isArray) \
-    macro(isJSArray) \
     macro(isArrayConstructor) \
-    macro(concatMemcpy) \
-    macro(appendMemcpy) \
-    macro(predictFinalLengthFromArgumunts) \
-    macro(print) \
     macro(isSet) \
     macro(isMap) \
+    macro(regExpCreate) \
     macro(SetIterator) \
     macro(setIteratorNext) \
     macro(MapIterator) \

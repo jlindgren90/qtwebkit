@@ -378,7 +378,7 @@ sub GetCustomIsReachable
 sub IsDOMGlobalObject
 {
     my $interface = shift;
-    return $interface->name eq "DOMWindow" || $codeGenerator->InheritsInterface($interface, "WorkerGlobalScope");
+    return $interface->name eq "DOMWindow" || $codeGenerator->InheritsInterface($interface, "WorkerGlobalScope") || $interface->name eq "TestGlobalObject";
 }
 
 sub GenerateGetOwnPropertySlotBody
@@ -696,6 +696,9 @@ sub AttributeShouldBeOnInstance
     my $interface = shift;
     my $attribute = shift;
 
+    # FIXME: The bindings generator does not support putting runtime-enabled attributes on the instance yet (except for global objects).
+    return 0 if $attribute->signature->extendedAttributes->{"EnabledAtRuntime"} && !IsDOMGlobalObject($interface);
+
     return 1 if InterfaceRequiresAttributesOnInstance($interface);
     return 1 if $attribute->signature->type =~ /Constructor$/;
 
@@ -721,10 +724,10 @@ sub OperationShouldBeOnInstance
     my $interface = shift;
     my $function = shift;
 
-    # FIXME: The bindings generator does not support putting runtime-enabled on the instance yet.
-    return 0 if $function->signature->extendedAttributes->{"EnabledAtRuntime"};
-
     return 1 if IsDOMGlobalObject($interface);
+
+    # FIXME: The bindings generator does not support putting runtime-enabled operations on the instance yet (except for global objects).
+    return 0 if $function->signature->extendedAttributes->{"EnabledAtRuntime"};
 
     # [Unforgeable] operations should be on the instance.
     # https://heycam.github.io/webidl/#Unforgeable
@@ -1247,7 +1250,6 @@ sub GenerateHeader
     # Constructor
     if ($interfaceName eq "DOMWindow") {
         push(@headerContent, "    $className(JSC::VM&, JSC::Structure*, Ref<$implType>&&, JSDOMWindowShell*);\n");
-        push(@headerContent, "    void finishCreation(JSC::VM&, JSDOMWindowShell*);\n");
     } elsif ($codeGenerator->InheritsInterface($interface, "WorkerGlobalScope")) {
         push(@headerContent, "    $className(JSC::VM&, JSC::Structure*, Ref<$implType>&&);\n");
     } elsif (!NeedsImplementationClass($interface)) {
@@ -1259,6 +1261,14 @@ sub GenerateHeader
         push(@headerContent, "        Base::finishCreation(vm);\n");
         push(@headerContent, "        ASSERT(inherits(info()));\n");
         push(@headerContent, "    }\n\n");
+    }
+
+    if (IsDOMGlobalObject($interface)) {
+        if ($interfaceName eq "DOMWindow") {
+            push(@headerContent, "    void finishCreation(JSC::VM&, JSDOMWindowShell*);\n");
+        } else {
+            push(@headerContent, "    void finishCreation(JSC::VM&);\n");
+        }
     }
 
     # Index setter
@@ -1385,7 +1395,7 @@ sub GenerateHeader
 
 sub GeneratePropertiesHashTable
 {
-    my ($object, $interface, $isInstance, $hashKeys, $hashSpecials, $hashValue1, $hashValue2, $conditionals, $runtimeEnabledFunctions) = @_;
+    my ($object, $interface, $isInstance, $hashKeys, $hashSpecials, $hashValue1, $hashValue2, $conditionals, $runtimeEnabledFunctions, $runtimeEnabledAttributes) = @_;
 
     # FIXME: These should be functions on $interface.
     my $interfaceName = $interface->name;
@@ -1411,8 +1421,8 @@ sub GeneratePropertiesHashTable
         next if ($attribute->isStatic);
         next if AttributeShouldBeOnInstance($interface, $attribute) != $isInstance;
 
-        # DOMWindow adds RuntimeEnabled attributes after creation so do not add them to the static table.
-        if ($interfaceName eq "DOMWindow" && $attribute->signature->extendedAttributes->{"EnabledAtRuntime"}) {
+        # Global objects add RuntimeEnabled attributes after creation so do not add them to the static table.
+        if (IsDOMGlobalObject($interface) && $attribute->signature->extendedAttributes->{"EnabledAtRuntime"}) {
             $propertyCount -= 1;
             next;
         }
@@ -1437,6 +1447,14 @@ sub GeneratePropertiesHashTable
         if ($conditional) {
             $conditionals->{$name} =  $conditional;
         }
+
+        if ($attribute->signature->extendedAttributes->{"EnabledAtRuntime"}) {
+            if ($isInstance) {
+                die "We currently do not support [EnabledAtRuntime] attributes on the instance (except for global objects).";
+            } else {
+                push(@$runtimeEnabledAttributes, $attribute);
+            }
+        }
     }
 
     my @functions = @{$interface->functions};
@@ -1447,6 +1465,12 @@ sub GeneratePropertiesHashTable
         next if $function->{overloadIndex} && $function->{overloadIndex} > 1;
         next if OperationShouldBeOnInstance($interface, $function) != $isInstance;
         next if $function->signature->name eq "[Symbol.Iterator]";
+
+        # Global objects add RuntimeEnabled operations after creation so do not add them to the static table.
+        if (IsDOMGlobalObject($interface) && $function->signature->extendedAttributes->{"EnabledAtRuntime"}) {
+            $propertyCount -= 1;
+            next;
+        }
 
         my $name = $function->signature->name;
         push(@$hashKeys, $name);
@@ -1466,7 +1490,7 @@ sub GeneratePropertiesHashTable
 
         if ($function->signature->extendedAttributes->{"EnabledAtRuntime"}) {
             if ($isInstance) {
-                die "We currently do not support [EnabledAtRuntime] operations on the instance.";
+                die "We currently do not support [EnabledAtRuntime] operations on the instance (except for global objects).";
             } else {
                 push(@$runtimeEnabledFunctions, $function);
             }
@@ -1938,12 +1962,13 @@ sub GenerateImplementation
     my %conditionals = ();
     my $hashName = $className . "Table";
     my @runtimeEnabledFunctions = ();
+    my @runtimeEnabledAttributes = ();
 
     # Generate hash table for properties on the instance.
     my $numInstanceProperties = GeneratePropertiesHashTable($object, $interface, 1,
         \@hashKeys, \@hashSpecials,
         \@hashValue1, \@hashValue2,
-        \%conditionals, \@runtimeEnabledFunctions);
+        \%conditionals, \@runtimeEnabledFunctions, \@runtimeEnabledAttributes);
 
     $object->GenerateHashTable($hashName, $numInstanceProperties,
         \@hashKeys, \@hashSpecials,
@@ -2057,12 +2082,13 @@ sub GenerateImplementation
     @hashSpecials = ();
     %conditionals = ();
     @runtimeEnabledFunctions = ();
+    @runtimeEnabledAttributes = ();
 
     # Generate hash table for properties on the prototype.
     my $numPrototypeProperties = GeneratePropertiesHashTable($object, $interface, 0,
         \@hashKeys, \@hashSpecials,
         \@hashValue1, \@hashValue2,
-        \%conditionals, \@runtimeEnabledFunctions);
+        \%conditionals, \@runtimeEnabledFunctions, \@runtimeEnabledAttributes);
     my $hashSize = $numPrototypeProperties;
 
     foreach my $constant (@{$interface->constants}) {
@@ -2121,11 +2147,13 @@ sub GenerateImplementation
             push(@implContent, "    Base::finishCreation(vm);\n");
             push(@implContent, "    reifyStaticProperties(vm, ${className}PrototypeTableValues, *this);\n");
 
-            foreach my $function (@runtimeEnabledFunctions) {
-                my $conditionalString = $codeGenerator->GenerateConditionalString($function->signature);
+            my @runtimeEnabledProperties = @runtimeEnabledFunctions;
+            push(@runtimeEnabledProperties, @runtimeEnabledAttributes);
+            foreach my $functionOrAttribute (@runtimeEnabledProperties) {
+                my $signature = $functionOrAttribute->signature;
+                my $conditionalString = $codeGenerator->GenerateConditionalString($signature);
                 push(@implContent, "#if ${conditionalString}\n") if $conditionalString;
                 AddToImplIncludes("RuntimeEnabledFeatures.h");
-                my $signature = $function->signature;
                 my $enable_function = GetRuntimeEnableFunctionName($signature);
                 my $name = $signature->name;
                 push(@implContent, "    if (!${enable_function}()) {\n");
@@ -2191,11 +2219,33 @@ sub GenerateImplementation
         push(@implContent, "    : $parentClassName(vm, structure, WTFMove(impl), shell)\n");
         push(@implContent, "{\n");
         push(@implContent, "}\n\n");
-
-        push(@implContent, "void ${className}::finishCreation(VM& vm, JSDOMWindowShell* shell)\n");
+    } elsif ($codeGenerator->InheritsInterface($interface, "WorkerGlobalScope")) {
+        AddIncludesForTypeInImpl($interfaceName);
+        push(@implContent, "${className}::$className(VM& vm, Structure* structure, Ref<$implType>&& impl)\n");
+        push(@implContent, "    : $parentClassName(vm, structure, WTFMove(impl))\n");
         push(@implContent, "{\n");
-        push(@implContent, "    Base::finishCreation(vm, shell);\n\n");
-        # Support for RuntimeEnabled attributes on DOMWindow.
+        push(@implContent, "}\n\n");
+    } elsif (!NeedsImplementationClass($interface)) {
+        push(@implContent, "${className}::$className(Structure* structure, JSDOMGlobalObject& globalObject)\n");
+        push(@implContent, "    : $parentClassName(structure, globalObject) { }\n\n");
+    } else {
+        push(@implContent, "${className}::$className(Structure* structure, JSDOMGlobalObject& globalObject, Ref<$implType>&& impl)\n");
+        push(@implContent, "    : $parentClassName(structure, globalObject, WTFMove(impl))\n");
+        push(@implContent, "{\n");
+        push(@implContent, "}\n\n");
+    }
+
+    if (IsDOMGlobalObject($interface)) {
+        if ($interfaceName eq "DOMWindow") {
+            push(@implContent, "void ${className}::finishCreation(VM& vm, JSDOMWindowShell* shell)\n");
+            push(@implContent, "{\n");
+            push(@implContent, "    Base::finishCreation(vm, shell);\n\n");
+        } else {
+            push(@implContent, "void ${className}::finishCreation(VM& vm)\n");
+            push(@implContent, "{\n");
+            push(@implContent, "    Base::finishCreation(vm);\n\n");
+        }
+        # Support for RuntimeEnabled attributes on global objects.
         foreach my $attribute (@{$interface->attributes}) {
             next unless $attribute->signature->extendedAttributes->{"EnabledAtRuntime"};
 
@@ -2213,24 +2263,25 @@ sub GenerateImplementation
             push(@implContent, "    }\n");
             push(@implContent, "#endif\n") if $conditionalString;
         }
-        push(@implContent, "}\n\n");
-    } elsif ($codeGenerator->InheritsInterface($interface, "WorkerGlobalScope")) {
-        AddIncludesForTypeInImpl($interfaceName);
-        push(@implContent, "${className}::$className(VM& vm, Structure* structure, Ref<$implType>&& impl)\n");
-        push(@implContent, "    : $parentClassName(vm, structure, WTFMove(impl))\n");
-        push(@implContent, "{\n");
-        push(@implContent, "}\n\n");
-    } elsif (!NeedsImplementationClass($interface)) {
-        push(@implContent, "${className}::$className(Structure* structure, JSDOMGlobalObject& globalObject)\n");
-        push(@implContent, "    : $parentClassName(structure, globalObject) { }\n\n");
-    } else {
-        push(@implContent, "${className}::$className(Structure* structure, JSDOMGlobalObject& globalObject, Ref<$implType>&& impl)\n");
-        push(@implContent, "    : $parentClassName(structure, globalObject, WTFMove(impl))\n");
-        push(@implContent, "{\n");
-        push(@implContent, "}\n\n");
-    }
+        # Support for RuntimeEnabled operations on global objects.
+        foreach my $function (@{$interface->functions}) {
+            next unless $function->signature->extendedAttributes->{"EnabledAtRuntime"};
+            next if $function->{overloadIndex} && $function->{overloadIndex} > 1;
 
-    unless (IsDOMGlobalObject($interface)) {
+            AddToImplIncludes("RuntimeEnabledFeatures.h");
+            my $conditionalString = $codeGenerator->GenerateConditionalString($function->signature);
+            push(@implContent, "#if ${conditionalString}\n") if $conditionalString;
+            my $enable_function = GetRuntimeEnableFunctionName($function->signature);
+            my $functionName = $function->signature->name;
+            my $implementationFunction = GetFunctionName($interface, $className, $function);
+            my $functionLength = GetFunctionLength($function);
+            my $jsAttributes = ComputeFunctionSpecial($interface, $function);
+            push(@implContent, "    if (${enable_function}())\n");
+            push(@implContent, "        putDirectNativeFunction(vm, this, vm.propertyNames->$functionName, $functionLength, $implementationFunction, NoIntrinsic, attributesForStructure($jsAttributes));\n");
+            push(@implContent, "#endif\n") if $conditionalString;
+        }
+        push(@implContent, "}\n\n");
+    } else {
         push(@implContent, "JSObject* ${className}::createPrototype(VM& vm, JSGlobalObject* globalObject)\n");
         push(@implContent, "{\n");
         if ($hasParent && $parentClassName ne "JSC::DOMNodeFilter") {
@@ -3592,7 +3643,7 @@ sub GenerateParametersCheck
             push(@$outputArray, "    if (UNLIKELY(state->hadException()))\n");
             push(@$outputArray, "        return JSValue::encode(jsUndefined());\n");
 
-            if ($codeGenerator->IsSVGTypeNeedingTearOff($argType) and not $interfaceName =~ /List$/) {
+            if (IsPointerParameterPassedByReference($parameter, $interface) or ($codeGenerator->IsSVGTypeNeedingTearOff($argType) and not $interfaceName =~ /List$/)) {
                 push(@$outputArray, "    if (!$name) {\n");
                 push(@$outputArray, "        setDOMException(state, TYPE_MISMATCH_ERR);\n");
                 push(@$outputArray, "        return JSValue::encode(jsUndefined());\n");
@@ -3611,6 +3662,8 @@ sub GenerateParametersCheck
             push @arguments, "$name.get()";
         } elsif ($codeGenerator->IsSVGTypeNeedingTearOff($argType) and not $interfaceName =~ /List$/) {
             push @arguments, "$name->propertyReference()";
+        } elsif (IsPointerParameterPassedByReference($parameter, $interface)) {
+            push @arguments, "*$name";
         } else {
             push @arguments, $name;
         }
@@ -3627,7 +3680,13 @@ sub GenerateReturnParameters
     my $function = shift;
     my @arguments;
 
-    push(@arguments, "DeferredWrapper(state, castedThis->globalObject(), promiseDeferred)") if IsReturningPromise($function);
+    if (IsReturningPromise($function)) {
+        if ($function->isStatic) {
+            push(@arguments, "DeferredWrapper(state, jsCast<JSDOMGlobalObject*>(state->lexicalGlobalObject()), promiseDeferred)");
+        } else {
+            push(@arguments, "DeferredWrapper(state, castedThis->globalObject(), promiseDeferred)");
+        }
+    }
     push(@arguments, "ec") if $function->signature->extendedAttributes->{"RaisesException"} || $function->signature->extendedAttributes->{"RaisesExceptionWithMessage"};
     return @arguments;
 }
@@ -4099,6 +4158,19 @@ sub GetNativeType
 
     # For all other types, the native type is a pointer with same type name as the IDL type.
     return "${type}*";
+}
+
+sub IsPointerParameterPassedByReference
+{
+    my $parameter = shift;
+    my $interface = shift;
+
+    return 0 if $parameter->isVariadic;
+    return 0 if $parameter->isNullable;
+    return 0 if $interface->extendedAttributes->{"UsePointersEvenForNonNullableObjectArguments"};
+    return 0 if $codeGenerator->IsCallbackInterface($parameter->type);
+    return 0 if $parameter->isOptional and $parameter->extendedAttributes->{"Default"} and $parameter->extendedAttributes->{"Default"} eq "Undefined";
+    return substr(GetNativeType($parameter->type), -1) eq '*';
 }
 
 sub GetNativeVectorInnerType
@@ -4978,7 +5050,11 @@ END
             my $index = 0;
             foreach my $parameter (@{$function->parameters}) {
                 last if $index eq $paramIndex;
-                push(@constructorArgList, $parameter->name);
+                if (IsPointerParameterPassedByReference($parameter, $interface)) {
+                    push(@constructorArgList, "*" . $parameter->name);
+                } else {
+                    push(@constructorArgList, $parameter->name);
+                }
                 $index++;
             }
 

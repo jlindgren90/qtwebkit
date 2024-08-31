@@ -336,7 +336,7 @@ void WebsiteDataStore::fetchData(OptionSet<WebsiteDataType> dataTypes, OptionSet
         callbackAggregator->addPendingCallback();
 
         m_queue->dispatch([fetchOptions, applicationCacheDirectory, callbackAggregator] {
-            auto storage = WebCore::ApplicationCacheStorage::create(applicationCacheDirectory.string(), "Files");
+            auto storage = WebCore::ApplicationCacheStorage::create(applicationCacheDirectory.string(), "ApplicationCache");
 
             WebsiteData* websiteData = new WebsiteData;
 

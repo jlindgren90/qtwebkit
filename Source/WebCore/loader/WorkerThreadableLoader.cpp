@@ -113,7 +113,7 @@ WorkerThreadableLoader::MainThreadBridge::MainThreadBridge(ThreadableLoaderClien
         // will return a 0 value. Either this should return 0 or the other code path should do a callback with
         // a failure.
         m_mainThreadLoader = DocumentThreadableLoader::create(document, *this, *request, *options, std::unique_ptr<ContentSecurityPolicy>(contentSecurityPolicyCopy));
-        ASSERT(m_mainThreadLoader);
+        ASSERT(m_mainThreadLoader || m_loadingFinished);
     });
 }
 
@@ -194,6 +194,7 @@ void WorkerThreadableLoader::MainThreadBridge::didReceiveData(const char* data, 
 
 void WorkerThreadableLoader::MainThreadBridge::didFinishLoading(unsigned long identifier, double finishTime)
 {
+    m_loadingFinished = true;
     RefPtr<ThreadableLoaderClientWrapper> workerClientWrapper = m_workerClientWrapper;
     m_loaderProxy.postTaskForModeToWorkerGlobalScope([workerClientWrapper, identifier, finishTime] (ScriptExecutionContext& context) {
         ASSERT_UNUSED(context, context.isWorkerGlobalScope());
@@ -203,6 +204,7 @@ void WorkerThreadableLoader::MainThreadBridge::didFinishLoading(unsigned long id
 
 void WorkerThreadableLoader::MainThreadBridge::didFail(const ResourceError& error)
 {
+    m_loadingFinished = true;
     RefPtr<ThreadableLoaderClientWrapper> workerClientWrapper = m_workerClientWrapper;
     ResourceError* capturedError = new ResourceError(error.copy());
     if (!m_loaderProxy.postTaskForModeToWorkerGlobalScope([workerClientWrapper, capturedError] (ScriptExecutionContext& context) {
@@ -215,6 +217,7 @@ void WorkerThreadableLoader::MainThreadBridge::didFail(const ResourceError& erro
 
 void WorkerThreadableLoader::MainThreadBridge::didFailAccessControlCheck(const ResourceError& error)
 {
+    m_loadingFinished = true;
     RefPtr<ThreadableLoaderClientWrapper> workerClientWrapper = m_workerClientWrapper;
     ResourceError* capturedError = new ResourceError(error.copy());
     if (!m_loaderProxy.postTaskForModeToWorkerGlobalScope([workerClientWrapper, capturedError] (ScriptExecutionContext& context) {
@@ -227,6 +230,7 @@ void WorkerThreadableLoader::MainThreadBridge::didFailAccessControlCheck(const R
 
 void WorkerThreadableLoader::MainThreadBridge::didFailRedirectCheck()
 {
+    m_loadingFinished = true;
     RefPtr<ThreadableLoaderClientWrapper> workerClientWrapper = m_workerClientWrapper;
     m_loaderProxy.postTaskForModeToWorkerGlobalScope([workerClientWrapper] (ScriptExecutionContext& context) {
         ASSERT_UNUSED(context, context.isWorkerGlobalScope());

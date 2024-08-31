@@ -38,6 +38,11 @@ if (WIN32)
     endif ()
 endif ()
 
+if (APPLE)
+    add_subdirectory(DumpRenderTree)
+    add_subdirectory(WebKitTestRunner)
+endif ()
+
 if (ENABLE_WEBKIT2 AND ENABLE_API_TESTS)
     add_subdirectory(TestWebKitAPI)
 endif ()

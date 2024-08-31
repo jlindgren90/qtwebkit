@@ -163,7 +163,6 @@ typedef JSCell* JIT_OPERATION (*C_JITOperation_ECZ)(ExecState*, JSCell*, int32_t
 typedef JSCell* JIT_OPERATION (*C_JITOperation_ECZC)(ExecState*, JSCell*, int32_t, JSCell*);
 typedef JSCell* JIT_OPERATION (*C_JITOperation_ECC)(ExecState*, JSCell*, JSCell*);
 typedef JSCell* JIT_OPERATION (*C_JITOperation_EGC)(ExecState*, JSGlobalObject*, JSCell*);
-typedef JSCell* JIT_OPERATION (*C_JITOperation_EGJ)(ExecState*, JSGlobalObject*, EncodedJSValue);
 typedef JSCell* JIT_OPERATION (*C_JITOperation_EIcf)(ExecState*, InlineCallFrame*);
 typedef JSCell* JIT_OPERATION (*C_JITOperation_EJ)(ExecState*, EncodedJSValue);
 typedef JSCell* JIT_OPERATION (*C_JITOperation_EJsc)(ExecState*, JSScope*);
@@ -288,9 +287,10 @@ void JIT_OPERATION operationThrowOutOfBoundsAccessError(ExecState*) WTF_INTERNAL
 #endif
 int32_t JIT_OPERATION operationCallArityCheck(ExecState*) WTF_INTERNAL;
 int32_t JIT_OPERATION operationConstructArityCheck(ExecState*) WTF_INTERNAL;
+EncodedJSValue JIT_OPERATION operationTryGetById(ExecState*, StructureStubInfo*, EncodedJSValue, UniquedStringImpl*) WTF_INTERNAL;
+EncodedJSValue JIT_OPERATION operationTryGetByIdOptimize(ExecState*, StructureStubInfo*, EncodedJSValue, UniquedStringImpl*) WTF_INTERNAL;
 EncodedJSValue JIT_OPERATION operationGetById(ExecState*, StructureStubInfo*, EncodedJSValue, UniquedStringImpl*) WTF_INTERNAL;
 EncodedJSValue JIT_OPERATION operationGetByIdGeneric(ExecState*, EncodedJSValue, UniquedStringImpl*) WTF_INTERNAL;
-EncodedJSValue JIT_OPERATION operationGetByIdBuildList(ExecState*, StructureStubInfo*, EncodedJSValue, UniquedStringImpl*) WTF_INTERNAL;
 EncodedJSValue JIT_OPERATION operationGetByIdOptimize(ExecState*, StructureStubInfo*, EncodedJSValue, UniquedStringImpl*) WTF_INTERNAL;
 EncodedJSValue JIT_OPERATION operationInOptimize(ExecState*, StructureStubInfo*, JSCell*, UniquedStringImpl*) WTF_INTERNAL;
 EncodedJSValue JIT_OPERATION operationIn(ExecState*, StructureStubInfo*, JSCell*, UniquedStringImpl*) WTF_INTERNAL;
@@ -377,12 +377,13 @@ char* JIT_OPERATION operationSwitchStringWithUnknownKeyType(ExecState*, EncodedJ
 EncodedJSValue JIT_OPERATION operationGetFromScope(ExecState*, Instruction* bytecodePC) WTF_INTERNAL;
 void JIT_OPERATION operationPutToScope(ExecState*, Instruction* bytecodePC) WTF_INTERNAL;
 
+char* JIT_OPERATION operationReallocateButterflyToHavePropertyStorageWithInitialCapacity(ExecState*, JSObject*) WTF_INTERNAL;
+char* JIT_OPERATION operationReallocateButterflyToGrowPropertyStorage(ExecState*, JSObject*, size_t newSize) WTF_INTERNAL;
+
 void JIT_OPERATION operationFlushWriteBarrierBuffer(ExecState*, JSCell*);
 void JIT_OPERATION operationWriteBarrier(ExecState*, JSCell*, JSCell*);
 void JIT_OPERATION operationUnconditionalWriteBarrier(ExecState*, JSCell*);
 void JIT_OPERATION operationOSRWriteBarrier(ExecState*, JSCell*);
-
-void JIT_OPERATION operationInitGlobalConst(ExecState*, Instruction*);
 
 void JIT_OPERATION operationExceptionFuzz(ExecState*);
 
@@ -396,6 +397,7 @@ EncodedJSValue JIT_OPERATION operationNextEnumeratorPname(ExecState*, JSCell*, i
 JSCell* JIT_OPERATION operationToIndexString(ExecState*, int32_t);
 
 void JIT_OPERATION operationProcessTypeProfilerLog(ExecState*) WTF_INTERNAL;
+void JIT_OPERATION operationProcessShadowChickenLog(ExecState*) WTF_INTERNAL;
 
 } // extern "C"
 

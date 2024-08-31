@@ -1777,6 +1777,14 @@ bool HTMLInputElement::isInRequiredRadioButtonGroup()
     return false;
 }
 
+Vector<HTMLInputElement*> HTMLInputElement::radioButtonGroup() const
+{
+    CheckedRadioButtons* buttons = checkedRadioButtons();
+    if (!buttons)
+        return { };
+    return buttons->groupMembers(*this);
+}
+    
 HTMLInputElement* HTMLInputElement::checkedRadioButtonForGroup() const
 {
     if (CheckedRadioButtons* buttons = checkedRadioButtons())

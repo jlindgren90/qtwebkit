@@ -461,6 +461,7 @@ set(InspectorFiles
     ${CMAKE_SOURCE_DIR}/Source/WebInspectorUI/UserInterface/External/Esprima/*.js
     ${CMAKE_SOURCE_DIR}/Source/WebInspectorUI/UserInterface/Models/*.js
     ${CMAKE_SOURCE_DIR}/Source/WebInspectorUI/UserInterface/Protocol/*.js
+    ${CMAKE_SOURCE_DIR}/Source/WebInspectorUI/UserInterface/Proxies/*.js
     ${CMAKE_SOURCE_DIR}/Source/WebInspectorUI/UserInterface/Test/*.js
     ${CMAKE_SOURCE_DIR}/Source/WebInspectorUI/UserInterface/Views/*.css
     ${CMAKE_SOURCE_DIR}/Source/WebInspectorUI/UserInterface/Views/*.js
@@ -837,6 +838,7 @@ if (ENABLE_THREADED_COMPOSITOR)
         Shared/CoordinatedGraphics/CoordinatedGraphicsScene.cpp
         Shared/CoordinatedGraphics/SimpleViewportController.cpp
 
+        Shared/CoordinatedGraphics/threadedcompositor/CompositingRunLoop.cpp
         Shared/CoordinatedGraphics/threadedcompositor/ThreadSafeCoordinatedSurface.cpp
         Shared/CoordinatedGraphics/threadedcompositor/ThreadedCompositor.cpp
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2010, 2012-2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2008-2010, 2012-2016 Apple Inc. All rights reserved.
  * Copyright (C) 2008 Cameron Zwarich <cwzwarich@uwaterloo.ca>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -1095,6 +1095,14 @@ void CodeBlock::dumpBytecode(
             printBinaryOp(out, exec, location, it, "in");
             break;
         }
+        case op_try_get_by_id: {
+            int r0 = (++it)->u.operand;
+            int r1 = (++it)->u.operand;
+            int id0 = (++it)->u.operand;
+            printLocationAndOp(out, exec, location, it, "try_get_by_id");
+            out.printf("%s, %s, %s", registerName(r0).data(), registerName(r1).data(), idName(id0, identifier(id0)).data());
+            break;
+        }
         case op_get_by_id:
         case op_get_array_length: {
             printGetByIdOp(out, exec, location, it);
@@ -1305,6 +1313,14 @@ void CodeBlock::dumpBytecode(
         }
         case op_watchdog: {
             printLocationAndOp(out, exec, location, it, "watchdog");
+            break;
+        }
+        case op_log_shadow_chicken_prologue: {
+            printLocationAndOp(out, exec, location, it, "log_shadow_chicken_prologue");
+            break;
+        }
+        case op_log_shadow_chicken_tail: {
+            printLocationAndOp(out, exec, location, it, "log_shadow_chicken_tail");
             break;
         }
         case op_switch_imm: {
@@ -3386,7 +3402,7 @@ public:
         , m_didRecurse(false)
     { }
 
-    StackVisitor::Status operator()(StackVisitor& visitor)
+    StackVisitor::Status operator()(StackVisitor& visitor) const
     {
         CallFrame* currentCallFrame = visitor->callFrame();
 
@@ -3411,9 +3427,9 @@ public:
 private:
     CallFrame* m_startCallFrame;
     CodeBlock* m_codeBlock;
-    unsigned m_depthToCheck;
-    bool m_foundStartCallFrame;
-    bool m_didRecurse;
+    mutable unsigned m_depthToCheck;
+    mutable bool m_foundStartCallFrame;
+    mutable bool m_didRecurse;
 };
 
 void CodeBlock::noticeIncomingCall(ExecState* callerFrame)

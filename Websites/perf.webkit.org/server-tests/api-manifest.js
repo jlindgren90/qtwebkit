@@ -6,21 +6,16 @@ require('../tools/js/v3-models.js');
 
 let TestServer = require('./resources/test-server.js');
 
-describe('/api/build-requests', function () {
-    this.timeout(10000);
+describe('/api/manifest', function () {
+    this.timeout(1000);
     TestServer.inject();
 
     beforeEach(function () {
-        Builder.clearStaticMap();
-        BugTracker.clearStaticMap();
-        Test.clearStaticMap();
-        Metric.clearStaticMap();
-        Platform.clearStaticMap();
-        Repository.clearStaticMap();
+        MockData.resetV3Models();
     });
 
     it("should generate an empty manifest when database is empty", function (done) {
-        TestServer.remoteAPI().fetchJSON('/api/manifest').then(function (manifest) {
+        TestServer.remoteAPI().getJSON('/api/manifest').then(function (manifest) {
             assert.deepEqual(Object.keys(manifest).sort(), ['all', 'bugTrackers', 'builders', 'dashboard', 'dashboards',
                 'elapsedTime', 'metrics', 'repositories', 'siteTitle', 'status', 'tests']);
 
@@ -49,7 +44,7 @@ describe('/api/build-requests', function () {
     it("should generate manifest with bug trackers without repositories", function (done) {
         TestServer.database().connect();
         TestServer.database().insert('bug_trackers', bugzillaData).then(function () {
-            return TestServer.remoteAPI().fetchJSON('/api/manifest');
+            return TestServer.remoteAPI().getJSON('/api/manifest');
         }).then(function (content) {
             assert.deepEqual(content.bugTrackers, {1: {name: 'Bugzilla', bugUrl: 'https://webkit.org/b/$number',
                 newBugUrl: 'https://bugs.webkit.org/', repositories: null}});
@@ -78,7 +73,7 @@ describe('/api/build-requests', function () {
             db.insert('tracker_repositories', {tracker: radarData.id, repository: 9}),
             db.insert('tracker_repositories', {tracker: radarData.id, repository: 22}),
         ]).then(function () {
-            return TestServer.remoteAPI().fetchJSON('/api/manifest');
+            return TestServer.remoteAPI().getJSON('/api/manifest');
         }).then(function (content) {
             let manifest = Manifest._didFetchManifest(content);
 
@@ -119,7 +114,7 @@ describe('/api/build-requests', function () {
                 build_url: 'https://build.webkit.org/builders/$builderName/build/$buildNumber'}),
             db.insert('builders', {id: 2, name: 'SomeOtherBuilder', password_hash: 'b'})
         ]).then(function () {
-            return TestServer.remoteAPI().fetchJSON('/api/manifest');
+            return TestServer.remoteAPI().getJSON('/api/manifest');
         }).then(function (content) {
             assert.deepEqual(content.builders, {
                 '1': {name: 'SomeBuilder', buildUrl: 'https://build.webkit.org/builders/$builderName/build/$buildNumber'},
@@ -166,7 +161,7 @@ describe('/api/build-requests', function () {
             db.insert('test_configurations', {id: 106, metric: 5, platform: 23, type: 'current'}),
             db.insert('test_configurations', {id: 107, metric: 5, platform: 23, type: 'baseline'}),
         ]).then(function () {
-            return TestServer.remoteAPI().fetchJSON('/api/manifest');
+            return TestServer.remoteAPI().getJSON('/api/manifest');
         }).then(function (content) {
             assert.deepEqual(content.tests, {
                 "1": {"name": "SomeTest", "parentId": null, "url": null},
