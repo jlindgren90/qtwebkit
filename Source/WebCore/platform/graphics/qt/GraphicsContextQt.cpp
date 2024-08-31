@@ -509,7 +509,7 @@ void GraphicsContext::drawPattern(Image& image, const FloatRect& tileRect, const
     if (paintingDisabled() || !patternTransform.isInvertible())
         return;
 
-    QPixmap* framePixmap = image.nativeImageForCurrentFrame();
+    NativeImagePtr framePixmap = image.nativeImageForCurrentFrame();
     if (!framePixmap) // If it's too early we won't have an image yet.
         return;
 

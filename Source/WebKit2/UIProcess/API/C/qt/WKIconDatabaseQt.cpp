@@ -37,6 +37,6 @@ using namespace WebCore;
 
 QImage WKIconDatabaseTryGetQImageForURL(WKIconDatabaseRef iconDatabaseRef, WKURLRef urlRef)
 {
-    QPixmap* pixmap = toImpl(iconDatabaseRef)->nativeImageForPageURL(toWTFString(urlRef));
+    NativeImagePtr pixmap = toImpl(iconDatabaseRef)->nativeImageForPageURL(toWTFString(urlRef));
     return pixmap ? pixmap->toImage() : QImage();
 }

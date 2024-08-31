@@ -32,9 +32,7 @@
 #include <wtf/RetainPtr.h>
 typedef struct CGImage* CGImageRef;
 #elif PLATFORM(QT)
-QT_BEGIN_NAMESPACE
-class QPixmap;
-QT_END_NAMESPACE
+#include <QPixmap>
 #elif USE(CAIRO)
 #include "RefPtrCairo.h"
 #elif USE(WINGDI)
@@ -46,7 +44,19 @@ namespace WebCore {
 #if USE(CG)
 typedef RetainPtr<CGImageRef> NativeImagePtr;
 #elif PLATFORM(QT)
-typedef QPixmap* NativeImagePtr;
+// wrap QPixmap (implicitly shared) with pointer semantics
+class NativeImagePtr : private QPixmap {
+public:
+    NativeImagePtr() {}
+    NativeImagePtr(std::nullptr_t) {}
+    NativeImagePtr(const QPixmap &p) : QPixmap(p) {}
+
+    operator bool() const { return !isNull(); }
+    bool operator!() const { return isNull(); }
+
+    QPixmap *operator->() { return this; }
+    QPixmap &operator*() { return *this; }
+};
 #elif USE(CAIRO)
 typedef RefPtr<cairo_surface_t> NativeImagePtr;
 #elif USE(WINGDI)

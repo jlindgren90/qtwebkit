@@ -245,7 +245,7 @@ void Pasteboard::writeImage(Element& node, const URL& url, const String& title)
     Image* image = cachedImage->imageForRenderer(node.renderer());
     ASSERT(image);
 
-    QPixmap* pixmap = image->nativeImageForCurrentFrame();
+    NativeImagePtr pixmap = image->nativeImageForCurrentFrame();
     if (!pixmap)
         return;
     if (!m_writableData)

@@ -433,7 +433,7 @@ void ImageBufferDataPrivateUnaccelerated::drawPattern(GraphicsContext& destConte
 
 void ImageBufferDataPrivateUnaccelerated::clip(GraphicsContext& context, const IntRect& rect) const
 {
-    QPixmap* nativeImage = m_image->nativeImageForCurrentFrame();
+    NativeImagePtr nativeImage = m_image->nativeImageForCurrentFrame();
     if (!nativeImage)
         return;
 

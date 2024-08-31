@@ -32,7 +32,7 @@ namespace WebCore {
 
 QBrush Pattern::createPlatformPattern() const
 {
-    QPixmap* pixmap = tileImage()->nativeImageForCurrentFrame();
+    NativeImagePtr pixmap = tileImage()->nativeImageForCurrentFrame();
     if (!pixmap)
         return QBrush();
 
