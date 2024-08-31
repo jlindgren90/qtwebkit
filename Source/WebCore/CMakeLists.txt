@@ -3811,12 +3811,6 @@ if (APPLE)
     set_target_properties(WebCore PROPERTIES LINK_FLAGS "-sub_library libobjc -umbrella WebKit -allowable_client WebCoreTestSupport -allowable_client WebKit2 -allowable_client WebKitLegacy")
 endif ()
 
-if (WIN32)
-    add_custom_target(WebCoreDerivedSources_PreBuild COMMAND ${WebCore_DERIVED_SOURCES_PRE_BUILD_COMMAND} VERBATIM)
-    add_dependencies(WebCoreDerivedSources WebCoreDerivedSources_PreBuild)
-    add_dependencies(WebCore WebCoreDerivedSources)
-endif ()
-
 # The -ftree-sra optimization (implicit with -O2) causes crashes when
 # allocating large chunks of memory using bmalloc on Intel 32bit.
 # See https://bugs.webkit.org/show_bug.cgi?id=146440
