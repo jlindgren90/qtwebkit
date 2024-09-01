@@ -116,7 +116,7 @@ public:
     void beganExitFullScreen(const WebCore::IntRect& initialFrame, const WebCore::IntRect& finalFrame) final;
 #endif
 
-    UserInterfaceLayoutDirection userInterfaceLayoutDirection() override { return UserInterfaceLayoutDirection::LTR; }
+    WebCore::UserInterfaceLayoutDirection userInterfaceLayoutDirection() override { return WebCore::UserInterfaceLayoutDirection::LTR; }
     void wheelEventWasNotHandledByWebCore(const NativeWebWheelEvent&) override { }
 
 private:

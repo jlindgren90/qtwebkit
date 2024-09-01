@@ -75,10 +75,6 @@ void TapHighlightController::hideHighlight()
         m_webPage->mainFrame()->pageOverlayController().uninstallPageOverlay(m_overlay, PageOverlay::FadeMode::Fade);
 }
 
-void TapHighlightController::pageOverlayDestroyed(PageOverlay&)
-{
-}
-
 void TapHighlightController::willMoveToPage(PageOverlay&, WebCore::Page* webPage)
 {
     if (webPage)

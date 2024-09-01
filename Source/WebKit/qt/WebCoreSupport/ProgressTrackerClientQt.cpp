@@ -31,6 +31,7 @@
 #include "Frame.h"
 #include "FrameLoaderClientQt.h"
 #include "HTMLFormElement.h"
+#include "Page.h"
 #include "ProgressTracker.h"
 #include "QWebFrameAdapter.h"
 #include "QWebPageAdapter.h"

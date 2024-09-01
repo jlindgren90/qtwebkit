@@ -82,7 +82,7 @@ void QrcSchemeHandler::platformStartTask(WebPageProxy& page, WebURLSchemeHandler
     sendResponse(task, fileName, fileData);
 
     // TODO: Wrap SharedBuffer around QByteArray when it's possible
-    auto result = task.didReceiveData(*SharedBuffer::create(fileData.data(), fileData.size()));
+    auto result = task.didReceiveData(SharedBuffer::create(fileData.data(), fileData.size()));
     ASSERT_UNUSED(result, result == WebURLSchemeHandlerTask::ExceptionType::None);
 
     result = task.didComplete(WebCore::ResourceError());

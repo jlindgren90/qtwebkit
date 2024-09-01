@@ -101,14 +101,9 @@ FloatRect screenAvailableRect(Widget* widget)
     return FloatRect(r.x(), r.y(), r.width(), r.height());
 }
 
-bool screenSupportsExtendedColor()
+bool screenSupportsExtendedColor(Widget*)
 {
     return false;
-}
-
-void screenColorProfile(ColorProfile&)
-{
-    notImplemented();
 }
 
 } // namespace WebCore

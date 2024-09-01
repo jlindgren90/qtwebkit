@@ -2289,7 +2289,7 @@ LayoutRect RenderBox::computeRectForRepaint(const LayoutRect& rect, const Render
         LayoutPoint physicalPoint(flipForWritingMode(adjustedRect.location()));
         if (auto* region = downcast<RenderMultiColumnFlowThread>(*this).physicalTranslationFromFlowToRegion((physicalPoint))) {
             adjustedRect.setLocation(region->flipForWritingMode(physicalPoint));
-            return region->computeRectForRepaint(adjustedRect, repaintContainer, fixed);
+            return region->computeRectForRepaint(adjustedRect, repaintContainer, position == FixedPosition);
         }
     }
 

@@ -35,6 +35,7 @@
 #include <QClipboard>
 #include <QGuiApplication>
 #include <WebCore/EventHandler.h>
+#include <WebCore/EventNames.h>
 #include <WebCore/FocusController.h>
 #include <WebCore/Frame.h>
 #include <WebCore/KeyboardEvent.h>

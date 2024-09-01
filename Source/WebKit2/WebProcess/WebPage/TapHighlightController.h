@@ -55,7 +55,6 @@ public:
 
 private:
     // PageOverlay::Client.
-    void pageOverlayDestroyed(WebCore::PageOverlay&) override;
     void willMoveToPage(WebCore::PageOverlay&, WebCore::Page*) override;
     void didMoveToPage(WebCore::PageOverlay&, WebCore::Page*) override;
     bool mouseEvent(WebCore::PageOverlay&, const WebCore::PlatformMouseEvent&) override;

@@ -77,6 +77,7 @@
 #include "Scrollbar.h"
 #include "ScrollbarTheme.h"
 #include "Settings.h"
+#include "SocketProvider.h"
 #include "TextIterator.h"
 #include "UndoStepQt.h"
 #include "UserAgentQt.h"
@@ -223,10 +224,10 @@ void QWebPageAdapter::initializeWebCorePage()
 #if ENABLE(GEOLOCATION) || ENABLE(DEVICE_ORIENTATION)
     const bool useMock = QWebPageAdapter::drtRun;
 #endif
-    PageConfiguration pageConfiguration;
+    PageConfiguration pageConfiguration(WTF::makeUniqueRef<EditorClientQt>(this),
+                                        WTF::makeUniqueRef<SocketProvider>());
     pageConfiguration.chromeClient = new ChromeClientQt(this);
     pageConfiguration.contextMenuClient = new ContextMenuClientQt();
-    pageConfiguration.editorClient = new EditorClientQt(this);
     pageConfiguration.dragClient = new DragClientQt(pageConfiguration.chromeClient);
     pageConfiguration.inspectorClient = new InspectorClientQt(this);
     pageConfiguration.loaderClientForMainFrame = new FrameLoaderClientQt();
@@ -237,7 +238,7 @@ void QWebPageAdapter::initializeWebCorePage()
         QWebSettings::globalSettings()->localStoragePath());
     pageConfiguration.userContentProvider = &userContentProvider();
     pageConfiguration.visitedLinkStore = &VisitedLinkStoreQt::singleton();
-    page = new Page(pageConfiguration);
+    page = new Page(std::move(pageConfiguration));
 
 #if ENABLE(GEOLOCATION)
     if (useMock) {

@@ -776,9 +776,9 @@ void FrameLoaderClientQt::didDetectXSS(const URL&, bool)
     notImplemented();
 }
 
-void FrameLoaderClientQt::saveViewStateToItem(WebCore::HistoryItem* item)
+void FrameLoaderClientQt::saveViewStateToItem(WebCore::HistoryItem& item)
 {
-    QWebHistoryItem historyItem(new QWebHistoryItemPrivate(item));
+    QWebHistoryItem historyItem(new QWebHistoryItemPrivate(&item));
     m_webFrame->pageAdapter->emitSaveFrameStateRequested(m_webFrame, &historyItem);
 }
 
@@ -1007,11 +1007,6 @@ bool FrameLoaderClientQt::shouldUseCredentialStorage(DocumentLoader*, unsigned l
 }
 
 void FrameLoaderClientQt::dispatchDidReceiveAuthenticationChallenge(DocumentLoader*, unsigned long, const AuthenticationChallenge&)
-{
-    notImplemented();
-}
-
-void FrameLoaderClientQt::dispatchDidCancelAuthenticationChallenge(DocumentLoader*, unsigned long, const AuthenticationChallenge&)
 {
     notImplemented();
 }

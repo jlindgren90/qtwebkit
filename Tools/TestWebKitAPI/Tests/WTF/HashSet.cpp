@@ -30,6 +30,7 @@
 #include "RefLogger.h"
 #include <wtf/HashSet.h>
 #include <wtf/RefPtr.h>
+#include <functional>
 
 namespace TestWebKitAPI {
 

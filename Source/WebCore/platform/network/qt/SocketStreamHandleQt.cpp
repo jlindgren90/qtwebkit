@@ -104,7 +104,7 @@ void SocketStreamHandlePrivate::socketConnected()
 {
     if (m_streamHandle && m_streamHandle->client()) {
         m_streamHandle->m_state = SocketStreamHandleBase::Open;
-        m_streamHandle->client()->didOpenSocketStream(m_streamHandle);
+        m_streamHandle->client()->didOpenSocketStream(*m_streamHandle);
     }
 }
 
@@ -112,7 +112,7 @@ void SocketStreamHandlePrivate::socketReadyRead()
 {
     if (m_streamHandle && m_streamHandle->client()) {
         QByteArray data = m_socket->read(m_socket->bytesAvailable());
-        m_streamHandle->client()->didReceiveSocketStreamData(m_streamHandle, data.constData(), data.size());
+        m_streamHandle->client()->didReceiveSocketStreamData(*m_streamHandle, data.constData(), data.size());
     }
 }
 
@@ -129,7 +129,7 @@ void SocketStreamHandlePrivate::close()
 {
     if (m_socket && m_streamHandle && m_streamHandle->m_state == SocketStreamHandleBase::Connecting) {
         m_socket->abort();
-        m_streamHandle->client()->didCloseSocketStream(m_streamHandle);
+        m_streamHandle->client()->didCloseSocketStream(*m_streamHandle);
         return;
     }
     if (m_socket && m_socket->state() == QAbstractSocket::ConnectedState)
@@ -158,7 +158,7 @@ void SocketStreamHandlePrivate::socketClosedCallback()
         SocketStreamHandle* streamHandle = m_streamHandle;
         m_streamHandle = 0;
         // This following call deletes _this_. Nothing should be after it.
-        streamHandle->client()->didCloseSocketStream(streamHandle);
+        streamHandle->client()->didCloseSocketStream(*streamHandle);
     }
 }
 
@@ -169,10 +169,10 @@ void SocketStreamHandlePrivate::socketErrorCallback(int error)
         SocketStreamHandle* streamHandle = m_streamHandle;
         m_streamHandle = 0;
 
-        streamHandle->client()->didFailSocketStream(streamHandle, SocketStreamError(error, m_socket->errorString()));
+        streamHandle->client()->didFailSocketStream(*streamHandle, SocketStreamError(error, m_socket->errorString()));
 
         // This following call deletes _this_. Nothing should be after it.
-        streamHandle->client()->didCloseSocketStream(streamHandle);
+        streamHandle->client()->didCloseSocketStream(*streamHandle);
     }
 }
 

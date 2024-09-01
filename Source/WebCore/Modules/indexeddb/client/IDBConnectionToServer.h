@@ -34,6 +34,7 @@
 #include <wtf/HashSet.h>
 #include <wtf/Ref.h>
 #include <wtf/ThreadSafeRefCounted.h>
+#include <functional>
 
 namespace WebCore {
 

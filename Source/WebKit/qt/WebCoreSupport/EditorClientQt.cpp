@@ -33,6 +33,7 @@
 
 #include "Document.h"
 #include "Editor.h"
+#include "EventNames.h"
 #include "FocusController.h"
 #include "Frame.h"
 #include "HTMLElement.h"
@@ -308,11 +309,6 @@ bool EditorClientQt::shouldInsertNode(Node* node, Range* range, EditorInsertActi
             dumpRange(range).toUtf8().constData(), insertactionstring[action]);
     }
     return acceptsEditing;
-}
-
-void EditorClientQt::pageDestroyed()
-{
-    delete this;
 }
 
 bool EditorClientQt::smartInsertDeleteEnabled()

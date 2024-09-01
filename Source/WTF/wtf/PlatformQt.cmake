@@ -1,4 +1,6 @@
 list(APPEND WTF_SOURCES
+    PlatformUserPreferredLanguagesUnix.cpp
+
     qt/MainThreadQt.cpp
     qt/RunLoopQt.cpp
 

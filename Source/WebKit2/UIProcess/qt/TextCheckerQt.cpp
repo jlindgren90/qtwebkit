@@ -111,7 +111,7 @@ void TextChecker::updateSpellingUIWithGrammarString(int64_t, const String&, cons
     notImplemented();
 }
 
-void TextChecker::getGuessesForWord(int64_t spellDocumentTag, const String& word, const String& context, int32_t insertionPoint, Vector<String>& guesses)
+void TextChecker::getGuessesForWord(int64_t spellDocumentTag, const String& word, const String& context, int32_t insertionPoint, Vector<String>& guesses, bool initialCapitalizationEnabled)
 {
     notImplemented();
 }

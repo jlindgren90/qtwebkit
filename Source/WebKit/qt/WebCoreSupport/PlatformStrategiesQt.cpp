@@ -39,6 +39,7 @@
 
 #include <BlobRegistryImpl.h>
 #include <IntSize.h>
+#include <NetworkStorageSession.h>
 #include <NotImplemented.h>
 #include <Page.h>
 #include <PageGroup.h>
@@ -101,6 +102,12 @@ bool PlatformStrategiesQt::cookiesEnabled(const NetworkStorageSession& session, 
 String PlatformStrategiesQt::cookieRequestHeaderFieldValue(const NetworkStorageSession& session, const URL& firstParty, const URL& url)
 {
     return WebCore::cookieRequestHeaderFieldValue(session, firstParty, url);
+}
+
+String PlatformStrategiesQt::cookieRequestHeaderFieldValue(SessionID sessionID, const URL& firstParty, const URL& url)
+{
+    // FIXME: okay to always use default?
+    return WebCore::cookieRequestHeaderFieldValue(NetworkStorageSession::defaultStorageSession(), firstParty, url);
 }
 
 bool PlatformStrategiesQt::getRawCookies(const NetworkStorageSession& session, const URL& firstParty, const URL& url, Vector<Cookie>& rawCookies)
