@@ -135,6 +135,8 @@ public:
     void setTextAutosizingEnabled(bool);
 #endif
 
+    void setAccummulateLogsForChannel(JSStringRef);
+
     // Legacy here refers to the old TestRunner API for handling web notifications, not the legacy web notification API.
     void ignoreLegacyWebNotificationPermissionRequests();
     // Legacy here refers to the old TestRunner API for handling web notifications, not the legacy web notification API.
@@ -209,9 +211,6 @@ public:
 
     bool dumpTitleChanges() const { return m_dumpTitleChanges; }
     void setDumpTitleChanges(bool dumpTitleChanges) { m_dumpTitleChanges = dumpTitleChanges; }
-
-    bool dumpIconChanges() const { return m_dumpIconChanges; }
-    void setDumpIconChanges(bool dumpIconChanges) { m_dumpIconChanges = dumpIconChanges; }
 
     bool dumpVisitedLinksCallback() const { return m_dumpVisitedLinksCallback; }
     void setDumpVisitedLinksCallback(bool dumpVisitedLinksCallback) { m_dumpVisitedLinksCallback = dumpVisitedLinksCallback; }
@@ -386,7 +385,6 @@ private:
     bool m_dumpSourceAsWebArchive;
     bool m_dumpStatusCallbacks;
     bool m_dumpTitleChanges;
-    bool m_dumpIconChanges;
     bool m_dumpVisitedLinksCallback;
     bool m_dumpWillCacheResponse;
     bool m_generatePixelResults;

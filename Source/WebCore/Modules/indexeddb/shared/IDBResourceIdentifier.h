@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -23,8 +23,7 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef IDBResourceIdentifier_h
-#define IDBResourceIdentifier_h
+#pragma once
 
 #if ENABLE(INDEXED_DATABASE)
 
@@ -35,7 +34,7 @@ namespace WebCore {
 class IDBRequest;
 
 namespace IDBClient {
-class IDBConnectionToServer;
+class IDBConnectionProxy;
 }
 
 namespace IDBServer {
@@ -44,9 +43,13 @@ class IDBConnectionToClient;
 
 class IDBResourceIdentifier {
 public:
-    explicit IDBResourceIdentifier(const IDBClient::IDBConnectionToServer&);
-    IDBResourceIdentifier(const IDBClient::IDBConnectionToServer&, const IDBRequest&);
+    explicit IDBResourceIdentifier(const IDBClient::IDBConnectionProxy&);
+    IDBResourceIdentifier(const IDBClient::IDBConnectionProxy&, const IDBRequest&);
     explicit IDBResourceIdentifier(const IDBServer::IDBConnectionToClient&);
+
+    // FIXME: This constructor will be needed during the development of IDB-in-Workers.
+    // It should be removed when no longer necessary.
+    explicit IDBResourceIdentifier(uint64_t connectionIdentifier);
 
     static IDBResourceIdentifier deletedValue();
     WEBCORE_EXPORT bool isHashTableDeletedValue() const;
@@ -149,4 +152,3 @@ template<> struct DefaultHash<WebCore::IDBResourceIdentifier> {
 } // namespace WTF
 
 #endif // ENABLE(INDEXED_DATABASE)
-#endif // IDBResourceIdentifier_h

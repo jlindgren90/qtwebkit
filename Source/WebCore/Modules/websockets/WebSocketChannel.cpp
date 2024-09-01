@@ -699,7 +699,7 @@ void WebSocketChannel::enqueueTextFrame(const CString& string)
     frame->opCode = WebSocketFrame::OpCodeText;
     frame->frameType = QueuedFrameTypeString;
     frame->stringData = string;
-    m_outgoingFrameQueue.append(frame.release());
+    m_outgoingFrameQueue.append(WTFMove(frame));
 }
 
 void WebSocketChannel::enqueueRawFrame(WebSocketFrame::OpCode opCode, const char* data, size_t dataLength)
@@ -711,7 +711,7 @@ void WebSocketChannel::enqueueRawFrame(WebSocketFrame::OpCode opCode, const char
     frame->vectorData.resize(dataLength);
     if (dataLength)
         memcpy(frame->vectorData.data(), data, dataLength);
-    m_outgoingFrameQueue.append(frame.release());
+    m_outgoingFrameQueue.append(WTFMove(frame));
 }
 
 void WebSocketChannel::enqueueBlobFrame(WebSocketFrame::OpCode opCode, Blob& blob)
@@ -721,7 +721,7 @@ void WebSocketChannel::enqueueBlobFrame(WebSocketFrame::OpCode opCode, Blob& blo
     frame->opCode = opCode;
     frame->frameType = QueuedFrameTypeBlob;
     frame->blobData = &blob;
-    m_outgoingFrameQueue.append(frame.release());
+    m_outgoingFrameQueue.append(WTFMove(frame));
 }
 
 void WebSocketChannel::processOutgoingFrameQueue()
@@ -750,15 +750,16 @@ void WebSocketChannel::processOutgoingFrameQueue()
             case BlobLoaderNotStarted:
                 ref(); // Will be derefed after didFinishLoading() or didFail().
                 ASSERT(!m_blobLoader);
+                ASSERT(frame->blobData);
                 m_blobLoader = std::make_unique<FileReaderLoader>(FileReaderLoader::ReadAsArrayBuffer, this);
                 m_blobLoaderStatus = BlobLoaderStarted;
-                m_blobLoader->start(m_document, frame->blobData.get());
-                m_outgoingFrameQueue.prepend(frame.release());
+                m_blobLoader->start(m_document, *frame->blobData);
+                m_outgoingFrameQueue.prepend(WTFMove(frame));
                 return;
 
             case BlobLoaderStarted:
             case BlobLoaderFailed:
-                m_outgoingFrameQueue.prepend(frame.release());
+                m_outgoingFrameQueue.prepend(WTFMove(frame));
                 return;
 
             case BlobLoaderFinished: {

@@ -30,6 +30,7 @@
 #include "config.h"
 #include "TestRunner.h"
 
+#include "WebCoreTestSupport.h"
 #include "WorkQueue.h"
 #include "WorkQueueItem.h"
 #include <JavaScriptCore/APICast.h>
@@ -37,6 +38,7 @@
 #include <JavaScriptCore/JSCTestRunnerUtils.h>
 #include <JavaScriptCore/JSObjectRef.h>
 #include <JavaScriptCore/JSRetainPtr.h>
+#include <WebCore/Logging.h>
 #include <cstring>
 #include <locale.h>
 #include <runtime/ArrayBufferView.h>
@@ -45,9 +47,11 @@
 #include <stdio.h>
 #include <wtf/Assertions.h>
 #include <wtf/CurrentTime.h>
+#include <wtf/LoggingAccumulator.h>
 #include <wtf/MathExtras.h>
 #include <wtf/RefPtr.h>
 #include <wtf/StdLibExtras.h>
+#include <wtf/text/WTFString.h>
 
 #if PLATFORM(MAC) && !PLATFORM(IOS)
 #include <Carbon/Carbon.h>
@@ -81,7 +85,6 @@ TestRunner::TestRunner(const std::string& testURL, const std::string& expectedPi
     , m_dumpSourceAsWebArchive(false)
     , m_dumpStatusCallbacks(false)
     , m_dumpTitleChanges(false)
-    , m_dumpIconChanges(false)
     , m_dumpVisitedLinksCallback(false)
     , m_dumpWillCacheResponse(false)
     , m_generatePixelResults(true)
@@ -260,13 +263,6 @@ static JSValueRef dumpTitleChangesCallback(JSContextRef context, JSObjectRef fun
 {
     TestRunner* controller = static_cast<TestRunner*>(JSObjectGetPrivate(thisObject));
     controller->setDumpTitleChanges(true);
-    return JSValueMakeUndefined(context);
-}
-
-static JSValueRef dumpIconChangesCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
-{
-    TestRunner* controller = static_cast<TestRunner*>(JSObjectGetPrivate(thisObject));
-    controller->setDumpIconChanges(true);
     return JSValueMakeUndefined(context);
 }
 
@@ -1248,19 +1244,6 @@ static JSValueRef setPagePausedCallback(JSContextRef context, JSObjectRef functi
 }
 #endif
 
-#if ENABLE(IOS_TEXT_AUTOSIZING)
-static JSValueRef setTextAutosizingEnabledCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
-{
-    if (argumentCount < 1)
-        return JSValueMakeUndefined(context);
-    
-    TestRunner* controller = static_cast<TestRunner*>(JSObjectGetPrivate(thisObject));
-    controller->setTextAutosizingEnabled(JSValueToBoolean(context, arguments[0]));
-    
-    return JSValueMakeUndefined(context);
-}
-#endif
-
 static JSValueRef setUseDashboardCompatibilityModeCallback(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
 {
     // Has mac implementation
@@ -1976,6 +1959,20 @@ static JSValueRef neverInlineFunction(JSContextRef context, JSObjectRef function
     return JSC::setNeverInline(context, arguments[0]);
 }
 
+static JSValueRef accummulateLogsForChannel(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argumentCount, const JSValueRef arguments[], JSValueRef* exception)
+{
+    if (argumentCount < 1)
+        return JSValueMakeUndefined(context);
+
+    JSRetainPtr<JSStringRef> channel(Adopt, JSValueToStringCopy(context, arguments[0], exception));
+    ASSERT(!*exception);
+
+    TestRunner* controller = static_cast<TestRunner*>(JSObjectGetPrivate(thisObject));
+    controller->setAccummulateLogsForChannel(channel.get());
+
+    return JSValueMakeUndefined(context);
+}
+
 static void testRunnerObjectFinalize(JSObjectRef object)
 {
     TestRunner* controller = static_cast<TestRunner*>(JSObjectGetPrivate(object));
@@ -2064,7 +2061,6 @@ JSStaticFunction* TestRunner::staticFunctions()
         { "dumpSourceAsWebArchive", dumpSourceAsWebArchiveCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "dumpStatusCallbacks", dumpStatusCallbacksCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "dumpTitleChanges", dumpTitleChangesCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
-        { "dumpIconChanges", dumpIconChangesCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "dumpWillCacheResponse", dumpWillCacheResponseCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "encodeHostName", encodeHostNameCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "evaluateInWebInspector", evaluateInWebInspectorCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
@@ -2137,9 +2133,6 @@ JSStaticFunction* TestRunner::staticFunctions()
         { "setTelephoneNumberParsingEnabled", setTelephoneNumberParsingEnabledCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setPagePaused", setPagePausedCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
 #endif
-#if ENABLE(IOS_TEXT_AUTOSIZING)
-        { "setTextAutosizingEnabled", setTextAutosizingEnabledCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
-#endif
         { "setUseDashboardCompatibilityMode", setUseDashboardCompatibilityModeCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setUserStyleSheetEnabled", setUserStyleSheetEnabledCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "setUserStyleSheetLocation", setUserStyleSheetLocationCallback, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
@@ -2181,6 +2174,7 @@ JSStaticFunction* TestRunner::staticFunctions()
         { "failNextNewCodeBlock", failNextNewCodeBlock, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "numberOfDFGCompiles", numberOfDFGCompiles, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { "neverInlineFunction", neverInlineFunction, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
+        { "accummulateLogsForChannel", accummulateLogsForChannel, kJSPropertyAttributeReadOnly | kJSPropertyAttributeDontDelete },
         { 0, 0, 0 }
     };
 
@@ -2231,6 +2225,13 @@ void TestRunner::waitToDumpWatchdogTimerFired()
 {
     const char* message = "FAIL: Timed out waiting for notifyDone to be called\n";
     fprintf(stdout, "%s", message);
+
+    auto accumulatedLogs = getAndResetAccumulatedLogs();
+    if (!accumulatedLogs.isEmpty()) {
+        const char* message = "Logs accumulated during test run:\n";
+        fprintf(stdout, "%s%s\n", message, accumulatedLogs.utf8().data());
+    }
+
     notifyDone();
 }
 
@@ -2260,4 +2261,13 @@ const std::string& TestRunner::redirectionDestinationForURL(std::string origin)
 void TestRunner::setShouldPaintBrokenImage(bool shouldPaintBrokenImage)
 {
     m_shouldPaintBrokenImage = shouldPaintBrokenImage;
+}
+
+void TestRunner::setAccummulateLogsForChannel(JSStringRef channel)
+{
+    size_t maxLength = JSStringGetMaximumUTF8CStringSize(channel);
+    auto buffer = std::make_unique<char[]>(maxLength + 1);
+    JSStringGetUTF8CString(channel, buffer.get(), maxLength + 1);
+
+    WebCoreTestSupport::setLogChannelToAccumulate({ buffer.get() });
 }

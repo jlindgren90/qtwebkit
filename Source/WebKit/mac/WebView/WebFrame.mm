@@ -873,11 +873,13 @@ static inline WebDataSource *dataSource(DocumentLoader* loader)
     newStart = newStart.parentAnchoredEquivalent();
     newEnd = newEnd.parentAnchoredEquivalent();
 
-    RefPtr<Range> range = _private->coreFrame->document()->createRange();
-    int exception = 0;
-    range->setStart(newStart.containerNode(), newStart.offsetInContainerNode(), exception);
-    range->setEnd(newStart.containerNode(), newStart.offsetInContainerNode(), exception);
-    return kit(range.get());
+    Ref<Range> range = _private->coreFrame->document()->createRange();
+    if (newStart.containerNode()) {
+        int exception = 0;
+        range->setStart(*newStart.containerNode(), newStart.offsetInContainerNode(), exception);
+        range->setEnd(*newStart.containerNode(), newStart.offsetInContainerNode(), exception);
+    }
+    return kit(range.ptr());
 }
 
 - (DOMDocumentFragment *)_documentFragmentWithMarkupString:(NSString *)markupString baseURLString:(NSString *)baseURLString 
@@ -1628,11 +1630,11 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     if (!doc)
         return;
 
-    Node *node = core(element);
+    Node* node = core(element);
     if (!node->inDocument())
         return;
         
-    frame->selection().selectRangeOnElement(range.location, range.length, node);
+    frame->selection().selectRangeOnElement(range.location, range.length, *node);
 }
 
 - (DOMRange *)markedTextDOMRange
@@ -2358,7 +2360,7 @@ static WebFrameLoadType toWebFrameLoadType(FrameLoadType frameLoadType)
     Frame* coreFrame = _private->coreFrame;
     if (!coreFrame)
         return nil;
-    return [[[WebElementDictionary alloc] initWithHitTestResult:coreFrame->eventHandler().hitTestResultAtPoint(IntPoint(point), HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::IgnoreClipping | HitTestRequest::DisallowShadowContent)] autorelease];
+    return [[[WebElementDictionary alloc] initWithHitTestResult:coreFrame->eventHandler().hitTestResultAtPoint(IntPoint(point), HitTestRequest::ReadOnly | HitTestRequest::Active | HitTestRequest::IgnoreClipping | HitTestRequest::DisallowUserAgentShadowContent)] autorelease];
 }
 
 - (NSURL *)_unreachableURL

@@ -107,7 +107,7 @@ const Font* Editor::fontForSelection(bool& hasMultipleFonts) const
 
     if (!m_frame.selection().isRange()) {
         Node* nodeToRemove;
-        RenderStyle* style = styleForSelectionStart(&m_frame, nodeToRemove); // sets nodeToRemove
+        auto* style = styleForSelectionStart(&m_frame, nodeToRemove); // sets nodeToRemove
 
         const Font* result = nullptr;
         if (style) {
@@ -146,7 +146,7 @@ const Font* Editor::fontForSelection(bool& hasMultipleFonts) const
 NSDictionary* Editor::fontAttributesForSelectionStart() const
 {
     Node* nodeToRemove;
-    RenderStyle* style = styleForSelectionStart(&m_frame, nodeToRemove);
+    auto* style = styleForSelectionStart(&m_frame, nodeToRemove);
     if (!style)
         return nil;
 
@@ -155,8 +155,8 @@ NSDictionary* Editor::fontAttributesForSelectionStart() const
     if (style->visitedDependentColor(CSSPropertyBackgroundColor).isValid() && style->visitedDependentColor(CSSPropertyBackgroundColor).alpha() != 0)
         [result setObject:nsColor(style->visitedDependentColor(CSSPropertyBackgroundColor)) forKey:NSBackgroundColorAttributeName];
 
-    if (style->fontCascade().primaryFont().getNSFont())
-        [result setObject:style->fontCascade().primaryFont().getNSFont() forKey:NSFontAttributeName];
+    if (auto ctFont = style->fontCascade().primaryFont().getCTFont())
+        [result setObject:toNSFont(ctFont) forKey:NSFontAttributeName];
 
     if (style->visitedDependentColor(CSSPropertyColor).isValid() && style->visitedDependentColor(CSSPropertyColor) != Color::black)
         [result setObject:nsColor(style->visitedDependentColor(CSSPropertyColor)) forKey:NSForegroundColorAttributeName];
@@ -319,7 +319,7 @@ RefPtr<Range> Editor::adjustedSelectionRange()
     ASSERT(commonAncestor);
     auto* enclosingAnchor = enclosingElementWithTag(firstPositionInNode(commonAncestor), HTMLNames::aTag);
     if (enclosingAnchor && comparePositions(firstPositionInOrBeforeNode(range->startPosition().anchorNode()), range->startPosition()) >= 0)
-        range->setStart(enclosingAnchor, 0, IGNORE_EXCEPTION);
+        range->setStart(*enclosingAnchor, 0, IGNORE_EXCEPTION);
     return range;
 }
     

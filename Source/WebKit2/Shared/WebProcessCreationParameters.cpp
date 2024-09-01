@@ -62,14 +62,12 @@ void WebProcessCreationParameters::encode(IPC::ArgumentEncoder& encoder) const
     encoder << injectedBundlePathExtensionHandle;
     encoder << initializationUserData;
     encoder << applicationCacheDirectory;
+    encoder << applicationCacheFlatFileSubdirectoryName;
     encoder << applicationCacheDirectoryExtensionHandle;
     encoder << webSQLDatabaseDirectory;
     encoder << webSQLDatabaseDirectoryExtensionHandle;
     encoder << mediaCacheDirectory;
     encoder << mediaCacheDirectoryExtensionHandle;
-#if ENABLE(SECCOMP_FILTERS)
-    encoder << cookieStorageDirectory;
-#endif
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     encoder << uiProcessCookieStorageIdentifier;
 #endif
@@ -156,6 +154,8 @@ bool WebProcessCreationParameters::decode(IPC::ArgumentDecoder& decoder, WebProc
         return false;
     if (!decoder.decode(parameters.applicationCacheDirectory))
         return false;
+    if (!decoder.decode(parameters.applicationCacheFlatFileSubdirectoryName))
+        return false;
     if (!decoder.decode(parameters.applicationCacheDirectoryExtensionHandle))
         return false;
     if (!decoder.decode(parameters.webSQLDatabaseDirectory))
@@ -166,10 +166,6 @@ bool WebProcessCreationParameters::decode(IPC::ArgumentDecoder& decoder, WebProc
         return false;
     if (!decoder.decode(parameters.mediaCacheDirectoryExtensionHandle))
         return false;
-#if ENABLE(SECCOMP_FILTERS)
-    if (!decoder.decode(parameters.cookieStorageDirectory))
-        return false;
-#endif
 #if PLATFORM(MAC) && __MAC_OS_X_VERSION_MIN_REQUIRED >= 101100
     if (!decoder.decode(parameters.uiProcessCookieStorageIdentifier))
         return false;

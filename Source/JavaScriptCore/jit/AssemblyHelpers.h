@@ -85,6 +85,15 @@ public:
 #endif
     }
     
+    void loadCell(Address address, GPRReg gpr)
+    {
+#if USE(JSVALUE64)
+        load64(address, gpr);
+#else
+        load32(address.withOffset(PayloadOffset), gpr);
+#endif
+    }
+    
     void storeValue(JSValueRegs regs, Address address)
     {
 #if USE(JSVALUE64)
@@ -274,9 +283,34 @@ public:
         emitSaveCalleeSavesFor(codeBlock());
     }
 
+    void emitSaveThenMaterializeTagRegisters()
+    {
+#if USE(JSVALUE64)
+#if CPU(ARM64)
+        pushPair(GPRInfo::tagTypeNumberRegister, GPRInfo::tagMaskRegister);
+#else
+        push(GPRInfo::tagTypeNumberRegister);
+        push(GPRInfo::tagMaskRegister);
+#endif
+        emitMaterializeTagCheckRegisters();
+#endif
+    }
+    
     void emitRestoreCalleeSaves()
     {
         emitRestoreCalleeSavesFor(codeBlock());
+    }
+
+    void emitRestoreSavedTagRegisters()
+    {
+#if USE(JSVALUE64)
+#if CPU(ARM64)
+        popPair(GPRInfo::tagTypeNumberRegister, GPRInfo::tagMaskRegister);
+#else
+        pop(GPRInfo::tagMaskRegister);
+        pop(GPRInfo::tagTypeNumberRegister);
+#endif
+#endif
     }
 
     void copyCalleeSavesToVMCalleeSavesBuffer(const TempRegisterSet& usedRegisters = { RegisterSet::stubUnavailableRegisters() })
@@ -619,11 +653,6 @@ public:
 #endif
     }
 
-    enum TagRegistersMode {
-        DoNotHaveTagRegisters,
-        HaveTagRegisters
-    };
-
     Jump branchIfNotCell(GPRReg reg, TagRegistersMode mode = HaveTagRegisters)
     {
 #if USE(JSVALUE64)
@@ -749,6 +778,18 @@ public:
 #endif
     }
 
+    Jump branchIfNotDoubleKnownNotInt32(JSValueRegs regs, TagRegistersMode mode = HaveTagRegisters)
+    {
+#if USE(JSVALUE64)
+        if (mode == HaveTagRegisters)
+            return branchTest64(Zero, regs.gpr(), GPRInfo::tagTypeNumberRegister);
+        return branchTest64(Zero, regs.gpr(), TrustedImm64(TagTypeNumber));
+#else
+        UNUSED_PARAM(mode);
+        return branch32(AboveOrEqual, regs.tagGPR(), TrustedImm32(JSValue::LowestTag));
+#endif
+    }
+
     // Note that the tempGPR is not used in 32-bit mode.
     Jump branchIfBoolean(JSValueRegs regs, GPRReg tempGPR)
     {
@@ -814,7 +855,8 @@ public:
     }
 
     JumpList branchIfNotType(
-        JSValueRegs, GPRReg tempGPR, const InferredType::Descriptor&, TagRegistersMode);
+        JSValueRegs, GPRReg tempGPR, const InferredType::Descriptor&,
+        TagRegistersMode = HaveTagRegisters);
 
     template<typename T>
     Jump branchStructure(RelationalCondition condition, T leftHandSide, Structure* structure)

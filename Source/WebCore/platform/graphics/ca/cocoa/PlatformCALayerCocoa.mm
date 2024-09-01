@@ -604,11 +604,25 @@ void PlatformCALayerCocoa::setSublayerTransform(const TransformationMatrix& valu
     END_BLOCK_OBJC_EXCEPTIONS
 }
 
+bool PlatformCALayerCocoa::isHidden() const
+{
+    return [m_layer isHidden];
+}
+
 void PlatformCALayerCocoa::setHidden(bool value)
 {
     BEGIN_BLOCK_OBJC_EXCEPTIONS
     [m_layer setHidden:value];
     END_BLOCK_OBJC_EXCEPTIONS
+}
+
+bool PlatformCALayerCocoa::contentsHidden() const
+{
+    return false;
+}
+
+void PlatformCALayerCocoa::setContentsHidden(bool)
+{
 }
 
 void PlatformCALayerCocoa::setBackingStoreAttached(bool)

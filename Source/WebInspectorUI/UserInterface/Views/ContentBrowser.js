@@ -365,30 +365,33 @@ WebInspector.ContentBrowser = class ContentBrowser extends WebInspector.View
 
     _updateContentViewNavigationItems()
     {
-        var navigationBar = this.navigationBar;
-
-        // First, we remove the navigation items added by the previous content view.
-        this._currentContentViewNavigationItems.forEach(function(navigationItem) {
-            navigationBar.removeNavigationItem(navigationItem);
-        });
-
         var currentContentView = this.currentContentView;
         if (!currentContentView) {
+            this._removeAllNavigationItems();
             this._currentContentViewNavigationItems = [];
             return;
         }
 
-        var insertionIndex = navigationBar.navigationItems.indexOf(this._dividingFlexibleSpaceNavigationItem) + 1;
+        let previousItems = this._currentContentViewNavigationItems.filter((item) => !(item instanceof WebInspector.DividerNavigationItem));
+        let isUnchanged = Array.shallowEqual(previousItems, currentContentView.navigationItems);
+
+        if (isUnchanged)
+            return;
+
+        this._removeAllNavigationItems();
+
+        let navigationBar = this.navigationBar;
+        let insertionIndex = navigationBar.navigationItems.indexOf(this._dividingFlexibleSpaceNavigationItem) + 1;
         console.assert(insertionIndex >= 0);
 
         // Keep track of items we'll be adding to the navigation bar.
-        var newNavigationItems = [];
+        let newNavigationItems = [];
 
         // Go through each of the items of the new content view and add a divider before them.
         currentContentView.navigationItems.forEach(function(navigationItem, index) {
             // Add dividers before items unless it's the first item and not a button.
             if (index !== 0 || navigationItem instanceof WebInspector.ButtonNavigationItem) {
-                var divider = new WebInspector.DividerNavigationItem;
+                let divider = new WebInspector.DividerNavigationItem;
                 navigationBar.insertNavigationItem(divider, insertionIndex++);
                 newNavigationItems.push(divider);
             }
@@ -399,6 +402,12 @@ WebInspector.ContentBrowser = class ContentBrowser extends WebInspector.View
         // Remember the navigation items we inserted so we can remove them
         // for the next content view.
         this._currentContentViewNavigationItems = newNavigationItems;
+    }
+
+    _removeAllNavigationItems()
+    {
+        for (let navigationItem of this._currentContentViewNavigationItems)
+            this.navigationBar.removeNavigationItem(navigationItem);
     }
 
     _updateFindBanner(currentContentView)
@@ -421,19 +430,9 @@ WebInspector.ContentBrowser = class ContentBrowser extends WebInspector.View
         }
     }
 
-    _dispatchCurrentRepresentedObjectsDidChangeEventSoon()
-    {
-        if (this._currentRepresentedObjectsDidChangeTimeout)
-            return;
-        this._currentRepresentedObjectsDidChangeTimeout = setTimeout(this._dispatchCurrentRepresentedObjectsDidChangeEvent.bind(this), 0);
-    }
-
     _dispatchCurrentRepresentedObjectsDidChangeEvent()
     {
-        if (this._currentRepresentedObjectsDidChangeTimeout) {
-            clearTimeout(this._currentRepresentedObjectsDidChangeTimeout);
-            delete this._currentRepresentedObjectsDidChangeTimeout;
-        }
+        this._dispatchCurrentRepresentedObjectsDidChangeEvent.cancelDebounce();
 
         this.dispatchEventToListeners(WebInspector.ContentBrowser.Event.CurrentRepresentedObjectsDidChange);
     }
@@ -450,7 +449,7 @@ WebInspector.ContentBrowser = class ContentBrowser extends WebInspector.View
 
         this._navigationBar.needsLayout();
 
-        this._dispatchCurrentRepresentedObjectsDidChangeEventSoon();
+        this.soon._dispatchCurrentRepresentedObjectsDidChangeEvent();
     }
 
     _contentViewSupplementalRepresentedObjectsDidChange(event)
@@ -458,7 +457,7 @@ WebInspector.ContentBrowser = class ContentBrowser extends WebInspector.View
         if (event.target !== this.currentContentView)
             return;
 
-        this._dispatchCurrentRepresentedObjectsDidChangeEventSoon();
+        this.soon._dispatchCurrentRepresentedObjectsDidChangeEvent();
     }
 
     _currentContentViewDidChange(event)

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 Apple Inc. All Rights Reserved.
+ * Copyright (C) 2008, 2009, 2010, 2011, 2013, 2014, 2015, 2016 Apple Inc. All Rights Reserved.
  * Copyright (C) 2012 Google Inc. All Rights Reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,10 +25,10 @@
  *
  */
 
-#ifndef ScriptExecutionContext_h
-#define ScriptExecutionContext_h
+#pragma once
 
 #include "ActiveDOMObject.h"
+#include "CrossThreadTask.h"
 #include "DOMTimer.h"
 #include "ResourceRequest.h"
 #include "SecurityContext.h"
@@ -56,7 +56,11 @@ class PublicURLManager;
 class SecurityOrigin;
 class URL;
 
-class ScriptExecutionContext : public SecurityContext, public Supplementable<ScriptExecutionContext> {
+namespace IDBClient {
+class IDBConnectionProxy;
+}
+
+class ScriptExecutionContext : public SecurityContext {
 public:
     ScriptExecutionContext();
     virtual ~ScriptExecutionContext();
@@ -73,6 +77,10 @@ public:
     virtual String userAgent(const URL&) const = 0;
 
     virtual void disableEval(const String& errorMessage) = 0;
+
+#if ENABLE(INDEXED_DATABASE)
+    virtual IDBClient::IDBConnectionProxy* idbConnectionProxy() = 0;
+#endif
 
     bool sanitizeScriptError(String& errorMessage, int& lineNumber, int& columnNumber, String& sourceURL, CachedScript* = nullptr);
     void reportException(const String& errorMessage, int lineNumber, int columnNumber, const String& sourceURL, RefPtr<Inspector::ScriptCallStack>&&, CachedScript* = nullptr);
@@ -159,6 +167,17 @@ public:
     };
 
     virtual void postTask(Task) = 0; // Executes the task on context's thread asynchronously.
+
+    template<typename... Arguments>
+    void postCrossThreadTask(Arguments&&... arguments)
+    {
+        auto crossThreadTask = createCrossThreadTask(arguments...);
+        auto* rawTask = crossThreadTask.release();
+        postTask([=](ScriptExecutionContext&) {
+            std::unique_ptr<CrossThreadTask> task(rawTask);
+            task->performTask();
+        });
+    }
 
     // Gets the next id in a circular sequence from 1 to 2^31-1.
     int circularSequentialID();
@@ -247,5 +266,3 @@ private:
 };
 
 } // namespace WebCore
-
-#endif // ScriptExecutionContext_h

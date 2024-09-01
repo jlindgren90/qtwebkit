@@ -77,7 +77,7 @@ public:
             return;
 
         if (m_mutation && s_shouldDeliver)
-            m_mutationRecipients->enqueueMutationRecord(m_mutation);
+            m_mutationRecipients->enqueueMutationRecord(m_mutation.releaseNonNull());
 
         s_shouldDeliver = false;
         if (!s_shouldNotifyInspector) {
@@ -137,7 +137,7 @@ unsigned PropertySetCSSStyleDeclaration::length() const
 String PropertySetCSSStyleDeclaration::item(unsigned i) const
 {
     if (i >= m_propertySet->propertyCount())
-        return "";
+        return String();
     return m_propertySet->propertyAt(i).cssName();
 }
 

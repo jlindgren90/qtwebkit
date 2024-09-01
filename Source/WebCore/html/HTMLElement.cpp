@@ -660,15 +660,9 @@ Node* HTMLElement::insertAdjacent(const String& where, Ref<Node>&& newChild, Exc
     return nullptr;
 }
 
-Element* HTMLElement::insertAdjacentElement(const String& where, Element* newChild, ExceptionCode& ec)
+Element* HTMLElement::insertAdjacentElement(const String& where, Element& newChild, ExceptionCode& ec)
 {
-    if (!newChild) {
-        // IE throws COM Exception E_INVALIDARG; this is the best DOM exception alternative.
-        ec = TYPE_MISMATCH_ERR;
-        return nullptr;
-    }
-
-    Node* returnValue = insertAdjacent(where, *newChild, ec);
+    Node* returnValue = insertAdjacent(where, newChild, ec);
     ASSERT_WITH_SECURITY_IMPLICATION(!returnValue || is<Element>(*returnValue));
     return downcast<Element>(returnValue); 
 }
@@ -874,7 +868,7 @@ bool HTMLElement::rendererIsNeeded(const RenderStyle& style)
     return StyledElement::rendererIsNeeded(style);
 }
 
-RenderPtr<RenderElement> HTMLElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
+RenderPtr<RenderElement> HTMLElement::createElementRenderer(RenderStyle&& style, const RenderTreePosition&)
 {
     return RenderElement::createFor(*this, WTFMove(style));
 }
@@ -1145,11 +1139,19 @@ void HTMLElement::addHTMLColorToStyle(MutableStyleProperties& style, CSSProperty
         return;
 
     // If the string is a named CSS color or a 3/6-digit hex color, use that.
-    Color parsedColor(colorString);
-    if (!parsedColor.isValid())
-        parsedColor.setRGB(parseColorStringWithCrazyLegacyRules(colorString));
+    // We can't use the default Color constructor because it accepts
+    // 4/8-digit hex, which conflict with some legacy HTML content using attributes.
 
-    style.setProperty(propertyID, CSSValuePool::singleton().createColorValue(parsedColor.rgb()));
+    Color color;
+
+    if ((colorString.length() == 4 || colorString.length() == 7) && colorString[0] == '#')
+        color = Color(colorString);
+    if (!color.isValid())
+        color.setNamedColor(colorString);
+    if (!color.isValid())
+        color.setRGB(parseColorStringWithCrazyLegacyRules(colorString));
+
+    style.setProperty(propertyID, CSSValuePool::singleton().createColorValue(color.rgb()));
 }
 
 bool HTMLElement::willRespondToMouseMoveEvents()

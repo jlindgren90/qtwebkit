@@ -34,6 +34,7 @@
 #include "ErrorHandlingScope.h"
 #include "Exception.h"
 #include "ExceptionFuzz.h"
+#include "FunctionWhitelist.h"
 #include "GetterSetter.h"
 #include "HostCallReturnValue.h"
 #include "Interpreter.h"
@@ -56,6 +57,7 @@
 #include "ShadowChicken.h"
 #include "StructureRareDataInlines.h"
 #include "VMInlines.h"
+#include <wtf/NeverDestroyed.h>
 #include <wtf/StringPrintStream.h>
 
 namespace JSC { namespace LLInt {
@@ -67,11 +69,11 @@ namespace JSC { namespace LLInt {
 #ifndef NDEBUG
 #define LLINT_SET_PC_FOR_STUBS() do { \
         exec->codeBlock()->bytecodeOffset(pc); \
-        exec->setCurrentVPC(pc + 1); \
+        exec->setCurrentVPC(pc); \
     } while (false)
 #else
 #define LLINT_SET_PC_FOR_STUBS() do { \
-        exec->setCurrentVPC(pc + 1); \
+        exec->setCurrentVPC(pc); \
     } while (false)
 #endif
 
@@ -287,8 +289,23 @@ LLINT_SLOW_PATH_DECL(special_trace)
 enum EntryKind { Prologue, ArityCheck };
 
 #if ENABLE(JIT)
-inline bool shouldJIT(ExecState* exec, CodeBlock*)
+static FunctionWhitelist& ensureGlobalJITWhitelist()
 {
+    static LazyNeverDestroyed<FunctionWhitelist> baselineWhitelist;
+    static std::once_flag initializeWhitelistFlag;
+    std::call_once(initializeWhitelistFlag, [] {
+        const char* functionWhitelistFile = Options::jitWhitelist();
+        baselineWhitelist.construct(functionWhitelistFile);
+    });
+    return baselineWhitelist;
+}
+
+inline bool shouldJIT(ExecState* exec, CodeBlock* codeBlock)
+{
+    if (!Options::bytecodeRangeToJITCompile().isInRange(codeBlock->instructionCount())
+        || !ensureGlobalJITWhitelist().contains(codeBlock))
+        return false;
+
     // You can modify this to turn off JITting without rebuilding the world.
     return exec->vm().canUseJIT();
 }

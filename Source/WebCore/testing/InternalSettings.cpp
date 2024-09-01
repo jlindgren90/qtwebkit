@@ -66,11 +66,12 @@
 namespace WebCore {
 
 InternalSettings::Backup::Backup(Settings& settings)
-    : m_originalCSSShapesEnabled(RuntimeEnabledFeatures::sharedFeatures().cssShapesEnabled())
-    , m_originalEditingBehavior(settings.editingBehaviorType())
-#if ENABLE(TEXT_AUTOSIZING)
+    : m_originalEditingBehavior(settings.editingBehaviorType())
+#if ENABLE(TEXT_AUTOSIZING) || ENABLE(IOS_TEXT_AUTOSIZING)
     , m_originalTextAutosizingEnabled(settings.textAutosizingEnabled())
     , m_originalTextAutosizingWindowSizeOverride(settings.textAutosizingWindowSizeOverride())
+#endif
+#if ENABLE(TEXT_AUTOSIZING)
     , m_originalTextAutosizingFontScaleFactor(settings.textAutosizingFontScaleFactor())
 #endif
     , m_originalMediaTypeOverride(settings.mediaTypeOverride())
@@ -103,12 +104,16 @@ InternalSettings::Backup::Backup(Settings& settings)
 #endif
     , m_allowsInlineMediaPlayback(settings.allowsInlineMediaPlayback())
     , m_inlineMediaPlaybackRequiresPlaysInlineAttribute(settings.inlineMediaPlaybackRequiresPlaysInlineAttribute())
+#if ENABLE(INDEXED_DATABASE_IN_WORKERS)
+    , m_indexedDBWorkersEnabled(RuntimeEnabledFeatures::sharedFeatures().indexedDBWorkersEnabled())
+#endif
+    , m_userInterfaceDirectionPolicy(settings.userInterfaceDirectionPolicy())
+    , m_systemLayoutDirection(settings.systemLayoutDirection())
 {
 }
 
 void InternalSettings::Backup::restoreTo(Settings& settings)
 {
-    RuntimeEnabledFeatures::sharedFeatures().setCSSShapesEnabled(m_originalCSSShapesEnabled);
     settings.setEditingBehaviorType(m_originalEditingBehavior);
 
     for (const auto& standardFont : m_standardFontFamilies)
@@ -139,9 +144,11 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
         settings.setPictographFontFamily(pictographFont.value, static_cast<UScriptCode>(pictographFont.key));
     m_pictographFontFamilies.clear();
 
-#if ENABLE(TEXT_AUTOSIZING)
+#if ENABLE(TEXT_AUTOSIZING) || ENABLE(IOS_TEXT_AUTOSIZING)
     settings.setTextAutosizingEnabled(m_originalTextAutosizingEnabled);
     settings.setTextAutosizingWindowSizeOverride(m_originalTextAutosizingWindowSizeOverride);
+#endif
+#if ENABLE(TEXT_AUTOSIZING)
     settings.setTextAutosizingFontScaleFactor(m_originalTextAutosizingFontScaleFactor);
 #endif
     settings.setMediaTypeOverride(m_originalMediaTypeOverride);
@@ -170,6 +177,11 @@ void InternalSettings::Backup::restoreTo(Settings& settings)
     settings.setAllowsInlineMediaPlayback(m_allowsInlineMediaPlayback);
     settings.setInlineMediaPlaybackRequiresPlaysInlineAttribute(m_inlineMediaPlaybackRequiresPlaysInlineAttribute);
     RuntimeEnabledFeatures::sharedFeatures().setPluginReplacementEnabled(m_pluginReplacementEnabled);
+#if ENABLE(INDEXED_DATABASE_IN_WORKERS)
+    RuntimeEnabledFeatures::sharedFeatures().setIndexedDBWorkersEnabled(m_indexedDBWorkersEnabled);
+#endif
+    settings.setUserInterfaceDirectionPolicy(m_userInterfaceDirectionPolicy);
+    settings.setSystemLayoutDirection(m_systemLayoutDirection);
 }
 
 class InternalSettingsWrapper : public Supplement<Page> {
@@ -317,7 +329,7 @@ void InternalSettings::setPictographFontFamily(const String& family, const Strin
 
 void InternalSettings::setTextAutosizingEnabled(bool enabled, ExceptionCode& ec)
 {
-#if ENABLE(TEXT_AUTOSIZING)
+#if ENABLE(TEXT_AUTOSIZING) || ENABLE(IOS_TEXT_AUTOSIZING)
     InternalSettingsGuardForSettings();
     settings()->setTextAutosizingEnabled(enabled);
 #else
@@ -328,7 +340,7 @@ void InternalSettings::setTextAutosizingEnabled(bool enabled, ExceptionCode& ec)
 
 void InternalSettings::setTextAutosizingWindowSizeOverride(int width, int height, ExceptionCode& ec)
 {
-#if ENABLE(TEXT_AUTOSIZING)
+#if ENABLE(TEXT_AUTOSIZING) || ENABLE(IOS_TEXT_AUTOSIZING)
     InternalSettingsGuardForSettings();
     settings()->setTextAutosizingWindowSizeOverride(IntSize(width, height));
 #else
@@ -353,12 +365,6 @@ void InternalSettings::setTextAutosizingFontScaleFactor(float fontScaleFactor, E
     UNUSED_PARAM(fontScaleFactor);
     UNUSED_PARAM(ec);
 #endif
-}
-
-void InternalSettings::setCSSShapesEnabled(bool enabled, ExceptionCode& ec)
-{
-    UNUSED_PARAM(ec);
-    RuntimeEnabledFeatures::sharedFeatures().setCSSShapesEnabled(enabled);
 }
 
 void InternalSettings::setCanStartMedia(bool enabled, ExceptionCode& ec)
@@ -538,6 +544,69 @@ void InternalSettings::setInlineMediaPlaybackRequiresPlaysInlineAttribute(bool r
 {
     InternalSettingsGuardForSettings();
     settings()->setInlineMediaPlaybackRequiresPlaysInlineAttribute(requires);
+}
+
+void InternalSettings::setIndexedDBWorkersEnabled(bool enabled, ExceptionCode&)
+{
+#if ENABLE(INDEXED_DATABASE_IN_WORKERS)
+    RuntimeEnabledFeatures::sharedFeatures().setIndexedDBWorkersEnabled(enabled);
+#else
+    UNUSED_PARAM(enabled);
+#endif
+}
+
+String InternalSettings::userInterfaceDirectionPolicy(ExceptionCode& ec)
+{
+    InternalSettingsGuardForSettingsReturn("");
+    switch (settings()->userInterfaceDirectionPolicy()) {
+    case UserInterfaceDirectionPolicy::Content:
+        return ASCIILiteral("Content");
+    case UserInterfaceDirectionPolicy::System:
+        return ASCIILiteral("View");
+    }
+    ASSERT_NOT_REACHED();
+    return String();
+}
+
+void InternalSettings::setUserInterfaceDirectionPolicy(const String& policy, ExceptionCode& ec)
+{
+    InternalSettingsGuardForSettings();
+    if (equalLettersIgnoringASCIICase(policy, "content")) {
+        settings()->setUserInterfaceDirectionPolicy(UserInterfaceDirectionPolicy::Content);
+        return;
+    }
+    if (equalLettersIgnoringASCIICase(policy, "view")) {
+        settings()->setUserInterfaceDirectionPolicy(UserInterfaceDirectionPolicy::System);
+        return;
+    }
+    ec = INVALID_ACCESS_ERR;
+}
+
+String InternalSettings::systemLayoutDirection(ExceptionCode& ec)
+{
+    InternalSettingsGuardForSettingsReturn("");
+    switch (settings()->systemLayoutDirection()) {
+    case LTR:
+        return ASCIILiteral("LTR");
+    case RTL:
+        return ASCIILiteral("RTL");
+    }
+    ASSERT_NOT_REACHED();
+    return String();
+}
+
+void InternalSettings::setSystemLayoutDirection(const String& direction, ExceptionCode& ec)
+{
+    InternalSettingsGuardForSettings();
+    if (equalLettersIgnoringASCIICase(direction, "ltr")) {
+        settings()->setSystemLayoutDirection(LTR);
+        return;
+    }
+    if (equalLettersIgnoringASCIICase(direction, "rtl")) {
+        settings()->setSystemLayoutDirection(RTL);
+        return;
+    }
+    ec = INVALID_ACCESS_ERR;
 }
 
 // If you add to this list, make sure that you update the Backup class for test reproducability!

@@ -37,8 +37,7 @@ namespace WebCore {
 
 static uint64_t nextClientResourceNumber()
 {
-    ASSERT(isMainThread());
-    static uint64_t currentNumber = 1;
+    static std::atomic<uint64_t> currentNumber(1);
     return currentNumber += 2;
 }
 
@@ -53,20 +52,27 @@ IDBResourceIdentifier::IDBResourceIdentifier()
 {
 }
 
+IDBResourceIdentifier::IDBResourceIdentifier(uint64_t connectionIdentifier)
+    : m_idbConnectionIdentifier(connectionIdentifier)
+    , m_resourceNumber(nextClientResourceNumber())
+{
+}
+
+
 IDBResourceIdentifier::IDBResourceIdentifier(uint64_t connectionIdentifier, uint64_t resourceIdentifier)
     : m_idbConnectionIdentifier(connectionIdentifier)
     , m_resourceNumber(resourceIdentifier)
 {
 }
 
-IDBResourceIdentifier::IDBResourceIdentifier(const IDBClient::IDBConnectionToServer& connection)
-    : m_idbConnectionIdentifier(connection.identifier())
+IDBResourceIdentifier::IDBResourceIdentifier(const IDBClient::IDBConnectionProxy& connectionProxy)
+    : m_idbConnectionIdentifier(connectionProxy.serverConnectionIdentifier())
     , m_resourceNumber(nextClientResourceNumber())
 {
 }
 
-IDBResourceIdentifier::IDBResourceIdentifier(const IDBClient::IDBConnectionToServer& connection, const IDBRequest& request)
-    : m_idbConnectionIdentifier(connection.identifier())
+IDBResourceIdentifier::IDBResourceIdentifier(const IDBClient::IDBConnectionProxy& connectionProxy, const IDBRequest& request)
+    : m_idbConnectionIdentifier(connectionProxy.serverConnectionIdentifier())
     , m_resourceNumber(request.resourceIdentifier().m_resourceNumber)
 {
 }

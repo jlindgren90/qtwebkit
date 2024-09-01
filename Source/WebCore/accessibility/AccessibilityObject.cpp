@@ -310,7 +310,7 @@ bool AccessibilityObject::accessibleNameDerivesFromContent() const
     case DocumentArticleRole:
     case DocumentMathRole:
     case DocumentNoteRole:
-    case DocumentRegionRole:
+    case LandmarkRegionRole:
     case FormRole:
     case GridRole:
     case GroupRole:
@@ -406,6 +406,7 @@ bool AccessibilityObject::isLandmark() const
         || role == LandmarkContentInfoRole
         || role == LandmarkMainRole
         || role == LandmarkNavigationRole
+        || role == LandmarkRegionRole
         || role == LandmarkSearchRole;
 }
 
@@ -742,7 +743,7 @@ String AccessibilityObject::selectText(AccessibilitySelectTextCriteria* criteria
     
     RefPtr<Range> selectedStringRange = selectionRange();
     // When starting our search again, make this a zero length range so that search forwards will find this selected range if its appropriate.
-    selectedStringRange->setEnd(&selectedStringRange->startContainer(), selectedStringRange->startOffset());
+    selectedStringRange->setEnd(selectedStringRange->startContainer(), selectedStringRange->startOffset());
     
     RefPtr<Range> closestAfterStringRange = nullptr;
     RefPtr<Range> closestBeforeStringRange = nullptr;
@@ -1139,7 +1140,7 @@ static VisiblePosition startOfStyleRange(const VisiblePosition& visiblePos)
 {
     RenderObject* renderer = visiblePos.deepEquivalent().deprecatedNode()->renderer();
     RenderObject* startRenderer = renderer;
-    RenderStyle* style = &renderer->style();
+    auto* style = &renderer->style();
 
     // traverse backward by renderer to look for style change
     for (RenderObject* r = renderer->previousInPreOrder(); r; r = r->previousInPreOrder()) {
@@ -2107,7 +2108,7 @@ static void initializeRoleMap()
         { "progressbar", ProgressIndicatorRole },
         { "radio", RadioButtonRole },
         { "radiogroup", RadioGroupRole },
-        { "region", DocumentRegionRole },
+        { "region", LandmarkRegionRole },
         { "row", RowRole },
         { "rowgroup", RowGroupRole },
         { "scrollbar", ScrollBarRole },
@@ -3060,7 +3061,20 @@ bool AccessibilityObject::isStyleFormatGroup() const
     return node->hasTagName(kbdTag) || node->hasTagName(codeTag)
     || node->hasTagName(preTag) || node->hasTagName(sampTag)
     || node->hasTagName(varTag) || node->hasTagName(citeTag)
-    || node->hasTagName(insTag) || node->hasTagName(delTag);
+    || node->hasTagName(insTag) || node->hasTagName(delTag)
+    || node->hasTagName(supTag) || node->hasTagName(subTag);
+}
+
+bool AccessibilityObject::isSubscriptStyleGroup() const
+{
+    Node* node = this->node();
+    return node && node->hasTagName(subTag);
+}
+
+bool AccessibilityObject::isSuperscriptStyleGroup() const
+{
+    Node* node = this->node();
+    return node && node->hasTagName(supTag);
 }
     
 bool AccessibilityObject::isContainedByPasswordField() const

@@ -97,7 +97,7 @@ public:
     void scheduleAnimation() override;
 #endif
 
-    void setViewOverlayRootLayer(WebCore::GraphicsLayer*);
+    void setViewOverlayRootLayer(WebCore::GraphicsLayer*) override;
     static RefPtr<WebCore::CoordinatedSurface> createCoordinatedSurface(const WebCore::IntSize&, WebCore::CoordinatedSurface::Flags);
 
 protected:
@@ -107,8 +107,6 @@ private:
 
     void compositorDidFlushLayers();
     void didScaleFactorChanged(float scale, const WebCore::IntPoint& origin);
-
-    void updateRootLayers();
 
     void cancelPendingLayerFlush();
     void performScheduledLayerFlush();
@@ -131,9 +129,6 @@ private:
     uint64_t m_forceRepaintAsyncCallbackID;
 
     WebCore::IntPoint m_prevScrollPosition;
-
-    WebCore::GraphicsLayer* m_contentLayer;
-    WebCore::GraphicsLayer* m_viewOverlayRootLayer;
 
     std::unique_ptr<WebCore::CompositingCoordinator> m_coordinator;
     RefPtr<ThreadedCompositor> m_compositor;

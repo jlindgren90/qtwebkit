@@ -111,6 +111,21 @@ void computeUsesForBytecodeOffset(
         functor(codeBlock, instruction, opcodeID, instruction[3].u.operand);
         return;
     }
+    case op_put_by_id_with_this: {
+        ASSERT(opcodeLengths[opcodeID] > 4);
+        functor(codeBlock, instruction, opcodeID, instruction[1].u.operand);
+        functor(codeBlock, instruction, opcodeID, instruction[2].u.operand);
+        functor(codeBlock, instruction, opcodeID, instruction[4].u.operand);
+        return;
+    }
+    case op_put_by_val_with_this: {
+        ASSERT(opcodeLengths[opcodeID] > 4);
+        functor(codeBlock, instruction, opcodeID, instruction[1].u.operand);
+        functor(codeBlock, instruction, opcodeID, instruction[2].u.operand);
+        functor(codeBlock, instruction, opcodeID, instruction[3].u.operand);
+        functor(codeBlock, instruction, opcodeID, instruction[4].u.operand);
+        return;
+    }
     case op_put_getter_by_id:
     case op_put_setter_by_id: {
         ASSERT(opcodeLengths[opcodeID] > 4);
@@ -147,6 +162,7 @@ void computeUsesForBytecodeOffset(
     case op_get_by_id:
     case op_get_array_length:
     case op_typeof:
+    case op_is_empty:
     case op_is_undefined:
     case op_is_boolean:
     case op_is_number:
@@ -202,10 +218,18 @@ void computeUsesForBytecodeOffset(
     case op_neq:
     case op_eq:
     case op_push_with_scope:
+    case op_get_by_id_with_this:
     case op_del_by_val: {
         ASSERT(opcodeLengths[opcodeID] > 3);
         functor(codeBlock, instruction, opcodeID, instruction[2].u.operand);
         functor(codeBlock, instruction, opcodeID, instruction[3].u.operand);
+        return;
+    }
+    case op_get_by_val_with_this: {
+        ASSERT(opcodeLengths[opcodeID] > 4);
+        functor(codeBlock, instruction, opcodeID, instruction[2].u.operand);
+        functor(codeBlock, instruction, opcodeID, instruction[3].u.operand);
+        functor(codeBlock, instruction, opcodeID, instruction[4].u.operand);
         return;
     }
     case op_instanceof_custom:
@@ -315,6 +339,8 @@ void computeDefsForBytecodeOffset(CodeBlock* codeBlock, BytecodeBasicBlock* bloc
     case op_switch_char:
     case op_switch_string:
     case op_put_by_id:
+    case op_put_by_id_with_this:
+    case op_put_by_val_with_this:
     case op_put_getter_by_id:
     case op_put_setter_by_id:
     case op_put_getter_setter_by_id:
@@ -370,12 +396,15 @@ void computeDefsForBytecodeOffset(CodeBlock* codeBlock, BytecodeBasicBlock* bloc
     case op_construct:
     case op_try_get_by_id:
     case op_get_by_id:
+    case op_get_by_id_with_this:
+    case op_get_by_val_with_this:
     case op_get_array_length:
     case op_overrides_has_instance:
     case op_instanceof:
     case op_instanceof_custom:
     case op_get_by_val:
     case op_typeof:
+    case op_is_empty:
     case op_is_undefined:
     case op_is_boolean:
     case op_is_number:

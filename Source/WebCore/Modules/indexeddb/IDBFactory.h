@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,9 +27,11 @@
 
 #if ENABLE(INDEXED_DATABASE)
 
+#include <functional>
 #include <wtf/Forward.h>
 #include <wtf/Ref.h>
-#include <wtf/RefCounted.h>
+#include <wtf/ThreadSafeRefCounted.h>
+#include <wtf/Vector.h>
 
 namespace JSC {
 class JSValue;
@@ -39,32 +41,34 @@ namespace WebCore {
 
 class IDBOpenDBRequest;
 class ScriptExecutionContext;
+class SecurityOrigin;
 
 struct ExceptionCodeWithMessage;
 
 namespace IDBClient {
-class IDBConnectionToServer;
+class IDBConnectionProxy;
 }
 
 typedef int ExceptionCode;
 
-class IDBFactory : public RefCounted<IDBFactory> {
+class IDBFactory : public ThreadSafeRefCounted<IDBFactory> {
 public:
-    static Ref<IDBFactory> create(IDBClient::IDBConnectionToServer&);
+    static Ref<IDBFactory> create(IDBClient::IDBConnectionProxy&);
     ~IDBFactory();
 
-    RefPtr<IDBOpenDBRequest> open(ScriptExecutionContext&, const String& name, ExceptionCode&);
-    RefPtr<IDBOpenDBRequest> open(ScriptExecutionContext&, const String& name, unsigned long long version, ExceptionCode&);
-    RefPtr<IDBOpenDBRequest> deleteDatabase(ScriptExecutionContext&, const String& name, ExceptionCode&);
+    RefPtr<IDBOpenDBRequest> open(ScriptExecutionContext&, const String& name, Optional<uint64_t> version, ExceptionCodeWithMessage&);
+    RefPtr<IDBOpenDBRequest> deleteDatabase(ScriptExecutionContext&, const String& name, ExceptionCodeWithMessage&);
 
     short cmp(ScriptExecutionContext&, JSC::JSValue first, JSC::JSValue second, ExceptionCodeWithMessage&);
 
+    WEBCORE_EXPORT void getAllDatabaseNames(const SecurityOrigin& mainFrameOrigin, const SecurityOrigin& openingOrigin, std::function<void (const Vector<String>&)>);
+
 private:
-    explicit IDBFactory(IDBClient::IDBConnectionToServer&);
+    explicit IDBFactory(IDBClient::IDBConnectionProxy&);
 
-    RefPtr<IDBOpenDBRequest> openInternal(ScriptExecutionContext&, const String& name, unsigned long long version, ExceptionCode&);
+    RefPtr<IDBOpenDBRequest> openInternal(ScriptExecutionContext&, const String& name, unsigned long long version, ExceptionCodeWithMessage&);
 
-    Ref<IDBClient::IDBConnectionToServer> m_connectionToServer;
+    Ref<IDBClient::IDBConnectionProxy> m_connectionProxy;
 };
 
 } // namespace WebCore

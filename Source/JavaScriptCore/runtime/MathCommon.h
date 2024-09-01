@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Apple Inc. All rights reserved.
+ * Copyright (C) 2015-2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -27,12 +27,17 @@
 #define MathCommon_h
 
 #include "JITOperations.h"
+#include "MacroAssemblerCodeRef.h"
+#include <cmath>
+#include <wtf/Optional.h>
 
 #ifndef JIT_OPERATION
 #define JIT_OPERATION
 #endif
 
 namespace JSC {
+
+const int32_t maxExponentForIntegerMathPow = 1000;
 double JIT_OPERATION operationMathPow(double x, double y) WTF_INTERNAL;
 
 inline int clz32(uint32_t number)
@@ -54,8 +59,44 @@ inline int clz32(uint32_t number)
 #endif
 }
 
+inline Optional<double> safeReciprocalForDivByConst(double constant)
+{
+    // No "weird" numbers (NaN, Denormal, etc).
+    if (!constant || !std::isnormal(constant))
+        return Nullopt;
+
+    int exponent;
+    if (std::frexp(constant, &exponent) != 0.5)
+        return Nullopt;
+
+    // Note that frexp() returns the value divided by two
+    // so we to offset this exponent by one.
+    exponent -= 1;
+
+    // A double exponent is between -1022 and 1023.
+    // Nothing we can do to invert 1023.
+    if (exponent == 1023)
+        return Nullopt;
+
+    double reciprocal = std::ldexp(1, -exponent);
+    ASSERT(std::isnormal(reciprocal));
+    ASSERT(1. / constant == reciprocal);
+    ASSERT(constant == 1. / reciprocal);
+    ASSERT(1. == constant * reciprocal);
+
+    return reciprocal;
+}
+
 extern "C" {
 double JIT_OPERATION jsRound(double value) REFERENCED_FROM_ASM WTF_INTERNAL;
+
+// On Windows we need to wrap fmod; on other platforms we can call it directly.
+// On ARMv7 we assert that all function pointers have to low bit set (point to thumb code).
+#if CALLING_CONVENTION_IS_STDCALL || CPU(ARM_THUMB2)
+double JIT_OPERATION jsMod(double x, double y) REFERENCED_FROM_ASM WTF_INTERNAL;
+#else
+#define jsMod fmod
+#endif
 }
 
 }

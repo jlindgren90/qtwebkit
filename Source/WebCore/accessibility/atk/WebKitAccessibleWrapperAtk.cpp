@@ -505,6 +505,10 @@ static AtkAttributeSet* webkitAccessibleGetAttributes(AtkObject* object)
         attributeSet = addToAtkAttributeSet(attributeSet, "computed-role", roleString.utf8().data());
     }
 
+    String roleDescription = coreObject->roleDescription();
+    if (!roleDescription.isEmpty())
+        attributeSet = addToAtkAttributeSet(attributeSet, "roledescription", roleDescription.utf8().data());
+
     return attributeSet;
 }
 
@@ -549,7 +553,11 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
     case SearchFieldRole:
         return ATK_ROLE_ENTRY;
     case StaticTextRole:
+#if ATK_CHECK_VERSION(2, 15, 2)
+        return ATK_ROLE_STATIC;
+#else
         return ATK_ROLE_TEXT;
+#endif
     case OutlineRole:
     case TreeRole:
         return ATK_ROLE_TREE;
@@ -605,7 +613,6 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
         return ATK_ROLE_TABLE;
     case ApplicationRole:
         return ATK_ROLE_APPLICATION;
-    case DocumentRegionRole:
     case RadioGroupRole:
     case SVGRootRole:
     case TabPanelRole:
@@ -722,6 +729,7 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
     case LandmarkContentInfoRole:
     case LandmarkMainRole:
     case LandmarkNavigationRole:
+    case LandmarkRegionRole:
     case LandmarkSearchRole:
         return ATK_ROLE_LANDMARK;
 #endif
@@ -733,8 +741,15 @@ static AtkRole atkRole(AccessibilityObject* coreObject)
     case DescriptionListDetailRole:
         return ATK_ROLE_DESCRIPTION_VALUE;
 #endif
-#if ATK_CHECK_VERSION(2, 15, 2)
     case InlineRole:
+#if ATK_CHECK_VERSION(2, 15, 4)
+        if (coreObject->isSubscriptStyleGroup())
+            return ATK_ROLE_SUBSCRIPT;
+        if (coreObject->isSuperscriptStyleGroup())
+            return ATK_ROLE_SUPERSCRIPT;
+#endif
+#if ATK_CHECK_VERSION(2, 15, 2)
+        return ATK_ROLE_STATIC;
     case SVGTextPathRole:
     case SVGTSpanRole:
         return ATK_ROLE_STATIC;

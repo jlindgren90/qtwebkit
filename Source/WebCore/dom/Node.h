@@ -263,6 +263,7 @@ public:
     WEBCORE_EXPORT Node* deprecatedShadowAncestorNode() const;
     ShadowRoot* containingShadowRoot() const;
     ShadowRoot* shadowRoot() const;
+    bool isUnclosedNode(const Node&) const;
 
 #if ENABLE(SHADOW_DOM)
     HTMLSlotElement* assignedSlot() const;
@@ -448,9 +449,9 @@ public:
     RenderBoxModelObject* renderBoxModelObject() const;
     
     // Wrapper for nodes that don't have a renderer, but still cache the style (like HTMLOptionElement).
-    RenderStyle* renderStyle() const;
+    const RenderStyle* renderStyle() const;
 
-    virtual RenderStyle* computedStyle(PseudoId pseudoElementSpecifier = NOPSEUDO);
+    virtual const RenderStyle* computedStyle(PseudoId pseudoElementSpecifier = NOPSEUDO);
 
     // -----------------------------------------------------------------------------
     // Notification of document structure changes (see ContainerNode.h for more notification methods)
@@ -790,6 +791,9 @@ inline void Node::setCustomElementIsResolved()
 }
 
 #endif
+
+Node* commonAncestor(Node&, Node&);
+Node* commonAncestorCrossingShadowBoundary(Node&, Node&);
 
 } // namespace WebCore
 

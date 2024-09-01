@@ -434,6 +434,7 @@ private:
         m_availableRecoveries.resize(0);
         
         m_interpreter.startExecuting();
+        m_interpreter.executeKnownEdgeTypes(m_node);
         
         switch (m_node->op()) {
         case DFG::Upsilon:
@@ -606,6 +607,9 @@ private:
         case GetByIdFlush:
             compileGetById(AccessType::Get);
             break;
+        case GetByIdWithThis:
+            compileGetByIdWithThis();
+            break;
         case In:
             compileIn();
             break;
@@ -613,6 +617,9 @@ private:
         case PutByIdDirect:
         case PutByIdFlush:
             compilePutById();
+            break;
+        case PutByIdWithThis:
+            compilePutByIdWithThis();
             break;
         case PutGetterById:
         case PutSetterById:
@@ -647,12 +654,19 @@ private:
             compileGetByVal();
             break;
         case GetMyArgumentByVal:
+        case GetMyArgumentByValOutOfBounds:
             compileGetMyArgumentByVal();
+            break;
+        case GetByValWithThis:
+            compileGetByValWithThis();
             break;
         case PutByVal:
         case PutByValAlias:
         case PutByValDirect:
             compilePutByVal();
+            break;
+        case PutByValWithThis:
+            compilePutByValWithThis();
             break;
         case ArrayPush:
             compileArrayPush();
@@ -842,6 +856,9 @@ private:
         case InvalidationPoint:
             compileInvalidationPoint();
             break;
+        case IsEmpty:
+            compileIsEmpty();
+            break;
         case IsUndefined:
             compileIsUndefined();
             break;
@@ -954,6 +971,7 @@ private:
             compileSetFunctionName();
             break;
         case StringReplace:
+        case StringReplaceRegExp:
             compileStringReplace();
             break;
         case GetRegExpObjectLastIndex:
@@ -1083,7 +1101,7 @@ private:
     
     void compileInt52Constant()
     {
-        int64_t value = m_node->asMachineInt();
+        int64_t value = m_node->asAnyInt();
         
         setInt52(m_out.constInt64(value << JSValue::int52ShiftAmount));
         setStrictInt52(m_out.constInt64(value));
@@ -1262,13 +1280,13 @@ private:
             setStrictInt52(m_out.signExt32To64(lowInt32(m_node->child1())));
             return;
             
-        case MachineIntUse:
+        case AnyIntUse:
             setStrictInt52(
                 jsValueToStrictInt52(
                     m_node->child1(), lowJSValue(m_node->child1(), ManualOperandSpeculation)));
             return;
             
-        case DoubleRepMachineIntUse:
+        case DoubleRepAnyIntUse:
             setStrictInt52(
                 doubleToStrictInt52(
                     m_node->child1(), lowDouble(m_node->child1())));
@@ -1442,6 +1460,7 @@ private:
 
     void compileCallObjectConstructor()
     {
+        JSGlobalObject* globalObject = m_graph.globalObjectFor(m_node->origin.semantic);
         LValue value = lowJSValue(m_node->child1());
 
         LBasicBlock isCellCase = m_out.newBlock();
@@ -1455,7 +1474,7 @@ private:
         m_out.branch(isObject(value), usually(continuation), rarely(slowCase));
 
         m_out.appendTo(slowCase, continuation);
-        ValueFromBlock slowResult = m_out.anchor(vmCall(m_out.int64, m_out.operation(operationToObject), m_callFrame, value));
+        ValueFromBlock slowResult = m_out.anchor(vmCall(m_out.int64, m_out.operation(operationObjectConstructor), m_callFrame, m_out.constIntPtr(globalObject), value));
         m_out.jump(continuation);
 
         m_out.appendTo(continuation, lastNext);
@@ -1539,8 +1558,8 @@ private:
         }
             
         case Int52RepUse: {
-            if (!abstractValue(m_node->child1()).couldBeType(SpecInt52)
-                && !abstractValue(m_node->child2()).couldBeType(SpecInt52)) {
+            if (!abstractValue(m_node->child1()).couldBeType(SpecInt52Only)
+                && !abstractValue(m_node->child2()).couldBeType(SpecInt52Only)) {
                 Int52Kind kind;
                 LValue left = lowWhicheverInt52(m_node->child1(), kind);
                 LValue right = lowInt52(m_node->child2(), kind);
@@ -1889,8 +1908,19 @@ private:
             LBasicBlock integerExponentIsSmallBlock = m_out.newBlock();
             LBasicBlock integerExponentPowBlock = m_out.newBlock();
             LBasicBlock doubleExponentPowBlockEntry = m_out.newBlock();
-            LBasicBlock nanExceptionExponentIsInfinity = m_out.newBlock();
             LBasicBlock nanExceptionBaseIsOne = m_out.newBlock();
+            LBasicBlock nanExceptionExponentIsInfinity = m_out.newBlock();
+            LBasicBlock testExponentIsOneHalf = m_out.newBlock();
+            LBasicBlock handleBaseZeroExponentIsOneHalf = m_out.newBlock();
+            LBasicBlock handleInfinityForExponentIsOneHalf = m_out.newBlock();
+            LBasicBlock exponentIsOneHalfNormal = m_out.newBlock();
+            LBasicBlock exponentIsOneHalfInfinity = m_out.newBlock();
+            LBasicBlock testExponentIsNegativeOneHalf = m_out.newBlock();
+            LBasicBlock testBaseZeroExponentIsNegativeOneHalf = m_out.newBlock();
+            LBasicBlock handleBaseZeroExponentIsNegativeOneHalf = m_out.newBlock();
+            LBasicBlock handleInfinityForExponentIsNegativeOneHalf = m_out.newBlock();
+            LBasicBlock exponentIsNegativeOneHalfNormal = m_out.newBlock();
+            LBasicBlock exponentIsNegativeOneHalfInfinity = m_out.newBlock();
             LBasicBlock powBlock = m_out.newBlock();
             LBasicBlock nanExceptionResultIsNaN = m_out.newBlock();
             LBasicBlock continuation = m_out.newBlock();
@@ -1901,33 +1931,95 @@ private:
             m_out.branch(exponentIsInteger, unsure(integerExponentIsSmallBlock), unsure(doubleExponentPowBlockEntry));
 
             LBasicBlock lastNext = m_out.appendTo(integerExponentIsSmallBlock, integerExponentPowBlock);
-            LValue integerExponentBelow1000 = m_out.below(integerExponent, m_out.constInt32(1000));
-            m_out.branch(integerExponentBelow1000, usually(integerExponentPowBlock), rarely(doubleExponentPowBlockEntry));
+            LValue integerExponentBelowMax = m_out.belowOrEqual(integerExponent, m_out.constInt32(maxExponentForIntegerMathPow));
+            m_out.branch(integerExponentBelowMax, usually(integerExponentPowBlock), rarely(doubleExponentPowBlockEntry));
 
             m_out.appendTo(integerExponentPowBlock, doubleExponentPowBlockEntry);
             ValueFromBlock powDoubleIntResult = m_out.anchor(m_out.doublePowi(base, integerExponent));
             m_out.jump(continuation);
 
             // If y is NaN, the result is NaN.
-            m_out.appendTo(doubleExponentPowBlockEntry, nanExceptionExponentIsInfinity);
+            m_out.appendTo(doubleExponentPowBlockEntry, nanExceptionBaseIsOne);
             LValue exponentIsNaN;
             if (provenType(m_node->child2()) & SpecDoubleNaN)
                 exponentIsNaN = m_out.doubleNotEqualOrUnordered(exponent, exponent);
             else
                 exponentIsNaN = m_out.booleanFalse;
-            m_out.branch(exponentIsNaN, rarely(nanExceptionResultIsNaN), usually(nanExceptionExponentIsInfinity));
+            m_out.branch(exponentIsNaN, rarely(nanExceptionResultIsNaN), usually(nanExceptionBaseIsOne));
 
             // If abs(x) is 1 and y is +infinity, the result is NaN.
             // If abs(x) is 1 and y is -infinity, the result is NaN.
-            m_out.appendTo(nanExceptionExponentIsInfinity, nanExceptionBaseIsOne);
-            LValue absoluteExponent = m_out.doubleAbs(exponent);
-            LValue absoluteExponentIsInfinity = m_out.doubleEqual(absoluteExponent, m_out.constDouble(std::numeric_limits<double>::infinity()));
-            m_out.branch(absoluteExponentIsInfinity, rarely(nanExceptionBaseIsOne), usually(powBlock));
 
-            m_out.appendTo(nanExceptionBaseIsOne, powBlock);
+            //     Test if base == 1.
+            m_out.appendTo(nanExceptionBaseIsOne, nanExceptionExponentIsInfinity);
             LValue absoluteBase = m_out.doubleAbs(base);
             LValue absoluteBaseIsOne = m_out.doubleEqual(absoluteBase, m_out.constDouble(1));
-            m_out.branch(absoluteBaseIsOne, unsure(nanExceptionResultIsNaN), unsure(powBlock));
+            m_out.branch(absoluteBaseIsOne, rarely(nanExceptionExponentIsInfinity), usually(testExponentIsOneHalf));
+
+            //     Test if abs(y) == Infinity.
+            m_out.appendTo(nanExceptionExponentIsInfinity, testExponentIsOneHalf);
+            LValue absoluteExponent = m_out.doubleAbs(exponent);
+            LValue absoluteExponentIsInfinity = m_out.doubleEqual(absoluteExponent, m_out.constDouble(std::numeric_limits<double>::infinity()));
+            m_out.branch(absoluteExponentIsInfinity, rarely(nanExceptionResultIsNaN), usually(testExponentIsOneHalf));
+
+            // If y == 0.5 or y == -0.5, handle it through SQRT.
+            // We have be carefuly with -0 and -Infinity.
+
+            //     Test if y == 0.5
+            m_out.appendTo(testExponentIsOneHalf, handleBaseZeroExponentIsOneHalf);
+            LValue exponentIsOneHalf = m_out.doubleEqual(exponent, m_out.constDouble(0.5));
+            m_out.branch(exponentIsOneHalf, rarely(handleBaseZeroExponentIsOneHalf), usually(testExponentIsNegativeOneHalf));
+
+            //     Handle x == -0.
+            m_out.appendTo(handleBaseZeroExponentIsOneHalf, handleInfinityForExponentIsOneHalf);
+            LValue baseIsZeroExponentIsOneHalf = m_out.doubleEqual(base, m_out.doubleZero);
+            ValueFromBlock zeroResultExponentIsOneHalf = m_out.anchor(m_out.doubleZero);
+            m_out.branch(baseIsZeroExponentIsOneHalf, rarely(continuation), usually(handleInfinityForExponentIsOneHalf));
+
+            //     Test if abs(x) == Infinity.
+            m_out.appendTo(handleInfinityForExponentIsOneHalf, exponentIsOneHalfNormal);
+            LValue absoluteBaseIsInfinityOneHalf = m_out.doubleEqual(absoluteBase, m_out.constDouble(std::numeric_limits<double>::infinity()));
+            m_out.branch(absoluteBaseIsInfinityOneHalf, rarely(exponentIsOneHalfInfinity), usually(exponentIsOneHalfNormal));
+
+            //     The exponent is 0.5, the base is finite or NaN, we can use SQRT.
+            m_out.appendTo(exponentIsOneHalfNormal, exponentIsOneHalfInfinity);
+            ValueFromBlock sqrtResult = m_out.anchor(m_out.doubleSqrt(base));
+            m_out.jump(continuation);
+
+            //     The exponent is 0.5, the base is infinite, the result is always infinite.
+            m_out.appendTo(exponentIsOneHalfInfinity, testExponentIsNegativeOneHalf);
+            ValueFromBlock sqrtInfinityResult = m_out.anchor(m_out.constDouble(std::numeric_limits<double>::infinity()));
+            m_out.jump(continuation);
+
+            //     Test if y == -0.5
+            m_out.appendTo(testExponentIsNegativeOneHalf, testBaseZeroExponentIsNegativeOneHalf);
+            LValue exponentIsNegativeOneHalf = m_out.doubleEqual(exponent, m_out.constDouble(-0.5));
+            m_out.branch(exponentIsNegativeOneHalf, rarely(testBaseZeroExponentIsNegativeOneHalf), usually(powBlock));
+
+            //     Handle x == -0.
+            m_out.appendTo(testBaseZeroExponentIsNegativeOneHalf, handleBaseZeroExponentIsNegativeOneHalf);
+            LValue baseIsZeroExponentIsNegativeOneHalf = m_out.doubleEqual(base, m_out.doubleZero);
+            m_out.branch(baseIsZeroExponentIsNegativeOneHalf, rarely(handleBaseZeroExponentIsNegativeOneHalf), usually(handleInfinityForExponentIsNegativeOneHalf));
+
+            m_out.appendTo(handleBaseZeroExponentIsNegativeOneHalf, handleInfinityForExponentIsNegativeOneHalf);
+            ValueFromBlock oneOverSqrtZeroResult = m_out.anchor(m_out.constDouble(std::numeric_limits<double>::infinity()));
+            m_out.jump(continuation);
+
+            //     Test if abs(x) == Infinity.
+            m_out.appendTo(handleInfinityForExponentIsNegativeOneHalf, exponentIsNegativeOneHalfNormal);
+            LValue absoluteBaseIsInfinityNegativeOneHalf = m_out.doubleEqual(absoluteBase, m_out.constDouble(std::numeric_limits<double>::infinity()));
+            m_out.branch(absoluteBaseIsInfinityNegativeOneHalf, rarely(exponentIsNegativeOneHalfInfinity), usually(exponentIsNegativeOneHalfNormal));
+
+            //     The exponent is -0.5, the base is finite or NaN, we can use 1/SQRT.
+            m_out.appendTo(exponentIsNegativeOneHalfNormal, exponentIsNegativeOneHalfInfinity);
+            LValue sqrtBase = m_out.doubleSqrt(base);
+            ValueFromBlock oneOverSqrtResult = m_out.anchor(m_out.div(m_out.constDouble(1.), sqrtBase));
+            m_out.jump(continuation);
+
+            //     The exponent is -0.5, the base is infinite, the result is always zero.
+            m_out.appendTo(exponentIsNegativeOneHalfInfinity, powBlock);
+            ValueFromBlock oneOverSqrtInfinityResult = m_out.anchor(m_out.doubleZero);
+            m_out.jump(continuation);
 
             m_out.appendTo(powBlock, nanExceptionResultIsNaN);
             ValueFromBlock powResult = m_out.anchor(m_out.doublePow(base, exponent));
@@ -1938,7 +2030,7 @@ private:
             m_out.jump(continuation);
 
             m_out.appendTo(continuation, lastNext);
-            setDouble(m_out.phi(m_out.doubleType, powDoubleIntResult, powResult, pureNan));
+            setDouble(m_out.phi(m_out.doubleType, powDoubleIntResult, zeroResultExponentIsOneHalf, sqrtResult, sqrtInfinityResult, oneOverSqrtZeroResult, oneOverSqrtResult, oneOverSqrtInfinityResult, powResult, pureNan));
         }
     }
 
@@ -2086,7 +2178,7 @@ private:
         }
             
         case Int52RepUse: {
-            if (!abstractValue(m_node->child1()).couldBeType(SpecInt52)) {
+            if (!abstractValue(m_node->child1()).couldBeType(SpecInt52Only)) {
                 Int52Kind kind;
                 LValue value = lowWhicheverInt52(m_node->child1(), kind);
                 LValue result = m_out.neg(value);
@@ -2405,6 +2497,45 @@ private:
             DFG_CRASH(m_graph, m_node, "Bad use kind");
             return;
         }
+    }
+
+    void compileGetByIdWithThis()
+    {
+        LValue base = lowJSValue(m_node->child1());
+        LValue thisValue = lowJSValue(m_node->child2());
+        LValue result = vmCall(m_out.int64, m_out.operation(operationGetByIdWithThis), m_callFrame, base, thisValue, m_out.constIntPtr(m_graph.identifiers()[m_node->identifierNumber()]));
+        setJSValue(result);
+    }
+
+    void compileGetByValWithThis()
+    {
+        LValue base = lowJSValue(m_node->child1());
+        LValue thisValue = lowJSValue(m_node->child2());
+        LValue subscript = lowJSValue(m_node->child3());
+
+        LValue result = vmCall(m_out.int64, m_out.operation(operationGetByValWithThis), m_callFrame, base, thisValue, subscript);
+        setJSValue(result);
+    }
+
+    void compilePutByIdWithThis()
+    {
+        LValue base = lowJSValue(m_node->child1());
+        LValue thisValue = lowJSValue(m_node->child2());
+        LValue value = lowJSValue(m_node->child3());
+
+        vmCall(m_out.voidType, m_out.operation(m_graph.isStrictModeFor(m_node->origin.semantic) ? operationPutByIdWithThisStrict : operationPutByIdWithThis),
+            m_callFrame, base, thisValue, value, m_out.constIntPtr(m_graph.identifiers()[m_node->identifierNumber()]));
+    }
+
+    void compilePutByValWithThis()
+    {
+        LValue base = lowJSValue(m_graph.varArgChild(m_node, 0));
+        LValue thisValue = lowJSValue(m_graph.varArgChild(m_node, 1));
+        LValue property = lowJSValue(m_graph.varArgChild(m_node, 2));
+        LValue value = lowJSValue(m_graph.varArgChild(m_node, 3));
+
+        vmCall(m_out.voidType, m_out.operation(m_graph.isStrictModeFor(m_node->origin.semantic) ? operationPutByValWithThisStrict : operationPutByValWithThis),
+            m_callFrame, base, thisValue, property, value);
     }
     
     void compilePutById()
@@ -2859,7 +2990,7 @@ private:
                         return;
                     }
                     
-                    if (m_node->shouldSpeculateMachineInt()) {
+                    if (m_node->shouldSpeculateAnyInt()) {
                         setStrictInt52(m_out.zeroExt(result, m_out.int64));
                         return;
                     }
@@ -2909,26 +3040,45 @@ private:
             limit = m_out.sub(m_out.load32(payloadFor(argumentCountRegister)), m_out.int32One);
         }
         
-        speculate(ExoticObjectMode, noValue(), 0, m_out.aboveOrEqual(index, limit));
+        LValue isOutOfBounds = m_out.aboveOrEqual(index, limit);
+        LBasicBlock continuation = nullptr;
+        LBasicBlock lastNext = nullptr;
+        ValueFromBlock slowResult;
+        if (m_node->op() == GetMyArgumentByValOutOfBounds) {
+            LBasicBlock normalCase = m_out.newBlock();
+            continuation = m_out.newBlock();
+            
+            slowResult = m_out.anchor(m_out.constInt64(JSValue::encode(jsUndefined())));
+            m_out.branch(isOutOfBounds, unsure(continuation), unsure(normalCase));
+            
+            lastNext = m_out.appendTo(normalCase, continuation);
+        } else
+            speculate(ExoticObjectMode, noValue(), 0, isOutOfBounds);
         
         TypedPointer base;
         if (inlineCallFrame) {
-            if (inlineCallFrame->arguments.size() <= 1) {
-                // We should have already exited due to the bounds check, above. Just tell the
-                // compiler that anything dominated by this instruction is not reachable, so
-                // that we don't waste time generating such code. This will also plant some
-                // kind of crashing instruction so that if by some fluke the bounds check didn't
-                // work, we'll crash in an easy-to-see way.
-                didAlreadyTerminate();
-                return;
-            }
-            base = addressFor(inlineCallFrame->arguments[1].virtualRegister());
+            if (inlineCallFrame->arguments.size() > 1)
+                base = addressFor(inlineCallFrame->arguments[1].virtualRegister());
         } else
             base = addressFor(virtualRegisterForArgument(1));
         
-        LValue pointer = m_out.baseIndex(
-            base.value(), m_out.zeroExt(index, m_out.intPtr), ScaleEight);
-        setJSValue(m_out.load64(TypedPointer(m_heaps.variables.atAnyIndex(), pointer)));
+        LValue result;
+        if (base) {
+            LValue pointer = m_out.baseIndex(
+                base.value(), m_out.zeroExt(index, m_out.intPtr), ScaleEight);
+            result = m_out.load64(TypedPointer(m_heaps.variables.atAnyIndex(), pointer));
+        } else
+            result = m_out.constInt64(JSValue::encode(jsUndefined()));
+        
+        if (m_node->op() == GetMyArgumentByValOutOfBounds) {
+            ValueFromBlock normalResult = m_out.anchor(result);
+            m_out.jump(continuation);
+            
+            m_out.appendTo(continuation, lastNext);
+            result = m_out.phi(Int64, slowResult, normalResult);
+        }
+        
+        setJSValue(result);
     }
     
     void compilePutByVal()
@@ -2981,7 +3131,7 @@ private:
                 LValue value = lowJSValue(child3, ManualOperandSpeculation);
                 
                 if (m_node->arrayMode().type() == Array::Int32)
-                    FTL_TYPE_CHECK(jsValueValue(value), child3, SpecInt32, isNotInt32(value));
+                    FTL_TYPE_CHECK(jsValueValue(value), child3, SpecInt32Only, isNotInt32(value));
                 
                 TypedPointer elementPointer = m_out.baseIndex(
                     m_node->arrayMode().type() == Array::Int32 ?
@@ -3231,7 +3381,7 @@ private:
                 value = lowJSValue(m_node->child2(), ManualOperandSpeculation);
                 if (m_node->arrayMode().type() == Array::Int32) {
                     FTL_TYPE_CHECK(
-                        jsValueValue(value), m_node->child2(), SpecInt32, isNotInt32(value));
+                        jsValueValue(value), m_node->child2(), SpecInt32Only, isNotInt32(value));
                 }
                 storeType = Output::Store64;
             } else {
@@ -3846,7 +3996,7 @@ private:
         
         switch (m_node->child1().useKind()) {
         case Int32Use: {
-            Structure* structure = globalObject->typedArrayStructure(type);
+            Structure* structure = globalObject->typedArrayStructureConcurrently(type);
 
             LValue size = lowInt32(m_node->child1());
 
@@ -3907,7 +4057,7 @@ private:
 
             LValue result = vmCall(
                 m_out.intPtr, m_out.operation(operationNewTypedArrayWithOneArgumentForType(type)),
-                m_callFrame, weakPointer(globalObject->typedArrayStructure(type)), argument);
+                m_callFrame, weakPointer(globalObject->typedArrayStructureConcurrently(type)), argument);
 
             setJSValue(result);
             return;
@@ -4203,7 +4353,8 @@ private:
             results.append(m_out.anchor(m_out.intPtrZero));
         } else {
             JSGlobalObject* globalObject = m_graph.globalObjectFor(m_node->origin.semantic);
-                
+            
+            bool prototypeChainIsSane = false;
             if (globalObject->stringPrototypeChainIsSane()) {
                 // FIXME: This could be captured using a Speculation mode that means
                 // "out-of-bounds loads return a trivial value", something like
@@ -4213,6 +4364,9 @@ private:
                 m_graph.watchpoints().addLazily(globalObject->stringPrototype()->structure()->transitionWatchpointSet());
                 m_graph.watchpoints().addLazily(globalObject->objectPrototype()->structure()->transitionWatchpointSet());
                 
+                prototypeChainIsSane = globalObject->stringPrototypeChainIsSane();
+            }
+            if (prototypeChainIsSane) {
                 LBasicBlock negativeIndex = m_out.newBlock();
                     
                 results.append(m_out.anchor(m_out.constInt64(JSValue::encode(jsUndefined()))));
@@ -4796,6 +4950,8 @@ private:
             [&] (LValue left, LValue right) {
                 return m_out.doubleLessThan(left, right);
             },
+            operationCompareStringImplLess,
+            operationCompareStringLess,
             operationCompareLess);
     }
     
@@ -4808,6 +4964,8 @@ private:
             [&] (LValue left, LValue right) {
                 return m_out.doubleLessThanOrEqual(left, right);
             },
+            operationCompareStringImplLessEq,
+            operationCompareStringLessEq,
             operationCompareLessEq);
     }
     
@@ -4820,6 +4978,8 @@ private:
             [&] (LValue left, LValue right) {
                 return m_out.doubleGreaterThan(left, right);
             },
+            operationCompareStringImplGreater,
+            operationCompareStringGreater,
             operationCompareGreater);
     }
     
@@ -4832,6 +4992,8 @@ private:
             [&] (LValue left, LValue right) {
                 return m_out.doubleGreaterThanOrEqual(left, right);
             },
+            operationCompareStringImplGreaterEq,
+            operationCompareStringGreaterEq,
             operationCompareGreaterEq);
     }
     
@@ -5728,6 +5890,11 @@ private:
         // When this abruptly terminates, it could read any heap location.
         patchpoint->effects.reads = HeapRange::top();
     }
+
+    void compileIsEmpty()
+    {
+        setBoolean(m_out.isZero64(lowJSValue(m_node->child1())));
+    }
     
     void compileIsUndefined()
     {
@@ -5985,10 +6152,16 @@ private:
                 patchpoint->append(m_tagTypeNumber, ValueRep::reg(GPRInfo::tagTypeNumberRegister));
                 patchpoint->clobber(RegisterSet::macroScratchRegisters());
 
+                RefPtr<PatchpointExceptionHandle> exceptionHandle = preparePatchpointForExceptions(patchpoint);
+
                 State* state = &m_ftlState;
                 patchpoint->setGenerator(
                     [=] (CCallHelpers& jit, const StackmapGenerationParams& params) {
                         AllowMacroScratchRegisterUsage allowScratch(jit);
+
+                        // This is the direct exit target for operation calls. We don't need a JS exceptionHandle because we don't
+                        // cache Proxy objects.
+                        Box<CCallHelpers::JumpList> exceptions = exceptionHandle->scheduleExitCreation(params)->jumps(jit);
 
                         GPRReg baseGPR = params[1].gpr();
                         GPRReg resultGPR = params[0].gpr();
@@ -6013,7 +6186,7 @@ private:
                                 CCallHelpers::Label slowPathBegin = jit.label();
                                 CCallHelpers::Call slowPathCall = callOperation(
                                     *state, params.unavailableRegisters(), jit,
-                                    node->origin.semantic, nullptr, operationInOptimize,
+                                    node->origin.semantic, exceptions.get(), operationInOptimize,
                                     resultGPR, CCallHelpers::TrustedImmPtr(stubInfo), baseGPR,
                                     CCallHelpers::TrustedImmPtr(str)).call();
                                 jit.jump().linkTo(done, &jit);
@@ -6892,10 +7065,16 @@ private:
             setJSValue(result);
             return;
         }
-        
+
+        LValue search;
+        if (m_node->child2().useKind() == StringUse)
+            search = lowString(m_node->child2());
+        else
+            search = lowJSValue(m_node->child2());
+
         LValue result = vmCall(
             Int64, m_out.operation(operationStringProtoFuncReplaceGeneric), m_callFrame,
-            lowJSValue(m_node->child1()), lowJSValue(m_node->child2()),
+            lowJSValue(m_node->child1()), search,
             lowJSValue(m_node->child3()));
 
         setJSValue(result);
@@ -7527,7 +7706,9 @@ private:
     template<typename IntFunctor, typename DoubleFunctor>
     void compare(
         const IntFunctor& intFunctor, const DoubleFunctor& doubleFunctor,
-        S_JITOperation_EJJ helperFunction)
+        C_JITOperation_TT stringIdentFunction,
+        C_JITOperation_B_EJssJss stringFunction,
+        S_JITOperation_EJJ fallbackFunction)
     {
         if (m_node->isBinaryUseKind(Int32Use)) {
             LValue left = lowInt32(m_node->child1());
@@ -7550,9 +7731,29 @@ private:
             setBoolean(doubleFunctor(left, right));
             return;
         }
-        
+
+        if (m_node->isBinaryUseKind(StringIdentUse)) {
+            LValue left = lowStringIdent(m_node->child1());
+            LValue right = lowStringIdent(m_node->child2());
+            setBoolean(m_out.callWithoutSideEffects(m_out.boolean, stringIdentFunction, left, right));
+            return;
+        }
+
+        if (m_node->isBinaryUseKind(StringUse)) {
+            LValue left = lowCell(m_node->child1());
+            LValue right = lowCell(m_node->child2());
+            speculateString(m_node->child1(), left);
+            speculateString(m_node->child2(), right);
+
+            LValue result = vmCall(
+                m_out.boolean, m_out.operation(stringFunction),
+                m_callFrame, left, right);
+            setBoolean(result);
+            return;
+        }
+
         if (m_node->isBinaryUseKind(UntypedUse)) {
-            nonSpeculativeCompare(intFunctor, helperFunction);
+            nonSpeculativeCompare(intFunctor, fallbackFunction);
             return;
         }
         
@@ -9255,13 +9456,13 @@ private:
         if (isValid(value)) {
             LValue boxedResult = value.value();
             FTL_TYPE_CHECK(
-                jsValueValue(boxedResult), edge, SpecInt32, isNotInt32(boxedResult));
+                jsValueValue(boxedResult), edge, SpecInt32Only, isNotInt32(boxedResult));
             LValue result = unboxInt32(boxedResult);
             setInt32(edge.node(), result);
             return result;
         }
 
-        DFG_ASSERT(m_graph, m_node, !(provenType(edge) & SpecInt32));
+        DFG_ASSERT(m_graph, m_node, !(provenType(edge) & SpecInt32Only));
         terminate(Uncountable);
         return m_out.int32Zero;
     }
@@ -9510,7 +9711,7 @@ private:
     {
         LValue result = m_out.castToInt32(value);
         FTL_TYPE_CHECK(
-            noValue(), edge, SpecInt32,
+            noValue(), edge, SpecInt32Only,
             m_out.notEqual(m_out.signExt32To64(result), value));
         setInt32(edge.node(), result);
         return result;
@@ -9560,13 +9761,13 @@ private:
     
     LValue isInt32(LValue jsValue, SpeculatedType type = SpecFullTop)
     {
-        if (LValue proven = isProvenValue(type, SpecInt32))
+        if (LValue proven = isProvenValue(type, SpecInt32Only))
             return proven;
         return m_out.aboveOrEqual(jsValue, m_tagTypeNumber);
     }
     LValue isNotInt32(LValue jsValue, SpeculatedType type = SpecFullTop)
     {
-        if (LValue proven = isProvenValue(type, ~SpecInt32))
+        if (LValue proven = isProvenValue(type, ~SpecInt32Only))
             return proven;
         return m_out.below(jsValue, m_tagTypeNumber);
     }
@@ -9608,9 +9809,9 @@ private:
         LBasicBlock continuation = m_out.newBlock();
             
         LValue isNotInt32;
-        if (!m_interpreter.needsTypeCheck(edge, SpecInt32))
+        if (!m_interpreter.needsTypeCheck(edge, SpecInt32Only))
             isNotInt32 = m_out.booleanFalse;
-        else if (!m_interpreter.needsTypeCheck(edge, ~SpecInt32))
+        else if (!m_interpreter.needsTypeCheck(edge, ~SpecInt32Only))
             isNotInt32 = m_out.booleanTrue;
         else
             isNotInt32 = this->isNotInt32(boxedValue);
@@ -9627,7 +9828,7 @@ private:
         LValue possibleResult = m_out.call(
             m_out.int64, m_out.operation(operationConvertBoxedDoubleToInt52), boxedValue);
         FTL_TYPE_CHECK(
-            jsValueValue(boxedValue), edge, SpecInt32 | SpecInt52AsDouble,
+            jsValueValue(boxedValue), edge, SpecInt32Only | SpecAnyIntAsDouble,
             m_out.equal(possibleResult, m_out.constInt64(JSValue::notInt52)));
             
         ValueFromBlock doubleToInt52 = m_out.anchor(possibleResult);
@@ -9643,7 +9844,7 @@ private:
         LValue possibleResult = m_out.call(
             m_out.int64, m_out.operation(operationConvertDoubleToInt52), value);
         FTL_TYPE_CHECK_WITH_EXIT_KIND(Int52Overflow,
-            doubleValue(value), edge, SpecInt52AsDouble,
+            doubleValue(value), edge, SpecAnyIntAsDouble,
             m_out.equal(possibleResult, m_out.constInt64(JSValue::notInt52)));
         
         return possibleResult;
@@ -9790,8 +9991,8 @@ private:
         case KnownCellUse:
             ASSERT(!m_interpreter.needsTypeCheck(edge));
             break;
-        case MachineIntUse:
-            speculateMachineInt(edge);
+        case AnyIntUse:
+            speculateAnyInt(edge);
             break;
         case ObjectUse:
             speculateObject(edge);
@@ -9835,8 +10036,8 @@ private:
         case DoubleRepRealUse:
             speculateDoubleRepReal(edge);
             break;
-        case DoubleRepMachineIntUse:
-            speculateDoubleRepMachineInt(edge);
+        case DoubleRepAnyIntUse:
+            speculateDoubleRepAnyInt(edge);
             break;
         case BooleanUse:
             speculateBoolean(edge);
@@ -9889,7 +10090,7 @@ private:
         m_out.appendTo(continuation, lastNext);
     }
     
-    void speculateMachineInt(Edge edge)
+    void speculateAnyInt(Edge edge)
     {
         if (!m_interpreter.needsTypeCheck(edge))
             return;
@@ -10287,7 +10488,7 @@ private:
             m_out.doubleNotEqualOrUnordered(value, value));
     }
     
-    void speculateDoubleRepMachineInt(Edge edge)
+    void speculateDoubleRepAnyInt(Edge edge)
     {
         if (!m_interpreter.needsTypeCheck(edge))
             return;

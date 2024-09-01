@@ -50,6 +50,7 @@ class Identifier;
 class VM;
 class ProgramNode;
 class SourceCode;
+class SyntaxChecker;
 
 // Macros to make the more common TreeBuilder types a little less verbose
 #define TreeStatement typename TreeBuilder::Statement
@@ -213,7 +214,6 @@ public:
         , m_lexicalVariables(WTFMove(other.m_lexicalVariables))
         , m_usedVariables(WTFMove(other.m_usedVariables))
         , m_closedVariableCandidates(WTFMove(other.m_closedVariableCandidates))
-        , m_writtenVariables(WTFMove(other.m_writtenVariables))
         , m_moduleScopeData(WTFMove(other.m_moduleScopeData))
         , m_functionDeclarations(WTFMove(other.m_functionDeclarations))
     {
@@ -298,7 +298,7 @@ public:
     }
     bool isLexicalScope() { return m_isLexicalScope; }
 
-    const IdentifierSet& closedVariableCandidates() const { return m_closedVariableCandidates; }
+    const HashSet<UniquedStringImpl*>& closedVariableCandidates() const { return m_closedVariableCandidates; }
     VariableEnvironment& declaredVariables() { return m_declaredVariables; }
     VariableEnvironment& lexicalVariables() { return m_lexicalVariables; }
     VariableEnvironment& finalizeLexicalEnvironment() 
@@ -324,16 +324,15 @@ public:
         // lexical scope off the stack, we should find which variables are truly captured, and which
         // variable still may be captured in a parent scope.
         if (m_lexicalVariables.size() && m_closedVariableCandidates.size()) {
-            auto end = m_closedVariableCandidates.end();
-            for (auto iter = m_closedVariableCandidates.begin(); iter != end; ++iter)
-                m_lexicalVariables.markVariableAsCapturedIfDefined(iter->get());
+            for (UniquedStringImpl* impl : m_closedVariableCandidates)
+                m_lexicalVariables.markVariableAsCapturedIfDefined(impl);
         }
 
         // We can now purge values from the captured candidates because they're captured in this scope.
         {
             for (auto entry : m_lexicalVariables) {
                 if (entry.value.isCaptured())
-                    m_closedVariableCandidates.remove(entry.key);
+                    m_closedVariableCandidates.remove(entry.key.get());
             }
         }
     }
@@ -465,12 +464,6 @@ public:
         return m_declaredParameters.contains(ident.get()) || hasDeclaredVariable(ident);
     }
     
-    void declareWrite(const Identifier* ident)
-    {
-        ASSERT(m_strictMode);
-        m_writtenVariables.add(ident->impl());
-    }
-
     void preventAllVariableDeclarations()
     {
         m_allowsVarDeclarations = false; 
@@ -509,6 +502,14 @@ public:
         }
         return false;
     }
+    template <typename Func>
+    void forEachUsedVariable(const Func& func)
+    {
+        for (const UniquedStringImplPtrSet& set : m_usedVariables) {
+            for (UniquedStringImpl* impl : set)
+                func(impl);
+        }
+    }
     void useVariable(const Identifier* ident, bool isEval)
     {
         useVariable(ident->impl(), isEval);
@@ -529,11 +530,11 @@ public:
     bool isArrowFunctionBoundary() { return m_isArrowFunctionBoundary; }
     bool isArrowFunction() { return m_isArrowFunction; }
 
-    bool hasDirectSuper() { return m_hasDirectSuper; }
-    void setHasDirectSuper() { m_hasDirectSuper = true; }
+    bool hasDirectSuper() const { return m_hasDirectSuper; }
+    bool setHasDirectSuper() { return std::exchange(m_hasDirectSuper, true); }
 
-    bool needsSuperBinding() { return m_needsSuperBinding; }
-    void setNeedsSuperBinding() { m_needsSuperBinding = true; }
+    bool needsSuperBinding() const { return m_needsSuperBinding; }
+    bool setNeedsSuperBinding() { return std::exchange(m_needsSuperBinding, true); }
     
     void setEvalContextType(EvalContextType evalContextType) { m_evalContextType = evalContextType; }
     EvalContextType evalContextType() { return m_evalContextType; }
@@ -594,17 +595,9 @@ public:
         // Propagate closed variable candidates downwards within the same function.
         // Cross function captures will be realized via m_usedVariables propagation.
         if (shouldTrackClosedVariables && !nestedScope->m_isFunctionBoundary && nestedScope->m_closedVariableCandidates.size()) {
-            IdentifierSet::iterator end = nestedScope->m_closedVariableCandidates.end();
-            IdentifierSet::iterator begin = nestedScope->m_closedVariableCandidates.begin();
+            auto end = nestedScope->m_closedVariableCandidates.end();
+            auto begin = nestedScope->m_closedVariableCandidates.begin();
             m_closedVariableCandidates.add(begin, end);
-        }
-
-        if (nestedScope->m_writtenVariables.size()) {
-            for (UniquedStringImpl* impl : nestedScope->m_writtenVariables) {
-                if (nestedScope->m_declaredVariables.contains(impl) || nestedScope->m_lexicalVariables.contains(impl))
-                    continue;
-                m_writtenVariables.add(impl);
-            }
         }
     }
     
@@ -632,32 +625,18 @@ public:
         }
     }
 
-    void getCapturedVars(IdentifierSet& capturedVariables, bool& modifiedParameter, bool& modifiedArguments)
+    void getCapturedVars(IdentifierSet& capturedVariables)
     {
         if (m_needsFullActivation || m_usesEval) {
-            modifiedParameter = true;
             for (auto& entry : m_declaredVariables)
                 capturedVariables.add(entry.key);
             return;
         }
-        for (IdentifierSet::iterator ptr = m_closedVariableCandidates.begin(); ptr != m_closedVariableCandidates.end(); ++ptr) {
+        for (UniquedStringImpl* impl : m_closedVariableCandidates) {
             // We refer to m_declaredVariables here directly instead of a hasDeclaredVariable because we want to mark the callee as captured.
-            if (!m_declaredVariables.contains(*ptr)) 
+            if (!m_declaredVariables.contains(impl)) 
                 continue;
-            capturedVariables.add(*ptr);
-        }
-        modifiedParameter = false;
-        if (shadowsArguments())
-            modifiedArguments = true;
-        if (m_declaredParameters.size()) {
-            for (UniquedStringImpl* impl : m_writtenVariables) {
-                if (impl == m_vm->propertyNames->arguments.impl())
-                    modifiedArguments = true;
-                if (!m_declaredParameters.contains(impl))
-                    continue;
-                modifiedParameter = true;
-                break;
-            }
+            capturedVariables.add(impl);
         }
     }
     void setStrictMode() { m_strictMode = true; }
@@ -665,25 +644,36 @@ public:
     bool isValidStrictMode() const { return m_isValidStrictMode; }
     bool shadowsArguments() const { return m_shadowsArguments; }
 
-    void copyCapturedVariablesToVector(const UniquedStringImplPtrSet& capturedVariables, Vector<RefPtr<UniquedStringImpl>>& vector)
+    void copyCapturedVariablesToVector(const UniquedStringImplPtrSet& usedVariables, Vector<UniquedStringImpl*, 8>& vector)
     {
-        for (UniquedStringImpl* impl : capturedVariables) {
+        for (UniquedStringImpl* impl : usedVariables) {
             if (m_declaredVariables.contains(impl) || m_lexicalVariables.contains(impl))
                 continue;
             vector.append(impl);
         }
     }
 
-    void fillParametersForSourceProviderCache(SourceProviderCacheItemCreationParameters& parameters)
+    void fillParametersForSourceProviderCache(SourceProviderCacheItemCreationParameters& parameters, const UniquedStringImplPtrSet& capturesFromParameterExpressions)
     {
         ASSERT(m_isFunction);
         parameters.usesEval = m_usesEval;
         parameters.strictMode = m_strictMode;
         parameters.needsFullActivation = m_needsFullActivation;
         parameters.innerArrowFunctionFeatures = m_innerArrowFunctionFeatures;
-        copyCapturedVariablesToVector(m_writtenVariables, parameters.writtenVariables);
         for (const UniquedStringImplPtrSet& set : m_usedVariables)
             copyCapturedVariablesToVector(set, parameters.usedVariables);
+
+        // FIXME: https://bugs.webkit.org/show_bug.cgi?id=156962
+        // We add these unconditionally because we currently don't keep a separate
+        // declaration scope for a function's parameters and its var/let/const declarations.
+        // This is somewhat unfortunate and we should refactor to do this at some point
+        // because parameters logically form a parent scope to var/let/const variables.
+        // But because we don't do this, we must grab capture candidates from a parameter
+        // list before we parse the body of a function because the body's declarations
+        // might make us believe something isn't actually a capture candidate when it really
+        // is.
+        for (UniquedStringImpl* impl : capturesFromParameterExpressions)
+            parameters.usedVariables.append(impl);
     }
 
     void restoreFromSourceProviderCache(const SourceProviderCacheItem* info)
@@ -696,8 +686,6 @@ public:
         UniquedStringImplPtrSet& destSet = m_usedVariables.last();
         for (unsigned i = 0; i < info->usedVariablesCount; ++i)
             destSet.add(info->usedVariables()[i]);
-        for (unsigned i = 0; i < info->writtenVariablesCount; ++i)
-            m_writtenVariables.add(info->writtenVariables()[i]);
     }
 
 private:
@@ -772,8 +760,7 @@ private:
     VariableEnvironment m_lexicalVariables;
     Vector<UniquedStringImplPtrSet, 6> m_usedVariables;
     UniquedStringImplPtrSet m_sloppyModeHoistableFunctionCandidates;
-    IdentifierSet m_closedVariableCandidates;
-    UniquedStringImplPtrSet m_writtenVariables;
+    HashSet<UniquedStringImpl*> m_closedVariableCandidates;
     RefPtr<ModuleScopeData> m_moduleScopeData;
     DeclarationStacks::FunctionStack m_functionDeclarations;
 };
@@ -1047,6 +1034,7 @@ private:
         ASSERT(i < m_scopeStack.size() && m_scopeStack.size());
         while (i && (!m_scopeStack[i].isFunctionBoundary() || m_scopeStack[i].isGeneratorBoundary() || m_scopeStack[i].isArrowFunctionBoundary()))
             i--;
+        // When reaching the top level scope (it can be non ordinary function scope), we return it.
         return ScopeRef(&m_scopeStack, i);
     }
     
@@ -1175,12 +1163,6 @@ private:
         return m_scopeStack[i].hasDeclaredParameter(ident);
     }
     
-    void declareWrite(const Identifier* ident)
-    {
-        if (!m_syntaxAlreadyValidated || strictMode())
-            m_scopeStack.last().declareWrite(ident);
-    }
-
     bool exportName(const Identifier& ident)
     {
         ASSERT(currentScope().index() == 0);
@@ -1431,8 +1413,8 @@ private:
     template <class TreeBuilder> ALWAYS_INLINE TreeExpression parseArgument(TreeBuilder&, ArgumentType&);
     template <class TreeBuilder> TreeProperty parseProperty(TreeBuilder&, bool strict);
     template <class TreeBuilder> TreeExpression parsePropertyMethod(TreeBuilder& context, const Identifier* methodName, bool isGenerator);
-    template <class TreeBuilder> TreeProperty parseGetterSetter(TreeBuilder&, bool strict, PropertyNode::Type, unsigned getterOrSetterStartOffset, ConstructorKind = ConstructorKind::None, SuperBinding = SuperBinding::NotNeeded);
-    template <class TreeBuilder> ALWAYS_INLINE TreeFunctionBody parseFunctionBody(TreeBuilder&, const JSTokenLocation&, int, int functionKeywordStart, int functionNameStart, int parametersStart, ConstructorKind, SuperBinding, FunctionBodyType, unsigned, SourceParseMode);
+    template <class TreeBuilder> TreeProperty parseGetterSetter(TreeBuilder&, bool strict, PropertyNode::Type, unsigned getterOrSetterStartOffset, ConstructorKind, bool isClassProperty);
+    template <class TreeBuilder> ALWAYS_INLINE TreeFunctionBody parseFunctionBody(TreeBuilder&, SyntaxChecker&, const JSTokenLocation&, int, int functionKeywordStart, int functionNameStart, int parametersStart, ConstructorKind, SuperBinding, FunctionBodyType, unsigned, SourceParseMode);
     template <class TreeBuilder> ALWAYS_INLINE bool parseFormalParameters(TreeBuilder&, TreeFormalParameterList, unsigned&);
     enum VarDeclarationListContext { ForLoopContext, VarDeclarationContext };
     template <class TreeBuilder> TreeExpression parseVariableDeclarationList(TreeBuilder&, int& declarations, TreeDestructuringPattern& lastPattern, TreeExpression& lastInitializer, JSTextPosition& identStart, JSTextPosition& initStart, JSTextPosition& initEnd, VarDeclarationListContext, DeclarationType, ExportType, bool& forLoopConstDoesNotHaveInitializer);
@@ -1458,7 +1440,7 @@ private:
     
     ALWAYS_INLINE bool isArrowFunctionParameters();
     
-    template <class TreeBuilder> NEVER_INLINE int parseFunctionParameters(TreeBuilder&, SourceParseMode, ParserFunctionInfo<TreeBuilder>&);
+    template <class TreeBuilder, class FunctionInfoType> NEVER_INLINE typename TreeBuilder::FormalParameterList parseFunctionParameters(TreeBuilder&, SourceParseMode, FunctionInfoType&);
     template <class TreeBuilder> NEVER_INLINE typename TreeBuilder::FormalParameterList createGeneratorParameters(TreeBuilder&);
 
     template <class TreeBuilder> NEVER_INLINE TreeClassExpression parseClass(TreeBuilder&, FunctionRequirements, ParserClassInfo<TreeBuilder>&);
@@ -1540,6 +1522,7 @@ private:
 
     ALWAYS_INLINE void restoreLexerState(const LexerState& lexerState)
     {
+        // setOffset clears lexer errors.
         m_lexer->setOffset(lexerState.startOffset, lexerState.oldLineStartOffset);
         next();
         m_lexer->setLastLineNumber(lexerState.oldLastLineNumber);
@@ -1550,31 +1533,55 @@ private:
         ParserState parserState;
         LexerState lexerState;
     };
-    
-    ALWAYS_INLINE SavePoint createSavePointForError()
+
+    struct SavePointWithError : public SavePoint {
+        bool lexerError;
+        String lexerErrorMessage;
+        String parserErrorMessage;
+    };
+
+    ALWAYS_INLINE void internalSaveState(SavePoint& savePoint)
     {
-        SavePoint result;
-        result.parserState = internalSaveParserState();
-        result.lexerState = internalSaveLexerState();
-        return result;
+        savePoint.parserState = internalSaveParserState();
+        savePoint.lexerState = internalSaveLexerState();
+    }
+    
+    ALWAYS_INLINE SavePointWithError createSavePointForError()
+    {
+        SavePointWithError savePoint;
+        internalSaveState(savePoint);
+        savePoint.lexerError = m_lexer->sawError();
+        savePoint.lexerErrorMessage = m_lexer->getErrorMessage();
+        savePoint.parserErrorMessage = m_errorMessage;
+        return savePoint;
     }
     
     ALWAYS_INLINE SavePoint createSavePoint()
     {
         ASSERT(!hasError());
-        return createSavePointForError();
+        SavePoint savePoint;
+        internalSaveState(savePoint);
+        return savePoint;
     }
 
-    ALWAYS_INLINE void restoreSavePointWithError(const SavePoint& savePoint, const String& message)
+    ALWAYS_INLINE void internalRestoreState(const SavePoint& savePoint)
     {
-        m_errorMessage = message;
         restoreLexerState(savePoint.lexerState);
         restoreParserState(savePoint.parserState);
     }
 
+    ALWAYS_INLINE void restoreSavePointWithError(const SavePointWithError& savePoint)
+    {
+        internalRestoreState(savePoint);
+        m_lexer->setSawError(savePoint.lexerError);
+        m_lexer->setErrorMessage(savePoint.lexerErrorMessage);
+        m_errorMessage = savePoint.parserErrorMessage;
+    }
+
     ALWAYS_INLINE void restoreSavePoint(const SavePoint& savePoint)
     {
-        restoreSavePointWithError(savePoint, String());
+        internalRestoreState(savePoint);
+        m_errorMessage = String();
     }
 
     VM* m_vm;

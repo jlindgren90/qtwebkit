@@ -633,13 +633,6 @@ struct Node {
         m_op = ToString;
     }
 
-    void convertToArithSqrt()
-    {
-        ASSERT(m_op == ArithPow);
-        child2() = Edge();
-        m_op = ArithSqrt;
-    }
-
     void convertToArithNegate()
     {
         ASSERT(m_op == ArithAbs && child1().useKind() == Int32Use);
@@ -681,14 +674,14 @@ struct Node {
         return asJSValue().asNumber();
     }
      
-    bool isMachineIntConstant()
+    bool isAnyIntConstant()
     {
-        return isConstant() && constant()->value().isMachineInt();
+        return isConstant() && constant()->value().isAnyInt();
     }
      
-    int64_t asMachineInt()
+    int64_t asAnyInt()
     {
-        return asJSValue().asMachineInt();
+        return asJSValue().asAnyInt();
     }
      
     bool isBooleanConstant()
@@ -869,9 +862,11 @@ struct Node {
         case TryGetById:
         case GetById:
         case GetByIdFlush:
+        case GetByIdWithThis:
         case PutById:
         case PutByIdFlush:
         case PutByIdDirect:
+        case PutByIdWithThis:
         case PutGetterById:
         case PutSetterById:
         case PutGetterSetterById:
@@ -960,6 +955,16 @@ struct Node {
     bool mayHaveNonIntResult()
     {
         return m_flags & NodeMayHaveNonIntResult;
+    }
+    
+    bool mayHaveDoubleResult()
+    {
+        return m_flags & NodeMayHaveDoubleResult;
+    }
+    
+    bool mayHaveNonNumberResult()
+    {
+        return m_flags & NodeMayHaveNonNumberResult;
     }
 
     bool hasConstantBuffer()
@@ -1384,6 +1389,7 @@ struct Node {
         case GetGlobalVar:
         case GetGlobalLexicalVariable:
         case StringReplace:
+        case StringReplaceRegExp:
             return true;
         default:
             return false;
@@ -1920,9 +1926,9 @@ struct Node {
         return isInt32OrBooleanSpeculationExpectingDefined(prediction());
     }
     
-    bool shouldSpeculateMachineInt()
+    bool shouldSpeculateAnyInt()
     {
-        return isMachineIntSpeculation(prediction());
+        return isAnyIntSpeculation(prediction());
     }
     
     bool shouldSpeculateDouble()
@@ -2153,9 +2159,9 @@ struct Node {
             && op2->shouldSpeculateInt32OrBooleanExpectingDefined();
     }
     
-    static bool shouldSpeculateMachineInt(Node* op1, Node* op2)
+    static bool shouldSpeculateAnyInt(Node* op1, Node* op2)
     {
-        return op1->shouldSpeculateMachineInt() && op2->shouldSpeculateMachineInt();
+        return op1->shouldSpeculateAnyInt() && op2->shouldSpeculateAnyInt();
     }
     
     static bool shouldSpeculateNumber(Node* op1, Node* op2)

@@ -37,6 +37,7 @@ WebInspector.HeapAllocationsTimelineView = class HeapAllocationsTimelineView ext
             name: {
                 title: WebInspector.UIString("Name"),
                 width: "150px",
+                icon: true,
             },
             timestamp: {
                 title: WebInspector.UIString("Time"),
@@ -128,11 +129,11 @@ WebInspector.HeapAllocationsTimelineView = class HeapAllocationsTimelineView ext
             }
         }
 
-        let shouldManuallyTriggerContentViewUpdate = this._contentViewContainer.currentContentView && this._contentViewContainer.currentContentView.representedObject === heapSnapshotTimelineRecord.heapSnapshot;
+        let shouldTriggerContentViewUpdate = this._contentViewContainer.currentContentView && this._contentViewContainer.currentContentView.representedObject === heapSnapshotTimelineRecord.heapSnapshot;
 
         this._contentViewContainer.showContentViewForRepresentedObject(heapSnapshotTimelineRecord.heapSnapshot);
 
-        if (shouldManuallyTriggerContentViewUpdate)
+        if (shouldTriggerContentViewUpdate)
             this._currentContentViewDidChange();
     }
 

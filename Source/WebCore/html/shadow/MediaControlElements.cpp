@@ -307,7 +307,7 @@ void MediaControlTimelineContainerElement::setTimeDisplaysHidden(bool hidden)
     }
 }
 
-RenderPtr<RenderElement> MediaControlTimelineContainerElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
+RenderPtr<RenderElement> MediaControlTimelineContainerElement::createElementRenderer(RenderStyle&& style, const RenderTreePosition&)
 {
     return createRenderer<RenderMediaControlTimelineContainer>(*this, WTFMove(style));
 }
@@ -327,7 +327,7 @@ Ref<MediaControlVolumeSliderContainerElement> MediaControlVolumeSliderContainerE
     return element;
 }
 
-RenderPtr<RenderElement> MediaControlVolumeSliderContainerElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
+RenderPtr<RenderElement> MediaControlVolumeSliderContainerElement::createElementRenderer(RenderStyle&& style, const RenderTreePosition&)
 {
     return createRenderer<RenderMediaVolumeSliderContainer>(*this, WTFMove(style));
 }
@@ -765,7 +765,7 @@ void MediaControlClosedCaptionsTrackListElement::updateDisplay()
             continue;
         }
 
-        if (displayMode != CaptionUserPreferences::Automatic && textTrack->mode() == TextTrack::showingKeyword()) {
+        if (displayMode != CaptionUserPreferences::Automatic && textTrack->mode() == TextTrack::Mode::Showing) {
             trackMenuItemSelected = true;
             trackItem->classList().add(selectedClassValue, ASSERT_NO_EXCEPTION);
         } else
@@ -1082,7 +1082,7 @@ Ref<MediaControlTextTrackContainerElement> MediaControlTextTrackContainerElement
     return element;
 }
 
-RenderPtr<RenderElement> MediaControlTextTrackContainerElement::createElementRenderer(Ref<RenderStyle>&& style, const RenderTreePosition&)
+RenderPtr<RenderElement> MediaControlTextTrackContainerElement::createElementRenderer(RenderStyle&& style, const RenderTreePosition&)
 {
     return createRenderer<RenderTextTrackContainerElement>(*this, WTFMove(style));
 }
@@ -1173,7 +1173,7 @@ void MediaControlTextTrackContainerElement::updateDisplay()
         LOG(Media, "MediaControlTextTrackContainerElement::updateDisplay(%p) - adding and positioning cue #%zu: \"%s\", start=%.2f, end=%.2f, line=%.2f", this, i, cue->text().utf8().data(), cue->startTime(), cue->endTime(), cue->line());
 
         RefPtr<VTTCueBox> displayBox = cue->getDisplayTree(m_videoDisplaySize.size(), m_fontSize);
-        if (cue->track()->mode() == TextTrack::disabledKeyword())
+        if (cue->track()->mode() == TextTrack::Mode::Disabled)
             continue;
 
         VTTRegion* region = cue->track()->regions()->getRegionById(cue->regionId());

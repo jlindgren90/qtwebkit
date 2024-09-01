@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2012 Google Inc. All rights reserved.
- * Copyright (C) 2013 Apple Inc. All rights reserved.
+ * Copyright (C) 2013, 2014, 2015, 2016 Apple Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -24,8 +24,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef InternalSettings_h
-#define InternalSettings_h
+#pragma once
 
 // FIXME (121927): This include should not be needed.
 #include <wtf/text/AtomicStringHash.h>
@@ -35,6 +34,8 @@
 #include "IntSize.h"
 #include "InternalSettingsGenerated.h"
 #include "SecurityOrigin.h"
+#include "Settings.h"
+#include "WritingMode.h"
 
 namespace WebCore {
 
@@ -52,7 +53,6 @@ public:
         explicit Backup(Settings&);
         void restoreTo(Settings&);
 
-        bool m_originalCSSShapesEnabled;
         EditingBehaviorType m_originalEditingBehavior;
 
         // Initially empty, only used if changed by a test.
@@ -64,11 +64,15 @@ public:
         ScriptFontFamilyMap m_fantasyFontFamilies;
         ScriptFontFamilyMap m_pictographFontFamilies;
 
-#if ENABLE(TEXT_AUTOSIZING)
+#if ENABLE(TEXT_AUTOSIZING) || ENABLE(IOS_TEXT_AUTOSIZING)
         bool m_originalTextAutosizingEnabled;
         IntSize m_originalTextAutosizingWindowSizeOverride;
+#endif
+
+#if ENABLE(TEXT_AUTOSIZING)
         float m_originalTextAutosizingFontScaleFactor;
 #endif
+
         String m_originalMediaTypeOverride;
         bool m_originalCanvasUsesAcceleratedDrawing;
         bool m_originalMockScrollbarsEnabled;
@@ -100,6 +104,11 @@ public:
 #endif
         bool m_allowsInlineMediaPlayback;
         bool m_inlineMediaPlaybackRequiresPlaysInlineAttribute;
+#if ENABLE(INDEXED_DATABASE_IN_WORKERS)
+        bool m_indexedDBWorkersEnabled;
+#endif
+        UserInterfaceDirectionPolicy m_userInterfaceDirectionPolicy;
+        TextDirection m_systemLayoutDirection;
     };
 
     static Ref<InternalSettings> create(Page* page)
@@ -125,7 +134,6 @@ public:
     void setTextAutosizingWindowSizeOverride(int width, int height, ExceptionCode&);
     void setTextAutosizingFontScaleFactor(float fontScaleFactor, ExceptionCode&);
     void setMediaTypeOverride(const String& mediaType, ExceptionCode&);
-    void setCSSShapesEnabled(bool, ExceptionCode&);
     void setCanStartMedia(bool, ExceptionCode&);
     void setWirelessPlaybackDisabled(bool);
     void setEditingBehavior(const String&, ExceptionCode&);
@@ -147,6 +155,11 @@ public:
     void setScrollingTreeIncludesFrames(bool, ExceptionCode&);
     void setAllowsInlineMediaPlayback(bool, ExceptionCode&);
     void setInlineMediaPlaybackRequiresPlaysInlineAttribute(bool, ExceptionCode&);
+    void setIndexedDBWorkersEnabled(bool, ExceptionCode&);
+    String userInterfaceDirectionPolicy(ExceptionCode&);
+    void setUserInterfaceDirectionPolicy(const String& policy, ExceptionCode&);
+    String systemLayoutDirection(ExceptionCode&);
+    void setSystemLayoutDirection(const String& direction, ExceptionCode&);
 
 private:
     explicit InternalSettings(Page*);
@@ -160,5 +173,3 @@ private:
 };
 
 } // namespace WebCore
-
-#endif

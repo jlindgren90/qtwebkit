@@ -36,6 +36,7 @@
 #include "ErrorEvent.h"
 #include "Event.h"
 #include "ExceptionCode.h"
+#include "IDBConnectionProxy.h"
 #include "InspectorConsoleInstrumentation.h"
 #include "MessagePort.h"
 #include "ScheduledAction.h"
@@ -62,7 +63,7 @@ using namespace Inspector;
 
 namespace WebCore {
 
-WorkerGlobalScope::WorkerGlobalScope(const URL& url, const String& userAgent, WorkerThread& thread, bool shouldBypassMainWorldContentSecurityPolicy, PassRefPtr<SecurityOrigin> topOrigin)
+WorkerGlobalScope::WorkerGlobalScope(const URL& url, const String& userAgent, WorkerThread& thread, bool shouldBypassMainWorldContentSecurityPolicy, PassRefPtr<SecurityOrigin> topOrigin, IDBClient::IDBConnectionProxy* connectionProxy)
     : m_url(url)
     , m_userAgent(userAgent)
     , m_script(std::make_unique<WorkerScriptController>(this))
@@ -71,8 +72,15 @@ WorkerGlobalScope::WorkerGlobalScope(const URL& url, const String& userAgent, Wo
     , m_shouldBypassMainWorldContentSecurityPolicy(shouldBypassMainWorldContentSecurityPolicy)
     , m_eventQueue(*this)
     , m_topOrigin(topOrigin)
+#if ENABLE(INDEXED_DATABASE)
+    , m_connectionProxy(connectionProxy)
+#endif
 {
-    setSecurityOriginPolicy(SecurityOriginPolicy::create(SecurityOrigin::create(url)));
+    auto origin = SecurityOrigin::create(url);
+    if (m_topOrigin->hasUniversalAccess())
+        origin->grantUniversalAccess();
+
+    setSecurityOriginPolicy(SecurityOriginPolicy::create(WTFMove(origin)));
     setContentSecurityPolicy(std::make_unique<ContentSecurityPolicy>(*this));
 }
 
@@ -111,6 +119,17 @@ void WorkerGlobalScope::disableEval(const String& errorMessage)
 {
     m_script->disableEval(errorMessage);
 }
+
+#if ENABLE(INDEXED_DATABASE)
+IDBClient::IDBConnectionProxy* WorkerGlobalScope::idbConnectionProxy()
+{
+#if ENABLE(INDEXED_DATABASE_IN_WORKERS)
+    return m_connectionProxy.get();
+#else
+    return nullptr;
+#endif
+}
+#endif // ENABLE(INDEXED_DATABASE)
 
 WorkerLocation* WorkerGlobalScope::location() const
 {

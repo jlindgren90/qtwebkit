@@ -30,6 +30,7 @@
 #include "Dictionary.h"
 #include "EventTarget.h"
 #include "ExceptionCode.h"
+#include "IDBConnectionProxy.h"
 #include "IDBConnectionToServer.h"
 #include "IDBDatabaseInfo.h"
 
@@ -42,9 +43,9 @@ class IDBResultData;
 class IDBTransaction;
 class IDBTransactionInfo;
 
-class IDBDatabase : public RefCounted<IDBDatabase>, public EventTargetWithInlineData, public ActiveDOMObject {
+class IDBDatabase : public ThreadSafeRefCounted<IDBDatabase>, public EventTargetWithInlineData, public ActiveDOMObject {
 public:
-    static Ref<IDBDatabase> create(ScriptExecutionContext&, IDBClient::IDBConnectionToServer&, const IDBResultData&);
+    static Ref<IDBDatabase> create(ScriptExecutionContext&, IDBClient::IDBConnectionProxy&, const IDBResultData&);
 
     virtual ~IDBDatabase();
 
@@ -63,11 +64,11 @@ public:
     // EventTarget
     EventTargetInterface eventTargetInterface() const final { return IDBDatabaseEventTargetInterfaceType; }
     ScriptExecutionContext* scriptExecutionContext() const final { return ActiveDOMObject::scriptExecutionContext(); }
-    void refEventTarget() final { RefCounted<IDBDatabase>::ref(); }
-    void derefEventTarget() final { RefCounted<IDBDatabase>::deref(); }
+    void refEventTarget() final { ThreadSafeRefCounted<IDBDatabase>::ref(); }
+    void derefEventTarget() final { ThreadSafeRefCounted<IDBDatabase>::deref(); }
 
-    using RefCounted<IDBDatabase>::ref;
-    using RefCounted<IDBDatabase>::deref;
+    using ThreadSafeRefCounted<IDBDatabase>::ref;
+    using ThreadSafeRefCounted<IDBDatabase>::deref;
 
     const char* activeDOMObjectName() const final;
     bool canSuspendForDocumentSuspension() const final;
@@ -86,7 +87,7 @@ public:
 
     void fireVersionChangeEvent(const IDBResourceIdentifier& requestIdentifier, uint64_t requestedVersion);
 
-    IDBClient::IDBConnectionToServer& serverConnection() { return m_serverConnection.get(); }
+    IDBClient::IDBConnectionProxy& connectionProxy() { return m_connectionProxy.get(); }
 
     void didCreateIndexInfo(const IDBIndexInfo&);
     void didDeleteIndexInfo(const IDBIndexInfo&);
@@ -97,14 +98,16 @@ public:
 
     bool hasPendingActivity() const final;
 
+    ThreadIdentifier originThreadID() const { return m_originThreadID; }
+
 private:
-    IDBDatabase(ScriptExecutionContext&, IDBClient::IDBConnectionToServer&, const IDBResultData&);
+    IDBDatabase(ScriptExecutionContext&, IDBClient::IDBConnectionProxy&, const IDBResultData&);
 
     void didCommitOrAbortTransaction(IDBTransaction&);
 
     void maybeCloseInServer();
 
-    Ref<IDBClient::IDBConnectionToServer> m_serverConnection;
+    Ref<IDBClient::IDBConnectionProxy> m_connectionProxy;
     IDBDatabaseInfo m_info;
     uint64_t m_databaseConnectionIdentifier { 0 };
 
@@ -115,6 +118,8 @@ private:
     HashMap<IDBResourceIdentifier, RefPtr<IDBTransaction>> m_activeTransactions;
     HashMap<IDBResourceIdentifier, RefPtr<IDBTransaction>> m_committingTransactions;
     HashMap<IDBResourceIdentifier, RefPtr<IDBTransaction>> m_abortingTransactions;
+
+    ThreadIdentifier m_originThreadID { currentThread() };
 };
 
 } // namespace WebCore

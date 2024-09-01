@@ -190,14 +190,11 @@ public:
     };
 
     RenderObject* traverseNext(const RenderObject* stayWithin) const;
-    typedef bool (*TraverseNextInclusionFunction)(const RenderObject*);
-    typedef BlockContentHeightType (*HeightTypeTraverseNextInclusionFunction)(const RenderObject*);
+    typedef bool (*TraverseNextInclusionFunction)(const RenderObject&);
+    typedef BlockContentHeightType (*HeightTypeTraverseNextInclusionFunction)(const RenderObject&);
 
     RenderObject* traverseNext(const RenderObject* stayWithin, TraverseNextInclusionFunction) const;
     RenderObject* traverseNext(const RenderObject* stayWithin, HeightTypeTraverseNextInclusionFunction, int& currentDepth,  int& newFixedDepth) const;
-
-    void adjustComputedFontSizesOnBlocks(float size, float visibleWidth);
-    WEBCORE_EXPORT void resetTextAutosizing();
 #endif
 
     WEBCORE_EXPORT RenderLayer* enclosingLayer() const;
@@ -697,8 +694,8 @@ public:
     virtual LayoutUnit minPreferredLogicalWidth() const { return 0; }
     virtual LayoutUnit maxPreferredLogicalWidth() const { return 0; }
 
-    RenderStyle& style() const;
-    RenderStyle& firstLineStyle() const;
+    const RenderStyle& style() const;
+    const RenderStyle& firstLineStyle() const;
 
     // Anonymous blocks that are part of of a continuation chain will return their inline continuation's outline style instead.
     // This is typically only relevant when repainting.

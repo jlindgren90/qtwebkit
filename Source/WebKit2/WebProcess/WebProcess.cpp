@@ -294,8 +294,11 @@ void WebProcess::initializeWebProcess(WebProcessCreationParameters&& parameters)
     m_iconDatabaseProxy.setEnabled(parameters.iconDatabaseEnabled);
 #endif
 
-    if (!parameters.applicationCacheDirectory.isEmpty())
-        ApplicationCacheStorage::singleton().setCacheDirectory(parameters.applicationCacheDirectory);
+    // FIXME: This should be constructed per data store, not per process.
+    m_applicationCacheStorage = ApplicationCacheStorage::create(parameters.applicationCacheDirectory, parameters.applicationCacheFlatFileSubdirectoryName);
+#if PLATFORM(IOS)
+    m_applicationCacheStorage->setDefaultOriginQuota(25ULL * 1024 * 1024);
+#endif
 
     if (!parameters.mediaCacheDirectory.isEmpty())
         WebCore::HTMLMediaElement::setMediaCacheDirectory(parameters.mediaCacheDirectory);
@@ -745,12 +748,6 @@ void WebProcess::clearResourceCaches(ResourceCachesToClear resourceCachesToClear
 
     // Empty the cross-origin preflight cache.
     CrossOriginPreflightResultCache::singleton().empty();
-}
-
-void WebProcess::clearApplicationCache()
-{
-    // Empty the application cache.
-    ApplicationCacheStorage::singleton().empty();
 }
 
 static inline void addCaseFoldedCharacters(StringHasher& hasher, const String& string)
@@ -1259,7 +1256,7 @@ void WebProcess::processWillSuspendImminently(bool& handled)
     }
 
     WEBPROCESS_LOG_ALWAYS("%p - WebProcess::processWillSuspendImminently()", this);
-    DatabaseTracker::tracker().closeAllDatabases();
+    DatabaseTracker::tracker().closeAllDatabases(CurrentQueryBehavior::Interrupt);
     actualPrepareToSuspend(ShouldAcknowledgeWhenReadyToSuspend::No);
     handled = true;
 }
